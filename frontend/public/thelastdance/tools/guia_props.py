@@ -255,6 +255,79 @@ PECAS = {
         "descricao": "árvore frondosa de quintal (mangueira), tronco grosso",
         "caixas": [{"x": (0, 1.0), "y": (0, 1.0), "z": (0, 3.2)}],
     },
+    # ---- casa do amigo: varanda gourmet (js/maps/casa_amigo_planta.js) ----
+    "ilha_marmore": {
+        "descricao": "ilha/balcão de bar: base de porcelanato mármore cinza escuro e tampo grosso de madeira clara, "
+                     "frente (onde ficam as banquetas) virada para +y",
+        "caixas": [
+            {"x": (0, 3.0), "y": (0.1, 0.8), "z": (0, 1.0)},       # base de mármore (colisão)
+            {"x": (0, 3.0), "y": (0, 0.9), "z": (1.0, 1.12)},      # tampo de madeira, um pouco maior
+        ],
+    },
+    "banqueta_corda": {
+        "descricao": "banqueta alta preta de corda trançada com encosto baixo, encosto do lado y = 0",
+        "caixas": [
+            {"x": (0, 0.45), "y": (0, 0.45), "z": (0, 0.75)},
+            {"x": (0.03, 0.42), "y": (0, 0.06), "z": (0.75, 1.0)},
+        ],
+    },
+    "churrasqueira_marmore": {
+        "descricao": "torre de churrasqueira revestida de mármore cinza escuro com a grelha num nicho de vidro, "
+                     "encostada na parede do fundo (y = 0), frente para +y",
+        "caixas": [{"x": (0, 1.5), "y": (0, 0.8), "z": (0, 2.4)}],
+    },
+    "bancada_cozinha": {
+        "descricao": "bancada de cozinha encostada na parede do fundo: tampo de mármore, pia com torneira alta, cooktop, "
+                     "armários de madeira embaixo; frente para +y",
+        "caixas": [{"x": (0, 2.6), "y": (0, 0.65), "z": (0, 0.95)}],
+    },
+    "nicho_geladeiras": {
+        "descricao": "nicho de marcenaria (madeira clara) com cervejeira de porta de vidro e geladeira inox lado a lado, "
+                     "armários em cima; encostado na parede do fundo, frente para +y",
+        "caixas": [{"x": (0, 1.8), "y": (0, 0.75), "z": (0, 2.3)}],
+    },
+    "mesa_redonda_madeira": {
+        "descricao": "mesa redonda grande de madeira ripada (1,6 m) sobre base de corda trançada azul",
+        "caixas": [{"x": (0, 1.6), "y": (0, 1.6), "z": (0, 0.76)}],
+    },
+    "cadeira_corda": {
+        "descricao": "cadeira de corda trançada azul-marinho com braços de madeira e pés de metal bege, de frente para "
+                     "a câmera (assento para +y), encosto do lado y = 0",
+        "caixas": [
+            {"x": (0, 0.6), "y": (0, 0.6), "z": (0, 0.45)},
+            {"x": (0.03, 0.57), "y": (0, 0.08), "z": (0.45, 0.85)},
+        ],
+    },
+    "cadeira_corda_costas": {
+        "descricao": "a mesma cadeira de corda azul vista de costas: encosto do lado x = 0,6 (perto da câmera), "
+                     "assento virado para -x",
+        "caixas": [
+            {"x": (0, 0.6), "y": (0, 0.6), "z": (0, 0.45)},
+            {"x": (0.52, 0.6), "y": (0.03, 0.57), "z": (0.45, 0.85)},
+        ],
+    },
+    "cadeira_corda_lado": {  # não se gera: espelho da cadeira_corda (assento para +x)
+        "descricao": "cadeira de corda azul virada para +x (espelho da cadeira_corda)",
+        "caixas": [
+            {"x": (0, 0.6), "y": (0, 0.6), "z": (0, 0.45)},
+            {"x": (0, 0.08), "y": (0.03, 0.57), "z": (0.45, 0.85)},
+        ],
+    },
+    "cadeira_corda_sul": {  # não se gera: espelho da cadeira_corda_costas (assento para -y)
+        "descricao": "cadeira de corda azul de costas para a câmera, assento para -y (espelho da cadeira_corda_costas)",
+        "caixas": [
+            {"x": (0, 0.6), "y": (0, 0.6), "z": (0, 0.45)},
+            {"x": (0.03, 0.57), "y": (0.52, 0.6), "z": (0.45, 0.85)},
+        ],
+    },
+    "vaso_planta_grande": {
+        "descricao": "vaso alto preto fosco com uma planta grande de folhas largas",
+        "caixas": [{"x": (0, 0.6), "y": (0, 0.6), "z": (0, 1.8)}],
+    },
+    "caixa_som": {
+        "descricao": "caixa de som portátil grande de festa, em pé no chão, com anel de luz colorida",
+        "caixas": [{"x": (0, 0.42), "y": (0, 0.36), "z": (0, 0.8)}],
+    },
     "parede_2m": {
         "descricao": "trecho de parede do fundo com 2 m de largura e 2,7 m de altura (plano y = 0, de frente para o jogador)",
         "caixas": [

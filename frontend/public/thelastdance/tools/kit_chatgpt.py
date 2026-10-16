@@ -189,69 +189,81 @@ KITS = {
         "derivados": [],
     },
     "casa_amigo": {
-        "titulo": "Casa do amigo (churrasco)",
-        "contexto": "this set is the backyard of a friend's house in São Paulo where friends gather for a Brazilian barbecue (churrasco) at night: brick barbecue grill, beer fridge, long wooden table, swimming pool, string lights",
+        "titulo": "Casa do amigo (varanda gourmet)",
+        "contexto": "this set is the gourmet balcony of a friend's apartment at night: marble barbecue tower, island bar "
+                    "with stools, beer fridge, round wooden table with blue rope chairs, big black planters, glass railing "
+                    "with the city lights",
+        # fotos reais do lugar (só na máquina; kit_chatgpt/ não vai para o git): móveis, materiais e cores
+        "nota": "Images 4 and 5 are REAL PHOTOS of the place: copy its furniture, materials and colors, but ALWAYS draw "
+                "in the pixel-art style of images 1 to 3, never photorealistic. ",
         "estilo": [
             ("estilo_1_padaria_moodboard.png", "reference/kit_v1.0/02_mapas/moodboard_locais.png", (1098, 372, 1536, 660)),
             ("estilo_2_apartamento_moodboard.png", "reference/kit_v1.0/02_mapas/moodboard_locais.png", (0, 662, 478, 1018)),
-            ("estilo_3_pecas_do_jogo.png", "montagem", ["geladeira_bebidas", "mesa_grande", "chapa", "cadeira_bistro", "planta", "balcao_modulo"]),
+            ("estilo_3_pecas_do_jogo.png", "montagem", ["geladeira_bebidas", "mesa_grande", "balcao_modulo", "cadeira_bistro", "planta", "forno_pao"]),
+            ("foto_4_cozinha_gourmet.jpg", "kit_chatgpt/casa_amigo/fotos/foto1.jpg", None),
+            ("foto_5_mesa_e_vasos.jpg", "kit_chatgpt/casa_amigo/fotos/foto3.jpg", None),
         ],
         "pedidos": [
-            ("churrasqueira", "Churrasqueira — FAÇA ESTA PRIMEIRO", "peca",
-             "a classic Brazilian brick barbecue grill (churrasqueira de tijolinho): a red-brick base with a stainless-steel grill "
-             "rack holding skewers of picanha and sausages over glowing charcoal, and on top (the upper block of the guide) a "
-             "brick hood and chimney with a little smoke. The opening of the grill is on the DARKEST front-left face.", ["--faces"]),
-            ("bancada_pia", "Bancada com pia", "peca",
-             "an outdoor kitchen counter: dark granite top with a stainless-steel sink and faucet, a cutting board with a knife "
-             "and a bowl of farofa, wooden cabinet doors below. The cabinet doors are on the DARKEST front-left face.", ["--faces"]),
-            ("cervejeira", "Cervejeira", "peca",
-             "a tall beer fridge (cervejeira) in black with a glass door showing rows of beer bottles and cans, a cold blue inner "
-             "light and frost on the glass. The glass door is on the DARKEST front-left face.", ["--faces"]),
-            ("mesa_madeira", "Mesa grande de madeira", "peca",
-             "a long rustic wooden table for 8 people (thick planks), on top: a wooden board with sliced meat, a bowl of "
-             "vinaigrette, beer bottles and cups.", ["--pela-largura"]),
-            ("banco_madeira", "Banco de madeira", "peca",
-             "a long rustic wooden bench without backrest, thick planks, matching the wooden table.", ["--pela-largura"]),
-            ("piscina", "Piscina", "peca",
-             "a rectangular swimming pool seen from the game's isometric angle: clear turquoise water with light reflections, "
-             "small blue tiles inside, a light stone border around it, a small stainless-steel ladder on one side, an inflatable "
-             "flamingo floating. The guide block is very flat: the water surface is the top face.", []),
-            ("espreguicadeira", "Espreguiçadeira", "peca",
-             "a white pool lounger (sun lounger) with a raised backrest on the far side (the taller block of the guide), "
-             "with a striped towel on it.", ["--uniforme"]),
-            ("guarda_sol", "Guarda-sol", "peca",
-             "an open beach umbrella with red and white stripes on a pole fixed in a heavy base; the canopy can be wider than the "
-             "guide block.", ["--uniforme"]),
-            ("caixa_termica", "Caixa térmica", "peca",
-             "a blue and white cooler box with the lid open, full of ice and beer cans.", ["--uniforme"]),
-            ("mesa_plastico", "Mesa de plástico", "peca",
-             "a square white plastic bar table (the classic Brazilian 'mesa de bar'), with a few beer cans on it.", ["--pela-largura"]),
-            ("cadeira_plastico", "Cadeira de plástico", "peca",
-             "a white plastic bar chair (classic Brazilian 'cadeira de bar'): the backrest is at the BACK (the thin upright block "
-             "on the far side of the guide), the seat faces the viewer toward the lower-left.", ["--uniforme"]),
-            ("arvore", "Árvore", "peca",
-             "a leafy backyard mango tree (mangueira) with a thick trunk, round dense crown and a few mangoes; the crown can be "
-             "wider than the guide block.", ["--uniforme"]),
-            ("muro", "Muro (textura)", "parede",
-             "a seamless wall texture for a backyard wall, 2 m wide by 2.4 m tall: painted cream concrete wall with a few climbing "
-             "plants and small cracks, a darker stone strip at the bottom, warm light. No objects, no text. It must tile seamlessly "
-             "left-right.", ["--largura-m", "2", "--altura-m", "2.4"]),
-            ("grama", "Gramado (textura)", "piso",
-             "a seamless tileable top-down lawn texture: green grass with small tufts and a few tiny flowers, at night with soft "
-             "warm light. Seen from directly above. No objects.", ["--metros", "2"]),
-            ("piso_gourmet", "Piso da área gourmet (textura)", "piso",
-             "a seamless tileable top-down floor texture: large terracotta-colored outdoor ceramic tiles with thin grout, a bit "
-             "worn. Seen from directly above. No objects.", ["--metros", "2"]),
-            ("portao", "Portão", "decal",
-             "a closed metal garden gate for a house, dark gray bars with a small mailbox, seen straight on.", []),
-            ("varal_luzes", "Varal de luzinhas", "decal",
-             "a string of warm round light bulbs (festoon lights) hanging in gentle curves, glowing. Only the string and bulbs.",
-             ["--sem-fundo"]),
-            ("placa_churras", "Placa do churrasco", "decal",
-             "a rustic wooden sign hanging on the wall that reads \"CHURRASCO DOS AMIGOS\" in white painted letters, with a small "
-             "painted beer mug and a skewer. Text must be spelled exactly.", ["--sem-fundo"]),
+            ("churrasqueira_marmore", "Churrasqueira de mármore — FAÇA ESTA PRIMEIRO", "peca",
+             "a tall built-in barbecue tower clad in dark gray marble porcelain tiles with thin light veins (photo 4), with a "
+             "rectangular glass-front niche at waist height holding a stainless-steel rotisserie grill with skewers of meat and "
+             "warm light inside. The front with the glass niche is the DARKEST front-left face.", ["--faces"]),
+            ("ilha_marmore", "Ilha de mármore com tampo de madeira", "peca",
+             "a bar island (photo 4): the base is clad in dark gray marble porcelain with light veins, on top a THICK light "
+             "wood-look countertop slightly larger than the base (the upper thin block of the guide), with two small ceramic "
+             "vases with dried flowers. The side where the stools go is the DARKEST front-left face.", []),
+            ("banqueta_corda", "Banqueta preta de corda", "peca",
+             "a tall black bar stool with a woven black rope seat and a low curved woven backrest, thin black metal legs with a "
+             "footrest (photo 4). The backrest is at the BACK (the thin upright block on the far side of the guide).",
+             ["--uniforme"]),
+            ("bancada_cozinha", "Bancada da pia", "peca",
+             "a kitchen counter against the wall (photo 4): dark marble countertop with a stainless sink and a tall black "
+             "spring faucet, a small cooktop, a coffee machine, light wood-look cabinet doors below. The cabinet doors are on "
+             "the DARKEST front-left face.", ["--faces"]),
+            ("nicho_geladeiras", "Nicho com cervejeira e geladeira", "peca",
+             "built-in light wood-look cabinetry (photo 4) holding, side by side, a stainless beer fridge with a glass door "
+             "full of beer bottles and a small digital display showing -6.0, and a tall stainless-steel two-door fridge; "
+             "cabinets above them. Both fridge doors are on the DARKEST front-left face. No logos.", ["--faces"]),
+            ("mesa_redonda_madeira", "Mesa redonda de madeira", "peca",
+             "a large round dining table (photo 5) with a top of light honey-colored wood slats, on a thick round base of "
+             "woven navy-blue rope. Nothing on top.", ["--pela-largura"]),
+            ("cadeira_corda", "Cadeira de corda azul (de frente)", "peca",
+             "an outdoor armchair (photo 5): navy-blue woven rope seat and backrest in an open diamond pattern, wooden "
+             "armrests, thin beige metal legs. The backrest is at the BACK (the thin upright block on the far side of the "
+             "guide), the seat faces the viewer toward the lower-left.", ["--uniforme"]),
+            ("cadeira_corda_costas", "Cadeira de corda azul (de costas)", "peca",
+             "the same navy-blue woven rope armchair with wooden armrests seen from BEHIND: the backrest is the thin upright "
+             "block on the NEAR right side of the guide, so we see the back of the woven backrest; the seat faces away.",
+             ["--uniforme"]),
+            ("vaso_planta_grande", "Vaso grande com planta", "peca",
+             "a tall matte-black planter (photos 4 and 5) with a big leafy tropical plant (bird of paradise / strelitzia "
+             "leaves), lit from below by a small spotlight.", ["--uniforme"]),
+            ("caixa_som", "Caixa de som de festa", "peca",
+             "a big portable party speaker standing on the floor, black, with two round woofers on the front and a glowing "
+             "multicolor light ring around them, a carry handle on top. The speaker front is the DARKEST front-left face. "
+             "No readable brand logo.", ["--uniforme"]),
+            ("parede_varanda", "Parede (textura)", "parede",
+             "a seamless wall texture for a modern gourmet balcony, 2 m wide by 2.7 m tall: light greige wall with vertical "
+             "light-wood-look panels (photo 4), soft warm light from ceiling spotlights. No objects, no text. It must tile "
+             "seamlessly left-right.", ["--largura-m", "2", "--altura-m", "2.7"]),
+            ("piso_porcelanato", "Piso (textura)", "piso",
+             "a seamless tileable top-down floor texture: large light-gray porcelain tiles (90 x 90 cm look), almost "
+             "seamless thin grout, subtle stone texture (photos 4 and 5). Seen from directly above. No objects.",
+             ["--metros", "2"]),
+            ("vidro_cidade", "Guarda-corpo de vidro com a cidade", "decal",
+             "a glass balcony railing seen from inside at night (photo 5): tall clear glass panels with thin stainless posts, "
+             "and behind them a dark city skyline with lit windows and a few buildings. No people.", []),
+            ("parede_azulejo_luzes", "Parede de azulejo com arandelas", "decal",
+             "a wall section covered with small square gray stone tiles with three black square wall lights casting light "
+             "up and down (photo 5), a small white metal ventilation door at the bottom right.", []),
+            ("porta_vidro_sala", "Portas de vidro para a sala", "decal",
+             "large closed white-framed glass sliding doors seen from the balcony at night: through the glass a bright modern "
+             "living and dining room with a white table and pendant lights. No people.", []),
+            ("tv_parede", "TV", "decal",
+             "a flat black TV screen, turned off, thin frame, seen straight on.", []),
         ],
-        "derivados": [("cadeira_plastico_lado", "cadeira_plastico", "cadeira_plastico_lado", ["--espelhar", "--uniforme"])],
+        "derivados": [("cadeira_corda_lado", "cadeira_corda", "cadeira_corda_lado", ["--espelhar", "--uniforme"]),
+                      ("cadeira_corda_sul", "cadeira_corda_costas", "cadeira_corda_sul", ["--espelhar", "--uniforme"])],
     },
 }
 
@@ -260,7 +272,9 @@ DECAL_FORMATO = {"prateleira_paes": "landscape", "cardapio_padaria": "landscape"
                  "porta_banheiro": "portrait", "porta_rua": "portrait", "vitrine_rua": "landscape",
                  "porta_elevador_garagem": "landscape", "placa_saida": "landscape", "extintor": "portrait",
                  "porta_cabine": "portrait", "painel_elevador": "portrait",
-                 "portao": "landscape", "varal_luzes": "landscape", "placa_churras": "landscape"}
+                 "portao": "landscape", "varal_luzes": "landscape", "placa_churras": "landscape",
+                 "vidro_cidade": "landscape", "parede_azulejo_luzes": "landscape", "porta_vidro_sala": "landscape",
+                 "tv_parede": "landscape"}
 # imagens planas que têm forma própria (placa, objeto na parede): fundo transparente em volta
 TRANSPARENTES = {"prateleira_paes", "cardapio_padaria", "neon_padaria", "placa_saida", "extintor", "painel_elevador",
                  "varal_luzes", "placa_churras"}
@@ -326,6 +340,7 @@ def montar(mapa):
     primeira = ("These images are the ART STYLE REFERENCE for a series of game assets I will ask you for next, one per "
                 f"message: an isometric pixel-art game set at night in São Paulo ({kit['contexto']}). "
                 "The third image shows props already in the game: match that finish. "
+                f"{kit.get('nota', '')}"
                 "Do not generate anything now, just confirm.")
     pagina = f"""<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -351,7 +366,7 @@ button.ok {{ background:#1f8f4e; border-color:#3ddc84; }}
 </style></head><body><main>
 <h1>Kit ChatGPT — {kit['titulo']}</h1>
 <div class="passos"><ol>
-  <li>Abra uma conversa nova no ChatGPT. Anexe as 3 imagens da pasta <code>estilo/</code> (abaixo) e cole o texto da primeira mensagem.</li>
+  <li>Abra uma conversa nova no ChatGPT. Anexe as {len(kit['estilo'])} imagens da pasta <code>estilo/</code> (abaixo) e cole o texto da primeira mensagem.</li>
   <li>Na MESMA conversa, faça uma peça por mensagem: anexe o guia (quando tiver) e cole o texto da peça.</li>
   <li>Se o fundo não vier transparente, peça: <i>"make the background transparent"</i>. Se vier no ângulo errado, peça de novo lembrando: <i>"match the gray guide angle exactly"</i>.</li>
   <li>Salve cada imagem em <code>prontas/</code> com o nome indicado. Comece pelo <b>1 (balcão)</b> e me mostre antes de fazer o resto.</li>

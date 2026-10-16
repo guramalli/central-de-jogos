@@ -221,8 +221,18 @@
       const [ax, ay] = ISO.tela(jog.x, jog.y, 0), [bx, by] = ISO.tela((c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, 0);
       jog.dir = direcaoSprite(bx - ax, by - ay);
       if (c.interacao === "armario") abrirArmario();
+      else if (c.interacao === "caixa_som") alternarCaixaSom(c);
       else mostrarDestinos();
     });
+  }
+  // Caixa de som: liga/desliga a música do lugar e mostra um aviso em cima dela.
+  let avisoObjeto = null;
+  function alternarCaixaSom(c) {
+    if (!NSF.Audio) return;
+    if (NSF.Audio.iniciar) NSF.Audio.iniciar();
+    const ligar = !NSF.Audio.estado().querMusica;
+    NSF.Audio.musica(ligar);
+    avisoObjeto = { c, texto: ligar ? "♪ Som na caixa! ♪" : "Silêncio...", ate: performance.now() + 2200 };
   }
   // Guarda-roupa: as roupas são do personagem modular — se ele estiver com outro conjunto, troca para o modular.
   function abrirArmario() {
@@ -1078,6 +1088,10 @@
       }
     }
     desenharSinaisNpc(ctx, agora);
+    if (avisoObjeto && agora < avisoObjeto.ate) {
+      const o = avisoObjeto.c;
+      rotulo(ctx, avisoObjeto.texto, (o.x0 + o.x1) / 2, (o.y0 + o.y1) / 2, o.z1 + 0.5);
+    }
     const dtNpc = npcRelogio ? Math.min(0.1, (agora - npcRelogio) / 1000) : 0;
     npcRelogio = agora;
     for (const n of NPCS) if (n.modular) n.modular.atualizar(dtNpc);
