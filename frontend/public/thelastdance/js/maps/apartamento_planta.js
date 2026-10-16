@@ -22,12 +22,7 @@
     ligacao: "gatinha_campinas",   // roteiro de js/dialogos/ que toca neste mapa
     roteiroDemo: ["frente do sofá", "varanda (porta de vidro)", "mesa redonda", "lado da cama",
       "mesa do computador", "armário", "aparador", "porta de entrada"],
-    // Para onde a porta de entrada leva (menu ao sair). Por enquanto só a padaria.
-    destinos: [
-      { nome: "Padaria", descricao: "Café, pão na chapa e energia para mais uma noite", url: "padaria.html", ativo: true },
-      { nome: "Balada", descricao: "Em breve", ativo: false },
-      { nome: "Casa de amigo", descricao: "Em breve", ativo: false },
-    ],
+    // Sair de casa é sempre pelo elevador até a garagem; o menu de destinos fica no carro (garagem_planta.js).
 
     comodos: [
       { nome: "Sala", x0: 0, y0: 0, x1: 6, y1: 7, piso: "#3b3640", piso2: "#433d49", piso_arte: "piso_sala" },
@@ -78,7 +73,7 @@
       { nome: "Parede cimentícia", tipo: "cimento", plano: "y0", a: 0, b: 2.8, z0: 0, z1: 2.7, arte: "cimento" },
       { nome: "Fita de LED", tipo: "led", plano: "y0", a: 2.35, b: 2.45, z0: 0.2, z1: 2.5 },
       { nome: "Parede vermelha", tipo: "vermelha", plano: "y0", a: 2.8, b: 6.0, z0: 0, z1: 2.7, arte: "parede_vermelha" },
-      { nome: "Porta de entrada", tipo: "porta", plano: "y0", a: 4.0, b: 5.0, z0: 0, z1: 2.15, saida: true, arte: "porta_entrada" },
+      { nome: "Porta de entrada", tipo: "porta", plano: "y0", a: 4.0, b: 5.0, z0: 0, z1: 2.15, saida: true, vai: { nome: "Elevador", url: "elevador.html?descer=1" }, arte: "porta_entrada" },
       { nome: "Quadro pop-art", tipo: "quadro", plano: "y0", a: 3.05, b: 3.65, z0: 1.15, z1: 2.03, arte: "quadro_popart" },
       { nome: "Neon \"Mais uma noite?\"", tipo: "neon", plano: "y0", a: 7.5, b: 9.1, z0: 1.4, z1: 2.2, arte: "neon" },
       { nome: "Janela", tipo: "vidro", plano: "y0", a: 9.3, b: 9.95, z0: 0.95, z1: 2.25, arte: "janela" },

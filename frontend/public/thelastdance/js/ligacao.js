@@ -180,7 +180,7 @@
     const s = el("div", "lig-sistema", n.fim.texto);
     atual.msgs.appendChild(s);
     atual.msgs.scrollTop = atual.msgs.scrollHeight;
-    const b = el("button", "vermelho", conversaPessoal(atual.roteiro) ? "Tchau" : "Desligar");
+    const b = el("button", "vermelho", atual.roteiro.botaoFim || (conversaPessoal(atual.roteiro) ? "Tchau" : "Desligar"));
     const f = atual.o.aoTerminar, r = n.fim.resultado;
     b.onclick = () => { fechar(); if (f) f(r); };
     atual.acoes.appendChild(b);

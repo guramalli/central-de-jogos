@@ -149,13 +149,36 @@
     return PORTA.plano === "x0" ? { x: 0.5, y: m } : { x: m, y: 0.5 };
   }
   function irParaPorta() {
+    if (!PORTA || PORTA.trancada) return;
     const f = frenteDaPorta();
     irPara(f.x, f.y, abrirPorta);
   }
+  // Porta com "vai" leva direto a um lugar (ex.: a porta do apartamento leva ao elevador); sem "vai", abre o
+  // menu de destinos da planta.
   function abrirPorta() {
     porta.aberta = true;
     jog.dir = PORTA.plano === "x0" ? "esquerda" : "cima";
-    mostrarDestinos();
+    if (PORTA.vai) sair(PORTA.vai);
+    else mostrarDestinos();
+  }
+
+  // Objetos que abrem o menu de destinos (o carro na garagem): tocar -> ele vai até "falarDe" -> menu.
+  const VEICULOS = P.caixas.filter((c) => c.destinos);
+  function caixaNaTela(c, m, folga) {
+    const pts = [];
+    for (const x of [c.x0, c.x1]) for (const y of [c.y0, c.y1]) for (const z of [0, c.z1]) pts.push(T(x, y, z));
+    const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
+    return m.telaX >= Math.min(...xs) - folga && m.telaX <= Math.max(...xs) + folga &&
+           m.telaY >= Math.min(...ys) - folga && m.telaY <= Math.max(...ys) + folga;
+  }
+  function veiculoNoToque(m, folga) { return VEICULOS.find((c) => caixaNaTela(c, m, folga || 0)); }
+  function irAoVeiculo(c) {
+    const f = c.falarDe || { x: (c.x0 + c.x1) / 2, y: c.y1 + 0.4 };
+    irPara(f.x, f.y, () => {
+      const [ax, ay] = ISO.tela(jog.x, jog.y, 0), [bx, by] = ISO.tela((c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, 0);
+      jog.dir = direcaoSprite(bx - ax, by - ay);
+      mostrarDestinos();
+    });
   }
   function fecharPorta() {
     porta.aberta = false;
@@ -315,6 +338,8 @@
     }
     const npc = npcNoToque(m);
     if (npc) { irFalarCom(npc); return; }
+    const veiculo = veiculoNoToque(m, 20);
+    if (veiculo) { irAoVeiculo(veiculo); return; }
     const rp = retanguloPorta(), folga = 40;
     if (rp && m.telaX >= rp.x0 - folga && m.telaX <= rp.x1 + folga && m.telaY >= rp.y0 - folga && m.telaY <= rp.y1 + folga) irParaPorta();
   }
@@ -338,6 +363,8 @@
     }
     const npc = npcNoToque(m);
     if (npc) { irFalarCom(npc); return; }
+    const veiculo = veiculoNoToque(m, 0);
+    if (veiculo) { irAoVeiculo(veiculo); return; }
     const rp = retanguloPorta();
     if (rp && m.telaX >= rp.x0 && m.telaX <= rp.x1 && m.telaY >= rp.y0 && m.telaY <= rp.y1) { irParaPorta(); return; }
     if (m.x < 0 || m.y < 0 || m.x > P.largura || m.y > P.profundidade) return;
@@ -503,6 +530,9 @@
           poli(ctx, [T(x, y, 0), T(x + 0.5, y, 0), T(x + 0.5, y + 0.5, 0), T(x, y + 0.5, 0)], cor);
         }
       }
+    }
+    for (const f of P.faixas || []) { // tinta no chão: retângulos (x0..x1, y0..y1)
+      poli(ctx, [T(f.x0, f.y0, 0), T(f.x1, f.y0, 0), T(f.x1, f.y1, 0), T(f.x0, f.y1, 0)], f.cor || "rgba(235,235,225,0.75)");
     }
     if (mostrarGrade) { // células onde o personagem cabe (verde) — grade de colisão
       const g = ISO.alcance(P, jog.x, jog.y, RAIO, 0.25);
@@ -838,6 +868,7 @@
       }
     }
     desenharSinaisNpc(ctx, agora);
+    if (P.aoDesenhar) P.aoDesenhar(ctx, T, agora);
 
     if (destinoToque) { // marcador no chão onde o jogador tocou
       const [mx, my] = T(destinoToque.x, destinoToque.y, 0), p = 0.6 + 0.4 * Math.sin(agora / 150);
@@ -908,14 +939,15 @@
   }).then(() => {
     // toca quando ele acorda no quarto (não toda vez que volta para casa)
     if (ROTEIRO_LIGACAO && comodo === "quarto" && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
-    marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir,
+    marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir, PORTA, veiculos: VEICULOS, irAoVeiculo,
       npcs: NPCS, retanguloNpc, irFalarCom, falarCom,
       mundoParaTela(x, y) { // inverso de telaParaMundo (para testes): ponto do mundo -> coordenada do toque
         const v = ultimaVista, r = canvas.getBoundingClientRect(), [lx, ly] = T(x, y, 0);
         return [r.left + (lx * v.z * v.escala + v.dx) * r.width / canvas.width,
                 r.top + (ly * v.z * v.escala + v.dy) * r.height / canvas.height];
       },
-      get caminho() { return caminho; }, pronto: true, jog, atualizar, teclas, toque, desenhar }; })
+      get caminho() { return caminho; }, pronto: true, jog, atualizar, teclas, toque, desenhar };
+    if (P.aoIniciar) P.aoIniciar(window.NSF_APTO, { chegando: params.has("chegada") || !!efeito.tipo || !!jog.oculto }); })
     .catch((e) => { estado.erros.push(String(e)); console.error(e); });
   NSF.iniciar(canvas, desenhar, { adaptar: true });
 })();

@@ -11,9 +11,9 @@ const MAPAS = fs.readdirSync(path.join(RAIZ, "js/maps")).filter((f) => f.endsWit
   .map((f) => require(path.join(RAIZ, "js/maps", f)));
 const sobrepoe = (a, b) => a.x0 < b.x1 - 1e-9 && b.x0 < a.x1 - 1e-9 && a.y0 < b.y1 - 1e-9 && b.y0 < a.y1 - 1e-9;
 
-test("há pelo menos dois mapas (apartamento e padaria)", () => {
+test("todos os mapas do caminho existem: apartamento, elevador, garagem, padaria", () => {
   const ids = MAPAS.map((m) => m.id).sort();
-  assert.ok(ids.includes("apartamento") && ids.includes("padaria"), ids.join(","));
+  for (const id of ["apartamento", "elevador", "garagem", "padaria"]) assert.ok(ids.includes(id), ids.join(","));
 });
 
 for (const P of MAPAS) {
@@ -37,16 +37,27 @@ for (const P of MAPAS) {
     for (const p of P.pontos) assert.ok(g.alcancavel(p.x, p.y), `${p.nome}: não dá para chegar`);
   });
 
-  test(`${P.id}: tem exatamente uma porta de saída, alcançável, e destinos (pelo menos um ativo com URL que existe)`, () => {
+  test(`${P.id}: tem exatamente uma porta de saída, alcançável, que leva a uma página que existe`, () => {
     const portas = P.naParede.filter((w) => w.saida);
     assert.equal(portas.length, 1);
     const w = portas[0], m = (w.a + w.b) / 2;
     const frente = w.plano === "x0" ? { x: 0.5, y: m } : { x: m, y: 0.5 };
     const g = ISO.alcance(P, P.inicio.x, P.inicio.y, RAIO, 0.1);
     assert.ok(g.alcancavel(frente.x, frente.y), "frente da porta inacessível");
-    const ativos = (P.destinos || []).filter((d) => d.ativo);
-    assert.ok(ativos.length >= 1, "nenhum destino ativo");
-    for (const d of ativos) assert.ok(fs.existsSync(path.join(RAIZ, d.url.split("?")[0])), d.url);
+    // a porta leva direto ("vai") ou abre o menu de destinos da planta
+    const ativos = w.vai ? [w.vai] : (P.destinos || []).filter((d) => d.ativo);
+    assert.ok(ativos.length >= 1, "porta sem destino");
+    for (const d of [...ativos, ...(P.destinos || []).filter((d) => d.ativo)]) {
+      assert.ok(fs.existsSync(path.join(RAIZ, d.url.split("?")[0])), d.url);
+    }
+  });
+
+  if (P.caixas.some((c) => c.destinos)) test(`${P.id}: dá para chegar no carro (menu de destinos)`, () => {
+    const g = ISO.alcance(P, P.inicio.x, P.inicio.y, RAIO, 0.1);
+    for (const c of P.caixas.filter((k) => k.destinos)) {
+      assert.ok(c.falarDe && ISO.livre(P, c.falarDe.x, c.falarDe.y, RAIO) && g.alcancavel(c.falarDe.x, c.falarDe.y), c.nome);
+      assert.ok((P.destinos || []).some((d) => d.ativo), "carro sem destino ativo");
+    }
   });
 
   if (P.npcs) test(`${P.id}: pessoas sentadas numa cadeira, dá para chegar perto de todas, roteiros existem`, () => {

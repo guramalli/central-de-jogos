@@ -133,7 +133,7 @@
 
     // Para onde a porta da rua leva (menu ao sair).
     destinos: [
-      { nome: "Casa", descricao: "Voltar para o apartamento", url: "apartamento.html?comodo=entrada", ativo: true },
+      { nome: "Casa", descricao: "Voltar de carro para o prédio", url: "garagem.html?comodo=carro", ativo: true },
       { nome: "Balada", descricao: "Em breve", ativo: false },
     ],
 

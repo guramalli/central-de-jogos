@@ -181,7 +181,7 @@ KITS = {
              "Seen from directly above. No objects.", ["--metros", "2"]),
             ("porta_cabine", "Elevador por dentro: porta fechada", "decal",
              "the inside of closed elevator doors: two brushed stainless-steel sliding door panels meeting in the middle, thin "
-             "steel frame, a little digital floor display above showing \"12\".", []),
+             "steel frame. No floor display (the game draws it above the doors).", []),
             ("painel_elevador", "Elevador por dentro: painel de botões", "decal",
              "a tall narrow elevator button panel in brushed steel: two columns of round buttons numbered 1 to 12 plus \"G\", "
              "\"T\" and an alarm bell button, button \"G\" glowing orange.", []),
