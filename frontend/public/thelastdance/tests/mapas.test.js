@@ -80,6 +80,9 @@ for (const P of MAPAS) {
         assert.ok(Math.hypot(n.falarDe.x - n.x, n.falarDe.y - n.y) < 2.0, `${n.id}: falarDe longe demais`);
       }
       assert.ok(n.dialogo || n.fala, `${n.id}: sem dialogo nem fala`);
+      if (n.personagem) {
+        assert.ok(fs.existsSync(path.join(RAIZ, "assets/characters/npcs", n.personagem, "personagem.json")), `${n.id}: personagem ${n.personagem}`);
+      }
       if (n.dialogo) assert.ok(fs.existsSync(path.join(RAIZ, "js/dialogos", n.dialogo + ".js")), `${n.id}: roteiro ${n.dialogo}`);
     }
   });

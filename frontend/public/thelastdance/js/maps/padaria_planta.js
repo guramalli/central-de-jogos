@@ -94,6 +94,8 @@
 
     // Gente na padaria (bonecos provisórios até a arte). sentado: (x, y) é o centro da cadeira.
     // dir: para onde olha na tela (baixo = para a câmera). falarDe: onde o protagonista fica para conversar.
+    // personagem: personagem modular de assets/characters/npcs/<id>/ (reaproveitável em outros mapas);
+    // sem ela, boneco provisório desenhado com as cores de "visual".
     // dialogo: roteiro em js/dialogos/ (toque abre a conversa);
     // sem dialogo, o toque mostra "fala" num balão. visual: cores e cabelo do boneco provisório.
     npcs: [
@@ -105,15 +107,19 @@
         visual: { pele: "#b9825a", roupa: "#f1f1ee", calca: "#1d1d22", cabelo: "#cfcfcf", estilo: "curto", avental: "#7a1f2e" } },
 
       // mesa das meninas: duas no fundo (de frente para a câmera), uma na ponta; uma cadeira vazia
-      { id: "menina_vestido", nome: "Menina de vestido vermelho", postura: "sentado", x: 5.475, y: 4.275, dir: "baixo", falarDe: { x: 5.8, y: 6.05 },
+      { id: "menina_vestido", nome: "Menina de vestido vermelho", personagem: "vestido_vermelho", postura: "sentado", x: 5.475, y: 4.275, dir: "baixo", falarDe: { x: 5.8, y: 6.05 },
         dialogo: "menina_padaria",
         visual: { pele: "#e2b08a", roupa: "#c8233d", calca: "#c8233d", cabelo: "#2b1a12", estilo: "longo" } },
-      { id: "menina_loira", nome: "Menina loira", postura: "sentado", x: 6.125, y: 4.275, dir: "baixo", falarDe: { x: 6.2, y: 6.05 },
+      { id: "menina_loira", nome: "Menina loira", personagem: "loira_cargo", postura: "sentado", x: 6.125, y: 4.275, dir: "baixo", falarDe: { x: 6.2, y: 6.05 },
         fala: "Ela ri de alguma coisa no celular e nem te nota.",
         visual: { pele: "#f0c8a6", roupa: "#f3d3e6", calca: "#3b4a8a", cabelo: "#e6c46a", estilo: "longo" } },
-      { id: "menina_cacheada", nome: "Menina de cabelo cacheado", postura: "sentado", x: 4.875, y: 5.1, dir: "direita", falarDe: { x: 4.9, y: 5.9 },
+      { id: "menina_cacheada", nome: "Menina de cabelo cacheado", personagem: "cacheada_saia", postura: "sentado", x: 4.875, y: 5.1, dir: "direita", falarDe: { x: 4.9, y: 5.9 },
         fala: "\"Amiga, olha quem chegou...\"",
         visual: { pele: "#8d5a3b", roupa: "#2c2c34", calca: "#2c2c34", cabelo: "#1c120c", estilo: "volume" } },
+
+      // em pé na geladeira de bebidas, escolhendo o que levar
+      { id: "menina_moletom", nome: "Menina de moletom", personagem: "morena_moletom", postura: "em_pe", x: 1.25, y: 3.75, dir: "esquerda",
+        falarDe: { x: 1.9, y: 4.3 }, fala: "\"Será que tem Guaraná zero? Nunca tem Guaraná zero.\"" },
 
       // mesa dos homens
       { id: "homem_bone", nome: "Cara de boné", postura: "sentado", x: 9.875, y: 5.275, dir: "baixo", falarDe: { x: 10.0, y: 7.05 },
@@ -147,7 +153,7 @@
       { nome: "mesa das meninas", x: 5.8, y: 6.1 },
       { nome: "mesa dos homens", x: 10.2, y: 7.1 },
       { nome: "mesa do canto", x: 12.5, y: 9.4 },
-      { nome: "geladeira", x: 1.1, y: 3.7 },
+      { nome: "geladeira", x: 1.4, y: 4.6 },
       { nome: "banheiro", x: 12.8, y: 0.6 },
     ],
   };

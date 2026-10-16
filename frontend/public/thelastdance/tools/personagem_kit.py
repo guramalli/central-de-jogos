@@ -24,6 +24,8 @@ import roupa_ia as R  # noqa: E402
 RAIZ = Path(__file__).resolve().parent.parent
 TRAS = {"coxa_tras": "coxa", "canela_tras": "canela", "pe_tras": "pe_frente", "braco_tras": "braco"}
 SOBRA = 6  # px de sobra nas juntas
+ESCALA_IMG = 0.4  # as peças são gravadas menores (no jogo o personagem tem ~173 px, ~0,13 do canvas); w/h no rig
+                  # dizem o tamanho no canvas, então nada mais muda
 
 
 def dist_segmento(px, py, a, b):
@@ -145,8 +147,11 @@ def main():
             x0, y0 = int(xs.min()), int(ys.min())
             rel = f"{vista}/{c['nome']}.png"
             (destino / vista).mkdir(parents=True, exist_ok=True)
-            Image.fromarray(p[y0:ys.max() + 1, x0:xs.max() + 1]).save(destino / rel, optimize=True)
-            camadas.append(dict(c, img=rel, x=x0, y=y0))
+            corte = Image.fromarray(p[y0:ys.max() + 1, x0:xs.max() + 1])
+            w, h = corte.size
+            corte = corte.resize((max(1, round(w * ESCALA_IMG)), max(1, round(h * ESCALA_IMG))), Image.LANCZOS)
+            corte.save(destino / rel, optimize=True)
+            camadas.append(dict(c, img=rel, x=x0, y=y0, w=w, h=h))
         rig["vistas"][vista]["camadas"] = camadas
         print(vista, len(camadas), "peças")
     (destino / "personagem.json").write_text(json.dumps({"rig": rig, "animacoes": anim}, ensure_ascii=False),

@@ -153,7 +153,8 @@
         if (!img) continue;
         const m = mul(base, calcular(c.osso));
         ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]);
-        ctx.drawImage(img, c.x, c.y);
+        if (c.w) ctx.drawImage(img, c.x, c.y, c.w, c.h); // peça gravada menor: w/h = tamanho no canvas
+        else ctx.drawImage(img, c.x, c.y);
       }
       ctx.restore();
     }

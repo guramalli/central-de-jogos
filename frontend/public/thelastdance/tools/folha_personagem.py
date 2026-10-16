@@ -26,6 +26,8 @@ def tons_do_xadrez(a):
     cantos = np.concatenate([a[:40, :40].reshape(-1, 3), a[:40, -40:].reshape(-1, 3),
                              a[-40:, :40].reshape(-1, 3), a[-40:, -40:].reshape(-1, 3)]).astype(int)
     lum = cantos.mean(1)
+    if lum.max() - lum.min() < 20:  # fundo liso (branco), não xadrez
+        return [round(lum.mean())]
     corte = (lum.min() + lum.max()) / 2
     return sorted({round(lum[lum < corte].mean()), round(lum[lum >= corte].mean())})
 
@@ -47,7 +49,8 @@ def fundo(a):
     # ilhas: grupos de pixels do xadrez com pelo menos uns 20 px (pixel cinza solto dentro do desenho fica)
     rot2, n2 = nd.label(candidato)
     tam = nd.sum(candidato, rot2, range(1, n2 + 1))
-    f |= np.isin(rot2, np.where(tam >= 20)[0] + 1)
+    # no fundo liso, ilha pequena pode ser o branco do olho: só tira as grandes (vão entre braço e corpo)
+    f |= np.isin(rot2, np.where(tam >= (20 if len(tons) > 1 else 150))[0] + 1)
     # fiapos: borda acinzentada (xadrez misturado com a ponta do cabelo) encostada no fundo vai embora, aos poucos
     lum_ok = (lum > min(tons) - 25) & (lum < max(tons) + 25)
     acinzentado = ((a.max(-1) - a.min(-1)) < 28) & lum_ok

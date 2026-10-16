@@ -359,6 +359,47 @@
     if (c) c.ocupante = n;   // desenhado logo depois da cadeira (a mesa à frente cobre o colo)
   }
   const alturaNpc = (n) => (n.postura === "sentado" ? 1.35 : 1.8);
+
+  // Pessoas com "personagem": "<id>" usam uma personagem modular de assets/characters/npcs/<id>/ (as mesmas peças
+  // e animações do protagonista). A mesma personagem pode aparecer em vários mapas e várias vezes no mesmo mapa:
+  // os dados e as imagens são baixados uma vez só; cada pessoa tem a sua instância (vista e tempo próprios).
+  const PASTA_NPC = "assets/characters/npcs/";
+  const dadosNpc = {};
+  function carregarLibs() {
+    return global.PersonagemModular ? Promise.resolve()
+      : carregarScript(PASTA_MOD + "dados.js").then(() => carregarScript(PASTA_MOD + "personagem-modular.js"));
+  }
+  if (NPCS.some((n) => n.personagem)) {
+    carregarLibs().then(() => Promise.all(NPCS.filter((n) => n.personagem).map((n) => {
+      const id = n.personagem;
+      dadosNpc[id] = dadosNpc[id] || fetch(PASTA_NPC + id + "/personagem.json").then((r) => r.json());
+      return dadosNpc[id].then((d) => new global.PersonagemModular(d, PASTA_NPC + id + "/").carregar()).then((pm) => {
+        pm.pixelado = false;
+        pm.definirVista(VISTA_MOD[n.dir] || "frente");
+        pm.tocar("parado");
+        pm.tempo = Math.random() * 2; // cada um respira num ritmo
+        n.modular = pm;
+      });
+    }))).catch((e) => estado.erros.push(String(e)));
+  }
+  let npcRelogio = 0;
+  // Desenho da personagem modular. Sentada: o quadril fica na altura do assento e as pernas são cortadas ali
+  // (a mesa na frente cobre o resto) — o esqueleto não tem pose sentada.
+  function desenharNpcModular(ctx, n) {
+    const pm = n.modular;
+    let [fx, fy] = T(n.x, n.y, 0);
+    ctx.save();
+    if (n.postura === "sentado") {
+      const corte = T(n.x, n.y, 0.47)[1] + 6;
+      fy += (fy - T(n.x, n.y, 1)[1]) * 0.18; // corpo um pouco mais baixo: o quadril afunda no assento
+      ctx.beginPath(); ctx.rect(fx - 400, corte - 2000, 800, 2000); ctx.clip();
+    } else {
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.beginPath(); ctx.ellipse(fx, fy, 40, 11, 0, 0, 2 * Math.PI); ctx.fill();
+    }
+    pm.desenhar(ctx, fx, fy, ALTURA_PERSONAGEM / ALTURA_MOD);
+    ctx.restore();
+  }
   function retanguloNpc(n) {
     const [bx, by] = T(n.x, n.y, 0), ty = T(n.x, n.y, alturaNpc(n))[1];
     return { x0: bx - 34, x1: bx + 34, y0: ty - 12, y1: by + 6 };
@@ -822,6 +863,7 @@
   // Boneco provisório: sombra, pernas (em pé), tronco, braços, cabeça, cabelo e olhos virados para "dir".
   // Escala igual à do mapa (1 m de altura = px de ISO.tela). Só até chegar a arte de cada personagem.
   function desenharNpc(ctx, n) {
+    if (n.modular) { desenharNpcModular(ctx, n); return; }
     const v = n.visual || {}, sentado = n.postura === "sentado";
     const [fx, fy] = T(n.x, n.y, 0), k = fy - T(n.x, n.y, 1)[1];
     const Z = (z) => fy - z * k;
@@ -970,6 +1012,9 @@
       }
     }
     desenharSinaisNpc(ctx, agora);
+    const dtNpc = npcRelogio ? Math.min(0.1, (agora - npcRelogio) / 1000) : 0;
+    npcRelogio = agora;
+    for (const n of NPCS) if (n.modular) n.modular.atualizar(dtNpc);
     if (P.aoDesenhar) P.aoDesenhar(ctx, T, agora);
 
     if (destinoToque) { // marcador no chão onde o jogador tocou
@@ -1046,7 +1091,7 @@
     if (ROTEIRO_LIGACAO && comodo === "quarto" && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
     marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir, PORTA, veiculos: VEICULOS, irAoVeiculo,
       abrirArmario, get heroi() { return heroi; },
-      npcs: NPCS, retanguloNpc, irFalarCom, falarCom,
+      npcs: NPCS, retanguloNpc, irFalarCom, falarCom, desenharNpcModular,
       mundoParaTela(x, y) { // inverso de telaParaMundo (para testes): ponto do mundo -> coordenada do toque
         const v = ultimaVista, r = canvas.getBoundingClientRect(), [lx, ly] = T(x, y, 0);
         return [r.left + (lx * v.z * v.escala + v.dx) * r.width / canvas.width,
