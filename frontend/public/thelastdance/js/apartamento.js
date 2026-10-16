@@ -432,6 +432,7 @@
   function npcNoToque(m) { // se dois se sobrepõem na tela, vale o da frente
     let achado = null;
     for (const n of NPCS) {
+      if (n.oculta) continue;
       const r = retanguloNpc(n);
       if (m.telaX < r.x0 || m.telaX > r.x1 || m.telaY < r.y0 || m.telaY > r.y1) continue;
       if (!achado || n.x + n.y > achado.x + achado.y) achado = n;
@@ -912,6 +913,7 @@
   // Boneco provisório: sombra, pernas (em pé), tronco, braços, cabeça, cabelo e olhos virados para "dir".
   // Escala igual à do mapa (1 m de altura = px de ISO.tela). Só até chegar a arte de cada personagem.
   function desenharNpc(ctx, n) {
+    if (n.oculta) return; // ainda não entrou em cena
     if (n.modular) { desenharNpcModular(ctx, n); return; }
     const v = n.visual || {}, sentado = n.postura === "sentado";
     const [fx, fy] = T(n.x, n.y, 0), k = fy - T(n.x, n.y, 1)[1];
@@ -972,6 +974,7 @@
   // Sinal "…" sobre quem tem conversa, e o balão de fala de quem só comenta.
   function desenharSinaisNpc(ctx, agora) {
     for (const n of NPCS) {
+      if (n.oculta) continue;
       const [x, y] = T(n.x, n.y, alturaNpc(n) + 0.25);
       if (n.balao && agora > n.balao.ate) n.balao = null;
       if (n.balao) {

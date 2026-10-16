@@ -1,8 +1,8 @@
 // Planta do ELEVADOR do prédio: passagem obrigatória entre o apartamento (12º andar) e a garagem (G).
 // elevador.html?descer=1 (saiu de casa) -> garagem ; elevador.html?subir=1 (chegou de carro) -> apartamento.
 // A cena é automática: ele aparece, o mostrador conta os andares e abre um quadro rápido com 4 opções
-// (peidar, assobiar, olhar o celular, mexer no bigode), cada uma com som/animação. Quando o elevador chega e a
-// ação terminou, "plim", a porta abre e ele sai.
+// (peidar, assobiar, olhar o celular, mexer no bigode), cada uma com som/animação. No 7º andar entra uma freira,
+// que comenta o que ele fez. Quando o elevador chega e a ação terminou, "plim", a porta abre e ele sai.
 (function (global) {
   "use strict";
 
@@ -42,6 +42,11 @@
       { nome: "Painel", tipo: "cardapio", plano: "y0", a: 1.8, b: 2.2, z0: 0.85, z1: 1.55, arte: "painel_elevador" },
       ESPELHO,
     ],
+    // a irmã entra no 7º andar (fica oculta até lá) e reage ao que ele fizer
+    npcs: [
+      { id: "freira", nome: "Irmã", personagem: "freira", postura: "em_pe", x: 1.95, y: 0.9, dir: "baixo", oculta: true,
+        fala: "\"Deus abençoe, meu filho.\"" },
+    ],
     pontos: [{ nome: "centro", x: 1.2, y: 1.3 }],
     roteiroDemo: ["centro"],
 
@@ -77,11 +82,49 @@
   };
 
   // ---------------------------------------------------------------- a viagem
-  let escolheu = false, chegou = false;
+  let escolheu = false, chegou = false, acaoFeita = null;
+  const ANDAR_FREIRA = 7;
   function comecar() {
     PLANTA.viagem.inicio = performance.now();
     setTimeout(mostrarOpcoes, 600);
+    // instante em que o mostrador passa pelo 7º andar
+    const v = PLANTA.viagem, frac = (ANDAR_FREIRA - v.de) / (v.para - v.de);
+    setTimeout(entraFreira, Math.max(0.2, frac) * VIAGEM_S * 1000);
     setTimeout(() => { chegou = true; talvezSair(); }, VIAGEM_S * 1000);
+  }
+
+  // A irmã: entra no 7º andar ("plim", a porta abre e fecha) e comenta o que ele fez/está fazendo.
+  const ENTRADA = {
+    peidar: "Jesus amado... que cheiro é esse?",
+    assobiar: "Que alegria, meu filho!",
+    celular: "Boa noite. Esses celulares, viu...",
+    bigode: "Boa noite, meu filho.",
+  };
+  const REACAO = {
+    peidar: "Misericórdia! Abre essa porta, Senhor!",
+    assobiar: "Bonita essa! Toca na missa de domingo?",
+    celular: "Coloca um terço nesse celular aí, meu filho.",
+    bigode: "Vaidade, meu filho. Vaidade.",
+  };
+  function freira() { return PLANTA.api && PLANTA.api.npcs.find((n) => n.id === "freira"); }
+  // fala dela só depois que o balão dele some (os dois balões ficam lado a lado e se sobreporiam)
+  function falaFreira(texto, ms) {
+    const f = freira();
+    if (!f || f.oculta) return;
+    const espera = PLANTA.legenda ? PLANTA.legenda.ate - performance.now() : 0;
+    if (espera > 0) { setTimeout(() => falaFreira(texto, ms), espera + 120); return; }
+    f.balao = { texto, ate: performance.now() + (ms || 2600) };
+  }
+  function entraFreira() {
+    const api = PLANTA.api, f = freira();
+    if (!api || !f || chegou) return;
+    if (global.NSF.Audio) global.NSF.Audio.ding();
+    api.porta.aberta = true;
+    setTimeout(() => {
+      f.oculta = false;
+      falaFreira(ENTRADA[acaoFeita] || "Boa noite, meu filho.", 2600);
+    }, 450);
+    setTimeout(() => { api.porta.aberta = false; }, 1100);
   }
   function talvezSair() {
     if (!escolheu || !chegou) return;
@@ -129,6 +172,9 @@
   function fazer(id) {
     const api = PLANTA.api, jog = api.jog, heroi = api.heroi, Audio = global.NSF.Audio, agora = performance.now();
     let dur = 2600;
+    acaoFeita = id;
+    // se a irmã já entrou, ela reage
+    if (freira() && !freira().oculta) setTimeout(() => falaFreira(REACAO[id], 2400), id === "celular" ? 2600 : 900);
     if (id === "peidar") {
       if (Audio) Audio.peido();
       for (let k = 0; k < 7; k++) PLANTA.efeitos.push({ tipo: "nuvem", t0: agora + k * 90, dur: 1800, dx: -10 + k * 6, sem: k });
@@ -166,7 +212,11 @@
       talvezSair();
     }, dur);
   }
-  function legenda(texto, ms) { PLANTA.legenda = { texto, ate: performance.now() + ms }; }
+  function legenda(texto, ms) {
+    PLANTA.legenda = { texto, ate: performance.now() + ms };
+    const f = freira();
+    if (f) f.balao = null; // um balão de cada vez
+  }
 
   // Partículas e balões em volta do personagem (a posição dele na tela vem de T).
   function desenharEfeitos(ctx, T, agora) {
