@@ -1,7 +1,8 @@
 // Som do jogo sintetizado no navegador (Web Audio, sem arquivos): música de fundo em loop e toque do celular.
 // Navegadores só liberam áudio depois de um gesto do jogador: o som começa no primeiro toque/clique/tecla.
 // API: NSF.Audio.iniciar() ; .musica(true|false) ; .toque(true|false) ; .abafar(true|false) (música baixa
-//      durante a conversa) ; .ligado() ; .alternar() (botão Som). No modo de teste (?test=1) fica mudo.
+//      durante a conversa) ; .clique(aparecendo) (passagem de tela) ; .ligado() ; .alternar() (botão Som).
+//      No modo de teste (?test=1) fica mudo.
 (function (global) {
   "use strict";
   const AC = global.AudioContext || global.webkitAudioContext;
@@ -45,14 +46,17 @@
   }
 
   let ruido = null;
-  function chimbal(t, vol) {
+  function obterRuido() {
     if (!ruido) {
       ruido = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
       const d = ruido.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
+    return ruido;
+  }
+  function chimbal(t, vol) {
     const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-    s.buffer = ruido; f.type = "highpass"; f.frequency.value = 7000;
+    s.buffer = obterRuido(); f.type = "highpass"; f.frequency.value = 7000;
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
     s.connect(f); f.connect(g); g.connect(busMusica); s.start(t); s.stop(t + 0.06);
   }
@@ -92,6 +96,22 @@
     toqueRelogio = setTimeout(tocarToque, 2600);
   }
 
+  // Passagem de tela: estalo curto + bip que desce (sumindo) ou sobe (aparecendo).
+  function clique(aparecendo) {
+    if (!ctx || ctx.state !== "running") return;
+    const t = ctx.currentTime + 0.01;
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), gs = ctx.createGain();
+    s.buffer = obterRuido(); f.type = "highpass"; f.frequency.value = 2500;
+    gs.gain.setValueAtTime(0.4, t); gs.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+    s.connect(f); f.connect(gs); gs.connect(busToque); s.start(t); s.stop(t + 0.05);
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "square";
+    o.frequency.setValueAtTime(aparecendo ? 280 : 1500, t);
+    o.frequency.exponentialRampToValueAtTime(aparecendo ? 1500 : 200, t + 0.2);
+    g.gain.setValueAtTime(0.13, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    o.connect(g); g.connect(busToque); o.start(t); o.stop(t + 0.25);
+  }
+
   const mudo = () => !!(global.NSF && global.NSF.estado && global.NSF.estado.modoTeste);
 
   const Audio = {
@@ -110,6 +130,7 @@
       volumeMusica();
     },
     abafar(sim) { abafado = sim; volumeMusica(); },
+    clique,
     ligado: () => ligadoSom,
     // para conferência/testes: estado do contexto e volumes
     estado: () => ({ contexto: ctx ? ctx.state : "sem", musica: busMusica ? +busMusica.gain.value.toFixed(2) : 0,

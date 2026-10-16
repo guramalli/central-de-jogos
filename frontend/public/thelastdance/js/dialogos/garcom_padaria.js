@@ -12,27 +12,18 @@
       abertura: {
         falas: [
           { quem: "ele", texto: "Opa, campeão! Cara de quem não dormiu de novo, hein?" },
-          { quem: "ele", texto: "Vai querer o de sempre?" },
         ],
         opcoes: [
-          { texto: "Pingado e pão na chapa (recupera a energia)", vai: "cafe" },
-          { texto: "Só uma água, tô sem grana", vai: "agua" },
+          { texto: "Quero comer alguma coisa", vai: "pedido" },
           { texto: "Quem são as meninas daquela mesa?", vai: "meninas" },
         ],
       },
-      cafe: {
+      pedido: {
         falas: [
-          { quem: "eu", texto: "Manda o de sempre, Seu Zé. Caprichado na manteiga." },
-          { quem: "ele", texto: "Saindo! Com isso aí você aguenta mais uma noite." },
+          { quem: "eu", texto: "Tô morrendo de fome, Seu Zé." },
+          { quem: "ele", texto: "Pede ali no balcão com a Dona Cida. O pão com ovo dela é patrimônio da cidade." },
         ],
-        fim: { texto: "Energia recuperada. (A barra de energia entra nas próximas etapas.)", resultado: "cafe" },
-      },
-      agua: {
-        falas: [
-          { quem: "eu", texto: "Só uma água mesmo. A noite de ontem levou tudo." },
-          { quem: "ele", texto: "Essa é por conta da casa. Mas vê se come alguma coisa, rapaz." },
-        ],
-        fim: { texto: "Água grátis. A fome continua.", resultado: "agua" },
+        fim: { texto: "Dica: a Dona Cida fica atrás do balcão.", resultado: "dica_balcao" },
       },
       meninas: {
         falas: [

@@ -35,7 +35,7 @@
     texturaParede: "parede_padaria",     // azulejo embaixo, pintura em cima (enquanto não existe: paredes em bloco)
     inicio: { x: 0.9, y: 8.2, dir: "baixo" },
     inicios: { entrada: { x: 0.9, y: 8.2 } },
-    roteiroDemo: ["frente do balcão", "garçom", "mesa das meninas", "mesa dos homens", "banheiro", "porta da rua"],
+    roteiroDemo: ["frente do balcão", "atendente", "garçom", "mesa das meninas", "mesa dos homens", "banheiro", "porta da rua"],
 
     comodos: [
       { nome: "Salão", x0: 0, y0: 1.6, x1: LARG, y1: PROF, piso: "#7b6a58", piso2: "#857261", piso_arte: "piso_padaria" },
@@ -96,6 +96,10 @@
     // dialogo: roteiro em js/dialogos/ (toque abre a conversa);
     // sem dialogo, o toque mostra "fala" num balão. visual: cores e cabelo do boneco provisório.
     npcs: [
+      // atrás do balcão: é com ela que se pede (pingado, pão na chapa, pão com ovo...)
+      { id: "atendente", nome: "Dona Cida, a atendente", postura: "em_pe", x: 3.15, y: 1.05, dir: "baixo",
+        falarDe: { x: 3.15, y: 2.75 }, dialogo: "atendente_padaria",
+        visual: { pele: "#c9946a", roupa: "#f4efe6", calca: "#2b2b33", cabelo: "#3a2418", estilo: "coque", avental: "#2f6b5a" } },
       { id: "garcom", nome: "Seu Zé, o garçom", postura: "em_pe", x: 9.0, y: 3.3, dir: "baixo", falarDe: { x: 9.5, y: 4.0 }, dialogo: "garcom_padaria",
         visual: { pele: "#b9825a", roupa: "#f1f1ee", calca: "#1d1d22", cabelo: "#cfcfcf", estilo: "curto", avental: "#7a1f2e" } },
 
@@ -136,6 +140,7 @@
     pontos: [
       { nome: "porta da rua", x: 0.6, y: 8.2 },
       { nome: "frente do balcão", x: 3.0, y: 3.4 },
+      { nome: "atendente", x: 3.15, y: 2.75 },
       { nome: "caixa", x: 10.1, y: 2.8 },
       { nome: "garçom", x: 8.2, y: 3.6 },
       { nome: "mesa das meninas", x: 5.8, y: 6.1 },

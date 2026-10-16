@@ -194,13 +194,79 @@
     const primeiro = caixa.querySelector("button:not([disabled])");
     if (primeiro) primeiro.focus();
   }
+  // ---------- passagem de tela ----------
+  // Sair: o personagem some num "clique" (achata, vira uma linha de luz e apaga, como TV antiga), a tela
+  // escurece com "Indo para <lugar>" e abre o próximo mapa. Chegar: a tela clareia com o nome do lugar e ele
+  // reaparece na porta com o mesmo clique ao contrário.
+  const efeito = { tipo: null, t0: 0, dur: 0, fim: null };
+  function efeitoJogador(tipo, dur, fim) {
+    Object.assign(efeito, { tipo, t0: performance.now(), dur, fim: fim || null });
+    if (tipo === "aparecer") jog.oculto = false;
+    teclas.clear(); caminho = []; destinoToque = null; aoChegar = null;
+    jog.andando = false; jog.tempo = 0;
+  }
+  // Escala do corpo (sx, sy) e brilho da linha de luz no instante "agora"; null se não há efeito.
+  function quadroEfeito(agora) {
+    if (!efeito.tipo) return null;
+    const bruto = Math.min(1, (agora - efeito.t0) / efeito.dur);
+    if (bruto >= 1) {
+      const fim = efeito.fim, tipo = efeito.tipo;
+      efeito.tipo = null; efeito.fim = null;
+      if (tipo === "sumir") jog.oculto = true;
+      if (fim) fim();
+      return null;
+    }
+    const p = efeito.tipo === "sumir" ? bruto : 1 - bruto;  // aparecer = o mesmo filme de trás para frente
+    let sx, sy;
+    if (p < 0.25) { const k = p / 0.25; sx = 1 + 0.2 * k; sy = 1 - 0.15 * k; }          // encolhe para pegar impulso
+    else if (p < 0.6) { const k = (p - 0.25) / 0.35; sx = 1.2 + 0.3 * k; sy = 0.85 * (1 - k) + 0.03 * k; } // achata
+    else { const k = (p - 0.6) / 0.4; sx = 1.5 * (1 - k); sy = 0.03; }                  // a linha some no meio
+    const brilho = p < 0.4 ? 0 : p < 0.75 ? (p - 0.4) / 0.35 : (1 - p) / 0.25;
+    return { sx, sy, brilho };
+  }
   function sair(destino) {
-    if (NSF.Audio) NSF.Audio.musica(false);
-    const cortina = document.createElement("div");
-    cortina.className = "cortina";
-    document.body.appendChild(cortina);
-    requestAnimationFrame(() => cortina.classList.add("fechada"));
-    setTimeout(() => { location.href = destino.url; }, 600);
+    if (porta.saindo) return;
+    porta.saindo = true;
+    if (porta.menu) { porta.menu.remove(); porta.menu = null; }
+    if (NSF.Audio) NSF.Audio.clique(false);
+    efeitoJogador("sumir", 560, () => {
+      if (NSF.Audio) NSF.Audio.musica(false);
+      const cortina = cortinaCom("Indo para", destino.nome);
+      document.body.appendChild(cortina);
+      requestAnimationFrame(() => requestAnimationFrame(() => cortina.classList.add("fechada")));
+      const url = destino.url + (destino.url.includes("?") ? "&" : "?") + "chegada=1";
+      setTimeout(() => { location.href = url; }, 1200);
+    });
+  }
+  function cortinaCom(linha1, linha2) {
+    const c = document.createElement("div");
+    c.className = "cortina";
+    c.setAttribute("role", "status");
+    const t = document.createElement("div");
+    t.className = "cortina-texto";
+    const a = document.createElement("small"); a.textContent = linha1;
+    const b = document.createElement("b"); b.textContent = linha2;
+    t.append(a, b);
+    c.appendChild(t);
+    return c;
+  }
+  // Chegou pela porta de outro mapa: começa no escuro com o nome do lugar, clareia e ele aparece na porta.
+  if (params.has("chegada")) {
+    jog.oculto = true;
+    porta.aberta = true;
+    const c = cortinaCom("Você chegou", P.nome);
+    c.classList.add("fechada", "sem-transicao");
+    document.body.appendChild(c);
+    const resto = location.search.replace(/[?&]chegada=1/, "").replace(/^&/, "?");
+    history.replaceState(null, "", location.pathname + resto + location.hash); // recarregar não repete a chegada
+    setTimeout(() => {
+      c.classList.remove("sem-transicao", "fechada");
+      setTimeout(() => {
+        c.remove();
+        if (NSF.Audio) NSF.Audio.clique(true);
+        efeitoJogador("aparecer", 560, () => setTimeout(() => { porta.aberta = false; }, 350));
+      }, 650);
+    }, 1100);
   }
 
   // ---------- gente no mapa (bonecos provisórios até a arte) ----------
@@ -243,7 +309,7 @@
 
   canvas.addEventListener("pointerdown", (e) => {
     if (NSF.Ligacao && NSF.Ligacao.aberta()) return;
-    if (porta.menu) return;
+    if (porta.menu || porta.saindo || efeito.tipo || jog.oculto) return;
     const m = telaParaMundo(e.clientX, e.clientY);
     if (!m) return;
     e.preventDefault();
@@ -338,6 +404,7 @@
   function atualizar(dt) {
     let sx = 0, sy = 0, wx = 0, wy = 0;
     if (NSF.Ligacao && NSF.Ligacao.aberta()) { jog.andando = false; jog.tempo = 0; return; }
+    if (efeito.tipo || jog.oculto) { jog.andando = false; jog.tempo = 0; return; } // sumindo/aparecendo
     const teclando = teclas.size > 0;
     if (teclando && caminho.length && !demo) { caminho = []; destinoToque = null; aoChegar = null; }
     if (!demo && !teclando && destinoToque && !caminho.length) {
@@ -538,17 +605,35 @@
   }
 
   function desenharJogador(ctx) {
+    const ef = quadroEfeito(performance.now());
+    if (jog.oculto && !ef) return;
     const f = manifesto.conjuntos[conjunto][jog.dir], im = folhas[f.folha];
     const q = quadroSprite(f), px = f.pes[0], py = f.pes[1];
     const [x, y] = T(jog.x, jog.y, 0);
     const e = ALTURA_PERSONAGEM / (manifesto.altura_personagem_px || 128);
+    const meio = y - ALTURA_PERSONAGEM * 0.5; // o "clique" fecha no meio do corpo
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.35)";
-    ctx.beginPath(); ctx.ellipse(x, y, 46, 13, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, y, 46 * (ef ? Math.min(1, ef.sx) : 1), 13, 0, 0, 2 * Math.PI); ctx.fill();
+    if (ef) { ctx.translate(x, meio); ctx.scale(ef.sx, ef.sy); ctx.translate(-x, -meio); }
     ctx.imageSmoothingEnabled = true; // folha em alta resolução reduzida: suavizar (sem serrilhado nem blocos)
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(im, q * f.larg, 0, f.larg, f.alt, x - px * e, y - py * e, f.larg * e, f.alt * e);
     ctx.restore();
+    if (ef && ef.brilho > 0) { // linha de luz rosa-branca onde ele some/aparece
+      const larg = 70 * Math.max(ef.sx, 0.12) + 14, alt = 4 + 12 * ef.brilho;
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const g = ctx.createRadialGradient(x, meio, 0, x, meio, larg);
+      g.addColorStop(0, "rgba(255,255,255," + ef.brilho + ")");
+      g.addColorStop(0.35, "rgba(255,120,230," + 0.8 * ef.brilho + ")");
+      g.addColorStop(1, "rgba(255,90,216,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(x, meio, larg, alt, 0, 0, 2 * Math.PI); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255," + ef.brilho + ")";
+      ctx.fillRect(x - larg * 0.7, meio - 1.5, larg * 1.4, 3);
+      ctx.restore();
+    }
   }
 
   // Boneco provisório: sombra, pernas (em pé), tronco, braços, cabeça, cabelo e olhos virados para "dir".
@@ -584,12 +669,16 @@
     for (const hx of [fx - 23.5, fx + 23.5]) { ctx.beginPath(); ctx.arc(hx, Z(t0 + 0.06), 5, 0, 2 * Math.PI); ctx.fill(); }
     // cabeça
     const hy = Z(cab);
+    if (v.estilo === "coque") { // coque no alto da cabeça
+      ctx.beginPath(); ctx.arc(fx, hy - r - 3, 9, 0, 2 * Math.PI);
+      ctx.fillStyle = v.cabelo; ctx.fill(); ctx.strokeStyle = contorno; ctx.lineWidth = 2; ctx.stroke();
+    }
     ctx.beginPath(); ctx.arc(fx, hy, r, 0, 2 * Math.PI);
     ctx.fillStyle = n.dir === "cima" && v.estilo !== "careca_barba" ? v.cabelo : v.pele;
     ctx.fill(); ctx.strokeStyle = contorno; ctx.lineWidth = 2; ctx.stroke();
     if (n.dir !== "cima") {
       ctx.fillStyle = v.cabelo;
-      if (v.estilo === "curto" || v.estilo === "longo") {
+      if (v.estilo === "curto" || v.estilo === "longo" || v.estilo === "coque") {
         ctx.beginPath(); ctx.arc(fx, hy - 2, r + 1, Math.PI * 1.02, Math.PI * 1.98); ctx.closePath(); ctx.fill();
       }
       if (v.estilo === "careca_barba") {
@@ -753,7 +842,7 @@
   }).then(() => {
     // toca quando ele acorda no quarto (não toda vez que volta para casa)
     if (ROTEIRO_LIGACAO && comodo === "quarto" && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
-    marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P,
+    marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair,
       npcs: NPCS, retanguloNpc, irFalarCom, falarCom,
       mundoParaTela(x, y) { // inverso de telaParaMundo (para testes): ponto do mundo -> coordenada do toque
         const v = ultimaVista, r = canvas.getBoundingClientRect(), [lx, ly] = T(x, y, 0);
