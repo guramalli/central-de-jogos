@@ -82,7 +82,7 @@
   const bConj = document.getElementById("conjunto");
 
   // ---------- personagem modular (peças presas a um esqueleto; troca de roupa) ----------
-  // Escolhido no botão "Sprites" (vira "Sprites: modular"); a escolha e a jaqueta valem em todos os mapas.
+  // É o protagonista padrão; o botão "Sprites" ainda alterna para as folhas antigas. Roupas valem em todos os mapas.
   const PASTA_MOD = "personagem_modular/", MODULAR = "modular";
   const ALTURA_MOD = 1375; // px do personagem no desenho original (pés em 1456, topo do cabelo ~81)
   const VISTA_MOD = { baixo: "frente", cima: "costas", esquerda: "lado_esquerdo", direita: "lado_direito" };
@@ -1037,7 +1037,8 @@
   fetch(PASTA_SPR + "jogo.json").then((r) => r.json()).then((j) => {
     manifesto = j;
     const valido = (n) => n && (j.conjuntos[n] || n === MODULAR);
-    const pedido = valido(params.get("conjunto")) ? params.get("conjunto") : valido(pref.ler("nsf_conjunto")) ? pref.ler("nsf_conjunto") : j.padrao;
+    // o modular é o protagonista; as folhas antigas continuam no botão Sprites
+    const pedido = valido(params.get("conjunto")) ? params.get("conjunto") : valido(pref.ler("nsf_conjunto")) ? pref.ler("nsf_conjunto") : MODULAR;
     return carregarConjunto(pedido).then(() => { conjunto = pedido; });
   }).then(() => {
     // toca quando ele acorda no quarto (não toda vez que volta para casa)
