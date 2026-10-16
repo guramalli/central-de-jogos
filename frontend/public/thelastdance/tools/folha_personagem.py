@@ -4,6 +4,9 @@
 
 Uso (a partir de frontend/public/thelastdance/):
     python -I tools/folha_personagem.py <folha.png> <id> [--ordem frente,lado_direito,costas,lado_esquerdo]
+        [--roupa-branca]  (roupa branca/cinza clara: o tecido tem os tons do xadrez; não apaga pedaços dela)
+        [--grade]   (folha 2x2: lidas por linha, da esquerda para a direita; padrão da ordem vira
+                     frente,costas,lado_direito,lado_esquerdo)
 -> kit_chatgpt/personagens/prontas/<id>/<vista>.png ; depois: python -I tools/personagem_kit.py <essa pasta> <id>
 
 Fundo: o "xadrez de transparente" que o gerador pinta na imagem. Os dois tons dele são lidos nos cantos da folha;
@@ -32,7 +35,7 @@ def tons_do_xadrez(a):
     return sorted({round(lum[lum < corte].mean()), round(lum[lum >= corte].mean())})
 
 
-def fundo(a):
+def fundo(a, roupa_branca=False):
     a = a.astype(int)
     tons = tons_do_xadrez(a)
     lum = a.mean(-1)
@@ -49,14 +52,23 @@ def fundo(a):
     rot, _ = nd.label(claro)
     borda = set(np.unique(np.concatenate([rot[0], rot[-1], rot[:, 0], rot[:, -1]]))) - {0}
     f = np.isin(rot, list(borda))
-    # ilhas: grupos de pixels do xadrez com pelo menos uns 20 px (pixel cinza solto dentro do desenho fica)
-    rot2, n2 = nd.label(candidato)
-    tam = nd.sum(candidato, rot2, range(1, n2 + 1))
+    # ilhas de xadrez presas no desenho (entre cabelo e pescoço): pixels do xadrez em grupos de 20+ px, desde que
+    # na vizinhança (~2 casas) apareçam OS DOIS tons — uma regata branca com sombreado tem só um.
+    # --roupa-branca: roupa branca com sombreado cinza (tem os mesmos tons do xadrez) -> critério bem mais rígido
+    tol, janela, minimo = (8, 25, 0.22) if roupa_branca else (14, 31, 0.06)
+    tomA = candidato & (np.abs(lum - tons[0]) <= tol)
+    tomB = candidato & (np.abs(lum - tons[1]) <= tol)
+    fa = nd.uniform_filter(tomA.astype(float), janela)
+    fb = nd.uniform_filter(tomB.astype(float), janela)
+    xadrez = (tomA | tomB) & (fa > minimo) & (fb > minimo)
+    rot2, n2 = nd.label(xadrez)
+    tam = nd.sum(xadrez, rot2, range(1, n2 + 1))
     f |= np.isin(rot2, np.where(tam >= 20)[0] + 1)
     # fiapos: borda acinzentada (xadrez misturado com a ponta do cabelo) encostada no fundo vai embora, aos poucos
     lum_ok = (lum > min(tons) - 25) & (lum < max(tons) + 25)
     acinzentado = (spread < 28) & lum_ok
     acinzentado &= ~((a[..., 0] - a[..., 2] >= 6) & (lum > 175))  # claro e quente = tecido branco, não fundo
+    acinzentado &= ~(lum > max(tons) - 3)  # branco limpo (regata, jaleco) encostado no fundo não é fiapo
     for _ in range(3):
         encosta = nd.binary_dilation(f) & ~f & acinzentado
         if not encosta.any():
@@ -95,16 +107,21 @@ def limpar_sobras(f):
 
 def main():
     folha, ident = Path(sys.argv[1]), sys.argv[2]
+    grade = "--grade" in sys.argv
     ordem = (sys.argv[sys.argv.index("--ordem") + 1].split(",") if "--ordem" in sys.argv
+             else ["frente", "costas", "lado_direito", "lado_esquerdo"] if grade
              else ["frente", "lado_direito", "costas", "lado_esquerdo"])
     a = np.asarray(Image.open(folha).convert("RGB"))
-    f, tons = fundo(a)
+    f, tons = fundo(a, roupa_branca="--roupa-branca" in sys.argv)
     obj = nd.binary_opening(~f, iterations=1)
     rot, n = nd.label(obj)
     tam = nd.sum(obj, rot, range(1, n + 1))
     maiores = np.argsort(tam)[::-1][:len(ordem)] + 1
     caixas = nd.find_objects(rot)
-    itens = sorted([(caixas[k - 1], k) for k in maiores], key=lambda t: t[0][1].start)
+    meio_y = a.shape[0] / 2
+    chave = ((lambda t: ((t[0][0].start + t[0][0].stop) / 2 > meio_y, t[0][1].start)) if grade
+             else (lambda t: t[0][1].start))
+    itens = sorted([(caixas[k - 1], k) for k in maiores], key=chave)
     W, H = R.rig()["canvas"]
     destino = RAIZ / "kit_chatgpt" / "personagens" / "prontas" / ident
     destino.mkdir(parents=True, exist_ok=True)

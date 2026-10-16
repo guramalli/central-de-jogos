@@ -131,7 +131,7 @@
       { id: "homem_camisa", nome: "Cara de camisa social", postura: "sentado", x: 10.525, y: 5.275, dir: "baixo", falarDe: { x: 10.5, y: 7.05 },
         fala: "Ele finge que não te viu.",
         visual: { pele: "#e0b48e", roupa: "#9fb7d8", calca: "#2a2f3a", cabelo: "#5a3a22", estilo: "curto" } },
-      { id: "homem_barba", nome: "Barbudo", postura: "sentado", x: 11.125, y: 6.1, dir: "esquerda", falarDe: { x: 11.2, y: 6.85 },
+      { id: "homem_barba", nome: "Barbudo tatuado", personagem: "tatuado", postura: "sentado", x: 11.125, y: 6.1, dir: "esquerda", falarDe: { x: 11.2, y: 6.85 },
         fala: "\"Fala, parceiro. Noite boa?\"",
         visual: { pele: "#a86f4a", roupa: "#444", calca: "#2a2f3a", cabelo: "#2a1a10", estilo: "careca_barba" } },
 
