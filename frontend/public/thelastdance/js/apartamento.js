@@ -61,7 +61,7 @@
   const teclas = new Set();
   const toque = { ativo: false, sx: 0, sy: 0 };
   let demo = params.has("demo");
-  let mostrarGrade = params.has("grade"), mostrarNomes = true;
+  let mostrarGrade = params.has("grade"), mostrarNomes = params.has("nomes");
 
   // ---------- entrada ----------
   const MAPA = { ArrowUp: "c", KeyW: "c", ArrowDown: "b", KeyS: "b", ArrowLeft: "e", KeyA: "e", ArrowRight: "d", KeyD: "d" };
@@ -96,37 +96,54 @@
   bNomes.addEventListener("click", () => { mostrarNomes = !mostrarNomes; marcar(); });
   marcar();
 
-  // Joystick de toque: arrastar a partir do centro dá a direção (na tela); soltar = parar.
-  const joy = document.getElementById("joystick"), pino = document.getElementById("pino");
-  if (joy) {
-    const RAIO_JOY = 55;
-    const mover = (e) => {
-      const r = joy.getBoundingClientRect();
-      let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-      const d = Math.hypot(dx, dy);
-      if (d > RAIO_JOY) { dx *= RAIO_JOY / d; dy *= RAIO_JOY / d; }
-      pino.style.transform = "translate(" + dx + "px, " + dy + "px)";
-      const n = Math.min(1, d / RAIO_JOY);
-      toque.ativo = n > 0.2;
-      toque.sx = toque.ativo ? dx / RAIO_JOY : 0;
-      toque.sy = toque.ativo ? dy / RAIO_JOY : 0;
-      if (toque.ativo && demo) { demo = false; marcar(); }
-    };
-    let dedo = null; // ponteiro que está arrastando (o joystick ignora outros toques)
-    const soltar = (e) => {
-      if (e && dedo !== null && e.pointerId !== dedo) return;
-      dedo = null; toque.ativo = false; toque.sx = 0; toque.sy = 0; pino.style.transform = "";
-    };
-    joy.addEventListener("pointerdown", (e) => {
-      dedo = e.pointerId;
-      try { joy.setPointerCapture(e.pointerId); } catch (_) { /* sem captura: segue pelo window */ }
-      mover(e); e.preventDefault();
-    });
-    addEventListener("pointermove", (e) => { if (e.pointerId === dedo) mover(e); });
-    addEventListener("pointerup", soltar);
-    addEventListener("pointercancel", soltar);
-    addEventListener("blur", () => soltar());
+  // Tocar/clicar para andar: o ponto tocado vira destino; o personagem vai até lá desviando dos móveis.
+  // Tocar no celular que está tocando: ele anda até o criado-mudo e atende.
+  let destinoToque = null;       // {x, y} no mundo (marcador no chão)
+  let aoChegar = null;           // ação ao terminar o caminho (atender o telefone)
+  let ultimaVista = null;        // {escala, dx, dy, z} do último quadro desenhado, para converter o toque
+  function telaParaMundo(clientX, clientY) {
+    if (!ultimaVista) return null;
+    const r = canvas.getBoundingClientRect();
+    const cx = (clientX - r.left) * canvas.width / r.width, cy = (clientY - r.top) * canvas.height / r.height;
+    const v = ultimaVista;
+    const lx = ((cx - v.dx) / v.escala) / v.z - O[0], ly = ((cy - v.dy) / v.escala) / v.z - O[1];
+    const a = lx / (ISO.LARG / 2), b = ly / (ISO.ALT / 2);  // a = x - y, b = x + y
+    return { x: (a + b) / 2, y: (b - a) / 2, telaX: lx + O[0], telaY: ly + O[1] };
   }
+  // Ponto alcançável mais perto de (x, y) — tocar num móvel leva para o lado dele.
+  function livreMaisPerto(x, y) {
+    const g = ISO.alcance(P, jog.x, jog.y, RAIO, 0.1);
+    let melhor = null, dMelhor = Infinity;
+    for (let j = 0; j < g.ny; j++) {
+      for (let i = 0; i < g.nx; i++) {
+        if (!g.ok[j * g.nx + i]) continue;
+        const px = (i + 0.5) * g.passo, py = (j + 0.5) * g.passo, d = Math.hypot(px - x, py - y);
+        if (d < dMelhor) { dMelhor = d; melhor = { x: px, y: py }; }
+      }
+    }
+    return melhor;
+  }
+  function irPara(x, y, acao) {
+    const alvo = livreMaisPerto(x, y);
+    if (!alvo) return;
+    caminho = rota(jog, alvo);
+    caminho.push(alvo);
+    destinoToque = alvo;
+    aoChegar = acao || null;
+    if (demo) { demo = false; marcar(); }
+  }
+  canvas.addEventListener("pointerdown", (e) => {
+    if (NSF.Ligacao && NSF.Ligacao.aberta()) return;
+    const m = telaParaMundo(e.clientX, e.clientY);
+    if (!m) return;
+    e.preventDefault();
+    if (ligacao.tocando && ligacao.icone && Math.hypot(m.telaX - ligacao.icone[0], m.telaY - ligacao.icone[1]) < 60) {
+      irAtender();
+      return;
+    }
+    if (m.x < 0 || m.y < 0 || m.x > P.largura || m.y > P.profundidade) return;
+    irPara(m.x, m.y, null);
+  });
 
   // Demonstração: passeia pelos pontos de interesse, desviando pela grade de alcance.
   const ROTEIRO = ["frente do sofá", "varanda (porta de vidro)", "mesa redonda", "lado da cama",
@@ -167,23 +184,56 @@
   // ---------- ligação do telefone (primeira interação de teste) ----------
   const ROTEIRO_LIGACAO = NSF.DIALOGOS && NSF.DIALOGOS.gatinha_campinas;
   const ligacao = { tocando: false, resultado: null, relogio: null };
+  const avisoTocando = document.getElementById("tocando");
+  function mostrarAviso(sim) { if (avisoTocando) avisoTocando.classList.toggle("visivel", sim); }
+  function irAtender() {
+    const cm = P.caixas.find((c) => c.nome === "Criado-mudo");
+    irPara((cm.x0 + cm.x1) / 2, cm.y1 + 0.35, atenderTelefone);
+  }
+  if (avisoTocando) avisoTocando.addEventListener("click", () => irAtender());
   function telefoneToca() {
     if (!ROTEIRO_LIGACAO || !NSF.Ligacao || NSF.Ligacao.aberta()) return;
-    ligacao.tocando = true;
-    teclas.clear(); toque.ativo = false;
-    NSF.Ligacao.tocar(ROTEIRO_LIGACAO, { aoTerminar: (r) => { ligacao.tocando = false; ligacao.resultado = r; } });
+    ligacao.tocando = true;   // fica vibrando no criado-mudo até o jogador tocar nele (ou no aviso)
+    mostrarAviso(true);
+    if (NSF.Audio) NSF.Audio.toque(true);
+  }
+  function atenderTelefone() {
+    if (!ligacao.tocando || NSF.Ligacao.aberta()) return;
+    teclas.clear(); caminho = []; destinoToque = null;
+    jog.dir = "cima";
+    mostrarAviso(false);
+    if (NSF.Audio) { NSF.Audio.toque(false); NSF.Audio.abafar(true); }
+    NSF.Ligacao.atender(ROTEIRO_LIGACAO, { aoTerminar: (r) => {
+      ligacao.tocando = false; ligacao.resultado = r;
+      if (NSF.Audio) NSF.Audio.abafar(false);
+    } });
   }
   function agendarLigacao(segundos) {
     clearTimeout(ligacao.relogio);
     ligacao.relogio = setTimeout(telefoneToca, segundos * 1000);
   }
+  const bSom = document.getElementById("som");
+  if (bSom) bSom.addEventListener("click", () => {
+    const on = NSF.Audio ? NSF.Audio.alternar() : false;
+    bSom.textContent = on ? "Som: ligado" : "Som: desligado";
+    bSom.setAttribute("aria-pressed", String(on));
+  });
+  if (NSF.Audio) NSF.Audio.musica(true);
   const bLig = document.getElementById("ligacao");
   if (bLig) bLig.addEventListener("click", () => telefoneToca());
 
   function atualizar(dt) {
     let sx = 0, sy = 0, wx = 0, wy = 0;
     if (NSF.Ligacao && NSF.Ligacao.aberta()) { jog.andando = false; jog.tempo = 0; return; }
-    if (demo) {
+    const teclando = teclas.size > 0;
+    if (teclando && caminho.length && !demo) { caminho = []; destinoToque = null; aoChegar = null; }
+    if (!demo && !teclando && destinoToque && !caminho.length) {
+      destinoToque = null; jog.andando = false; jog.tempo = 0;
+      const acao = aoChegar; aoChegar = null;
+      if (acao) acao();
+      return;
+    }
+    if (demo || (!teclando && caminho.length)) {
       if (!caminho.length) {
         caminho = rota(jog, ponto(ROTEIRO[alvoDemo]));
         alvoDemo = (alvoDemo + 1) % ROTEIRO.length;
@@ -194,9 +244,6 @@
       if (d < 0.06) { caminho.shift(); jog.andando = caminho.length > 0; return; }
       wx = vx / d; wy = vy / d;
       sx = wx - wy; sy = (wx + wy) / 2; // direção na tela, para escolher o sprite
-    } else if (toque.ativo) {
-      sx = toque.sx; sy = toque.sy;
-      [wx, wy] = ISO.direcaoMundo(sx, sy);
     } else {
       sx = (teclas.has("d") ? 1 : 0) - (teclas.has("e") ? 1 : 0);
       sy = (teclas.has("b") ? 1 : 0) - (teclas.has("c") ? 1 : 0);
@@ -227,7 +274,7 @@
   // Textura vista de cima aplicada no chão de um cômodo (repetida a cada "metros"), inclinada no ângulo do mapa.
   function pisoTexturizado(ctx, c) {
     const info = props && c.piso_arte && props.props[c.piso_arte], tex = imgProps[c.piso_arte];
-    if (!tex) return false;
+    if (!tex || !info) return false; // as imagens podem chegar antes do catálogo
     const L = info.metros || 2;
     ctx.save();
     const borda = [T(c.x0, c.y0, 0), T(c.x1, c.y0, 0), T(c.x1, c.y1, 0), T(c.x0, c.y1, 0)];
@@ -331,7 +378,7 @@
   // eixo "x": face no plano y = fixo, de x = a até b; eixo "y": face no plano x = fixo, de y = a até b.
   function texturaFace(ctx, eixo, fixo, a, b, h, escurecer) {
     const info = props && props.props[TEXTURA_PAREDE], tex = imgProps[TEXTURA_PAREDE];
-    if (!tex) return;
+    if (!tex || !info) return;
     const P3 = (u, z) => (eixo === "x" ? T(u, fixo, z) : T(fixo, u, z));
     const L = info.largura_m, H = info.altura_m;
     ctx.save();
@@ -396,6 +443,8 @@
     desenhar.ultimo = agora;
     atualizar(dt);
     const z = zoomDaTela();
+    const ev = NSF.escalaParaTela(canvas.width, canvas.height, CONFIG.larguraBase, CONFIG.alturaBase);
+    ultimaVista = { escala: ev.escala, dx: ev.dx, dy: ev.dy, z };
     ctx.save();
     ctx.scale(z, z);
     posicionarCamera(CONFIG.larguraBase / z, CONFIG.alturaBase / z);
@@ -410,10 +459,18 @@
     itens.push({ desenho: "jogador", x0: jog.x - 0.05, y0: jog.y - 0.05, x1: jog.x + 0.05, y1: jog.y + 0.05 });
     for (const it of ISO.ordenar(itens)) (it.desenho === "jogador" ? desenharJogador(ctx) : caixa(ctx, it));
 
+    if (destinoToque) { // marcador no chão onde o jogador tocou
+      const [mx, my] = T(destinoToque.x, destinoToque.y, 0), p = 0.6 + 0.4 * Math.sin(agora / 150);
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,90,216," + p + ")"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(mx, my, 26, 13, 0, 0, 2 * Math.PI); ctx.stroke();
+      ctx.restore();
+    }
     if (ligacao.tocando) {
       const cm = P.caixas.find((c) => c.nome === "Criado-mudo");
       if (cm) {
         const [tx, ty] = T((cm.x0 + cm.x1) / 2, (cm.y0 + cm.y1) / 2, cm.z1 + 0.5);
+        ligacao.icone = [tx, ty];
         // celular desenhado (sem emoji: nem todo aparelho tem a fonte), vibrando, com ondas de toque
         const v = Math.sin(agora / 40) * 3;
         ctx.save();
@@ -469,7 +526,13 @@
     return carregarConjunto(pedido).then(() => { conjunto = pedido; });
   }).then(() => {
     if (ROTEIRO_LIGACAO && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
-    marcar(); window.NSF_APTO = { ligacao, telefoneToca, pronto: true, jog, atualizar, teclas, toque, desenhar }; })
+    marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo,
+      mundoParaTela(x, y) { // inverso de telaParaMundo (para testes): ponto do mundo -> coordenada do toque
+        const v = ultimaVista, r = canvas.getBoundingClientRect(), [lx, ly] = T(x, y, 0);
+        return [r.left + (lx * v.z * v.escala + v.dx) * r.width / canvas.width,
+                r.top + (ly * v.z * v.escala + v.dy) * r.height / canvas.height];
+      },
+      get caminho() { return caminho; }, pronto: true, jog, atualizar, teclas, toque, desenhar }; })
     .catch((e) => { estado.erros.push(String(e)); console.error(e); });
   NSF.iniciar(canvas, desenhar, { adaptar: true });
 })();

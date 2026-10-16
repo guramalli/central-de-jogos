@@ -17,12 +17,16 @@
   #painel button { cursor: pointer; }
   #painel button[aria-pressed="true"] { background: #b0279a; border-color: #ff5ad8; }
   #dica { opacity: 0.85; }
-  #joystick { position: fixed; left: max(24px, env(safe-area-inset-left)); bottom: max(24px, env(safe-area-inset-bottom));
-              width: 140px; height: 140px; border-radius: 50%; background: rgba(36,21,54,0.55);
-              border: 2px solid rgba(255,90,216,0.55); touch-action: none; display: none; }
-  #pino { position: absolute; left: 45px; top: 45px; width: 50px; height: 50px; border-radius: 50%;
-          background: rgba(255,90,216,0.85); box-shadow: 0 0 12px rgba(255,90,216,0.6); pointer-events: none; }
-  @media (pointer: coarse) { #joystick { display: block; } #dica { display: none; } }
+  #tocando { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+             display: none; align-items: center; gap: 12px; padding: 12px 18px 12px 12px; border-radius: 18px;
+             background: rgba(22,13,36,0.94); border: 2px solid #ff5ad8; color: #f3ecff; font: 600 15px system-ui, sans-serif;
+             box-shadow: 0 0 22px rgba(255,90,216,0.45); cursor: pointer; max-width: calc(100vw - 24px); }
+  #tocando.visivel { display: flex; }
+  #tocando svg { flex: none; animation: vibra 0.18s linear infinite alternate; }
+  #tocando span { white-space: nowrap; }
+  #tocando small { display: block; font-weight: 400; color: #c9b8ee; font-size: 13px; }
+  @keyframes vibra { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+  @media (prefers-reduced-motion: reduce) { #tocando svg { animation: none; } }
 </style>
 </head>
 <body>
@@ -34,15 +38,20 @@
   <button id="nomes">Nomes</button>
   <button id="grade">Grade</button>
   <button id="ligacao">Ligação</button>
-  <span id="dica">Setas ou WASD para andar</span>
+  <button id="som" aria-pressed="true">Som: ligado</button>
+  <span id="dica">Toque no chão para andar</span>
 </div>
-<div id="joystick" aria-label="Controle de movimento"><div id="pino"></div></div>
-<!-- Planta em blocos (FASE 4) + caminhada nova. ?comodo=sala|quarto ?conjunto=video|prancha|recorte_sul+video ?demo ?grade ?semligacao -->
+<button id="tocando" aria-label="Atender o celular">
+  <svg width="34" height="48" viewBox="0 0 34 48" aria-hidden="true"><rect x="3" y="2" width="28" height="44" rx="6" fill="#16101f" stroke="#ff5ad8" stroke-width="3"/><rect x="8" y="9" width="18" height="28" fill="#59d6ff"/><circle cx="17" cy="41" r="2" fill="#ff5ad8"/></svg>
+  <span>Gatinha de Campinas ligando…<small>Toque para atender</small></span>
+</button>
+<!-- Planta em blocos (FASE 4) + caminhada nova. ?comodo=sala|quarto ?conjunto=video|prancha|recorte_sul+video ?demo ?grade ?nomes ?semligacao -->
 <script src="js/base.js"></script>
 <script src="js/maps/iso.js"></script>
 <script src="js/maps/apartamento_planta.js"></script>
 <script src="js/dialogos/gatinha_campinas.js"></script>
 <script src="js/ligacao.js"></script>
+<script src="js/audio.js"></script>
 <script src="js/apartamento.js"></script>
 </body>
 </html>

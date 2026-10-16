@@ -1,7 +1,8 @@
 // Ligação telefônica com conversa em balões (estilo app de mensagens), por cima do jogo.
 // Usa um roteiro de js/dialogos/*.js. O telefone toca -> Atender/Recusar -> falas uma a uma (com "digitando…")
 // -> o jogador escolhe uma opção -> mais falas -> fim. Enquanto a tela está aberta, o personagem não anda.
-// API: NSF.Ligacao.tocar(roteiro, { aoTerminar(resultado) }) ; NSF.Ligacao.aberta() ; NSF.Ligacao.avancar()
+// API: NSF.Ligacao.tocar(roteiro, { aoTerminar(resultado) }) (tela de chamada) ; .atender(...) (direto na conversa) ;
+// NSF.Ligacao.aberta() ; NSF.Ligacao.fechar()
 (function (global) {
   "use strict";
   const doc = global.document;
@@ -102,6 +103,14 @@
     sim.onclick = () => conversa(roteiro, o);
   }
 
+  // Atender direto (o jogador tocou no celular): abre já na conversa, sem a tela de chamada.
+  function atender(roteiro, opcoes) {
+    if (atual) return;
+    atual = { roteiro, o: opcoes || {}, fila: [], esperando: null };
+    montar(roteiro);
+    conversa(roteiro, atual.o);
+  }
+
   // Tela 2: conversa.
   function conversa(roteiro, o) {
     fundo.firstChild.replaceChildren();
@@ -183,6 +192,7 @@
 
   const Ligacao = {
     tocar,
+    atender,
     aberta: () => !!atual,
     fechar,
   };
