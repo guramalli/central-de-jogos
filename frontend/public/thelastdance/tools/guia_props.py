@@ -164,6 +164,32 @@ PECAS = {
         "descricao": "lixeira de inox com tampa de pedal",
         "caixas": [{"x": (0, 0.35), "y": (0, 0.35), "z": (0, 0.6)}],
     },
+    # ---- garagem do prédio (js/maps/garagem_planta.js): carros estacionados de ré, frente virada para +y ----
+    "carro_x1": {
+        "descricao": "SUV compacto cinza do protagonista, estacionado de ré: frente (faróis) virada para +y",
+        "caixas": [
+            {"x": (0, 1.85), "y": (0, 4.5), "z": (0, 0.95)},          # carroceria (colisão)
+            {"x": (0.12, 1.73), "y": (0.45, 3.2), "z": (0.95, 1.6)},  # cabine (capô na frente, y 3.2..4.5)
+        ],
+    },
+    "carro_hatch": {
+        "descricao": "hatch vermelho do vizinho, estacionado de ré, frente virada para +y",
+        "caixas": [
+            {"x": (0, 1.75), "y": (0, 4.0), "z": (0, 0.85)},
+            {"x": (0.12, 1.63), "y": (0.3, 2.9), "z": (0.85, 1.5)},
+        ],
+    },
+    "carro_sedan": {
+        "descricao": "sedã preto do vizinho, estacionado de ré, frente virada para +y",
+        "caixas": [
+            {"x": (0, 1.85), "y": (0, 4.8), "z": (0, 0.85)},
+            {"x": (0.12, 1.73), "y": (1.0, 3.5), "z": (0.85, 1.45)},
+        ],
+    },
+    "pilar": {
+        "descricao": "pilar quadrado de concreto da garagem, faixas amarelas e pretas na base",
+        "caixas": [{"x": (0, 0.6), "y": (0, 0.6), "z": (0, 2.6)}],
+    },
     "parede_2m": {
         "descricao": "trecho de parede do fundo com 2 m de largura e 2,7 m de altura (plano y = 0, de frente para o jogador)",
         "caixas": [

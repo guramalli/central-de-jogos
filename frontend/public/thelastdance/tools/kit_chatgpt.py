@@ -46,6 +46,7 @@ FUNDO_TRANSP = "{formato} image, PNG with a fully TRANSPARENT background around 
 KITS = {
     "padaria": {
         "titulo": "Padaria",
+        "contexto": "this set is a Brazilian bakery, a \"padaria\" open 24h",
         "estilo": [  # (arquivo no kit, origem, recorte opcional (x0, y0, x1, y1) em px da origem)
             ("estilo_1_padaria_moodboard.png", "reference/kit_v1.0/02_mapas/moodboard_locais.png", (1098, 372, 1536, 660)),
             ("estilo_2_apartamento_moodboard.png", "reference/kit_v1.0/02_mapas/moodboard_locais.png", (0, 662, 478, 1018)),
@@ -129,18 +130,83 @@ KITS = {
         # cópias que não se geram: (nome, de, guia, opções)
         "derivados": [("cadeira_bistro_lado", "cadeira_bistro", "cadeira_bistro_lado", ["--espelhar", "--uniforme"])],
     },
+    "garagem": {
+        "titulo": "Garagem e elevador do prédio",
+        "contexto": "this set is the underground parking garage of his apartment building and the inside of its elevator",
+        "estilo": [
+            ("estilo_1_transporte_moodboard.png", "reference/kit_v1.0/02_mapas/moodboard_locais.png", (482, 662, 800, 1018)),
+            ("estilo_2_apartamento_moodboard.png", "reference/kit_v1.0/02_mapas/moodboard_locais.png", (0, 662, 478, 1018)),
+            ("estilo_3_pecas_do_jogo.png", "montagem", ["geladeira_bebidas", "forno_pao", "balcao_modulo", "sofa", "armario", "planta"]),
+        ],
+        "pedidos": [
+            ("carro_x1", "Carro dele: BMW X1 2025 cinza — FAÇA ESTE PRIMEIRO", "peca",
+             "the protagonist's car: a 2025 BMW X1 compact luxury SUV in metallic GRAY, parked in reverse. The FRONT of the car "
+             "(headlights, grille, hood) is the DARKEST front-left face of the guide (the short end, lower-left); the car's right "
+             "side (doors, windows, wheels) is the MEDIUM-gray front-right face (the long side). The upper block of the guide is the "
+             "cabin/windows. Clean and shiny, dark tinted windows, alloy wheels. No logos or badges, no readable license plate.",
+             []),
+            ("carro_hatch", "Carro do vizinho: hatch vermelho", "peca",
+             "a small RED hatchback car, a little dusty, parked in reverse: the FRONT (headlights) is the DARKEST front-left face "
+             "(the short end), the right side with doors and wheels is the MEDIUM-gray front-right face. Upper block = cabin/windows. "
+             "No logos, no readable license plate.", []),
+            ("carro_sedan", "Carro do vizinho: sedã preto", "peca",
+             "a BLACK sedan car, parked in reverse: the FRONT (headlights) is the DARKEST front-left face (the short end), the right "
+             "side with doors and wheels is the MEDIUM-gray front-right face, the trunk is at the far end. Upper block = cabin/windows. "
+             "No logos, no readable license plate.", []),
+            ("pilar", "Pilar da garagem", "peca",
+             "a square concrete pillar of an underground parking garage, bare gray concrete, the bottom 70 cm painted with diagonal "
+             "yellow and black hazard stripes, a small painted parking number \"12\" on it.", ["--faces"]),
+            ("parede_garagem", "Parede da garagem (textura)", "parede",
+             "a seamless wall texture for an underground parking garage, 2 m wide by 3 m tall: bare gray concrete with formwork "
+             "lines and a few water stains; the bottom 30% is a band of diagonal yellow and black hazard stripes. No text, no "
+             "objects. It must tile seamlessly left-right.", ["--largura-m", "2", "--altura-m", "3"]),
+            ("piso_garagem", "Piso da garagem (textura)", "piso",
+             "a seamless tileable top-down floor texture: dark gray polished concrete of a parking garage, subtle cracks, a couple "
+             "of small oil stains, no painted lines, no text. Seen from directly above.", ["--metros", "3"]),
+            ("porta_elevador_garagem", "Porta do elevador (na garagem)", "decal",
+             "closed brushed stainless-steel elevator doors set in a concrete wall, with a thin steel frame; to the right a small "
+             "call button panel with an up and a down arrow (one glowing); above the doors a small digital floor display showing "
+             "\"G\".", []),
+            ("placa_saida", "Placa SAÍDA", "decal",
+             "a rectangular green emergency/exit sign that reads \"SAÍDA\" in white letters with a white arrow pointing right, "
+             "softly glowing. Text must be spelled exactly.", []),
+            ("extintor", "Extintor na parede", "decal",
+             "a red fire extinguisher hanging on a small wall bracket, with a small red square sign above it.", []),
+            ("parede_elevador", "Elevador por dentro: parede (textura)", "parede",
+             "a seamless wall texture for the inside of an elevator cabin, 2 m wide by 3 m tall: vertical brushed stainless-steel "
+             "panels with thin dark seams, a horizontal steel handrail at hip height, warm reflections. No text. It must tile "
+             "seamlessly left-right.", ["--largura-m", "2", "--altura-m", "3"]),
+            ("piso_elevador", "Elevador por dentro: piso (textura)", "piso",
+             "a seamless tileable top-down floor texture for an elevator: dark gray granite with small light speckles, polished. "
+             "Seen from directly above. No objects.", ["--metros", "2"]),
+            ("porta_cabine", "Elevador por dentro: porta fechada", "decal",
+             "the inside of closed elevator doors: two brushed stainless-steel sliding door panels meeting in the middle, thin "
+             "steel frame, a little digital floor display above showing \"12\".", []),
+            ("painel_elevador", "Elevador por dentro: painel de botões", "decal",
+             "a tall narrow elevator button panel in brushed steel: two columns of round buttons numbered 1 to 12 plus \"G\", "
+             "\"T\" and an alarm bell button, button \"G\" glowing orange.", []),
+            ("espelho_elevador", "Elevador por dentro: espelho", "decal",
+             "a large rectangular elevator mirror with a thin steel frame, reflecting a dim warm-lit empty elevator (no people).",
+             []),
+        ],
+        "derivados": [],
+    },
 }
 
 FORMATO = {"parede": "portrait", "piso": "square", "decal": None}
 DECAL_FORMATO = {"prateleira_paes": "landscape", "cardapio_padaria": "landscape", "neon_padaria": "landscape",
-                 "porta_banheiro": "portrait", "porta_rua": "portrait", "vitrine_rua": "landscape"}
+                 "porta_banheiro": "portrait", "porta_rua": "portrait", "vitrine_rua": "landscape",
+                 "porta_elevador_garagem": "landscape", "placa_saida": "landscape", "extintor": "portrait",
+                 "porta_cabine": "portrait", "painel_elevador": "portrait", "espelho_elevador": "portrait"}
+# imagens planas que têm forma própria (placa, objeto na parede): fundo transparente em volta
+TRANSPARENTES = {"prateleira_paes", "cardapio_padaria", "neon_padaria", "placa_saida", "extintor", "painel_elevador"}
 
 
 def texto_pedido(nome, tipo, desc):
     if tipo == "peca":
         return PECA.format(desc=desc)
     formato = FORMATO[tipo] or DECAL_FORMATO.get(nome, "square")
-    transparente = nome in ("prateleira_paes", "cardapio_padaria", "neon_padaria")
+    transparente = nome in TRANSPARENTES
     fundo = (FUNDO_TRANSP if transparente else FUNDO_CHEIO).format(formato=formato.capitalize() if transparente else formato)
     return PLANA.format(desc=desc, fundo=fundo)
 
@@ -194,8 +260,8 @@ def montar(mapa):
 </section>""")
     estilos = "".join(f'<img src="estilo/{a}" alt="referência de estilo {k}">' for k, (a, _, _) in enumerate(kit["estilo"], 1))
     primeira = ("These images are the ART STYLE REFERENCE for a series of game assets I will ask you for next, one per "
-                "message: an isometric pixel-art game set at night in São Paulo (this set is a Brazilian bakery, a "
-                "\"padaria\" open 24h). The third image shows props already in the game: match that finish. "
+                f"message: an isometric pixel-art game set at night in São Paulo ({kit['contexto']}). "
+                "The third image shows props already in the game: match that finish. "
                 "Do not generate anything now, just confirm.")
     pagina = f"""<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
