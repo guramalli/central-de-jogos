@@ -18,7 +18,8 @@
 <div id="painel">
   <b>Personagem modular</b><br>
   Andar: <kbd>setas</kbd> ou <kbd>WASD</kbd><br>
-  <button id="btnJaqueta">Jaqueta (J)</button>
+  <a href="../" style="color:#9ec3ff">← Menu</a><br>
+  <span id="roupas"></span>
   <button id="btnEscala">Tamanho</button>
   <div id="info"></div>
 </div>
@@ -29,7 +30,6 @@
   const tela = document.getElementById('tela');
   const ctx = tela.getContext('2d');
   const info = document.getElementById('info');
-  const btnJaqueta = document.getElementById('btnJaqueta');
 
   // base = pasta onde está o dados.js (aqui, a mesma do teste.html)
   const heroi = await new PersonagemModular(window.PERSONAGEM_MODULAR, '').carregar();
@@ -46,8 +46,16 @@
     if (e.key.toLowerCase() === 'j') alternarJaqueta();
   });
   addEventListener('keyup', (e) => teclas.delete(e.key.toLowerCase()));
-  function alternarJaqueta() { btnJaqueta.classList.toggle('on', heroi.alternar('jaqueta_couro')); }
-  btnJaqueta.onclick = alternarJaqueta;
+  // um botão para cada roupa registrada em dados.js (roupa importada aparece aqui sozinha)
+  const botoesRoupa = {};
+  for (const r of Object.values(heroi.roupas)) {
+    const b = document.createElement('button');
+    b.textContent = r.nome || r.id;
+    b.onclick = () => b.classList.toggle('on', heroi.alternar(r.id));
+    document.getElementById('roupas').appendChild(b);
+    botoesRoupa[r.id] = b;
+  }
+  function alternarJaqueta() { if (botoesRoupa.jaqueta_couro) botoesRoupa.jaqueta_couro.click(); }
   document.getElementById('btnEscala').onclick = () => { ie = (ie + 1) % escalas.length; };
 
   // ?test=1: modo de teste automatizado (limita a 30 fps para poupar CPU)
