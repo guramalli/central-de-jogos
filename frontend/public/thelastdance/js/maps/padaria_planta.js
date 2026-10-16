@@ -53,7 +53,7 @@
       // atrás do balcão (área dos funcionários)
       { nome: "Máquina de café", tipo: "movel", x0: 1.0, y0: 0, x1: 1.9, y1: 0.55, z1: 1.45, arte: "maquina_cafe" },
       { nome: "Chapa", tipo: "mesa", x0: 3.6, y0: 0, x1: 5.0, y1: 0.6, z1: 0.95, arte: "chapa" },
-      { nome: "Estufa de salgados", tipo: "luz", x0: 5.6, y0: 0, x1: 6.5, y1: 0.55, z1: 1.3, arte: "estufa_salgados" },
+      { nome: "Estufa de salgados", tipo: "luz", x0: 5.75, y0: 0, x1: 6.65, y1: 0.55, z1: 1.3, arte: "estufa_salgados" },
       { nome: "Forno de pão", tipo: "armario", x0: 7.4, y0: 0, x1: 8.6, y1: 0.7, z1: 1.7, arte: "forno_pao" },
 
       // balcão com vitrine + banquetas; passagem do garçom entre a vitrine e o caixa.
@@ -85,7 +85,7 @@
       { nome: "Prateleira de pães", tipo: "prateleira", plano: "y0", a: 2.1, b: 3.5, z0: 1.6, z1: 2.4, arte: "prateleira_paes" },
       { nome: "Cardápio", tipo: "cardapio", plano: "y0", a: 4.0, b: 5.4, z0: 1.7, z1: 2.6, arte: "cardapio_padaria" },
       { nome: "Letreiro \"PADARIA\"", tipo: "neon", plano: "y0", a: 7.6, b: 9.6, z0: 2.0, z1: 2.7, texto: ["PADARIA", "24H"], arte: "neon_padaria" },
-      { nome: "Banheiro", tipo: "porta", plano: "y0", a: 12.4, b: 13.2, z0: 0, z1: 2.1, arte: "porta_banheiro" },
+      { nome: "Banheiro", tipo: "porta", plano: "y0", a: 12.1, b: 13.4, z0: 0, z1: 2.2, arte: "porta_banheiro" }, // largura perto da proporção da arte
       // parede da esquerda (x = 0): vitrine para a rua e a porta de saída
       { nome: "Vitrine para a rua", tipo: "vidro", plano: "x0", a: 5.2, b: 7.0, z0: 0.9, z1: 2.4, arte: "vitrine_rua" },
       { nome: "Porta da rua", tipo: "porta", plano: "x0", a: 7.6, b: 8.8, z0: 0, z1: 2.3, saida: true, arte: "porta_rua" },

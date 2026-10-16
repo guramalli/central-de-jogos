@@ -692,8 +692,8 @@
       "arquivo": "estufa_salgados.png",
       "escala": 2.0,
       "origem_px": [
-        81.8,
-        262.8
+        79.8,
+        260.8
       ],
       "tamanho_m": [
         0.9,
@@ -702,10 +702,10 @@
       ],
       "descricao": "estufa de salgados de vidro em cima de uma bancada, frente para +y",
       "ajuste": {
-        "x": 1.0,
-        "y": 1.0,
+        "x": 0.253,
+        "y": 0.27,
         "espelhado": false,
-        "proporcao": 1.0
+        "proporcao": 0.936
       }
     },
     "cadeira_bistro_costas": {
