@@ -435,7 +435,9 @@
     const im = props && w.arte && imgProps[w.arte];
     if (!im) return false;
     const P3 = (u, z) => (w.plano === "x0" ? T(0, u, z) : T(u, 0, z));
-    const o = P3(w.a, w.z1), fimU = P3(w.b, w.z1), base = P3(w.a, w.z0);
+    // A esquerda da imagem fica à esquerda na tela: na parede x = 0 isso é o lado de y maior (b), não o a.
+    const [ua, ub] = w.plano === "x0" ? [w.b, w.a] : [w.a, w.b];
+    const o = P3(ua, w.z1), fimU = P3(ub, w.z1), base = P3(ua, w.z0);
     ctx.save();
     if (w.tipo === "neon" && estado.efeitos) { ctx.shadowColor = "#ff3fbf"; ctx.shadowBlur = 28; }
     ctx.transform((fimU[0] - o[0]) / im.width, (fimU[1] - o[1]) / im.width,

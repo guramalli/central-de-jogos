@@ -378,6 +378,315 @@
         "espelhado": false,
         "proporcao": 1.0
       }
+    },
+    "balcao_modulo": {
+      "arquivo": "balcao_modulo.png",
+      "escala": 2.0,
+      "origem_px": [
+        87.1,
+        210.1
+      ],
+      "tamanho_m": [
+        1.3,
+        0.6,
+        1.05
+      ],
+      "descricao": "módulo de balcão de padaria (repete lado a lado), frente dos clientes virada para +y",
+      "ajuste": {
+        "x": 0.276,
+        "y": 0.326,
+        "espelhado": false,
+        "proporcao": 0.848
+      }
+    },
+    "vitrine_doces": {
+      "arquivo": "vitrine_doces.png",
+      "escala": 2.0,
+      "origem_px": [
+        87.1,
+        260.1
+      ],
+      "tamanho_m": [
+        1.3,
+        0.6,
+        1.3
+      ],
+      "descricao": "módulo de vitrine refrigerada de doces (repete lado a lado), vidro virado para +y",
+      "ajuste": {
+        "x": 0.277,
+        "y": 0.363,
+        "espelhado": false,
+        "proporcao": 0.762
+      }
+    },
+    "caixa_registradora": {
+      "arquivo": "caixa_registradora.png",
+      "escala": 2.0,
+      "origem_px": [
+        101.1,
+        231.1
+      ],
+      "tamanho_m": [
+        1.4,
+        0.7,
+        1.05
+      ],
+      "descricao": "balcão do caixa com registradora e maquininha, frente virada para +y",
+      "ajuste": {
+        "x": 0.339,
+        "y": 0.348,
+        "espelhado": false,
+        "proporcao": 0.975
+      }
+    },
+    "maquina_cafe": {
+      "arquivo": "maquina_cafe.png",
+      "escala": 2.0,
+      "origem_px": [
+        79.3,
+        290.3
+      ],
+      "tamanho_m": [
+        0.9,
+        0.55,
+        1.45
+      ],
+      "descricao": "máquina de café expresso em cima de um móvel, encostada na parede do fundo (y = 0), frente para +y",
+      "ajuste": {
+        "x": 0.255,
+        "y": 0.28,
+        "espelhado": false,
+        "proporcao": 0.911
+      }
+    },
+    "chapa": {
+      "arquivo": "chapa.png",
+      "escala": 2.0,
+      "origem_px": [
+        87.4,
+        190.0
+      ],
+      "tamanho_m": [
+        1.4,
+        0.6,
+        0.95
+      ],
+      "descricao": "chapa de lanches (bancada de inox baixa), encostada na parede do fundo, frente para +y",
+      "ajuste": {
+        "x": 0.289,
+        "y": 0.31,
+        "espelhado": false,
+        "proporcao": 0.934
+      }
+    },
+    "forno_pao": {
+      "arquivo": "forno_pao.png",
+      "escala": 2.0,
+      "origem_px": [
+        101.0,
+        340.6
+      ],
+      "tamanho_m": [
+        1.2,
+        0.7,
+        1.7
+      ],
+      "descricao": "forno de pão de inox alto, encostado na parede do fundo, porta virada para +y",
+      "ajuste": {
+        "x": 0.395,
+        "y": 0.326,
+        "espelhado": false,
+        "proporcao": 1.213
+      }
+    },
+    "geladeira_bebidas": {
+      "arquivo": "geladeira_bebidas.png",
+      "escala": 2.0,
+      "origem_px": [
+        201.9,
+        400.9
+      ],
+      "tamanho_m": [
+        0.7,
+        1.4,
+        2.0
+      ],
+      "descricao": "geladeira de bebidas com portas de vidro, encostada na parede da esquerda (x = 0), portas para +x",
+      "ajuste": {
+        "x": 0.442,
+        "y": 0.396,
+        "espelhado": false,
+        "proporcao": 1.118
+      }
+    },
+    "banqueta": {
+      "arquivo": "banqueta.png",
+      "escala": 2.0,
+      "origem_px": [
+        42.0,
+        150.2
+      ],
+      "tamanho_m": [
+        0.4,
+        0.4,
+        0.75
+      ],
+      "descricao": "banqueta alta redonda de balcão, sem encosto",
+      "ajuste": {
+        "x": 0.181,
+        "y": 0.181,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "mesa_bistro": {
+      "arquivo": "mesa_bistro.png",
+      "escala": 2.0,
+      "origem_px": [
+        101.5,
+        150.1
+      ],
+      "tamanho_m": [
+        0.7,
+        0.7,
+        0.75
+      ],
+      "descricao": "mesa quadrada pequena de padaria, tampo claro, pé central",
+      "ajuste": {
+        "x": 0.224,
+        "y": 0.224,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "mesa_grande": {
+      "arquivo": "mesa_grande.png",
+      "escala": 2.0,
+      "origem_px": [
+        144.6,
+        116.8
+      ],
+      "tamanho_m": [
+        1.2,
+        1.0,
+        0.75
+      ],
+      "descricao": "mesa retangular de padaria para 4 pessoas, tampo claro",
+      "ajuste": {
+        "x": 0.292,
+        "y": 0.292,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "cadeira_bistro": {
+      "arquivo": "cadeira_bistro.png",
+      "escala": 2.0,
+      "origem_px": [
+        69.5,
+        188.0
+      ],
+      "tamanho_m": [
+        0.45,
+        0.45,
+        0.47
+      ],
+      "descricao": "cadeira de padaria de frente para a câmera (assento virado para +y), encosto do lado y = 0",
+      "ajuste": {
+        "x": 0.224,
+        "y": 0.224,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "lixeira": {
+      "arquivo": "lixeira.png",
+      "escala": 2.0,
+      "origem_px": [
+        44.5,
+        120.3
+      ],
+      "tamanho_m": [
+        0.35,
+        0.35,
+        0.6
+      ],
+      "descricao": "lixeira de inox com tampa de pedal",
+      "ajuste": {
+        "x": 0.135,
+        "y": 0.135,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "parede_padaria": {
+      "tipo": "textura_parede",
+      "arquivo": "parede_padaria.png",
+      "px_por_m": 200,
+      "largura_m": 2.0,
+      "altura_m": 3.0,
+      "descricao": "textura reta de parede; o jogo inclina e repete a cada largura_m"
+    },
+    "piso_padaria": {
+      "tipo": "textura_piso",
+      "arquivo": "piso_padaria.png",
+      "tamanho_px": [
+        768,
+        768
+      ],
+      "metros": 2.0
+    },
+    "neon_padaria": {
+      "tipo": "decal",
+      "arquivo": "neon_padaria.png",
+      "tamanho_px": [
+        768,
+        380
+      ]
+    },
+    "porta_banheiro": {
+      "tipo": "decal",
+      "arquivo": "porta_banheiro.png",
+      "tamanho_px": [
+        515,
+        768
+      ]
+    },
+    "porta_rua": {
+      "tipo": "decal",
+      "arquivo": "porta_rua.png",
+      "tamanho_px": [
+        512,
+        768
+      ]
+    },
+    "vitrine_rua": {
+      "tipo": "decal",
+      "arquivo": "vitrine_rua.png",
+      "tamanho_px": [
+        768,
+        512
+      ]
+    },
+    "cadeira_bistro_lado": {
+      "arquivo": "cadeira_bistro_lado.png",
+      "escala": 2.0,
+      "origem_px": [
+        69.5,
+        188.0
+      ],
+      "tamanho_m": [
+        0.45,
+        0.45,
+        0.47
+      ],
+      "descricao": "cadeira de padaria virada para +x (espelho da cadeira_bistro), encosto do lado x = 0",
+      "ajuste": {
+        "x": 0.224,
+        "y": 0.224,
+        "espelhado": true,
+        "proporcao": 1.0
+      }
     }
   }
 }

@@ -35,7 +35,7 @@ def main():
     metros = float(sys.argv[sys.argv.index("--metros") + 1]) if "--metros" in sys.argv else 2.0
     im = Image.open(gerado).convert("RGBA")
     ja_transparente = (np.asarray(im)[..., 3] < 128).mean() > 0.05
-    if "--sem-fundo" in sys.argv and ja_transparente:
+    if ja_transparente:  # PNG com fundo transparente (ChatGPT): só recorta a sobra, com ou sem --sem-fundo
         im = im.crop(im.getbbox())
     elif "--sem-fundo" in sys.argv:
         with tempfile.TemporaryDirectory() as t:
@@ -71,4 +71,5 @@ def main():
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")  # acentos nas mensagens, mesmo com a saída redirecionada
     main()

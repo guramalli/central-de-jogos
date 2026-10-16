@@ -116,4 +116,5 @@ def main():
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")  # acentos nas mensagens, mesmo com a saída redirecionada
     main()
