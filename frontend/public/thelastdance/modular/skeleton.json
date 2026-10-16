@@ -1,0 +1,15 @@
+{
+  "version": "0.1-prototype", "coordinateSpace": "original 1024x1536",
+  "direction": "front", "note": "Articulações aproximadas, exigem reconstrução de ombros, cotovelos e camadas ocultas",
+  "bones": [
+    {"name":"root","parent":null,"pivot":[512,1030]},
+    {"name":"torso","parent":"root","pivot":[512,925]},
+    {"name":"head","parent":"torso","pivot":[512,794]},
+    {"name":"arm_left","parent":"torso","pivot":[327,897]},
+    {"name":"arm_right","parent":"torso","pivot":[711,897]},
+    {"name":"leg_left","parent":"root","pivot":[430,1030]},
+    {"name":"leg_right","parent":"root","pivot":[585,1030]},
+    {"name":"shoe_left","parent":"leg_left","pivot":[406,1230]},
+    {"name":"shoe_right","parent":"leg_right","pivot":[607,1230]}
+  ]
+}

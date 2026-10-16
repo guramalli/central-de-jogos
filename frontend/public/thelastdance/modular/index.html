@@ -1,0 +1,38 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex, nofollow"><meta name="theme-color" content="#101724"><title>Personagem modular — protótipo</title><style>body{margin:0;background:#101724;color:#eef4ff;font:15px system-ui}main{max-width:1050px;margin:20px auto;padding:16px}h1{font-size:22px}section{display:flex;gap:20px;flex-wrap:wrap}.stage{background:radial-gradient(#283d55,#141c2a);border:1px solid #44556b;border-radius:12px;flex:1;min-width:300px;display:grid;place-items:center}canvas{width:min(100%,440px);image-rendering:pixelated}.panel{width:290px;background:#1b2737;border-radius:12px;padding:18px}button,select,input{font:inherit}button{background:#345b87;color:white;border:0;border-radius:8px;padding:10px;cursor:pointer;margin:4px}label{display:block;margin:14px 0 5px}.muted{color:#b7c4d6;font-size:13px}select{width:100%;padding:8px}input{width:100%}kbd{background:#30445c;padding:2px 5px;border-radius:4px}
+/* --- acréscimos para celular --- */
+.voltar{display:inline-block;color:#9ec3ff;text-decoration:none;margin-bottom:6px}
+.dpad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,56px);gap:8px;justify-content:center;margin:10px 0 14px;touch-action:none;user-select:none;-webkit-user-select:none}
+.dpad button{margin:0;font-size:22px;padding:0;border-radius:12px;background:#2b4a70;touch-action:none}
+.dpad button:active,.dpad button.ativo{background:#4f86c6}
+.dpad .c{grid-column:2;grid-row:1}.dpad .e{grid-column:1;grid-row:2}.dpad .b{grid-column:2;grid-row:2}.dpad .d{grid-column:3;grid-row:2}
+.stage{flex-direction:column;padding:10px 0}
+@media (max-width:700px){main{margin:0;padding:12px 12px max(16px,env(safe-area-inset-bottom))}h1{font-size:18px;margin:4px 0}section{gap:12px}.stage{min-width:0;width:100%}canvas{width:min(100%,360px)}.panel{width:100%;box-sizing:border-box;padding:14px}.teclado{display:none}}
+</style></head><body><main><a class="voltar" href="../">← Menu</a><h1>Personagem modular — protótipo jogável</h1><p class="muted"><span class="teclado">Setas ou WASD: andar · Espaço: pausar · </span>No celular: segure uma seta para andar · frente com peças articuladas; demais vistas com arte original preservada.</p><section><div class="stage"><canvas id="scene" width="512" height="700"></canvas>
+<div class="dpad" aria-label="Andar"><button class="c" data-dir="back" aria-label="Andar para cima">▲</button><button class="e" data-dir="left" aria-label="Andar para a esquerda">◀</button><button class="b" data-dir="front" aria-label="Andar para baixo">▼</button><button class="d" data-dir="right" aria-label="Andar para a direita">▶</button></div>
+</div><div class="panel"><label>Direção</label><select id="direction"><option value="front">Frente</option><option value="back">Costas</option><option value="right">Direita</option><option value="left">Esquerda</option></select><label>Cor da camiseta</label><select id="shirt"><option value="white">Branca (original)</option><option value="red">Vermelha</option><option value="green">Verde</option><option value="blue">Azul</option><option value="black">Preta</option></select><label>Cor da calça</label><select id="pants"><option value="blue">Jeans (original)</option><option value="gray">Cinza</option><option value="brown">Marrom</option></select><label>Tipo físico</label><select id="body"><option value="normal">Padrão</option><option value="tall">Mais alto</option><option value="wide">Mais robusto (escala provisória)</option></select><label>Velocidade da animação</label><input id="fps" type="range" min="8" max="16" value="12"><p><span id="fpslabel">12</span> poses por segundo</p><button id="walk">Andar / Parar</button><button id="reset">Restaurar</button><p class="muted">A camiseta e a calça são recoloridas sobre a arte existente. Isso demonstra troca de aparência, não uma troca completa de modelos de roupa. A vista frontal usa peças independentes; as demais ainda aguardam reconstrução do rig.</p></div></section></main><script src="main.js"></script>
+<script>
+// Toque: segurar uma seta = virar para aquela direção e andar; soltar = parar (mesmo efeito das teclas).
+(function () {
+  const sel = document.getElementById("direction");
+  document.querySelectorAll(".dpad button").forEach((b) => {
+    const iniciar = (e) => {
+      e.preventDefault();
+      try { b.setPointerCapture(e.pointerId); } catch (_) {}
+      b.classList.add("ativo");
+      sel.value = b.dataset.dir;
+      sel.dispatchEvent(new Event("change"));
+      window.dispatchEvent(new KeyboardEvent("keydown", { code: { back: "ArrowUp", front: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" }[b.dataset.dir] }));
+    };
+    const parar = () => {
+      if (!b.classList.contains("ativo")) return;
+      b.classList.remove("ativo");
+      window.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+    };
+    b.addEventListener("pointerdown", iniciar);
+    b.addEventListener("pointerup", parar);
+    b.addEventListener("pointercancel", parar);
+    b.addEventListener("lostpointercapture", parar);
+    b.addEventListener("contextmenu", (e) => e.preventDefault());
+  });
+})();
+</script></body></html>
