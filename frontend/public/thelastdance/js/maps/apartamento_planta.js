@@ -15,7 +15,19 @@
     nome: "Apartamento",
     largura: 10, profundidade: 7,      // x: 0..10, y: 0..7
     peDireito: PE_DIREITO,
+    id: "apartamento",
     inicio: { x: 4.5, y: 1.0, dir: "baixo" }, // logo depois de entrar pela porta
+    inicios: { sala: { x: 4.5, y: 1.0 }, entrada: { x: 4.5, y: 0.9 }, quarto: { x: 8.0, y: 2.6 } },
+    inicioPadrao: "quarto",
+    ligacao: "gatinha_campinas",   // roteiro de js/dialogos/ que toca neste mapa
+    roteiroDemo: ["frente do sofá", "varanda (porta de vidro)", "mesa redonda", "lado da cama",
+      "mesa do computador", "armário", "aparador", "porta de entrada"],
+    // Para onde a porta de entrada leva (menu ao sair). Por enquanto só a padaria.
+    destinos: [
+      { nome: "Padaria", descricao: "Café, pão na chapa e energia para mais uma noite", url: "padaria.html", ativo: true },
+      { nome: "Balada", descricao: "Em breve", ativo: false },
+      { nome: "Casa de amigo", descricao: "Em breve", ativo: false },
+    ],
 
     comodos: [
       { nome: "Sala", x0: 0, y0: 0, x1: 6, y1: 7, piso: "#3b3640", piso2: "#433d49", piso_arte: "piso_sala" },

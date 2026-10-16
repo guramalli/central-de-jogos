@@ -8,9 +8,12 @@ const RAIZ = path.resolve(__dirname, "..");
 const PASTA = path.join(RAIZ, "js/dialogos");
 const roteiros = fs.readdirSync(PASTA).filter((f) => f.endsWith(".js")).map((f) => require(path.join(PASTA, f)));
 
-test("há pelo menos um roteiro, com foto que existe", () => {
+test("há pelo menos um roteiro; ligação tem foto que existe (conversa cara a cara pode ficar sem)", () => {
   assert.ok(roteiros.length >= 1);
-  for (const r of roteiros) assert.ok(fs.existsSync(path.join(RAIZ, r.foto)), r.foto);
+  for (const r of roteiros) {
+    if (r.tipo === "conversa" && !r.foto) continue;
+    assert.ok(r.foto && fs.existsSync(path.join(RAIZ, r.foto)), `${r.id}: foto ${r.foto}`);
+  }
 });
 
 for (const r of roteiros) {
@@ -19,7 +22,7 @@ for (const r of roteiros) {
     for (const [id, n] of Object.entries(r.nos)) {
       assert.ok(Array.isArray(n.falas) && n.falas.length > 0, `${id}: falas`);
       for (const f of n.falas) {
-        assert.ok(f.quem === "ela" || f.quem === "eu", `${id}: quem = ${f.quem}`);
+        assert.ok(["ela", "ele", "eu"].includes(f.quem), `${id}: quem = ${f.quem}`);
         assert.ok(typeof f.texto === "string" && f.texto.trim().length > 0, `${id}: texto vazio`);
       }
       assert.ok(!!n.opcoes !== !!n.fim, `${id}: precisa ter opções OU fim`);

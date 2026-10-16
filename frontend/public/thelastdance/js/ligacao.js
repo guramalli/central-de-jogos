@@ -3,6 +3,8 @@
 // -> o jogador escolhe uma opção -> mais falas -> fim. Enquanto a tela está aberta, o personagem não anda.
 // API: NSF.Ligacao.tocar(roteiro, { aoTerminar(resultado) }) (tela de chamada) ; .atender(...) (direto na conversa) ;
 // NSF.Ligacao.aberta() ; NSF.Ligacao.fechar()
+// Roteiro com tipo "conversa" = cara a cara (garçom, gente na padaria): topo mostra roteiro.lugar, botão final "Tchau".
+// Sem roteiro.foto, a bolinha mostra a inicial do nome (boneco ainda sem retrato).
 (function (global) {
   "use strict";
   const doc = global.document;
@@ -23,6 +25,7 @@
     min-height: 220px; }
   .lig-linha { display: flex; gap: 8px; align-items: flex-end; animation: lig-entra .18s ease-out; }
   .lig-linha.eu { justify-content: flex-end; }
+  .lig-foto, .lig-mini { display: grid; place-items: center; font-weight: 700; color: #ffd6f4; }
   .lig-mini { width: 30px; height: 30px; border-radius: 50%; background: #3a2550 center/cover no-repeat; flex: none; }
   .lig-balao { max-width: 78%; padding: 8px 12px; border-radius: 16px; background: #2e1e45; border-bottom-left-radius: 4px; }
   .lig-linha.eu .lig-balao { background: #b0279a; border-bottom-left-radius: 16px; border-bottom-right-radius: 4px; }
@@ -45,6 +48,14 @@
 
   let estilo = null, fundo = null, atual = null;
 
+  // Foto (ou inicial do nome, se o roteiro não tem retrato) dentro de uma bolinha.
+  function retrato(e, roteiro) {
+    if (roteiro.foto) e.style.backgroundImage = `url("${roteiro.foto}")`;
+    else e.textContent = roteiro.contato.trim()[0];
+    return e;
+  }
+  const conversaPessoal = (r) => r.tipo === "conversa";
+
   function el(tag, classe, texto) {
     const e = doc.createElement(tag);
     if (classe) e.className = classe;
@@ -63,7 +74,7 @@
     if (!estilo) { estilo = el("style"); estilo.textContent = CSS; doc.head.appendChild(estilo); }
     fundo = el("div", "lig-fundo");
     fundo.setAttribute("role", "dialog");
-    fundo.setAttribute("aria-label", "Ligação de " + roteiro.contato);
+    fundo.setAttribute("aria-label", (conversaPessoal(roteiro) ? "Conversa com " : "Ligação de ") + roteiro.contato);
     const tel = el("div", "lig-tel");
     fundo.appendChild(tel);
     doc.body.appendChild(fundo);
@@ -72,8 +83,7 @@
 
   function topo(tel, roteiro, status) {
     const t = el("div", "lig-topo");
-    const foto = el("div", "lig-foto");
-    foto.style.backgroundImage = `url("${roteiro.foto}")`;
+    const foto = retrato(el("div", "lig-foto"), roteiro);
     const txt = el("div");
     txt.append(el("div", "lig-nome", roteiro.contato), el("div", "lig-status", status));
     t.append(foto, txt);
@@ -88,8 +98,7 @@
     atual = { roteiro, o, fila: [], esperando: null };
     const { tel } = montar(roteiro);
     const c = el("div", "lig-chamada");
-    const foto = el("div", "lig-foto");
-    foto.style.backgroundImage = `url("${roteiro.foto}")`;
+    const foto = retrato(el("div", "lig-foto"), roteiro);
     c.append(foto, el("div", "lig-nome", roteiro.contato), el("div", "lig-status", "chamando…"));
     const acoes = el("div", "lig-acoes");
     const par = el("div", "lig-par");
@@ -115,7 +124,7 @@
   function conversa(roteiro, o) {
     fundo.firstChild.replaceChildren();
     const tel = fundo.firstChild;
-    topo(tel, roteiro, "em ligação");
+    topo(tel, roteiro, conversaPessoal(roteiro) ? (roteiro.lugar || "conversando") : "em ligação");
     const msgs = el("div", "lig-msgs");
     msgs.setAttribute("aria-live", "polite");
     const acoes = el("div", "lig-acoes");
@@ -130,8 +139,7 @@
   function balao(f) {
     const linha = el("div", "lig-linha" + (f.quem === "eu" ? " eu" : ""));
     if (f.quem !== "eu") {
-      const mini = el("div", "lig-mini");
-      mini.style.backgroundImage = `url("${atual.roteiro.foto}")`;
+      const mini = retrato(el("div", "lig-mini"), atual.roteiro);
       linha.appendChild(mini);
     }
     linha.appendChild(el("div", "lig-balao", f.texto));
@@ -172,7 +180,7 @@
     const s = el("div", "lig-sistema", n.fim.texto);
     atual.msgs.appendChild(s);
     atual.msgs.scrollTop = atual.msgs.scrollHeight;
-    const b = el("button", "vermelho", "Desligar");
+    const b = el("button", "vermelho", conversaPessoal(atual.roteiro) ? "Tchau" : "Desligar");
     const f = atual.o.aoTerminar, r = n.fim.resultado;
     b.onclick = () => { fechar(); if (f) f(r); };
     atual.acoes.appendChild(b);

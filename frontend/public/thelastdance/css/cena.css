@@ -1,0 +1,15 @@
+/* Elementos sobre o mapa compartilhados pelas cenas (apartamento, padaria...): menu de destinos e cortina. */
+.destinos { position: fixed; inset: 0; z-index: 25; display: flex; align-items: center; justify-content: center;
+  background: rgba(5, 2, 12, 0.6); padding: 16px; font: 15px/1.4 system-ui, sans-serif; color: #f3ecff; }
+.destinos-caixa { width: min(380px, 100%); background: #160d24; border: 2px solid #5b3d86; border-radius: 18px;
+  padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 0 30px rgba(255, 90, 216, 0.25); }
+.destinos-caixa h2 { margin: 0 0 4px; font-size: 19px; text-align: center; }
+.destinos-caixa button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+  font: 600 16px system-ui, sans-serif; color: #fff; background: #3a2550; border: 1px solid #6e4aa0;
+  border-radius: 12px; padding: 12px 14px; cursor: pointer; }
+.destinos-caixa button small { font-weight: 400; color: #cdbdf0; font-size: 13px; }
+.destinos-caixa button:hover:not([disabled]), .destinos-caixa button:focus-visible { border-color: #ff5ad8; outline: none; }
+.destinos-caixa button[disabled] { opacity: 0.45; cursor: default; }
+.destinos-caixa .ficar { align-items: center; background: transparent; border-color: #3d2a5c; font-weight: 500; }
+.cortina { position: fixed; inset: 0; z-index: 30; background: #000; opacity: 0; transition: opacity .5s ease; pointer-events: none; }
+.cortina.fechada { opacity: 1; }

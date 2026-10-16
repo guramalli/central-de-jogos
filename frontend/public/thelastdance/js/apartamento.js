@@ -4,13 +4,14 @@
 // Parâmetros: ?comodo=sala|quarto (onde começa), ?conjunto=video|prancha|recorte_sul+video, ?demo, ?grade.
 (function () {
   "use strict";
-  const { CONFIG, estado, ISO, PLANTA_APARTAMENTO: P } = NSF;
+  const { CONFIG, estado, ISO } = NSF;
+  const P = NSF.PLANTA_ATUAL || NSF.PLANTA_APARTAMENTO; // o mapa vem da planta que a página carregou
   const params = new URLSearchParams(location.search);
   const PASTA_SPR = "assets/characters/personagem_v2/pixel/";
   const VEL = 2.2;            // m/s
   const RAIO = 0.22;          // corpo do personagem no chão (m)
   const ALTURA_PERSONAGEM = 173; // px lógicos (≈ 1,73 m na escala do mapa); a escala vem da folha (jogo.json)
-  const INICIOS = { sala: { x: P.inicio.x, y: P.inicio.y }, quarto: { x: 8.0, y: 2.6 } };
+  const INICIOS = Object.assign({ inicio: { x: P.inicio.x, y: P.inicio.y } }, P.inicios || {});
 
   // Extensão do mapa na tela (px lógicos, relativa à origem do mapa) e câmera.
   const minX = ISO.tela(0, P.profundidade, 0)[0], maxX = ISO.tela(P.largura, 0, 0)[0];
@@ -47,16 +48,17 @@
   const PAREDE = {
     ripado: "#8a5a35", tv: "#101318", vidro: "rgba(90,150,210,0.55)", cimento: "#7d7b7f", led: "#ff4fd8",
     vermelha: "#7d2328", porta: "#3a2a24", quadro: "#e0b030", neon: "#ff3fbf",
+    azulejo: "#d9d4c6", prateleira: "#7a5a3a", cardapio: "#26232b",
   };
 
   let manifesto = null, conjunto = null;
   // Catálogo de peças do mapa (assets/maps/props/props.json): arte das caixas e texturas de parede.
   const PASTA_PROPS = "assets/maps/props/";
-  const TEXTURA_PAREDE = "parede_lilas";
+  const TEXTURA_PAREDE = P.texturaParede === undefined ? "parede_lilas" : P.texturaParede; // null = sem textura
   let props = null;
   const imgProps = {};
   const folhas = {};
-  const comodo = INICIOS[params.get("comodo")] ? params.get("comodo") : "quarto";
+  const comodo = INICIOS[params.get("comodo")] ? params.get("comodo") : (P.inicioPadrao || "inicio");
   const jog = { x: INICIOS[comodo].x, y: INICIOS[comodo].y, dir: "baixo", andando: false, tempo: 0 };
   const teclas = new Set();
   const toque = { ativo: false, sx: 0, sy: 0 };
@@ -132,8 +134,116 @@
     aoChegar = acao || null;
     if (demo) { demo = false; marcar(); }
   }
+  const PORTA = P.naParede.find((w) => w.saida);
+  const porta = { aberta: false, menu: null };
+  // Retângulo da porta na tela (px lógicos, já com a câmera): para saber se o toque foi nela.
+  function retanguloPorta() {
+    if (!PORTA) return null;
+    const P3 = (u, z) => (PORTA.plano === "x0" ? T(0, u, z) : T(u, 0, z));
+    const pts = [P3(PORTA.a, PORTA.z0), P3(PORTA.b, PORTA.z0), P3(PORTA.b, PORTA.z1), P3(PORTA.a, PORTA.z1)];
+    return { x0: Math.min(...pts.map((q) => q[0])) - 12, x1: Math.max(...pts.map((q) => q[0])) + 12,
+             y0: Math.min(...pts.map((q) => q[1])) - 12, y1: Math.max(...pts.map((q) => q[1])) + 12 };
+  }
+  function frenteDaPorta() {
+    const m = (PORTA.a + PORTA.b) / 2;
+    return PORTA.plano === "x0" ? { x: 0.5, y: m } : { x: m, y: 0.5 };
+  }
+  function irParaPorta() {
+    const f = frenteDaPorta();
+    irPara(f.x, f.y, abrirPorta);
+  }
+  function abrirPorta() {
+    porta.aberta = true;
+    jog.dir = PORTA.plano === "x0" ? "esquerda" : "cima";
+    mostrarDestinos();
+  }
+  function fecharPorta() {
+    porta.aberta = false;
+    if (porta.menu) porta.menu.remove();
+    porta.menu = null;
+  }
+  // Menu "Para onde você vai?" (destinos da planta; os inativos aparecem como "em breve").
+  function mostrarDestinos() {
+    if (porta.menu) return;
+    const fundo = document.createElement("div");
+    fundo.className = "destinos";
+    fundo.setAttribute("role", "dialog");
+    fundo.setAttribute("aria-label", "Para onde você vai?");
+    const caixa = document.createElement("div");
+    caixa.className = "destinos-caixa";
+    const t = document.createElement("h2");
+    t.textContent = "Para onde você vai?";
+    caixa.appendChild(t);
+    for (const d of P.destinos || []) {
+      const b = document.createElement("button");
+      b.disabled = !d.ativo;
+      const nome = document.createElement("b"); nome.textContent = d.nome;
+      const desc = document.createElement("small"); desc.textContent = d.ativo ? d.descricao : "Em breve";
+      b.append(nome, desc);
+      b.addEventListener("click", () => sair(d));
+      caixa.appendChild(b);
+    }
+    const ficar = document.createElement("button");
+    ficar.className = "ficar";
+    ficar.textContent = "Ficar aqui";
+    ficar.addEventListener("click", fecharPorta);
+    caixa.appendChild(ficar);
+    fundo.appendChild(caixa);
+    document.body.appendChild(fundo);
+    porta.menu = fundo;
+    const primeiro = caixa.querySelector("button:not([disabled])");
+    if (primeiro) primeiro.focus();
+  }
+  function sair(destino) {
+    if (NSF.Audio) NSF.Audio.musica(false);
+    const cortina = document.createElement("div");
+    cortina.className = "cortina";
+    document.body.appendChild(cortina);
+    requestAnimationFrame(() => cortina.classList.add("fechada"));
+    setTimeout(() => { location.href = destino.url; }, 600);
+  }
+
+  // ---------- gente no mapa (bonecos provisórios até a arte) ----------
+  // Toque numa pessoa: o protagonista vai até o "falarDe" dela, vira para ela e conversa (roteiro) ou ela solta uma fala.
+  const NPCS = (P.npcs || []).map((n) => Object.assign({ balao: null, resultado: null }, n));
+  for (const n of NPCS) {
+    if (n.postura !== "sentado") continue;
+    const c = P.caixas.find((k) => k.tipo === "cadeira" && n.x > k.x0 && n.x < k.x1 && n.y > k.y0 && n.y < k.y1);
+    if (c) c.ocupante = n;   // desenhado logo depois da cadeira (a mesa à frente cobre o colo)
+  }
+  const alturaNpc = (n) => (n.postura === "sentado" ? 1.35 : 1.8);
+  function retanguloNpc(n) {
+    const [bx, by] = T(n.x, n.y, 0), ty = T(n.x, n.y, alturaNpc(n))[1];
+    return { x0: bx - 34, x1: bx + 34, y0: ty - 12, y1: by + 6 };
+  }
+  function npcNoToque(m) { // se dois se sobrepõem na tela, vale o da frente
+    let achado = null;
+    for (const n of NPCS) {
+      const r = retanguloNpc(n);
+      if (m.telaX < r.x0 || m.telaX > r.x1 || m.telaY < r.y0 || m.telaY > r.y1) continue;
+      if (!achado || n.x + n.y > achado.x + achado.y) achado = n;
+    }
+    return achado;
+  }
+  function irFalarCom(n) {
+    const f = n.falarDe || n;
+    irPara(f.x, f.y, () => falarCom(n));
+  }
+  function falarCom(n) {
+    const [ax, ay] = ISO.tela(jog.x, jog.y, 0), [bx, by] = ISO.tela(n.x, n.y, 0);
+    jog.dir = direcaoSprite(bx - ax, by - ay);
+    const roteiro = n.dialogo && NSF.DIALOGOS && NSF.DIALOGOS[n.dialogo];
+    if (roteiro && NSF.Ligacao) {
+      teclas.clear(); caminho = []; destinoToque = null;
+      NSF.Ligacao.atender(roteiro, { aoTerminar: (r) => { n.resultado = r; } });
+      return;
+    }
+    if (n.fala) n.balao = { texto: n.fala, ate: performance.now() + 3500 };
+  }
+
   canvas.addEventListener("pointerdown", (e) => {
     if (NSF.Ligacao && NSF.Ligacao.aberta()) return;
+    if (porta.menu) return;
     const m = telaParaMundo(e.clientX, e.clientY);
     if (!m) return;
     e.preventDefault();
@@ -141,13 +251,16 @@
       irAtender();
       return;
     }
+    const npc = npcNoToque(m);
+    if (npc) { irFalarCom(npc); return; }
+    const rp = retanguloPorta();
+    if (rp && m.telaX >= rp.x0 && m.telaX <= rp.x1 && m.telaY >= rp.y0 && m.telaY <= rp.y1) { irParaPorta(); return; }
     if (m.x < 0 || m.y < 0 || m.x > P.largura || m.y > P.profundidade) return;
     irPara(m.x, m.y, null);
   });
 
   // Demonstração: passeia pelos pontos de interesse, desviando pela grade de alcance.
-  const ROTEIRO = ["frente do sofá", "varanda (porta de vidro)", "mesa redonda", "lado da cama",
-    "mesa do computador", "armário", "aparador", "porta de entrada"];
+  const ROTEIRO = P.roteiroDemo || P.pontos.map((p) => p.nome);
   let caminho = [], alvoDemo = 0;
   function rota(dePt, paraPt) { // busca em largura na grade de 0,1 m, devolve pontos do mundo
     const g = ISO.alcance(P, dePt.x, dePt.y, RAIO, 0.1);
@@ -182,7 +295,7 @@
   }
 
   // ---------- ligação do telefone (primeira interação de teste) ----------
-  const ROTEIRO_LIGACAO = NSF.DIALOGOS && NSF.DIALOGOS.gatinha_campinas;
+  const ROTEIRO_LIGACAO = P.ligacao && NSF.DIALOGOS && NSF.DIALOGOS[P.ligacao];
   const ligacao = { tocando: false, resultado: null, relogio: null };
   const avisoTocando = document.getElementById("tocando");
   function mostrarAviso(sim) { if (avisoTocando) avisoTocando.classList.toggle("visivel", sim); }
@@ -332,7 +445,16 @@
     return true;
   }
 
+  function portaAbertaDesenho(ctx, w) {
+    const P3 = (u, z) => (w.plano === "x0" ? T(0, u, z) : T(u, 0, z));
+    const p = [P3(w.a, w.z0), P3(w.b, w.z0), P3(w.b, w.z1), P3(w.a, w.z1)];
+    poli(ctx, p, "#0b0712", "rgba(0,0,0,0.6)");
+    const fresta = [P3(w.a, w.z0), P3(w.a + (w.b - w.a) * 0.2, w.z0), P3(w.a + (w.b - w.a) * 0.2, w.z1), P3(w.a, w.z1)];
+    poli(ctx, fresta, "rgba(255,200,120,0.55)");
+  }
+
   function quadParede(ctx, w) {
+    if (w.saida && porta.aberta) { portaAbertaDesenho(ctx, w); return; }
     if (decalque(ctx, w)) return;
     const p = w.plano === "x0"
       ? [T(0, w.a, w.z0), T(0, w.b, w.z0), T(0, w.b, w.z1), T(0, w.a, w.z1)]
@@ -361,7 +483,8 @@
       const [x, y] = w.plano === "x0" ? T(0, (w.a + w.b) / 2, (w.z0 + w.z1) / 2) : T((w.a + w.b) / 2, 0, (w.z0 + w.z1) / 2);
       ctx.save(); ctx.translate(x, y); ctx.transform(1, -0.5, 0, 1, 0, 0);
       ctx.fillStyle = "#fff"; ctx.font = "700 20px system-ui, sans-serif"; ctx.textAlign = "center";
-      ctx.fillText("MAIS UMA", 0, -6); ctx.fillText("NOITE?", 0, 16); ctx.restore();
+      const linhas = w.texto || ["MAIS UMA", "NOITE?"];
+      ctx.fillText(linhas[0], 0, -6); if (linhas[1]) ctx.fillText(linhas[1], 0, 16); ctx.restore();
     }
   }
 
@@ -425,6 +548,99 @@
     ctx.restore();
   }
 
+  // Boneco provisório: sombra, pernas (em pé), tronco, braços, cabeça, cabelo e olhos virados para "dir".
+  // Escala igual à do mapa (1 m de altura = px de ISO.tela). Só até chegar a arte de cada personagem.
+  function desenharNpc(ctx, n) {
+    const v = n.visual || {}, sentado = n.postura === "sentado";
+    const [fx, fy] = T(n.x, n.y, 0), k = fy - T(n.x, n.y, 1)[1];
+    const Z = (z) => fy - z * k;
+    const contorno = "rgba(12,6,20,0.6)";
+    const ret = (x, yBase, w, yTopo, cor, raio) => {
+      ctx.beginPath(); ctx.roundRect(x, yTopo, w, yBase - yTopo, raio || 4);
+      ctx.fillStyle = cor; ctx.fill(); ctx.strokeStyle = contorno; ctx.lineWidth = 2; ctx.stroke();
+    };
+    const t0 = sentado ? 0.45 : 0.85, t1 = t0 + 0.55, cab = t1 + 0.17, r = 17;
+    const lado = n.dir === "direita" ? 1 : n.dir === "esquerda" ? -1 : 0;
+    ctx.save();
+    if (!sentado) {
+      ctx.fillStyle = "rgba(0,0,0,0.33)";
+      ctx.beginPath(); ctx.ellipse(fx, fy, 30, 9, 0, 0, 2 * Math.PI); ctx.fill();
+      ret(fx - 15, Z(0.04), 12, Z(t0), v.calca || "#333", 3);
+      ret(fx + 3, Z(0.04), 12, Z(t0), v.calca || "#333", 3);
+    }
+    if (v.estilo === "longo") ret(fx - r - 3, Z(t1 - 0.22), 2 * r + 6, Z(cab + 0.1), v.cabelo, 10); // cabelo atrás
+    if (v.estilo === "volume") {
+      ctx.beginPath(); ctx.arc(fx, Z(cab) - 3, r + 9, 0, 2 * Math.PI);
+      ctx.fillStyle = v.cabelo; ctx.fill(); ctx.strokeStyle = contorno; ctx.lineWidth = 2; ctx.stroke();
+    }
+    ret(fx - 28, Z(t0 + 0.08), 9, Z(t1 - 0.04), v.roupa, 4);         // braços
+    ret(fx + 19, Z(t0 + 0.08), 9, Z(t1 - 0.04), v.roupa, 4);
+    ret(fx - 20, Z(t0), 40, Z(t1), v.roupa, 8);                       // tronco
+    if (v.avental) ret(fx - 15, Z(t0 - (sentado ? 0 : 0.25)), 30, Z(t1 - 0.25), v.avental, 3);
+    ctx.fillStyle = v.pele;
+    for (const hx of [fx - 23.5, fx + 23.5]) { ctx.beginPath(); ctx.arc(hx, Z(t0 + 0.06), 5, 0, 2 * Math.PI); ctx.fill(); }
+    // cabeça
+    const hy = Z(cab);
+    ctx.beginPath(); ctx.arc(fx, hy, r, 0, 2 * Math.PI);
+    ctx.fillStyle = n.dir === "cima" && v.estilo !== "careca_barba" ? v.cabelo : v.pele;
+    ctx.fill(); ctx.strokeStyle = contorno; ctx.lineWidth = 2; ctx.stroke();
+    if (n.dir !== "cima") {
+      ctx.fillStyle = v.cabelo;
+      if (v.estilo === "curto" || v.estilo === "longo") {
+        ctx.beginPath(); ctx.arc(fx, hy - 2, r + 1, Math.PI * 1.02, Math.PI * 1.98); ctx.closePath(); ctx.fill();
+      }
+      if (v.estilo === "careca_barba") {
+        ctx.beginPath(); ctx.arc(fx + lado * 3, hy + 3, r - 2, Math.PI * 0.05, Math.PI * 0.95); ctx.closePath(); ctx.fill();
+      }
+      if (v.estilo === "bone") {
+        ctx.fillStyle = "#1c2a44";
+        ctx.beginPath(); ctx.arc(fx, hy - 3, r + 1, Math.PI, 2 * Math.PI); ctx.closePath(); ctx.fill();
+        ctx.fillRect(fx - 8 + lado * 12, hy - 6, 22, 5);
+      }
+      ctx.fillStyle = "#1a1020"; // olhos
+      for (const ox of [-6, 6]) { ctx.beginPath(); ctx.arc(fx + ox + lado * 5, hy + 1, 2.2, 0, 2 * Math.PI); ctx.fill(); }
+    }
+    ctx.restore();
+  }
+
+  // Sinal "…" sobre quem tem conversa, e o balão de fala de quem só comenta.
+  function desenharSinaisNpc(ctx, agora) {
+    for (const n of NPCS) {
+      const [x, y] = T(n.x, n.y, alturaNpc(n) + 0.25);
+      if (n.balao && agora > n.balao.ate) n.balao = null;
+      if (n.balao) {
+        ctx.save();
+        ctx.font = "600 15px system-ui, sans-serif";
+        const w = Math.min(260, ctx.measureText(n.balao.texto).width + 20);
+        const linhas = quebrar(ctx, n.balao.texto, w - 20), h = 10 + linhas.length * 19;
+        ctx.fillStyle = "rgba(22,13,36,0.95)"; ctx.strokeStyle = "#cdbdf0"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.roundRect(x - w / 2, y - h - 12, w, h, 10); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - 7, y - 13); ctx.lineTo(x, y - 3); ctx.lineTo(x + 7, y - 13); ctx.fill();
+        ctx.fillStyle = "#f3ecff"; ctx.textAlign = "center";
+        linhas.forEach((l, i) => ctx.fillText(l, x, y - h - 12 + 23 + i * 19));
+        ctx.restore();
+      } else if (n.dialogo) {
+        const b = Math.sin(agora / 260) * 3;
+        ctx.save();
+        ctx.fillStyle = "#16101f"; ctx.strokeStyle = "#ff5ad8"; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.roundRect(x - 18, y - 30 + b, 36, 22, 9); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#ff9be9";
+        for (const ox of [-8, 0, 8]) { ctx.beginPath(); ctx.arc(x + ox, y - 19 + b, 2.6, 0, 2 * Math.PI); ctx.fill(); }
+        ctx.restore();
+      }
+    }
+  }
+  function quebrar(ctx, texto, largura) {
+    const linhas = [];
+    let atual = "";
+    for (const p of texto.split(" ")) {
+      const t = atual ? atual + " " + p : p;
+      if (ctx.measureText(t).width > largura && atual) { linhas.push(atual); atual = p; } else atual = t;
+    }
+    if (atual) linhas.push(atual);
+    return linhas;
+  }
+
   function rotulo(ctx, texto, x, y, z) {
     const [sx, sy] = T(x, y, z);
     ctx.font = "600 15px system-ui, sans-serif";
@@ -455,9 +671,15 @@
     for (const w of P.naParede) quadParede(ctx, w);
 
     // móveis, paredes cortadas e o personagem, na ordem de profundidade
-    const itens = P.caixas.filter((k) => !k.fundo).map((c) => Object.assign({ desenho: "caixa" }, c));
+    const itens = P.caixas.filter((k) => !k.fundo && !k.oculto).map((c) => Object.assign({ desenho: "caixa" }, c));
     itens.push({ desenho: "jogador", x0: jog.x - 0.05, y0: jog.y - 0.05, x1: jog.x + 0.05, y1: jog.y + 0.05 });
-    for (const it of ISO.ordenar(itens)) (it.desenho === "jogador" ? desenharJogador(ctx) : caixa(ctx, it));
+    for (const n of NPCS) if (n.postura !== "sentado") itens.push({ desenho: "npc", npc: n, x0: n.x - 0.05, y0: n.y - 0.05, x1: n.x + 0.05, y1: n.y + 0.05 });
+    for (const it of ISO.ordenar(itens)) {
+      if (it.desenho === "jogador") desenharJogador(ctx);
+      else if (it.desenho === "npc") desenharNpc(ctx, it.npc);
+      else { caixa(ctx, it); if (it.ocupante) desenharNpc(ctx, it.ocupante); }
+    }
+    desenharSinaisNpc(ctx, agora);
 
     if (destinoToque) { // marcador no chão onde o jogador tocou
       const [mx, my] = T(destinoToque.x, destinoToque.y, 0), p = 0.6 + 0.4 * Math.sin(agora / 150);
@@ -487,12 +709,13 @@
       }
     }
     if (mostrarNomes) {
-      for (const c of P.caixas) if (c.nome) rotulo(ctx, c.nome, (c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, c.z1);
+      for (const c of P.caixas) if (c.nome && !c.oculto) rotulo(ctx, c.nome, (c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, c.z1);
       for (const w of P.naParede) {
         const m = (w.a + w.b) / 2;
         if (w.tipo !== "led" && w.tipo !== "cimento") rotulo(ctx, w.nome, w.plano === "x0" ? 0 : m, w.plano === "x0" ? m : 0, w.z1 + 0.15);
       }
       for (const c of P.comodos) rotulo(ctx, c.nome.toUpperCase(), c.x1 - 0.6, c.y1 - 0.4, 0);
+      for (const n of NPCS) rotulo(ctx, n.nome, n.x, n.y, alturaNpc(n) + 0.75);
     }
     ctx.restore();
   }
@@ -525,8 +748,10 @@
     const pedido = j.conjuntos[params.get("conjunto")] ? params.get("conjunto") : j.padrao;
     return carregarConjunto(pedido).then(() => { conjunto = pedido; });
   }).then(() => {
-    if (ROTEIRO_LIGACAO && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
-    marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo,
+    // toca quando ele acorda no quarto (não toda vez que volta para casa)
+    if (ROTEIRO_LIGACAO && comodo === "quarto" && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
+    marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P,
+      npcs: NPCS, retanguloNpc, irFalarCom, falarCom,
       mundoParaTela(x, y) { // inverso de telaParaMundo (para testes): ponto do mundo -> coordenada do toque
         const v = ultimaVista, r = canvas.getBoundingClientRect(), [lx, ly] = T(x, y, 0);
         return [r.left + (lx * v.z * v.escala + v.dx) * r.width / canvas.width,
