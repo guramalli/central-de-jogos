@@ -21,9 +21,15 @@ function montaHud() {
   h.innerHTML = ''; HUD.forca = null;
   HUD.quadro = el('div', { class: 'painel quadro' });
   // O cartão da família (13/10): a meta da casa e o "Agora"; o quadro de tarefas fica embaixo, só com o trabalho na mão.
-  HUD.cartao = el('div', { class: 'painel cartao', hidden: true }, HUD.cartaoTitulo = el('div', { class: 'c-titulo' }), el('div', { class: 'c-fundo' }, HUD.cartaoNivel = el('div', { class: 'c-nivel' })),
-    HUD.cartaoTexto = el('div', { class: 'c-texto' }), HUD.cartaoAgora = el('div', { class: 'c-agora' }));
-  HUD.colEsq = el('div', { class: 'col-esq' }, HUD.cartao, HUD.quadro);
+  // (C4, 16/10; o teste crítico: o painel da esquerda cobria 1/3 da tela) Compacto, como o Stardew (o HUD pequeno nos cantos): o título
+  // da meta com a barrinha numa linha, o Agora numa linha só (inteiro com o mouse por cima, e por 4 s quando muda); a conta do que se
+  // está fazendo (o quintal: N de T) na barrinha de baixo; a lista do Bira vira a pílula "Lista do Bira 2/4 ▸".
+  HUD.cartao = el('div', { class: 'painel cartao', hidden: true },
+    el('div', { class: 'c-topo' }, HUD.cartaoTitulo = el('div', { class: 'c-titulo' }), el('div', { class: 'c-fundo' }, HUD.cartaoNivel = el('div', { class: 'c-nivel' }))),
+    HUD.cartaoTexto = el('div', { class: 'c-texto' }), HUD.cartaoAgora = el('div', { class: 'c-agora' }),
+    HUD.cartaoConta = el('div', { class: 'c-conta', hidden: true }, HUD.cartaoContaTexto = el('div', { class: 'c-conta-texto' }), el('div', { class: 'c-fundo' }, HUD.cartaoContaNivel = el('div', { class: 'c-nivel' }))));
+  HUD.pilula = el('div', { class: 'pilula', hidden: true, title: 'A lista (L)', onclick: e => { e.stopPropagation(); alternaLista(); }, onmouseenter: () => abreLista() });
+  HUD.colEsq = el('div', { class: 'col-esq' }, HUD.cartao, HUD.pilula, HUD.quadro);
   HUD.relogio = el('div', { class: 'painel relogio' }, HUD.dia = el('div', { class: 'dia' }), HUD.estacao = el('div', { class: 'estacao' }),
     HUD.hora = el('div', { class: 'hora' }), HUD.dinheiro = el('div', { class: 'dinheiro' }));
   HUD.meta = el('div', { class: 'painel meta-bazar', hidden: true }, HUD.metaTexto = el('div', { class: 'meta-texto' }), el('div', { class: 'meta-fundo' }, HUD.metaNivel = el('div', { class: 'meta-nivel' })));
@@ -92,19 +98,50 @@ function atualizaHud() {
   // corte de 6 linhas, as 3 metas da pensão empurravam a 4ª e a 5ª tarefa do Bira para fora do quadro
   const peso = t => /^Obra: /.test(t.texto) ? 2 : t.texto.startsWith('★') ? 1 : 0; tarefas.sort((a, b) => peso(b) - peso(a));
   const txt = tarefas.slice(0, 6).map(t => t.texto + (t.meta ? `  ${t.feito}/${t.meta}` : '')).join('|');
-  if (HUD.quadro._txt !== txt) { HUD.quadro._txt = txt; HUD.quadro.innerHTML = ''; for (const t of txt ? txt.split('|') : []) HUD.quadro.append(el('div', {}, t)); }
+  mapaRecente();   // (a hora da troca de mapa fica marcada no quadro em que ela acontece)
+  if (HUD.quadro._txt !== txt) { HUD.quadro._txt = txt; HUD.quadro.innerHTML = ''; for (const t of txt ? txt.split('|') : []) HUD.quadro.append(el('div', {}, t));
+    // (C4) a lista nova (outra tarefa, não só a conta andando) abre sozinha por 4 s, para o jogador ver o que o Bira pediu
+    // (revisão da C4) a troca de mapa não abre (a lista muda só porque o mapa mudou)
+    const semNum = txt.replace(/\d+/g, '#'); if (txt && semNum !== HUD.quadro._semNum && !mapaRecente()) abreLista(); HUD.quadro._semNum = semNum; }
+  atualizaPilula(tarefas);
+  // (C4) o Agora inteiro: com o mouse por cima do cartão, ou por 4 s quando a frase muda (sem contar os números)
+  { const ag = HUD.cartaoAgora.textContent.replace(/\d+/g, '#'), agora = performance.now();
+    // (revisão da C4) 2,5 s, e não quando a frase muda só porque o mapa mudou (mapaRecente: o primeiro segundo depois da troca)
+    if (ag !== HUD._agoraSemNum) { if (HUD._agoraSemNum !== undefined && ag !== 'Agora: ' && !mapaRecente()) HUD._agoraAte = agora + 2500; HUD._agoraSemNum = ag; }
+    const r = HUD.cartao.getBoundingClientRect(), m = G.mouse || {};
+    const mouse = !HUD.cartao.hidden && m.dentro !== false && m.x >= r.left && m.x <= r.right && m.y >= r.top && m.y <= r.bottom;
+    // (com o mouse, o cartão inteiro; a frase nova, só o Agora em mais linhas)
+    const aberto = !HUD.cartao.hidden && mouse, novo = !HUD.cartao.hidden && !mouse && agora < (HUD._agoraAte || 0);
+    if (HUD.cartao.classList.contains('aberto') !== aberto) HUD.cartao.classList.toggle('aberto', aberto);
+    if (HUD.cartao.classList.contains('novo') !== novo) HUD.cartao.classList.toggle('novo', novo); }
+  // A lista aberta: com o mouse por cima (da pílula ou da lista) ou nos 4 s depois de abrir.
+  { const r = HUD.quadro.getBoundingClientRect(), m = G.mouse || {}, sobre = r.height > 0 && m.x >= r.left && m.x <= r.right && m.y >= r.top && m.y <= r.bottom;
+    if (sobre) HUD._listaAte = Math.max(HUD._listaAte || 0, performance.now() + 1500);
+    const aberta = !HUD.quadro.hidden && performance.now() < (HUD._listaAte || 0);
+    if (HUD.colEsq.classList.contains('lista-aberta') !== aberta) HUD.colEsq.classList.toggle('lista-aberta', aberta); }
+  // O tamanho compacto da coluna (sem o Agora aberto e sem a lista): a câmera desvia dele (paineisDaCamera), não do que abre e fecha.
+  if (!HUD.cartao.classList.contains('aberto') && !HUD.cartao.classList.contains('novo') && !HUD.colEsq.classList.contains('lista-aberta')) {
+    const r = HUD.colEsq.getBoundingClientRect(), vis = !HUD.cartao.hidden || !HUD.pilula.hidden;
+    HUD._compacto = vis && r.height > 0 ? { l: r.left, t: r.top, r: r.right, b: r.bottom } : null; }
   // (tarefa 7, o robô jogador) Como a barra do Stardew, que pula para o alto quando o fazendeiro anda embaixo dela: a coluna do cartão e
   // do quadro fica quase transparente quando o Jocelino ou o alvo da seta estão embaixo dela (o depósito e a pensão, no canto da Vila,
   // sumiam atrás do cartão).
   // (correção 2) a barrinha da meta sob o relógio recua do mesmo jeito (o canteiro da obra, no alto à direita da Vila, fica embaixo dela)
+  // (C4, 16/10) Todo painel recua com o alvo da seta embaixo dele (o relógio, a barra, a energia, a mochila, os botões do topo): a câmera
+  // tira o alvo de baixo deles (jogo.js); na borda do mapa, onde ela não passa, o painel fica quase transparente e o clique vale o mundo.
   const s = typeof setaAgora === 'function' ? setaAgora() : null;
-  for (const painel of [HUD.colEsq, HUD.meta]) { if (!painel) continue;
-    const r = painel.getBoundingClientRect(), z = G.zoom || 1, dentro = (x, y) => x >= r.left - 10 && x <= r.right + 10 && y >= r.top - 10 && y <= r.bottom + 30;
-    // (o Jocelino a até 2 ladrilhos do painel: o que a ferramenta dele alcança pode estar embaixo, e o clique tem de chegar lá)
-    const m = 2 * TILE * z, perto = (x, y) => x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m;
-    const sob = !painel.hidden && r.height > 0 && !!G.jog && !!G.cam && (perto((G.jog.x - G.cam.x) * z, (G.jog.y - 40 - G.cam.y) * z)
-      || (!!s && s.tipo === 'alvo' && dentro((s.x - G.cam.x) * z, (s.y + 30 - G.cam.y) * z)));
-    if (painel.classList.contains('recua') !== sob) painel.classList.toggle('recua', sob); }
+  const z = G.zoom || 1, cx = (s && s.tipo === 'alvo' && G.cam && typeof caixaDoAlvo === 'function' && (!s.mapa || s.mapa === G.mapaId)) ? caixaDoAlvo(s) : null;
+  const alvo = cx ? { l: (cx.x0 - G.cam.x) * z, t: (cx.y0 - G.cam.y) * z, r: (cx.x1 - G.cam.x) * z, b: (cx.y1 - G.cam.y) * z } : null;
+  const jog = G.jog && G.cam ? { l: (G.jog.x - 16 - G.cam.x) * z, t: (G.jog.y - 70 - G.cam.y) * z, r: (G.jog.x + 16 - G.cam.x) * z, b: (G.jog.y - G.cam.y) * z } : null;
+  for (const painel of paineisQueRecuam()) {
+    const r = painel.getBoundingClientRect(), bate = (q, m) => !!q && q.l < r.right + m && q.r > r.left - m && q.t < r.bottom + m && q.b > r.top - m;
+    // (o Jocelino a até 2 ladrilhos da coluna e da barrinha da meta: o que a ferramenta dele alcança pode estar embaixo, e o clique tem de
+    // chegar lá; nos outros painéis, o Jocelino embaixo deles, como a barra do Stardew)
+    const largo = painel === HUD.colEsq || painel === HUD.meta;
+    const doAlvo = !painel.hidden && r.height > 0 && bate(alvo, 8), sob = doAlvo || (!painel.hidden && r.height > 0 && bate(jog, largo ? 2 * TILE * z : 0));
+    if (painel.classList.contains('recua') !== sob) painel.classList.toggle('recua', sob);
+    // (revisão da C4) o clique da barra, do relógio e dos botões só passa para o mundo com o alvo da seta embaixo (não com só o Jocelino)
+    if (painel.classList.contains('recua-alvo') !== doAlvo) painel.classList.toggle('recua-alvo', doAlvo); }
   // (tarefa 7) O quadro não pega mais o clique (deixa passar para o depósito, que ficava embaixo dele): fica firme com o mouse por cima.
   { const r = HUD.quadro.getBoundingClientRect(), m = G.mouse, dentro = !HUD.quadro.hidden && m.x >= r.left && m.x <= r.right && m.y >= r.top && m.y <= r.bottom; if (HUD.quadro.classList.contains('firme') !== dentro) HUD.quadro.classList.toggle('firme', dentro); }
   // O cartão: recalculado quando o HUD suja ou a cada meio segundo de jogo.
@@ -112,6 +149,56 @@ function atualizaHud() {
   if (typeof atualizaCartao === 'function' && (HUD._cartaoSujo || ag - (HUD._tCartao || -9) > 0.5 || ag < (HUD._tCartao || 0))) { HUD._cartaoSujo = false; HUD._tCartao = ag; atualizaCartao(todas.filter(t => !noMapaDaLinha(t) && (!t.mapa || t.urgente)), noSalao); }   // (o Agora: os avisos e, do que tem lugar, só o urgente)
   if (typeof atualizaSeloPensao === 'function') atualizaSeloPensao(HUD.selo, noSalao);
 }
+// (C4) Os painéis do HUD que recuam com o alvo da seta (ou o Jocelino) embaixo, e o que a câmera evita (px de tela, com folga de 6 px).
+const paineisQueRecuam = () => [HUD.colEsq, HUD.meta, HUD.relogio, HUD.energia, HUD.barra, HUD.botaoMochila, HUD.dicaBarra, HUD.botaoTela, HUD.botaoHab, HUD.botaoFab, HUD.botaoCad].filter(Boolean);
+// (revisão da C4) guardado por quadro, como o faixasDoHud: a câmera pede uma vez por quadro e o getComputedStyle não roda à toa
+let _paineisCam = null, _paineisCamChave = '';
+function paineisDaCamera() {
+  if (!HUD.relogio) return [];
+  const k = `${G.quadros}:${G.agora}:${innerWidth}x${innerHeight}:${G.mapaId}`; if (k === _paineisCamChave && _paineisCam) return _paineisCam;
+  _paineisCamChave = k; _paineisCam = paineisDaCamera0(); return _paineisCam;
+}
+function paineisDaCamera0() {
+  const R = [], poe = (r, m = 6) => { if (r && r.r - r.l > 0 && r.b - r.t > 0) R.push({ l: r.l - m, t: r.t - m, r: r.r + m, b: r.b + m }); };
+  const de = e => { if (!e || e.hidden || !e.isConnected) return null; const r = e.getBoundingClientRect(); return r.width > 0 && getComputedStyle(e).visibility !== 'hidden' ? { l: r.left, t: r.top, r: r.right, b: r.bottom } : null; };
+  poe(HUD._compacto && (!HUD.cartao.hidden || !HUD.pilula.hidden) ? HUD._compacto : null);
+  for (const e of [HUD.meta, HUD.relogio, HUD.energia, HUD.barra, HUD.botaoMochila, HUD.botaoTela, HUD.botaoHab, HUD.botaoFab, HUD.botaoCad, HUD.selo]) poe(de(e));
+  if (HUD.dicaBarra && HUD.dicaBarra.textContent) poe(de(HUD.dicaBarra));
+  return R;
+}
+// As faixas de cima (o cartão compacto) e de baixo (a barra) em px de tela: o Jocelino fica no meio do que sobra (jogo.js, cameraBase).
+let _faixas = null, _faixasChave = '';
+function faixasDoHud() {
+  const k = `${G.quadros}:${G.agora}:${innerWidth}x${innerHeight}:${G.mapaId}`; if (k === _faixasChave && _faixas) return _faixas;
+  const c = HUD._compacto, b = HUD.barra && HUD.barra.style.visibility !== 'hidden' ? HUD.barra.getBoundingClientRect() : null;
+  _faixasChave = k; _faixas = { cima: c ? Math.max(0, c.b) : 0, baixo: b && b.height > 0 ? Math.max(0, (G.alt || innerHeight) - b.top) : 0 };
+  return _faixas;
+}
+// A lista do Bira (o quadro) atrás da pílula: abre por 4 s (o mouse por cima segura), o clique e a tecla L abrem e fecham.
+function abreLista() { HUD._listaAte = performance.now() + 2500; }
+// (revisão da C4) A troca de mapa muda a lista e o Agora sem nada novo para o jogador: no primeiro segundo (de jogo) depois dela, nada abre
+// sozinho (o Agora é recalculado um quadro depois da troca: atualizaCartao, no fim do atualizaHud).
+function mapaRecente() {
+  if (HUD._mapaVisto !== G.mapaId) { HUD._mapaVisto = G.mapaId; HUD._mapaEm = G.agora || 0; }
+  return (G.agora || 0) - (HUD._mapaEm || 0) < 1;
+}
+function alternaLista() { HUD._listaAte = HUD.colEsq && HUD.colEsq.classList.contains('lista-aberta') ? 0 : performance.now() + 4000; if (HUD.colEsq) HUD.colEsq.classList.toggle('lista-aberta', !!HUD._listaAte); }
+function atualizaPilula(tarefas) {
+  if (!HUD.pilula) return;
+  let t = '';
+  if (tarefas.length) {
+    const l = tarefas.some(x => /^Obra: /.test(x.texto)) && typeof listaDeHoje === 'function' ? listaDeHoje() : null;
+    if (l && l.metas) { const ids = Object.keys(l.metas), feitas = ids.filter(id => (l.feito[id] || 0) >= l.metas[id]).length; t = `Lista do Bira ${feitas}/${ids.length}`; }
+    else { const p = tarefas[0], curto = p.texto.replace(/\s*\(.*$/, '').replace(/^★\s*/, ''); t = curto + (p.meta ? ` ${p.feito}/${p.meta}` : '') + (tarefas.length > 1 ? ` (+${tarefas.length - 1})` : ''); }
+  }
+  HUD.pilula.hidden = !t;
+  const rot = t ? t + (HUD.colEsq.classList.contains('lista-aberta') ? ' ▾' : ' ▸') : '';
+  if (HUD.pilula.textContent !== rot) HUD.pilula.textContent = rot;
+}
+addEventListener('keydown', e => {
+  if (e.code !== 'KeyL' || e.repeat || !G.comecou || /^(TEXTAREA|INPUT)$/.test((e.target && e.target.tagName) || '') || (typeof menuAberto === 'function' && menuAberto())) return;
+  if (HUD.pilula && !HUD.pilula.hidden) alternaLista();
+});
 ATUALIZADORES.push(() => atualizaHud());
 INICIADORES.push(() => { montaHud(); hudSujo(); });
 setInterval(() => { if (G.comecou && G.pausado) atualizaHud(); }, 250);

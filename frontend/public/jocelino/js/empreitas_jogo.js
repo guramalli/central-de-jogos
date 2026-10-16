@@ -301,18 +301,20 @@ const ONDE_FICA = { vila: 'na Vila', quintal: 'no quintal', mata: 'na mata: saí
 const ondeFica = mapa => ONDE_FICA[mapa] || mapa;
 function abrirQuadro(aba = 'servicos') {
   if (aba === 'servicos' && typeof Guia !== 'undefined' && !Guia.liberado('quadro')) { abrirPlaca('O quadro de serviços da Vila. Depois de conhecer o pessoal da Vila, os bicos ficam aqui.'); return; }
-  const caixa = el('div', { class: 'painel quadro-vila' });
+  const caixa = el('div', { class: 'painel quadro-vila com-pe' });
   const desenha = () => {
+    const rolou = (caixa.querySelector('.miolo') || {}).scrollTop || 0;   // (C5) o miolo rola; o redesenho guarda onde estava
     caixa.innerHTML = '';
     const tab = (id, txt) => el('button', { class: 'botao' + (aba === id ? ' forte' : ''), onclick: e => { e.stopPropagation(); aba = id; desenha(); } }, txt);
     caixa.append(el('div', { class: 'titulo', style: 'font-size:26px' }, 'Quadro de pedidos da Vila'), el('div', { class: 'qv-abas' }, tab('servicos', 'Serviços'), tab('pensao', 'Pensão')));
+    const miolo = el('div', { class: 'miolo' });   // (C5) o cabeçalho e o Fechar fixos; só o miolo rola
     if (aba === 'pensao') {
       // (16/10, E2 das encomendas de festa) A festa que um morador marcou na pensão: quem, a ocasião, o prato, a turma e a noite (no
       // lugar dos antigos pedidos da Vila com prazo). Só informa: a Rosa já disse sim, não há o que aceitar.
       const p = G.pensao, e = typeof Encomendas !== 'undefined' && p ? Encomendas.aberta(p, G.dia) : null;
       const quando = e && (e.dia === G.dia ? 'hoje à noite' : e.dia === G.dia + 1 ? 'amanhã à noite' : `${(e.dia - 1) % 7 >= 5 ? 'no' : 'na'} ${DIAS[(e.dia - 1) % 7]} à noite`);
       const o = e && Encomendas.ocasiao(e.quem, e.ocasiao);
-      caixa.append(el('div', { class: 'qv-lista' }, ...(p && p.estado === 'aberta' ? (e ? [el('div', { class: 'orel-item qv-festa' }, el('img', { src: urlArte(iconePratoGrande(e.prato)) }),
+      miolo.append(el('div', { class: 'qv-lista' }, ...(p && p.estado === 'aberta' ? (e ? [el('div', { class: 'orel-item qv-festa' }, el('img', { src: urlArte(iconePratoGrande(e.prato)) }),
         el('div', {}, el('b', {}, `${Encomendas.nome(e.quem)}: ${o ? o.nome : 'a festa'}`), o && o.convite ? el('div', { class: 'recado-fala' }, `"${o.convite}"`) : null,
           el('div', { class: 'orel-preco' }, `${quando} · a turma de ${e.turma} · ${Pratos.PRATOS[e.prato].nome}`)))]
         : [el('div', { class: 'rodape' }, 'Nenhuma festa marcada. Quando alguém encomendar, a Rosa avisa.')]) : [el('div', { class: 'rodape' }, 'Quando a pensão abrir, o povo da Vila marca as festas com a Rosa.')])));
@@ -324,12 +326,12 @@ function abrirQuadro(aba = 'servicos') {
           (Object.keys(E.material).length ? ' · ' + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') : ''))), botao); };
       const fx = Empreitas.faixa(), prox = FAIXAS_VILA[fx.i + 1], cap = G.empreitas.caprichados || 0;
       const pct = prox ? Math.round(100 * Math.min(G.empreitas.entregues / prox.entregues, prox.caprichados ? cap / prox.caprichados : 1)) : 100;
-      caixa.append(el('div', { class: 'fala-vila' }, el('b', {}, 'Fala da Vila: ' + fx.nome),
+      miolo.append(el('div', { class: 'fala-vila' }, el('b', {}, 'Fala da Vila: ' + fx.nome),
         el('span', {}, prox ? ` · ${G.empreitas.entregues}/${prox.entregues} serviços${prox.caprichados ? `, ${cap}/${prox.caprichados} caprichados` : ''} para ${prox.nome}` : ' · o nome mais respeitado da Vila'),
         el('div', { class: 'barra-fala' }, el('div', { style: `width:${Math.min(100, pct)}%` }))));
       // (15/10, T3) O recado do dia: coisa de vizinho, à parte dos serviços (recados_jogo.js); sem recado hoje, a seção não aparece.
-      const rec = typeof recadoNoQuadro === 'function' ? recadoNoQuadro(desenha) : null; if (rec) caixa.append(...rec);
-      caixa.append(el('div', { class: 'cad-sub' }, 'Pedidos de hoje'), el('div', { class: 'qv-lista' }, ...(ids.length ? ids.map(id => {
+      const rec = typeof recadoNoQuadro === 'function' ? recadoNoQuadro(desenha) : null; if (rec) miolo.append(...rec);
+      miolo.append(el('div', { class: 'cad-sub' }, 'Pedidos de hoje'), el('div', { class: 'qv-lista' }, ...(ids.length ? ids.map(id => {
         const pode = Empreitas.libera(id);
         return linha(id, pode ? el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Empreitas.aceitar(id, G.mochila, G.dinheiro);
           if (r === 'ok') { sons.tocar('carimbo', 1, 0.05, -6); avisar(`Aceito: ${dadosEmpreita(id).nome}.`); if (G.mapa) poeEmpreitasNoMapa(G.mapa); hudSujo(); desenha(); }
@@ -339,17 +341,18 @@ function abrirQuadro(aba = 'servicos') {
         // (dia cheio, Frente A) Junto, o que fazer: a mesma sugestão do Agora da tarde livre (cartao.js).
         ...(s => s ? [el('div', { class: 'rodape quadro-sugestao' }, 'Enquanto isso: ' + s.texto)] : [])(typeof ganhoDaTarde === 'function' ? ganhoDaTarde() : null)])));
       const enc = (G.mina && G.mina.encomendas) || [];
-      if (enc.length) caixa.append(el('div', { class: 'cad-sub' }, 'Encomendas'), el('div', { class: 'qv-lista' }, ...enc.map((e, i) => el('div', { class: 'orel-item' }, el('img', { src: urlItem(e.item) }),
+      if (enc.length) miolo.append(el('div', { class: 'cad-sub' }, 'Encomendas'), el('div', { class: 'qv-lista' }, ...enc.map((e, i) => el('div', { class: 'orel-item' }, el('img', { src: urlItem(e.item) }),
         el('div', {}, el('b', {}, `${CLIENTE_NOME[e.quem] || e.quem} quer ${Itens.qtd(e.qtd, e.item)}`), el('div', { class: 'orel-preco' }, `até ${DIAS[(e.ate - 1) % 7]} · Cr$ ${e.paga} · tem ${G.mochila.total(e.item)}`)),
         el('button', { class: 'botao', onclick: ev => { ev.stopPropagation(); const r = Mina.entregar(i, G.mochila); if (r === 'ok') { sons.tocar('moedas', 1, 0.05, -4); avisar(`Entregue! + Cr$ ${e.paga}`); hudSujo(); desenha(); } else avisar(r === 'vencida' ? 'Essa encomenda venceu.' : 'Falta material na mochila.'); } }, 'Entregar')))));
       const doBairro = typeof Bairro !== 'undefined' ? Bairro.pedidos() : [];
-      if (doBairro.length) caixa.append(el('div', { class: 'cad-sub' }, 'Bairro Novo'), el('div', { class: 'qv-lista' }, ...doBairro.map(id => linha(id, Empreitas.libera(id)
+      if (doBairro.length) miolo.append(el('div', { class: 'cad-sub' }, 'Bairro Novo'), el('div', { class: 'qv-lista' }, ...doBairro.map(id => linha(id, Empreitas.libera(id)
         ? el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Empreitas.aceitar(id, G.mochila, G.dinheiro); if (r === 'ok') { sons.tocar('carimbo', 1, 0.05, -6); avisar(`Aceito: ${dadosEmpreita(id).nome}. A plaquinha está no terreno, no Bairro Novo.`); hudSujo(); desenha(); } else avisar({ limite: 'Uma empreita longa por vez (duas para o mestre de obras).' }[r] || 'Não deu.'); } }, 'Aceitar')
         : el('div', { class: 'orel-preco' }, `Pede ${NOMES_HAB[dadosEmpreita(id).hab.h]} ${dadosEmpreita(id).hab.n}`)))));
       const recAceitos = typeof linhasRecadosAceitos === 'function' ? linhasRecadosAceitos() : [];   // (T3) os recados aceitos, com o estado
-      if (aceitas.length || recAceitos.length) caixa.append(el('div', { class: 'cad-sub' }, 'Aceitas'), el('div', { class: 'qv-lista' }, ...aceitas.map(id => linha(id, el('div', { class: 'orel-preco' }, Empreitas.textoEstado(id)))), ...recAceitos));
+      if (aceitas.length || recAceitos.length) miolo.append(el('div', { class: 'cad-sub' }, 'Aceitas'), el('div', { class: 'qv-lista' }, ...aceitas.map(id => linha(id, el('div', { class: 'orel-preco' }, Empreitas.textoEstado(id)))), ...recAceitos));
     }
-    caixa.append(el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
+    caixa.append(miolo, el('div', { class: 'pe', style: 'text-align:right' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
+    miolo.scrollTop = rolou;
   };
   desenha();
   abrirModal(caixa);

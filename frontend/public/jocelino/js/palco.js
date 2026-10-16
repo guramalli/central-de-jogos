@@ -78,9 +78,11 @@ function vesteDoSalao(caixa) {
 // nada (o fechamento passava 1 px); quando sobra de verdade (mais de 40 px), rola como antes. Refaz a conta quando a caixa redesenha.
 const FOLGA_LOUSA = 40;
 function folgaDaLousa(caixa) {
-  if (!caixa || !caixa.classList || !caixa.classList.contains('lousa') || caixa.classList.contains('caderno')) return;
+  // (C5, 16/10) a janela com rodapé fixo (.com-pe) não rola por inteiro (só o miolo); e a folga nunca passa do teto da tela (a lousa
+  // de 92vh + 40 px saía da 960x540 e cortava o botão de baixo)
+  if (!caixa || !caixa.classList || !caixa.classList.contains('lousa') || caixa.classList.contains('caderno') || caixa.classList.contains('com-pe')) return;
   const ajusta = () => { if (!caixa.isConnected) return; caixa.style.maxHeight = '';
-    const s = caixa.scrollHeight - caixa.clientHeight; if (s > 0 && s <= FOLGA_LOUSA) caixa.style.maxHeight = `calc(92vh + ${s + 1}px)`; };
+    const s = caixa.scrollHeight - caixa.clientHeight; if (s > 0 && s <= FOLGA_LOUSA) caixa.style.maxHeight = `min(calc(92vh + ${s + 1}px), calc(100vh - 24px))`; };
   let pedido = false;
   ajusta(); new MutationObserver(() => { if (pedido) return; pedido = true; requestAnimationFrame(() => { pedido = false; ajusta(); }); }).observe(caixa, { childList: true, subtree: true, characterData: true });
 }

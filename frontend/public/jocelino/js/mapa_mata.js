@@ -160,7 +160,9 @@ function alvoDaArvoreDaMata() {
   const deCima = x => MATA.VAGAS_ARVORE.some(([a, c]) => a === x.tiles[0].x && c === x.tiles[0].y);   // (a de cima, à vista; a velha de baixo só se não houver outra)
   const temDeCima = G.mapa.objs.some(x => x.tipo === 'detrito' && x.det === 'arvore' && deCima(x));
   for (const x of G.mapa.objs) if (x.tipo === 'detrito' && x.det === 'arvore' && (!temDeCima || deCima(x))) { const dd = Math.hypot(x.x - G.jog.x, x.y - G.jog.y); if (dd < d) { d = dd; o = x; } }
-  return o && { mapa: 'mata', ponto: { x: o.x, y: o.y - 56 }, rotuloFixo: FALA_ARVORE_MATA };
+  // (C5, 16/10) o det da árvore vai junto (como as setas dos detritos do quintal e da pedreira): quem segue a seta sabe o que cortar e
+  // a barra aponta o machado; a frase continua a da árvore (guia_setas.js usa o rotuloFixo dela)
+  return o && { mapa: 'mata', ponto: { x: o.x, y: o.y - 56 }, det: o.det, rotuloFixo: FALA_ARVORE_MATA };
 }
 function quebrouNaMata(o) { if (G.mapaId === 'mata' && o.det === 'arvore' && G.limpou) G.limpou.mata_arvore = (G.limpou.mata_arvore || 0) + 1; }
 

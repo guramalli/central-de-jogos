@@ -32,12 +32,18 @@ const Calendario = {
     // (revisão) a mesma regra do botão do Concurso (podeConcurso): só com a pensão 'aberta', não 'pronta'
     e.concurso = Concurso.temNoDia(p, d) ? { tema: CONCURSO_TEMAS[est % 4].nome } : null;
     e.viajante = Viajante.presente(p, d);
-    e.inauguracao = aberta && d === hoje && p.ultimaJanta === -1 && !p.fama && !e.fechado;
+    // (C1, 16/10) a inauguração cai no dia em que a pensão abre (o abreDia; ou hoje, se a pensão já abriu e ainda não jantou), e
+    // não num domingo (relatório B, dia 8: pronta para amanhã, a Semana dizia "Hoje: Inauguração"); os moradores e o filho, só
+    // dali em diante
+    const abre = aberta ? Calendario.diaDaInauguracao(p, hoje) : 0, antes = aberta && p.abreDia > 0 && d < p.abreDia;
+    e.inauguracao = aberta && p.ultimaJanta === -1 && !p.fama && d === abre;
     e.patrimonio = aberta && p.festaDia === d;
-    e.moradores = !aberta || e.fechado ? [] : (CLIENTELA[(d - 1) % 7] || []).map(c => ({ id: c.id, nome: c.nome, prato: c.prato, sabe: p.receitas.includes(c.prato) }));
-    e.filho = aberta && !e.fechado ? Clientela.filhoDaNoite(d) : '';
+    e.moradores = !aberta || e.fechado || antes ? [] : (CLIENTELA[(d - 1) % 7] || []).map(c => ({ id: c.id, nome: c.nome, prato: c.prato, sabe: p.receitas.includes(c.prato) }));
+    e.filho = aberta && !e.fechado && !antes ? Clientela.filhoDaNoite(d) : '';
     return e;
   },
+  // (C1) O dia da primeira janta: o abreDia (ou hoje, se já passou), pulando o domingo.
+  diaDaInauguracao(p, hoje) { const d = Math.max(hoje, p.abreDia > 0 ? p.abreDia : hoje); return Calendario.domingo(d) ? d + 1 : d; },
   // A semana: hoje e os 6 dias seguintes.
   semana(p, hoje) { return Array.from({ length: Calendario.DIAS }, (_, k) => Calendario.dia(p, hoje + k, hoje)); },
   // Tem alguma coisa marcada (VIP ou festa) na agenda? (a seta da primeira vez no botão do rodapé espera isso)

@@ -5,9 +5,27 @@ let _aoFecharModal = null;
 // (a cena de prato tocando também pausa o jogo: o relógio da janta e a paciência param, cena_prato.js)
 function menuAberto() { const ab = document.getElementById('abertura'); return !$('#modal').hidden || !$('#capa').hidden || (!!ab && !ab.hidden) || (typeof cenaPratoTocando === 'function' && cenaPratoTocando()); }
 
+// (C5, 16/10; o teste crítico B, dia 1: o clique de "avançar" na fala do Seu Ananias comprou 2 latas de tinta na loja que abriu logo
+// embaixo) O CLIQUE-FANTASMA: a janela que abre até 300 ms depois de outra fechar (a fala, a pergunta, o resumo da noite) ignora o
+// clique e a tecla de verdade nos 300 ms seguintes. Só a entrada de verdade (isTrusted): o clique do robô e das suítes é de propósito.
+// Uma fala trocada direto por outra janela (sem fechar) conta como fechada. Foi assim que o "Beleza!" das telas de nível perdeu a
+// trava própria de meio segundo (habilidades.js).
+const TRAVA_FANTASMA_MS = 300;
+let _modalFechouEm = -1e9, _travaModalAte = 0;
+const travaFantasma = e => !!e && e.isTrusted === true && performance.now() < _travaModalAte;
+function _instalaTravaFantasma(m) {
+  if (m._travaFantasma) return; m._travaFantasma = true;
+  const engole = e => { if (travaFantasma(e)) { e.stopPropagation(); e.preventDefault(); } };
+  // (o soltar do botão passa: o 'segura' do mouse e o arrastar da mochila precisam dele)
+  for (const t of ['click', 'dblclick', 'mousedown', 'pointerdown', 'contextmenu']) m.addEventListener(t, engole, true);
+}
 function abrirModal(conteudo, aoFechar) {
   if (typeof recolherLinha === 'function') recolherLinha();   // menu aberto recolhe a linha de pesca (o jogo pausa)
   const m = $('#modal');
+  { const ag = performance.now(), ant = m.hidden ? null : m.firstElementChild;
+    if (ant && ant !== conteudo && ant._avancar) _modalFechouEm = ag;   // (a fala trocada direto por outra janela)
+    _travaModalAte = ag - _modalFechouEm < TRAVA_FANTASMA_MS ? ag + TRAVA_FANTASMA_MS : 0;
+    _instalaTravaFantasma(m); }
   m.innerHTML = '';
   if (typeof vesteDoSalao === 'function') vesteDoSalao(conteudo);   // (13/10) dentro do salão da pensão, a caixa veste a lousa de giz (palco.js)
   m.append(conteudo);
@@ -38,6 +56,7 @@ function fecharModal() {
   if (m.hidden) return;
   m.hidden = true;
   m.innerHTML = '';
+  _modalFechouEm = performance.now(); _travaModalAte = 0;   // (C5) o clique-fantasma: quem abrir agora conta daqui
   const f = _aoFecharModal;
   _aoFecharModal = null;
   if (typeof sons !== 'undefined') sons.tocar('fechar', 1, 0.03, -8);
@@ -109,7 +128,7 @@ function perguntarCom(quem, retrato, texto, opcoes, aoEscolher, opc = {}) {
     foto && quem ? el('div', { class: 'quem' }, quem) : null,
     el('div', { class: 'texto' }, p.texto),
     el('div', { class: 'opcoes' }, opcoes.map((o, i) => el('button', { class: 'botao' + (i === 0 ? ' forte' : ''), onclick: e => {
-      e.stopPropagation(); $('#modal').hidden = true; $('#modal').innerHTML = ''; _aoFecharModal = null; escolhe(i); } }, rotulo(o)))));
+      e.stopPropagation(); $('#modal').hidden = true; $('#modal').innerHTML = ''; _aoFecharModal = null; _modalFechouEm = performance.now(); escolhe(i); } }, rotulo(o)))));
   caixa.dataset.emocao = p.emo || 'normal';
   const abriu = performance.now();
   caixa._tecla = e => (foto && ['Space', 'Enter', 'NumpadEnter'].includes(e.code) && performance.now() - abriu < PERGUNTA_TRAVA_MS)
@@ -130,7 +149,8 @@ function avisar(texto) {
 function teclaNoModal(e) {
   if ($('#modal').hidden) return false;
   if (e.repeat) return true;   // segurar a tecla não repete nada dentro de uma janela
-  // (15/10, níveis) a tela "Subiu de nível!" decide as teclas dela (habilidades.js: meio segundo sem nada; Esc deixa para a próxima noite)
+  if (travaFantasma(e)) return true;   // (C5) a tecla que fechou a fala não cai na janela que abriu logo depois
+  // (15/10, níveis) a tela "Subiu de nível!" decide as teclas dela (habilidades.js; Esc deixa para a próxima noite)
   { const nv = $('#modal .nivel-novo'); if (nv && nv._tecla) { nv._tecla(e); return true; } }
   // (15/10) a caixa que decide algumas teclas (o fechamento e o resumo do dia: Espaço pula a animação); devolve true se usou a tecla
   { const cx = $('#modal').firstElementChild; if (cx && cx._tecla && cx._tecla(e)) return true; }

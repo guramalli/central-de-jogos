@@ -201,10 +201,12 @@ function abrirFechamento(r, opc = {}) {
     gastou.length ? el('div', { class: 'fx-linha fx-fichas fx-passo', 'data-passo': 'saidas' }, el('span', {}, 'Da despensa'), el('div', {}, ...fichasDoFechamento(gastou))) : null,
     lixo.length ? el('div', { class: 'fx-linha fx-fichas fx-passo menos', 'data-passo': 'saidas' }, el('span', {}, 'No lixo'), el('div', {}, ...fichasDoFechamento(lixo, 5))) : null,
     // (hoje o custo fica limitado ao bolso: o que não deu para pagar fica dito, numa linha)
-    r.naoCobriu > 0 ? el('div', { class: 'fx-linha fx-frase menos fx-passo', 'data-passo': 'saidas' }, el('span', {}, `O bolso não cobriu tudo: Cr$ ${r.naoCobriu} ficaram sem pagar.`)) : null,
-    el('div', { class: 'fx-linha fx-passo fx-lucro total ' + (lucro >= 0 ? 'lucro' : 'menos'), 'data-passo': 'lucro' },
-      el('span', {}, el('img', { class: 'fx-icone grande', src: urlArte('ui/dinheiro_pilha'), alt: '' }), 'Lucro'),
-      el('b', { 'data-conta': 'lucro', 'data-valor': lucro, 'data-pre': 'Cr$ ' }, `Cr$ ${anima ? 0 : lucro}`)));
+    r.naoCobriu > 0 ? el('div', { class: 'fx-linha fx-frase menos fx-passo', 'data-passo': 'saidas' }, el('span', {}, `O bolso não cobriu tudo: Cr$ ${r.naoCobriu} ficaram sem pagar.`)) : null);
+  // (C5, revisão 1; o dono pediu este fechamento) O LUCRO SEMPRE À VISTA: a última linha da conta mora no rodapé fixo, ao lado do
+  // botão; na 960x540 o miolo mostra ~210 px e o lucro ficava abaixo da dobra (a contagem e o passo 'lucro' continuam os mesmos)
+  const linhaLucro = el('div', { class: 'fx-linha fx-passo fx-lucro total ' + (lucro >= 0 ? 'lucro' : 'menos'), 'data-passo': 'lucro' },
+    el('span', {}, el('img', { class: 'fx-icone grande', src: urlArte('ui/dinheiro_pilha'), alt: '' }), 'Lucro'),
+    el('b', { 'data-conta': 'lucro', 'data-valor': lucro, 'data-pre': 'Cr$ ' }, `Cr$ ${anima ? 0 : lucro}`));
   // os destaques da noite, à vista (o detalhe fica nas abas)
   const destaques = [
     mp ? el('span', { class: 'fx-destaque' }, el('img', { src: urlArte(iconePrato(mp.prato)), alt: '' }), `O mais pedido: ${Pensao.prato(mp.prato).nome} ×${mp.qtd}`) : null,
@@ -241,13 +243,13 @@ function abrirFechamento(r, opc = {}) {
   const vaiPara = k => { pularFechamento(caixa); for (const j in paginas) paginas[j].hidden = j !== k; abas.querySelectorAll('.aba-lousa').forEach(b => { b.classList.toggle('acesa', b.dataset.aba === k); b.setAttribute('aria-selected', b.dataset.aba === k); }); sons.tocar('cursor', 1, 0.03, -8); };
   const abas = el('div', { class: 'fx-abas', role: 'tablist' }, ...Object.keys(paginas).map(k => el('span', { class: 'aba-lousa' + (k === 'caixa' ? ' acesa' : ''), 'data-aba': k, role: 'tab', tabindex: 0, 'aria-selected': k === 'caixa',
     onclick: e => { e.stopPropagation(); vaiPara(k); }, onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); vaiPara(k); } } }, nomesAbas[k])));
-  const caixa = el('div', { class: 'painel fechamento lousa' + (anima ? ' fx-anima' : '') },
+  const caixa = el('div', { class: 'painel fechamento lousa com-pe' + (anima ? ' fx-anima' : '') },   // (C5) o topo, as abas e o rodapé fixos; só a página rola
     el('div', { class: 'fx-topo' }, el('img', { class: 'fx-registradora', src: urlArte('ui/caixa_registradora'), alt: '' }),
       el('div', {}, el('div', { class: 'titulo titulo-tela' }, 'Fechamento do caixa'), el('div', { class: 'fx-quando' }, noiteDoDia(G.dia)))),
     el('div', { class: 'fx-nota' }, ...estrelas, el('span', {}, ` Nota da noite: ${nota}`)),
-    abas, paginas.caixa, paginas.noite, paginas.fama,
+    abas, el('div', { class: 'miolo' }, paginas.caixa, paginas.noite, paginas.fama),
     // (15/10, a clareza) o que é cada número, no "(?)" ao lado do botão (fechado, não ocupa linha a mais)
-    el('div', { class: 'fx-pe' }, linhaAjuda('fechamento', 'Lucro = receita − despesa − salários.', [
+    el('div', { class: 'fx-pe pe' }, linhaLucro, linhaAjuda('fechamento', 'Lucro = receita − despesa − salários.', [
       `Nota da noite: a média das estrelas de quem comeu (1 a 5). ${GLOSSARIO.curtida}`, GLOSSARIO.pitada,
       'Receita: pratos + bebidas + gorjetas + prêmios (cliente especial e metas).',
       GLOSSARIO.despesa + ' Salários: o da equipe, por noite (na reserva, meio salário).',

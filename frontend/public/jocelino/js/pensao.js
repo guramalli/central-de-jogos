@@ -9,7 +9,10 @@ class Pensao {
   // cobra uma despesa por noite (gás, gelo, luz).
   static DEGRAUS = ECO.pensao.degraus;   // os números moram no ECO (economia.js)
   static GRAUS = Pensao.DEGRAUS;
-  static DESPENSA_INICIAL = { arroz: 5, feijao: 5, ovo: 5 };
+  // (C6, 16/10) O presente da Rosa na inauguração: 12 de cada (eram 5). Com o gasto por porção (ECO.pensao.gastoPorPorcao, 0,5) e a
+  // marmita da manhã, dá as 3 primeiras noites de PF sem faltar (o teste crítico: a despensa acabou sem aviso no dia 11).
+  static DESPENSA_INICIAL = { arroz: 12, feijao: 12, ovo: 12 };
+  static INAUGURA_ATE = 15 * 60;   // (C1) a pintura pronta antes das 15h: a inauguração é hoje às 17h; depois, amanhã
   static CHANCE_PEDRA_VOLTA = 0.5;
   // A pedra também é material de obra: a despensa guarda só a da sopa (o resto fica na mochila).
   static PEDRA_MAX = 2;
@@ -78,11 +81,14 @@ class Pensao {
   aceita(id) { return !!Pratos.INGREDIENTES[id] && Pratos.fase(id) <= this.grau(); }
 
   // Guarda na despensa tudo o que a fase aceita. Devolve {id: qtd}.
+  // (C6, 16/10, o teste crítico: "Guardou: 4 sardinhas, 5 alfaces, 2 pedras") O "guardar tudo" só leva ingrediente de cozinha: a
+  // pedra é material de obra e fica na mochila. A pedra da sopa entra pela mão, clicando nela na tela da despensa (guardarDaMochila,
+  // até PEDRA_MAX).
   guardar(mochila) {
     const r = {};
     for (const id in Pratos.INGREDIENTES) {
-      let n = mochila.total(id);
-      if (id === 'pedra') n = Math.min(n, Pensao.PEDRA_MAX - (this.despensa.pedra || 0));
+      if (id === 'pedra') continue;
+      const n = mochila.total(id);
       if (n <= 0 || !this.aceita(id)) continue;
       mochila.remover(id, n);
       this.despensa[id] = (this.despensa[id] || 0) + n;
@@ -350,7 +356,25 @@ class Pensao {
 
   // ---------------- reforma (roteiro de 13/10: 5 etapas, cada uma com material entregue à Rosa e dias de trabalho no salão)
   _etapa() { return ECO.reforma.find(e => e.id === this.estado) || null; }
-  _proxima() { const k = ECO.reforma.findIndex(e => e.id === this.estado); const n = ECO.reforma[k + 1]; this.reforma = { entregue: {}, dias: 0, hoje: (this.reforma || {}).hoje || 0 }; this._golpes = 0; if (n) this.estado = n.id; else { this.estado = 'pronta'; this.abreDia = this._diaPronta + 1; } }
+  // (16/10, C1 do teste crítico: a pensão abre no dia 5) A etapa seguinte começa do zero, também o `hoje`: com o material na mão,
+  // o jogador faz 2 ou 3 etapas no mesmo dia (antes o `hoje` seguia para a etapa seguinte e segurava a reforma inteira em 1 etapa
+  // por dia). Depois da pintura: acabou antes das 15h (minutos), a inauguração é HOJE às 17h e a pensão abre na hora (o bar do
+  // Bancho abre no 1º dia, logo depois do mergulho); depois das 15h (ou sem a hora), amanhã. Domingo a pensão não abre: passa para
+  // segunda.
+  _proxima(minutos) {
+    const k = ECO.reforma.findIndex(e => e.id === this.estado); const n = ECO.reforma[k + 1];
+    this.reforma = { entregue: {}, dias: 0, hoje: 0 }; this._golpes = 0;
+    if (n) { this.estado = n.id; return; }
+    const d = this._diaPronta, domingo = x => (x - 1) % 7 === 6;
+    this.estado = 'pronta'; this.abreDia = minutos != null && minutos < Pensao.INAUGURA_ATE && !domingo(d) ? d : d + 1;
+    if (domingo(this.abreDia)) this.abreDia++;
+    if (this.abreDia === d) this._abrir();
+  }
+  // A pensão abre: o presente da Rosa na despensa (de manhã, no dia marcado; ou na hora, com a pintura antes das 15h).
+  _abrir() {
+    this.estado = 'aberta';
+    for (const id in Pensao.DESPENSA_INICIAL) this.despensa[id] = (this.despensa[id] || 0) + Pensao.DESPENSA_INICIAL[id];
+  }
   abrirReforma() { if (this.estado === 'fechada') { this.estado = 'limpar'; this.reforma = { entregue: {}, dias: 0, hoje: 0 }; } }
   limpou() { if (this.estado === 'limpar') this._proxima(); }
   faltaMaterial() {
@@ -358,10 +382,18 @@ class Pensao {
     const r = {}; for (const it in E.material) { const f = E.material[it] - ((this.reforma.entregue || {})[it] || 0); if (f > 0) r[it] = f; }
     return r;
   }
-  // A etapa que acabou hoje passa a vez para amanhã: a atual ainda não começou e hoje já teve trabalho na reforma.
-  comecaAmanha(dia) { return !!this._etapa() && this.reforma.hoje === dia && !this.reforma.dias; }
-  // (revisão final) Hoje a reforma já deu o que tinha: o material todo entregue e o dia de trabalho feito (nesta etapa ou na que
-  // acabou hoje). O guia cede (sem seta nem Agora para a pensão) e a Rosa diz "amanhã tem mais".
+  // (C2, 16/10) O material que a reforma ainda vai pedir: o que falta da etapa de agora mais o de todas as etapas seguintes (fechada
+  // ou no salão por limpar: a reforma inteira; pronta ou aberta: nada). Desde o sonho contado (materialDaReforma, recados.js), o Agora
+  // não manda vender isso e o quadro da Vila não sorteia recado que disputa com ele (cartao.js, recados.js): o teste crítico achou o Agora mandando vender as 15 madeiras na véspera de
+  // o balcão pedir 20, e os recados de madeira levando a do balcão.
+  materialQueFalta() {
+    const k = this.estado === 'fechada' ? 0 : ECO.reforma.findIndex(e => e.id === this.estado); if (k < 0) return {};
+    const r = Object.assign({}, this.faltaMaterial());
+    for (const E of ECO.reforma.slice(k + 1)) for (const it in E.material) r[it] = (r[it] || 0) + E.material[it];
+    return r;
+  }
+  // (revisão final) Hoje a reforma já deu o que tinha: o material todo entregue e o dia de trabalho feito nesta etapa (C1: só a etapa
+  // de mais de 1 dia; a de 1 dia passa para a seguinte na hora). O guia cede (sem seta nem Agora para a pensão) e a Rosa diz "amanhã tem mais".
   feitaHoje(dia) { const E = this._etapa(); return !!E && E.id !== 'limpar' && this.reforma.hoje === dia && !Object.keys(this.faltaMaterial()).length; }
   // Entrega à Rosa o que a mochila tem para a etapa atual (uma etapa por vez). Devolve o texto do que aconteceu ('' se nada).
   entregar(mochila) {
@@ -371,23 +403,23 @@ class Pensao {
     const falta = this.faltaMaterial();
     return partes.length ? `${E.nome}: entregou ${partes.join(', ')}.${Object.keys(falta).length ? ' Falta: ' + Object.entries(falta).map(([i, q]) => Itens.qtd(q, i)).join(', ') + '.' : ` Material completo: agora ${E.dias} dia(s) de trabalho no salão.`}` : '';
   }
-  // Um dia de trabalho na etapa (o clique no lugar dela, no salão): só com o material todo, uma vez por dia. O dia vale para a
-  // reforma inteira: a etapa que acabou hoje passa a vez para amanhã (o `hoje` segue para a etapa seguinte).
-  trabalharReforma(dia) {
+  // Um dia de trabalho na etapa (o clique no lugar dela, no salão): só com o material todo, uma vez por dia em cada etapa (C1: o
+  // limite é da etapa, não da reforma; a etapa seguinte pode começar no mesmo dia). minutos: a hora (G.minutos), que decide se a
+  // inauguração é hoje ou amanhã quando a pintura acaba (sem ela, amanhã).
+  trabalharReforma(dia, minutos) {
     const E = this._etapa(); if (!E || E.id === 'limpar') return 'etapa_feita';
     if (this.reforma.hoje === dia) return 'ja_hoje';
     if (Object.keys(this.faltaMaterial()).length) return 'falta_material';
     this.reforma.hoje = dia; this.reforma.dias++;
-    if (this.reforma.dias >= E.dias) { this._diaPronta = dia; this._proxima(); }
+    if (this.reforma.dias >= E.dias) { this._diaPronta = dia; this._proxima(minutos); }
     return 'ok';
   }
+  // A inauguração é hoje (a pensão abriu no dia em que a pintura acabou)?
+  inauguraHoje(dia) { return this.estado === 'aberta' && this.abreDia === dia && this.ultimaJanta === -1 && !this.fama; }
   // De manhã: a pensão pronta abre no dia marcado, com o presente da Rosa na despensa.
   manha(dia) {
     this._golpes = 0;   // os golpes do dia na reforma (3 = um dia de trabalho) recomeçam toda manhã
-    if (this.estado === 'pronta' && dia >= this.abreDia) {
-      this.estado = 'aberta';
-      for (const id in Pensao.DESPENSA_INICIAL) this.despensa[id] = (this.despensa[id] || 0) + Pensao.DESPENSA_INICIAL[id];
-    }
+    if (this.estado === 'pronta' && dia >= this.abreDia) this._abrir();
   }
   // A marmita do Jocelino (o cardápio do Bancho, 13/10): de manhã a Rosa completa a mesa de casa até ECO.pensao.marmita.porDia,
   // gastando ECO.pensao.marmita.gasta da despensa (o gasto da fornada da manhã, não por marmita). (16/10) Já é o gasto por prato:
@@ -417,6 +449,11 @@ class Pensao {
     // Save de antes das 5 etapas: as telhas viram o telhado e a madeira das banquetas vira o balcão, com o que já foi entregue.
     if (this.estado === 'telhas') { this.estado = 'telhado'; this.reforma.entregue.telha = d.telhas | 0; }
     if (this.estado === 'mesas') { this.estado = 'balcao'; this.reforma.entregue.madeira = d.madeira | 0; }
+    // (C1) Save de antes da reforma por etapa: o `hoje` que veio da etapa anterior (a etapa sem dia de trabalho, o antigo "começa
+    // amanhã") não segura mais a etapa de hoje; e a etapa que já tem os dias de agora (o telhado e o balcão passaram de 2 dias para 1) segue para a próxima.
+    if (!this.reforma.dias) this.reforma.hoje = 0;
+    { const E = this._etapa(), ult = ECO.reforma[ECO.reforma.length - 1];
+      if (E && E.id !== 'limpar' && E !== ult && (this.reforma.dias | 0) >= E.dias) this._proxima(); }
     this.mesas = d.mesas || 2; this.fama = d.fama | 0; this.despensa = Object.assign({}, d.despensa || {});
     this.cardapio = (d.cardapio || []).slice(); this.receitas = (d.receitas || Pensao.RECEITAS_INICIAIS).slice(); this.ultimaJanta = d.ultimaJanta ?? -1;
     this.niveis = Object.assign({}, d.niveis || {}); this.pitadas = d.pitadas | 0; this.vistos = (d.vistos || Object.keys(this.despensa)).slice();

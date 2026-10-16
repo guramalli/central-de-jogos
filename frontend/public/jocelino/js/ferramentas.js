@@ -69,7 +69,18 @@ function alvoDoGolpe(peloTeclado) {
   const dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? DIR.ESQUERDA : DIR.DIREITA) : (dy < 0 ? DIR.CIMA : DIR.BAIXO);
   if (perto) return { dir, x: t.x, y: t.y };
   if (Math.hypot(dx, dy) < TILE * 0.5) return frente(j.dir);      // clique em cima do próprio Jocelino
-  return frente(dir);
+  // (C5, 16/10; o teste crítico B: ~20 cliques na árvore de longe, a mangueira de longe na obra, sem nenhum aviso) O clique de longe
+  // EM CIMA de uma coisa que a ferramenta trabalha (o detrito, a obra, a plaquinha do serviço), com nada na frente do Jocelino para
+  // bater: o mesmo "Chegue mais perto." da horta, sem gastar o golpe. Com alguma coisa na frente, bate nela como antes.
+  const f = frente(dir), naFrente = G.mapa.ocupado.get(chaveT(f.x, f.y)), sob = o || G.mapa.ocupado.get(chaveT(t.x, t.y));
+  if (!naFrente && sob && (sob.tipo === 'detrito' || (sob.tipo === 'inter' && sob.ferramenta))) f.longe = true;
+  return f;
+}
+// O aviso do clique de longe (a horta, a árvore, a obra, o lugar da reforma): o mesmo texto, sem repetir a cada clique colado.
+let _avisoPertoEm = -1e9;
+function avisarChegueMaisPerto(extra = '') {
+  const ag = performance.now(); if (ag - _avisoPertoEm < 900) return; _avisoPertoEm = ag;
+  avisar('Chegue mais perto.' + (extra ? ' ' + extra : ''));
 }
 
 function usarItemDaMao(peloTeclado) {
@@ -80,6 +91,7 @@ function usarItemDaMao(peloTeclado) {
   if (!Itens.ehFerramenta(id)) return;
   if (j.carga && j.carga.id) { avisar('Primeiro entregue o que está carregando.'); return; }
   const alvo = alvoDoGolpe(peloTeclado);
+  if (alvo.longe) { j.dir = alvo.dir; avisarChegueMaisPerto(); return; }   // (C5) de longe: vira para lá e avisa, sem golpe
   const custo = (typeof Habilidades !== 'undefined' ? Habilidades.custo(id, typeof golpeDeAcabamento === 'function' && golpeDeAcabamento(id, alvo)) : CUSTO_GOLPE) * (1 + 0.5 * nivelFerramenta(id)) * (typeof fatorArMina === 'function' ? fatorArMina() : 1) * (typeof fatorEnergiaLote === 'function' ? fatorEnergiaLote(id, alvo) : 1);
   if (G.energia < custo) { avisar('O Jocelino está esgotado. Coma alguma coisa ou vá dormir.'); return; }
   j.dir = alvo.dir;

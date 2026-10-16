@@ -19,7 +19,13 @@ function instalaEntrada() {
     G.teclas.add(e.code);
     if (e.repeat) return;
     if (ehTecla(e, 'telacheia')) { alternaTelaCheia(); return; }
-    if (ehTecla(e, 'opcoes') && typeof abrirOpcoes === 'function') { abrirOpcoes(); return; }
+    // (C5, 16/10; o teste crítico B, dia 4: com o quadro aberto o Esc abriu as Opções) O Esc fecha o que está aberto (a janela, em
+    // teclaNoModal; a lista do Bira aberta no HUD, aqui); as Opções só abrem com nada aberto, e não na tecla logo depois de uma janela
+    // fechar (o segundo Esc de quem apertou duas vezes para fechar)
+    if (ehTecla(e, 'opcoes') && typeof abrirOpcoes === 'function') {
+      if (typeof HUD !== 'undefined' && HUD.colEsq && HUD.colEsq.classList.contains('lista-aberta') && typeof alternaLista === 'function') { alternaLista(); return; }
+      if (!menuAberto() && !(e.isTrusted && typeof _modalFechouEm !== 'undefined' && performance.now() - _modalFechouEm < TRAVA_FANTASMA_MS)) abrirOpcoes();
+      return; }
     if (ehTecla(e, 'mochila') && typeof abrirMochila === 'function') { abrirMochila(); return; }
     if (ehTecla(e, 'habilidades') && typeof abrirHabilidades === 'function' && !(typeof noPalco === 'function' && noPalco())) { abrirHabilidades(); return; }
     if (ehTecla(e, 'fabricar') && typeof abrirFabricar === 'function' && !(typeof noPalco === 'function' && noPalco()) && !menuAberto()) { abrirFabricar(); return; }
