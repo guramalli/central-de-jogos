@@ -73,7 +73,7 @@ KITS = {
              "and a spatula, a steel cabinet below. Its front is the DARKEST front-left face.", ["--faces"]),
             ("estufa_salgados", "Estufa de salgados", "peca",
              "a heated glass display case (estufa) on a small counter, warm orange inner light, full of Brazilian salgados: "
-             "coxinhas, esfihas, pão de queijo, risoles. The glass front is the DARKEST front-left face.", []),
+             "coxinhas, esfihas, pão de queijo, risoles. The glass front is the DARKEST front-left face.", ["--faces"]),
             ("forno_pao", "Forno de pão", "peca",
              "a tall stainless-steel bakery oven with a glass door showing warm light and loaves of pão francês inside, a control "
              "panel at the top. The door is on the DARKEST front-left face.", ["--faces"]),

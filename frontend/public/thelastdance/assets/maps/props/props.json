@@ -687,6 +687,62 @@
         "espelhado": true,
         "proporcao": 1.0
       }
+    },
+    "estufa_salgados": {
+      "arquivo": "estufa_salgados.png",
+      "escala": 2.0,
+      "origem_px": [
+        81.8,
+        262.8
+      ],
+      "tamanho_m": [
+        0.9,
+        0.55,
+        1.3
+      ],
+      "descricao": "estufa de salgados de vidro em cima de uma bancada, frente para +y",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "cadeira_bistro_costas": {
+      "arquivo": "cadeira_bistro_costas.png",
+      "escala": 2.0,
+      "origem_px": [
+        68.0,
+        160.8
+      ],
+      "tamanho_m": [
+        0.45,
+        0.45,
+        0.47
+      ],
+      "descricao": "cadeira de padaria de costas para a câmera (assento virado para -x), encosto do lado x = 0,45",
+      "ajuste": {
+        "x": 0.205,
+        "y": 0.205,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "prateleira_paes": {
+      "tipo": "decal",
+      "arquivo": "prateleira_paes.png",
+      "tamanho_px": [
+        768,
+        500
+      ]
+    },
+    "cardapio_padaria": {
+      "tipo": "decal",
+      "arquivo": "cardapio_padaria.png",
+      "tamanho_px": [
+        768,
+        504
+      ]
     }
   }
 }
