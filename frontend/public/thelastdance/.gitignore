@@ -27,3 +27,6 @@ __pycache__/
 
 # Kit de pedidos para o ChatGPT (tools/kit_chatgpt.py): guias, referências e imagens recebidas — material de trabalho.
 /kit_chatgpt/
+
+# Personagem com rosto de pessoa real (Gustavinho): fica só na máquina até o dono liberar a publicação.
+/assets/characters/npcs/gustavinho/
