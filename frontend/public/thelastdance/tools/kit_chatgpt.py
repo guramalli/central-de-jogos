@@ -57,29 +57,29 @@ KITS = {
              "one module (1.3 m long, waist-high) of a Brazilian bakery (padaria) counter. The customer side is the DARKEST "
              "front-left face: a front panel of small cream ceramic tiles with a thin stainless-steel kick plate at the bottom. "
              "On top a polished dark granite countertop with just a napkin holder. The medium-gray right end is a plain panel. "
-             "Several modules will stand side by side.", []),
+             "Several modules will stand side by side.", ["--faces", "--emenda"]),
             ("vitrine_doces", "Vitrine de doces (módulo)", "peca",
              "one module (1.3 m long) of a refrigerated glass pastry display case of a Brazilian bakery. The curved glass front is "
              "the DARKEST front-left face; inside, on two lit shelves: brigadeiros, slices of cake, sonhos (cream donuts), pudim, "
-             "tiny white price tags. Stainless-steel base. The medium-gray right end is a glass side panel.", []),
+             "tiny white price tags. Stainless-steel base. The medium-gray right end is a glass side panel.", ["--faces", "--emenda"]),
             ("caixa_registradora", "Caixa (registradora)", "peca",
              "the cashier counter of a Brazilian bakery: a counter whose front panel is the DARKEST front-left face; on top (the "
-             "small block of the guide) an old cash register, next to it a card machine and a little bowl of mints.", []),
+             "small block of the guide) an old cash register, next to it a card machine and a little bowl of mints.", ["--faces"]),
             ("maquina_cafe", "Máquina de café", "peca",
              "a small cabinet with a chrome espresso machine on top (two group heads, steam wand), a stack of small white coffee "
              "cups and a jar of sugar. Its front faces the DARKEST front-left face.", []),
             ("chapa", "Chapa", "peca",
              "a stainless-steel griddle station (chapa): a flat hot griddle on top with two buttered French rolls (pão na chapa) "
-             "and a spatula, a steel cabinet below. Its front is the DARKEST front-left face.", []),
+             "and a spatula, a steel cabinet below. Its front is the DARKEST front-left face.", ["--faces"]),
             ("estufa_salgados", "Estufa de salgados", "peca",
              "a heated glass display case (estufa) on a small counter, warm orange inner light, full of Brazilian salgados: "
              "coxinhas, esfihas, pão de queijo, risoles. The glass front is the DARKEST front-left face.", []),
             ("forno_pao", "Forno de pão", "peca",
              "a tall stainless-steel bakery oven with a glass door showing warm light and loaves of pão francês inside, a control "
-             "panel at the top. The door is on the DARKEST front-left face.", []),
+             "panel at the top. The door is on the DARKEST front-left face.", ["--faces"]),
             ("geladeira_bebidas", "Geladeira de bebidas", "peca",
              "a tall drinks refrigerator with two glass doors, cold white inner light, shelves full of soda cans, guaraná bottles, "
-             "beer bottles and water. The glass doors are on the MEDIUM-gray front-right face (the long side of the guide).", []),
+             "beer bottles and water. The glass doors are on the MEDIUM-gray front-right face (the long side of the guide).", ["--faces"]),
             ("banqueta", "Banqueta do balcão", "peca",
              "a tall round bar stool: chrome pole, round red vinyl seat, a footrest ring. No backrest.", ["--uniforme"]),
             ("mesa_bistro", "Mesa pequena", "peca",
