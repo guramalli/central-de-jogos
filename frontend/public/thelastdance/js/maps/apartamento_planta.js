@@ -146,8 +146,19 @@
         [["🏄", "Bora surfar!", "sim"], ["🛋️", "Hoje não", "nao"]]);
       if (r === "sim") {
         try { sessionStorage.setItem("nsf_surf", "1"); } catch (_) { /* sem armazenamento */ }
-        api.vestirRoupas(["neoprene_cima", "neoprene_calca"]);
-        api.pensar("O Carioca já tá na areia com a rapaziada. Neoprene no corpo... partiu praia! 🏄 (sai pela porta e pega o carro na garagem)", 5600);
+        // sozinho: vai ao guarda-roupa, veste o neoprene e sai pela porta (elevador -> garagem -> carro -> Praia)
+        api.pensar("Bora! Cadê meu neoprene... 🏄", 2400);
+        const arm = PLANTA.caixas.find((x) => x.interacao === "armario");
+        const vestirESair = async () => {
+          api.jog.dir = "cima";
+          await espera(900); // mexendo no armário
+          api.vestirRoupas(["neoprene_cima", "neoprene_calca"]);
+          if (A) A.curtida();
+          api.pensar("Neoprene no corpo! A prancha já tá no teto do carro. Partiu praia! 🏄", 2800);
+          await espera(1800);
+          api.irParaPorta();
+        };
+        if (arm && arm.falarDe) api.irPara(arm.falarDe.x, arm.falarDe.y, vestirESair); else vestirESair();
       } else {
         try { sessionStorage.removeItem("nsf_surf"); } catch (_) { /* ok */ }
         api.pensar(resultado === "convidou" ? "\"Hoje não?? Tu tá namorando?\" — esse Carioca... Tenho que arrumar a casa pra gatinha."
