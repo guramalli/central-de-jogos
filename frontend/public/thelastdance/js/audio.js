@@ -10,7 +10,7 @@
   let ctx = null, mestre = null, busMusica = null, busToque = null, busEfeitos = null;
   // o botão Som vale para o jogo todo (fica salvo neste aparelho)
   let ligadoSom = (() => { try { return global.localStorage.getItem("nsf_som") !== "0"; } catch (e) { return true; } })();
-  let querMusica = false, querToque = false, abafado = false;
+  let querMusica = false, querToque = false, abafado = false, vozes = 0; // vozes = vozes gravadas tocando agora
   let proximoTempo = 0, passo = 0, relogio = null, toqueRelogio = null;
 
   const N = (m) => 440 * Math.pow(2, (m - 69) / 12);
@@ -31,9 +31,9 @@
       acordes: [[62, 65, 69, 72], [67, 71, 74, 77], [64, 67, 71, 74], [69, 72, 76, 79]], baixo: [38, 43, 40, 45],
       melodia: [81, null, null, 79, null, 77, null, 79, null, null, 76, null, 74, null, 76, null] },
     // casa do amigo: sertanejo de churrasco (original): baixo "dois pra lá", violão em batida e sanfoninha
-    // arquivoLocal: música só do computador de quem desenvolve (assets/audio/local/ fica fora do git e do site);
-    // sem ela, toca o sertanejo sintetizado
-    sertanejo: { arquivoLocal: "assets/audio/local/casa_amigo.mp3", volumeArquivo: 0.32, bpm: 128, estilo: "sertanejo", volume: 0.6,
+    // arquivoLocal: música com dono (assets/audio/local/, fora do git): vai só TRANCADA no pacote da área dos amigos
+    // (jogo fechado por senha). Sem o pacote aberto, toca o sertanejo sintetizado
+    sertanejo: { arquivoLocal: "assets/audio/local/casa_amigo.mp3", volumeArquivo: 0.13, bpm: 128, estilo: "sertanejo", volume: 0.6,
       acordes: [[55, 59, 62, 67], [50, 54, 57, 62], [52, 55, 59, 64], [48, 52, 55, 60]], baixo: [43, 38, 40, 36],
       melodia: [74, null, 76, 78, null, 79, null, 78, 76, null, 74, null, 71, null, 74, null] },
     // padaria: bossa nova de rádio de padaria + burburinho de padaria cheia bem baixinho
@@ -158,7 +158,7 @@
   function volumeMusica() {
     if (!ctx) return;
     const vol = fonte && fonteDe === trilha && trilha.volumeArquivo ? trilha.volumeArquivo : trilha.volume;
-    const alvo = querMusica ? (abafado || querToque ? 0.35 : 1) * vol : 0;
+    const alvo = querMusica ? (vozes > 0 ? 0.2 : abafado || querToque ? 0.35 : 1) * vol : 0; // voz falando: bem baixinho
     busMusica.gain.setTargetAtTime(alvo, ctx.currentTime, 0.4);
   }
 
@@ -184,11 +184,16 @@
   const pronto = () => ctx && ctx.state === "running";
   const buffers = {};
 
+  // Arquivos da área dos amigos (pasta trancada: vozes, músicas com dono) só existem depois que o pacote abre
+  // (js/vip.js); os outros vêm direto do site.
+  const baixar = (url) => (global.NSF && global.NSF.VIP ? global.NSF.VIP.pronto : Promise.resolve())
+    .then(() => fetch(global.NSF && global.NSF.VIP ? global.NSF.VIP.url(url) : url))
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
+
   // Efeito em arquivo: baixa e decodifica antes de precisar (b.pronto = AudioBuffer).
   function carregarEfeito(url) {
     if (buffers[url]) return;
-    const p = buffers[url] = fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
-      .then((b) => ctx.decodeAudioData(b));
+    const p = buffers[url] = baixar(url).then((b) => ctx.decodeAudioData(b));
     p.then((buf) => { p.pronto = buf; }).catch(() => {});
   }
 
@@ -214,7 +219,7 @@
   const baixados = {}; // arquivo da trilha já baixado (ArrayBuffer), antes mesmo de o som ser liberado
   function preBaixar(t) {
     const url = t.arquivo || t.arquivoLocal;
-    if (url && !baixados[url]) baixados[url] = fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
+    if (url && !baixados[url]) baixados[url] = baixar(url);
     if (url) baixados[url].catch(() => { t.falhou = true; });
   }
   function tocarArquivo() {
@@ -411,8 +416,8 @@
     return buf.then((b) => {
       const s = ctx.createBufferSource(), g = ctx.createGain();
       s.buffer = b; g.gain.value = 1.1; s.connect(g); g.connect(busEfeitos);
-      abafado = true; volumeMusica();
-      s.onended = () => { abafado = false; volumeMusica(); if (aoFim) aoFim(); };
+      vozes++; volumeMusica();
+      s.onended = () => { vozes = Math.max(0, vozes - 1); volumeMusica(); if (aoFim) aoFim(); };
       s.start();
       return b.duration;
     });

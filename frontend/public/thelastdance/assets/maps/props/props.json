@@ -1222,6 +1222,26 @@
         "espelhado": false,
         "proporcao": 1.0
       }
+    },
+    "banqueta_corda": {
+      "arquivo": "banqueta_corda.png",
+      "escala": 2.0,
+      "origem_px": [
+        73.0,
+        198.5
+      ],
+      "tamanho_m": [
+        0.45,
+        0.45,
+        0.75
+      ],
+      "descricao": "banqueta alta preta de corda trançada com encosto baixo, encosto do lado y = 0",
+      "ajuste": {
+        "x": 0.183,
+        "y": 0.183,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
     }
   }
 }

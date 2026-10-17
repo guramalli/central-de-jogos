@@ -88,19 +88,20 @@
       { id: "juan", nome: "Juan", personagem: "juan", postura: "sentado", x: 6.9, y: 3.8, dir: "baixo",
         falarDe: { x: 6.9, y: 3.05 }, fala: ["\"Pega uma gelada aí na cervejeira!\"", "\"Vira essa carne, mestre!\""],
         visual: { pele: "#d29a6e", roupa: "#4f6b2a", calca: "#22304a", cabelo: "#5a3a22", estilo: "curto" } },
-      { id: "vini", nome: "Vini", personagem: "vini", postura: "sentado", x: 8.5, y: 5.0, dir: "esquerda",
-        falarDe: { x: 9.2, y: 5.0 }, fala: ["\"Aumenta esse sertanejo aí!\"", "\"Já mostrou o insta pra todo mundo? Mostra pra mim de novo.\""],
+      { id: "vini", nome: "Vini", personagem: "vini", postura: "sentado", x: 7.7, y: 3.8, dir: "baixo",
+        falarDe: { x: 7.7, y: 3.05 }, fala: ["\"Aumenta esse sertanejo aí!\"", "\"Já mostrou o insta pra todo mundo? Mostra pra mim de novo.\""],
         visual: { pele: "#c98f63", roupa: "#2b2b2b", calca: "#e79b8c", cabelo: "#2a1a10", estilo: "volume" } },
-      { id: "jamil", nome: "Jamil", personagem: "jamil", postura: "sentado", x: 7.7, y: 3.8, dir: "baixo",
-        falarDe: { x: 7.7, y: 3.05 }, fala: ["\"Vim direto da missa. Alguém precisa rezar por esse churrasqueiro.\"",
+      { id: "jamil", nome: "Jamil", personagem: "jamil", postura: "sentado", x: 8.5, y: 5.0, dir: "esquerda",
+        falarDe: { x: 9.2, y: 5.0 }, fala: ["\"Vim direto da missa. Alguém precisa rezar por esse churrasqueiro.\"",
           "\"Terno no churrasco? Elegância não tira folga.\""],
         visual: { pele: "#d6a27a", roupa: "#d9cfbd", calca: "#d9cfbd", cabelo: "#4a4a4a", estilo: "curto" } },
       { id: "elcio", nome: "Elcio", personagem: "elcio", postura: "sentado", x: 6.1, y: 5.0, dir: "direita",
         falarDe: { x: 5.2, y: 5.0 }, fala: ["\"Óculos escuros de noite? É o brilho do meu futuro, irmão.\"",
           "\"Cadê a piscina? Vim de shorts à toa.\""],
         visual: { pele: "#c48d63", roupa: "#c48d63", calca: "#e0404a", cabelo: "#1c120c", estilo: "curto" } },
-      { id: "pabo", nome: "Pabo", personagem: "pabo", postura: "em_pe", x: 10.5, y: 4.2, dir: "esquerda",
-        falarDe: { x: 10.5, y: 4.95 }, fala: ["\"Me vê só a proteína dessa picanha, sem a gordura.\"",
+      // na banqueta da ponta da ilha, de lado, virado para a turma (assento alto: 0,75 m)
+      { id: "pabo", nome: "Pabo", personagem: "pabo", postura: "sentado", assento: 0.75, x: 3.475, y: 3.275, dir: "direita",
+        falarDe: { x: 4.2, y: 3.4 }, fala: ["\"Me vê só a proteína dessa picanha, sem a gordura.\"",
           "\"Bora treinar amanhã? Ah, esqueci: você só treina a mandíbula.\""],
         visual: { pele: "#c98f63", roupa: "#2b2b2b", calca: "#b5b5b5", cabelo: "#6b4226", estilo: "curto" } },
     ],
@@ -161,7 +162,6 @@
     if (!Z || !api) return;
     let r = 0, f = 0;
     const ocupado = () => (global.NSF.Ligacao && global.NSF.Ligacao.aberta()) || api.porta.menu || api.porta.saindo;
-    const ONDA = "🔊 ▂▃▅▇▅▃▂▃▅"; // balão de quem está mandando áudio (a voz é a do arquivo, sem legenda)
     const seguir = (espera) => {
       const rodada = Z.rodadas[r];
       f++;
@@ -174,10 +174,10 @@
       if (fala.audio) { // voz gravada: só toca com o som liberado e o pacote dos amigos aberto; senão, pula a fala
         const A = global.NSF.Audio, url = global.NSF.VIP ? global.NSF.VIP.url(fala.audio) : fala.audio;
         if (!A || !A.voz) { seguir(0); return; }
-        A.voz(url).then((dur) => {
+        A.voz(url).then((dur) => { // falando ao vivo: só as ondinhas de voz em quem fala
           const ate = performance.now() + dur * 1000;
-          if (fala.quem === "eu") api.falar(ONDA, dur * 1000);
-          else { const n = api.npcs.find((x) => x.id === fala.quem); if (n) n.balao = { texto: ONDA, ate }; }
+          if (fala.quem === "eu") api.jog.falandoAte = ate;
+          else { const n = api.npcs.find((x) => x.id === fala.quem); if (n) { n.balao = null; n.falandoAte = ate; } }
           seguir(dur * 1000 + 700);
         }).catch(() => seguir(0));
         return;

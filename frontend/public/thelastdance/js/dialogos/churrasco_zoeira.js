@@ -3,7 +3,8 @@
 //   quem: "eu" (o protagonista), o id do amigo na planta (vibola, gustavinho, juan, vini) ou "todos" (a turma
 //     inteira ao mesmo tempo — ex.: todo mundo rindo; cada um ganha um balão de risada diferente)
 //   texto: a fala ; celular: true = ele saca o celular para mostrar o Instagram (com corações subindo)
-//   audio: voz gravada (áudio de WhatsApp) que toca no lugar do texto — o balão mostra só a ondinha do som.
+//   audio: voz gravada que toca no lugar do texto, como se a pessoa falasse ali, ao vivo (sem balão: só as ondinhas
+//     de voz do lado da cabeça de quem fala).
 //     As vozes ficam no pacote trancado da área dos amigos (tools/vip_trancar.mjs); "texto" aí é só um lembrete.
 // As rodadas tocam em ordem e recomeçam no fim; entre uma rodada e outra há uma pausa.
 (function (global) {
@@ -74,7 +75,7 @@
         { quem: "eu", texto: "Rapaziada, tive uma ideia genial: camiseta do grupo com a minha cara!" },
         { quem: "juan", texto: "(áudio do Juan: \"você é o melhor, muito engraçado, muito criativo\")", audio: "assets/audio/amigos/juan_elogio.mp3" },
         { quem: "gustavinho", texto: "Kkkkkkk o Juan no modo irônico máximo." },
-        { quem: "eu", texto: "Ironia nada, ele me ama. Tá vendo? Até gravou áudio." },
+        { quem: "eu", texto: "Ironia nada! O Juan é meu fã número um." },
       ],
       [ // a perguntinha dele (áudio do protagonista)
         { quem: "eu", texto: "(áudio dele: a \"perguntinha\" pra galera)", audio: "assets/audio/amigos/eu_perguntinha.mp3" },

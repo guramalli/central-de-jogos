@@ -525,7 +525,7 @@
     const c = P.caixas.find((k) => k.tipo === "cadeira" && n.x > k.x0 && n.x < k.x1 && n.y > k.y0 && n.y < k.y1);
     if (c) c.ocupante = n;   // desenhado logo depois da cadeira (a mesa à frente cobre o colo)
   }
-  const alturaNpc = (n) => (n.postura === "sentado" ? 1.35 : 1.8);
+  const alturaNpc = (n) => (n.postura === "sentado" ? 1.35 + ((n.assento || 0.47) - 0.47) : 1.8);
 
   // Pessoas com "personagem": "<id>" usam uma personagem modular de assets/characters/npcs/<id>/ (as mesmas peças
   // e animações do protagonista). A mesma personagem pode aparecer em vários mapas e várias vezes no mesmo mapa:
@@ -581,11 +581,12 @@
     const pm = n.modular;
     let [fx, fy] = T(n.x, n.y, 0);
     ctx.save();
+    const acima = (n.assento || 0.47) - 0.47; // banqueta alta: o corpo sobe junto com o assento
     if (n.postura === "sentado" && pm.vista.startsWith("lado")) {
-      fy += (fy - T(n.x, n.y, 1)[1]) * 0.22; // de perfil: pernas dobradas, o quadril desce até o assento
+      fy += (fy - T(n.x, n.y, 1)[1]) * (0.22 - acima); // de perfil: pernas dobradas, o quadril desce até o assento
     } else if (n.postura === "sentado") {
-      const corte = T(n.x, n.y, 0.47)[1] + 6;
-      fy += (fy - T(n.x, n.y, 1)[1]) * 0.3; // corpo mais baixo: sentada, a cabeça fica abaixo de quem está em pé
+      const corte = T(n.x, n.y, n.assento || 0.47)[1] + 6;
+      fy += (fy - T(n.x, n.y, 1)[1]) * (0.3 - acima); // corpo mais baixo: sentada, a cabeça fica abaixo de quem está em pé
       ctx.beginPath(); ctx.rect(fx - 400, corte - 2000, 800, 2000); ctx.clip();
     } else {
       ctx.fillStyle = "rgba(0,0,0,0.3)";
@@ -1191,6 +1192,38 @@
   }
 
   // Sinal "…" sobre quem tem conversa, e o balão de fala de quem só comenta.
+  // Ondinhas de voz saindo da boca de quem está falando agora (voz gravada tocando ao vivo, sem balão):
+  // ")))" para o lado em que a pessoa olha (de frente/costas: dos dois lados), fora do rosto.
+  function ondasDeFala(ctx, x, y, k, agora, lados) {
+    ctx.save();
+    ctx.lineCap = "round";
+    for (const lado of lados) {
+      const cx = x + lado * 0.2 * k;
+      for (let i = 0; i < 3; i++) {
+        const fase = ((agora / 420) + i / 3) % 1, r = 0.07 * k + fase * 0.26 * k;
+        const a0 = lado > 0 ? -0.75 : Math.PI - 0.75, a1 = a0 + 1.5;
+        ctx.globalAlpha = 1 - fase;
+        ctx.strokeStyle = "rgba(20,10,30,0.8)"; ctx.lineWidth = 6.5;
+        ctx.beginPath(); ctx.arc(cx, y, r, a0, a1); ctx.stroke();
+        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3.5;
+        ctx.beginPath(); ctx.arc(cx, y, r, a0, a1); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+  const ladosDaFala = (vista) => (vista === "lado_direito" ? [1] : vista === "lado_esquerdo" ? [-1] : [-1, 1]);
+  function desenharFalandoAgora(ctx, agora) {
+    for (const n of NPCS) {
+      if (n.oculta || !n.falandoAte || agora > n.falandoAte) continue;
+      const [x, y0] = T(n.x, n.y, 0), k = y0 - T(n.x, n.y, 1)[1];
+      const vista = n.modular ? n.modular.vista : n.dir === "direita" ? "lado_direito" : n.dir === "esquerda" ? "lado_esquerdo" : "frente";
+      ondasDeFala(ctx, x, y0 - (alturaNpc(n) - 0.32) * k, k, agora, ladosDaFala(vista));
+    }
+    if (jog.falandoAte && agora < jog.falandoAte && !jog.oculto) {
+      const [x, y0] = T(jog.x, jog.y, 0), k = y0 - T(jog.x, jog.y, 1)[1];
+      ondasDeFala(ctx, x, y0 - 1.48 * k, k, agora, ladosDaFala(heroi ? heroi.vista : "frente"));
+    }
+  }
   function desenharSinaisNpc(ctx, agora) {
     for (const n of NPCS) {
       if (n.oculta) continue;
@@ -1349,6 +1382,7 @@
       }
     }
     desenharSinaisNpc(ctx, agora);
+    desenharFalandoAgora(ctx, agora);
     desenharInterativos(ctx, agora);
     desenharBalaoJog(ctx, agora);
     if (avisoObjeto && agora < avisoObjeto.ate) {
