@@ -65,6 +65,7 @@
       { nome: "Padaria", descricao: "Café, pão na chapa e energia para mais uma noite", url: "padaria.html", ativo: true },
       { nome: "Balada", descricao: "Em breve", ativo: false },
       { nome: "Casa do amigo", descricao: "Churrasco, cerveja gelada e piscina", url: "casa_amigo.html", ativo: true },
+      { nome: "Praia", descricao: "Neoprene, prancha e onda: bora surfar", url: "surf.html", ativo: true },
     ],
 
     pontos: [

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0712">
+<meta name="robots" content="noindex, nofollow">
+<title>Noite Sem Fim — surf na praia</title>
+<link rel="stylesheet" href="css/estilo.css">
+<link rel="stylesheet" href="css/cena.css">
+<style>
+  html, body { touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+  #tela { touch-action: none; }
+  #painel { position: fixed; left: max(8px, env(safe-area-inset-left)); top: max(8px, env(safe-area-inset-top));
+            display: flex; flex-wrap: wrap; gap: 6px; font: 600 13px system-ui, sans-serif; }
+  #painel a, #painel button { background: rgba(36,21,54,0.88); color: #eee6ff; border: 1px solid #5b3d86;
+            border-radius: 8px; padding: 8px 11px; text-decoration: none; cursor: pointer; font: inherit; }
+  #painel button[aria-pressed="true"] { background: #b0279a; border-color: #ff5ad8; }
+  #caixa { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100vw - 32px));
+           max-height: calc(100vh - 32px); overflow: auto; padding: 22px 24px; border-radius: 22px; text-align: center;
+           background: rgba(22,13,36,0.94); border: 2px solid #ff5ad8; color: #f3ecff; font: 16px/1.45 system-ui, sans-serif;
+           box-shadow: 0 0 30px rgba(255,90,216,0.45); }
+  #caixa[hidden] { display: none; }
+  #caixa h1 { margin: 0 0 8px; font-size: 26px; color: #ff8be6; text-shadow: 0 0 14px rgba(255,90,216,.6); }
+  #caixa p { margin: 0 0 10px; color: #d9cdf2; }
+  #caixa ul { text-align: left; margin: 0 0 14px; padding-left: 20px; }
+  #caixa li { margin: 3px 0; }
+  #caixa .total { font-size: 64px; font-weight: 800; color: #ffd36b; line-height: 1.1; }
+  #caixa small { display: block; margin: 6px 0; color: #c9b8ee; }
+  #caixa button, #caixa a { display: block; width: 100%; box-sizing: border-box; margin-top: 10px; font: 700 17px system-ui, sans-serif;
+           color: #fff; background: #b0279a; border: 2px solid #ff8be6; border-radius: 999px; padding: 12px; cursor: pointer; text-decoration: none; }
+  #caixa a { background: transparent; }
+</style>
+</head>
+<body>
+<canvas id="tela"></canvas>
+<div id="painel">
+  <a href="garagem.html?comodo=carro">← Carro</a>
+  <button id="som" aria-pressed="true">Som: ligado</button>
+</div>
+<div id="caixa" role="dialog" aria-label="Surf" hidden></div>
+<!-- Minigame de surf (js/surf.js). ?direto = pula as instruções -->
+<script src="js/base.js"></script>
+<script src="js/vip.js"></script>
+<script src="js/audio.js"></script>
+<script src="personagem_modular/dados.js"></script>
+<script src="personagem_modular/personagem-modular.js"></script>
+<script src="js/surf.js"></script>
+</body>
+</html>

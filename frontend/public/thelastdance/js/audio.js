@@ -42,6 +42,10 @@
     padaria: { bpm: 118, estilo: "bossa", volume: 0, fundo: "assets/audio/padaria_ambiente.mp3", fundoVolume: 0.05,
       acordes: [[62, 65, 69, 72], [55, 59, 64, 65], [60, 64, 67, 71], [57, 61, 64, 67]], baixo: [50, 43, 48, 45],
       melodia: [74, null, 76, 77, null, 76, null, 74, null, 72, null, null, 71, null, 72, null] },
+    // praia (minigame de surf): o mesmo groove leve, em tom de verão (Ré maior, I–V–vi–IV), mais baixinho que o mar
+    praia: { bpm: 108, estilo: "groove", volume: 0.26,
+      acordes: [[62, 66, 69, 74], [57, 61, 64, 69], [59, 62, 66, 71], [55, 59, 62, 67]], baixo: [38, 45, 47, 43],
+      melodia: [78, null, 81, null, 78, 76, null, 74, null, 76, null, 78, null, null, 74, null] },
   };
   let trilha = TRILHAS.apartamento;
 
@@ -439,6 +443,43 @@
     }
   }
 
+  // Mar (tela do surf): ruído grave que sobe e desce como ondas quebrando, em loop até desligar. Segue o botão Som.
+  let marSom = null;
+  function mar(sim) {
+    if (!sim) { if (marSom) { const m = marSom; marSom = null; m.g.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.4); setTimeout(() => m.s.stop(), 2000); } return; }
+    if (marSom || !pronto()) return;
+    const n = ctx.sampleRate * 4, buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+    let ult = 0;
+    for (let i = 0; i < n; i++) { ult = 0.97 * ult + 0.03 * (Math.random() * 2 - 1); d[i] = ult * 6; } // ruído "marrom" (grave)
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+    s.buffer = buf; s.loop = true; f.type = "lowpass"; f.frequency.value = 900;
+    g.gain.value = 0.1; lfo.frequency.value = 0.12; lg.gain.value = 0.07; lfo.connect(lg); lg.connect(g.gain);
+    s.connect(f); f.connect(g); g.connect(mestre); s.start(); lfo.start();
+    marSom = { s, g };
+  }
+  // Manobra na prancha: "chuá" curtinho de água espirrando (ruído que varre de grave para agudo)
+  function swoosh(forte) {
+    if (!pronto()) return;
+    const t = ctx.currentTime + 0.01, dur = forte ? 0.55 : 0.35, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = obterRuido(); f.type = "bandpass"; f.Q.value = 1.2;
+    f.frequency.setValueAtTime(600, t); f.frequency.exponentialRampToValueAtTime(forte ? 5000 : 3200, t + dur * 0.6);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(forte ? 0.5 : 0.32, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(busEfeitos); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
+  }
+  // Caixote: TCHIBUM (baque grave + espirro de água caindo)
+  function tchibum() {
+    if (!pronto()) return;
+    const t = ctx.currentTime + 0.01, o = ctx.createOscillator(), go = ctx.createGain();
+    o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.3);
+    go.gain.setValueAtTime(0.6, t); go.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+    o.connect(go); go.connect(busEfeitos); o.start(t); o.stop(t + 0.45);
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = obterRuido(); s.loop = true; f.type = "lowpass";
+    f.frequency.setValueAtTime(4000, t); f.frequency.exponentialRampToValueAtTime(500, t + 1.2);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3);
+    s.connect(f); f.connect(g); g.connect(busEfeitos); s.start(t); s.stop(t + 1.35);
+  }
+
   // Cena do quarto (com a tela escura): risadinha, mola da cama rangendo e o vizinho batendo no teto.
   function risadinha() {
     if (!pronto()) return;
@@ -503,7 +544,7 @@
       volumeMusica();
     },
     abafar(sim) { abafado = sim; volumeMusica(); },
-    clique, peido, assobio, curtida, ding, portaElevador, alarmeCarro, chiado, tv, ronco, tapa, voz, risadinha, rangido, batidas, match,
+    clique, peido, assobio, curtida, ding, mar, swoosh, tchibum, portaElevador, alarmeCarro, chiado, tv, ronco, tapa, voz, risadinha, rangido, batidas, match,
     ligado: () => ligadoSom,
     // para conferência/testes: estado do contexto e volumes
     estado: () => ({ contexto: ctx ? ctx.state : "sem", musica: busMusica ? +busMusica.gain.value.toFixed(2) : 0,
