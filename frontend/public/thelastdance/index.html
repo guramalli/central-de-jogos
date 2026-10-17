@@ -74,6 +74,14 @@
   a.cartao b { display: block; font-size: 16px; }
   a.cartao small { color: var(--suave); }
   .icone { font-size: 26px; width: 40px; text-align: center; flex: none; }
+  .vip { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: -12px 0 24px; font-size: 14px; color: var(--suave); }
+  .vip button, .vip input { font: 600 14px system-ui, sans-serif; border-radius: 999px; padding: 9px 16px; }
+  .vip button { color: var(--texto); background: rgba(36,21,54,.9); border: 1px solid var(--borda); cursor: pointer; }
+  .vip button:hover, .vip button:focus-visible { border-color: var(--rosa); outline: none; }
+  .vip form { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .vip input { background: #140b20; color: #fff; border: 1px solid var(--borda); width: min(220px, 60vw); }
+  .vip input:focus-visible { outline: 2px solid var(--rosa); }
+  .vip .erro { color: #ff8a9b; min-height: 1.2em; } .vip .ok { color: #9ff0c0; }
   footer { margin-top: 22px; color: var(--suave); font-size: 13px; text-align: center; }
 
   @keyframes gira { to { transform: rotate(360deg); } }
@@ -101,6 +109,8 @@
     JOGAR
   </a>
   <p class="idade"><b>18+</b> conteúdo adulto e muita zoeira · sem cenas explícitas · protótipo em desenvolvimento</p>
+
+  <div class="vip" id="vip" aria-live="polite"></div>
 
   <section>
     <h2>Sobre o jogo</h2>
@@ -148,5 +158,42 @@
 
   <footer>Dica: toque no chão para andar e nas setinhas rosa para usar as coisas. No celular, deitado (paisagem) mostra o lugar inteiro.</footer>
 </main>
+<script src="js/vip.js"></script>
+<script>
+  // Área dos amigos: senha (conferida no servidor) libera os personagens com rosto dos amigos neste aparelho.
+  (function () {
+    const caixa = document.getElementById("vip");
+    function desenhar(msg, classe) {
+      caixa.replaceChildren();
+      if (NSF.VIP.ativo()) {
+        const t = document.createElement("span"); t.className = "ok"; t.textContent = "🔓 Amigos liberados neste aparelho";
+        const b = document.createElement("button"); b.type = "button"; b.textContent = "Trancar de novo";
+        b.onclick = () => { NSF.VIP.sair(); desenhar(); };
+        caixa.append(t, b);
+        return;
+      }
+      const abrir = document.createElement("button"); abrir.type = "button"; abrir.textContent = "🔒 Área dos amigos";
+      abrir.onclick = () => {
+        caixa.replaceChildren();
+        const f = document.createElement("form");
+        const i = document.createElement("input"); i.type = "password"; i.placeholder = "Senha"; i.autocomplete = "current-password";
+        i.setAttribute("aria-label", "Senha da área dos amigos");
+        const ok = document.createElement("button"); ok.type = "submit"; ok.textContent = "Entrar";
+        const erro = document.createElement("div"); erro.className = "erro";
+        f.append(i, ok);
+        f.onsubmit = async (e) => {
+          e.preventDefault();
+          ok.disabled = true; erro.textContent = "Conferindo...";
+          try { await NSF.VIP.entrar(i.value); desenhar(); }
+          catch (er) { erro.textContent = er.message; ok.disabled = false; i.select(); }
+        };
+        caixa.append(f, erro);
+        i.focus();
+      };
+      caixa.append(abrir);
+    }
+    NSF.VIP.pronto.then(() => desenhar());
+  })();
+</script>
 </body>
 </html>

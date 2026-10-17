@@ -36,3 +36,6 @@ __pycache__/
 
 # músicas só para teste local (com direitos autorais: não vão para o site)
 /assets/audio/local/
+
+# chave da área dos amigos (tools/vip_trancar.mjs): só aqui e no Render (TLD_CHAVE)
+/tools/.vip_chave

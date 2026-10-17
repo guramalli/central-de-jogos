@@ -34,7 +34,7 @@
       const img = new Image();
       img.onload = () => ok(img);
       img.onerror = () => erro(new Error('Não carregou a imagem: ' + url));
-      img.src = url;
+      img.src = global.NSF && global.NSF.VIP ? global.NSF.VIP.url(url) : url; // amigos: imagem destrancada (js/vip.js)
     });
     cacheImagens.set(url, p);
     return p;

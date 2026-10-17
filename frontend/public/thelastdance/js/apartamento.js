@@ -537,9 +537,11 @@
       : carregarScript(PASTA_MOD + "dados.js").then(() => carregarScript(PASTA_MOD + "personagem-modular.js"));
   }
   if (NPCS.some((n) => n.personagem)) {
-    carregarLibs().then(() => Promise.all(NPCS.filter((n) => n.personagem).map((n) => {
-      const id = n.personagem;
-      dadosNpc[id] = dadosNpc[id] || fetch(PASTA_NPC + id + "/personagem.json").then((r) => r.json());
+    // os amigos (rosto real) só existem destrancados: espera o pacote da área dos amigos (js/vip.js)
+    const vip = NSF.VIP ? NSF.VIP.pronto : Promise.resolve();
+    Promise.all([carregarLibs(), vip]).then(() => Promise.all(NPCS.filter((n) => n.personagem).map((n) => {
+      const id = n.personagem, json = PASTA_NPC + id + "/personagem.json";
+      dadosNpc[id] = dadosNpc[id] || fetch(NSF.VIP ? NSF.VIP.url(json) : json).then((r) => r.json());
       return dadosNpc[id].then((d) => new global.PersonagemModular(d, PASTA_NPC + id + "/").carregar()).then((pm) => {
         pm.pixelado = false;
         pm.definirVista(VISTA_MOD[n.dir] || "frente");
