@@ -14,7 +14,7 @@
   const ENCONTRO = URL_ATUAL.get("encontro");
   const COM_ELA = !!ENCONTRO && /^[a-z_]+$/.test(ENCONTRO);
   const ANDAR_CASA = 20;
-  const VIAGEM_S = 56; // 20 andares bem devagar: dá tempo de ouvir a música e fazer várias coisas (as opções voltam)
+  const VIAGEM_S = 39; // 20 andares devagar: dá tempo de ouvir a música e fazer várias coisas (as opções voltam)
 
   const ESPELHO = { nome: "Espelho", tipo: "espelho", plano: "x0", a: 0.45, b: 1.75, z0: 0.95, z1: 2.25 }; // desenhado pelo jogo
 

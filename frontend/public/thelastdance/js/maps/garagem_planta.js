@@ -81,7 +81,18 @@
   // Só repete depois que ele se afasta de novo.
   const CARRO = PLANTA.caixas.find((c) => c.arte === "carro_x1");
   let destravado = false, piscaDesde = null;
-  PLANTA.aoIniciar = (api) => { PLANTA.api = api; };
+  // Indo surfar (aceitou o convite do Carioca): sai do elevador, vai sozinho até o carro e segue para a Praia
+  PLANTA.aoIniciar = (api, info) => {
+    PLANTA.api = api;
+    let auto = false;
+    try { auto = sessionStorage.getItem("nsf_surf_auto") === "1"; if (auto) sessionStorage.removeItem("nsf_surf_auto"); } catch (_) { /* ok */ }
+    const praia = PLANTA.destinos.find((d) => d.url === "surf.html");
+    if (!auto || !CARRO || !praia) return;
+    setTimeout(() => {
+      api.pensar("Prancha no teto, neoprene no corpo... partiu praia! 🏄", 2600);
+      api.irPara(CARRO.falarDe.x, CARRO.falarDe.y, () => setTimeout(() => api.sair(praia), 900));
+    }, info && info.chegando ? 2600 : 600);
+  };
   // Prancha no rack do teto do carro: só quando ele aceitou o convite do Carioca para surfar (nsf_surf na sessão)
   const vaiSurfar = () => { try { return sessionStorage.getItem("nsf_surf") === "1"; } catch (_) { return false; } };
   function prancha(ctx, T) {

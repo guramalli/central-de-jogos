@@ -145,7 +145,8 @@
       const r = await escolha("📞 Carioca: " + (CONVITE_SURF[resultado] || CONVITE_SURF.dispensou),
         [["🏄", "Bora surfar!", "sim"], ["🛋️", "Hoje não", "nao"]]);
       if (r === "sim") {
-        try { sessionStorage.setItem("nsf_surf", "1"); } catch (_) { /* sem armazenamento */ }
+        // nsf_surf: prancha no carro + Praia no menu ; nsf_surf_auto: na garagem ele vai sozinho até a praia
+        try { sessionStorage.setItem("nsf_surf", "1"); sessionStorage.setItem("nsf_surf_auto", "1"); } catch (_) { /* sem armazenamento */ }
         // sozinho: vai ao guarda-roupa, veste o neoprene e sai pela porta (elevador -> garagem -> carro -> Praia)
         api.pensar("Bora! Cadê meu neoprene... 🏄", 2400);
         const arm = PLANTA.caixas.find((x) => x.interacao === "armario");
