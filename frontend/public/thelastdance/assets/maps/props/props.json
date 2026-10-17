@@ -973,6 +973,215 @@
         "espelhado": false,
         "proporcao": 1.0
       }
+    },
+    "nicho_geladeiras": {
+      "arquivo": "nicho_geladeiras.png",
+      "escala": 2.0,
+      "origem_px": [
+        108.4,
+        464.2
+      ],
+      "tamanho_m": [
+        1.8,
+        0.75,
+        2.3
+      ],
+      "descricao": "nicho de marcenaria (madeira clara) com cervejeira de porta de vidro e geladeira inox lado a lado, armários em cima; encostado na parede do fundo, frente para +y",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "mesa_redonda_madeira": {
+      "arquivo": "mesa_redonda_madeira.png",
+      "escala": 2.0,
+      "origem_px": [
+        230.5,
+        104.3
+      ],
+      "tamanho_m": [
+        1.6,
+        1.6,
+        0.76
+      ],
+      "descricao": "mesa redonda grande de madeira ripada (1,6 m) sobre base de corda trançada azul",
+      "ajuste": {
+        "x": 0.401,
+        "y": 0.401,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "cadeira_corda": {
+      "arquivo": "cadeira_corda.png",
+      "escala": 2.0,
+      "origem_px": [
+        93.0,
+        168.7
+      ],
+      "tamanho_m": [
+        0.6,
+        0.6,
+        0.45
+      ],
+      "descricao": "cadeira de corda trançada azul-marinho com braços de madeira e pés de metal bege, de frente para a câmera (assento para +y), encosto do lado y = 0",
+      "ajuste": {
+        "x": 0.199,
+        "y": 0.199,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "cadeira_corda_costas": {
+      "arquivo": "cadeira_corda_costas.png",
+      "escala": 2.0,
+      "origem_px": [
+        96.0,
+        131.0
+      ],
+      "tamanho_m": [
+        0.6,
+        0.6,
+        0.45
+      ],
+      "descricao": "a mesma cadeira de corda azul vista de costas: encosto do lado x = 0,6 (perto da câmera), assento virado para -x",
+      "ajuste": {
+        "x": 0.197,
+        "y": 0.197,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "vaso_planta_grande": {
+      "arquivo": "vaso_planta_grande.png",
+      "escala": 2.0,
+      "origem_px": [
+        133.0,
+        360.8
+      ],
+      "tamanho_m": [
+        0.6,
+        0.6,
+        1.8
+      ],
+      "descricao": "vaso alto preto fosco com uma planta grande de folhas largas",
+      "ajuste": {
+        "x": 0.32,
+        "y": 0.32,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "caixa_som": {
+      "arquivo": "caixa_som.png",
+      "escala": 2.0,
+      "origem_px": [
+        45.2,
+        160.4
+      ],
+      "tamanho_m": [
+        0.42,
+        0.36,
+        0.8
+      ],
+      "descricao": "caixa de som portátil grande de festa, em pé no chão, com anel de luz colorida",
+      "ajuste": {
+        "x": 0.155,
+        "y": 0.155,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "parede_varanda": {
+      "tipo": "textura_parede",
+      "arquivo": "parede_varanda.png",
+      "px_por_m": 200,
+      "largura_m": 2.0,
+      "altura_m": 2.7,
+      "descricao": "textura reta de parede; o jogo inclina e repete a cada largura_m"
+    },
+    "piso_porcelanato": {
+      "tipo": "textura_piso",
+      "arquivo": "piso_porcelanato.png",
+      "tamanho_px": [
+        512,
+        512
+      ],
+      "metros": 2.0
+    },
+    "vidro_cidade": {
+      "tipo": "decal",
+      "arquivo": "vidro_cidade.png",
+      "tamanho_px": [
+        512,
+        205
+      ]
+    },
+    "parede_azulejo_luzes": {
+      "tipo": "decal",
+      "arquivo": "parede_azulejo_luzes.png",
+      "tamanho_px": [
+        512,
+        256
+      ]
+    },
+    "porta_vidro_sala": {
+      "tipo": "decal",
+      "arquivo": "porta_vidro_sala.png",
+      "tamanho_px": [
+        512,
+        256
+      ]
+    },
+    "tv_parede": {
+      "tipo": "decal",
+      "arquivo": "tv_parede.png",
+      "tamanho_px": [
+        512,
+        256
+      ]
+    },
+    "cadeira_corda_lado": {
+      "arquivo": "cadeira_corda_lado.png",
+      "escala": 2.0,
+      "origem_px": [
+        93.0,
+        168.7
+      ],
+      "tamanho_m": [
+        0.6,
+        0.6,
+        0.45
+      ],
+      "descricao": "cadeira de corda azul virada para +x (espelho da cadeira_corda)",
+      "ajuste": {
+        "x": 0.199,
+        "y": 0.199,
+        "espelhado": true,
+        "proporcao": 1.0
+      }
+    },
+    "cadeira_corda_sul": {
+      "arquivo": "cadeira_corda_sul.png",
+      "escala": 2.0,
+      "origem_px": [
+        96.0,
+        131.0
+      ],
+      "tamanho_m": [
+        0.6,
+        0.6,
+        0.45
+      ],
+      "descricao": "cadeira de corda azul de costas para a câmera, assento para -y (espelho da cadeira_corda_costas)",
+      "ajuste": {
+        "x": 0.197,
+        "y": 0.197,
+        "espelhado": true,
+        "proporcao": 1.0
+      }
     }
   }
 }
