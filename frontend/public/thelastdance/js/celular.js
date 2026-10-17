@@ -27,6 +27,7 @@
     z-index: 26; width: min(350px, calc(100vw - 20px)); height: min(660px, calc(100dvh - 20px));
     background: #08060c; border-radius: 38px; padding: 10px; box-shadow: 0 0 0 2px #3a2a50, 0 18px 50px rgba(0,0,0,.7);
     display: flex; flex-direction: column; font: 14px/1.35 system-ui, sans-serif; color: #111; animation: cel-sobe .22s ease-out; }
+  .cel-fora { position: fixed; inset: 0; z-index: 25; background: rgba(5,2,12,.25); }
   .cel-vidro { flex: 1; min-height: 0; border-radius: 30px; overflow: hidden; display: flex; flex-direction: column; background: #f4f4f4; position: relative; }
   .cel-status { flex: none; display: flex; justify-content: space-between; align-items: center; padding: 8px 20px 4px;
     font: 600 12px system-ui, sans-serif; color: #fff; background: #111; }
@@ -202,6 +203,7 @@
   const badge = el("span", "cel-badge"); bCel.appendChild(badge);
   doc.body.appendChild(bCel);
 
+  let fora = null; // fundo transparente: tocar fora do celular fecha
   let tela = null, app = null, pilha = [], atual = null, aviso = null, avisoRelogio = null;
   const aberto = () => !!tela;
 
@@ -248,7 +250,14 @@
         botao("", "✕", fechar, "Fechar o celular"));
       vidro.append(status, app, barra);
       tela.appendChild(vidro);
-      doc.body.appendChild(tela);
+      fora = el("div", "cel-fora");
+      fora.addEventListener("click", (e) => { // fora do celular: fecha (menos no meio de uma ligação)
+        e.stopPropagation();
+        if (atual && (atual.nome === "ligando" || atual.nome === "emLigacao")) return;
+        fechar();
+      });
+      fora.addEventListener("pointerdown", (e) => e.stopPropagation());
+      doc.body.append(fora, tela);
       bCel.style.display = "none";
       poseCelular(true);
       if (NSF.Audio && NSF.Audio.curtida) NSF.Audio.curtida();
@@ -260,7 +269,8 @@
     if (atual && atual.nome === "emLigacao") encerrarLigacao(true);
     if (atual && atual.nome === "ligando") recusar();
     if (tela) tela.remove();
-    tela = null; app = null; atual = null; pilha = [];
+    if (fora) fora.remove();
+    tela = null; app = null; fora = null; atual = null; pilha = [];
     bCel.style.display = "";
     poseCelular(false);
     atualizarBadge();
