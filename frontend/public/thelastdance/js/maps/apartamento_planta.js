@@ -152,9 +152,9 @@
           { de: "ele", t: r === "sim" ? "É isso, brabo! Tô na areia com a rapaziada 🤙" : "Hoje não?? Tu tá namorando? Ih, olha ele..." }],
       });
       if (r === "sim") {
-        // nsf_surf: prancha no carro + Praia no menu ; nsf_surf_auto: na garagem ele vai sozinho até a praia
-        try { sessionStorage.setItem("nsf_surf", "1"); sessionStorage.setItem("nsf_surf_auto", "1"); } catch (_) { /* sem armazenamento */ }
-        // sozinho: vai ao guarda-roupa, veste o neoprene e sai pela porta (elevador -> garagem -> carro -> Praia)
+        // nsf_surf: prancha no teto do carro + Praia no menu do carro (para as próximas vezes)
+        try { sessionStorage.setItem("nsf_surf", "1"); } catch (_) { /* sem armazenamento */ }
+        // sozinho: vai ao guarda-roupa, veste o neoprene e já aparece na praia (sem elevador nem garagem: é rápido)
         api.pensar("Bora! Cadê meu neoprene... 🏄", 2400);
         const arm = PLANTA.caixas.find((x) => x.interacao === "armario");
         const vestirESair = async () => {
@@ -162,9 +162,9 @@
           await espera(900); // mexendo no armário
           api.vestirRoupas(["neoprene_cima", "neoprene_calca"]);
           if (A) A.curtida();
-          api.pensar("Neoprene no corpo! A prancha já tá no teto do carro. Partiu praia! 🏄", 2800);
-          await espera(1800);
-          api.irParaPorta();
+          api.pensar("Neoprene no corpo! Partiu praia! 🏄", 2000);
+          await espera(1300);
+          api.sair({ nome: "Praia", url: "surf.html?direto" }, { andando: false });
         };
         if (arm && arm.falarDe) api.irPara(arm.falarDe.x, arm.falarDe.y, vestirESair); else vestirESair();
       } else {
