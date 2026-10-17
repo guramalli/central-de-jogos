@@ -80,6 +80,10 @@
   .vip.portao b { color: #fff; font-size: 17px; }
   .vip.portao input { width: min(240px, 62vw); padding: 12px 16px; font-size: 16px; }
   .vip.portao button[type=submit] { padding: 12px 22px; font-size: 16px; color: #fff; background: linear-gradient(135deg, #ff5ad8, #b0279a); border-color: #ffd6f4; }
+  .atalhos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .atalhos a { text-decoration: none; color: var(--texto); background: #2a1840; border: 1px solid var(--borda); border-radius: 999px;
+    padding: 9px 14px; font-weight: 600; font-size: 14px; }
+  .atalhos a:hover, .atalhos a:focus-visible { border-color: var(--rosa); outline: none; background: #3a1f55; }
   .vip { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: -12px 0 24px; font-size: 14px; color: var(--suave); }
   .vip button, .vip input { font: 600 14px system-ui, sans-serif; border-radius: 999px; padding: 9px 16px; }
   .vip button { color: var(--texto); background: rgba(36,21,54,.9); border: 1px solid var(--borda); cursor: pointer; }
@@ -117,6 +121,26 @@
   <p class="idade"><b>18+</b> conteúdo adulto e muita zoeira · sem cenas explícitas · protótipo em desenvolvimento</p>
 
   <div class="vip" id="vip" aria-live="polite"></div>
+
+  <section id="atalhos" hidden>
+    <h2>🎬 Ir direto para</h2>
+    <div class="atalhos">
+      <a href="apartamento.html?comodo=quarto">🏠 Quarto</a>
+      <a href="elevador.html?descer=1">🛗 Elevador</a>
+      <a href="garagem.html">🚗 Garagem</a>
+      <a href="padaria.html">🥐 Padaria</a>
+      <a href="casa_amigo.html">🍖 Churrasco</a>
+    </div>
+    <h2>🍷 Encontro no apê com...</h2>
+    <div class="atalhos">
+      <a href="apartamento.html?comodo=entrada&amp;chegada=1&amp;encontro=loira_cargo">Júlia</a>
+      <a href="apartamento.html?comodo=entrada&amp;chegada=1&amp;encontro=vestido_vermelho">Rafaela</a>
+      <a href="apartamento.html?comodo=entrada&amp;chegada=1&amp;encontro=cacheada_saia">Lívia</a>
+      <a href="apartamento.html?comodo=entrada&amp;chegada=1&amp;encontro=morena_moletom">Tati</a>
+      <a href="apartamento.html?comodo=entrada&amp;chegada=1&amp;encontro=coroa_fitness">Sandra</a>
+      <a href="apartamento.html?comodo=entrada&amp;chegada=1&amp;encontro=gordinha_loira">Kelly</a>
+    </div>
+  </section>
 
   <section>
     <h2>Sobre o jogo</h2>
@@ -173,7 +197,7 @@
     function desenhar() {
       caixa.replaceChildren();
       const liberado = NSF.VIP.ativo() || NSF.VIP.local;
-      jogar.hidden = !liberado; testes.hidden = !liberado;
+      jogar.hidden = !liberado; testes.hidden = !liberado; document.getElementById("atalhos").hidden = !liberado;
       caixa.classList.toggle("portao", !liberado);
       if (!liberado) { // portão: só convidados
         const t = document.createElement("b"); t.textContent = "🔒 Jogo fechado: só para convidados";
