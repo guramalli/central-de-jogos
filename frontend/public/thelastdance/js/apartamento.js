@@ -748,7 +748,10 @@
     if (NSF.Celular && NSF.Celular.chamadaCentral) { // o celular do canto toca: atender/recusar no meio da tela
       NSF.Celular.chamadaCentral({ nome: ROTEIRO_LIGACAO.contato, cor: "#c2185b", emoji: "😻",
         aoAtender: atenderTelefone,
-        aoRecusar: () => { ligacao.tocando = false; if (NSF.Audio) NSF.Audio.toque(false); agendarLigacao(45); } });
+        aoRecusar: () => {
+          ligacao.tocando = false; if (NSF.Audio) NSF.Audio.toque(false); agendarLigacao(45);
+          if (P.aoTerminarLigacao) P.aoTerminarLigacao("recusou", window.NSF_APTO);
+        } });
       return;
     }
     mostrarAviso(true);       // sem o celular: fica vibrando no criado-mudo até o jogador tocar nele (ou no aviso)

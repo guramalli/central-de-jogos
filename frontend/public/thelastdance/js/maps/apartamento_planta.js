@@ -133,9 +133,12 @@
   const CONVITE_SURF = {
     convidou: "Aê, mermão! O mar tá clássico, pô! 🌊 Bora pegar umas ondas antes da tua mina de Campinas chegar?",
     dispensou: "Aê, mermão! Levou toco, né? Tô sabendo 😂 Bora pro mar que onda cura tudo, pô! 🌊",
+    recusou: "Aê, mermão! Tu não atendeu a mina de Campinas, né? 👀 Então bora pro mar, que tá clássico! 🌊",
   };
+  let conviteFeito = false; // uma vez por visita (a Gatinha pode ligar de novo depois de recusada)
   PLANTA.aoTerminarLigacao = (resultado, api) => {
-    if (ENC_ID) return; // noite de encontro: nada de surf
+    if (ENC_ID || conviteFeito) return; // noite de encontro: nada de surf
+    conviteFeito = true;
     const C = global.NSF.Celular, A = global.NSF.Audio;
     const conversar = async () => {
       if (A) A.toque(false);
@@ -152,6 +155,10 @@
       }
     };
     const ligar = (vez) => {
+      // outra ligação tocando, conversa ou escolha aberta, celular aberto: espera um pouco e liga depois
+      if (document.querySelector(".cel-central, .lig-fundo, .escolha, .armario-fundo") || (C && C.aberto && C.aberto())) {
+        setTimeout(() => ligar(vez), 2000); return;
+      }
       if (!C || !C.chamadaCentral) { conversar(); return; }
       if (A) A.toque(true);
       C.chamadaCentral({ nome: "Carioca", cor: "#00695c", emoji: "🏄",
