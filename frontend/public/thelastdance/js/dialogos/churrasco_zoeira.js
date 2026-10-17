@@ -38,6 +38,13 @@
         { quem: "eu", texto: "Isso foi UMA vez!" },
         { quem: "juan", texto: "Uma vez por semana." },
       ],
+      [ // a baladinha de ontem (áudio do Gustavinho)
+        { quem: "eu", texto: "Rapaziada, ontem eu fui naquela baladinha e vocês não sabem o que aconteceu..." },
+        { quem: "gustavinho", texto: "(áudio do Gustavinho: \"ô loco, bicho, foi pra baladinha!\")", audio: "assets/audio/amigos/gustavinho_baladinha.mp3" },
+        { quem: "vini", texto: "Kkkkkk o Faustão chegou no churrasco!" },
+        { quem: "eu", texto: "Ri não, que eu peguei o telefone de três!" },
+        { quem: "juan", texto: "De três atendentes do bar. Pra pedir a conta." },
+      ],
       [ // o réveillon (de novo)
         { quem: "eu", texto: "Esse ano o réveillon é no Nordeste! Praia, sol e as nordestinas me esperando." },
         { quem: "juan", texto: "Pera aí... ano passado você não falou que era o ÚLTIMO réveillon no Nordeste?" },
