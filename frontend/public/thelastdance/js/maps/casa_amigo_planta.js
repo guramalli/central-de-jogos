@@ -88,9 +88,9 @@
       { id: "juan", nome: "Juan", personagem: "juan", postura: "sentado", x: 6.9, y: 3.8, dir: "baixo",
         falarDe: { x: 6.9, y: 3.05 }, fala: ["\"Pega uma gelada aí na cervejeira!\"", "\"Vira essa carne, mestre!\""],
         visual: { pele: "#d29a6e", roupa: "#4f6b2a", calca: "#22304a", cabelo: "#5a3a22", estilo: "curto" } },
-      // na cadeira da ponta (desenhada de costas): sentado de costas para a câmera, virado para a mesa
-      { id: "vini", nome: "Vini", personagem: "vini", postura: "sentado", x: 8.5, y: 5.0, dir: "cima",
-        falarDe: { x: 9.2, y: 5.0 }, fala: ["\"Aumenta esse sertanejo aí!\"", "\"Já mostrou o insta pra todo mundo? Mostra pra mim de novo.\""],
+      // em pé ao lado do nicho das geladeiras, de frente para a câmera
+      { id: "vini", nome: "Vini", personagem: "vini", postura: "em_pe", x: 6.85, y: 1.15, dir: "baixo",
+        falarDe: { x: 6.85, y: 1.9 }, fala: ["\"Aumenta esse sertanejo aí!\"", "\"Já mostrou o insta pra todo mundo? Mostra pra mim de novo.\""],
         visual: { pele: "#c98f63", roupa: "#2b2b2b", calca: "#e79b8c", cabelo: "#2a1a10", estilo: "volume" } },
       { id: "jamil", nome: "Jamil", personagem: "jamil", postura: "sentado", x: 7.7, y: 3.8, dir: "baixo",
         falarDe: { x: 7.7, y: 3.05 }, fala: ["\"Vim direto da missa. Alguém precisa rezar por esse churrasqueiro.\"",

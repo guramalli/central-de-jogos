@@ -33,7 +33,7 @@
     // casa do amigo: sertanejo de churrasco (original): baixo "dois pra lá", violão em batida e sanfoninha
     // arquivoLocal: música com dono (assets/audio/local/, fora do git): vai só TRANCADA no pacote da área dos amigos
     // (jogo fechado por senha). Sem o pacote aberto, toca o sertanejo sintetizado
-    sertanejo: { arquivoLocal: "assets/audio/local/casa_amigo.mp3", volumeArquivo: 0.13, bpm: 128, estilo: "sertanejo", volume: 0.6,
+    sertanejo: { arquivoLocal: "assets/audio/local/casa_amigo.mp3", volumeArquivo: 0.09, bpm: 128, estilo: "sertanejo", volume: 0.6,
       acordes: [[55, 59, 62, 67], [50, 54, 57, 62], [52, 55, 59, 64], [48, 52, 55, 60]], baixo: [43, 38, 40, 36],
       melodia: [74, null, 76, 78, null, 79, null, 78, 76, null, 74, null, 71, null, 74, null] },
     // padaria: bossa nova de rádio de padaria + burburinho de padaria cheia bem baixinho
