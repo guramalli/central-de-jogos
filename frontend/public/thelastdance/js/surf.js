@@ -1,10 +1,9 @@
 // Minigame de surf (surf.html): visto da areia, olhando para o mar. A onda quebra da esquerda para a direita e ele
 // surfa na parede dela, de neoprene. 3 ondas; cada onda ganha uma nota de 0 a 10 dos juízes e o resultado é a soma
 // das 2 melhores (como no campeonato de verdade).
-//   Remar: toques rápidos (ou espaço) enquanto a onda chega.
-//   Manobras (deslizar o dedo ou setas): ↓ cavada (ganha velocidade) · ↑ batida na crista (com muita velocidade: aéreo)
-//   · ← rasgada (volta para perto da espuma) · → bombear (um pouco de velocidade) · segurar = tubo (seção tubular).
-// Perto da espuma vale mais (até 3x); repetir a mesma manobra vale menos. Lento demais, a espuma pega (caixote).
+// SEM DIFICULDADE (pedido do dono do jogo): ele pega a onda sozinho e nunca cai. Cada toque na tela (ou qualquer
+// tecla) faz a melhor manobra para o momento — o jogo escolhe: cavada, batida, aéreo, rasgada ou tubo. Quanto mais
+// toques, mais manobras e maior a nota.
 // Tudo desenhado por código por enquanto (mar, onda, prancha, turma de costas na areia); a arte pode vir depois.
 (function (global) {
   "use strict";
@@ -46,18 +45,16 @@
   const lim = (v, a, b) => Math.max(a, Math.min(b, v));
 
   // Falas da turma na areia (de costas para a câmera, olhando o mar)
-  const TURMA = ["Vibola", "Gustavinho", "Juan", "Vini"];
+  const TURMA = ["Carioca", "Vibola", "Gustavinho", "Juan"]; // o Carioca chamou para surfar
   const FALAS = {
-    drop: ["Dropou! 🏄", "Agora vai!", "Segura, peão!"],
+    drop: ["Dropou! 🏄", "Agora vai!", "Segura, peão!", "Aê, mermão! Brabo!"],
     aereo: ["VOOOOU! 🛫", "Ô LOCO, BICHO! Que aéreo!", "O Medina tá com medo!"],
     tubo: ["Ó O TUBOOO!", "Entrou no barril!", "Tá lá dentro, tá lá dentro!"],
     saiuTubo: ["SAIU SECO! 💦", "Cuspido pelo tubo!!", "Que tubaço!"],
-    caixote: ["Caiu igual saco de batata 🥔", "Tomou um caixote de respeito", "Engoliu meio oceano!", "KKKKKKKKK"],
     batida: ["Rasgou a crista!", "Bateu bonito!", "Isso é surf!"],
     rasgada: ["Que rasgada!", "Voltou pra espuma, coragem!"],
-    perdeu: ["Rema, preguiçoso! 😂", "A onda passou e ele ficou", "Rema mais forte!"],
     notaAlta: ["NOTA DEZ! 🔥", "Contrata esse cara!"],
-    notaBaixa: ["Volta pro churrasco 😂", "Melhor ficar na areia com a gente"],
+    notaBoa: ["Boa, peão! 🤙", "Mandou bem!", "Próxima é nota dez!"],
   };
 
   // ---------- personagem modular de neoprene, com poses de surf ----------
@@ -79,7 +76,6 @@
     rasgada: { tronco: -16, braco_sup_esq: 85, antbraco_esq: -15, braco_sup_dir: -105, antbraco_dir: 20, coxa_esq: 26, canela_esq: -36, coxa_dir: -26, canela_dir: 36 },
     aereo:   { tronco: 2, braco_sup_esq: 140, antbraco_esq: -20, braco_sup_dir: -25, antbraco_dir: 45, coxa_esq: 42, canela_esq: -78, coxa_dir: -42, canela_dir: 78 },
     tubo:    { tronco: 20, braco_sup_esq: 25, antbraco_esq: 0, braco_sup_dir: -115, antbraco_dir: 10, coxa_esq: 38, canela_esq: -56, coxa_dir: -38, canela_dir: 56 },
-    caindo:  { tronco: 30, braco_sup_esq: 150, antbraco_esq: 30, braco_sup_dir: -150, antbraco_dir: -30, coxa_esq: 10, canela_esq: 20, coxa_dir: -30, canela_dir: -10 },
   };
   let heroi = null, poseAtual = Object.assign({}, POSES.base), poseAlvo = "base";
   const quadroFrente = {}, quadroLado = {};
@@ -119,7 +115,7 @@
   const s = {
     fase: "intro", onda: 0, notas: [], pontos: 0, hist: [], tOnda: 0,
     x: 0, h: 0.5, hAlvo: 0.5, v: 0, crista: 0, forca: 0, quebrada: false, secoes: [], tuboL: 90,
-    remo: null, manobra: null, tubo: null, ar: null, caiu: null, segurando: false, giro: 0,
+    remo: null, manobra: null, tubo: null, ar: null, giro: 0,
     yPrev: null, ang: 0, cam: 0, avisos: [], gotas: [], fala: null, festa: -9, relogio: 0, espera: 0, ultimaCavada: -9,
   };
   global.NSF_SURF = { s, comando: (n) => executar(n), regras: Regras };
@@ -153,14 +149,15 @@
   // ---------- fases ----------
   function novaOnda() {
     s.fase = "remando"; s.quebrada = false; s.forca = 0; s.pontos = 0; s.hist = []; s.tOnda = 0;
-    s.manobra = s.tubo = s.ar = s.caiu = null; s.segurando = false; s.giro = 0;
+    s.manobra = s.tubo = s.ar = null; s.giro = 0;
     s.x = s.x || 0; s.crista = s.x - 110; s.h = 0; s.v = 0;
-    s.remo = { val: 0, t: 0, dur: 3.8 };
+    s.remo = { t: 0, dur: 3.2 };
     poseAlvo = "base";
   }
+  // remar é só para curtir: ele pega a onda de qualquer jeito (tocar adianta um pouquinho)
   function remar() {
     if (!s.remo) return;
-    s.remo.val = Math.min(1.15, s.remo.val + 0.14);
+    s.remo.t = Math.min(s.remo.dur, s.remo.t + 0.12);
     if (Math.random() < 0.5) gota(s.x + rnd(-10, 40), Y_BASE - altura(s.x - s.crista) * 0.12, rnd(-80, 80), rnd(-220, -120), 2);
   }
   function dropar() {
@@ -172,18 +169,13 @@
     if (A()) A().swoosh(true);
     falar("drop");
   }
-  function perdeuOnda() {
-    s.fase = "perdeu"; s.espera = 2.2; s.remo = null;
-    aviso("Perdeu a onda!", s.x, "#ffd36b", 44);
-    falar("perdeu");
-  }
-  function fimOnda(motivo) {
+  function fimOnda() {
     if (s.fase !== "surfando") return;
-    if (motivo === "completou") pontuar("Completou a onda!", 600);
-    const n = nota(s.caiu ? s.pontos * 0.75 : s.pontos);
+    pontuar("Completou a onda!", 600);
+    const n = nota(s.pontos);
     s.notas.push(n); s.onda++;
-    s.fase = "nota"; s.espera = 3.2; s.ultimaNota = n; s.motivo = motivo;
-    if (n >= 8) falar("notaAlta"); else if (n < 3) falar("notaBaixa");
+    s.fase = "nota"; s.espera = 3.2; s.ultimaNota = n;
+    falar(n >= 8 ? "notaAlta" : "notaBoa");
   }
   function fimJogo() {
     s.fase = "fim";
@@ -193,77 +185,69 @@
     mostrarFim(total, Math.max(total, recorde), total > recorde && recorde > 0);
   }
 
-  // ---------- manobras ----------
+  // ---------- manobras: um toque = a melhor manobra para o momento (o jogo escolhe) ----------
   function pontuar(texto, pts, cor) {
     s.pontos += pts;
     aviso(pts ? `${texto} +${pts}` : texto, s.x, cor || "#ffffff", pts >= 2000 ? 54 : 42);
   }
-  function executar(nome) {
+  function escolherManobra() {
+    const d = s.x - s.crista, vc = vCrista(), ultima = s.hist[s.hist.length - 1];
+    if (secaoEm(s.crista).tipo === "tubular" && d < 320 && d > -30) return "tubo";
+    if (d < 180) return "cavada";                                   // perto da espuma: desce e ganha velocidade
+    if (ultima === "cavada") return s.v >= vc + 100 ? "aereo" : "batida";
+    if (ultima === "rasgada") return "cavada";
+    return d > 350 ? "rasgada" : "cavada";
+  }
+  function executar() {
     if (s.fase === "remando") { remar(); return; }
-    if (s.fase !== "surfando" || s.caiu || s.ar) return;
-    if (nome === "soltar") { s.segurando = false; if (s.tubo) sairTubo(); return; }
-    if (nome === "segurar") { s.segurando = true; return; }
-    if (s.manobra || s.tubo || nome === "remar") return;
-    const d = s.x - s.crista, vc = vCrista();
-    const fator = repeticao(s.hist, nome === "cima" ? (s.v >= vc + 150 ? "aereo" : "batida") : nome);
+    if (s.fase !== "surfando" || s.ar || s.manobra || s.tubo) return;
+    const nome = escolherManobra(), d = s.x - s.crista, fator = repeticao(s.hist, nome);
+    if (nome === "tubo") { entrarTubo(); return; }
+    s.hist.push(nome);
     if (nome === "cavada") {
       s.v += 150; s.hAlvo = 0.06; poseAlvo = "cavada";
       s.manobra = { nome, t: 0, dur: 0.6 };
       pontuar("Cavada", Math.round(300 * fator));
-      s.ultimaCavada = s.relogio; s.hist.push(nome);
+      s.ultimaCavada = s.relogio;
       if (A()) A().swoosh(false);
-    } else if (nome === "cima" && s.v >= vc + 150) { // aéreo: precisa de velocidade; mais rápido = mais chance de aterrissar
-      const v0 = s.v, gira = v0 >= vc + 290;
-      s.ar = { t: 0, dur: gira ? 1.15 : 0.95, gira, cai: Math.random() > lim(0.5 + (v0 - vc - 150) / 300, 0.5, 0.93), pts: Math.round((gira ? 3200 : 1900) * proximidade(d) * fator) };
-      s.v -= 110; s.hAlvo = 0.95; poseAlvo = "aereo"; s.hist.push("aereo");
+    } else if (nome === "aereo") { // sempre aterrissa; às vezes sai um 360
+      const gira = Math.random() < 0.4;
+      s.ar = { t: 0, dur: gira ? 1.15 : 0.95, gira, pts: Math.round((gira ? 3200 : 1900) * proximidade(d) * fator) };
+      s.v -= 110; s.hAlvo = 0.95; poseAlvo = "aereo";
       aviso(gira ? "AÉREO 360!" : "AÉREO!", s.x, "#ff8be6", 50);
       espirro(22);
       if (A()) A().swoosh(true);
-    } else if (nome === "cima") { // batida na crista; logo depois de uma cavada vira combo
+    } else if (nome === "batida") { // logo depois de uma cavada vira combo
       const combo = s.relogio - s.ultimaCavada < 1.6 ? 1.4 : 1;
       s.v -= 50; s.hAlvo = 0.98; poseAlvo = "batida";
-      s.manobra = { nome: "batida", t: 0, dur: 0.75, desce: true };
+      s.manobra = { nome, t: 0, dur: 0.75, desce: true };
       pontuar(combo > 1 ? "Batida COMBO" : "Batida", Math.round(700 * proximidade(d) * fator * combo), combo > 1 ? "#ffd36b" : null);
-      s.hist.push("batida"); espirro(14);
+      espirro(14);
       if (A()) A().swoosh(true);
       if (Math.random() < 0.5) falar("batida");
-    } else if (nome === "rasgada") { // volta em direção à espuma: perde velocidade, vale muito se for perto dela
+    } else if (nome === "rasgada") { // volta em direção à espuma
       s.v -= 190; s.hAlvo = 0.55; poseAlvo = "rasgada";
       s.manobra = { nome, t: 0, dur: 0.85, vira: true };
       pontuar("Rasgada", Math.round(900 * proximidade(d) * fator));
-      s.hist.push(nome); espirro(18);
+      espirro(18);
       if (A()) A().swoosh(true);
       if (Math.random() < 0.5) falar("rasgada");
-    } else if (nome === "bombear") {
-      s.v += 70; poseAlvo = "agacha"; s.hAlvo = lim(s.h + 0.15, 0.2, 0.7);
-      s.manobra = { nome, t: 0, dur: 0.35 };
     }
   }
-  function tentarTubo() {
-    const d = s.x - s.crista;
-    if (secaoEm(s.crista).tipo !== "tubular" || d > 320 || d < -30) return false;
-    s.tubo = { t: 0, fecha: rnd(2.0, 4.4) };
+  function entrarTubo() {
+    s.tubo = { t: 0, sai: rnd(1.6, 2.6) }; // sai sozinho
     s.hAlvo = 0.32; poseAlvo = "tubo";
     aviso("No tubo...", s.x, "#9ff3ff", 40);
     falar("tubo");
-    return true;
   }
   function sairTubo() {
-    const t = s.tubo.t, d = s.x - s.crista;
+    const t = s.tubo.t;
     s.tubo = null; poseAlvo = "base"; s.hAlvo = 0.45;
     s.v = vCrista() + 240; // cuspido pelo tubo
-    pontuar(`TUBO ${t.toFixed(1)}s!`, Math.round((1200 + t * 1300) * (d < 0 ? 1.3 : 1)), "#9ff3ff");
+    pontuar(`TUBO ${t.toFixed(1)}s!`, Math.round(1200 + t * 1500), "#9ff3ff");
     s.hist.push("tubo"); espirro(26);
     if (A()) A().swoosh(true);
     falar("saiuTubo"); s.festa = s.relogio;
-  }
-  function caixote(motivo) {
-    if (s.caiu) return;
-    s.caiu = { t: 0, motivo }; s.tubo = null; s.manobra = null; s.ar = null; poseAlvo = "caindo";
-    aviso(motivo, s.x, "#ff6b6b", 46);
-    espirro(40);
-    if (A()) A().tchibum();
-    falar("caixote"); s.festa = s.relogio;
   }
 
   // ---------- efeitos ----------
@@ -282,7 +266,7 @@
   function posPrancha() {
     const d = s.x - s.crista, alt = altura(d);
     let y;
-    if (s.fase === "remando" || s.fase === "perdeu") y = Y_BASE - alt * 0.16 + Math.sin(s.relogio * 2.4) * 4;
+    if (s.fase === "remando") y = Y_BASE - alt * 0.16 + Math.sin(s.relogio * 2.4) * 4;
     else y = Y_BASE - (0.06 + 0.8 * s.h) * alt;
     if (s.ar) y -= Math.sin(Math.PI * Math.min(1, s.ar.t / s.ar.dur)) * 150;
     return [s.x, y];
@@ -291,15 +275,10 @@
     s.relogio += dt;
     if (s.fase === "remando") {
       const r = s.remo;
-      r.t += dt; r.val = Math.max(0, r.val - dt * 0.16);
+      r.t += dt;
       s.forca = Math.min(1, r.t / r.dur);
       s.crista = s.x - 110;
-      if (r.val >= 1 && r.t >= r.dur * 0.55) dropar();
-      else if (r.t >= r.dur * 1.2) perdeuOnda();
-    } else if (s.fase === "perdeu") {
-      s.forca = Math.max(0, s.forca - dt * 0.8);
-      s.crista += dt * 200; // a onda passa por ele
-      if ((s.espera -= dt) <= 0) novaOnda();
+      if (r.t >= r.dur * 0.75) dropar();
     } else if (s.fase === "surfando") {
       atualizarSurf(dt);
     } else if (s.fase === "nota") {
@@ -316,7 +295,7 @@
     // espuma da crista espirrando
     if (s.quebrada && s.forca > 0.5 && Math.random() < dt * 30) gota(s.crista + rnd(-40, 30), Y_BASE - altura(1) + rnd(0, 30), rnd(-160, 20), rnd(-260, -80), rnd(2, 4));
     aplicarPose(dt);
-    if (heroi && (s.fase === "remando" || s.fase === "perdeu")) poseRemando(s.relogio);
+    if (heroi && s.fase === "remando") poseRemando(s.relogio);
   }
   function atualizarSurf(dt) {
     const vc = vCrista();
@@ -324,42 +303,33 @@
     s.forca = Math.min(1, s.forca + dt * 0.6); // a onda termina de crescer depois do drop
     s.crista += vc * dt;
     s.tuboL += ((secaoEm(s.crista).tipo === "tubular" ? 240 : 90) - s.tuboL) * Math.min(1, dt * 2);
-    if (s.caiu) {
-      s.caiu.t += dt; s.v *= Math.exp(-dt * 3); s.x += s.v * dt * 0.5;
-      if (s.caiu.t > 1.9) fimOnda("caiu");
-      return;
-    }
-    // velocidade volta aos poucos para um pouco menos que a da crista: parado demais, a espuma alcança
-    if (s.tubo) s.v += (vc - 70 - s.v) * Math.min(1, dt * 3);
-    else s.v += (vc - 45 - s.v) * Math.min(1, dt * 0.45);
+    // sem dificuldade: ele nunca cai. Perto da espuma, escapa sozinho; longe demais, volta sozinho
+    const d0 = s.x - s.crista;
+    let alvo = vc - 45;
+    if (s.tubo) alvo = vc - 70;
+    else if (d0 < 60) alvo = vc + 160;
+    else if (d0 > 1100) alvo = vc - 120;
+    s.v += (alvo - s.v) * Math.min(1, dt * (d0 < 60 && !s.tubo ? 3 : 0.45));
     s.v = lim(s.v, vc - 220, vc + 430);
-    s.x += s.v * dt;
+    s.x = Math.max(s.x + s.v * dt, s.crista + 45); // sempre um pouco à frente da espuma (atrás dela ele some)
     s.h += (s.hAlvo - s.h) * Math.min(1, dt * 5);
-    const d = s.x - s.crista;
     if (s.manobra) {
       const m = s.manobra;
       m.t += dt;
       if (m.desce && m.t > m.dur * 0.45) { s.hAlvo = 0.45; m.desce = false; }
-      if (m.t >= m.dur) { s.manobra = null; poseAlvo = s.segurando ? "agacha" : "base"; if (s.hAlvo < 0.2) s.hAlvo = 0.4; }
+      if (m.t >= m.dur) { s.manobra = null; poseAlvo = "base"; if (s.hAlvo < 0.2) s.hAlvo = 0.4; }
     }
     if (s.ar) {
       s.ar.t += dt;
       s.giro = s.ar.gira ? 2 * Math.PI * Math.min(1, s.ar.t / s.ar.dur) : -0.35 * Math.sin(Math.PI * s.ar.t / s.ar.dur);
       if (s.ar.t >= s.ar.dur) {
         const ar = s.ar; s.ar = null; s.giro = 0; s.hAlvo = 0.4; poseAlvo = "base";
-        if (ar.cai) caixote("Aterrissou de cara!");
-        else { pontuar(ar.gira ? "Aterrissou o 360!" : "Aterrissou!", ar.pts, "#ff8be6"); falar("aereo"); s.festa = s.relogio; espirro(20); }
+        pontuar(ar.gira ? "Aterrissou o 360!" : "Aterrissou!", ar.pts, "#ff8be6"); falar("aereo"); s.festa = s.relogio; espirro(20);
       }
       return;
     }
-    if (s.segurando && !s.tubo && !s.manobra) { if (!tentarTubo()) poseAlvo = "agacha"; }
-    if (s.tubo) {
-      s.tubo.t += dt;
-      if (s.tubo.t > s.tubo.fecha) { caixote("O tubo fechou!"); return; }
-      if (d < -s.tuboL * 0.9) { caixote("Ficou lá dentro..."); return; }
-    } else if (d < -15) { caixote("A espuma te pegou!"); return; }
-    if (d > 1750) { fimOnda("ombro"); return; }
-    if (s.tOnda >= REGRAS.segundosOnda) fimOnda("completou");
+    if (s.tubo && (s.tubo.t += dt) >= s.tubo.sai) sairTubo();
+    if (s.tOnda >= REGRAS.segundosOnda) fimOnda();
   }
 
   // ---------- desenho ----------
@@ -495,21 +465,11 @@
     s.yPrev = y;
     ctx.save();
     ctx.translate(x, y);
-    if (s.fase === "remando" || s.fase === "perdeu") { // deitado remando
+    if (s.fase === "remando") { // deitado remando
       ctx.save(); ctx.translate(40, 2); prancha(ctx); ctx.restore();
       heroi.definirVista("lado_direito");
       ctx.rotate(Math.PI / 2);
       heroi.desenhar(ctx, -2, 10 - 130 * ESC, ESC);
-      ctx.restore();
-      return;
-    }
-    if (s.caiu) { // caixote: ele voa para um lado, a prancha para o outro, e some na espuma
-      const t = s.caiu.t;
-      ctx.globalAlpha = Math.max(0, 1 - t / 1.2);
-      ctx.save(); ctx.translate(-60 * t, -120 * t + 260 * t * t); ctx.rotate(-5 * t); prancha(ctx); ctx.restore();
-      ctx.translate(30 * t, -90 * t + 300 * t * t); ctx.rotate(4 * t);
-      heroi.definirVista("frente");
-      heroi.desenhar(ctx, 0, pesAbaixo * ESC, ESC);
       ctx.restore();
       return;
     }
@@ -585,13 +545,7 @@
     if (s.fase === "intro" || s.fase === "fim") return;
     texto(ctx, `Onda ${Math.min(s.onda + 1, REGRAS.ondas)}/${REGRAS.ondas}`, W - 24, 130, 34, "#fff", "right");
     texto(ctx, s.notas.map((n) => n.toFixed(1)).join("  ·  ") || "", W - 24, 175, 28, "#ffd36b", "right");
-    if (s.fase === "remando") {
-      const r = s.remo, [x, y] = posPrancha(), bx = lim(x - s.cam - 90, 20, W - 200);
-      texto(ctx, Math.floor(s.relogio * 3) % 2 ? "REME! 👆👆👆" : "REME!  👆 👆", meio, 300, 64, "#ffd36b");
-      texto(ctx, "toque rápido na tela (ou espaço)", meio, 350, 28, "#fff");
-      ctx.fillStyle = "rgba(20,10,30,0.7)"; ctx.fillRect(bx, y - 120, 180, 18);
-      ctx.fillStyle = r.val >= 1 ? "#7dff9a" : "#ff5ad8"; ctx.fillRect(bx + 3, y - 117, 174 * Math.min(1, r.val), 12);
-    }
+    if (s.fase === "remando") texto(ctx, "Lá vem a onda... 🌊", meio, 300, 56, "#ffd36b");
     if (s.fase === "surfando") {
       texto(ctx, String(Math.round(s.pontos)), meio, 140, 58, "#fff");
       texto(ctx, `nota ${nota(s.pontos).toFixed(1)}`, meio, 182, 28, "#ffd36b");
@@ -599,21 +553,17 @@
       const tw = Math.min(420, W - 80), tx = meio - tw / 2;
       ctx.fillStyle = "rgba(20,10,30,0.6)"; ctx.fillRect(tx, 200, tw, 10);
       ctx.fillStyle = "#9ff3ff"; ctx.fillRect(tx, 200, tw * Math.max(0, 1 - s.tOnda / REGRAS.segundosOnda), 10);
-      const d = s.x - s.crista;
-      if (secaoEm(s.crista).tipo === "tubular" && d < 420 && !s.tubo && !s.caiu) texto(ctx, "🌀 Seção tubular! SEGURE para entrar no tubo", meio, 255, 30, "#9ff3ff");
-      else if (d < 80 && !s.tubo && !s.caiu) texto(ctx, "⚠️ A espuma tá chegando! ↓ cavada", meio, 255, 30, "#ff8b8b");
-      else if (d > 1300 && !s.caiu) texto(ctx, "Longe demais da crista: ← rasgada", meio, 255, 30, "#ffd36b");
-      if (s.tubo) texto(ctx, `TUBO ${s.tubo.t.toFixed(1)}s — solte para sair!`, meio, 255, 34, "#9ff3ff");
-      // legenda dos controles
-      const leg = ["↓ cavada", "↑ batida / aéreo", "← rasgada", "→ bombear", "segurar = tubo"];
-      ctx.font = "600 22px system-ui, sans-serif"; ctx.fillStyle = "rgba(20,10,30,0.55)";
-      const lw = Math.min(W - 24, 760); ctx.beginPath(); ctx.roundRect(meio - lw / 2, AREIA - 48, lw, 36, 12); ctx.fill();
-      ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.fillText(W < 760 ? "↓ cavada · ↑ batida · ← rasgada · segurar = tubo" : leg.join("  ·  "), meio, AREIA - 23); ctx.textAlign = "left";
+      if (s.tubo) texto(ctx, `TUBO ${s.tubo.t.toFixed(1)}s!`, meio, 255, 34, "#9ff3ff");
+      else if (secaoEm(s.crista).tipo === "tubular" && s.x - s.crista < 420) texto(ctx, "🌀 Tubo! Toque na tela", meio, 255, 32, "#9ff3ff");
+      // como jogar, sempre à vista
+      const ajuda = "👆 Toque na tela para fazer manobras";
+      ctx.font = "700 26px system-ui, sans-serif"; ctx.fillStyle = "rgba(20,10,30,0.55)";
+      const lw = Math.min(W - 24, ctx.measureText(ajuda).width + 40); ctx.beginPath(); ctx.roundRect(meio - lw / 2, AREIA - 50, lw, 40, 14); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.fillText(ajuda, meio, AREIA - 21); ctx.textAlign = "left";
     }
-    if (s.fase === "perdeu") texto(ctx, "Vem outra...", meio, 330, 40, "#fff");
     if (s.fase === "nota") {
       ctx.fillStyle = "rgba(20,10,30,0.7)"; ctx.beginPath(); ctx.roundRect(meio - 230, 230, 460, 190, 24); ctx.fill();
-      const m = { caiu: "Caiu! (vale 75%)", completou: "Completou a onda", ombro: "A onda perdeu força" }[s.motivo] || "";
+      const m = "Completou a onda 🤙";
       texto(ctx, "Nota dos juízes", meio, 285, 32, "#fff");
       texto(ctx, s.ultimaNota.toFixed(1), meio, 370, 84, s.ultimaNota >= 8 ? "#7dff9a" : s.ultimaNota >= 5 ? "#ffd36b" : "#ff8b8b");
       texto(ctx, m, meio, 410, 24, "#c9b8ee");
@@ -634,38 +584,23 @@
 
   // ---------- controles ----------
   const tela = doc.getElementById("tela");
-  let toque = null;
-  tela.addEventListener("pointerdown", (e) => {
-    toque = { x: e.clientX, y: e.clientY, t: performance.now(), usado: false, id: e.pointerId };
-    if (s.fase === "remando") { executar("remar"); toque.usado = true; return; }
-    toque.relogio = setTimeout(() => { if (toque && !toque.usado) { toque.usado = "segurar"; executar("segurar"); } }, 260);
-  });
-  tela.addEventListener("pointermove", (e) => {
-    if (!toque || toque.usado) return;
-    const dx = e.clientX - toque.x, dy = e.clientY - toque.y, dist = Math.hypot(dx, dy);
-    if (dist < 34) return;
-    clearTimeout(toque.relogio); toque.usado = true;
-    executar(Math.abs(dy) > Math.abs(dx) ? (dy > 0 ? "cavada" : "cima") : (dx < 0 ? "rasgada" : "bombear"));
-  });
-  const soltar = () => { if (!toque) return; clearTimeout(toque.relogio); if (toque.usado === "segurar") executar("soltar"); toque = null; };
-  tela.addEventListener("pointerup", soltar);
-  tela.addEventListener("pointercancel", soltar);
-  const TECLAS = { ArrowDown: "cavada", ArrowUp: "cima", ArrowLeft: "rasgada", ArrowRight: "bombear", s: "cavada", w: "cima", a: "rasgada", d: "bombear" };
+  tela.addEventListener("pointerdown", () => executar());
   global.addEventListener("keydown", (e) => {
-    if (e.key === " " || e.key === "Enter") { e.preventDefault(); if (e.repeat) return; executar(s.fase === "remando" ? "remar" : "segurar"); return; }
-    if (TECLAS[e.key] && !e.repeat) { e.preventDefault(); executar(s.fase === "remando" ? "remar" : TECLAS[e.key]); }
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.key === "Tab") return;
+    if (e.key === " " || e.key.startsWith("Arrow")) e.preventDefault();
+    executar();
   });
-  global.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") executar("soltar"); });
 
   // ---------- telas de começo e fim ----------
   const caixa = doc.getElementById("caixa");
   function mostrarInicio() {
     caixa.innerHTML = "";
     const h = doc.createElement("h1"); h.textContent = "🏄 Surf na praia";
-    const p = doc.createElement("p"); p.textContent = "3 ondas. A nota final é a soma das 2 melhores. Perto da espuma vale mais; repetir manobra vale menos.";
+    const p = doc.createElement("p"); p.textContent = "É só tocar na tela: cada toque é uma manobra (cavada, batida, aéreo, rasgada, tubo...). Ele nunca cai!";
     const ul = doc.createElement("ul");
-    for (const t of ["Toques rápidos: remar até pegar a onda", "Deslize ↓ cavada (ganha velocidade)", "Deslize ↑ batida (com muita velocidade: aéreo!)",
-      "Deslize ← rasgada · → bombear", "Segure o dedo na seção tubular: TUBO (solte para sair)"]) { const li = doc.createElement("li"); li.textContent = t; ul.appendChild(li); }
+    for (const t of ["3 ondas, cada uma com nota dos juízes", "Quanto mais toques, mais manobras e maior a nota", "A nota final é a soma das 2 melhores"]) {
+      const li = doc.createElement("li"); li.textContent = t; ul.appendChild(li);
+    }
     const b = doc.createElement("button"); b.type = "button"; b.textContent = "Bora surfar!";
     b.addEventListener("click", () => { caixa.hidden = true; s.onda = 0; s.notas = []; novaOnda(); });
     caixa.append(h, p, ul, b);

@@ -390,6 +390,7 @@
     t.textContent = "Para onde você vai?";
     caixa.appendChild(t);
     for (const d of P.destinos || []) {
+      if (d.so && !(() => { try { return sessionStorage.getItem(d.so) === "1"; } catch (_) { return false; } })()) continue;
       const b = document.createElement("button");
       b.disabled = !d.ativo;
       const nome = document.createElement("b"); nome.textContent = d.nome;
@@ -761,6 +762,7 @@
     NSF.Ligacao.atender(ROTEIRO_LIGACAO, { aoTerminar: (r) => {
       ligacao.tocando = false; ligacao.resultado = r;
       if (NSF.Audio) NSF.Audio.abafar(false);
+      if (P.aoTerminarLigacao) P.aoTerminarLigacao(r, window.NSF_APTO); // a história continua (ex.: convite para surfar)
     } });
   }
   function agendarLigacao(segundos) {
@@ -1492,6 +1494,12 @@
       falar, pensar, sentar, levantar, cortinaCom, imgProps, ocupado,
       poseSentada: criarPoseSentada, VISTA_MOD,
       abrirArmario, get heroi() { return heroi; },
+      // troca a roupa toda (fica guardada para as outras telas); acessórios (celular na mão) continuam
+      vestirRoupas(ids) {
+        heroi.vestidas = heroi.vestidas.filter((r) => heroi.roupas[r] && heroi.roupas[r].acessorio);
+        for (const id of ids) if (heroi.roupas[id]) heroi.vestir(id);
+        guardarRoupas(); marcar();
+      },
       npcs: NPCS, retanguloNpc, irFalarCom, falarCom, desenharNpcModular,
       mundoParaTela(x, y) { // inverso de telaParaMundo (para testes): ponto do mundo -> coordenada do toque
         const v = ultimaVista, r = canvas.getBoundingClientRect(), [lx, ly] = T(x, y, 0);

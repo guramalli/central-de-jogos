@@ -44,6 +44,12 @@ test("surf: a página existe, está atrás da senha e o carro leva até ela", ()
     assert.ok(html.includes(`src="${s}"`), s);
   }
   assert.match(fs.readFileSync(path.join(raiz, "js/vip.js"), "utf8"), /"surf\.html":/);
-  assert.match(fs.readFileSync(path.join(raiz, "js/maps/garagem_planta.js"), "utf8"), /url: "surf\.html"/);
+  // a Praia só aparece no carro depois de aceitar o convite do Carioca (logo após a ligação da Gatinha de Campinas)
+  const garagem = fs.readFileSync(path.join(raiz, "js/maps/garagem_planta.js"), "utf8");
+  assert.match(garagem, /url: "surf\.html", ativo: true, so: "nsf_surf"/);
+  const apto = fs.readFileSync(path.join(raiz, "js/maps/apartamento_planta.js"), "utf8");
+  assert.match(apto, /PLANTA\.aoTerminarLigacao/);
+  assert.match(apto, /nome: "Carioca"/);
+  assert.match(apto, /sessionStorage\.setItem\("nsf_surf", "1"\)/);
   assert.match(fs.readFileSync(path.join(raiz, "personagem_modular/dados.js"), "utf8"), /neoprene_calca/);
 });

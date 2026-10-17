@@ -65,7 +65,8 @@
       { nome: "Padaria", descricao: "Café, pão na chapa e energia para mais uma noite", url: "padaria.html", ativo: true },
       { nome: "Balada", descricao: "Em breve", ativo: false },
       { nome: "Casa do amigo", descricao: "Churrasco, cerveja gelada e piscina", url: "casa_amigo.html", ativo: true },
-      { nome: "Praia", descricao: "Neoprene, prancha e onda: bora surfar", url: "surf.html", ativo: true },
+      // só depois de aceitar o convite do Vibola para surfar (logo após a ligação da Gatinha de Campinas)
+      { nome: "Praia", descricao: "A turma tá na areia e o mar tá clássico 🏄", url: "surf.html", ativo: true, so: "nsf_surf" },
     ],
 
     pontos: [
@@ -81,9 +82,39 @@
   const CARRO = PLANTA.caixas.find((c) => c.arte === "carro_x1");
   let destravado = false, piscaDesde = null;
   PLANTA.aoIniciar = (api) => { PLANTA.api = api; };
+  // Prancha no rack do teto do carro: só quando ele aceitou o convite do Carioca para surfar (nsf_surf na sessão)
+  const vaiSurfar = () => { try { return sessionStorage.getItem("nsf_surf") === "1"; } catch (_) { return false; } };
+  function prancha(ctx, T) {
+    const cx = (CARRO.x0 + CARRO.x1) / 2, z = CARRO.z1 - 0.2, ya = CARRO.y0 + 1.0, yb = CARRO.y1 - 0.5;
+    const caminho = (pts) => { ctx.beginPath(); pts.forEach(([x, y, zz], i) => { const [px, py] = T(x, y, zz); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }); };
+    ctx.save();
+    ctx.lineJoin = "round"; ctx.lineCap = "round";
+    // rack: duas barras atravessadas
+    ctx.strokeStyle = "#1b1b22"; ctx.lineWidth = 5;
+    for (const y of [ya + 0.5, yb - 0.5]) { caminho([[CARRO.x0 + 0.35, y, z - 0.02], [CARRO.x1 - 0.35, y, z - 0.02]]); ctx.stroke(); }
+    // contorno da prancha (bico para a frente do carro, rabeta reta atrás)
+    const N = 18, lado = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, y = ya + (yb - ya) * t;
+      const meia = 0.27 * Math.pow(Math.sin(Math.PI * (0.12 + 0.88 * t)), 0.7) * (t > 0.85 ? (1 - t) / 0.15 : 1) + (t > 0.85 ? 0.01 : 0);
+      lado.push([cx + meia, y], [cx - meia, y]);
+    }
+    const dir = lado.filter((_, i) => i % 2 === 0), esq = lado.filter((_, i) => i % 2 === 1).reverse();
+    const contorno = (zz) => dir.concat(esq).map(([x, y]) => [x, y, zz]);
+    ctx.fillStyle = "#c9c2b8"; caminho(contorno(z)); ctx.closePath(); ctx.fill();              // borda (grossura)
+    ctx.fillStyle = "#fffaf0"; ctx.strokeStyle = "#1c2733"; ctx.lineWidth = 2.5;
+    caminho(contorno(z + 0.07)); ctx.closePath(); ctx.fill(); ctx.stroke();                     // deck
+    ctx.strokeStyle = "#ff5ad8"; ctx.lineWidth = 4;                                             // faixa neon
+    caminho([[cx, ya + 0.15, z + 0.07], [cx, yb - 0.2, z + 0.07]]); ctx.stroke();
+    // cordinhas amarrando no rack
+    ctx.strokeStyle = "#ffd36b"; ctx.lineWidth = 2;
+    for (const y of [ya + 0.5, yb - 0.5]) { caminho([[cx - 0.3, y, z + 0.08], [cx + 0.3, y, z + 0.08]]); ctx.stroke(); }
+    ctx.restore();
+  }
   PLANTA.aoDesenhar = (ctx, T, agora) => {
     const api = PLANTA.api;
     if (!api || !CARRO) return;
+    if (vaiSurfar()) prancha(ctx, T);
     const cx = (CARRO.x0 + CARRO.x1) / 2, d = Math.hypot(api.jog.x - cx, api.jog.y - CARRO.y1);
     if (!destravado && d < 2.6 && !api.jog.oculto) {
       destravado = true; piscaDesde = agora;

@@ -127,6 +127,44 @@
     }
   };
 
+  // Logo depois da ligação da Gatinha de Campinas, o Carioca liga chamando para surfar. Aceitando, ele veste o
+  // neoprene e a Praia aparece no menu do carro (garagem). Recusando, o dia segue normal. Recusar a ligação não
+  // adianta: é o Carioca, ele liga de novo (uma vez).
+  const CONVITE_SURF = {
+    convidou: "Aê, mermão! O mar tá clássico, pô! 🌊 Bora pegar umas ondas antes da tua mina de Campinas chegar?",
+    dispensou: "Aê, mermão! Levou toco, né? Tô sabendo 😂 Bora pro mar que onda cura tudo, pô! 🌊",
+  };
+  PLANTA.aoTerminarLigacao = (resultado, api) => {
+    if (ENC_ID) return; // noite de encontro: nada de surf
+    const C = global.NSF.Celular, A = global.NSF.Audio;
+    const conversar = async () => {
+      if (A) A.toque(false);
+      const r = await escolha("📞 Carioca: " + (CONVITE_SURF[resultado] || CONVITE_SURF.dispensou),
+        [["🏄", "Bora surfar!", "sim"], ["🛋️", "Hoje não", "nao"]]);
+      if (r === "sim") {
+        try { sessionStorage.setItem("nsf_surf", "1"); } catch (_) { /* sem armazenamento */ }
+        api.vestirRoupas(["neoprene_cima", "neoprene_calca"]);
+        api.pensar("O Carioca já tá na areia com a rapaziada. Neoprene no corpo... partiu praia! 🏄 (sai pela porta e pega o carro na garagem)", 5600);
+      } else {
+        try { sessionStorage.removeItem("nsf_surf"); } catch (_) { /* ok */ }
+        api.pensar(resultado === "convidou" ? "\"Hoje não?? Tu tá namorando?\" — esse Carioca... Tenho que arrumar a casa pra gatinha."
+          : "\"Hoje não?? Tu tá namorando?\" — esse Carioca... Hoje é sofá.", 4600);
+      }
+    };
+    const ligar = (vez) => {
+      if (!C || !C.chamadaCentral) { conversar(); return; }
+      if (A) A.toque(true);
+      C.chamadaCentral({ nome: "Carioca", cor: "#00695c", emoji: "🏄",
+        aoAtender: conversar,
+        aoRecusar: () => {
+          if (A) A.toque(false);
+          if (vez === 0) { api.pensar("O Carioca... ele vai ligar de novo, certeza.", 2600); setTimeout(() => ligar(1), 3500); }
+          else api.pensar("Duas vezes recusado. Hoje não tem surf.", 3000);
+        } });
+    };
+    setTimeout(() => ligar(0), 1800);
+  };
+
   // Antes de dormir, pergunta (evita dormir sem querer ao tocar perto da cama).
   function perguntarDormir(api) {
     if (document.querySelector(".escolha")) return;
