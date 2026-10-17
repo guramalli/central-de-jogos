@@ -21,9 +21,9 @@
     apartamento: { bpm: 84, estilo: "lofi", volume: 0.7,
       acordes: [[57, 60, 64, 67], [53, 57, 60, 64], [48, 52, 55, 59], [55, 59, 62, 64]], baixo: [45, 41, 48, 43],
       melodia: [76, null, 74, null, 72, null, 74, 76, null, null, 79, null, 76, null, 74, null] },
-    // elevador: "Elevator Music 2" de Alex McCulloch (Pro Sensory), CC0 — opengameart.org/content/elevator-music-2
+    // elevador: "Short Elevator Music Loop" de BlondPanda (Freesound, CC0) — freesound.org/s/659889/
     // (arquivo de verdade, em loop, baixinho). Os campos de baixo são a versão sintetizada, se o arquivo falhar.
-    elevador: { arquivo: "assets/audio/elevador.mp3", bpm: 92, estilo: "elevador", volume: 0.12,
+    elevador: { arquivo: "assets/audio/elevador.mp3", bpm: 92, estilo: "elevador", volume: 0.06,
       acordes: [[60, 64, 67, 71], [57, 60, 64, 67], [62, 65, 69, 72], [55, 59, 62, 65]], baixo: [48, 45, 50, 43],
       melodia: [79, null, null, 76, null, 77, null, 79, 81, null, null, 79, null, 77, 76, null] },
     // garagem: groove leve e animado (funk/disco suave) — anima sem ficar pesado

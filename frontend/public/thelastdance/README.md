@@ -31,7 +31,7 @@ O modo de teste (`?test=1`) limita a 30 fps e desliga efeitos e som; sem o parâ
 
 ## Créditos de música
 
-- Elevador: "Elevator Music 2" — Alex McCulloch (Pro Sensory), CC0 — https://opengameart.org/content/elevator-music-2
+- Elevador: "Short Elevator Music Loop" — BlondPanda (Freesound), CC0 — https://freesound.org/s/659889/
 - Peido do elevador: "WAV Fart Vegan 086" — frenkfurth (Freesound), CC0 — https://freesound.org/s/777448/
 - Toque de telefone: "Electronic Landline Telephone Ringing" — G.M_Isaac (Freesound), CC0 — https://freesound.org/s/866047/
 - Burburinho da padaria: "three minutes of crowded bakery" — mueckenjulie (Freesound), CC0 — https://freesound.org/s/455567/
