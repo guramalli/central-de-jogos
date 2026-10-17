@@ -3,7 +3,8 @@
 
 let _aoFecharModal = null;
 // (a cena de prato tocando também pausa o jogo: o relógio da janta e a paciência param, cena_prato.js)
-function menuAberto() { const ab = document.getElementById('abertura'); return !$('#modal').hidden || !$('#capa').hidden || (!!ab && !ab.hidden) || (typeof cenaPratoTocando === 'function' && cenaPratoTocando()); }
+// (T7) a história tocando também (historias.js): o relógio para, ninguém passeia e o jogador não anda
+function menuAberto() { const ab = document.getElementById('abertura'); return !$('#modal').hidden || !$('#capa').hidden || (!!ab && !ab.hidden) || (typeof cenaPratoTocando === 'function' && cenaPratoTocando()) || (typeof historiaTocando === 'function' && historiaTocando()); }
 
 // (C5, 16/10; o teste crítico B, dia 1: o clique de "avançar" na fala do Seu Ananias comprou 2 latas de tinta na loja que abriu logo
 // embaixo) O CLIQUE-FANTASMA: a janela que abre até 300 ms depois de outra fechar (a fala, a pergunta, o resumo da noite) ignora o
@@ -137,12 +138,13 @@ function perguntarCom(quem, retrato, texto, opcoes, aoEscolher, opc = {}) {
 }
 
 // Aviso que some sozinho (canto de baixo à esquerda).
-function avisar(texto) {
+// (E8) ms: quanto tempo o aviso fica (o padrão de sempre; a fala longa da Rosa de manhã fica mais)
+function avisar(texto, ms = 3200) {
   const a = el('div', { class: 'aviso' }, texto);
   const box = $('#avisos');
   box.append(a);
   while (box.children.length > 4) box.firstChild.remove();
-  setTimeout(() => a.remove(), 3200);
+  setTimeout(() => a.remove(), ms);
 }
 
 // Teclas que fecham/avançam o modal.

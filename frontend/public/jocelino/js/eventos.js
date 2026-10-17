@@ -40,6 +40,42 @@ const DIAS = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domi
 // (C17, revisão) "no sábado", "no domingo", "na sexta": o dia da semana com o artigo certo (as cartas da agenda e a revisita).
 const naDia = d => { const k = (d - 1) % 7; return (k >= 5 ? 'no ' : 'na ') + DIAS[k]; };
 const quandoDia = (d, hoje) => d <= hoje ? 'hoje' : d === hoje + 1 ? 'amanhã' : `daqui a ${d - hoje} dias`;
+// (E3 das encomendas de festa) O AVISO. Os textos da festa marcada por um morador (encomendas.js): a linha da Rosa na manhã do aviso,
+// a novidade do dia no Agora (cartao.js), a fala dele na Vila (falas.js, a chave `encomenda` do conversas.js), a linha do dia no
+// quadro (TAREFAS) e a lousa do calendário (calendario_pensao.js). Como a Party Night do Dave (o aviso antes, no calendário), mas
+// sem carta e sem "aceitar": quem conta é a Rosa, que já disse sim; o jogador só decide se prepara.
+const AvisoFesta = {
+  nome: e => Encomendas.nome(e.quem),
+  dona: e => /^Dona /.test(Encomendas.nome(e.quem)),
+  quem: e => (AvisoFesta.dona(e) ? 'a ' : 'o ') + AvisoFesta.nome(e),            // "a Dona Zélia", "o Mestre Bira"
+  Quem: e => (AvisoFesta.dona(e) ? 'A ' : 'O ') + AvisoFesta.nome(e),
+  da: e => (AvisoFesta.dona(e) ? 'da ' : 'do ') + AvisoFesta.nome(e),            // "Festa da Dona Zélia", "a turma do Zé"
+  ela: e => AvisoFesta.dona(e) ? 'ela' : 'ele',
+  ocasiao: e => (Encomendas.ocasiao(e.quem, e.ocasiao) || { nome: 'a festa' }).nome,
+  prato: e => (Pratos.PRATOS[e.prato] || { nome: e.prato }).nome,
+  // a noite da festa vista de hoje: "hoje à noite", "amanhã à noite", "na sexta" (o dia da semana com o artigo certo)
+  quando: (e, hoje = G.dia) => e.dia <= hoje ? 'hoje à noite' : e.dia === hoje + 1 ? 'amanhã à noite' : naDia(e.dia),
+  Quando: (e, hoje = G.dia) => { const q = AvisoFesta.quando(e, hoje); return q[0].toUpperCase() + q.slice(1); },
+  // A manhã do aviso (spec 3.3.1), na voz da Rosa: "A Dona Zélia passou cedo: o batizado do neto é aqui na pensão, na sexta! Vem ela e
+  // mais 4, e querem Moqueca da Rosa. Eu disse que sim!"
+  manha: e => `Rosa: "${AvisoFesta.Quem(e)} passou cedo: ${AvisoFesta.ocasiao(e)} é aqui na pensão, ${AvisoFesta.quando(e)}! Vem ${AvisoFesta.ela(e)} e mais ${e.turma - 1}, e querem ${AvisoFesta.prato(e)}. Eu disse que sim!"`,
+  // Outro acontecimento caiu na noite marcada (spec 3.7): a festa passou para a próxima noite livre, e a Rosa avisa.
+  mudou: e => `Rosa: "${AvisoFesta.Quem(e)} mudou a festa (${AvisoFesta.ocasiao(e)}) para ${AvisoFesta.quando(e).replace(/^n[oa] /, '')}: ${AvisoFesta.prato(e)} para ${e.turma}."`,
+  // A festa que passou sem sair (a pensão não abriu): a frase "deixa" do anfitrião, sem bronca e sem perder amizade (spec 3.6).
+  deixa: e => `${AvisoFesta.Quem(e)} mandou dizer: "${(Encomendas.ocasiao(e.quem, e.ocasiao) || { deixa: 'Fica pra próxima!' }).deixa}"`,
+  // A novidade do dia no Agora (a regra da C10: uma linha só, com o porquê, até as 16h, e some no dia seguinte).
+  novidade: e => `${AvisoFesta.Quando(e)} a turma ${AvisoFesta.da(e)} faz a festa na pensão (${AvisoFesta.ocasiao(e)}) — ${AvisoFesta.prato(e)} para ${e.turma}: o prato deles paga mais; encha a despensa antes`,
+  // O dia da festa, no quadro de tarefas (urgente, como o VIP e a festa do tema).
+  tarefa: e => `Hoje a turma ${AvisoFesta.da(e)} janta na pensão (${AvisoFesta.prato(e)} para ${e.turma})`,
+  // A novidade do dia mora na tabela do Agora (NOVIDADE_CARTA, cartao.js) pela chave encomenda_<dia do aviso>; o save a refaz.
+  chave: e => 'encomenda_' + (e.mudou || e.avisado),
+  registra(e) { if (typeof NOVIDADE_CARTA !== 'undefined') NOVIDADE_CARTA[AvisoFesta.chave(e)] = () => AvisoFesta.novidade(e); },
+  // (E8) A Rosa conta no café: a linha da manhã também sai num aviso quando a tela fica livre (como o lembrete do aniversário,
+  // presentes.js). Antes ela só aparecia no resumo da noite, e a novidade do Agora some com a 1ª carta lida ou com uma seta.
+  _cafe: [],
+};
+ATUALIZADORES.push(() => { if (AvisoFesta._cafe.length && G.comecou && !menuAberto() && typeof avisar === 'function') avisar(AvisoFesta._cafe.shift(), 7000); });
+INICIADORES.push(() => { AvisoFesta._cafe = []; });
 
 const Eventos = {
   // Planeja os eventos (chamado de manhã; a carta chega 3 dias antes): VIP a cada ~5 dias abertos, festa a cada 7. Sem sorteio: as
@@ -216,11 +252,27 @@ function abrirViajante() {
 MANHA.push(() => {
   const p = G.pensao;
   if (!p) return;
-  for (const e of p.agenda || []) if (!e.fim && e.dia < G.dia) e.fim = 'passou';
+  // (E3) a festa do morador que passou sem sair fecha no Encomendas.planejar (lá embaixo: ele guarda a noite da última festa)
+  const vencidas = (p.agenda || []).filter(e => e.tipo === 'encomenda' && !e.fim && e.dia < G.dia);
+  for (const e of p.agenda || []) if (!e.fim && e.dia < G.dia && e.tipo !== 'encomenda') e.fim = 'passou';
   const ovos = Eventos.manhaDosPremios(p); if (ovos) G.feitosHoje.push(`O galinheiro botou ${ovos} ovos: já estão na despensa da Rosa.`);
   for (const e of Eventos.planejar(p, G.dia)) {
     if (e.tipo === 'vip') { const v = vipDe(e.id); CARTAS['vip_' + G.dia] = { de: v.nome, dia: 1e9, texto: v.carta.replace('amanhã', naDia(e.dia)) + `\n\n(Ele vai pedir: ${Pratos.PRATOS[e.prato].nome}.` + (e.ensinou ? ' A receita com o nome dele veio junto: a Rosa já anotou no caderno. Junte os ingredientes!)' : ')') }; G.correio.caixa.push('vip_' + G.dia); }
     else if (e.tipo === 'festa') { CARTAS['festa_' + G.dia] = { de: 'Rosa', dia: 1e9, texto: `Amor, ${naDia(e.dia)} é a ${e.nome}! O prato da festa é ${Pratos.PRATOS[e.prato].nome}${e.categoria ? ` (e todo ${CATEGORIAS[e.categoria].toLowerCase()} vale mais)` : ''}: vale 50% mais e vem mais gente. Enche a despensa!` }; G.correio.caixa.push('festa_' + G.dia); }
+  }
+  // (E3 das encomendas de festa) Depois do VIP e da festa do tema (a festa do morador cede a eles: Encomendas.noiteLivre), o sorteio da
+  // festa de um morador, com a semente do dia. A Rosa conta de manhã (a linha do resumo e a novidade do dia no Agora, sem carta: uma
+  // carta por manhã, C10); a festa que mudou de noite e a que passou sem sair também têm a linha dela.
+  if (typeof Encomendas !== 'undefined') {
+    for (const e of Encomendas.planejar(p, G.dia, { randf: mulberry(G.dia * 577 + 1) })) {
+      const l = e.mudou === G.dia ? AvisoFesta.mudou(e) : AvisoFesta.manha(e);
+      if (!G.feitosHoje.includes(l)) G.feitosHoje.push(l);
+      if (!AvisoFesta._cafe.includes(l)) AvisoFesta._cafe.push(l);
+      AvisoFesta.registra(e);
+      // a novidade do dia (a do correio, se o Jocelino já leu carta hoje, fica: ela também é de hoje)
+      if (G.correio && !(G.correio.novidade && G.correio.novidade.dia === G.dia)) G.correio.novidade = { id: AvisoFesta.chave(e), dia: G.dia };
+    }
+    for (const e of vencidas) if (e.fim === 'passou') { const l = AvisoFesta.deixa(e); if (!G.feitosHoje.includes(l)) G.feitosHoje.push(l); }
   }
   // (C17) A revisita do Doutor Paladar marcada de manhã (a falta virou "só os garfos" depois da última visita): a carta da Gazeta.
   // (A marcada na noite da visita já vai no P.S. da matéria.)
@@ -235,6 +287,7 @@ INICIADORES.push(s => {
     if (e.tipo === 'vip' && !CARTAS[k]) CARTAS[k] = { de: vipDe(e.id).nome, dia: 1e9, texto: vipDe(e.id).carta };
     if (e.tipo === 'festa' && !CARTAS[k]) CARTAS[k] = { de: 'Rosa', dia: 1e9, texto: `A ${e.nome}! O prato da festa é ${Pratos.PRATOS[e.prato].nome}.` };
     if (e.tipo === 'paladar' && !CARTAS['paladar_volta_' + e.avisado]) CARTAS['paladar_volta_' + e.avisado] = { de: 'Gazeta de Santos', dia: 1e9, texto: textoRevisita(e.dia) + '\n\n— Redação da Gazeta de Santos' };
+    if (e.tipo === 'encomenda' && !e.fim) AvisoFesta.registra(e);   // (E3) a novidade do dia da festa marcada volta com o save
   }
 });
 TAREFAS.push(() => {
@@ -245,5 +298,8 @@ TAREFAS.push(() => {
   if (v) r.push({ texto: `Hoje janta ${vipDe(v.id).nome}: quer ${Pratos.PRATOS[v.prato].nome}`, mapa: 'pensao', urgente: true });
   if (f) r.push({ texto: `Hoje é a ${f.nome}: ${Pratos.PRATOS[f.prato].nome} vale mais`, mapa: 'pensao', urgente: true });
   if (Eventos.hoje(p, G.dia, 'paladar')) r.push({ texto: 'Hoje o Doutor Paladar volta para provar de novo: prato rápido, balcão limpo, bebida na medida e prato caprichado', mapa: 'pensao', urgente: true });
+  // (E3) a festa de um morador (spec 3.3.5): a turma janta junta e pede o prato da encomenda
+  const enc = typeof Encomendas !== 'undefined' && Encomendas.hoje(p, G.dia);
+  if (enc) r.push({ texto: AvisoFesta.tarefa(enc), mapa: 'pensao', urgente: true });
   return r;
 });

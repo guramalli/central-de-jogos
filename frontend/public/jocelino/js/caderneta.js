@@ -11,7 +11,8 @@ const faltaTxt = partes => ((partes.length > 1 || parseInt(partes[0], 10) > 1) ?
 const _liberado = sis => typeof Guia === 'undefined' || Guia.liberado(sis);
 const Caderneta = {
   linhas() { const r = []; for (const f of CADERNETA) { try { r.push(...(f() || [])); } catch (e) { console.error('caderneta', e); } } return r; },
-  linha(id) { return Caderneta.linhas().find(l => l.id === id) || null; },
+  // (T6) 'gente_<id>': o Mostrar da aba Gente (a linha nasce na hora e não entra nas linhas: nem no Agora, nem nas setas da s26)
+  linha(id) { if (/^gente_/.test(id || '')) return typeof Gente !== 'undefined' ? Gente.linha(id.slice(6)) : null; return Caderneta.linhas().find(l => l.id === id) || null; },
 };
 // Hoje: o que tem hora.
 CADERNETA.push(() => {
@@ -106,6 +107,109 @@ CADERNETA.push(() => {
     : `falta o trabalho no salão (${E.nome.toLowerCase()})`;
   return [{ id: 'pensao_reforma', aba: 'pensao', texto: `A reforma: etapa ${i + 1} de ${ECO.reforma.length} — ${falta}`, feito: i, meta: ECO.reforma.length, alvo }];
 });
+// (E5a das encomendas de festa; spec docs/superpowers/specs/2026-10-16-encomendas-festa-design.md, 3.8) A festa marcada na Caderneta.
+// Como no Dave (a Party Night aparece no calendário e no Cobra, e o jogador só se prepara), do nosso jeito: uma linha só na aba
+// Pensão, com o porquê (quem, a ocasião, o prato, quantas pessoas e quando), a barrinha de quanto a despensa já dá ("dá para 3 de 5"),
+// o que falta e de onde vem, e o Mostrar até o lugar do primeiro ingrediente que falta (a Mercearia do Ananias, o orelhão, a praia
+// para o peixe, a horta...). No dia da festa, a aba Hoje ganha a sua linha ("Hoje a turma da Dona Zélia janta na pensão (18h)"), com
+// o Mostrar até a pensão (onde, às 17h, o quadro de giz mostra a reserva). Vivência, não missão: nenhuma ordem, só o que se vê.
+// A despensa conta a mochila (o que está nela entra na despensa quando o Jocelino entra na pensão: a mesma conta do pratosDaJanta).
+const CADFESTA_ONDE = { tem: 'no baú', mercearia: 'na Mercearia do Ananias', orelhao: 'no orelhão, que entrega no dia seguinte', viajante: 'com o Viajante, às quintas',
+  horta: 'na horta', quintal: 'no quintal' };
+const CADFESTA_PESCA = { mar: ['praia', 'no mar'], rio: ['mata', 'no rio'], alto: ['praia', 'no barco do Seu Lourival'], serra: ['serra', 'na serra'] };
+const CADFESTA_CHAO = { mata: 'na mata', praia: 'na praia', serra: 'na serra', quintal: 'no quintal', vila: 'na Vila' };
+const CadFesta = {
+  // A festa marcada que ainda não aconteceu, depois do aviso (a de hoje conta).
+  festa() {
+    const p = G.pensao; if (!p || p.estado !== 'aberta' || typeof Encomendas === 'undefined' || typeof AvisoFesta === 'undefined') return null;
+    const e = Encomendas.aberta(p, G.dia); return e && e.avisado <= G.dia ? e : null;
+  },
+  // A pensão com a mochila já na despensa (a janta de hoje conta com ela).
+  despensa(p) {
+    const q = Object.create(p); q.despensa = Object.assign({}, p.despensa);
+    if (G.mochila) for (const id in Pratos.INGREDIENTES) { const n = id !== 'pedra' && p.aceita(id) ? G.mochila.total(id) : 0; if (n > 0) q.despensa[id] = (q.despensa[id] || 0) + n; }
+    return q;
+  },
+  // Para quantos da turma a despensa dá o prato (a mesma conta da reserva: Encomendas.reservar).
+  da(q, e) { let n = e.turma; while (n > 0 && q.rende(e.prato, n) < 1) n--; return n; },
+  // Onde se pesca o peixe e onde se acha o que nasce no chão: [mapa, "no mar"].
+  pesca(id) {
+    if (id === 'siri') return ['praia', 'no covo, na praia'];
+    const ids = id === 'peixe' ? Pratos.PEIXES : [id];
+    if (typeof LUGARES_PESCA !== 'undefined') for (const l in LUGARES_PESCA) { const m = CADFESTA_PESCA[l]; if (m && (typeof Mundo === 'undefined' || Mundo.aberto(m[0])) && LUGARES_PESCA[l].some(x => ids.includes(x.id))) return m; }
+    return ['praia', 'no mar'];
+  },
+  chao(id) {
+    if (typeof ACHADOS_ESTACAO === 'undefined') return ['vila', CADFESTA_CHAO.vila];
+    const T = { mata: ACHADOS_MATA, praia: [ACHADOS_PRAIA], serra: typeof ACHADOS_SERRA !== 'undefined' ? ACHADOS_SERRA : [], quintal: ACHADOS_ESTACAO, vila: ACHADOS_ESTACAO };
+    const m = Object.keys(T).find(k => (typeof Mundo === 'undefined' || Mundo.aberto(k)) && T[k].some(est => (est || []).some(([x]) => x === id))) || 'vila';
+    return [m, CADFESTA_CHAO[m]];
+  },
+  // De onde vem o que falta, em palavras ("no orelhão, que entrega no dia seguinte").
+  onde(id, fonte) {
+    if (fonte === 'pesca') return 'pescando ' + CadFesta.pesca(id)[1];
+    if (fonte === 'coleta') return 'catando ' + CadFesta.chao(id)[1];
+    return CADFESTA_ONDE[fonte] || '';
+  },
+  // O Mostrar do ingrediente que falta: o lugar de onde ele vem.
+  alvo(p, id, fonte) {
+    switch (fonte) {
+      case 'mercearia': return { mapa: 'vila', objeto: 'deposito', mercearia: true };
+      case 'orelhao': return { mapa: 'vila', objeto: 'orelhao' };
+      case 'viajante': return typeof Viajante !== 'undefined' && Viajante.presente(p, G.dia) ? { mapa: 'vila', objeto: 'viajante' } : { mapa: 'vila' };
+      case 'pesca': { const m = CadFesta.pesca(id)[0]; return G.mapaId === 'praia' && m === 'praia' && typeof PRAIA !== 'undefined' ? { mapa: 'praia', ponto: { x: (PRAIA.PIER_X + 1) * TILE, y: PRAIA.PIER_FIM * TILE } } : { mapa: m }; }
+      case 'horta': { const k = G.horta && Object.keys(G.horta.covas).find(c => G.horta.covas[c] && G.horta.covas[c].planta === id); return k ? _pontoCova(k) : { mapa: 'quintal' }; }
+      case 'coleta': return { mapa: CadFesta.chao(id)[0] };
+      case 'quintal': return { mapa: 'quintal' };
+      case 'tem': { const b = (G.baus || []).find(x => x.m && x.m.total && (id === 'peixe' ? Pratos.PEIXES.some(f => x.m.total(f) > 0) : x.m.total(id) > 0)); return b ? { mapa: b.mapa, ponto: { x: (b.x + 0.5) * TILE, y: b.y * TILE } } : null; }
+    }
+    return null;
+  },
+  // A frase do rótulo da seta.
+  rotulo(qtd, fonte, id) {
+    switch (fonte) {
+      case 'mercearia': return `Botão direito: a Mercearia do Ananias — falta ${qtd} para a festa`;
+      case 'orelhao': return `Botão direito: o orelhão — encomende ${qtd} para a festa (chega no dia seguinte)`;
+      case 'viajante': return `O Viajante vem às quintas: falta ${qtd} para a festa`;
+      case 'pesca': return `Pesque ${CadFesta.pesca(id)[1]}: falta ${qtd} para a festa`;
+      case 'horta': return `Falta ${qtd} para a festa: colha na horta`;
+      case 'coleta': return `Falta ${qtd} para a festa: cate ${CadFesta.chao(id)[1]}`;
+      case 'quintal': return `Falta ${qtd} para a festa: está no quintal`;
+      case 'tem': return `Falta ${qtd} na despensa para a festa: está no baú`;
+    }
+    return '';
+  },
+  // O que a despensa dá e o que falta: { da, falta: [[ingrediente, qtd, fonte]], partes: ["1 de pescada e 1 de dendê: no orelhão, que entrega no dia seguinte"] }
+  // (o que vem do mesmo lugar junto: a linha não repete o lugar).
+  situacao(p, e) {
+    const q = CadFesta.despensa(p), g = q.gasto(e.prato, e.turma), fontes = Encomendas.fontes(p, e.prato, e.turma, G.dia, e.dia);
+    const falta = Object.keys(g).filter(x => q._tem(x) < g[x]).map(x => [x, g[x] - q._tem(x), fontes[x] || '']);
+    const grupos = []; for (const [x, n, f] of falta) { const o = CadFesta.onde(x, f); let g = grupos.find(k => k.o === o); if (!g) grupos.push(g = { o, itens: [] }); g.itens.push(qtdNaPanela(x, n)); }
+    return { da: CadFesta.da(q, e), falta, partes: grupos.map(g => listaE(g.itens) + (g.o ? `: ${g.o}` : '')) };
+  },
+  // A pensão por fora: dentro do salão a seta não tem o que mostrar (o quadro de giz e a ponta já falam).
+  aPensao() { return typeof noPalco === 'function' && noPalco() ? null : { mapa: 'vila', objeto: 'pensao' }; },
+};
+CADERNETA.push(() => {
+  const e = CadFesta.festa(); if (!e) return [];
+  const p = G.pensao, S = CadFesta.situacao(p, e), r = [], bem = S.falta.length === 0;
+  // aba Pensão: a festa marcada
+  const alvoFalta = S.falta.find(([x, , f]) => f && CadFesta.alvo(p, x, f));
+  const base = `Festa ${AvisoFesta.da(e)}: ${AvisoFesta.prato(e)} para ${e.turma}, ${AvisoFesta.quando(e)} (${AvisoFesta.ocasiao(e)})`;
+  const meio = e.turma * Encomendas.E.minimo;
+  const texto = bem ? `${base} — a despensa já dá para a turma toda; às 17h a Rosa separa a reserva`
+    : `${base} — dá para ${S.da} de ${e.turma}: ${S.falta.length > 1 || S.falta[0][1] > 1 ? 'faltam' : 'falta'} ${S.partes.join('; ')}${S.da < meio ? '. Com menos da metade, a festa fica pra próxima' : ''}`;
+  r.push({ id: 'pensao_festa', aba: 'pensao', hoje: e.dia === G.dia, texto, feito: S.da, meta: e.turma,
+    alvo: alvoFalta ? () => CadFesta.alvo(p, alvoFalta[0], alvoFalta[2]) : CadFesta.aPensao,
+    rotulo: alvoFalta ? CadFesta.rotulo(qtdNaPanela(alvoFalta[0], alvoFalta[1]), alvoFalta[2], alvoFalta[0]) : 'Botão direito: entrar na pensão — às 17h, no quadro de giz, a Rosa mostra a reserva da turma' });
+  // aba Hoje: no dia da festa
+  if (e.dia === G.dia && (G.turno || p.ultimaJanta !== G.dia)) r.push(G.turno
+    ? { id: 'hoje_festa', aba: 'hoje', hoje: true, texto: `A turma ${AvisoFesta.da(e)} está na pensão: ${AvisoFesta.prato(e)} para ${e.turma}` }
+    : { id: 'hoje_festa', aba: 'hoje', hoje: true, feito: S.da, meta: e.turma, alvo: CadFesta.aPensao,
+      texto: `Hoje a turma ${AvisoFesta.da(e)} janta na pensão (18h): ${AvisoFesta.prato(e)} para ${e.turma}; ${bem ? 'a despensa já dá' : `a despensa dá para ${S.da} de ${e.turma}`}`,
+      rotulo: 'Botão direito: entrar na pensão — às 17h, no quadro de giz, a Rosa mostra a reserva da turma' });
+  return r;
+});
 // A pensão: a próxima estrela e a melhoria ao alcance.
 CADERNETA.push(() => {
   const p = G.pensao; if (!p || p.estado !== 'aberta') return [];
@@ -127,13 +231,16 @@ CADERNETA.push(() => {
 // (C12, 16/10; o teste crítico: os 5 cipós do Nhô Quim não estavam em lugar nenhum) A aba Mata e serra só aparece com linha nela
 // (a serra aberta): antes de Vila e da Pensão. As linhas da serra (conhecer, coleta, peixes, o Nhô Quim) moram nela.
 const CADERNETA_ABA_MATA = ['mata', 'Mata e serra'];
-const abasDaCaderneta = () => { const a = CADERNETA_ABAS.slice(); if (Caderneta.linhas().some(l => l.aba === 'mata')) a.splice(a.findIndex(([id]) => id === 'pensao'), 0, CADERNETA_ABA_MATA); return a; };
+// (T6) A aba Gente vem sempre por último (fora do CADERNETA_ABAS: ela não tem linhas, tem gente; a s26 confere uma linha por aba de lá).
+const CADERNETA_ABA_GENTE = ['gente', 'Gente'];
+const abasDaCaderneta = () => { const a = CADERNETA_ABAS.slice(); if (Caderneta.linhas().some(l => l.aba === 'mata')) a.splice(a.findIndex(([id]) => id === 'pensao'), 0, CADERNETA_ABA_MATA); a.push(CADERNETA_ABA_GENTE); return a; };
 function abrirCaderneta(aba = Caderneta.aba || 'hoje') {
   const caixa = el('div', { class: 'painel caderneta' });
   const desenha = () => {
     caixa.innerHTML = ''; const abas = abasDaCaderneta(); if (!abas.some(([id]) => id === aba)) aba = 'hoje'; Caderneta.aba = aba;
     caixa.append(el('div', { class: 'titulo', style: 'font-size:26px' }, 'Caderneta do Jocelino'),
       el('div', { class: 'abas' }, abas.map(([id, nome]) => el('div', { class: 'aba' + (id === aba ? ' ativa' : ''), onclick: e => { e.stopPropagation(); aba = id; desenha(); } }, nome))));
+    if (aba === 'gente') { caixa.append(Gente.tela(desenha), el('div', { class: 'rodape' }, 'Mostrar: a seta leva até a pessoa. A tecla J abre e fecha a caderneta.')); return; }
     const ls = Caderneta.linhas().filter(l => l.aba === aba);
     caixa.append(el('div', { class: 'cad-lista' }, ...(ls.length ? ls.map(l => el('div', { class: 'cad-linha' },
       el('div', { class: 'cad-texto' }, l.texto),
@@ -150,4 +257,186 @@ INICIADORES.push(() => { G.setaFixa = null; });
 Caderneta.ideias = function (n = 3) {
   const f = mulberry(G.dia * 104729), ls = Caderneta.linhas().filter(l => l.alvo).map(l => ({ l, k: (l.hoje ? 2 : 0) + (l.meta ? Math.min(1, (l.feito || 0) / l.meta) : 0) + f() * 0.05 }));
   return ls.sort((a, b) => b.k - a.k).slice(0, n).map(x => x.l);
+};
+
+// ---------- (T6 das conversas e histórias) A aba "Gente" (spec 2026-10-15-conversas-historias-design.md, seção 4.2 e a decisão 3) ----------
+// Como é no Stardew (a aba Social do menu): cada morador numa linha, com o retrato, o nome e os 10 corações; as 2 caixinhas dos
+// presentes da semana; quem ainda não foi apresentado fica em silhueta, com "???"; a lista vai de quem tem mais amizade para quem tem
+// menos. Do nosso jeito:
+// - NO ALTO, A FAMÍLIA (Rosa, Tio Juca, Ritinha e Zezinho), SEM CORAÇÕES nem caixinhas (decisão 3: só o carinho): o retrato, o
+//   aniversário, os gostos descobertos e uma frase do dia a dia, que muda com a vida da casa (a pensão, a mudança, a chuva).
+// - EMBAIXO, O POVO DA VILA: os corações (o cheio é o fx/coracao; o vazio, a mesma arte em transparência), as 2 caixinhas da semana
+//   (a arte itens/presente: cheia quando o presente foi dado, transparente quando não; não existe arte de caixinha vazia), o aniversário
+//   (o bolinho salao/bolo_festa quando é hoje ou amanhã), os gostos descobertos (os ícones dos itens) e o dia em que janta na pensão.
+// - A FRASE DE CLIMA (vivência, não missões): quando uma cena da pessoa está pronta (Historias.pronta), a linha dela ganha a frase do
+//   arco ("A Dona Zélia anda olhando muito o correio"). Nunca uma ordem, nunca "faltam X cenas". O Mostrar leva até a PESSOA.
+// - AS LEMBRANÇAS: as cenas já vistas (Historias.lembrancas), com o Rever. O Rever fecha a Caderneta antes (a cena não toca com uma
+//   janela aberta) e, se não dá agora, diz por quê num aviso.
+// QUEM APARECE NA VILA (a ressalva da T1: o Seu Moreira e os peões ganham corações): o povo do piloto (o Bira, o Zé, a Dona Zélia, o
+// Seu Lourival, o Seu Ananias e o Seu Tonico) aparece sempre, em silhueta até conhecer. O resto do povo com retrato (o Seu Moreira, o
+// Nhô Quim, o Tião, os peões da turma, a Dona Cida, o Seu Orlando, a clientela e os vizinhos do Bairro Novo, e quem vier: a Marisa, a
+// Dona Zefa, o Tiaguinho) aparece depois de conhecido (conversou uma vez, ou já tem amizade): a aba não entrega quem ainda vai chegar.
+// Fica de fora quem não tem retrato (o Tonhão), o cachorro, o Viajante, os banhistas e os clientes de passagem.
+const GENTE = {
+  FAMILIA: ['rosa', 'juca', 'ritinha', 'zezinho'],
+  VILA: ['bira', 'ze', 'zelia', 'lourival', 'ananias', 'tonico'],
+  VILA_DEPOIS: ['santos', 'mateiro', 'tiao', 'severino', 'cicero', 'damiao', 'dona_cida', 'orlando', 'lurdes', 'paulo', 'nena', 'neide', 'valdir',
+    'rosinete', 'tonha', 'nenem', 'marisa', 'zefa', 'tiaguinho'],
+  // Onde procurar cada um (o Mostrar): [mapa, id do morador lá]. Quem está no mapa de agora é achado onde estiver.
+  LUGAR: { rosa: ['quintal', 'rosa'], juca: ['quintal', 'juca'], ritinha: ['quintal', 'ritinha'], zezinho: ['quintal', 'zezinho'],
+    bira: ['vila', 'bira'], ze: ['vila', 'ze'], zelia: ['vila', 'zelia'], ananias: ['vila', 'ananias'], tonico: ['vila', 'tonico'], tiao: ['vila', 'tiao'],
+    santos: ['vila', 'santos'], severino: ['vila', 'severino'], cicero: ['vila', 'cicero'], damiao: ['vila', 'damiao'], lourival: ['praia', 'lourival'],
+    mateiro: ['serra', 'mateiro'], dona_cida: ['bairro', 'balcao_padaria'], orlando: ['bairro', 'balcao_bar'],
+    lurdes: ['bairro', 'dono_lurdes'], nena: ['bairro', 'dono_nena'], neide: ['bairro', 'dono_neide'], valdir: ['bairro', 'dono_valdir'],
+    rosinete: ['bairro', 'dono_rosinete'], tonha: ['bairro', 'dono_tonha'], nenem: ['bairro', 'dono_nenem'] },
+  GOSTOS: [['ama', 'Ama'], ['gosta', 'Gosta'], ['naoGosta', 'Não gosta'], ['odeia', 'Odeia']],
+  // A frase do dia a dia da família: a 1ª que casa (a mais da vida de agora primeiro). Só o carinho: nunca uma ordem.
+  FRASES: {
+    rosa: [
+      [() => G.firma && G.firma.feita, 'Guardou o recorte da inauguração dentro do caderno de receitas.'],
+      [() => Gente._pensao('aberta') && G.pensao.grau && G.pensao.grau() >= 4, 'Já tem freguês que chama a pensão de "a casa da Rosa".'],
+      [() => Gente._pensao('aberta'), 'Acorda cantando e passa o café pensando no cardápio da noite.'],
+      [() => Gente._pensao('pronta'), 'Não larga das mesas da pensão: arruma, desarruma e arruma de novo.'],
+      [() => G.lojinha && G.lojinha.comprada, 'Passa na frente da lojinha e já vê as mesas no lugar.'],
+      [() => G.lojinha && G.lojinha.sonho, 'Suspira toda vez que passa na frente da lojinha da esquina.'],
+      [() => true, 'Ainda estranha o vento do mar, mas já chama o quintal de "nosso".'],
+    ],
+    juca: [
+      [() => G.casa && G.casa.mudou, 'Diz que a casa dele ficou sossegada demais desde a mudança.'],
+      [() => Gente._chove(), 'Com chuva, pita o cachimbo na varanda e conta causo de Aracaju.'],
+      [() => G.horta && Object.values(G.horta.covas || {}).some(c => c && c.planta), 'Confere a horta toda manhã, pé por pé, como quem conta galinha.'],
+      [() => true, 'Pita o cachimbo na varanda e conta causo de Aracaju para quem passar.'],
+    ],
+    ritinha: [
+      [() => Gente._pensao('aberta'), 'Anda contando os pratos da pensão de cabeça.'],
+      [() => G.obra && G.obra.funcao >= 1 && typeof FUNCOES !== 'undefined', () => `Conta para a escola inteira que o pai agora é ${FUNCOES[G.obra.funcao].toLowerCase()}.`],
+      [() => true, 'Desenha a Vila inteira no caderno, com o mar de fundo.'],
+    ],
+    zezinho: [
+      [() => Gente._chove(), 'Pula nas poças do quintal quando a mãe não está olhando.'],
+      [() => G.casa && G.casa.mudou, 'Arrumou um canto do quarto novo só para a coleção de pedras.'],
+      [() => true, 'Corre atrás do Caramelo o dia inteiro.'],
+    ],
+  },
+  // O que o Rever diz quando não dá agora (Historias.rever devolve o motivo; '' = começou).
+  NAO_REVE: { janta: 'Agora não dá para lembrar: a janta da pensão está no fogo.', carga: 'Com material nos braços não dá para lembrar: largue a carga antes.',
+    tocando: 'Uma lembrança de cada vez.', dormindo: 'Agora não dá para lembrar: é hora de dormir.' },
+  NAO_REVE_OUTRO: 'Agora não dá para lembrar: termine o que está fazendo e tente de novo.',
+};
+const Gente = {
+  _pensao(e) { return !!G.pensao && G.pensao.estado === e; },
+  _chove() { return typeof Clima !== 'undefined' && Clima.chove(G.dia); },
+  id(id) { return typeof Amizade !== 'undefined' ? Amizade.id(id) : id; },
+  nome(id) { return typeof Amizade !== 'undefined' ? Amizade.nome(id) : id; },
+  retrato(id) { return 'retratos/' + id + '_normal'; },
+  temRetrato(id) { return typeof ARTE_LISTA === 'undefined' || ARTE_LISTA.includes(Gente.retrato(id)); },
+  familia(id) { return GENTE.FAMILIA.includes(Gente.id(id)); },
+  // Já se conhecem: a família sempre; o povo, depois da 1ª conversa (o motor de falas, ou o +10 da conversa) ou com amizade.
+  conhece(id) {
+    id = Gente.id(id); if (Gente.familia(id)) return true;
+    return (typeof Conversas !== 'undefined' && Conversas.conhece(id)) || (G.amizade || {})[id] > 0 || id in (G.amizadeConversa || {});
+  },
+  // O povo da Vila na aba: [{ id, conhece }] — quem conhece primeiro, de quem tem mais amizade para quem tem menos (como no Stardew);
+  // empate na ordem da lista; o piloto que não conhece, em silhueta, no fim.
+  vila() {
+    const r = [];
+    GENTE.VILA.forEach((id, k) => r.push({ id, k, conhece: Gente.conhece(id) }));
+    GENTE.VILA_DEPOIS.forEach((id, k) => { if (Gente.temRetrato(id) && Gente.conhece(id)) r.push({ id, k: 100 + k, conhece: true }); });
+    const pts = id => (typeof Amizade !== 'undefined' ? Amizade.pontos(id) : 0);
+    return r.filter(p => Gente.temRetrato(p.id)).sort((a, b) => (b.conhece - a.conhece) || (pts(b.id) - pts(a.id)) || (a.k - b.k));
+  },
+  // [estação, dia] → "9 de Outono"
+  aniversario(id) { const a = typeof Presentes !== 'undefined' ? Presentes.aniversario(id) : null; return a ? `${a[1]} de ${ESTACOES[a[0]]}` : ''; },
+  // 'hoje' | 'amanha' | ''
+  aniversarioPerto(id) { if (typeof Presentes === 'undefined') return ''; return Presentes.aniversarioEm(id, G.dia) ? 'hoje' : Presentes.aniversarioEm(id, G.dia + 1) ? 'amanha' : ''; },
+  // O dia em que janta na pensão ("às quartas"), só com a pensão aberta (antes, a pensão nem existe para o povo).
+  janta(id) {
+    if (!Gente._pensao('aberta') || typeof CLIENTELA === 'undefined') return '';
+    const PL = ['segundas', 'terças', 'quartas', 'quintas', 'sextas', 'sábados', 'domingos'];
+    for (const d in CLIENTELA) if ((CLIENTELA[d] || []).some(c => Gente.id(c.id) === id)) return 'às ' + PL[d];
+    return '';
+  },
+  // Os gostos descobertos: [[rótulo, [itens]]] (só os que têm item).
+  gostos(id) { if (typeof Conversas === 'undefined' || !Conversas.descobertos) return []; const d = Conversas.descobertos(id); return GENTE.GOSTOS.filter(([k]) => d[k] && d[k].length).map(([k, n]) => [n, d[k]]); },
+  // A frase da linha: a de clima de uma cena pronta (o arco casa; falta só o lugar e a hora) e, na família, senão, a do dia a dia.
+  clima(id) { try { const p = typeof Historias !== 'undefined' ? Historias.pronta(id) : null; return (p && p.clima) || ''; } catch (e) { console.error(e); return ''; } },
+  frase(id) {
+    const c = Gente.clima(id); if (c) return c;
+    for (const [se, f] of GENTE.FRASES[id] || []) { let ok = false; try { ok = !!se(); } catch (e) { ok = false; } if (ok) return typeof f === 'function' ? f() : f; }
+    return '';
+  },
+  // A linha do Mostrar (Caderneta.linha('gente_<id>')): a seta até a pessoa. Quem não conhece, ou sem lugar, não tem.
+  linha(id) {
+    id = Gente.id(id); const L = GENTE.LUGAR[id]; if (!L || !Gente.conhece(id)) return null;
+    const nome = Gente.nome(id);
+    return { id: 'gente_' + id, aba: 'gente', texto: nome, rotulo: `Botão direito: falar com ${nome}`, alvo: () => {
+      const aqui = G.mapa && (G.mapa.moradores || []).find(m => m.visivel !== false && typeof Amizade !== 'undefined' && Amizade.idDe(m) === id);
+      return aqui ? { mapa: G.mapaId, morador: aqui.id } : { mapa: L[0], morador: L[1] };
+    } };
+  },
+  // Rever uma lembrança: fecha a Caderneta e chama o motor; se não dá agora, o aviso diz por quê.
+  rever(hid) {
+    for (let k = 0; k < 5 && !$('#modal').hidden; k++) fecharModal();
+    const m = typeof Historias !== 'undefined' ? Historias.rever(hid) : 'nao_existe';
+    if (m) avisar(GENTE.NAO_REVE[m] || GENTE.NAO_REVE_OUTRO);
+    return m;
+  },
+
+  // ---------- a tela ----------
+  _img(arte, classe, title) { return el('img', { class: classe, src: urlArte(arte), alt: '', title: title || null, draggable: 'false' }); },
+  _mostrar(id, desenha) {
+    const l = Gente.linha(id); if (!l) return null;
+    const on = G.setaFixa === l.id;
+    return el('button', { class: 'botao gente-mostrar' + (on ? ' forte' : ''), onclick: e => { e.stopPropagation(); G.setaFixa = on ? null : l.id; desenha(); hudSujo(); } }, on ? 'Tirar a seta' : 'Mostrar');
+  },
+  _aniversario(id) {
+    const a = Gente.aniversario(id); if (!a) return null;
+    const perto = Gente.aniversarioPerto(id);
+    return el('span', { class: 'gente-aniv' + (perto ? ' perto' : ''), 'data-perto': perto || null }, `Aniversário: ${a}`,
+      perto ? [' ', Gente._img('salao/bolo_festa', 'gente-bolo', perto === 'hoje' ? 'Hoje!' : 'Amanhã'), perto === 'hoje' ? ' hoje!' : ' amanhã'] : null);
+  },
+  _gostos(id) {
+    const gs = Gente.gostos(id); if (!gs.length) return null;
+    return el('div', { class: 'gente-gostos' }, gs.map(([n, its]) => el('span', { class: 'gente-gosto' }, el('b', {}, n + ':'), its.map(it => Gente._img('itens/' + it, 'gente-item', Itens.nome(it))))));
+  },
+  _frase(id) { const f = Gente.frase(id); return f ? el('div', { class: 'gente-frase' }, f) : null; },
+  linhaFamilia(id, desenha) {
+    return el('div', { class: 'gente-linha familia', 'data-quem': id },
+      Gente._img(Gente.retrato(id), 'gente-retrato'),
+      el('div', { class: 'gente-miolo' },
+        el('div', { class: 'gente-topo' }, el('span', { class: 'gente-nome' }, Gente.nome(id))),
+        el('div', { class: 'gente-info' }, Gente._aniversario(id)),
+        Gente._gostos(id), Gente._frase(id)),
+      Gente._mostrar(id, desenha));
+  },
+  linhaVila(p, desenha) {
+    const id = p.id;
+    if (!p.conhece) return el('div', { class: 'gente-linha vila desconhecido', 'data-quem': id },
+      Gente._img(Gente.retrato(id), 'gente-retrato silhueta'), el('div', { class: 'gente-miolo' }, el('div', { class: 'gente-topo' }, el('span', { class: 'gente-nome' }, '???'))), null);
+    const c = typeof Amizade !== 'undefined' ? Amizade.coracoes(id) : 0, n = typeof Presentes !== 'undefined' ? Math.min(PRESENTE.POR_SEMANA, Presentes.naSemana(id)) : 0;
+    const cor = el('span', { class: 'gente-coracoes', title: `${c} de 10 corações` }, Array.from({ length: 10 }, (_, k) => Gente._img('fx/coracao', 'gente-coracao' + (k < c ? '' : ' vazio'))));
+    const cx = el('span', { class: 'gente-caixas', title: `Presentes da semana: ${n} de 2` }, [0, 1].map(k => Gente._img('itens/presente', 'gente-caixa' + (k < n ? '' : ' vazio'))));
+    const janta = Gente.janta(id);
+    return el('div', { class: 'gente-linha vila', 'data-quem': id },
+      Gente._img(Gente.retrato(id), 'gente-retrato'),
+      el('div', { class: 'gente-miolo' },
+        el('div', { class: 'gente-topo' }, el('span', { class: 'gente-nome' }, Gente.nome(id)), el('span', { class: 'gente-marcas' }, cor, cx)),
+        el('div', { class: 'gente-info' }, Gente._aniversario(id), janta ? el('span', { class: 'gente-janta' }, `Janta na pensão ${janta}`) : null),
+        Gente._gostos(id), Gente._frase(id)),
+      Gente._mostrar(id, desenha));
+  },
+  lembrancas() { try { return typeof Historias !== 'undefined' ? Historias.lembrancas() : []; } catch (e) { console.error(e); return []; } },
+  tela(desenha) {
+    const lem = Gente.lembrancas();
+    return el('div', { class: 'gente' },
+      el('div', { class: 'gente-sub' }, 'A família'),
+      GENTE.FAMILIA.map(id => Gente.linhaFamilia(id, desenha)),
+      el('div', { class: 'gente-sub' }, 'O povo da Vila'),
+      Gente.vila().map(p => Gente.linhaVila(p, desenha)),
+      lem.length ? el('div', { class: 'gente-sub' }, 'Lembranças') : null,   // (o el achata só um nível: as linhas vêm à parte)
+      lem.map(l => el('div', { class: 'gente-lembranca', 'data-historia': l.id },
+          l.quem && Gente.temRetrato(l.quem) ? Gente._img(Gente.retrato(l.quem), 'gente-retrato-p') : el('span'),
+          el('span', { class: 'gente-lem-titulo' }, l.titulo, l.quem ? el('span', { class: 'gente-lem-quem' }, ` · ${Gente.nome(l.quem)}`) : null),
+          el('button', { class: 'botao gente-rever', onclick: e => { e.stopPropagation(); Gente.rever(l.id); } }, 'Rever'))));
+  },
 };

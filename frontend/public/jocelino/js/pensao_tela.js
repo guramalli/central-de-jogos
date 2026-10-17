@@ -177,9 +177,17 @@ const rngDaNoite = k => { const f = mulberry(k); return { randf: f, randi: () =>
 function contaDoQuadro(p, escolha) {
   const q = Object.create(p); q.despensa = Object.assign({}, p.despensa);
   const r = { efe: {}, da: {}, antes: {}, sobra: q, semVaga: new Set() }, ocupa = new Set(p.pratosDaNoite());
+  // (E4b das encomendas de festa, spec 3.4) a panela reservada da turma sai ANTES das panelas do quadro (a mesma ordem do "Abrir"):
+  // o quadro, a despensa e o Agora mostram o que sobra para o salão depois dela. r.festa = { e, R } (Encomendas.reservar).
+  { const e = festaDeHojeAntesDaJanta(p);
+    if (e) { const R = Encomendas.reservar(q, e); r.festa = { e, R, menos: {} }; if (!R.deixa) q.consumir(e.prato, SEM_PEDRA, R.porcoes); r.festa.despensa = Object.assign({}, q.despensa);
+      // (rodada 1 da E4b; decisão do coordenador) o prato da festa no quadro: a turma come destas panelas (como o pr.menos da panela
+      // da Rosa). As porções da reserva saem das panelas escolhidas dele; só o resto vira panela para o salão (nada vai ao lixo à toa).
+      const p0 = !R.deixa && escolha && escolha[e.prato] ? escolha[e.prato].panelas | 0 : 0;
+      if (p0 > 0) { const k = p.porcoesPorPanela(e.prato); r.festa.menos[e.prato] = p0 - Math.ceil(Math.max(0, p0 * k - R.porcoes) / k); } } }
   for (const id of Object.keys(escolha || {})) {
     if (!p.receitas.includes(id)) continue;
-    const n = escolha[id].panelas | 0;
+    const n = Math.max(0, (escolha[id].panelas | 0) - ((r.festa && r.festa.menos[id]) || 0));   // (E4b) menos as panelas que a turma come
     r.antes[id] = Object.assign({}, q.despensa); r.da[id] = Math.min(99, q.rende(id));
     if (n <= 0) continue;
     if (!ocupa.has(id) && ocupa.size >= p.vagas()) { r.efe[id] = 0; r.semVaga.add(id); continue; }   // (o montarNoite: não coube no quadro)
@@ -196,8 +204,8 @@ function panelasQueDa(p, escolha, id) { return daNaVez(contaDoQuadro(p, escolha)
 function faltaNoQuadro(p, C, id) {
   const g = p.gasto(id), q = Object.create(p);
   q.despensa = id in C.antes ? C.antes[id] : C.sobra.despensa;
-  const f = q.faltaPara(id);
-  return listaE(f.map(x => faltaPanelaTxt(q, x, g[x], p._tem(x) >= g[x] ? '; as panelas do quadro gastam o resto' : '')));
+  const f = q.faltaPara(id), qr = C.festa ? Object.assign(Object.create(p), { despensa: C.festa.despensa }) : null;   // (E4b) a reserva da turma vem antes
+  return listaE(f.map(x => faltaPanelaTxt(q, x, g[x], p._tem(x) < g[x] ? '' : qr && qr._tem(x) < g[x] ? '; a reserva da festa separou o resto' : '; as panelas do quadro gastam o resto')));
 }
 // (16/10, "se preciso ou não comprar") O gasto de uma panela em texto, do jeito do dono ("2 de arroz, 2 de feijão e 2 de ovo"), e
 // quanto falta de um ingrediente para mais uma ("ovo (tem 1, a panela gasta 2)").
@@ -210,7 +218,41 @@ const convidadosDaFesta = () => ECO.pensao.convidados.festa + (typeof temAmpliac
 function clientesEsperados() {
   const p = G.pensao, ev = t => typeof Eventos !== 'undefined' ? Eventos.hoje(p, G.dia, t) : null;
   return clientesHoje() + (p.ultimaJanta === -1 && !p.fama ? ECO.pensao.convidados.inauguracao : 0) + (p.festaDia === G.dia ? ECO.pensao.premio5.festaClientes : 0)
-    + (ev('festa') ? convidadosDaFesta() : 0) + (ev('vip') ? 1 : 0);
+    + (ev('festa') ? convidadosDaFesta() : 0) + (ev('vip') ? 1 : 0) + turmaSemReserva(p);
+}
+// ---------- (E4b das encomendas de festa; spec docs/superpowers/specs/2026-10-16-encomendas-festa-design.md, 3.4 a 3.6) a noite da turma ----------
+// Como a Party Night do Dave (o prato do tema paga mais, o bônus dos bem servidos no fim da noite, sem castigo além do dinheiro que
+// não entrou), com a festa de alguém que o Jocelino conhece. A ordem da noite: às 17h o quadro de giz diz a reserva (✓, "dá para 3
+// de 5: falta 2 de dendê" ou "não deu"); no "Abrir a pensão" a reserva sai da despensa ANTES das panelas (Encomendas.reservar e
+// p.consumir); o iniciarJanta põe a turma na fila dela (t.festaDaTurma) e tira o anfitrião da fila da semana; no fim, o
+// encerrarJanta fecha a festa (Encomendas.fechar: a amizade) e lança a conta da turma nos prêmios e no bolso, e as curtidas a mais.
+// A Rosa sozinha serve a turma do jeito dela (a conta da turma pela metade). Na 1ª festa do jogo (e depois nos aniversários) o
+// anfitrião recebe o prato com a cena de cinema da turma (CENAS_ESPECIAIS.turma, cena_prato.js).
+// A festa de hoje à noite, enquanto a janta de hoje não abriu (depois dela a reserva já saiu da despensa), ou null.
+function festaDeHojeAntesDaJanta(p = G.pensao) {
+  if (!p || typeof Encomendas === 'undefined' || (typeof G !== 'undefined' && G.turno) || p.ultimaJanta === G.dia || p.estado !== 'aberta') return null;
+  return Encomendas.hoje(p, G.dia);
+}
+// Quantos da turma vão pedir do quadro (a reserva não deu para todos): entram no "~N clientes" das panelas.
+function turmaSemReserva(p) {
+  const e = festaDeHojeAntesDaJanta(p); if (!e) return 0;
+  const R = Encomendas.reservar(p, e); return R.deixa ? 0 : Math.max(0, e.turma - R.porcoes);
+}
+// O que falta para a turma inteira, em texto ("2 de dendê e 1 de camarão"), pelo que a despensa tem (q: a despensa da vez).
+function faltaDaTurmaTxt(q, e) {
+  const g = q.gasto(e.prato, e.turma);
+  return listaE(Object.keys(g).filter(x => q._tem(x) < g[x]).map(x => qtdNaPanela(x, g[x] - q._tem(x))));
+}
+// A linha da festa no quadro de giz (spec 3.4: "Festa da Dona Zélia: 5 moquecas reservadas para a turma (o batizado). A Rosa separa
+// antes das panelas." ✓, ou "dá para 3 de 5: falta 2 de dendê"; menos da metade: a festa fica pra próxima). '' sem festa hoje.
+function linhaFestaDoQuadro(p, C, modo = 'abertura') {
+  const f = C && C.festa; if (!f || typeof AvisoFesta === 'undefined') return '';
+  const { e, R } = f, nome = AvisoFesta.prato(e), tit = `Festa ${AvisoFesta.da(e)}`, q = p;
+  if (R.deixa) return modo === 'abertura'
+    ? `Não deu para a festa ${AvisoFesta.da(e)}: falta ${faltaDaTurmaTxt(q, e)}. ${AvisoFesta.ela(e)[0].toUpperCase() + AvisoFesta.ela(e).slice(1)} marca outra vez, sem problema.`
+    : `${tit} hoje à noite: a despensa ainda não dá nem para metade da turma (falta ${faltaDaTurmaTxt(q, e)}). Sem a metade, a festa fica pra próxima.`;
+  if (R.porcoes >= e.turma) return `${tit}: ${e.turma} porções de ${nome} reservadas para a turma (${AvisoFesta.ocasiao(e)}). A Rosa separa antes das panelas. ✓`;
+  return `${tit}: dá para ${R.porcoes} de ${e.turma} — falta ${faltaDaTurmaTxt(q, e)}. A Rosa separa ${R.porcoes === 1 ? 'a porção' : `as ${R.porcoes}`} antes das panelas; quem ficar sem pede do quadro.`;
 }
 // (tarefa 6) O quadro dos robôs de teste (s20 e s23, o mesmo para os dois): como um jogador que conta, o prato mais caro que a
 // despensa dá, as panelas para os clientes que a noite costuma ter (o "~N" do quadro), o "Rosa repõe" ligado; se a despensa não
@@ -238,6 +280,7 @@ function avisosDoQuadro(p, esc, modo = 'abertura', C = contaDoQuadro(p, esc)) {
   const r = [], ev = t => typeof Eventos !== 'undefined' ? Eventos.hoje(p, G.dia, t) : null, vip = ev('vip'), festa = ev('festa'), nome = id => Pensao.prato(id).nome;
   if (p.ultimaJanta === -1 && !p.fama) r.push(`Hoje é a inauguração: a Vila vem convidada (${ECO.pensao.convidados.inauguracao} a mais). A festa começa quando a pensão abrir.`);
   if (p.festaDia === G.dia) r.push('Hoje é a festa do Patrimônio: a Vila inteira vem comemorar.');
+  { const lf = linhaFestaDoQuadro(p, C, modo); if (lf) r.push(lf); }   // (E4b) a reserva da turma
   // (correção 1) o VIP fora do quadro: só promete o prato à parte se a despensa ainda dá, depois de todas as panelas do quadro
   if (vip) { const v = vipDe(vip.id), noQuadro = panelasEfetivas(C, esc, vip.prato, modo) > 0 || p.porcoes(vip.prato) > 0;
     r.push(`Hoje ${v.nome} pede ${nome(vip.prato)}` + (noQuadro ? '.' : C.sobra.rende(vip.prato, 1) > 0 ? ': fora do quadro, a Rosa faz à parte com a despensa.' : ', e falta ingrediente na despensa!')); }
@@ -322,8 +365,11 @@ function pensaoQuadro() {
       linhaAjuda('quadro', 'Cada panela dá algumas porções (1 porção = 1 cliente) e gasta da despensa conforme rende; a sobra vai para o lixo.',
         [GLOSSARIO.vagasQuadro, GLOSSARIO.panela, GLOSSARIO.precoPanela, GLOSSARIO.sabor, GLOSSARIO.repoe, GLOSSARIO.casa, GLOSSARIO.sobra, GLOSSARIO.curtida]));
     // (C9, rodada 1) a linha da panela da Rosa vem com o interruptor "A Rosa põe hoje: sim/não" (ligado por padrão)
-    if (modo !== 'durante') { const lr = modo === 'abertura' ? linhaPanelaDaRosa(p, esc, CQ) : null;
-      for (const a of avisosDoQuadro(p, esc, modo, CQ)) caixa.append(lr && a === lr.texto
+    if (modo !== 'durante') { const lr = modo === 'abertura' ? linhaPanelaDaRosa(p, esc, CQ) : null, lf = linhaFestaDoQuadro(p, CQ, modo);
+      for (const a of avisosDoQuadro(p, esc, modo, CQ)) caixa.append(lf && a === lf   // (E4b) a reserva da turma, com a fitinha da festa
+        ? el('div', { class: 'qc-aviso qc-festa' + (CQ.festa.R.deixa ? ' qc-festa-nao' : ''), 'data-guia': 'festa', style: 'font-weight:800' },
+            el('img', { class: 'qc-fita', src: urlArte('salao/fita_tema'), alt: '', style: 'height:22px;vertical-align:middle;margin-right:6px' }), a)
+        : lr && a === lr.texto
         ? el('div', { class: 'qc-aviso qc-rosa-poe' }, a + ' ', el('button', { class: 'tabua mini' + (lr.pr.poe ? ' acesa' : ' desligada'), 'data-guia': 'rosa_poe',
             onclick: ev => { ev.stopPropagation(); G.conviteHoje.rosaPoe = !lr.pr.poe; sons.tocar('cursor', 1.2, 0.04, -8); desenha(); } }, `A Rosa põe hoje: ${lr.pr.poe ? 'sim' : 'não'}`))
         : el('div', { class: 'qc-aviso' }, a)); }
@@ -337,8 +383,11 @@ function pensaoQuadro() {
       const P = Pratos.PRATOS[id], e0 = esc[id] || { panelas: 0, repoe: true }, k = p.porcoesPorPanela(id), m = daNaVez(CQ, id);
       const e = { panelas: modo === 'durante' ? e0.panelas : efe(id), repoe: e0.repoe };   // (na abertura, o que a despensa dá)
       const marcado = modo === 'durante' ? p.porcoes(id) > 0 : e.panelas > 0;
-      const guardado = modo === 'abertura' && !e.panelas && e0.panelas > 0;   // (escolhido, mas a despensa não dá hoje)
-      const tag = vip && vip.prato === id ? ' · o pedido do VIP' : festa && festa.prato === id ? ' · o prato da festa' : festa && festa.categoria && categoriaDe(id) === festa.categoria ? ` · ${CATEGORIAS[festa.categoria].toLowerCase()}: vale 50% mais na festa` : '';
+      const daTurma = modo !== 'durante' && CQ.festa && CQ.festa.menos[id] > 0 ? CQ.festa : null;   // (E4b) o prato da festa no quadro: a turma come destas panelas
+      const guardado = modo === 'abertura' && !e.panelas && e0.panelas > 0 && !daTurma;   // (escolhido, mas a despensa não dá hoje)
+      const tag = vip && vip.prato === id ? ' · o pedido do VIP' : festa && festa.prato === id ? ' · o prato da festa'
+        : daTurma ? ` · a turma ${AvisoFesta.da(daTurma.e)} come desta panela: ${daTurma.R.porcoes} ${daTurma.R.porcoes === 1 ? 'porção' : 'porções'}; sobram ${(modo === 'plano' ? Math.max(0, e0.panelas - daTurma.menos[id]) : e.panelas) * k} para o salão`
+        : CQ.festa && !CQ.festa.R.deixa && CQ.festa.e.prato === id ? ` · o prato da festa ${AvisoFesta.da(CQ.festa.e)} (a reserva da turma já saiu da despensa)` : festa && festa.categoria && categoriaDe(id) === festa.categoria ? ` · ${CATEGORIAS[festa.categoria].toLowerCase()}: vale 50% mais na festa` : '';
       // (16/10) cada panela diz o que gasta da despensa (o gasto por prato): o jogador vê se precisa comprar
       const dk = `cada panela dá ${k} porções e gasta ${gastoTxt(p, id)}`;
       const info = modo === 'durante' ? `Na panela: ${p.porcoes(id)} porções · a despensa dá mais ${panelasTxt(p.rende(id))} (${k} porções cada, gastando ${gastoTxt(p, id)})`
@@ -359,11 +408,11 @@ function pensaoQuadro() {
         }
         // (tarefa 6) o prato guardado que a despensa não dá hoje: o − tira a escolha guardada (o Dave: o jogador limpa o cardápio quando quiser)
         if (d < 0 && guardado) { esc[id] = { panelas: 0, repoe: e0.repoe }; marca('cardapio_panela'); sons.tocar('cursor', 1, 0.04, -8); desenha(); return; }
-        if ((comoNome && e.panelas > 0) || (d < 0 && !e.panelas)) return;   // (o nome só põe no quadro; tirar é no −)
+        if ((comoNome && (e.panelas > 0 || daTurma)) || (d < 0 && !e.panelas && !daTurma)) return;   // (o nome só põe no quadro; tirar é no −)
         if (d > 0 && e.panelas === 0 && !temVaga(id)) { avisar(`Só cabem ${p.vagas()} pratos no quadro (a fama abre mais).`); return; }
         if (d > 0 && modo === 'abertura' && e.panelas >= m) { avisar(m ? `A despensa só dá ${panelasTxt(m)} de ${P.nome}.` : `Falta ingrediente para ${P.nome} na despensa.`); return; }
         const novo = !e.panelas;
-        esc[id] = { panelas: clamp(e.panelas + d, 0, 99), repoe: esc[id] ? esc[id].repoe : true };   // (prato que nunca esteve no quadro: repõe ligado)
+        esc[id] = { panelas: clamp((daTurma ? e0.panelas : e.panelas) + d, 0, 99), repoe: esc[id] ? esc[id].repoe : true };   // (E4b) com a turma, conta as panelas escolhidas   // (prato que nunca esteve no quadro: repõe ligado)
         if (d > 0 && novo) marca('cardapio_prato'); if (!comoNome) marca('cardapio_panela');
         sons.tocar('cursor', 1, 0.04, -8); desenha(); };
       const podeMais = modo === 'durante' ? p.rende(id) > 0 && temVaga(id) : (e.panelas > 0 || temVaga(id)) && (modo === 'plano' || e.panelas < m);
@@ -373,7 +422,7 @@ function pensaoQuadro() {
         el('div', { class: 'qc-panelas' },
           modo === 'durante' ? null : el('button', { class: 'tabua mini qc-menos' + (e.panelas > 0 || guardado ? '' : ' desligada'), 'data-guia': 'menos', onclick: mexe(-1),
             title: guardado ? 'Tira do cardápio guardado' : null }, '−'),
-          modo === 'durante' ? null : el('span', { class: 'qc-conta' }, e.panelas > 0 ? `${panelasTxt(e.panelas)} = ${e.panelas * k} porções` : 'fora do quadro'),
+          modo === 'durante' ? null : el('span', { class: 'qc-conta' }, e.panelas > 0 ? `${panelasTxt(e.panelas)} = ${e.panelas * k} porções` : daTurma ? 'a turma come esta panela' : 'fora do quadro'),
           el('button', { class: 'tabua mini qc-mais' + (podeMais ? '' : ' desligada'), 'data-guia': 'mais', onclick: mexe(1) }, modo === 'durante' ? '+ 1 panela agora' : '+')),
         el('button', { class: 'tabua qc-repoe' + (e.repoe ? ' acesa' : ' desligada'), 'data-guia': 'repoe', style: marcado ? '' : 'visibility:hidden',
           title: 'Ligado: quando a panela acaba, a Rosa faz outra com a despensa. Desligado: o prato sai do quadro.',
@@ -424,6 +473,7 @@ function abrirAPensao() {
     const pr = panelaDaRosa(p, esc, CQ);
     if (pr) { for (const id in pr.menos) faz[id].panelas -= pr.menos[id]; faz[pr.prato] = { panelas: pr.panelas, repoe: false }; }
     _despensaNaAbertura = { dia: G.dia, d: Object.assign({}, p.despensa) };   // (15/10, o fechamento) o que a despensa tinha antes das panelas
+    reservarFestaDaNoite(p);   // (E4b) a panela reservada da turma sai antes das panelas (a mesma ordem do quadro: contaDoQuadro)
     const r = p.montarNoite(faz, rngDaNoite(G.dia * 53 + 11));
     p.cardapioNoite = esc;
     p.cardapio = Object.keys(r.feitas);   // (o quadro antigo: o salão de cima e os textos velhos leem daqui)
@@ -468,9 +518,30 @@ function clientesHoje() { return G.pensao.clientesDaNoite() + (typeof bonusMelho
 // (15/10, o fechamento do Dave) A despensa de antes das panelas da noite (abrirAPensao): no fim da janta, o que saiu dela vira a linha
 // "Da despensa" do fechamento (só mostra; a conta do dinheiro não muda: os ingredientes já foram comprados).
 let _despensaNaAbertura = null;
+// (E4b) A reserva da festa de hoje: no "Abrir a pensão", antes das panelas (ou no começo da janta, se ela abriu por outro caminho).
+// Sai da despensa (p.consumir: o gasto por prato de sempre) e fica guardada para o iniciarJanta. Com menos da metade da turma, a festa
+// fica pra próxima (Encomendas.fechar com deixa: sem amizade a menos), e a Rosa avisa: a linha vai para linhas (a noite da Rosa
+// sozinha) ou para o resumo do dia e o aviso. → { dia, e, porcoes, raridade } | { dia, e, deixa: true } | null (sem festa hoje).
+let _reservaDaNoite = null;
+function reservarFestaDaNoite(p = G.pensao, linhas = null) {
+  if (_reservaDaNoite && _reservaDaNoite.dia === G.dia && _reservaDaNoite.e && Encomendas.hoje(p, G.dia) === _reservaDaNoite.e) return _reservaDaNoite;
+  const e = festaDeHojeAntesDaJanta(p); if (!e) return null;
+  const R = Encomendas.reservar(p, e);
+  if (R.deixa) {
+    const falta = faltaDaTurmaTxt(p, e), Ela = AvisoFesta.ela(e)[0].toUpperCase() + AvisoFesta.ela(e).slice(1);
+    Encomendas.fechar(p, e, { deixa: true, motivo: 'despensa' });
+    const l = `Não deu para a festa ${AvisoFesta.da(e)}: faltou ${falta} na despensa. ${Ela} marca outra vez, sem problema.`;
+    if (linhas) linhas.push(l); else { if (G.feitosHoje && !G.feitosHoje.includes(l)) G.feitosHoje.push(l); avisar(l); }
+    return (_reservaDaNoite = { dia: G.dia, e, deixa: true });
+  }
+  const raridade = p.consumir(e.prato, rngDaNoite(G.dia * 53 + 5), R.porcoes) || 1;
+  return (_reservaDaNoite = { dia: G.dia, e, porcoes: R.porcoes, raridade });
+}
 function iniciarJanta() {
+  const desp0 = Object.assign({}, _despensaNaAbertura && _despensaNaAbertura.dia === G.dia ? _despensaNaAbertura.d : G.pensao.despensa); _despensaNaAbertura = null;
+  const fz = reservarFestaDaNoite(G.pensao);   // (E4b) já feita no "Abrir"; aqui só se a janta abriu por outro caminho
   G.turno = new TurnoJanta();
-  G.turno.despensa0 = Object.assign({}, _despensaNaAbertura && _despensaNaAbertura.dia === G.dia ? _despensaNaAbertura.d : G.pensao.despensa); _despensaNaAbertura = null;
+  G.turno.despensa0 = desp0;
   G.turno.rotatividade = true;   // (14/10, o Dave) chegadas espaçadas, banco sorteado sem louça, o cliente entra e sai andando
   G.turno._nichos = G.pensao.pratosDaNoite().slice();   // (onda final) a ordem dos nichos da noite: cada prato fica no nicho dele
   // (o cardápio do Bancho) A janta começou por outro caminho com o quadro da abertura aberto: o quadro sai (sem o aviso de espera).
@@ -494,6 +565,12 @@ function iniciarJanta() {
   if (typeof Paladar !== 'undefined' && Paladar.vem(G.pensao, G.dia)) { G.turno.paladar = true; G.turno._fila.push({ minuto: 19 * 60, cliente: Paladar.cliente() }); G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   if (typeof Clientela !== 'undefined') { G.turno.moradores = Clientela.porNaFila(G.turno, G.pensao, G.dia); G.turno.filho = Clientela.filhoDaNoite(G.dia); }
   if (vip) { const v = vipDe(vip.id); G.turno.vip = { nome: v.nome, prato: vip.prato }; G.turno._fila.push({ minuto: 18 * 60 + 30, cliente: { id: v.id, nome: v.nome, mania: 'vip', prato: vip.prato } }); G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
+  // (E4b) a festa encomendada: o anfitrião sai da fila da semana (ele vem com a turma) e a turma entra na fila dela (a ponta, às 18h)
+  if (fz && !fz.deixa) {
+    Encomendas.tirarAnfitriao(G.turno, G.pensao, G.dia);
+    if (G.turno.moradores) G.turno.moradores = G.turno.moradores.filter(c => c.id !== fz.e.quem);
+    G.turno.festaDaTurma(fz.e, { porcoes: fz.porcoes, raridade: fz.raridade });
+  }
   if (typeof Equipe !== 'undefined') {
     const t = G.turno, p = G.pensao, b = typeof bonusMelhorias === 'function' ? bonusMelhorias(p) : { preparo: 1, bocas: 0, gorjeta: 0, paciencia: 1, farinha: 0 };
     t.fatorPreparo = fatorDePreparo(p); t.bocas = Chef.bocas(p) + Equipe.bocasExtra(p) + b.bocas;
@@ -507,9 +584,11 @@ function iniciarJanta() {
   // (14/10) a folha de andar de cada freguês da noite (moradores e avulsos) já começa a baixar: ninguém entra sem a arte dele
   // (sem a folha pronta, o Personagem só não aparece; nunca com a arte de outro)
   if (typeof precarregarArtes === 'function') precarregarArtes([...new Set(G.turno._fila.map(f => `personagens/${f.cliente.id}/andar`))]);
-  if (inauguracao || festaPatrimonio || festa) tocarSomDoEvento({ tipo: 'inauguracao' });
+  if (inauguracao || festaPatrimonio || festa || G.turno.encomenda) tocarSomDoEvento({ tipo: 'inauguracao' });
   if (G.turno.festa) avisar(`Hoje é a ${G.turno.festa}! ${Pratos.PRATOS[G.turno.pratoTema].nome}${G.turno.categoriaTema ? ` e todo ${CATEGORIAS[G.turno.categoriaTema].toLowerCase()}` : ''} vale 50% mais.`);
   if (G.turno.vip) avisar(`Hoje janta ${G.turno.vip.nome}: ele vai pedir ${Pratos.PRATOS[G.turno.vip.prato].nome}.`);
+  if (G.turno.encomenda) { const e = fz.e, n = fz.porcoes;
+    avisar(`Hoje é a festa ${AvisoFesta.da(e)} (${AvisoFesta.ocasiao(e)}): a turma chega às 18h e senta na ponta do balcão. ${n} ${n === 1 ? 'porção' : 'porções'} de ${AvisoFesta.prato(e)} na panela reservada${n < e.turma ? ` (a turma é de ${e.turma}: quem ficar sem pede do quadro)` : ''}.`); }
   if (G.turno.moradores && G.turno.moradores.length) avisar(`Hoje é dia de ${G.turno.moradores.map(c => c.nome).join(' e ')} jantar na pensão.`);
   if (G.turno.filho === 'ritinha') avisar('A Ritinha veio ajudar no caixa: hoje a gorjeta sai 10% maior!');
   else if (G.turno.filho === 'zezinho') avisar('O Zezinho veio "ajudar" na pensão. Fique de olho nas cocadas!');
@@ -527,23 +606,65 @@ function pagarDespesaDaNoite(r) {
   r.despesaPaga = Math.min(r.despesa, custo); r.salariosPagos = custo - r.despesaPaga; r.naoCobriu = r.despesa + r.salarios - custo;
   return custo;
 }
+// (E4b) A festa da noite acabou (r.encomenda, do turno ou da Rosa sozinha): Encomendas.fechar (a amizade com o anfitrião, +30 com a
+// turma inteira bem servida) e a conta da turma (o bônus do fim da noite do Dave) entra nos prêmios e no bolso, fora da renda dos
+// pratos; as curtidas a mais (uma por bem servido) entram na noite. Guarda r.festaTurma (o resumo e o fechamento leem).
+function fecharFestaDaNoite(r, rosa = false) {
+  const x = r && r.encomenda, e = x && typeof Encomendas !== 'undefined' ? Encomendas.hoje(G.pensao, G.dia) : null;
+  if (!e || e.quem !== x.quem) return null;
+  const res = Encomendas.fechar(G.pensao, e, { bem: x.bem, turma: x.todos ? Math.max(1, x.bem) : x.turma, rosaSozinha: rosa });
+  if (!res) return null;
+  G.dinheiro += res.conta; G.ganhoHoje += res.conta;
+  r.premios = (r.premios || 0) + res.conta; r.curtidas = (r.curtidas || 0) + res.curtidas;
+  return (r.festaTurma = { quem: e.quem, nome: x.nome, titulo: 'Festa ' + AvisoFesta.da(e), ocasiao: AvisoFesta.ocasiao(e), prato: e.prato, turma: x.turma,
+    vieram: x.vieram, bem: res.bem, todos: res.todos, conta: res.conta, curtidas: res.curtidas, amizade: res.amizade, rosa: !!rosa });
+}
+// A linha da festa no resumo da noite: "Festa da Dona Zélia (o batizado do neto): 5 de 5 bem servidos. Conta da turma: Cr$ 40."
+function linhaDaFestaNoResumo(f) {
+  return `${f.titulo} (${f.ocasiao}): ${f.bem} de ${f.turma} bem servidos. Conta da turma${f.rosa ? ' (a Rosa sozinha: pela metade)' : ''}: Cr$ ${f.conta}.`
+    + (f.curtidas ? ` A turma comenta na Vila: +${f.curtidas} ${f.curtidas === 1 ? 'curtida' : 'curtidas'}.` : '');
+}
+// A Rosa sozinha serve a turma do jeito dela (spec 3.6): a reserva sai da despensa e cada um da turma paga como os outros clientes da
+// noite (o preço normal, 3 estrelas); quem ficou sem a reserva leva o prato da casa. A conta da turma sai pela metade (fecharFestaDaNoite).
+function turmaDaRosaSozinha(p, rs, linhas) {
+  const z = reservarFestaDaNoite(p, linhas); if (!z || z.deixa) return null;
+  const e = z.e, C = ECO.pensao.pratoCasa, eC = Math.min(C.estrelas, 3);
+  let bem = 0, casaTurma = 0;
+  for (let k = 0; k < e.turma; k++) {
+    rs.servidos++; rs.clientes++; rs.comeram = (rs.comeram || 0) + 1;
+    if (k >= z.porcoes) { rs.casa++; casaTurma++; rs.estrelas += eC; rs.estrelasCasa += eC; rs.ganho += C.preco; rs.vendaPratos += C.preco; if (Encomendas.bemServido(eC)) bem++; continue; }
+    const v = p.preco(e.prato, z.raridade);
+    rs.ganho += v; rs.vendaPratos += v; rs.estrelas += 3; bem++;
+    rs.pratos[e.prato] = (rs.pratos[e.prato] || 0) + 1; rs.pedidos[e.prato] = (rs.pedidos[e.prato] || 0) + 1;
+    if (p.serviu) p.serviu(e.prato);
+  }
+  rs.maisPedido = TurnoJanta.maisPedido(rs.pedidos);
+  return (rs.encomenda = { quem: e.quem, nome: Encomendas.nome(e.quem), ocasiao: e.ocasiao, prato: e.prato, turma: e.turma, vieram: e.turma, pagos: e.turma, bem, todos: bem >= e.turma, casaTurma,
+    conta: null, reservadas: z.porcoes, daReserva: z.porcoes, sobrou: 0 });
+}
 // (revisão da Tarefa A) A noite em que o Jocelino não serviu: a Rosa se vira sozinha (TurnoJanta.rosaSozinha), o bolso recebe os
 // pratos e paga a despesa e os salários, e a conta fecha como na janta (sem gorjeta nem prêmio). Devolve o relatório.
 function noiteDaRosaSozinha(linhas) {
   const f = mulberry(G.dia * 77);
   // (o cardápio do Bancho) A Rosa usa o cardápio da noite anterior (ou só o prato da casa) e a sobra vai para o lixo; a fama
   // não conta o prato da casa (paraFama), como na janta com o Jocelino.
+  reservarFestaDaNoite(G.pensao, linhas);   // (E4b) a reserva da turma sai antes das panelas que a Rosa faz sozinha
   const rs = TurnoJanta.rosaSozinha(G.pensao, { randf: f, randi: () => Math.floor(f() * 4294967296) });
+  // (E4b) a festa encomendada de hoje: a Rosa serve a turma do jeito dela; a conta da turma sai pela metade
+  rs.premios = 0; turmaDaRosaSozinha(G.pensao, rs, linhas); const ft = fecharFestaDaNoite(rs, true);
   // (C13, rodada 1) a estrela que a Rosa ganhou sozinha não se perde: a tela abre ao dormir, antes do resumo (fechamento.js)
   // (o degrau "registrado" é o grauMinimo: a curtida que entrou de dia, o peixe raro ou o prêmio, sobe a pensão e a noite da Rosa a registra)
-  { const g0 = G.pensao.grauMinimo || 1; G.pensao.registrarNoite(TurnoJanta.paraFama(rs).estrelas, G.dia, 0);
+  { const g0 = G.pensao.grauMinimo || 1; G.pensao.registrarNoite(TurnoJanta.paraFama(rs).estrelas, G.dia, rs.curtidas || 0);
     const g1 = G.pensao.grauMinimo || 1; if (g1 > g0 && typeof guardarEstrelaPendente === 'function') guardarEstrelaPendente(g1); }
   G.dinheiro += rs.ganho; G.ganhoHoje += rs.ganho;
   // A despesa da noite e os salários saem mesmo sem o Jocelino (nunca deixa o bolso negativo; a pensão não fecha por isso).
-  rs.premios = 0; pagarDespesaDaNoite(rs);
+  pagarDespesaDaNoite(rs);
   { const c = TurnoJanta.conta(rs); rs.receita = c.receita; rs.lucro = c.lucro; }
   guardarNoiteNoHistorico(rs, true);
-  linhas.push(`A Rosa se virou sozinha na pensão: ${rs.servidos} ${rs.servidos === 1 ? 'cliente' : 'clientes'}${deCasaDaRosa(G.pensao, rs)}, Cr$ ${rs.ganho}.`);
+  // (rodada 1 da E4b) a frase do prato da casa conta só os fregueses da noite: o prato da casa da turma (sem a reserva) não é "faltou ingrediente"
+  { const x = rs.encomenda, semTurma = x ? Object.assign({}, rs, { casa: rs.casa - (x.casaTurma || 0), servidos: rs.servidos - x.turma }) : rs;
+    linhas.push(`A Rosa se virou sozinha na pensão: ${rs.servidos} ${rs.servidos === 1 ? 'cliente' : 'clientes'}${deCasaDaRosa(G.pensao, semTurma)}, Cr$ ${rs.ganho}.`); }
+  if (ft) linhas.push('   ' + linhaDaFestaNoResumo(ft));
   { const sb = textoSobra(rs.sobra); if (sb) linhas.push('   ' + sb); }
   linhas.push(linhaDoLucroNoResumo(rs));
   return rs;
@@ -584,6 +705,7 @@ function encerrarJanta() {
   // (14/10, Tarefa A) O dinheiro dos prêmios da noite (o VIP e as metas) entra na receita do fechamento.
   // (16/10, E2 das encomendas de festa) Os pedidos da Vila da agenda saíram; a festa do morador entra no lugar (encomendas.js).
   r.aprendidas = []; r.premios = 0;
+  fecharFestaDaNoite(r);   // (E4b) a conta da turma nos prêmios e no bolso, as curtidas a mais (antes do registrarNoite) e a amizade
   if (typeof Eventos !== 'undefined') {
     const vip = Eventos.hoje(G.pensao, G.dia, 'vip');
     if (vip) { vip.fim = r.vip === 'servido' ? 'servido' : 'faltou';
@@ -652,7 +774,10 @@ ATUALIZADORES.push(dt => {
   }
   t.tick(dt, G.minutos);
   const noSalao = noSalaoDaPensao();
+  // (E4b) a cena da turma espera a cena de prato que estiver tocando (o prato do anfitrião pode ter a dele) e toca logo depois
+  if (t._cenaTurma && typeof CenaPrato !== 'undefined' && !CenaPrato._cena) { t._cenaTurma = false; if (noSalao) CenaPrato.tocarEspecial('turma'); }
   for (const ev of t.eventos) {
+    if (ev.tipo.startsWith('turma_') || ev.tipo === 'festa_turma' || ev.tipo === 'conta_turma') eventoDaTurma(t, ev, noSalao);   // (E4b)
     // (as cenas de prato) o VIP cansou de esperar e foi embora: a vaga de cena guardada para ele volta para a noite
     if (ev.tipo === 'embora' && ev.cliente && ev.cliente.mania === 'vip' && typeof CenaPrato !== 'undefined') CenaPrato.soltarVaga(t);
     if (ev.tipo === 'pronto' && noSalao) { if (!noPalco()) mostrarCenaRosa(ev.prato); }
@@ -700,6 +825,26 @@ ATUALIZADORES.push(dt => {
   if (t.encerrado(G.minutos)) encerrarJanta();
 });
 
+// (E4b) Os avisos da noite da turma (os eventos do turno, E4a) e a cena de cinema dela (spec 3.4: o momento da festa). A cena da
+// turma (cenas/turma_fundo + cenas/turma_brinde, da E6) toca quando o anfitrião recebe o prato: na 1ª festa do jogo, inteira (como
+// toda cena de 1ª vez), e depois só nas festas de aniversário (o bolo com as velinhas da arte), com o clique pulando; nas outras
+// festas, o momento é o do palco (as notas, os corações e o rojão). Rever as outras fica para as Lembranças, se o dono quiser.
+const cenaDaTurmaToca = e => { const o = e && Encomendas.ocasiao(e.quem, e.ocasiao);
+  return !(G.cenasEspeciais || []).includes('turma') || !!(o && /anivers/.test(o.nome)); };
+function eventoDaTurma(t, ev, noSalao) {
+  const e = t.encomenda; if (!e || typeof AvisoFesta === 'undefined') return;
+  const da = AvisoFesta.da(e);
+  if (ev.tipo === 'turma_reserva' && noSalao) avisar(`A Rosa pôs a toalha de festa na ponta do balcão: ${e.ponta.length === 1 ? 'a banqueta' : `${e.ponta.length} banquetas`} para a turma ${da}.`);
+  else if (ev.tipo === 'turma_chegou' && ev.anfitriao && noSalao) avisar(`Chegou a turma ${da}! Cada um pede ${AvisoFesta.prato(e)} da panela reservada (a da fitinha): bem servidos, ${AvisoFesta.ela(e)} paga a conta da turma.`);
+  else if (ev.tipo === 'turma_cansou' && noSalao && !t._avisouCansou) { t._avisouCansou = true; avisar(`A turma ${da} está esperando demais: ninguém vai embora, mas as estrelas e a conta da turma caem.`); }
+  else if (ev.tipo === 'festa_turma' && cenaDaTurmaToca(e)) t._cenaTurma = true;
+  else if (ev.tipo === 'conta_turma') {
+    if (noSalao) avisar(ev.valor > 0 ? `${AvisoFesta.Quem(e)} pagou a conta da turma: Cr$ ${ev.valor}!` : `${AvisoFesta.Quem(e)} agradeceu a festa. A turma esperou demais: hoje não teve conta da turma.`);
+    if (noSalao && ev.valor > 0 && noPalco() && typeof flutuar === 'function') { const As = e.ponta.map(i => PALCO.ASSENTOS[i]).filter(Boolean);
+      // (E8) no meio da ponta e mais alto: na ponta, em cima da banqueta, ele caía junto com a moeda e a curtida do último da turma
+      if (As.length) flutuar(As.reduce((s, A) => s + A.x, 0) / As.length, As[0].y - 320, `+Cr$ ${ev.valor} conta da turma`, '#ffd34d', 3, 34); }
+  }
+}
 // Os clientes sentados nas banquetas (atrás do balcão, de frente para a câmera).
 function sincronizaClientes() {
   const sal = MAPAS.pensao_dentro, t = G.turno;
@@ -732,6 +877,7 @@ function pensaoMesa(i) {
     } else avisar(m.pronto ? 'O prato saiu! Pegue no balcão da Rosa e leve a quem pediu.' : 'A Rosa está preparando...');
   } else if (m.estado === 'comendo') avisar(`${m.cliente.nome} está comendo.`);
   else if (m.estado === 'suja') { t.limpar(i); sons.tocar('pegar', 1.4, 0.05, -6); }
+  else if (m.estado === 'reservada') avisar(t.encomenda && typeof AvisoFesta !== 'undefined' ? `Reservada para a turma ${AvisoFesta.da(t.encomenda)}.` : 'Banqueta reservada para a festa.');   // (E4b)
   else avisar('Banqueta vazia.');
   sincronizaClientes();
   return true;
@@ -739,7 +885,7 @@ function pensaoMesa(i) {
 // Clique (ou X) no balcão corrido: o cliente da banqueta naquela coluna; senão, o balcão.
 function pensaoBalcaoCorrido(px) {
   const x = Math.floor((px ?? mouseMundo().x) / TILE);
-  const i = SALAO.ASSENTOS.findIndex((a, k) => a[0] === x && G.turno && k < G.turno.mesas.length && G.turno.mesas[k].estado !== 'livre');
+  const i = SALAO.ASSENTOS.findIndex((a, k) => a[0] === x && G.turno && k < G.turno.mesas.length && !['livre', 'reservada'].includes(G.turno.mesas[k].estado));   // (E4b) a reservada vazia não é alvo
   return i >= 0 ? pensaoMesa(i) : pensaoBalcao();
 }
 // (tarefa 6) O painel de montar o prato (abrirMontar, o "Pronto!") saiu: era só do salão antigo de cima, e o jogo não chega mais
@@ -772,7 +918,7 @@ function desenhaBaloes(ctx, b) {
   let k = 0;
   t.mesas.forEach(m => { if (m.estado === 'prato' && m.pronto && !m.montado) { desenhaPrato(ctx, m.prato, (SALAO.COZINHA[0] - 0.6 - k) * TILE, SALAO.COZINHA[1] * TILE + 8, 1, 0.7); k++; } });
   t.mesas.forEach((m, i) => {
-    if (m.estado === 'livre' || i >= SALAO.ASSENTOS.length) return;
+    if (m.estado === 'livre' || m.estado === 'reservada' || i >= SALAO.ASSENTOS.length) return;   // (E4b) a reservada vazia não tem balão
     const a = SALAO.ASSENTOS[i];
     const x = (a[0] + 0.5) * TILE, y = a[1] * TILE - 92;
     ctx.save();
@@ -943,6 +1089,9 @@ NOITE.push(linhas => {
   else if (G.relatorioPensao) {
     const r = G.relatorioPensao, p = G.pensao;
     linhas.push(linhaDaJantaNoResumo(r, p));
+    // (E4b) a festa da turma; (E8) logo depois da linha da janta: o cartão da pensão no resumo mostra só as primeiras linhas, e ela ficava
+    // escondida no "ver tudo"
+    if (r.festaTurma) linhas.push('   ' + linhaDaFestaNoResumo(r.festaTurma));
     if (r.embora) linhas.push(`   ${r.embora} ${r.embora === 1 ? 'foi' : 'foram'} embora sem comer${r.perdida ? ` (Cr$ ${r.perdida} perdidos)` : ''}.`);
     // (o cardápio do Bancho) quem ficou sem prato do quadro levou o prato da casa (o café é só do salão antigo); a sobra foi para o lixo
     if (r.faltou.length) linhas.push(`   Faltou ingrediente para repor: ${r.faltou.map(id => Pratos.PRATOS[id] ? Pratos.PRATOS[id].nome : id).join(', ')}.`);

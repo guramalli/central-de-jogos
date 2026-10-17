@@ -47,6 +47,8 @@ function cameraBase(px, py) {
 }
 let _empurrao = null;   // o último empurrão da câmera: { chave do alvo, dx, dy } (fica o mesmo enquanto valer: a câmera não vai e volta)
 function alvoCamera() {
+  // (T7) durante uma história, a câmera é da cena (historias.js: o passo 'camera' leva devagar até a pessoa ou o ladrilho)
+  { const ch = typeof cameraDaHistoria === 'function' ? cameraDaHistoria() : null; if (ch) { _empurrao = null; return ch; } }
   const base = cameraBase(G.jog ? G.jog.x : 0, G.jog ? G.jog.y : 0);
   const s = G.jog && G.mapa && typeof setaAgora === 'function' ? setaAgora() : null;
   if (!s || s.tipo !== 'alvo' || (s.mapa && s.mapa !== G.mapaId) || typeof paineisDaCamera !== 'function') { _empurrao = null; return base; }

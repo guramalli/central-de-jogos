@@ -164,6 +164,21 @@ const jaFezJanta = k => ((G.limpou || {})['janta_' + k] || 0) > 0;
 { const f = TurnoJanta.prototype.recolher;
   TurnoJanta.prototype.recolher = function (i) { const lado = !!(this.mesas[i] && this.mesas[i].louca), r = f.apply(this, arguments);
     if (r && lado && G.limpou) G.limpou.janta_louca_lado = (G.limpou.janta_louca_lado || 0) + 1; return r; }; }
+// (E5b das encomendas de festa, spec 3.8.3) A 1ª turma no salão: quem da turma recebe o prato (pelo Jocelino ou pelo ajudante) apaga
+// a seta da ponta (G.limpou.enc_turma).
+{ const f = TurnoJanta.prototype._entregar;
+  TurnoJanta.prototype._entregar = function (i) { const m = this.mesas[i], daTurma = !!(m && m.cliente && m.cliente.turma), r = f.apply(this, arguments);
+    if (r && daTurma && G.limpou) G.limpou.enc_turma = (G.limpou.enc_turma || 0) + 1; return r; }; }
+// A seta da 1ª turma (E5b; como a Party Night do Dave, onde os convidados se destacam e o prato do tema leva o laço): com alguém da
+// turma já dentro, a seta vai na ponta reservada e diz o que a turma pede e o que ela paga no fim. Some na 1ª entrega a um deles.
+// O ponto é o tampo (a toalha de festa) entre o anfitrião e o vizinho, onde fica o bolo: a seta cai entre duas cabeças, sem tapar
+// ninguém, e abaixo da pilha de avisos da esquerda (a chegada da turma solta 2 ou 3 avisos de uma vez, bem em cima da ponta).
+function _alvoDaTurma(t) {
+  const e = t.encomenda; if (((G.limpou || {}).enc_turma || 0) > 0 || !e || !e.reservou || e.saiu || !(e.vieram > 0) || typeof AvisoFesta === 'undefined') return null;
+  const xs = e.ponta.map(i => PALCO.ASSENTOS[i]).filter(Boolean).map(a => a.x).sort((a, b) => a - b); if (!xs.length) return null;
+  return { mapa: G.mapaId, ponto: { x: xs.length > 1 ? (xs[0] + xs[1]) / 2 : xs[0], y: PALCO.LOUCA.base - 34 },
+    rotuloFixo: `A turma ${AvisoFesta.da(e)}: todos pedem ${AvisoFesta.prato(e)}, o prato da fitinha. Bem servidos, ${AvisoFesta.ela(e)} paga a conta da turma no fim.` };
+}
 function _alvoDaJanta() {
   const t = G.turno; if (!t || typeof noPalco !== 'function' || !noPalco() || G.copo) return null;
   const P = PALCO, mesa = (i, rot) => ({ mapa: G.mapaId, ponto: { x: P.ASSENTOS[i].x, y: P.ASSENTOS[i].y - 250 }, rotuloFixo: rot });
@@ -171,6 +186,7 @@ function _alvoDaJanta() {
   // (14/10, o desgosto) a 1ª vez que um freguês senta do lado da louça suja: a seta na louça (é urgente: ele vai embora)
   if (!jaFezJanta('louca_lado')) { const i = t.mesas.findIndex(m => m.louca && m.estado === 'pedido');
     if (nos(i)) return { mapa: G.mapaId, ponto: { x: P.ASSENTOS[i].x, y: P.LOUCA.base - 34 }, rotuloFixo: 'Louça suja espanta freguês! Clique na louça: recolher antes que ele vá embora' }; }
+  { const a = _alvoDaTurma(t); if (a) return a; }   // (E5b) a 1ª turma da festa de um vizinho
   if (!jaFezJanta('bacia') && t.bandeja.some(x => x.tipo === 'louca')) return { mapa: G.mapaId, ponto: { x: P.BACIA.x + P.BACIA.w / 2, y: P.BACIA.y - 20 }, rotuloFixo: 'Clique na bacia: lavar a louça' };
   if (!jaFezJanta('entregar')) { const x = t.bandeja.find(b => b.tipo === 'prato'), i = x ? t.mesas.findIndex(m => m.estado === 'prato' && m.prato === x.prato) : -1;
     if (nos(i)) return mesa(i, `Clique em ${t.mesas[i].cliente.nome}: entregar ${Pensao.prato(x.prato).nome.toLowerCase()}`); }
@@ -721,6 +737,19 @@ const PRIMEIRA_TELA = {
       // desligado. A explicação do repõe (ligado de fábrica) vai na fala do Abrir.
       const repoe = !rp || rp.classList.contains('acesa') ? 'O "Rosa repõe" ligado: quando a panela acaba eu faço outra com a despensa. ' : 'O "Não repõe": quando a panela acabar, o prato sai do quadro. ';
       const ab = q('.qc-abrir'); return ab && { el: ab, lado: 'esquerda', frase: `Rosa: "${repoe}Pronto! Abrir a pensão: eu faço as panelas agora (os ingredientes saem da despensa) e a janta começa."` }; } },
+  // - (E5b das encomendas de festa, spec 3.8) A festa de um vizinho, a 1ª vez -> Dave (a Party Night marcada no calendário do celular;
+  //   o prato do tema com o laço). Cada uma some depois de vista uma vez, quando a tela fecha (G.limpou.enc_*: _encVisto, mais abaixo):
+  //   1. o 1º aviso: na lousa da semana, a seta no dia da festa e a Rosa explica na faixa (vem antes da 1ª vez da lousa: é o que falta
+  //      explicar; a seta do rodapé no botão Semana espera por ela, guiaSetaUI);
+  //   2. a 1ª abertura com festa: no quadro de giz, a seta na linha da reserva da turma (o data-guia="festa" do pensao_tela.js).
+  //   (3. a 1ª turma no salão é a seta do mundo: _alvoDaTurma, lá em cima.)
+  enc_calendario: { painel: '#modal .calendario-pensao', sel: '#modal .calendario-pensao .cal-encomenda', usou: () => false, faixa: '#modal .cal-faixa', limpou: 'enc_calendario',
+    // (a seta em cima do dia da festa, no cabeçalho dele, como a da 1ª vez da lousa: na linha, ela tapava o nome do dia)
+    escolhe: ls => { if (!ls[0]) return null; _encVisto.calendario = true; const d = ls[0].closest('.cal-dia');
+      return { el: (d && d.querySelector('.cal-cabeca')) || ls[0], frase: FALA_ENC.calendario }; } },
+  // (a seta vem da esquerda, na fitinha do começo da linha: de cima, ela tapava as vagas do quadro, logo acima)
+  enc_quadro: { painel: '#modal .quadro-cardapio', sel: '#modal .quadro-cardapio [data-guia="festa"]', usou: () => false, faixa: '#modal .qc-rosa', limpou: 'enc_quadro',
+    escolhe: ls => { if (!ls[0]) return null; _encVisto.quadro = true; return { el: ls[0].querySelector('img.qc-fita') || ls[0], lado: 'esquerda', frase: FALA_ENC.quadro }; } },
   // - (14/10, Tarefa E1) O calendário da pensão -> Stardew (o calendário na porta do Pierre: informa, não manda): na primeira vez a
   //   Rosa explica na faixa da lousa e a seta vai no dia que tem novidade (o jantar especial, a festa, o concurso; senão, hoje). É só
   //   para ler: a primeira vez acaba quando a lousa fecha (calendario_pensao.js marca G.limpou.tela_calendario).
@@ -765,8 +794,15 @@ let _recadoVisto = false, _caprichadoVisto = false;
 const FALA_CAPRICHADO = () => 'Mestre Bira: "Caprichado é empreita de vários dias que sai uma beleza. ' + (typeof Empreitas !== 'undefined' && Empreitas.funcao() < 2
   ? 'Isso só sai de pedreiro pra cima, rapaz: primeiro sobe comigo na obra.'
   : 'Quanto mais Acabamento, mais sai; e cal no lote antes de começar ajuda.') + ' Cinco caprichados e a Vila te chama de Mestre."';
-const jaFezTela = id => ((G.limpou || {})['tela_' + id] || 0) > 0 || _tenta(PRIMEIRA_TELA[id].usou);
-function _marcaTela(id) { if (G.limpou) G.limpou['tela_' + id] = (G.limpou['tela_' + id] || 0) + 1; }
+// (E5b) As falas da Rosa da 1ª festa (spec 3.8) e o que já foi visto nesta tela (marca ao fechar, como o recado).
+const FALA_ENC = {
+  calendario: 'Rosa: "Festa encomendada: a turma de um vizinho janta junta aqui. Eu guardo a panela e a ponta do balcão; o prato deles paga mais!"',
+  quadro: 'Rosa: "As porções da turma saem antes das panelas. Se faltar ingrediente, aparece aqui."' };
+const _encVisto = { calendario: false, quadro: false };
+// (a chave em G.limpou: 'tela_<id>', ou a da própria tela — as da festa são enc_*, spec 3.8)
+const _chaveTela = id => (PRIMEIRA_TELA[id] && PRIMEIRA_TELA[id].limpou) || 'tela_' + id;
+const jaFezTela = id => ((G.limpou || {})[_chaveTela(id)] || 0) > 0 || _tenta(PRIMEIRA_TELA[id].usou);
+function _marcaTela(id) { if (G.limpou) { const k = _chaveTela(id); G.limpou[k] = (G.limpou[k] || 0) + 1; } }
 { const embrulha = (obj, m, id) => { const f = obj[m]; obj[m] = function (...a) { const r = f.apply(this, a); if (r === 'ok') _marcaTela(id); return r; }; };
   embrulha(Bazar, 'comprar', 'bazar'); embrulha(Pensao.prototype, 'caprichar', 'receitas'); embrulha(Pensao.prototype, 'pesquisar', 'receitas');
   embrulha(Melhorias, 'comprar', 'melhorias'); embrulha(Melhorias, 'subir', 'melhorias'); embrulha(Equipe, 'contratar', 'equipe'); embrulha(Equipe, 'expedir', 'expedicao'); embrulha(Equipe, 'mudarPosto', 'posto');
@@ -778,6 +814,10 @@ function _marcaTela(id) { if (G.limpou) G.limpou['tela_' + id] = (G.limpou['tela
 ATUALIZADORES.push(() => { if (_recadoVisto && !document.querySelector('#modal .quadro-vila')) { _recadoVisto = false; _marcaTela('recado'); } });
 // (C12) O quadro com a fala dos caprichados fechou: a 1ª vez já foi vista.
 ATUALIZADORES.push(() => { if (_caprichadoVisto && !document.querySelector('#modal .quadro-vila')) { _caprichadoVisto = false; _marcaTela('caprichado'); } });
+// (E5b) A lousa com a 1ª festa, e o quadro de giz com a 1ª reserva da turma, fecharam: a Rosa já explicou.
+ATUALIZADORES.push(() => {
+  if (_encVisto.calendario && !document.querySelector('#modal .calendario-pensao')) { _encVisto.calendario = false; _marcaTela('enc_calendario'); }
+  if (_encVisto.quadro && !document.querySelector('#modal .quadro-cardapio')) { _encVisto.quadro = false; _marcaTela('enc_quadro'); } });
 // (T4) A 1ª peça da coleta que conta: a frase flutuante sobre o Jocelino, uma vez (G.limpou.recado_coleta). Vem depois da conta
 // (recados_jogo.js carrega antes); vale também sem o guia, como o contador do serviço.
 AO_PEGAR.push(item => {
@@ -818,6 +858,11 @@ function _falaDaPesca() {
   const t = L ? FALA_PESCA[L.fase] :(typeof itemDaMao === 'function' && VARAS.includes(itemDaMao()) && ['praia', 'mata', 'alto_mar'].includes(G.mapaId) && !menuAberto() ? FALA_PESCA.vara : '');
   return t ? { id: 'lourival', nome: 'Seu Lourival', texto: t, alvo: null } : null;
 }
+// (E5b) Uma festa de vizinho já avisada pela Rosa, nos dias que a lousa mostra (a mesma conta do Calendario.temEspecial).
+function festaAvisadaNaSemana() {
+  const p = G.pensao, D = typeof Calendario !== 'undefined' ? Calendario.DIAS : 7;
+  return ((p && p.agenda) || []).some(x => x.tipo === 'encomenda' && x.avisado <= G.dia && !x.fim && x.dia >= G.dia && x.dia < G.dia + D);
+}
 // A seta da tela: { chave, el } ou null (o elemento HTML onde clicar).
 function guiaSetaUI() {
   { const s = typeof setaDaInauguracao === 'function' && setaDaInauguracao(); if (s) return s; }   // (C1) a fala da inauguração: a seta no relógio
@@ -845,8 +890,10 @@ function guiaSetaUI() {
       const b = bt(/Adiantar/); if (b) return { chave: 'adiantar', el: b, rotulo: 'De novo: até a janta, às 17h' }; }
     if (ab.includes('domingo')) { const b = bt(/Despensa/); if (b) return { chave: 'despensa', el: b, rotulo: 'Clique para guardar na despensa' }; }
     // (Tarefa E1) a primeira carta de jantar especial (ou festa) da semana: a seta na Semana do rodapé (o calendário), fora da janta, uma vez
-    if (!jaFezTela('calendario') && !G.turno && $('#modal').hidden && typeof Calendario !== 'undefined' && Calendario.temEspecial(G.pensao, G.dia)) {
-      const b = $('#rodape-palco .bt-calendario'); if (b) return { chave: 'calendario', el: b, rotulo: 'Chegou carta de jantar especial: veja a Semana da pensão' }; }
+    // (E5b, spec 3.8.1) e a 1ª festa de um vizinho avisada (sem carta: quem conta é a Rosa), até a lousa mostrar a festa uma vez
+    const enc = !jaFezTela('enc_calendario') && festaAvisadaNaSemana();
+    if ((enc || !jaFezTela('calendario')) && !G.turno && $('#modal').hidden && typeof Calendario !== 'undefined' && Calendario.temEspecial(G.pensao, G.dia)) {
+      const b = $('#rodape-palco .bt-calendario'); if (b) return { chave: 'calendario', el: b, rotulo: enc ? 'Festa encomendada: veja o dia na Semana da pensão' : 'Chegou carta de jantar especial: veja a Semana da pensão' }; }
     return null;
   }
   if (!$('#modal').hidden) return null;
@@ -933,6 +980,7 @@ function _lugarDaFrase(meia, cands, L) {
   return [dentro(cands[0][0]), y0 !== undefined ? y0 : Math.max(22, cands[0][1])];
 }
 DESENHOS_TELA.push(ctx => {
+  if (typeof historiaTocando === 'function' && historiaTocando()) return;   // (T7) durante uma história a seta some (como o HUD)
   const s = setaAgora();
   const img = spr('ui/seta'); if (!s || !img || !G.comecou) return;
   const w = img.naturalWidth * 0.8, h = img.naturalHeight * 0.8, z = G.zoom, L = G.larg, A = G.alt;

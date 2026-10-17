@@ -311,6 +311,7 @@ class Pensao {
       case 'ajudante': return 'Um ajudante de cozinha ensina quando chegar ao nível 5 ou 10 de treino.';
       case 'vip': { const v = typeof vipDe === 'function' && vipDe(r.vip); return `Chega pela carta de ${v ? v.nome : 'um cliente especial'}, 3 dias antes de ele jantar na pensão (quando a pensão já aceitar os ingredientes).`; }
       case 'festa': { const f = typeof FESTAS !== 'undefined' && FESTAS.find(x => x.ensina === id); return `A Rosa aprende na festa "${f ? f.nome : 'da Vila'}", servindo o prato da festa.`; }
+      case 'amizade': return r.dica || 'Uma receita com nome: alguém da família ou da Vila ensina, com o tempo.';   // (T9) a cena da pessoa ensina
       case 'viajante': return `O Viajante da Capital vende por Cr$ ${typeof Viajante !== 'undefined' ? Viajante.RECEITAS[id] : '?'}, às quintas na Vila (a partir do degrau ${typeof Viajante !== 'undefined' ? Viajante.GRAU : 3}).`;
       default: return this._visto(r.principal) ? `Pesquise com a Rosa: ${r.pitadas} pitadas de tempero.` : `Traga ${ing(r.principal)} para a Rosa ver (${typeof origemDe === 'function' ? origemDe(r.principal) : ''}).`;
     }

@@ -62,6 +62,13 @@ function recadoOutrosPedidos(item, qtd, idRecado = '') {
 }
 // Os recados só se entregam no morador do mapa dele (o Lourival do alto-mar e quem aparece no salão, no palco ou no subsolo não recebe).
 const recadoNoMapaDele = p => !!G.mapa && RECADO_MORADOR[p.id] === G.mapaId;
+// (T5 das conversas e histórias) O recado vem na frente do presente (presentes.js): com o item de um recado aceito da pessoa na mão,
+// o clique é o do recado (a pergunta de entrega, ou a conversa com o aviso do que falta), em qualquer mapa: o item não vira presente.
+// Devolve o id do recado (ou null).
+function recadoComItem(p, item) {
+  if (!G.recados || !p || !item || typeof Recados === 'undefined') return null;
+  return Recados.ativosDe(p.id).find(id => PEDIDOS_VILA[id] && PEDIDOS_VILA[id].item === item) || null;
+}
 
 // ---------- o quadro: "Recado do dia" e a linha dos aceitos ----------
 function cartaoRecado(id, botao) {

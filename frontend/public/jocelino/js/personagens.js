@@ -74,8 +74,16 @@ class Personagem {
     if (this.giro) { const py = this.y - qh * e * 0.4; ctx.save(); ctx.translate(this.x, py); ctx.rotate(this.giro); ctx.translate(-this.x, -py); }
     ctx.drawImage(img, this.dir * fw, passo * fh, fw, fh, this.x - qw * e / 2, this.y - (qh - 2) * e, qw * e, qh * e);
     if (this.giro) ctx.restore();
+    // (T7) O balão de emoção de uma história (historias.js, o passo 'balao'): a arte a/fx/ em cima da cabeça, com um pulinho na
+    // entrada e sumindo no fim. Durante a cena, os "!" do jogo (o Bira, o guia) ficam escondidos.
+    if (this._balaoH) {
+      const b = this._balaoH, ag = performance.now(), u = clamp((ag - b.de) / 160, 0, 1), fim = clamp((b.ate - ag) / 200, 0, 1);
+      desenhaFx(ctx, b.nome, this.x, this.y - qh * e - 22 - 6 * Math.sin(Math.PI * u), { alfa: Math.min(u * 2, 1) * fim, escala: 1.25 });
+    }
+    const emHistoria = typeof historiaTocando === 'function' && historiaTocando();
     // O "!" do Mestre Bira: lista nova, pagamento ou gratificação esperando.
-    if (this.id === 'bira' && typeof biraTemNovidade === 'function' && biraTemNovidade()) desenhaFx(ctx, 'balao', this.x, this.y - qh * e - 18);
+    if (emHistoria) { /* (durante a cena, sem os "!") */ }
+    else if (this.id === 'bira' && typeof biraTemNovidade === 'function' && biraTemNovidade()) desenhaFx(ctx, 'balao', this.x, this.y - qh * e - 18);
     else if (typeof guiaMarcaMorador === 'function' && guiaMarcaMorador(this.id)) desenhaFx(ctx, 'exclamacao', this.x, this.y - qh * e - 18 + Math.sin((G.agora || 0) * 5) * 4);   // o "!" do guia (Frente 4)
     // Coração subindo (carinho no Caramelo).
     if (this._coracao > 0) {

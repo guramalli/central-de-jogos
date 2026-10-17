@@ -49,7 +49,8 @@ const Firma = {
   // aconteceu: a versão neutra é a do aliado, spec 9.2).
   moreira() { return typeof Loteamento !== 'undefined' && G.loteamento && Loteamento.moreira() === 'frio' ? 'rival' : 'aliado'; },
   // Os 4 marcos (spec 9.2.1), só com o que o jogo já mede.
-  predioEntregue() { if (!G.obra || typeof OBRAS === 'undefined') return false; const k = OBRAS.findIndex(o => o.id === 'predio'); return k >= 0 && G.obra.indice > k; },
+  // (rodada 2) e só com o mestre: o prédio é a obra dele (obra.js: as reformas do pedreiro não passam mais o índice; o guarda fica)
+  predioEntregue() { if (!G.obra || typeof OBRAS === 'undefined' || G.obra.funcao < 3) return false; const k = OBRAS.findIndex(o => o.id === 'predio'); return k >= 0 && G.obra.indice > k; },
   marcos() {
     const f = G.firma || {};
     return { mestre: !!G.obra && G.obra.funcao >= 3, predio: Firma.predioEntregue(), estrela: !!G.pensao && G.pensao.grau() >= 6, capital: !!f.capitalPago };
@@ -144,6 +145,7 @@ const Firma = {
     if (typeof sons !== 'undefined' && sons.musica) sons.musica('musica_festa');
     const passos = [
       fim => Firma.tela(FIRMA_TELA_ZEFA, fim),
+      fim => Firma.promessa(fim),
       fim => CenaPrato.tocarEspecial('firma_inauguracao', fim),
       fim => CenaPrato.tocarEspecial('firma_festa', fim),
       fim => CenaPrato.tocarEspecial('firma_retrato', fim),
@@ -153,6 +155,20 @@ const Firma = {
     const prox = () => { if (i < passos.length) passos[i++](prox); else Firma._depois(); };
     prox();
     return true;
+  },
+  // (T9) A promessa da praia (o R3 da Rosa, a marca `promessa_zefa`; spec 9.2.3, passo 1): com ela, a Rosa recebe a sogra lembrando a
+  // promessa, e a Zefa responde. Sem ela (ou na bateria, com TESTE_PULA_CENAS), segue direto. Devolve true se a fala abriu.
+  promessa(aoFim) {
+    const prometeu = typeof Conversas !== 'undefined' && Conversas.respondeu('promessa_zefa');
+    if (!prometeu || window.TESTE_PULA_CENAS || typeof abrirConversa !== 'function') { aoFim(); return false; }
+    abrirConversa('Rosa', urlArte('retratos/rosa_normal'), ['@emocionada Dona Zefa! Ele me prometeu, lá na areia da praia, que a senhora vinha.', '@emocionada E a senhora veio!'],
+      () => abrirConversa('Dona Zefa', urlArte('retratos/zefa_normal'), ['@alegre E eu ia perder, minha filha? Trouxe cocada pra Vila inteira.'], aoFim));
+    return true;
+  },
+  // (T9) O caderno da Vó Ia no balcão da festa, com a capa que o Jocelino escreveu (o R4 da Rosa; spec 9.2.3, passo 3). '' sem o R4.
+  cadernoNaFesta() {
+    const capa = typeof RosaArco !== 'undefined' ? RosaArco.capa() : '';
+    return capa ? `No balcão, o caderno "${capa}". A Rosa serve para a Dona Zefa a moqueca da página dela.` : '';
   },
   // O fim do dia de festa: o final fica marcado e a família dorme (a carta do 1º serviço chega na manhã seguinte: MANHA, abaixo).
   _depois() {
@@ -319,9 +335,9 @@ Object.assign(CENAS_ESPECIAIS, {
   // A festa à noite na Pensão da Rosa ★★★★★ (11,6 s): o salão cheio, o Zé cantando no banquinho com as notas subindo; a Rosa e o
   // Jocelino dançando; a Dona Zefa prova a moqueca e fala.
   firma_festa: { dur: 11.6, legenda: [0.4, 5.7], abafa: false, titulo: 'A festa na Pensão da Rosa ★★★★★',
-    falas: [
+    falas: () => [
       [0.7, 3.2, 'O Zé, no banquinho: "Esse samba é pra Família Santos!"'],
-      [3.2, 5.7, 'A Rosa serve a moqueca para a Dona Zefa.'],
+      [3.2, 5.7, Firma.cadernoNaFesta() || 'A Rosa serve a moqueca para a Dona Zefa.'],
       [6.1, 8.8, 'A Dona Zefa: "Meu filho, você saiu de Aracaju servente e vai voltar patrão."'],
       [8.8, 11.4, '"Mas volta só pra visitar, viu? Que o seu lugar é aqui."'],
     ],

@@ -13,6 +13,9 @@
 //   estacao: 'Outono'|0..3   dia: 1..28 (com a estação: a data fixa)   chuva: true (com chuva, 50% de chance) | false
 //   semana: 'domingo'|'Dom'|0..6 (0 = segunda, como o SEMANA)          coracoes: N (N corações ou mais; só o povo da Vila)
 //   ano: 1 (o 1º ano) | 2 (do 2º em diante)
+//   encomenda: true (a pessoa marcou a festa dela na pensão: do dia do aviso até a noite) | 'depois' (a festa saiu, ontem ou hoje)
+//     | 'deixa' (não saiu: a despensa não deu, a pensão não abriu) — as encomendas de festa (encomendas.js; E3). Vale como a festa
+//     (a regra 4): a fala da festa passa na frente da fala comum da pessoa.
 //   resposta: 'marca' | ['marca'...] (alguma já respondida) | '!marca' (ainda não) | { id: 'valor' | ['valor'...] } (o que respondeu)
 //     — é o $p do Stardew: a fala muda com o que o Jocelino respondeu antes (G.respostas, as perguntas abaixo). Vale como estado
 //     (a regra 5, a do `se`).
@@ -36,6 +39,18 @@
 //   - fechar sem escolher (Esc) vale a ÚLTIMA opção: ponha por último a resposta neutra.
 // As cenas e eventos (T7+) usam Conversas.perguntar(p, pergunta, { depois(i, opção) }) direto. Quem monta a conversa sozinho com
 // Conversas.paginas(p) (o quintal) NÃO faz a pergunta: use Conversas.abrir.
+// (T4) OS TÓPICOS E A FOFOCA DOS GOSTOS (spec 3.3; os tópicos e as falas moram em topicos.js):
+//   - `topico`: a linha vale enquanto G.topicos[id] >= hoje, e cada pessoa comenta UMA vez a cada abertura (a chave leva o dia em
+//     que o tópico acaba: reaberto, a Vila comenta de novo);
+//   - `descobre: { zelia: 'flor' | ['flor', 'cocada'] }`: dita a fala, o gosto da pessoa fica descoberto (G.gostosDescobertos; a aba
+//     Gente mostra; o presente da T5 também descobre). Vale em qualquer caminho da conversa (abrir, paginas do quintal, comentario);
+//   - quem conversa fora do motor (o Mestre Bira, pela obra) usa Conversas.comentario(p): só o tópico ou a fofoca ainda não ditos.
+//   - AS EXCEÇÕES À ORDEM 3.2 (escritas como `se` nas linhas do topicos.js, não aqui no motor):
+//     · a festa da própria pessoa passa na frente do tópico: com a festa dela marcada (o convite, `encomenda: true`) ou que acabou
+//       de sair (`'depois'`), a regra 4 vale antes da 2 só para ela. A festa que não saiu (`'deixa'`) não passa: os tópicos voltam;
+//     · a fofoca (regra 5) cede à pendência: quando uma linha de estado de guia de quem fala casa (as da Rosa; as com
+//       `pendencia: true`), a dica espera, em vez de empatar e tapar a linha que guia a reforma ou a casa.
+//   - "N dias" de um tópico contam o dia em que ele abre: G.topicos[id] = hoje + N − 1 (o último dia em que vale).
 // A ORDEM (3.2): os ganchos de hoje (ANTES_DE_CONVERSAR, p.aoConversar) vêm na frente de tudo; depois
 //   1 primeira · 2 topico · 3 aniversario · 4 festa · 5 se/ato · 6 lugar (+coracoes) · 7 estacao+dia · 8 chuva ·
 //   9 semana (+coracoes) · 10 estacao · 11 coracoes · 12 a fala geral.
@@ -51,7 +66,7 @@ const LUGAR_ESPECIAL = [];   // (mapaId, x, y) => 'obra' | 'gremio' | null: um p
 
 const Conversas = {
   REGRAS: { primeira: 1, topico: 2, aniversario: 3, festa: 4, se: 5, lugar: 6, data: 7, chuva: 8, semana: 9, estacao: 10, coracoes: 11, geral: 12 },
-  CHAVES: ['topico', 'aniversario', 'festa', 'se', 'ato', 'resposta', 'lugar', 'estacao', 'dia', 'chuva', 'semana', 'coracoes', 'ano'],
+  CHAVES: ['topico', 'aniversario', 'festa', 'encomenda', 'se', 'ato', 'resposta', 'lugar', 'estacao', 'dia', 'chuva', 'semana', 'coracoes', 'ano'],
   LUGAR_DO_MAPA: { quintal: 'quintal', vila: 'vila', praia: 'praia', alto_mar: 'praia', pensao_dentro: 'pensao', pensao_palco: 'pensao',
     bairro: 'bairro', mata: 'mata', serra: 'mata', pedreira: 'pedreira', bancada: 'pedreira' },
   DIAS_ANO: 112,   // 4 estações de 28 dias; o ano começa no Outono
@@ -71,6 +86,15 @@ const Conversas = {
     return r;
   },
   topicoAberto(t) { return !!G.topicos && G.topicos[t] >= G.dia; },
+  // (E3 das encomendas de festa) A festa que a pessoa marcou na pensão (p.agenda, tipo 'encomenda'), na fase pedida: true = marcada
+  // (do dia do aviso até a noite dela); 'depois' = feita (ontem, ou hoje depois da janta); 'deixa' = não saiu (a despensa não deu, a
+  // pensão não abriu). Devolve a entrada da agenda (a fala usa o prato, a turma e o dia) ou null.
+  encomenda(id, fase = true) {
+    const p = G.pensao, d = G.dia;
+    return ((p && p.agenda) || []).find(e => e.tipo === 'encomenda' && e.quem === id && (fase === true
+      ? !e.fim && e.avisado <= d && e.dia >= d
+      : (e.dia === d || e.dia === d - 1) && (fase === 'depois' ? e.fim === 'feita' : fase === 'deixa' && (e.fim === 'deixa' || e.fim === 'passou')))) || null;
+  },
   // O lugar da conversa: o mapa de quem fala (ou do Jocelino), com os pedaços especiais (o canteiro da obra, o Grêmio).
   lugar(p) {
     const mapa = G.mapaId || (G.mapa && G.mapa.id) || '', x = p && p.x != null ? p.x : G.jog && G.jog.x, y = p && p.y != null ? p.y : G.jog && G.jog.y;
@@ -88,7 +112,7 @@ const Conversas = {
   // ---------- as regras ----------
   regraDe(q) {
     if (!q) return 12;
-    if ('topico' in q) return 2; if ('aniversario' in q) return 3; if ('festa' in q) return 4; if ('se' in q || 'ato' in q || 'resposta' in q) return 5;
+    if ('topico' in q) return 2; if ('aniversario' in q) return 3; if ('festa' in q || 'encomenda' in q) return 4; if ('se' in q || 'ato' in q || 'resposta' in q) return 5;
     if ('lugar' in q) return 6; if ('estacao' in q && 'dia' in q) return 7; if ('chuva' in q) return 8; if ('semana' in q) return 9;
     if ('estacao' in q) return 10; if ('coracoes' in q) return 11; return 12;
   },
@@ -103,6 +127,7 @@ const Conversas = {
         case 'topico': if (!Conversas.topicoAberto(v)) return false; break;
         case 'aniversario': if (!!v !== ctx.aniversario) return false; break;
         case 'festa': if (v === true ? !ctx.festas.length : v === false ? ctx.festas.length : !Conversas._lista(v).some(f => ctx.festas.includes(f))) return false; break;
+        case 'encomenda': if (!Conversas.encomenda(ctx.id, v)) return false; break;
         case 'se': { let ok = false; try { ok = !!v(ctx); } catch (e) { console.error(e); } if (!ok) return false; break; }
         case 'ato': if (!Conversas._lista(v).includes(ctx.ato)) return false; break;
         case 'resposta': if (!Conversas.casaResposta(v)) return false; break;
@@ -177,6 +202,35 @@ const Conversas = {
     const l = r.linha, v = G.falasVistas || (G.falasVistas = {});
     if (l && l.uma) v[Conversas.chaveUma(id, l, r.i)] = G.dia;
     if (l && l.quando && 'topico' in l.quando) v[Conversas.chaveTopico(id, l)] = G.dia;
+    if (l && l.descobre) for (const alvo in l.descobre) for (const it of [].concat(l.descobre[alvo])) Conversas.descobrir(alvo, it);
+    return r;
+  },
+  // (T4) O que a pessoa tem a COMENTAR hoje, para quem conversa fora do motor (o Mestre Bira, pela obra): as páginas do tópico aberto
+  // (a regra 2) ou da fofoca de um gosto (`descobre`) que ela ainda não disse; [] se não tem. Marca como dito, igual à conversa.
+  comentario(p) {
+    const id = Conversas.idDe(p); if (!CONVERSAS[id]) return [];
+    const r = Conversas.escolher(p, true), l = r.linha, v = G.falasVistas || {};
+    if (!l || !(r.regra === 2 || l.descobre)) return [];
+    if ((r.regra === 2 && Conversas.chaveTopico(id, l) in v) || (l.uma && Conversas.chaveUma(id, l, r.i) in v)) return [];   // (já disse hoje)
+    Conversas._marca(id, r, false);
+    return r.paginas.slice();
+  },
+
+  // ---------- (T4) os gostos descobertos: G.gostosDescobertos = { zelia: { flor: dia } } (no save) ----------
+  // Os gostos de cada um ficam na tabela (CONVERSAS[id].gostos = { ama, gosta, naoGosta, odeia }: listas de itens; falas.js). A dica
+  // da fofoca e o presente (T5) descobrem; a aba Gente (T6) lê Conversas.descobertos(id).
+  GOSTOS: ['ama', 'gosta', 'naoGosta', 'odeia'],
+  gosto(id, item) { const g = (CONVERSAS[id] || {}).gostos || {}; return Conversas.GOSTOS.find(k => (g[k] || []).includes(item)) || 'neutro'; },
+  descobriu(id, item) { return !!(G.gostosDescobertos && G.gostosDescobertos[id] && item in G.gostosDescobertos[id]); },
+  descobrir(id, item) {
+    if (Conversas.descobriu(id, item)) return false;
+    const D = G.gostosDescobertos || (G.gostosDescobertos = {}); (D[id] || (D[id] = {}))[item] = G.dia || 1;
+    return true;
+  },
+  // { ama: [itens], gosta: [...], naoGosta: [...], odeia: [...], neutro: [...] }, só os descobertos, na ordem em que foram descobertos.
+  descobertos(id) {
+    const r = { ama: [], gosta: [], naoGosta: [], odeia: [], neutro: [] }, d = (G.gostosDescobertos || {})[id] || {};
+    for (const it of Object.keys(d).sort((a, b) => d[a] - d[b])) r[Conversas.gosto(id, it)].push(it);
     return r;
   },
   // A fala de hoje, com a regra do mesmo dia: conversou de novo, ouve a mesma (se o estado do jogo não mudou).
@@ -287,6 +341,7 @@ const Conversas = {
   iniciar(s) {
     G.falasVistas = Object.assign({}, s.falasVistas || {});
     G.respostas = Object.assign({}, s.respostas || {});
+    G.gostosDescobertos = {}; for (const k in s.gostosDescobertos || {}) G.gostosDescobertos[k] = Object.assign({}, s.gostosDescobertos[k]);
     G.conversaHoje = {};
     for (const k in s.conversaHoje || {}) if (s.conversaHoje[k] && s.conversaHoje[k].dia === s.dia) G.conversaHoje[k] = s.conversaHoje[k];
     if (s.conhecidos) { G.conhecidos = Object.assign({}, s.conhecidos); return; }
@@ -300,6 +355,7 @@ const Conversas = {
   },
   salvar(s) {
     s.falasVistas = Object.assign({}, G.falasVistas || {}); s.respostas = Object.assign({}, G.respostas || {}); s.conhecidos = Object.assign({}, G.conhecidos || {});
+    s.gostosDescobertos = {}; for (const k in G.gostosDescobertos || {}) s.gostosDescobertos[k] = Object.assign({}, G.gostosDescobertos[k]);
     s.conversaHoje = {}; for (const k in G.conversaHoje || {}) if (G.conversaHoje[k].dia === G.dia) s.conversaHoje[k] = G.conversaHoje[k];
   },
 };

@@ -162,6 +162,8 @@ function amanhaDoResumo() {
       if (ld) a.itens.push({ img: urlArte('retratos/rosa_normal'), texto: ld, ouro: true, despensa: true });
       if (c.vip) a.itens.push({ img: urlArte(iconePrato(c.vip.prato)), texto: `Janta: o cliente especial ${c.vip.nome} quer ${nome(c.vip.prato)}.`, ouro: true });
       if (c.festa) a.itens.push({ img: urlArte(iconePrato(c.festa.prato)), texto: `Janta: festa (${c.festa.nome}), o prato do tema é ${nome(c.festa.prato)}.`, ouro: true });
+      // (E8 das encomendas de festa) a festa de um morador amanhã: a véspera também lembra (o aviso da manhã já passou)
+      if (c.encomenda) a.itens.push({ img: urlArte(iconePrato(c.encomenda.prato)), texto: `Janta: ${c.encomenda.titulo} (${c.encomenda.ocasiao}): ${nome(c.encomenda.prato)} para ${c.encomenda.turma}, a turma chega às 18h.`, ouro: true });
       if (c.concurso) a.itens.push({ img: urlArte('ui/trofeu_concurso'), texto: `O Concurso da Rádio: ${c.concurso.tema}.`, ouro: true });
       if (c.viajante) a.itens.push({ img: urlArte('ui/caixa_encomenda_ui'), texto: 'O Viajante da Capital passa na praça.' });
       if (c.moradores.length) a.itens.push({ img: urlArte('ui/caixa_registradora'), texto: `Janta: ${c.moradores.map(m => m.nome).join(' e ')} ${c.moradores.length === 1 ? 'vem' : 'vêm'} jantar.` });

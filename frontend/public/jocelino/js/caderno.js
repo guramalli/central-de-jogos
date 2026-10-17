@@ -17,7 +17,8 @@ const iconeIngrediente = id => urlItem(id === 'peixe' ? 'sardinha' : id);
 let _cadernoSel = null;
 // Os caminhos das receitas a descobrir, na ordem do caderno (receitas.js explica cada um).
 const CAMINHOS_CADERNO = [['ingrediente', 'Pesquisar com a Rosa'], ['degrau', 'Quando a Pensão subir'], ['chef', 'A Rosa inventa'],
-  ['ajudante', 'Os ajudantes ensinam'], ['vip', 'Os clientes especiais ensinam'], ['festa', 'Nas festas da Vila'], ['viajante', 'O Viajante da Capital vende']];
+  ['ajudante', 'Os ajudantes ensinam'], ['vip', 'Os clientes especiais ensinam'], ['festa', 'Nas festas da Vila'], ['viajante', 'O Viajante da Capital vende'],
+  ['amizade', 'As receitas com nome']];   // (T9) a família e a Vila ensinam, numa cena (receitas.js)
 function abrirCaderno(sel) {
   const p = G.pensao;
   if (!p || p.estado !== 'aberta') { abrirPlaca('O caderno da Rosa fica na pensão. Ela começa a escrever quando a pensão abrir.'); return true; }

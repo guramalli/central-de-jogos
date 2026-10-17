@@ -84,6 +84,9 @@ const Obra = {
       lista: o.lista ? JSON.parse(JSON.stringify(o.lista)) : null, aReceber: o.aReceber || 0, primeira: o.primeira !== false, gratificacao: o.gratificacao || null,
       deu: Object.assign({}, o.deu || {}),   // (as ferramentas do canteiro que o Bira já entregou: mangueira, rolo)
       listaFuncao: o.listaFuncao || 0 };   // (C14) a função da última 1ª lista explicada pelo Bira (a 1ª lista de cada função tem a frase)
+    // (C20, rodada 2) Save do pedreiro que entregou as reformas depois da Escola com o índice já no prédio (o avancar de antes passava o
+    // índice para 4 e o Edifício Maré contava como entregue sem o mestre): o índice volta para o prédio, que é a obra do mestre.
+    if (G.obra.indice > 3 && G.obra.funcao < 3) { G.obra.indice = 3; G.obra.etapa = 0; G.obra.diasEtapa = 0; }
     if (G.obra.etapa >= Obra.obra().etapas.length) { G.obra.etapa = 0; G.obra.diasEtapa = 0; }   // save antigo do pedreiro no meio do prédio
     // (15/10) Save antigo no meio de uma lista com 'molhar': vira a tarefa da etapa (lavar ou pintar), com o que já tinha feito.
     const l = G.obra.lista;
@@ -223,7 +226,10 @@ const Obra = {
     if (G.obra.diasEtapa < N) return r;
     G.obra.diasEtapa -= N; r.etapaNova = true; r.premio = o.premios[G.obra.etapa];
     if (G.obra.etapa + 1 >= o.etapas.length && typeof Habilidades !== 'undefined' && Habilidades.tem('artista')) r.premio = Object.assign({}, r.premio, { dinheiro: r.premio.dinheiro + 50 });
-    if (G.obra.etapa + 1 >= o.etapas.length) { r.obraPronta = true; G.obra.entregues++; G.obra.indice = Math.min(OBRAS.length, G.obra.indice + 1); G.obra.etapa = 0; G.obra.diasEtapa = 0; }
+    // (C20, rodada 2) Só a obra da lista (OBRAS[indice]) passa o índice adiante. As reformas do pedreiro (a vez do prédio sem o mestre:
+    // Obra.obra() devolve REFORMAS) contam como obra entregue, mas não pulam o Edifício Maré: antes o índice ia para 4 e o prédio
+    // ficava "entregue" (a carta do Moreira, a arte do prédio pronto) com o Jocelino ainda pedreiro.
+    if (G.obra.etapa + 1 >= o.etapas.length) { r.obraPronta = true; G.obra.entregues++; if (o === OBRAS[G.obra.indice]) G.obra.indice = Math.min(OBRAS.length, G.obra.indice + 1); G.obra.etapa = 0; G.obra.diasEtapa = 0; }
     else G.obra.etapa++;
     return r;
   },
