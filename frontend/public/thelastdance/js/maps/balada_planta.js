@@ -23,11 +23,14 @@
     floreira: ["#2f5a3a", "#24452c", "#3a6c46"],
     rosa: ["#d63c9e", "#a82e7c", "#e85cb3"],
   };
-  const bloco = (nome, tipo, x0, y0, x1, y1, z1, cor, extra) => Object.assign({ nome, tipo, x0, y0, x1, y1, z1, cor: COR[cor] }, extra);
+  // arte: nome da peça (kit_chatgpt/balada); sem a arte ainda, o bloco aparece na cor indicada
+  const bloco = (nome, tipo, x0, y0, x1, y1, z1, cor, arte, extra) => Object.assign({ nome, tipo, x0, y0, x1, y1, z1, cor: COR[cor], arte }, extra);
+  // módulos iguais lado a lado (balcão, borda do palco, guarda-corpo...): n peças de "passo" metros a partir de a
+  const modulos = (n, a, passo, f) => Array.from({ length: n }, (_, k) => f(a + k * passo, a + (k + 1) * passo));
   // mesa alta redonda (barril) com banquetas dos lados indicados (o: esquerda, l: direita, s: atrás, n: frente)
   function mesaAlta(x, y, lados) {
-    const out = [bloco("Mesa alta", "mesa", x, y, x + 0.6, y + 0.6, 1.05, "madeira")];
-    const b = (a, c) => bloco("Banqueta", "cadeira", a, c, a + 0.35, c + 0.35, 0.75, "vermelho");
+    const out = [bloco("Mesa alta", "mesa", x, y, x + 0.6, y + 0.6, 1.05, "madeira", "mesa_alta")];
+    const b = (a, c) => bloco("Banqueta", "cadeira", a, c, a + 0.4, c + 0.4, 0.75, "vermelho", "banqueta"); // a mesma da padaria
     for (const l of lados) {
       if (l === "o") out.push(b(x - 0.5, y + 0.12));
       if (l === "l") out.push(b(x + 0.75, y + 0.12));
@@ -44,15 +47,15 @@
     zoom: 0.75,                       // vista um pouco mais distante que nos outros lugares: a balada é grande
     largura: LARG, profundidade: PROF,
     peDireito: PE_DIREITO,
-    texturaParede: null,              // por enquanto: paredes em bloco escuro
+    texturaParede: "parede_balada",   // sem a arte ainda: paredes em bloco escuro
     inicio: { x: 1.3, y: 14.9, dir: "direita" },
     inicios: { entrada: { x: 1.3, y: 14.9 } },
     roteiroDemo: ["entrada", "guarda-volumes", "camarote VIP", "pista", "palco do DJ", "bar", "banheiros", "lounge", "cabine de fotos"],
 
     comodos: [
-      { nome: "Salão", x0: 0, y0: 0, x1: LARG, y1: PROF, piso: "#24202c", piso2: "#2a2533" },
-      { nome: "Camarote VIP", x0: 0, y0: 0, x1: 6.15, y1: 7.4, piso: "#4a1622", piso2: "#541a28" },
-      { nome: "Pista de dança", x0: 7, y0: 2.4, x1: 15, y1: 10.4, piso: "#2c1846", piso2: "#351c55" },
+      { nome: "Salão", x0: 0, y0: 0, x1: LARG, y1: PROF, piso: "#24202c", piso2: "#2a2533", piso_arte: "piso_balada" },
+      { nome: "Camarote VIP", x0: 0, y0: 0, x1: 6.15, y1: 7.4, piso: "#4a1622", piso2: "#541a28", piso_arte: "piso_vip" },
+      { nome: "Pista de dança", x0: 7, y0: 2.4, x1: 15, y1: 10.4, piso: "#2c1846", piso2: "#351c55", piso_arte: "piso_pista" },
       { nome: "Palco", x0: 7.5, y0: 0, x1: 14.5, y1: 1.6, piso: "#18151e", piso2: "#1d1a24" },
       { nome: "Bar", x0: 15.6, y0: 0, x1: 23.2, y1: 4.6, piso: "#2e2228", piso2: "#35282f" },
       { nome: "Banheiros", x0: 23.35, y0: 0, x1: LARG, y1: 3.6, piso: "#3b4652", piso2: "#44505d" },
@@ -74,34 +77,35 @@
       { nome: "", tipo: "parede", x0: -ESP, y0: PROF, x1: LARG, y1: PROF + ESP, z1: CORTE_FRENTE, cor: COR.parede },
 
       // ---- camarote VIP (canto do fundo): sofás vermelhos, mesinhas, guarda-corpo dourado com passagem vigiada
-      bloco("Sofá do camarote", "sofa", 0, 0.8, 0.8, 3.2, 0.85, "vermelho"),
-      bloco("Sofá do camarote", "sofa", 0, 3.8, 0.8, 6.2, 0.85, "vermelho"),
-      bloco("Sofá do camarote", "sofa", 1.4, 0, 3.8, 0.8, 0.85, "vermelho"),
-      bloco("Mesinha do camarote", "mesa", 1.4, 1.7, 2.0, 2.3, 0.5, "preto"),
-      bloco("Mesinha do camarote", "mesa", 1.4, 4.7, 2.0, 5.3, 0.5, "preto"),
-      bloco("Mesinha do camarote", "mesa", 2.4, 1.3, 3.0, 1.9, 0.5, "preto"),
-      bloco("Guarda-corpo do VIP", "baixo", 6.0, 0, 6.15, 5.2, 1.0, "ouro"),
-      bloco("Guarda-corpo do VIP", "baixo", 6.0, 6.6, 6.15, 7.4, 1.0, "ouro"),
-      bloco("Guarda-corpo do VIP", "baixo", 0, 7.25, 6.0, 7.4, 1.0, "ouro"),
+      bloco("Sofá do camarote", "sofa", 0, 0.8, 0.8, 3.2, 0.85, "vermelho", "sofa_vip_lado"),
+      bloco("Sofá do camarote", "sofa", 0, 3.8, 0.8, 6.2, 0.85, "vermelho", "sofa_vip_lado"),
+      bloco("Sofá do camarote", "sofa", 1.4, 0, 3.8, 0.8, 0.85, "vermelho", "sofa_vip"),
+      bloco("Mesinha do camarote", "mesa", 1.4, 1.7, 2.0, 2.3, 0.5, "preto", "mesinha_vip"),
+      bloco("Mesinha do camarote", "mesa", 1.4, 4.7, 2.0, 5.3, 0.5, "preto", "mesinha_vip"),
+      bloco("Mesinha do camarote", "mesa", 2.4, 1.3, 3.0, 1.9, 0.5, "preto", "mesinha_vip"),
+      // guarda-corpo em módulos de 1 m; a passagem (vigiada) fica entre y = 5 e 6,4
+      ...modulos(5, 0, 1, (a, b) => bloco("Guarda-corpo do VIP", "baixo", 6.0, a, 6.15, b, 1.0, "ouro", "guarda_corpo_lado")),
+      bloco("Guarda-corpo do VIP", "baixo", 6.0, 6.4, 6.15, 7.4, 1.0, "ouro", "guarda_corpo_lado"),
+      ...modulos(6, 0, 1, (a, b) => bloco("Guarda-corpo do VIP", "baixo", a, 7.25, b, 7.4, 1.0, "ouro", "guarda_corpo")),
 
-      // ---- palco do DJ (meio da parede do fundo), caixas de som
-      bloco("Palco", "baixo", 7.5, 1.6, 14.5, 2.2, 0.45, "preto"), // a borda do palco (atrás dela, o piso do palco)
-      bloco("Cabine do DJ", "mesa", 10.0, 0.7, 12.0, 1.4, 1.2, "preto"),
-      bloco("Caixa de som", "armario", 7.8, 0.2, 8.6, 1.0, 1.9, "preto"),
-      bloco("Caixa de som", "armario", 13.4, 0.2, 14.2, 1.0, 1.9, "preto"),
+      // ---- palco do DJ (meio da parede do fundo): borda do palco em módulos, cabine e caixas de som
+      ...modulos(5, 7.5, 1.4, (a, b) => bloco("Palco", "baixo", a, 1.6, b, 2.2, 0.45, "preto", "palco_borda")),
+      bloco("Cabine do DJ", "mesa", 10.0, 0.7, 12.0, 1.4, 1.2, "preto", "cabine_dj"),
+      bloco("Caixa de som", "armario", 7.8, 0.2, 8.6, 1.0, 1.9, "preto", "caixa_som_palco"),
+      bloco("Caixa de som", "armario", 13.4, 0.2, 14.2, 1.0, 1.9, "preto", "caixa_som_palco"),
 
-      // ---- bar: geladeiras/pia atrás, balcão comprido com LED, banquetas vermelhas
-      bloco("Geladeiras do bar", "armario", 15.9, 0, 23.0, 0.6, 1.0, "preto"),
-      bloco("Balcão do bar", "movel", 15.9, 2.0, 22.4, 2.7, 1.1, "balcao"),
-      ...[16.3, 17.4, 18.5, 19.6, 20.7, 21.8].map((x) => bloco("Banqueta do bar", "cadeira", x, 3.05, x + 0.4, 3.45, 0.75, "vermelho")),
+      // ---- bar: geladeiras atrás e balcão comprido, em módulos de 1,3 m; banquetas vermelhas (as da padaria)
+      ...modulos(5, 15.9, 1.3, (a, b) => bloco("Geladeiras do bar", "armario", a, 0, b, 0.6, 1.0, "preto", "bar_fundo")),
+      ...modulos(5, 15.9, 1.3, (a, b) => bloco("Balcão do bar", "movel", a, 2.0, b, 2.7, 1.1, "balcao", "balcao_bar")),
+      ...[16.3, 17.4, 18.5, 19.6, 20.7, 21.8].map((x) => bloco("Banqueta do bar", "cadeira", x, 3.05, x + 0.4, 3.45, 0.75, "vermelho", "banqueta")),
 
       // ---- banheiros: parede separando do bar
       { nome: "", tipo: "parede", x0: 23.2, y0: 0, x1: 23.35, y1: 3.0, z1: 2.6, cor: COR.parede },
 
       // ---- pilares (com fita de LED na arte)
-      bloco("Pilar", "parede", 6.2, 10.0, 6.8, 10.6, PE_DIREITO, "parede"),
-      bloco("Pilar", "parede", 15.2, 10.0, 15.8, 10.6, PE_DIREITO, "parede"),
-      bloco("Pilar", "parede", 15.2, 4.0, 15.8, 4.6, PE_DIREITO, "parede"),
+      bloco("Pilar", "parede", 6.2, 10.0, 6.8, 10.6, PE_DIREITO, "parede", "pilar_balada"),
+      bloco("Pilar", "parede", 15.2, 10.0, 15.8, 10.6, PE_DIREITO, "parede", "pilar_balada"),
+      bloco("Pilar", "parede", 15.2, 4.0, 15.8, 4.6, PE_DIREITO, "parede", "pilar_balada"),
 
       // ---- mesas altas em volta da pista
       ...mesaAlta(16.6, 6.0, ["o", "l"]),
@@ -112,25 +116,22 @@
       ...mesaAlta(12.8, 11.0, ["o", "l"]),
 
       // ---- guarda-volumes: balcão de atendimento (as prateleiras ficam na parede)
-      bloco("Balcão do guarda-volumes", "movel", 2.2, 8.2, 2.8, 11.2, 1.05, "madeira"),
+      bloco("Balcão do guarda-volumes", "movel", 2.2, 8.2, 2.8, 11.2, 1.05, "madeira", "balcao_guarda_volumes"),
       { nome: "", tipo: "parede", x0: 0, y0: 11.7, x1: 2.9, y1: 11.85, z1: 2.4, cor: COR.parede },
 
-      // ---- entrada: postes do cordão da fila, púlpito da hostess
-      ...[1.0, 2.2, 3.4, 4.6].flatMap((x) => [
-        bloco("Poste do cordão", "baixo", x, 13.75, x + 0.15, 13.9, 1.0, "ouro"),
-        bloco("Poste do cordão", "baixo", x, 15.9, x + 0.15, 16.05, 1.0, "ouro"),
-      ]),
-      bloco("Púlpito da hostess", "movel", 3.6, 12.4, 4.2, 13.0, 1.1, "preto"),
+      // ---- entrada: cordão da fila em trechos de 1,2 m (postes nas pontas), púlpito da hostess
+      ...[13.75, 15.9].flatMap((y) => modulos(3, 1.0, 1.2, (a, b) => bloco("Cordão da fila", "baixo", a, y, b, y + 0.15, 1.0, "ouro", "cordao_fila"))),
+      bloco("Púlpito da hostess", "movel", 3.6, 12.4, 4.2, 13.0, 1.1, "preto", "pulpito_hostess"),
 
       // ---- lounge: floreira separando da pista (com passagem no meio), sofás de couro e mesinhas
-      bloco("Floreira", "planta", 5.0, 12.2, 9.2, 12.5, 0.9, "floreira"),
-      bloco("Floreira", "planta", 10.8, 12.2, 15.0, 12.5, 0.9, "floreira"),
-      bloco("Sofá do lounge", "sofa", 5.4, 13.2, 6.2, 15.8, 0.85, "couro"),
-      bloco("Mesinha do lounge", "mesa", 6.7, 14.0, 7.5, 14.8, 0.45, "madeira"),
-      bloco("Sofá do lounge", "sofa", 6.6, 16.4, 9.0, 17.2, 0.85, "couro"),
-      bloco("Sofá do lounge", "sofa", 10.4, 13.0, 12.8, 13.8, 0.85, "couro"),
-      bloco("Mesinha do lounge", "mesa", 10.9, 14.3, 12.3, 15.0, 0.45, "madeira"),
-      bloco("Sofá do lounge", "sofa", 10.4, 15.6, 12.8, 16.4, 0.85, "couro"),
+      ...modulos(3, 5.0, 1.4, (a, b) => bloco("Floreira", "planta", a, 12.2, b, 12.5, 0.9, "floreira", "floreira")),
+      ...modulos(3, 10.8, 1.4, (a, b) => bloco("Floreira", "planta", a, 12.2, b, 12.5, 0.9, "floreira", "floreira")),
+      bloco("Sofá do lounge", "sofa", 5.4, 13.2, 6.2, 15.6, 0.85, "couro", "sofa_lounge_lado"),
+      bloco("Mesinha do lounge", "mesa", 6.7, 14.0, 7.5, 14.8, 0.45, "madeira", "mesinha_lounge"),
+      bloco("Sofá do lounge", "sofa", 6.6, 16.4, 9.0, 17.2, 0.85, "couro", "sofa_lounge_costas"),
+      bloco("Sofá do lounge", "sofa", 10.4, 13.0, 12.8, 13.8, 0.85, "couro", "sofa_lounge"),
+      bloco("Mesinha do lounge", "mesa", 11.2, 14.3, 12.0, 15.1, 0.45, "madeira", "mesinha_lounge"),
+      bloco("Sofá do lounge", "sofa", 10.4, 15.6, 12.8, 16.4, 0.85, "couro", "sofa_lounge_costas"),
       { nome: "Vaso de planta", tipo: "planta", x0: 14.0, y0: 16.9, x1: 14.45, y1: 17.35, z1: 1.2, arte: "planta" },
       { nome: "Vaso de planta", tipo: "planta", x0: 5.1, y0: 17.1, x1: 5.55, y1: 17.55, z1: 1.2, arte: "planta" },
 
@@ -139,26 +140,26 @@
       ...mesaAlta(20.6, 14.2, ["o", "n"]),
       ...mesaAlta(17.9, 16.4, ["l"]),
       ...mesaAlta(21.8, 16.6, ["o", "l"]),
-      bloco("Cabine de fotos", "armario", 24.2, 12.6, 25.7, 14.0, 2.2, "rosa"),
+      bloco("Cabine de fotos", "armario", 24.2, 12.6, 25.7, 14.0, 2.2, "rosa", "cabine_fotos"),
       { nome: "Vaso de planta", tipo: "planta", x0: 25.3, y0: 16.8, x1: 25.75, y1: 17.25, z1: 1.2, arte: "planta" },
       { nome: "Vaso de planta", tipo: "planta", x0: 22.6, y0: 4.9, x1: 23.05, y1: 5.35, z1: 1.2, arte: "planta" },
     ],
 
     naParede: [
       // parede da esquerda (x = 0): camarote, guarda-volumes, porta da rua e o letreiro do clube
-      { nome: "Letreiro \"VIP\"", tipo: "neon", plano: "x0", a: 1.6, b: 3.6, z0: 1.7, z1: 2.6, texto: ["VIP", "CAMAROTE"] },
-      { nome: "Prateleiras do guarda-volumes", tipo: "prateleira", plano: "x0", a: 8.4, b: 11.2, z0: 0.3, z1: 2.1 },
-      { nome: "Letreiro \"GUARDA-VOLUMES\"", tipo: "neon", plano: "x0", a: 8.5, b: 11.1, z0: 2.25, z1: 2.9, texto: ["GUARDA-", "VOLUMES"] },
-      { nome: "Porta da rua", tipo: "porta", plano: "x0", a: 14.2, b: 15.6, z0: 0, z1: 2.5, saida: true },
-      { nome: "Letreiro \"CLUB\"", tipo: "neon", plano: "x0", a: 16.2, b: 17.8, z0: 1.2, z1: 2.5, texto: ["CLUB", "♛"] },
+      { nome: "Letreiro \"VIP\"", tipo: "neon", plano: "x0", a: 1.6, b: 3.6, z0: 1.7, z1: 2.6, texto: ["VIP", "CAMAROTE"], arte: "neon_vip" },
+      { nome: "Prateleiras do guarda-volumes", tipo: "prateleira", plano: "x0", a: 8.4, b: 11.2, z0: 0.3, z1: 2.1, arte: "prateleiras_gv" },
+      { nome: "Letreiro \"GUARDA-VOLUMES\"", tipo: "neon", plano: "x0", a: 8.5, b: 11.1, z0: 2.25, z1: 2.9, texto: ["GUARDA-", "VOLUMES"], arte: "neon_guarda_volumes" },
+      { nome: "Porta da rua", tipo: "porta", plano: "x0", a: 14.2, b: 15.6, z0: 0, z1: 2.5, saida: true, arte: "porta_balada" },
+      { nome: "Letreiro \"CLUB\"", tipo: "neon", plano: "x0", a: 16.2, b: 17.8, z0: 1.2, z1: 2.5, texto: ["CLUB", "♛"], arte: "neon_club" },
       // parede do fundo (y = 0): palco do DJ, bar e banheiros
-      { nome: "Telão do palco", tipo: "led", plano: "y0", a: 8.8, b: 13.2, z0: 1.4, z1: 3.1 },
-      { nome: "Letreiro do DJ", tipo: "neon", plano: "y0", a: 10.0, b: 12.0, z0: 1.9, z1: 2.8, texto: ["♛", "DJ"] },
-      { nome: "Prateleira de bebidas", tipo: "prateleira", plano: "y0", a: 16.2, b: 22.8, z0: 1.1, z1: 2.3 },
-      { nome: "Letreiro \"BAR\"", tipo: "neon", plano: "y0", a: 18.6, b: 20.6, z0: 2.4, z1: 3.1, texto: ["BAR", ""] },
-      { nome: "Banheiro masculino", tipo: "porta", plano: "y0", a: 23.6, b: 24.6, z0: 0, z1: 2.2 },
-      { nome: "Banheiro feminino", tipo: "porta", plano: "y0", a: 24.9, b: 25.9, z0: 0, z1: 2.2 },
-      { nome: "Letreiro \"BANHEIROS\"", tipo: "neon", plano: "y0", a: 23.6, b: 25.9, z0: 2.4, z1: 3.0, texto: ["BANHEIROS", ""] },
+      { nome: "Telão do palco", tipo: "led", plano: "y0", a: 8.8, b: 13.2, z0: 1.4, z1: 3.1, arte: "telao_palco" },
+      { nome: "Letreiro do DJ", tipo: "neon", plano: "y0", a: 10.0, b: 12.0, z0: 1.9, z1: 2.8, texto: ["♛", "DJ"], arte: "neon_dj" },
+      { nome: "Prateleira de bebidas", tipo: "prateleira", plano: "y0", a: 16.2, b: 22.8, z0: 1.1, z1: 2.3, arte: "prateleira_bebidas" },
+      { nome: "Letreiro \"BAR\"", tipo: "neon", plano: "y0", a: 18.6, b: 20.6, z0: 2.4, z1: 3.1, texto: ["BAR", ""], arte: "neon_bar" },
+      { nome: "Banheiro masculino", tipo: "porta", plano: "y0", a: 23.6, b: 24.6, z0: 0, z1: 2.2, arte: "porta_banheiro_masc" },
+      { nome: "Banheiro feminino", tipo: "porta", plano: "y0", a: 24.9, b: 25.9, z0: 0, z1: 2.2, arte: "porta_banheiro_fem" },
+      { nome: "Letreiro \"BANHEIROS\"", tipo: "neon", plano: "y0", a: 23.6, b: 25.9, z0: 2.4, z1: 3.0, texto: ["BANHEIROS", ""], arte: "neon_banheiros" },
     ],
 
     // Gente vem depois que o layout for aprovado (DJ, bartender, segurança do VIP, hostess, meninas na pista...)

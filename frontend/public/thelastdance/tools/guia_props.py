@@ -340,6 +340,110 @@ PECAS = {
         "descricao": "caixa de som portátil grande de festa, em pé no chão, com anel de luz colorida",
         "caixas": [{"x": (0, 0.42), "y": (0, 0.36), "z": (0, 0.8)}],
     },
+    # ---- balada (js/maps/balada_planta.js): frente das peças virada para +y (a face escura do guia) ----
+    "balcao_bar": {
+        "descricao": "módulo do balcão do bar (repete lado a lado), lado dos clientes virado para +y",
+        "caixas": [{"x": (0, 1.3), "y": (0, 0.7), "z": (0, 1.1)}],
+    },
+    "bar_fundo": {
+        "descricao": "módulo do fundo do bar (geladeiras com porta de vidro), encostado na parede, portas para +y",
+        "caixas": [{"x": (0, 1.3), "y": (0, 0.6), "z": (0, 1.0)}],
+    },
+    "sofa_vip": {
+        "descricao": "sofá de veludo vermelho do camarote, encosto do lado y = 0, assento virado para +y",
+        "caixas": [
+            {"x": (0, 2.4), "y": (0, 0.8), "z": (0, 0.45)},
+            {"x": (0, 2.4), "y": (0, 0.22), "z": (0.45, 0.95)},
+        ],
+    },
+    "sofa_vip_lado": {  # não se gera: espelho do sofa_vip (encosto do lado x = 0, assento para +x)
+        "descricao": "sofá vermelho do camarote encostado na parede da esquerda (espelho do sofa_vip)",
+        "caixas": [
+            {"x": (0, 0.8), "y": (0, 2.4), "z": (0, 0.45)},
+            {"x": (0, 0.22), "y": (0, 2.4), "z": (0.45, 0.95)},
+        ],
+    },
+    "sofa_lounge": {
+        "descricao": "sofá de couro preto do lounge, encosto do lado y = 0, assento virado para +y",
+        "caixas": [
+            {"x": (0, 2.4), "y": (0, 0.8), "z": (0, 0.45)},
+            {"x": (0, 2.4), "y": (0, 0.22), "z": (0.45, 0.95)},
+        ],
+    },
+    "sofa_lounge_costas": {
+        "descricao": "o mesmo sofá de couro preto visto de costas: encosto do lado y = 0,8 (perto da câmera), assento para -y",
+        "caixas": [
+            {"x": (0, 2.4), "y": (0, 0.8), "z": (0, 0.45)},
+            {"x": (0, 2.4), "y": (0.58, 0.8), "z": (0.45, 0.95)},
+        ],
+    },
+    "sofa_lounge_lado": {  # não se gera: espelho do sofa_lounge (encosto do lado x = 0, assento para +x)
+        "descricao": "sofá de couro preto virado para +x (espelho do sofa_lounge)",
+        "caixas": [
+            {"x": (0, 0.8), "y": (0, 2.4), "z": (0, 0.45)},
+            {"x": (0, 0.22), "y": (0, 2.4), "z": (0.45, 0.95)},
+        ],
+    },
+    "mesinha_vip": {
+        "descricao": "mesinha baixa do camarote com balde de champanhe",
+        "caixas": [{"x": (0, 0.6), "y": (0, 0.6), "z": (0, 0.5)}],
+    },
+    "mesinha_lounge": {
+        "descricao": "mesinha de centro baixa do lounge",
+        "caixas": [{"x": (0, 0.8), "y": (0, 0.8), "z": (0, 0.45)}],
+    },
+    "mesa_alta": {
+        "descricao": "mesa alta redonda de balada (bistrô), feita de barril",
+        "caixas": [{"x": (0, 0.6), "y": (0, 0.6), "z": (0, 1.05)}],
+    },
+    "guarda_corpo": {
+        "descricao": "módulo de 1 m do guarda-corpo dourado do camarote (repete lado a lado), ao longo de x",
+        "caixas": [{"x": (0, 1.0), "y": (0, 0.15), "z": (0, 1.0)}],
+    },
+    "guarda_corpo_lado": {  # não se gera: espelho do guarda_corpo (ao longo de y)
+        "descricao": "módulo do guarda-corpo dourado ao longo de y (espelho do guarda_corpo)",
+        "caixas": [{"x": (0, 0.15), "y": (0, 1.0), "z": (0, 1.0)}],
+    },
+    "cordao_fila": {
+        "descricao": "trecho de 1,2 m do cordão da fila: dois postes dourados nas pontas e corda de veludo vermelho",
+        "caixas": [{"x": (0, 1.2), "y": (0, 0.15), "z": (0, 1.0)}],
+    },
+    "pulpito_hostess": {
+        "descricao": "púlpito da hostess na entrada, frente para +y",
+        "caixas": [{"x": (0, 0.6), "y": (0, 0.6), "z": (0, 1.1)}],
+    },
+    "palco_borda": {
+        "descricao": "módulo de 1,4 m da borda do palco do DJ (repete lado a lado), frente para +y",
+        "caixas": [{"x": (0, 1.4), "y": (0, 0.6), "z": (0, 0.45)}],
+    },
+    "cabine_dj": {
+        "descricao": "cabine do DJ, frente (para o público) virada para +y",
+        "caixas": [{"x": (0, 2.0), "y": (0, 0.7), "z": (0, 1.2)}],
+    },
+    "caixa_som_palco": {
+        "descricao": "pilha de caixas de som do palco, alto-falantes virados para +y",
+        "caixas": [{"x": (0, 0.8), "y": (0, 0.8), "z": (0, 1.9)}],
+    },
+    "pilar_balada": {
+        "descricao": "pilar quadrado escuro da balada com fitas de LED",
+        "caixas": [{"x": (0, 0.6), "y": (0, 0.6), "z": (0, 3.4)}],
+    },
+    "floreira": {
+        "descricao": "módulo de 1,4 m de floreira baixa separando o lounge da pista (repete lado a lado)",
+        "caixas": [{"x": (0, 1.4), "y": (0, 0.3), "z": (0, 0.9)}],
+    },
+    "balcao_gv": {
+        "descricao": "balcão do guarda-volumes, lado do atendimento virado para +y",
+        "caixas": [{"x": (0, 3.0), "y": (0, 0.6), "z": (0, 1.05)}],
+    },
+    "balcao_guarda_volumes": {  # não se gera: espelho do balcao_gv (ao longo de y, atendimento para +x)
+        "descricao": "balcão do guarda-volumes ao longo de y, atendimento virado para +x (espelho do balcao_gv)",
+        "caixas": [{"x": (0, 0.6), "y": (0, 3.0), "z": (0, 1.05)}],
+    },
+    "cabine_fotos": {
+        "descricao": "cabine de fotos com cortina, entrada virada para +y",
+        "caixas": [{"x": (0, 1.5), "y": (0, 1.4), "z": (0, 2.2)}],
+    },
     "parede_2m": {
         "descricao": "trecho de parede do fundo com 2 m de largura e 2,7 m de altura (plano y = 0, de frente para o jogador)",
         "caixas": [

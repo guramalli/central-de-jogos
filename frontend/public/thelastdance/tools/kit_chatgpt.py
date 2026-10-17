@@ -275,6 +275,139 @@ KITS = {
         "derivados": [("cadeira_corda_lado", "cadeira_corda", "cadeira_corda_lado", ["--espelhar", "--uniforme"]),
                       ("cadeira_corda_sul", "cadeira_corda_costas", "cadeira_corda_sul", ["--espelhar", "--uniforme"])],
     },
+    "balada": {
+        "titulo": "Balada",
+        "contexto": "this set is a big nightclub (balada) at night: entrance with a red carpet queue, coat check, VIP "
+                    "lounge with red velvet sofas, DJ stage, dance floor, long bar, restrooms and a leather lounge; "
+                    "dark room lit by deep purple, magenta, blue and red neon",
+        "nota": "Image 1 is the LAYOUT AND MOOD reference of this exact nightclub: use its furniture, materials and neon "
+                "colors. ",
+        "estilo": [
+            ("estilo_1_balada_referencia.png", "reference/kit_v1.0/02_mapas/balada_isometrica_referencia.png", None),
+            ("estilo_2_balada_moodboard.png", "reference/kit_v1.0/02_mapas/moodboard_locais.png", (1024, 0, 1536, 368)),
+            ("estilo_3_pecas_do_jogo.png", "montagem", ["balcao_modulo", "banqueta", "sofa", "geladeira_bebidas", "planta", "poltrona"]),
+        ],
+        "pedidos": [
+            ("balcao_bar", "Balcão do bar (módulo) — FAÇA ESTE PRIMEIRO", "peca",
+             "one module (1.3 m long, chest-high) of a nightclub bar counter. The customer side is the DARKEST front-left "
+             "face: a glossy black front panel with a thin glowing RED LED strip along the bottom and a brass footrest rail. "
+             "On top a dark polished stone countertop with two cocktail glasses and a small bowl of lime wedges. The "
+             "medium-gray right end is a plain black panel. Several modules will stand side by side.", ["--faces", "--emenda"]),
+            ("bar_fundo", "Fundo do bar: geladeiras (módulo)", "peca",
+             "one module (1.3 m long, waist-high) of the back bar of a nightclub: under-counter fridges with GLASS doors "
+             "lit by cold blue light, full of beer bottles, energy-drink cans and champagne; dark steel top with an ice "
+             "bucket and a cocktail shaker. The glass doors are on the DARKEST front-left face. Several modules will stand "
+             "side by side.", ["--faces", "--emenda"]),
+            ("sofa_vip", "Sofá do camarote VIP (veludo vermelho)", "peca",
+             "a luxurious long VIP sofa in deep RED tufted velvet (chesterfield buttons), with low gold metal legs and a "
+             "few small black cushions. The backrest is at the BACK (the thin upright block on the far side of the guide); "
+             "the seat faces the viewer, toward the lower-left.", []),
+            ("sofa_lounge", "Sofá do lounge (couro preto)", "peca",
+             "a long modern lounge sofa in BLACK leather with stitched cushions and dark wooden legs. The backrest is at "
+             "the BACK (the thin upright block on the far side of the guide); the seat faces the viewer, toward the "
+             "lower-left.", []),
+            ("sofa_lounge_costas", "Sofá do lounge de costas", "peca",
+             "the same long black leather lounge sofa seen from BEHIND: the backrest is the thin upright block on the NEAR "
+             "side of the guide (lower-left), so we see the back of the backrest; the seat faces away from the viewer.", []),
+            ("mesinha_vip", "Mesinha do camarote (com champanhe)", "peca",
+             "a small low round black lacquer table with a gold rim; on top a silver ice bucket with a champagne bottle "
+             "(no label text), two champagne flutes and a small glowing candle.", ["--uniforme"]),
+            ("mesinha_lounge", "Mesinha de centro do lounge", "peca",
+             "a low square dark-wood coffee table; on top a tray with two whisky glasses, a small candle and a bowl of "
+             "snacks.", ["--pela-largura"]),
+            ("mesa_alta", "Mesa alta (barril)", "peca",
+             "a tall round nightclub standing table made from an old dark wooden BARREL with black metal hoops and a round "
+             "dark top; on top two beer bottles and a lit candle in a glass. No stools.", ["--uniforme"]),
+            ("guarda_corpo", "Guarda-corpo do VIP (módulo de 1 m)", "peca",
+             "a 1-meter section of the VIP area railing: polished GOLD metal posts at both ends and a gold top rail, with "
+             "dark smoked-glass panel between them. Several sections will stand side by side.", []),
+            ("cordao_fila", "Cordão da fila (trecho)", "peca",
+             "a 1.2 m section of a queue barrier at a nightclub entrance: TWO shiny gold stanchion posts with round heavy "
+             "bases, one at each end of the gray block, connected by a sagging thick RED VELVET rope with gold hooks. The "
+             "gray block is only the outer size: there is empty space between the two posts, under the rope.", []),
+            ("pulpito_hostess", "Púlpito da hostess", "peca",
+             "a small black hostess podium at a nightclub entrance with a thin gold edge, a tablet with a guest list on the "
+             "slanted top and a small gooseneck lamp. Its front faces the DARKEST front-left face.", ["--uniforme"]),
+            ("palco_borda", "Borda do palco do DJ (módulo)", "peca",
+             "one module (1.4 m long, knee-high) of the front edge of a nightclub DJ stage: black stage deck with a glowing "
+             "VIOLET LED strip along the front edge and a black skirt. Several modules will stand side by side.",
+             ["--faces", "--emenda"]),
+            ("cabine_dj", "Cabine do DJ", "peca",
+             "a nightclub DJ booth: a black desk whose front panel (the DARKEST front-left face, facing the crowd) has a "
+             "glowing crown-shaped neon logo outline (no text); on top two turntables, a DJ mixer with colorful buttons, "
+             "a laptop and headphones.", ["--faces"]),
+            ("caixa_som_palco", "Caixas de som do palco", "peca",
+             "a tall stack of professional black PA speakers (a subwoofer at the bottom and two speaker cabinets on top) "
+             "with round woofers and black metal grilles. The speakers face the DARKEST front-left face. No logos.",
+             ["--faces"]),
+            ("pilar_balada", "Pilar", "peca",
+             "a tall square dark-gray pillar of a nightclub with vertical glowing ORANGE LED strips at the corners and a "
+             "small metal plate at the base.", ["--faces"]),
+            ("floreira", "Floreira (módulo)", "peca",
+             "one module (1.4 m long) of a low black planter box full of dense tropical leafy plants and ferns, with a soft "
+             "warm uplight. Several modules will stand side by side.", []),
+            ("balcao_gv", "Balcão do guarda-volumes", "peca",
+             "a coat-check counter of a nightclub: dark wood front panel (the DARKEST front-left face) with a small brass "
+             "bell and a stack of numbered plastic tags on the dark top, a small glowing sign holder.", ["--faces"]),
+            ("cabine_fotos", "Cabine de fotos", "peca",
+             "a nightclub photo booth: a boxy cabin covered in glossy HOT PINK panels with bulb lights around the "
+             "entrance, a black curtain half-open on the DARKEST front-left face showing a stool inside, a small screen "
+             "on the side. No readable text.", ["--faces"]),
+            ("parede_balada", "Parede (textura)", "parede",
+             "a seamless wall texture for a dark nightclub, 2 m wide by 3.4 m tall: dark charcoal acoustic wall panels "
+             "with subtle diamond quilting, a thin horizontal purple LED line near the top, faint colored light reflections. "
+             "No objects, no text. It must tile seamlessly left-right.", ["--largura-m", "2", "--altura-m", "3.4"]),
+            ("piso_balada", "Piso do salão (textura)", "piso",
+             "a seamless tileable top-down floor texture: dark polished concrete/stone tiles of a nightclub with glossy "
+             "reflections of purple and pink lights. Seen from directly above. No objects.", ["--metros", "2"]),
+            ("piso_pista", "Piso da pista de dança (textura)", "piso",
+             "a seamless tileable top-down floor texture: a nightclub DANCE FLOOR of square dark glass LED tiles (4 by 4), "
+             "each tile softly glowing a different color (violet, magenta, blue, cyan), black grout. Seen from directly "
+             "above. No objects.", ["--metros", "2"]),
+            ("piso_vip", "Piso do camarote VIP (textura)", "piso",
+             "a seamless tileable top-down floor texture: a plush dark RED carpet with a subtle gold baroque pattern. "
+             "Seen from directly above. No objects.", ["--metros", "2"]),
+            ("neon_vip", "Letreiro neon VIP", "decal",
+             "a glowing neon sign: a hot pink/magenta neon crown outline above big neon letters \"VIP\", on a thin dark "
+             "backboard, soft glow. Text must be spelled exactly.", ["--sem-fundo"]),
+            ("neon_club", "Letreiro neon CLUB", "decal",
+             "a glowing neon sign: a violet neon crown outline above magenta neon letters \"CLUB\", on a thin dark "
+             "backboard, soft glow. Text must be spelled exactly.", ["--sem-fundo"]),
+            ("neon_bar", "Letreiro neon BAR", "decal",
+             "a glowing neon sign: big orange-red neon letters \"BAR\" with a small cocktail glass icon, on a thin dark "
+             "backboard, soft glow. Text must be spelled exactly.", ["--sem-fundo"]),
+            ("neon_banheiros", "Letreiro neon BANHEIROS", "decal",
+             "a glowing neon sign: magenta neon letters \"BANHEIROS\" with a small blue man icon and a pink woman icon, "
+             "on a thin dark backboard, soft glow. Text must be spelled exactly.", ["--sem-fundo"]),
+            ("neon_guarda_volumes", "Letreiro GUARDA-VOLUMES", "decal",
+             "a glowing yellow neon sign that reads \"GUARDA-VOLUMES\" in one line, on a thin dark backboard, soft glow. "
+             "Text must be spelled exactly.", ["--sem-fundo"]),
+            ("neon_dj", "Coroa neon do DJ", "decal",
+             "a big glowing neon CROWN outline in hot pink and violet, no text, on a thin dark backboard, soft glow.",
+             ["--sem-fundo"]),
+            ("telao_palco", "Telão de LED do palco", "decal",
+             "a big LED video wall behind a DJ stage showing abstract psychedelic visuals: purple and magenta light "
+             "tunnels and laser lines, with a thin black frame. No text, no people.", []),
+            ("prateleira_bebidas", "Prateleira de bebidas do bar", "decal",
+             "back-bar wall shelves with warm backlight: three glass shelves full of colorful liquor bottles (whisky, gin, "
+             "vodka, tequila, liqueurs), no readable labels, a small mirror behind them.", ["--sem-fundo"]),
+            ("prateleiras_gv", "Prateleiras do guarda-volumes", "decal",
+             "coat-check wall shelving: a rail with jackets and coats on hangers, cubbyholes with bags and backpacks, each "
+             "with a small numbered tag.", ["--sem-fundo"]),
+            ("porta_balada", "Porta da rua (por dentro)", "decal",
+             "a heavy black padded nightclub entrance door with brass studs and a long brass push handle, a small green "
+             "exit light above it.", []),
+            ("porta_banheiro_masc", "Porta do banheiro masculino", "decal",
+             "a closed dark restroom door with a small glowing BLUE neon man icon on it and a metal push plate. No text.", []),
+            ("porta_banheiro_fem", "Porta do banheiro feminino", "decal",
+             "a closed dark restroom door with a small glowing PINK neon woman icon on it and a metal push plate. No text.", []),
+        ],
+        # cópias que não se geram: (nome, de, guia, opções)
+        "derivados": [("sofa_vip_lado", "sofa_vip", "sofa_vip_lado", ["--espelhar"]),
+                      ("sofa_lounge_lado", "sofa_lounge", "sofa_lounge_lado", ["--espelhar"]),
+                      ("guarda_corpo_lado", "guarda_corpo", "guarda_corpo_lado", ["--espelhar"]),
+                      ("balcao_guarda_volumes", "balcao_gv", "balcao_guarda_volumes", ["--espelhar", "--faces"])],
+    },
 }
 
 FORMATO = {"parede": "portrait", "piso": "square", "decal": None}
@@ -284,10 +417,15 @@ DECAL_FORMATO = {"prateleira_paes": "landscape", "cardapio_padaria": "landscape"
                  "porta_cabine": "portrait", "painel_elevador": "portrait",
                  "portao": "landscape", "varal_luzes": "landscape", "placa_churras": "landscape",
                  "vidro_cidade": "landscape", "parede_azulejo_luzes": "landscape", "porta_vidro_sala": "landscape",
-                 "tv_parede": "landscape"}
+                 "tv_parede": "landscape",
+                 "neon_vip": "landscape", "neon_club": "landscape", "neon_bar": "landscape", "neon_banheiros": "landscape",
+                 "neon_guarda_volumes": "landscape", "neon_dj": "landscape", "telao_palco": "landscape",
+                 "prateleira_bebidas": "landscape", "prateleiras_gv": "landscape", "porta_balada": "portrait",
+                 "porta_banheiro_masc": "portrait", "porta_banheiro_fem": "portrait"}
 # imagens planas que têm forma própria (placa, objeto na parede): fundo transparente em volta
 TRANSPARENTES = {"prateleira_paes", "cardapio_padaria", "neon_padaria", "placa_saida", "extintor", "painel_elevador",
-                 "varal_luzes", "placa_churras"}
+                 "varal_luzes", "placa_churras", "neon_vip", "neon_club", "neon_bar", "neon_banheiros",
+                 "neon_guarda_volumes", "neon_dj", "prateleira_bebidas", "prateleiras_gv"}
 
 
 def texto_pedido(nome, tipo, desc):
