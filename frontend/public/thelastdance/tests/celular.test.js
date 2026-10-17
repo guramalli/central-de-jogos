@@ -8,7 +8,8 @@ test("cada conversa tem id único, app válido e mensagens com texto", () => {
   for (const c of CEL.conversas) {
     assert.ok(!ids.has(c.id), "id repetido: " + c.id); ids.add(c.id);
     assert.ok(["zap", "insta"].includes(c.app), c.id);
-    for (const m of [...c.mensagens, ...(c.novas || [])]) assert.ok(m.de && m.t, c.id);
+    for (const m of [...c.mensagens, ...(c.novas || [])]) assert.ok(m.de && (m.t || m.audio), c.id);
+    for (const r of c.rodadas || []) for (const o of r.opcoes) if (o.audio) assert.match(o.audio, /^assets[/]audio[/]amigos[/][\w-]+[.]mp3$/, c.id);
     if (c.novas) assert.ok(c.chega > 0, c.id + ": novas sem 'chega'");
   }
 });

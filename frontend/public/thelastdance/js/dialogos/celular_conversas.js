@@ -5,6 +5,7 @@
 //     chega: segundos de jogo até as "novas" mensagens chegarem (notificação + bolinha vermelha)
 //     rodadas: o que ele pode responder, em ordem. Cada rodada = 2 ou 3 opções { eu: "o que ele manda", volta: [respostas] }
 //       esperaNovas: true = essa rodada só aparece depois que as "novas" chegarem
+//       audio: (opção) ele responde com uma mensagem de voz gravada (pasta trancada assets/audio/amigos), dur = segundos
 //       volta: falas de quem está do outro lado (no grupo: { de: "Juan", t: "..." }) ; volta vazio = "visualizou e não respondeu"
 //   ligacoes[]: quem liga toda hora. Cada vez que ele atende, toca a próxima conversa da lista (e depois recomeça).
 //     Conversa com "passos" em vez de "falas": [{ quem: "ele" | "eu", t: "fala" } ou { quem, audio: "voz gravada" }];
@@ -98,6 +99,22 @@
           { opcoes: [
             { eu: "Esse ano eu sossego, mãe. Prometo.", volta: ["Você falou isso ano passado.", "E no outro.", "Te amo mesmo assim ❤️"] },
             { eu: "Bom dia mãe 🌹🙏", volta: ["Que Deus te abençoe e te dê juízo 🙏"] },
+          ] },
+        ] },
+
+      // convite pro churrasco: ele responde com o áudio dele (voz gravada, trancada no pacote da área dos amigos)
+      { id: "vibola_churras", nome: "Vibola 🕶️", app: "zap", cor: "#455a64", chega: 20,
+        mensagens: [
+          { de: "ele", t: "Fala, Brabo!" },
+        ],
+        novas: [
+          { de: "ele", t: "Sábado tem churrasco lá em casa 🔥🥩" },
+          { de: "ele", t: "Truco, chope gelado e a zoeira de sempre. Vai colar?" },
+        ],
+        rodadas: [
+          { esperaNovas: true, opcoes: [
+            { eu: "🎤 Responder com áudio", audio: "assets/audio/amigos/eu_churras_convite.mp3", dur: 9,
+              volta: ["KKKKKKKKKKKK", "Calma, rapaz 😂 É só um churrasco", "Traz o carvão então, animado"] },
           ] },
         ] },
 

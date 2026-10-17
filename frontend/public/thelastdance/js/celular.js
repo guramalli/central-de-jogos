@@ -75,6 +75,16 @@
     white-space: pre-wrap; animation: cel-sobe .16s ease-out; }
   .cel-msg.eu { align-self: flex-end; background: #d9fdd3; }
   .cel-msg .autor { display: block; font: 700 12px system-ui; margin-bottom: 1px; }
+  .cel-audio { display: flex; align-items: center; gap: 8px; min-width: 190px; }
+  .cel-audio button { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 0; background: #25d366; color: #fff;
+    font: 700 14px system-ui; cursor: pointer; display: grid; place-items: center; }
+  .cel-audio button:focus-visible { outline: 2px solid #0b5345; }
+  .cel-audio .onda { flex: 1; display: flex; align-items: center; gap: 2px; height: 26px; }
+  .cel-audio .onda i { flex: 1; background: #8fbfae; border-radius: 2px; }
+  .cel-audio.tocando .onda i { background: #25d366; animation: cel-onda .6s ease-in-out infinite alternate; }
+  .cel-audio .onda i:nth-child(3n) { animation-delay: .15s; } .cel-audio .onda i:nth-child(3n+1) { animation-delay: .3s; }
+  .cel-audio small { color: #667; font-size: 11px; }
+  @keyframes cel-onda { to { transform: scaleY(.45); } }
   .cel-sis { align-self: center; font-size: 12px; color: #555; background: #fff8c5; border-radius: 8px; padding: 4px 10px; text-align: center; }
   .cel-resp { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 8px; background: #f0f0f0; border-top: 1px solid #ddd; }
   .cel-resp small { color: #666; font-weight: 600; padding: 0 4px; }
@@ -203,6 +213,8 @@
   const badge = el("span", "cel-badge"); bCel.appendChild(badge);
   doc.body.appendChild(bCel);
 
+  let vozTocando = null;
+  let tocarAoMostrar = null; // áudio que ele acabou de mandar: toca sozinho ao aparecer
   let fora = null; // fundo transparente: tocar fora do celular fecha
   let tela = null, app = null, pilha = [], atual = null, aviso = null, avisoRelogio = null;
   const aberto = () => !!tela;
@@ -335,7 +347,7 @@
     const b = botao("cel-item", null, () => ir({ nome: "chat", conversa: c }));
     const meio = el("span", "meio");
     meio.append(el("div", "nome", c.nome),
-      el("div", "prev", ult ? (ult.sis || (ult.de === "eu" ? "Você: " : c.grupo ? ult.de + ": " : "") + (ult.t || "")) : ""));
+      el("div", "prev", ult ? (ult.sis || (ult.de === "eu" ? "Você: " : c.grupo ? ult.de + ": " : "") + (ult.audio ? "🎤 Áudio" : ult.t || "")) : ""));
     b.append(avatar(c.nome, c.cor, c.grupo ? "💀" : null), meio);
     if (n) b.appendChild(el("span", "num", String(n)));
     lista.appendChild(b);
@@ -390,7 +402,8 @@
       if (m.sis) { area.appendChild(el("div", "cel-sis", m.sis)); continue; }
       const eu = m.de === "eu", b = el("div", "cel-msg" + (eu ? " eu" : ""));
       if (c.grupo && !eu) { const a = el("span", "autor", m.de); a.style.color = cores[m.de] || "#555"; b.appendChild(a); }
-      b.appendChild(doc.createTextNode(m.t));
+      if (m.audio) { b.appendChild(balaoAudio(m, eu && tocarAoMostrar === m.audio)); if (eu && tocarAoMostrar === m.audio) tocarAoMostrar = null; }
+      else b.appendChild(doc.createTextNode(m.t));
       area.appendChild(b);
     }
     inf.lidas = msgs(c).filter((m) => !m.sis).length;
@@ -408,9 +421,37 @@
     area.scrollTop = area.scrollHeight;
   }
 
+  // Mensagem de voz: ▶ toca a voz gravada (pacote da área dos amigos); a ondinha mexe enquanto toca.
+  const tempo = (s) => Math.floor(s / 60) + ":" + String(Math.round(s % 60)).padStart(2, "0");
+  function balaoAudio(m, tocarJa) {
+    const caixa = el("div", "cel-audio");
+    const b = botao("", "▶", () => tocar(), "Ouvir o áudio");
+    const onda = el("div", "onda");
+    for (let i = 0; i < 22; i++) { const barra = el("i"); barra.style.height = (25 + ((i * 37) % 70)) + "%"; onda.appendChild(barra); }
+    const dur = el("small", "", m.dur ? tempo(m.dur) : "🎤");
+    caixa.append(b, onda, dur);
+    let tocando = vozTocando === m.audio; // redesenhou no meio: continua mostrando que está tocando
+    if (tocando) { caixa.classList.add("tocando"); b.textContent = "❚❚"; }
+    function tocar() {
+      const A = NSF.Audio;
+      if (tocando || !A || !A.voz) return;
+      const url = NSF.VIP ? NSF.VIP.url(m.audio) : m.audio;
+      tocando = true; caixa.classList.add("tocando"); b.textContent = "❚❚"; vozTocando = m.audio;
+      A.voz(url, () => {
+        vozTocando = null; tocando = false;
+        for (const x of doc.querySelectorAll(".cel-audio.tocando")) { x.classList.remove("tocando"); x.firstChild.textContent = "▶"; }
+      })
+        .then((d) => { m.dur = d; dur.textContent = tempo(d); })
+        .catch(() => { vozTocando = null; tocando = false; caixa.classList.remove("tocando"); b.textContent = "▶"; dur.textContent = "toque na tela e tente de novo"; });
+    }
+    if (tocarJa) setTimeout(tocar, 250);
+    return caixa;
+  }
+
   function responder(c, o) {
     const inf = info(c), tela0 = atual;
-    inf.extras.push({ de: "eu", t: o.eu });
+    if (o.audio) { inf.extras.push({ de: "eu", audio: o.audio, dur: o.dur }); tocarAoMostrar = o.audio; } // mensagem de voz
+    else inf.extras.push({ de: "eu", t: o.eu });
     inf.rodada++;
     salvar();
     tela0.digitando = true;
@@ -430,7 +471,7 @@
       if (atual === tela0) desenhar(); else atualizarBadge();
       setTimeout(proxima, 1100 + Math.random() * 600);
     };
-    setTimeout(proxima, voltas.length ? 1300 : 1600);
+    setTimeout(proxima, (o.audio ? (o.dur || 5) * 1000 + 600 : 0) + (voltas.length ? 1300 : 1600)); // deixa o áudio tocar antes
   }
 
   function telaInsta() {
