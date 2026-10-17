@@ -121,7 +121,11 @@
             { eu: "Esse é meu último ano na bagunça, tenho que aproveitar!", volta: [
               { de: "Vini", t: "Último ano 🤡" }, { de: "Juan", t: "Desde 2015" }, { de: "Vibola", t: "Print pra cobrar ano que vem 📸" }] },
             { eu: "Galera, réveillon no Nordeste, quem fecha?", volta: [
-              { de: "Gustavinho", t: "Ano passado você passou na casa da tia" }, { de: "Bruno Moon", t: "Eu fecho!! 🏖️" }] },
+              { de: "Juan", t: "Ano passado você não disse que era o último?" },
+              { de: "Vini", t: "12 réveillons seguidos no Nordeste. DOZE 🤡" },
+              { de: "Gustavinho", t: "Já é o tio da Sukita da praia 🧃👴" },
+              { de: "Vibola", t: "Se enxerga, mano" },
+              { de: "Bruno Moon", t: "Eu fecho!! 🏖️ (pela 12ª vez)" }] },
             { eu: "Mandem o Carioca parar de ligar", volta: [
               { de: "Carioca", t: "SÓ ATENDER UMA VEZ, IRMÃO" }] },
           ] },
@@ -178,8 +182,8 @@
             ] },
           { falas: ["Irmão, liguei só pra saber: e o réveillon, fechou mesmo?"],
             opcoes: [
-              { eu: "Fechadíssimo! Nordeste, meu parceiro", volta: ["Igual ano passado que era Floripa né", "Tô zoando, tô zoando 😂"] },
-              { eu: "Tô vendo ainda...", volta: ["Sabia. Casa da tia de novo"] },
+              { eu: "Fechadíssimo! Nordeste, meu parceiro", volta: ["De novo? Já é o 12º, irmão! Você não tinha dito que o do ano passado era o último?", "Tá virando o tio da Sukita, se enxerga 😂"] },
+              { eu: "Tô vendo ainda...", volta: ["Vendo o quê? É Nordeste há 12 anos, tio da Sukita 😂"] },
             ] },
           { falas: ["Atende o Carioca, pelo amor de Deus, ele tá me ligando achando que eu sou você"],
             opcoes: [{ eu: "Kkkkkk deixa ele", volta: ["Deixar nada, já passei teu número de novo"] }] },

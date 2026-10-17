@@ -36,11 +36,14 @@
         { quem: "eu", texto: "Isso foi UMA vez!" },
         { quem: "juan", texto: "Uma vez por semana." },
       ],
-      [ // o réveillon
+      [ // o réveillon (de novo)
         { quem: "eu", texto: "Esse ano o réveillon é no Nordeste! Praia, sol e as nordestinas me esperando." },
-        { quem: "gustavinho", texto: "Ano passado era Floripa e ele passou a virada na casa da tia." },
-        { quem: "vini", texto: "Comendo lentilha de pijama." },
-        { quem: "eu", texto: "Esse ano é diferente, já tá tudo combinado!" },
+        { quem: "juan", texto: "Pera aí... ano passado você não falou que era o ÚLTIMO réveillon no Nordeste?" },
+        { quem: "vini", texto: "E no retrasado também. Já são 12 réveillons seguidos no Nordeste, irmão. DOZE." },
+        { quem: "gustavinho", texto: "Ele já virou o tio da Sukita da praia de Porto de Galinhas." },
+        { quem: "vibola", texto: "As nordestinas que você fala já são avós, cara. Se enxerga!" },
+        { quem: "eu", texto: "Respeita o tio da Sukita! E esse ano é diferente, já tá tudo combinado!" },
+        { quem: "juan", texto: "Tá combinado desde 2014." },
       ],
       [ // o último ano de bagunça
         { quem: "eu", texto: "Pode anotar: esse é meu ÚLTIMO ano na bagunça. Ano que vem eu sossego." },
