@@ -75,6 +75,34 @@
     ],
   };
 
+  // Chegou perto do carro (a até 2,6 m da frente): as lanternas piscam duas vezes e o alarme faz "bip-bip".
+  // Só repete depois que ele se afasta de novo.
+  const CARRO = PLANTA.caixas.find((c) => c.arte === "carro_x1");
+  let destravado = false, piscaDesde = null;
+  PLANTA.aoIniciar = (api) => { PLANTA.api = api; };
+  PLANTA.aoDesenhar = (ctx, T, agora) => {
+    const api = PLANTA.api;
+    if (!api || !CARRO) return;
+    const cx = (CARRO.x0 + CARRO.x1) / 2, d = Math.hypot(api.jog.x - cx, api.jog.y - CARRO.y1);
+    if (!destravado && d < 2.6 && !api.jog.oculto) {
+      destravado = true; piscaDesde = agora;
+      if (global.NSF.Audio) global.NSF.Audio.alarmeCarro();
+    } else if (destravado && d > 4) destravado = false;
+    if (piscaDesde == null) return;
+    const u = agora - piscaDesde;
+    if (u > 900) { piscaDesde = null; return; }
+    if (!((u > 0 && u < 220) || (u > 420 && u < 640))) return; // duas piscadas
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (const x of [CARRO.x0 + 0.3, CARRO.x1 - 0.3]) {
+      const [px, py] = T(x, CARRO.y1, 0.62);
+      const g = ctx.createRadialGradient(px, py, 0, px, py, 34);
+      g.addColorStop(0, "rgba(255,240,200,0.95)"); g.addColorStop(0.35, "rgba(255,170,40,0.6)"); g.addColorStop(1, "rgba(255,140,0,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, 34, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  };
+
   if (global.NSF) { global.NSF.PLANTA_GARAGEM = PLANTA; global.NSF.PLANTA_ATUAL = PLANTA; }
   if (typeof module !== "undefined") module.exports = PLANTA;
 })(typeof window !== "undefined" ? window : globalThis);

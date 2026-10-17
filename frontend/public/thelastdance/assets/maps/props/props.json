@@ -913,6 +913,66 @@
         439,
         512
       ]
+    },
+    "churrasqueira_marmore": {
+      "arquivo": "churrasqueira_marmore.png",
+      "escala": 2.0,
+      "origem_px": [
+        118.1,
+        481.7
+      ],
+      "tamanho_m": [
+        1.5,
+        0.8,
+        2.4
+      ],
+      "descricao": "torre de churrasqueira revestida de mármore cinza escuro com a grelha num nicho de vidro, encostada na parede do fundo (y = 0), frente para +y",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "ilha_marmore": {
+      "arquivo": "ilha_marmore.png",
+      "escala": 2.0,
+      "origem_px": [
+        129.8,
+        224.2
+      ],
+      "tamanho_m": [
+        3.0,
+        0.7000000000000001,
+        1.0
+      ],
+      "descricao": "ilha/balcão de bar: base de porcelanato mármore cinza escuro e tampo grosso de madeira clara, frente (onde ficam as banquetas) virada para +y",
+      "ajuste": {
+        "x": 0.429,
+        "y": 0.523,
+        "espelhado": false,
+        "proporcao": 0.821
+      }
+    },
+    "bancada_cozinha": {
+      "arquivo": "bancada_cozinha.png",
+      "escala": 2.0,
+      "origem_px": [
+        96.1,
+        191.5
+      ],
+      "tamanho_m": [
+        2.6,
+        0.65,
+        0.95
+      ],
+      "descricao": "bancada de cozinha encostada na parede do fundo: tampo de mármore, pia com torneira alta, cooktop, armários de madeira embaixo; frente para +y",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
     }
   }
 }

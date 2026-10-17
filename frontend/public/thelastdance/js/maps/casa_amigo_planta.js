@@ -16,7 +16,7 @@
   const PLANTA = {
     id: "casa_amigo",
     nome: "Casa do amigo",
-    musica: "padaria",
+    musica: "sertanejo",
     largura: LARG, profundidade: PROF,
     peDireito: PE_DIREITO,
     texturaParede: "parede_varanda",
@@ -37,17 +37,24 @@
       { nome: "", tipo: "parede", x0: -ESP, y0: PROF, x1: LARG, y1: PROF + ESP, z1: CORTE_FRENTE },
 
       // cozinha na parede do fundo
-      { nome: "Bancada da pia", tipo: "mesa", x0: 0.3, y0: 0, x1: 2.9, y1: 0.65, z1: 0.95, arte: "bancada_cozinha" },
-      { nome: "Churrasqueira", tipo: "movel", x0: 3.0, y0: 0, x1: 4.5, y1: 0.8, z1: 2.4, arte: "churrasqueira_marmore" },
+      { nome: "Bancada da pia", tipo: "mesa", x0: 0.3, y0: 0, x1: 2.9, y1: 0.65, z1: 0.95, arte: "bancada_cozinha",
+        enfeites: [{ tipo: "churrasco", dx: 1.2, dy: 0.35 }, { tipo: "cerveja", dx: 2.2, dy: 0.3 }, { tipo: "latinha", dx: 0.4, dy: 0.32 }] },
+      // a churrasqueira é dele: tocar -> ele assume a grelha (chiado e mais fumaça)
+      { nome: "Churrasqueira", tipo: "movel", x0: 3.0, y0: 0, x1: 4.5, y1: 0.8, z1: 2.4, arte: "churrasqueira_marmore",
+        interacao: "churrasqueira", falarDe: { x: 3.75, y: 1.3 } },
       { nome: "Cervejeira e geladeira", tipo: "armario", x0: 4.6, y0: 0, x1: 6.4, y1: 0.75, z1: 2.3, arte: "nicho_geladeiras" },
       vaso(11.1, 0.2),
 
       // ilha de mármore com as banquetas
-      { nome: "Ilha", tipo: "movel", x0: 1.0, y0: 2.0, x1: 4.0, y1: 2.9, z1: 1.12, arte: "ilha_marmore" },
+      { nome: "Ilha", tipo: "movel", x0: 1.0, y0: 2.0, x1: 4.0, y1: 2.9, z1: 1.12, arte: "ilha_marmore",
+        enfeites: [{ tipo: "churrasco", dx: 1.5, dy: 0.45 }, { tipo: "cerveja", dx: 0.5, dy: 0.3 }, { tipo: "cerveja", dx: 2.6, dy: 0.55 },
+          { tipo: "copo", dx: 0.9, dy: 0.65 }, { tipo: "copo", dx: 2.2, dy: 0.3 }] },
       banqueta(1.35), banqueta(2.3), banqueta(3.25),
 
       // mesa redonda com 6 cadeiras (cada lado com a cadeira virada para a mesa)
-      { nome: "Mesa redonda", tipo: "mesa", x0: 6.5, y0: 4.2, x1: 8.1, y1: 5.8, z1: 0.76, redonda: true, arte: "mesa_redonda_madeira" },
+      { nome: "Mesa redonda", tipo: "mesa", x0: 6.5, y0: 4.2, x1: 8.1, y1: 5.8, z1: 0.76, redonda: true, arte: "mesa_redonda_madeira",
+        enfeites: [{ tipo: "cerveja", dx: 0.5, dy: 0.6 }, { tipo: "cerveja", dx: 1.1, dy: 0.9 }, { tipo: "copo", dx: 0.7, dy: 1.1 },
+          { tipo: "copo", dx: 1.0, dy: 0.5 }, { tipo: "latinha", dx: 1.2, dy: 1.2, cor: "#d8a700" }, { tipo: "churrasco", dx: 0.8, dy: 0.8 }] },
       cadeira(6.6, 3.5, "cadeira_corda"), cadeira(7.4, 3.5, "cadeira_corda"),
       cadeira(6.6, 5.9, "cadeira_corda_sul"), cadeira(7.4, 5.9, "cadeira_corda_sul"),
       cadeira(5.8, 4.7, "cadeira_corda_lado"), cadeira(8.2, 4.7, "cadeira_corda_costas"),
@@ -72,17 +79,17 @@
     // A turma do churrasco. "personagem" = a arte modular (fica só na máquina por enquanto: rosto de pessoa real);
     // sem ela (no site), aparece o boneco provisório com as cores de "visual".
     npcs: [
-      { id: "vibola", nome: "Vibola", personagem: "vibola", postura: "em_pe", x: 3.75, y: 1.15, dir: "baixo",
-        falarDe: { x: 3.75, y: 1.75 }, fala: "\"Picanha no ponto! Ninguém encosta na minha grelha.\"",
+      { id: "vibola", nome: "Vibola", personagem: "vibola", postura: "em_pe", x: 5.2, y: 2.9, dir: "baixo",
+        falarDe: { x: 5.2, y: 3.6 }, fala: ["\"Ô churrasqueiro, cadê a carne? Tô vendo só fumaça!\"", "\"Mais um ano solteiro... de novo, né?\""],
         visual: { pele: "#b9825a", roupa: "#1a1a1a", calca: "#ececec", cabelo: "#2a1a10", estilo: "curto" } },
       { id: "gustavinho", nome: "Gustavinho", personagem: "gustavinho", postura: "em_pe", x: 2.75, y: 3.95, dir: "baixo",
-        falarDe: { x: 2.75, y: 4.6 }, fala: "\"Fala, parceiro! Hoje a noite promete.\"",
+        falarDe: { x: 2.75, y: 4.6 }, fala: ["\"Fala, parceiro! Hoje a noite promete.\"", "\"Essa história do réveillon eu já ouvi umas dez vezes.\""],
         visual: { pele: "#c48d63", roupa: "#111111", calca: "#2f5fb0", cabelo: "#2a1a10", estilo: "curto" } },
       { id: "juan", nome: "Juan", personagem: "juan", postura: "sentado", x: 6.9, y: 3.8, dir: "baixo",
-        falarDe: { x: 6.9, y: 3.05 }, fala: "\"Chegou o atrasado! Pega uma gelada aí na cervejeira.\"",
+        falarDe: { x: 6.9, y: 3.05 }, fala: ["\"Pega uma gelada aí na cervejeira!\"", "\"Vira essa carne, mestre!\""],
         visual: { pele: "#d29a6e", roupa: "#4f6b2a", calca: "#22304a", cabelo: "#5a3a22", estilo: "curto" } },
       { id: "vini", nome: "Vini", personagem: "vini", postura: "sentado", x: 8.5, y: 5.0, dir: "esquerda",
-        falarDe: { x: 9.2, y: 5.0 }, fala: "\"Bota um pagode nessa caixa de som!\"",
+        falarDe: { x: 9.2, y: 5.0 }, fala: ["\"Aumenta esse sertanejo aí!\"", "\"Já mostrou o insta pra todo mundo? Mostra pra mim de novo.\""],
         visual: { pele: "#c98f63", roupa: "#2b2b2b", calca: "#e79b8c", cabelo: "#2a1a10", estilo: "volume" } },
     ],
 
@@ -95,13 +102,88 @@
 
     pontos: [
       { nome: "porta", x: 8.8, y: 0.6 },
-      { nome: "churrasqueira", x: 3.75, y: 1.75 },
+      { nome: "churrasqueira", x: 3.75, y: 1.3 },
       { nome: "geladeiras", x: 5.5, y: 1.3 },
       { nome: "mesa", x: 9.2, y: 6.9 },
       { nome: "caixa de som", x: 9.8, y: 3.05 },
       { nome: "vidro", x: 0.7, y: 4.2 },
     ],
   };
+
+  // ---------------- clima do churrasco ----------------
+  // Fumaça saindo da churrasqueira e tomando o lugar; mais forte quando ele mexe na grelha.
+  const fumaca = [];
+  let relogio = 0, acumulado = 0, forte = 0;
+  function desenharFumaca(ctx, T, agora) {
+    const dt = relogio ? Math.min(0.1, (agora - relogio) / 1000) : 0;
+    relogio = agora;
+    const intenso = agora < forte;
+    acumulado += dt * (intenso ? 16 : 5);
+    while (acumulado >= 1 && fumaca.length < 80) {
+      acumulado -= 1;
+      const daGrelha = Math.random() < 0.45;
+      fumaca.push({ x: 3.75 + (Math.random() - 0.5) * 0.6, y: daGrelha ? 0.85 : 0.4, z: daGrelha ? 1.1 : 2.4,
+        vx: 0.15 + Math.random() * 0.25, vy: 0.25 + Math.random() * 0.35, vz: 0.15 + Math.random() * 0.15,
+        t0: agora, dur: 6500 + Math.random() * 3000 });
+    }
+    // névoa no lugar todo
+    ctx.save();
+    ctx.fillStyle = intenso ? "rgba(205,205,212,0.16)" : "rgba(205,205,212,0.08)";
+    ctx.fillRect(-6000, -6000, 12000, 12000);
+    for (let i = fumaca.length - 1; i >= 0; i--) {
+      const f = fumaca[i], u = (agora - f.t0) / f.dur;
+      if (u >= 1) { fumaca.splice(i, 1); continue; }
+      f.x += f.vx * dt; f.y += f.vy * dt; f.z += f.vz * dt;
+      const [px, py] = T(f.x, f.y, f.z), r = 14 + u * 75, a = 0.3 * (1 - u) * Math.min(1, u * 6);
+      const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+      g.addColorStop(0, `rgba(215,215,222,${a})`); g.addColorStop(1, "rgba(215,215,222,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, r, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Zoeira automática: as rodadas de js/dialogos/churrasco_zoeira.js, uma fala por vez, em balões.
+  function zoeira() {
+    const Z = global.NSF.DIALOGOS && global.NSF.DIALOGOS.churrasco_zoeira;
+    const api = PLANTA.api;
+    if (!Z || !api) return;
+    let r = 0, f = 0;
+    const ocupado = () => (global.NSF.Ligacao && global.NSF.Ligacao.aberta()) || api.porta.menu || api.porta.saindo;
+    const proxima = () => {
+      if (ocupado()) { setTimeout(proxima, 1500); return; }
+      const rodada = Z.rodadas[r], fala = rodada[f], ms = Z.segundosPorFala * 1000;
+      if (fala.quem === "eu") {
+        api.falar(fala.texto, ms - 200);
+        if (fala.celular && api.heroi && !api.jog.sentado && api.heroi.roupas.celular_mao) {
+          api.heroi.vestir("celular_mao"); api.jog.pose = "celular";
+          setTimeout(() => { api.heroi.tirar("celular_mao"); if (api.jog.pose === "celular") api.jog.pose = null; }, ms);
+        }
+      } else {
+        const n = api.npcs.find((x) => x.id === fala.quem);
+        if (n) n.balao = { texto: fala.texto, ate: performance.now() + ms - 200 };
+      }
+      f++;
+      let espera = ms;
+      if (f >= rodada.length) { f = 0; r = (r + 1) % Z.rodadas.length; espera += Z.pausaEntreRodadas * 1000; }
+      setTimeout(proxima, espera);
+    };
+    proxima();
+  }
+
+  PLANTA.aoIniciar = (api, info) => {
+    PLANTA.api = api;
+    if (api.heroi && global.NSF.Poses) global.NSF.Poses.preparar(api.heroi);
+    setTimeout(zoeira, info && info.chegando ? 4500 : 2500);
+  };
+  PLANTA.aoInteragir = (tipo) => {
+    const api = PLANTA.api;
+    if (tipo !== "churrasqueira" || !api) return;
+    api.jog.dir = "cima";
+    forte = performance.now() + 7000;
+    if (global.NSF.Audio) global.NSF.Audio.chiado();
+    api.falar("Sai da frente, que o mestre do churrasco chegou!", 3000);
+  };
+  PLANTA.aoDesenhar = desenharFumaca;
 
   if (global.NSF) { global.NSF.PLANTA_CASA_AMIGO = PLANTA; global.NSF.PLANTA_ATUAL = PLANTA; }
   if (typeof module !== "undefined") module.exports = PLANTA;

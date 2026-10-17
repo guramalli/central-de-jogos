@@ -1,4 +1,4 @@
-// Planta do ELEVADOR do prédio: passagem obrigatória entre o apartamento (12º andar) e a garagem (G).
+// Planta do ELEVADOR do prédio: passagem obrigatória entre o apartamento (20º andar) e a garagem (G).
 // elevador.html?descer=1 (saiu de casa) -> garagem ; elevador.html?subir=1 (chegou de carro) -> apartamento.
 // A cena é automática: ele aparece, o mostrador conta os andares e abre um quadro rápido com 4 opções
 // (peidar, assobiar, olhar o celular, mexer no bigode), cada uma com som/animação. No 7º andar entra uma freira,
@@ -9,8 +9,8 @@
   const PE_DIREITO = 2.6, CORTE_FRENTE = 0.35, ESP = 0.12;
   const URL_ATUAL = typeof location !== "undefined" ? new URLSearchParams(location.search) : new URLSearchParams("");
   const SOBE = URL_ATUAL.has("subir");
-  const ANDAR_CASA = 12;
-  const VIAGEM_S = 16; // dá tempo de fazer várias coisas (as opções voltam depois de cada uma)
+  const ANDAR_CASA = 20;
+  const VIAGEM_S = 28; // 20 andares: dá tempo de fazer várias coisas (as opções voltam depois de cada uma)
 
   const ESPELHO = { nome: "Espelho", tipo: "espelho", plano: "x0", a: 0.45, b: 1.75, z0: 0.95, z1: 2.25 }; // desenhado pelo jogo
 
@@ -38,7 +38,7 @@
       { nome: "Porta do elevador", tipo: "porta", plano: "y0", a: 0.55, b: 1.65, z0: 0, z1: 2.1, arte: "porta_cabine",
         saida: true, trancada: true,
         vai: SOBE ? { nome: "Apartamento", url: "apartamento.html?comodo=entrada&andando=1" }
-                  : { nome: "Garagem", url: "garagem.html?comodo=elevador&andando=1" } },
+                  : { nome: "Garagem", url: "garagem.html?comodo=elevador&andando=1&plim=1" } },
       { nome: "Painel", tipo: "cardapio", plano: "y0", a: 1.8, b: 2.2, z0: 0.85, z1: 1.55, arte: "painel_elevador" },
       ESPELHO,
     ],
@@ -130,10 +130,10 @@
     if (rodando || !chegou) return; // espera a ação terminar
     if (caixaOpcoes) { caixaOpcoes.remove(); caixaOpcoes = null; }
     const api = PLANTA.api, porta = PLANTA.naParede[0];
-    if (global.NSF.Audio) global.NSF.Audio.ding();
+    if (global.NSF.Audio) { global.NSF.Audio.ding(); global.NSF.Audio.portaElevador(); }
     porta.trancada = false;
     api.porta.aberta = true;
-    setTimeout(() => api.sair(porta.vai), 900);
+    setTimeout(() => api.sair(porta.vai, { andando: true }), 700); // sai andando pela porta
   }
 
   // Quadro rápido: só as opções (sem conversa), em cima do mapa.

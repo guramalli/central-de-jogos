@@ -138,6 +138,10 @@
       .catch((e) => { estado.erros.push(String(e)); marcar(); });
   });
   bGrade.addEventListener("click", () => { mostrarGrade = !mostrarGrade; marcar(); });
+  if (!params.has("dev")) { // jogador: só voltar ao menu e ligar/desligar o som
+    const painel = document.getElementById("painel");
+    if (painel) for (const el of painel.children) if (el.tagName !== "A" && el.id !== "som") el.style.display = "none";
+  }
   bNomes.addEventListener("click", () => { mostrarNomes = !mostrarNomes; marcar(); });
   marcar();
 
@@ -169,6 +173,7 @@
     return melhor;
   }
   function irPara(x, y, acao) {
+    levantar();
     const alvo = livreMaisPerto(x, y);
     if (!alvo) return;
     caminho = rota(jog, alvo);
@@ -200,6 +205,7 @@
   // menu de destinos da planta.
   function abrirPorta() {
     porta.aberta = true;
+    porta.origem = "porta";
     jog.dir = PORTA.plano === "x0" ? "esquerda" : "cima";
     if (PORTA.vai) sair(PORTA.vai);
     else mostrarDestinos();
@@ -209,7 +215,7 @@
   const VEICULOS = P.caixas.filter((c) => c.destinos || c.interacao);
   function caixaNaTela(c, m, folga) {
     const pts = [];
-    for (const x of [c.x0, c.x1]) for (const y of [c.y0, c.y1]) for (const z of [0, c.z1]) pts.push(T(x, y, z));
+    for (const x of [c.x0, c.x1]) for (const y of [c.y0, c.y1]) for (const z of [0, c.toqueZ || c.z1]) pts.push(T(x, y, z));
     const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
     return m.telaX >= Math.min(...xs) - folga && m.telaX <= Math.max(...xs) + folga &&
            m.telaY >= Math.min(...ys) - folga && m.telaY <= Math.max(...ys) + folga;
@@ -222,9 +228,127 @@
       jog.dir = direcaoSprite(bx - ax, by - ay);
       if (c.interacao === "armario") abrirArmario();
       else if (c.interacao === "caixa_som") alternarCaixaSom(c);
-      else mostrarDestinos();
+      else if (c.interacao && P.aoInteragir) P.aoInteragir(c.interacao, c);
+      else { porta.origem = "veiculo"; mostrarDestinos(); }
     });
   }
+  // ---------- o que dá para usar: setinha em cima e, com o mouse, contorno + nome da ação ----------
+  const ACAO = { armario: "Guarda-roupa", caixa_som: "Ligar o som", tv: "Assistir TV", computador: "Usar o computador",
+    cama: "Dormir", vinho: "Ver o vinho", churrasqueira: "Assar a carne" };
+  const acaoDe = (c) => c.dica || ACAO[c.interacao] || (c.destinos ? "Entrar no carro" : c.nome);
+  let sobMouse = null; // { tipo: "objeto"|"porta"|"npc", alvo }
+  canvas.addEventListener("pointermove", (e) => {
+    if (e.pointerType !== "mouse") return;
+    const m = telaParaMundo(e.clientX, e.clientY);
+    sobMouse = null;
+    if (m && !porta.menu && !(NSF.Ligacao && NSF.Ligacao.aberta())) {
+      const npc = npcNoToque(m), obj = veiculoNoToque(m, 10), rp = retanguloPorta();
+      if (npc) sobMouse = { tipo: "npc", alvo: npc };
+      else if (obj) sobMouse = { tipo: "objeto", alvo: obj };
+      else if (rp && m.telaX >= rp.x0 && m.telaX <= rp.x1 && m.telaY >= rp.y0 && m.telaY <= rp.y1) sobMouse = { tipo: "porta" };
+    }
+    canvas.style.cursor = sobMouse ? "pointer" : "";
+  });
+  canvas.addEventListener("pointerleave", () => { sobMouse = null; canvas.style.cursor = ""; });
+
+  function setinha(ctx, x, y, agora, fase) { // seta rosa pulando, apontando para baixo
+    const b = Math.sin(agora / 260 + fase) * 4;
+    ctx.save();
+    ctx.translate(x, y + b);
+    ctx.shadowColor = "#ff5ad8"; ctx.shadowBlur = estado.efeitos ? 10 : 0;
+    ctx.fillStyle = "rgba(255,90,216,0.92)"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-11, -13); ctx.lineTo(11, -13); ctx.lineTo(0, 3); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+  function contornoCaixa(ctx, c) {
+    const z = c.toqueZ || c.z1;
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,120,230,0.95)"; ctx.lineWidth = 3;
+    ctx.shadowColor = "#ff5ad8"; ctx.shadowBlur = estado.efeitos ? 12 : 0;
+    const face = (pts) => { ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath(); ctx.stroke(); };
+    face([T(c.x0, c.y0, z), T(c.x1, c.y0, z), T(c.x1, c.y1, z), T(c.x0, c.y1, z)]);
+    face([T(c.x0, c.y1, 0), T(c.x1, c.y1, 0), T(c.x1, c.y1, z), T(c.x0, c.y1, z)]);
+    face([T(c.x1, c.y0, 0), T(c.x1, c.y1, 0), T(c.x1, c.y1, z), T(c.x1, c.y0, z)]);
+    ctx.restore();
+  }
+  function desenharInterativos(ctx, agora) {
+    if (porta.menu || jog.oculto || (NSF.Ligacao && NSF.Ligacao.aberta())) return;
+    const vistos = new Set(); // sofá e TV fazem a mesma coisa: uma setinha só
+    VEICULOS.forEach((c, i) => {
+      if (c.interacao && vistos.has(c.interacao)) return;
+      vistos.add(c.interacao);
+      const [x, y] = T((c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, (c.toqueZ || c.z1) + 0.3);
+      setinha(ctx, x, y, agora, i);
+    });
+    if (PORTA && !porta.saindo && !PORTA.trancada) {
+      const m = (PORTA.a + PORTA.b) / 2;
+      const [x, y] = PORTA.plano === "x0" ? T(0, m, PORTA.z1 + 0.25) : T(m, 0, PORTA.z1 + 0.25);
+      setinha(ctx, x, y, agora, 2.5);
+    }
+    if (!sobMouse) return;
+    let texto = "", px = 0, py = 0;
+    if (sobMouse.tipo === "objeto") {
+      const c = sobMouse.alvo;
+      contornoCaixa(ctx, c);
+      texto = acaoDe(c);
+      [px, py] = T((c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, (c.toqueZ || c.z1) + 0.75);
+    } else if (sobMouse.tipo === "porta") {
+      const m = (PORTA.a + PORTA.b) / 2;
+      texto = PORTA.vai ? "Ir para: " + PORTA.vai.nome : "Sair";
+      [px, py] = PORTA.plano === "x0" ? T(0, m, PORTA.z1 + 0.7) : T(m, 0, PORTA.z1 + 0.7);
+    } else {
+      const n = sobMouse.alvo;
+      texto = n.dialogo || n.fala ? "Conversar com " + n.nome : n.nome;
+      [px, py] = T(n.x, n.y, alturaNpc(n) + 0.95);
+    }
+    ctx.save();
+    ctx.font = "700 15px system-ui, sans-serif";
+    const w = ctx.measureText(texto).width + 20;
+    ctx.fillStyle = "rgba(176,39,154,0.95)"; ctx.strokeStyle = "#ffd6f4"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(px - w / 2, py - 26, w, 26, 13); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(texto, px, py - 13);
+    ctx.restore();
+  }
+
+  // ---------- o protagonista: balão de fala/pensamento, sentar e levantar ----------
+  let balaoJog = null; // { texto, ate, pensamento }
+  function falar(texto, ms, pensamento) { balaoJog = { texto, ate: performance.now() + (ms || 3200), pensamento: !!pensamento }; }
+  function pensar(texto, ms) { falar(texto, ms || 3600, true); }
+  // Senta em (x, y) virado para dir; ao andar de novo, volta para "voltar" (ponto livre ao lado do assento).
+  function sentar(o) {
+    caminho = []; destinoToque = null; aoChegar = null;
+    jog.sentado = { voltar: { x: jog.x, y: jog.y } };
+    jog.x = o.x; jog.y = o.y; jog.dir = o.dir || jog.dir;
+    jog.andando = false;
+  }
+  function levantar() {
+    if (!jog.sentado) return;
+    jog.x = jog.sentado.voltar.x; jog.y = jog.sentado.voltar.y;
+    jog.sentado = null; jog.pose = null;
+    if (P.aoLevantar) P.aoLevantar();
+  }
+  function desenharBalaoJog(ctx, agora) {
+    if (!balaoJog || agora > balaoJog.ate || jog.oculto) return;
+    const [x, y0] = T(jog.x, jog.y, 0), k = y0 - T(jog.x, jog.y, 1)[1];
+    const y = y0 - 2.05 * k + (jog.sentado ? 0.35 * k : 0);
+    ctx.save();
+    ctx.font = (balaoJog.pensamento ? "italic " : "") + "600 15px system-ui, sans-serif";
+    const larg = Math.min(300, ctx.measureText(balaoJog.texto).width + 24);
+    const linhas = quebrar(ctx, balaoJog.texto, larg - 22), h = 12 + linhas.length * 19;
+    ctx.fillStyle = balaoJog.pensamento ? "rgba(245,240,255,0.96)" : "rgba(22,13,36,0.95)";
+    ctx.strokeStyle = balaoJog.pensamento ? "#8a76b8" : "#ff9be9"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(x - larg / 2, y - h - 14, larg, h, balaoJog.pensamento ? 16 : 10); ctx.fill(); ctx.stroke();
+    if (balaoJog.pensamento) { // bolinhas do pensamento
+      for (const [dx, dy, r] of [[6, -8, 5], [12, 0, 3]]) { ctx.beginPath(); ctx.arc(x + dx, y + dy, r, 0, 7); ctx.fill(); ctx.stroke(); }
+    } else {
+      ctx.beginPath(); ctx.moveTo(x - 7, y - 15); ctx.lineTo(x, y - 4); ctx.lineTo(x + 7, y - 15); ctx.fill();
+    }
+    ctx.fillStyle = balaoJog.pensamento ? "#2b1f40" : "#f3ecff"; ctx.textAlign = "center";
+    linhas.forEach((l, i) => ctx.fillText(l, x, y - h - 14 + 24 + i * 19));
+    ctx.restore();
+  }
+
   // Caixa de som: liga/desliga a música do lugar e mostra um aviso em cima dela.
   let avisoObjeto = null;
   function alternarCaixaSom(c) {
@@ -315,19 +439,37 @@
     const brilho = p < 0.4 ? 0 : p < 0.75 ? (p - 0.4) / 0.35 : (1 - p) / 0.25;
     return { sx, sy, brilho };
   }
-  function sair(destino) {
+  // opcoes.andando: em vez do "clique", ele atravessa a porta andando e a tela escurece (ex.: saindo do elevador)
+  function sair(destino, opcoes) {
     if (porta.saindo) return;
     porta.saindo = true;
     if (porta.menu) { porta.menu.remove(); porta.menu = null; }
-    if (NSF.Audio) NSF.Audio.clique(false);
-    efeitoJogador("sumir", 560, () => {
+    const escurecer = () => {
       if (NSF.Audio) NSF.Audio.musica(false);
       const cortina = cortinaCom("Indo para", destino.nome);
       document.body.appendChild(cortina);
       requestAnimationFrame(() => requestAnimationFrame(() => cortina.classList.add("fechada")));
       const url = destino.url + (destino.url.includes("?") ? "&" : "?") + "chegada=1";
       setTimeout(() => { location.href = url; }, 1200);
-    });
+    };
+    const andando = opcoes ? opcoes.andando : porta.origem !== "veiculo";
+    if (andando && PORTA) {
+      porta.aberta = true;
+      const f = frenteDaPorta();
+      const passo = () => { // um passo para dentro do vão da porta, sumindo atrás dela
+        jog.dir = PORTA.plano === "x0" ? "esquerda" : "cima";
+        jog.oculto = false;
+        caminho = [{ x: PORTA.plano === "x0" ? 0.15 : f.x, y: PORTA.plano === "x0" ? f.y : 0.15 }];
+        destinoToque = caminho[0];
+        aoChegar = null;
+        setTimeout(escurecer, 350);
+      };
+      irPara(f.x, f.y, passo);
+      return;
+    }
+    // entrou no carro: some e a tela escurece
+    setTimeout(() => { jog.oculto = true; }, 250);
+    setTimeout(escurecer, 450);
   }
   function cortinaCom(linha1, linha2) {
     const c = document.createElement("div");
@@ -350,26 +492,27 @@
     document.body.appendChild(c);
     const resto = location.search.replace(/[?&]chegada=1/, "").replace(/^&/, "?");
     history.replaceState(null, "", location.pathname + resto + location.hash); // recarregar não repete a chegada
-    // ?andando: chega saindo pela porta (do elevador) em vez de aparecer no "clique"
-    const andando = params.has("andando") && PORTA;
-    if (andando) {
-      const f = frenteDaPorta();
-      jog.x = f.x; jog.y = f.y;
+    const alvo = { x: jog.x, y: jog.y };
+    const f = PORTA ? frenteDaPorta() : null;
+    const pelaPorta = f && Math.hypot(alvo.x - f.x, alvo.y - f.y) < 2.5;
+    if (pelaPorta) {
+      if (Math.hypot(alvo.x - f.x, alvo.y - f.y) < 0.6) { // início colado na porta: anda um pouco para dentro
+        alvo.x = PORTA.plano === "x0" ? f.x + 1.4 : f.x;
+        alvo.y = PORTA.plano === "x0" ? f.y : f.y + 1.4;
+      }
+      jog.x = f.x; jog.y = f.y; // começa na soleira da porta (aberta atrás dele)
       jog.dir = PORTA.plano === "x0" ? "direita" : "baixo";
+    } else {
+      porta.aberta = false;
     }
     setTimeout(() => {
       c.classList.remove("sem-transicao", "fechada");
       setTimeout(() => {
         c.remove();
-        if (andando) {
-          jog.oculto = false;
-          const f = frenteDaPorta(), passo = 1.4;
-          irPara(PORTA.plano === "x0" ? f.x + passo : f.x, PORTA.plano === "x0" ? f.y : f.y + passo,
-            () => setTimeout(() => { porta.aberta = false; }, 250));
-          return;
-        }
-        if (NSF.Audio) NSF.Audio.clique(true);
-        efeitoJogador("aparecer", 560, () => setTimeout(() => { porta.aberta = false; }, 350));
+        jog.oculto = false;
+        if (!pelaPorta) return; // desceu do carro: já está ali
+        if (params.has("plim") && NSF.Audio) { NSF.Audio.ding(); NSF.Audio.portaElevador(); }
+        irPara(alvo.x, alvo.y, () => setTimeout(() => { porta.aberta = false; }, 250)); // entra andando
       }, 650);
     }, 1100);
   }
@@ -476,7 +619,11 @@
       NSF.Ligacao.atender(roteiro, { aoTerminar: (r) => { n.resultado = r; } });
       return;
     }
-    if (n.fala) n.balao = { texto: n.fala, ate: performance.now() + 3500 };
+    if (n.fala) {
+      const lista = Array.isArray(n.fala) ? n.fala : [n.fala];
+      n.vezFala = ((n.vezFala == null ? -1 : n.vezFala) + 1) % lista.length;
+      n.balao = { texto: lista[n.vezFala], ate: performance.now() + 3500 };
+    }
   }
 
   // Botão direito do mouse = interagir: porta (com área de clique maior), pessoas e celular. Nunca anda.
@@ -603,6 +750,7 @@
     if (efeito.tipo || jog.oculto) { jog.andando = false; jog.tempo = 0; return; } // sumindo/aparecendo
     if (NSF.Armario && NSF.Armario.aberto()) { jog.andando = false; jog.tempo = 0; return; }
     const teclando = teclas.size > 0;
+    if (teclando && jog.sentado) levantar();
     if (teclando && caminho.length && !demo) { caminho = []; destinoToque = null; aoChegar = null; }
     if (!demo && !teclando && destinoToque && !caminho.length) {
       destinoToque = null; jog.andando = false; jog.tempo = 0;
@@ -922,12 +1070,25 @@
     heroiRelogio = agora;
     heroi.definirVista(VISTA_MOD[jog.dir] || "frente");
     // pose da cena (ex.: olhando o celular no elevador) ou andar/parado
-    heroi.tocar(jog.pose && heroi.animacoes[jog.pose] ? jog.pose : jog.andando ? "andar" : "parado");
+    const lado = heroi.vista.startsWith("lado");
+    if (jog.sentado) criarPoseSentada(heroi);
+    heroi.tocar(jog.pose && heroi.animacoes[jog.pose] ? jog.pose
+      : jog.sentado ? (lado ? "sentado" : "parado") : jog.andando ? "andar" : "parado");
     heroi.atualizar(dt);
-    const [x, y] = T(jog.x, jog.y, 0), meio = y - ALTURA_PERSONAGEM * 0.5;
+    let [x, y] = T(jog.x, jog.y, 0);
+    const meio = y - ALTURA_PERSONAGEM * 0.5;
     ctx.save();
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    ctx.beginPath(); ctx.ellipse(x, y, 46 * (ef ? Math.min(1, ef.sx) : 1), 13, 0, 0, 2 * Math.PI); ctx.fill();
+    if (jog.sentado) {
+      const k = y - T(jog.x, jog.y, 1)[1];
+      if (!lado) { // de frente/costas: o assento esconde as pernas
+        const corte = T(jog.x, jog.y, 0.47)[1] + 6;
+        ctx.beginPath(); ctx.rect(x - 400, corte - 2000, 800, 2000); ctx.clip();
+      }
+      y += k * (lado ? 0.22 : 0.3);
+    } else {
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.beginPath(); ctx.ellipse(x, y, 46 * (ef ? Math.min(1, ef.sx) : 1), 13, 0, 0, 2 * Math.PI); ctx.fill();
+    }
     if (ef) { ctx.translate(x, meio); ctx.scale(ef.sx, ef.sy); ctx.translate(-x, -meio); }
     heroi.desenhar(ctx, x, y, ALTURA_PERSONAGEM / ALTURA_MOD);
     ctx.restore();
@@ -1012,7 +1173,7 @@
         ctx.fillStyle = "#f3ecff"; ctx.textAlign = "center";
         linhas.forEach((l, i) => ctx.fillText(l, x, y - h - 12 + 23 + i * 19));
         ctx.restore();
-      } else if (n.dialogo) {
+      } else if (n.dialogo || n.fala) { // dá para conversar: "..." pulando em cima
         const b = Math.sin(agora / 260) * 3;
         ctx.save();
         ctx.fillStyle = "#16101f"; ctx.strokeStyle = "#ff5ad8"; ctx.lineWidth = 2.5;
@@ -1032,6 +1193,54 @@
     }
     if (atual) linhas.push(atual);
     return linhas;
+  }
+
+  // Enfeites em cima de um móvel: { tipo: cerveja|latinha|copo|churrasco, dx, dy } (metros a partir do canto x0, y0).
+  function desenharEnfeites(ctx, c) {
+    for (const e of c.enfeites) {
+      const [x, y] = T(c.x0 + e.dx, c.y0 + e.dy, c.z1);
+      const k = y - T(c.x0 + e.dx, c.y0 + e.dy, c.z1 + 1)[1]; // px por metro na vertical
+      ctx.save();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(15,8,4,0.85)";
+      if (e.tipo === "cerveja") { // garrafa âmbar com rótulo
+        const h = 0.27 * k, w = 7;
+        ctx.fillStyle = "#7a4310"; ctx.beginPath(); ctx.roundRect(x - w / 2, y - h * 0.62, w, h * 0.62, 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.roundRect(x - 2, y - h, 4, h * 0.4, 1); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#f2e6c9"; ctx.fillRect(x - w / 2 + 1, y - h * 0.45, w - 2, h * 0.18);
+        ctx.fillStyle = "rgba(255,230,170,0.6)"; ctx.fillRect(x - w / 2 + 1, y - h * 0.6, 1.5, h * 0.5);
+      } else if (e.tipo === "vinho") { // garrafa verde-escura com rótulo vinho
+        const h = 0.32 * k, w = 7;
+        ctx.fillStyle = "#1f3a26"; ctx.beginPath(); ctx.roundRect(x - w / 2, y - h * 0.65, w, h * 0.65, 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.roundRect(x - 2, y - h, 4, h * 0.38, 1); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#6d1a2a"; ctx.fillRect(x - 2, y - h, 4, 4);
+        ctx.fillStyle = "#e9dcc0"; ctx.fillRect(x - w / 2 + 1, y - h * 0.45, w - 2, h * 0.2);
+      } else if (e.tipo === "taca") { // taça com um pouco de vinho
+        const h = 0.16 * k;
+        ctx.strokeStyle = "rgba(230,230,240,0.9)";
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - h * 0.5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - 4, y); ctx.lineTo(x + 4, y); ctx.stroke();
+        ctx.fillStyle = "rgba(220,225,235,0.35)"; ctx.beginPath(); ctx.ellipse(x, y - h * 0.75, 4.5, h * 0.27, 0, 0, 7); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#7a1830"; ctx.beginPath(); ctx.ellipse(x, y - h * 0.68, 3.5, h * 0.15, 0, 0, 7); ctx.fill();
+      } else if (e.tipo === "latinha") {
+        const h = 0.12 * k, w = 7;
+        ctx.fillStyle = e.cor || "#c8102e"; ctx.beginPath(); ctx.roundRect(x - w / 2, y - h, w, h, 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#d9d9de"; ctx.fillRect(x - w / 2 + 1, y - h + 1, w - 2, 2);
+      } else if (e.tipo === "copo") { // copo americano de cerveja com espuma
+        const h = 0.1 * k, w = 7;
+        ctx.fillStyle = "#e8a620"; ctx.beginPath(); ctx.roundRect(x - w / 2, y - h, w, h, 1); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#fbf6e8"; ctx.fillRect(x - w / 2, y - h, w, 3);
+      } else if (e.tipo === "churrasco") { // tábua com picanha fatiada
+        const a = T(c.x0 + e.dx - 0.22, c.y0 + e.dy - 0.14, c.z1), b = T(c.x0 + e.dx + 0.22, c.y0 + e.dy - 0.14, c.z1);
+        const cc = T(c.x0 + e.dx + 0.22, c.y0 + e.dy + 0.14, c.z1), d = T(c.x0 + e.dx - 0.22, c.y0 + e.dy + 0.14, c.z1);
+        ctx.fillStyle = "#9a6a3a"; ctx.beginPath(); [a, b, cc, d].forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath(); ctx.fill(); ctx.stroke();
+        for (let i = 0; i < 5; i++) {
+          const [sx, sy] = T(c.x0 + e.dx - 0.14 + i * 0.07, c.y0 + e.dy, c.z1 + 0.02);
+          ctx.fillStyle = i % 2 ? "#8c2f22" : "#a8452f"; ctx.beginPath(); ctx.ellipse(sx, sy - 2, 5, 3.5, 0, 0, 7); ctx.fill();
+          ctx.fillStyle = "#f0d9b5"; ctx.fillRect(sx - 4, sy - 5, 8, 1.5); // capa de gordura
+        }
+      }
+      ctx.restore();
+    }
   }
 
   function rotulo(ctx, texto, x, y, z) {
@@ -1085,9 +1294,12 @@
         caixa(ctx, it);
         if (transparente) ctx.restore();
         if (it.ocupante) desenharNpc(ctx, it.ocupante);
+        if (it.enfeites) desenharEnfeites(ctx, it);
       }
     }
     desenharSinaisNpc(ctx, agora);
+    desenharInterativos(ctx, agora);
+    desenharBalaoJog(ctx, agora);
     if (avisoObjeto && agora < avisoObjeto.ate) {
       const o = avisoObjeto.c;
       rotulo(ctx, avisoObjeto.texto, (o.x0 + o.x1) / 2, (o.y0 + o.y1) / 2, o.z1 + 0.5);
@@ -1169,7 +1381,8 @@
   }).then(() => {
     // toca quando ele acorda no quarto (não toda vez que volta para casa)
     if (ROTEIRO_LIGACAO && comodo === "quarto" && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
-    marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir, PORTA, veiculos: VEICULOS, irAoVeiculo,
+    marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir, PORTA, veiculos: VEICULOS, irAoVeiculo, irPara,
+      falar, pensar, sentar, levantar, cortinaCom, imgProps,
       abrirArmario, get heroi() { return heroi; },
       npcs: NPCS, retanguloNpc, irFalarCom, falarCom, desenharNpcModular,
       mundoParaTela(x, y) { // inverso de telaParaMundo (para testes): ponto do mundo -> coordenada do toque

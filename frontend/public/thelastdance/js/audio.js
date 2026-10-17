@@ -23,10 +23,14 @@
     elevador: { bpm: 92, estilo: "elevador", volume: 0.22,
       acordes: [[60, 64, 67, 71], [57, 60, 64, 67], [62, 65, 69, 72], [55, 59, 62, 65]], baixo: [48, 45, 50, 43],
       melodia: [79, null, null, 76, null, 77, null, 79, 81, null, null, 79, null, 77, 76, null] },
-    // garagem: ambiente escuro de subsolo — pad grave, pingos ecoando, sem melodia
-    garagem: { bpm: 66, estilo: "ambiente", volume: 0.45,
-      acordes: [[40, 47, 52, 55], [36, 43, 48, 52], [38, 45, 50, 53], [35, 42, 47, 50]], baixo: [28, 24, 26, 23],
-      melodia: [] },
+    // garagem: lo-fi tranquilo e mais leve (provisório, até entrar uma música livre de verdade)
+    garagem: { bpm: 78, estilo: "lofi", volume: 0.4,
+      acordes: [[60, 64, 67, 71], [57, 60, 64, 67], [53, 57, 60, 64], [55, 59, 62, 65]], baixo: [48, 45, 41, 43],
+      melodia: [72, null, null, 74, null, 76, null, null, 79, null, 76, null, 74, null, null, null] },
+    // casa do amigo: sertanejo de churrasco (original): baixo "dois pra lá", violão em batida e sanfoninha
+    sertanejo: { bpm: 128, estilo: "sertanejo", volume: 0.6,
+      acordes: [[55, 59, 62, 67], [50, 54, 57, 62], [52, 55, 59, 64], [48, 52, 55, 60]], baixo: [43, 38, 40, 36],
+      melodia: [74, null, 76, 78, null, 79, null, 78, 76, null, 74, null, 71, null, 74, null] },
     // padaria: bossa nova de rádio de padaria
     padaria: { bpm: 118, estilo: "bossa", volume: 0.55,
       acordes: [[62, 65, 69, 72], [55, 59, 64, 65], [60, 64, 67, 71], [57, 61, 64, 67]], baixo: [50, 43, 48, 45],
@@ -109,6 +113,16 @@
           const f = N(84 + (p % 5));
           nota(f, t, 0.18, "sine", 0.05, busMusica, 6000);
           nota(f, t + 0.32, 0.18, "sine", 0.02, busMusica, 6000);
+        }
+      } else if (trilha.estilo === "sertanejo") {
+        if (s % 4 === 0) nota(N(s % 8 === 0 ? baixo : baixo + 7), t, PASSO_S * 1.8, "triangle", 0.24, busMusica, 450);
+        if (s % 4 === 2) for (const m of acorde) nota(N(m), t, PASSO_S * 1.2, "sawtooth", 0.03, busMusica, 1800); // batida
+        if (s % 2 === 1) nota(N(acorde[(s >> 1) % 4] + 12), t, PASSO_S * 0.9, "triangle", 0.035, busMusica, 3200); // dedilhado
+        if (s % 4 === 0) chimbal(t, 0.03, 5000);
+        if (s === 4 || s === 12) chimbal(t, 0.06, 1800); // caixa
+        if (mel && compasso % 2 === 1) { // sanfona: dois quadrados levemente desafinados
+          nota(N(mel), t, PASSO_S * 1.8, "square", 0.022, busMusica, 2400);
+          nota(N(mel) * 1.006, t, PASSO_S * 1.8, "square", 0.018, busMusica, 2400);
         }
       } else if (trilha.estilo === "bossa") {
         // violão: batida da bossa (clave 3-2) com o acorde abafado; baixo na fundamental e na quinta
@@ -205,6 +219,42 @@
     o.connect(g); g.connect(busEfeitos); o.start(t); o.stop(t + 0.12);
   }
 
+  // Porta do elevador deslizando: ruído filtrado que varre de grave para agudo.
+  function portaElevador() {
+    if (!pronto()) return;
+    const t = ctx.currentTime + 0.25, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = obterRuido(); s.loop = true; f.type = "bandpass"; f.Q.value = 2;
+    f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(1400, t + 0.7);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.18, t + 0.15); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
+    s.connect(f); f.connect(g); g.connect(busEfeitos); s.start(t); s.stop(t + 0.85);
+  }
+
+  // Alarme do carro destravando: duas buzinadas curtas ("bip-bip").
+  function alarmeCarro() {
+    if (!pronto()) return;
+    const t = ctx.currentTime + 0.02;
+    for (const k of [0, 0.22]) {
+      for (const f of [415, 520]) {
+        const o = ctx.createOscillator(), g = ctx.createGain(), fl = ctx.createBiquadFilter();
+        o.type = "sawtooth"; o.frequency.value = f; fl.type = "lowpass"; fl.frequency.value = 2200;
+        g.gain.setValueAtTime(0.0001, t + k); g.gain.linearRampToValueAtTime(0.12, t + k + 0.01);
+        g.gain.setValueAtTime(0.12, t + k + 0.09); g.gain.exponentialRampToValueAtTime(0.0001, t + k + 0.12);
+        o.connect(fl); fl.connect(g); g.connect(busEfeitos); o.start(t + k); o.stop(t + k + 0.14);
+      }
+    }
+  }
+
+  // Carne na grelha: chiado (ruído agudo) com estalinhos da gordura, ~2,5 s.
+  function chiado() {
+    if (!pronto()) return;
+    const t = ctx.currentTime + 0.02, dur = 2.6, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = obterRuido(); s.loop = true; f.type = "highpass"; f.frequency.value = 3500;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.09, t + 0.2); g.gain.setValueAtTime(0.09, t + dur - 0.6);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(busEfeitos); s.start(t); s.stop(t + dur);
+    for (let i = 0; i < 14; i++) chimbal(t + Math.random() * dur, 0.08, 2500 + Math.random() * 3000);
+  }
+
   // "Plim" do elevador chegando: duas notas de sino.
   function ding() {
     if (!pronto()) return;
@@ -232,7 +282,7 @@
       volumeMusica();
     },
     abafar(sim) { abafado = sim; volumeMusica(); },
-    clique, peido, assobio, curtida, ding,
+    clique, peido, assobio, curtida, ding, portaElevador, alarmeCarro, chiado,
     ligado: () => ligadoSom,
     // para conferência/testes: estado do contexto e volumes
     estado: () => ({ contexto: ctx ? ctx.state : "sem", musica: busMusica ? +busMusica.gain.value.toFixed(2) : 0,

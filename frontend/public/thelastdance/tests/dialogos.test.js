@@ -6,7 +6,16 @@ const path = require("node:path");
 
 const RAIZ = path.resolve(__dirname, "..");
 const PASTA = path.join(RAIZ, "js/dialogos");
-const roteiros = fs.readdirSync(PASTA).filter((f) => f.endsWith(".js")).map((f) => require(path.join(PASTA, f)));
+// só os roteiros de conversa (com "nos"); a zoeira do churrasco é outro formato (rodadas)
+const roteiros = fs.readdirSync(PASTA).filter((f) => f.endsWith(".js")).map((f) => require(path.join(PASTA, f))).filter((r) => r.nos);
+const zoeiras = fs.readdirSync(PASTA).filter((f) => f.endsWith(".js")).map((f) => require(path.join(PASTA, f))).filter((r) => r.rodadas);
+
+test("zoeira: toda fala tem quem e texto", () => {
+  for (const z of zoeiras) for (const r of z.rodadas) for (const f of r) {
+    assert.ok(typeof f.quem === "string" && f.quem, `${z.id}: fala sem "quem"`);
+    assert.ok(typeof f.texto === "string" && f.texto.trim(), `${z.id}: fala vazia`);
+  }
+});
 
 test("há pelo menos um roteiro; ligação tem foto que existe (conversa cara a cara pode ficar sem)", () => {
   assert.ok(roteiros.length >= 1);
