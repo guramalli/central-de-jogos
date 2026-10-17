@@ -22,9 +22,10 @@
   const canvas = document.getElementById("tela");
 
   // Zoom: tela baixa (celular deitado) aproxima; tela alta e estreita (celular em pé) segue o personagem.
+  // P.zoom (opcional) afasta ou aproxima a câmera do mapa todo (ex.: a balada, grande, usa uma vista mais distante).
   function zoomDaTela() {
     const h = canvas.clientHeight;
-    return h < 500 ? 1.7 : h < 760 ? 1.3 : 1;
+    return (h < 500 ? 1.7 : h < 760 ? 1.3 : 1) * (P.zoom || 1);
   }
   // Uma dimensão da câmera: se o mapa cabe, centraliza; se não, segue o alvo sem mostrar além da borda.
   function eixoCamera(vista, mapaMin, mapaMax, alvo, margem) {
@@ -1045,7 +1046,7 @@
     caixaBloco(ctx, c);
   }
   function caixaBloco(ctx, c) {
-    const [cTopo, cEsq, cDir] = CORES[c.tipo] || CORES.movel;
+    const [cTopo, cEsq, cDir] = c.cor || CORES[c.tipo] || CORES.movel; // c.cor: [topo, esquerda, direita] próprios
     const z = c.z1, linha = c.pedaco ? null : "rgba(0,0,0,0.45)"; // pedaço de parede: sem linha na emenda
     // pedaço do meio de uma parede: a "tampa" que encosta no pedaço seguinte fica escondida — não desenha
     // (com a parede transparente, ela apareceria como uma listra)
@@ -1377,6 +1378,7 @@
     posicionarCamera(CONFIG.larguraBase / z, CONFIG.alturaBase / z);
 
     desenharPiso(ctx);
+    if (P.aoDesenharPiso) P.aoDesenharPiso(ctx, T, agora); // efeitos no chão, por baixo de tudo (ex.: luzes da pista)
     // paredes do fundo (altas) e o que está nelas
     for (const c of P.caixas.filter((k) => k.fundo)) caixa(ctx, c);
     for (const w of P.naParede) quadParede(ctx, w);

@@ -42,6 +42,10 @@
     padaria: { bpm: 118, estilo: "bossa", volume: 0, fundo: "assets/audio/padaria_ambiente.mp3", fundoVolume: 0.05,
       acordes: [[62, 65, 69, 72], [55, 59, 64, 65], [60, 64, 67, 71], [57, 61, 64, 67]], baixo: [50, 43, 48, 45],
       melodia: [74, null, 76, 77, null, 76, null, 74, null, 72, null, null, 71, null, 72, null] },
+    // balada: house sintetizado (bumbo 4x4, baixo no contratempo, acordes curtos) — até ter uma música de verdade
+    balada: { bpm: 124, estilo: "house", volume: 0.5,
+      acordes: [[57, 60, 64, 69], [53, 57, 60, 65], [48, 52, 55, 60], [55, 59, 62, 67]], baixo: [45, 41, 48, 43],
+      melodia: [81, null, 79, null, 76, null, 79, 81, null, 84, null, 81, null, 79, 76, null] },
     // praia (minigame de surf): o mesmo groove leve, em tom de verão (Ré maior, I–V–vi–IV), mais baixinho que o mar
     praia: { bpm: 108, estilo: "groove", volume: 0.26,
       acordes: [[62, 66, 69, 74], [57, 61, 64, 69], [59, 62, 66, 71], [55, 59, 62, 67]], baixo: [38, 45, 47, 43],
@@ -146,6 +150,13 @@
         if (s % 4 === 2) chimbal(t, 0.035, 6000);                        // "tchi" no contratempo
         else if (s % 2 === 1) chimbal(t, 0.012, 9000);
         if (mel && compasso % 4 >= 2) nota(N(mel), t, PASSO_S * 1.6, "triangle", 0.045, busMusica, 2800);
+      } else if (trilha.estilo === "house") {
+        if (s % 4 === 0) bumbo(t);                                                            // bumbo 4x4
+        if (s % 4 === 2) chimbal(t, 0.05, 7000); else if (s % 2 === 1) chimbal(t, 0.015, 9000); // chimbal aberto no contratempo
+        if (s === 4 || s === 12) chimbal(t, 0.06, 1800);                                      // palma
+        if (s % 4 === 2) nota(N(baixo), t, PASSO_S * 1.5, "sawtooth", 0.1, busMusica, 420);   // baixo no contratempo
+        if (s === 3 || s === 10) for (const m of acorde) nota(N(m), t, PASSO_S * 0.9, "square", 0.022, busMusica, 2200);
+        if (mel && compasso % 4 >= 2) nota(N(mel), t, PASSO_S * 1.2, "triangle", 0.04, busMusica, 3500);
       } else if (trilha.estilo === "bossa") {
         // violão: batida da bossa (clave 3-2) com o acorde abafado; baixo na fundamental e na quinta
         if ([0, 3, 6, 10, 12].includes(s)) for (const m of acorde) nota(N(m), t, PASSO_S * 1.6, "triangle", 0.045, busMusica, 2400);

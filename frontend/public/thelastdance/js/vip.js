@@ -21,6 +21,7 @@
     "elevador.html": ["vozes"],
     "garagem.html": ["vozes"],
     "surf.html": [],
+    "balada.html": ["vozes"],
   };
   const PACOTE_TESTE = "vozes"; // pequeno: confere se a chave abre (na entrada)
   // muda a cada vez que os pacotes são trancados (tools/vip_trancar.mjs reescreve esta linha): fura o cache do site
