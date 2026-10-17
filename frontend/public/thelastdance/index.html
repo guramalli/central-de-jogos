@@ -74,6 +74,12 @@
   a.cartao b { display: block; font-size: 16px; }
   a.cartao small { color: var(--suave); }
   .icone { font-size: 26px; width: 40px; text-align: center; flex: none; }
+  .jogar[hidden] { display: none; }
+  .vip.portao { margin: 18px 0 26px; padding: 18px 16px; background: var(--cartao); border: 1px solid var(--rosa); border-radius: 16px;
+    box-shadow: 0 0 24px rgba(255,90,216,.2); }
+  .vip.portao b { color: #fff; font-size: 17px; }
+  .vip.portao input { width: min(240px, 62vw); padding: 12px 16px; font-size: 16px; }
+  .vip.portao button[type=submit] { padding: 12px 22px; font-size: 16px; color: #fff; background: linear-gradient(135deg, #ff5ad8, #b0279a); border-color: #ffd6f4; }
   .vip { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: -12px 0 24px; font-size: 14px; color: var(--suave); }
   .vip button, .vip input { font: 600 14px system-ui, sans-serif; border-radius: 999px; padding: 9px 16px; }
   .vip button { color: var(--texto); background: rgba(36,21,54,.9); border: 1px solid var(--borda); cursor: pointer; }
@@ -104,7 +110,7 @@
     <p class="slogan">O último ano de solteiro. De novo.</p>
   </header>
 
-  <a class="jogar" href="apartamento.html?comodo=quarto">
+  <a class="jogar" id="jogar" href="apartamento.html?comodo=quarto" hidden>
     <svg width="22" height="24" viewBox="0 0 22 24" aria-hidden="true"><path d="M3 2.5v19a1.5 1.5 0 0 0 2.3 1.27l15.2-9.5a1.5 1.5 0 0 0 0-2.54L5.3 1.23A1.5 1.5 0 0 0 3 2.5z" fill="#fff"/></svg>
     JOGAR
   </a>
@@ -132,7 +138,7 @@
     </ul>
   </section>
 
-  <details>
+  <details id="testes" hidden>
     <summary>Páginas de teste (desenvolvimento)</summary>
     <a class="cartao" href="garagem.html">
       <span class="icone">🚗</span>
@@ -163,10 +169,32 @@
   // Área dos amigos: senha (conferida no servidor) libera os personagens com rosto dos amigos neste aparelho.
   (function () {
     const caixa = document.getElementById("vip");
-    function desenhar(msg, classe) {
+    const jogar = document.getElementById("jogar"), testes = document.getElementById("testes");
+    function desenhar() {
       caixa.replaceChildren();
+      const liberado = NSF.VIP.ativo() || NSF.VIP.local;
+      jogar.hidden = !liberado; testes.hidden = !liberado;
+      caixa.classList.toggle("portao", !liberado);
+      if (!liberado) { // portão: só convidados
+        const t = document.createElement("b"); t.textContent = "🔒 Jogo fechado: só para convidados";
+        const sub = document.createElement("span"); sub.textContent = "Digite a senha que você recebeu para entrar.";
+        const f = document.createElement("form");
+        const i = document.createElement("input"); i.type = "password"; i.placeholder = "Senha"; i.autocomplete = "current-password";
+        i.setAttribute("aria-label", "Senha do jogo");
+        const ok = document.createElement("button"); ok.type = "submit"; ok.textContent = "Entrar";
+        const erro = document.createElement("div"); erro.className = "erro";
+        f.append(i, ok);
+        f.onsubmit = async (e) => {
+          e.preventDefault();
+          ok.disabled = true; erro.textContent = "Conferindo...";
+          try { await NSF.VIP.entrar(i.value); desenhar(); jogar.focus(); }
+          catch (er) { erro.textContent = er.message; ok.disabled = false; i.select(); }
+        };
+        caixa.append(t, sub, f, erro);
+        return;
+      }
       if (NSF.VIP.ativo()) {
-        const t = document.createElement("span"); t.className = "ok"; t.textContent = "🔓 Amigos liberados neste aparelho";
+        const t = document.createElement("span"); t.className = "ok"; t.textContent = "🔓 Liberado neste aparelho (com os amigos)";
         const b = document.createElement("button"); b.type = "button"; b.textContent = "Trancar de novo";
         b.onclick = () => { NSF.VIP.sair(); desenhar(); };
         caixa.append(t, b);

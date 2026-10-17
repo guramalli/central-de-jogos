@@ -1,6 +1,8 @@
 // Área dos amigos: os personagens com rosto de amigos de verdade vêm trancados em assets/vip/amigos.bin
 // (AES-256-GCM, ver tools/vip_trancar.mjs). Com a senha certa, o servidor devolve a chave; ela fica salva neste
 // aparelho e o jogo destranca o pacote no navegador. Sem a chave, os amigos aparecem como bonecos.
+// PORTÃO: o jogo é só para convidados. Nas páginas do jogo (as que não são a inicial), quem não tem a chave
+// salva volta para a página inicial, que pede a senha. No computador de quem desenvolve (localhost) fica liberado.
 // API: NSF.VIP.pronto (Promise: pacote destrancado ou não) ; .url(caminho) (endereço do arquivo destrancado, ou o
 //      próprio caminho) ; .ativo() ; .entrar(senha) (Promise; rejeita com a mensagem de erro) ; .sair()
 (function (global) {
@@ -28,9 +30,16 @@
   }
 
   const chaveSalva = ler();
+  // ?portao: no computador, faz como no site (para testar o portão)
+  const local = (host === "localhost" || host === "127.0.0.1" || host === "") && !/[?&]portao/.test(global.location ? global.location.search : "");
+  const paginaInicial = !global.location || /\/thelastdance\/?(index\.html)?$/.test(global.location.pathname) ||
+    /(^|\/)index\.html$/.test(global.location.pathname) || global.location.pathname === "/";
+  const paraEntrada = () => { if (!local && !paginaInicial) global.location.replace("./"); };
+  if (!/^[0-9a-f]{64}$/.test(chaveSalva)) paraEntrada(); // sem senha: nem carrega o jogo
   const pronto = (/^[0-9a-f]{64}$/.test(chaveSalva) && global.crypto && global.crypto.subtle)
     ? destrancar(chaveSalva).catch(() => { // chave velha (o pacote foi trancado de novo): pede a senha outra vez
       try { global.localStorage.removeItem(LS); } catch (e) { /* ok */ }
+      paraEntrada();
     })
     : Promise.resolve();
 
@@ -51,5 +60,5 @@
     urls.clear();
   }
 
-  NSF.VIP = { pronto, url: (c) => urls.get(c) || c, ativo: () => urls.size > 0, entrar, sair };
+  NSF.VIP = { pronto, url: (c) => urls.get(c) || c, ativo: () => urls.size > 0, entrar, sair, local };
 })(typeof window !== "undefined" ? window : globalThis);
