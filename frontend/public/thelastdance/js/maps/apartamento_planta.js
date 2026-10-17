@@ -244,7 +244,7 @@
 
 
   // ---------------- encontro: a menina que topou na paquera vem com ele (apartamento.html?encontro=<perfil>) ----------------
-  // Ela entra atrás dele -> vinho na mesinha (os dois sentam e conversam) -> "Chamar pro quarto" -> ele vai ao banheiro
+  // Ela entra atrás dele -> ele já chama para sentar -> vinho na mesinha (os dois sentam e conversam) -> "Chamar pro quarto" -> ele vai ao banheiro
   // e volta de tarja (imagem trancada no pacote dos amigos) -> tela escura com sons -> manhã seguinte: ela já foi, deixou
   // um bilhete e manda mensagem no ZapZap -> ele vai trocar de roupa. Sem nada explícito.
   const qsEnc = new URLSearchParams(global.location ? global.location.search : "");
@@ -351,10 +351,14 @@
     n.oculta = false;
     await andar(n, 3.9, 1.7);    // ela entra atrás
     vistaDe(n, "baixo");
-    ela("Uau... que apê! Olha essa vista! 😍", 3000);
-    await espera(3000);
-    api.pensar("Agora é a hora daquele vinho... 🍷", 3400);
-    E.fase = "casa";             // espera ele tocar na mesinha do vinho
+    ela("Uau... que apê! Olha essa vista! 😍", 2800);
+    await espera(2900);
+    // ele já chama ela para sentar e tomar um vinho, e os dois vão para a mesinha
+    api.falar("Fica à vontade! Senta aí que eu vou abrir um vinho pra gente 🍷", 3000);
+    await espera(1800);
+    const mesa = PLANTA.caixas.find((c) => c.interacao === "vinho");
+    await new Promise((ok) => { api.irPara(mesa.falarDe.x, mesa.falarDe.y, ok); setTimeout(ok, 6000); });
+    if (E.fase === "chegando") vinho();
   }
 
   async function vinho() {
@@ -432,6 +436,8 @@
     await espera(2600);
     dormindo = null;
     api.jog.oculto = false; api.jog.x = 8.3; api.jog.y = 2.55; api.jog.dir = "baixo";
+    const temCorpoManha = imgCorpo.complete && imgCorpo.naturalWidth > 0;
+    if (temCorpoManha) { api.jog.semCorpo = true; E.nu = true; } // levanta pelado, de tarja
     const nome = (perfilEnc() || {}).nome || "ela";
     api.pensar(`Ela já foi... deixou um bilhete: "Ontem foi demais 😘 — ${nome}"`, 4600);
     if (global.NSF.Celular && global.NSF.Celular.novaConversa) global.NSF.Celular.novaConversa({
@@ -442,19 +448,27 @@
         { eu: "Confiança é tudo, gata 😎", volta: ["KKKKKKKK", "Você não presta 😂"] },
       ] }] });
     await espera(4800);
-    E.fase = null;
-    api.pensar("Bora trocar de roupa...", 2400);
     const arm = PLANTA.caixas.find((x) => x.interacao === "armario");
+    if (!E.nu) { E.fase = null; api.pensar("Bora trocar de roupa...", 2400); if (arm) api.irAoVeiculo(arm); return; }
+    // pelado até o guarda-roupa; quando ele abre, se veste
+    E.fase = "manha";
+    api.pensar("Bora me vestir, né... 😅", 2400);
     if (arm) api.irAoVeiculo(arm);
+    const vestiu = setInterval(() => {
+      if (!(global.NSF.Armario && global.NSF.Armario.aberto && global.NSF.Armario.aberto())) return;
+      clearInterval(vestiu);
+      E.nu = false; api.jog.semCorpo = false; E.fase = null;
+    }, 200);
   }
 
   // o corpo de tarja, desenhado no lugar dele enquanto E.nu (mesmo tamanho e pés do personagem)
   function desenharCorpo(ctx, T) {
     if (!E.nu || !E.api) return;
-    const j = E.api.jog, [x, y] = T(j.x, j.y, 0), k = y - T(j.x, j.y, 1)[1], s = (1.73 * k) / 1375;
+    const j = E.api.jog, [x, y0] = T(j.x, j.y, 0), k = y0 - T(j.x, j.y, 1)[1], s = (1.73 * k) / 1375;
+    const y = y0 - (j.andando ? Math.abs(Math.sin(performance.now() / 110)) * 5 : 0); // passinhos
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.35)";
-    ctx.beginPath(); ctx.ellipse(x, y, 46, 13, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, y0, 46, 13, 0, 0, 2 * Math.PI); ctx.fill();
     ctx.drawImage(imgCorpo, x - 512 * s, y - 1456 * s, 1024 * s, 1536 * s);
     ctx.restore();
   }
@@ -476,6 +490,7 @@
       if (!E.fase) return interagirAntes(tipo, c);
       if (E.fase === "casa" && tipo === "vinho") { vinho(); return; }
       if (E.fase === "casa") E.api.pensar("Agora não... ela tá aqui! Bora no vinho 🍷", 2600);
+      if (E.fase === "manha") E.api.pensar("Antes, uma roupa... 😅", 2200);
     };
     PLANTA.aoDesenhar = (ctx, T, agora) => {
       moverNpc(agora);

@@ -1086,6 +1086,7 @@
   function desenharJogador(ctx) {
     const ef = quadroEfeito(performance.now());
     if (jog.oculto && !ef) return;
+    if (jog.semCorpo) return; // o mapa desenha outra imagem no lugar dele (ex.: de tarja, no encontro)
     if (conjunto === MODULAR && heroi) { desenharModular(ctx, ef); return; }
     const f = manifesto.conjuntos[conjunto][jog.dir], im = folhas[f.folha];
     const q = quadroSprite(f), px = f.pes[0], py = f.pes[1];
