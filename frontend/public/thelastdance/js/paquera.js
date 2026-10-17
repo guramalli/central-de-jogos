@@ -322,9 +322,10 @@
     if (NSF.Audio && NSF.Audio.match) NSF.Audio.match();
     const ir = () => {
       const api = global.NSF_APTO;
-      const url = "apartamento.html?comodo=entrada&chegada=1&encontro=" + encodeURIComponent(n.paquera);
+      // sobem juntos pelo elevador (ela reage às bobagens dele) e chegam ao apê
+      const url = "elevador.html?subir=1&chegada=1&encontro=" + encodeURIComponent(n.paquera);
       if (api && api.cortinaCom) {
-        const c = api.cortinaCom("Mais tarde...", "No apê dele 🍷");
+        const c = api.cortinaCom("Partiu pro apê... 🍷", "Subindo pro 20º");
         doc.body.appendChild(c);
         requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add("fechada")));
         setTimeout(() => { global.location.href = url; }, 1400);

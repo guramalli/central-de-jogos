@@ -2,13 +2,17 @@
 // elevador.html?descer=1 (saiu de casa) -> garagem ; elevador.html?subir=1 (chegou de carro) -> apartamento.
 // A cena é automática: ele aparece, o mostrador conta os andares e abre um quadro rápido com 4 opções
 // (peidar, assobiar, olhar o celular, mexer no bigode), cada uma com som/animação. No 7º andar entra uma freira,
-// que comenta o que ele fez. Quando o elevador chega e a ação terminou, "plim", a porta abre e ele sai.
+// que comenta o que ele fez (?encontro=<perfil>: em vez da irmã, a menina que deu match sobe com ele e reage a
+// tudo, e a porta leva os dois para o apê). Quando o elevador chega e a ação terminou, "plim", a porta abre e ele sai.
 (function (global) {
   "use strict";
 
   const PE_DIREITO = 2.6, CORTE_FRENTE = 0.35, ESP = 0.12;
   const URL_ATUAL = typeof location !== "undefined" ? new URLSearchParams(location.search) : new URLSearchParams("");
   const SOBE = URL_ATUAL.has("subir");
+  // ?encontro=<perfil>: subindo com a menina que deu match (ela já está na cabine, no lugar da irmã, e reage a tudo)
+  const ENCONTRO = URL_ATUAL.get("encontro");
+  const COM_ELA = !!ENCONTRO && /^[a-z_]+$/.test(ENCONTRO);
   const ANDAR_CASA = 20;
   const VIAGEM_S = 56; // 20 andares bem devagar: dá tempo de ouvir a música e fazer várias coisas (as opções voltam)
 
@@ -37,15 +41,19 @@
       // porta da cabine (no fundo, à direita): só abre quando o elevador chega
       { nome: "Porta do elevador", tipo: "porta", plano: "y0", a: 0.55, b: 1.65, z0: 0, z1: 2.1, arte: "porta_cabine",
         saida: true, trancada: true,
-        vai: SOBE ? { nome: "Apartamento", url: "apartamento.html?comodo=entrada&andando=1" }
+        vai: SOBE ? { nome: "Apartamento", url: "apartamento.html?comodo=entrada&andando=1" + (COM_ELA ? "&encontro=" + ENCONTRO : "") }
                   : { nome: "Garagem", url: "garagem.html?comodo=elevador&andando=1&plim=1" } },
       { nome: "Painel", tipo: "cardapio", plano: "y0", a: 1.8, b: 2.2, z0: 0.85, z1: 1.55, arte: "painel_elevador" },
       ESPELHO,
     ],
     // a irmã entra no 7º andar (fica oculta até lá) e reage ao que ele fizer
+    // (no encontro, quem está na cabine desde o começo é ela, no mesmo lugar, e a irmã não entra)
     npcs: [
-      { id: "freira", nome: "Irmã", personagem: "freira", postura: "em_pe", x: 1.95, y: 0.9, dir: "baixo", oculta: true,
-        fala: "\"Deus abençoe, meu filho.\"", interagir: false }, // ela só reage ao que ele faz
+      COM_ELA
+        ? { id: "freira", nome: "Ela", personagem: ENCONTRO, postura: "em_pe", x: 1.95, y: 0.9, dir: "baixo", interagir: false,
+          visual: { pele: "#e2b08a", roupa: "#c8233d", calca: "#c8233d", cabelo: "#2b1a12", estilo: "longo" } }
+        : { id: "freira", nome: "Irmã", personagem: "freira", postura: "em_pe", x: 1.95, y: 0.9, dir: "baixo", oculta: true,
+          fala: "\"Deus abençoe, meu filho.\"", interagir: false }, // ela só reage ao que ele faz
     ],
     pontos: [{ nome: "centro", x: 1.2, y: 1.3 }],
     roteiroDemo: ["centro"],
@@ -89,7 +97,8 @@
     setTimeout(mostrarOpcoes, 600);
     // instante em que o mostrador passa pelo 7º andar
     const v = PLANTA.viagem, frac = (ANDAR_FREIRA - v.de) / (v.para - v.de);
-    setTimeout(entraFreira, Math.max(0.2, frac) * VIAGEM_S * 1000);
+    if (COM_ELA) setTimeout(() => falaFreira("Vinte andares, é? Que chique... 😏", 3000), 1200);
+    else setTimeout(entraFreira, Math.max(0.2, frac) * VIAGEM_S * 1000);
     setTimeout(() => { chegou = true; talvezSair(); }, VIAGEM_S * 1000);
   }
 
@@ -100,7 +109,12 @@
     celular: "Boa noite. Esses celulares, viu...",
     bigode: "Boa noite, meu filho.",
   };
-  const REACAO = {
+  const REACAO = COM_ELA ? { // a menina do encontro
+    peidar: "MEU DEUS, QUE ISSO?! 🤢😂 Abre essa porta!",
+    assobiar: "Que música é essa? Kkkk você é muito bobo 😂",
+    celular: "Já tá no celular comigo do lado? 🙄",
+    bigode: "Para de mexer nesse bigode... eu gosto dele assim 😏",
+  } : {
     peidar: "Misericórdia! Abre essa porta, Senhor!",
     assobiar: "Bonita essa! Toca na missa de domingo?",
     celular: "Coloca um terço nesse celular aí, meu filho.",
