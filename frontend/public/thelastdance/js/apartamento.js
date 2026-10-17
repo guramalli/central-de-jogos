@@ -662,6 +662,7 @@
   function ocupado() {
     const agora = performance.now();
     if (NSF.Ligacao && NSF.Ligacao.aberta()) return true;
+    if (P.ocupado && P.ocupado()) return true; // o mapa tem uma cena rolando (ex.: o encontro no apê)
     if (NSF.Armario && NSF.Armario.aberto && NSF.Armario.aberto()) return true;
     if (porta.menu || porta.saindo || efeito.tipo || jog.oculto || jog.sentado || aoChegar) return true;
     if (document.querySelector(".escolha, .cortina, .aviso-deitar")) return true;
@@ -1060,7 +1061,7 @@
   for (const c of P.caixas) {
     if (c.fundo || c.oculto) continue;
     const longoX = c.x1 - c.x0, longoY = c.y1 - c.y0;
-    if (c.tipo !== "parede" || Math.max(longoX, longoY) <= PEDACO * 1.5) { ITENS_FIXOS.push(Object.assign({ desenho: "caixa" }, c)); continue; }
+    if (c.tipo !== "parede" || Math.max(longoX, longoY) <= PEDACO * 1.5) { ITENS_FIXOS.push(Object.assign({ desenho: "caixa", orig: c }, c)); continue; }
     const eixoX = longoX >= longoY, ini = eixoX ? c.x0 : c.y0, fim = eixoX ? c.x1 : c.y1;
     const n = Math.ceil((fim - ini) / PEDACO);
     for (let k = 0; k < n; k++) {
@@ -1393,7 +1394,8 @@
         if (transparente) { ctx.save(); ctx.globalAlpha = 0.4; }
         caixa(ctx, it);
         if (transparente) ctx.restore();
-        if (it.ocupante) desenharNpc(ctx, it.ocupante);
+        const ocupante = it.orig ? it.orig.ocupante : it.ocupante; // quem senta depois (encontro) também aparece
+        if (ocupante) desenharNpc(ctx, ocupante);
         if (it.enfeites) desenharEnfeites(ctx, it);
       }
     }
@@ -1485,6 +1487,7 @@
     if (ROTEIRO_LIGACAO && comodo === "quarto" && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
     marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir, PORTA, veiculos: VEICULOS, irAoVeiculo, irPara,
       falar, pensar, sentar, levantar, cortinaCom, imgProps, ocupado,
+      poseSentada: criarPoseSentada, VISTA_MOD,
       abrirArmario, get heroi() { return heroi; },
       npcs: NPCS, retanguloNpc, irFalarCom, falarCom, desenharNpcModular,
       mundoParaTela(x, y) { // inverso de telaParaMundo (para testes): ponto do mundo -> coordenada do toque

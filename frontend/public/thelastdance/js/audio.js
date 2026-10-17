@@ -424,6 +424,41 @@
     });
   }
 
+  // Cena do quarto (com a tela escura): risadinha, mola da cama rangendo e o vizinho batendo no teto.
+  function risadinha() {
+    if (!pronto()) return;
+    const t = ctx.currentTime + 0.02;
+    [0, 0.13, 0.24, 0.34, 0.43].forEach((d, i) => nota(N(84 - i), t + d, 0.1, "triangle", 0.12, busEfeitos, 5000));
+  }
+  function rangido(vezes) {
+    if (!pronto()) return;
+    const t0 = ctx.currentTime + 0.02;
+    for (let i = 0; i < (vezes || 6); i++) {
+      const t = t0 + i * 0.55, o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+      o.type = "sawtooth"; f.type = "bandpass"; f.frequency.value = 1400; f.Q.value = 6;
+      o.frequency.setValueAtTime(820, t); o.frequency.linearRampToValueAtTime(1180, t + 0.12); o.frequency.linearRampToValueAtTime(900, t + 0.24);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.26);
+      o.connect(f); f.connect(g); g.connect(busEfeitos); o.start(t); o.stop(t + 0.3);
+    }
+  }
+  function batidas() {
+    if (!pronto()) return;
+    const t = ctx.currentTime + 0.02;
+    for (const d of [0, 0.3, 0.6]) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.setValueAtTime(120, t + d); o.frequency.exponentialRampToValueAtTime(45, t + d + 0.15);
+      g.gain.setValueAtTime(0.6, t + d); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.2);
+      o.connect(g); g.connect(busEfeitos); o.start(t + d); o.stop(t + d + 0.22);
+    }
+  }
+  // "Deu match": arpejo subindo, brilhante.
+  function match() {
+    if (!pronto()) return;
+    const t = ctx.currentTime + 0.02;
+    [72, 76, 79, 84, 88].forEach((m, i) => nota(N(m), t + i * 0.09, 0.5, "triangle", 0.14, busEfeitos, 7000));
+    nota(N(96), t + 0.5, 0.9, "sine", 0.1, busEfeitos, 9000);
+  }
+
   // "Plim" do elevador chegando: duas notas de sino.
   function ding() {
     if (!pronto()) return;
@@ -452,7 +487,7 @@
       volumeMusica();
     },
     abafar(sim) { abafado = sim; volumeMusica(); },
-    clique, peido, assobio, curtida, ding, portaElevador, alarmeCarro, chiado, tv, ronco, tapa, voz,
+    clique, peido, assobio, curtida, ding, portaElevador, alarmeCarro, chiado, tv, ronco, tapa, voz, risadinha, rangido, batidas, match,
     ligado: () => ligadoSom,
     // para conferência/testes: estado do contexto e volumes
     estado: () => ({ contexto: ctx ? ctx.state : "sem", musica: busMusica ? +busMusica.gain.value.toFixed(2) : 0,

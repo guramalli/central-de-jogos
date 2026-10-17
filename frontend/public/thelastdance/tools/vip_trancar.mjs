@@ -17,7 +17,8 @@ const PASTAS = ["assets/characters/npcs/gustavinho", "assets/characters/npcs/vib
   "assets/characters/npcs/pabo", "assets/characters/npcs/elcio", "assets/characters/npcs/jamil",
   "assets/characters/npcs/dona_cida", "assets/characters/npcs/garcom_ze", // dupla da padaria
   "assets/audio/amigos", // vozes dos amigos (áudios de WhatsApp)
-  "assets/audio/local"];  // músicas/sons com dono (sertanejo do churrasco, TV): só trancados, jogo fechado por senha
+  "assets/audio/local",   // músicas/sons com dono (sertanejo do churrasco, TV): só trancados, jogo fechado por senha
+  "assets/cena18"];       // cena do quarto (sem nada explícito, com tarja): só trancada
 const ARQ_CHAVE = join(RAIZ, "tools/.vip_chave");
 const SAIDA = join(RAIZ, "assets/vip/amigos.bin");
 const TIPOS = { ".mp3": "audio/mpeg", ".png": "image/png", ".json": "application/json", ".webp": "image/webp", ".jpg": "image/jpeg" };

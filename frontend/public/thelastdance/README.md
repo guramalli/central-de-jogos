@@ -36,3 +36,4 @@ O modo de teste (`?test=1`) limita a 30 fps e desliga efeitos e som; sem o parâ
 - Toque de telefone: "Electronic Landline Telephone Ringing" — G.M_Isaac (Freesound), CC0 — https://freesound.org/s/866047/
 - Burburinho da padaria: "three minutes of crowded bakery" — mueckenjulie (Freesound), CC0 — https://freesound.org/s/455567/
 - Ronco: "Snoring Sound _ Jabin" — sabuzkamruz (Freesound), CC0 — https://freesound.org/s/767487/
+- Som da cena do quarto: "lovemaking1" — ddohler (Freesound), CC BY 4.0 — https://freesound.org/s/34216/ (trancado no pacote da área dos amigos)

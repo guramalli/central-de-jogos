@@ -47,3 +47,6 @@ __pycache__/
 
 # chave da área dos amigos (tools/vip_trancar.mjs): só aqui e no Render (TLD_CHAVE)
 /tools/.vip_chave
+
+# cena adulta (sem nada explícito, com tarja): só trancada no pacote da área dos amigos, nunca aberta no site
+/assets/cena18/

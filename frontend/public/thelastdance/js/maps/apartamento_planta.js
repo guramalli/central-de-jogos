@@ -242,6 +242,248 @@
     ctx.restore();
   };
 
+
+  // ---------------- encontro: a menina que topou na paquera vem com ele (apartamento.html?encontro=<perfil>) ----------------
+  // Ela entra atrás dele -> vinho na mesinha (os dois sentam e conversam) -> "Chamar pro quarto" -> ele vai ao banheiro
+  // e volta de tarja (imagem trancada no pacote dos amigos) -> tela escura com sons -> manhã seguinte: ela já foi, deixou
+  // um bilhete e manda mensagem no ZapZap -> ele vai trocar de roupa. Sem nada explícito.
+  const qsEnc = new URLSearchParams(global.location ? global.location.search : "");
+  const ENC_ID = qsEnc.get("encontro");
+  const E = { fase: null, npc: null, alvo: null, nu: false, ultimo: 0, api: null };
+  if (ENC_ID && /^[a-z_]+$/.test(ENC_ID)) {
+    PLANTA.npcs = PLANTA.npcs || [];
+    PLANTA.npcs.push({ id: "encontro", nome: "Ela", personagem: ENC_ID, postura: "em_pe", x: 4.5, y: 0.45, dir: "baixo",
+      oculta: true, interagir: false, visual: { pele: "#e2b08a", roupa: "#c8233d", calca: "#c8233d", cabelo: "#2b1a12", estilo: "longo" } });
+  }
+  PLANTA.ocupado = () => !!E.fase; // durante o encontro o celular não toca
+  const espera = (ms) => new Promise((ok) => setTimeout(ok, ms));
+  const perfilEnc = () => global.NSF && global.NSF.PAQUERA && global.NSF.PAQUERA.perfis[ENC_ID];
+  const imgCorpo = typeof Image !== "undefined" ? new Image() : {}; // (nos testes, sem navegador, não há Image)
+
+  function vistaDe(n, dir) {
+    n.dir = dir;
+    const api = E.api;
+    if (n.modular && api && api.VISTA_MOD) n.modular.definirVista(api.VISTA_MOD[dir] || "frente");
+  }
+  // Anda em linha reta até (x, y) (ela não esbarra em nada no caminho escolhido); resolve ao chegar.
+  function andar(n, x, y) {
+    return new Promise((ok) => { E.alvo = { n, x, y, ok }; if (n.modular) n.modular.tocar("andar"); });
+  }
+  function moverNpc(agora) {
+    const dt = E.ultimo ? Math.min(0.1, (agora - E.ultimo) / 1000) : 0;
+    E.ultimo = agora;
+    const a = E.alvo;
+    if (!a) return;
+    const dx = a.x - a.n.x, dy = a.y - a.n.y, d = Math.hypot(dx, dy), passo = 1.5 * dt;
+    if (d <= passo || d < 0.01) {
+      a.n.x = a.x; a.n.y = a.y; E.alvo = null;
+      if (a.n.modular) a.n.modular.tocar("parado");
+      a.ok();
+      return;
+    }
+    a.n.x += (dx / d) * passo; a.n.y += (dy / d) * passo;
+    const sx = dx - dy, sy = dx + dy; // direção na tela
+    const dir = Math.abs(sx) > Math.abs(sy) ? (sx > 0 ? "direita" : "esquerda") : (sy > 0 ? "baixo" : "cima");
+    if (dir !== a.n.dir) vistaDe(a.n, dir);
+  }
+  function ela(texto, ms) { if (E.npc) E.npc.balao = { texto, ate: performance.now() + (ms || 2800) }; }
+  // Sentada, ela é desenhada junto com a poltrona (como "ocupante", igual a quem já começa sentado no mapa).
+  const cadeiraEm = (x, y) => PLANTA.caixas.find((k) => k.tipo === "cadeira" && x > k.x0 && x < k.x1 && y > k.y0 && y < k.y1);
+  function sentarNpc(n, x, y, dir) {
+    n.x = x; n.y = y; n.postura = "sentado";
+    const c = cadeiraEm(x, y); if (c) c.ocupante = n;
+    if (n.modular && E.api.poseSentada) E.api.poseSentada(n.modular);
+    vistaDe(n, dir);
+    if (n.modular) n.modular.tocar(n.modular.vista.startsWith("lado") ? "sentado" : "parado");
+  }
+  function levantarNpc(n) {
+    for (const k of PLANTA.caixas) if (k.ocupante === n) delete k.ocupante;
+    n.postura = "em_pe"; if (n.modular) n.modular.tocar("parado");
+  }
+  function escolha(titulo, opcoes) {
+    return new Promise((ok) => {
+      const caixa = document.createElement("div");
+      caixa.className = "escolha"; caixa.setAttribute("role", "dialog");
+      const t = document.createElement("div"); t.className = "escolha-titulo"; t.textContent = titulo;
+      const grade = document.createElement("div"); grade.className = "escolha-grade";
+      for (const [icone, texto, valor] of opcoes) {
+        const b = document.createElement("button"); b.type = "button";
+        const i = document.createElement("span"); i.className = "escolha-icone"; i.textContent = icone;
+        b.append(i, document.createTextNode(texto));
+        b.addEventListener("click", (e) => { e.stopPropagation(); caixa.remove(); ok(valor); });
+        grade.appendChild(b);
+      }
+      caixa.append(t, grade);
+      document.body.appendChild(caixa);
+    });
+  }
+  function cortina(a, b) {
+    const c = E.api.cortinaCom(a, b);
+    document.body.appendChild(c);
+    requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add("fechada")));
+    return {
+      texto(x, y) { c.querySelector("small").textContent = x; c.querySelector("b").textContent = y; },
+      abrir() { c.classList.remove("fechada"); setTimeout(() => c.remove(), 700); },
+    };
+  }
+  const FALAS_VINHO = {
+    metida: "Pelo menos tem rolha. Tô impressionada.",
+    simpatica: "Ai, que fofo, você até separou as taças! 🥰",
+    engracada: "Esse vinho tá melhor que as suas piadas, hein 😂",
+    timida: "Eu nem bebo muito... só um pouquinho, tá? 🙈",
+    fitness: "Uma taça. Amanhã tem treino. Talvez duas.",
+  };
+  const MAIS_TACA = [
+    ["Saúde! Ao último ano de solteiro! 🥂", "Último ano? Sei... 😏"],
+    ["Você fica mais bonita a cada taça.", "E você mais engraçado. Ou é o vinho? 😂"],
+    ["Essa é a última taça, juro.", "Você fala isso do ano de solteiro também, né? 😂"],
+  ];
+
+  async function chegada() {
+    const api = E.api, n = E.npc, p = perfilEnc();
+    if (p) n.nome = p.nome;
+    E.fase = "chegando";
+    if (global.history && global.location) { // recarregar não repete o encontro
+      const resto = global.location.search.replace(/[?&]encontro=[^&]*/, "").replace(/^&/, "?");
+      global.history.replaceState(null, "", global.location.pathname + resto + global.location.hash);
+    }
+    await espera(2400);          // ele entra pela porta
+    n.oculta = false;
+    await andar(n, 3.9, 1.7);    // ela entra atrás
+    vistaDe(n, "baixo");
+    ela("Uau... que apê! Olha essa vista! 😍", 3000);
+    await espera(3000);
+    api.pensar("Agora é a hora daquele vinho... 🍷", 3400);
+    E.fase = "casa";             // espera ele tocar na mesinha do vinho
+  }
+
+  async function vinho() {
+    const api = E.api, n = E.npc, p = perfilEnc() || {};
+    E.fase = "vinho";
+    api.sentar({ x: 3.25, y: 5.15, dir: "direita" });
+    await andar(n, 5.75, 4.6);
+    await andar(n, 5.1, 5.15);
+    sentarNpc(n, 5.1, 5.15, "esquerda");
+    ela("Hmm... vinho chileno? Chique, hein! 🍷", 2800); await espera(3000);
+    api.falar("Só o melhor pra você! 😎", 2400); await espera(2300);
+    api.pensar("(R$ 39,90. Ela não precisa saber.)", 2400); await espera(2600);
+    ela(FALAS_VINHO[p.tipo] || "Tô gostando dessa noite... 😏", 3000); await espera(3200);
+    ela("Sabe que você é mais engraçado do que parece? 😏", 3000); await espera(3200);
+    let i = 0;
+    for (;;) {
+      const r = await escolha("E agora?", [["😏", "Chamar pro quarto", "quarto"], ["🍷", "Mais uma taça", "taca"]]);
+      if (r === "quarto") break;
+      const [dele, dela] = MAIS_TACA[i++ % MAIS_TACA.length];
+      api.falar(dele, 2400); await espera(2600);
+      ela(dela, 2800); await espera(3000);
+    }
+    await quarto();
+  }
+
+  async function quarto() {
+    const api = E.api, n = E.npc, A = global.NSF.Audio;
+    E.fase = "quarto";
+    ela("Achei que você nunca ia chamar... 😏", 2600);
+    await espera(1200);
+    api.levantar(); levantarNpc(n);
+    api.irPara(8.1, 2.6);
+    await andar(n, 5.75, 4.0);
+    await andar(n, 6.4, 3.1);
+    await andar(n, 7.15, 2.8);
+    vistaDe(n, "direita");
+    await espera(900);
+    api.jog.dir = "esquerda";
+    api.falar("Peraí, vou ali rapidinho no banheiro! 🚿", 2400);
+    await espera(2600);
+    const c = cortina("Enquanto isso...", "no banheiro 🚿");
+    await espera(2400);
+    const temCorpo = imgCorpo.complete && imgCorpo.naturalWidth > 0;
+    if (temCorpo) { api.jog.x = 8.1; api.jog.y = 2.6; api.jog.oculto = true; E.nu = true; vistaDe(n, "direita"); }
+    c.abrir();
+    await espera(900);
+    if (temCorpo) {
+      ela("KKKKKKKK MEU DEUS 😳😂", 2600); await espera(2800);
+      ela("Que confiança é essa?! 😂", 2400); await espera(2600);
+    }
+    // tela escura: só os sons (e o vizinho)
+    if (A) A.musica(false);
+    const c2 = cortina("Mais tarde...", "🔥");
+    // som da cena (atores, sem nada visual): "lovemaking1" de ddohler (Freesound, CC BY 4.0), trancado no pacote
+    const SOM = "assets/cena18/quarto.mp3";
+    let durSom = 0;
+    if (A && A.voz) durSom = await A.voz(global.NSF.VIP ? global.NSF.VIP.url(SOM) : SOM).catch(() => 0);
+    if (!durSom && A) A.risadinha();
+    await espera(Math.max(2200, durSom * 1000 * 0.45));
+    c2.texto("...", "nhec... nhec... nhec..."); if (A && !durSom) A.rangido(7);
+    await espera(Math.max(4000, durSom * 1000 * 0.55));
+    c2.texto("(o vizinho do 19 bateu no teto)", "TUM! TUM! TUM!"); if (A) A.batidas();
+    await espera(1800);
+    c2.texto("...", "Zzz..."); if (A) A.risadinha();
+    await espera(2000);
+    // manhã seguinte
+    const proximo = (lerDia() + 1) % 4;
+    gravarDia(proximo);
+    c2.texto("Bom dia!", DIAS[proximo]);
+    E.nu = false; n.oculta = true; levantarNpc(n);
+    api.jog.oculto = true; dormindo = performance.now();
+    await espera(2000);
+    c2.abrir();
+    if (A) A.musica(true);
+    await espera(2600);
+    dormindo = null;
+    api.jog.oculto = false; api.jog.x = 8.3; api.jog.y = 2.55; api.jog.dir = "baixo";
+    const nome = (perfilEnc() || {}).nome || "ela";
+    api.pensar(`Ela já foi... deixou um bilhete: "Ontem foi demais 😘 — ${nome}"`, 4600);
+    if (global.NSF.Celular && global.NSF.Celular.novaConversa) global.NSF.Celular.novaConversa({
+      id: "encontro_" + ENC_ID + "_" + Date.now(), nome: nome + " 💋", app: "zap", cor: "#d81b60",
+      mensagens: [], chega: 14, novas: [{ de: "ela", t: "Ontem foi demais 😘" }, { de: "ela", t: "Me chama de novo, hein... e sem a tarja de banheiro 😂" }],
+      rodadas: [{ esperaNovas: true, opcoes: [
+        { eu: "Quando quiser! O vinho tá garantido 🍷", volta: ["Combinado 😘"] },
+        { eu: "Confiança é tudo, gata 😎", volta: ["KKKKKKKK", "Você não presta 😂"] },
+      ] }] });
+    await espera(4800);
+    E.fase = null;
+    api.pensar("Bora trocar de roupa...", 2400);
+    const arm = PLANTA.caixas.find((x) => x.interacao === "armario");
+    if (arm) api.irAoVeiculo(arm);
+  }
+
+  // o corpo de tarja, desenhado no lugar dele enquanto E.nu (mesmo tamanho e pés do personagem)
+  function desenharCorpo(ctx, T) {
+    if (!E.nu || !E.api) return;
+    const j = E.api.jog, [x, y] = T(j.x, j.y, 0), k = y - T(j.x, j.y, 1)[1], s = (1.73 * k) / 1375;
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.beginPath(); ctx.ellipse(x, y, 46, 13, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.drawImage(imgCorpo, x - 512 * s, y - 1456 * s, 1024 * s, 1536 * s);
+    ctx.restore();
+  }
+
+  if (ENC_ID) {
+    const iniciarAntes = PLANTA.aoIniciar, interagirAntes = PLANTA.aoInteragir, desenharAntes = PLANTA.aoDesenhar;
+    PLANTA.aoIniciar = (api, info) => {
+      iniciarAntes(api, info);
+      E.api = api;
+      E.npc = (api.npcs || []).find((n) => n.id === "encontro");
+      const NSFg = global.NSF;
+      (NSFg.VIP ? NSFg.VIP.pronto : Promise.resolve()).then(() => {
+        const c = "assets/cena18/corpo_frente.png";
+        imgCorpo.src = NSFg.VIP ? NSFg.VIP.url(c) : c;
+      });
+      if (E.npc) chegada();
+    };
+    PLANTA.aoInteragir = (tipo, c) => {
+      if (!E.fase) return interagirAntes(tipo, c);
+      if (E.fase === "casa" && tipo === "vinho") { vinho(); return; }
+      if (E.fase === "casa") E.api.pensar("Agora não... ela tá aqui! Bora no vinho 🍷", 2600);
+    };
+    PLANTA.aoDesenhar = (ctx, T, agora) => {
+      moverNpc(agora);
+      desenharAntes(ctx, T, agora);
+      desenharCorpo(ctx, T);
+    };
+  }
+
   if (global.NSF) global.NSF.PLANTA_APARTAMENTO = PLANTA;
   if (typeof module !== "undefined") module.exports = PLANTA;
 })(typeof window !== "undefined" ? window : globalThis);

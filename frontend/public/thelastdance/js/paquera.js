@@ -270,19 +270,68 @@
       doDia()[n.paquera] = r;
       if (r === "topou") {
         est.conquistas.push({ id: n.paquera, nome: perfil.nome, dia: diaAtual() });
-        if (NSF.Celular && NSF.Celular.novaConversa && perfil.zap) NSF.Celular.novaConversa({
-          id: "paquera_" + n.paquera + "_" + Date.now(), nome: perfil.nome + " 🍷", app: "zap", cor: "#d81b60",
-          mensagens: [], chega: 25, novas: [{ de: "ela", t: perfil.zap }],
-          rodadas: [{ esperaNovas: true, opcoes: [
-            { eu: "Às 21h! Já tô gelando o vinho 🍷", volta: ["Fechado 😘"] },
-            { eu: "Agora mesmo, se quiser 😏", volta: ["Calma, apressadinho 😂", "Mais tarde eu te chamo"] },
-          ] }] });
+        salvar();
+        deuMatch(n, perfil); // animação e já vai para a casa dele, com ela (js/maps/apartamento_planta.js: encontro)
       }
       salvar();
-      const BALAO = { topou: "💕", fora: "Vai catar coquinho!", tapa: "Hunf! 💢", ignorou: "..." };
+      const BALAO = { topou: "💕 Bora!", fora: "Vai catar coquinho!", tapa: "Hunf! 💢", ignorou: "..." };
       n.balao = { texto: BALAO[r] || "...", ate: performance.now() + 3000 };
     }
     return true;
+  }
+
+  // "DEU MATCH": as duas caras se encontram num coração, confete de corações; depois a tela escurece e vai para o apê.
+  const CSS_MATCH = `
+  .match { position: fixed; inset: 0; z-index: 35; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; background: radial-gradient(circle at 50% 45%, rgba(255,90,216,.92), rgba(120,20,110,.95) 55%, rgba(20,6,30,.98));
+    color: #fff; font: 700 18px system-ui, sans-serif; text-align: center; overflow: hidden; animation: mt-entra .35s ease-out; }
+  .match .caras { position: relative; width: min(340px, 86vw); height: 150px; }
+  .match .cara { position: absolute; top: 0; width: 130px; height: 130px; border-radius: 50%; border: 5px solid #fff; overflow: hidden;
+    background: radial-gradient(circle at 50% 35%, #6a3a8a, #1b0f2b); box-shadow: 0 0 30px rgba(255,255,255,.5); }
+  .match .cara img { position: absolute; left: 50%; top: 4%; width: 104%; transform: translateX(-50%); image-rendering: pixelated; }
+  .match .cara.ele img { top: 6%; width: 92%; }
+  .match .ele { left: 0; animation: mt-esq .7s cubic-bezier(.2,1.4,.4,1) both; }
+  .match .ela { right: 0; animation: mt-dir .7s cubic-bezier(.2,1.4,.4,1) both; }
+  .match .coracao { position: absolute; left: 50%; top: 42px; transform: translate(-50%, 0); font-size: 58px; animation: mt-bate .8s .55s ease-in-out infinite both; }
+  .match h2 { margin: 6px 0 0; font: 900 clamp(44px, 13vw, 76px)/1 system-ui, sans-serif; letter-spacing: .02em;
+    text-shadow: 0 4px 0 #b0279a, 0 0 30px #ff5ad8; transform: rotate(-4deg); animation: mt-pula .6s .35s cubic-bezier(.2,1.6,.4,1) both; }
+  .match p { margin: 0; opacity: .95; }
+  .match .confete { position: absolute; top: -40px; font-size: 26px; animation: mt-cai linear forwards; }
+  @keyframes mt-entra { from { opacity: 0; } }
+  @keyframes mt-esq { from { transform: translateX(-160%) rotate(-30deg); } }
+  @keyframes mt-dir { from { transform: translateX(160%) rotate(30deg); } }
+  @keyframes mt-bate { 50% { transform: translate(-50%, 0) scale(1.25); } }
+  @keyframes mt-pula { from { transform: scale(0) rotate(-20deg); } }
+  @keyframes mt-cai { to { transform: translateY(110vh) rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .match, .match * { animation: none !important; } }`;
+  function deuMatch(n, p) {
+    if (!doc.getElementById("mt-css")) { const s = el("style"); s.id = "mt-css"; s.textContent = CSS_MATCH; doc.head.appendChild(s); }
+    const m = el("div", "match");
+    m.setAttribute("role", "alert");
+    const caras = el("div", "caras");
+    const cara = (classe, src) => { const c = el("div", "cara " + classe), i = el("img"); i.alt = ""; i.src = src; c.appendChild(i); return c; };
+    caras.append(cara("ele", "personagem_modular/personagem/frente/cabeca.png"), cara("ela", p.retrato), el("div", "coracao", "💘"));
+    m.append(caras, el("h2", "", "DEU MATCH!"), el("p", "", `${p.nome} topou o vinho 🍷`), el("p", "", "Partiu pro seu apê..."));
+    for (let i = 0; i < 26; i++) {
+      const c = el("span", "confete", ["❤️", "💖", "💕", "✨", "🍷"][i % 5]);
+      c.style.left = Math.random() * 100 + "%"; c.style.animationDuration = 2.2 + Math.random() * 2.2 + "s";
+      c.style.animationDelay = Math.random() * 1.2 + "s";
+      m.appendChild(c);
+    }
+    doc.body.appendChild(m);
+    if (NSF.Audio && NSF.Audio.match) NSF.Audio.match();
+    const ir = () => {
+      const api = global.NSF_APTO;
+      const url = "apartamento.html?comodo=entrada&chegada=1&encontro=" + encodeURIComponent(n.paquera);
+      if (api && api.cortinaCom) {
+        const c = api.cortinaCom("Mais tarde...", "No apê dele 🍷");
+        doc.body.appendChild(c);
+        requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add("fechada")));
+        setTimeout(() => { global.location.href = url; }, 1400);
+      } else global.location.href = url;
+    };
+    setTimeout(ir, 3800);
+    m.addEventListener("click", ir, { once: true });
   }
 
   doc.addEventListener("keydown", (e) => {
@@ -296,5 +345,5 @@
   const antes = (NSF.Ligacao && NSF.Ligacao.aberta) || (() => false);
   if (NSF.Ligacao) NSF.Ligacao.aberta = () => antes() || aberta;
 
-  NSF.Paquera = { abrir, aberta: () => aberta, resultado, estado: () => est };
+  NSF.Paquera = { abrir, aberta: () => aberta, resultado, estado: () => est, deuMatch };
 })(typeof window !== "undefined" ? window : globalThis);
