@@ -28,3 +28,10 @@ O modo de teste (`?test=1`) limita a 30 fps e desliga efeitos e som; sem o parâ
 - `reference/kit_v1.0/` — anexos do kit, cópias sem alteração.
 - `reference/privado/` — foto e vídeo pessoais, **fora do git** (ver `docs/inventario_assets.md`).
 - `docs/decisions.md`, `docs/pipeline_arte.md`, `docs/inventario_assets.md`, `docs/acceptance/fase_0.md`.
+
+## Créditos de música
+
+- Elevador: "Elevator Music 2" — Alex McCulloch (Pro Sensory), CC0 — https://opengameart.org/content/elevator-music-2
+- Peido do elevador: "WAV Fart Vegan 086" — frenkfurth (Freesound), CC0 — https://freesound.org/s/777448/
+- Toque de telefone: "Electronic Landline Telephone Ringing" — G.M_Isaac (Freesound), CC0 — https://freesound.org/s/866047/
+- Burburinho da padaria: "three minutes of crowded bakery" — mueckenjulie (Freesound), CC0 — https://freesound.org/s/455567/

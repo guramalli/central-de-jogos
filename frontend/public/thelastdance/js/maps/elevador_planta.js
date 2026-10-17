@@ -177,11 +177,14 @@
     acaoFeita = id;
     rodando = true;
     // se a irmã já entrou, ela reage
-    if (freira() && !freira().oculta) setTimeout(() => falaFreira(REACAO[id], 2400), id === "celular" ? 2600 : 900);
+    if (freira() && !freira().oculta) setTimeout(() => falaFreira(REACAO[id], 2400), id === "celular" ? 2600 : id === "peidar" ? 4800 : 900);
     if (id === "peidar") {
       if (Audio) Audio.peido();
-      for (let k = 0; k < 7; k++) PLANTA.efeitos.push({ tipo: "nuvem", t0: agora + k * 90, dur: 1800, dx: -10 + k * 6, sem: k });
-      legenda("Ninguém vai saber...", 2200);
+      // o peido de verdade dura ~7 s: nuvens saindo o tempo todo
+      for (let k = 0; k < 16; k++) PLANTA.efeitos.push({ tipo: "nuvem", t0: agora + k * 380, dur: 1800, dx: -10 + (k % 7) * 6, sem: k });
+      legenda("Ninguém vai saber...", 2400);
+      setTimeout(() => legenda("...ainda não acabou 😳", 2600), 3200);
+      dur = 7000;
     } else if (id === "assobiar") {
       if (Audio) Audio.assobio();
       for (let k = 0; k < 8; k++) PLANTA.efeitos.push({ tipo: "nota", t0: agora + k * 300, dur: 1400, sem: k });

@@ -108,7 +108,8 @@
   const gravarDia = (d) => { try { localStorage.setItem("nsf_dia", String(d)); } catch (_) { /* sem armazenamento */ } };
   let assistindo = null; // instante em que ligou a TV
   PLANTA.aoIniciar = (api) => { PLANTA.api = api; };
-  PLANTA.aoLevantar = () => { assistindo = null; };
+  const somTv = (sim) => { const A = global.NSF && global.NSF.Audio; if (A) { A.tv(sim); A.abafar(sim); } };
+  PLANTA.aoLevantar = () => { if (assistindo) somTv(false); assistindo = null; };
   PLANTA.aoInteragir = (tipo) => {
     const api = PLANTA.api;
     if (!api) return;
@@ -117,6 +118,7 @@
     } else if (tipo === "tv") {
       api.sentar({ x: 2.62, y: 2.3, dir: "esquerda" });
       assistindo = performance.now();
+      somTv(true);
       setTimeout(() => { if (assistindo) api.pensar("Só mais um episódio...", 3000); }, 1500);
     } else if (tipo === "computador") {
       api.sentar({ x: 8.85, y: 4.4, dir: "direita" });
