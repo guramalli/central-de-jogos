@@ -29,7 +29,9 @@
       acordes: [[62, 65, 69, 72], [67, 71, 74, 77], [64, 67, 71, 74], [69, 72, 76, 79]], baixo: [38, 43, 40, 45],
       melodia: [81, null, null, 79, null, 77, null, 79, null, null, 76, null, 74, null, 76, null] },
     // casa do amigo: sertanejo de churrasco (original): baixo "dois pra lá", violão em batida e sanfoninha
-    sertanejo: { bpm: 128, estilo: "sertanejo", volume: 0.6,
+    // arquivoLocal: música só do computador de quem desenvolve (assets/audio/local/ fica fora do git e do site);
+    // sem ela, toca o sertanejo sintetizado
+    sertanejo: { arquivoLocal: "assets/audio/local/casa_amigo.mp3", volumeArquivo: 0.32, bpm: 128, estilo: "sertanejo", volume: 0.6,
       acordes: [[55, 59, 62, 67], [50, 54, 57, 62], [52, 55, 59, 64], [48, 52, 55, 60]], baixo: [43, 38, 40, 36],
       melodia: [74, null, 76, 78, null, 79, null, 78, 76, null, 74, null, 71, null, 74, null] },
     // padaria: bossa nova de rádio de padaria + burburinho de padaria cheia bem baixinho
@@ -88,7 +90,7 @@
   // Agenda os próximos 0,2 s de música (padrão "lookahead" — não depende do ritmo dos quadros do jogo).
   function agendar() {
     const PASSO_S = 60 / trilha.bpm / 4;
-    if (trilha.arquivo && !trilha.falhou) { proximoTempo = Math.max(proximoTempo, ctx.currentTime + 0.1); return; }
+    if ((trilha.arquivo || trilha.arquivoLocal) && !trilha.falhou) { proximoTempo = Math.max(proximoTempo, ctx.currentTime + 0.1); return; }
     while (proximoTempo < ctx.currentTime + 0.2) {
       const t = proximoTempo, p = passo % 128, compasso = Math.floor(p / 16), k = Math.floor(compasso / 2) % 4;
       const s = p % 16, acorde = trilha.acordes[k], baixo = trilha.baixo[k], mel = trilha.melodia[s];
@@ -153,7 +155,8 @@
 
   function volumeMusica() {
     if (!ctx) return;
-    const alvo = querMusica ? (abafado || querToque ? 0.35 : 1) * trilha.volume : 0;
+    const vol = fonte && fonteDe === trilha && trilha.volumeArquivo ? trilha.volumeArquivo : trilha.volume;
+    const alvo = querMusica ? (abafado || querToque ? 0.35 : 1) * vol : 0;
     busMusica.gain.setTargetAtTime(alvo, ctx.currentTime, 0.4);
   }
 
@@ -182,7 +185,8 @@
   // Efeito em arquivo: baixa e decodifica antes de precisar (b.pronto = AudioBuffer).
   function carregarEfeito(url) {
     if (buffers[url]) return;
-    const p = buffers[url] = fetch(url).then((r) => r.arrayBuffer()).then((b) => ctx.decodeAudioData(b));
+    const p = buffers[url] = fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then((b) => ctx.decodeAudioData(b));
     p.then((buf) => { p.pronto = buf; }).catch(() => {});
   }
 
@@ -208,13 +212,14 @@
   function tocarArquivo() {
     if (!ctx) return;
     if (fonte && fonteDe !== trilha) { fonte.stop(); fonte = null; fonteDe = null; }
-    if (!trilha.arquivo || trilha.falhou || fonte) return;
-    const alvo = trilha, url = trilha.arquivo;
-    (buffers[url] = buffers[url] || fetch(url).then((r) => r.arrayBuffer()).then((b) => ctx.decodeAudioData(b)))
+    if (!(trilha.arquivo || trilha.arquivoLocal) || trilha.falhou || fonte) return;
+    const alvo = trilha, url = trilha.arquivo || trilha.arquivoLocal;
+    (buffers[url] = buffers[url] || fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then((b) => ctx.decodeAudioData(b)))
       .then((buf) => {
         if (trilha !== alvo || fonte) return;
         fonte = ctx.createBufferSource(); fonte.buffer = buf; fonte.loop = true;
-        fonte.connect(busMusica); fonte.start(); fonteDe = alvo;
+        fonte.connect(busMusica); fonte.start(); fonteDe = alvo; volumeMusica();
       })
       .catch(() => { alvo.falhou = true; }); // sem o arquivo: cai na versão sintetizada
   }
@@ -332,13 +337,22 @@
     for (let i = 0; i < 14; i++) chimbal(t + Math.random() * dur, 0.08, 2500 + Math.random() * 3000);
   }
 
-  // TV ligada: vozes abafadas (ruído filtrado em "sílabas") + uma musiquinha de fundo bem baixa, até desligar.
-  let tvRelogio = null, tvBus = null;
+  // TV ligada: o som de TV do computador local (assets/audio/local/tv.mp3, fora do git e do site), em loop e baixo;
+  // sem ele, vozes abafadas sintetizadas (ruído filtrado em "sílabas") + musiquinha de fundo, até desligar.
+  const TV_LOCAL = "assets/audio/local/tv.mp3";
+  let tvRelogio = null, tvBus = null, tvFonte = null;
   function tv(sim) {
     clearInterval(tvRelogio); tvRelogio = null;
+    if (tvFonte) { tvFonte.stop(ctx.currentTime + 0.5); tvFonte = null; }
     if (tvBus) { const b = tvBus; b.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.1); setTimeout(() => b.disconnect(), 600); tvBus = null; }
     if (!sim || !pronto()) return;
     tvBus = ctx.createGain(); tvBus.gain.value = 0.55; tvBus.connect(busEfeitos);
+    const arq = buffers[TV_LOCAL];
+    if (arq && arq.pronto) {
+      tvFonte = ctx.createBufferSource(); tvFonte.buffer = arq.pronto; tvFonte.loop = true;
+      tvFonte.connect(tvBus); tvFonte.start(); tvBus.gain.value = 0.5;
+      return;
+    }
     let k = 0, voz = 0;
     tvRelogio = setInterval(() => {
       const t = ctx.currentTime + 0.02;
@@ -370,7 +384,7 @@
       if (mudo() || !criar()) return;
       if (ctx.state === "suspended") ctx.resume();
       if (!relogio) { proximoTempo = ctx.currentTime + 0.1; relogio = setInterval(agendar, 50); }
-      volumeMusica(); tocarArquivo(); tocarFundo(); carregarEfeito(PEIDO_MP3); carregarEfeito(TOQUE_MP3);
+      volumeMusica(); tocarArquivo(); tocarFundo(); carregarEfeito(PEIDO_MP3); carregarEfeito(TOQUE_MP3); carregarEfeito(TV_LOCAL);
       if (querToque && !toqueRelogio) tocarToque();
     },
     trilha(nome) { if (TRILHAS[nome]) { trilha = TRILHAS[nome]; volumeMusica(); tocarArquivo(); tocarFundo(); } },

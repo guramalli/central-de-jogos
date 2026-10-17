@@ -33,3 +33,6 @@ __pycache__/
 /assets/characters/npcs/vibola/
 /assets/characters/npcs/vini/
 /assets/characters/npcs/juan/
+
+# músicas só para teste local (com direitos autorais: não vão para o site)
+/assets/audio/local/
