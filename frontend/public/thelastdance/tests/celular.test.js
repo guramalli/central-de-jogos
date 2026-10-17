@@ -31,7 +31,11 @@ test("respostas: cada rodada tem opções com o que ele manda", () => {
 test("ligações: cada uma tem conversas com falas e opções", () => {
   assert.ok(CEL.ligacoes.length >= 2);
   for (const l of CEL.ligacoes) for (const cv of l.conversas) {
-    assert.ok(cv.falas.length, l.id);
-    for (const o of cv.opcoes) assert.ok(o.eu && Array.isArray(o.volta), l.id);
+    assert.ok((cv.falas && cv.falas.length) || (cv.passos && cv.passos.length), l.id);
+    for (const p of cv.passos || []) {
+      assert.ok(["ele", "eu"].includes(p.quem) && (p.t || p.audio), l.id);
+      if (p.audio) assert.match(p.audio, /^assets\/audio\/amigos\/[\w-]+\.mp3$/, l.id + ": voz fora da pasta trancada");
+    }
+    for (const o of cv.opcoes || []) assert.ok(o.eu && Array.isArray(o.volta), l.id);
   }
 });

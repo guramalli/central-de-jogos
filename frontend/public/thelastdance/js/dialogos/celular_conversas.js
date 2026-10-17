@@ -7,6 +7,8 @@
 //       esperaNovas: true = essa rodada só aparece depois que as "novas" chegarem
 //       volta: falas de quem está do outro lado (no grupo: { de: "Juan", t: "..." }) ; volta vazio = "visualizou e não respondeu"
 //   ligacoes[]: quem liga toda hora. Cada vez que ele atende, toca a próxima conversa da lista (e depois recomeça).
+//     Conversa com "passos" em vez de "falas": [{ quem: "ele" | "eu", t: "fala" } ou { quem, audio: "voz gravada" }];
+//     sem "opcoes", a ligação acaba sozinha depois dos passos.
 //   posts[]: fotos do perfil no Instagrão ; avisos[]: notificações do coração
 (function (global) {
   "use strict";
@@ -173,6 +175,15 @@
     ],
 
     ligacoes: [
+      // A Mãe: ele atende e responde com o áudio dele (voz gravada, trancada no pacote da área dos amigos)
+      { id: "mae", nome: "Mãe ❤️", cor: "#ad1457",
+        conversas: [
+          { passos: [
+            { quem: "ele", t: "Filho? Tá acordado ainda? Já passou da meia-noite..." },
+            { quem: "eu", audio: "assets/audio/amigos/eu_mae_ligacao.mp3" },
+            { quem: "ele", t: "Ai, esse menino... Juízo, hein! A bênção. ❤️" },
+          ] },
+        ] },
       { id: "bruno_moon", nome: "Bruno Moon", cor: "#283593",
         conversas: [
           { falas: ["Alô! Fala, Brabo! Cê vem ou não vem??", "Tá todo mundo aqui, só falta você e o Carioca!"],

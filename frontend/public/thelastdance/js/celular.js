@@ -614,11 +614,37 @@
     };
     prox();
   }
+  // Passos de uma ligação: { quem: "ele" | "eu", t: "fala" } ou { quem, audio: "voz gravada" } (toca a voz e mostra
+  // só a ondinha, sem legenda; sem o pacote dos amigos aberto ou sem som liberado, o áudio é pulado).
+  function rodarPassos(passos, depois) {
+    const tela0 = atual;
+    let k = 0;
+    const prox = () => {
+      if (atual !== tela0) return;
+      if (k >= passos.length) { depois(); return; }
+      const p = passos[k++], eu = p.quem === "eu";
+      if (!p.audio) { tela0.falas.push({ t: p.t, eu }); desenhar(); setTimeout(prox, 1600); return; }
+      const A = NSF.Audio, url = NSF.VIP ? NSF.VIP.url(p.audio) : p.audio;
+      if (!A || !A.voz) { prox(); return; }
+      let fim = null;
+      A.voz(url, () => { if (fim) fim(); }).then(() => {
+        const linha = { t: "🔊 ▂▃▅▇▅▃▂▃▅", eu };
+        tela0.falas.push(linha); desenhar();
+        fim = () => { linha.t = "🔊 áudio"; if (atual === tela0) desenhar(); setTimeout(prox, 700); };
+      }).catch(() => prox());
+    };
+    prox();
+  }
   function rodarConversa() {
     const l = atual.l, n = est.vez[l.id] || 0, conv = l.conversas[n % l.conversas.length];
     est.vez[l.id] = n + 1; salvar();
     const tela0 = atual;
-    setTimeout(() => falarNaLigacao(conv.falas, false, () => { tela0.opcoes = conv.opcoes; if (atual === tela0) desenhar(); }), 600);
+    const opcoes = () => {
+      if (conv.opcoes && conv.opcoes.length) { tela0.opcoes = conv.opcoes; if (atual === tela0) desenhar(); }
+      else setTimeout(() => { if (atual === tela0) encerrarLigacao(false); }, 2200); // sem escolha: desliga sozinho
+    };
+    const passos = conv.passos || (conv.falas || []).map((t) => ({ quem: "ele", t }));
+    setTimeout(() => rodarPassos(passos, opcoes), 600);
   }
   function escolherNaLigacao(o) {
     const tela0 = atual;
