@@ -37,5 +37,5 @@ test("NPCs com paquera apontam para um perfil que existe", () => {
     .map((f) => require(path.join(RAIZ, "js/maps", f)));
   let n = 0;
   for (const P of mapas) for (const npc of P.npcs || []) if (npc.paquera) { n++; assert.ok(PQ.perfis[npc.paquera], `${P.id}/${npc.id}`); }
-  assert.ok(n >= 5, "esperava as meninas da padaria e a irmã do elevador");
+  assert.ok(n >= 4, "esperava as meninas da padaria");
 });

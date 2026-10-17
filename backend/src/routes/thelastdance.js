@@ -30,7 +30,9 @@ export function criaRotasTheLastDance({ env = process.env, limite = true } = {})
   });
 
   r.post("/vip", ...(limite ? [tentativas] : []), (req, res) => {
-    const senha = env.TLD_SENHA, chave = env.TLD_CHAVE;
+    // tolera o que costuma vir junto ao colar no painel: espaços, quebra de linha e aspas
+    const limpa = (v) => String(v || "").replace(/[\s"']/g, "");
+    const senha = String(env.TLD_SENHA || "").trim().replace(/^["']|["']$/g, ""), chave = limpa(env.TLD_CHAVE);
     if (!senha || !/^[0-9a-f]{64}$/i.test(chave || "")) {
       return res.status(503).json({ error: "A área dos amigos ainda não foi configurada no servidor." });
     }

@@ -58,3 +58,10 @@ test("senhaConfere", () => {
   assert.equal(senhaConfere(undefined, "abc"), false);
   assert.equal(senhaConfere("abc", ""), false);
 });
+
+test("chave e senha coladas com espaço, quebra de linha ou aspas ainda funcionam", async () => {
+  const post = await servidor({ TLD_SENHA: ' "certa" \n', TLD_CHAVE: ` "${CHAVE}"\n ` });
+  const r = await post({ senha: "certa" });
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { chave: CHAVE });
+});

@@ -45,7 +45,7 @@
     // a irmã entra no 7º andar (fica oculta até lá) e reage ao que ele fizer
     npcs: [
       { id: "freira", nome: "Irmã", personagem: "freira", postura: "em_pe", x: 1.95, y: 0.9, dir: "baixo", oculta: true,
-        fala: "\"Deus abençoe, meu filho.\"", paquera: "freira" },
+        fala: "\"Deus abençoe, meu filho.\"", interagir: false }, // ela só reage ao que ele faz
     ],
     pontos: [{ nome: "centro", x: 1.2, y: 1.3 }],
     roteiroDemo: ["centro"],

@@ -601,7 +601,7 @@
   function npcNoToque(m) { // se dois se sobrepõem na tela, vale o da frente
     let achado = null;
     for (const n of NPCS) {
-      if (n.oculta) continue;
+      if (n.oculta || n.interagir === false) continue; // interagir: false = só faz parte da cena (sem toque)
       const r = retanguloNpc(n);
       if (m.telaX < r.x0 || m.telaX > r.x1 || m.telaY < r.y0 || m.telaY > r.y1) continue;
       if (!achado || n.x + n.y > achado.x + achado.y) achado = n;
@@ -1206,6 +1206,7 @@
         ctx.fillStyle = "#f3ecff"; ctx.textAlign = "center";
         linhas.forEach((l, i) => ctx.fillText(l, x, y - h - 12 + 23 + i * 19));
         ctx.restore();
+      } else if (n.interagir === false) { // só faz parte da cena: sem marca em cima
       } else if (n.paquera) { // dá para paquerar: coração pulando (ou o resultado de hoje)
         const r = NSF.Paquera && NSF.Paquera.resultado(n);
         const b = Math.sin(agora / 260 + n.x) * 3, icone = r === "topou" ? "💕" : r ? "💔" : "♥";
