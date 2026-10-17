@@ -4,6 +4,7 @@
 // (variáveis de ambiente no Render, nunca no código) e só entrega a chave para quem acerta a senha.
 //
 //   POST /vip  ← { senha }  → 200 { chave } | 401 senha errada | 429 tentativas demais | 503 ainda não configurado
+//   GET /vip/estado         → { configurado, problema } (o que falta no Render; nunca mostra a senha nem a chave)
 //
 // Variáveis: TLD_SENHA (a senha que você passa para os amigos) e TLD_CHAVE (64 caracteres hex, gerada pelo
 // frontend/public/thelastdance/tools/vip_trancar.mjs). Trocar a senha = trocar TLD_SENHA no Render (a chave fica).
@@ -23,26 +24,44 @@ export function criaRotasTheLastDance({ env = process.env, limite = true } = {})
   const r = Router();
   const tentativas = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 8,                   // 8 tentativas por IP: dá para errar umas vezes, não dá para chutar senha em massa
+    max: 8,                   // 8 senhas erradas por IP: dá para errar umas vezes, não dá para chutar senha em massa
     standardHeaders: true,
     legacyHeaders: false,
+    skipSuccessfulRequests: true,                               // só senha ERRADA conta como tentativa
+    requestWasSuccessful: (req, res) => res.statusCode !== 401,
     message: { error: "Tentativas demais. Espere uns minutos e tente de novo." },
   });
 
+  // Tolera o que costuma vir junto ao colar no painel do Render: espaços, quebra de linha e aspas.
+  const lerSenha = () => String(env.TLD_SENHA || "").trim().replace(/^["']|["']$/g, "");
+  const lerChave = () => String(env.TLD_CHAVE || "").replace(/[\s"']/g, "");
+  // O que falta configurar, sem mostrar nada da senha nem da chave ("" = tudo certo).
+  function falta() {
+    const chave = lerChave(), problemas = [];
+    if (!lerSenha()) problemas.push("falta a variável TLD_SENHA");
+    if (!chave) problemas.push("falta a variável TLD_CHAVE");
+    else if (chave.length !== 64) problemas.push(`a TLD_CHAVE tem ${chave.length} caracteres (precisa ter 64)`);
+    else if (!/^[0-9a-f]{64}$/i.test(chave)) problemas.push("a TLD_CHAVE tem caracteres fora de 0-9 e a-f");
+    return problemas.join("; ");
+  }
+
+  // Conferência da configuração: não gasta tentativa e não revela nada secreto.
+  r.get("/vip/estado", (req, res) => {
+    const f = falta();
+    res.set("Cache-Control", "no-store");
+    res.json({ configurado: !f, problema: f || null });
+  });
+
   r.post("/vip", ...(limite ? [tentativas] : []), (req, res) => {
-    // tolera o que costuma vir junto ao colar no painel: espaços, quebra de linha e aspas
-    const limpa = (v) => String(v || "").replace(/[\s"']/g, "");
-    const senha = String(env.TLD_SENHA || "").trim().replace(/^["']|["']$/g, ""), chave = limpa(env.TLD_CHAVE);
-    if (!senha || !/^[0-9a-f]{64}$/i.test(chave || "")) {
-      return res.status(503).json({ error: "A área dos amigos ainda não foi configurada no servidor." });
-    }
+    const f = falta();
+    if (f) return res.status(503).json({ error: "A área dos amigos ainda não foi configurada no servidor (" + f + ")." });
     const digitada = req.body && req.body.senha;
     if (typeof digitada !== "string" || !digitada.trim() || digitada.length > 200) {
       return res.status(400).json({ error: "Digite a senha." });
     }
-    if (!senhaConfere(digitada, senha)) return res.status(401).json({ error: "Senha errada." });
+    if (!senhaConfere(digitada, lerSenha())) return res.status(401).json({ error: "Senha errada." });
     res.set("Cache-Control", "no-store");
-    res.json({ chave: chave.toLowerCase() });
+    res.json({ chave: lerChave().toLowerCase() });
   });
 
   return r;

@@ -65,3 +65,21 @@ test("chave e senha coladas com espaço, quebra de linha ou aspas ainda funciona
   assert.equal(r.status, 200);
   assert.deepEqual(await r.json(), { chave: CHAVE });
 });
+
+test("sem configuração não gasta tentativa (só senha errada conta) e o 503 diz o que falta", async () => {
+  const post = await servidor({ TLD_SENHA: "x", TLD_CHAVE: "abc" }, true);
+  let r;
+  for (let i = 0; i < 12; i++) r = await post({ senha: "x" });
+  assert.equal(r.status, 503);
+  assert.match((await r.json()).error, /3 caracteres/);
+});
+
+test("GET /vip/estado conta o que falta sem mostrar segredo", async () => {
+  const app = express();
+  app.use("/t", criaRotasTheLastDance({ env: { TLD_CHAVE: CHAVE + "\n" }, limite: false }));
+  const s = app.listen(0); servidores.push(s);
+  await new Promise((ok) => s.once("listening", ok));
+  const d = await (await fetch(`http://127.0.0.1:${s.address().port}/t/vip/estado`)).json();
+  assert.deepEqual(d, { configurado: false, problema: "falta a variável TLD_SENHA" });
+  assert.ok(!JSON.stringify(d).includes(CHAVE));
+});
