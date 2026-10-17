@@ -1,6 +1,7 @@
 // Zoeira do churrasco na casa do amigo: rodadas de falas que tocam sozinhas, uma atrás da outra, em balões.
 // RASCUNHO para testar — trocar pelas falas de verdade (o formato fica). Edite à vontade:
-//   quem: "eu" (o protagonista) ou o id do amigo na planta (vibola, gustavinho, juan, vini)
+//   quem: "eu" (o protagonista), o id do amigo na planta (vibola, gustavinho, juan, vini) ou "todos" (a turma
+//     inteira ao mesmo tempo — ex.: todo mundo rindo; cada um ganha um balão de risada diferente)
 //   texto: a fala ; celular: true = ele saca o celular para mostrar o Instagram (com corações subindo)
 //   audio: voz gravada (áudio de WhatsApp) que toca no lugar do texto — o balão mostra só a ondinha do som.
 //     As vozes ficam no pacote trancado da área dos amigos (tools/vip_trancar.mjs); "texto" aí é só um lembrete.
@@ -41,6 +42,7 @@
       [ // a baladinha de ontem (áudio do Gustavinho)
         { quem: "eu", texto: "Rapaziada, ontem eu fui naquela baladinha e vocês não sabem o que aconteceu..." },
         { quem: "gustavinho", texto: "(áudio do Gustavinho: \"ô loco, bicho, foi pra baladinha!\")", audio: "assets/audio/amigos/gustavinho_baladinha.mp3" },
+        { quem: "todos", texto: "KKKKKKKKKKKK" },
         { quem: "vini", texto: "Kkkkkk o Faustão chegou no churrasco!" },
         { quem: "eu", texto: "Ri não, que eu peguei o telefone de três!" },
         { quem: "juan", texto: "De três atendentes do bar. Pra pedir a conta." },

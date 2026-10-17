@@ -170,6 +170,14 @@
         }).catch(() => seguir(0));
         return;
       }
+      if (fala.quem === "todos") { // a turma inteira reage junto (ex.: todo mundo rindo)
+        const RISOS = ["KKKKKKKKKKKK 😂", "HAHAHAHAHA", "kkkkkk socorro 😭", "AHUSHAUSHAUSH", "KKKKKK para!!"];
+        api.npcs.filter((n) => !n.oculta).forEach((n, i) => {
+          n.balao = { texto: fala.texto === "KKKKKKKKKKKK" ? RISOS[i % RISOS.length] : fala.texto, ate: performance.now() + ms - 200 };
+        });
+        seguir(ms);
+        return;
+      }
       if (fala.quem === "eu") {
         api.falar(fala.texto, ms - 200);
         if (fala.celular && api.heroi && !api.jog.sentado && api.heroi.roupas.celular_mao) {
