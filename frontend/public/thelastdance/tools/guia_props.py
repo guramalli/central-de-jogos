@@ -264,6 +264,18 @@ PECAS = {
             {"x": (0, 3.0), "y": (0, 0.9), "z": (1.0, 1.12)},      # tampo de madeira, um pouco maior
         ],
     },
+    # enfeites que ficam EM CIMA das bancadas e mesas (desenhados centrados no ponto do enfeite, na altura do tampo)
+    "enfeite_cerveja": {
+        "descricao": "uma garrafa de cerveja âmbar e um copo americano cheio de cerveja com espuma, lado a lado",
+        "caixas": [
+            {"x": (0, 0.08), "y": (0, 0.08), "z": (0, 0.28)},      # garrafa
+            {"x": (0.12, 0.2), "y": (0.04, 0.12), "z": (0, 0.11)},  # copo
+        ],
+    },
+    "enfeite_churrasco": {
+        "descricao": "tábua de madeira com picanha fatiada, vinagrete e farofa em potinhos",
+        "caixas": [{"x": (0, 0.5), "y": (0, 0.3), "z": (0, 0.07)}],
+    },
     "banqueta_corda": {
         "descricao": "banqueta alta preta de corda trançada com encosto baixo, encosto do lado y = 0",
         "caixas": [

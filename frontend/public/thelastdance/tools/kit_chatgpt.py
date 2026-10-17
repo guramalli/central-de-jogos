@@ -242,6 +242,16 @@ KITS = {
              "a big portable party speaker standing on the floor, black, with two round woofers on the front and a glowing "
              "multicolor light ring around them, a carry handle on top. The speaker front is the DARKEST front-left face. "
              "No readable brand logo.", ["--uniforme"]),
+            ("enfeite_cerveja", "Cerveja para as bancadas (garrafa + copo)", "peca",
+             "a small tabletop prop seen from the same isometric angle: ONE amber glass beer bottle with a plain cream label "
+             "(no brand, no text) standing on the left (the tall thin block of the guide) and ONE short Brazilian 'copo "
+             "americano' glass full of golden beer with a white foam head on the right (the short block). Cold droplets on "
+             "the glass. Nothing else, no table, no shadow on the ground. No logos.", ["--uniforme"]),
+            ("enfeite_churrasco", "Churrasco para as bancadas (tábua com picanha)", "peca",
+             "a small tabletop prop seen from the same isometric angle: a rectangular wooden cutting board (the flat block of "
+             "the guide) with juicy sliced Brazilian picanha (pink inside, grilled crust, white fat cap) fanned out, a "
+             "wooden fork stuck in it, and two tiny bowls on the board: one with farofa (toasted cassava flour) and one with "
+             "vinagrete (diced tomato and onion). Warm light, appetizing. Nothing else, no table, no text.", ["--uniforme"]),
             ("parede_varanda", "Parede (textura)", "parede",
              "a seamless wall texture for a modern gourmet balcony, 2 m wide by 2.7 m tall: light greige wall with vertical "
              "light-wood-look panels (photo 4), soft warm light from ceiling spotlights. No objects, no text. It must tile "

@@ -1241,6 +1241,13 @@
   // Enfeites em cima de um móvel: { tipo: cerveja|latinha|copo|churrasco, dx, dy } (metros a partir do canto x0, y0).
   function desenharEnfeites(ctx, c) {
     for (const e of c.enfeites) {
+      // com arte pronta (props.json: enfeite_<tipo>), a imagem fica centrada no ponto, em cima do móvel
+      const nomeArte = "enfeite_" + e.tipo, info = props && props.props[nomeArte], im = imgProps[nomeArte];
+      if (info && im) {
+        const [w, d] = info.tamanho_m, [ax, ay] = T(c.x0 + e.dx - w / 2, c.y0 + e.dy - d / 2, c.z1), k = info.escala;
+        ctx.drawImage(im, ax - info.origem_px[0] / k, ay - info.origem_px[1] / k, im.width / k, im.height / k);
+        continue;
+      }
       const [x, y] = T(c.x0 + e.dx, c.y0 + e.dy, c.z1);
       const k = y - T(c.x0 + e.dx, c.y0 + e.dy, c.z1 + 1)[1]; // px por metro na vertical
       ctx.save();
@@ -1406,7 +1413,8 @@
   // Peças do mapa: carrega o catálogo e só as imagens usadas na planta (+ a textura de parede).
   fetch(PASTA_PROPS + "props.json").then((r) => r.json()).then((cat) => {
     const usadas = new Set([TEXTURA_PAREDE, ...P.caixas.map((c) => c.arte), ...P.naParede.map((w) => w.arte),
-      ...P.comodos.map((c) => c.piso_arte), ...(P.artesExtras || [])].filter(Boolean));
+      ...P.comodos.map((c) => c.piso_arte), ...(P.artesExtras || []),
+      ...P.caixas.flatMap((c) => (c.enfeites || []).map((e) => "enfeite_" + e.tipo))].filter(Boolean)); // arte das cervejas, churrasco...
     return Promise.all([...usadas].filter((n) => cat.props[n]).map((n) => new Promise((ok) => {
       const im = new Image();
       im.onload = () => { imgProps[n] = im; ok(); };
