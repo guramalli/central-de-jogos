@@ -127,9 +127,9 @@
     }
   };
 
-  // Logo depois da ligação da Gatinha de Campinas, o Carioca liga chamando para surfar. Aceitando, ele veste o
-  // neoprene e a Praia aparece no menu do carro (garagem). Recusando, o dia segue normal. Recusar a ligação não
-  // adianta: é o Carioca, ele liga de novo (uma vez).
+  // Logo depois da ligação da Gatinha de Campinas, o Carioca manda mensagem no ZapZap chamando para surfar (mensagem,
+  // não ligação: ninguém atende o Carioca). A escolha aparece direto na tela. Aceitando, ele faz tudo sozinho até a
+  // praia; recusando, o dia segue normal.
   const CONVITE_SURF = {
     convidou: "Aê, mermão! O mar tá clássico, pô! 🌊 Bora pegar umas ondas antes da tua mina de Campinas chegar?",
     dispensou: "Aê, mermão! Levou toco, né? Tô sabendo 😂 Bora pro mar que onda cura tudo, pô! 🌊",
@@ -141,9 +141,16 @@
     conviteFeito = true;
     const C = global.NSF.Celular, A = global.NSF.Audio;
     const conversar = async () => {
-      if (A) A.toque(false);
-      const r = await escolha("📞 Carioca: " + (CONVITE_SURF[resultado] || CONVITE_SURF.dispensou),
-        [["🏄", "Bora surfar!", "sim"], ["🛋️", "Hoje não", "nao"]]);
+      const texto = CONVITE_SURF[resultado] || CONVITE_SURF.dispensou;
+      if (A) A.curtida(); // "plim" de mensagem
+      const r = await escolha("💬 Carioca no ZapZap: " + texto, [["🏄", "Bora surfar!", "sim"], ["🛋️", "Hoje não", "nao"]]);
+      // a conversa fica no ZapZap do celular
+      if (C && C.novaConversa) C.novaConversa({
+        id: "carioca_surf_" + Date.now(), nome: "Carioca 🏄", app: "zap", cor: "#00695c", chega: 0,
+        mensagens: [{ de: "ele", t: texto },
+          { de: "eu", t: r === "sim" ? "BORA! Tô indo, mermão 🏄" : "Hoje não, Carioca..." },
+          { de: "ele", t: r === "sim" ? "É isso, brabo! Tô na areia com a rapaziada 🤙" : "Hoje não?? Tu tá namorando? Ih, olha ele..." }],
+      });
       if (r === "sim") {
         // nsf_surf: prancha no carro + Praia no menu ; nsf_surf_auto: na garagem ele vai sozinho até a praia
         try { sessionStorage.setItem("nsf_surf", "1"); sessionStorage.setItem("nsf_surf_auto", "1"); } catch (_) { /* sem armazenamento */ }
@@ -166,22 +173,14 @@
           : "\"Hoje não?? Tu tá namorando?\" — esse Carioca... Hoje é sofá.", 4600);
       }
     };
-    const ligar = (vez) => {
-      // outra ligação tocando, conversa ou escolha aberta, celular aberto: espera um pouco e liga depois
+    const mandar = () => {
+      // ligação tocando, conversa, escolha, guarda-roupa ou celular abertos: espera e manda logo depois
       if (document.querySelector(".cel-central, .lig-fundo, .escolha, .armario-fundo") || (C && C.aberto && C.aberto())) {
-        setTimeout(() => ligar(vez), 2000); return;
+        setTimeout(mandar, 2000); return;
       }
-      if (!C || !C.chamadaCentral) { conversar(); return; }
-      if (A) A.toque(true);
-      C.chamadaCentral({ nome: "Carioca", cor: "#00695c", emoji: "🏄",
-        aoAtender: conversar,
-        aoRecusar: () => {
-          if (A) A.toque(false);
-          if (vez === 0) { api.pensar("O Carioca... ele vai ligar de novo, certeza.", 2600); setTimeout(() => ligar(1), 3500); }
-          else api.pensar("Duas vezes recusado. Hoje não tem surf.", 3000);
-        } });
+      conversar();
     };
-    setTimeout(() => ligar(0), 1800);
+    setTimeout(mandar, 1800);
   };
 
   // Antes de dormir, pergunta (evita dormir sem querer ao tocar perto da cama).

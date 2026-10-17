@@ -49,7 +49,7 @@ test("surf: a página existe, está atrás da senha e o carro leva até ela", ()
   assert.match(garagem, /url: "surf\.html", ativo: true, so: "nsf_surf"/);
   const apto = fs.readFileSync(path.join(raiz, "js/maps/apartamento_planta.js"), "utf8");
   assert.match(apto, /PLANTA\.aoTerminarLigacao/);
-  assert.match(apto, /nome: "Carioca"/);
+  assert.match(apto, /Carioca no ZapZap/);
   assert.match(apto, /sessionStorage\.setItem\("nsf_surf", "1"\)/);
   assert.match(fs.readFileSync(path.join(raiz, "personagem_modular/dados.js"), "utf8"), /neoprene_calca/);
 });
