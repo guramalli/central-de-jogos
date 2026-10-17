@@ -298,7 +298,7 @@
       [px, py] = PORTA.plano === "x0" ? T(0, m, PORTA.z1 + 0.7) : T(m, 0, PORTA.z1 + 0.7);
     } else {
       const n = sobMouse.alvo;
-      texto = n.dialogo || n.fala ? "Conversar com " + n.nome : n.nome;
+      texto = n.paquera ? "Chegar nela 😏" : n.dialogo || n.fala ? "Conversar com " + n.nome : n.nome;
       [px, py] = T(n.x, n.y, alturaNpc(n) + 0.95);
     }
     ctx.save();
@@ -613,6 +613,11 @@
   function falarCom(n) {
     const [ax, ay] = ISO.tela(jog.x, jog.y, 0), [bx, by] = ISO.tela(n.x, n.y, 0);
     jog.dir = direcaoSprite(bx - ax, by - ay);
+    if (n.paquera && NSF.Paquera) { // menina: caixa de paquera (js/paquera.js)
+      teclas.clear(); caminho = []; destinoToque = null;
+      NSF.Paquera.abrir(n);
+      return;
+    }
     const roteiro = n.dialogo && NSF.DIALOGOS && NSF.DIALOGOS[n.dialogo];
     if (roteiro && NSF.Ligacao) {
       teclas.clear(); caminho = []; destinoToque = null;
@@ -715,9 +720,15 @@
   if (avisoTocando) avisoTocando.addEventListener("click", () => irAtender());
   function telefoneToca() {
     if (!ROTEIRO_LIGACAO || !NSF.Ligacao || NSF.Ligacao.aberta()) return;
-    ligacao.tocando = true;   // fica vibrando no criado-mudo até o jogador tocar nele (ou no aviso)
-    mostrarAviso(true);
+    ligacao.tocando = true;
     if (NSF.Audio) NSF.Audio.toque(true);
+    if (NSF.Celular && NSF.Celular.chamadaCentral) { // o celular do canto toca: atender/recusar no meio da tela
+      NSF.Celular.chamadaCentral({ nome: ROTEIRO_LIGACAO.contato, cor: "#c2185b", emoji: "😻",
+        aoAtender: atenderTelefone,
+        aoRecusar: () => { ligacao.tocando = false; if (NSF.Audio) NSF.Audio.toque(false); agendarLigacao(45); } });
+      return;
+    }
+    mostrarAviso(true);       // sem o celular: fica vibrando no criado-mudo até o jogador tocar nele (ou no aviso)
   }
   function atenderTelefone() {
     if (!ligacao.tocando || NSF.Ligacao.aberta()) return;
@@ -734,6 +745,26 @@
     clearTimeout(ligacao.relogio);
     ligacao.relogio = setTimeout(telefoneToca, segundos * 1000);
   }
+  // Celular em pé: sugere deitar (paisagem mostra o lugar inteiro). Uma vez por visita; some ao girar.
+  (function avisoDeitar() {
+    const toque = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+    let visto = false;
+    try { visto = sessionStorage.getItem("nsf_aviso_deitar") === "1"; } catch (e) { /* sem armazenamento */ }
+    if (!toque || visto || innerWidth > innerHeight || params.has("test")) return;
+    const a = document.createElement("div");
+    a.className = "aviso-deitar"; a.setAttribute("role", "dialog");
+    const icone = document.createElement("div"); icone.className = "aviso-deitar-cel"; icone.textContent = "📱"; icone.setAttribute("aria-hidden", "true");
+    const t1 = document.createElement("b"); t1.textContent = "Está no celular?";
+    const t2 = document.createElement("span"); t2.textContent = "Para uma experiência 100%, deite o celular.";
+    const ok = document.createElement("button"); ok.type = "button"; ok.textContent = "Ok, entendi";
+    a.append(icone, t1, t2, ok);
+    const girou = () => { if (innerWidth > innerHeight) fechar(); };
+    function fechar() { a.remove(); removeEventListener("resize", girou); try { sessionStorage.setItem("nsf_aviso_deitar", "1"); } catch (e) { /* ok */ } }
+    ok.addEventListener("click", fechar);
+    addEventListener("resize", girou);
+    document.body.appendChild(a);
+  })();
+
   const bSom = document.getElementById("som");
   if (bSom) bSom.addEventListener("click", () => {
     const on = NSF.Audio ? NSF.Audio.alternar() : false;
@@ -1172,6 +1203,15 @@
         ctx.beginPath(); ctx.moveTo(x - 7, y - 13); ctx.lineTo(x, y - 3); ctx.lineTo(x + 7, y - 13); ctx.fill();
         ctx.fillStyle = "#f3ecff"; ctx.textAlign = "center";
         linhas.forEach((l, i) => ctx.fillText(l, x, y - h - 12 + 23 + i * 19));
+        ctx.restore();
+      } else if (n.paquera) { // dá para paquerar: coração pulando (ou o resultado de hoje)
+        const r = NSF.Paquera && NSF.Paquera.resultado(n);
+        const b = Math.sin(agora / 260 + n.x) * 3, icone = r === "topou" ? "💕" : r ? "💔" : "♥";
+        ctx.save();
+        ctx.fillStyle = "#16101f"; ctx.strokeStyle = r ? "#7a6a99" : "#ff5ad8"; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.roundRect(x - 18, y - 32 + b, 36, 26, 10); ctx.fill(); ctx.stroke();
+        ctx.font = "18px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ff4f8b"; ctx.fillText(icone, x, y - 19 + b);
         ctx.restore();
       } else if (n.dialogo || n.fala) { // dá para conversar: "..." pulando em cima
         const b = Math.sin(agora / 260) * 3;

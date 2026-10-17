@@ -79,7 +79,7 @@ for (const P of MAPAS) {
         assert.ok(g.alcancavel(n.falarDe.x, n.falarDe.y), `${n.id}: falarDe isolado`);
         assert.ok(Math.hypot(n.falarDe.x - n.x, n.falarDe.y - n.y) < 2.0, `${n.id}: falarDe longe demais`);
       }
-      assert.ok(n.dialogo || n.fala, `${n.id}: sem dialogo nem fala`);
+      assert.ok(n.dialogo || n.fala || n.paquera, `${n.id}: sem dialogo, fala nem paquera`);
       if (n.personagem) { // personagem fora do git (rosto real) precisa ter o boneco provisório de reserva
         const existe = fs.existsSync(path.join(RAIZ, "assets/characters/npcs", n.personagem, "personagem.json"));
         assert.ok(existe || n.visual, `${n.id}: personagem ${n.personagem} não existe e não tem "visual" de reserva`);

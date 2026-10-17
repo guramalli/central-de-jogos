@@ -381,6 +381,19 @@
     roncoFonte = { s, g };
   }
 
+  // Tapa: estalo (ruído curtíssimo e agudo) + baque grave.
+  function tapa() {
+    if (!pronto()) return;
+    const t = ctx.currentTime + 0.01, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = obterRuido(); f.type = "bandpass"; f.frequency.value = 2400; f.Q.value = 0.8;
+    g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    s.connect(f); f.connect(g); g.connect(busEfeitos); s.start(t, Math.random()); s.stop(t + 0.14);
+    const o = ctx.createOscillator(), g2 = ctx.createGain();
+    o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(60, t + 0.12);
+    g2.gain.setValueAtTime(0.5, t); g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+    o.connect(g2); g2.connect(busEfeitos); o.start(t); o.stop(t + 0.16);
+  }
+
   // "Plim" do elevador chegando: duas notas de sino.
   function ding() {
     if (!pronto()) return;
@@ -409,7 +422,7 @@
       volumeMusica();
     },
     abafar(sim) { abafado = sim; volumeMusica(); },
-    clique, peido, assobio, curtida, ding, portaElevador, alarmeCarro, chiado, tv, ronco,
+    clique, peido, assobio, curtida, ding, portaElevador, alarmeCarro, chiado, tv, ronco, tapa,
     ligado: () => ligadoSom,
     // para conferência/testes: estado do contexto e volumes
     estado: () => ({ contexto: ctx ? ctx.state : "sem", musica: busMusica ? +busMusica.gain.value.toFixed(2) : 0,

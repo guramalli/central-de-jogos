@@ -96,7 +96,7 @@
     // dir: para onde olha na tela (baixo = para a câmera). falarDe: onde o protagonista fica para conversar.
     // personagem: personagem modular de assets/characters/npcs/<id>/ (reaproveitável em outros mapas);
     // sem ela, boneco provisório desenhado com as cores de "visual".
-    // dialogo: roteiro em js/dialogos/ (toque abre a conversa);
+    // dialogo: roteiro em js/dialogos/ (toque abre a conversa); paquera: perfil em js/dialogos/paquera.js (as meninas);
     // sem dialogo, o toque mostra "fala" num balão. visual: cores e cabelo do boneco provisório.
     npcs: [
       // atrás do balcão: é com ela que se pede (pingado, pão na chapa, pão com ovo...)
@@ -111,18 +111,18 @@
 
       // mesa das meninas: duas no fundo (de frente para a câmera), uma na ponta; uma cadeira vazia
       { id: "menina_vestido", nome: "Menina de vestido vermelho", personagem: "vestido_vermelho", postura: "sentado", x: 5.475, y: 4.275, dir: "baixo", falarDe: { x: 5.8, y: 6.05 },
-        dialogo: "menina_padaria",
+        paquera: "vestido_vermelho",
         visual: { pele: "#e2b08a", roupa: "#c8233d", calca: "#c8233d", cabelo: "#2b1a12", estilo: "longo" } },
       { id: "menina_loira", nome: "Menina loira", personagem: "loira_cargo", postura: "sentado", x: 6.125, y: 4.275, dir: "baixo", falarDe: { x: 6.2, y: 6.05 },
-        fala: "Ela ri de alguma coisa no celular e nem te nota.",
+        paquera: "loira_cargo",
         visual: { pele: "#f0c8a6", roupa: "#f3d3e6", calca: "#3b4a8a", cabelo: "#e6c46a", estilo: "longo" } },
       { id: "menina_cacheada", nome: "Menina de cabelo cacheado", personagem: "cacheada_saia", postura: "sentado", x: 4.875, y: 5.1, dir: "direita", falarDe: { x: 4.9, y: 5.9 },
-        fala: "\"Amiga, olha quem chegou...\"",
+        paquera: "cacheada_saia",
         visual: { pele: "#8d5a3b", roupa: "#2c2c34", calca: "#2c2c34", cabelo: "#1c120c", estilo: "volume" } },
 
       // em pé na geladeira de bebidas, escolhendo o que levar
       { id: "menina_moletom", nome: "Menina de moletom", personagem: "morena_moletom", postura: "em_pe", x: 1.25, y: 3.75, dir: "esquerda",
-        falarDe: { x: 1.9, y: 4.3 }, fala: "\"Será que tem Guaraná zero? Nunca tem Guaraná zero.\"" },
+        falarDe: { x: 1.9, y: 4.3 }, paquera: "morena_moletom" },
 
       // mesa dos homens
       { id: "homem_bone", nome: "Cara de boné", postura: "sentado", x: 9.875, y: 5.275, dir: "baixo", falarDe: { x: 10.0, y: 7.05 },

@@ -45,7 +45,7 @@
     // a irmã entra no 7º andar (fica oculta até lá) e reage ao que ele fizer
     npcs: [
       { id: "freira", nome: "Irmã", personagem: "freira", postura: "em_pe", x: 1.95, y: 0.9, dir: "baixo", oculta: true,
-        fala: "\"Deus abençoe, meu filho.\"" },
+        fala: "\"Deus abençoe, meu filho.\"", paquera: "freira" },
     ],
     pontos: [{ nome: "centro", x: 1.2, y: 1.3 }],
     roteiroDemo: ["centro"],
@@ -128,6 +128,7 @@
   }
   function talvezSair() {
     if (rodando || !chegou) return; // espera a ação terminar
+    if (global.NSF.Ligacao && global.NSF.Ligacao.aberta()) { setTimeout(talvezSair, 1000); return; } // conversa aberta
     if (caixaOpcoes) { caixaOpcoes.remove(); caixaOpcoes = null; }
     const api = PLANTA.api, porta = PLANTA.naParede[0];
     if (global.NSF.Audio) { global.NSF.Audio.ding(); global.NSF.Audio.portaElevador(); }

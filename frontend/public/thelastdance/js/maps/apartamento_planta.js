@@ -124,9 +124,30 @@
       api.sentar({ x: 8.85, y: 4.4, dir: "direita" });
       setTimeout(() => api.pensar("Como é que liga isso aqui?!?!", 3500), 400);
     } else if (tipo === "cama") {
-      dormir(api);
+      perguntarDormir(api);
     }
   };
+
+  // Antes de dormir, pergunta (evita dormir sem querer ao tocar perto da cama).
+  function perguntarDormir(api) {
+    if (document.querySelector(".escolha")) return;
+    const caixa = document.createElement("div");
+    caixa.className = "escolha"; caixa.setAttribute("role", "dialog");
+    const titulo = document.createElement("div"); titulo.className = "escolha-titulo";
+    titulo.textContent = "Dormir e acordar amanhã (" + DIAS[(lerDia() + 1) % 4] + ")?";
+    const grade = document.createElement("div"); grade.className = "escolha-grade";
+    const opcao = (icone, texto, acao) => {
+      const b = document.createElement("button"); b.type = "button";
+      const i = document.createElement("span"); i.className = "escolha-icone"; i.textContent = icone;
+      b.append(i, document.createTextNode(texto));
+      b.addEventListener("click", (e) => { e.stopPropagation(); caixa.remove(); acao(); });
+      grade.appendChild(b);
+    };
+    opcao("😴", "Dormir", () => dormir(api));
+    opcao("🙅", "Agora não", () => api.pensar("Ainda tá cedo... a noite é uma criança.", 2600));
+    caixa.append(titulo, grade);
+    document.body.appendChild(caixa);
+  }
 
   // Dormir: ele deita na cama debaixo do cobertor e ronca, a tela vai fechando devagar, amanhece no dia seguinte.
   let dormindo = null; // instante em que deitou

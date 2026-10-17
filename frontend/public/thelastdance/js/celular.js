@@ -116,10 +116,19 @@
   .cel-chamada .opcoes button { font: 600 13px system-ui; color: #fff; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.35);
     border-radius: 14px; padding: 9px 12px; cursor: pointer; text-align: left; }
   .cel-chamada .opcoes button:hover, .cel-chamada .opcoes button:focus-visible { background: rgba(255,255,255,.25); outline: none; }
+  .cel-central { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 27; width: min(300px, calc(100vw - 32px));
+    background: linear-gradient(180deg, #1b1030, #3a1b5c); color: #fff; border-radius: 28px; padding: 22px 18px 18px; text-align: center;
+    box-shadow: 0 0 0 3px #3a2a50, 0 0 0 6px #08060c, 0 0 40px rgba(255,90,216,.45), 0 20px 50px rgba(0,0,0,.6);
+    font: 15px/1.3 system-ui, sans-serif; animation: cel-chega .3s ease-out; }
+  .cel-central .cel-av { width: 84px; height: 84px; font-size: 36px; margin: 0 auto 10px; animation: cel-pulsa 1.1s ease-in-out infinite; }
+  .cel-central h2 { margin: 0; font: 700 21px system-ui, sans-serif; } .cel-central .sub { opacity: .8; margin: 2px 0 18px; }
+  .cel-central .par { display: flex; justify-content: space-around; }
+  .cel-central .par div { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; opacity: .9; }
+  @keyframes cel-chega { from { opacity: 0; transform: translate(-50%, -40%) scale(.9); } to { opacity: 1; transform: translate(-50%, -50%); } }
   @keyframes cel-vibra { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
   @keyframes cel-sobe { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   @keyframes cel-pulsa { 50% { box-shadow: 0 0 0 14px rgba(255,255,255,.12); } }
-  @media (prefers-reduced-motion: reduce) { #cel-botao.tocando, .cel-msg, .cel-tela, .cel-aviso, .cel-chamada .cel-av { animation: none; } }`;
+  @media (prefers-reduced-motion: reduce) { .cel-central, .cel-central .cel-av, #cel-botao.tocando, .cel-msg, .cel-tela, .cel-aviso, .cel-chamada .cel-av { animation: none; } }`;
 
   // ---------- estado salvo ----------
   const CHAVE = "nsf_celular";
@@ -132,7 +141,8 @@
   est.segundos = est.segundos || 0;
   function salvar() { try { global.localStorage.setItem(CHAVE, JSON.stringify(est)); } catch (e) { /* sem armazenamento: só nesta tela */ } }
 
-  const CONVERSAS = DADOS.conversas;
+  est.dinamicas = est.dinamicas || []; // conversas que surgem no jogo (ex.: a menina que topou o vinho)
+  const CONVERSAS = [...est.dinamicas, ...DADOS.conversas];
   function info(c) { // estado de uma conversa (lidas, respostas, rodada)
     if (!est.c[c.id]) {
       let n = c.mensagens.length; // começa com as últimas mensagens do contato "não lidas"
@@ -471,12 +481,34 @@
     app.append(topo, lista);
   }
 
+  // ---------- cartão "ligando…" no centro da tela (o celular do canto vibra junto) ----------
+  // Serve para as ligações do celular e para as do jogo (ex.: a Gatinha de Campinas): NSF.Celular.chamadaCentral({...}).
+  let central = null;
+  function chamadaCentral(o) {
+    fecharCentral();
+    const c = el("div", "cel-central");
+    c.setAttribute("role", "alertdialog"); c.setAttribute("aria-label", o.nome + " ligando");
+    c.append(avatar(o.nome, o.cor, o.emoji), el("h2", "", o.nome), el("div", "sub", "ligando pra você…"));
+    const par = el("div", "par");
+    const lado = (b, rot) => { const d = el("div"); d.append(b, el("span", "", rot)); return d; };
+    par.append(lado(botao("cel-redondo vermelho", "✆", () => { fecharCentral(); if (o.aoRecusar) o.aoRecusar(); }, "Recusar"), "Recusar"),
+      lado(botao("cel-redondo verde", "✆", () => { fecharCentral(); if (o.aoAtender) o.aoAtender(); }, "Atender"), "Atender"));
+    c.appendChild(par);
+    c.addEventListener("click", (e) => e.stopPropagation());
+    doc.body.appendChild(c);
+    bCel.classList.add("tocando");
+    central = c;
+    const verde = c.querySelector(".verde"); if (verde) verde.focus({ preventScroll: true });
+    return { fechar: fecharCentral };
+  }
+  function fecharCentral() { if (central) { central.remove(); central = null; } bCel.classList.remove("tocando"); }
+
   // ---------- ligações (Bruno Moon e Carioca ligando toda hora) ----------
   let chamada = null; // { l, perdeRelogio, feita }
   const tocandoAviso = () => { const t = doc.getElementById("tocando"); return t && t.classList.contains("visivel"); };
   const ocupado = () => {
     const a = global.NSF_APTO;
-    return ligacaoDoJogoAberta() || tocandoAviso() || (a && a.porta && (a.porta.menu || a.porta.saindo)) || !!chamada;
+    return ligacaoDoJogoAberta() || tocandoAviso() || !!central || (a && a.porta && (a.porta.menu || a.porta.saindo)) || !!chamada;
   };
   function registrar(l, como) {
     est.chamadas.push({ id: l.id, nome: l.nome, hora: horaAgora(), perdida: como === "perdida", feita: como === "feita" });
@@ -491,10 +523,7 @@
     chamada = { l };
     if (NSF.Audio) NSF.Audio.toque(true);
     if (tela) ir({ nome: "ligando", l });
-    else {
-      bCel.classList.add("tocando");
-      mostrarAviso(`📞 ${l.nome} ligando…`, "Toque para atender", () => abrir({ nome: "ligando", l }));
-    }
+    else chamadaCentral({ nome: l.nome, cor: l.cor, aoRecusar: recusar, aoAtender: () => { abrir({ nome: "ligando", l }); atender(); } });
     chamada.perdeRelogio = setTimeout(() => { // ninguém atendeu
       pararToque();
       registrar(l, "perdida");
@@ -506,7 +535,7 @@
   }
   function pararToque() {
     if (NSF.Audio) NSF.Audio.toque(false);
-    bCel.classList.remove("tocando");
+    fecharCentral();
     esconderAviso();
     if (chamada) clearTimeout(chamada.perdeRelogio);
   }
@@ -640,5 +669,12 @@
 
   atualizarBadge();
   if (!/[?&](test|semcelular)/.test(global.location.search)) agendarLigacao(40 + Math.random() * 25);
-  NSF.Celular = { abrir, fechar, aberto, tocarAgora, estado: () => est };
+  // Conversa nova (ex.: paquera que deu certo): "chega" conta a partir de agora.
+  function novaConversa(c) {
+    const nova = Object.assign({}, c, { chega: est.segundos + (c.chega || 0) });
+    est.dinamicas.unshift(nova); CONVERSAS.unshift(nova);
+    salvar(); atualizarBadge();
+    if (tela && atual && ["home", "zap"].includes(atual.nome)) desenhar();
+  }
+  NSF.Celular = { abrir, fechar, aberto, tocarAgora, novaConversa, chamadaCentral, fecharCentral, estado: () => est };
 })(typeof window !== "undefined" ? window : globalThis);
