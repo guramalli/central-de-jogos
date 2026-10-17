@@ -22,6 +22,8 @@
     "garagem.html": ["vozes"],
   };
   const PACOTE_TESTE = "vozes"; // pequeno: confere se a chave abre (na entrada)
+  // muda a cada vez que os pacotes são trancados (tools/vip_trancar.mjs reescreve esta linha): fura o cache do site
+  const VERSAO_PACOTES = "mvbut7rq";
 
   const urls = new Map();
   const ler = () => { try { return global.localStorage.getItem(LS) || ""; } catch (e) { return ""; } };
@@ -30,7 +32,7 @@
   const chaveErrada = (e) => e && e.name === "OperationError"; // AES-GCM não confere = chave errada
 
   async function destrancar(chaveHex, pacote) {
-    const r = await fetch(PASTA + pacote + ".bin", { cache: "no-cache" });
+    const r = await fetch(PASTA + pacote + ".bin?v=" + VERSAO_PACOTES, { cache: "no-cache" });
     if (!r.ok) throw new Error("pacote " + pacote + ": " + r.status);
     const bruto = new Uint8Array(await r.arrayBuffer());
     const chave = await global.crypto.subtle.importKey("raw", hex(chaveHex), "AES-GCM", false, ["decrypt"]);

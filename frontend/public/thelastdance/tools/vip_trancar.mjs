@@ -85,4 +85,8 @@ for (const [nome, alvos] of Object.entries(PACOTES)) {
   console.log(`${nome}: ${arquivos.length} arquivos, ${(cifrado.length / 1024 / 1024).toFixed(2)} MB`);
 }
 rmSync(TEMP, { recursive: true, force: true });
+// versão nova no js/vip.js: o navegador e o cache do site pegam os pacotes novos na hora
+const VIP_JS = join(RAIZ, "js/vip.js");
+const versao = Date.now().toString(36);
+writeFileSync(VIP_JS, readFileSync(VIP_JS, "utf8").replace(/const VERSAO_PACOTES = "[^"]*";/, `const VERSAO_PACOTES = "${versao}";`));
 console.log(`total ${(total / 1024 / 1024).toFixed(1)} MB em ${Object.keys(PACOTES).length} pacotes`);
