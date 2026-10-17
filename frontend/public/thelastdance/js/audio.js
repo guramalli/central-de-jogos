@@ -38,7 +38,8 @@
       melodia: [74, null, 76, 78, null, 79, null, 78, 76, null, 74, null, 71, null, 74, null] },
     // padaria: bossa nova de rádio de padaria + burburinho de padaria cheia bem baixinho
     // ("three minutes of crowded bakery" de mueckenjulie, Freesound, CC0 — freesound.org/s/455567/)
-    padaria: { bpm: 118, estilo: "bossa", volume: 0.55, fundo: "assets/audio/padaria_ambiente.mp3", fundoVolume: 0.07,
+    // sem música: só o burburinho, bem baixinho (volume 0 deixa a bossa calada; o fundo segue o botão Som)
+    padaria: { bpm: 118, estilo: "bossa", volume: 0, fundo: "assets/audio/padaria_ambiente.mp3", fundoVolume: 0.05,
       acordes: [[62, 65, 69, 72], [55, 59, 64, 65], [60, 64, 67, 71], [57, 61, 64, 67]], baixo: [50, 43, 48, 45],
       melodia: [74, null, 76, 77, null, 76, null, 74, null, 72, null, null, 71, null, 72, null] },
   };
