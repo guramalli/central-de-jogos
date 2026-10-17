@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PASTAS = ["assets/characters/npcs/gustavinho", "assets/characters/npcs/vibola",
   "assets/characters/npcs/vini", "assets/characters/npcs/juan",
+  "assets/characters/npcs/pabo", "assets/characters/npcs/elcio", "assets/characters/npcs/jamil",
   "assets/audio/amigos"]; // vozes dos amigos (áudios de WhatsApp)
 const ARQ_CHAVE = join(RAIZ, "tools/.vip_chave");
 const SAIDA = join(RAIZ, "assets/vip/amigos.bin");
