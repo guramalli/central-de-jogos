@@ -103,9 +103,9 @@
       { id: "atendente", nome: "Dona Cida, a atendente", personagem: "dona_cida", postura: "em_pe", x: 3.15, y: 1.05, dir: "baixo",
         falarDe: { x: 3.15, y: 2.75 }, dialogo: "atendente_padaria",
         visual: { pele: "#c9946a", roupa: "#f4efe6", calca: "#2b2b33", cabelo: "#3a2418", estilo: "coque", avental: "#2f6b5a" } },
-      // o padeiro, no vão entre a estufa e o forno (sem fechar o corredor atrás do balcão)
-      { id: "padeiro", nome: "Seu Antônio, o padeiro", personagem: "padeiro", postura: "em_pe", x: 7.03, y: 0.5, dir: "baixo",
-        falarDe: { x: 7.0, y: 1.15 }, fala: "\"Pão francês saindo do forno agora! Quentinho, crocante!\"" },
+      // o padeiro, na frente do forno de pães (atrás da vitrine); fala-se com ele do outro lado da vitrine
+      { id: "padeiro", nome: "Seu Antônio, o padeiro", personagem: "padeiro", postura: "em_pe", x: 8.0, y: 0.9, dir: "baixo",
+        falarDe: { x: 8.0, y: 2.6 }, fala: "\"Pão francês saindo do forno agora! Quentinho, crocante!\"" },
       { id: "garcom", nome: "Zé, o garçom", personagem: "garcom_ze", postura: "em_pe", x: 9.0, y: 3.3, dir: "baixo", falarDe: { x: 9.5, y: 4.0 }, dialogo: "garcom_padaria",
         visual: { pele: "#b9825a", roupa: "#f1f1ee", calca: "#1d1d22", cabelo: "#cfcfcf", estilo: "curto", avental: "#7a1f2e" } },
 
