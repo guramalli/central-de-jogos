@@ -1,0 +1,198 @@
+{
+ "id": "neoprene_calca",
+ "nome": "Calça de neoprene (surf)",
+ "vistas": {
+  "frente": {
+   "camadas": [
+    {
+     "osso": "canela_dir",
+     "z": 0.5,
+     "img": "roupas/neoprene_calca/frente/canela_dir_0.png",
+     "x": 521,
+     "y": 1175
+    },
+    {
+     "osso": "canela_esq",
+     "z": 4.5,
+     "img": "roupas/neoprene_calca/frente/canela_esq_1.png",
+     "x": 314,
+     "y": 1146
+    },
+    {
+     "osso": "coxa_dir",
+     "z": 2.5,
+     "img": "roupas/neoprene_calca/frente/coxa_dir_2.png",
+     "x": 509,
+     "y": 1020
+    },
+    {
+     "osso": "coxa_esq",
+     "z": 5.5,
+     "img": "roupas/neoprene_calca/frente/coxa_esq_3.png",
+     "x": 339,
+     "y": 1028
+    }
+   ],
+   "substituir": {
+    "pe_dir": {
+     "img": "roupas/neoprene_calca/frente/pe_dir_descalco.png",
+     "x": 559,
+     "y": 1272,
+     "w": 174,
+     "h": 182
+    },
+    "pe_esq": {
+     "img": "roupas/neoprene_calca/frente/pe_esq_descalco.png",
+     "x": 292,
+     "y": 1264,
+     "w": 174,
+     "h": 190
+    }
+   }
+  },
+  "costas": {
+   "camadas": [
+    {
+     "osso": "canela_dir",
+     "z": 3.5,
+     "img": "roupas/neoprene_calca/costas/canela_dir_0.png",
+     "x": 536,
+     "y": 1140
+    },
+    {
+     "osso": "canela_esq",
+     "z": 2.5,
+     "img": "roupas/neoprene_calca/costas/canela_esq_1.png",
+     "x": 319,
+     "y": 1140
+    },
+    {
+     "osso": "coxa_dir",
+     "z": 5.5,
+     "img": "roupas/neoprene_calca/costas/coxa_dir_2.png",
+     "x": 512,
+     "y": 947
+    },
+    {
+     "osso": "coxa_esq",
+     "z": 4.5,
+     "img": "roupas/neoprene_calca/costas/coxa_esq_3.png",
+     "x": 339,
+     "y": 950
+    }
+   ],
+   "substituir": {
+    "pe_esq": {
+     "img": "roupas/neoprene_calca/costas/pe_esq_descalco.png",
+     "x": 302,
+     "y": 1254,
+     "w": 167,
+     "h": 165
+    },
+    "pe_dir": {
+     "img": "roupas/neoprene_calca/costas/pe_dir_descalco.png",
+     "x": 567,
+     "y": 1276,
+     "w": 169,
+     "h": 143
+    }
+   }
+  },
+  "lado_direito": {
+   "camadas": [
+    {
+     "osso": "canela",
+     "z": 1.5,
+     "img": "roupas/neoprene_calca/lado_direito/canela_0.png",
+     "x": 364,
+     "y": 1082
+    },
+    {
+     "osso": "canela_tras",
+     "z": -7.5,
+     "img": "roupas/neoprene_calca/lado_direito/canela_tras_1.png",
+     "x": 364,
+     "y": 1082
+    },
+    {
+     "osso": "coxa",
+     "z": 2.5,
+     "img": "roupas/neoprene_calca/lado_direito/coxa_2.png",
+     "x": 385,
+     "y": 933
+    },
+    {
+     "osso": "coxa_tras",
+     "z": -6.5,
+     "img": "roupas/neoprene_calca/lado_direito/coxa_tras_3.png",
+     "x": 385,
+     "y": 933
+    }
+   ],
+   "substituir": {
+    "pe_tras": {
+     "img": "roupas/neoprene_calca/lado_direito/pe_tras_descalco.png",
+     "x": 387,
+     "y": 1324,
+     "w": 286,
+     "h": 179
+    },
+    "pe_frente": {
+     "img": "roupas/neoprene_calca/lado_direito/pe_frente_descalco.png",
+     "x": 387,
+     "y": 1324,
+     "w": 286,
+     "h": 179
+    }
+   }
+  },
+  "lado_esquerdo": {
+   "camadas": [
+    {
+     "osso": "canela",
+     "z": 1.5,
+     "img": "roupas/neoprene_calca/lado_esquerdo/canela_0.png",
+     "x": 454,
+     "y": 1102
+    },
+    {
+     "osso": "canela_tras",
+     "z": -7.5,
+     "img": "roupas/neoprene_calca/lado_esquerdo/canela_tras_1.png",
+     "x": 454,
+     "y": 1102
+    },
+    {
+     "osso": "coxa",
+     "z": 2.5,
+     "img": "roupas/neoprene_calca/lado_esquerdo/coxa_2.png",
+     "x": 416,
+     "y": 934
+    },
+    {
+     "osso": "coxa_tras",
+     "z": -6.5,
+     "img": "roupas/neoprene_calca/lado_esquerdo/coxa_tras_3.png",
+     "x": 416,
+     "y": 934
+    }
+   ],
+   "substituir": {
+    "pe_tras": {
+     "img": "roupas/neoprene_calca/lado_esquerdo/pe_tras_descalco.png",
+     "x": 363,
+     "y": 1332,
+     "w": 269,
+     "h": 156
+    },
+    "pe_frente": {
+     "img": "roupas/neoprene_calca/lado_esquerdo/pe_frente_descalco.png",
+     "x": 363,
+     "y": 1332,
+     "w": 269,
+     "h": 156
+    }
+   }
+  }
+ }
+}

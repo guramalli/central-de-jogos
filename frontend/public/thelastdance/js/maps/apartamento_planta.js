@@ -45,8 +45,7 @@
       // TV (toque no rack ou na TV) e sofá: ele senta e assiste uma série
       { nome: "Rack + TV", tipo: "movel", x0: 0, y0: 1.2, x1: 0.45, y1: 3.4, z1: 0.5, arte: "rack",
         interacao: "tv", toqueZ: 1.95, falarDe: { x: 1.7, y: 2.3 } },
-      { nome: "Sofá cinza", tipo: "sofa", x0: 2.4, y0: 1.0, x1: 3.3, y1: 3.6, z1: 0.8, arte: "sofa",
-        interacao: "tv", falarDe: { x: 1.7, y: 2.3 } },
+      { nome: "Sofá cinza", tipo: "sofa", x0: 2.4, y0: 1.0, x1: 3.3, y1: 3.6, z1: 0.8, arte: "sofa" }, // a TV se liga pelo rack
       { nome: "Mesa lateral", tipo: "movel", x0: 2.45, y0: 0.45, x1: 2.95, y1: 0.95, z1: 0.5, arte: "mesa_lateral" },
       { nome: "Mesa redonda", tipo: "mesa", x0: 3.6, y0: 4.6, x1: 4.7, y1: 5.7, z1: 0.75, redonda: true, arte: "mesa_redonda",
         interacao: "vinho", falarDe: { x: 4.15, y: 4.15 },

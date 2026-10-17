@@ -184,6 +184,20 @@
 
   const pronto = () => ctx && ctx.state === "running";
   const buffers = {};
+  // tenta pôr o som para rodar (suspenso ou interrompido); espera até ~1,5 s pela resposta do navegador
+  function religar() {
+    if (pronto()) return Promise.resolve(true);
+    if (!ctx || mudo()) return Promise.resolve(false);
+    return Promise.race([ctx.resume().then(() => pronto(), () => false), new Promise((ok) => setTimeout(() => ok(pronto()), 1500))]);
+  }
+  // baixa + decodifica uma vez; se falhar, esquece (para tentar de novo da próxima vez, em vez de falhar para sempre)
+  function decodificar(url, dados) {
+    if (!buffers[url]) {
+      const p = buffers[url] = (dados || baixar(url)).then((b) => ctx.decodeAudioData(b.slice ? b.slice(0) : b));
+      p.then((buf) => { p.pronto = buf; }, () => { if (buffers[url] === p) delete buffers[url]; });
+    }
+    return buffers[url];
+  }
 
   // Arquivos da área dos amigos (pasta trancada: vozes, músicas com dono) só existem depois que o pacote abre
   // (js/vip.js); os outros vêm direto do site.
@@ -193,9 +207,7 @@
 
   // Efeito em arquivo: baixa e decodifica antes de precisar (b.pronto = AudioBuffer).
   function carregarEfeito(url) {
-    if (buffers[url]) return;
-    const p = buffers[url] = baixar(url).then((b) => ctx.decodeAudioData(b));
-    p.then((buf) => { p.pronto = buf; }).catch(() => {});
+    decodificar(url).catch(() => {});
   }
 
   // Som de fundo do lugar (burburinho): arquivo em loop, independente da música (segue só o botão Som).
@@ -205,7 +217,7 @@
     if (fundo && fundoDe !== trilha) { fundo.s.stop(); fundo = null; fundoDe = null; }
     if (!trilha.fundo || fundo) return;
     const alvo = trilha, url = trilha.fundo;
-    (buffers[url] = buffers[url] || fetch(url).then((r) => r.arrayBuffer()).then((b) => ctx.decodeAudioData(b)))
+    decodificar(url)
       .then((buf) => {
         if (trilha !== alvo || fundo) return;
         const s = ctx.createBufferSource(), g = ctx.createGain();
@@ -220,22 +232,24 @@
   const baixados = {}; // arquivo da trilha já baixado (ArrayBuffer), antes mesmo de o som ser liberado
   function preBaixar(t) {
     const url = t.arquivo || t.arquivoLocal;
-    if (url && !baixados[url]) baixados[url] = baixar(url);
-    if (url) baixados[url].catch(() => { t.falhou = true; });
+    if (url && !baixados[url]) {
+      const p = baixados[url] = baixar(url);
+      p.catch(() => { if (baixados[url] === p) delete baixados[url]; }); // sem internet agora: tenta de novo depois
+    }
   }
   function tocarArquivo() {
     if (!ctx) return;
     if (fonte && fonteDe !== trilha) { fonte.stop(); fonte = null; fonteDe = null; }
-    if (!(trilha.arquivo || trilha.arquivoLocal) || trilha.falhou || fonte) return;
+    if (!(trilha.arquivo || trilha.arquivoLocal) || fonte || (trilha.falhou && Date.now() - trilha.falhou < 15000)) return;
     const alvo = trilha, url = trilha.arquivo || trilha.arquivoLocal;
     preBaixar(alvo);
-    (buffers[url] = buffers[url] || baixados[url].then((b) => ctx.decodeAudioData(b.slice(0))))
+    decodificar(url, baixados[url])
       .then((buf) => {
         if (trilha !== alvo || fonte) return;
         fonte = ctx.createBufferSource(); fonte.buffer = buf; fonte.loop = true;
-        fonte.connect(busMusica); fonte.start(); fonteDe = alvo; volumeMusica();
+        fonte.connect(busMusica); fonte.start(); fonteDe = alvo; alvo.falhou = 0; volumeMusica();
       })
-      .catch(() => { alvo.falhou = true; }); // sem o arquivo: cai na versão sintetizada
+      .catch(() => { alvo.falhou = Date.now(); }); // sem o arquivo: toca a sintetizada (e tenta de novo daqui a 15 s, num toque)
   }
 
   // Passagem de tela: estalo curto + bip que desce (sumindo) ou sobe (aparecendo).
@@ -410,18 +424,19 @@
 
   // Voz gravada (áudio de WhatsApp dos amigos): toca uma vez, com a música abaixada; resolve com a duração (s)
   // quando começa e chama aoFim quando acaba. Rejeita se o áudio não estiver liberado (sem toque ainda) ou não existir.
-  function voz(url, aoFim) {
-    if (!pronto()) return Promise.reject(new Error("áudio ainda não liberado"));
-    const buf = buffers[url] = buffers[url] || fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
-      .then((b) => ctx.decodeAudioData(b));
-    return buf.then((b) => {
+  // O endereço é resolvido aqui (depois que o pacote da senha abre), não por quem chama: no celular o pacote costuma
+  // abrir depois que a primeira fala já pediu o áudio.
+  async function voz(url, aoFim) {
+    if (!(await religar())) throw new Error("áudio ainda não liberado");
+    const b = await decodificar(url);
+    {
       const s = ctx.createBufferSource(), g = ctx.createGain();
       s.buffer = b; g.gain.value = 1.1; s.connect(g); g.connect(busEfeitos);
       vozes++; volumeMusica();
       s.onended = () => { vozes = Math.max(0, vozes - 1); volumeMusica(); if (aoFim) aoFim(); };
       s.start();
       return b.duration;
-    });
+    }
   }
 
   // Cena do quarto (com a tela escura): risadinha, mola da cama rangendo e o vizinho batendo no teto.
@@ -472,7 +487,8 @@
   const Audio = {
     iniciar() {
       if (mudo() || !criar()) return;
-      if (ctx.state === "suspended") ctx.resume();
+      if (ctx.state !== "running") ctx.resume().catch(() => {});
+      try { if (global.navigator && global.navigator.audioSession) global.navigator.audioSession.type = "playback"; } catch (e) { /* ok */ }
       if (!relogio) { proximoTempo = ctx.currentTime + 0.1; relogio = setInterval(agendar, 50); }
       volumeMusica(); tocarArquivo(); tocarFundo(); carregarEfeito(PEIDO_MP3); carregarEfeito(TOQUE_MP3); carregarEfeito(TV_LOCAL); carregarEfeito(RONCO_MP3);
       if (querToque && !toqueRelogio) tocarToque();
@@ -506,7 +522,9 @@
 
   // Primeiro gesto do jogador libera o áudio.
   const liberar = () => Audio.iniciar();
-  for (const ev of ["pointerdown", "keydown", "touchstart"]) global.addEventListener(ev, liberar, { capture: true, passive: true });
+  // (iPhone só libera em touchend/click; Android em pointerup/touchend) — e a cada toque religa se o sistema parou o som
+  for (const ev of ["pointerdown", "pointerup", "keydown", "touchstart", "touchend", "click"]) global.addEventListener(ev, liberar, { capture: true, passive: true });
+  if (global.document) global.document.addEventListener("visibilitychange", () => { if (!global.document.hidden && ctx) liberar(); });
 
   if (global.NSF) global.NSF.Audio = Audio;
 })(typeof window !== "undefined" ? window : globalThis);
