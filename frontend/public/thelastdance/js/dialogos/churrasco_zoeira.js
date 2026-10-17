@@ -2,6 +2,8 @@
 // RASCUNHO para testar — trocar pelas falas de verdade (o formato fica). Edite à vontade:
 //   quem: "eu" (o protagonista) ou o id do amigo na planta (vibola, gustavinho, juan, vini)
 //   texto: a fala ; celular: true = ele saca o celular para mostrar o Instagram (com corações subindo)
+//   audio: voz gravada (áudio de WhatsApp) que toca no lugar do texto — o balão mostra só a ondinha do som.
+//     As vozes ficam no pacote trancado da área dos amigos (tools/vip_trancar.mjs); "texto" aí é só um lembrete.
 // As rodadas tocam em ordem e recomeçam no fim; entre uma rodada e outra há uma pausa.
 (function (global) {
   "use strict";
@@ -51,6 +53,25 @@
         { quem: "vibola", texto: "Desde 2015, Vini. Desde 2015." },
         { quem: "juan", texto: "Um brinde ao último ano de solteiro dele... de novo!" },
         { quem: "gustavinho", texto: "Saúde! Até o ano que vem, no último ano de novo." },
+      ],
+      [ // o Vini e o futebol (áudio do Vini)
+        { quem: "eu", texto: "E aí, Vini, domingo tem futebol? Separei a chuteira!" },
+        { quem: "vini", texto: "(áudio do Vini: parou de jogar bola por causa do joelho)", audio: "assets/audio/amigos/vini_futebol.mp3" },
+        { quem: "juan", texto: "Aposentou o joelho e a dignidade junto." },
+        { quem: "eu", texto: "Corridinha na praia... no Nordeste, no réveillon! Bora, Vini!" },
+        { quem: "vibola", texto: "Pronto, voltou pro réveillon. Em menos de um minuto." },
+      ],
+      [ // o Juan "elogiando" (áudio do Juan)
+        { quem: "eu", texto: "Rapaziada, tive uma ideia genial: camiseta do grupo com a minha cara!" },
+        { quem: "juan", texto: "(áudio do Juan: \"você é o melhor, muito engraçado, muito criativo\")", audio: "assets/audio/amigos/juan_elogio.mp3" },
+        { quem: "gustavinho", texto: "Kkkkkkk o Juan no modo irônico máximo." },
+        { quem: "eu", texto: "Ironia nada, ele me ama. Tá vendo? Até gravou áudio." },
+      ],
+      [ // a perguntinha dele (áudio do protagonista)
+        { quem: "eu", texto: "(áudio dele: a \"perguntinha\" pra galera)", audio: "assets/audio/amigos/eu_perguntinha.mp3" },
+        { quem: "vibola", texto: "Lá vem..." },
+        { quem: "vini", texto: "Isso aí é a picanha de ontem, irmão." },
+        { quem: "juan", texto: "Ninguém mais acordou assim. Só você. Todo domingo." },
       ],
       [ // mais mulher
         { quem: "eu", texto: "Galera, galera! Olha a foto que ela mandou agora!", celular: true },

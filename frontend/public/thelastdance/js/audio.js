@@ -394,6 +394,22 @@
     o.connect(g2); g2.connect(busEfeitos); o.start(t); o.stop(t + 0.16);
   }
 
+  // Voz gravada (áudio de WhatsApp dos amigos): toca uma vez, com a música abaixada; resolve com a duração (s)
+  // quando começa e chama aoFim quando acaba. Rejeita se o áudio não estiver liberado (sem toque ainda) ou não existir.
+  function voz(url, aoFim) {
+    if (!pronto()) return Promise.reject(new Error("áudio ainda não liberado"));
+    const buf = buffers[url] = buffers[url] || fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then((b) => ctx.decodeAudioData(b));
+    return buf.then((b) => {
+      const s = ctx.createBufferSource(), g = ctx.createGain();
+      s.buffer = b; g.gain.value = 1.1; s.connect(g); g.connect(busEfeitos);
+      abafado = true; volumeMusica();
+      s.onended = () => { abafado = false; volumeMusica(); if (aoFim) aoFim(); };
+      s.start();
+      return b.duration;
+    });
+  }
+
   // "Plim" do elevador chegando: duas notas de sino.
   function ding() {
     if (!pronto()) return;
@@ -422,7 +438,7 @@
       volumeMusica();
     },
     abafar(sim) { abafado = sim; volumeMusica(); },
-    clique, peido, assobio, curtida, ding, portaElevador, alarmeCarro, chiado, tv, ronco, tapa,
+    clique, peido, assobio, curtida, ding, portaElevador, alarmeCarro, chiado, tv, ronco, tapa, voz,
     ligado: () => ligadoSom,
     // para conferência/testes: estado do contexto e volumes
     estado: () => ({ contexto: ctx ? ctx.state : "sem", musica: busMusica ? +busMusica.gain.value.toFixed(2) : 0,

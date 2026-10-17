@@ -13,10 +13,11 @@ import { fileURLToPath } from "node:url";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PASTAS = ["assets/characters/npcs/gustavinho", "assets/characters/npcs/vibola",
-  "assets/characters/npcs/vini", "assets/characters/npcs/juan"];
+  "assets/characters/npcs/vini", "assets/characters/npcs/juan",
+  "assets/audio/amigos"]; // vozes dos amigos (áudios de WhatsApp)
 const ARQ_CHAVE = join(RAIZ, "tools/.vip_chave");
 const SAIDA = join(RAIZ, "assets/vip/amigos.bin");
-const TIPOS = { ".png": "image/png", ".json": "application/json", ".webp": "image/webp", ".jpg": "image/jpeg" };
+const TIPOS = { ".mp3": "audio/mpeg", ".png": "image/png", ".json": "application/json", ".webp": "image/webp", ".jpg": "image/jpeg" };
 
 let chave;
 if (existsSync(ARQ_CHAVE)) chave = Buffer.from(readFileSync(ARQ_CHAVE, "utf8").trim(), "hex");

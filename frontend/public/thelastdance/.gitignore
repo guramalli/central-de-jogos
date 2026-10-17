@@ -33,6 +33,8 @@ __pycache__/
 /assets/characters/npcs/vibola/
 /assets/characters/npcs/vini/
 /assets/characters/npcs/juan/
+# vozes dos amigos (áudios de WhatsApp): só trancadas no pacote da área dos amigos
+/assets/audio/amigos/
 
 # músicas só para teste local (com direitos autorais: não vão para o site)
 /assets/audio/local/

@@ -69,3 +69,10 @@ test("catálogo de peças: todo arquivo existe e toda arte citada na planta est�
     .filter(Boolean);
   for (const n of citadas) assert.ok(cat.props[n], `planta cita "${n}" que não está no catálogo`);
 });
+
+test("zoeira: vozes gravadas dos amigos só da pasta trancada (assets/audio/amigos, fora do git)", () => {
+  for (const z of zoeiras) for (const r of z.rodadas) for (const f of r) {
+    if (!f.audio) continue;
+    assert.match(f.audio, /^assets\/audio\/amigos\/[\w-]+\.mp3$/, `${z.id}: ${f.audio}`);
+  }
+});

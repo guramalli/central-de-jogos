@@ -149,9 +149,27 @@
     if (!Z || !api) return;
     let r = 0, f = 0;
     const ocupado = () => (global.NSF.Ligacao && global.NSF.Ligacao.aberta()) || api.porta.menu || api.porta.saindo;
+    const ONDA = "🔊 ▂▃▅▇▅▃▂▃▅"; // balão de quem está mandando áudio (a voz é a do arquivo, sem legenda)
+    const seguir = (espera) => {
+      const rodada = Z.rodadas[r];
+      f++;
+      if (f >= rodada.length) { f = 0; r = (r + 1) % Z.rodadas.length; espera += Z.pausaEntreRodadas * 1000; }
+      setTimeout(proxima, espera);
+    };
     const proxima = () => {
       if (ocupado()) { setTimeout(proxima, 1500); return; }
       const rodada = Z.rodadas[r], fala = rodada[f], ms = Z.segundosPorFala * 1000;
+      if (fala.audio) { // voz gravada: só toca com o som liberado e o pacote dos amigos aberto; senão, pula a fala
+        const A = global.NSF.Audio, url = global.NSF.VIP ? global.NSF.VIP.url(fala.audio) : fala.audio;
+        if (!A || !A.voz) { seguir(0); return; }
+        A.voz(url).then((dur) => {
+          const ate = performance.now() + dur * 1000;
+          if (fala.quem === "eu") api.falar(ONDA, dur * 1000);
+          else { const n = api.npcs.find((x) => x.id === fala.quem); if (n) n.balao = { texto: ONDA, ate }; }
+          seguir(dur * 1000 + 700);
+        }).catch(() => seguir(0));
+        return;
+      }
       if (fala.quem === "eu") {
         api.falar(fala.texto, ms - 200);
         if (fala.celular && api.heroi && !api.jog.sentado && api.heroi.roupas.celular_mao) {
@@ -162,10 +180,7 @@
         const n = api.npcs.find((x) => x.id === fala.quem);
         if (n) n.balao = { texto: fala.texto, ate: performance.now() + ms - 200 };
       }
-      f++;
-      let espera = ms;
-      if (f >= rodada.length) { f = 0; r = (r + 1) % Z.rodadas.length; espera += Z.pausaEntreRodadas * 1000; }
-      setTimeout(proxima, espera);
+      seguir(ms);
     };
     proxima();
   }
