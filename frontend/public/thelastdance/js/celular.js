@@ -726,6 +726,26 @@
     }, s * 1000);
   }
 
+  // ---------- grupo "pipocando": mensagens soltas de tempos em tempos (conversa.pipoca) ----------
+  function pipocar(c) {
+    const p = c.pipoca;
+    if (!p || !p.mensagens.length) return;
+    const inf = info(c);
+    if (inf.proximaPipoca == null) inf.proximaPipoca = est.segundos + p.intervalo[0];
+    if (est.segundos < inf.proximaPipoca) return;
+    const [a, b] = p.intervalo;
+    inf.proximaPipoca = est.segundos + a + Math.floor(Math.random() * (b - a));
+    const m = p.mensagens[(inf.pipocadas || 0) % p.mensagens.length];
+    inf.pipocadas = (inf.pipocadas || 0) + 1;
+    inf.extras.push({ de: m.de, t: m.t });
+    salvar();
+    if (atual && atual.nome === "chat" && atual.conversa === c) { desenhar(); return; } // já está lendo o grupo
+    const livre = !tela && !chamada && !central && !(global.NSF_APTO && global.NSF_APTO.ocupado && global.NSF_APTO.ocupado());
+    if (livre) mostrarAviso(`💬 ${c.nome}`, m.de + ": " + m.t, () => abrir({ nome: "zap", aba: "conversas" }), 4500);
+    if (tela && atual && ["home", "zap"].includes(atual.nome)) desenhar();
+    atualizarBadge();
+  }
+
   // ---------- relógio: mensagens que chegam com o tempo ----------
   for (const c of CONVERSAS) receberNovas(c);
   setInterval(() => {
@@ -733,6 +753,7 @@
     est.segundos++;
     if (atual && atual.nome === "emLigacao" && app) { const sub = app.querySelector(".sub"); if (sub) sub.textContent = tempoLigacao(); }
     if (est.segundos % 5 === 0) salvar();
+    for (const c of CONVERSAS) pipocar(c);
     for (const c of CONVERSAS) {
       if (!receberNovas(c)) continue;
       const m = c.novas[0];

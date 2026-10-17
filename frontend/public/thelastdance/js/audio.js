@@ -18,7 +18,7 @@
   // Uma trilha por ambiente: compasso de 16 semicolcheias, 4 acordes (2 compassos cada), "estilo" = arranjo.
   const TRILHAS = {
     // quarto/apartamento: lo-fi noturno (a que já estava)
-    apartamento: { bpm: 84, estilo: "lofi", volume: 0.7,
+    apartamento: { bpm: 84, estilo: "lofi", volume: 0.42,
       acordes: [[57, 60, 64, 67], [53, 57, 60, 64], [48, 52, 55, 59], [55, 59, 62, 64]], baixo: [45, 41, 48, 43],
       melodia: [76, null, 74, null, 72, null, 74, 76, null, null, 79, null, 76, null, 74, null] },
     // elevador: "Short Elevator Music Loop" de BlondPanda (Freesound, CC0) — freesound.org/s/659889/
