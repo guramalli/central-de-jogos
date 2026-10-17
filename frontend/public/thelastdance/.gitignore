@@ -36,6 +36,9 @@ __pycache__/
 /assets/characters/npcs/pabo/
 /assets/characters/npcs/elcio/
 /assets/characters/npcs/jamil/
+# dupla da padaria (caricaturas, podem ser pessoas reais): também só trancadas
+/assets/characters/npcs/dona_cida/
+/assets/characters/npcs/garcom_ze/
 # vozes dos amigos (áudios de WhatsApp): só trancadas no pacote da área dos amigos
 /assets/audio/amigos/
 

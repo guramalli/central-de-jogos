@@ -100,13 +100,13 @@
     // sem dialogo, o toque mostra "fala" num balão. visual: cores e cabelo do boneco provisório.
     npcs: [
       // atrás do balcão: é com ela que se pede (pingado, pão na chapa, pão com ovo...)
-      { id: "atendente", nome: "Dona Cida, a atendente", postura: "em_pe", x: 3.15, y: 1.05, dir: "baixo",
+      { id: "atendente", nome: "Dona Cida, a atendente", personagem: "dona_cida", postura: "em_pe", x: 3.15, y: 1.05, dir: "baixo",
         falarDe: { x: 3.15, y: 2.75 }, dialogo: "atendente_padaria",
         visual: { pele: "#c9946a", roupa: "#f4efe6", calca: "#2b2b33", cabelo: "#3a2418", estilo: "coque", avental: "#2f6b5a" } },
       // o padeiro, no vão entre a estufa e o forno (sem fechar o corredor atrás do balcão)
       { id: "padeiro", nome: "Seu Antônio, o padeiro", personagem: "padeiro", postura: "em_pe", x: 7.03, y: 0.5, dir: "baixo",
         falarDe: { x: 7.0, y: 1.15 }, fala: "\"Pão francês saindo do forno agora! Quentinho, crocante!\"" },
-      { id: "garcom", nome: "Seu Zé, o garçom", postura: "em_pe", x: 9.0, y: 3.3, dir: "baixo", falarDe: { x: 9.5, y: 4.0 }, dialogo: "garcom_padaria",
+      { id: "garcom", nome: "Zé, o garçom", personagem: "garcom_ze", postura: "em_pe", x: 9.0, y: 3.3, dir: "baixo", falarDe: { x: 9.5, y: 4.0 }, dialogo: "garcom_padaria",
         visual: { pele: "#b9825a", roupa: "#f1f1ee", calca: "#1d1d22", cabelo: "#cfcfcf", estilo: "curto", avental: "#7a1f2e" } },
 
       // mesa das meninas: duas no fundo (de frente para a câmera), uma na ponta; uma cadeira vazia
@@ -123,6 +123,25 @@
       // em pé na geladeira de bebidas, escolhendo o que levar
       { id: "menina_moletom", nome: "Menina de moletom", personagem: "morena_moletom", postura: "em_pe", x: 1.25, y: 3.75, dir: "esquerda",
         falarDe: { x: 1.9, y: 4.3 }, paquera: "morena_moletom" },
+
+      // mesinha perto do balcão: a Sandra (roupa de academia) — dá para paquerar
+      { id: "sandra", nome: "Senhora de roupa de academia", personagem: "coroa_fitness", postura: "sentado", x: 2.075, y: 6.35, dir: "direita",
+        falarDe: { x: 1.9, y: 7.1 }, paquera: "coroa_fitness",
+        visual: { pele: "#d9a47c", roupa: "#e0407a", calca: "#222", cabelo: "#c9a26a", estilo: "longo" } },
+      // mesinha do meio do salão: a Kelly — dá para paquerar
+      { id: "kelly", nome: "Loira de vestido", personagem: "gordinha_loira", postura: "sentado", x: 6.075, y: 8.35, dir: "direita",
+        falarDe: { x: 6.0, y: 9.1 }, paquera: "gordinha_loira",
+        visual: { pele: "#f0c8a6", roupa: "#6aa8e0", calca: "#6aa8e0", cabelo: "#e6c46a", estilo: "longo" } },
+      // mais gente: motoboy esperando a entrega, cliente na fila do caixa, moça na mesa do canto
+      { id: "motoboy", nome: "Motoboy", postura: "em_pe", x: 2.2, y: 8.9, dir: "direita", falarDe: { x: 2.9, y: 8.9 },
+        fala: ["\"Entrega pro 42! Alguém aí é do 42?\"", "\"Cinco minutos esperando um pão na chapa, irmão...\""],
+        visual: { pele: "#a8704a", roupa: "#d63a2a", calca: "#2a2f3a", cabelo: "#111", estilo: "bone" } },
+      { id: "fila_caixa", nome: "Cliente na fila do caixa", postura: "em_pe", x: 11.3, y: 2.9, dir: "esquerda", falarDe: { x: 11.3, y: 3.6 },
+        fala: ["\"Aceita Pix? Ah, aceita. Ufa.\"", "\"Três pães e um sonho. Não, dois sonhos. Tá, três.\""],
+        visual: { pele: "#e0b48e", roupa: "#7a8a9a", calca: "#3a3a44", cabelo: "#5a3a22", estilo: "curto" } },
+      { id: "moca_canto", nome: "Moça lendo no canto", postura: "sentado", x: 11.875, y: 8.55, dir: "direita", falarDe: { x: 11.9, y: 9.3 },
+        fala: ["Ela está concentrada no livro e nem levanta os olhos.", "\"Shhh. Último capítulo.\""],
+        visual: { pele: "#c98f63", roupa: "#2f6b5a", calca: "#2a2f3a", cabelo: "#1c120c", estilo: "longo" } },
 
       // mesa dos homens
       { id: "homem_bone", nome: "Cara de boné", postura: "sentado", x: 9.875, y: 5.275, dir: "baixo", falarDe: { x: 10.0, y: 7.05 },
