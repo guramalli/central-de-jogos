@@ -561,8 +561,14 @@
   const tocandoAviso = () => { const t = doc.getElementById("tocando"); return t && t.classList.contains("visivel"); };
   const ocupado = () => {
     const a = global.NSF_APTO;
-    return ligacaoDoJogoAberta() || tocandoAviso() || !!central || (a && a.porta && (a.porta.menu || a.porta.saindo)) || !!chamada;
+    if (tela || chamada || central || tocandoAviso()) return true;          // celular em uso
+    if (NSF.Paquera && NSF.Paquera.aberta()) return true;                   // conversando com alguém
+    if (NSF.Ligacao && NSF.Ligacao.aberta()) return true;
+    return !!(a && (a.ocupado ? a.ocupado() : a.porta && (a.porta.menu || a.porta.saindo)));
   };
+  // Quem pode ligar agora: "so" = só nesses mapas (ex.: a Mãe só liga no churrasco).
+  const mapaAtual = () => (NSF.PLANTA_ATUAL && NSF.PLANTA_ATUAL.id) || "";
+  const podeLigar = (l) => !l.so || l.so.includes(mapaAtual());
   function registrar(l, como) {
     est.chamadas.push({ id: l.id, nome: l.nome, hora: horaAgora(), perdida: como === "perdida", feita: como === "feita" });
     if (est.chamadas.length > 60) est.chamadas.splice(0, est.chamadas.length - 60);
@@ -570,8 +576,8 @@
   }
   function tocarAgora() {
     const ls = DADOS.ligacoes;
-    if (!ls.length) return;
-    est.proximaLig = ((est.proximaLig || 0) + 1) % ls.length;
+    if (!ls.some(podeLigar)) return;
+    do est.proximaLig = ((est.proximaLig || 0) + 1) % ls.length; while (!podeLigar(ls[est.proximaLig]));
     const l = ls[est.proximaLig];
     chamada = { l };
     if (NSF.Audio) NSF.Audio.toque(true);
@@ -714,7 +720,7 @@
     const s = seg || 70 + Math.random() * 70;
     ligRelogio = setTimeout(() => {
       if (est.naoPerturbe || doc.hidden) { agendarLigacao(30); return; }
-      if (ocupado() || (atual && (atual.nome === "chat" && atual.digitando))) { agendarLigacao(15); return; }
+      if (ocupado()) { agendarLigacao(4); return; } // nunca interrompe: tenta de novo daqui a pouco
       tocarAgora();
       agendarLigacao();
     }, s * 1000);

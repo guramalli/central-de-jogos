@@ -655,6 +655,21 @@
     dica.textContent = "Clique no chão para andar · botão direito na porta" + (P.npcs ? " ou nas pessoas" : "") + " para interagir";
   }
 
+  let ultimoToque = 0; // a pessoa acabou de mexer: não é hora de o telefone tocar
+  canvas.addEventListener("pointerdown", () => { ultimoToque = performance.now(); }, true);
+  // Ocupado = interagindo ou alguém falando: telas abertas, menus, caixa de escolha, sentado, dormindo,
+  // indo até alguma coisa, balão de fala/pensamento ou voz tocando, ou mexeu há pouco.
+  function ocupado() {
+    const agora = performance.now();
+    if (NSF.Ligacao && NSF.Ligacao.aberta()) return true;
+    if (NSF.Armario && NSF.Armario.aberto && NSF.Armario.aberto()) return true;
+    if (porta.menu || porta.saindo || efeito.tipo || jog.oculto || jog.sentado || aoChegar) return true;
+    if (document.querySelector(".escolha, .cortina, .aviso-deitar")) return true;
+    if (balaoJog && agora < balaoJog.ate) return true;
+    if (jog.falandoAte && agora < jog.falandoAte) return true;
+    if (NPCS.some((n) => !n.oculta && ((n.balao && agora < n.balao.ate) || (n.falandoAte && agora < n.falandoAte)))) return true;
+    return agora - ultimoToque < 6000;
+  }
   canvas.addEventListener("pointerdown", (e) => {
     if (NSF.Ligacao && NSF.Ligacao.aberta()) return;
     if (porta.menu || porta.saindo || efeito.tipo || jog.oculto) return;
@@ -1469,7 +1484,7 @@
     // toca quando ele acorda no quarto (não toda vez que volta para casa)
     if (ROTEIRO_LIGACAO && comodo === "quarto" && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
     marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir, PORTA, veiculos: VEICULOS, irAoVeiculo, irPara,
-      falar, pensar, sentar, levantar, cortinaCom, imgProps,
+      falar, pensar, sentar, levantar, cortinaCom, imgProps, ocupado,
       abrirArmario, get heroi() { return heroi; },
       npcs: NPCS, retanguloNpc, irFalarCom, falarCom, desenharNpcModular,
       mundoParaTela(x, y) { // inverso de telaParaMundo (para testes): ponto do mundo -> coordenada do toque

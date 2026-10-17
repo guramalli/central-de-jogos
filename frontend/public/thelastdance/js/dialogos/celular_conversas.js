@@ -9,7 +9,7 @@
 //       volta: falas de quem está do outro lado (no grupo: { de: "Juan", t: "..." }) ; volta vazio = "visualizou e não respondeu"
 //   ligacoes[]: quem liga toda hora. Cada vez que ele atende, toca a próxima conversa da lista (e depois recomeça).
 //     Conversa com "passos" em vez de "falas": [{ quem: "ele" | "eu", t: "fala" } ou { quem, audio: "voz gravada" }];
-//     sem "opcoes", a ligação acaba sozinha depois dos passos.
+//     sem "opcoes", a ligação acaba sozinha depois dos passos. so: ["casa_amigo"] = só liga nesses mapas.
 //   posts[]: fotos do perfil no Instagrão ; avisos[]: notificações do coração
 (function (global) {
   "use strict";
@@ -193,7 +193,7 @@
 
     ligacoes: [
       // A Mãe: ele atende e responde com o áudio dele (voz gravada, trancada no pacote da área dos amigos)
-      { id: "mae", nome: "Mãe ❤️", cor: "#ad1457",
+      { id: "mae", nome: "Mãe ❤️", cor: "#ad1457", so: ["casa_amigo"], // só liga quando ele está no churrasco
         conversas: [
           { passos: [
             { quem: "ele", t: "Filho? Tá acordado ainda? Já passou da meia-noite..." },

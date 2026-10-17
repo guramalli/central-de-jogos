@@ -1,5 +1,6 @@
 // Paquera estilo Stardew Valley: tocar numa menina (NPC com  paquera: "<perfil>") abre a caixa de diálogo embaixo,
-// com o retrato dela, o texto aparecendo letra a letra e as respostas para escolher. Cada resposta muda o interesse
+// com o retrato dela, o texto aparecendo letra a letra (e seguindo sozinho depois de dar tempo de ler; tocar adianta)
+// e as respostas para escolher. Cada resposta muda o interesse
 // dela (corações); no fim ele faz o convite para o vinho e ela topa... ou manda ele ir catar coquinho.
 // Algumas nem dão bola; cantada pesada com quem não curte = tapa. Uma tentativa por menina por dia (salvo no navegador).
 // Conteúdo em js/dialogos/paquera.js. API: NSF.Paquera.abrir(npc) ; .aberta() ; .resultado(npc) ; ?paquera=zerar recomeça.
@@ -109,10 +110,10 @@
     retrato.appendChild(reacao);
   }
 
-  // Avança: se o texto ainda está aparecendo, completa; senão segue.
+  // Avança: se o texto ainda está aparecendo, completa; senão segue (sem esperar o tempo de leitura).
   function tocar() {
     if (digitando) { digitando(); return; }
-    if (avancar) { const a = avancar; avancar = null; a(); }
+    if (avancar) { clearTimeout(autoRel); const a = avancar; avancar = null; a(); }
   }
 
   // Fala na caixa, letra a letra; resolve quando o jogador toca para seguir.
@@ -126,7 +127,12 @@
       seta.style.visibility = "hidden";
       let i = 0;
       const letras = [...frase];
-      const fim = () => { clearInterval(rel); digitando = null; texto.textContent = frase; seta.style.visibility = ""; avancar = resolve; };
+      // texto completo: segue sozinho depois do tempo de leitura (tocar adianta)
+      const fim = () => {
+        clearInterval(rel); digitando = null; texto.textContent = frase; seta.style.visibility = ""; avancar = resolve;
+        clearTimeout(autoRel);
+        autoRel = setTimeout(() => { if (avancar === resolve) { avancar = null; resolve(); } }, 1100 + letras.length * 38);
+      };
       const rel = setInterval(() => { i += 1; texto.textContent = letras.slice(0, i).join(""); if (i >= letras.length) fim(); }, 28);
       digitando = fim;
     });
@@ -145,7 +151,7 @@
       const primeiro = opcoes.querySelector("button"); if (primeiro) primeiro.focus({ preventScroll: true });
     });
   }
-  let teclaEscolha = null;
+  let teclaEscolha = null, autoRel = null;
 
   // Uma boa, uma média e uma ruim (quando tem), embaralhadas.
   const sortear = (lista) => lista[Math.floor(Math.random() * lista.length)];
@@ -258,7 +264,7 @@
     montar();
     let r = null;
     try { r = await conversa(); } finally {
-      desmontar(); aberta = false; avancar = digitando = teclaEscolha = null;
+      clearTimeout(autoRel); desmontar(); aberta = false; avancar = digitando = teclaEscolha = null;
     }
     if (r) {
       doDia()[n.paquera] = r;
