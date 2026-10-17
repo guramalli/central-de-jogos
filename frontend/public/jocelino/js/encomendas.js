@@ -156,17 +156,19 @@ const Encomendas = {
   },
   // A noite d não tem outro acontecimento do salão. As contas são as do próprio jogo: a agenda (o VIP e a festa do tema já avisados),
   // as contas fixas que o Eventos.planejar ainda vai fazer (VIP com desde % 5 === 2, festa com desde % 7 === 4, a carta 3 dias antes:
-  // diaDoAviso), a noite do Paladar da estação, o último dia da estação (Concurso), a Festa do Patrimônio (p.festaDia) e a inauguração
+  // diaDoAviso), a noite do Paladar da estação e a revisita dele, o dia do Concurso, a Festa do Patrimônio (p.festaDia) e a inauguração
   // (a pensão sem nenhuma janta ainda). propria: a encomenda que está sendo conferida (não conta contra ela mesma).
   noiteLivre(p, d, propria = null) {
     if (!p || Encomendas.domingo(d)) return false;
-    if ((p.agenda || []).some(x => x !== propria && !x.fim && x.dia === d && ['vip', 'festa', 'encomenda'].includes(x.tipo))) return false;
+    if (typeof G !== 'undefined' && (G.firma && G.firma.inauguracaoDia === d && !G.firma.feita)) return false;   // (C20, rodada 1) a noite da inauguração da Construtora Santos
+    // (C17) a revisita do Doutor Paladar (tipo 'paladar') também é noite ocupada
+    if ((p.agenda || []).some(x => x !== propria && !x.fim && x.dia === d && ['vip', 'festa', 'encomenda', 'paladar'].includes(x.tipo))) return false;
     if (p.abreDia > 0 && typeof diaDoAviso === 'function') for (const d0 of [d - 3, d - 4]) {
       if (d0 < p.abreDia || diaDoAviso(d0) !== d) continue;
       const desde = d0 - p.abreDia;
       if ((desde >= 2 && desde % 5 === 2) || (desde >= 4 && desde % 7 === 4)) return false;
     }
-    if (typeof Paladar !== 'undefined' && Paladar.noiteDaEstacao(Math.floor((d - 1) / 28)) === d) return false;
+    if (typeof Paladar !== 'undefined' && Paladar.noite(p, Math.floor((d - 1) / 28)) === d) return false;   // (C17) a noite desta pensão
     if (typeof Concurso !== 'undefined' && Concurso.hoje(d)) return false;
     if (p.festaDia && p.festaDia === d) return false;
     if (p.ultimaJanta === -1) return false;   // a 1ª janta é a inauguração: festa só depois dela

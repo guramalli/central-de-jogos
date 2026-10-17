@@ -10,6 +10,26 @@ const CasaFamilia = {
   mudou() { return !!G.casa && G.casa.mudou; },
   porta() { const T = QUINTAL.TERRENO; return { x: T.x + 4, y: T.y + T.h }; },
   abrir() { if (G.casa.aberta) return; G.casa.aberta = true; Empreitas.aceitar('casa_fam_1', G.mochila, G.dinheiro, { familia: true }); },
+  // (C16; a solução 7 do teste crítico C: "a plaquinha diz 'Um dia a gente levanta aqui a nossa casa' com a fundação já pronta") A frase
+  // da plaquinha do terreno e da casa em obra muda a cada etapa entregue, e diz a etapa seguinte com o preço (o dinheiro com destino).
+  FRASES: ['Um dia a gente levanta aqui a nossa casa', 'A fundação é nossa. Agora as paredes!', 'Já dá pra ver os quartos… Falta o telhado',
+    'Com telhado, chuva nenhuma molha a gente. Agora a cozinha da Rosa!', 'A Rosa já escolheu onde vai o fogão. Falta o quarto do casal',
+    'Só falta o quarto das crianças, e a gente se muda!', 'Agora sim, a gente tem um canto nosso'],
+  placa() {
+    const L = ECO.casa.etapas, n = G.casa ? Math.min(G.casa.etapa || 0, L.length) : 0, prox = L[n], mil = v => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    if (G.casa && G.casa.mudou) return `A casa da família Santos. "${CasaFamilia.FRASES[L.length]}", diz a Rosa.`;
+    // (C16, rodada 1) A etapa da vez já paga e em obra (casaEtapas, cartao.js): a plaquinha diz quantos dias faltam, sem o preço (já
+    // pago); antes ela dizia "a próxima etapa: Paredes, Cr$ 3.500" com as Paredes em obra, e "um dia a gente levanta" na fundação em obra.
+    const c = typeof casaEtapas === 'function' ? casaEtapas() : null, a = c && c.emObra && c.a && c.a.estado !== 'entregue' ? c.a : null;
+    if (a) {
+      const falta = Math.max(0, (a.lista || []).length - (a.dias || 0) - (a.trabalhou ? 1 : 0)), cab = !n ? 'O terreno da casa da família.' : `A casa da família: a etapa ${n} de ${L.length} (${L[n - 1].nome}) pronta.`;
+      const obra = a.estado === 'pronta' || !falta ? `${c.atual.nome}: obra pronta, é só entregar na plaquinha da obra` : `${c.atual.nome} em obra — faltam ${falta} dia${falta > 1 ? 's' : ''} de trabalho`;
+      return `${cab} ${obra}. "${!n ? 'A nossa casa tá saindo do chão!' : CasaFamilia.FRASES[n]}", diz o Tio Juca.`;
+    }
+    const frase = `"${CasaFamilia.FRASES[n]}", diz o Tio Juca.`;
+    if (!n) return `O terreno da casa da família. ${frase}` + (G.casa && G.casa.aberta && prox ? ` A primeira etapa: ${prox.nome}, Cr$ ${mil(prox.dinheiro)} e o material.` : '');
+    return `A casa da família: a etapa ${n} de ${L.length} (${L[n - 1].nome}) pronta. ${frase}` + (prox ? ` A próxima etapa: ${prox.nome}, Cr$ ${mil(prox.dinheiro)} e o material (faltam ${L.length - n}).` : '');
+  },
 };
 INICIADORES.push(s => CasaFamilia.iniciar(s));
 COLETORES.push(s => CasaFamilia.salvar(s));
@@ -57,7 +77,7 @@ function poeCasaFamilia(b) {
   liberaTerreno(b, T);
   for (let y = T.y; y < T.y + T.h; y++) for (let x = T.x; x < T.x + T.w; x++) { const o = b.ocupado.get(chaveT(x, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
   const o = b.interativo('casa_familia', 'objetos/casa_familia_' + Math.min(6, G.casa.etapa), T.x, T.y + T.h - 1, 8, 4, [150, 40]);
-  o.acao = () => G.casa.mudou ? (typeof entrarEmCasa === 'function' ? entrarEmCasa('casa_familia_dentro') : true) : abrirPlaca(`A casa da família: ${ECO.casa.etapas[G.casa.etapa - 1].nome} pronta. Faltam ${ECO.casa.etapas.length - G.casa.etapa} etapas.`);
+  o.acao = () => G.casa.mudou ? (typeof entrarEmCasa === 'function' ? entrarEmCasa('casa_familia_dentro') : true) : abrirPlaca(CasaFamilia.placa());
 }
 AO_MONTAR.push(b => poeCasaFamilia(b));
 // Os aluguéis (depois da mudança): o quartinho e a casa de aluguel, cada um uma obra do Jocelino com custo; o aluguel cai no

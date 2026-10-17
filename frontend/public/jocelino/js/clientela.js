@@ -50,20 +50,39 @@ const Clientela = {
 // disfarçado de cliente comum (chapéu-coco, bigode, caderninho). A nota, de 1 a 5 garfos, sai dos critérios: base 1,
 // +1 atendido rápido, +1 sem louça suja no balcão na hora, +1 bebida na medida, +1 prato caprichado (nível 3+) ou raro
 // (★★★+). Se vai embora sem comer, 1 garfo. A melhor nota fica em p.garfos (os degraus 5 e 6 pedem 4 e 5) e a matéria
-// sai na Gazeta no dia seguinte, por carta.
+// sai na Gazeta no dia seguinte, por carta. (C17) Uma visita com os garfos basta para o degrau, e quando só falta ele, ele volta 7
+// dias depois da última visita para provar de novo (Eventos.revisitaDoPaladar, com aviso), em vez de esperar a estação seguinte.
 const Paladar = {
   GRAU: 2,
   cliente() { return { id: 'paladar', nome: 'Cliente de chapéu-coco', mania: 'paladar' }; },
   // A noite da estação (dia absoluto): entre o 9º e o 22º dia dela, nunca no domingo.
   noiteDaEstacao(est) { let d = est * 28 + 9 + Math.floor(mulberry(est * 977 + 13)() * 14); if ((d - 1) % 7 === 6) d++; return d; },
-  vem(p, dia) { return !!p && ['aberta', 'pronta'].includes(p.estado) && p.grau() >= Paladar.GRAU && dia === Paladar.noiteDaEstacao(Math.floor((dia - 1) / 28)); },
+  // (C17) A noite da estação desta pensão: a sorteada, empurrada para a próxima noite sem VIP, festa do tema nem a Festa do
+  // Patrimônio (Eventos.marcada) e nunca no domingo — o Paladar não janta na noite de outro acontecimento do salão.
+  noite(p, est) {
+    let d = Paladar.noiteDaEstacao(est);
+    for (let k = 0; k < 7 && ((d - 1) % 7 === 6 || (typeof Eventos !== 'undefined' && Eventos.marcada(p, d))); k++) d++;
+    return d;
+  },
+  // Ele vem na noite da estação ou na revisita marcada na agenda (C17, Eventos.revisitaDoPaladar).
+  vem(p, dia) {
+    if (!p || !['aberta', 'pronta'].includes(p.estado) || p.grau() < Paladar.GRAU) return false;
+    return dia === Paladar.noite(p, Math.floor((dia - 1) / 28)) || (p.agenda || []).some(e => e.tipo === 'paladar' && !e.fim && e.dia === dia);
+  },
+  // (C17) O degrau seguinte só espera os garfos dele: curtidas, sabor e receitas cumpridos (o concurso, se pedir, tem a data dele).
+  soFaltaEle(p) {
+    const px = p && p.proximoDegrau ? p.proximoDegrau() : null;
+    return !!px && !!px.d.garfos && px.falta.visitas > 0 && !px.falta.curtidas && !px.falta.sabor && !px.falta.pesquisadas;
+  },
   nota(c) { return clamp(1 + (c.rapido ? 1 : 0) + (c.louca === 0 ? 1 : 0) + (c.medida ? 1 : 0) + (c.nivel >= 3 || c.raridade >= 3 ? 1 : 0), 1, 5); },
-  materia(n) {
+  // volta: o dia da revisita marcada na noite da visita (C17), que vai no P.S. da matéria.
+  materia(n, volta = 0) {
     return ['', 'Pensão da Rosa: o crítico saiu sem jantar. "Esperei, esperei... e nada." Um garfo, por educação.',
       'Pensão da Rosa: comida honesta, serviço que precisa de ajuste. Dois garfos.',
       'Pensão da Rosa: boa surpresa na Vila Maré. Três garfos, e a promessa de voltar.',
       'Pensão da Rosa: tempero de mãe, atendimento ligeiro, balcão limpo. Quatro garfos!',
-      'Pensão da Rosa: perfeita. Cinco garfos, nota máxima. Melhor mesa do litoral!'][n] + '\n\n— Doutor Paladar, Gazeta de Santos';
+      'Pensão da Rosa: perfeita. Cinco garfos, nota máxima. Melhor mesa do litoral!'][n] + '\n\n— Doutor Paladar, Gazeta de Santos'
+      + (volta && typeof textoRevisita === 'function' ? '\n\nP.S. da redação: ' + textoRevisita(volta) : '');
   },
 };
-INICIADORES.push(s => { for (const x of (G.pensao && G.pensao.paladarNotas) || []) if (!CARTAS['paladar_' + x.dia]) CARTAS['paladar_' + x.dia] = { de: 'Gazeta de Santos', dia: x.dia + 1, texto: Paladar.materia(x.nota) }; });
+INICIADORES.push(s => { for (const x of (G.pensao && G.pensao.paladarNotas) || []) if (!CARTAS['paladar_' + x.dia]) CARTAS['paladar_' + x.dia] = { de: 'Gazeta de Santos', dia: x.dia + 1, texto: Paladar.materia(x.nota, x.volta || 0) }; });

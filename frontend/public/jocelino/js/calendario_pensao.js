@@ -5,7 +5,7 @@
 // - Dave the Diver: o VIP avisa antes e diz o prato; a noite de festa tem tema; o concurso tem data. Ninguém "aceita missão".
 // Aqui, cada dia mostra só o que é CERTO:
 //   o VIP e o prato dele e a festa com o prato do tema (os da agenda: entram quando a carta chega, 3 dias antes; o resto da semana
-//   ainda não tem carta, e o calendário não adivinha); o Concurso da Rádio (o último dia da estação, data fixa); o Viajante da
+//   ainda não tem carta, e o calendário não adivinha); o Concurso da Rádio (a cada 14 dias, no domingo, data fixa); o Viajante da
 //   Capital (às quintas, com a pensão no degrau dele); os moradores que jantam naquela noite (clientela.js, pelo dia da semana) e o
 //   prato de cada um; o filho que aparece (a Ritinha no caixa ou o Zezinho); o domingo fechado.
 // Fica de fora o que é surpresa ou sorteio: o Doutor Paladar (chega disfarçado, como o crítico do Dave) e os clientes de fora.

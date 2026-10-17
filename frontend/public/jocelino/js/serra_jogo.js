@@ -108,6 +108,7 @@ const Quim = {
     const est = Math.floor((dia - 1) / 28), alvo = diaDoAviso(dia);
     if (S.vip.estacoes.includes(est) || (dia - 1) % 28 + 1 < QUIM.VIP_DESDE || Math.floor((alvo - 1) / 28) !== est) return null;
     if ((p.agenda || []).some(e => !e.fim && e.dia === alvo && ['vip', 'festa', 'encomenda'].includes(e.tipo))) return null;
+    if (G.firma && !G.firma.feita && G.firma.inauguracaoDia === alvo) return null;   // (C20, rodada 1) a noite da inauguração da firma
     if (typeof Paladar !== 'undefined' && Paladar.vem(p, alvo)) return null;
     if (typeof Concurso !== 'undefined' && Concurso.temNoDia && Concurso.temNoDia(p, alvo)) return null;
     const v = vipDe(QUIM.ID), rv = QUIM.RECEITA, ok = v.gosta.filter(id => p.receitas.includes(id));

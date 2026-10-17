@@ -1,8 +1,13 @@
-// Jocelino — concurso.js — o Concurso da Rádio Maré, no último dia de cada estação (o concurso de culinária do Dave,
+// Jocelino — concurso.js — o Concurso da Rádio Maré, a cada 14 dias, no domingo (o concurso de culinária do Dave,
 // sem reflexo nenhum): o Jocelino escolhe 3 pratos que a despensa rende e manda para a rádio; 3 jurados dão nota, cada
 // um com o seu gosto — o Seu Aurélio quer ingrediente raro, a Dona Lurdes quer capricho (nível) e o Paulo, locutor,
 // quer o prato da estação. Ganhou dos rivais: troféu na parede da pensão (melhoria 'trofeu') e uma receita nova.
 // A carta chega 3 dias antes. Regras puras (testadas na s1); a tela é abrirConcurso().
+// (C17, 16/10; o teste crítico: a 5ª estrela pede 1 vitória, e quem perdia esperava 28 dias) O concurso é a cada
+// ECO.pensao.concursoCada (14) dias: no meio e no fim da estação, sempre num domingo (a pensão fecha: nunca cai na noite de outro
+// acontecimento do salão). No Dave, o duelo perdido se tenta de novo logo; aqui, em 2 semanas, e as Metas da Rosa dizem o dia
+// (Concurso.proximo). Cada concurso fica em p.concursos pela chave do dia ('d42'); o save antigo (a chave era a estação) é migrado
+// em Pensao.deDict.
 
 // Os pratos de cada estação (o gosto do locutor): Outono, Inverno, Primavera, Verão.
 const CONCURSO_TEMAS = [
@@ -19,7 +24,12 @@ const JURADOS = [
 ];
 const Concurso = {
   RIVAL_BASE: 16, RIVAL_POR_ANO: 2,
-  hoje(dia) { return dia % 28 === 0; },
+  hoje(dia) { return dia > 0 && dia % ECO.pensao.concursoCada === 0; },
+  // (C17) A chave do concurso do dia em p.concursos e se ele já foi feito.
+  chave(dia) { return 'd' + dia; },
+  jaFoi(p, dia) { return !!(p && p.concursos && p.concursos[Concurso.chave(dia)]); },
+  // (C17) O dia do próximo concurso a partir de hoje (hoje mesmo, se é dia dele e ainda não foi feito).
+  proximo(p, dia) { const c = ECO.pensao.concursoCada; let d = Math.max(c, Math.ceil(dia / c) * c); if (Concurso.jaFoi(p, d)) d += c; return d; },
   estacaoAbs(dia) { return Math.floor((dia - 1) / 28); },
   raridade(id) { const pr = Pratos.PRATOS[id]; return (pr && pr.raridade) || 1; },
   // (Tarefa D1) O prato é da estação: está na lista do tema ou é da categoria dele.
@@ -36,11 +46,11 @@ const Concurso = {
     const total = Math.round(jurados.reduce((s, j) => s + j.nota, 0) * 10) / 10, rivais = Concurso.RIVAL_BASE + Concurso.RIVAL_POR_ANO * ano;
     return { pratos: ids.slice(), jurados, total, rivais, venceu: total > rivais, tema: tema.nome };
   },
-  // O prêmio (uma vez por estação): o troféu e a receita de pesquisa mais simples que ainda falta.
-  premiar(p, res, estAbs) {
+  // O prêmio (uma vez por concurso, pelo dia): o troféu e a receita de pesquisa mais simples que ainda falta.
+  premiar(p, res, dia) {
     p.concursos = p.concursos || {};
-    if (p.concursos[estAbs]) return null;
-    p.concursos[estAbs] = res.venceu ? 'venceu' : 'participou';
+    if (Concurso.jaFoi(p, dia)) return null;
+    p.concursos[Concurso.chave(dia)] = res.venceu ? 'venceu' : 'participou';
     if (!res.venceu) return null;
     if (!p.melhorias.includes('trofeu')) p.melhorias.push('trofeu');
     const falta = Object.keys(RECEITAS_NOVAS).filter(id => RECEITAS_NOVAS[id].caminho === 'ingrediente' && !p.receitas.includes(id))
@@ -54,11 +64,11 @@ const Concurso = {
   // Manda os 3 pratos: gasta uma porção de cada, julga e premia.
   participar(p, ids, dia) {
     const est = Concurso.estacaoAbs(dia);
-    if ((p.concursos || {})[est] || ids.length !== 3) return null;
+    if (Concurso.jaFoi(p, dia) || ids.length !== 3) return null;
     const f0 = mulberry(dia * 71), f = { randf: f0, randi: () => Math.floor(f0() * 4294967296) };
     for (const id of ids) { if (p.porcoes(id) > 0) { p.panela[id]--; if (p.panela[id] <= 0) delete p.panela[id]; } else p.consumir(id, f, 1); }
     const res = Concurso.julgar(p, ids, est % 4, Math.floor(est / 4));
-    res.premio = Concurso.premiar(p, res, est);
+    res.premio = Concurso.premiar(p, res, dia);
     return res;
   },
 };
@@ -68,23 +78,23 @@ MANHA.push(() => {
   if (!p || p.estado !== 'aberta') return;
   if (Concurso.hoje(G.dia + 3)) {
     const tema = CONCURSO_TEMAS[Concurso.estacaoAbs(G.dia + 3) % 4];
-    CARTAS['concurso_' + G.dia] = { de: 'Rádio Maré', dia: G.dia, texto: `Atenção, Vila Maré! No último dia da estação tem o Concurso da Rádio. Mande 3 pratos da sua cozinha para os jurados: o Seu Aurélio quer ingrediente raro, a Dona Lurdes quer capricho e o Paulo, aqui da rádio, quer ${tema.nome}. O vencedor leva o troféu e uma receita!` };
+    CARTAS['concurso_' + G.dia] = { de: 'Rádio Maré', dia: G.dia, texto: `Atenção, Vila Maré! No domingo tem o Concurso da Rádio. Mande 3 pratos da sua cozinha para os jurados: o Seu Aurélio quer ingrediente raro, a Dona Lurdes quer capricho e o Paulo, aqui da rádio, quer ${tema.nome}. O vencedor leva o troféu e uma receita!` };
     G.correio.caixa.push('concurso_' + G.dia);
   }
 });
 TAREFAS.push(() => {
   const p = G.pensao;
-  return p && p.estado === 'aberta' && Concurso.hoje(G.dia) && !(p.concursos || {})[Concurso.estacaoAbs(G.dia)] ? [{ texto: 'Concurso da Rádio hoje: mande 3 pratos (botão Concurso, no salão)', mapa: 'pensao', urgente: true }] : [];
+  return p && p.estado === 'aberta' && Concurso.hoje(G.dia) && !Concurso.jaFoi(p, G.dia) ? [{ texto: 'Concurso da Rádio hoje: mande 3 pratos (botão Concurso, no salão)', mapa: 'pensao', urgente: true }] : [];
 });
 // (Tarefa E1) A regra do dia do concurso, a mesma para o botão do salão e para o calendário da pensão (calendario_pensao.js):
-// a pensão aberta, o último dia da estação e a estação ainda sem concurso.
-Concurso.temNoDia = (p, dia) => !!p && p.estado === 'aberta' && Concurso.hoje(dia) && !(p.concursos || {})[Concurso.estacaoAbs(dia)];
+// a pensão aberta, o dia do concurso (a cada 14) e o concurso do dia ainda não feito.
+Concurso.temNoDia = (p, dia) => !!p && p.estado === 'aberta' && Concurso.hoje(dia) && !Concurso.jaFoi(p, dia);
 const podeConcurso = () => Concurso.temNoDia(G.pensao, G.dia);
 
 // ---------- a tela do concurso ----------
 function abrirConcurso() {
   const p = G.pensao;
-  if (!podeConcurso()) { abrirPlaca('O Concurso da Rádio é no último dia de cada estação. A carta chega 3 dias antes.'); return true; }
+  if (!podeConcurso()) { abrirPlaca(`O Concurso da Rádio é a cada 2 semanas, no domingo. O próximo é no dia ${Concurso.proximo(p, G.dia)}; a carta chega 3 dias antes.`); return true; }
   const est = Concurso.estacaoAbs(G.dia), tema = CONCURSO_TEMAS[est % 4], escolha = [];
   const caixa = el('div', { class: 'painel concurso' });
   const desenha = () => {
@@ -120,7 +130,7 @@ function mostrarResultadoConcurso(r) {
     el('div', { class: 'fx-linha' }, el('span', {}, 'Melhor rival'), el('b', {}, `${r.rivais}`)),
     r.venceu ? el('div', { class: 'conc-premio' }, el('img', { src: urlArte('ui/trofeu_concurso') }),
       el('div', {}, el('b', {}, 'Prêmio: o troféu na parede da pensão (gorjeta um pouco maior)'), r.premio && r.premio.receita ? el('div', {}, `e uma receita nova no caderno: ${Pratos.PRATOS[r.premio.receita].nome}!`) : null))
-      : el('div', { class: 'rodape', style: 'text-align:left' }, 'Prato raro, caprichado e da estação: na próxima estação tem mais concurso!'),
+      : el('div', { class: 'rodape', style: 'text-align:left' }, `Prato raro, caprichado e da estação: daqui a 2 semanas (dia ${Concurso.proximo(G.pensao, G.dia)}) tem outro concurso!`),
     el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   abrirModal(caixa);
   sons.tocar(r.venceu ? 'fanfarra' : 'cliente_hmpf', 1, 0, -4);

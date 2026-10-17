@@ -135,6 +135,10 @@ function _alvoDaObraDoDia() {
     // menos, a seta vai para onde há pedra (o quintal, ou a pedreira sem pedra no quintal)
     if ((id === 'pedras' || id === 'buscar_pedra') && pedrasParaEntregar(id)) return naObra('Botão direito: entregar as pedras na obra');
     if (id === 'buscar_pedra' && pedreira) return { mapa: 'pedreira' };
+    // (C14) o 1º conferir do mestre: a seta no peão que veio e ainda não foi conferido hoje (o mais perto)
+    if (id === 'conferir') { const cf = l.conferidos || {}, eh = m => typeof PEOES !== 'undefined' && PEOES.some(q => q.id === m.id);
+      const p = (G.mapa.moradores || []).filter(m => eh(m) && m.visivel !== false && !cf[m.id]).sort((a, b) => Math.hypot(a.x - G.jog.x, a.y - G.jog.y) - Math.hypot(b.x - G.jog.x, b.y - G.jog.y))[0];
+      if (p) return { mapa: 'vila', morador: p.id, rotuloFixo: `Botão direito no ${p.nome}: conferir a frente dele` }; continue; }
     if (ORIGEM_OBRA[id]) return { mapa: 'vila', objeto: ORIGEM_OBRA[id], rotuloFixo: id === 'areia' ? 'Botão direito na peneira: peneirar a areia'
       : `Botão direito ${{ monte_tijolos: 'no monte', pilha_ripas: 'na pilha', masseira: 'na masseira' }[ORIGEM_OBRA[id]]}: pegar ${{ tijolos: 'os tijolos', pedras: 'as pedras', telhas: 'as telhas', ripas: 'as ripas', massa: 'a massa' }[id]}` };
     // (a mangueira e o rolo vêm do Bira: sem eles na mochila, a seta vai nele; com, na obra, e a barra mostra a ferramenta)
@@ -513,6 +517,9 @@ function guiaSetaMundo() {
   if (missoes.includes('pensao')) cands.push(['pensao', () => reformaBusca() ? null : _alvoDaMissao('pensao')]);
   cands.push(['obra_dia', _alvoDaObraDoDia]);
   for (const id of missoes.filter(doDia)) cands.push([id, () => _alvoDaMissao(id)]);
+  // (C20) A primeira vez da firma (firma.js): a carta do Moreira, da Prefeitura ou do 1º serviço na caixa; o capital juntado (o quadro da
+  // Prefeitura). Depois da obra do dia e da janta: são coisas de uma vez, sem hora.
+  cands.push(['firma_vez', () => typeof alvoDaFirma === 'function' ? alvoDaFirma() : null]);
   // (C7, 16/10) Das 14h às 17h, a despensa curta para a janta de hoje é urgente (urgenteDaJanta, despensa.js): a Mercearia vem logo
   // depois da janta, antes dos serviços e dos sistemas novos, e passa na frente da meta fixa de menor prioridade (_setaDe).
   const mercUrg = typeof urgenteDaJanta === 'function' && !!urgenteDaJanta();
@@ -585,7 +592,7 @@ function guiaSetaMundo() {
 // continua na frente (13/10) e passa a ser a meta; duas metas com alvo em mapas diferentes nunca se revezam sozinhas. Só a janta, a
 // partir das 16h, passa na frente da meta fixa (a pensão abre às 17h). Como no Stardew: o diário marca UMA missão por vez.
 const _chaveDaMeta = (id, a) => id + (id === 'servico' && a && a.empreita ? ':' + a.empreita : '');
-const _NAO_FIXA = ['janta_vez', 'reforma_vez', 'casa_vez', 'tela_pedreira', 'aula', 'rosa_sonho', 'lojinha', 'serra_vez', 'serra_achado', 'serra_pesca', 'serra_mateiro'];   // (a primeira vez de cada coisa: no lugar, uma vez)
+const _NAO_FIXA = ['janta_vez', 'reforma_vez', 'casa_vez', 'tela_pedreira', 'aula', 'rosa_sonho', 'lojinha', 'serra_vez', 'serra_achado', 'serra_pesca', 'serra_mateiro', 'firma_vez'];   // (a primeira vez de cada coisa: no lugar, uma vez)
 function _metaFixa() {
   const g = G.guia, f = g && g.fixa; if (!f) return null;
   if (f.dia !== G.dia || (f.cad || null) !== (G.setaFixa || null)) { g.fixa = null; return null; }
@@ -814,6 +821,7 @@ function _falaDaPesca() {
 // A seta da tela: { chave, el } ou null (o elemento HTML onde clicar).
 function guiaSetaUI() {
   { const s = typeof setaDaInauguracao === 'function' && setaDaInauguracao(); if (s) return s; }   // (C1) a fala da inauguração: a seta no relógio
+  { const s = typeof setaDaFirma === 'function' && setaDaFirma(); if (s) return s; }   // (C20) a Rosa mostra a meta da firma: a seta na barrinha
   const tela = _primeiraTelaUI(); if (tela) return tela;   // (a primeira vez de uma tela vem antes de tudo, até com o modal aberto)
   const g = G.guia || { ativo: false, abertas: [] };
   const barra = i => { const el = document.querySelectorAll('#hud .barra .espaco')[i], it = G.mochila.slots[i]; return el ? { chave: 'barra:' + i, el, rotulo: `Clique aqui: ${it ? (NOME_FERRAMENTA[it.id] || Itens.nome(it.id)).replace(/^(a|o) /, '') : ''}` } : null; };

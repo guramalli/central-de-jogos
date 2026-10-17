@@ -597,7 +597,10 @@ function encerrarJanta() {
   const grauAntes = G.pensao.grau();   // antes dos garfos: se eles completam o degrau, a subida aparece hoje
   if (r.paladar && typeof Paladar !== 'undefined') {
     const p = G.pensao; p.garfos = Math.max(p.garfos || 0, r.paladar); p.paladarNotas.push({ dia: G.dia, nota: r.paladar });
-    CARTAS['paladar_' + G.dia] = { de: 'Gazeta de Santos', dia: G.dia + 1, texto: Paladar.materia(r.paladar) };
+    // (C17) a revisita de hoje foi feita; se o degrau ainda só espera os garfos, ele marca a próxima (o P.S. da matéria diz o dia)
+    const vHoje = Eventos.hoje(p, G.dia, 'paladar'); if (vHoje) vHoje.fim = 'feita';
+    const rv = Eventos.revisitaDoPaladar(p, G.dia); if (rv) p.paladarNotas[p.paladarNotas.length - 1].volta = rv.dia;
+    CARTAS['paladar_' + G.dia] = { de: 'Gazeta de Santos', dia: G.dia + 1, texto: Paladar.materia(r.paladar, rv ? rv.dia : 0) };
     avisar(`O cliente de chapéu-coco era o Doutor Paladar, da Gazeta! Nota: ${r.paladar} ${r.paladar === 1 ? 'garfo' : 'garfos'}. A matéria sai amanhã.`); somFim(r.paladar >= 4 ? 'fanfarra' : 'cliente_hmpf', 1, 0, -4);
   }
   const fama = TurnoJanta.paraFama(r);   // (o cardápio do Bancho) o prato da casa não conta para a fama, as pitadas nem o chef
@@ -817,13 +820,15 @@ function atualizaSeloPensao(selo, noSalao) {
   if (px) selo.append(el('div', { class: 'progresso' }, el('div', { style: `width:${p.progresso() * 100}%` })));   // no degrau mais alto não tem barra
 }
 // O que falta para o próximo degrau, em texto.
-function textoFalta(f) {
+// (C17) Com a pensão e o dia, os do calendário dizem a noite: a revisita marcada do Paladar e o próximo concurso.
+function textoFalta(f, p = typeof G !== 'undefined' ? G.pensao : null, dia = typeof G !== 'undefined' ? G.dia : 0) {
   const t = [];
   if (f.curtidas) t.push(`${f.curtidas} ${f.curtidas === 1 ? 'curtida' : 'curtidas'}`);
   if (f.sabor) t.push(`melhor sabor +${f.sabor} (caprichar e servir no salão)`);
   if (f.pesquisadas) t.push(`${f.pesquisadas} ${f.pesquisadas === 1 ? 'receita pesquisada' : 'receitas pesquisadas'}`);
-  if (f.visitas) t.push(`${f.visitas} ${f.visitas === 1 ? 'visita' : 'visitas'} do Doutor Paladar com ${f.garfos} garfos`);
-  if (f.concurso) t.push(`${f.concurso} ${f.concurso === 1 ? 'vitória' : 'vitórias'} no concurso da Rádio`);
+  const volta = p && dia ? ((p.agenda || []).find(e => e.tipo === 'paladar' && !e.fim && e.dia >= dia) || null) : null;
+  if (f.visitas) t.push(`${f.visitas} ${f.visitas === 1 ? 'visita' : 'visitas'} do Doutor Paladar com ${f.garfos} garfos` + (volta ? ` (ele volta no dia ${volta.dia}, ${quandoDia(volta.dia, dia)})` : ''));
+  if (f.concurso) t.push(`${f.concurso} ${f.concurso === 1 ? 'vitória' : 'vitórias'} no concurso da Rádio` + (p && dia && typeof Concurso !== 'undefined' ? ` (o próximo é no dia ${Concurso.proximo(p, dia)}, ${quandoDia(Concurso.proximo(p, dia), dia)})` : ''));
   return t.length ? 'faltam ' + t.join(', ') : 'quase lá';
 }
 // ---------- (15/10, a clareza) o que cada número quer dizer, na própria tela ----------
@@ -851,7 +856,7 @@ const GLOSSARIO = {
   pitada: 'Pitadas de tempero: pagam a pesquisa de receita nova no caderno. Toda janta com estrela dá pitadas; metas e clientes especiais também.',
   despesa: 'Despesa da noite: gás, gelo e luz. Sai do bolso toda noite que a pensão abre; cada degrau novo cobra mais.',
   garfos: 'Garfos: a nota do Doutor Paladar, o crítico da Gazeta, que vem disfarçado. Os dois últimos degraus pedem visitas dele com nota alta.',
-  concurso: 'Concurso da Rádio: no último dia da estação, 3 pratos para os jurados. O último degrau pede uma vitória.',
+  concurso: 'Concurso da Rádio: a cada 2 semanas, no domingo, 3 pratos para os jurados. O último degrau pede uma vitória.',
   degrau: 'Degrau (as estrelas da pensão): quando tudo o que ele pede está feito, a pensão sobe; abre mais pratos no quadro, banquetas, clientes e vagas na equipe.',
   panela: 'Panela: a Rosa cozinha a receita uma vez e ela rende algumas porções. Porção: um prato para um cliente. Cada panela gasta da despensa conforme rende (o PF que dá 4 porções gasta 2 de arroz, 2 de feijão e 2 de ovo); as porções a mais do capricho e do freezer saem de graça.',
   repoe: '"Rosa repõe": ligado, quando a panela acaba a Rosa faz outra com o que tem na despensa. Desligado, o prato sai do quadro.',

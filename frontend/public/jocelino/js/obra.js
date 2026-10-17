@@ -1,6 +1,6 @@
 // Jocelino — obra.js — a obra do Mestre Bira (lista_mestre.gd do Godot), as regras: a lista de tarefas do dia (de
 // de sol a sol, 6h–17h), a diária da função, o extra, o imprevisto do cimento, as etapas de cada obra (2 dias trabalhados
-// por etapa, com gratificação) e as obras em sequência, cada uma no seu lugar com a arte das etapas.
+// por etapa, 3 no prédio, com gratificação) e as obras em sequência, cada uma no seu lugar com a arte das etapas.
 
 const FUNCOES = ['Servente', 'Meio-oficial', 'Pedreiro', 'Mestre de obras'];
 const DIARIAS = ECO.obra.diarias;
@@ -25,17 +25,31 @@ const TAREFAS_OBRA = {
   assentar: { texto: 'Assentar tijolo na obra (colher)', meta: 10, hab: 'alvenaria', xp: 3, funcaoMin: 1 },
   rebocar: { texto: 'Chapiscar e rebocar a parede (colher)', meta: 8, hab: 'acabamento', xp: 3, funcaoMin: 1 },
   buscar_cimento: { texto: 'Imprevisto: buscar 2 sacos de cimento no Ananias', meta: 2, hab: 'negocio', xp: 2 },
+  // (C14, 16/10) A tarefa do mestre de obras: passar no peão, ver a frente dele (o que faz, quanto já fez) e falar com ele. Sem
+  // arte nova: é a conversa com o peão no canteiro (conferirPeao, obra_jogo.js), com o retrato dele.
+  conferir: { texto: 'Conferir a frente de um peão (fale com ele no canteiro)', meta: 3, hab: 'alvenaria', xp: 3, funcaoMin: 3 },
 };
+// (C14, 16/10; o teste crítico B: "pedreiro e mestre recebem do Bira a mesma lista do servente do dia 3") A CARREIRA MUDA O DIA,
+// como os níveis do Stardew mudam o que se faz (o regador automático tira a rega do dia): o conjunto da etapa continua, e o que a
+// função pega muda. Servente: 3 a 4 de carregar (como sempre). Meio-oficial: 3, com 1 de ofício (a colher) e o carregar a 70%.
+// Pedreiro: os 2 ofícios e 1 carregar leve (tijolo, pedra e telha, o peso, a turma do Bira leva). Mestre: conferir a frente de 3
+// peões e 1 ofício pela metade; o carregar é da turma (lista.turma, que ela faz sozinha de hora em hora: equipe_obra.js).
+const OFICIOS_OBRA = ['assentar', 'rebocar'], CARREGAR_PESADO = ['tijolos', 'pedras', 'telhas'];
+const OBRA_CARREGAR_MEIO = 0.7, OBRA_OFICIO_MESTRE = 0.5;
+const TURMA_REDONDA_VALE = 1.5;   // (C15) o dia da turma redonda vale 1,5 dia na etapa (Obra.avancar)
+const ehOficio = id => OFICIOS_OBRA.includes(id);
 // As ferramentas da lavagem e da pintura (o Bira entrega na 1ª lista que pede: obra_jogo.js).
 ITENS.mangueira = { nome: 'Mangueira', pilha: 1, ferramenta: true, descricao: 'Do canteiro do Mestre Bira: lava o chão da obra.' };
 ITENS.rolo = { nome: 'Rolo de pintura', pilha: 1, ferramenta: true, descricao: 'Do canteiro do Mestre Bira: pinta a parede da obra no acabamento.' };
 const PREMIOS_CASA = ECO.obra.premiosCasa;
+// (C14) `oficio`: o ofício da etapa que não tem colher na lista do servente (a marcação da 1ª fiada no gabarito, o baldrame no
+// alicerce, o emboço da cumeeira no telhado). Só o meio-oficial para cima o pega.
 const ETAPAS_CASA = [
-  { nome: 'Gabarito', tarefas: ['capinar', 'entulho', 'areia', 'buscar_pedra'] },
-  { nome: 'Alicerce', tarefas: ['pedras', 'areia', 'massa', 'entulho'] },
+  { nome: 'Gabarito', tarefas: ['capinar', 'entulho', 'areia', 'buscar_pedra'], oficio: 'assentar' },
+  { nome: 'Alicerce', tarefas: ['pedras', 'areia', 'massa', 'entulho'], oficio: 'assentar' },
   { nome: 'Meia parede', tarefas: ['tijolos', 'massa', 'areia', 'lavar', 'assentar'] },
   { nome: 'Paredes', tarefas: ['tijolos', 'massa', 'lavar', 'entulho', 'assentar'] },
-  { nome: 'Telhado', tarefas: ['telhas', 'ripas', 'massa', 'entulho'] },
+  { nome: 'Telhado', tarefas: ['telhas', 'ripas', 'massa', 'entulho'], oficio: 'rebocar' },
   { nome: 'Acabamento', tarefas: ['entulho', 'capinar', 'pintar', 'areia', 'rebocar'] },
 ];
 const OBRAS = [
@@ -50,8 +64,9 @@ const OBRAS = [
   // acabamento, a Escola pronta.
   { id: 'escola', nome: 'Escola da Vila', cliente: 'Professor Paulo', mapa: 'vila', etapas: ETAPAS_CASA, premios: PREMIOS_CASA,
     arte: n => ['texturas/chao_pedreira', 'objetos/predio_obra_1', 'objetos/predio_obra_2', 'objetos/predio_obra_2', 'objetos/predio_obra_3'][n] || 'objetos/escola' },
-  { id: 'predio', nome: 'Edifício Maré', cliente: 'J. Moreira', mapa: 'vila',
-    etapas: ['Fundação', 'Térreo', '1º andar', '2º andar', '3º andar', '4º andar', 'Cobertura'].map((nome, i) => ({ nome, tarefas: i === 0 ? ['pedras', 'areia', 'massa', 'entulho'] : ['tijolos', 'massa', 'ripas', i === 6 ? 'pintar' : 'lavar', 'entulho'] })),   // (a Cobertura é o fim: pinta)
+  // (C15) o prédio é a obra do mestre: 3 dias de trabalho por etapa (7 etapas = 21 dias; a turma redonda encurta: Obra.avancar)
+  { id: 'predio', nome: 'Edifício Maré', cliente: 'J. Moreira', mapa: 'vila', diasPorEtapa: 3,
+    etapas: ['Fundação', 'Térreo', '1º andar', '2º andar', '3º andar', '4º andar', 'Cobertura'].map((nome, i) => ({ nome, tarefas: i === 0 ? ['pedras', 'areia', 'massa', 'entulho'] : ['tijolos', 'massa', 'ripas', i === 6 ? 'pintar' : 'lavar', 'entulho'], oficio: i === 6 ? 'rebocar' : 'assentar' })),   // (a Cobertura é o fim: pinta)
     premios: Array.from({ length: 7 }, (_, i) => i === 6 ? ECO.obra.premiosPredio.fim : ECO.obra.premiosPredio.etapa),
     arte: n => 'objetos/predio_' + Math.min(7, n + 1) },
 ];
@@ -67,7 +82,8 @@ const Obra = {
     const o = s.obra || {};
     G.obra = { indice: o.indice || 0, etapa: o.etapa || 0, diasEtapa: o.diasEtapa || 0, funcao: o.funcao || 0, entregues: o.entregues || 0,
       lista: o.lista ? JSON.parse(JSON.stringify(o.lista)) : null, aReceber: o.aReceber || 0, primeira: o.primeira !== false, gratificacao: o.gratificacao || null,
-      deu: Object.assign({}, o.deu || {}) };   // (as ferramentas do canteiro que o Bira já entregou: mangueira, rolo)
+      deu: Object.assign({}, o.deu || {}),   // (as ferramentas do canteiro que o Bira já entregou: mangueira, rolo)
+      listaFuncao: o.listaFuncao || 0 };   // (C14) a função da última 1ª lista explicada pelo Bira (a 1ª lista de cada função tem a frase)
     if (G.obra.etapa >= Obra.obra().etapas.length) { G.obra.etapa = 0; G.obra.diasEtapa = 0; }   // save antigo do pedreiro no meio do prédio
     // (15/10) Save antigo no meio de uma lista com 'molhar': vira a tarefa da etapa (lavar ou pintar), com o que já tinha feito.
     const l = G.obra.lista;
@@ -107,19 +123,55 @@ const Obra = {
     if (min >= OBRA_FECHA) return 'tarde';
     return '';
   },
-  // A lista do dia: 3 ou 4 tarefas da etapa (as que a função permite), fixa pelo dia e pela obra; às vezes o imprevisto.
+  // Os ofícios da etapa (a colher): os da lista dela ou, sem nenhum, o `oficio` da etapa.
+  oficiosDaEtapa(e = Obra.obra().etapas[G.obra.etapa]) { const o = e.tarefas.filter(ehOficio); return o.length ? o : [e.oficio || 'assentar']; },
+  // A lista do dia: as tarefas da etapa que a função pega (ver OFICIOS_OBRA), fixa pelo dia e pela obra; às vezes o imprevisto.
   sortear(dia) {
-    const f = mulberry(dia * 7919 + G.obra.indice * 31 + G.obra.etapa);
-    const pode = Obra.obra().etapas[G.obra.etapa].tarefas.filter(id => {
-      const t = TAREFAS_OBRA[id]; return (t.funcaoMin == null || G.obra.funcao >= t.funcaoMin) && (t.funcaoMax == null || G.obra.funcao <= t.funcaoMax); });
-    const n = Math.min(pode.length, 3 + (f() < 0.5 ? 1 : 0)), metas = {};
-    const pool = pode.slice();
-    while (Object.keys(metas).length < n) { const id = pool.splice(Math.floor(f() * pool.length), 1)[0]; metas[id] = TAREFAS_OBRA[id].meta; }
+    const f = mulberry(dia * 7919 + G.obra.indice * 31 + G.obra.etapa), fn = G.obra.funcao, e = Obra.obra().etapas[G.obra.etapa];
+    const pode = e.tarefas.filter(id => {
+      const t = TAREFAS_OBRA[id]; return (t.funcaoMin == null || fn >= t.funcaoMin) && (t.funcaoMax == null || fn <= t.funcaoMax); });
+    // k tarefas sorteadas do monte, com a meta × fator (as pedras de fora, buscar_pedra, ficam nas 10 que o texto diz)
+    const tira = (monte, k, metas, fator = 1) => { const pool = monte.filter(id => !(id in metas));
+      for (let i = 0; i < k && pool.length; i++) { const id = pool.splice(Math.floor(f() * pool.length), 1)[0], m = TAREFAS_OBRA[id].meta;
+        metas[id] = id === 'buscar_pedra' || fator === 1 ? m : Math.max(1, Math.round(m * fator)); }
+      return metas; };
+    let metas = {}, turma = null;
+    if (fn <= 0) {   // servente: 3 ou 4 (o sorteio de sempre: a s33 joga o começo igual)
+      tira(pode, Math.min(pode.length, 3 + (f() < 0.5 ? 1 : 0)), metas);
+    } else if (fn === 1) {   // meio-oficial: 1 de ofício + 2 de carregar a 70%
+      tira(Obra.oficiosDaEtapa(e), 1, metas); tira(pode.filter(id => !ehOficio(id)), 2, metas, OBRA_CARREGAR_MEIO);
+    } else if (fn === 2) {   // pedreiro: assentar e rebocar + 1 carregar leve a 70%
+      for (const id of OFICIOS_OBRA) metas[id] = TAREFAS_OBRA[id].meta;
+      tira(pode.filter(id => !ehOficio(id) && !CARREGAR_PESADO.includes(id)), 1, metas, OBRA_CARREGAR_MEIO);
+    } else {   // mestre: conferir 3 peões + 1 ofício pela metade; o carregar (3 ou 4) é da turma
+      metas.conferir = TAREFAS_OBRA.conferir.meta; tira(Obra.oficiosDaEtapa(e), 1, metas, OBRA_OFICIO_MESTRE);
+      turma = tira(pode.filter(id => !ehOficio(id) && id !== 'conferir'), 3 + (f() < 0.5 ? 1 : 0), {});
+    }
     if (G.obra.primeira) { G.obra.primeira = false; return { metas: { tijolos: 10, areia: 3 } }; }   // o primeiro dia é leve (Godot)
+    if (turma) return { metas, turma };   // (o imprevisto do cimento é da turma do mestre: o Damião vai ao Ananias)
     // (onda final, o robô #27) o imprevisto do cimento só quando o depósito abre (8h): antes disso ele fica guardado e entra na lista
     // às 8h (obra_jogo.js), se a lista ainda não estiver completa; antes o jogador esperava até 2 horas pelo depósito
     if (f() < OBRA_IMPREVISTO) { if (G.minutos >= DEPOSITO_HORARIO.abre) metas.buscar_cimento = 2; else return { metas, imprevisto: true }; }
     return { metas };
+  },
+  // (C15, rodada 1) A tarefa da turma que ainda falta (o mestre pode ajudar nela com as mãos).
+  turmaPede(id, l = G.obra && G.obra.lista) { if (!l || !l.turma || !l.turma[id] || G.obra.funcao < 3 || l.dia !== G.dia) return false; const T = Obra.turmaDe(l); return (T.feito[id] || 0) < T.metas[id]; },
+  // (C14) A lista da turma do mestre ({metas, feito}): a lista.turma; numa lista sem turma (o save de antes), a própria lista.
+  turmaDe(l = G.obra.lista) { if (!l) return { metas: {}, feito: {} }; if (!l.turma) return l; if (!l.feitoTurma) l.feitoTurma = {}; return { metas: l.turma, feito: l.feitoTurma }; },
+  // (C15) Quantas tarefas da lista da turma ficaram prontas ({feitas, total}); e se o dia da turma fechou redondo (todas).
+  turmaFeita(l = G.obra.lista) { if (!l || !l.turma) return { feitas: 0, total: 0 }; const T = Obra.turmaDe(l), ids = Object.keys(T.metas);
+    return { feitas: ids.filter(id => (T.feito[id] || 0) >= T.metas[id]).length, total: ids.length }; },
+  turmaRedonda(l = G.obra.lista) { const r = Obra.turmaFeita(l); return r.total > 0 && r.feitas === r.total; },
+  // (C15) Os dias de trabalho de cada etapa da obra (o prédio, 3; as outras, 2).
+  diasPorEtapa(o = Obra.obra()) { return o.diasPorEtapa || DIAS_POR_ETAPA; },
+  // (C14) O mestre conferiu a frente de um peão (uma vez por peão por dia). '' = não conta (não é mestre, a lista não pede, já
+  // conferiu); senão o resultado do trabalho ('ok' ou 'completa').
+  conferir(peaoId) {
+    const l = G.obra.lista;
+    if (G.obra.funcao < 3 || !l || l.dia !== G.dia || l.paga || l.fechado || !l.metas.conferir || (l.feito.conferir || 0) >= l.metas.conferir) return '';
+    l.conferidos = l.conferidos || {}; if (l.conferidos[peaoId]) return '';
+    l.conferidos[peaoId] = true;
+    return Obra.trabalho('conferir', 1);
   },
   // (15/10, T4) As melhorias de Alvenaria: a tarefa conta em dobro na lista (a Peneira ligeira, o Ombro de pedreiro, a Colher ligeira).
   // O XP continua o do que se fez de verdade (n); só a lista anda mais depressa. Só o que o Jocelino faz: a turma do Bira
@@ -128,10 +180,18 @@ const Obra = {
   trabalho(id, n = 1, turma = false) {
     const l = G.obra.lista;
     if (!l || l.dia !== G.dia) return 'sem_lista';
-    if (!l.metas[id]) return 'nao_pede';
-    l.feito[id] = Math.min(l.metas[id], (l.feito[id] || 0) + n * (turma ? 1 : Obra.emDobro(id)));
-    if (G.limpou) G.limpou['obra_' + id] = (G.limpou['obra_' + id] || 0) + 1;   // já fez essa tarefa uma vez (as setas, guia_setas.js)
-    if (typeof Habilidades !== 'undefined') Habilidades.ganhar(TAREFAS_OBRA[id].hab, TAREFAS_OBRA[id].xp * n * (Habilidades.tem('organizado') && ['tijolos', 'massa', 'entulho'].includes(id) ? 2 : 1) + (l.feito[id] === l.metas[id] ? 10 : 0));
+    const L = turma ? Obra.turmaDe(l) : l;   // (C14) a turma do mestre trabalha na lista dela
+    // (C15, rodada 1; o E7: "o Jocelino pode ajudar em qualquer frente") O MESTRE AJUDA COM AS MÃOS: o que ele carrega, peneira ou
+    // quebra numa tarefa da turma conta na lista da turma (não na dele), um por um, com o XP do serviço. Devolve 'turma'.
+    if (!L.metas[id] && !turma && Obra.turmaPede(id, l)) {
+      const T = Obra.turmaDe(l); T.feito[id] = Math.min(T.metas[id], (T.feito[id] || 0) + n);
+      if (typeof Habilidades !== 'undefined') Habilidades.ganhar(TAREFAS_OBRA[id].hab, TAREFAS_OBRA[id].xp * n);
+      return 'turma';
+    }
+    if (!L.metas[id]) return 'nao_pede';
+    L.feito[id] = Math.min(L.metas[id], (L.feito[id] || 0) + n * (turma ? 1 : Obra.emDobro(id)));
+    if (G.limpou && !(turma && l.turma)) G.limpou['obra_' + id] = (G.limpou['obra_' + id] || 0) + 1;   // já fez essa tarefa uma vez (as setas, guia_setas.js)
+    if (typeof Habilidades !== 'undefined') Habilidades.ganhar(TAREFAS_OBRA[id].hab, TAREFAS_OBRA[id].xp * n * (Habilidades.tem('organizado') && ['tijolos', 'massa', 'entulho'].includes(id) ? 2 : 1) + (L.feito[id] === L.metas[id] ? 10 : 0));
     return Obra.completa() ? 'completa' : 'ok';
   },
   fracao() { const l = G.obra.lista; if (!l) return 0; let m = 0, f = 0; for (const id in l.metas) { m += l.metas[id]; f += Math.min(l.metas[id], l.feito[id] || 0); } return m ? f / m : 0; },
@@ -141,8 +201,8 @@ const Obra = {
     if (!l || l.paga || !Obra.completa()) return 0;
     l.paga = true; l.contou = true;
     if (l.extra) { const v = l.valorExtra || 0; l.valorExtra = 0; return v; }
-    return Obra.diaria() + (G.obra.funcao >= 3 ? ECO.obra.mestreRedondo : 0) +   // o mestre ganha o dia redondo
-      (l.metas.buscar_cimento ? OBRA_GORJETA : 0) + (typeof Habilidades !== 'undefined' ? (Habilidades.tem('prumo_de_ouro') ? 15 : Habilidades.tem('olho_de_prumo') ? 5 : 0) : 0);
+    // (C16) o dia redondo do mestre (ECO.obra.mestreRedondo) não sai mais aqui: só à noite, quando a turma fecha a lista dela (obra_jogo.js)
+    return Obra.diaria() + (l.metas.buscar_cimento ? OBRA_GORJETA : 0) + (typeof Habilidades !== 'undefined' ? (Habilidades.tem('prumo_de_ouro') ? 15 : Habilidades.tem('olho_de_prumo') ? 5 : 0) : 0);
   },
   // Meio-dia (ou a noite, se o jogador não voltou ao Bira): a parte feita vira dinheiro a receber; ≥ 50% conta o dia.
   fecharDia() {
@@ -153,14 +213,17 @@ const Obra = {
     l.fechado = true; l.contou = fr >= 0.5; G.obra.aReceber += valor;
     return { fracao: fr, valor, contou: l.contou };
   },
-  // Um dia trabalhado: a cada 2, a etapa sobe (com gratificação); a última etapa entrega a obra e passa para a próxima.
-  avancar() {
-    const o = Obra.obra(), r = { etapaNova: false, obraPronta: false, premio: null };
-    G.obra.diasEtapa++;
-    if (G.obra.diasEtapa < DIAS_POR_ETAPA) return r;
-    G.obra.diasEtapa = 0; r.etapaNova = true; r.premio = o.premios[G.obra.etapa];
+  // Um dia trabalhado: a cada diasPorEtapa (2; o prédio, 3), a etapa sobe (com gratificação); a última etapa entrega a obra e passa
+  // para a próxima. (C15) O dia em que a turma do mestre fecha a lista dela redonda vale um dia e meio (TURMA_REDONDA_VALE): como os
+  // ajudantes do Bancho no Dave, a turma bem escalada rende, e a obra anda mais depressa (o prédio, de 21 dias para até 14). A sobra
+  // passa para a etapa seguinte.
+  avancar(turmaRedonda = false) {
+    const o = Obra.obra(), r = { etapaNova: false, obraPronta: false, premio: null }, N = Obra.diasPorEtapa(o);
+    G.obra.diasEtapa += turmaRedonda ? TURMA_REDONDA_VALE : 1;
+    if (G.obra.diasEtapa < N) return r;
+    G.obra.diasEtapa -= N; r.etapaNova = true; r.premio = o.premios[G.obra.etapa];
     if (G.obra.etapa + 1 >= o.etapas.length && typeof Habilidades !== 'undefined' && Habilidades.tem('artista')) r.premio = Object.assign({}, r.premio, { dinheiro: r.premio.dinheiro + 50 });
-    if (G.obra.etapa + 1 >= o.etapas.length) { r.obraPronta = true; G.obra.entregues++; G.obra.indice = Math.min(OBRAS.length, G.obra.indice + 1); G.obra.etapa = 0; }
+    if (G.obra.etapa + 1 >= o.etapas.length) { r.obraPronta = true; G.obra.entregues++; G.obra.indice = Math.min(OBRAS.length, G.obra.indice + 1); G.obra.etapa = 0; G.obra.diasEtapa = 0; }
     else G.obra.etapa++;
     return r;
   },

@@ -465,6 +465,8 @@ class Pensao {
     this.equipe = JSON.parse(JSON.stringify(d.equipe || [])); this.candidatos = JSON.parse(JSON.stringify(d.candidatos || [])); this.anuncio = d.anuncio || ''; this.melhorias = (d.melhorias || []).slice(); this.agenda = JSON.parse(JSON.stringify(d.agenda || [])); this.metas = JSON.parse(JSON.stringify(d.metas || [])); this.panela = Object.assign({}, d.panela || {}); this.panelaRar = Object.assign({}, d.panelaRar || {}); this.chef = Object.assign({ nivel: 1, xp: 0 }, d.chef || {});
     this.premios = (d.premios || []).slice(); this.garfos = d.garfos || 0; this.paladarNotas = JSON.parse(JSON.stringify(d.paladarNotas || [])); this.concursos = Object.assign({}, d.concursos || {});
     if (!this.paladarNotas.length && this.garfos > 0) this.paladarNotas.push({ dia: 0, nota: this.garfos });   // save antigo: a nota guardada vira a 1ª visita
+    // (C17) save de antes do concurso a cada 14 dias: a chave era a estação (o concurso no último dia dela); vira a chave do dia
+    for (const k of Object.keys(this.concursos)) if (/^\d+$/.test(k)) { const c = 'd' + (Number(k) + 1) * 28; if (!this.concursos[c]) this.concursos[c] = this.concursos[k]; delete this.concursos[k]; }
     this.estrelasPremiadas = d.estrelasPremiadas ?? null; this.festaDia = d.festaDia || 0;
     this.ampliacoes = (d.ampliacoes || []).slice(); this.obra = d.obra ? Object.assign({}, d.obra) : null; this.nivelMelhoria = Object.assign({}, d.nivelMelhoria || {});
     // (Tarefa D1) Save de antes do "melhor sabor servido": os pratos do caderno contam como servidos no nível de hoje (ninguém perde

@@ -41,7 +41,7 @@ MAPAS_DEF.quintal = () => {
   const T = QUINTAL.TERRENO;
   for (const c of [[T.x - 1, T.y - 1], [T.x + T.w, T.y - 1], [T.x - 1, T.y + T.h], [T.x + T.w, T.y + T.h]]) b.enfeite('objetos/bandeirinha', c[0], c[1], false);
   const pl = b.interativo('plaquinha', 'objetos/plaquinha', T.x - 1, T.y + 3, 1, 1, [8, 6]);
-  pl.acao = () => abrirPlaca('O terreno da casa da família. "Um dia a gente levanta aqui a nossa casa", diz o Tio Juca.');
+  pl.acao = () => abrirPlaca(typeof CasaFamilia !== 'undefined' ? CasaFamilia.placa() : 'O terreno da casa da família. "Um dia a gente levanta aqui a nossa casa", diz o Tio Juca.');   // (C16) a frase muda a cada etapa
   // O barril d'água da chuva (enche o regador) não é mais do mapa: ele se recolhe e se coloca (quintal_coisas.js, poeBarril).
   // O ladrilho de sempre dele (QUINTAL.BARRIL) continua sem detrito, para o sorteio sair igual ao de antes.
   // Detritos sorteados (sempre os mesmos: semente 1975).

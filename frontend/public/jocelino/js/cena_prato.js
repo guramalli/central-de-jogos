@@ -383,7 +383,8 @@ const CenaPrato = {
     this._cena = { id, def, artes, t: 0, tr: 0, espera: 0, podePular: op.podePular, primeira: op.primeira, prato: op.prato, nivel: op.nivel || 0, aoAcabar: op.aoAcabar || null, sons: def.sons.slice() };
     this._ultimo = performance.now();
     // as faixas descem: o zunido com rufar; a música e o burburinho baixam enquanto a cena toca
-    if (typeof sons !== 'undefined') { sons.tocar('cena_entrada', 1, 0.03, -4); sons.abafar(def.dur + 0.5, 0.3); }
+    // (C20) abafa: false — a cena que tem a música dela (o final: a música da festa segue alta)
+    if (typeof sons !== 'undefined') { sons.tocar('cena_entrada', 1, 0.03, -4); if (def.abafa !== false) sons.abafar(def.dur + 0.5, 0.3); }
     const o = this._overlay();
     o.hidden = false; document.body.classList.add('cena-prato');
     G.teclas.clear(); if (G.mouse) G.mouse.segura = false;
@@ -491,11 +492,15 @@ const CenaPrato = {
       const [l0, l1] = c.def.legenda;
       const tit = typeof c.def.titulo === 'function' ? c.def.titulo(c) : c.def.titulo;
       const nome = tit || (c.prato && typeof Pensao !== 'undefined' ? Pensao.prato(c.prato).nome : '');
-      if (nome && t >= l0 && t <= l1) { ctx.globalAlpha = Math.min(_cs(t, l0, l0 + 0.25), 1 - _cs(t, l1 - 0.25, l1)); texto(ctx, nome, W / 2, H - B / 2 + 9 - y1, Math.round(clamp(B * 0.42, 16, 34)), '#ffd34d', '900'); }
-      // a fala da Rosa na faixa de cima (fala: [de, até, texto ou função(c)]), nas cenas especiais que têm
-      if (c.def.fala && t >= c.def.fala[0] && t <= c.def.fala[1]) {
-        const [f0, f1, f] = c.def.fala, frase = typeof f === 'function' ? f(c) : f;
-        ctx.globalAlpha = Math.min(_cs(t, f0, f0 + 0.25), 1 - _cs(t, f1 - 0.25, f1)); texto(ctx, frase, W / 2, B / 2 + 8 + y1, Math.round(clamp(B * 0.36, 14, 28)), '#fff4cf', '800');
+      // (C20) a letra diminui até a frase caber na largura da tela (a fala longa do final, no celular)
+      const cabe = (s, tam, peso) => { ctx.font = `${peso} ${tam}px Nunito`; const w = ctx.measureText(s).width, max = W * 0.94; return w > max ? Math.max(11, Math.floor(tam * max / w)) : tam; };
+      if (nome && t >= l0 && t <= l1) { ctx.globalAlpha = Math.min(_cs(t, l0, l0 + 0.25), 1 - _cs(t, l1 - 0.25, l1)); texto(ctx, nome, W / 2, H - B / 2 + 9 - y1, cabe(nome, Math.round(clamp(B * 0.42, 16, 34)), '900'), '#ffd34d', '900'); }
+      // a fala da Rosa na faixa de cima (fala: [de, até, texto ou função(c)]), nas cenas especiais que têm; (C20) falas: a lista delas
+      // ([[de, até, texto ou função(c)], ...], ou uma função(c) que devolve a lista), uma depois da outra
+      const falas = typeof c.def.falas === 'function' ? c.def.falas(c) : c.def.falas || (c.def.fala ? [c.def.fala] : []);
+      for (const [f0, f1, f] of falas) if (t >= f0 && t <= f1) {
+        const frase = typeof f === 'function' ? f(c) : f;
+        ctx.globalAlpha = Math.min(_cs(t, f0, f0 + 0.25), 1 - _cs(t, f1 - 0.25, f1)); texto(ctx, frase, W / 2, B / 2 + 8 + y1, cabe(frase, Math.round(clamp(B * 0.36, 14, 28)), '800'), '#fff4cf', '800');
       }
       if (c.podePular) { ctx.globalAlpha = 0.75 * entra * (1 - sai); texto(ctx, 'Clique para pular', W - 110, H - B / 2 + 7 - y1, 16, '#fff4cf', '800'); }
       ctx.globalAlpha = 1;
