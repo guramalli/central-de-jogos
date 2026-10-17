@@ -5,56 +5,148 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0712">
 <meta name="robots" content="noindex, nofollow">
-<title>The Last Dance — testes</title>
+<title>The Last Dance</title>
+<meta name="description" content="O último ano de solteiro. De novo. Um jogo narrativo 18+ (sem cenas explícitas) de quinta a domingo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Monoton&family=Yellowtail&display=swap" rel="stylesheet">
 <style>
-  :root { --fundo: #0b0712; --cartao: #1e1231; --borda: #3d2a5c; --texto: #eee6ff; --suave: #b3a3d4; --destaque: #ff5ad8; }
+  :root { --fundo: #0b0712; --cartao: #1e1231; --borda: #3d2a5c; --texto: #eee6ff; --suave: #b3a3d4;
+          --rosa: #ff5ad8; --ciano: #59e8ff; --ouro: #ffd36b; }
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at top, #2a0f3d, var(--fundo) 70%);
-         color: var(--texto); font: 16px/1.5 system-ui, sans-serif; padding: max(20px, env(safe-area-inset-top)) 16px 32px; }
-  main { max-width: 640px; margin: 0 auto; }
-  h1 { margin: 8px 0 2px; font-size: 30px; letter-spacing: 0.5px; }
-  h1 span { color: var(--destaque); text-shadow: 0 0 14px rgba(255, 90, 216, 0.6); }
-  p.sub { margin: 0 0 22px; color: var(--suave); }
+  body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at top, #2a0f3d, var(--fundo) 70%) fixed;
+         color: var(--texto); font: 16px/1.55 system-ui, sans-serif;
+         padding: max(18px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom)); }
+  main { max-width: 680px; margin: 0 auto; }
+
+  /* ---------- logotipo: a cara dele num globo de luz, com o nome em neon ---------- */
+  .logo { position: relative; display: flex; flex-direction: column; align-items: center; margin: 6px auto 4px; }
+  .palco { position: relative; width: min(260px, 64vw); aspect-ratio: 1; display: grid; place-items: center; }
+  .raios { position: absolute; inset: -18%; border-radius: 50%;
+           background: repeating-conic-gradient(from 0deg, rgba(255,90,216,.20) 0 7deg, transparent 7deg 18deg, rgba(89,232,255,.14) 18deg 24deg, transparent 24deg 36deg);
+           -webkit-mask: radial-gradient(circle, #000 30%, transparent 70%); mask: radial-gradient(circle, #000 30%, transparent 70%);
+           animation: gira 24s linear infinite; }
+  .anel { position: absolute; inset: 4%; border-radius: 50%; border: 4px solid var(--rosa);
+          box-shadow: 0 0 18px var(--rosa), inset 0 0 18px rgba(255,90,216,.55), 0 0 60px rgba(255,90,216,.35);
+          background: radial-gradient(circle at 50% 40%, #3b1757, #170b26 70%); }
+  .anel::after { content: ""; position: absolute; inset: 8px; border-radius: 50%; border: 2px dashed rgba(89,232,255,.55);
+                 animation: gira 40s linear infinite reverse; }
+  .cara { position: relative; width: 78%; image-rendering: pixelated; filter: drop-shadow(0 8px 14px rgba(0,0,0,.6));
+          animation: balanca 3.2s ease-in-out infinite; transform-origin: 50% 90%; }
+  .brilho { position: absolute; color: #fff; font-size: 22px; text-shadow: 0 0 10px var(--ciano); animation: pisca 2.4s ease-in-out infinite; }
+  .brilho.b1 { top: 6%; right: 8%; } .brilho.b2 { bottom: 14%; left: 2%; animation-delay: .8s; font-size: 16px; }
+  .brilho.b3 { top: 22%; left: -2%; animation-delay: 1.6s; font-size: 14px; }
+  .nome { margin-top: -26px; position: relative; text-align: center; line-height: 1; }
+  .nome .the { display: block; font: 400 clamp(22px, 7vw, 34px) "Monoton", system-ui, sans-serif; letter-spacing: .08em; color: #e9fbff;
+               text-shadow: 0 0 6px var(--ciano), 0 0 18px var(--ciano); }
+  .nome .dance { display: block; margin-top: -4px; font: 400 clamp(64px, 22vw, 108px) "Yellowtail", cursive; color: #ffe6fb;
+                 text-shadow: 0 0 6px #fff, 0 0 14px var(--rosa), 0 0 34px var(--rosa), 0 0 70px rgba(255,90,216,.6);
+                 transform: rotate(-6deg); animation: neon 6s infinite; }
+  .slogan { margin: 2px 0 0; text-align: center; color: var(--ouro); font-weight: 700; letter-spacing: .04em; }
+
+  .jogar { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 22px auto 8px; width: min(320px, 100%);
+           padding: 18px 26px; border-radius: 999px; text-decoration: none; color: #fff; font: 800 24px/1 system-ui, sans-serif; letter-spacing: .12em;
+           background: linear-gradient(135deg, #ff5ad8, #b0279a 55%, #7b2ff7); border: 2px solid #ffd6f4;
+           box-shadow: 0 0 0 4px rgba(255,90,216,.18), 0 0 28px rgba(255,90,216,.55), 0 10px 24px rgba(0,0,0,.5);
+           transition: transform .15s, box-shadow .15s; }
+  .jogar:hover, .jogar:focus-visible { transform: translateY(-2px) scale(1.03); outline: none;
+           box-shadow: 0 0 0 6px rgba(255,90,216,.25), 0 0 40px rgba(255,90,216,.8), 0 12px 28px rgba(0,0,0,.5); }
+  .jogar:active { transform: scale(.98); }
+  .jogar svg { flex: none; }
+  .idade { text-align: center; color: var(--suave); font-size: 13px; margin: 0 0 26px; }
+  .idade b { color: var(--texto); border: 1px solid var(--borda); border-radius: 6px; padding: 1px 6px; margin-right: 4px; }
+
+  section { background: var(--cartao); border: 1px solid var(--borda); border-radius: 16px; padding: 18px 18px 8px; margin-bottom: 14px; }
+  h2 { margin: 0 0 8px; font-size: 19px; color: #fff; }
+  section p { margin: 0 0 12px; color: #ddd2f3; }
+  .lista { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 10px; }
+  .lista li { display: flex; gap: 12px; align-items: flex-start; }
+  .lista .ic { font-size: 22px; width: 30px; text-align: center; flex: none; line-height: 1.3; }
+  .lista b { color: #fff; }
+  .lista span { color: #cfc2ea; }
+
+  details { margin-top: 20px; }
+  summary { cursor: pointer; color: var(--suave); font-size: 14px; padding: 6px 2px; }
+  summary:hover, summary:focus-visible { color: var(--texto); outline: none; }
   a.cartao { display: flex; gap: 14px; align-items: center; text-decoration: none; color: var(--texto);
-             background: var(--cartao); border: 1px solid var(--borda); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
-  a.cartao:active, a.cartao:hover { border-color: var(--destaque); }
-  a.cartao b { display: block; font-size: 18px; }
+             background: var(--cartao); border: 1px solid var(--borda); border-radius: 14px; padding: 12px 14px; margin-top: 10px; }
+  a.cartao:active, a.cartao:hover, a.cartao:focus-visible { border-color: var(--rosa); outline: none; }
+  a.cartao b { display: block; font-size: 16px; }
   a.cartao small { color: var(--suave); }
-  .icone { font-size: 30px; width: 44px; text-align: center; flex: none; }
-  footer { margin-top: 26px; color: var(--suave); font-size: 13px; }
+  .icone { font-size: 26px; width: 40px; text-align: center; flex: none; }
+  footer { margin-top: 22px; color: var(--suave); font-size: 13px; text-align: center; }
+
+  @keyframes gira { to { transform: rotate(360deg); } }
+  @keyframes balanca { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) translateY(-3px); } }
+  @keyframes pisca { 0%, 100% { opacity: .2; transform: scale(.7); } 50% { opacity: 1; transform: scale(1.1); } }
+  @keyframes neon { 0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; } 20%, 24%, 55% { opacity: .55; } }
+  @media (prefers-reduced-motion: reduce) { .raios, .anel::after, .cara, .brilho, .nome .dance { animation: none; } }
 </style>
 </head>
 <body>
 <main>
-  <h1>THE LAST <span>DANCE</span></h1>
-  <p class="sub">Protótipo em desenvolvimento — páginas de teste.</p>
+  <header class="logo" aria-label="The Last Dance">
+    <div class="palco" aria-hidden="true">
+      <div class="raios"></div>
+      <div class="anel"></div>
+      <img class="cara" src="personagem_modular/personagem/frente/cabeca.png" alt="">
+      <span class="brilho b1">✦</span><span class="brilho b2">✦</span><span class="brilho b3">✦</span>
+    </div>
+    <h1 class="nome"><span class="the">THE LAST</span><span class="dance">Dance</span></h1>
+    <p class="slogan">O último ano de solteiro. De novo.</p>
+  </header>
 
-  <a class="cartao" href="apartamento.html?comodo=quarto">
-    <span class="icone">🚶</span>
-    <span><b>Andar no apartamento</b><small>Começa no quarto. Toque (ou clique) no chão para andar; quando o celular tocar, toque nele para atender.</small></span>
+  <a class="jogar" href="apartamento.html?comodo=quarto">
+    <svg width="22" height="24" viewBox="0 0 22 24" aria-hidden="true"><path d="M3 2.5v19a1.5 1.5 0 0 0 2.3 1.27l15.2-9.5a1.5 1.5 0 0 0 0-2.54L5.3 1.23A1.5 1.5 0 0 0 3 2.5z" fill="#fff"/></svg>
+    JOGAR
   </a>
-  <a class="cartao" href="garagem.html">
-    <span class="icone">🚗</span>
-    <span><b>Garagem do prédio</b><small>Ainda em blocos. Ande até o carro e toque nele para escolher o destino; o elevador leva de volta para casa.</small></span>
-  </a>
-  <a class="cartao" href="casa_amigo.html">
-    <span class="icone">🍖</span>
-    <span><b>Casa do amigo</b><small>Varanda gourmet: churrasqueira, ilha de mármore, cervejeira, mesa redonda e caixa de som. Ainda em blocos; também dá para ir de carro pela garagem.</small></span>
-  </a>
-  <a class="cartao" href="padaria.html">
-    <span class="icone">🥐</span>
-    <span><b>Padaria</b><small>Com arte. Saindo de casa: elevador, garagem e carro. Converse com a Dona Cida no balcão.</small></span>
-  </a>
-  <a class="cartao" href="modular/">
-    <span class="icone">🧍</span>
-    <span><b>Personagem modular (protótipo)</b><small>Personagem montado por peças: 4 direções, troca de cor da camiseta e da calça, tipo físico. Segure as setas para andar.</small></span>
-  </a>
-  <a class="cartao" href="apartamento.html?comodo=quarto&amp;demo">
-    <span class="icone">🎬</span>
-    <span><b>Passeio automático</b><small>O personagem anda sozinho por todos os cômodos.</small></span>
-  </a>
+  <p class="idade"><b>18+</b> conteúdo adulto e muita zoeira · sem cenas explícitas · protótipo em desenvolvimento</p>
 
-  <footer>Dica: no celular, deitado (paisagem) mostra o apartamento inteiro; em pé, a câmera acompanha o personagem.</footer>
+  <section>
+    <h2>Sobre o jogo</h2>
+    <p>Todo ano ele jura que é o último. Último ano de baladinha, de vinho com as gatinhas, de churrasco até de manhã.
+       No ano que vem ele sossega. Pode anotar. (Ele fala isso desde 2015.)</p>
+    <p><b>The Last Dance</b> é um jogo narrativo em pixel art isométrico: você vive o fim de semana dele, de <b>quinta a domingo</b>,
+       escolhendo o que vestir, o que responder, pra onde ir e com quem ficar. Cada dia tem a sua noite. E cada noite tem a sua ressaca.</p>
+  </section>
+
+  <section>
+    <h2>O que tem por aí</h2>
+    <ul class="lista">
+      <li><span class="ic">🏙️</span><span><b>O apartamento no 20º andar</b> — TV, vinho, um computador que ele não sabe ligar e uma cama que sempre acorda com dor de cabeça.</span></li>
+      <li><span class="ic">🛗</span><span><b>O elevador</b> — 20 andares de tédio. Peidar, assobiar, mexer no bigode... e a freira do 7º vendo tudo.</span></li>
+      <li><span class="ic">📱</span><span><b>O celular</b> — gatinhas no direct, o grupo dos Apocalipse Boys e o Bruno Moon e o Carioca ligando toda hora.</span></li>
+      <li><span class="ic">🔥</span><span><b>O churrasco na casa do amigo</b> — ele na churrasqueira, fumaça pra todo lado, sertanejo e a mesma zoeira de sempre.</span></li>
+      <li><span class="ic">🥐</span><span><b>A padaria</b> — pingado, pão com ovo e as mesas pra tentar a sorte.</span></li>
+      <li><span class="ic">👔</span><span><b>O guarda-roupa</b> — camisa social preta pra balada, regata pra academia (que ele não vai).</span></li>
+    </ul>
+  </section>
+
+  <details>
+    <summary>Páginas de teste (desenvolvimento)</summary>
+    <a class="cartao" href="garagem.html">
+      <span class="icone">🚗</span>
+      <span><b>Garagem do prédio</b><small>Ande até o carro e toque nele para escolher o destino; o elevador leva de volta para casa.</small></span>
+    </a>
+    <a class="cartao" href="casa_amigo.html">
+      <span class="icone">🍖</span>
+      <span><b>Casa do amigo</b><small>Varanda gourmet com churrasqueira, cervejeira e caixa de som. Também dá para ir de carro pela garagem.</small></span>
+    </a>
+    <a class="cartao" href="padaria.html">
+      <span class="icone">🥐</span>
+      <span><b>Padaria</b><small>Converse com a Dona Cida no balcão.</small></span>
+    </a>
+    <a class="cartao" href="modular/">
+      <span class="icone">🧍</span>
+      <span><b>Personagem modular (protótipo)</b><small>4 direções, troca de cor da roupa, tipo físico. Segure as setas para andar.</small></span>
+    </a>
+    <a class="cartao" href="apartamento.html?comodo=quarto&amp;demo">
+      <span class="icone">🎬</span>
+      <span><b>Passeio automático</b><small>O personagem anda sozinho por todos os cômodos.</small></span>
+    </a>
+  </details>
+
+  <footer>Dica: toque no chão para andar e nas setinhas rosa para usar as coisas. No celular, deitado (paisagem) mostra o lugar inteiro.</footer>
 </main>
 </body>
 </html>
