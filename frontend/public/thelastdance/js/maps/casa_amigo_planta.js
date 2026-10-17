@@ -69,6 +69,23 @@
       { nome: "Parede de azulejo", tipo: "cimento", plano: "x0", a: 5.8, b: 8.9, z0: 0, z1: 2.4, arte: "parede_azulejo_luzes" },
     ],
 
+    // A turma do churrasco. "personagem" = a arte modular (fica só na máquina por enquanto: rosto de pessoa real);
+    // sem ela (no site), aparece o boneco provisório com as cores de "visual".
+    npcs: [
+      { id: "vibola", nome: "Vibola", personagem: "vibola", postura: "em_pe", x: 3.75, y: 1.15, dir: "baixo",
+        falarDe: { x: 3.75, y: 1.75 }, fala: "\"Picanha no ponto! Ninguém encosta na minha grelha.\"",
+        visual: { pele: "#b9825a", roupa: "#1a1a1a", calca: "#ececec", cabelo: "#2a1a10", estilo: "curto" } },
+      { id: "gustavinho", nome: "Gustavinho", personagem: "gustavinho", postura: "em_pe", x: 2.75, y: 3.95, dir: "baixo",
+        falarDe: { x: 2.75, y: 4.6 }, fala: "\"Fala, parceiro! Hoje a noite promete.\"",
+        visual: { pele: "#c48d63", roupa: "#111111", calca: "#2f5fb0", cabelo: "#2a1a10", estilo: "curto" } },
+      { id: "juan", nome: "Juan", personagem: "juan", postura: "sentado", x: 6.9, y: 3.8, dir: "baixo",
+        falarDe: { x: 6.9, y: 3.05 }, fala: "\"Chegou o atrasado! Pega uma gelada aí na cervejeira.\"",
+        visual: { pele: "#d29a6e", roupa: "#4f6b2a", calca: "#22304a", cabelo: "#5a3a22", estilo: "curto" } },
+      { id: "vini", nome: "Vini", personagem: "vini", postura: "sentado", x: 8.5, y: 5.0, dir: "esquerda",
+        falarDe: { x: 9.2, y: 5.0 }, fala: "\"Bota um pagode nessa caixa de som!\"",
+        visual: { pele: "#c98f63", roupa: "#2b2b2b", calca: "#e79b8c", cabelo: "#2a1a10", estilo: "volume" } },
+    ],
+
     // As portas de vidro levam para: (de volta ao carro, ou outro lugar)
     destinos: [
       { nome: "Casa", descricao: "Voltar de carro para o prédio", url: "garagem.html?comodo=carro", ativo: true },
@@ -78,7 +95,7 @@
 
     pontos: [
       { nome: "porta", x: 8.8, y: 0.6 },
-      { nome: "churrasqueira", x: 3.7, y: 1.4 },
+      { nome: "churrasqueira", x: 3.75, y: 1.75 },
       { nome: "geladeiras", x: 5.5, y: 1.3 },
       { nome: "mesa", x: 9.2, y: 6.9 },
       { nome: "caixa de som", x: 9.8, y: 3.05 },
