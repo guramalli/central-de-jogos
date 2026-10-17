@@ -91,6 +91,18 @@
       { id: "vini", nome: "Vini", personagem: "vini", postura: "sentado", x: 8.5, y: 5.0, dir: "esquerda",
         falarDe: { x: 9.2, y: 5.0 }, fala: ["\"Aumenta esse sertanejo aí!\"", "\"Já mostrou o insta pra todo mundo? Mostra pra mim de novo.\""],
         visual: { pele: "#c98f63", roupa: "#2b2b2b", calca: "#e79b8c", cabelo: "#2a1a10", estilo: "volume" } },
+      { id: "jamil", nome: "Jamil", personagem: "jamil", postura: "sentado", x: 7.7, y: 3.8, dir: "baixo",
+        falarDe: { x: 7.7, y: 3.05 }, fala: ["\"Vim direto da missa. Alguém precisa rezar por esse churrasqueiro.\"",
+          "\"Terno no churrasco? Elegância não tira folga.\""],
+        visual: { pele: "#d6a27a", roupa: "#d9cfbd", calca: "#d9cfbd", cabelo: "#4a4a4a", estilo: "curto" } },
+      { id: "elcio", nome: "Elcio", personagem: "elcio", postura: "sentado", x: 6.1, y: 5.0, dir: "direita",
+        falarDe: { x: 5.2, y: 5.0 }, fala: ["\"Óculos escuros de noite? É o brilho do meu futuro, irmão.\"",
+          "\"Cadê a piscina? Vim de shorts à toa.\""],
+        visual: { pele: "#c48d63", roupa: "#c48d63", calca: "#e0404a", cabelo: "#1c120c", estilo: "curto" } },
+      { id: "pabo", nome: "Pabo", personagem: "pabo", postura: "em_pe", x: 10.5, y: 4.2, dir: "esquerda",
+        falarDe: { x: 10.5, y: 4.95 }, fala: ["\"Me vê só a proteína dessa picanha, sem a gordura.\"",
+          "\"Bora treinar amanhã? Ah, esqueci: você só treina a mandíbula.\""],
+        visual: { pele: "#c98f63", roupa: "#2b2b2b", calca: "#b5b5b5", cabelo: "#6b4226", estilo: "curto" } },
     ],
 
     // As portas de vidro levam para: (de volta ao carro, ou outro lugar)
