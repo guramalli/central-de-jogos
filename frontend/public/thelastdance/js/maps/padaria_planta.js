@@ -132,24 +132,8 @@
       { id: "kelly", nome: "Loira de vestido", personagem: "gordinha_loira", postura: "sentado", x: 6.075, y: 8.35, dir: "direita",
         falarDe: { x: 6.0, y: 9.1 }, paquera: "gordinha_loira",
         visual: { pele: "#f0c8a6", roupa: "#6aa8e0", calca: "#6aa8e0", cabelo: "#e6c46a", estilo: "longo" } },
-      // mais gente: motoboy esperando a entrega, cliente na fila do caixa, moça na mesa do canto
-      { id: "motoboy", nome: "Motoboy", postura: "em_pe", x: 2.2, y: 8.9, dir: "direita", falarDe: { x: 2.9, y: 8.9 },
-        fala: ["\"Entrega pro 42! Alguém aí é do 42?\"", "\"Cinco minutos esperando um pão na chapa, irmão...\""],
-        visual: { pele: "#a8704a", roupa: "#d63a2a", calca: "#2a2f3a", cabelo: "#111", estilo: "bone" } },
-      { id: "fila_caixa", nome: "Cliente na fila do caixa", postura: "em_pe", x: 11.3, y: 2.9, dir: "esquerda", falarDe: { x: 11.3, y: 3.6 },
-        fala: ["\"Aceita Pix? Ah, aceita. Ufa.\"", "\"Três pães e um sonho. Não, dois sonhos. Tá, três.\""],
-        visual: { pele: "#e0b48e", roupa: "#7a8a9a", calca: "#3a3a44", cabelo: "#5a3a22", estilo: "curto" } },
-      { id: "moca_canto", nome: "Moça lendo no canto", postura: "sentado", x: 11.875, y: 8.55, dir: "direita", falarDe: { x: 11.9, y: 9.3 },
-        fala: ["Ela está concentrada no livro e nem levanta os olhos.", "\"Shhh. Último capítulo.\""],
-        visual: { pele: "#c98f63", roupa: "#2f6b5a", calca: "#2a2f3a", cabelo: "#1c120c", estilo: "longo" } },
 
-      // mesa dos homens
-      { id: "homem_bone", nome: "Cara de boné", postura: "sentado", x: 9.875, y: 5.275, dir: "baixo", falarDe: { x: 10.0, y: 7.05 },
-        fala: "\"Aí, esse aí não é o da balada de ontem?\"",
-        visual: { pele: "#c48d63", roupa: "#2f6b3a", calca: "#2a2f3a", cabelo: "#111", estilo: "bone" } },
-      { id: "homem_camisa", nome: "Cara de camisa social", postura: "sentado", x: 10.525, y: 5.275, dir: "baixo", falarDe: { x: 10.5, y: 7.05 },
-        fala: "Ele finge que não te viu.",
-        visual: { pele: "#e0b48e", roupa: "#9fb7d8", calca: "#2a2f3a", cabelo: "#5a3a22", estilo: "curto" } },
+      // mesa dos homens: só o barbudo tatuado ficou (na mesa do canto)
       { id: "homem_barba", nome: "Barbudo tatuado", personagem: "tatuado", postura: "sentado", x: 12.55, y: 7.875, dir: "baixo", falarDe: { x: 12.55, y: 9.4 },
         fala: "\"Fala, parceiro. Noite boa?\"",
         visual: { pele: "#a86f4a", roupa: "#444", calca: "#2a2f3a", cabelo: "#2a1a10", estilo: "careca_barba" } },
