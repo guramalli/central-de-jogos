@@ -585,7 +585,8 @@
     if (n.postura === "sentado" && pm.vista.startsWith("lado")) {
       fy += (fy - T(n.x, n.y, 1)[1]) * (0.22 - acima); // de perfil: pernas dobradas, o quadril desce até o assento
     } else if (n.postura === "sentado") {
-      const corte = T(n.x, n.y, n.assento || 0.47)[1] + 6;
+      // corte um pouco abaixo do assento: as mãos (braços para baixo) aparecem; a mesa da frente cobre o resto
+      const corte = T(n.x, n.y, (n.assento || 0.47) - 0.24)[1] + 6;
       fy += (fy - T(n.x, n.y, 1)[1]) * (0.3 - acima); // corpo mais baixo: sentada, a cabeça fica abaixo de quem está em pé
       ctx.beginPath(); ctx.rect(fx - 400, corte - 2000, 800, 2000); ctx.clip();
     } else {
