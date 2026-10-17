@@ -70,7 +70,7 @@
       // mesas do salão
       ...mesa("Mesa das meninas", 5.2, 4.6, 6.4, 5.6, ["n", "o", "l"], { toalha: "#b8323f" }), // toalha cobre o colo de quem senta atrás
       ...mesa("Mesa dos homens", 9.6, 5.6, 10.8, 6.6, ["n", "o", "l"]),
-      ...mesa("Mesa", 2.4, 6.0, 3.1, 6.7, ["o", "l"]),
+      ...mesa("Mesa", 2.4, 6.0, 3.1, 6.7, ["n1", "o", "l"]), // a Sandra senta no fundo, de frente para a câmera
       ...mesa("Mesa", 6.4, 8.0, 7.1, 8.7, ["o", "l"]),
       ...mesa("Mesa do canto", 12.2, 8.2, 12.9, 8.9, ["n1", "o"]),
 
@@ -125,8 +125,8 @@
         falarDe: { x: 1.9, y: 4.3 }, paquera: "morena_moletom" },
 
       // mesinha perto do balcão: a Sandra (roupa de academia) — dá para paquerar
-      { id: "sandra", nome: "Senhora de roupa de academia", personagem: "coroa_fitness", postura: "sentado", x: 2.075, y: 6.35, dir: "direita",
-        falarDe: { x: 1.9, y: 7.1 }, paquera: "coroa_fitness",
+      { id: "sandra", nome: "Senhora de roupa de academia", personagem: "coroa_fitness", postura: "sentado", x: 2.75, y: 5.675, dir: "baixo",
+        falarDe: { x: 2.75, y: 4.9 }, paquera: "coroa_fitness",
         visual: { pele: "#d9a47c", roupa: "#e0407a", calca: "#222", cabelo: "#c9a26a", estilo: "longo" } },
       // mesinha do meio do salão: a Kelly — dá para paquerar
       { id: "kelly", nome: "Loira de vestido", personagem: "gordinha_loira", postura: "sentado", x: 6.075, y: 8.35, dir: "direita",

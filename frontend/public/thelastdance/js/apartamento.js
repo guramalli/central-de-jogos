@@ -564,9 +564,11 @@
     for (const [vista, sinal] of [["lado_direito", -1], ["lado_esquerdo", 1]]) {
       const o = pm.rig.vistas[vista].ossos;
       const q = {};
-      for (const [coxa, canela] of [["coxa", "canela"], ["coxa_tras", "canela_tras"]]) {
-        q[coxa] = girarOsso(sinal * 82, o[coxa].pivo[0], o[coxa].pivo[1]);
-        q[canela] = girarOsso(-sinal * 82, o[canela].pivo[0], o[canela].pivo[1]);
+      // a perna de trás um pouco diferente da da frente (coxa menos erguida, canela mais para trás):
+      // de perfil, as duas pernas aparecem em vez de uma cobrir a outra
+      for (const [coxa, canela, gc, gk] of [["coxa", "canela", 82, 82], ["coxa_tras", "canela_tras", 62, 34]]) {
+        q[coxa] = girarOsso(sinal * gc, o[coxa].pivo[0], o[coxa].pivo[1]);
+        q[canela] = girarOsso(-sinal * gk, o[canela].pivo[0], o[canela].pivo[1]);
       }
       vistas[vista] = [q];
     }
