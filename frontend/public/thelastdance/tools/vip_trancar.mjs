@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PASTAS = ["assets/characters/npcs/gustavinho", "assets/characters/npcs/vibola",
   "assets/characters/npcs/vini", "assets/characters/npcs/juan",
-  "assets/characters/npcs/pabo", "assets/characters/npcs/elcio", "assets/characters/npcs/jamil",
+  "assets/characters/npcs/pabo", "assets/characters/npcs/elcio", "assets/characters/npcs/jamil", "assets/characters/npcs/borrinha",
   "assets/characters/npcs/dona_cida", "assets/characters/npcs/garcom_ze", // dupla da padaria
   "assets/audio/amigos", // vozes dos amigos (áudios de WhatsApp)
   "assets/audio/local",   // músicas/sons com dono (sertanejo do churrasco, TV): só trancados, jogo fechado por senha

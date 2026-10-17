@@ -100,6 +100,11 @@
         falarDe: { x: 5.2, y: 5.0 }, fala: ["\"Óculos escuros de noite? É o brilho do meu futuro, irmão.\"",
           "\"Cadê a piscina? Vim de shorts à toa.\""],
         visual: { pele: "#c48d63", roupa: "#c48d63", calca: "#e0404a", cabelo: "#1c120c", estilo: "curto" } },
+      // atrás da ilha, do lado da churrasqueira, de frente para a câmera
+      { id: "borrinha", nome: "Borrinha", personagem: "borrinha", postura: "em_pe", x: 2.4, y: 1.3, dir: "baixo",
+        falarDe: { x: 1.75, y: 1.3 }, fala: ["\"Hoje tem jogo do Brasil? Não? Vim de amarelo do mesmo jeito.\"",
+          "\"Ô churrasqueiro, solta uma linguiça aqui pro torcedor!\""],
+        visual: { pele: "#e0b48e", roupa: "#f2d21b", calca: "#1a1a1a", cabelo: "#111", estilo: "bone" } },
       // na banqueta da ponta da ilha, de lado, virado para a turma (assento alto: 0,75 m)
       { id: "pabo", nome: "Pabo", personagem: "pabo", postura: "sentado", assento: 0.75, x: 3.475, y: 3.275, dir: "direita",
         falarDe: { x: 4.2, y: 3.4 }, fala: ["\"Me vê só a proteína dessa picanha, sem a gordura.\"",
