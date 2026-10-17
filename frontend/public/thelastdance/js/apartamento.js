@@ -768,6 +768,7 @@
   })();
 
   const bSom = document.getElementById("som");
+  if (bSom && NSF.Audio && !NSF.Audio.ligado()) { bSom.textContent = "Som: desligado"; bSom.setAttribute("aria-pressed", "false"); }
   if (bSom) bSom.addEventListener("click", () => {
     const on = NSF.Audio ? NSF.Audio.alternar() : false;
     bSom.textContent = on ? "Som: ligado" : "Som: desligado";

@@ -10,7 +10,7 @@
   const URL_ATUAL = typeof location !== "undefined" ? new URLSearchParams(location.search) : new URLSearchParams("");
   const SOBE = URL_ATUAL.has("subir");
   const ANDAR_CASA = 20;
-  const VIAGEM_S = 28; // 20 andares: dá tempo de fazer várias coisas (as opções voltam depois de cada uma)
+  const VIAGEM_S = 56; // 20 andares bem devagar: dá tempo de ouvir a música e fazer várias coisas (as opções voltam)
 
   const ESPELHO = { nome: "Espelho", tipo: "espelho", plano: "x0", a: 0.45, b: 1.75, z0: 0.95, z1: 2.25 }; // desenhado pelo jogo
 

@@ -8,7 +8,9 @@
   "use strict";
   const AC = global.AudioContext || global.webkitAudioContext;
   let ctx = null, mestre = null, busMusica = null, busToque = null, busEfeitos = null;
-  let ligadoSom = true, querMusica = false, querToque = false, abafado = false;
+  // o botão Som vale para o jogo todo (fica salvo neste aparelho)
+  let ligadoSom = (() => { try { return global.localStorage.getItem("nsf_som") !== "0"; } catch (e) { return true; } })();
+  let querMusica = false, querToque = false, abafado = false;
   let proximoTempo = 0, passo = 0, relogio = null, toqueRelogio = null;
 
   const N = (m) => 440 * Math.pow(2, (m - 69) / 12);
@@ -209,13 +211,19 @@
 
   // Trilha que é um arquivo de música (mp3): baixa uma vez, toca em loop no lugar da sintetizada.
   let fonte = null, fonteDe = null;
+  const baixados = {}; // arquivo da trilha já baixado (ArrayBuffer), antes mesmo de o som ser liberado
+  function preBaixar(t) {
+    const url = t.arquivo || t.arquivoLocal;
+    if (url && !baixados[url]) baixados[url] = fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
+    if (url) baixados[url].catch(() => { t.falhou = true; });
+  }
   function tocarArquivo() {
     if (!ctx) return;
     if (fonte && fonteDe !== trilha) { fonte.stop(); fonte = null; fonteDe = null; }
     if (!(trilha.arquivo || trilha.arquivoLocal) || trilha.falhou || fonte) return;
     const alvo = trilha, url = trilha.arquivo || trilha.arquivoLocal;
-    (buffers[url] = buffers[url] || fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
-      .then((b) => ctx.decodeAudioData(b)))
+    preBaixar(alvo);
+    (buffers[url] = buffers[url] || baixados[url].then((b) => ctx.decodeAudioData(b.slice(0))))
       .then((buf) => {
         if (trilha !== alvo || fonte) return;
         fonte = ctx.createBufferSource(); fonte.buffer = buf; fonte.loop = true;
@@ -428,7 +436,7 @@
       volumeMusica(); tocarArquivo(); tocarFundo(); carregarEfeito(PEIDO_MP3); carregarEfeito(TOQUE_MP3); carregarEfeito(TV_LOCAL); carregarEfeito(RONCO_MP3);
       if (querToque && !toqueRelogio) tocarToque();
     },
-    trilha(nome) { if (TRILHAS[nome]) { trilha = TRILHAS[nome]; volumeMusica(); tocarArquivo(); tocarFundo(); } },
+    trilha(nome) { if (TRILHAS[nome]) { trilha = TRILHAS[nome]; preBaixar(trilha); volumeMusica(); tocarArquivo(); tocarFundo(); } },
     musica(sim) { querMusica = sim; volumeMusica(); },
     toque(sim) {
       querToque = sim;
@@ -445,10 +453,15 @@
       trilha: Object.keys(TRILHAS).find((k) => TRILHAS[k] === trilha), querMusica, querToque, abafado, passosAgendados: passo }),
     alternar() {
       ligadoSom = !ligadoSom;
+      try { global.localStorage.setItem("nsf_som", ligadoSom ? "1" : "0"); } catch (e) { /* sem armazenamento */ }
       if (ctx) mestre.gain.setTargetAtTime(ligadoSom ? 1 : 0, ctx.currentTime, 0.05);
       return ligadoSom;
     },
   };
+
+  // Tenta ligar já ao abrir a página: vindo de outra tela do jogo (onde a pessoa acabou de tocar), o navegador
+  // normalmente deixa. Se não deixar, o contexto fica suspenso e liga no primeiro toque, como sempre.
+  setTimeout(() => { try { Audio.iniciar(); } catch (e) { /* sem áudio */ } }, 0);
 
   // Primeiro gesto do jogador libera o áudio.
   const liberar = () => Audio.iniciar();

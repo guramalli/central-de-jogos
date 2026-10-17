@@ -463,6 +463,8 @@
         if (!voltas.length) inf.extras.push({ sis: "Visualizou e não respondeu 👀" });
         tela0.digitando = false; salvar();
         if (atual === tela0) desenhar(); else atualizarBadge();
+        // acabou a conversa (sem mais o que responder): o celular fecha sozinho, se a pessoa não mexeu em nada
+        if (!rodadaAtual(c)) setTimeout(() => { if (tela && atual === tela0 && !tela0.digitando) fechar(); }, 2600);
         return;
       }
       const v = voltas[k++];
@@ -698,7 +700,11 @@
   }
   function encerrarLigacao(fechando) {
     chamada = null;
-    if (!fechando && tela) ir({ nome: "home" }, true);
+    if (!fechando && tela) { // desligou: o celular volta para o bolso sozinho
+      ir({ nome: "home" }, true);
+      const t0 = atual;
+      setTimeout(() => { if (tela && atual === t0) fechar(); }, 900);
+    }
     agendarLigacao();
   }
 
