@@ -1182,6 +1182,46 @@
         "espelhado": true,
         "proporcao": 1.0
       }
+    },
+    "enfeite_cerveja": {
+      "arquivo": "enfeite_cerveja.png",
+      "escala": 2.0,
+      "origem_px": [
+        18.7,
+        57.0
+      ],
+      "tamanho_m": [
+        0.08,
+        0.08,
+        0.28
+      ],
+      "descricao": "uma garrafa de cerveja âmbar e um copo americano cheio de cerveja com espuma, lado a lado",
+      "ajuste": {
+        "x": 0.072,
+        "y": 0.072,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "enfeite_churrasco": {
+      "arquivo": "enfeite_churrasco.png",
+      "escala": 2.0,
+      "origem_px": [
+        34.1,
+        14.7
+      ],
+      "tamanho_m": [
+        0.5,
+        0.3,
+        0.07
+      ],
+      "descricao": "tábua de madeira com picanha fatiada, vinagrete e farofa em potinhos",
+      "ajuste": {
+        "x": 0.072,
+        "y": 0.072,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
     }
   }
 }
