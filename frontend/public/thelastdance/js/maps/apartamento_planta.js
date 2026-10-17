@@ -124,27 +124,87 @@
       api.sentar({ x: 8.85, y: 4.4, dir: "direita" });
       setTimeout(() => api.pensar("Como é que liga isso aqui?!?!", 3500), 400);
     } else if (tipo === "cama") {
-      const proximo = (lerDia() + 1) % 4;
-      const c = api.cortinaCom("Zzz...", "Boa noite");
-      document.body.appendChild(c);
-      requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add("fechada")));
-      if (global.NSF.Audio) global.NSF.Audio.musica(false);
-      setTimeout(() => { api.jog.oculto = true; }, 600);
-      setTimeout(() => { // amanhece
-        c.querySelector("small").textContent = "Bom dia!";
-        c.querySelector("b").textContent = DIAS[proximo];
-        gravarDia(proximo);
-      }, 2200);
-      setTimeout(() => {
-        api.jog.oculto = false; api.jog.dir = "baixo";
-        c.classList.remove("fechada");
-        if (global.NSF.Audio) global.NSF.Audio.musica(true);
-        setTimeout(() => { c.remove(); api.pensar("Que dor de cabeça... que horas são?", 3200); }, 650);
-      }, 4200);
+      dormir(api);
     }
   };
+
+  // Dormir: ele deita na cama debaixo do cobertor e ronca, a tela vai fechando devagar, amanhece no dia seguinte.
+  let dormindo = null; // instante em que deitou
+  function dormir(api) {
+    const A = global.NSF.Audio, proximo = (lerDia() + 1) % 4;
+    dormindo = performance.now();
+    api.jog.oculto = true; // quem aparece agora é o "deitado" (aoDesenhar)
+    if (A) { A.musica(false); A.ronco(true); }
+    const c = api.cortinaCom("Zzz...", "Boa noite");
+    c.style.transition = "opacity 2.6s ease-in";
+    setTimeout(() => {
+      document.body.appendChild(c);
+      requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add("fechada")));
+    }, 1800);
+    setTimeout(() => { // amanhece
+      c.querySelector("small").textContent = "Bom dia!";
+      c.querySelector("b").textContent = DIAS[proximo];
+      gravarDia(proximo);
+      if (A) A.ronco(false);
+    }, 6600);
+    setTimeout(() => { c.style.transition = "opacity 1.2s ease-out"; c.classList.remove("fechada"); }, 8400);
+    setTimeout(() => { // levanta
+      c.remove();
+      dormindo = null;
+      api.jog.oculto = false; api.jog.dir = "baixo";
+      if (A) A.musica(true);
+      api.pensar("Que dor de cabeça... que horas são?", 3200);
+    }, 10200);
+  }
+
+  // Deitado: o personagem de frente, girado ao longo da cama (cabeça no travesseiro) e o cobertor por cima.
+  const CAMA = PLANTA.caixas.find((c) => c.interacao === "cama");
+  function desenharDeitado(ctx, T, agora) {
+    const api = PLANTA.api, heroi = api && api.heroi, xm = (CAMA.x0 + CAMA.x1) / 2, zt = CAMA.z1 + 0.06;
+    const [hx, hy] = T(xm, CAMA.y0 + 0.18, zt + 0.08), [fx, fy] = T(xm, CAMA.y1 - 0.2, zt);
+    if (heroi) {
+      const comp = Math.hypot(hx - fx, hy - fy);
+      heroi.definirVista("frente");
+      heroi.tocar("parado");
+      ctx.save();
+      ctx.translate(fx, fy);
+      ctx.rotate(Math.atan2(hy - fy, hx - fx) + Math.PI / 2);
+      heroi.desenhar(ctx, 0, 0, (comp * 1.05) / 1375);
+      ctx.restore();
+    }
+    // cobertor: do peito até os pés, caindo pela frente da cama
+    const ya = CAMA.y0 + 0.8, yb = CAMA.y1 + 0.04, xa = CAMA.x0 + 0.05, xb = CAMA.x1 - 0.05;
+    const P = (pts) => { ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); };
+    ctx.save();
+    ctx.fillStyle = "#b8326e";
+    P([T(xa, ya, zt + 0.08), T(xb, ya, zt + 0.08), T(xb, yb, zt), T(xa, yb, zt)]); ctx.fill();
+    ctx.fillStyle = "#8f2253"; // frente caindo
+    P([T(xa, yb, zt), T(xb, yb, zt), T(xb, yb + 0.02, 0.22), T(xa, yb + 0.02, 0.22)]); ctx.fill();
+    ctx.fillStyle = "#a02a5e"; // lateral caindo
+    P([T(xb, ya, zt + 0.08), T(xb, yb, zt), T(xb + 0.02, yb, 0.22), T(xb + 0.02, ya, 0.25)]); ctx.fill();
+    ctx.fillStyle = "#f2d9e6"; // dobra do lençol no peito
+    P([T(xa, ya, zt + 0.1), T(xb, ya, zt + 0.1), T(xb, ya + 0.14, zt + 0.09), T(xa, ya + 0.14, zt + 0.09)]); ctx.fill();
+    // volume do corpo debaixo do cobertor (respirando)
+    const resp = 1 + 0.04 * Math.sin(agora / 700);
+    const [bx, by] = T(xm, (ya + yb) / 2, zt + 0.12);
+    ctx.globalAlpha = 0.35; ctx.fillStyle = "#e0569a";
+    ctx.beginPath(); ctx.ellipse(bx, by - 4, 30 * resp, 52, Math.atan2(hy - fy, hx - fx) + Math.PI / 2, 0, 7); ctx.fill();
+    ctx.restore();
+    // Zzz subindo
+    ctx.save();
+    ctx.font = "800 28px system-ui, sans-serif"; ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#2b1f40"; ctx.lineWidth = 5;
+    for (let k = 0; k < 3; k++) {
+      const u = ((agora - dormindo) / 2200 + k / 3) % 1;
+      ctx.globalAlpha = Math.sin(u * Math.PI);
+      const zx = hx + 14 + u * 34, zy = hy - 30 - u * 60;
+      const z = k === 2 ? "Z" : "z"; ctx.strokeText(z, zx, zy); ctx.fillText(z, zx, zy);
+    }
+    ctx.restore();
+  }
+
   // TV ligada: a tela pisca em cores, como uma série passando
   PLANTA.aoDesenhar = (ctx, T, agora) => {
+    if (dormindo && CAMA) desenharDeitado(ctx, T, agora);
     if (!assistindo) return;
     const tv = PLANTA.naParede.find((w) => w.tipo === "tv");
     if (!tv) return;

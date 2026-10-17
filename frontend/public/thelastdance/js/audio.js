@@ -369,6 +369,18 @@
     }, 140);
   }
 
+  // Ronco dormindo: "Snoring Sound _ Jabin" de sabuzkamruz (Freesound, CC0) — freesound.org/s/767487/ (trecho de ~9 s).
+  const RONCO_MP3 = "assets/audio/ronco.mp3";
+  let roncoFonte = null;
+  function ronco(sim) {
+    if (roncoFonte) { const r = roncoFonte; r.g.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.25); r.s.stop(ctx.currentTime + 1.2); roncoFonte = null; }
+    const b = buffers[RONCO_MP3];
+    if (!sim || !pronto() || !b || !b.pronto) return;
+    const s = ctx.createBufferSource(), g = ctx.createGain();
+    s.buffer = b.pronto; g.gain.value = 0.9; s.connect(g); g.connect(busEfeitos); s.start();
+    roncoFonte = { s, g };
+  }
+
   // "Plim" do elevador chegando: duas notas de sino.
   function ding() {
     if (!pronto()) return;
@@ -384,7 +396,7 @@
       if (mudo() || !criar()) return;
       if (ctx.state === "suspended") ctx.resume();
       if (!relogio) { proximoTempo = ctx.currentTime + 0.1; relogio = setInterval(agendar, 50); }
-      volumeMusica(); tocarArquivo(); tocarFundo(); carregarEfeito(PEIDO_MP3); carregarEfeito(TOQUE_MP3); carregarEfeito(TV_LOCAL);
+      volumeMusica(); tocarArquivo(); tocarFundo(); carregarEfeito(PEIDO_MP3); carregarEfeito(TOQUE_MP3); carregarEfeito(TV_LOCAL); carregarEfeito(RONCO_MP3);
       if (querToque && !toqueRelogio) tocarToque();
     },
     trilha(nome) { if (TRILHAS[nome]) { trilha = TRILHAS[nome]; volumeMusica(); tocarArquivo(); tocarFundo(); } },
@@ -397,7 +409,7 @@
       volumeMusica();
     },
     abafar(sim) { abafado = sim; volumeMusica(); },
-    clique, peido, assobio, curtida, ding, portaElevador, alarmeCarro, chiado, tv,
+    clique, peido, assobio, curtida, ding, portaElevador, alarmeCarro, chiado, tv, ronco,
     ligado: () => ligadoSom,
     // para conferência/testes: estado do contexto e volumes
     estado: () => ({ contexto: ctx ? ctx.state : "sem", musica: busMusica ? +busMusica.gain.value.toFixed(2) : 0,
