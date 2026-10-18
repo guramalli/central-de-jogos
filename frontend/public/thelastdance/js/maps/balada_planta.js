@@ -183,7 +183,8 @@
         falarDe: { x: 17.15, y: 3.85 }, fala: ["\"Barman, me vê uma água com gás. Amanhã tem treino.\"", "\"Proteína em forma de caipirinha existe?\""],
         visual: { pele: "#d29a6e", roupa: "#1f6fb2", calca: "#22304a", cabelo: "#2a1a10", estilo: "curto" } },
       { id: "borrinha", nome: "Borrinha", personagem: "borrinha", postura: "em_pe", x: 20.35, y: 3.1, dir: "cima",
-        falarDe: { x: 20.35, y: 3.85 }, fala: ["\"Desce mais uma rodada aqui pro torcedor!\"", "\"Bota na conta do aniversariante. Quem é o aniversariante?\""],
+        falarDe: { x: 20.35, y: 3.85 }, fala: ["\"Ronaldo, brilha muito no Curintia! 🎶⚫⚪\"", "\"Desce mais uma rodada aqui pro torcedor!\"",
+          "\"Bota na conta do aniversariante. Quem é o aniversariante?\""],
         visual: { pele: "#e0b48e", roupa: "#f2d21b", calca: "#1a1a1a", cabelo: "#111", estilo: "bone" } },
       // no camarote VIP: três sentados nos sofás, três em pé conversando
       { id: "juan", nome: "Juan", personagem: "juan", postura: "sentado", assento: 0.45, x: 2.0, y: 0.45, dir: "baixo",
