@@ -540,9 +540,37 @@
     return global.PersonagemModular ? Promise.resolve()
       : carregarScript(PASTA_MOD + "dados.js").then(() => carregarScript(PASTA_MOD + "personagem-modular.js"));
   }
+  // Amigos em quadros (personagem 3D em pixel art): <npc>/sprites3d.json com as tiras "parado" e "rir" por direção.
+  // Quem tem o arquivo usa os quadros; quem não tem (ou se falhar), continua com a personagem modular.
+  function carregarSprites3d(n) {
+    const pasta = PASTA_NPC + n.personagem + "/", url = (u) => (NSF.VIP ? NSF.VIP.url(u) : u);
+    return fetch(url(pasta + "sprites3d.json")).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((m) => {
+      const tiras = Object.values(m).filter((d) => d && typeof d === "object").flatMap((d) => Object.values(d));
+      return Promise.all(tiras.map((f) => new Promise((ok, erro) => {
+        const im = new Image();
+        im.onload = () => { f.img = im; ok(); };
+        im.onerror = () => erro(new Error("sprites3d: " + f.folha));
+        im.src = url(pasta + f.folha);
+      }))).then(() => { n.sprites3d = m; n.relogio3d = Math.random() * 4; });
+    });
+  }
+  function desenharNpcSprites(ctx, n) {
+    const m = n.sprites3d, d = m[n.dir] || m.baixo, agora = performance.now();
+    const rindo = n.rindoAte && agora < n.rindoAte && d.rir;
+    const f = rindo ? d.rir : d.parado;
+    const q = Math.floor(((agora / 1000) + (rindo ? 0 : n.relogio3d)) * f.fps) % f.quadros;
+    const [x, y] = T(n.x, n.y, 0), e = ALTURA_PERSONAGEM / m.altura_px;
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.beginPath(); ctx.ellipse(x, y, 40, 11, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(f.img, q * f.larg, 0, f.larg, f.alt, x - f.pes[0] * e, y - f.pes[1] * e, f.larg * e, f.alt * e);
+    ctx.restore();
+  }
   if (NPCS.some((n) => n.personagem)) {
     // os amigos (rosto real) só existem destrancados: espera o pacote da área dos amigos (js/vip.js)
     const vip = NSF.VIP ? NSF.VIP.pronto : Promise.resolve();
+    vip.then(() => Promise.all(NPCS.filter((n) => n.personagem3d && n.personagem).map((n) => carregarSprites3d(n).catch(() => {}))));
     Promise.all([carregarLibs(), vip]).then(() => Promise.all(NPCS.filter((n) => n.personagem).map((n) => {
       const id = n.personagem, json = PASTA_NPC + id + "/personagem.json";
       dadosNpc[id] = dadosNpc[id] || fetch(NSF.VIP ? NSF.VIP.url(json) : json).then((r) => r.json());
@@ -638,6 +666,7 @@
       const lista = Array.isArray(n.fala) ? n.fala : [n.fala];
       n.vezFala = ((n.vezFala == null ? -1 : n.vezFala) + 1) % lista.length;
       n.balao = { texto: lista[n.vezFala], ate: performance.now() + 3500 };
+      if (n.riAoFalar) n.rindoAte = performance.now() + 3000; // o Gustavinho: tocar nele = ele cai na risada
     }
   }
 
@@ -1215,6 +1244,7 @@
   // Escala igual à do mapa (1 m de altura = px de ISO.tela). Só até chegar a arte de cada personagem.
   function desenharNpc(ctx, n) {
     if (n.oculta) return; // ainda não entrou em cena
+    if (n.sprites3d) { desenharNpcSprites(ctx, n); return; }
     if (n.modular) { desenharNpcModular(ctx, n); return; }
     const v = n.visual || {}, sentado = n.postura === "sentado";
     const [fx, fy] = T(n.x, n.y, 0), k = fy - T(n.x, n.y, 1)[1];

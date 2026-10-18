@@ -82,8 +82,9 @@
       { id: "vibola", nome: "Vibola", personagem: "vibola", postura: "em_pe", x: 5.2, y: 2.9, dir: "baixo",
         falarDe: { x: 5.2, y: 3.6 }, fala: ["\"Ô churrasqueiro, cadê a carne? Tô vendo só fumaça!\"", "\"Mais um ano solteiro... de novo, né?\""],
         visual: { pele: "#b9825a", roupa: "#1a1a1a", calca: "#ececec", cabelo: "#2a1a10", estilo: "curto" } },
-      { id: "gustavinho", nome: "Gustavinho", personagem: "gustavinho", postura: "em_pe", x: 2.75, y: 3.95, dir: "baixo",
-        falarDe: { x: 2.75, y: 4.6 }, fala: ["\"Fala, parceiro! Hoje a noite promete.\"", "\"Essa história do réveillon eu já ouvi umas dez vezes.\""],
+      // personagem3d: o Gustavinho em pixel art (3D), com parado e risada (a única interação dele: tocar = ele ri)
+      { id: "gustavinho", nome: "Gustavinho", personagem: "gustavinho", personagem3d: true, riAoFalar: true, postura: "em_pe", x: 2.75, y: 3.95, dir: "baixo",
+        falarDe: { x: 2.75, y: 4.6 }, fala: ["\"KKKKKKKKKKK para, mano! 😂\"", "\"HAHAHAHA essa do réveillon de novo?! 😭\""],
         visual: { pele: "#c48d63", roupa: "#111111", calca: "#2f5fb0", cabelo: "#2a1a10", estilo: "curto" } },
       { id: "juan", nome: "Juan", personagem: "juan", postura: "sentado", x: 6.9, y: 3.8, dir: "baixo",
         falarDe: { x: 6.9, y: 3.05 }, fala: ["\"Pega uma gelada aí na cervejeira!\"", "\"Vira essa carne, mestre!\""],
@@ -192,6 +193,7 @@
         const RISOS = ["KKKKKKKKKKKK 😂", "HAHAHAHAHA", "kkkkkk socorro 😭", "AHUSHAUSHAUSH", "KKKKKK para!!"];
         api.npcs.filter((n) => !n.oculta).forEach((n, i) => {
           n.balao = { texto: fala.texto === "KKKKKKKKKKKK" ? RISOS[i % RISOS.length] : fala.texto, ate: performance.now() + ms - 200 };
+          n.rindoAte = performance.now() + ms - 200; // quem tem animação de risada (o Gustavinho 3D) ri junto
         });
         seguir(ms);
         return;
