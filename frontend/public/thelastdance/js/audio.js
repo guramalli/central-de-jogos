@@ -42,8 +42,9 @@
     padaria: { bpm: 118, estilo: "bossa", volume: 0, fundo: "assets/audio/padaria_ambiente.mp3", fundoVolume: 0.05,
       acordes: [[62, 65, 69, 72], [55, 59, 64, 65], [60, 64, 67, 71], [57, 61, 64, 67]], baixo: [50, 43, 48, 45],
       melodia: [74, null, 76, 77, null, 76, null, 74, null, 72, null, null, 71, null, 72, null] },
-    // balada: house sintetizado (bumbo 4x4, baixo no contratempo, acordes curtos) — até ter uma música de verdade
-    balada: { bpm: 124, estilo: "house", volume: 0.5,
+    // balada: "Red - Hard LeAd TecHno HouSe" de frankum (Freesound, CC BY 4.0) — freesound.org/s/378665/, baixinha;
+    // sem o arquivo, o house sintetizado (bumbo 4x4, baixo no contratempo, acordes curtos)
+    balada: { arquivo: "assets/audio/balada.mp3", volumeArquivo: 0.1, bpm: 124, estilo: "house", volume: 0.5,
       acordes: [[57, 60, 64, 69], [53, 57, 60, 65], [48, 52, 55, 60], [55, 59, 62, 67]], baixo: [45, 41, 48, 43],
       melodia: [81, null, 79, null, 76, null, 79, 81, null, 84, null, 81, null, 79, 76, null] },
     // praia (minigame de surf binho_pg_surfer): o pacote "Skank the Summer" de DavidKBD (ska, comprado), as 10 em
@@ -359,10 +360,20 @@
     o.start(t); lfo.start(t); s.start(t); o.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05); s.stop(t + dur + 0.05);
   }
 
-  // Diarreia (a piada do banheiro): uns segundos de rajadas "molhadas" (ruído filtrado que treme), "bloops" graves
-  // e, no fim, a descarga (ruído que sobe e desce). Tudo sintetizado, ~ seg segundos.
+  // Diarreia (a piada do banheiro): "diarrea.mp3" de milton (Freesound, CC BY 3.0) — freesound.org/s/185603/,
+  // trecho de 5,5 s. Sem o arquivo: rajadas "molhadas" sintetizadas, "bloops" graves e a descarga no fim.
+  const DIARREIA_MP3 = "assets/audio/diarreia.mp3";
   function diarreia(seg) {
     if (!pronto()) return;
+    const b = buffers[DIARREIA_MP3];
+    if (b && b.pronto) {
+      const s = ctx.createBufferSource(), g = ctx.createGain();
+      s.buffer = b.pronto; g.gain.value = 0.95; s.connect(g); g.connect(busEfeitos); s.start();
+      return;
+    }
+    diarreiaSintetizada(seg);
+  }
+  function diarreiaSintetizada(seg) {
     const D = seg || 4.5, t0 = ctx.currentTime + 0.05;
     let t = t0;
     while (t < t0 + D - 1.6) { // rajadas
@@ -616,7 +627,7 @@
       if (ctx.state !== "running") ctx.resume().catch(() => {});
       try { if (global.navigator && global.navigator.audioSession) global.navigator.audioSession.type = "playback"; } catch (e) { /* ok */ }
       if (!relogio) { proximoTempo = ctx.currentTime + 0.1; relogio = setInterval(agendar, 50); }
-      volumeMusica(); tocarArquivo(); tocarLista(); tocarFundo(); carregarEfeito(PEIDO_MP3); carregarEfeito(TOQUE_MP3); carregarEfeito(TV_LOCAL); carregarEfeito(RONCO_MP3);
+      volumeMusica(); tocarArquivo(); tocarLista(); tocarFundo(); carregarEfeito(PEIDO_MP3); carregarEfeito(DIARREIA_MP3); carregarEfeito(TOQUE_MP3); carregarEfeito(TV_LOCAL); carregarEfeito(RONCO_MP3);
       if (querToque && !toqueRelogio) tocarToque();
     },
     trilha(nome) { if (TRILHAS[nome]) { trilha = TRILHAS[nome]; preBaixar(trilha); volumeMusica(); tocarArquivo(); tocarLista(); tocarFundo(); } },

@@ -247,6 +247,67 @@
   // DOR DE BARRIGA: no meio da balada (uma vez por noite, depois de um tempo andando por lá) ele reclama,
   // corre para o banheiro masculino, some lá dentro, toca a diarreia uns segundos e ele volta saindo pela porta.
   const PORTA_BANHEIRO = { x: 24.1, y: 0.55 };
+  // "Enquanto isso, no banheiro...": quadro na tela com ele na privada fazendo força (3D em pixel art, 6 quadros)
+  const PRIVADA = { folha: "assets/characters/personagem_v2/pixel/cenas/privada.webp", larg: 190, alt: 312, quadros: 6 };
+  function quadroPrivada(ms) {
+    if (typeof document === "undefined") return;
+    if (!document.getElementById("privada-css")) {
+      const st = document.createElement("style"); st.id = "privada-css";
+      st.textContent = `
+      .privada { position: fixed; left: 50%; top: 46%; z-index: 40; transform: translate(-50%, -50%) scale(.6); opacity: 0;
+        width: min(340px, 78vw); padding: 10px 10px 8px; background: #12081d; border: 4px solid #ffd36b; border-radius: 10px;
+        box-shadow: 0 0 0 3px #12081d, 0 0 0 6px #b0279a, 0 18px 40px rgba(0,0,0,.7); transition: transform .25s cubic-bezier(.2,1.5,.4,1), opacity .2s; }
+      .privada.aberto { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      .privada canvas { display: block; width: 100%; image-rendering: pixelated; border-radius: 4px; }
+      .privada p { margin: 6px 0 0; text-align: center; color: #ffe7a8; font: italic 700 15px system-ui, sans-serif; }
+      .privada.treme canvas { animation: privada-treme .12s linear infinite; }
+      @keyframes privada-treme { 25% { translate: -2px 1px; } 50% { translate: 2px -1px; } 75% { translate: -1px -1px; } }
+      @media (prefers-reduced-motion: reduce) { .privada.treme canvas { animation: none; } }`;
+      document.head.appendChild(st);
+    }
+    const caixa = document.createElement("div"); caixa.className = "privada treme"; caixa.setAttribute("role", "img");
+    caixa.setAttribute("aria-label", "Ele no banheiro, na privada, fazendo força");
+    const cv = document.createElement("canvas"); cv.width = 240; cv.height = 200;
+    const leg = document.createElement("p"); leg.textContent = "Enquanto isso, no banheiro... 💩";
+    caixa.append(cv, leg); document.body.appendChild(caixa);
+    requestAnimationFrame(() => caixa.classList.add("aberto"));
+    const g = cv.getContext("2d"); g.imageSmoothingEnabled = false;
+    const im = new Image(); im.src = PRIVADA.folha;
+    const t0 = performance.now(), gotas = [];
+    let vivo = true;
+    function desenhar(agora) {
+      if (!vivo) return;
+      const t = (agora - t0) / 1000;
+      // cabine: azulejo, rodapé e a divisória
+      g.fillStyle = "#5d8fa8"; g.fillRect(0, 0, 240, 200);
+      for (let y = 0; y < 150; y += 16) for (let x = (y / 16) % 2 ? -8 : 0; x < 240; x += 16) {
+        g.fillStyle = (x + y) % 32 ? "#6fa3bb" : "#679bb3"; g.fillRect(x + 1, y + 1, 14, 14);
+      }
+      g.fillStyle = "#3d4b55"; g.fillRect(0, 150, 240, 50); g.fillStyle = "#4a5a66";
+      for (let x = 0; x < 240; x += 24) g.fillRect(x, 150, 22, 50);
+      g.fillStyle = "#8a6a4a"; g.fillRect(0, 0, 18, 200); g.fillRect(222, 0, 18, 200);
+      g.fillStyle = "#e8e3d6"; g.fillRect(196, 70, 18, 22); g.fillStyle = "#cfc8b6"; g.fillRect(196, 88, 18, 4); // papel
+      if (im.complete && im.naturalWidth) {
+        const q = Math.floor(t * 8) % PRIVADA.quadros, e = 175 / PRIVADA.alt, w = PRIVADA.larg * e;
+        g.drawImage(im, q * PRIVADA.larg, 0, PRIVADA.larg, PRIVADA.alt, 120 - w / 2 - 6, 196 - 175, w, 175);
+      }
+      // suor e linhas de "fedor"
+      if (Math.random() < 0.08) gotas.push({ x: 92 + Math.random() * 40, y: 46, vy: 10 });
+      g.fillStyle = "#bfefff";
+      for (const d of gotas) { d.y += d.vy * 0.016; d.vy += 2.5; g.fillRect(d.x, d.y, 3, 4); }
+      while (gotas.length && gotas[0].y > 120) gotas.shift();
+      g.strokeStyle = "rgba(140,190,60,.85)"; g.lineWidth = 3;
+      for (let k = 0; k < 3; k++) {
+        const bx = 150 + k * 18, fase = t * 4 + k;
+        g.beginPath();
+        for (let y = 0; y <= 50; y += 5) g.lineTo(bx + Math.sin(fase + y / 9) * 5, 150 - y - ((t * 30 + k * 12) % 20));
+        g.stroke();
+      }
+      requestAnimationFrame(desenhar);
+    }
+    requestAnimationFrame(desenhar);
+    setTimeout(() => { caixa.classList.remove("aberto"); setTimeout(() => { vivo = false; caixa.remove(); }, 260); }, ms);
+  }
   let barrigaFeita = false;
   function dorDeBarriga(api) {
     if (barrigaFeita || !api || !api.irPara) return;
@@ -265,6 +326,7 @@
         j.dir = "cima";
         j.oculto = true;            // entrou no banheiro
         if (A && A.diarreia) A.diarreia(5);
+        quadroPrivada(5300);
         setTimeout(() => {
           j.oculto = false; j.dir = "baixo";
           j.x = PORTA_BANHEIRO.x; j.y = PORTA_BANHEIRO.y + 0.5;
