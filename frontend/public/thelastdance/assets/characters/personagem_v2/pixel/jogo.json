@@ -151,19 +151,19 @@
           76.3,
           312.9
         ],
-        "altura_px": 304,
+        "altura_px": 308,
         "pixelado": true,
         "parado": {
           "folha": "3d/parado_baixo.webp",
-          "larg": 148,
-          "alt": 324,
+          "larg": 152,
+          "alt": 326,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            74.3,
-            312.9
+            76.3,
+            310.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "sentado": {
@@ -176,7 +176,7 @@
             94.3,
             298.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "celular": {
@@ -189,7 +189,7 @@
             100.3,
             308.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "bigode": {
@@ -202,7 +202,7 @@
             84.3,
             312.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "dancar": {
@@ -215,7 +215,7 @@
             96.3,
             296.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "palmas": {
@@ -228,7 +228,7 @@
             80.3,
             316.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "acenar": {
@@ -241,7 +241,7 @@
             226.3,
             376.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "rir": {
@@ -254,7 +254,7 @@
             194.3,
             320.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "deitado": {
@@ -263,7 +263,7 @@
           "alt": 200,
           "quadros": 8,
           "fps": 2,
-          "altura_px": 304,
+          "altura_px": 308,
           "pes": [
             242.6,
             99.8
@@ -281,19 +281,19 @@
           76.3,
           312.9
         ],
-        "altura_px": 304,
+        "altura_px": 308,
         "pixelado": true,
         "parado": {
           "folha": "3d/parado_cima.webp",
-          "larg": 148,
-          "alt": 324,
+          "larg": 152,
+          "alt": 326,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            74.3,
-            312.9
+            76.3,
+            310.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "sentado": {
@@ -306,7 +306,7 @@
             94.3,
             281.6
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "celular": {
@@ -319,7 +319,7 @@
             100.3,
             308.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "bigode": {
@@ -332,7 +332,7 @@
             84.3,
             312.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "dancar": {
@@ -345,7 +345,7 @@
             96.3,
             296.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "palmas": {
@@ -358,7 +358,7 @@
             80.3,
             316.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "acenar": {
@@ -371,7 +371,7 @@
             226.3,
             376.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "rir": {
@@ -384,7 +384,7 @@
             194.3,
             320.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         }
       },
@@ -398,19 +398,19 @@
           76.3,
           312.9
         ],
-        "altura_px": 304,
+        "altura_px": 308,
         "pixelado": true,
         "parado": {
           "folha": "3d/parado_direita.webp",
-          "larg": 148,
-          "alt": 324,
+          "larg": 152,
+          "alt": 326,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            74.3,
-            312.9
+            76.3,
+            310.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "sentado": {
@@ -423,7 +423,7 @@
             94.3,
             298.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "celular": {
@@ -436,7 +436,7 @@
             100.3,
             308.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "bigode": {
@@ -449,7 +449,7 @@
             84.3,
             312.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "dancar": {
@@ -462,7 +462,7 @@
             96.3,
             296.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "palmas": {
@@ -475,7 +475,7 @@
             80.3,
             316.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "acenar": {
@@ -488,7 +488,7 @@
             226.3,
             376.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "rir": {
@@ -501,7 +501,7 @@
             194.3,
             320.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         }
       },
@@ -515,19 +515,19 @@
           76.3,
           312.9
         ],
-        "altura_px": 304,
+        "altura_px": 308,
         "pixelado": true,
         "parado": {
           "folha": "3d/parado_esquerda.webp",
-          "larg": 148,
-          "alt": 324,
+          "larg": 152,
+          "alt": 326,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            74.3,
-            312.9
+            76.3,
+            310.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "sentado": {
@@ -540,7 +540,7 @@
             94.3,
             281.6
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "celular": {
@@ -553,7 +553,7 @@
             100.3,
             308.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "bigode": {
@@ -566,7 +566,7 @@
             84.3,
             312.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "dancar": {
@@ -579,7 +579,7 @@
             96.3,
             296.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "palmas": {
@@ -592,7 +592,7 @@
             80.3,
             316.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "acenar": {
@@ -605,7 +605,7 @@
             226.3,
             376.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "rir": {
@@ -618,7 +618,7 @@
             194.3,
             320.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         }
       }
@@ -634,19 +634,19 @@
           76.3,
           312.9
         ],
-        "altura_px": 304,
+        "altura_px": 308,
         "pixelado": true,
         "parado": {
           "folha": "3d_azul/parado_baixo.webp",
-          "larg": 148,
-          "alt": 324,
+          "larg": 152,
+          "alt": 326,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            74.3,
-            312.9
+            76.3,
+            310.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "sentado": {
@@ -659,7 +659,7 @@
             94.3,
             298.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "celular": {
@@ -672,7 +672,7 @@
             100.3,
             308.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "bigode": {
@@ -685,7 +685,7 @@
             84.3,
             312.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "dancar": {
@@ -698,7 +698,7 @@
             96.3,
             296.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "palmas": {
@@ -711,7 +711,7 @@
             80.3,
             316.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "acenar": {
@@ -724,7 +724,7 @@
             226.3,
             376.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "rir": {
@@ -737,7 +737,7 @@
             194.3,
             320.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "deitado": {
@@ -746,7 +746,7 @@
           "alt": 200,
           "quadros": 8,
           "fps": 2,
-          "altura_px": 304,
+          "altura_px": 308,
           "pes": [
             242.6,
             99.8
@@ -764,19 +764,19 @@
           76.3,
           312.9
         ],
-        "altura_px": 304,
+        "altura_px": 308,
         "pixelado": true,
         "parado": {
           "folha": "3d_azul/parado_cima.webp",
-          "larg": 148,
-          "alt": 324,
+          "larg": 152,
+          "alt": 326,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            74.3,
-            312.9
+            76.3,
+            310.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "sentado": {
@@ -789,7 +789,7 @@
             94.3,
             281.6
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "celular": {
@@ -802,7 +802,7 @@
             100.3,
             308.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "bigode": {
@@ -815,7 +815,7 @@
             84.3,
             312.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "dancar": {
@@ -828,7 +828,7 @@
             96.3,
             296.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "palmas": {
@@ -841,7 +841,7 @@
             80.3,
             316.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "acenar": {
@@ -854,7 +854,7 @@
             226.3,
             376.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "rir": {
@@ -867,7 +867,7 @@
             194.3,
             320.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         }
       },
@@ -881,19 +881,19 @@
           76.3,
           312.9
         ],
-        "altura_px": 304,
+        "altura_px": 308,
         "pixelado": true,
         "parado": {
           "folha": "3d_azul/parado_direita.webp",
-          "larg": 148,
-          "alt": 324,
+          "larg": 152,
+          "alt": 326,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            74.3,
-            312.9
+            76.3,
+            310.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "sentado": {
@@ -906,7 +906,7 @@
             94.3,
             298.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "celular": {
@@ -919,7 +919,7 @@
             100.3,
             308.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "bigode": {
@@ -932,7 +932,7 @@
             84.3,
             312.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "dancar": {
@@ -945,7 +945,7 @@
             96.3,
             296.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "palmas": {
@@ -958,7 +958,7 @@
             80.3,
             316.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "acenar": {
@@ -971,7 +971,7 @@
             226.3,
             376.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "rir": {
@@ -984,7 +984,7 @@
             194.3,
             320.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         }
       },
@@ -998,19 +998,19 @@
           76.3,
           312.9
         ],
-        "altura_px": 304,
+        "altura_px": 308,
         "pixelado": true,
         "parado": {
           "folha": "3d_azul/parado_esquerda.webp",
-          "larg": 148,
-          "alt": 324,
+          "larg": 152,
+          "alt": 326,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            74.3,
-            312.9
+            76.3,
+            310.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "sentado": {
@@ -1023,7 +1023,7 @@
             94.3,
             281.6
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "celular": {
@@ -1036,7 +1036,7 @@
             100.3,
             308.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "bigode": {
@@ -1049,7 +1049,7 @@
             84.3,
             312.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "dancar": {
@@ -1062,7 +1062,7 @@
             96.3,
             296.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "palmas": {
@@ -1075,7 +1075,7 @@
             80.3,
             316.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "acenar": {
@@ -1088,7 +1088,7 @@
             226.3,
             376.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         },
         "rir": {
@@ -1101,7 +1101,7 @@
             194.3,
             320.9
           ],
-          "altura_px": 304,
+          "altura_px": 308,
           "pixelado": true
         }
       }
