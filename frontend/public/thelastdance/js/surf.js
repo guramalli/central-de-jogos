@@ -620,9 +620,9 @@
   function labio(ctx) { // crista caindo por cima (na seção tubular vira o tubo: ele aparece lá dentro)
     if (!s.quebrada || s.forca < 0.3) return;
     const cr = quadro("onda_crista");
-    if (cr) { // a arte da crista: o oco do tubo fica logo à frente da espuma
-      const w = cr.width * PX, h = cr.height * PX * s.forca;
-      ctx.drawImage(cr, Math.round(s.crista - s.cam - w * 0.38), Y_BASE + 8 - h, w, h);
+    if (cr) { // a arte da crista, espelhada: enrola para a direita (para onde a onda anda); o oco do tubo fica na crista
+      const w = cr.width * PX, h = cr.height * PX * s.forca, x = Math.round(s.crista - s.cam - w * 0.35);
+      ctx.save(); ctx.translate(x + w, Y_BASE + 8 - h); ctx.scale(-1, 1); ctx.drawImage(cr, 0, 0, w, h); ctx.restore();
       return;
     }
     const xc = s.crista - s.cam, L = s.tuboL, topo = Y_BASE - altura(1);
@@ -643,11 +643,12 @@
   function cortina(ctx) { // no tubo: o lábio cai na frente dele (cortina d'água translúcida, em degraus de pixel)
     const [bx, by] = posPrancha(), x = bx - s.cam, topo = Y_BASE - altura(1) - 30;
     const a = Math.min(1, s.tubo.t / 0.35);
-    const borda = (y) => x + 110 - 190 * Math.pow((y - topo) / (Y_BASE + 10 - topo), 0.7); // arco: alto à direita, cai à esquerda
+    const esq = ARTE.onda_crista_0 ? -1 : 1; // com a arte, o lábio enrola para a direita: a cortina vem da esquerda e cai à direita
+    const borda = (y) => x + esq * (110 - 190 * Math.pow((y - topo) / (Y_BASE + 10 - topo), 0.7));
     for (let y = topo; y < Y_BASE + 10; y += 8) {
       const bx2 = Math.round(borda(y) / 4) * 4, onda = Math.sin(y / 23 + s.relogio * 6) * 6;
       ctx.fillStyle = `rgba(150,235,225,${0.5 * a})`;
-      ctx.fillRect(bx2 - 150 + onda, y, 150, 8);
+      ctx.fillRect(esq > 0 ? bx2 - 150 + onda : bx2 + onda, y, 150, 8);
       ctx.fillStyle = `rgba(255,255,255,${0.85 * a})`;
       ctx.fillRect(bx2 - 6 + onda, y, 10, 8);
     }
@@ -657,7 +658,7 @@
     const xc = Math.min(s.crista - s.cam + 10, W);
     const esp = quadro("onda_espuma");
     if (esp) { // espuma (3 quadros) repetida da crista para trás
-      const w = esp.width * PX, h = esp.height * PX * s.forca, fim = xc - (ARTE.onda_crista_0 ? ARTE.onda_crista_0.width * PX * 0.22 : 0);
+      const w = esp.width * PX, h = esp.height * PX * s.forca, fim = xc - (ARTE.onda_crista_0 ? ARTE.onda_crista_0.width * PX * 0.18 : 0);
       for (let x = fim - w; x > -w; x -= w - 2) ctx.drawImage(esp, Math.floor(x), Y_BASE + 16 - h, w, h);
       return;
     }
