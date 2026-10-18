@@ -127,10 +127,22 @@
     const c = params.get("conjunto");
     return c !== "modular";
   })();
+  const POSES3D = ["agachado", "cutback", "aereo", "floater"];
+  // qual tira do 3D mostrar agora (cai para "surf" se a pose não carregou)
+  function pose3d() {
+    const p = (n) => (surf3d[n] && surf3d[n].img ? surf3d[n] : null);
+    const travado = s.fase === "surfando" && ent.acelera === ent.freia;
+    return (s.ar && !s.ar.pequeno && p("aereo"))
+      || (s.floater && p("floater"))
+      || (s.relogio - (s.ultima.cutback || -9) < 0.7 && p("cutback"))
+      || ((s.tubo || s.relogio - s.bomba < 0.18 || travado) && p("agachado"))
+      || surf3d.surf;
+  }
   async function carregar3d() {
     const pasta = "assets/characters/personagem_v2/pixel/";
     const m = await (await global.fetch(pasta + "surf3d.json")).json();
-    await Promise.all(["surf", "remar"].map((k) => carregarImg(pasta + m[k].folha).then((im) => { m[k].img = im; })));
+    // surf e remar (Tripo) + poses feitas no Blender: agachado, cutback, aereo, floater (as que existirem no json)
+    await Promise.all(["surf", "remar", ...POSES3D].filter((k) => m[k]).map((k) => carregarImg(pasta + m[k].folha).then((im) => { m[k].img = im; })));
     m.escala = (1375 * ESC) / m.altura_em_pe_px; // mesma altura do personagem antigo no mar
     surf3d = m;
   }
@@ -331,7 +343,7 @@
   }
 
   // ---------- efeitos ----------
-  function aviso(texto, cor, tam) { s.avisos.push({ texto, y: 0, vida: 1.6, cor, tam }); if (s.avisos.length > 4) s.avisos.shift(); }
+  function aviso(texto, cor, tam) { s.avisos.push({ texto, y: 0, vida: 1.6, cor, tam }); if (s.avisos.length > 3) s.avisos.shift(); }
   function gota(x, y, vx, vy, r) { if (s.gotas.length < 400) s.gotas.push({ x, y, vx, vy, r, vida: 1 }); }
   function espirro(n, forca) {
     const [x, y] = posPrancha(), f = forca || 1;
@@ -907,11 +919,11 @@
     ctx.rotate(s.ang + s.giro);
     const vira = Math.sign(s.virar) * Math.max(0.15, Math.abs(s.virar));
     ctx.scale(vira, 1); // a prancha aponta para onde ele vai (A volta: para trás)
-    if (s.relogio - s.bomba < 0.13) ctx.scale(1, 0.9); // bombada: agacha e estica
+    if (!surf3d && s.relogio - s.bomba < 0.13) ctx.scale(1, 0.9); // bombada: agacha e estica (no 3D, a tira agachada)
     const agacha = s.tubo || ent.baixo ? 0.88 : 1;           // agachado no tubo / descendo
     ctx.scale(1, agacha);
     prancha(ctx);
-    if (surf3d) desenharTira3d(ctx, surf3d.surf, 4, 2);
+    if (surf3d) desenharTira3d(ctx, pose3d(), 4, 2);
     else { heroi.definirVista("frente"); heroi.desenhar(ctx, 0, pesAbaixo * ESC + 2, ESC); }
     ctx.restore();
     if (s.fis.v > 380 && !s.ar && s.fase === "surfando") { // linhas de velocidade
@@ -942,14 +954,14 @@
     if (s.fase === "surfando") {
       texto(ctx, fmt(resultado(s.totais) + s.pontos), meio, 140, 58, "#fff");
       texto(ctx, `esta onda: ${fmt(s.pontos)}`, meio, 182, 26, "#ffd36b");
-      if (s.combo) { // combo aberto: soma x variedade e a barrinha do tempo que falta para fechar
+      if (s.combo && s.combo.itens.length > 1) { // combo aberto: soma x variedade e a barrinha do tempo que falta para fechar
         const c = s.combo, m = multiplicador(c.itens.map((i) => i.nome));
         const nomes = c.itens.slice(-4).map((i) => NOMES[i.nome] || i.nome).join(" + ");
-        texto(ctx, `COMBO x${m}  ${fmt(valorCombo(c.itens))}`, meio, 320, 40, m >= 3 ? "#7dff9a" : "#ffd36b");
-        texto(ctx, (c.itens.length > 4 ? "... + " : "") + nomes, meio, 352, 22, "#fff");
+        texto(ctx, `COMBO x${m}  ${fmt(valorCombo(c.itens))}`, meio, 252, 36, m >= 3 ? "#7dff9a" : "#ffd36b");
+        texto(ctx, (c.itens.length > 4 ? "... + " : "") + nomes, meio, 280, 20, "#fff");
         const resta = s.tubo || s.ar || s.floater ? 1 : lim((c.ate - s.relogio) / COMBO.janela, 0, 1);
-        ctx.fillStyle = "rgba(20,10,30,0.6)"; ctx.fillRect(meio - 90, 362, 180, 6);
-        ctx.fillStyle = m >= 3 ? "#7dff9a" : "#ffd36b"; ctx.fillRect(meio - 90, 362, 180 * resta, 6);
+        ctx.fillStyle = "rgba(20,10,30,0.6)"; ctx.fillRect(meio - 90, 288, 180, 6);
+        ctx.fillStyle = m >= 3 ? "#7dff9a" : "#ffd36b"; ctx.fillRect(meio - 90, 288, 180 * resta, 6);
       }
       const tw = Math.min(420, W - 80), tx = meio - tw / 2;
       ctx.fillStyle = "rgba(20,10,30,0.6)"; ctx.fillRect(tx, 200, tw, 10);
@@ -960,9 +972,9 @@
       ctx.fillStyle = vel > 0.7 ? "#ff8be6" : "#7dff9a"; ctx.fillRect(24, 220, 180 * vel, 14);
       texto(ctx, "velocidade", 24, 212, 20, "#fff", "left");
       if (s.bombas.filter((t) => s.relogio - t < 1.2).length >= 2) texto(ctx, "🔥 bombando!", 24, 262, 22, "#ff8be6", "left");
-      if (s.tubo) texto(ctx, `TUBO ${s.tubo.t.toFixed(1)}s!`, meio, 255, 34, "#9ff3ff");
-      else if (s.floater) texto(ctx, "Em cima da crista! Solte ou desça para fechar o floater", meio, 255, 28, "#ffd36b");
-      else if (secaoEm(s.crista).tipo === "tubular" && s.x - s.crista < 420) texto(ctx, "🌀 Seção tubular: solte tudo e deixe a onda te cobrir!", meio, 255, 28, "#9ff3ff");
+      if (s.tubo) texto(ctx, `TUBO ${s.tubo.t.toFixed(1)}s!`, meio, 330, 34, "#9ff3ff");
+      else if (s.floater) texto(ctx, "Em cima da crista! Solte ou desça para fechar o floater", meio, 330, 28, "#ffd36b");
+      else if (secaoEm(s.crista).tipo === "tubular" && s.x - s.crista < 420) texto(ctx, "🌀 Seção tubular: solte tudo e deixe a onda te cobrir!", meio, 330, 28, "#9ff3ff");
       if (!toque) { // legenda do teclado
         const ajuda = "D vai · A volta · W/S sobe e desce (alternado e rápido: bombeia) · Espaço pula";
         ctx.font = "700 22px system-ui, sans-serif"; ctx.fillStyle = "rgba(20,10,30,0.55)";

@@ -24,5 +24,53 @@
       192.9,
       127.6
     ]
+  },
+  "agachado": {
+    "folha": "surf3d/agachado.webp",
+    "larg": 168,
+    "alt": 236,
+    "quadros": 4,
+    "fps": 4.0,
+    "pixelado": true,
+    "pes": [
+      89.7,
+      216.3
+    ]
+  },
+  "cutback": {
+    "folha": "surf3d/cutback.webp",
+    "larg": 182,
+    "alt": 228,
+    "quadros": 4,
+    "fps": 4.0,
+    "pixelado": true,
+    "pes": [
+      83.7,
+      208.8
+    ]
+  },
+  "aereo": {
+    "folha": "surf3d/aereo.webp",
+    "larg": 134,
+    "alt": 238,
+    "quadros": 4,
+    "fps": 4.0,
+    "pixelado": true,
+    "pes": [
+      77.7,
+      218.8
+    ]
+  },
+  "floater": {
+    "folha": "surf3d/floater.webp",
+    "larg": 146,
+    "alt": 254,
+    "quadros": 4,
+    "fps": 4.0,
+    "pixelado": true,
+    "pes": [
+      97.7,
+      237.3
+    ]
   }
 }
