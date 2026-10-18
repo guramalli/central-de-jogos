@@ -571,7 +571,8 @@
     // os amigos (rosto real) só existem destrancados: espera o pacote da área dos amigos (js/vip.js)
     const vip = NSF.VIP ? NSF.VIP.pronto : Promise.resolve();
     vip.then(() => Promise.all(NPCS.filter((n) => n.personagem3d && n.personagem).map((n) => carregarSprites3d(n).catch(() => {}))));
-    Promise.all([carregarLibs(), vip]).then(() => Promise.all(NPCS.filter((n) => n.personagem).map((n) => {
+    // so3d: só existe em quadros (ex.: as meninas da pista da balada), sem a personagem modular
+    Promise.all([carregarLibs(), vip]).then(() => Promise.all(NPCS.filter((n) => n.personagem && !n.so3d).map((n) => {
       const id = n.personagem, json = PASTA_NPC + id + "/personagem.json";
       dadosNpc[id] = dadosNpc[id] || fetch(NSF.VIP ? NSF.VIP.url(json) : json).then((r) => r.json());
       return dadosNpc[id].then((d) => new global.PersonagemModular(d, PASTA_NPC + id + "/").carregar()).then((pm) => {
@@ -1244,6 +1245,7 @@
   function desenharNpc(ctx, n) {
     if (n.oculta) return; // ainda não entrou em cena
     if (n.sprites3d) { desenharNpcSprites(ctx, n); return; }
+    if (n.so3d) return; // os quadros ainda estão chegando: sem boneco provisório
     if (n.modular) { desenharNpcModular(ctx, n); return; }
     const v = n.visual || {}, sentado = n.postura === "sentado";
     const [fx, fy] = T(n.x, n.y, 0), k = fy - T(n.x, n.y, 1)[1];

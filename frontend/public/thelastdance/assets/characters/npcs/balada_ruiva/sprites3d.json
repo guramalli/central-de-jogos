@@ -1,0 +1,28 @@
+{
+  "versao": 1,
+  "altura_px": 331,
+  "baixo": {
+    "parado": {
+      "folha": "3d/dancar_baixo.webp",
+      "larg": 162,
+      "alt": 330,
+      "quadros": 12,
+      "fps": 11.08,
+      "pes": [
+        75.3,
+        315.9
+      ]
+    },
+    "dancar": {
+      "folha": "3d/dancar_baixo.webp",
+      "larg": 162,
+      "alt": 330,
+      "quadros": 12,
+      "fps": 11.08,
+      "pes": [
+        75.3,
+        315.9
+      ]
+    }
+  }
+}
