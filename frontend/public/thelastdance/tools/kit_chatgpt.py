@@ -335,7 +335,7 @@ KITS = {
             ("cabine_dj", "Cabine do DJ", "peca",
              "a nightclub DJ booth: a black desk whose front panel (the DARKEST front-left face, facing the crowd) has a "
              "glowing crown-shaped neon logo outline (no text); on top two turntables, a DJ mixer with colorful buttons, "
-             "a laptop and headphones.", ["--faces"]),
+             "a laptop and headphones.", ["--pela-largura"]),
             ("caixa_som_palco", "Caixas de som do palco", "peca",
              "a tall stack of professional black PA speakers (a subwoofer at the bottom and two speaker cabinets on top) "
              "with round woofers and black metal grilles. The speakers face the DARKEST front-left face. No logos.",

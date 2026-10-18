@@ -1447,8 +1447,8 @@
       "arquivo": "cabine_dj.png",
       "escala": 2.0,
       "origem_px": [
-        102.9,
-        268.3
+        100.9,
+        151.3
       ],
       "tamanho_m": [
         2.0,
@@ -1457,8 +1457,8 @@
       ],
       "descricao": "cabine do DJ, frente (para o público) virada para +y",
       "ajuste": {
-        "x": 1.0,
-        "y": 1.0,
+        "x": 0.334,
+        "y": 0.334,
         "espelhado": false,
         "proporcao": 1.0
       }
