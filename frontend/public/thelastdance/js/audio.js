@@ -46,8 +46,21 @@
     balada: { bpm: 124, estilo: "house", volume: 0.5,
       acordes: [[57, 60, 64, 69], [53, 57, 60, 65], [48, 52, 55, 60], [55, 59, 62, 67]], baixo: [45, 41, 48, 43],
       melodia: [81, null, 79, null, 76, null, 79, 81, null, 84, null, 81, null, 79, 76, null] },
-    // praia (minigame de surf): o mesmo groove leve, em tom de verão (Ré maior, I–V–vi–IV), mais baixinho que o mar
-    praia: { bpm: 108, estilo: "groove", volume: 0.26,
+    // praia (minigame de surf binho_pg_surfer): o pacote "Skank the Summer" de DavidKBD (ska, comprado), as 10 em
+    // sequência (lista); enquanto não carrega ou sem internet, o groove sintetizado de verão (Ré maior, I–V–vi–IV)
+    praia: { bpm: 108, estilo: "groove", volume: 0.26, volumeLista: 0.55,
+      lista: [
+        "assets/audio/surf/01_beach_ska.mp3",
+        "assets/audio/surf/02_born_to_be_wild.mp3",
+        "assets/audio/surf/03_coastal_groove_party.mp3",
+        "assets/audio/surf/04_sunny_days.mp3",
+        "assets/audio/surf/05_shred_the_pavement.mp3",
+        "assets/audio/surf/06_summers_breeze.mp3",
+        "assets/audio/surf/07_dancing_under_the_palm_trees.mp3",
+        "assets/audio/surf/08_ska_revolution.mp3",
+        "assets/audio/surf/09_golden_coast_rockers.mp3",
+        "assets/audio/surf/10_skank_the_summer.mp3",
+      ],
       acordes: [[62, 66, 69, 74], [57, 61, 64, 69], [59, 62, 66, 71], [55, 59, 62, 67]], baixo: [38, 45, 47, 43],
       melodia: [78, null, 81, null, 78, 76, null, 74, null, 76, null, 78, null, null, 74, null] },
   };
@@ -101,7 +114,9 @@
   // Agenda os próximos 0,2 s de música (padrão "lookahead" — não depende do ritmo dos quadros do jogo).
   function agendar() {
     const PASSO_S = 60 / trilha.bpm / 4;
-    if ((trilha.arquivo || trilha.arquivoLocal) && !trilha.falhou) { proximoTempo = Math.max(proximoTempo, ctx.currentTime + 0.1); return; }
+    if (((trilha.arquivo || trilha.arquivoLocal) && !trilha.falhou) || (lista && lista.de === trilha && lista.tocando)) {
+      proximoTempo = Math.max(proximoTempo, ctx.currentTime + 0.1); return;
+    }
     while (proximoTempo < ctx.currentTime + 0.2) {
       const t = proximoTempo, p = passo % 128, compasso = Math.floor(p / 16), k = Math.floor(compasso / 2) % 4;
       const s = p % 16, acorde = trilha.acordes[k], baixo = trilha.baixo[k], mel = trilha.melodia[s];
@@ -173,7 +188,8 @@
 
   function volumeMusica() {
     if (!ctx) return;
-    const vol = fonte && fonteDe === trilha && trilha.volumeArquivo ? trilha.volumeArquivo : trilha.volume;
+    const vol = lista && lista.de === trilha && trilha.volumeLista ? trilha.volumeLista
+      : fonte && fonteDe === trilha && trilha.volumeArquivo ? trilha.volumeArquivo : trilha.volume;
     const alvo = querMusica ? (vozes > 0 ? 0.2 : abafado || querToque ? 0.35 : 1) * vol : 0; // voz falando: bem baixinho
     busMusica.gain.setTargetAtTime(alvo, ctx.currentTime, 0.4);
   }
@@ -265,6 +281,33 @@
         fonte.connect(busMusica); fonte.start(); fonteDe = alvo; alvo.falhou = 0; volumeMusica();
       })
       .catch(() => { alvo.falhou = Date.now(); }); // sem o arquivo: toca a sintetizada (e tenta de novo daqui a 15 s, num toque)
+  }
+
+  // Trilha em LISTA: músicas em arquivo, uma depois da outra (e volta para a 1ª). Toca por streaming (um <audio> ligado
+  // ao volume da música do jogo), sem decodificar a música inteira na memória — bom para o celular. Erro numa: pula.
+  let lista = null; // { el, de: trilha, i, tocando }
+  function tocarLista() {
+    if (!ctx) return;
+    if (lista && lista.de && lista.de !== trilha) { lista.el.pause(); lista.de = null; lista.tocando = false; }
+    if (!trilha.lista || !trilha.lista.length) return;
+    if (!lista) {
+      const el = new global.Audio();
+      el.preload = "auto";
+      try { ctx.createMediaElementSource(el).connect(busMusica); } catch (e) { return; }
+      lista = { el, de: null, i: 0, tocando: false };
+      const proxima = () => {
+        if (!lista.de) return;
+        lista.i = (lista.i + 1) % lista.de.lista.length;
+        lista.el.src = lista.de.lista[lista.i];
+        lista.el.play().catch(() => {});
+      };
+      el.addEventListener("ended", proxima);
+      el.addEventListener("error", () => { lista.tocando = false; if (lista.de) setTimeout(proxima, 3000); });
+      el.addEventListener("playing", () => { lista.tocando = true; volumeMusica(); });
+      el.addEventListener("pause", () => { lista.tocando = false; });
+    }
+    if (lista.de !== trilha) { lista.de = trilha; lista.i = 0; lista.el.src = trilha.lista[0]; }
+    if (lista.el.paused) lista.el.play().catch(() => {});
   }
 
   // Passagem de tela: estalo curto + bip que desce (sumindo) ou sobe (aparecendo).
@@ -542,10 +585,20 @@
       if (ctx.state !== "running") ctx.resume().catch(() => {});
       try { if (global.navigator && global.navigator.audioSession) global.navigator.audioSession.type = "playback"; } catch (e) { /* ok */ }
       if (!relogio) { proximoTempo = ctx.currentTime + 0.1; relogio = setInterval(agendar, 50); }
-      volumeMusica(); tocarArquivo(); tocarFundo(); carregarEfeito(PEIDO_MP3); carregarEfeito(TOQUE_MP3); carregarEfeito(TV_LOCAL); carregarEfeito(RONCO_MP3);
+      volumeMusica(); tocarArquivo(); tocarLista(); tocarFundo(); carregarEfeito(PEIDO_MP3); carregarEfeito(TOQUE_MP3); carregarEfeito(TV_LOCAL); carregarEfeito(RONCO_MP3);
       if (querToque && !toqueRelogio) tocarToque();
     },
-    trilha(nome) { if (TRILHAS[nome]) { trilha = TRILHAS[nome]; preBaixar(trilha); volumeMusica(); tocarArquivo(); tocarFundo(); } },
+    trilha(nome) { if (TRILHAS[nome]) { trilha = TRILHAS[nome]; preBaixar(trilha); volumeMusica(); tocarArquivo(); tocarLista(); tocarFundo(); } },
+    // vinheta em arquivo (ex.: vitória no fim do surf): segue o botão Som
+    vinheta(url, volume) {
+      if (!pronto()) return;
+      decodificar(url).then((buf) => {
+        const s = ctx.createBufferSource(), g = ctx.createGain();
+        s.buffer = buf; g.gain.value = volume || 0.8; s.connect(g); g.connect(busEfeitos); s.start();
+      }).catch(() => {});
+    },
+    // qual música da lista está tocando (para conferência)
+    faixa: () => (lista && lista.de ? { i: lista.i, src: lista.el.src.split("/").pop(), tocando: lista.tocando } : null),
     musica(sim) { querMusica = sim; volumeMusica(); },
     toque(sim) {
       querToque = sim;

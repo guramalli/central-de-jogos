@@ -302,6 +302,7 @@
     let recorde = 0;
     try { recorde = +global.localStorage.getItem(RECORDE) || 0; if (total > recorde) global.localStorage.setItem(RECORDE, String(total)); } catch (e) { /* ok */ }
     mostrarFim(total, Math.max(total, recorde), total > recorde && recorde > 0);
+    if (A() && A().vinheta) A().vinheta("assets/audio/surf/vitoria.mp3", 0.7);
   }
 
   // ---------- pontos e manobras ----------
@@ -1227,7 +1228,8 @@
     }
     const b = doc.createElement("button"); b.type = "button"; b.textContent = "Bora surfar!";
     b.addEventListener("click", comecar);
-    caixa.append(h, p, p2, ul, b);
+    const cred = doc.createElement("small"); cred.className = "credito"; cred.textContent = "Música: DavidKBD — Skank the Summer";
+    caixa.append(h, p, p2, ul, b, cred);
     let recorde = 0;
     try { recorde = +global.localStorage.getItem(RECORDE) || 0; } catch (e) { /* ok */ }
     if (recorde) { const r = doc.createElement("small"); r.textContent = `Seu recorde: ${fmt(recorde)} pontos`; caixa.appendChild(r); }
