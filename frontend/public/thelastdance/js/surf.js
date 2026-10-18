@@ -37,16 +37,17 @@
   const FISICA = {
     vMin: 80 * RITMO, vMax: 720 * RITMO,
     gravidade: 420 * RITMO * RITMO,  // px/s² na descida mais íngreme
-    empurrao: 110 * RITMO * RITMO,   // a onda empurrando (no pocket)
-    atrito: 30 * RITMO * RITMO,      // perda fixa
-    arrasto: 0.35 * RITMO,           // perda proporcional à velocidade, trimando
+    empurrao: 45 * RITMO * RITMO,    // a onda empurrando (no pocket)
+    atrito: 15 * RITMO * RITMO,      // perda fixa
+    arrasto: 0.2 * RITMO,            // perda proporcional à velocidade, trimando (baixo = o embalo dura)
+    subida: 0.65,                    // subir a parede gasta só 65% do que descer dá (segura o embalo para o aéreo)
     arrastoTravado: 1.4 * RITMO,     // perda proporcional à velocidade, com a prancha travada (sem D/A)
     deriva: 50 * RITMO,              // a onda corre um pouco mais que ele (na crista); no ombro, mais
     ombro: 230 * RITMO,              // quanto ele escorrega de volta no ombro (onde a onda é baixa)
     travado: 70 * RITMO,             // quanto a onda vem pegando quando ele trava a prancha
     face: 240,          // altura da parede em px (converte velocidade em "alturas por segundo")
-    bomba: 90 * RITMO,  // ganho de cada bombada (diminui perto da velocidade máxima)
-    bombaJanela: 0.45,  // ▲ e ▼ alternados com menos de 0,45 s entre eles contam como bombada
+    bomba: 120 * RITMO, // ganho de cada bombada (diminui perto da velocidade máxima)
+    bombaJanela: 0.6,   // ▲ e ▼ alternados com menos de 0,6 s entre eles contam como bombada
     rumoMax: 0.85,
   };
   // um passo da física: st = { v, rumo, dir }; c = { cima, baixo, anda }; inc = inclinação da parede (0,3 a 1)
@@ -55,7 +56,7 @@
     const F = FISICA;
     const alvo = c.cima ? F.rumoMax : c.baixo ? -F.rumoMax : -0.1; // sem nada: segue a linha da onda, descendo de leve
     st.rumo += (alvo - st.rumo) * Math.min(1, dt * 5);
-    const acel = -F.gravidade * Math.sin(st.rumo) * inc + F.empurrao * inc * (c.anda ? 1 : 0.4)
+    const acel = -F.gravidade * Math.sin(st.rumo) * inc * (st.rumo > 0 ? F.subida : 1) + F.empurrao * inc * (c.anda ? 1 : 0.4)
       - F.atrito - (c.anda ? F.arrasto : F.arrastoTravado) * st.v;
     st.v = Math.max(F.vMin, Math.min(F.vMax, st.v + acel * dt));
     const ao_longo = st.v * Math.cos(st.rumo);
@@ -425,7 +426,7 @@
     const antes = s.dir;
     if (ent.acelera && !ent.freia) s.dir = 1;
     else if (ent.freia && !ent.acelera) s.dir = -1;
-    if (s.dir !== antes && !s.ar) s.fis.v *= s.h > 0.45 ? 0.95 : 0.86;
+    if (s.dir !== antes && !s.ar) s.fis.v *= s.h > 0.45 ? 0.99 : 0.95; // virar quase não custa (lá em cima, no cutback, nada)
     s.fis.dir = s.dir;
     const anda = ent.acelera !== ent.freia;   // sem D/A: trava a prancha (stall) e a onda o alcança (tubo)
     s.virar += (s.dir - s.virar) * Math.min(1, dt * 11);       // a prancha vira (de um lado para o outro)
@@ -451,11 +452,14 @@
       const [bx, by] = posPrancha(); for (let i = 0; i < 4; i++) gota(bx - s.dir * rnd(20, 50), by + 4, -s.dir * rnd(40, 160), rnd(-260, -120), rnd(2, 4));
     }
     if (s.h <= 0.01 && s.fis.rumo < 0) s.fis.rumo *= 0.5;  // no pé da onda não dá para descer mais
-    const fis = fisica(s.fis, { cima: ent.cima, baixo: ent.baixo, anda }, dt, inc);
+    // voltando em direção à crista ele vai para onde a onda tem força: não perde o embalo no caminho
+    const fis = fisica(s.fis, { cima: ent.cima, baixo: ent.baixo, anda }, dt, s.dir < 0 && anda ? 1 : inc);
     // embalo: o pico de velocidade dos últimos instantes (cai devagar) — é ele que vira altura no aéreo
-    s.embalo = Math.max(s.fis.v, (s.embalo || 0) - 180 * RITMO * dt);
+    s.embalo = Math.max(s.fis.v, (s.embalo || 0) - 90 * RITMO * dt);
     s.vh = fis.vh + (anda || ent.cima || ent.baixo ? 0 : (0.35 - s.h) * 0.9); // travado: escorrega para o meio da onda
-    s.u += ((s.tubo && !anda ? Math.max(fis.u, -45) : fis.u) - s.u) * Math.min(1, dt * 4); // no tubo, a onda o engole devagar
+    // longe demais no ombro (onde a onda já é quase plana) ele não foge da onda: quanto mais longe, mais ela puxa de volta
+    const longe = Math.max(0, dAqui - 1500) * 0.8;
+    s.u += ((s.tubo && !anda ? Math.max(fis.u, -45) : fis.u - longe) - s.u) * Math.min(1, dt * 4); // no tubo, a onda o engole devagar
 
     // ---- floater: em cima da crista ----
     if (s.floater) {
