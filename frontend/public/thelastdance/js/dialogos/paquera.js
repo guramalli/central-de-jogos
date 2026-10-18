@@ -18,6 +18,10 @@
       balada_ruiva: { nome: "Bia", retrato: "assets/characters/npcs/balada_ruiva/retrato.png", tipo: "engracada", rapido: true },
       balada_loira: { nome: "Carol", retrato: "assets/characters/npcs/balada_loira/retrato.png", tipo: "simpatica", rapido: true },
       balada_morena: { nome: "Duda", retrato: "assets/characters/npcs/balada_morena/retrato.png", tipo: "timida", rapido: true },
+      // sentada no sofá do lounge: pode nem dar bola (ignora); se der, levanta (levanta: onde ela fica em pé) e beija ou dá tapa
+      balada_vestido: { nome: "Lari", retrato: "assets/characters/npcs/balada_vestido/retrato.png", tipo: "metida", rapido: true,
+        ignora: 0.35, levanta: { x: 10.75, y: 14.1 },
+        ignorou: ["Ela olha o celular e finge que você nem existe.", "Ela nem tira o olho do drink.", "Ela dá um meio sorriso... e vira pro outro lado."] },
 
       vestido_vermelho: { nome: "Rafaela", retrato: "assets/characters/npcs/vestido_vermelho/frente/cabeca.png",
         tipo: "metida", dificuldade: 4, ignora: 0.25,
@@ -134,9 +138,9 @@
       chegada: ["Ela te vê chegando e abre um sorrisinho.", "Ela para de dançar e te olha.", "A música tá alta. Ela chega mais perto pra ouvir."],
       oi: ["Oi! 😉", "E aí?", "Opa... oi.", "Hm? Fala!"],
       chance: {
-        direta: { engracada: 0.55, simpatica: 0.75, timida: 0.35 },
-        piada: { engracada: 0.85, simpatica: 0.55, timida: 0.6 },
-        pesada: { engracada: 0.1, simpatica: 0.1, timida: 0.05 },
+        direta: { engracada: 0.55, simpatica: 0.75, timida: 0.35, metida: 0.5 },
+        piada: { engracada: 0.85, simpatica: 0.55, timida: 0.6, metida: 0.4 },
+        pesada: { engracada: 0.1, simpatica: 0.1, timida: 0.05, metida: 0.05 },
       },
       opcoes: [
         { tipo: "direta", t: "Te vi ali de longe me olhando... quer me beijar?" },
@@ -154,7 +158,8 @@
       topou: ["Achei que você nunca ia perguntar... 😘", "Vem cá então. 😏", "Tá bom, vai... 💋"],
       tapa: ["Atrevido! 💢", "Se enxerga, ô!", "Tá me achando com cara de quê?!"],
       sem_graca: ["Sem graça... 🙄", "Nossa. Não.", "Essa foi a pior que eu já ouvi hoje."],
-      ja: { beijo: "Mais um? Hoje não, já foi o meu limite. 😘", tapa: "Quer outro? 🖐️", fora: "Já falei, né? Sem chance." },
+      ja: { beijo: "Mais um? Hoje não, já foi o meu limite. 😘", tapa: "Quer outro? 🖐️", fora: "Já falei, né? Sem chance.",
+        ignorou: "Ela continua sem te dar a menor bola." },
     },
 
     aberturas: [

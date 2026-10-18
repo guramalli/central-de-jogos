@@ -1,0 +1,54 @@
+{
+  "versao": 2,
+  "altura_px": 331,
+  "baixo": {
+    "parado": {
+      "folha": "3d/sentada_baixo.webp",
+      "larg": 114,
+      "alt": 282,
+      "quadros": 8,
+      "fps": 2,
+      "pes": [
+        59.3,
+        261.9
+      ]
+    },
+    "em_pe": {
+      "folha": "3d/em_pe.webp",
+      "larg": 114,
+      "alt": 320,
+      "quadros": 8,
+      "fps": 2,
+      "pes": [
+        59.3,
+        309.9
+      ]
+    }
+  },
+  "cenas": {
+    "beijo": {
+      "folha": "3d/beijo.webp",
+      "larg": 196,
+      "alt": 324,
+      "quadros": 6,
+      "fps": 6,
+      "pes": [
+        98.9,
+        299.5
+      ],
+      "laco": true
+    },
+    "tapa": {
+      "folha": "3d/tapa.webp",
+      "larg": 288,
+      "alt": 326,
+      "quadros": 8,
+      "fps": 8,
+      "pes": [
+        144.9,
+        311.5
+      ],
+      "laco": false
+    }
+  }
+}

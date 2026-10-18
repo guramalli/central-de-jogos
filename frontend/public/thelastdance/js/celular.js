@@ -127,7 +127,7 @@
   .cel-chamada .opcoes button { font: 600 13px system-ui; color: #fff; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.35);
     border-radius: 14px; padding: 9px 12px; cursor: pointer; text-align: left; }
   .cel-chamada .opcoes button:hover, .cel-chamada .opcoes button:focus-visible { background: rgba(255,255,255,.25); outline: none; }
-  .cel-central { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 27; width: min(300px, calc(100vw - 32px));
+  .cel-central { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 60; width: min(300px, calc(100vw - 32px));
     background: linear-gradient(180deg, #1b1030, #3a1b5c); color: #fff; border-radius: 28px; padding: 22px 18px 18px; text-align: center;
     box-shadow: 0 0 0 3px #3a2a50, 0 0 0 6px #08060c, 0 0 40px rgba(255,90,216,.45), 0 20px 50px rgba(0,0,0,.6);
     font: 15px/1.3 system-ui, sans-serif; animation: cel-chega .3s ease-out; }
@@ -786,5 +786,6 @@
     salvar(); atualizarBadge();
     if (tela && atual && ["home", "zap"].includes(atual.nome)) desenhar();
   }
-  NSF.Celular = { abrir, fechar, aberto, tocarAgora, novaConversa, chamadaCentral, fecharCentral, estado: () => est };
+  NSF.Celular = { abrir, fechar, aberto, tocarAgora, novaConversa, chamadaCentral, fecharCentral, estado: () => est,
+    tocando: () => !!(central || (chamada && !chamada.feita && atual && atual.nome === "ligando")) };
 })(typeof window !== "undefined" ? window : globalThis);

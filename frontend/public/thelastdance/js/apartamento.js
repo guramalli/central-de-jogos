@@ -527,8 +527,10 @@
   const NPCS = (P.npcs || []).map((n) => Object.assign({ balao: null, resultado: null }, n));
   for (const n of NPCS) {
     if (n.postura !== "sentado") continue;
-    const c = P.caixas.find((k) => k.tipo === "cadeira" && n.x > k.x0 && n.x < k.x1 && n.y > k.y0 && n.y < k.y1);
-    if (c) c.ocupante = n;   // desenhado logo depois da cadeira (a mesa à frente cobre o colo)
+    const c = P.caixas.find((k) => (k.tipo === "cadeira" || k.tipo === "sofa") && n.x > k.x0 && n.x < k.x1 && n.y > k.y0 && n.y < k.y1);
+    if (!c) continue;        // desenhado logo depois do assento (a mesa à frente cobre o colo); sofá: várias pessoas
+    if (c.ocupante && c.ocupante !== n) (c.ocupantes = c.ocupantes || [c.ocupante]).push(n);
+    else c.ocupante = n;
   }
   const alturaNpc = (n) => (n.postura === "sentado" ? 1.35 + ((n.assento || 0.47) - 0.47) : 1.8);
 
@@ -567,6 +569,23 @@
     setTimeout(() => { n.cena = null; jog.oculto = false; if (o.aoTerminar) o.aoTerminar(); }, dur);
     return true;
   }
+  // Quem está sentado se levanta (sai do assento e fica em pé em x, y) ou volta a sentar no lugar de antes.
+  function levantarNpc(n, x, y) {
+    if (n.postura !== "sentado") return;
+    for (const c of P.caixas) {
+      if (c.ocupante === n) delete c.ocupante;
+      if (c.ocupantes) { c.ocupantes = c.ocupantes.filter((o) => o !== n); if (!c.ocupantes.length) delete c.ocupantes; }
+    }
+    n.sentadoEm = { x: n.x, y: n.y, assento: n.assento };
+    n.postura = "em_pe"; n.pose3d = "em_pe"; n.x = x; n.y = y;
+  }
+  function sentarNpc(n) {
+    const s = n.sentadoEm;
+    if (!s) return;
+    n.x = s.x; n.y = s.y; n.postura = "sentado"; n.pose3d = null; n.sentadoEm = null;
+    const c = P.caixas.find((k) => (k.tipo === "cadeira" || k.tipo === "sofa") && n.x > k.x0 && n.x < k.x1 && n.y > k.y0 && n.y < k.y1);
+    if (c) { if (c.ocupante && c.ocupante !== n) (c.ocupantes = c.ocupantes || [c.ocupante]).push(n); else c.ocupante = n; }
+  }
   function desenharCenaDupla(ctx, n) {
     const f = n.sprites3d.cenas[n.cena.nome], t = (performance.now() - n.cena.t0) / 1000;
     const q = f.laco ? Math.floor(t * f.fps) % f.quadros : Math.min(f.quadros - 1, Math.floor(t * f.fps));
@@ -582,7 +601,7 @@
     if (n.cena && n.sprites3d.cenas && n.sprites3d.cenas[n.cena.nome]) { desenharCenaDupla(ctx, n); return; }
     const m = n.sprites3d, d = m[n.dir] || m.baixo, agora = performance.now();
     const rindo = n.rindoAte && agora < n.rindoAte && d.rir;
-    const f = rindo ? d.rir : d.parado;
+    const f = rindo ? d.rir : (n.pose3d && d[n.pose3d]) || d.parado;
     const q = Math.floor(((agora / 1000) + (rindo ? 0 : n.relogio3d)) * f.fps) % f.quadros;
     const [x, y] = T(n.x, n.y, 0), e = ALTURA_PERSONAGEM / m.altura_px;
     ctx.save();
@@ -1515,8 +1534,9 @@
         if (transparente) { ctx.save(); ctx.globalAlpha = 0.4; }
         caixa(ctx, it);
         if (transparente) ctx.restore();
-        const ocupante = it.orig ? it.orig.ocupante : it.ocupante; // quem senta depois (encontro) também aparece
-        if (ocupante) desenharNpc(ctx, ocupante);
+        const dono = it.orig || it, ocupante = dono.ocupante; // quem senta depois (encontro) também aparece
+        if (dono.ocupantes) for (const o of dono.ocupantes) desenharNpc(ctx, o);
+        else if (ocupante) desenharNpc(ctx, ocupante);
         if (it.enfeites) desenharEnfeites(ctx, it);
       }
     }
@@ -1624,7 +1644,7 @@
   }).then(() => {
     // toca quando ele acorda no quarto (não toda vez que volta para casa)
     if (ROTEIRO_LIGACAO && comodo === "quarto" && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
-    marcar(); window.NSF_APTO = { cenaDupla, ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir, PORTA, veiculos: VEICULOS, irAoVeiculo, irPara,
+    marcar(); window.NSF_APTO = { cenaDupla, levantarNpc, sentarNpc, ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir, PORTA, veiculos: VEICULOS, irAoVeiculo, irPara,
       falar, pensar, sentar, levantar, cortinaCom, imgProps, ocupado,
       poseSentada: criarPoseSentada, VISTA_MOD,
       abrirArmario, get heroi() { return heroi; },

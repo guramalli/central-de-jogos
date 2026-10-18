@@ -212,7 +212,12 @@
   async function conversaRapida() {
     const B = DADOS.balada, ja = resultado(npc);
     if (ja) { await dizer("ela", B.ja[ja] || "..."); return null; }
-    await dizer("narra", sortear(B.chegada));
+    if (perfil.ignora && Math.random() < perfil.ignora) { // nem deu bola
+      mostrarReacao("📱");
+      await dizer("narra", sortear(perfil.ignorou || ["Ela nem olha pra você."]));
+      return "ignorou";
+    }
+    await dizer("narra", sortear(perfil.levanta ? ["Ela levanta os olhos do drink e te encara.", "Ela cruza as pernas e sorri de canto."] : B.chegada));
     await dizer("ela", sortear(B.oi));
     const umDe = (tipo) => sortear(B.opcoes.filter((o) => o.tipo === tipo));
     const o = await escolher([umDe("direta"), umDe("piada"), umDe("pesada")].sort(() => Math.random() - 0.5));
@@ -234,20 +239,24 @@
   function cenaFinal(n, r) {
     const api = global.NSF_APTO;
     if (!api || !api.cenaDupla) return;
-    if (r === "tapa") {
-      setTimeout(() => {
+    const pa = () => setTimeout(() => {
         if (NSF.Audio && NSF.Audio.tapa) NSF.Audio.tapa();
         const t = el("div", "pq-tapa", "PÁ!");
         doc.body.appendChild(t); setTimeout(() => t.remove(), 950);
         const tela = doc.getElementById("tela");
         if (tela) { tela.classList.remove("pq-treme"); void tela.offsetWidth; tela.classList.add("pq-treme"); }
       }, 480);
-    }
     if (r === "beijo" && NSF.Audio && NSF.Audio.curtida) { NSF.Audio.curtida(); setTimeout(NSF.Audio.curtida, 400); }
-    api.cenaDupla(n, r, { aoTerminar: () => {
+    const p = DADOS.perfis[n.paquera] || {};
+    const fazer = () => { if (r === "tapa") pa(); api.cenaDupla(n, r, { aoTerminar: () => {
+      if (r === "tapa" && api.sentarNpc && n.sentadoEm) api.sentarNpc(n); // deu o tapa e voltou a sentar
       const BALAO = { beijo: "💋", tapa: "Hunf! 💢" };
       n.balao = { texto: BALAO[r] || "...", ate: performance.now() + 2600 };
-    } });
+    } }); };
+    if (p.levanta && n.postura === "sentado" && api.levantarNpc) { // estava sentada: levanta primeiro
+      api.levantarNpc(n, p.levanta.x, p.levanta.y);
+      setTimeout(fazer, 650);
+    } else fazer();
   }
 
   async function conversa() {
@@ -301,6 +310,7 @@
 
   async function abrir(n) {
     if (aberta || !n || !n.paquera || !DADOS.perfis[n.paquera]) return false;
+    if (NSF.Celular && NSF.Celular.tocando && NSF.Celular.tocando()) return false; // telefone tocando: atende ou recusa antes
     npc = n; perfil = DADOS.perfis[n.paquera]; interesse = 3; aberta = true;
     const a = global.NSF_APTO;
     if (a && a.teclas) a.teclas.clear();
@@ -313,7 +323,7 @@
       doDia()[n.paquera] = r;
       salvar();
       if (r === "beijo" || r === "tapa") cenaFinal(n, r);
-      else n.balao = { texto: "🙄", ate: performance.now() + 2600 };
+      else n.balao = { texto: r === "ignorou" ? "..." : "🙄", ate: performance.now() + 2600 };
       return true;
     }
     if (r) {

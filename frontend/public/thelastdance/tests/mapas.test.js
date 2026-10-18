@@ -66,7 +66,7 @@ for (const P of MAPAS) {
     for (const n of P.npcs) {
       assert.ok(!ids.has(n.id), `id repetido: ${n.id}`); ids.add(n.id);
       if (n.postura === "sentado") {
-        const cad = P.caixas.filter((c) => c.tipo === "cadeira" && n.x > c.x0 && n.x < c.x1 && n.y > c.y0 && n.y < c.y1);
+        const cad = P.caixas.filter((c) => (c.tipo === "cadeira" || c.tipo === "sofa") && n.x > c.x0 && n.x < c.x1 && n.y > c.y0 && n.y < c.y1);
         assert.equal(cad.length, 1, `${n.id}: não está numa cadeira`);
       }
       let perto = false; // alguma célula alcançável a até 1 m dele

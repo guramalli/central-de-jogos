@@ -171,6 +171,39 @@
         falarDe: { x: 9.9, y: 8.7 }, fala: ["\"Hoje eu vim pra dançar, hein!\"", "\"O DJ tá on fire!\""] },
       { id: "duda", nome: "Duda", personagem: "balada_morena", personagem3d: true, so3d: true, paquera: "balada_morena", postura: "em_pe", x: 13.4, y: 4.9, dir: "baixo",
         falarDe: { x: 13.4, y: 5.7 }, fala: ["\"Adoro essa pista!\"", "\"Bora pro bar depois?\""] },
+
+      // no lounge: a Lari, sentada no sofá de vestido vermelho (pode nem dar bola; se der, levanta para o beijo ou o tapa)
+      { id: "lari", nome: "Lari", personagem: "balada_vestido", personagem3d: true, so3d: true, paquera: "balada_vestido",
+        postura: "sentado", assento: 0.45, x: 11.0, y: 13.4, dir: "baixo",
+        falarDe: { x: 10.2, y: 14.55 }, fala: ["\"Hm?\""] },
+
+      // ---- a turma (rosto real: arte só com a senha; sem ela, o boneco provisório com as cores de "visual")
+      // no bar, pegando bebida (de costas, virados para o balcão)
+      { id: "pabo", nome: "Pabo", personagem: "pabo", postura: "em_pe", x: 17.15, y: 3.1, dir: "cima",
+        falarDe: { x: 17.15, y: 3.85 }, fala: ["\"Barman, me vê uma água com gás. Amanhã tem treino.\"", "\"Proteína em forma de caipirinha existe?\""],
+        visual: { pele: "#d29a6e", roupa: "#1f6fb2", calca: "#22304a", cabelo: "#2a1a10", estilo: "curto" } },
+      { id: "borrinha", nome: "Borrinha", personagem: "borrinha", postura: "em_pe", x: 20.35, y: 3.1, dir: "cima",
+        falarDe: { x: 20.35, y: 3.85 }, fala: ["\"Desce mais uma rodada aqui pro torcedor!\"", "\"Bota na conta do aniversariante. Quem é o aniversariante?\""],
+        visual: { pele: "#e0b48e", roupa: "#f2d21b", calca: "#1a1a1a", cabelo: "#111", estilo: "bone" } },
+      // no camarote VIP: três sentados nos sofás, três em pé conversando
+      { id: "juan", nome: "Juan", personagem: "juan", postura: "sentado", assento: 0.45, x: 2.0, y: 0.45, dir: "baixo",
+        falarDe: { x: 2.0, y: 1.3 }, fala: ["\"Camarote é outra coisa, né? Senta aí!\"", "\"Pede mais um balde que esse acabou.\""],
+        visual: { pele: "#d29a6e", roupa: "#4f6b2a", calca: "#22304a", cabelo: "#5a3a22", estilo: "curto" } },
+      { id: "jamil", nome: "Jamil", personagem: "jamil", postura: "sentado", assento: 0.45, x: 3.2, y: 0.45, dir: "baixo",
+        falarDe: { x: 3.4, y: 1.3 }, fala: ["\"Terno na balada. Elegância não tira folga.\"", "\"Amanhã cedo tem missa, hein. Não vai dormir tarde.\""],
+        visual: { pele: "#d6a27a", roupa: "#d9cfbd", calca: "#d9cfbd", cabelo: "#4a4a4a", estilo: "curto" } },
+      { id: "elcio", nome: "Elcio", personagem: "elcio", postura: "sentado", assento: 0.45, x: 0.45, y: 4.6, dir: "direita",
+        falarDe: { x: 1.2, y: 4.1 }, fala: ["\"Óculos escuros na balada? É o brilho do camarote, irmão.\"", "\"Cadê a piscina dessa balada?\""],
+        visual: { pele: "#c48d63", roupa: "#c48d63", calca: "#e0404a", cabelo: "#1c120c", estilo: "curto" } },
+      { id: "gustavinho", nome: "Gustavinho", personagem: "gustavinho", personagem3d: true, postura: "em_pe", x: 3.6, y: 3.0, dir: "baixo",
+        falarDe: { x: 3.6, y: 3.75 }, fala: ["\"Hoje a noite promete, parceiro!\"", "\"Já viu a ruiva da pista? Vai lá, vai!\""],
+        visual: { pele: "#c48d63", roupa: "#111111", calca: "#2f5fb0", cabelo: "#2a1a10", estilo: "curto" } },
+      { id: "vibola", nome: "Vibola", personagem: "vibola", postura: "em_pe", x: 4.6, y: 2.4, dir: "esquerda",
+        falarDe: { x: 4.6, y: 3.2 }, fala: ["\"Mais um ano solteiro... de novo, né?\"", "\"Esse DJ tá tocando só as minhas!\""],
+        visual: { pele: "#b9825a", roupa: "#1a1a1a", calca: "#ececec", cabelo: "#2a1a10", estilo: "curto" } },
+      { id: "vini", nome: "Vini", personagem: "vini", postura: "em_pe", x: 4.4, y: 4.4, dir: "esquerda",
+        falarDe: { x: 4.4, y: 5.15 }, fala: ["\"Já mostrou o insta pra alguma gata? Mostra pra mim de novo.\"", "\"Aumenta esse som!\""],
+        visual: { pele: "#c98f63", roupa: "#2b2b2b", calca: "#e79b8c", cabelo: "#2a1a10", estilo: "volume" } },
     ],
 
     destinos: [
