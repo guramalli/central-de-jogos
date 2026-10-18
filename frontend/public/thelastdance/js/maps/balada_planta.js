@@ -218,10 +218,10 @@
       { id: "miltinho", nome: "Miltinho", personagem: "miltinho", personagem3d: true, so3d: true, postura: "em_pe", x: 14.1, y: 7.0, dir: "baixo",
         ciclo3d: [["parado", 3], ["dancar", 6], ["boxe", 4.4], ["parado", 2], ["chute", 2.5], ["dancar", 5]],
         falarDe: { x: 14.1, y: 7.75 }, fala: ["\"Quimono rosa, parceiro. Só quem pode, pode.\"", "\"Chega mais não, que eu tô aquecendo! 🥋\""] },
-      // o Kaleb em 3D (trancado com a senha), de mochila perto da entrada: quando você chega perto, solta uns socos no ar
-      { id: "kaleb", nome: "Kaleb", personagem: "kaleb", personagem3d: true, so3d: true, postura: "em_pe", x: 3.4, y: 16.8, dir: "baixo",
+      // o Kaleb em 3D (trancado com a senha), de mochila no lounge perto da Clarissa: quando você chega perto, solta uns socos no ar
+      { id: "kaleb", nome: "Kaleb", personagem: "kaleb", personagem3d: true, so3d: true, postura: "em_pe", x: 13.3, y: 14.2, dir: "baixo",
         reage: { raio: 2.2, pose: "soco", fala: "Ó SE EU QUISESSE!" },
-        falarDe: { x: 3.4, y: 17.45 }, fala: ["\"Ó se eu quisesse...\"", "\"Tô só esperando o pessoal chegar.\""] },
+        falarDe: { x: 13.3, y: 14.9 }, fala: ["\"Ó se eu quisesse...\"", "\"Tô só esperando o pessoal chegar.\""] },
       // o Thiago Mourão em 3D (trancado com a senha), dançando no camarote
       { id: "thiago", nome: "Thiago Mourão", personagem: "thiago", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 3.8, y: 5.3, dir: "baixo",
         reage: { raio: 1.8, fala: "Pode parecer que não, mas eu sou o rei daqui." },
