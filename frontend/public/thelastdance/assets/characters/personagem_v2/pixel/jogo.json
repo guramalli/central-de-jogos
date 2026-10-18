@@ -143,98 +143,106 @@
     "3d": {
       "baixo": {
         "folha": "3d/andar_baixo.webp",
-        "larg": 275,
-        "alt": 514,
+        "larg": 152,
+        "alt": 324,
         "quadros": 8,
         "fps": 8,
         "pes": [
-          138.0,
-          493.0
+          76.3,
+          312.9
         ],
-        "altura_px": 477,
+        "altura_px": 304,
+        "pixelado": true,
         "parado": {
           "folha": "3d/parado_baixo.webp",
-          "larg": 275,
-          "alt": 514,
+          "larg": 152,
+          "alt": 324,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            138.0,
-            493.0
+            76.3,
+            312.9
           ],
-          "altura_px": 477
+          "altura_px": 304,
+          "pixelado": true
         }
       },
       "cima": {
         "folha": "3d/andar_cima.webp",
-        "larg": 275,
-        "alt": 514,
+        "larg": 152,
+        "alt": 324,
         "quadros": 8,
         "fps": 8,
         "pes": [
-          138.0,
-          493.0
+          76.3,
+          312.9
         ],
-        "altura_px": 477,
+        "altura_px": 304,
+        "pixelado": true,
         "parado": {
           "folha": "3d/parado_cima.webp",
-          "larg": 275,
-          "alt": 514,
+          "larg": 152,
+          "alt": 324,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            138.0,
-            493.0
+            76.3,
+            312.9
           ],
-          "altura_px": 477
+          "altura_px": 304,
+          "pixelado": true
         }
       },
       "direita": {
         "folha": "3d/andar_direita.webp",
-        "larg": 275,
-        "alt": 514,
+        "larg": 152,
+        "alt": 324,
         "quadros": 8,
         "fps": 8,
         "pes": [
-          138.0,
-          493.0
+          76.3,
+          312.9
         ],
-        "altura_px": 477,
+        "altura_px": 304,
+        "pixelado": true,
         "parado": {
           "folha": "3d/parado_direita.webp",
-          "larg": 275,
-          "alt": 514,
+          "larg": 152,
+          "alt": 324,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            138.0,
-            493.0
+            76.3,
+            312.9
           ],
-          "altura_px": 477
+          "altura_px": 304,
+          "pixelado": true
         }
       },
       "esquerda": {
         "folha": "3d/andar_esquerda.webp",
-        "larg": 275,
-        "alt": 514,
+        "larg": 152,
+        "alt": 324,
         "quadros": 8,
         "fps": 8,
         "pes": [
-          138.0,
-          493.0
+          76.3,
+          312.9
         ],
-        "altura_px": 477,
+        "altura_px": 304,
+        "pixelado": true,
         "parado": {
           "folha": "3d/parado_esquerda.webp",
-          "larg": 275,
-          "alt": 514,
+          "larg": 152,
+          "alt": 324,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            138.0,
-            493.0
+            76.3,
+            312.9
           ],
-          "altura_px": 477
+          "altura_px": 304,
+          "pixelado": true
         }
       }
     }

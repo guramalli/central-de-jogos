@@ -1106,7 +1106,8 @@
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.beginPath(); ctx.ellipse(x, y, 46 * (ef ? Math.min(1, ef.sx) : 1), 13, 0, 0, 2 * Math.PI); ctx.fill();
     if (ef) { ctx.translate(x, meio); ctx.scale(ef.sx, ef.sy); ctx.translate(-x, -meio); }
-    ctx.imageSmoothingEnabled = true; // folha em alta resolução reduzida: suavizar (sem serrilhado nem blocos)
+    // folha em alta resolução reduzida: suavizar (sem serrilhado); folha em pixel art ("pixelado"): blocos nítidos
+    ctx.imageSmoothingEnabled = !f.pixelado;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(im, q * f.larg, 0, f.larg, f.alt, x - px * e, y - py * e, f.larg * e, f.alt * e);
     ctx.restore();

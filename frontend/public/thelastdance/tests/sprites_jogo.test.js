@@ -15,7 +15,12 @@ function tamanhoImagem(arq) {
   const b = fs.readFileSync(arq);
   if (b.toString("ascii", 1, 4) === "PNG") return [b.readUInt32BE(16), b.readUInt32BE(20), b[25] === 6];
   assert.equal(b.toString("ascii", 0, 4) + b.toString("ascii", 8, 12), "RIFFWEBP", arq + ": nem PNG nem WebP");
-  assert.equal(b.toString("ascii", 12, 16), "VP8X", arq + ": WebP sem o cabeçalho estendido (não tem alfa)");
+  const tipo = b.toString("ascii", 12, 16);
+  if (tipo === "VP8L") { // sem perda: 14 bits de largura-1, 14 de altura-1, 1 bit "usa alfa"
+    const bits = b.readUInt32LE(21);
+    return [(bits & 0x3fff) + 1, ((bits >>> 14) & 0x3fff) + 1, ((bits >>> 28) & 1) === 1];
+  }
+  assert.equal(tipo, "VP8X", arq + ": WebP sem cabeçalho de transparência");
   return [b.readUIntLE(24, 3) + 1, b.readUIntLE(27, 3) + 1, (b[20] & 0x10) !== 0];
 }
 // cada tira usada: a de andar e, se o conjunto tiver, a de parado
