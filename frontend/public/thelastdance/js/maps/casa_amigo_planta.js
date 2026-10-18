@@ -82,9 +82,9 @@
       { id: "vibola", nome: "Vibola", personagem: "vibola", postura: "em_pe", x: 5.2, y: 2.9, dir: "baixo",
         falarDe: { x: 5.2, y: 3.6 }, fala: ["\"Ô churrasqueiro, cadê a carne? Tô vendo só fumaça!\"", "\"Mais um ano solteiro... de novo, né?\""],
         visual: { pele: "#b9825a", roupa: "#1a1a1a", calca: "#ececec", cabelo: "#2a1a10", estilo: "curto" } },
-      // personagem3d: o Gustavinho em pixel art (3D), com parado e risada (a única interação dele: tocar = ele ri)
-      { id: "gustavinho", nome: "Gustavinho", personagem: "gustavinho", personagem3d: true, riAoFalar: true, postura: "em_pe", x: 2.75, y: 3.95, dir: "baixo",
-        falarDe: { x: 2.75, y: 4.6 }, fala: ["\"KKKKKKKKKKK para, mano! 😂\"", "\"HAHAHAHA essa do réveillon de novo?! 😭\""],
+      // personagem3d: o Gustavinho em pixel art (3D), com parado e risada (ri reagindo às piadas da zoeira: "riem")
+      { id: "gustavinho", nome: "Gustavinho", personagem: "gustavinho", personagem3d: true, postura: "em_pe", x: 2.75, y: 3.95, dir: "baixo",
+        falarDe: { x: 2.75, y: 4.6 }, fala: ["\"Fala, parceiro! Hoje a noite promete.\"", "\"Essa história do réveillon eu já ouvi umas dez vezes.\""],
         visual: { pele: "#c48d63", roupa: "#111111", calca: "#2f5fb0", cabelo: "#2a1a10", estilo: "curto" } },
       { id: "juan", nome: "Juan", personagem: "juan", postura: "sentado", x: 6.9, y: 3.8, dir: "baixo",
         falarDe: { x: 6.9, y: 3.05 }, fala: ["\"Pega uma gelada aí na cervejeira!\"", "\"Vira essa carne, mestre!\""],
@@ -175,6 +175,18 @@
       if (f >= rodada.length) { f = 0; r = (r + 1) % Z.rodadas.length; espera += Z.pausaEntreRodadas * 1000; }
       setTimeout(proxima, espera);
     };
+    // reação às piadas: quem está em "riem" cai na risada um pouco depois da fala (balão curtinho + animação)
+    const RISINHOS = ["KKKKKKK 😂", "kkkkkk", "HAHAHAHA", "KKKKK para 😭", "kkkkkkkk"];
+    let vezRiso = 0;
+    const reagir = (fala, depois) => {
+      for (const id of fala.riem || []) setTimeout(() => {
+        const n = api.npcs.find((x) => x.id === id);
+        if (!n || n.oculta || ocupado()) return;
+        const ate = performance.now() + 2600;
+        n.rindoAte = ate;
+        n.balao = { texto: RISINHOS[vezRiso++ % RISINHOS.length], ate: ate - 600 };
+      }, depois);
+    };
     const proxima = () => {
       if (ocupado()) { setTimeout(proxima, 1500); return; }
       const rodada = Z.rodadas[r], fala = rodada[f], ms = Z.segundosPorFala * 1000;
@@ -185,6 +197,7 @@
           const ate = performance.now() + dur * 1000;
           if (fala.quem === "eu") api.jog.falandoAte = ate;
           else { const n = api.npcs.find((x) => x.id === fala.quem); if (n) { n.balao = null; n.falandoAte = ate; } }
+          reagir(fala, dur * 1000 * 0.85);
           seguir(dur * 1000 + 700);
         }).catch(() => seguir(0));
         return;
@@ -209,7 +222,9 @@
       } else {
         const n = api.npcs.find((x) => x.id === fala.quem);
         if (n) n.balao = { texto: fala.texto, ate: performance.now() + ms - 200 };
+        if (n && fala.rindo) n.rindoAte = performance.now() + ms - 200;
       }
+      reagir(fala, ms * 0.55); // a piada termina de ser lida e ele cai na risada
       seguir(ms);
     };
     proxima();

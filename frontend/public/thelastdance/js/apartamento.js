@@ -666,7 +666,6 @@
       const lista = Array.isArray(n.fala) ? n.fala : [n.fala];
       n.vezFala = ((n.vezFala == null ? -1 : n.vezFala) + 1) % lista.length;
       n.balao = { texto: lista[n.vezFala], ate: performance.now() + 3500 };
-      if (n.riAoFalar) n.rindoAte = performance.now() + 3000; // o Gustavinho: tocar nele = ele cai na risada
     }
   }
 
