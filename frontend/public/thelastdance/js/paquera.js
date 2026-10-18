@@ -97,7 +97,7 @@
   function desmontar() { if (fundo) fundo.remove(); if (caixa) caixa.remove(); fundo = caixa = null; }
 
   function desenharCoracoes() {
-    if (!coracoes || perfil.tipo === "freira") { if (coracoes) coracoes.textContent = ""; return; }
+    if (!coracoes || perfil.tipo === "freira" || perfil.rapido) { if (coracoes) coracoes.textContent = ""; return; }
     coracoes.replaceChildren();
     for (let i = 0; i < 5; i++) {
       const v = interesse - i * 2;
@@ -208,7 +208,50 @@
     return "tapa";
   }
 
+  // BALADA: uma escolha só. Devolve "beijo", "tapa" ou "fora".
+  async function conversaRapida() {
+    const B = DADOS.balada, ja = resultado(npc);
+    if (ja) { await dizer("ela", B.ja[ja] || "..."); return null; }
+    await dizer("narra", sortear(B.chegada));
+    await dizer("ela", sortear(B.oi));
+    const umDe = (tipo) => sortear(B.opcoes.filter((o) => o.tipo === tipo));
+    const o = await escolher([umDe("direta"), umDe("piada"), umDe("pesada")].sort(() => Math.random() - 0.5));
+    await dizer("eu", o.t);
+    const deu = Math.random() < ((B.chance[o.tipo] || {})[perfil.tipo] || 0.3);
+    if (deu) {
+      mostrarReacao(o.tipo === "piada" ? "😂" : "😍");
+      if (NSF.Audio && NSF.Audio.curtida) NSF.Audio.curtida();
+      await dizer("ela", sortear(o.tipo === "piada" ? B.riu : B.topou));
+      return "beijo";
+    }
+    if (o.tipo === "piada") { mostrarReacao("🙄"); await dizer("ela", sortear(B.sem_graca)); return "fora"; }
+    mostrarReacao("💢");
+    await dizer("ela", sortear(B.tapa));
+    return "tapa";
+  }
+
+  // Depois da caixa: a cena a dois (os dois 3D juntos). O tapa faz "PÁ!" no impacto.
+  function cenaFinal(n, r) {
+    const api = global.NSF_APTO;
+    if (!api || !api.cenaDupla) return;
+    if (r === "tapa") {
+      setTimeout(() => {
+        if (NSF.Audio && NSF.Audio.tapa) NSF.Audio.tapa();
+        const t = el("div", "pq-tapa", "PÁ!");
+        doc.body.appendChild(t); setTimeout(() => t.remove(), 950);
+        const tela = doc.getElementById("tela");
+        if (tela) { tela.classList.remove("pq-treme"); void tela.offsetWidth; tela.classList.add("pq-treme"); }
+      }, 480);
+    }
+    if (r === "beijo" && NSF.Audio && NSF.Audio.curtida) { NSF.Audio.curtida(); setTimeout(NSF.Audio.curtida, 400); }
+    api.cenaDupla(n, r, { aoTerminar: () => {
+      const BALAO = { beijo: "💋", tapa: "Hunf! 💢" };
+      n.balao = { texto: BALAO[r] || "...", ate: performance.now() + 2600 };
+    } });
+  }
+
   async function conversa() {
+    if (perfil.rapido) return conversaRapida();
     const ja = resultado(npc);
     if (ja) { // já tentou hoje
       const FRASES = { topou: "Já combinamos, né? Te vejo mais tarde. 😘", fora: "Já falei que não, querido.",
@@ -265,6 +308,13 @@
     let r = null;
     try { r = await conversa(); } finally {
       clearTimeout(autoRel); desmontar(); aberta = false; avancar = digitando = teclaEscolha = null;
+    }
+    if (r && perfil.rapido) {
+      doDia()[n.paquera] = r;
+      salvar();
+      if (r === "beijo" || r === "tapa") cenaFinal(n, r);
+      else n.balao = { texto: "🙄", ate: performance.now() + 2600 };
+      return true;
     }
     if (r) {
       doDia()[n.paquera] = r;

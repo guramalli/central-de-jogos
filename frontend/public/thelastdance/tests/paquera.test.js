@@ -11,6 +11,7 @@ const NOTAS = ["boa", "media", "ruim"];
 
 test("cada perfil tem tipo, dificuldade, retrato que existe e as falas de fim", () => {
   for (const [id, p] of Object.entries(PQ.perfis)) {
+    if (p.rapido) continue; // balada: paquera rápida (teste próprio abaixo)
     assert.ok(TIPOS.includes(p.tipo), id);
     assert.ok(p.dificuldade >= 1, id);
     assert.ok(p.ignora >= 0 && p.ignora < 1, id);
@@ -38,4 +39,18 @@ test("NPCs com paquera apontam para um perfil que existe", () => {
   let n = 0;
   for (const P of mapas) for (const npc of P.npcs || []) if (npc.paquera) { n++; assert.ok(PQ.perfis[npc.paquera], `${P.id}/${npc.id}`); }
   assert.ok(n >= 4, "esperava as meninas da padaria");
+});
+
+test("balada: paquera rápida — cada menina tem retrato, chance para o tipo dela e cenas de beijo e tapa", () => {
+  const B = PQ.balada;
+  for (const tipo of ["direta", "piada", "pesada"]) assert.ok(B.opcoes.some((o) => o.tipo === tipo), tipo);
+  for (const [id, p] of Object.entries(PQ.perfis).filter(([, p]) => p.rapido)) {
+    assert.ok(fs.existsSync(path.join(RAIZ, p.retrato)), id + ": retrato");
+    for (const tipo of ["direta", "piada", "pesada"]) assert.ok(B.chance[tipo][p.tipo] >= 0, `${id}: chance ${tipo}`);
+    const m = JSON.parse(fs.readFileSync(path.join(RAIZ, "assets/characters/npcs", id, "sprites3d.json"), "utf8"));
+    for (const c of ["beijo", "tapa"]) {
+      assert.ok(m.cenas && m.cenas[c], `${id}: cena ${c}`);
+      assert.ok(fs.existsSync(path.join(RAIZ, "assets/characters/npcs", id, m.cenas[c].folha)), `${id}: folha ${c}`);
+    }
+  }
 });

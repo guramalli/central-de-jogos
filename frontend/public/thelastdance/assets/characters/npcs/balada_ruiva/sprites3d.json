@@ -1,5 +1,5 @@
 {
-  "versao": 1,
+  "versao": 2,
   "altura_px": 331,
   "baixo": {
     "parado": {
@@ -22,6 +22,32 @@
       "pes": [
         75.3,
         315.9
+      ]
+    }
+  },
+  "cenas": {
+    "beijo": {
+      "folha": "3d/beijo.webp",
+      "larg": 220,
+      "alt": 334,
+      "quadros": 6,
+      "fps": 6,
+      "laco": true,
+      "pes": [
+        102.9,
+        299.5
+      ]
+    },
+    "tapa": {
+      "folha": "3d/tapa.webp",
+      "larg": 282,
+      "alt": 326,
+      "quadros": 8,
+      "fps": 8,
+      "laco": false,
+      "pes": [
+        144.9,
+        311.5
       ]
     }
   }

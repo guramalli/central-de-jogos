@@ -165,11 +165,11 @@
     // Gente vem depois que o layout for aprovado (DJ, bartender, segurança do VIP, hostess, meninas na pista...)
     // na pista: três meninas dançando (personagens 3D do Tripo em pixel art, só a tira "dancar" de frente)
     npcs: [
-      { id: "bia", nome: "Bia", personagem: "balada_ruiva", personagem3d: true, so3d: true, postura: "em_pe", x: 9.2, y: 5.3, dir: "baixo",
+      { id: "bia", nome: "Bia", personagem: "balada_ruiva", personagem3d: true, so3d: true, paquera: "balada_ruiva", postura: "em_pe", x: 9.2, y: 5.3, dir: "baixo",
         falarDe: { x: 9.2, y: 6.1 }, fala: ["\"Essa música é muito boa!\"", "\"Vai ficar só olhando ou vai dançar?\""] },
-      { id: "carol", nome: "Carol", personagem: "balada_loira", personagem3d: true, so3d: true, postura: "em_pe", x: 9.9, y: 7.9, dir: "baixo",
+      { id: "carol", nome: "Carol", personagem: "balada_loira", personagem3d: true, so3d: true, paquera: "balada_loira", postura: "em_pe", x: 9.9, y: 7.9, dir: "baixo",
         falarDe: { x: 9.9, y: 8.7 }, fala: ["\"Hoje eu vim pra dançar, hein!\"", "\"O DJ tá on fire!\""] },
-      { id: "duda", nome: "Duda", personagem: "balada_morena", personagem3d: true, so3d: true, postura: "em_pe", x: 13.4, y: 4.9, dir: "baixo",
+      { id: "duda", nome: "Duda", personagem: "balada_morena", personagem3d: true, so3d: true, paquera: "balada_morena", postura: "em_pe", x: 13.4, y: 4.9, dir: "baixo",
         falarDe: { x: 13.4, y: 5.7 }, fala: ["\"Adoro essa pista!\"", "\"Bora pro bar depois?\""] },
     ],
 

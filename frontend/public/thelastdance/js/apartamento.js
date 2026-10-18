@@ -555,7 +555,31 @@
       }))).then(() => { n.sprites3d = m; n.relogio3d = Math.random() * 4; });
     });
   }
+  // CENA A DOIS (beijo, tapa...): os quadros do protagonista com a menina juntos (sprites3d.json > cenas), no meio do
+  // caminho entre os dois; enquanto roda, o protagonista some (jog.oculto) e a cena faz o papel dos dois.
+  const ALT_PX_PROTAGONISTA = 308; // altura dele na folha 3D (a cena usa a mesma escala de pixel)
+  function cenaDupla(n, nome, opcoes) {
+    const o = opcoes || {}, m = n.sprites3d, f = m && m.cenas && m.cenas[nome];
+    if (!f || !f.img) { if (o.aoTerminar) o.aoTerminar(); return false; }
+    const dur = o.ms || (f.laco ? 3200 : (f.quadros / f.fps) * 1000 + 450);
+    jog.oculto = true; jog.andando = false; caminho = [];
+    n.cena = { nome, t0: performance.now(), x: (n.x + jog.x) / 2, y: (n.y + jog.y) / 2 };
+    setTimeout(() => { n.cena = null; jog.oculto = false; if (o.aoTerminar) o.aoTerminar(); }, dur);
+    return true;
+  }
+  function desenharCenaDupla(ctx, n) {
+    const f = n.sprites3d.cenas[n.cena.nome], t = (performance.now() - n.cena.t0) / 1000;
+    const q = f.laco ? Math.floor(t * f.fps) % f.quadros : Math.min(f.quadros - 1, Math.floor(t * f.fps));
+    const [x, y] = T(n.cena.x, n.cena.y, 0), e = ALTURA_PERSONAGEM / ALT_PX_PROTAGONISTA;
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.beginPath(); ctx.ellipse(x, y, 70, 14, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(f.img, q * f.larg, 0, f.larg, f.alt, x - f.pes[0] * e, y - f.pes[1] * e, f.larg * e, f.alt * e);
+    ctx.restore();
+  }
   function desenharNpcSprites(ctx, n) {
+    if (n.cena && n.sprites3d.cenas && n.sprites3d.cenas[n.cena.nome]) { desenharCenaDupla(ctx, n); return; }
     const m = n.sprites3d, d = m[n.dir] || m.baixo, agora = performance.now();
     const rindo = n.rindoAte && agora < n.rindoAte && d.rir;
     const f = rindo ? d.rir : d.parado;
@@ -1600,7 +1624,7 @@
   }).then(() => {
     // toca quando ele acorda no quarto (não toda vez que volta para casa)
     if (ROTEIRO_LIGACAO && comodo === "quarto" && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
-    marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir, PORTA, veiculos: VEICULOS, irAoVeiculo, irPara,
+    marcar(); window.NSF_APTO = { cenaDupla, ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir, PORTA, veiculos: VEICULOS, irAoVeiculo, irPara,
       falar, pensar, sentar, levantar, cortinaCom, imgProps, ocupado,
       poseSentada: criarPoseSentada, VISTA_MOD,
       abrirArmario, get heroi() { return heroi; },
