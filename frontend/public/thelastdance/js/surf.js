@@ -19,7 +19,7 @@
   "use strict";
 
   // ---------- regras (sem tela: testadas em tests/surf.test.js) ----------
-  const REGRAS = { ondas: 3, segundosOnda: 30, vCrista: 290 };
+  const REGRAS = { ondas: 3, segundosOnda: 30, vCrista: 360 };
   // pontos de cada manobra (floater e tubo ganham também por segundo; aéreo ganha por volta completa no ar)
   const PONTOS = { drop: 100, pulinho: 50, cavada: 150, cutback: 500, floater: 300, floaterSeg: 400, aereo: 1000, giro: 1000,
     tubo: 500, tuboSeg: 700, tubaco: 1500, cuspido: 500, onda: 300 };
@@ -32,16 +32,20 @@
   //   inc = 1) empurra mais; no ombro (inc baixo) a onda perde força e ele escorrega de volta para o pocket.
   //   Segurando D (ou A) ele "trima" (pouco atrito); soltando, ele trava a prancha (stall): perde velocidade e a
   //   onda o alcança (tubo). BOMBEAR: ▲▼ (W/S) alternados e rápidos = batidinhas na prancha, cada uma soma velocidade.
+  // RITMO: deixa tudo mais rápido ou mais lento sem mudar o jeito (velocidades x RITMO, acelerações x RITMO²)
+  const RITMO = 1.25;
   const FISICA = {
-    vMin: 80, vMax: 720,
-    gravidade: 420,     // px/s² na descida mais íngreme
-    empurrao: 110,      // a onda empurrando (no pocket)
-    atrito: 30,         // perda fixa
-    arrasto: 0.35,      // perda proporcional à velocidade, trimando
-    arrastoTravado: 1.4,// perda proporcional à velocidade, com a prancha travada (sem D/A)
-    deriva: 50,         // a onda corre um pouco mais que ele (na crista); no ombro, mais
+    vMin: 80 * RITMO, vMax: 720 * RITMO,
+    gravidade: 420 * RITMO * RITMO,  // px/s² na descida mais íngreme
+    empurrao: 110 * RITMO * RITMO,   // a onda empurrando (no pocket)
+    atrito: 30 * RITMO * RITMO,      // perda fixa
+    arrasto: 0.35 * RITMO,           // perda proporcional à velocidade, trimando
+    arrastoTravado: 1.4 * RITMO,     // perda proporcional à velocidade, com a prancha travada (sem D/A)
+    deriva: 50 * RITMO,              // a onda corre um pouco mais que ele (na crista); no ombro, mais
+    ombro: 230 * RITMO,              // quanto ele escorrega de volta no ombro (onde a onda é baixa)
+    travado: 70 * RITMO,             // quanto a onda vem pegando quando ele trava a prancha
     face: 240,          // altura da parede em px (converte velocidade em "alturas por segundo")
-    bomba: 90,          // ganho de cada bombada (diminui perto da velocidade máxima)
+    bomba: 90 * RITMO,  // ganho de cada bombada (diminui perto da velocidade máxima)
     bombaJanela: 0.45,  // ▲ e ▼ alternados com menos de 0,45 s entre eles contam como bombada
     rumoMax: 0.85,
   };
@@ -55,8 +59,8 @@
       - F.atrito - (c.anda ? F.arrasto : F.arrastoTravado) * st.v;
     st.v = Math.max(F.vMin, Math.min(F.vMax, st.v + acel * dt));
     const ao_longo = st.v * Math.cos(st.rumo);
-    const deriva = F.deriva + 230 * (1 - inc); // no ombro a onda perde força: ele escorrega de volta para o pocket
-    const u = !c.anda ? -(deriva + 70)            // travado: a onda vem pegando ele (tubo)
+    const deriva = F.deriva + F.ombro * (1 - inc); // no ombro a onda perde força: ele escorrega de volta para o pocket
+    const u = !c.anda ? -(deriva + F.travado)        // travado: a onda vem pegando ele (tubo)
       : st.dir > 0 ? ao_longo - deriva : -ao_longo + deriva * 0.6;
     return { vh: st.v * Math.sin(st.rumo) / F.face, u };
   }
@@ -80,7 +84,7 @@
   }
   const fmt = (n) => Math.round(n).toLocaleString("pt-BR");
   const limparNome = (n) => [...String(n == null ? "" : n).replace(/\s+/g, " ").trim()].slice(0, NOME_MAX).join("");
-  const Regras = { REGRAS, PONTOS, COMBO, NOME_MAX, FISICA, fisica, bombear, multiplicador, valorCombo, repeticao, resultado, titulo, fmt, limparNome };
+  const Regras = { REGRAS, PONTOS, COMBO, NOME_MAX, RITMO, FISICA, fisica, bombear, multiplicador, valorCombo, repeticao, resultado, titulo, fmt, limparNome };
   if (typeof module !== "undefined") module.exports = Regras;
   if (!global.document) return;
 
@@ -245,7 +249,7 @@
       x += len; primeira = false;
     }
   }
-  const vCrista = () => { const t = secaoEm(s.crista).tipo; return t === "tubular" ? 320 : t === "cheia" ? 250 : REGRAS.vCrista; };
+  const vCrista = () => { const t = secaoEm(s.crista).tipo; return t === "tubular" ? 400 : t === "cheia" ? 310 : REGRAS.vCrista; };
   function altura(d) {
     let h;
     if (d < 0) h = s.quebrada ? HMAX * Math.max(0.3, 0.62 + d / 2600) : HMAX * Math.max(0.15, 1 + d / 900);
@@ -273,7 +277,7 @@
     s.fase = "surfando"; s.quebrada = true; s.remo = null;
     gerarSecoes(s.crista);
     s.v = REGRAS.vCrista + 140; s.h = 0.95; s.vh = -1.2; s.u = 120; s.dir = 1;
-    s.fis = { v: 380, rumo: -0.7, dir: 1 }; // o drop: desce a parede e já ganha velocidade
+    s.fis = { v: 380 * RITMO, rumo: -0.7, dir: 1 }; // o drop: desce a parede e já ganha velocidade
     marcar("drop", PONTOS.drop, "DROP!");
     if (A()) A().swoosh(true);
     falar("drop");
@@ -389,7 +393,7 @@
       : s.x - W * (W < 900 ? 0.36 : 0.4);
     s.cam += (alvoCam - s.cam) * Math.min(1, dt * 3.5);
     // ele nunca sai da tela; no celular fica entre os botões (setas à esquerda, PULAR à direita)
-    if (s.fase === "surfando") s.cam = toque ? lim(s.cam, s.x - W * 0.64, s.x - W * 0.34) : lim(s.cam, s.x - W * 0.7, s.x - W * 0.08);
+    if (s.fase === "surfando") s.cam = toque ? lim(s.cam, s.x - W * 0.64, s.x - W * 0.24) : lim(s.cam, s.x - W * 0.7, s.x - W * 0.08);
     s.tremor = Math.max(0, s.tremor - dt * 40);
     for (const a of s.avisos) { a.vida -= dt; a.y -= dt * 60; }
     s.avisos = s.avisos.filter((a) => a.vida > 0);
@@ -563,9 +567,28 @@
   ["ceu_mar", "ilhas", "areia", "guarda_sol", "isopor", "cadeira_praia", "coqueiro",
     ...[0, 1, 2].flatMap((i) => [`onda_crista_${i}`, `onda_parede_${i}`, `onda_espuma_${i}`])].forEach((n) => {
     const im = new Image();
-    im.onload = () => { ARTE[n] = im; };
+    im.onload = () => {
+      ARTE[n] = im;
+      if (n.startsWith("onda_crista")) ARTE[n + "_pronta"] = cristaPronta(im);
+      if (n.startsWith("onda_espuma")) ARTE[n + "_fim"] = sumindo(im, false, 0.4); // o último bloco, encostado na crista
+    };
     im.src = "assets/maps/praia/" + n + ".png";
   });
+  // crista espelhada (enrola para a direita) e com a borda esquerda sumindo aos poucos: emenda na espuma sem linha reta
+  const cristaPronta = (im) => sumindo(im, true, 0.3);
+  // cópia da imagem (espelhada ou não) com um lado sumindo aos poucos: esquerdo (espelhada) ou direito
+  function sumindo(im, espelhar, frac) {
+    try {
+      const c = document.createElement("canvas"); c.width = im.width; c.height = im.height;
+      const g = c.getContext("2d"), w = im.width * frac;
+      if (espelhar) { g.translate(im.width, 0); g.scale(-1, 1); }
+      g.drawImage(im, 0, 0); g.setTransform(1, 0, 0, 1, 0, 0);
+      const x0 = espelhar ? 0 : im.width - w, grad = g.createLinearGradient(x0, 0, x0 + w, 0);
+      grad.addColorStop(0, `rgba(0,0,0,${espelhar ? 1 : 0})`); grad.addColorStop(1, `rgba(0,0,0,${espelhar ? 0 : 1})`);
+      g.globalCompositeOperation = "destination-out"; g.fillStyle = grad; g.fillRect(x0, 0, w, im.height);
+      return c;
+    } catch (e) { return null; }
+  }
   const quadro = (n) => ARTE[`${n}_${Math.floor(s.relogio * 6) % 3}`] || ARTE[n + "_0"];
   // desenha a arte no tamanho certo: cada pixel do arquivo vira um "pixel" da cena (PX px de tela)
   function pintar(ctx, im, x, y, esc, espelhar) {
@@ -708,8 +731,9 @@
     const cr = quadro("onda_crista");
     if (cr) { // a arte da crista, espelhada: enrola para a direita (para onde a onda anda); o oco do tubo fica na crista
       const w = cr.width * PX, h = cr.height * PX * s.forca, x = Math.round(s.crista - s.cam - w * 0.35);
-      ctx.save(); ctx.translate(x + w, Y_BASE + 8 - h); ctx.scale(-1, 1); ctx.drawImage(cr, 0, 0, w, h); ctx.restore();
-      if (x > 0) ctx.drawImage(cr, cr.width - 3, 0, 3, cr.height, 0, Y_BASE + 8 - h, x + 2, h); // canto: a borda da onda esticada até a tela
+      const pronta = ARTE[`onda_crista_${Math.floor(s.relogio * 6) % 3}_pronta`] || ARTE.onda_crista_0_pronta;
+      if (pronta) ctx.drawImage(pronta, x, Y_BASE + 8 - h, w, h);
+      else { ctx.save(); ctx.translate(x + w, Y_BASE + 8 - h); ctx.scale(-1, 1); ctx.drawImage(cr, 0, 0, w, h); ctx.restore(); }
       return;
     }
     const xc = s.crista - s.cam, L = s.tuboL, topo = Y_BASE - altura(1);
@@ -731,9 +755,15 @@
     if (!s.quebrada || s.forca < 0.05) return;
     const xc = Math.min(s.crista - s.cam + 10, W);
     const esp = quadro("onda_espuma");
-    if (esp) { // espuma (3 quadros) repetida da crista para trás; começa embaixo da crista (sem corte reto)
-      const w = esp.width * PX, h = esp.height * PX * s.forca, fim = xc + (ARTE.onda_crista_0 ? ARTE.onda_crista_0.width * PX * 0.1 : 0);
-      for (let x = fim - w; x > -w; x -= w) ctx.drawImage(esp, Math.floor(x), Y_BASE + 16 - h, w + 2, h);
+    if (esp) { // atrás da crista a onda já quebrou: um paredão de espuma (3 quadros) da altura da onda,
+      // que cobre a borda reta da arte da crista; repetido para trás até a beira da tela
+      const cr = ARTE.onda_crista_0, hc = cr ? cr.height * PX * 0.78 : esp.height * PX;
+      const h = hc * s.forca, w = Math.round(esp.width * PX * hc / (esp.height * PX));
+      const fim = cr ? s.crista - s.cam - cr.width * PX * 0.35 + cr.width * PX * 0.22 : xc;
+      const q = Math.floor(s.relogio * 6) % 3, ultimo = cr && ARTE[`onda_espuma_${q}_fim`];
+      for (let x = fim - w, primeiro = true; x > -w; x -= w, primeiro = false) {
+        ctx.drawImage(primeiro && ultimo ? ultimo : esp, Math.floor(x), Y_BASE + 16 - h, w + 2, h);
+      }
       return;
     }
     const borda = (sx) => {
@@ -927,7 +957,7 @@
     if (surf3d) desenharTira3d(ctx, pose3d(), 4, 2);
     else { heroi.definirVista("frente"); heroi.desenhar(ctx, 0, pesAbaixo * ESC + 2, ESC); }
     ctx.restore();
-    if (s.fis.v > 480 && !s.ar && s.fase === "surfando") { // linhas de velocidade
+    if (s.fis.v > 480 * RITMO && !s.ar && s.fase === "surfando") { // linhas de velocidade
       ctx.fillStyle = "rgba(255,255,255,0.5)";
       for (let i = 0; i < 4; i++) ctx.fillRect(x - s.dir * (160 + ((s.relogio * 900 + i * 70) % 140)) - (s.dir < 0 ? 70 : 0), y - 40 - i * 26, 70, 3);
     }
@@ -1003,12 +1033,11 @@
     // fundo: céu, mar, parede, marca da prancha (e o lábio, quando ele não está no tubo)
     const f = prepararCamada(fundo);
     ceu(f); marAoFundo(f); parede(f); rastro(f);
-    if (ARTE.onda_espuma_0) espuma(f); // com a arte, a espuma fica atrás da crista
     if (!noTubo) labio(f);
     // frente: lábio (tubo), espuma, água da frente, respingos, areia e a turma
     const fr = prepararCamada(frente);
     if (noTubo) labio(fr);
-    if (!ARTE.onda_espuma_0) espuma(fr);
+    espuma(fr);
     aguaDaFrente(fr); gotas(fr); areia(fr); turma(fr, dt);
     ctx.save();
     ctx.translate(tx, ty);
