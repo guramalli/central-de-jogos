@@ -1709,6 +1709,70 @@
         "espelhado": true,
         "proporcao": 1.0
       }
+    },
+    "neon_guarda_volumes": {
+      "tipo": "decal",
+      "arquivo": "neon_guarda_volumes.png",
+      "tamanho_px": [
+        512,
+        161
+      ]
+    },
+    "neon_dj": {
+      "tipo": "decal",
+      "arquivo": "neon_dj.png",
+      "tamanho_px": [
+        512,
+        250
+      ]
+    },
+    "telao_palco": {
+      "tipo": "decal",
+      "arquivo": "telao_palco.png",
+      "tamanho_px": [
+        512,
+        192
+      ]
+    },
+    "prateleira_bebidas": {
+      "tipo": "decal",
+      "arquivo": "prateleira_bebidas.png",
+      "tamanho_px": [
+        512,
+        258
+      ]
+    },
+    "prateleiras_gv": {
+      "tipo": "decal",
+      "arquivo": "prateleiras_gv.png",
+      "tamanho_px": [
+        512,
+        243
+      ]
+    },
+    "porta_balada": {
+      "tipo": "decal",
+      "arquivo": "porta_balada.png",
+      "tamanho_px": [
+        340,
+        512
+      ]
+    },
+    "porta_banheiro_masc": {
+      "tipo": "decal",
+      "arquivo": "porta_banheiro_masc.png",
+      "tamanho_px": [
+        280,
+        512
+      ]
+    },
+    "porta_banheiro_fem": {
+      "tipo": "decal",
+      "arquivo": "porta_banheiro_fem.png",
+      "tamanho_px": [
+        280,
+        512
+      ]
     }
   }
 }
