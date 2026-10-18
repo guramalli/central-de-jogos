@@ -1209,7 +1209,9 @@
     caixa.innerHTML = "";
     caixa.classList.remove("fim");
     mostrarBotoes(false);
-    const h = doc.createElement("h1"); h.textContent = "🏄 binho_pg_surfer";
+    const h = doc.createElement("h1"); h.className = "logo";
+    const logo = doc.createElement("img"); logo.src = "assets/logo/binho_pg_surfer.webp"; logo.alt = "binho_pg_surfer";
+    h.appendChild(logo);
     const p = doc.createElement("p");
     p.textContent = toque ? "Joystick: → vai · ← volta (a prancha vira) · ↑↓ sobe e desce a onda · PULAR. Ele nunca cai!"
       : "D vai · A volta (a prancha vira) · W/S sobe e desce a onda · Espaço pula. Ele nunca cai!";

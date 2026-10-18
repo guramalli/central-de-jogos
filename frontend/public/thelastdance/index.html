@@ -99,14 +99,13 @@
   @keyframes pisca { 0%, 100% { opacity: .2; transform: scale(.7); } 50% { opacity: 1; transform: scale(1.1); } }
   @keyframes neon { 0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; } 20%, 24%, 55% { opacity: .55; } }
   /* mod do surf (aberto a todos) */
-  .mod-surf { display: flex; align-items: center; gap: 14px; margin: 18px auto 6px; max-width: 520px; padding: 14px 16px;
+  .mod-surf { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin: 18px auto 6px; max-width: 520px; padding: 12px 16px 14px;
               border-radius: 18px; text-decoration: none; color: #f3ecff; border: 2px solid #22d3ee;
               background: linear-gradient(135deg, rgba(255,90,216,0.22), rgba(34,211,238,0.18)); box-shadow: 0 0 22px rgba(34,211,238,0.25); }
   .mod-surf:hover { box-shadow: 0 0 30px rgba(255,90,216,0.45); }
-  .mod-ic { font-size: 34px; }
-  .mod-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; text-align: left; }
-  .mod-txt b { font: 800 20px/1.1 ui-monospace, "Courier New", monospace; color: #ff8be6; letter-spacing: .5px; text-shadow: 0 0 10px rgba(255,90,216,.6); }
-  .mod-txt small { color: #cfe9f3; font-size: 13px; }
+  .mod-logo { width: 100%; height: auto; image-rendering: auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,.45)); }
+  .mod-linha { display: flex; align-items: center; gap: 12px; }
+  .mod-linha small { flex: 1; color: #cfe9f3; font-size: 13px; text-align: left; }
   .mod-jogar { font: 800 14px system-ui, sans-serif; padding: 10px 14px; border-radius: 999px; background: #22d3ee; color: #0b0712; }
   @media (prefers-reduced-motion: reduce) { .raios, .anel::after, .cara, .brilho, .nome .dance { animation: none; } }
 </style>
@@ -133,9 +132,11 @@
   <div class="vip" id="vip" aria-live="polite"></div>
 
   <a class="mod-surf" href="surf.html?mod">
-    <span class="mod-ic" aria-hidden="true">🏄</span>
-    <span class="mod-txt"><b>binho_pg_surfer</b><small>O minigame de surf, aberto a todos: tubo, aéreo, cutback e ranking geral.</small></span>
-    <span class="mod-jogar">SURFAR</span>
+    <img class="mod-logo" src="assets/logo/binho_pg_surfer.webp" alt="binho_pg_surfer" width="900" height="454">
+    <span class="mod-linha">
+      <small>O jogo de surf, aberto a todos: tubo, aéreo, cutback e ranking geral.</small>
+      <span class="mod-jogar">SURFAR</span>
+    </span>
   </a>
 
 
