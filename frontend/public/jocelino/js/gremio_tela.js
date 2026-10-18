@@ -82,3 +82,52 @@ function poeHortaCoberta(b) {
 }
 AO_MONTAR.push(b => poeHortaCoberta(b));
 MANHA.push(() => poeHortaCoberta(MAPAS.quintal));
+
+// ---------- (T11 das conversas e histórias) a exposição "A Vila em miniatura" (o B3 do arco do Mestre Bira, historias/bira.js) ----------
+// Como o Stardew muda o mundo depois de um evento (o terrário do Sebastian fica no quarto): depois da cena do Grêmio, a vitrine (a arte
+// do Museu, objetos/vitrine_museu) fica do lado do Grêmio, no recuo entre ele e o Mercado (como o balcão do Bazar do outro lado), com as
+// maquetes do Bira lá dentro: as casas que o Jocelino levantou (a cena LÊ o jogo: BiraArco.maquetes), a pensão onde ele escolheu e,
+// depois da inauguração da firma, a maquete do escritório. O clique abre a lista, com as plaquinhas da Ritinha. Nunca arte por código:
+// só as peças prontas (a vitrine e as 3 maquetes), posicionadas e escaladas.
+// A vitrine no tamanho da arte (144 px, 3 ladrilhos), o pé nos 2 ladrilhos livres (36 e 37) e 14 px para a direita: encosta de leve no
+// canto do Grêmio e fica na frente do canto do Mercado. As maquetes ficam no chão da vitrine (38 px acima do pé, o fundo de madeira
+// debaixo do vidro), em duas fileiras (a de trás um pouco mais alta), até 6 à mostra; a lista mostra todas.
+const GREMIO_EXPOSICAO = { x: 36, y: 23, w: 2, dx: 14, escala: 1, colisao: [34, 8],
+  chao: 38, fundo: 5, maquete: { 'objetos/maquete_casinha': 0.52, 'objetos/maquete_predio': 0.3, 'objetos/maquete_escritorio': 0.52 }, cabem: 6, largura: 112 };
+const _expoAqui = () => typeof BiraArco !== 'undefined' && BiraArco.exposicao();
+// O pé da vitrine, em px de mundo (o meio dos 2 ladrilhos, a base da linha y).
+const _expoPe = () => ({ x: (GREMIO_EXPOSICAO.x + GREMIO_EXPOSICAO.w / 2) * TILE + GREMIO_EXPOSICAO.dx, y: (GREMIO_EXPOSICAO.y + 1) * TILE });
+function desenhaExposicao(ctx) {
+  const E = GREMIO_EXPOSICAO, p = _expoPe();
+  desenhaPe(ctx, 'objetos/vitrine_museu', p.x, p.y, 1, E.escala);
+  const ms = (typeof BiraArco !== 'undefined' ? BiraArco.maquetes() : []).slice(0, E.cabem), n = ms.length;
+  // (a fileira de trás primeiro: as de índice ímpar ficam atrás, um pouco mais altas)
+  const pos = ms.map((m, i) => ({ m, x: p.x - E.largura / 2 + E.largura * (i + 0.5) / Math.max(1, n), y: p.y - E.chao - (n > 3 && i % 2 ? E.fundo : 0) }));
+  for (const q of pos.sort((a, b) => a.y - b.y)) desenhaPe(ctx, q.m.arte, q.x, q.y, 1, E.maquete[q.m.arte] || 0.5);
+}
+// A vitrine no mapa da Vila (sólida e com clique) depois do B3; durante a cena ela vem pelo EXTRAS_MUNDO (abaixo).
+function poeExposicao(b) {
+  if (!b || b.id !== 'vila') return;
+  const velha = b.objs.find(o => o.id === 'exposicao'); if (velha) b.tirar(velha);
+  if (typeof BiraArco === 'undefined' || !Historias.viu('bira_6')) return;
+  const E = GREMIO_EXPOSICAO, o = b.interativo('exposicao', 'objetos/vitrine_museu', E.x, E.y, E.w, 1, E.colisao);
+  o.desenha = ctx => desenhaExposicao(ctx);
+  o.acao = () => abrirExposicao();
+  return o;
+}
+AO_MONTAR.push(b => poeExposicao(b));
+MANHA.push(() => { if (typeof MAPAS !== 'undefined' && MAPAS.vila) poeExposicao(MAPAS.vila); });
+if (typeof EXTRAS_MUNDO !== 'undefined') EXTRAS_MUNDO.push(m => m && m.id === 'vila' && _expoAqui() && !m.objs.some(o => o.id === 'exposicao') ? [{ y: _expoPe().y, desenha: desenhaExposicao }] : []);
+// A lista da exposição: o título, quem fez o quê, e uma linha por maquete com a plaquinha da Ritinha.
+function abrirExposicao() {
+  const ms = typeof BiraArco !== 'undefined' ? BiraArco.maquetes() : [];
+  const caixa = el('div', { class: 'painel gremio exposicao', style: `background-image:url(${urlArte('ui/lista_povo')})` },
+    el('div', { class: 'titulo', style: 'font-size:26px' }, 'A Vila em miniatura'),
+    el('div', { class: 'gr-resumo' }, el('div', {}, 'As casinhas do Mestre Bira: uma de cada casa que o Jocelino levantou na Vila Maré. As plaquinhas são da Ritinha; os telhados, do Zezinho.')),
+    ...ms.map(m => el('div', { class: 'gr-pacote ok' }, el('span', { class: 'gr-item', style: 'margin-left:34px' }, el('img', { src: urlItem(m.arte.replace('objetos/', '')), style: 'width:40px;height:40px' })), el('b', { style: 'margin-left:8px' }, m.nome),
+      m.id === 'pensao' ? el('span', { class: 'gr-premio' }, BiraArco.lugarDaPensao() === 'esquina' ? 'na esquina, igual de verdade' : 'no meio: o coração da Vila') : null)),
+    ms.length ? null : el('div', { class: 'gr-falta' }, 'Ainda vazia: o Bira está terminando as casinhas.'),
+    el('div', { class: 'rodape' }, `${ms.length} ${ms.length === 1 ? 'maquete' : 'maquetes'} na vitrine. Toda casa nova que o Jocelino levantar ganha a dela.`),
+    el('div', { style: 'text-align:right;margin-top:8px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
+  abrirModal(caixa); sons.tocar('abrir', 1, 0.03, -6); return true;
+}

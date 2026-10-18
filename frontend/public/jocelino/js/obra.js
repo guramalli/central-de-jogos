@@ -188,13 +188,14 @@ const Obra = {
     // quebra numa tarefa da turma conta na lista da turma (não na dele), um por um, com o XP do serviço. Devolve 'turma'.
     if (!L.metas[id] && !turma && Obra.turmaPede(id, l)) {
       const T = Obra.turmaDe(l); T.feito[id] = Math.min(T.metas[id], (T.feito[id] || 0) + n);
-      if (typeof Habilidades !== 'undefined') Habilidades.ganhar(TAREFAS_OBRA[id].hab, TAREFAS_OBRA[id].xp * n);
+      if (typeof Habilidades !== 'undefined') Habilidades.ganhar(TAREFAS_OBRA[id].hab, TAREFAS_OBRA[id].xp * n * Habilidades.fatorObra());
       return 'turma';
     }
     if (!L.metas[id]) return 'nao_pede';
     L.feito[id] = Math.min(L.metas[id], (L.feito[id] || 0) + n * (turma ? 1 : Obra.emDobro(id)));
     if (G.limpou && !(turma && l.turma)) G.limpou['obra_' + id] = (G.limpou['obra_' + id] || 0) + 1;   // já fez essa tarefa uma vez (as setas, guia_setas.js)
-    if (typeof Habilidades !== 'undefined') Habilidades.ganhar(TAREFAS_OBRA[id].hab, TAREFAS_OBRA[id].xp * n * (Habilidades.tem('organizado') && ['tijolos', 'massa', 'entulho'].includes(id) ? 2 : 1) + (L.feito[id] === L.metas[id] ? 10 : 0));
+    // (T11 das histórias) o Ler planta do Mestre Bira (o B3): a experiência do serviço e a da tarefa completa, +10%
+    if (typeof Habilidades !== 'undefined') Habilidades.ganhar(TAREFAS_OBRA[id].hab, (TAREFAS_OBRA[id].xp * n * (Habilidades.tem('organizado') && ['tijolos', 'massa', 'entulho'].includes(id) ? 2 : 1) + (L.feito[id] === L.metas[id] ? 10 : 0)) * Habilidades.fatorObra());
     return Obra.completa() ? 'completa' : 'ok';
   },
   fracao() { const l = G.obra.lista; if (!l) return 0; let m = 0, f = 0; for (const id in l.metas) { m += l.metas[id]; f += Math.min(l.metas[id], l.feito[id] || 0); } return m ? f / m : 0; },

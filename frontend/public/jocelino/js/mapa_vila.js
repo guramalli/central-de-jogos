@@ -57,7 +57,9 @@ MAPAS_DEF.vila = () => {
   b.interativo('quadro_pedidos', 'objetos/quadro_pedidos', 26, 8, 2, 1, [28, 6]).acao = () => (typeof abrirQuadro === 'function' ? abrirQuadro() : abrirPlaca('O quadro de pedidos dos clientes da Vila.'));
   for (const t of [[20, 4], [30, 17], [44, 17]]) b.enfeite('objetos/coqueiro', t[0], t[1], true, 10);   // (o de 21,21 subiu para a chegada do quintal: ali é o lote do Edifício Maré)
   for (const t of [[2, 9], [42, 16]]) b.interativo('latao_lixo', 'objetos/latao_lixo', t[0], t[1], 1, 1, [10, 6]).acao = () => abrirPlaca('Um latão de lixo. Nada de útil hoje.');
-  b.interativo('roda_samba', 'objetos/roda_samba', 30, 19, 1, 1, [12, 6], false).acao = () => abrirPlaca('Roda de samba da praça. Toda sexta, das 7 da noite às 10 e meia!');
+  b.interativo('roda_samba', 'objetos/roda_samba', 30, 19, 1, 1, [12, 6], false).acao = () => abrirPlaca('Roda de samba da praça. Toda sexta, das 7 da noite às 10 e meia!'
+    + (typeof ZeArco !== 'undefined' && ZeArco.noiteDoSamba() ? ' Hoje a roda foi pra pensão da Rosa: é a Noite do Samba do Zé!'   // (T13, rodada 1: I3)
+      : typeof ZeArco !== 'undefined' && ZeArco.cantaNaRoda() ? ` Agora o Zé canta o samba dele${ZeArco.nome() ? `, "${ZeArco.nome()}"` : ''}.` : ''));   // (T13: depois do E2 do arco do Zé)
   // (15/10, T6) O banco da praça, ao lado da roda de samba (sólido só no pé): quebra no serviço da Dona Zélia (empreitas.js).
   // Abaixo do lote da calçada da roda (Prefeitura) e fora do lugar da carroça do viajante e do canteiro do Mercado.
   b.interativo('banco_praca', 'objetos/banco_praca', 27, 20, 2, 1, [28, 8]).acao = () => abrirPlaca(G.empreitas && G.empreitas.aceitas.banco_praca
@@ -71,6 +73,65 @@ MAPAS_DEF.vila = () => {
   b.paredesDaBorda();
   return b;
 };
+
+// ---------- (T12 das histórias) a filha e o neto da Dona Zélia, moradores da Vila ----------
+// Depois do Natal da Zélia (o Z4, historias/zelia.js: ZeliaArco.moram()), a Marisa e o Tiaguinho moram no quarto da cortina e andam
+// pela calçada da casa dela, como a Zélia. A Marisa trabalha no banco de Praia Grande: de segunda a sexta só aparece cedo (até as 8h)
+// e no fim da tarde (das 17h às 20h); no sábado e no domingo, das 7h às 20h. O Tiaguinho fica na Vila das 7h às 19h, menos nas tardes
+// sem chuva, que ele passa no quintal com o Zezinho (ZeliaArco.tiaguinhoNoQuintal). Põe ao montar a Vila e no fim da cena.
+const FAMILIA_ZELIA = {
+  marisa: { nome: 'Marisa', x: 33, y: 10, area: { x: 30, y: 10, w: 14, h: 1 } },
+  tiaguinho: { nome: 'Tiaguinho', x: 41, y: 11, area: { x: 29, y: 10, w: 16, h: 2 } },
+};
+function poeFamiliaDaZelia(b) {
+  if (!b || b.id !== 'vila') return;
+  const mora = typeof ZeliaArco !== 'undefined' && ZeliaArco.moram();
+  for (const id in FAMILIA_ZELIA) {
+    const F = FAMILIA_ZELIA[id], tem = b.moradores.find(m => m.id === id && !m._daHistoria);
+    if (mora && !tem) b.morador(id, F.nome, F.x, F.y, DIR.BAIXO, { vagueia: true, area: areaDePasseio(F.area), daZelia: true });
+    else if (!mora && tem) b.moradores = b.moradores.filter(m => m !== tem);
+  }
+}
+// Quem da família da Zélia está na Vila agora (o horário de cada um; a cena da Vila põe quem ela precisa).
+function familiaDaZeliaNaVila(id, dia = G.dia, min = G.minutos) {
+  if (typeof Historias !== 'undefined' && Historias.vistaEm('zelia_8') === dia) return true;   // (o dia da chegada: os dois ficam na Vila)
+  const semana = (dia - 1) % 7;
+  if (id === 'marisa') return semana >= 5 ? min >= 7 * 60 && min < 20 * 60 : (min >= 6 * 60 && min < 8 * 60) || (min >= 17 * 60 && min < 20 * 60);
+  if (id === 'tiaguinho') return min >= 7 * 60 && min < 19 * 60 && !(typeof ZeliaArco !== 'undefined' && ZeliaArco.tiaguinhoNoQuintal(dia, min));
+  return true;
+}
+AO_MONTAR.push(b => poeFamiliaDaZelia(b));
+ATUALIZADORES.push(() => {
+  if (G.mapaId !== 'vila' || !G.mapa) return;
+  for (const m of G.mapa.moradores) if (m.daZelia) m.visivel = familiaDaZeliaNaVila(m.id);
+});
+
+// ---------- (T13 das histórias) o Zé na roda de samba ----------
+// Depois da roda de sexta (o E2 do arco do Zé, historias/ze.js: ZeArco.cantaNaRoda()), toda sexta das 19h às 22h30 o Zé sai do
+// canteiro e canta na roda da praça (a nota musical em cima dele vem do ze.js); fora disso, volta para o lugar dele no canteiro da
+// obra da vez. Na roda ele aparece mesmo no dia em que faltou à obra (a turma do mestre) e, na volta, fica como estava.
+const ZE_RODA = { x: 29, y: 19, area: { x: 28, y: 19, w: 3, h: 1 }, semana: 4, de: 19 * 60, ate: 22 * 60 + 30 };
+// (rodada 1) Sem roda na chuva (é ao ar livre: M8) nem na noite da Noite do Samba do Zé (a roda vai jantar na pensão: I3).
+function zeNaRoda(dia = G.dia, min = G.minutos) {
+  return typeof ZeArco !== 'undefined' && ZeArco.cantaNaRoda() && (dia - 1) % 7 === ZE_RODA.semana && min >= ZE_RODA.de && min < ZE_RODA.ate
+    && !(typeof Clima !== 'undefined' && Clima.chove(dia)) && !ZeArco.noiteDoSamba(dia);
+}
+function poeZeNaRoda(b) {
+  if (!b || b.id !== 'vila') return;
+  const ze = b.moradores.find(m => m.id === 'ze' && !m._daHistoria); if (!ze) return;
+  const quer = zeNaRoda();
+  if (quer && !ze._naRoda) {
+    ze._visAntes = ze.visivel; ze._naRoda = true; ze.visivel = true;
+    Object.assign(ze, { x: (ZE_RODA.x + 0.5) * TILE, y: ZE_RODA.y * TILE + 42, _alvo: null, andando: false, area: areaDePasseio(ZE_RODA.area), dir: DIR.BAIXO });
+  } else if (quer) ze.visivel = true;   // (a turma do mestre esconde quem faltou à obra ao entrar na Vila: na roda ele está)
+  else if (!quer && ze._naRoda) {
+    const C = canteiroDaVez(), g = C.gente.ze;
+    ze._naRoda = false; if (ze._visAntes !== undefined) ze.visivel = ze._visAntes;
+    Object.assign(ze, { x: (g[0] + 0.5) * TILE, y: g[1] * TILE + 42, _alvo: null, andando: false, area: areaDePasseio(C.passeio.ze), _balaoH: null });
+  }
+}
+AO_MONTAR.push(b => poeZeNaRoda(b));
+ATUALIZADORES.push(() => { if (G.mapaId === 'vila' && G.mapa) poeZeNaRoda(G.mapa); });
 
 // ---------- o canteiro da obra da vez ----------
 // (15/10, pedido do jogador: "agora que a obra da Dona Zélia acabou, o canteiro de obras deve sair de lá; devemos agora

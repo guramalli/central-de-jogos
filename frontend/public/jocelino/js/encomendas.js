@@ -283,7 +283,7 @@ const Encomendas = {
   // anfitrião e os 2 últimos pratos de festa. Pesa mais o prato com a dificuldade perto de min(estrelas, 3) (o prato valioso pede
   // ingrediente difícil) e o da categoria da ocasião. '' se nenhum dá.
   escolherPrato(p, quem, dia, noite, rng, h = Encomendas.estado(), n = Encomendas.turma(p)) {
-    const fav = typeof Clientela !== 'undefined' && Clientela.dado(quem) ? Clientela.dado(quem).prato : '';
+    const sempre = typeof Clientela !== 'undefined' ? (Clientela.deSempre || Clientela.dado)(quem) : null, fav = sempre ? sempre.prato : '';   // (T12) o de sempre, não o do dia
     const cats = (OCASIOES[quem] || {}).categorias || [], alvo = Math.min(Encomendas.degrau(p), 3), PESO = [4, 2, 1, 0.5, 0.25];
     const cands = p.receitas.filter(id => Pratos.PRATOS[id] && id !== fav && !(h.pratos || []).slice(0, 2).includes(id)
       && Encomendas.antecedencia(id) <= noite - dia && Encomendas.possivel(p, id, n, dia, noite));

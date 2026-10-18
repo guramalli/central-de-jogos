@@ -440,7 +440,8 @@ function desenhaNomes(ctx, m) {
     const mm = mouseMundo();
     const sob = Math.hypot(mm.x - p.x, mm.y - (p.y - 50)) < 40;
     if (modo === 2 || perto || sob) {
-      const fi = spr(p.folha), ny = p.y - (fi ? fi.naturalHeight / 4 / fatorGente(fi) : 114) - 4;   // logo acima da cabeça (gente ou bicho; folha ampliada: arte.js)
+      // logo acima da cabeça (gente ou bicho; folha ampliada: arte.js); (T14) p.nomeEm() troca a altura (o Seu Bento: sobre a canoa dele)
+      const fi = spr(p.folha), ny = (p.nomeEm && p.nomeEm()) || p.y - (fi ? fi.naturalHeight / 4 / fatorGente(fi) : 114) - 4;
       ctx.lineWidth = 4 / G.zoom; ctx.strokeStyle = 'rgba(19,27,27,.9)'; ctx.strokeText(p.nome, p.x, ny);
       ctx.fillStyle = '#fff'; ctx.fillText(p.nome, p.x, ny);
     }

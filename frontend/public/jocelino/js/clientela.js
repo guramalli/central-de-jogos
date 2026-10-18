@@ -21,7 +21,14 @@ const CLIENTELA = {
 };
 const Clientela = {
   CHEGA_DE: 17 * 60 + 30, CHEGA_ATE: 19 * 60, GORJETA_RITINHA: 0.10,
-  dado(id) { for (const d in CLIENTELA) { const c = CLIENTELA[d].find(x => x.id === id); if (c) return c; } return null; },
+  // (T12) quem janta em mais de um dia (a Zélia na quarta e no sábado) tem a fala e o prato do dia de hoje; senão, o 1º dia dele
+  dado(id) {
+    const hoje = typeof G !== 'undefined' && G.dia ? (G.dia - 1) % 7 : -1, h = (CLIENTELA[hoje] || []).find(x => x.id === id);
+    if (h) return h;
+    return Clientela.deSempre(id);
+  },
+  // (T12, rodada 1) a entrada do dia de sempre (o 1º dia em que janta), sem olhar o dia de hoje: o favorito fixo da pessoa
+  deSempre(id) { for (const d in CLIENTELA) { const c = CLIENTELA[d].find(x => x.id === id && !x.arco); if (c) return c; } for (const d in CLIENTELA) { const c = CLIENTELA[d].find(x => x.id === id); if (c) return c; } return null; },
   // O cliente do turno: o nome e a mania (Lourival cheira a peixe, Tonhão pede três vezes) vêm de Pratos.CLIENTES quando ele já existia.
   cliente(id) {
     const d = Clientela.dado(id), base = Pratos.CLIENTES.find(c => c.id === id);
@@ -43,7 +50,21 @@ const Clientela = {
   },
   // Em 1 de cada 3 noites um dos filhos aparece (alternando); nunca no domingo.
   filhoDaNoite(dia) { if ((dia - 1) % 7 === 6 || dia % 3 !== 0) return ''; return Math.floor(dia / 3) % 2 ? 'ritinha' : 'zezinho'; },
+  // (T12 das histórias) Quem passa a jantar num dia a mais por causa de um arco (a Dona Zélia também aos sábados, a Marisa às quintas;
+  // historias/zelia.js): CLIENTELA_ARCOS = [{ id: 'chave única', dia: 0..5, se: () => bool, entrada: { id, nome, prato, fala, elogio } }].
+  // Clientela.arcos() põe a entrada no dia dela quando o `se` vale e tira quando não vale (o carregar de outro save), como o Bairro Novo
+  // faz com quem se muda (bairro_jogo.js). O arco chama no carregar, de manhã e no fim da cena. Clientela.dado(id) acha a 1ª entrada
+  // (a do dia de sempre), e a aba Gente diz todos os dias.
+  arcos() {
+    for (const a of CLIENTELA_ARCOS) {
+      const L = CLIENTELA[a.dia] || (CLIENTELA[a.dia] = []), k = L.findIndex(c => c.arco === a.id);
+      let vale = false; try { vale = !!a.se(); } catch (e) { console.error(e); }
+      if (vale && k < 0) L.push(Object.assign({ arco: a.id }, a.entrada));
+      else if (!vale && k >= 0) L.splice(k, 1);
+    }
+  },
 };
+const CLIENTELA_ARCOS = [];
 
 // ---------- o Doutor Paladar ----------
 // O crítico exigente do Dave, do nosso jeito: 1 vez por estação (a partir do degrau 2), numa noite sorteada, chega

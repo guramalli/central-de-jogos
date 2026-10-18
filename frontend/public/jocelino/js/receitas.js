@@ -83,6 +83,18 @@ const RECEITAS_NOVAS = {
   // açúcar = 60). Tudo da fase 1 (a horta, a praia e a Mercearia): a Rosa faz o bolo logo que o caderno chega.
   bolo_macaxeira_via: _rec('Bolo de Macaxeira da Vó Ia', 26, 2, 'amizade', { mandioca: 1, coco: 1, acucar: 1 }, 'itens/prato_bolo_macaxeira_via',
     'Da Vó Ia, de Itabaiana: macaxeira ralada, coco e açúcar, com canela por cima. Para a rua inteira.', { historia: 'rosa_1', dica: 'Uma receita de família, de longe: chega quando for a hora.' }),
+  // (T12) O Caldo Verde da Dona Zélia (o Z3 do arco dela, historias/zelia.js): a couve da horta (o principal), a linguiça da Mercearia e a
+  // mandioca no lugar da batata, como se faz em Praia Grande. O crivo da s1: a mandioca é a horta demorada (14 dias), então Cr$ 25 ou
+  // mais (e abaixo de 45); a panela (28 × 1,05 = 29 × 4 = 116) passa de 1,3 × os crus que gasta (2 couves, 2 linguiças e 2 mandiocas).
+  caldo_verde_zelia: _rec('Caldo Verde da Dona Zélia', 28, 2, 'amizade', { couve: 1, linguica: 1, mandioca: 1 }, 'itens/prato_caldo_verde_zelia',
+    'Da Dona Zélia, quarenta anos de prática: couve fininha, linguiça e mandioca. Com uma pitada a mais de sal, que ninguém tinha coragem de dizer.', { historia: 'zelia_6', dica: 'Uma receita de vizinha: chega quando for a hora.' }),
+  // (T14) O Azul-Marinho do Lourival (o L4 do arco dele, historias/lourival.js): o prato caiçara de peixe cozido com banana verde (que
+  // deixa o caldo azulado) e o pirão de farinha. O peixe é o da despensa (o principal 'peixe', como o peixe frito); a banana verde vem do
+  // pomar do sítio (mata-sítio 3.5): até o pomar existir, a receita fica no caderno e a Rosa espera a banana (o risco 7 da spec). O crivo
+  // da s1: a banana do pé (28 dias até a 1ª fruta) conta como a horta demorada (raridade 3), então Cr$ 25 ou mais (e abaixo de 45); a
+  // panela (30 × 1,05 = 32 × 4 = 128) passa de 1,3 × os crus que gasta (2 peixes, 2 bananas e 2 farinhas).
+  azul_marinho_lourival: _rec('Azul-Marinho do Lourival', 30, 2, 'amizade', { peixe: 1, banana: 1, farinha: 1 }, 'itens/prato_azul_marinho_lourival',
+    'Do Seu Lourival, do jeito caiçara: peixe cozido com banana verde, que deixa o caldo azulado, e pirão de farinha. Prato de empate, que se divide.', { historia: 'lourival_8', dica: 'Uma receita de pescador: chega quando for a hora.' }),
 };
 // Os ingredientes novos das receitas (raridade, fase em que a pensão aceita, de onde vêm).
 Object.assign(Pratos.INGREDIENTES, {
@@ -91,6 +103,7 @@ Object.assign(Pratos.INGREDIENTES, {
   siri: { raridade: 2, fase: 2, origem: 'Praia à noite' },
   camarao: { raridade: 3, fase: 3, origem: 'Mascate' },
   polvo: { raridade: 4, fase: 3, origem: 'Viajante da Capital (às quintas)' },
+  banana: { raridade: 3, fase: 2, origem: 'Pomar do sítio (um dia)', nome: 'Banana verde' },   // (T14) o azul-marinho do Lourival; o pé vem com o pomar
 });
 Object.assign(Pratos.MERCEARIA, { leite: 2, acucar: 1 });
 for (const id in RECEITAS_NOVAS) Pratos.PRATOS[id] = Object.assign({ montar: Object.keys(RECEITAS_NOVAS[id].porcao) }, RECEITAS_NOVAS[id]);
@@ -101,7 +114,7 @@ const CATEGORIAS = { peixe: 'Peixe', caldo: 'Caldo e cozido', pf: 'Prato feito',
 const CATEGORIA_PRATO = {
   peixe: ['peixe_frito', 'sardinha_frita', 'lambari_crocante', 'casquinha_siri', 'escondidinho', 'lagosta_manteiga', 'robalo_assado', 'arroz_polvo'],
   caldo: ['sopa_pedra', 'sopa_legumes', 'peixe_ensopado', 'caldo_caranguejo', 'caldo_peixe', 'pirao', 'moqueca', 'moqueca_capixaba', 'bobo_camarao',
-    'peixada', 'caldeirada', 'moqueca_prefeito', 'caldeirada_critico', 'vatapa', 'pitu_moranga'],
+    'peixada', 'caldeirada', 'moqueca_prefeito', 'caldeirada_critico', 'vatapa', 'pitu_moranga', 'caldo_verde_zelia', 'azul_marinho_lourival'],
   pf: ['pf_peao', 'virado', 'marmita_peao', 'picadinho_santos'],
   doce: ['cocada_tijolinho', 'rabanada', 'arroz_doce', 'mingau_milho', 'bolinho_chuva', 'canjica', 'pamonha', 'goiabada', 'bolo_milho', 'doce_leite_calixto', 'bolo_macaxeira_via'],
   horta: ['salada_rosa', 'couve_mineira', 'pure_abobora'],

@@ -590,6 +590,9 @@ function guiaSetaMundo() {
   // no quintal, sem nenhuma outra seta, aponta a plaquinha e diz quanto falta. Só no fim: na frente das outras, a seta ficava
   // presa na plaquinha e o que dava para fazer em outro mapa sumia (o robô jogador indo e voltando entre o quintal e a Vila).
   { const c = _alvoDaCasaSemDinheiro(); if (c) { const o = Object.assign({ tipo: 'alvo' }, c); const p = _posNoMapa(o); if (p) { Object.assign(o, p); o.rotulo = c.rotuloFixo; return o; } } }
+  // (T15, rodada 2) O oratório da Dona Zefa (historias/atos.js): dentro de casa, sem nenhuma outra seta, até o 1º clique. Não é '_vez':
+  // um enfeite não segura as cenas do motor nem passa na frente do serviço e do recado.
+  { const c = typeof Atos !== 'undefined' ? Atos.alvoDoOratorio() : null; if (c) { const o = Object.assign({ tipo: 'alvo', missao: 'oratorio' }, c); const p = _posNoMapa(o); if (p) { Object.assign(o, p); o.rotulo = c.rotuloFixo; return o; } } }
   // (T3 da mata) A serra aberta e nunca visitada: na mata, sem outra seta, a saída de baixo (mapa_serra.js).
   { const m = typeof alvoDaSerraNaMata === 'function' ? alvoDaSerraNaMata() : null; if (m) { const o = Object.assign({ tipo: 'alvo', missao: 'serra_mata' }, m, m.ponto); o.rotulo = _rotulo(o); return o; } }
   // (14/10) A primeira árvore de corte da mata (mapa_mata.js): sem outra seta, a mais perto, com a frase, até a primeira cair.
@@ -921,7 +924,8 @@ function guiaSetaUI() {
 }
 // O "!" some de quem a seta já aponta (a seta basta). A seta é calculada uma vez por quadro (cache pelo relógio do jogo).
 let _setaAgora = null, _setaT = -1, _setaMapa = '';
-function setaAgora() { const t = G.agora || 0; if (t !== _setaT || G.mapaId !== _setaMapa) { _setaT = t; _setaMapa = G.mapaId; try { _setaAgora = guiaSetaMundo(); } catch (e) { _setaAgora = null; } } return _setaAgora; }
+// (18/10) durante uma cena de história não há seta nem dica (a dica do achado aparecia por cima das cenas)
+function setaAgora() { if (typeof Historias !== 'undefined' && Historias.tocando && Historias.tocando()) return null; const t = G.agora || 0; if (t !== _setaT || G.mapaId !== _setaMapa) { _setaT = t; _setaMapa = G.mapaId; try { _setaAgora = guiaSetaMundo(); } catch (e) { _setaAgora = null; } } return _setaAgora; }
 { const m0 = guiaMarcaMorador, o0 = guiaMarcaObjeto;
   guiaMarcaMorador = function (id) { const s = setaAgora(); return !(s && s.morador === id) && m0(id); };
   guiaMarcaObjeto = function (id) { const s = setaAgora(); return !(s && s.objeto === id) && o0(id); }; }

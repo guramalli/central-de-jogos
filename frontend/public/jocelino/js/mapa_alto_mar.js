@@ -39,7 +39,9 @@ ATUALIZADORES.push(dt => {
   if (G.minutos >= ALTO.VOLTA) voltarDoMar();
 });
 function cardumeEm(tx, ty) { return G.mapaId === 'alto_mar' && (G.cardumes || []).some(c => Math.hypot(c.x - (tx + 0.5) * TILE, c.y - (ty + 0.5) * TILE) < 1.6 * TILE); }
-const oleoAltoMar = () => typeof Habilidades !== 'undefined' && Habilidades.ganho('oleo_por_conta') ? 0 : ALTO.OLEO;
+// (T14 das histórias, o L3 do Lourival) Com a canoa Esperança consertada, o Lourival paga a metade do óleo (ECO.pesca.esperanca.oleo).
+const esperancaNova = () => typeof LourivalArco !== 'undefined' && LourivalArco.consertada();
+const oleoAltoMar = () => typeof Habilidades !== 'undefined' && Habilidades.ganho('oleo_por_conta') ? 0 : esperancaNova() ? ECO.pesca.esperanca.oleo : ALTO.OLEO;
 function ofertaAltoMar() {
   if (G.mapaId !== 'praia') return;
   if (relogio.domingo()) { avisar('Domingo o barco descansa.'); return; }
@@ -47,7 +49,7 @@ function ofertaAltoMar() {
   if (G.minutos < 5 * 60 || G.minutos >= 9 * 60) { avisar('O barco sai cedo, das 5h às 9h.'); return; }
   // (T4b, Pesca 9) Óleo por conta: com o pescador de Pesca 9, o Lourival não cobra o óleo
   const oleo = oleoAltoMar();
-  perguntar(oleo ? `Seu Lourival: "Bora pro alto-mar? Cr$ ${oleo} do óleo. Volta às 15h, a tempo da janta."` : 'Seu Lourival: "Bora pro alto-mar? O óleo é por minha conta, pescador. Volta às 15h, a tempo da janta."', ['Bora!', 'Hoje não'], i => {
+  perguntar(oleo ? `Seu Lourival: "Bora pro alto-mar? Cr$ ${oleo} do óleo${esperancaNova() ? ' (a outra metade é por minha conta, pela Esperança)' : ''}. Volta às 15h, a tempo da janta."` : 'Seu Lourival: "Bora pro alto-mar? O óleo é por minha conta, pescador. Volta às 15h, a tempo da janta."', ['Bora!', 'Hoje não'], i => {
     if (i !== 0) return;
     if (G.dinheiro < oleo) { avisar(`Falta dinheiro do óleo (Cr$ ${oleo}).`); return; }
     G.dinheiro -= oleo; G.gastoHoje += oleo; G.minutos += 60; G.cardumes = null;

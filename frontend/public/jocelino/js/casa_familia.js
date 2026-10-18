@@ -51,7 +51,8 @@ AO_ENTREGAR.push((id, q) => {
   // (T1 das conversas) A família não tem número de amizade: a mudança é carinho, numa fala (antes, +2 para cada um).
   G.casa.mudou = true;
   if (MAPAS.quintal) poeCasaFamilia(MAPAS.quintal);
-  return 'A família se mudou para a casa nova! Teve festa no quintal: a Rosa fez bolo de milho, o Tio Juca tocou viola e as crianças ganharam o quarto delas. A Rosa abraçou o Jocelino: "Agora sim, a gente tem um canto nosso."';
+  // (T15, rodada 1) a festa da mudança é a cena "Casa nossa" (historias/atos.js), na 1ª noite em casa: aqui só a mudança
+  return 'A família se mudou para a casa nova! As crianças ganharam o quarto delas, e a Rosa já está pensando na primeira janta lá.';
 });
 // Save antigo: o que o jogador pôs ou plantou no terreno da obra da família volta para a mochila antes do prédio subir
 // (a cerca, o irrigador; a cova plantada devolve a semente).
