@@ -18,6 +18,20 @@ INICIADORES.push(s => {
 });
 COLETORES.push(s => { s.mochila = G.mochila.paraDict(); s.sel = G.sel; });
 
+// (T11 das conversas e histórias) A COLHER DO MESTRE: o Mestre Bira dá a colher de mestre dele no B4 (historias/bira.js), com o
+// Edifício Maré entregue. Como a ferramenta melhorada do Stardew (a mesma ferramenta, mais forte): a colher de pedreiro da mochila
+// vira a Colher do Mestre (o nome e a descrição mudam; a arte é a da colher, itens/colher, e a folha de golpe é a mesma), e assenta
+// mais ligeiro e pesa menos na mão: o golpe dura ECO.niveis.colherMestre.golpe do normal e gasta .energia da energia. G.colherMestre
+// (no save).
+INICIADORES.push(s => { G.colherMestre = !!s.colherMestre; });
+COLETORES.push(s => { s.colherMestre = !!G.colherMestre; });
+const colherDoMestre = () => typeof G !== 'undefined' && !!G && !!G.colherMestre;
+if (typeof ITENS !== 'undefined' && ITENS.colher) {
+  const C = ITENS.colher, nome = C.nome, desc = C.descricao;
+  Object.defineProperty(C, 'nome', { get: () => colherDoMestre() ? 'Colher do Mestre' : nome, enumerable: true, configurable: true });
+  Object.defineProperty(C, 'descricao', { enumerable: true, configurable: true,
+    get: () => colherDoMestre() ? 'A colher de mestre do Bira: assenta tijolo e reboca mais ligeiro, e pesa menos na mão.' : desc });
+}
 const itemDaMao = () => G.mochila ? G.mochila.idEm(G.sel) : '';
 // O nível da ferramenta (0 = comum; o Seu Tonico melhora na etapa 5).
 const nivelFerramenta = id => (G.nivelFerr && G.nivelFerr[id]) || 0;
@@ -92,7 +106,8 @@ function usarItemDaMao(peloTeclado) {
   if (j.carga && j.carga.id) { avisar('Primeiro entregue o que está carregando.'); return; }
   const alvo = alvoDoGolpe(peloTeclado);
   if (alvo.longe) { j.dir = alvo.dir; avisarChegueMaisPerto(); return; }   // (C5) de longe: vira para lá e avisa, sem golpe
-  const custo = (typeof Habilidades !== 'undefined' ? Habilidades.custo(id, typeof golpeDeAcabamento === 'function' && golpeDeAcabamento(id, alvo)) : CUSTO_GOLPE) * (1 + 0.5 * nivelFerramenta(id)) * (typeof fatorArMina === 'function' ? fatorArMina() : 1) * (typeof fatorEnergiaLote === 'function' ? fatorEnergiaLote(id, alvo) : 1);
+  const custo = (typeof Habilidades !== 'undefined' ? Habilidades.custo(id, typeof golpeDeAcabamento === 'function' && golpeDeAcabamento(id, alvo)) : CUSTO_GOLPE) * (1 + 0.5 * nivelFerramenta(id)) * (typeof fatorArMina === 'function' ? fatorArMina() : 1) * (typeof fatorEnergiaLote === 'function' ? fatorEnergiaLote(id, alvo) : 1)
+    * (id === 'colher' && colherDoMestre() ? ECO.niveis.colherMestre.energia : 1);   // (T11) a Colher do Mestre pesa menos na mão
   if (G.energia < custo) { avisar('O Jocelino está esgotado. Coma alguma coisa ou vá dormir.'); return; }
   j.dir = alvo.dir;
   const pf = PERFIL_GOLPE[perfilDe(id)];
@@ -262,7 +277,12 @@ for (const d in PERFIL_GOLPE.regador.quadros) PERFIL_GOLPE.mangueira.quadros[d] 
 PERFIL_GOLPE.rolo = { dur: 0.6, subida: 0.3, acerto: 0.45, marcas: [0.15, 0.3, 0.45], quadros: {} };
 for (const d in PERFIL_GOLPE.pa.quadros) PERFIL_GOLPE.rolo.quadros[d] = PERFIL_GOLPE.pa.quadros[d].map(k => ({ ...k, t: k.t * 0.6 / 0.38 }));
 const SEM_ZUNIDO = new Set(['foice', 'colher', 'mangueira', 'rolo']);
-function perfilDe(id) { return ['foice', 'regador', 'pa', 'colher', 'mangueira', 'rolo'].includes(id) ? id : 'pesada'; }
+// (T11) A Colher do Mestre: o mesmo gesto da colher, mais ligeiro (todos os tempos × ECO.niveis.colherMestre.golpe; o quadro da folha
+// de golpe segue as marcas encurtadas).
+{ const k = ECO.niveis.colherMestre.golpe, C = PERFIL_GOLPE.colher;
+  PERFIL_GOLPE.colher_mestre = { dur: C.dur * k, subida: C.subida * k, acerto: C.acerto * k, marcas: C.marcas.map(t => t * k), quadros: {} };
+  for (const d in C.quadros) PERFIL_GOLPE.colher_mestre.quadros[d] = C.quadros[d].map(q => ({ ...q, t: q.t * k })); }
+function perfilDe(id) { if (id === 'colher' && colherDoMestre()) return 'colher_mestre'; return ['foice', 'regador', 'pa', 'colher', 'mangueira', 'rolo'].includes(id) ? id : 'pesada'; }
 // Onde a ferramenta toca o chão no quadro de impacto da folha desenhada, relativo ao pé (LEIA_golpe.txt): as lascas saem dali.
 // (a mangueira: onde a água cai no chão; o rolo: o meio do rolo na parede, descendo)
 const CONTATO_GOLPE = { colher: { [DIR.BAIXO]: [-7, 9], [DIR.CIMA]: [31, -1], [DIR.ESQUERDA]: [-19, -1], [DIR.DIREITA]: [18, -1] },

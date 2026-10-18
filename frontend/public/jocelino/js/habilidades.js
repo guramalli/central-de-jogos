@@ -139,6 +139,13 @@ const NIVEIS_RECOMPENSA = {
     10: [_V],
   },
 };
+// (T11 das conversas e histórias) OS SEGREDOS DE OFÍCIO (spec das histórias, 6.3): o que um morador ensina numa cena, fora dos níveis,
+// pequeno e para sempre (como o Linus ensina a isca selvagem no Stardew). Ficam em G.hab.segredos (no save) e na tela H.
+//  - ler_planta: o Mestre Bira ensina na exposição do Grêmio (o B3, historias/bira.js): as tarefas da obra dão mais experiência
+//    (ECO.niveis.lerPlanta; Obra.trabalho multiplica pelo Habilidades.fatorObra).
+const SEGREDOS_OFICIO = {
+  ler_planta: { nome: 'Ler planta', de: 'Mestre Bira', get frase() { return `As tarefas da obra do Bira dão ${Math.round(ECO.niveis.lerPlanta * 100)}% a mais de experiência.`; } },
+};
 // Número com vírgula (1,8) e porcentagem sem casas quando é inteira.
 const _num = (x, c = 1) => x.toFixed(c).replace('.', ',');
 const _pct = x => (Math.abs(x - Math.round(x)) < 1e-9 ? String(Math.round(x)) : _num(x));
@@ -151,8 +158,13 @@ const Habilidades = {
     // (15/10, T3) dormido: o nível de cada habilidade que subiu hoje e ainda não valeu (o nível novo vale ao dormir, como no Stardew);
     // telas: as telas "Subiu de nível!" que o jogador ainda não viu (guardadas no save). Save antigo: sem dormido, o nível é o do XP.
     G.hab = { xp: Object.assign({ folego: 0, alvenaria: 0, acabamento: 0, negocio: 0, roca: 0, pesca: 0 }, h.xp || {}), vantagens: (h.vantagens || []).slice(),
-      pendentes: (h.pendentes || []).map(p => p.slice()), subiuHoje: [], dormido: Object.assign({}, h.dormido || {}), telas: (h.telas || []).map(p => p.slice()) };
+      pendentes: (h.pendentes || []).map(p => p.slice()), subiuHoje: [], dormido: Object.assign({}, h.dormido || {}), telas: (h.telas || []).map(p => p.slice()),
+      segredos: (h.segredos || []).filter(id => SEGREDOS_OFICIO[id]) };
   },
+  // (T11) Os segredos de ofício: sabe(id); aprender(id) devolve true se é novo; o fator da experiência da obra (o Ler planta).
+  sabe(id) { return !!G.hab && (G.hab.segredos || []).includes(id); },
+  aprender(id) { if (!G.hab || !SEGREDOS_OFICIO[id] || Habilidades.sabe(id)) return false; (G.hab.segredos = G.hab.segredos || []).push(id); return true; },
+  fatorObra() { return Habilidades.sabe('ler_planta') ? 1 + ECO.niveis.lerPlanta : 1; },
   // O nível pelo XP (o que vale depois de dormir).
   nivelXp(h) { const x = (G.hab && G.hab.xp && G.hab.xp[h]) || 0; let n = 0; while (n < 10 && x >= Habilidades.NIVEIS[n]) n++; return n; },
   // O nível que vale agora: o "dormido" da habilidade que subiu hoje; sem ele (save antigo, o simulador, o numeros.js), o do XP.
@@ -281,7 +293,7 @@ const Habilidades = {
 };
 INICIADORES.push(s => Habilidades.iniciar(s));
 COLETORES.push(s => { s.hab = { xp: Object.assign({}, G.hab.xp), vantagens: G.hab.vantagens.slice(), pendentes: G.hab.pendentes.map(p => p.slice()),
-  dormido: Object.assign({}, G.hab.dormido || {}), telas: (G.hab.telas || []).map(p => p.slice()) }; });
+  dormido: Object.assign({}, G.hab.dormido || {}), telas: (G.hab.telas || []).map(p => p.slice()), segredos: (G.hab.segredos || []).slice() }; });
 // (as linhas "subiu para o nível" do resumo vêm de Habilidades.dormir, chamado pelo dia.js depois de todo o NOITE: o XP da caixa
 // de venda, que entra à noite, também conta para o nível da manhã, como no Stardew)
 
@@ -358,6 +370,10 @@ function abrirHabilidades() {
         (p => p ? el('div', { class: 'eq-hab hab-prox' }, p) : null)(Habilidades.proximoGanho(h, Habilidades.nivelXp(h))),
         ...van.map(v => el('div', { class: 'eq-hab' }, `★ ${VANTAGENS[v][0]}: ${VANTAGENS[v][1]}${VALE_AGORA.includes(v) ? '' : ' (vale mais para a frente)'}`)))));
   }
+  // (T11) os segredos de ofício que o povo da Vila ensinou (o Ler planta do Mestre Bira)
+  const seg = (G.hab.segredos || []).filter(id => SEGREDOS_OFICIO[id]);
+  if (seg.length) caixa.append(el('div', { class: 'hab-linha hab-segredos' }, el('img', { src: urlItem('hab_alvenaria') }),
+    el('div', {}, el('b', {}, 'Segredos de ofício'), ...seg.map(id => el('div', { class: 'eq-hab' }, `★ ${SEGREDOS_OFICIO[id].nome} (do ${SEGREDOS_OFICIO[id].de}): ${SEGREDOS_OFICIO[id].frase}`)))));
   caixa.append(el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   abrirModal(caixa);
   sons.tocar('abrir', 1, 0.03, -6);

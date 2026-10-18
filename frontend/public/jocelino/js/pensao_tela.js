@@ -215,10 +215,12 @@ const faltaPanelaTxt = (p, x, q, mais = '') => `${nomeNaPanela(x)} (tem ${p._tem
 // Os convidados da festa do tema (3, e mais 2 com a varanda) e quantos clientes a noite costuma ter (o "~N" do quadro): os da
 // noite (clientesHoje) mais os convidados que o iniciarJanta põe na fila (inauguração, festa, festa do Patrimônio, o VIP).
 const convidadosDaFesta = () => ECO.pensao.convidados.festa + (typeof temAmpliacao === 'function' && temAmpliacao('varanda') ? ECO.pensao.convidados.varanda : 0);
+// (T13 das histórias) Na Noite do Samba do Zé (a festa do tema que o arco do Zé abre), a turma da roda vem a mais (ZeArco.naJanta).
+const convidadosDoSamba = f => (f && f.samba && ECO.pensao.convidados.samba) || 0;
 function clientesEsperados() {
   const p = G.pensao, ev = t => typeof Eventos !== 'undefined' ? Eventos.hoje(p, G.dia, t) : null;
   return clientesHoje() + (p.ultimaJanta === -1 && !p.fama ? ECO.pensao.convidados.inauguracao : 0) + (p.festaDia === G.dia ? ECO.pensao.premio5.festaClientes : 0)
-    + (ev('festa') ? convidadosDaFesta() : 0) + (ev('vip') ? 1 : 0) + turmaSemReserva(p);
+    + (ev('festa') ? convidadosDaFesta() + convidadosDoSamba(ev('festa')) : 0) + (ev('vip') ? 1 : 0) + turmaSemReserva(p);
 }
 // ---------- (E4b das encomendas de festa; spec docs/superpowers/specs/2026-10-16-encomendas-festa-design.md, 3.4 a 3.6) a noite da turma ----------
 // Como a Party Night do Dave (o prato do tema paga mais, o bônus dos bem servidos no fim da noite, sem castigo além do dinheiro que
@@ -564,6 +566,8 @@ function iniciarJanta() {
     G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   if (typeof Paladar !== 'undefined' && Paladar.vem(G.pensao, G.dia)) { G.turno.paladar = true; G.turno._fila.push({ minuto: 19 * 60, cliente: Paladar.cliente() }); G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   if (typeof Clientela !== 'undefined') { G.turno.moradores = Clientela.porNaFila(G.turno, G.pensao, G.dia); G.turno.filho = Clientela.filhoDaNoite(G.dia); }
+  // (T13 das histórias) a Noite do Samba do Zé: o Zé e a turma da roda entram na fila (sem repetir quem já vem), e às 19h a cena do samba
+  if (festa && festa.samba && typeof ZeArco !== 'undefined') ZeArco.naJanta(G.turno, festa);
   if (vip) { const v = vipDe(vip.id); G.turno.vip = { nome: v.nome, prato: vip.prato }; G.turno._fila.push({ minuto: 18 * 60 + 30, cliente: { id: v.id, nome: v.nome, mania: 'vip', prato: vip.prato } }); G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   // (E4b) a festa encomendada: o anfitrião sai da fila da semana (ele vem com a turma) e a turma entra na fila dela (a ponta, às 18h)
   if (fz && !fz.deixa) {
@@ -585,7 +589,7 @@ function iniciarJanta() {
   // (sem a folha pronta, o Personagem só não aparece; nunca com a arte de outro)
   if (typeof precarregarArtes === 'function') precarregarArtes([...new Set(G.turno._fila.map(f => `personagens/${f.cliente.id}/andar`))]);
   if (inauguracao || festaPatrimonio || festa || G.turno.encomenda) tocarSomDoEvento({ tipo: 'inauguracao' });
-  if (G.turno.festa) avisar(`Hoje é a ${G.turno.festa}! ${Pratos.PRATOS[G.turno.pratoTema].nome}${G.turno.categoriaTema ? ` e todo ${CATEGORIAS[G.turno.categoriaTema].toLowerCase()}` : ''} vale 50% mais.`);
+  if (G.turno.festa) avisar(`Hoje é a ${G.turno.festa}! ${Pratos.PRATOS[G.turno.pratoTema].nome}${G.turno.categoriaTema ? ` e todo ${CATEGORIAS[G.turno.categoriaTema].toLowerCase()}` : ''} vale 50% mais.${G.turno.samba ? ' Às 7 da noite o Zé sobe no banquinho, e a turma da roda janta junto.' : ''}`);
   if (G.turno.vip) avisar(`Hoje janta ${G.turno.vip.nome}: ele vai pedir ${Pratos.PRATOS[G.turno.vip.prato].nome}.`);
   if (G.turno.encomenda) { const e = fz.e, n = fz.porcoes;
     avisar(`Hoje é a festa ${AvisoFesta.da(e)} (${AvisoFesta.ocasiao(e)}): a turma chega às 18h e senta na ponta do balcão. ${n} ${n === 1 ? 'porção' : 'porções'} de ${AvisoFesta.prato(e)} na panela reservada${n < e.turma ? ` (a turma é de ${e.turma}: quem ficar sem pede do quadro)` : ''}.`); }

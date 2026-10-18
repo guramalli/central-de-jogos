@@ -11,8 +11,10 @@ function origemDe(id) {
   const enc = typeof ENCOMENDA !== 'undefined' && ENCOMENDA[id];
   return enc && !/Mercearia/.test(o) ? `${o} · ou ${ORIGEM_ENCOMENDA}` : o;
 }
-const nomeIngrediente = id => id === 'peixe' ? 'Peixe' : (Itens.nome ? Itens.nome(id) : id);
-const iconeIngrediente = id => urlItem(id === 'peixe' ? 'sardinha' : id);
+// (T14 das histórias) O ingrediente que ainda não é item do jogo (a banana verde do azul-marinho, que vem com o pomar do sítio) usa o
+// nome do Pratos.INGREDIENTES e fica sem ícone até a arte existir (nada de arte provisória).
+const nomeIngrediente = id => id === 'peixe' ? 'Peixe' : !ITENS[id] && Pratos.INGREDIENTES[id] && Pratos.INGREDIENTES[id].nome ? Pratos.INGREDIENTES[id].nome : (Itens.nome ? Itens.nome(id) : id);
+const iconeIngrediente = id => id !== 'peixe' && typeof ARTE_LISTA !== 'undefined' && !ARTE_LISTA.includes('itens/' + id) ? '' : urlItem(id === 'peixe' ? 'sardinha' : id);
 
 let _cadernoSel = null;
 // Os caminhos das receitas a descobrir, na ordem do caderno (receitas.js explica cada um).
@@ -67,7 +69,7 @@ function abrirCaderno(sel) {
     const gasto = p.gasto(id);
     for (const ing in gasto) {
       const t = p._tem(ing), q = gasto[ing];
-      ings.append(el('div', { class: 'cad-ing' + (t >= q ? '' : ' falta') }, el('img', { src: iconeIngrediente(ing) }),
+      ings.append(el('div', { class: 'cad-ing' + (t >= q ? '' : ' falta') }, iconeIngrediente(ing) ? el('img', { src: iconeIngrediente(ing) }) : el('span', {}),
         el('div', {}, el('b', {}, `${nomeIngrediente(ing)} ×${q}`), el('span', {}, ` (tenho ${t})`), el('div', { class: 'cad-origem' }, origemDe(ing)))));
     }
     dir.append(el('div', { class: 'cad-sub' }, 'Ingredientes por panela'), ings);

@@ -45,6 +45,9 @@ for (const id in LENDARIOS) DADOS_PEIXE[id] = { preco: LENDARIOS[id].preco, dif:
 const PESCA_LIXO = 0.08, PESCA_LENDARIO = 0.05;
 const COVO_PESCA = { mar: [['siri', 0.35], ['caranguejo', 0.25], ['camarao', 0.2], ['ferro_velho', 0.2]], rio: [['lambari', 0.4], ['cascudo', 0.3], ['ferro_velho', 0.3]],
   serra: [['pitu', 0.4], ['lambari', 0.3], ['ferro_velho', 0.3]] };
+// (T14 das histórias) Os fatores de fora no peso de cada peixe: (p, c) => número (1 = nada muda). O Ler o mar do Seu Lourival no lugar
+// certo da praia e a canoa Esperança consertada no alto-mar (historias/lourival.js).
+const PESO_PESCA_EXTRA = [];
 const _estPesca = dia => Math.floor((dia - 1) / 28) % 4;
 const _hora = min => Math.floor(min / 60);
 
@@ -65,7 +68,8 @@ const Pesca = {
     const ps = Pesca.possiveis(c); if (!ps.length) return { tipo: 'nada', id: '' };
     // (T4b, Pesca 8) a isca boa puxa o peixe raro ainda mais que a isca comum (c.isca === 'isca_boa')
     const raro = c.isca === 'isca_boa' ? ECO.niveis.iscaBoa.raro : c.isca ? 1.5 : 1;
-    const peso = p => p.peso * (p.peso <= 2 && (c.chove || c.fundo) ? 1.6 : 1) * (p.peso <= 2 ? raro : 1) * (p.peso <= 3 && c.cardume ? 2 : 1);
+    const peso = p => p.peso * (p.peso <= 2 && (c.chove || c.fundo) ? 1.6 : 1) * (p.peso <= 2 ? raro : 1) * (p.peso <= 3 && c.cardume ? 2 : 1)
+      * PESO_PESCA_EXTRA.reduce((f, g) => { let v = 1; try { v = +g(p, c) || 1; } catch (e) { console.error(e); } return f * v; }, 1);
     let x = rng() * ps.reduce((s, p) => s + peso(p), 0);
     for (const p of ps) { x -= peso(p); if (x <= 0) return { tipo: 'peixe', id: p.id }; }
     return { tipo: 'peixe', id: ps[0].id };

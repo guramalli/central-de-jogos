@@ -284,12 +284,26 @@ function conversarPeao(id) {
   if (id === 'ze' && G.jog.carga && G.jog.carga.id === 'massa') return conversarZe();
   // (C15) com comida na mão, o clique dá a comida (o conferir fica para o clique seguinte)
   if (alimentarPeao(id)) return true;
+  if (id === 'ze' && zeForaDoServico()) return conversaDoZe();   // (T13, rodada 1) fora do serviço o Zé conversa como morador
   if (typeof conferirPeao === 'function' && conferirPeao(id)) return true;   // (C14) a tarefa conferir do mestre (obra_jogo.js)
+  if (id === 'ze' && zeTemFalaDoArco()) return conversaDoZe();   // (T13, rodada 1) a fala do arco do Zé de hoje, uma vez, antes do humor
   const h = EquipeObra.conversar(id), p = peao(id);
   const fala = h >= 8 ? 'Hoje a obra rende, mestre!' : h >= 5 ? 'Tô firme, mestre. Bora.' : h >= 3 ? 'Tá puxado, mestre... um café cairia bem.' : 'Não tô bem não, mestre. Se continuar assim, amanhã nem venho.';
   abrirConversa(p.nome, urlArte('retratos/' + id + '_normal'), [`${fala} (frente: ${TAREFAS_OBRA[G.equipeObra.frente[id]] ? nomeDaFrente(G.equipeObra.frente[id]).toLowerCase() : '—'})`]);
   return true;
 }
+// (T13 das histórias, rodada 1) O Zé é peão da turma só no serviço. Fora dele (a obra fechada agora, ou na roda de samba de sexta) ele
+// conversa como morador: as falas dele e do arco (historias/ze.js). No serviço, uma fala do arco de hoje (um tópico, a Noite do Samba, o
+// nome do samba: regra até 5 do conversas.js) vem uma vez por dia, depois do conferir e antes do humor da obra.
+function _zeDaVila() { return G.mapa && G.mapa.moradores.find(m => m.id === 'ze' && !m._daHistoria) || null; }
+function zeForaDoServico() { const z = _zeDaVila(); return !!(z && z._naRoda) || (typeof Obra !== 'undefined' && !!Obra.aberta(G.dia, G.minutos)); }
+let _zeArcoNaObra = -1;
+function zeTemFalaDoArco() {
+  if (typeof Conversas === 'undefined' || _zeArcoNaObra === G.dia) return false;
+  const e = Conversas.escolher({ id: 'ze' }, true); if (!e || !(e.regra <= 5)) return false;
+  _zeArcoNaObra = G.dia; return true;
+}
+function conversaDoZe() { return Conversas.abrir(_zeDaVila() || 'ze', { nome: 'Zé' }); }
 // A comida da mão para o peão (uma vez por dia conta no humor; a marmita da pensão, mais). false = não tem comida na mão.
 function alimentarPeao(id) {
   const comida = itemDaMao(), e = comida && Itens.energia(comida);

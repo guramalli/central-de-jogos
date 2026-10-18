@@ -1,6 +1,6 @@
 // Família Santos — firma.js — a firma da família e o final do jogo: a inauguração da Construtora Santos (C20, 17/10; spec
-// docs/superpowers/specs/2026-10-15-conversas-historias-design.md, seção 9.2 a 9.4 e a decisão 1 da seção 13; a T15 sem o motor
-// de histórias: os atos e as cenas de virada ficam para o Bloco 4).
+// docs/superpowers/specs/2026-10-15-conversas-historias-design.md, seção 9.2 a 9.4 e a decisão 1 da seção 13; os atos, as cenas de
+// virada, as velas da Dona Zefa e o depois do fim são da T15: historias/atos.js).
 // Como é no Stardew: o fim do 2º ano é a avaliação do avô e a fazenda continua no dia seguinte; o norte de dinheiro é a meta que o
 // jogo mostra com o porquê (o Centro Comunitário, o pacote do cofre). Aqui o ofício vira o nome da família numa placa:
 // - a CARTA DO MOREIRA chega na manhã seguinte ao Edifício Maré entregue (aliado ou neutro: "eu te passo uns contratos"; rival, se o
@@ -13,8 +13,9 @@
 //   festa é lá!"). Com os 4, na manhã seguinte chega a carta da Prefeitura: a inauguração é em 3 dias;
 // - O DIA DA INAUGURAÇÃO (de manhã, assim que o jogo fica livre): a Dona Zefa chega (a tela da viagem da abertura, de volta), a cena
 //   da inauguração (3 camadas: a fachada da casa do Tio Juca com a placa, a Vila e a família cortando a fita), a festa à noite na
-//   pensão 5★ (o Zé no banquinho e a Rosa dançando), as velas e o retrato de família, os créditos. Não tem obra: o dia acaba na festa
-//   e a família dorme;
+//   pensão 5★ (quem tem 4♥ ou mais, o Zé cantando o samba dele, a Zélia, o Lourival e o caderno da Rosa, conforme os arcos), as velas
+//   da Zefa no oratório (a cena em casa, atos.js), o retrato de família e os créditos (com o samba do Zé, se ele cantou na pensão). Não
+//   tem obra: o dia acaba na festa e a família dorme;
 // - DEPOIS DO FIM o jogo continua: a placa "Construtora Santos" fica sobre a porta da casa do Tio Juca (o escritório, na sala da frente)
 //   e, na manhã seguinte, a carta do 1º serviço da Construtora Santos (aliado: a 2ª gleba do Bairro Novo; rival: a licitação da escola).
 // Nunca arte por código: as cenas usam só as peças prontas (a/cenas, a/abertura, a/objetos); o código posiciona, escala e faz
@@ -32,11 +33,12 @@ const _quandoF = dia => { const n = dia - G.dia; return n <= 0 ? 'hoje' : n === 
 // ---------- o estado (no save): G.firma ----------
 // carta: o dia em que a carta do Moreira chegou (0 = ainda não); capitalPago e alvaraDia: o pagamento no quadro; segurou: o capital
 // veio antes da ★★★★★ (a Rosa segurou); inauguracaoDia: o dia da festa (marcado pela carta da Prefeitura); feita: o final já foi;
-// servico: o dia da carta do 1º serviço.
+// servico: o dia da carta do 1º serviço; vela e natal: as velas da Zefa (T15, atos.js).
 INICIADORES.push(s => {
   const f = s.firma || {};
   G.firma = { carta: f.carta || 0, capitalPago: !!f.capitalPago, alvaraDia: f.alvaraDia || 0, segurou: !!f.segurou,
-    inauguracaoDia: f.inauguracaoDia || 0, feita: !!f.feita, feitaDia: f.feitaDia || 0, servico: f.servico || 0 };
+    inauguracaoDia: f.inauguracaoDia || 0, feita: !!f.feita, feitaDia: f.feitaDia || 0, servico: f.servico || 0,
+    vela: f.vela || '', natal: f.natal || 0 };   // (T15) a vela da amizade no oratório da Zefa: 'acesa' | 'apagada'; natal: o dia em que acendeu
   Firma._tocando = false; Firma._festa = false;
 });
 COLETORES.push(s => { s.firma = Object.assign({}, G.firma || {}); });
@@ -142,13 +144,16 @@ const Firma = {
   inaugurar() {
     if (Firma._tocando || !G.firma || G.firma.feita) return false;
     Firma._tocando = true; Firma._festa = true;
+    if (typeof MUSICAS !== 'undefined') MUSICAS.festa = ['musica_festa'];
     if (typeof sons !== 'undefined' && sons.musica) sons.musica('musica_festa');
     const passos = [
       fim => Firma.tela(FIRMA_TELA_ZEFA, fim),
       fim => Firma.promessa(fim),
       fim => CenaPrato.tocarEspecial('firma_inauguracao', fim),
       fim => CenaPrato.tocarEspecial('firma_festa', fim),
-      fim => CenaPrato.tocarEspecial('firma_retrato', fim),
+      // (T15) as velas: a Zefa acende as velinhas no oratório, em casa (a cena no mapa, atos.js); a da amizade fica marcada
+      fim => (typeof Atos !== 'undefined' ? Atos.velasDoFinal(fim) : fim()),
+      fim => { Firma.musicaDosCreditos(); CenaPrato.tocarEspecial('firma_retrato', fim); },
       fim => Firma.tela(FIRMA_TELA_FIM, fim),
     ];
     let i = 0;
@@ -170,12 +175,62 @@ const Firma = {
     const capa = typeof RosaArco !== 'undefined' ? RosaArco.capa() : '';
     return capa ? `No balcão, o caderno "${capa}". A Rosa serve para a Dona Zefa a moqueca da página dela.` : '';
   },
+  // (T11) O Mestre Bira na inauguração (o fim do B4 do arco dele, historias/bira.js; spec 9.2.3, passo 2): com o B4 visto ("a próxima
+  // maquete... deixa que eu sei qual é"), ele dá a maquete do escritório, que vai para a exposição do Grêmio (com o B3) ou fica no
+  // escritório; sem o B4, ele só cumprimenta.
+  _comMaquete() { return typeof Historias !== 'undefined' && Historias.viu('bira_8'); },
+  maqueteDoBira() {
+    if (!Firma._comMaquete()) return 'O Mestre Bira: "Do servente da minha obra ao dono da firma. Eu sempre soube, rapaz."';
+    return 'O Mestre Bira: "A próxima maquete, eu disse que sabia qual era: o escritório. Pra você não esquecer de onde veio."';
+  },
+  // (T15) O samba do Zé nos créditos (spec 9.2.3, item 5): com o E4 do arco dele (o Zé cantou na pensão), a música dele no lugar da
+  // da festa; a lista da festa muda junto (o rodízio, sons.js, volta a ela quando a cena das velas acaba).
+  sambaNosCreditos() { return typeof Historias !== 'undefined' && Historias.viu('ze_8'); },
+  musicaDosCreditos() {
+    if (!Firma.sambaNosCreditos() || typeof MUSICAS === 'undefined') return '';
+    MUSICAS.festa = ['musica_samba_ze'];
+    if (typeof sons !== 'undefined' && sons.musica) sons.musica('musica_samba_ze');
+    return 'musica_samba_ze';
+  },
+  // (T15) A festa na pensão (spec 9.2.3, item 3): vem quem tem 4♥ ou mais. Com poucos amigos, o salão fica acolhedor; com muitos,
+  // cheio até a calçada. → a frase da festa.
+  CONVIDA: 4, CHEIA: 8,
+  convidados() {
+    if (typeof Amizade === 'undefined' || !G.amizade) return [];
+    return Object.keys(G.amizade).filter(id => Amizade.daVila(id) && Amizade.coracoes(id) >= Firma.CONVIDA).sort((a, b) => Amizade.pontos(b) - Amizade.pontos(a) || (a < b ? -1 : 1));
+  },
+  salaoDaFesta() {
+    const ids = Firma.convidados(), n = ids.length;
+    const nome = id => typeof Conversas !== 'undefined' ? Conversas.nomeDe({ id }) : Amizade.nome(id);
+    const lista = l => l.length < 2 ? l.join('') : l.slice(0, -1).join(', ') + ' e ' + l[l.length - 1];
+    if (n >= Firma.CHEIA) return 'A Pensão da Rosa cheia até a calçada: a Vila inteira veio para a festa.';
+    if (n > 3) return `O salão cheio de amigos: ${ids.slice(0, 3).map(nome).join(', ')} e mais gente da Vila.`;   // (rodada 1, M5: só vírgulas)
+    if (n) return `Um salão acolhedor: ${lista(ids.map(nome))}, a família e a Dona Zefa.`;
+    return 'Um salão acolhedor: a família, o Tio Juca e a Dona Zefa, de porta aberta para a Vila.';
+  },
+  // As frases da 1ª parte da festa, uma depois da outra: o salão, o samba do Zé (com o nome do E3), a mesa da Zélia (Z4), a taça do
+  // Lourival e do Seu Bento (L4) e o caderno da Rosa (R4) com a moqueca para a Zefa. Sem os arcos, só o que sempre acontece.
+  festaLinhas() {
+    const L = [Firma.salaoDaFesta(), (typeof ZeArco !== 'undefined' && ZeArco.naFesta()) || 'O Zé, no banquinho: "Esse samba é pra Família Santos!"'];
+    const z = typeof ZeliaArco !== 'undefined' && ZeliaArco.naFesta(); if (z) L.push(z);
+    const l = typeof LourivalArco !== 'undefined' && LourivalArco.naFesta(); if (l) L.push(l);
+    L.push(Firma.cadernoNaFesta() || 'A Rosa serve a moqueca para a Dona Zefa.');
+    return L;
+  },
+  // O tempo da festa: cada frase da 1ª parte tem FIRMA_FESTA.PASSO s, ou mais pelo tamanho (rodada 1, M6: uma letra a cada 1/LETRAS s);
+  // o corte para a reação (a Zefa provando) vem depois da última.
+  festaTempo(f) { return Math.max(FIRMA_FESTA.PASSO, String(f).length / FIRMA_FESTA.LETRAS); },
+  festaCorte() { return FIRMA_FESTA.INICIO + Firma.festaLinhas().reduce((t, f) => t + Firma.festaTempo(f), 0) + 0.4; },
   // O fim do dia de festa: o final fica marcado e a família dorme (a carta do 1º serviço chega na manhã seguinte: MANHA, abaixo).
   _depois() {
     const f = G.firma;
     f.feita = true; f.feitaDia = G.dia;
+    if (!f.vela) f.vela = velaDaAmizade() ? 'acesa' : 'apagada';
     Firma._tocando = false; Firma._festa = false;
-    if (G.feitosHoje) G.feitosHoje.push('A inauguração da Construtora Santos: a Dona Zefa veio de Aracaju e a Vila inteira foi à festa na Pensão da Rosa.');
+    if (typeof MUSICAS !== 'undefined') MUSICAS.festa = ['musica_festa'];
+    // (rodada 1, M4) "a Vila inteira" só com o salão cheio até a calçada (Firma.salaoDaFesta)
+    if (G.feitosHoje) G.feitosHoje.push(`A inauguração da Construtora Santos: a Dona Zefa veio de Aracaju e ${Firma.convidados().length >= Firma.CHEIA ? 'a Vila inteira foi' : 'os amigos da Vila foram'} à festa na Pensão da Rosa.`);
+    if (G.feitosHoje && Firma._comMaquete()) G.feitosHoje.push(Historias.viu('bira_6') ? 'A maquete do escritório, presente do Mestre Bira, foi para a exposição do Grêmio, ao lado da Vila em miniatura.' : 'A maquete do escritório, presente do Mestre Bira, ficou no escritório, na sala da frente da casa do Tio Juca.');
     if (MAPAS.quintal) Firma.poePlaca(MAPAS.quintal);
     G.minutos = Math.max(G.minutos, 23 * 60);
     if (typeof dormir === 'function') dormir();
@@ -232,7 +287,7 @@ CARTAS.firma_moreira = { de: 'Seu Moreira (J. Moreira Construções)', dia: 1e9,
 CARTAS.firma_prefeitura = { de: 'Prefeitura da Vila Maré', dia: 1e9,
   get texto() {
     const d = G.firma && G.firma.inauguracaoDia, q = d ? _quandoF(d) : 'daqui a 3 dias';
-    return `Sr. Jocelino, o alvará da Construtora Santos está aprovado. A inauguração é ${q}, de manhã, na frente do escritório (a sala da frente da casa do Tio Juca). O Prefeito Orlando faz o discurso; a Vila inteira está convidada, e à noite a festa é na Pensão da Rosa. P.S. do Tio Juca: "Já mandei recado pra Aracaju. A comadre Zefa vem no caminhão do Calixto."`;
+    return `Sr. Jocelino, o alvará da Construtora Santos está aprovado. A inauguração é ${q}, de manhã, na frente do escritório (a sala da frente da casa do Tio Juca). O Prefeito Orlando faz o discurso; a Vila inteira está convidada, e à noite a festa é na Pensão da Rosa. ${Firma.psDoJuca()}`;
   } };
 CARTAS.firma_servico = { de: 'Construtora Santos', dia: 1e9,
   get texto() {
@@ -245,7 +300,8 @@ CARTAS.firma_servico = { de: 'Construtora Santos', dia: 1e9,
 MANHA.push(() => {
   const f = G.firma; if (!f || !G.correio) return;
   if (!f.carta && Firma.predioEntregue()) { f.carta = G.dia; _naCaixaF('firma_moreira'); }
-  if (!f.inauguracaoDia && !f.feita && Firma.prontos()) { f.inauguracaoDia = Firma.diaDaFesta(); _naCaixaF('firma_prefeitura'); }
+  // (T10, rodada 1) a carta da Prefeitura espera o J4 do Tio Juca (ele vai buscar a Zefa) no máximo 3 dias, só quando ele pode tocar
+  if (!f.inauguracaoDia && !f.feita && Firma.prontos() && !(typeof JucaArco !== 'undefined' && JucaArco.seguraInauguracao())) { f.inauguracaoDia = Firma.diaDaFesta(); _naCaixaF('firma_prefeitura'); }
   if (f.feita && !f.servico) { f.servico = G.dia; _naCaixaF('firma_servico'); }
 });
 // O dia chegou e o jogo está livre: o final começa.
@@ -267,7 +323,7 @@ if (typeof CADERNETA !== 'undefined') CADERNETA.push(() => {
     rotulo: !f.capitalPago ? 'Botão direito: o alvará da Construtora Santos' : 'A placa da Construtora Santos, na casa do Tio Juca' }];
 });
 // A seta da primeira vez no mundo (guia_setas.js, guiaSetaMundo): a carta da firma na caixa (cada uma chega uma vez só); o capital
-// juntado (o quadro da Prefeitura, até o pagamento).
+// juntado (o quadro da Prefeitura, até o pagamento). (O oratório da Zefa tem a seta dele, só dentro de casa: Atos.alvoDoOratorio.)
 function alvoDaFirma() {
   const f = G.firma, c = G.correio; if (!f || !c) return null;
   const id = Object.keys(FIRMA_CARTAS).find(x => c.caixa.includes(x));
@@ -282,10 +338,25 @@ function setaDaFirma() {
 }
 
 // ---------- o final: as telas e as cenas (a arte pronta da T8; o código só posiciona, escala e faz transparência) ----------
-const FIRMA_TELA_ZEFA = { img: 'abertura/viagem', botao: 'Continuar',
-  texto: 'Dois dias de ônibus, de Aracaju a Praia Grande. Agora quem viaja é ela: a Dona Zefa, a mãe do Jocelino, com uma mala de papelão e uma lata de cocada. O Calixto foi buscá-la na rodoviária de caminhão, e o Tio Juca recebeu a comadre no quintal, de viola.' };
+// (T10) Quem traz a Zefa (spec 9.2.3, passo 1): com o J4 do Tio Juca (historias/juca.js, `juca_vai_buscar`), ele desce com ela, de
+// viola (de ônibus, com a passagem paga, ou no caminhão do Calixto); sem o J4, o Calixto a traz e o Juca a recebe no quintal.
+const FIRMA_TELA_ZEFA = { img: 'abertura/viagem', botao: 'Continuar', texto: () => Firma.chegadaDaZefa() };
+Firma.chegadaDaZefa = () => {
+  const v = typeof JucaArco !== 'undefined' ? JucaArco.viagem() : '', ela = 'Agora quem viaja é ela: a Dona Zefa, a mãe do Jocelino, com uma mala de papelão e uma lata de cocada.';
+  if (v === 'onibus') return `Dois dias de ônibus, de Aracaju a Praia Grande. ${ela} Do lado dela desce o Tio Juca, de viola no colo: foi buscar a cunhada, como prometeu, e tocou forró a viagem inteira.`;
+  if (v === 'calixto') return `Dois dias de estrada, de Aracaju a Praia Grande, no caminhão do Calixto. ${ela} Da boleia desce o Tio Juca, de viola: foi buscar a cunhada, como prometeu, e o Calixto cantou junto a estrada inteira.`;
+  return `Dois dias de ônibus, de Aracaju a Praia Grande. ${ela} O Calixto foi buscá-la na rodoviária de caminhão, e o Tio Juca recebeu a cunhada no quintal, de viola.`;
+};
+// (T10) O P.S. do Tio Juca na carta da Prefeitura: quem vai buscar a Zefa.
+Firma.psDoJuca = () => {
+  const v = typeof JucaArco !== 'undefined' ? JucaArco.viagem() : '';
+  if (v === 'onibus') return 'P.S. do Tio Juca: "A passagem tá no bolso e a viola tá afinada. Vou buscar a cunhada Zefa em Aracaju."';
+  if (v === 'calixto') return 'P.S. do Tio Juca: "O Calixto me leva no caminhão. Vou buscar a cunhada Zefa em Aracaju, de viola e tudo."';
+  return 'P.S. do Tio Juca: "Já mandei recado pra Aracaju. A cunhada Zefa vem no caminhão do Calixto."';
+};
+// (T15) com o pedido do primeiro Réveillon (atos.js), a frase dele: o que o Jocelino pediu na areia aconteceu.
 const FIRMA_TELA_FIM = { img: 'cenas/final_retrato_familia', titulo: 'Família Santos — Vila Maré, 1977', botao: 'Continuar',
-  texto: () => `De Aracaju a Praia Grande: o servente virou dono de firma, a pensão da Rosa virou Patrimônio da Vila e a Dona Zefa veio para a festa. ${Firma.moreira() === 'rival' ? 'O Seu Moreira veio, cumprimentou seco e, da esquina, tirou o chapéu.' : 'O Seu Moreira trouxe a prancheta velha dele de presente.'} A vida continua: amanhã a Construtora Santos abre as portas.` };
+  texto: () => `De Aracaju a Praia Grande: o servente virou dono de firma, a pensão da Rosa virou Patrimônio da Vila e a Dona Zefa veio para a festa. ${Firma.moreira() === 'rival' ? 'O Seu Moreira veio, cumprimentou seco e, da esquina, tirou o chapéu.' : 'O Seu Moreira trouxe a prancheta velha dele de presente.'} ${typeof Atos !== 'undefined' && Atos.pedidoNoFinal() ? Atos.pedidoNoFinal() + ' ' : ''}A vida continua: amanhã a Construtora Santos abre as portas.` };
 // As velas (spec 9.2.3, passo 4): a casa, a pensão e a firma sempre; a da amizade com 5 pessoas da Vila com 8♥ ou mais.
 function velaDaAmizade() {
   if (typeof Amizade === 'undefined' || !G.amizade) return false;
@@ -295,6 +366,8 @@ function velaDaAmizade() {
 const FIRMA_PLACA_FUNDO = { x: 944, y: 246, l: 450 };
 // O banquinho do Zé no salão da festa (o pé, no quadro de 1920×1080) e o ponto do zoom lento.
 const FIRMA_BANQUINHO = { x: 950, y: 995, h: 900, zoom: { x: 950, y: 700 } };
+// (T15) O tempo da festa: as frases da 1ª parte (Firma.festaLinhas) a cada PASSO s, desde INICIO; a reação da Zefa, ZEFA s depois do corte.
+const FIRMA_FESTA = { INICIO: 0.7, PASSO: 2.1, LETRAS: 28, ZEFA: 5.5 };
 Object.assign(CENAS_ESPECIAIS, {
   // A inauguração (13,4 s): a fachada da casa do Tio Juca com a fita na porta; a Vila sobe pela frente com o confete (o Prefeito e o
   // Moreira falam); a Vila desce e a família entra cortando a fita (o Juca acena o chapéu, o Caramelo pula); o close da placa.
@@ -305,7 +378,7 @@ Object.assign(CENAS_ESPECIAIS, {
       [3.0, 5.4, Firma.moreira() === 'rival' ? 'O Seu Moreira, seco: "Parabéns, Santos. Nos vemos na licitação da escola."' : 'O Seu Moreira: "Você tem cabeça de mestre, rapaz. Agora tem firma também."'],
       [5.6, 7.5, 'A Ritinha e o Zezinho cortam a fita com a tesoura de costura da Dona Lurdes!'],
       [7.5, 9.8, 'O Tio Juca: "A sala da frente é de vocês. Foi aqui que vocês chegaram."'],
-      [10.2, 13.0, 'O Mestre Bira: "A maquete do escritório, pra você não esquecer de onde veio."'],
+      [10.2, 13.0, Firma.maqueteDoBira()],
     ],
     artes: ['cenas/inauguracao_fundo', 'cenas/inauguracao_vila', 'cenas/inauguracao_familia', 'cenas/placa_construtora', 'cenas/letreiro_brilho'],
     sons: [[0.6, 'festa_rojao', 1, -6], [1.3, 'noite_comemora_1', 1, -6], [6.95, 'cena_tchan', 1, -4], [7.1, 'fanfarra', 1, -6], [9.95, 'degrau_fanfarra', 1, -4], [10.4, 'festa_rojao', 1.1, -8]],
@@ -332,34 +405,37 @@ Object.assign(CENAS_ESPECIAIS, {
           d.peca('cenas/letreiro_brilho', P.x + pontas[k][0] * w, cy + pontas[k][1] * h, 170 * Math.sin(Math.PI * v), { rot: v * 2.2 * (k % 2 ? -1 : 1), alfa: Math.sin(Math.PI * v) }); }
       }
     } },
-  // A festa à noite na Pensão da Rosa ★★★★★ (11,6 s): o salão cheio, o Zé cantando no banquinho com as notas subindo; a Rosa e o
-  // Jocelino dançando; a Dona Zefa prova a moqueca e fala.
-  firma_festa: { dur: 11.6, legenda: [0.4, 5.7], abafa: false, titulo: 'A festa na Pensão da Rosa ★★★★★',
-    falas: () => [
-      [0.7, 3.2, 'O Zé, no banquinho: "Esse samba é pra Família Santos!"'],
-      [3.2, 5.7, Firma.cadernoNaFesta() || 'A Rosa serve a moqueca para a Dona Zefa.'],
-      [6.1, 8.8, 'A Dona Zefa: "Meu filho, você saiu de Aracaju servente e vai voltar patrão."'],
-      [8.8, 11.4, '"Mas volta só pra visitar, viu? Que o seu lugar é aqui."'],
-    ],
+  // A festa à noite na Pensão da Rosa ★★★★★ (de 10 a 16 s, conforme os arcos): o salão cheio, o Zé cantando no banquinho com as
+  // notas subindo; as frases da festa (Firma.festaLinhas, T15) uma depois da outra; a Rosa e o Jocelino dançando; a Dona Zefa prova a
+  // moqueca e fala. O tempo depende de quantas frases a festa tem (o corte, Firma.festaCorte).
+  firma_festa: { abafa: false, titulo: 'A festa na Pensão da Rosa ★★★★★',
+    get dur() { return Firma.festaCorte() + FIRMA_FESTA.ZEFA; },
+    get legenda() { return [0.4, Firma.festaCorte() - 0.4]; },
+    falas: () => {
+      const L = Firma.festaLinhas(), c = Firma.festaCorte(); let t = FIRMA_FESTA.INICIO;
+      return [...L.map(f => { const a = t; t += Firma.festaTempo(f); return [a, t, f]; }),
+        [c, c + 2.7, 'A Dona Zefa: "Meu filho, você saiu de Aracaju servente e vai voltar patrão."'],
+        [c + 2.7, c + 5.3, '"Mas volta só pra visitar, viu? Que o seu lugar é aqui."']];
+    },
     artes: ['cenas/samba_fundo', 'cenas/samba_ze', 'cenas/samba_notas', 'cenas/samba_reacao'],
-    sons: [[0.4, 'noite_comemora_2', 1, -6], [5.9, 'cena_tchan', 1, -6], [6.2, 'noite_comemora_1', 1, -6]],
+    get sons() { const c = Firma.festaCorte(); return [[0.4, 'noite_comemora_2', 1, -6], [c - 0.2, 'cena_tchan', 1, -6], [c + 0.1, 'noite_comemora_1', 1, -6]]; },
     desenha(d, t) {
-      if (t < 6.1) {
-        const B = FIRMA_BANQUINHO, zoom = 1 + 0.05 * _eo(_cs(t, 0, 6.1)), z = y => B.zoom.y + (y - B.zoom.y) * zoom;
+      const c = Firma.festaCorte(), dur = c + FIRMA_FESTA.ZEFA;
+      if (t < c) {
+        const B = FIRMA_BANQUINHO, zoom = 1 + 0.05 * _eo(_cs(t, 0, c)), z = y => B.zoom.y + (y - B.zoom.y) * zoom;
         d.fundo('cenas/samba_fundo', zoom, 1, B.zoom.x, B.zoom.y);
         // o Zé sobe no banquinho (a peça tem o banquinho dela, por cima do da arte) e balança no samba
         const u = _eo(_cs(t, 0.2, 0.9));
         d.peca('cenas/samba_ze', B.x, z(B.y) + (1 - u) * 900, B.h * zoom, { ancora: 'base', rot: 0.03 * Math.sin(t * 5) * u });
-        d.peca('cenas/samba_notas', 960, 470 - 70 * _cs(t, 1, 6), 820, { alfa: _cs(t, 1.0, 1.6) * (1 - _cs(t, 5.4, 6.1)) });
+        d.peca('cenas/samba_notas', 960, 470 - 70 * _cs(t, 1, c - 0.1), 820, { alfa: _cs(t, 1.0, 1.6) * (1 - _cs(t, c - 0.7, c)) });
       }
-      if (t >= 5.8) d.fundo('cenas/samba_reacao', 1.08 - 0.08 * _eo(_cs(t, 5.8, 11.6)), _cs(t, 5.8, 6.1), 960, 450);
+      if (t >= c - 0.3) d.fundo('cenas/samba_reacao', 1.08 - 0.08 * _eo(_cs(t, c - 0.3, dur)), _cs(t, c - 0.3, c), 960, 450);
     } },
-  // As velas e o retrato de família (11 s): o último quadro, com o título.
+  // O retrato de família (11 s): o último quadro, com o título. (T15: as velas viraram a cena em casa, antes dele: atos.js)
   firma_retrato: { dur: 11.0, legenda: [5.0, 10.8], abafa: false, titulo: 'Família Santos — Vila Maré, 1977',
     falas: () => [
-      [0.5, 2.7, 'Em casa, a Dona Zefa acende velinhas no oratório:'],
-      [2.7, 4.9, 'uma pela casa, uma pela pensão e uma pela firma.'],
-      [4.9, 7.4, velaDaAmizade() ? 'E a quarta, pela amizade da Vila Maré.' : 'A vela da amizade fica para o Natal: a Zefa volta todo ano.'],
+      [0.5, 2.7, 'O retrato da família, na frente da placa da Construtora Santos:'],
+      [2.7, 4.9, 'a Dona Zefa, o Tio Juca de viola, a Rosa, o Jocelino, a Ritinha, o Zezinho e o Caramelo.'],
     ],
     artes: ['cenas/final_retrato_familia'],
     sons: [[5.0, 'degrau_fanfarra', 1, -6]],

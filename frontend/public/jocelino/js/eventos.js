@@ -24,7 +24,25 @@ const FESTAS = [
   { nome: 'Arraiá da Pensão', pratos: ['pamonha', 'bolo_milho', 'cocada_tijolinho'], ensina: 'canjica' },
   { nome: 'Noite dos Doces da Vó', pratos: ['rabanada', 'goiabada', 'cocada_tijolinho'], categoria: 'doce' },
   { nome: 'Jogo do Santos na Rádio', pratos: ['caldo_caranguejo', 'pf_peao', 'sopa_pedra'] },
+  // (T13 das histórias) A Noite do Samba do Zé: a festa que o E4 do arco do Zé abre (historias/ze.js). Só entra no rodízio depois da
+  // cena (se), e a 1ª festa do tema depois dela é a do samba (estreia). Na noite, o Zé e a turma da roda vêm jantar
+  // (ECO.pensao.convidados.samba, ZeArco.naJanta) e, às 19h, o Zé sobe no banquinho (a cena de cinema do samba, com a música).
+  { nome: 'Noite do Samba do Zé', pratos: ['marmita_peao', 'pf_peao'], samba: true,
+    se: () => typeof ZeArco !== 'undefined' && ZeArco.noiteAberta(), estreia: () => typeof ZeArco !== 'undefined' && ZeArco.estreiaPendente(),
+    aoMarcar: noite => { if (typeof ZeArco !== 'undefined') ZeArco.marcou(noite); },
+    evita: noite => typeof ZeArco !== 'undefined' && ZeArco.sambaRecente(noite) },   // (rodada 1, M1: nunca duas festas seguidas)
 ];
+// (T13) A festa do tema da vez: as de sempre e as que um arco abriu (f.se); a que estreia (f.estreia) passa na frente; depois, o
+// rodízio de semana em semana, com ela dentro. A noite e a carta são as de sempre (a festa do tema já tem a noite dela na agenda:
+// Eventos.marcada e Encomendas.noiteLivre contam com ela).
+// (rodada 1) noite: a noite da festa; a festa que a evita (f.evita: o samba logo depois de outro samba) passa a vez. (rodada 2, N1) Ela
+// passa para a festa de ANTES no rodízio, a que a estreia tirou da vez: a seguinte vem na semana seguinte e sairia duas vezes.
+function festaDaVez(desde, noite = 0) {
+  const ok = f => { try { return !f.se || f.se(); } catch (e) { return false; } }, l = FESTAS.filter(ok);
+  const estreia = l.find(f => { try { return !!f.estreia && f.estreia(); } catch (e) { return false; } }); if (estreia) return estreia;
+  const k = Math.floor(desde / 7) % l.length, f = l[k];
+  return noite > 0 && f.evita && f.evita(noite) ? l[(k - 1 + l.length) % l.length] : f;
+}
 // O prêmio de função de cada VIP (o primeiro que a pensão ainda não tem), como os presentes dos VIPs do Dave.
 // (14/10, Tarefa E2, o Dave: o dispenser de coquetel vem de presente de VIP) O Seu Orlando, na 2ª vez bem servido, ensina a caipirinha.
 const FUNCOES_VIP = { aurelio: ['geladeira', 'barraca_praia'], orlando: ['varanda', 'caipirinha'], calixto: ['galinheiro'], santos: ['freezer'] };
@@ -97,8 +115,9 @@ const Eventos = {
       novos.push({ tipo: 'vip', id: v.id, dia: amanha, avisado: dia, prato: da ? rv : (ok.length ? ok[0] : v.gosta[v.gosta.length - 1]), ensinou: da ? rv : '' });
     }
     if (desde >= 4 && desde % 7 === 4 && !marcado('festa') && !daFirma) {
-      const f = FESTAS[Math.floor(desde / 7) % FESTAS.length], ok = f.pratos.filter(id => p.receitas.includes(id));
-      novos.push({ tipo: 'festa', nome: f.nome, dia: amanha, avisado: dia, prato: ok.length ? ok[0] : p.receitas[0], categoria: f.categoria || '' });
+      const f = festaDaVez(desde, amanha), ok = f.pratos.filter(id => p.receitas.includes(id));
+      novos.push(Object.assign({ tipo: 'festa', nome: f.nome, dia: amanha, avisado: dia, prato: ok.length ? ok[0] : p.receitas[0], categoria: f.categoria || '' }, f.samba ? { samba: true } : {}));
+      if (f.aoMarcar) f.aoMarcar(amanha);
     }
     p.agenda.push(...novos);
     p.agenda = p.agenda.filter(e => !(e.fim && e.dia !== undefined && e.dia < dia - 1));   // (os terminados há mais de 1 dia)
@@ -158,6 +177,8 @@ const Eventos = {
 };
 // (C17) A frase da revisita (a carta da Gazeta, e o P.S. da matéria): o dia da semana e o que ele repara.
 const textoRevisita = d => `O Doutor Paladar volta ${naDia(d)} (dia ${d}) para provar de novo. Ele repara em tudo: o prato que sai rápido, o balcão sem louça suja, a bebida na medida e o prato caprichado ou raro.`;
+// (T13) O P.S. da carta da Noite do Samba do Zé.
+const textoSamba = '\n\nÀs 7 da noite o Zé sobe no banquinho com o samba dele, e a turma da roda vem jantar junto!';
 const vipDe = id => VIPS.find(v => v.id === id);
 // A receita com o nome do VIP (ele ensina quando é bem servido).
 const receitaDoVip = id => Object.keys(typeof RECEITAS_NOVAS !== 'undefined' ? RECEITAS_NOVAS : {}).find(r => RECEITAS_NOVAS[r].caminho === 'vip' && RECEITAS_NOVAS[r].vip === id) || '';
@@ -258,7 +279,7 @@ MANHA.push(() => {
   const ovos = Eventos.manhaDosPremios(p); if (ovos) G.feitosHoje.push(`O galinheiro botou ${ovos} ovos: já estão na despensa da Rosa.`);
   for (const e of Eventos.planejar(p, G.dia)) {
     if (e.tipo === 'vip') { const v = vipDe(e.id); CARTAS['vip_' + G.dia] = { de: v.nome, dia: 1e9, texto: v.carta.replace('amanhã', naDia(e.dia)) + `\n\n(Ele vai pedir: ${Pratos.PRATOS[e.prato].nome}.` + (e.ensinou ? ' A receita com o nome dele veio junto: a Rosa já anotou no caderno. Junte os ingredientes!)' : ')') }; G.correio.caixa.push('vip_' + G.dia); }
-    else if (e.tipo === 'festa') { CARTAS['festa_' + G.dia] = { de: 'Rosa', dia: 1e9, texto: `Amor, ${naDia(e.dia)} é a ${e.nome}! O prato da festa é ${Pratos.PRATOS[e.prato].nome}${e.categoria ? ` (e todo ${CATEGORIAS[e.categoria].toLowerCase()} vale mais)` : ''}: vale 50% mais e vem mais gente. Enche a despensa!` }; G.correio.caixa.push('festa_' + G.dia); }
+    else if (e.tipo === 'festa') { CARTAS['festa_' + G.dia] = { de: 'Rosa', dia: 1e9, texto: `Amor, ${naDia(e.dia)} é a ${e.nome}! O prato da festa é ${Pratos.PRATOS[e.prato].nome}${e.categoria ? ` (e todo ${CATEGORIAS[e.categoria].toLowerCase()} vale mais)` : ''}: vale 50% mais e vem mais gente. Enche a despensa!${e.samba ? textoSamba : ''}` }; G.correio.caixa.push('festa_' + G.dia); }
   }
   // (E3 das encomendas de festa) Depois do VIP e da festa do tema (a festa do morador cede a eles: Encomendas.noiteLivre), o sorteio da
   // festa de um morador, com a semente do dia. A Rosa conta de manhã (a linha do resumo e a novidade do dia no Agora, sem carta: uma
@@ -285,7 +306,7 @@ INICIADORES.push(s => {
   for (const e of (p && p.agenda) || []) {
     const k = (e.tipo === 'vip' ? 'vip_' : 'festa_') + (e.avisado || e.dia - 1);
     if (e.tipo === 'vip' && !CARTAS[k]) CARTAS[k] = { de: vipDe(e.id).nome, dia: 1e9, texto: vipDe(e.id).carta };
-    if (e.tipo === 'festa' && !CARTAS[k]) CARTAS[k] = { de: 'Rosa', dia: 1e9, texto: `A ${e.nome}! O prato da festa é ${Pratos.PRATOS[e.prato].nome}.` };
+    if (e.tipo === 'festa' && !CARTAS[k]) CARTAS[k] = { de: 'Rosa', dia: 1e9, texto: `A ${e.nome}! O prato da festa é ${Pratos.PRATOS[e.prato].nome}.${e.samba ? textoSamba : ''}` };
     if (e.tipo === 'paladar' && !CARTAS['paladar_volta_' + e.avisado]) CARTAS['paladar_volta_' + e.avisado] = { de: 'Gazeta de Santos', dia: 1e9, texto: textoRevisita(e.dia) + '\n\n— Redação da Gazeta de Santos' };
     if (e.tipo === 'encomenda' && !e.fim) AvisoFesta.registra(e);   // (E3) a novidade do dia da festa marcada volta com o save
   }

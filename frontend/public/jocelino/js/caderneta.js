@@ -288,7 +288,8 @@ const GENTE = {
     santos: ['vila', 'santos'], severino: ['vila', 'severino'], cicero: ['vila', 'cicero'], damiao: ['vila', 'damiao'], lourival: ['praia', 'lourival'],
     mateiro: ['serra', 'mateiro'], dona_cida: ['bairro', 'balcao_padaria'], orlando: ['bairro', 'balcao_bar'],
     lurdes: ['bairro', 'dono_lurdes'], nena: ['bairro', 'dono_nena'], neide: ['bairro', 'dono_neide'], valdir: ['bairro', 'dono_valdir'],
-    rosinete: ['bairro', 'dono_rosinete'], tonha: ['bairro', 'dono_tonha'], nenem: ['bairro', 'dono_nenem'] },
+    rosinete: ['bairro', 'dono_rosinete'], tonha: ['bairro', 'dono_tonha'], nenem: ['bairro', 'dono_nenem'],
+    marisa: ['vila', 'marisa'], tiaguinho: ['vila', 'tiaguinho'] },   // (T12) a filha e o neto da Zélia, depois do Natal dela
   GOSTOS: [['ama', 'Ama'], ['gosta', 'Gosta'], ['naoGosta', 'Não gosta'], ['odeia', 'Odeia']],
   // A frase do dia a dia da família: a 1ª que casa (a mais da vida de agora primeiro). Só o carinho: nunca uma ordem.
   FRASES: {
@@ -353,8 +354,11 @@ const Gente = {
   janta(id) {
     if (!Gente._pensao('aberta') || typeof CLIENTELA === 'undefined') return '';
     const PL = ['segundas', 'terças', 'quartas', 'quintas', 'sextas', 'sábados', 'domingos'];
-    for (const d in CLIENTELA) if ((CLIENTELA[d] || []).some(c => Gente.id(c.id) === id)) return 'às ' + PL[d];
-    return '';
+    // (T12) quem janta em mais de um dia (a Dona Zélia também aos sábados, depois do caldo verde): "às quartas e aos sábados"
+    const dias = Object.keys(CLIENTELA).filter(d => (CLIENTELA[d] || []).some(c => Gente.id(c.id) === id)).sort((a, b) => a - b);
+    if (!dias.length) return '';
+    const art = d => (+d >= 5 ? 'aos ' : 'às ') + PL[d];
+    return dias.length === 1 ? art(dias[0]) : dias.slice(0, -1).map(art).join(', ') + ' e ' + art(dias[dias.length - 1]);
   },
   // Os gostos descobertos: [[rótulo, [itens]]] (só os que têm item).
   gostos(id) { if (typeof Conversas === 'undefined' || !Conversas.descobertos) return []; const d = Conversas.descobertos(id); return GENTE.GOSTOS.filter(([k]) => d[k] && d[k].length).map(([k, n]) => [n, d[k]]); },

@@ -57,7 +57,8 @@ const ECO = {
     capricho: { base: 1, porEstrela: 2 },   // a Rosa só capricha até o nível base + porEstrela × estrelas (decisão do jogador, 10/10)
     premio5: { dinheiro: 2000, festaClientes: 6 },  // a 5ª estrela: o prêmio da Prefeitura e os clientes a mais na noite de festa
     // (onda final) Os convidados: os da festa do tema (pedem o prato da festa; mais `varanda` com a varanda) e os da inauguração.
-    convidados: { festa: 3, varanda: 2, inauguracao: 3 },
+    // (T13 das histórias) samba: a turma da roda (o Zé e mais um) que vem a mais na Noite do Samba do Zé (historias/ze.js).
+    convidados: { festa: 3, varanda: 2, inauguracao: 3, samba: 2 },
     // (o cardápio do Bancho, 13/10) As vagas do cardápio por degrau (o Dave: 4 a 7; aqui 2 a 5, uma a mais por degrau).
     vagas: [2, 3, 4, 5, 5, 5],
     // O prato da casa (o Norimaki do Dave): sempre tem, sem ingrediente da despensa; mais barato que o prato mais barato, sem
@@ -120,7 +121,7 @@ const ECO = {
         sardinha_frita: 6, lambari_crocante: 6, peixe_ensopado: 7, casquinha_siri: 6, caldo_caranguejo: 6, escondidinho: 7, caldo_peixe: 6,
         pirao: 5, moqueca: 7, moqueca_capixaba: 7, lagosta_manteiga: 6, bobo_camarao: 7, peixada: 7, robalo_assado: 7, caldeirada: 7,
         moqueca_prefeito: 7, caldeirada_critico: 7, doce_leite_calixto: 4, picadinho_santos: 6, arroz_polvo: 6, vatapa: 7, pitu_moranga: 7,
-        bolo_macaxeira_via: 4 },
+        bolo_macaxeira_via: 4, caldo_verde_zelia: 6, azul_marinho_lourival: 7 },
       MAQUINA: 4, MAQUINA_BEBIDAS: ['guarana', 'caldo_cana'] },
     rosaPaga: true,                                 // a Rosa sozinha paga a despesa e os salários     // caprichar gasta (qtd + 1) × isto^(nível − 1) de cada ingrediente
   },
@@ -149,10 +150,15 @@ const ECO = {
   horta: { fatorSemente: 0.5, fatorVenda: 0.4 },
   // (C9) primeiroDoDia: antes de a pensão abrir, o Seu Lourival paga o 1º peixe do dia vendido na banca × isto (o "freguês" da aula;
   // como o "Procura-se" do quadro do Stardew, que paga 3 × o preço do item). Com a pensão aberta, o peixe vai para a despensa.
-  pesca: { fator: 0.35, primeiroDoDia: 3 },
+  // (T14 das histórias, o L3 do Lourival) esperanca: com a canoa Esperança consertada, o óleo do alto-mar sai por Cr$ 10 (era 20) e o
+  // peixe graúdo do alto-mar (★★★ e menos comum: a garoupa, o dourado, o polvo) vem 1,5 × mais.
+  pesca: { fator: 0.35, primeiroDoDia: 3, esperanca: { oleo: 10, raro: 1.5 } },
   // ---- A caixa de venda (o que não é colheita nem peixe) e as lojas (o depósito, a mercearia, a banca, o Viajante; o mascate
   // cobra pelo preço do depósito).
-  caixa: { pedra: 1, ferro_velho: 3, barra_ferro: 15, sucata_aco: 5, barra_aco: 30, bronze_velho: 8, barra_bronze: 40, coco: 5, caju: 6, goiaba: 6, pitanga: 5, jabuticaba: 8, araca: 7, cogumelo: 10, cambuci: 9, concha: 4, flor: 5, pedra_bonita: 12, pamonha: 20, peixe_frito: 30, bolo: 40, rabanada: 25, moqueca: 80, cocada: 15, goiabada: 30, caldo_caranguejo: 50 },
+  caixa: { pedra: 1, ferro_velho: 3, barra_ferro: 15, sucata_aco: 5, barra_aco: 30, bronze_velho: 8, barra_bronze: 40, coco: 5, caju: 6, goiaba: 6, pitanga: 5, jabuticaba: 8, araca: 7, cogumelo: 10, cambuci: 9, concha: 4, flor: 5, pedra_bonita: 12, pamonha: 20, peixe_frito: 30, bolo: 40, rabanada: 25, moqueca: 80, cocada: 15, goiabada: 30, caldo_caranguejo: 50,
+    // (T14 das histórias) a banana verde do pomar do sítio (mata-sítio 3.5, ainda por fazer): o preço na caixa já fica aqui para o
+    // Azul-Marinho do Lourival passar no crivo da s1; o item e o pé vêm com o pomar.
+    banana: 5 },
   lojas: { deposito: { cimento: 12, tijolo: 1, vergalhao: 3, cal: 4, tinta: 15, pigmento: 5, ladrilho: 2, telha: 2, pao: 4, cafe: 2, lapis: 3, impermeabilizante: 35 }, compra: { madeira: 2, fibra: 1, cristal: 15, pigmento: 2, bloco_concreto: 10, lajota: 15, manilha: 75, madeira_lei: 15 },
     mercearia: { arroz: 1, feijao: 1, farinha: 1, ovo: 2, macarrao: 2, linguica: 6, carne_seca: 8, queijo_coalho: 15, leite: 2, acucar: 1 }, banca: { isca: 2, covo: 25, vara_boa: 250 },
     // (15/10, aprovado pelo dono) A encomenda pelo orelhão (despensa.js). O que também se colhe ou se cata (couve, mandioca, tomate,
@@ -371,6 +377,11 @@ const ECO = {
     tronco: { dias: 3, maximo: 4 },   // Fôlego 7: 1 cogumelo a cada 3 dias por tronco; até 4 no quintal
     lenhaBoa: 1,          // Fôlego 8: madeira a mais por árvore derrubada
     obraEmDobro: 2,       // Alvenaria 2, 3 e 9: peneirar, levar pedras e subir telhas, assentar contam em dobro na lista do Bira
+    // ---- (T11 das histórias) o arco do Mestre Bira: o segredo de ofício do B3 e a ferramenta do B4
+    lerPlanta: 0.10,      // Ler planta: as tarefas da obra do Bira dão 10% a mais de experiência
+    colherMestre: { golpe: 0.65, energia: 0.85 },   // a Colher do Mestre: o golpe da colher 35% mais ligeiro e 15% mais leve (rodada 1: era 25%)
+    // ---- (T14 das histórias) o arco do Seu Lourival: o segredo de ofício do L1
+    lerMar: 1.5,          // Ler o mar: na praia, no lugar certo do dia (o raso com o mar liso, o fundo com o picado), o peixe melhor vem 1,5 × mais
     golpesLeves: 2,       // Alvenaria 4 (pá) e Acabamento 7 (colher): os golpes do dia de empreita (eram 3)
     impecavel: 0.75,      // Acabamento 9: a chance do impecável com impermeabilizante (era a metade do caprichado)
     // ---- (T4b) Negócio

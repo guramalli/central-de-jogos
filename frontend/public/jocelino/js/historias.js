@@ -14,6 +14,7 @@
 //     elenco: { zelia: [37, 11, 'baixo'], jocelino: [36, 13, 'cima'] },   // onde cada um está quando a cena começa (ladrilhos do mapa)
 //     musica: 'musica_dia_2',                                          // (opcional) a trilha da cena; sem ela, a do momento
 //     nomes: { marisa: 'Marisa' },                                     // (opcional) o nome de quem não tem tabela em CONVERSAS
+//     falaNoAlto: true,                                                // (opcional, T11) a fala no alto da tela: a gente da cena fica embaixo
 //     passos: [ ...os passos abaixo... ],
 //   };
 // O GATILHO (tudo precisa casar; a checagem é ao entrar num mapa e a cada 10 minutos do relógio):
@@ -204,7 +205,9 @@ const Historias = {
     if (G.minutos >= 17 * 60 && typeof jantaPorFazer === 'function' && jantaPorFazer()) return 'janta';
     if (G.firma && (G.firma.inauguracaoDia === G.dia || (typeof Firma !== 'undefined' && Firma._tocando))) return 'inauguracao';
     if (typeof guiaPasso === 'function') { try { if (guiaPasso()) return 'guia'; } catch (e) { } }
-    if (typeof setaAgora === 'function') { const s = setaAgora(); if (s && /_vez$|^aula$|^tela_/.test(s.missao || '')) return 'guia'; }
+    // (T15, rodada 2) a seta de uma 1ª vez segura o motor só quando aponta um alvo NESTE mapa: a seta de saída para a 1ª vez de outro
+    // lugar (a carta da firma no quintal, o quadro da Prefeitura com o capital juntado, sem prazo) não prende as cenas daqui
+    if (typeof setaAgora === 'function') { const s = setaAgora(); if (s && s.tipo === 'alvo' && /_vez$|^aula$|^tela_/.test(s.missao || '')) return 'guia'; }
     if (typeof document !== 'undefined' && document.getElementById) { const av = document.getElementById('avisos'); if (av && av.children && av.children.length) return 'aviso'; }
     return '';
   },
@@ -293,7 +296,7 @@ const Historias = {
     // o jogo para: as teclas soltas, o mouse solto, a pescaria recolhida; as faixas descem e o HUD some
     G.teclas.clear(); if (G.mouse) G.mouse.segura = false;
     if (typeof recolherLinha === 'function') recolherLinha();
-    if (typeof document !== 'undefined' && document.body && document.body.classList) document.body.classList.add('historia');
+    if (typeof document !== 'undefined' && document.body && document.body.classList) { document.body.classList.add('historia'); document.body.classList.toggle('historia-alto', !!def.falaNoAlto); }
     Historias._botaoPular();
     for (const p of G.mapa.moradores) p.andando = false;   // (quem passeava fica parado de pé, não no meio do passo)
     // o elenco no lugar
@@ -501,7 +504,7 @@ const Historias = {
     if (G.mapa && h.novos.length) G.mapa.moradores = G.mapa.moradores.filter(x => !h.novos.includes(x));
     if (G.jog) { G.jog._rota = null; G.jog._balaoH = null; G.jog.andando = false; if (G.mapa && typeof bate === 'function' && bate(G.jog.caixa())) G.jog.desencalhar(); }
     Historias._h = null; Historias._faixaSai = _agoraH();
-    if (typeof document !== 'undefined' && document.body && document.body.classList) document.body.classList.remove('historia');
+    if (typeof document !== 'undefined' && document.body && document.body.classList) document.body.classList.remove('historia', 'historia-alto');
     Historias._botaoPular();
     if (G.teclas) G.teclas.clear();
     G._camPronta = true;
