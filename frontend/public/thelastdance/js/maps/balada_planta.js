@@ -204,7 +204,9 @@
       { id: "gustavinho", nome: "Gustavinho", personagem: "gustavinho", personagem3d: true, postura: "em_pe", x: 3.6, y: 3.0, dir: "baixo",
         falarDe: { x: 3.6, y: 3.75 }, fala: ["\"Hoje a noite promete, parceiro!\"", "\"Já viu a ruiva da pista? Vai lá, vai!\""],
         visual: { pele: "#c48d63", roupa: "#111111", calca: "#2f5fb0", cabelo: "#2a1a10", estilo: "curto" } },
-      { id: "vibola", nome: "Vibola", personagem: "vibola", postura: "em_pe", x: 4.6, y: 2.4, dir: "esquerda",
+      // o Vibola em 3D (pixel art, trancado com a senha), fumando: fica parado e de vez em quando dá um trago
+      { id: "vibola", nome: "Vibola", personagem: "vibola", personagem3d: true, postura: "em_pe", x: 4.6, y: 2.4, dir: "baixo",
+        ciclo3d: [["parado", 4.5], ["fumar", 3.2]],
         falarDe: { x: 4.6, y: 3.2 }, fala: ["\"Mais um ano solteiro... de novo, né?\"", "\"Esse DJ tá tocando só as minhas!\""],
         visual: { pele: "#b9825a", roupa: "#1a1a1a", calca: "#ececec", cabelo: "#2a1a10", estilo: "curto" } },
       { id: "vini", nome: "Vini", personagem: "vini", postura: "em_pe", x: 4.4, y: 4.4, dir: "esquerda",

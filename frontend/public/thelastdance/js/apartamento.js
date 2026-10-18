@@ -608,7 +608,7 @@
       let t = ((agora / 1000 + n.relogio3d * 10) % total);
       for (const [nome, seg] of n.ciclo3d) {
         if (t < seg) {
-          if (d[nome]) { f = d[nome]; if (nome === "beber") q = Math.min(f.quadros - 1, Math.floor(t * f.fps)); }
+          if (d[nome]) { f = d[nome]; if (f.umaVez) q = Math.min(f.quadros - 1, Math.floor(t * f.fps)); }
           break;
         }
         t -= seg;
@@ -622,6 +622,32 @@
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(f.img, q * f.larg, 0, f.larg, f.alt, x - f.pes[0] * e, y - f.pes[1] * e, f.larg * e, f.alt * e);
     ctx.restore();
+    if (f.ponta) fumaca(ctx, n, f, q, x - f.pes[0] * e, y - f.pes[1] * e, e, agora);
+  }
+  // Fumaça de cigarro: fiapo fino saindo da ponta acesa (tira com "ponta" por quadro) e, logo depois do trago,
+  // uma baforada pela boca ("boca"). Partículas cinza que sobem, abrem e somem.
+  function fumaca(ctx, n, f, q, ox, oy, e, agora) {
+    const fx = n.fumaca || (n.fumaca = { p: [], ultimo: agora, tragou: false });
+    const dt = Math.min(0.1, (agora - fx.ultimo) / 1000); fx.ultimo = agora;
+    const pt = f.ponta[q], bo = f.boca && f.boca[q];
+    if (pt && Math.random() < dt * 9) fx.p.push({ x: ox + pt[0] * e, y: oy + pt[1] * e, vx: (Math.random() - 0.5) * 6, vy: -18, r: 2, vida: 1.6, a: 0.45 });
+    const tragando = f.umaVez && q >= 3 && q <= 5;
+    if (tragando) fx.tragou = true;
+    if (fx.tragou && f.umaVez && q >= 6 && bo) { // solta a fumaça
+      fx.tragou = false;
+      for (let i = 0; i < 9; i++) fx.p.push({ x: ox + bo[0] * e, y: oy + bo[1] * e, vx: -10 - Math.random() * 16, vy: -12 - Math.random() * 10, r: 3 + Math.random() * 3, vida: 1.8, a: 0.55 });
+    }
+    ctx.save();
+    for (const p of fx.p) {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.98; p.r += dt * 7; p.vida -= dt;
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.vida / 1.2)) * p.a;
+      ctx.fillStyle = "#d9d4de";
+      const px = Math.round((p.x + Math.sin(agora / 300 + p.y / 10) * 2) / 2) * 2, py = Math.round(p.y / 2) * 2, r = Math.max(2, Math.round(p.r / 2) * 2);
+      ctx.fillRect(px - r, py - r / 2, r * 2, r);              // fumaça em "pixels" (cruz), como a arte do jogo
+      ctx.fillRect(px - r / 2, py - r, r, r * 2);
+    }
+    ctx.restore();
+    fx.p = fx.p.filter((p) => p.vida > 0);
   }
   if (NPCS.some((n) => n.personagem)) {
     // os amigos (rosto real) só existem destrancados: espera o pacote da área dos amigos (js/vip.js)

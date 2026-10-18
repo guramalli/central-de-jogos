@@ -22,7 +22,8 @@
       "pes": [
         119.3,
         309.9
-      ]
+      ],
+      "umaVez": true
     },
     "dancar": {
       "folha": "3d/dancar.webp",
