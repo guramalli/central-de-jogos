@@ -302,11 +302,13 @@
     }
     pulouAgora = freouAgora = false;
     // câmera: ele um pouco à esquerda do meio, olhando um pouco à frente quando está rápido
+    // com a arte, a crista fica encostada no canto esquerdo da tela (o que fica atrás dela, a espuma, quase não aparece)
+    const cr = ARTE.onda_crista_0, cantoCrista = cr ? s.crista - cr.width * PX * 0.35 + 70 : -Infinity;
     const alvoCam = s.fase === "surfando"
-      ? s.crista - W * (W < 900 ? 0.3 : 0.32) + lim(s.x - s.crista, -200, 1400) * 0.55 // segue a onda; ele anda pela tela
+      ? Math.max(cantoCrista, s.crista - W * (W < 900 ? 0.3 : 0.32) + lim(s.x - s.crista, -200, 1400) * 0.55) // segue a onda
       : s.x - W * (W < 900 ? 0.36 : 0.4);
     s.cam += (alvoCam - s.cam) * Math.min(1, dt * 3.5);
-    if (s.fase === "surfando") s.cam = lim(s.cam, s.x - W * 0.7, s.x - W * 0.2); // ele nunca sai da tela
+    if (s.fase === "surfando") s.cam = lim(s.cam, s.x - W * 0.7, s.x - W * 0.08); // ele nunca sai da tela
     s.tremor = Math.max(0, s.tremor - dt * 40);
     for (const a of s.avisos) { a.vida -= dt; a.y -= dt * 60; }
     s.avisos = s.avisos.filter((a) => a.vida > 0);
@@ -586,12 +588,7 @@
     const tex = quadro("onda_parede");
     if (tex) { // textura da parede (3 quadros), presa à água: anda junto com o mundo
       const t = tex.width * PX, y = Y_BASE - HMAX * s.forca - 6, hh = HMAX * s.forca + 8;
-      const ini = Math.floor(s.cam * 0.9 / t);  // um bloco sim, outro espelhado: as emendas somem
-      for (let i = ini; (i * t - s.cam * 0.9) < W; i++) {
-        const x = Math.floor(i * t - s.cam * 0.9);
-        if (i % 2) { ctx.save(); ctx.translate(x + t, y); ctx.scale(-1, 1); ctx.drawImage(tex, 0, 0, t + 1, hh); ctx.restore(); }
-        else ctx.drawImage(tex, x, y, t + 1, hh);
-      }
+      for (let x = -(((s.cam * 0.9) % t) + t) % t; x < W; x += t) ctx.drawImage(tex, Math.floor(x), y, t + 2, hh); // emenda sem costura (kit)
     } else faixas(ctx, Y_BASE - HMAX, Y_BASE, ["#a4f0dd", "#78dfcb", "#4cc6b7", "#33aaa6", "#278d97", "#1f7388", "#185c76", "#134c66"]);
     // listras de água correndo na parede
     if (!tex) for (const [f, c] of [[0.22, "rgba(230,255,250,0.5)"], [0.42, "rgba(220,255,250,0.32)"], [0.62, "rgba(200,245,245,0.25)"], [0.82, "rgba(190,235,240,0.22)"]]) {
@@ -623,6 +620,7 @@
     if (cr) { // a arte da crista, espelhada: enrola para a direita (para onde a onda anda); o oco do tubo fica na crista
       const w = cr.width * PX, h = cr.height * PX * s.forca, x = Math.round(s.crista - s.cam - w * 0.35);
       ctx.save(); ctx.translate(x + w, Y_BASE + 8 - h); ctx.scale(-1, 1); ctx.drawImage(cr, 0, 0, w, h); ctx.restore();
+      if (x > 0) ctx.drawImage(cr, cr.width - 3, 0, 3, cr.height, 0, Y_BASE + 8 - h, x + 2, h); // canto: a borda da onda esticada até a tela
       return;
     }
     const xc = s.crista - s.cam, L = s.tuboL, topo = Y_BASE - altura(1);
@@ -644,9 +642,9 @@
     if (!s.quebrada || s.forca < 0.05) return;
     const xc = Math.min(s.crista - s.cam + 10, W);
     const esp = quadro("onda_espuma");
-    if (esp) { // espuma (3 quadros) repetida da crista para trás
-      const w = esp.width * PX, h = esp.height * PX * s.forca, fim = xc - (ARTE.onda_crista_0 ? ARTE.onda_crista_0.width * PX * 0.18 : 0);
-      for (let x = fim - w; x > -w; x -= w - 2) ctx.drawImage(esp, Math.floor(x), Y_BASE + 16 - h, w, h);
+    if (esp) { // espuma (3 quadros) repetida da crista para trás; começa embaixo da crista (sem corte reto)
+      const w = esp.width * PX, h = esp.height * PX * s.forca, fim = xc + (ARTE.onda_crista_0 ? ARTE.onda_crista_0.width * PX * 0.1 : 0);
+      for (let x = fim - w; x > -w; x -= w) ctx.drawImage(esp, Math.floor(x), Y_BASE + 16 - h, w + 2, h);
       return;
     }
     const borda = (sx) => {
@@ -904,11 +902,13 @@
     // fundo: céu, mar, parede, marca da prancha (e o lábio, quando ele não está no tubo)
     const f = prepararCamada(fundo);
     ceu(f); marAoFundo(f); parede(f); rastro(f);
+    if (ARTE.onda_espuma_0) espuma(f); // com a arte, a espuma fica atrás da crista
     if (!noTubo) labio(f);
     // frente: lábio (tubo), espuma, água da frente, respingos, areia e a turma
     const fr = prepararCamada(frente);
     if (noTubo) labio(fr);
-    espuma(fr); aguaDaFrente(fr); gotas(fr); areia(fr); turma(fr, dt);
+    if (!ARTE.onda_espuma_0) espuma(fr);
+    aguaDaFrente(fr); gotas(fr); areia(fr); turma(fr, dt);
     ctx.save();
     ctx.translate(tx, ty);
     ctx.imageSmoothingEnabled = false;

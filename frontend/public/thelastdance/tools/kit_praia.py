@@ -228,18 +228,20 @@ def reduzir(im, nome, cheia):
     return Image.fromarray(a)
 
 
-BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16
+EMENDAR = ("onda_parede", "onda_espuma", "areia")  # texturas que repetem lado a lado
 
 
-def sumir_direita(im, frac=0.22):
-    """a crista emenda na parede do jogo: o lado direito some em pontilhado (sem meio-tom, cara de pixel art)"""
-    a = np.asarray(im).copy()
-    h, w = a.shape[:2]
-    x0 = int(w * (1 - frac))
-    for x in range(x0, w):
-        t = (x - x0) / (w - x0)
-        a[:, x, 3] = np.where(BAYER[np.arange(h) % 4, x % 4] < t, 0, a[:, x, 3])
-    return Image.fromarray(a)
+def emendar(im, frac=0.3):
+    """repetição sem emenda: o começo da imagem se mistura com o fim (a imagem fica frac mais estreita)"""
+    a = np.asarray(im).astype(float)
+    w = a.shape[1]
+    ov = int(w * frac)
+    out = a[:, :w - ov].copy()
+    t = (np.arange(ov) / ov)[None, :, None]
+    out[:, :ov] = a[:, w - ov:] * (1 - t) + a[:, :ov] * t
+    if out.shape[2] == 4:
+        out[..., 3] = np.where(out[..., 3] >= 128, 255, 0)
+    return Image.fromarray(out.round().astype(np.uint8))
 
 
 def processar():
@@ -263,7 +265,7 @@ def processar():
             for i, q in enumerate(qs):
                 q.save(GRANDE / f"{nome}_{i}.png")
                 r = reduzir(q, nome, cheia)
-                (sumir_direita(r) if nome == "onda_crista" else r).save(SAIDA / f"{nome}_{i}.png", optimize=True)
+                (emendar(r) if nome in EMENDAR else r).save(SAIDA / f"{nome}_{i}.png", optimize=True)
             print(nome, "-> 3 quadros", qs[0].size, "->", reduzir(qs[0], nome, cheia).size)
         else:
             if not cheia:
@@ -273,6 +275,7 @@ def processar():
                 print(nome, "-> (não usada no jogo)")
             else:
                 r = reduzir(im, nome, cheia)
+                r = emendar(r) if nome in EMENDAR else r
                 r.save(SAIDA / f"{nome}.png", optimize=True)
                 print(nome, "->", im.size, "->", r.size)
         feitos.append(nome)
