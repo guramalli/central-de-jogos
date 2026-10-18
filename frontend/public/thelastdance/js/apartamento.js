@@ -11,6 +11,8 @@
   const PASTA_SPR = "assets/characters/personagem_v2/pixel/";
   const VEL = 2.2;            // m/s
   const RAIO = 0.22;          // corpo do personagem no chão (m)
+  let SENTA_LADO = 0.06, SENTA_FRENTE = 0.06; // quanto o personagem em quadros afunda no assento (em metros)
+  let SENTA_ENCOSTO = 0.62; // sentado de costas para a câmera: o encosto esconde abaixo desta altura (m)
   const ALTURA_PERSONAGEM = 173; // px lógicos (≈ 1,73 m na escala do mapa); a escala vem da folha (jogo.json)
   const INICIOS = Object.assign({ inicio: { x: P.inicio.x, y: P.inicio.y } }, P.inicios || {});
 
@@ -362,6 +364,7 @@
   // Guarda-roupa: as roupas são do personagem modular — se ele estiver com outro conjunto, troca para o modular.
   function abrirArmario() {
     if (!NSF.Armario || NSF.Armario.aberto()) return;
+    if (/^3d/.test(conjunto) && P.aoArmarioConjunto) { P.aoArmarioConjunto(window.NSF_APTO, Object.keys(manifesto.conjuntos)); return; }
     const antes = conjunto;
     carregarConjunto(MODULAR).then(() => {
       conjunto = MODULAR;
@@ -1094,17 +1097,31 @@
     if (jog.oculto && !ef) return;
     if (jog.semCorpo) return; // o mapa desenha outra imagem no lugar dele (ex.: de tarja, no encontro)
     if (conjunto === MODULAR && heroi) { desenharModular(ctx, ef); return; }
-    // conjunto de quadros: a tira de andar; parado, a tira "parado" (se o conjunto tiver) em vez do 1º quadro de andar
+    // conjunto de quadros: a tira de andar; fora dela, a tira da pose da cena (celular, bigode, dançar...), sentado ou
+    // parado, quando o conjunto tem (senão, o 1º quadro de andar)
     const fAndar = manifesto.conjuntos[conjunto][jog.dir];
-    const f = !jog.andando && fAndar.parado ? fAndar.parado : fAndar, im = folhas[f.folha];
+    const extra = (jog.pose && fAndar[jog.pose]) || (jog.sentado && fAndar.sentado) || (!jog.andando && fAndar.parado);
+    const f = extra && !(jog.andando && !jog.pose) ? extra : fAndar, im = folhas[f.folha];
     const q = f === fAndar ? quadroSprite(f) : Math.floor(performance.now() / 1000 * f.fps) % f.quadros;
     const px = f.pes[0], py = f.pes[1];
-    const [x, y] = T(jog.x, jog.y, 0);
+    let [x, y] = T(jog.x, jog.y, 0);
     const e = ALTURA_PERSONAGEM / (f.altura_px || manifesto.altura_personagem_px || 128);
+    const sentadoSprite = f === fAndar.sentado; // sentado de verdade (o quadril já está na altura do assento)
+    if (sentadoSprite) { // afunda no assento (como o modular): de lado as pernas vão para fora, por cima da beirada
+      const k = y - T(jog.x, jog.y, 1)[1], lado = jog.dir === "esquerda" || jog.dir === "direita";
+      y += k * (lado ? SENTA_LADO : SENTA_FRENTE);
+    }
     const meio = y - ALTURA_PERSONAGEM * 0.5; // o "clique" fecha no meio do corpo
     ctx.save();
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    ctx.beginPath(); ctx.ellipse(x, y, 46 * (ef ? Math.min(1, ef.sx) : 1), 13, 0, 0, 2 * Math.PI); ctx.fill();
+    if (sentadoSprite && (jog.dir === "esquerda" || jog.dir === "cima")) {
+      // de costas para a câmera: o encosto do assento fica na frente dele e esconde do quadril para baixo
+      const corte = T(jog.x, jog.y, SENTA_ENCOSTO)[1];
+      ctx.beginPath(); ctx.rect(x - 400, corte - 2000, 800, 2000); ctx.clip();
+    }
+    if (!sentadoSprite) {
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.beginPath(); ctx.ellipse(x, y, 46 * (ef ? Math.min(1, ef.sx) : 1), 13, 0, 0, 2 * Math.PI); ctx.fill();
+    }
     if (ef) { ctx.translate(x, meio); ctx.scale(ef.sx, ef.sy); ctx.translate(-x, -meio); }
     // folha em alta resolução reduzida: suavizar (sem serrilhado); folha em pixel art ("pixelado"): blocos nítidos
     ctx.imageSmoothingEnabled = !f.pixelado;
@@ -1468,8 +1485,10 @@
   // Baixa só as folhas de um conjunto (no celular, carregar os 3 conjuntos de uma vez pesaria ~6 MB).
   function carregarConjunto(nome) {
     if (nome === MODULAR) return carregarModular();
-    const arquivos = Object.values(manifesto.conjuntos[nome]).flatMap((f) => [f.folha, f.parado && f.parado.folha])
-      .filter((a) => a && !folhas[a]);
+    // a tira de andar e todas as tiras extras de cada direção (parado, sentado, celular, dançar, deitado...)
+    const arquivos = Object.values(manifesto.conjuntos[nome])
+      .flatMap((f) => [f.folha, ...Object.values(f).filter((x) => x && x.folha).map((x) => x.folha)])
+      .filter((a, i, l) => a && !folhas[a] && l.indexOf(a) === i);
     return Promise.all(arquivos.map((arq) => new Promise((ok, erro) => {
       const im = new Image();
       im.onload = () => { folhas[arq] = im; ok(); };
@@ -1505,6 +1524,25 @@
       falar, pensar, sentar, levantar, cortinaCom, imgProps, ocupado,
       poseSentada: criarPoseSentada, VISTA_MOD,
       abrirArmario, get heroi() { return heroi; },
+      // personagem em quadros (ex.: o 3D): a tira de uma pose e como desenhá-la (a cama usa o "deitado")
+      poseConjunto(nome, dir) {
+        if (conjunto === MODULAR || !manifesto) return null;
+        const c = manifesto.conjuntos[conjunto], f = c && (c[dir || "baixo"] || {})[nome];
+        return f && folhas[f.folha] ? f : null;
+      },
+      desenharTira(ctx, f, x, y, agora) {
+        const im = folhas[f.folha], q = Math.floor((agora || performance.now()) / 1000 * f.fps) % f.quadros;
+        const e = ALTURA_PERSONAGEM / (f.altura_px || 128);
+        ctx.save();
+        ctx.imageSmoothingEnabled = !f.pixelado;
+        ctx.drawImage(im, q * f.larg, 0, f.larg, f.alt, x - f.pes[0] * e, y - f.pes[1] * e, f.larg * e, f.alt * e);
+        ctx.restore();
+      },
+      get conjunto() { return conjunto; },
+      ajusteSentar(l, fr, enc) { SENTA_LADO = l; SENTA_FRENTE = fr; if (enc != null) SENTA_ENCOSTO = enc; }, // conferência
+      trocarConjunto(nome) { // looks do personagem em quadros (guarda-roupa do 3D)
+        return carregarConjunto(nome).then(() => { conjunto = nome; pref.gravar("nsf_conjunto", nome); marcar(); });
+      },
       // troca a roupa toda (fica guardada para as outras telas); acessórios (celular na mão) continuam
       vestirRoupas(ids) {
         heroi.vestidas = heroi.vestidas.filter((r) => heroi.roupas[r] && heroi.roupas[r].acessorio);

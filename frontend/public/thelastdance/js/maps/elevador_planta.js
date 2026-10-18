@@ -207,7 +207,8 @@
       dur = 2900;
     } else if (id === "celular") {
       jog.dir = "baixo";
-      if (heroi) { heroi.vestir("celular_mao"); jog.pose = "celular"; }
+      if (heroi) heroi.vestir("celular_mao");
+      jog.pose = "celular"; // o personagem em quadros (3D) tem a tira "celular"
       PLANTA.curtidas = { n: 37, ate: agora + 4300 };
       for (let k = 0; k < 9; k++) {
         const t0 = agora + 500 + k * 380;
@@ -218,7 +219,8 @@
       dur = 4300;
     } else if (id === "bigode") {
       jog.dir = "esquerda"; // virado para o espelho
-      if (heroi) { heroi.vestir("pose_bigode"); jog.pose = "bigode"; }
+      if (heroi) heroi.vestir("pose_bigode");
+      jog.pose = "bigode";
       PLANTA.reflexo = agora;
       ESPELHO.arte = "espelho_bigode"; // já no primeiro quadro
       legenda("Tá no ponto.", 3000);

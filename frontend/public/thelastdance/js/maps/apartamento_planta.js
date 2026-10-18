@@ -183,6 +183,21 @@
     setTimeout(mandar, 1800);
   };
 
+  // Guarda-roupa com o personagem 3D (tester): cada look é um conjunto de quadros
+  const LOOKS = { "3d": ["👕", "Camiseta branca"], "3d_azul": ["👔", "Camiseta azul"] };
+  PLANTA.aoArmarioConjunto = async (api, conjuntos) => {
+    if (document.querySelector(".escolha")) return;
+    const opcoes = conjuntos.filter((n) => LOOKS[n]).map((n) => [...LOOKS[n], n]);
+    opcoes.push(["🧍", "Personagem antigo", "modular"]);
+    const r = await escolha("O que você vai vestir hoje?", opcoes);
+    if (r === "modular") { await api.trocarConjunto("modular"); api.abrirArmario(); return; }
+    if (r === api.conjunto) return;
+    api.jog.dir = "cima";
+    await api.trocarConjunto(r);
+    api.jog.dir = "baixo";
+    api.pensar("Agora sim! 😎", 1800);
+  };
+
   // Antes de dormir, pergunta (evita dormir sem querer ao tocar perto da cama).
   function perguntarDormir(api) {
     if (document.querySelector(".escolha")) return;
@@ -238,7 +253,11 @@
   function desenharDeitado(ctx, T, agora) {
     const api = PLANTA.api, heroi = api && api.heroi, xm = (CAMA.x0 + CAMA.x1) / 2, zt = CAMA.z1 + 0.06;
     const [hx, hy] = T(xm, CAMA.y0 + 0.18, zt + 0.08), [fx, fy] = T(xm, CAMA.y1 - 0.2, zt);
-    if (heroi) {
+    const deitado = api && api.poseConjunto && api.poseConjunto("deitado"); // personagem 3D: já vem deitado
+    if (deitado) {
+      const [cx, cy] = T(xm, CAMA.y0 + 0.12, zt - 0.06); // alto da cabeça no travesseiro
+      api.desenharTira(ctx, deitado, cx, cy, agora);
+    } else if (heroi) {
       const comp = Math.hypot(hx - fx, hy - fy);
       heroi.definirVista("frente");
       heroi.tocar("parado");

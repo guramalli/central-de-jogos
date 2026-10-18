@@ -240,10 +240,10 @@
   // ---------- o personagem mexendo no celular ----------
   function poseCelular(sim) {
     const a = global.NSF_APTO;
-    if (!a || !a.heroi || !a.jog || a.jog.sentado) return;
-    const h = a.heroi;
-    if (sim && h.roupas && h.roupas.celular_mao) { h.vestir("celular_mao"); a.jog.pose = "celular"; a.jog.dir = "baixo"; }
-    else if (!sim && a.jog.pose === "celular") { h.tirar("celular_mao"); a.jog.pose = null; }
+    if (!a || !a.jog || a.jog.sentado) return;
+    const h = a.heroi, mod = h && h.roupas && h.roupas.celular_mao; // modular: o celular é um acessório na mão
+    if (sim && (mod || a.poseConjunto && a.poseConjunto("celular"))) { if (mod) h.vestir("celular_mao"); a.jog.pose = "celular"; a.jog.dir = "baixo"; }
+    else if (!sim && a.jog.pose === "celular") { if (h) h.tirar("celular_mao"); a.jog.pose = null; }
   }
 
   // ---------- abrir / fechar / navegar ----------

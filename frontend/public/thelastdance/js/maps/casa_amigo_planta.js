@@ -198,9 +198,11 @@
       }
       if (fala.quem === "eu") {
         api.falar(fala.texto, ms - 200);
-        if (fala.celular && api.heroi && !api.jog.sentado && api.heroi.roupas.celular_mao) {
-          api.heroi.vestir("celular_mao"); api.jog.pose = "celular";
-          setTimeout(() => { api.heroi.tirar("celular_mao"); if (api.jog.pose === "celular") api.jog.pose = null; }, ms);
+        const mod = api.heroi && api.heroi.roupas && api.heroi.roupas.celular_mao;
+        if (fala.celular && !api.jog.sentado && (mod || (api.poseConjunto && api.poseConjunto("celular")))) {
+          if (mod) api.heroi.vestir("celular_mao");
+          api.jog.pose = "celular";
+          setTimeout(() => { if (mod) api.heroi.tirar("celular_mao"); if (api.jog.pose === "celular") api.jog.pose = null; }, ms);
         }
       } else {
         const n = api.npcs.find((x) => x.id === fala.quem);

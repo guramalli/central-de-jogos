@@ -155,15 +155,119 @@
         "pixelado": true,
         "parado": {
           "folha": "3d/parado_baixo.webp",
-          "larg": 152,
+          "larg": 148,
           "alt": 324,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            76.3,
+            74.3,
             312.9
           ],
           "altura_px": 304,
+          "pixelado": true
+        },
+        "sentado": {
+          "folha": "3d/sentado_baixo.webp",
+          "larg": 188,
+          "alt": 300,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            94.3,
+            300.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "celular": {
+          "folha": "3d/celular_baixo.webp",
+          "larg": 200,
+          "alt": 322,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            100.3,
+            308.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "bigode": {
+          "folha": "3d/bigode_baixo.webp",
+          "larg": 168,
+          "alt": 326,
+          "quadros": 8,
+          "fps": 3,
+          "pes": [
+            84.3,
+            312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "dancar": {
+          "folha": "3d/dancar_baixo.webp",
+          "larg": 196,
+          "alt": 314,
+          "quadros": 8,
+          "fps": 2.78,
+          "pes": [
+            96.3,
+            296.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "palmas": {
+          "folha": "3d/palmas_baixo.webp",
+          "larg": 160,
+          "alt": 330,
+          "quadros": 8,
+          "fps": 6,
+          "pes": [
+            80.3,
+            316.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "acenar": {
+          "folha": "3d/acenar_baixo.webp",
+          "larg": 452,
+          "alt": 434,
+          "quadros": 8,
+          "fps": 3.05,
+          "pes": [
+            226.3,
+            376.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "rir": {
+          "folha": "3d/rir_baixo.webp",
+          "larg": 380,
+          "alt": 338,
+          "quadros": 8,
+          "fps": 1.67,
+          "pes": [
+            194.3,
+            320.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "deitado": {
+          "folha": "3d/deitado.webp",
+          "larg": 274,
+          "alt": 200,
+          "quadros": 8,
+          "fps": 2,
+          "altura_px": 304,
+          "pes": [
+            242.6,
+            99.8
+          ],
           "pixelado": true
         }
       },
@@ -181,13 +285,104 @@
         "pixelado": true,
         "parado": {
           "folha": "3d/parado_cima.webp",
-          "larg": 152,
+          "larg": 148,
           "alt": 324,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            76.3,
+            74.3,
             312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "sentado": {
+          "folha": "3d/sentado_cima.webp",
+          "larg": 188,
+          "alt": 300,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            94.3,
+            300.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "celular": {
+          "folha": "3d/celular_cima.webp",
+          "larg": 200,
+          "alt": 322,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            100.3,
+            308.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "bigode": {
+          "folha": "3d/bigode_cima.webp",
+          "larg": 168,
+          "alt": 326,
+          "quadros": 8,
+          "fps": 3,
+          "pes": [
+            84.3,
+            312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "dancar": {
+          "folha": "3d/dancar_cima.webp",
+          "larg": 196,
+          "alt": 314,
+          "quadros": 8,
+          "fps": 2.78,
+          "pes": [
+            96.3,
+            296.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "palmas": {
+          "folha": "3d/palmas_cima.webp",
+          "larg": 160,
+          "alt": 330,
+          "quadros": 8,
+          "fps": 6,
+          "pes": [
+            80.3,
+            316.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "acenar": {
+          "folha": "3d/acenar_cima.webp",
+          "larg": 452,
+          "alt": 434,
+          "quadros": 8,
+          "fps": 3.05,
+          "pes": [
+            226.3,
+            376.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "rir": {
+          "folha": "3d/rir_cima.webp",
+          "larg": 380,
+          "alt": 338,
+          "quadros": 8,
+          "fps": 1.67,
+          "pes": [
+            194.3,
+            320.9
           ],
           "altura_px": 304,
           "pixelado": true
@@ -207,13 +402,104 @@
         "pixelado": true,
         "parado": {
           "folha": "3d/parado_direita.webp",
-          "larg": 152,
+          "larg": 148,
           "alt": 324,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            76.3,
+            74.3,
             312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "sentado": {
+          "folha": "3d/sentado_direita.webp",
+          "larg": 188,
+          "alt": 300,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            94.3,
+            300.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "celular": {
+          "folha": "3d/celular_direita.webp",
+          "larg": 200,
+          "alt": 322,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            100.3,
+            308.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "bigode": {
+          "folha": "3d/bigode_direita.webp",
+          "larg": 168,
+          "alt": 326,
+          "quadros": 8,
+          "fps": 3,
+          "pes": [
+            84.3,
+            312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "dancar": {
+          "folha": "3d/dancar_direita.webp",
+          "larg": 196,
+          "alt": 314,
+          "quadros": 8,
+          "fps": 2.78,
+          "pes": [
+            96.3,
+            296.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "palmas": {
+          "folha": "3d/palmas_direita.webp",
+          "larg": 160,
+          "alt": 330,
+          "quadros": 8,
+          "fps": 6,
+          "pes": [
+            80.3,
+            316.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "acenar": {
+          "folha": "3d/acenar_direita.webp",
+          "larg": 452,
+          "alt": 434,
+          "quadros": 8,
+          "fps": 3.05,
+          "pes": [
+            226.3,
+            376.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "rir": {
+          "folha": "3d/rir_direita.webp",
+          "larg": 380,
+          "alt": 338,
+          "quadros": 8,
+          "fps": 1.67,
+          "pes": [
+            194.3,
+            320.9
           ],
           "altura_px": 304,
           "pixelado": true
@@ -233,13 +519,104 @@
         "pixelado": true,
         "parado": {
           "folha": "3d/parado_esquerda.webp",
-          "larg": 152,
+          "larg": 148,
           "alt": 324,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            76.3,
+            74.3,
             312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "sentado": {
+          "folha": "3d/sentado_esquerda.webp",
+          "larg": 188,
+          "alt": 300,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            94.3,
+            300.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "celular": {
+          "folha": "3d/celular_esquerda.webp",
+          "larg": 200,
+          "alt": 322,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            100.3,
+            308.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "bigode": {
+          "folha": "3d/bigode_esquerda.webp",
+          "larg": 168,
+          "alt": 326,
+          "quadros": 8,
+          "fps": 3,
+          "pes": [
+            84.3,
+            312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "dancar": {
+          "folha": "3d/dancar_esquerda.webp",
+          "larg": 196,
+          "alt": 314,
+          "quadros": 8,
+          "fps": 2.78,
+          "pes": [
+            96.3,
+            296.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "palmas": {
+          "folha": "3d/palmas_esquerda.webp",
+          "larg": 160,
+          "alt": 330,
+          "quadros": 8,
+          "fps": 6,
+          "pes": [
+            80.3,
+            316.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "acenar": {
+          "folha": "3d/acenar_esquerda.webp",
+          "larg": 452,
+          "alt": 434,
+          "quadros": 8,
+          "fps": 3.05,
+          "pes": [
+            226.3,
+            376.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "rir": {
+          "folha": "3d/rir_esquerda.webp",
+          "larg": 380,
+          "alt": 338,
+          "quadros": 8,
+          "fps": 1.67,
+          "pes": [
+            194.3,
+            320.9
           ],
           "altura_px": 304,
           "pixelado": true
@@ -261,15 +638,119 @@
         "pixelado": true,
         "parado": {
           "folha": "3d_azul/parado_baixo.webp",
-          "larg": 152,
+          "larg": 148,
           "alt": 324,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            76.3,
+            74.3,
             312.9
           ],
           "altura_px": 304,
+          "pixelado": true
+        },
+        "sentado": {
+          "folha": "3d_azul/sentado_baixo.webp",
+          "larg": 188,
+          "alt": 300,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            94.3,
+            300.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "celular": {
+          "folha": "3d_azul/celular_baixo.webp",
+          "larg": 200,
+          "alt": 322,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            100.3,
+            308.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "bigode": {
+          "folha": "3d_azul/bigode_baixo.webp",
+          "larg": 168,
+          "alt": 326,
+          "quadros": 8,
+          "fps": 3,
+          "pes": [
+            84.3,
+            312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "dancar": {
+          "folha": "3d_azul/dancar_baixo.webp",
+          "larg": 196,
+          "alt": 314,
+          "quadros": 8,
+          "fps": 2.78,
+          "pes": [
+            96.3,
+            296.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "palmas": {
+          "folha": "3d_azul/palmas_baixo.webp",
+          "larg": 160,
+          "alt": 330,
+          "quadros": 8,
+          "fps": 6,
+          "pes": [
+            80.3,
+            316.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "acenar": {
+          "folha": "3d_azul/acenar_baixo.webp",
+          "larg": 452,
+          "alt": 434,
+          "quadros": 8,
+          "fps": 3.05,
+          "pes": [
+            226.3,
+            376.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "rir": {
+          "folha": "3d_azul/rir_baixo.webp",
+          "larg": 380,
+          "alt": 338,
+          "quadros": 8,
+          "fps": 1.67,
+          "pes": [
+            194.3,
+            320.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "deitado": {
+          "folha": "3d_azul/deitado.webp",
+          "larg": 274,
+          "alt": 200,
+          "quadros": 8,
+          "fps": 2,
+          "altura_px": 304,
+          "pes": [
+            242.6,
+            99.8
+          ],
           "pixelado": true
         }
       },
@@ -287,13 +768,104 @@
         "pixelado": true,
         "parado": {
           "folha": "3d_azul/parado_cima.webp",
-          "larg": 152,
+          "larg": 148,
           "alt": 324,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            76.3,
+            74.3,
             312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "sentado": {
+          "folha": "3d_azul/sentado_cima.webp",
+          "larg": 188,
+          "alt": 300,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            94.3,
+            300.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "celular": {
+          "folha": "3d_azul/celular_cima.webp",
+          "larg": 200,
+          "alt": 322,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            100.3,
+            308.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "bigode": {
+          "folha": "3d_azul/bigode_cima.webp",
+          "larg": 168,
+          "alt": 326,
+          "quadros": 8,
+          "fps": 3,
+          "pes": [
+            84.3,
+            312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "dancar": {
+          "folha": "3d_azul/dancar_cima.webp",
+          "larg": 196,
+          "alt": 314,
+          "quadros": 8,
+          "fps": 2.78,
+          "pes": [
+            96.3,
+            296.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "palmas": {
+          "folha": "3d_azul/palmas_cima.webp",
+          "larg": 160,
+          "alt": 330,
+          "quadros": 8,
+          "fps": 6,
+          "pes": [
+            80.3,
+            316.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "acenar": {
+          "folha": "3d_azul/acenar_cima.webp",
+          "larg": 452,
+          "alt": 434,
+          "quadros": 8,
+          "fps": 3.05,
+          "pes": [
+            226.3,
+            376.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "rir": {
+          "folha": "3d_azul/rir_cima.webp",
+          "larg": 380,
+          "alt": 338,
+          "quadros": 8,
+          "fps": 1.67,
+          "pes": [
+            194.3,
+            320.9
           ],
           "altura_px": 304,
           "pixelado": true
@@ -313,13 +885,104 @@
         "pixelado": true,
         "parado": {
           "folha": "3d_azul/parado_direita.webp",
-          "larg": 152,
+          "larg": 148,
           "alt": 324,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            76.3,
+            74.3,
             312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "sentado": {
+          "folha": "3d_azul/sentado_direita.webp",
+          "larg": 188,
+          "alt": 300,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            94.3,
+            300.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "celular": {
+          "folha": "3d_azul/celular_direita.webp",
+          "larg": 200,
+          "alt": 322,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            100.3,
+            308.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "bigode": {
+          "folha": "3d_azul/bigode_direita.webp",
+          "larg": 168,
+          "alt": 326,
+          "quadros": 8,
+          "fps": 3,
+          "pes": [
+            84.3,
+            312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "dancar": {
+          "folha": "3d_azul/dancar_direita.webp",
+          "larg": 196,
+          "alt": 314,
+          "quadros": 8,
+          "fps": 2.78,
+          "pes": [
+            96.3,
+            296.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "palmas": {
+          "folha": "3d_azul/palmas_direita.webp",
+          "larg": 160,
+          "alt": 330,
+          "quadros": 8,
+          "fps": 6,
+          "pes": [
+            80.3,
+            316.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "acenar": {
+          "folha": "3d_azul/acenar_direita.webp",
+          "larg": 452,
+          "alt": 434,
+          "quadros": 8,
+          "fps": 3.05,
+          "pes": [
+            226.3,
+            376.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "rir": {
+          "folha": "3d_azul/rir_direita.webp",
+          "larg": 380,
+          "alt": 338,
+          "quadros": 8,
+          "fps": 1.67,
+          "pes": [
+            194.3,
+            320.9
           ],
           "altura_px": 304,
           "pixelado": true
@@ -339,13 +1002,104 @@
         "pixelado": true,
         "parado": {
           "folha": "3d_azul/parado_esquerda.webp",
-          "larg": 152,
+          "larg": 148,
           "alt": 324,
           "quadros": 8,
           "fps": 2,
           "pes": [
-            76.3,
+            74.3,
             312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "sentado": {
+          "folha": "3d_azul/sentado_esquerda.webp",
+          "larg": 188,
+          "alt": 300,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            94.3,
+            300.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "celular": {
+          "folha": "3d_azul/celular_esquerda.webp",
+          "larg": 200,
+          "alt": 322,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            100.3,
+            308.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "bigode": {
+          "folha": "3d_azul/bigode_esquerda.webp",
+          "larg": 168,
+          "alt": 326,
+          "quadros": 8,
+          "fps": 3,
+          "pes": [
+            84.3,
+            312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "dancar": {
+          "folha": "3d_azul/dancar_esquerda.webp",
+          "larg": 196,
+          "alt": 314,
+          "quadros": 8,
+          "fps": 2.78,
+          "pes": [
+            96.3,
+            296.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "palmas": {
+          "folha": "3d_azul/palmas_esquerda.webp",
+          "larg": 160,
+          "alt": 330,
+          "quadros": 8,
+          "fps": 6,
+          "pes": [
+            80.3,
+            316.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "acenar": {
+          "folha": "3d_azul/acenar_esquerda.webp",
+          "larg": 452,
+          "alt": 434,
+          "quadros": 8,
+          "fps": 3.05,
+          "pes": [
+            226.3,
+            376.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        },
+        "rir": {
+          "folha": "3d_azul/rir_esquerda.webp",
+          "larg": 380,
+          "alt": 338,
+          "quadros": 8,
+          "fps": 1.67,
+          "pes": [
+            194.3,
+            320.9
           ],
           "altura_px": 304,
           "pixelado": true

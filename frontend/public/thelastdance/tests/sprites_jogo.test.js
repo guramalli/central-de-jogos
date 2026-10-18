@@ -23,8 +23,9 @@ function tamanhoImagem(arq) {
   assert.equal(tipo, "VP8X", arq + ": WebP sem cabeçalho de transparência");
   return [b.readUIntLE(24, 3) + 1, b.readUIntLE(27, 3) + 1, (b[20] & 0x10) !== 0];
 }
-// cada tira usada: a de andar e, se o conjunto tiver, a de parado
-const tiras = (c) => Object.entries(c).flatMap(([dir, f]) => [[dir, f], ...(f.parado ? [[dir + " parado", f.parado]] : [])]);
+// cada tira usada: a de andar e as extras do conjunto (parado, sentado, celular, dançar, deitado...)
+const tiras = (c) => Object.entries(c).flatMap(([dir, f]) => [[dir, f],
+  ...Object.entries(f).filter(([, x]) => x && typeof x === "object" && x.folha).map(([k, x]) => [`${dir} ${k}`, x])]);
 
 test("o conjunto padrão existe e todo conjunto tem as 4 direções", () => {
   assert.ok(M.conjuntos[M.padrao], "padrão: " + M.padrao);
