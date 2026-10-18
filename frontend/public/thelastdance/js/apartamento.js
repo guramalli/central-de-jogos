@@ -9,7 +9,8 @@
   const P = NSF.PLANTA_ATUAL || NSF.PLANTA_APARTAMENTO; // o mapa vem da planta que a página carregou
   const params = new URLSearchParams(location.search);
   const PASTA_SPR = "assets/characters/personagem_v2/pixel/";
-  const VEL = 2.2;            // m/s
+  const VEL = 2.6;            // m/s (o Fabiba anda um pouco mais rápido; a passada acompanha, ver PASSO)
+  const PASSO = VEL / 2.2;    // a folha de andar foi feita para 2,2 m/s: o ciclo acelera junto e o pé não escorrega
   const RAIO = 0.22;          // corpo do personagem no chão (m)
   let SENTA_LADO = 0.06, SENTA_FRENTE = 0.06; // quanto o personagem em quadros afunda no assento (em metros)
   const ALTURA_PERSONAGEM = 173; // px lógicos (≈ 1,73 m na escala do mapa); a escala vem da folha (jogo.json)
@@ -964,7 +965,7 @@
     jog.dir = direcaoSprite(sx, sy);
     const v = VEL * (jog.correndo || 1); // jog.correndo: multiplicador (ex.: 2,5 correndo para o banheiro)
     ISO.mover(P, jog, wx * v * dt, wy * v * dt, RAIO);
-    jog.tempo += dt * 1000;
+    jog.tempo += dt * 1000 * PASSO;
   }
 
   // Quadro da folha: andando = ciclo no fps da folha; parado = quadro 0 (contato, pés no chão).

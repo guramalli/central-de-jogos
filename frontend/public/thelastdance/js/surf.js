@@ -146,10 +146,10 @@
       || ((s.tubo || s.relogio - s.bomba < 0.18 || travado) && p("agachado"))
       || surf3d.surf;
   }
-  // Surfistas para escolher na tela inicial. O Binho é aberto; os amigos (rosto real) vêm do pacote trancado
+  // Surfistas para escolher na tela inicial. O Fabiba (o protagonista) é aberto; os amigos (rosto real) vêm do pacote trancado
   // (só aparecem com a senha). Cada um tem um surf3d.json com as mesmas tiras.
   const SURFISTAS = [
-    { id: "binho", nome: "Binho", pasta: "assets/characters/personagem_v2/pixel/" },
+    { id: "binho", nome: "Fabiba", pasta: "assets/characters/personagem_v2/pixel/" },
     { id: "kaleb", nome: "Kaleb", pasta: "assets/characters/npcs/kaleb/", vip: true },
   ];
   const SURFISTA_SALVO = "nsf_surf_surfista";
@@ -183,7 +183,7 @@
         try { salvo = global.localStorage.getItem(SURFISTA_SALVO); } catch (e) { /* ok */ }
         if (salvo === sf.id && s.fase === "intro") escolherSurfista(sf.id);
         if (!caixa.hidden && !caixa.classList.contains("fim") && s.fase === "intro") mostrarInicio();
-      }).catch(() => { /* sem a senha: só o Binho */ });
+      }).catch(() => { /* sem a senha: só o Fabiba */ });
     }
   }
   function carregarImg(url) {
