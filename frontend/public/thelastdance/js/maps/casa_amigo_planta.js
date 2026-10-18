@@ -93,7 +93,7 @@
       { id: "vini", nome: "Vini", personagem: "vini", personagem3d: true, postura: "em_pe", x: 6.85, y: 1.15, dir: "baixo",
         falarDe: { x: 6.85, y: 1.9 }, fala: ["\"Aumenta esse sertanejo aí!\"", "\"Já mostrou o insta pra todo mundo? Mostra pra mim de novo.\""],
         visual: { pele: "#c98f63", roupa: "#2b2b2b", calca: "#e79b8c", cabelo: "#2a1a10", estilo: "volume" } },
-      { id: "jamil", nome: "Jamil", personagem: "jamil", postura: "sentado", x: 7.7, y: 3.8, dir: "baixo",
+      { id: "jamil", nome: "Jamil", personagem: "jamil", personagem3d: true, postura: "sentado", x: 7.7, y: 3.8, dir: "baixo",
         falarDe: { x: 7.7, y: 3.05 }, fala: ["\"Vim direto da missa. Alguém precisa rezar por esse churrasqueiro.\"",
           "\"Terno no churrasco? Elegância não tira folga.\""],
         visual: { pele: "#d6a27a", roupa: "#d9cfbd", calca: "#d9cfbd", cabelo: "#4a4a4a", estilo: "curto" } },

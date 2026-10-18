@@ -195,8 +195,9 @@
       { id: "juan", nome: "Juan", personagem: "juan", postura: "sentado", assento: 0.45, x: 2.0, y: 0.45, dir: "baixo",
         falarDe: { x: 2.0, y: 1.3 }, fala: ["\"Camarote é outra coisa, né? Senta aí!\"", "\"Pede mais um balde que esse acabou.\""],
         visual: { pele: "#d29a6e", roupa: "#4f6b2a", calca: "#22304a", cabelo: "#5a3a22", estilo: "curto" } },
-      { id: "jamil", nome: "Jamil", personagem: "jamil", postura: "sentado", assento: 0.45, x: 3.2, y: 0.45, dir: "baixo",
-        falarDe: { x: 3.4, y: 1.3 }, fala: ["\"Terno na balada. Elegância não tira folga.\"", "\"Amanhã cedo tem missa, hein. Não vai dormir tarde.\""],
+      // o Jamil em 3D (trancado com a senha), em pé no VIP olhando o movimento (animação do modelo)
+      { id: "jamil", nome: "Jamil", personagem: "jamil", personagem3d: true, pose3d: "olhar", postura: "em_pe", x: 2.5, y: 3.0, dir: "baixo",
+        falarDe: { x: 2.5, y: 3.75 }, fala: ["\"Terno na balada. Elegância não tira folga.\"", "\"Amanhã cedo tem missa, hein. Não vai dormir tarde.\""],
         visual: { pele: "#d6a27a", roupa: "#d9cfbd", calca: "#d9cfbd", cabelo: "#4a4a4a", estilo: "curto" } },
       { id: "elcio", nome: "Elcio", personagem: "elcio", postura: "sentado", assento: 0.45, x: 0.45, y: 4.6, dir: "direita",
         falarDe: { x: 1.2, y: 4.1 }, fala: ["\"Óculos escuros na balada? É o brilho do camarote, irmão.\"", "\"Cadê a piscina dessa balada?\""],
