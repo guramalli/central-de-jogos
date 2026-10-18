@@ -25,7 +25,7 @@
   };
   const PACOTE_TESTE = "vozes"; // pequeno: confere se a chave abre (na entrada)
   // muda a cada vez que os pacotes são trancados (tools/vip_trancar.mjs reescreve esta linha): fura o cache do site
-  const VERSAO_PACOTES = "mvd9p3va";
+  const VERSAO_PACOTES = "mvd9uck5";
 
   const urls = new Map();
   const ler = () => { try { return global.localStorage.getItem(LS) || ""; } catch (e) { return ""; } };
