@@ -76,12 +76,12 @@
   };
 
   // ---------- o surfista ----------
-  // Personagem 3D em pixel art (tester): sem camisa, de bermuda, animação de surf e remada (surf3d.json).
+  // Personagem 3D em pixel art (o padrão): sem camisa, de bermuda, animação de surf e remada (surf3d.json).
+  // O modular antigo só com ?conjunto=modular.
   let surf3d = null, heroi = null;
   const usa3d = (() => {
     const c = params.get("conjunto");
-    if (c) return /^3d/.test(c);
-    try { return /^3d/.test(global.localStorage.getItem("nsf_conjunto") || ""); } catch (e) { return false; }
+    return c !== "modular";
   })();
   async function carregar3d() {
     const pasta = "assets/characters/personagem_v2/pixel/";
@@ -640,19 +640,6 @@
     ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 6;
     ctx.beginPath(); ctx.moveTo(xc + L + 20, topo + 2); ctx.quadraticCurveTo(xc + L * 0.25, topo - HMAX * 0.28 * s.forca, xc - 14, Y_BASE + 6); ctx.stroke();
   }
-  function cortina(ctx) { // no tubo: o lábio cai na frente dele (cortina d'água translúcida, em degraus de pixel)
-    const [bx, by] = posPrancha(), x = bx - s.cam, topo = Y_BASE - altura(1) - 30;
-    const a = Math.min(1, s.tubo.t / 0.35);
-    const esq = ARTE.onda_crista_0 ? -1 : 1; // com a arte, o lábio enrola para a direita: a cortina vem da esquerda e cai à direita
-    const borda = (y) => x + esq * (110 - 190 * Math.pow((y - topo) / (Y_BASE + 10 - topo), 0.7));
-    for (let y = topo; y < Y_BASE + 10; y += 8) {
-      const bx2 = Math.round(borda(y) / 4) * 4, onda = Math.sin(y / 23 + s.relogio * 6) * 6;
-      ctx.fillStyle = `rgba(150,235,225,${0.5 * a})`;
-      ctx.fillRect(esq > 0 ? bx2 - 150 + onda : bx2 + onda, y, 150, 8);
-      ctx.fillStyle = `rgba(255,255,255,${0.85 * a})`;
-      ctx.fillRect(bx2 - 6 + onda, y, 10, 8);
-    }
-  }
   function espuma(ctx) {
     if (!s.quebrada || s.forca < 0.05) return;
     const xc = Math.min(s.crista - s.cam + 10, W);
@@ -929,7 +916,6 @@
     desenharSurfista(ctx);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(frente, 0, 0, frente.width * PX, frente.height * PX);
-    if (s.tubo) cortina(ctx);
     ctx.restore();
     hud(ctx);
     if (A() && !desenhar.mar && A().estado().contexto === "running") { A().mar(true); desenhar.mar = true; }

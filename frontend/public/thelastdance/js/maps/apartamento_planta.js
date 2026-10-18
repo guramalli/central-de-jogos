@@ -155,14 +155,14 @@
         // nsf_surf: prancha no teto do carro + Praia no menu do carro (para as próximas vezes)
         try { sessionStorage.setItem("nsf_surf", "1"); } catch (_) { /* sem armazenamento */ }
         // sozinho: vai ao guarda-roupa, veste o neoprene e já aparece na praia (sem elevador nem garagem: é rápido)
-        api.pensar("Bora! Cadê meu neoprene... 🏄", 2400);
+        api.pensar("Bora! Cadê minha bermuda de surf... 🏄", 2400);
         const arm = PLANTA.caixas.find((x) => x.interacao === "armario");
         const vestirESair = async () => {
           api.jog.dir = "cima";
           await espera(900); // mexendo no armário
           api.vestirRoupas(["neoprene_cima", "neoprene_calca"]);
           if (A) A.curtida();
-          api.pensar("Neoprene no corpo! Partiu praia! 🏄", 2000);
+          api.pensar("Bermuda no corpo! Partiu praia! 🏄", 2000);
           await espera(1300);
           api.sair({ nome: "Praia", url: "surf.html?direto" }, { andando: false });
         };

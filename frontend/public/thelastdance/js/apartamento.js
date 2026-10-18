@@ -85,7 +85,7 @@
 
   // ---------- personagem modular (peças presas a um esqueleto; troca de roupa) ----------
   // É o protagonista padrão; o botão "Sprites" ainda alterna para as folhas antigas. Roupas valem em todos os mapas.
-  const PASTA_MOD = "personagem_modular/", MODULAR = "modular";
+  const PASTA_MOD = "personagem_modular/", MODULAR = "modular", PADRAO_3D = "3d";
   const ALTURA_MOD = 1375; // px do personagem no desenho original (pés em 1456, topo do cabelo ~81)
   const VISTA_MOD = { baixo: "frente", cima: "costas", esquerda: "lado_esquerdo", direita: "lado_direito" };
   const pref = {
@@ -1576,8 +1576,9 @@
   fetch(PASTA_SPR + "jogo.json").then((r) => r.json()).then((j) => {
     manifesto = j;
     const valido = (n) => n && (j.conjuntos[n] || n === MODULAR);
-    // o modular é o protagonista; as folhas antigas continuam no botão Sprites
-    const pedido = valido(params.get("conjunto")) ? params.get("conjunto") : valido(pref.ler("nsf_conjunto")) ? pref.ler("nsf_conjunto") : MODULAR;
+    // o protagonista é o 3D em pixel art; o modular antigo só pelo link (?conjunto=modular), não fica guardado
+    const guardado = pref.ler("nsf_conjunto");
+    const pedido = valido(params.get("conjunto")) ? params.get("conjunto") : valido(guardado) && guardado !== MODULAR ? guardado : PADRAO_3D;
     if (params.get("conjunto") === pedido) pref.gravar("nsf_conjunto", pedido); // escolhido pelo link (tester): vale nas outras telas
     return carregarConjunto(pedido).then(() => { conjunto = pedido; });
   }).then(() => {
@@ -1608,6 +1609,7 @@
       },
       // troca a roupa toda (fica guardada para as outras telas); acessórios (celular na mão) continuam
       vestirRoupas(ids) {
+        if (!heroi) return; // o 3D não troca peça por peça
         heroi.vestidas = heroi.vestidas.filter((r) => heroi.roupas[r] && heroi.roupas[r].acessorio);
         for (const id of ids) if (heroi.roupas[id]) heroi.vestir(id);
         guardarRoupas(); marcar();
