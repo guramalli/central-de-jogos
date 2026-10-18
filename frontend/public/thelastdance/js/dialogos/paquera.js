@@ -18,6 +18,7 @@
       balada_ruiva: { nome: "Bia", retrato: "assets/characters/npcs/balada_ruiva/retrato.png", tipo: "engracada", rapido: true },
       balada_loira: { nome: "Carol", retrato: "assets/characters/npcs/balada_loira/retrato.png", tipo: "simpatica", rapido: true },
       balada_morena: { nome: "Duda", retrato: "assets/characters/npcs/balada_morena/retrato.png", tipo: "timida", rapido: true },
+      balada_rosa: { nome: "Bruna", retrato: "assets/characters/npcs/balada_rosa/retrato.png", tipo: "simpatica", rapido: true },
       // sentada no sofá do lounge: pode nem dar bola (ignora); se der, levanta (levanta: onde ela fica em pé) e beija ou dá tapa
       balada_vestido: { nome: "Clarissa", retrato: "assets/characters/npcs/balada_vestido/retrato.png", tipo: "metida", rapido: true,
         ignora: 0.35, levanta: { x: 10.75, y: 14.1 },

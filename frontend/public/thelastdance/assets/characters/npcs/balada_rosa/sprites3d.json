@@ -1,0 +1,65 @@
+{
+  "versao": 1,
+  "altura_px": 331,
+  "baixo": {
+    "parado": {
+      "folha": "3d/parado.webp",
+      "larg": 214,
+      "alt": 320,
+      "quadros": 8,
+      "fps": 2,
+      "pes": [
+        119.3,
+        309.9
+      ]
+    },
+    "beber": {
+      "folha": "3d/beber.webp",
+      "larg": 214,
+      "alt": 320,
+      "quadros": 10,
+      "fps": 4,
+      "pes": [
+        119.3,
+        309.9
+      ]
+    },
+    "dancar": {
+      "folha": "3d/dancar.webp",
+      "larg": 214,
+      "alt": 320,
+      "quadros": 12,
+      "fps": 7.78,
+      "pes": [
+        119.3,
+        309.9
+      ]
+    }
+  },
+  "cenas": {
+    "beijo": {
+      "folha": "3d/beijo.webp",
+      "larg": 194,
+      "alt": 324,
+      "quadros": 6,
+      "fps": 6,
+      "pes": [
+        98.9,
+        299.5
+      ],
+      "laco": true
+    },
+    "tapa": {
+      "folha": "3d/tapa.webp",
+      "larg": 292,
+      "alt": 326,
+      "quadros": 8,
+      "fps": 8,
+      "pes": [
+        144.9,
+        311.5
+      ],
+      "laco": false
+    }
+  }
+}

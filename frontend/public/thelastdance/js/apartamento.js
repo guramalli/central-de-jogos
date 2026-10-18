@@ -601,8 +601,20 @@
     if (n.cena && n.sprites3d.cenas && n.sprites3d.cenas[n.cena.nome]) { desenharCenaDupla(ctx, n); return; }
     const m = n.sprites3d, d = m[n.dir] || m.baixo, agora = performance.now();
     const rindo = n.rindoAte && agora < n.rindoAte && d.rir;
-    const f = rindo ? d.rir : (n.pose3d && d[n.pose3d]) || d.parado;
-    const q = Math.floor(((agora / 1000) + (rindo ? 0 : n.relogio3d)) * f.fps) % f.quadros;
+    // ciclo3d: [[pose, segundos], ...] — alterna sozinha (ex.: parado, um gole, dança); pose que não é laço toca uma vez
+    let f = rindo ? d.rir : (n.pose3d && d[n.pose3d]) || d.parado, q = null;
+    if (!rindo && !n.pose3d && n.ciclo3d) {
+      const total = n.ciclo3d.reduce((s, c) => s + c[1], 0);
+      let t = ((agora / 1000 + n.relogio3d * 10) % total);
+      for (const [nome, seg] of n.ciclo3d) {
+        if (t < seg) {
+          if (d[nome]) { f = d[nome]; if (nome === "beber") q = Math.min(f.quadros - 1, Math.floor(t * f.fps)); }
+          break;
+        }
+        t -= seg;
+      }
+    }
+    if (q == null) q = Math.floor(((agora / 1000) + (rindo ? 0 : n.relogio3d)) * f.fps) % f.quadros;
     const [x, y] = T(n.x, n.y, 0), e = ALTURA_PERSONAGEM / m.altura_px;
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.3)";

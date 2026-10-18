@@ -172,6 +172,11 @@
       { id: "duda", nome: "Duda", personagem: "balada_morena", personagem3d: true, so3d: true, paquera: "balada_morena", postura: "em_pe", x: 13.4, y: 4.9, dir: "baixo",
         falarDe: { x: 13.4, y: 5.7 }, fala: ["\"Adoro essa pista!\"", "\"Bora pro bar depois?\""] },
 
+      // na mesinha alta da direita, perto do banheiro: a Bruna, de drink na mão (às vezes dá um gole, às vezes dança)
+      { id: "bruna", nome: "Bruna", personagem: "balada_rosa", personagem3d: true, so3d: true, paquera: "balada_rosa",
+        postura: "em_pe", x: 20.55, y: 7.75, dir: "baixo",
+        ciclo3d: [["parado", 4], ["beber", 2.6], ["parado", 3], ["dancar", 6], ["parado", 2.5], ["beber", 2.6]],
+        falarDe: { x: 20.55, y: 8.5 }, fala: ["\"Esse drink tá perfeito! 🍹\""] },
       // no lounge: a Clarissa, sentada no sofá de vestido vermelho (pode nem dar bola; se der, levanta para o beijo ou o tapa)
       { id: "clarissa", nome: "Clarissa", personagem: "balada_vestido", personagem3d: true, so3d: true, paquera: "balada_vestido",
         postura: "sentado", assento: 0.45, x: 11.0, y: 13.4, dir: "baixo",
