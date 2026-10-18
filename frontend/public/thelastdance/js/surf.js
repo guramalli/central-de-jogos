@@ -467,8 +467,47 @@
     const n = cores.length, hh = (y1 - y0) / n;
     cores.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(x0 == null ? 0 : x0, Math.floor(y0 + i * hh), (x1 == null ? W : x1) - (x0 || 0), Math.ceil(hh) + 1); });
   }
+  // arte da praia (kit do ChatGPT, tools/kit_praia.py); enquanto não carrega (ou se faltar), fica o desenho por código
+  const ARTE = {};
+  ["ceu_mar", "ilhas", "areia", "guarda_sol", "isopor", "cadeira_praia", "coqueiro",
+    ...[0, 1, 2].flatMap((i) => [`onda_crista_${i}`, `onda_parede_${i}`, `onda_espuma_${i}`])].forEach((n) => {
+    const im = new Image();
+    im.onload = () => { ARTE[n] = im; };
+    im.src = "assets/maps/praia/" + n + ".png";
+  });
+  const quadro = (n) => ARTE[`${n}_${Math.floor(s.relogio * 6) % 3}`] || ARTE[n + "_0"];
+  // desenha a arte no tamanho certo: cada pixel do arquivo vira um "pixel" da cena (PX px de tela)
+  function pintar(ctx, im, x, y, esc, espelhar) {
+    const w = im.width * PX * (esc || 1), h = im.height * PX * (esc || 1);
+    if (espelhar) { ctx.save(); ctx.translate(x + w, y); ctx.scale(-1, 1); ctx.drawImage(im, 0, 0, w, h); ctx.restore(); }
+    else ctx.drawImage(im, x, y, w, h);
+    return [w, h];
+  }
+  let corDoMar = null; // cor da última linha do céu_mar (continua o mar até a onda)
+  function corFundoMar(im) {
+    if (corDoMar) return corDoMar;
+    try {
+      const c = document.createElement("canvas"); c.width = im.width; c.height = 1;
+      const g = c.getContext("2d"); g.drawImage(im, 0, im.height - 1, im.width, 1, 0, 0, im.width, 1);
+      const d = g.getImageData(0, 0, im.width, 1).data; let r = 0, gg = 0, b = 0;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; }
+      const n = d.length / 4; corDoMar = `rgb(${r / n | 0},${gg / n | 0},${b / n | 0})`;
+    } catch (e) { corDoMar = "#1c5d8c"; }
+    return corDoMar;
+  }
   const NUVENS = Array.from({ length: 7 }, (_, i) => ({ x: i * 380 + rnd(0, 200), y: rnd(60, 220), w: rnd(150, 280) }));
   function ceu(ctx) {
+    if (ARTE.ceu_mar) {
+      const im = ARTE.ceu_mar, h = im.height * PX, w = Math.max(im.width * PX, W + 40);
+      ctx.drawImage(im, -(w - W) / 2, 0, w, h); // céu e mar ao longe (o horizonte cai em HORIZ)
+      if (ARTE.ilhas) {
+        const im2 = ARTE.ilhas, w2 = im2.width * PX, passo = w2 + 900;
+        const x = ((W * 0.15 - s.cam * 0.04) % passo + passo) % passo - w2;
+        for (let xx = x; xx < W; xx += passo) pintar(ctx, im2, Math.round(xx), HORIZ - im2.height * PX + 2);
+      }
+      gaivotas(ctx);
+      return;
+    }
     faixas(ctx, 0, HORIZ, ["#2b6cb0", "#3478bb", "#3f86c6", "#4c94cf", "#5ca2d7", "#70b1dd", "#88c0e2", "#a5cfe3", "#c6dde0", "#e7e2c7"]);
     // sol com halo em anéis
     const sx = W * 0.78, sy = 150;
@@ -497,7 +536,9 @@
     ctx.fillStyle = "#f2efe6"; ctx.fillRect(mx + 470, HORIZ - 60, 10, 34);      // farol
     ctx.fillStyle = "#c8323c"; ctx.fillRect(mx + 470, HORIZ - 52, 10, 6); ctx.fillRect(mx + 470, HORIZ - 40, 10, 6);
     if (Math.floor(s.relogio * 2) % 2) { ctx.fillStyle = "#fff6a0"; ctx.fillRect(mx + 466, HORIZ - 68, 18, 8); }
-    // gaivotas
+    gaivotas(ctx);
+  }
+  function gaivotas(ctx) {
     ctx.fillStyle = "#2d3e50";
     for (let i = 0; i < 3; i++) {
       const gx = ((s.relogio * 40 + i * 260) % (W + 200)) - 100, gy = 120 + i * 40 + Math.sin(s.relogio * 2 + i) * 8, a = Math.sin(s.relogio * 8 + i) > 0 ? 6 : 2;
@@ -505,6 +546,16 @@
     }
   }
   function marAoFundo(ctx) {
+    if (ARTE.ceu_mar) { // o mar do céu_mar continua até a base da onda; por cima, só as marolas andando
+      const y0 = ARTE.ceu_mar.height * PX;
+      ctx.fillStyle = corFundoMar(ARTE.ceu_mar); ctx.fillRect(0, y0 - 1, W, Y_BASE - y0 + 2);
+      ctx.fillStyle = "rgba(220,240,250,0.3)";
+      for (let i = 3; i < 9; i++) {
+        const y = HORIZ + 16 + i * i * 5, off = ((s.relogio * 12 + i * 97 - s.cam * (0.1 + i * 0.02)) % 180 + 180) % 180;
+        for (let x = -180 + off; x < W; x += 180) ctx.fillRect(x, y, 30 + i * 5, 2);
+      }
+      return;
+    }
     faixas(ctx, HORIZ, Y_BASE, ["#4a98c6", "#3f8ebe", "#3684b6", "#2e7aac", "#2770a2", "#216697", "#1c5d8c"]);
     // brilho do sol na água (coluna de tracinhos que piscam)
     const sx = W * 0.78;
@@ -532,10 +583,18 @@
     ctx.beginPath(); ctx.moveTo(-8, Y_BASE);
     for (const [x, y] of topo) ctx.lineTo(x, y);
     ctx.lineTo(W + 8, Y_BASE); ctx.closePath(); ctx.clip();
-    // faixas da parede: verde-água claro perto da crista (luz atravessando) até o azul fundo embaixo
-    faixas(ctx, Y_BASE - HMAX, Y_BASE, ["#a4f0dd", "#78dfcb", "#4cc6b7", "#33aaa6", "#278d97", "#1f7388", "#185c76", "#134c66"]);
+    const tex = quadro("onda_parede");
+    if (tex) { // textura da parede (3 quadros), presa à água: anda junto com o mundo
+      const t = tex.width * PX, y = Y_BASE - HMAX * s.forca - 6, hh = HMAX * s.forca + 8;
+      const ini = Math.floor(s.cam * 0.9 / t);  // um bloco sim, outro espelhado: as emendas somem
+      for (let i = ini; (i * t - s.cam * 0.9) < W; i++) {
+        const x = Math.floor(i * t - s.cam * 0.9);
+        if (i % 2) { ctx.save(); ctx.translate(x + t, y); ctx.scale(-1, 1); ctx.drawImage(tex, 0, 0, t + 1, hh); ctx.restore(); }
+        else ctx.drawImage(tex, x, y, t + 1, hh);
+      }
+    } else faixas(ctx, Y_BASE - HMAX, Y_BASE, ["#a4f0dd", "#78dfcb", "#4cc6b7", "#33aaa6", "#278d97", "#1f7388", "#185c76", "#134c66"]);
     // listras de água correndo na parede
-    for (const [f, c] of [[0.22, "rgba(230,255,250,0.5)"], [0.42, "rgba(220,255,250,0.32)"], [0.62, "rgba(200,245,245,0.25)"], [0.82, "rgba(190,235,240,0.22)"]]) {
+    if (!tex) for (const [f, c] of [[0.22, "rgba(230,255,250,0.5)"], [0.42, "rgba(220,255,250,0.32)"], [0.62, "rgba(200,245,245,0.25)"], [0.82, "rgba(190,235,240,0.22)"]]) {
       ctx.fillStyle = c;
       for (let i = 0; i < topo.length; i += 2) {
         const [x] = topo[i], alt = Y_BASE - topo[i][1];
@@ -560,6 +619,12 @@
   }
   function labio(ctx) { // crista caindo por cima (na seção tubular vira o tubo: ele aparece lá dentro)
     if (!s.quebrada || s.forca < 0.3) return;
+    const cr = quadro("onda_crista");
+    if (cr) { // a arte da crista: o oco do tubo fica logo à frente da espuma
+      const w = cr.width * PX, h = cr.height * PX * s.forca;
+      ctx.drawImage(cr, Math.round(s.crista - s.cam - w * 0.38), Y_BASE + 8 - h, w, h);
+      return;
+    }
     const xc = s.crista - s.cam, L = s.tuboL, topo = Y_BASE - altura(1);
     const forma = () => {
       ctx.beginPath();
@@ -590,6 +655,12 @@
   function espuma(ctx) {
     if (!s.quebrada || s.forca < 0.05) return;
     const xc = Math.min(s.crista - s.cam + 10, W);
+    const esp = quadro("onda_espuma");
+    if (esp) { // espuma (3 quadros) repetida da crista para trás
+      const w = esp.width * PX, h = esp.height * PX * s.forca, fim = xc - (ARTE.onda_crista_0 ? ARTE.onda_crista_0.width * PX * 0.22 : 0);
+      for (let x = fim - w; x > -w; x -= w - 2) ctx.drawImage(esp, Math.floor(x), Y_BASE + 16 - h, w, h);
+      return;
+    }
     const borda = (sx) => {
       const d = s.cam + sx - s.crista, alt = altura(Math.min(d, -1));
       return Y_BASE - alt - 10 - Math.abs(Math.sin((sx + s.cam) / 37 + s.relogio * 5)) * 18 - Math.abs(Math.sin((sx + s.cam) / 13 - s.relogio * 7)) * 8;
@@ -622,6 +693,16 @@
   }
   const PINTAS = Array.from({ length: 160 }, () => [Math.random(), Math.random(), Math.random()]);
   function areia(ctx) {
+    if (ARTE.areia) {
+      const im = ARTE.areia, y = AREIA - 40, h = H - y, w = im.width * PX * h / (im.height * PX);
+      for (let x = 0; x < W; x += w - 1) ctx.drawImage(im, Math.floor(x), y, w, h);
+      const chao = (im2, fx, dy, espelhar) => { if (im2) pintar(ctx, im2, Math.round(W * fx - im2.width * PX / 2), H - im2.height * PX - dy, 1, espelhar); };
+      if (W >= 1200 && ARTE.coqueiro) pintar(ctx, ARTE.coqueiro, -110, H - ARTE.coqueiro.height * PX - 4);
+      chao(ARTE.cadeira_praia, 0.5, 14);
+      chao(ARTE.isopor, 0.33, 8);
+      chao(ARTE.guarda_sol, 0.66, 2);
+      return;
+    }
     // beira molhada e a linha da arrebentação na areia
     const onda = Math.sin(s.relogio * 0.7) * 10;
     ctx.fillStyle = "#c9b48a"; ctx.fillRect(0, AREIA - 4 + onda * 0.3, W, 20);
@@ -830,7 +911,8 @@
     desenhar.ultimo = agora;
     atualizar(dt);
     const tx = (Math.random() - 0.5) * s.tremor, ty = (Math.random() - 0.5) * s.tremor;
-    const noTubo = !!s.tubo || (s.x - s.crista < s.tuboL && s.x - s.crista > -20 && s.tuboL > 150);
+    // sem a arte, o lábio desenhado vai na frente dele no tubo; com a arte, a crista fica atrás e a cortina d'água cobre
+    const noTubo = !ARTE.onda_crista_0 && (!!s.tubo || (s.x - s.crista < s.tuboL && s.x - s.crista > -20 && s.tuboL > 150));
     // fundo: céu, mar, parede, marca da prancha (e o lábio, quando ele não está no tubo)
     const f = prepararCamada(fundo);
     ceu(f); marAoFundo(f); parede(f); rastro(f);

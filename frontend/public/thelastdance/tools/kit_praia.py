@@ -3,8 +3,9 @@
 
 Uso (a partir de frontend/public/thelastdance/):
     python -I tools/kit_praia.py              # monta kit_chatgpt/praia/index.html (abrir no navegador)
-    python -I tools/kit_praia.py --processar  # recorta o que estiver em kit_chatgpt/praia/prontas/ para
-                                              # assets/maps/praia/ (folhas de 3 quadros viram _0, _1, _2)
+    python -I tools/kit_praia.py --processar  # recorta o que estiver em kit_chatgpt/praia/prontas/: tamanho cheio
+                                              # em kit_chatgpt/praia/recortadas/ e, reduzido ao tamanho do jogo,
+                                              # em assets/maps/praia/ (folhas de 3 quadros viram _0, _1, _2)
 
 A onda é animada: cada parte dela (crista quebrando, parede, espuma) vem numa FOLHA DE 3 QUADROS lado a lado,
 do mesmo tamanho, que o jogo vai trocando (0 -> 1 -> 2 -> 0...). As outras peças são imagens únicas.
@@ -20,6 +21,13 @@ from PIL import Image
 RAIZ = Path(__file__).resolve().parent.parent
 KIT = RAIZ / "kit_chatgpt" / "praia"
 SAIDA = RAIZ / "assets" / "maps" / "praia"
+# tamanho no jogo, em pixels da arte (a cena é desenhada em meia resolução e ampliada 2x): (medida, px)
+TAM_JOGO = {
+    "ceu_mar": ("alt", 306), "ilhas": ("alt", 48), "areia": ("alt", 86),
+    "onda_parede": ("alt", 150), "onda_espuma": ("alt", 110), "onda_crista": ("alt", 215),
+    "guarda_sol": ("alt", 170), "isopor": ("alt", 62), "cadeira_praia": ("alt", 92), "coqueiro": ("alt", 240),
+    "prancha_fincada": ("alt", 120), "prancha": ("larg", 98),
+}
 
 ESTILO_COMUM = ("high-resolution pixel art with crisp chunky pixels (each art pixel clearly visible, no blur, no "
                 "anti-aliasing gradients), flat color bands for shading, a dark navy outline only where it helps "
@@ -201,8 +209,43 @@ def quadros(im, n=3):
     return [q.crop((0, y0, larg, y1)) for q in out]
 
 
+def limpar_alfa(im):
+    """alfa só 0 ou 255 (pixel art sem franja) e recorta no conteúdo"""
+    a = np.asarray(im.convert("RGBA")).copy()
+    a[..., 3] = np.where(a[..., 3] >= 128, 255, 0)
+    im = Image.fromarray(a)
+    return im.crop(im.getbbox()) if im.getbbox() else im
+
+
+def reduzir(im, nome, cheia):
+    medida, px = TAM_JOGO[nome]
+    f = px / (im.height if medida == "alt" else im.width)
+    im = im.resize((max(1, round(im.width * f)), max(1, round(im.height * f))), Image.BOX)
+    if cheia:  # sem a borda de 2 px (o recorte deixa uma linha clara que vira emenda na repetição)
+        return im.convert("RGB").crop((2, 2, im.width - 2, im.height - 2))
+    a = np.asarray(im).copy()
+    a[..., 3] = np.where(a[..., 3] >= 128, 255, 0)
+    return Image.fromarray(a)
+
+
+BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16
+
+
+def sumir_direita(im, frac=0.22):
+    """a crista emenda na parede do jogo: o lado direito some em pontilhado (sem meio-tom, cara de pixel art)"""
+    a = np.asarray(im).copy()
+    h, w = a.shape[:2]
+    x0 = int(w * (1 - frac))
+    for x in range(x0, w):
+        t = (x - x0) / (w - x0)
+        a[:, x, 3] = np.where(BAYER[np.arange(h) % 4, x % 4] < t, 0, a[:, x, 3])
+    return Image.fromarray(a)
+
+
 def processar():
     SAIDA.mkdir(parents=True, exist_ok=True)
+    GRANDE = KIT / "recortadas"
+    GRANDE.mkdir(exist_ok=True)
     feitos = []
     for nome, _, tipo, _, desc in PEDIDOS:
         arq = KIT / "prontas" / f"{nome}.png"
@@ -211,14 +254,27 @@ def processar():
         im = Image.open(arq)
         cheia = "edge to edge" in desc or "no transparent area" in desc
         im = im.convert("RGBA") if cheia else sem_fundo(im)
+        if not cheia:
+            a = np.asarray(im).copy()
+            a[..., 3] = np.where(a[..., 3] >= 128, 255, 0)
+            im = Image.fromarray(a)
         if tipo == "folha3":
-            for i, q in enumerate(quadros(im)):
-                q.save(SAIDA / f"{nome}_{i}.png")
-            print(nome, "-> 3 quadros", quadros(im)[0].size)
+            qs = quadros(im)
+            for i, q in enumerate(qs):
+                q.save(GRANDE / f"{nome}_{i}.png")
+                r = reduzir(q, nome, cheia)
+                (sumir_direita(r) if nome == "onda_crista" else r).save(SAIDA / f"{nome}_{i}.png", optimize=True)
+            print(nome, "-> 3 quadros", qs[0].size, "->", reduzir(qs[0], nome, cheia).size)
         else:
-            b = im.getbbox() if not cheia else None
-            (im.crop(b) if b else im).save(SAIDA / f"{nome}.png")
-            print(nome, "->", (im.crop(b) if b else im).size)
+            if not cheia:
+                im = limpar_alfa(im)
+            im.save(GRANDE / f"{nome}.png")
+            if nome == "nuvens":  # o céu_mar já vem com nuvens: estas ficam só no kit
+                print(nome, "-> (não usada no jogo)")
+            else:
+                r = reduzir(im, nome, cheia)
+                r.save(SAIDA / f"{nome}.png", optimize=True)
+                print(nome, "->", im.size, "->", r.size)
         feitos.append(nome)
     faltam = [p[0] for p in PEDIDOS if p[0] not in feitos]
     print(f"{len(feitos)} prontas; faltam {len(faltam)}: {', '.join(faltam) or 'nenhuma'}")
