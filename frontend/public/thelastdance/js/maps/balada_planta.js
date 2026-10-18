@@ -191,6 +191,13 @@
         falarDe: { x: 20.35, y: 3.85 }, fala: ["\"Ronaldo, brilha muito no Curintia! 🎶⚫⚪\"", "\"Desce mais uma rodada aqui pro torcedor!\"",
           "\"Bota na conta do aniversariante. Quem é o aniversariante?\""],
         visual: { pele: "#e0b48e", roupa: "#f2d21b", calca: "#1a1a1a", cabelo: "#111", estilo: "bone" } },
+      // na entrada: hostess atrás do púlpito, recebendo quem chega (a mesma menina 3D da Duda, parada)
+      { id: "hostess", nome: "Hostess", personagem: "balada_morena", personagem3d: true, so3d: true, postura: "em_pe", x: 3.5, y: 12.3, dir: "baixo",
+        reage: { raio: 3.0, fala: "Boa noite! Seja bem-vindo ao CLUB 👑" },
+        falarDe: { x: 3.25, y: 13.3 }, fala: ["\"Seu nome tá na lista? Tá sim, pode entrar! 😉\"", "\"O camarote é ali no fundo, à esquerda.\""] },
+      // no guarda-volumes: a atendente atrás do balcão (feita da menina 3D de rosa, de uniforme preto), parada
+      { id: "atendente_gv", nome: "Atendente", personagem: "atendente_gv", personagem3d: true, so3d: true, postura: "em_pe", x: 1.5, y: 9.7, dir: "baixo",
+        falarDe: { x: 3.3, y: 9.7 }, fala: ["\"Guarda a jaqueta? É só pegar a fichinha.\"", "\"Perdeu a ficha? Ih... aí complica, hein.\""] },
       // no camarote VIP: três sentados nos sofás, três em pé conversando
       // o Juan em 3D (trancado com a senha): anda de um lado para o outro no camarote, sempre no telefone; chegou perto, ele avisa
       { id: "juan", nome: "Juan", personagem: "juan", personagem3d: true, so3d: true, postura: "em_pe", x: 2.4, y: 3.9, dir: "baixo",

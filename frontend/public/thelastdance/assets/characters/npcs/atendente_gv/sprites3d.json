@@ -1,0 +1,17 @@
+{
+ "versao": 1,
+ "altura_px": 331,
+ "baixo": {
+  "parado": {
+   "folha": "3d/parado_baixo.webp",
+   "larg": 126,
+   "alt": 324,
+   "quadros": 8,
+   "fps": 2,
+   "pes": [
+    55.3,
+    309.9
+   ]
+  }
+ }
+}
