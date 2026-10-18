@@ -1058,6 +1058,55 @@
       b.addEventListener("pointerup", solta); b.addEventListener("pointercancel", solta); b.addEventListener("lostpointercapture", () => solta());
       b.addEventListener("contextmenu", (e) => e.preventDefault());
     }
+    // joystick: o centro é onde o polegar encosta; arrastar liga as direções (com folga para não ficar piscando).
+    // Na diagonal liga duas (ir + subir); para cima e para baixo rápido = bombada.
+    const joy = doc.getElementById("joy");
+    if (joy) {
+      const base = joy.querySelector(".base"), pino = joy.querySelector(".pino");
+      const dirs = { cima: false, baixo: false, freia: false, acelera: false };
+      let dedo = null, cx = 0, cy = 0;
+      const ligar = (n, sim) => { if (dirs[n] !== sim) { dirs[n] = sim; apertar(n, sim); } };
+      const noLugar = () => { // descansando no canto de baixo
+        base.style.left = Math.min(100, joy.clientWidth * 0.4) + "px";
+        base.style.top = joy.clientHeight - Math.min(100, joy.clientHeight * 0.4) + "px";
+      };
+      const local = (e) => { const r = joy.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+      function mover(x, y) {
+        const r = base.offsetWidth * 0.42;
+        let dx = x - cx, dy = y - cy;
+        const d = Math.hypot(dx, dy);
+        if (d > r) { dx *= r / d; dy *= r / d; }
+        pino.style.transform = `translate(${dx}px, ${dy}px)`;
+        const entra = r * 0.38, sai = r * 0.24;
+        ligar("acelera", dx > (dirs.acelera ? sai : entra));
+        ligar("freia", dx < -(dirs.freia ? sai : entra));
+        ligar("cima", dy < -(dirs.cima ? sai : entra));
+        ligar("baixo", dy > (dirs.baixo ? sai : entra));
+      }
+      joy.addEventListener("pointerdown", (e) => {
+        if (dedo !== null) return;
+        e.preventDefault();
+        dedo = e.pointerId;
+        try { joy.setPointerCapture(e.pointerId); } catch (erro) { /* sem captura: segue pelo pointermove */ }
+        [cx, cy] = local(e);
+        base.style.left = cx + "px"; base.style.top = cy + "px";
+        joy.classList.add("ativo");
+        if (s.fase === "remando") remar();
+      });
+      joy.addEventListener("pointermove", (e) => { if (e.pointerId === dedo) mover(...local(e)); });
+      const soltar = (e) => {
+        if (dedo === null || (e && e.pointerId !== dedo)) return;
+        dedo = null;
+        for (const n of Object.keys(dirs)) ligar(n, false);
+        pino.style.transform = "";
+        joy.classList.remove("ativo");
+        noLugar();
+      };
+      joy.addEventListener("pointerup", soltar); joy.addEventListener("pointercancel", soltar);
+      joy.addEventListener("lostpointercapture", soltar);
+      noLugar();
+      global.addEventListener("resize", noLugar);
+    }
   }
 
   // ---------- telas de começo e fim ----------
@@ -1105,10 +1154,10 @@
     caixa.innerHTML = "";
     const h = doc.createElement("h1"); h.textContent = "🏄 Surf na praia";
     const p = doc.createElement("p");
-    p.textContent = toque ? "▶ vai · ◀ volta (a prancha vira) · ▲▼ sobe e desce a onda · PULAR. Ele nunca cai!"
+    p.textContent = toque ? "Joystick: → vai · ← volta (a prancha vira) · ↑↓ sobe e desce a onda · PULAR. Ele nunca cai!"
       : "D vai · A volta (a prancha vira) · W/S sobe e desce a onda · Espaço pula. Ele nunca cai!";
     const p2 = doc.createElement("p");
-    p2.textContent = (toque ? "▲▼" : "W/S") + " alternados e rápidos = batidinhas na prancha: bombeia e ganha velocidade. "
+    p2.textContent = (toque ? "Joystick para cima e para baixo, rápido" : "W/S alternados e rápidos") + " = batidinhas na prancha: bombeia e ganha velocidade. "
       + "Descer a onda acelera; subir freia. Solte tudo e a onda te alcança (tubo).";
     const ul = doc.createElement("ul");
     for (const t of ["Voltando (prancha para trás) e subindo a parede: CUTBACK", "Suba até a crista e ande em cima dela: FLOATER",
