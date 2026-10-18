@@ -12,7 +12,7 @@ const MUSICAS = {
   dia: ['musica_dia', 'musica_dia_2', 'musica_dia_3', 'musica_dia_4'],   // bossa de violão; bossa da manhã; choro; baião
   noite: ['musica_noite', 'musica_noite_2', 'musica_noite_3'],            // violão e flauta; violão e flauta de bambu; seresta
   pensao: ['pensao_animada_1', 'pensao_animada_2', 'pensao_animada_3'],   // samba-choro (o escolhido); forró-xote; gafieira
-  festa: ['musica_festa'],                                                // (guardada para a festa; hoje nada a chama)
+  festa: ['musica_festa'],                                                // (C20: o final, a inauguração da Construtora Santos)
 };
 const VOLUME_EFEITO = { passo_grama: -12, passo_chao: -14, passo_madeira: -12, letra: -6, cursor: -4, golpe: -4, foice: -2, dinheiro: -2 };
 const SONS_INTERFACE = ['cursor', 'abrir', 'fechar', 'letra', 'feito', 'erro', 'dinheiro', 'contagem_dinheiro', 'estrela_1', 'estrela_2', 'estrela_3', 'estrela_4', 'estrela_5'];
@@ -220,7 +220,8 @@ function criarRodizio(listas = MUSICAS, rand = Math.random) {
 }
 sons.rodizio = criarRodizio();
 // O momento da música: o salão da pensão; fora dela, a noite a partir das 18h; senão o dia.
-function momentoMusica() { return noSalaoDaPensao() ? 'pensao' : (G.minutos >= 18 * 60 ? 'noite' : 'dia'); }
+// (C20) No final (a inauguração da Construtora Santos, firma.js), a música da festa.
+function momentoMusica() { return typeof Firma !== 'undefined' && Firma.emFesta() ? 'festa' : noSalaoDaPensao() ? 'pensao' : (G.minutos >= 18 * 60 ? 'noite' : 'dia'); }
 
 let _proxCanto = 8;
 setInterval(() => {

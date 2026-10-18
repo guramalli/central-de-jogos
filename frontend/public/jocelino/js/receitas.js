@@ -7,7 +7,10 @@
 // dos VIPs e dos eventos): 'ingrediente' (pesquisa com pitadas depois que o ingrediente principal passa pela mão do
 // Jocelino), 'degrau' (a Rosa aprende quando a pensão sobe), 'chef' (ela inventa nos níveis 3, 6 e 9), 'ajudante' (o
 // ajudante de cozinha ensina nos níveis 5 e 10), 'vip' (o cliente especial ensina a receita com o nome dele), 'festa'
-// (aprendida na festa da Vila) e 'viajante' (comprada do Viajante da Capital, às quintas).
+// (aprendida na festa da Vila) e 'viajante' (comprada do Viajante da Capital, às quintas). (T9 das conversas e histórias) O 8º
+// caminho, 'amizade': a RECEITA COM NOME, que uma pessoa ensina numa cena do arco dela (historias/<pessoa>.js, o fim.receita; a
+// seção 6.3 da spec das conversas): o Bolo de Macaxeira da Vó Ia (a Rosa, R1), o Caldo Verde da Dona Zélia e o Azul-Marinho do
+// Lourival (os arcos deles). Não se pesquisa; o caderno mostra a silhueta com a `dica` (Pensao.comoLiberar), sem prazo.
 // raridade 1 ★ mercearia e horta, 2 ★★ praia e rio, 3 ★★★ alto-mar e raros, 4 ★★★★ VIP e Capital.
 const _rec = (nome, preco, raridade, caminho, porcao, icone, desc, extra = {}) => Object.assign({ nome, preco, fase: raridade, raridade, caminho,
   principal: Object.keys(porcao)[0], porcao, reacao: 'coracao', pitadas: [0, 2, 4, 7, 10][raridade], icone, desc }, extra);
@@ -75,6 +78,11 @@ const RECEITAS_NOVAS = {
   pitu_moranga: _rec('Pitu na Moranga do Nhô Quim', 36, 3, 'vip', { pitu: 2, abobora: 1, leite: 1, queijo_coalho: 1 }, 'itens/prato_pitu_moranga', 'Pitu da serra cozido dentro da abóbora, com leite e queijo coalho. A receita da mãe do Nhô Quim, guardada numa lata na loca da cachoeira.', { vip: 'mateiro' }),
   arroz_polvo: _rec('Arroz de Polvo da Capital', 65, 4, 'viajante', { polvo: 1, arroz: 1, tomate: 1 }, 'itens/prato_arroz_polvo', 'Receita de restaurante chique da Capital, comprada do Viajante.'),
   vatapa: _rec('Vatapá da Rosa', 48, 4, 'chef', { camarao: 1, leite_coco: 1, dende: 1, farinha: 1 }, 'itens/prato_vatapa', 'A obra-prima da Rosa. Ela só inventou depois de muito fogão.'),
+  // ♥ — as receitas com nome (o caminho 'amizade': a cena da pessoa ensina). O crivo da s1 vale: a macaxeira é a horta demorada (14
+  // dias), então Cr$ 25 ou mais; a panela (26 × 1,05 = 27 × 4 = 108) passa de 1,3 × os crus que gasta (2 mandiocas, 2 cocos e 2 de
+  // açúcar = 60). Tudo da fase 1 (a horta, a praia e a Mercearia): a Rosa faz o bolo logo que o caderno chega.
+  bolo_macaxeira_via: _rec('Bolo de Macaxeira da Vó Ia', 26, 2, 'amizade', { mandioca: 1, coco: 1, acucar: 1 }, 'itens/prato_bolo_macaxeira_via',
+    'Da Vó Ia, de Itabaiana: macaxeira ralada, coco e açúcar, com canela por cima. Para a rua inteira.', { historia: 'rosa_1', dica: 'Uma receita de família, de longe: chega quando for a hora.' }),
 };
 // Os ingredientes novos das receitas (raridade, fase em que a pensão aceita, de onde vêm).
 Object.assign(Pratos.INGREDIENTES, {
@@ -95,7 +103,7 @@ const CATEGORIA_PRATO = {
   caldo: ['sopa_pedra', 'sopa_legumes', 'peixe_ensopado', 'caldo_caranguejo', 'caldo_peixe', 'pirao', 'moqueca', 'moqueca_capixaba', 'bobo_camarao',
     'peixada', 'caldeirada', 'moqueca_prefeito', 'caldeirada_critico', 'vatapa', 'pitu_moranga'],
   pf: ['pf_peao', 'virado', 'marmita_peao', 'picadinho_santos'],
-  doce: ['cocada_tijolinho', 'rabanada', 'arroz_doce', 'mingau_milho', 'bolinho_chuva', 'canjica', 'pamonha', 'goiabada', 'bolo_milho', 'doce_leite_calixto'],
+  doce: ['cocada_tijolinho', 'rabanada', 'arroz_doce', 'mingau_milho', 'bolinho_chuva', 'canjica', 'pamonha', 'goiabada', 'bolo_milho', 'doce_leite_calixto', 'bolo_macaxeira_via'],
   horta: ['salada_rosa', 'couve_mineira', 'pure_abobora'],
   salgado: ['farofa_ovo', 'mandioca_frita', 'cuscuz'],
 };

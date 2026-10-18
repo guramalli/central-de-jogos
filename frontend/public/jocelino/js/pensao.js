@@ -311,6 +311,7 @@ class Pensao {
       case 'ajudante': return 'Um ajudante de cozinha ensina quando chegar ao nível 5 ou 10 de treino.';
       case 'vip': { const v = typeof vipDe === 'function' && vipDe(r.vip); return `Chega pela carta de ${v ? v.nome : 'um cliente especial'}, 3 dias antes de ele jantar na pensão (quando a pensão já aceitar os ingredientes).`; }
       case 'festa': { const f = typeof FESTAS !== 'undefined' && FESTAS.find(x => x.ensina === id); return `A Rosa aprende na festa "${f ? f.nome : 'da Vila'}", servindo o prato da festa.`; }
+      case 'amizade': return r.dica || 'Uma receita com nome: alguém da família ou da Vila ensina, com o tempo.';   // (T9) a cena da pessoa ensina
       case 'viajante': return `O Viajante da Capital vende por Cr$ ${typeof Viajante !== 'undefined' ? Viajante.RECEITAS[id] : '?'}, às quintas na Vila (a partir do degrau ${typeof Viajante !== 'undefined' ? Viajante.GRAU : 3}).`;
       default: return this._visto(r.principal) ? `Pesquise com a Rosa: ${r.pitadas} pitadas de tempero.` : `Traga ${ing(r.principal)} para a Rosa ver (${typeof origemDe === 'function' ? origemDe(r.principal) : ''}).`;
     }
@@ -465,6 +466,8 @@ class Pensao {
     this.equipe = JSON.parse(JSON.stringify(d.equipe || [])); this.candidatos = JSON.parse(JSON.stringify(d.candidatos || [])); this.anuncio = d.anuncio || ''; this.melhorias = (d.melhorias || []).slice(); this.agenda = JSON.parse(JSON.stringify(d.agenda || [])); this.metas = JSON.parse(JSON.stringify(d.metas || [])); this.panela = Object.assign({}, d.panela || {}); this.panelaRar = Object.assign({}, d.panelaRar || {}); this.chef = Object.assign({ nivel: 1, xp: 0 }, d.chef || {});
     this.premios = (d.premios || []).slice(); this.garfos = d.garfos || 0; this.paladarNotas = JSON.parse(JSON.stringify(d.paladarNotas || [])); this.concursos = Object.assign({}, d.concursos || {});
     if (!this.paladarNotas.length && this.garfos > 0) this.paladarNotas.push({ dia: 0, nota: this.garfos });   // save antigo: a nota guardada vira a 1ª visita
+    // (C17) save de antes do concurso a cada 14 dias: a chave era a estação (o concurso no último dia dela); vira a chave do dia
+    for (const k of Object.keys(this.concursos)) if (/^\d+$/.test(k)) { const c = 'd' + (Number(k) + 1) * 28; if (!this.concursos[c]) this.concursos[c] = this.concursos[k]; delete this.concursos[k]; }
     this.estrelasPremiadas = d.estrelasPremiadas ?? null; this.festaDia = d.festaDia || 0;
     this.ampliacoes = (d.ampliacoes || []).slice(); this.obra = d.obra ? Object.assign({}, d.obra) : null; this.nivelMelhoria = Object.assign({}, d.nivelMelhoria || {});
     // (Tarefa D1) Save de antes do "melhor sabor servido": os pratos do caderno contam como servidos no nível de hoje (ninguém perde

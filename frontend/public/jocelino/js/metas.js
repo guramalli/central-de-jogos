@@ -9,8 +9,27 @@ const Metas = {
   // (o cardápio do Bancho, 13/10) O prato da casa entra na nota como na fama: as estrelas dele não contam (TurnoJanta.paraFama),
   // mas o cliente conta — como o Norimaki do Dave, ele puxa a nota para baixo.
   notaDaNoite(r) { return r && r.servidos ? clamp(Math.round(TurnoJanta.paraFama(r).estrelas / r.servidos), 1, 5) : 1; },
+  // (C17, 16/10; o teste crítico C, solução 8: "falta o concurso" não dizia quando) AS METAS DIZEM A NOITE. As do calendário passam
+  // na frente (prio 4: têm data): a vitória no Concurso da Rádio, com o dia do próximo (a cada 14, no domingo), e a revisita marcada
+  // do Doutor Paladar (Eventos.revisitaDoPaladar), com o dia e o que ele repara. O texto é refeito a cada volta (atualizar): o
+  // "daqui a N dias" anda com o calendário; a meta do Paladar sem revisita marcada sai (ele é surpresa fora dela).
+  textoConcurso(p, dia) {
+    const d = Concurso.proximo(p, dia), tema = CONCURSO_TEMAS[Concurso.estacaoAbs(d) % 4].nome;
+    return `Vença o Concurso da Rádio: o próximo é no dia ${d} (${quandoDia(d, dia)}), e os jurados gostam de ${tema}, raro e caprichado`;
+  },
+  _volta(p, dia) { return (p.agenda || []).find(e => e.tipo === 'paladar' && !e.fim && e.dia >= dia) || null; },
+  textoPaladar(p, dia, garfos) {
+    const v = Metas._volta(p, dia);
+    return v ? `Receba o Doutor Paladar com ${garfos} garfos: ele volta no dia ${v.dia} (${quandoDia(v.dia, dia)}); prato rápido, balcão limpo, bebida na medida e prato caprichado` : '';
+  },
+  atualizar(p, dia) {
+    if (!p || !p.metas) return;
+    for (const m of p.metas) if (!m.feita && m.tipo === 'concurso') m.texto = Metas.textoConcurso(p, dia);
+    for (const m of p.metas) if (!m.feita && m.tipo === 'paladar') m.texto = Metas.textoPaladar(p, dia, m.garfos);
+    if (p.metas.some(m => !m.feita && m.tipo === 'paladar' && !m.texto)) p.metas = p.metas.filter(m => m.feita || m.tipo !== 'paladar' || m.texto);
+  },
   // As candidatas a meta agora (sem as que já estão ativas).
-  _candidatas(p, rng) {
+  _candidatas(p, rng, dia = typeof G !== 'undefined' ? G.dia : 0) {
     const c = [], prox = p.proximoDegrau ? p.proximoDegrau() : null, ativas = p.metas.filter(m => !m.feita);
     const tem = (tipo, extra = {}) => ativas.some(m => m.tipo === tipo && Object.keys(extra).every(k => m[k] === extra[k]));
     if (prox && prox.falta.curtidas > 0 && !tem('curtidas')) c.push({ tipo: 'curtidas', alvo: prox.d.curtidas, texto: `Junte ${prox.d.curtidas} curtidas (para "${prox.nome}")`, prio: 3 });
@@ -22,6 +41,9 @@ const Metas = {
       if (!tem('nivel_prato')) c.push({ tipo: 'nivel_prato', prato: melhor, alvo, texto: `Sirva ${Pratos.PRATOS[melhor].nome} no nível ${alvo} (caprichar no caderno e servir no salão${noQuadro ? '' : '; ponha no quadro de giz'})`, prio: 3 });
     }
     if (prox && prox.falta.pesquisadas > 0 && !tem('pesquisar')) c.push({ tipo: 'pesquisar', alvo: prox.d.pesquisadas, texto: `Tenha ${prox.d.pesquisadas} receitas pesquisadas no caderno`, prio: 3 });
+    // (C17) as do calendário, com a noite
+    if (prox && prox.falta.concurso > 0 && typeof Concurso !== 'undefined' && !tem('concurso')) c.push({ tipo: 'concurso', alvo: prox.d.concurso, texto: Metas.textoConcurso(p, dia), prio: 4 });
+    if (prox && prox.falta.visitas > 0 && Metas._volta(p, dia) && !tem('paladar')) c.push({ tipo: 'paladar', garfos: prox.d.garfos, alvo: prox.d.visitas || 1, texto: Metas.textoPaladar(p, dia, prox.d.garfos), prio: 4 });
     const cl = Math.max(3, Math.round((p.clientesDaNoite ? p.clientesDaNoite() : 6) * 0.7));
     if (!tem('servir_clientes')) c.push({ tipo: 'servir_clientes', alvo: cl, texto: `Sirva ${cl} pratos numa noite só`, prio: 1 });
     if (!tem('servir_bebida_medida')) c.push({ tipo: 'servir_bebida_medida', alvo: 3, texto: 'Sirva 3 bebidas na medida numa noite', prio: 1 });
@@ -37,8 +59,9 @@ const Metas = {
   // Completa até ECO.metasAtivas metas ativas: primeiro as do degrau, depois sorteia entre as outras.
   gerar(p, dia, rng) {
     p.metas = (p.metas || []).filter(m => !m.feita || m.dia === dia).slice(-12);
+    Metas.atualizar(p, dia);
     while (p.metas.filter(m => !m.feita).length < ECO.metasAtivas) {
-      const cs = this._candidatas(p, rng);
+      const cs = this._candidatas(p, rng, dia);
       if (!cs.length) break;
       const top = Math.max(...cs.map(x => x.prio)), ops = cs.filter(x => x.prio === top);
       const m = ops[rng.randi() % ops.length];
@@ -57,6 +80,8 @@ const Metas = {
       case 'caprichar': return p.receitas.reduce((n, id) => n + p.nivel(id), 0);
       case 'contratar': return p.equipe.length;
       case 'melhoria': return p.melhorias.includes(m.melhoria) ? 1 : 0;
+      case 'concurso': return p.vitorias();                    // (C17)
+      case 'paladar': return p.visitasCom(m.garfos);
       case 'servir_clientes': return rel ? rel.servidos || 0 : m.atual;
       case 'servir_bebida_medida': return rel ? rel.medida || 0 : m.atual;
       case 'nota_noite': return rel && rel.servidos ? Metas.notaDaNoite(rel) : m.atual;
@@ -110,6 +135,7 @@ ATUALIZADORES.push(dt => {
   _metasT -= dt;
   if (_metasT > 0) return;
   _metasT = 0.7;
+  Metas.atualizar(p, G.dia);   // (C17) o "daqui a N dias" e o próximo concurso depois de participar
   if (!p.metas.filter(m => !m.feita).length) { const f = mulberry(G.dia * 131 + 7), rng = { randf: f, randi: () => Math.floor(f() * 4294967296) }; Metas.gerar(p, G.dia, rng); hudSujo(); }
   // As metas de estado (curtidas, nível, receitas, equipe, melhoria) conferem a qualquer hora; as de noite, no fechamento.
   const so = p.metas.filter(m => !m.feita && !['servir_clientes', 'servir_bebida_medida', 'nota_noite'].includes(m.tipo));

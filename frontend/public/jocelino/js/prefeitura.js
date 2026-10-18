@@ -60,7 +60,13 @@ NOITE.push(linhas => {
   if (G.dia >= P.aceitoDia + Prefeitura.PRAZO - 1 && a.estado === 'pronta' && !a.prazoExtra) { a.prazoExtra = true; linhas.push(`${PREFEITURA_OBRAS[P.ativo].nome}: ficou pronta no último dia do prazo. Entregue amanhã na plaquinha.`); return; }
   if (G.dia >= P.aceitoDia + Prefeitura.PRAZO - 1) { linhas.push(`O prazo da Prefeitura venceu: ${PREFEITURA_OBRAS[P.ativo].nome.toLowerCase()} ficou para outra vez.`); delete G.empreitas.aceitas[P.ativo]; P.ativo = ''; }
 });
+// (C20) Com a meta da firma aberta (a carta do Moreira lida, o capital por pagar), o quadro mostra antes o alvará da Construtora Santos
+// (firma.js: pagar, ou ir aos pedidos de obra de sempre).
 function abrirPrefeitura() {
+  if (typeof Firma !== 'undefined' && Firma.noQuadro(abrirPedidosPrefeitura)) return true;
+  return abrirPedidosPrefeitura();
+}
+function abrirPedidosPrefeitura() {
   const P = G.empreitas.prefeitura;
   if (!P.aberta) { abrirPlaca('O quadro da Prefeitura: editais e avisos.'); return true; }
   if (P.ativo) { const O = PREFEITURA_OBRAS[P.ativo]; abrirPlaca(`Obra da Prefeitura: ${O.nome}. ${Empreitas.textoEstado(P.ativo)}.`); return true; }

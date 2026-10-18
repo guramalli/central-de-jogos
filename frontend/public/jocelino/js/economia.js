@@ -7,6 +7,8 @@ const ECO = {
     curtidas: { dinheiro: 40, pitadas: 2 }, nivel_prato: { dinheiro: 30, pitadas: 1 }, pesquisar: { dinheiro: 25, pitadas: 0 },
     servir_clientes: { dinheiro: 20 }, servir_bebida_medida: { dinheiro: 15, pitadas: 1 }, nota_noite: { dinheiro: 25, pitadas: 1 },
     caprichar: { pitadas: 1 }, contratar: { dinheiro: 20 }, melhoria: { pitadas: 2 },
+    // (C17) as do calendário: a revisita do Doutor Paladar com os garfos e a vitória no Concurso da Rádio (a meta diz a noite)
+    paladar: { dinheiro: 40, pitadas: 2 }, concurso: { dinheiro: 40, pitadas: 2 },
   },
   metasAtivas: 3,
   // Panela da noite: quantas porções rende uma panela de cada prato (o "postar no cardápio" do Bancho). (15/10) A sopa de legumes
@@ -29,14 +31,25 @@ const ECO = {
     // (C6, 16/10, o teste crítico: a janta das 3 primeiras noites deu Cr$ 98, 121 e 54 contra a diária de 420, com 2 banquetas e o
     // salão vazio) Como a 1ª noite do Bancho, que já rende e dá vontade de voltar: o degrau 0 com 3 banquetas e 8 fregueses (eram 2
     // e 6) e a 1ª estrela com 24 curtidas (eram 40: a 3ª ou 4ª noite), que muda o salão (+1 banqueta, 10 fregueses).
+    // (C19, 17/10; o teste crítico C, soluções 8 e 13: o jogo acaba no dia ~160, com a construtora) As curtidas da ★★ à ★★★★★:
+    // 200/520/1100/1700 → 155/375/860/1350. O que segurava cada estrela era a curtida (o sabor, as receitas, o Paladar e o concurso
+    // já vinham antes), e o médio chegava à 5ª no dia ~180; agora as estrelas do médio caem nos dias ~9/22/55/105/150 (o ALVO novo,
+    // ferramentas_balanco/simulador.js), o bom antes e o devagar até o ~195, sem nenhuma semente "nunca".
     degraus: [
       { nome: 'Marmita de Esquina', curtidas: 0, sabor: 0, pesquisadas: 0, mesas: 3, clientes: 8, despesa: 0 },
       { nome: 'Boteco Conhecido', curtidas: 24, sabor: 0, pesquisadas: 0, mesas: 4, clientes: 10, despesa: 5 },
-      { nome: 'Pensão Falada', curtidas: 200, sabor: 0, pesquisadas: 2, mesas: 4, clientes: 10, despesa: 12 },
-      { nome: 'Pensão Famosa', curtidas: 520, sabor: 36, pesquisadas: 3, mesas: 5, clientes: 12, despesa: 25 },
-      { nome: 'Casa Tradicional', curtidas: 1100, sabor: 60, pesquisadas: 5, garfos: 4, visitas: 2, mesas: 6, clientes: 14, despesa: 45 },
-      { nome: 'Patrimônio da Vila', curtidas: 1700, sabor: 96, pesquisadas: 7, garfos: 5, visitas: 2, concurso: 1, mesas: 6, clientes: 16, despesa: 70 },
+      { nome: 'Pensão Falada', curtidas: 155, sabor: 0, pesquisadas: 2, mesas: 4, clientes: 10, despesa: 12 },
+      { nome: 'Pensão Famosa', curtidas: 375, sabor: 36, pesquisadas: 3, mesas: 5, clientes: 12, despesa: 25 },
+      // (C17, 16/10; o teste crítico: a 5ª estrela do médio variava de 194 a 328 e 2 de 7 sementes do devagar nunca chegavam) Uma
+      // visita do Paladar com os garfos basta (eram 2, uma por estação); quem não tirou a nota recebe a revisita (paladarVolta).
+      { nome: 'Casa Tradicional', curtidas: 860, sabor: 60, pesquisadas: 5, garfos: 4, visitas: 1, mesas: 6, clientes: 14, despesa: 45 },
+      { nome: 'Patrimônio da Vila', curtidas: 1350, sabor: 96, pesquisadas: 7, garfos: 5, visitas: 1, concurso: 1, mesas: 6, clientes: 16, despesa: 70 },
     ],
+    // (C17) Quando o degrau seguinte só espera os garfos (curtidas, sabor e receitas já cumpridos), o Doutor Paladar volta para provar
+    // de novo `paladarVolta` dias depois da última visita (com carta), e não só na estação seguinte. O Concurso da Rádio é a cada
+    // `concursoCada` dias (no meio e no fim da estação; era só no fim): quem perde tenta de novo em 2 semanas, como a revanche do Dave.
+    paladarVolta: 7,
+    concursoCada: 14,
     saborPorNivel: 12,      // o sabor de um prato = nível × isto
     gorjeta: 0.3,           // gorjeta = preço × isto × (estrelas − 1) / 4
     estrelasPorPitada: 4,   // pitadas da noite = max(1, floor(estrelas / isto))
@@ -50,7 +63,8 @@ const ECO = {
     // O prato da casa (o Norimaki do Dave): sempre tem, sem ingrediente da despensa; mais barato que o prato mais barato, sem
     // gorjeta e sem curtida, e a nota do cliente fica no máximo em `estrelas`; o Doutor Paladar dá no máximo `paladarMax` garfos
     // (como o cafezinho de antes). Não conta para a fama, as pitadas nem a experiência da Rosa.
-    pratoCasa: { nome: 'Arroz com feijão da Rosa', preco: 4, estrelas: 2, paladarMax: 1 },
+    // (C19, rodada 1) o preço 4 → 6, junto com os pratos × 1,5 (ECO.pratos.fator): continua o mais barato (a farofa sai a 8, o PF a 13).
+    pratoCasa: { nome: 'Arroz com feijão da Rosa', preco: 6, estrelas: 2, paladarMax: 1 },
     // A marmita do Jocelino: a Rosa faz de manhã, gastando da despensa (a sobra da janta vai para o lixo, como no Dave).
     // (Tarefa 4) Ela não se vende (saiu da caixa, ECO.caixa): a fornada custa Cr$ 1 por marmita na mercearia, e comida feita em
     // casa vale menos que os ingredientes (o crivo do Stardew), então o preço seria 0. A marmita é energia (e +3 no humor dos peões).
@@ -105,22 +119,33 @@ const ECO = {
         pure_abobora: 5, virado: 6, cuscuz: 5, bolinho_chuva: 5, canjica: 4, marmita_peao: 6, pamonha: 5, goiabada: 4, bolo_milho: 4,
         sardinha_frita: 6, lambari_crocante: 6, peixe_ensopado: 7, casquinha_siri: 6, caldo_caranguejo: 6, escondidinho: 7, caldo_peixe: 6,
         pirao: 5, moqueca: 7, moqueca_capixaba: 7, lagosta_manteiga: 6, bobo_camarao: 7, peixada: 7, robalo_assado: 7, caldeirada: 7,
-        moqueca_prefeito: 7, caldeirada_critico: 7, doce_leite_calixto: 4, picadinho_santos: 6, arroz_polvo: 6, vatapa: 7, pitu_moranga: 7 },
+        moqueca_prefeito: 7, caldeirada_critico: 7, doce_leite_calixto: 4, picadinho_santos: 6, arroz_polvo: 6, vatapa: 7, pitu_moranga: 7,
+        bolo_macaxeira_via: 4 },
       MAQUINA: 4, MAQUINA_BEBIDAS: ['guarana', 'caldo_cana'] },
     rosaPaga: true,                                 // a Rosa sozinha paga a despesa e os salários     // caprichar gasta (qtd + 1) × isto^(nível − 1) de cada ingrediente
   },
   // ---- A obra do Bira: a diária de cada função, o extra, a gorjeta do imprevisto, as gratificações e o que cada função pede.
+  // (C16, 17/10; a solução 6 do teste crítico C) as diárias [420, 430, 440, 450] → [420, 470, 540, 620]: subir de função se sente
+  // no bolso (como as ferramentas do Clint no Stardew, cada degrau rende mais por dia). O mestre pede 5 obras, Alvenaria 7 e 15
+  // serviços (era 4/6/10): chega no dia ~85, e não no 50. O mestreRedondo (Cr$ 20) só sai quando a turma fecha a lista dela
+  // redonda e o mestre fez a parte dele (como no E7: "mais Cr$ 20 quando a lista fecha redonda"), à noite (obra_jogo.js).
   obra: {
-    diarias: [420, 430, 440, 450], extra: 8, gorjeta: 10, imprevisto: 0.18, mestreRedondo: 20,
+    diarias: [420, 470, 540, 620], extra: 8, gorjeta: 10, imprevisto: 0.18, mestreRedondo: 20,
     premiosCasa: [{ dinheiro: 15, itens: { madeira: 15 } }, { dinheiro: 20, itens: { pedra: 20 } }, { dinheiro: 20, itens: { cafe: 3 } },
       { dinheiro: 25, itens: { cimento: 2 } }, { dinheiro: 30, itens: { pao: 3 } }, { dinheiro: 60, itens: { tijolo: 20 } }],
     premiosMercado: [{ dinheiro: 15, itens: { madeira: 15 } }, { dinheiro: 25, itens: { cimento: 2 } }, { dinheiro: 30, itens: { pao: 3 } }, { dinheiro: 120, itens: { tijolo: 30 } }],
     premiosPredio: { etapa: { dinheiro: 150, itens: { cimento: 3 } }, fim: { dinheiro: 1000, itens: { barra_aco: 3, madeira_lei: 5 } } },
     premiosReformas: [{ dinheiro: 40, itens: { cimento: 2 } }, { dinheiro: 80, itens: { tijolo: 20 } }],
-    requisitos: [null, { obras: 1, alvenaria: 2, empreitas: 0 }, { obras: 2, alvenaria: 4, empreitas: 3 }, { obras: 4, alvenaria: 6, empreitas: 10 }],
+    requisitos: [null, { obras: 1, alvenaria: 2, empreitas: 0 }, { obras: 2, alvenaria: 4, empreitas: 3 }, { obras: 5, alvenaria: 7, empreitas: 15 }],
   },
   // ---- Os preços de conteúdo (pratos, culturas, peixes) ficam nas tabelas deles; aqui, o fator de cada categoria.
-  pratos: { fator: 0.7, raridade: [1, 1, 1.3, 1.8, 3] },
+  // (C19, 17/10; a regra do dono: a pensão é o centro do jogo, como o Bancho no Dave) O fator dos pratos 0,7 → 1,05: todo prato
+  // custa 1,5 × o que custava. A pensão só passava a obra no simulador porque o jogador do modelo caprichava 1 nível por noite em
+  // todo prato até o teto (o preço médio do quadro 1,5 a 2,5 × o do robô); com o capricho de quem joga de verdade (1 nível a cada
+  // poucos dias, nos 2 pratos principais) a pensão ÷ obra caía a 0,78 no dia 120. Com os pratos × 1,5 ela fica em ~1,3 no dia 120
+  // (a obra e as empreitas, ~50% da renda do ano 1), sem mexer nas diárias da C16; e a 1ª noite da janta vai de ~Cr$ 144 a ~210,
+  // a faixa de Cr$ 180–250 que o teste crítico (solução 2) pedia para a 1ª noite do Bancho. Os ingredientes não mudaram.
+  pratos: { fator: 1.05, raridade: [1, 1, 1.3, 1.8, 3] },
   horta: { fatorSemente: 0.5, fatorVenda: 0.4 },
   // (C9) primeiroDoDia: antes de a pensão abrir, o Seu Lourival paga o 1º peixe do dia vendido na banca × isto (o "freguês" da aula;
   // como o "Procura-se" do quadro do Stardew, que paga 3 × o preço do item). Com a pensão aberta, o peixe vai para a despensa.
@@ -208,6 +233,11 @@ const ECO = {
     ],
     costura: 60, bicicleta: 1.2, fogao: 2, cozinha: 1.5, mochila: 60,
   },
+  // ---- (C19, 17/10; a spec de histórias 9.2 e a solução 8 do teste crítico C) A Construtora Santos, o final: o capital da firma que
+  // a carta do Seu Moreira pede depois do Edifício Maré entregue (a meta no "Juntar para", pago no quadro da Prefeitura). É o destino
+  // do dinheiro do fim da campanha: com Cr$ 110.000 (a mediana das 7 sementes da s19), o médio paga no dia ~158 (a construtora, os
+  // 4 marcos, no ~158), o bom no ~143 e o devagar no ~176 (a 5ª estrela dele, no ~187, fecha o final). O jogo ainda não lê (a T15 das histórias, C20, vai usar).
+  construtora: { capital: 110000 },
   // A lojinha da Rosa (roteiro de 13/10): a Dona Cotinha vende a pensão fechada; a entrada abre a reforma, o resto sai aos domingos.
   lojinha: { entrada: 2000, parcela: 500, parcelas: 6 },
   // A reforma da lojinha em etapas (roteiro de 13/10, "mais longa"): o material (entregue à Rosa) e os dias de trabalho no salão.
@@ -221,14 +251,19 @@ const ECO = {
     { id: 'pintura', nome: 'A pintura e o letreiro', material: { tinta: 2 }, dias: 1 },
   ],
   // ---- A casa da família (as reformas da Robin): 6 etapas, cada uma uma obra do Jocelino, sem pagamento e com custo.
+  // (C16, 17/10; a solução 7 do teste crítico C e a decisão do dono de 16/10) Cr$ 108.000 → Cr$ 30.000 no total (8/15/18/20/22/25 mil →
+  // 2,5/3,5/4,5/5,5/6,5/7,5 mil): a casa ficava pronta no dia ~249 no médio, e a spec põe a mudança no ato 2 (o sítio e o loteamento
+  // só abrem com a família mudada). Como a cozinha da Robin no Stardew (10.000 g, ~2 semanas da renda do meio da primavera), cada
+  // etapa é ~1 a 2 semanas do que sobra, e a casa fica pronta perto do dia 70 no médio. O material e os 25 dias de trabalho ficam:
+  // é a obra que se vê crescer.
   casa: {
     etapas: [
-      { nome: 'Fundação', etapas: ['pa', 'pa', 'colher', 'regador'], material: { cimento: 10, pedra: 30, vergalhao: 8 }, dinheiro: 8000, dias: 4 },
-      { nome: 'Paredes', etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], material: { tijolo: 150, cimento: 10 }, dinheiro: 15000, dias: 5 },
-      { nome: 'Telhado', etapas: ['machado', 'machado', 'colher'], material: { madeira: 40, telha: 80 }, dinheiro: 18000, dias: 3 },
-      { nome: 'A cozinha', etapas: ['colher', 'colher', 'regador', 'colher'], material: { cimento: 6, ladrilho: 40, tinta: 2 }, dinheiro: 20000, dias: 4 },
-      { nome: 'O quarto do casal', etapas: ['colher', 'colher', 'machado', 'colher'], material: { cimento: 6, cal: 4, tinta: 3, madeira: 15 }, dinheiro: 22000, dias: 4 },
-      { nome: 'O quarto das crianças e a mudança', etapas: ['colher', 'machado', 'colher', 'regador', 'colher'], material: { cimento: 6, cal: 4, tinta: 4, madeira: 20 }, dinheiro: 25000, dias: 5 },
+      { nome: 'Fundação', etapas: ['pa', 'pa', 'colher', 'regador'], material: { cimento: 10, pedra: 30, vergalhao: 8 }, dinheiro: 2500, dias: 4 },
+      { nome: 'Paredes', etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], material: { tijolo: 150, cimento: 10 }, dinheiro: 3500, dias: 5 },
+      { nome: 'Telhado', etapas: ['machado', 'machado', 'colher'], material: { madeira: 40, telha: 80 }, dinheiro: 4500, dias: 3 },
+      { nome: 'A cozinha', etapas: ['colher', 'colher', 'regador', 'colher'], material: { cimento: 6, ladrilho: 40, tinta: 2 }, dinheiro: 5500, dias: 4 },
+      { nome: 'O quarto do casal', etapas: ['colher', 'colher', 'machado', 'colher'], material: { cimento: 6, cal: 4, tinta: 3, madeira: 15 }, dinheiro: 6500, dias: 4 },
+      { nome: 'O quarto das crianças e a mudança', etapas: ['colher', 'machado', 'colher', 'regador', 'colher'], material: { cimento: 6, cal: 4, tinta: 4, madeira: 20 }, dinheiro: 7500, dias: 5 },
     ],
     quarto: 1.1,  // o quarto do casal: acorda com a energia 10% acima do máximo
   },

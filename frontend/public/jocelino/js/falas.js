@@ -4,7 +4,8 @@
 // da reforma, o Tio Juca com a pensão aberta, o Lourival na chuva — que continua valendo sempre que chove, como antes, e não só em
 // 50% das vezes como a regra `chuva`). As listas sorteadas pelo dia viraram linhas gerais: o empate sorteia pelo dia com a mesma
 // conta do _porDia antigo (a linha G.dia % n). O texto é o mesmo de antes; a emoção vai na página (@alegre, @pensativo...) e só
-// troca o retrato. Os aniversários são os da seção 5 (a T5 usa).
+// troca o retrato. Os aniversários são os da seção 5 (a T5 usa). (T4) Os gostos do piloto (a tabela da seção 5; os peixes da Rosa: tainha, sardinha e peixe frito):
+// a fofoca dos tópicos (topicos.js) e o presente (T5) descobrem; a aba Gente (T6) mostra os descobertos (Conversas.descobertos).
 const _falaEstadoPensao = () => G.pensao ? G.pensao.estado : 'fechada';
 const _falaRosaSonho = 'Jocelino... sabe o que eu sonho desde Aracaju? Cozinhar pra fora. Um PF caprichado, uma moqueca de domingo...';
 const _falaRosaCotinha = 'A pensão da Dona Cotinha, meu bem! Eu já tô vendo o quadro de giz cheio de prato.';
@@ -13,7 +14,7 @@ const _FALA_ROSA_ETAPA = { telhado: 'O buraco do telhado primeiro, amor: telha o
   cozinha: 'Minha cozinha! Tijolo e cimento pro fogão de alvenaria, o Seu Ananias tem.', pintura: 'Só falta a pintura e o letreiro... tinta tem no depósito.' };
 const _falaRosaReforma = () => _falaEstadoPensao() !== 'limpar' && !!ECO.reforma.find(x => x.id === _falaEstadoPensao());
 Object.assign(CONVERSAS, {
-  rosa: { nome: 'Rosa', aniversario: [1, 12], linhas: [
+  rosa: { nome: 'Rosa', aniversario: [1, 12], gostos: { ama: ['flor', 'pedra_bonita', 'caju'], gosta: ['coco', 'tomate', 'tainha', 'sardinha', 'peixe_frito'], naoGosta: [], odeia: ['sucata_aco'] }, linhas: [
     { quando: { se: () => _falaEstadoPensao() === 'fechada' && !(G.lojinha && G.lojinha.conversou) }, fala: ['@pensativo ' + _falaRosaSonho, 'Quem sabe aqui na Vila aparece uma oportunidade, né?'] },
     { quando: { se: () => _falaEstadoPensao() === 'fechada' && !!(G.lojinha && G.lojinha.conversou) }, fala: ['@pensativo ' + _falaRosaSonho, '@alegre A lojinha da Dona Cotinha, meu bem... a entrada e ela é nossa!'] },
     { quando: { se: () => _falaEstadoPensao() === 'limpar' }, fala: ['@alegre ' + _falaRosaCotinha, 'Primeiro a limpeza: entulho e mato no chão do salão.'] },
@@ -26,7 +27,7 @@ Object.assign(CONVERSAS, {
     { fala: ['Às cinco da tarde eu acendo o fogão. Não se atrasa!'] },
     { fala: ['@alegre O Severino lambeu o prato ontem, Jocelino. LAMBEU!'] },
   ] },
-  juca: { nome: 'Tio Juca', aniversario: [0, 20], linhas: [
+  juca: { nome: 'Tio Juca', aniversario: [0, 20], gostos: { ama: ['cafe', 'cachimbo', 'mandioca'], gosta: ['farinha', 'milho', 'tainha'], naoGosta: ['flor'], odeia: [] }, linhas: [
     { quando: { se: () => !!G.pensao && G.pensao.estado === 'aberta' }, fala: ['@alegre A pensão da Rosa é o assunto da Vila inteira! Até o Seu Tonico perguntou se tem torresmo.'] },
     { fala: ['O terreno das bandeirinhas tá esperando, rapaz. Vira meio-oficial com o Bira que a gente começa a casa de vocês.', 'Devagar e sempre. Madeira é no machado: galho, toco e árvore. O que sobrar, a caixa de venda leva.'] },
   ] },
@@ -39,14 +40,14 @@ Object.assign(CONVERSAS, {
     { fala: ['@alegre Pai, se quiser eu faço as contas da pensão!', 'Doze cruzeiros o PF, vezes dez... dá cento e vinte!'] },
     { fala: ['@alegre Cinco sacos de cimento a doze cruzeiros... dá sessenta! Viu só?'] },
   ] },
-  bira: { nome: 'Mestre Bira', aniversario: [2, 7], linhas: [
+  bira: { nome: 'Mestre Bira', aniversario: [2, 7], gostos: { ama: ['marmita', 'cafe', 'lapis'], gosta: ['pao', 'peixe_frito', 'madeira'], naoGosta: [], odeia: ['cocada'] }, linhas: [
     { fala: ['A obra da J. Moreira é de sol a sol, rapaz: chegou, trabalhou.', '@alegre E ó: se a sua patroa abrir aquela pensão, a peãozada inteira vai jantar lá!'] },
   ] },
-  ze: { nome: 'Zé', aniversario: [3, 2], linhas: [
+  ze: { nome: 'Zé', aniversario: [3, 2], gostos: { ama: ['quentao', 'pamonha'], gosta: ['milho', 'cafe', 'suco_caju'], naoGosta: ['pedra'], odeia: [] }, linhas: [
     { fala: ['Massa boa é igual feijão: nem mole, nem dura.'] },
     { fala: ['Tijolo por tijolo, Jocelino. Pressa só serve pra entortar parede.'] },
   ] },
-  zelia: { nome: 'Dona Zélia', aniversario: [0, 9], linhas: [
+  zelia: { nome: 'Dona Zélia', aniversario: [0, 9], gostos: { ama: ['flor', 'cocada'], gosta: ['couve', 'goiaba', 'bolo'], naoGosta: ['pedra', 'sardinha'], odeia: ['ferro_velho'] }, linhas: [
     { fala: ['Ai, meu filho, cuidado com as minhas plantas, viu?', '@alegre Essa casa é pra minha filha que vem da capital. Capricha!'] },
     { fala: ['@pensativo Dizem que a pensão da Cotinha vai abrir de novo. Que saudade de um caldo verde!'] },
   ] },
@@ -57,12 +58,34 @@ Object.assign(CONVERSAS, {
   tonico: { nome: 'Seu Tonico', aniversario: [0, 26], linhas: [
     { fala: ['Ferramenta boa é meio caminho andado. Quando precisar reforçar, me procura.'] },
   ] },
-  lourival: { nome: 'Seu Lourival', aniversario: [2, 19], linhas: [
+  lourival: { nome: 'Seu Lourival', aniversario: [2, 19], gostos: { ama: ['caranguejo', 'cachimbo'], gosta: ['cafe', 'pao', 'farinha'], naoGosta: [], odeia: ['peixe_frito'] }, linhas: [
     { quando: { se: () => Conversas.chove() }, fala: ['@alegre Chuva boa, compadre! Com chuva o peixe raro aparece, ainda mais na ponta do píer.', 'Pega a vara e vai pra ponta do píer, compadre.'] },
     { fala: ['O mar hoje tá bom pra tainha... segura firme quando ele puxar!'] },
     { fala: ['Pescador de verdade acorda antes do sol, compadre.', 'O peixe frito da Rosa? Esse eu vendo de olho fechado.'] },
   ] },
 });
+
+// (E3 das encomendas de festa; spec 2026-10-16-encomendas-festa-design.md, 3.3.2) A FESTA DO MORADOR NA FALA DELE. Do dia em que a
+// Rosa conta até a noite da festa, quem marcou a festa na pensão fala dela antes da fala comum (a chave `encomenda` do conversas.js,
+// que vale como a festa: a regra 4); no dia seguinte comenta como foi, ou, se não saiu, diz a frase "deixa", sem bronca. Como os
+// convidados da Party Night do Dave, só que a festa é de alguém que o Jocelino conhece. (Os moradores com tabela de falas; o Mestre
+// Bira conversa pela obra, obra_jogo.js.)
+const _falaFestaNoite = e => { const q = AvisoFesta.Quando(e); return /noite/.test(q) ? q : q + ' à noite'; };
+for (const id of Object.keys(CONVERSAS)) {
+  if (typeof OCASIOES === 'undefined' || !OCASIOES[id]) continue;
+  const oc = fase => { const e = Conversas.encomenda(id, fase); return e ? { e, o: Encomendas.ocasiao(id, e.ocasiao) } : null; };
+  CONVERSAS[id].linhas.push(
+    { quando: { encomenda: true }, fala: () => { const x = oc(true); return x && x.o ? ['@alegre ' + x.o.convite,
+      `${_falaFestaNoite(x.e)}, eu e mais ${x.e.turma - 1}. A Rosa já sabe: ${AvisoFesta.prato(x.e)} pra todo mundo!`] : []; } },
+    { quando: { encomenda: 'depois' }, fala: () => { const x = oc('depois'); return x && x.o ? ['@alegre ' + x.o.depois] : []; } },
+    { quando: { encomenda: 'deixa' }, fala: () => { const x = oc('deixa'); return x && x.o ? [x.o.deixa] : []; } });
+}
+// E a Rosa (a pensão aberta), a quem falar com ela, conta a festa marcada e o porquê de preparar.
+const _festaDaRosa = () => G.pensao && G.pensao.estado === 'aberta' && typeof Encomendas !== 'undefined'
+  ? (G.pensao.agenda || []).find(e => e.tipo === 'encomenda' && !e.fim && e.avisado <= G.dia && e.dia >= G.dia) || null : null;
+CONVERSAS.rosa.linhas.push({ quando: { se: () => !!_festaDaRosa() }, fala: () => { const e = _festaDaRosa(); return e ? [
+  `@alegre ${AvisoFesta.Quem(e)} marcou a festa aqui na pensão: ${AvisoFesta.ocasiao(e)}, ${AvisoFesta.quando(e)}. Vem ${AvisoFesta.ela(e)} e mais ${e.turma - 1}, e querem ${AvisoFesta.prato(e)}.`,
+  'Eu guardo a panela e a ponta do balcão pra turma, e o prato deles paga mais. Enche a despensa antes, amor!'] : []; } });
 
 // O jogo novo: a chegada (a abertura, abertura.js, conta Aracaju, a carta e a viagem; aqui o Tio Juca recebe no quintal). Como
 // o Lewis do Stardew: o norte (o terreno é de vocês), o serviço (o Bira paga por dia) e o objeto na mão (as sementes, para a

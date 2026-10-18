@@ -281,7 +281,30 @@ const CENAS_ESPECIAIS = {
         d.peca('cenas/capricho_rosa', 300 - (1 - u) * 700, 1110 + Math.sin(Math.PI * _cs(t, 1.6, 1.9)) * -20, 820, { ancora: 'base', rot: 0.02 * Math.sin(t * 5) });
       }
     } },
+  // (E4b das encomendas de festa; a arte da E6) A turma da festa encomendada (7,6 s): o salão da pensão em festa (bandeirinhas, balões,
+  // o bolo e o guaraná) com as notas do samba subindo; a turma sobe pela frente, da cintura para cima, e brinda com o guaraná (o
+  // "tchan" e um clarão no tlim dos copos); a faixa de cima diz o brinde e o agradecimento do anfitrião. Toca quando o anfitrião
+  // recebe o prato (pensao_tela.js, eventoDaTurma): na 1ª festa do jogo e nas de aniversário. Ninguém da arte é um morador com nome.
+  turma: { dur: 7.6, legenda: [0.6, 7.3], titulo: () => { const e = _festaDaCena(); return e ? `A festa ${AvisoFesta.da(e)}` : 'A festa da turma'; },
+    falas: () => { const e = _festaDaCena(); if (!e) return [[0.5, 7.2, 'A turma ergue o guaraná: "À festa! E à comida da Rosa!"']];
+      return [[0.5, 3.7, `A turma ${AvisoFesta.da(e)} ergue o guaraná: "${_brindeDe(AvisoFesta.ocasiao(e))} E à comida da Rosa!"`],
+        [3.8, 7.2, `${AvisoFesta.Quem(e)}: "${AvisoFesta.dona(e) ? 'Obrigada' : 'Obrigado'}, Rosa! Essa festa a Vila não esquece."`]]; },
+    artes: ['cenas/turma_fundo', 'cenas/turma_brinde', 'cenas/samba_notas'],
+    sons: [[0.4, 'festa_rojao', 1, -6], [2.05, 'cena_tchan', 1, -4], [2.3, 'noite_comemora_1', 1, -6]],
+    desenha(d, t) {
+      d.fundo('cenas/turma_fundo', 1 + 0.06 * _eo(_cs(t, 0, 7.6)), 1, 960, 470);
+      // as notas do samba (a arte da festa da firma), menores e subindo devagar por cima da festa
+      d.peca('cenas/samba_notas', 960, 400 - 60 * _cs(t, 0.8, 7.0), 520, { alfa: 0.85 * _cs(t, 0.8, 1.4) * (1 - _cs(t, 6.6, 7.4)) });
+      // a turma sobe colada na base (a camada tem o corte reto na cintura), balança no samba e, no brinde, pulsa com o clarão
+      const sobe = _eo(_cs(t, 0.5, 1.3)), tlim = _cs(t, 2.0, 2.45);
+      d.peca('cenas/turma_brinde', 960, 1084 + (1 - sobe) * 760, 717, { ancora: 'base', rot: 0.01 * Math.sin(t * 3.2), esc: 1 + 0.04 * Math.sin(Math.PI * tlim) });
+      if (t >= 2.0) d.luz(0.22 * (1 - _cs(t, 2.0, 2.35)));
+    } },
 };
+// A festa da cena da turma: a da noite (o turno), ou null (a cena sem festa, nos testes). O brinde pelo artigo da ocasião: "o batizado
+// do neto" → "Ao batizado do neto!", "a laje batida" → "À laje batida!", "os 20 anos" → "Aos 20 anos!", "as bodas" → "Às bodas!".
+const _festaDaCena = () => (typeof G !== 'undefined' && G.turno && G.turno.encomenda && typeof AvisoFesta !== 'undefined' ? G.turno.encomenda : null);
+const _brindeDe = oc => { const m = /^(os|as|o|a) (.*)$/.exec(oc || ''); return m ? `${{ o: 'Ao', a: 'À', os: 'Aos', as: 'Às' }[m[1]]} ${m[2]}!` : 'À festa!'; };
 // O Caprichar: o nível 10 (o teto do caderno, Pensao.NIVEL_MAX) toca sempre; ROSA_PITADA: a ponta dos dedos da pitada na peça da Rosa (fração da
 // largura e da altura), de onde caem as faíscas do tempero.
 const _capMax = () => (typeof Pensao !== 'undefined' && Pensao.NIVEL_MAX) || 10;
@@ -383,7 +406,8 @@ const CenaPrato = {
     this._cena = { id, def, artes, t: 0, tr: 0, espera: 0, podePular: op.podePular, primeira: op.primeira, prato: op.prato, nivel: op.nivel || 0, aoAcabar: op.aoAcabar || null, sons: def.sons.slice() };
     this._ultimo = performance.now();
     // as faixas descem: o zunido com rufar; a música e o burburinho baixam enquanto a cena toca
-    if (typeof sons !== 'undefined') { sons.tocar('cena_entrada', 1, 0.03, -4); sons.abafar(def.dur + 0.5, 0.3); }
+    // (C20) abafa: false — a cena que tem a música dela (o final: a música da festa segue alta)
+    if (typeof sons !== 'undefined') { sons.tocar('cena_entrada', 1, 0.03, -4); if (def.abafa !== false) sons.abafar(def.dur + 0.5, 0.3); }
     const o = this._overlay();
     o.hidden = false; document.body.classList.add('cena-prato');
     G.teclas.clear(); if (G.mouse) G.mouse.segura = false;
@@ -491,11 +515,15 @@ const CenaPrato = {
       const [l0, l1] = c.def.legenda;
       const tit = typeof c.def.titulo === 'function' ? c.def.titulo(c) : c.def.titulo;
       const nome = tit || (c.prato && typeof Pensao !== 'undefined' ? Pensao.prato(c.prato).nome : '');
-      if (nome && t >= l0 && t <= l1) { ctx.globalAlpha = Math.min(_cs(t, l0, l0 + 0.25), 1 - _cs(t, l1 - 0.25, l1)); texto(ctx, nome, W / 2, H - B / 2 + 9 - y1, Math.round(clamp(B * 0.42, 16, 34)), '#ffd34d', '900'); }
-      // a fala da Rosa na faixa de cima (fala: [de, até, texto ou função(c)]), nas cenas especiais que têm
-      if (c.def.fala && t >= c.def.fala[0] && t <= c.def.fala[1]) {
-        const [f0, f1, f] = c.def.fala, frase = typeof f === 'function' ? f(c) : f;
-        ctx.globalAlpha = Math.min(_cs(t, f0, f0 + 0.25), 1 - _cs(t, f1 - 0.25, f1)); texto(ctx, frase, W / 2, B / 2 + 8 + y1, Math.round(clamp(B * 0.36, 14, 28)), '#fff4cf', '800');
+      // (C20) a letra diminui até a frase caber na largura da tela (a fala longa do final, no celular)
+      const cabe = (s, tam, peso) => { ctx.font = `${peso} ${tam}px Nunito`; const w = ctx.measureText(s).width, max = W * 0.94; return w > max ? Math.max(11, Math.floor(tam * max / w)) : tam; };
+      if (nome && t >= l0 && t <= l1) { ctx.globalAlpha = Math.min(_cs(t, l0, l0 + 0.25), 1 - _cs(t, l1 - 0.25, l1)); texto(ctx, nome, W / 2, H - B / 2 + 9 - y1, cabe(nome, Math.round(clamp(B * 0.42, 16, 34)), '900'), '#ffd34d', '900'); }
+      // a fala da Rosa na faixa de cima (fala: [de, até, texto ou função(c)]), nas cenas especiais que têm; (C20) falas: a lista delas
+      // ([[de, até, texto ou função(c)], ...], ou uma função(c) que devolve a lista), uma depois da outra
+      const falas = typeof c.def.falas === 'function' ? c.def.falas(c) : c.def.falas || (c.def.fala ? [c.def.fala] : []);
+      for (const [f0, f1, f] of falas) if (t >= f0 && t <= f1) {
+        const frase = typeof f === 'function' ? f(c) : f;
+        ctx.globalAlpha = Math.min(_cs(t, f0, f0 + 0.25), 1 - _cs(t, f1 - 0.25, f1)); texto(ctx, frase, W / 2, B / 2 + 8 + y1, cabe(frase, Math.round(clamp(B * 0.36, 14, 28)), '800'), '#fff4cf', '800');
       }
       if (c.podePular) { ctx.globalAlpha = 0.75 * entra * (1 - sai); texto(ctx, 'Clique para pular', W - 110, H - B / 2 + 7 - y1, 16, '#fff4cf', '800'); }
       ctx.globalAlpha = 1;

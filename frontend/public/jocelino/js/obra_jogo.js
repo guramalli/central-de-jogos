@@ -11,15 +11,38 @@ const nomeTarefa = id => TAREFAS_OBRA[id].texto;
 const textoLista = l => Object.keys(l.metas).map(id => `• ${nomeTarefa(id)}: ${Math.min(l.metas[id], l.feito[id] || 0)}/${l.metas[id]}`).join('\n');
 const listaDeHoje = () => G.obra.lista && G.obra.lista.dia === G.dia ? G.obra.lista : null;
 const falaBira = (txt, depois) => { abrirConversa('Mestre Bira', urlArte('retratos/bira_normal'), Array.isArray(txt) ? txt : [txt], depois); return true; };
+// (T4 das conversas) O Bira conversa pela obra, fora do motor de falas: nas horas de folga (domingo, chuva, fim do dia, o dia já pago, a
+// lista acertada) ele comenta o assunto da Vila (o tópico aberto) ou solta a fofoca de um gosto, uma vez, como os outros (topicos.js).
+const comBira = txt => [...(Array.isArray(txt) ? txt : [txt]), ...(typeof Conversas !== 'undefined' ? Conversas.comentario('bira') : [])];
 // (15/10) LAVAR NO MEIO, PINTAR NO FIM: a mangueira e o rolo de pintura são do canteiro. O Bira entrega cada um na 1ª lista que
 // pede a tarefa (junto com a lista; num save antigo com a lista já pega, na próxima conversa). Uma vez só (G.obra.deu): guardou
 // no baú, continua lá. Mochila cheia: cai no chão, do lado do Jocelino.
-const FERRAMENTA_DA_TAREFA_OBRA = { lavar: 'mangueira', pintar: 'rolo' };
+// (C14) A colher também: o ofício está na lista do meio-oficial para cima (sem ela na mochila, o Bira dá uma).
+const FERRAMENTA_DA_TAREFA_OBRA = { lavar: 'mangueira', pintar: 'rolo', assentar: 'colher', rebocar: 'colher' };
 const FALA_FERRAMENTA_OBRA = {
   mangueira: 'Toma a mangueira do canteiro: hoje tem lavar o chão da obra. Jato no chão, que a poeira e a massa seca saem.',
   rolo: 'Chegou a hora da tinta! Toma o rolo de pintura, a lata já tá aberta. Passa na parede da obra, de baixo pra cima.',
+  colher: 'Cadê a sua colher? Toma uma do canteiro: assentar e rebocar é com ela, na obra.',
 };
-const faltaFerramentaDaObra = t => { const f = FERRAMENTA_DA_TAREFA_OBRA[t]; return !!f && !(G.obra.deu || {})[f] && G.mochila.total(f) <= 0; };
+// (C14) A 1ª lista de cada função nova: o Bira diz o que mudou no dia (uma vez; G.obra.listaFuncao). O mestre ouve quando fala com
+// ele (a lista do mestre chega de manhã, pela prancheta: equipe_obra.js).
+const FALA_LISTA_DA_FUNCAO = {
+  1: 'Meio-oficial já pega na colher: toda lista tem ofício agora, assentar ou rebocar, com a colher na obra. Do carregar, você faz menos.',
+  2: 'Pedreiro não carrega peso: tijolo, pedra e telha, a turma leva. O seu serviço é a colher: assentar e rebocar. E um servicinho leve, que ninguém é de ferro.',
+  3: n => `Mestre não carrega tijolo: confere. Passe em ${n} ${n === 1 ? 'peão' : 'peões'}, veja a frente de cada um (é só falar com ele no canteiro) e faça a parte fina com a colher. O carregar a turma faz sozinha.`,
+};
+function falaDaFuncaoNova(l) {
+  const o = G.obra; if (!l || (o.listaFuncao || 0) >= o.funcao || !FALA_LISTA_DA_FUNCAO[o.funcao]) return [];
+  // (C15) a frase do mestre fala de conferir: só com a lista que pede (o save de antes, sem conferir, ouve na próxima lista)
+  if (o.funcao >= 3 && !l.metas.conferir) return [];
+  o.listaFuncao = o.funcao; const f = FALA_LISTA_DA_FUNCAO[o.funcao];
+  return [typeof f === 'function' ? f(l.metas.conferir) : f];
+}
+// A ferramenta que a lista pede e o Jocelino não tem. A mangueira e o rolo: uma vez só (guardou no baú, continua lá). (C15) A colher
+// é a de todo dia de quem tem ofício: faltou na mochila (e não está no ferreiro), o Bira repõe.
+const faltaFerramentaDaObra = t => { const f = FERRAMENTA_DA_TAREFA_OBRA[t]; if (!f || G.mochila.total(f) > 0) return false;
+  if (f === 'colher') return G.obra.funcao >= 1 && !(G.ferreiro && G.ferreiro.oficina && G.ferreiro.oficina.id === 'colher');
+  return !(G.obra.deu || {})[f]; };
 function biraEntregaFerramentas(l) {
   const frases = [];
   for (const t in FERRAMENTA_DA_TAREFA_OBRA) {
@@ -40,48 +63,79 @@ function biraTemNovidade() {
   return !Obra.aberta(G.dia, G.minutos) && (!l || (Obra.completa() && !l.paga));
 }
 
+let _biraFalouDaFesta = 0;
+function falaDaFestaDoBira() {
+  if (typeof Conversas === 'undefined' || !Conversas.encomenda || typeof Encomendas === 'undefined' || _biraFalouDaFesta === G.dia) return [];
+  for (const fase of [true, 'depois', 'deixa']) {
+    const e = Conversas.encomenda('bira', fase), o = e && Encomendas.ocasiao('bira', e.ocasiao);
+    if (!o) continue;
+    _biraFalouDaFesta = G.dia;
+    if (fase !== true) return [fase === 'depois' ? o.depois : o.deixa];
+    const q = AvisoFesta.Quando(e);
+    return [o.convite, `${/noite/.test(q) ? q : q + ' à noite'}, eu e mais ${e.turma - 1}. A Rosa já sabe: ${AvisoFesta.prato(e)} pra todo mundo!`];
+  }
+  return [];
+}
 function conversarBira() {
   const o = G.obra;
+  // (C14, 16/10; o teste crítico: "o Bira dá a gratificação numa conversa e a lista na outra") UMA CONVERSA SÓ: a gratificação, a
+  // parte de ontem e a promoção vão juntando em `antes`, e a lista do dia sai na mesma fala (a última frase de `antes` e a lista
+  // na mesma página: "Etapa entregue! Toma a gratificação... A lista de hoje: ...").
+  const antes = [];
+  // (E4b das encomendas de festa) A festa do Bira na pensão: do aviso até a noite ele convida; no dia seguinte comenta (ou diz o
+  // "deixa"). A fala está na tabela dele (CONVERSAS.bira), mas a conversa do Bira é a da obra: entra aqui no começo, uma vez por dia.
+  // (rodada 1 da E4b) o convite vai à parte, na frente da fala que sair (não entra em `antes`: o `antes` cortava a conversa e pulava a
+  // diária, as pedras e o cimento da lista já pega)
+  const convite = falaDaFestaDoBira(), diz = (txt, depois) => falaBira(convite.length ? [...convite, ...(Array.isArray(txt) ? txt : [txt])] : txt, depois);
   // 1) Gratificação da etapa (ou da obra pronta).
   if (o.gratificacao) {
     const r = o.gratificacao; o.gratificacao = null;
     if (r.premio) { G.dinheiro += r.premio.dinheiro; G.ganhoHoje += r.premio.dinheiro; for (const id in r.premio.itens) { const resto = G.mochila.adicionar(id, r.premio.itens[id]); if (resto) soltar(id, resto, G.jog.x, G.jog.y); } hudSujo(); }
     const itens = r.premio ? Object.entries(r.premio.itens).map(([id, q]) => Itens.qtd(q, id)).join(', ') : '';
     sons.tocar('fanfarra', 1, 0, -6);
-    if (r.obraPronta) return falaBira([`${r.nomeObra} pronta! Festa da cumeeira, rapaz! Toma a gratificação: Cr$ ${r.premio.dinheiro}${itens ? ' e ' + itens : ''}.`,
-      Obra.obra().id === 'reformas' && o.funcao < 3 ? 'O Edifício Maré do Seu Moreira é serviço pra mestre de obras. Até lá, a gente toca as reformas pela Vila.' : `A próxima obra é ${Obra.obra().nome}. Começa do zero.`]);
-    return falaBira(`Etapa entregue! Toma a gratificação: Cr$ ${r.premio.dinheiro}${itens ? ' e ' + itens : ''}. Amanhã começa a etapa: ${Obra.obra().etapas[o.etapa].nome}. O serviço muda.`);
+    if (r.obraPronta) antes.push(`${r.nomeObra} pronta! Festa da cumeeira, rapaz! Toma a gratificação: Cr$ ${r.premio.dinheiro}${itens ? ' e ' + itens : ''}.`,
+      Obra.obra().id === 'reformas' && o.funcao < 3 ? 'O Edifício Maré do Seu Moreira é serviço pra mestre de obras. Até lá, a gente toca as reformas pela Vila.' : `A próxima obra é ${Obra.obra().nome}. Começa do zero.`);
+    else antes.push(`Etapa entregue! Toma a gratificação: Cr$ ${r.premio.dinheiro}${itens ? ' e ' + itens : ''}. Agora é a etapa ${Obra.obra().etapas[o.etapa].nome}: o serviço muda.`);
   }
   // 2) A parte de ontem (ou de hoje cedo).
-  if (o.aReceber > 0) { const v = o.aReceber; o.aReceber = 0; G.dinheiro += v; G.ganhoHoje += v; if (typeof lojinhaDepoisDaDiaria === 'function') lojinhaDepoisDaDiaria(); hudSujo(); sons.tocar('moedas', 1, 0.05, -6); return falaBira(v >= Obra.diaria() ? `A diária da lista completa, rapaz: Cr$ ${v}. Serviço inteiro, pagamento inteiro.` : `A parte que você fez: Cr$ ${v}. Serviço pela metade, pagamento pela metade.`); }
+  if (o.aReceber > 0) { const v = o.aReceber; o.aReceber = 0; G.dinheiro += v; G.ganhoHoje += v; if (typeof lojinhaDepoisDaDiaria === 'function') lojinhaDepoisDaDiaria(); hudSujo(); sons.tocar('moedas', 1, 0.05, -6); antes.push(v >= Obra.diaria() ? `A diária da lista completa, rapaz: Cr$ ${v}. Serviço inteiro, pagamento inteiro.` : `A parte que você fez: Cr$ ${v}. Serviço pela metade, pagamento pela metade.`); }
   // A promoção (meio-oficial e pedreiro: o Bira; mestre de obras: o Seu Moreira, no canteiro).
   if (Obra.podeSubir() && o.funcao < 2) {
-    if (o.funcao === 0 && !G.mochila.cabe('colher')) return falaBira('Rapaz, tenho novidade pra você. Mas abre um espaço na mochila primeiro!');
+    if (o.funcao === 0 && !G.mochila.cabe('colher')) return diz([...antes, 'Rapaz, tenho novidade pra você. Mas abre um espaço na mochila primeiro!']);
     const f = Obra.subir(); sons.tocar('fanfarra', 1, 0, -4);
-    if (f === 1) { G.mochila.adicionar('colher', 1); hudSujo(); return falaBira(['Rapaz, você é bom de serviço. A partir de hoje é meio-oficial! A diária sobe para Cr$ ' + DIARIAS[1] + '.', 'Toma a minha colher velha: agora você assenta tijolo e chapisca. E já pode pegar empreita maior no quadro da Vila.']); }
-    return falaBira(['Pedreiro! Levantou parede, rebocou, entregou obra. A diária agora é Cr$ ' + DIARIAS[2] + '.', 'Empreita boa no quadro agora é com você: baldrame, quiosque, ponte. Capricha que o povo paga mais.']);
+    if (f === 1) { G.mochila.adicionar('colher', 1); hudSujo(); antes.push('Rapaz, você é bom de serviço. A partir de hoje é meio-oficial! A diária sobe para Cr$ ' + DIARIAS[1] + '.', 'Toma a minha colher velha: agora você assenta tijolo e chapisca. E já pode pegar empreita maior no quadro da Vila.'); }
+    else antes.push('Pedreiro! Levantou parede, rebocou, entregou obra. A diária agora é Cr$ ' + DIARIAS[2] + '.', 'Empreita boa no quadro agora é com você: baldrame, quiosque, ponte. Capricha que o povo paga mais.');
   }
-  // 3) Horário, domingo e chuva.
+  // 3) Horário, domingo e chuva (com o que já tinha a dizer, só isso: a lista fica para o dia de obra).
   const fechada = Obra.aberta(G.dia, G.minutos);
-  if (fechada === 'domingo') return falaBira('Domingo é dia de descanso, rapaz. Vai cuidar das suas coisas.');
-  if (fechada === 'chuva') return falaBira('Com essa chuva não dá pra trabalhar. Hoje a obra fica fechada.');
-  if (fechada === 'cedo') return falaBira('Ainda tá escuro, rapaz. Assim que o sol sair a gente começa.');
-  if (fechada === 'tarde') return falaBira('Por hoje a obra parou, rapaz: às cinco a turma vai embora. Amanhã tem mais, a hora que você chegar.');
+  if (fechada && antes.length) return diz(antes);
+  if (fechada === 'domingo') return diz(comBira('Domingo é dia de descanso, rapaz. Vai cuidar das suas coisas.'));
+  if (fechada === 'chuva') return diz(comBira('Com essa chuva não dá pra trabalhar. Hoje a obra fica fechada.'));
+  if (fechada === 'cedo') return diz('Ainda tá escuro, rapaz. Assim que o sol sair a gente começa.');
+  if (fechada === 'tarde') return diz(comBira('Por hoje a obra parou, rapaz: às cinco a turma vai embora. Amanhã tem mais, a hora que você chegar.'));
   let l = listaDeHoje();
+  // A última frase de antes e a lista na mesma página.
+  const comLista = (sozinha, junto) => antes.length ? [...antes.slice(0, -1), `${antes[antes.length - 1]}\n${junto}`] : [sozinha];
   // 4) A lista do dia.
   if (!l) {
     // (13/10) O primeiro encontro é a contratação: o Tio Juca disse que o Bira paga servente por dia; aqui ele confirma e diz o porquê.
     const contratacao = o.primeira;
     l = o.lista = Object.assign({ dia: G.dia, feito: {}, paga: false }, Obra.sortear(G.dia));
+    // (C15) a lista do mestre que sai do Bira (o dia da promoção, o save carregado depois da manhã): a turma começa o dia agora
+    if (o.funcao >= 3 && typeof turmaComecaODia === 'function') turmaComecaODia(false);
     if (G.mapa && G.mapa.id === 'vila') poeEntulhoDaObra(G.mapa);   // (quebrou entulho antes da lista? o canteiro completa o que ela pede)
     sons.tocar('pagina', 1, 0.05, -6);
-    const fala = [`Bom dia, ${FUNCOES[o.funcao].toLowerCase()}! Hoje na ${Obra.obra().nome} (${Obra.obra().etapas[o.etapa].nome}):\n${textoLista(l)}`, ...biraEntregaFerramentas(l), 'Terminou, volta aqui que eu acerto a diária.'];
+    const onde = `${Obra.obra().nome} (${Obra.obra().etapas[o.etapa].nome}):\n${textoLista(l)}`;
+    const fala = [...comLista(`Bom dia, ${FUNCOES[o.funcao].toLowerCase()}! Hoje na ${onde}`, `A lista de hoje na ${onde}`),
+      ...falaDaFuncaoNova(l), ...biraEntregaFerramentas(l), 'Terminou, volta aqui que eu acerto a diária.'];
     if (contratacao) fala.unshift(`Então você é o sobrinho do Juca! Ele me falou de você. Servente eu preciso, sim: Cr$ ${Obra.diaria()} por dia, pago quando a lista do dia fica pronta.`,
       'A obra é de sol a sol, até as cinco: chegou, trabalhou. Quem aprende o ofício aqui vira meio-oficial, e meio-oficial já levanta a casa da família.');
-    return falaBira(fala);
+    return diz(fala);
   }
+  // A lista já pega (a do mestre chega de manhã): o que ainda falta dela, na mesma fala.
+  if (antes.length) return diz(l.paga || l.fechado ? antes : [...comLista('', `A lista de hoje:\n${textoLista(l)}`), ...falaDaFuncaoNova(l), ...biraEntregaFerramentas(l)].filter(Boolean));
   // A mangueira ou o rolo que a lista pede e o Jocelino ainda não ganhou (o save de antes da troca do regador).
-  { const fr = biraEntregaFerramentas(l); if (fr.length) return falaBira(fr); }
+  { const fr = biraEntregaFerramentas(l); if (fr.length) return diz(fr); }
   // Imprevisto: o cimento comprado no Ananias.
   if (l.metas.buscar_cimento && (l.feito.buscar_cimento || 0) < l.metas.buscar_cimento && G.mochila.total('cimento') > 0) {
     const n = Math.min(G.mochila.total('cimento'), l.metas.buscar_cimento - (l.feito.buscar_cimento || 0));
@@ -89,23 +143,23 @@ function conversarBira() {
   }
   // As pedras trazidas na mochila: o Bira recebe também (o passo diz "traga e fale comigo"; teste de 13/10: "não falava onde").
   { const e = entregarPedrasDaMochila();
-    if (e && !Obra.completa()) return falaBira(`Boa, ${Itens.qtd(e.n, 'pedra')} pro alicerce! Faltam ${l.metas[e.t] - l.feito[e.t]}${e.t === 'buscar_pedra' ? (G.lugares && G.lugares.pedreira ? ': as do quintal ou da pedreira, na picareta' : ': as do quintal, na picareta') : ': o resto tem no monte do canteiro'}.`); }
+    if (e && !Obra.completa()) return diz(`Boa, ${Itens.qtd(e.n, 'pedra')} pro alicerce! Faltam ${l.metas[e.t] - l.feito[e.t]}${e.t === 'buscar_pedra' ? (G.lugares && G.lugares.pedreira ? ': as do quintal ou da pedreira, na picareta' : ': as do quintal, na picareta') : ': o resto tem no monte do canteiro'}.`); }
   // 5) Lista completa: a diária e o extra.
   if (Obra.completa() && !l.paga) {
     const v = Obra.pagar(); G.dinheiro += v; G.ganhoHoje += v; if (typeof lojinhaDepoisDaDiaria === 'function') lojinhaDepoisDaDiaria(); hudSujo(); sons.tocar('moedas', 1, 0.05, -4);
-    if (o.funcao <= 1 && !l.extra) return falaBira(`Lista completa! A diária: Cr$ ${v}.`, () => perguntar(`Mestre Bira: "Quer um extra hoje? Pago Cr$ ${valorExtra()}."`, ['Quero', 'Hoje não'], i => {
+    if (o.funcao <= 1 && !l.extra) return diz(`Lista completa! A diária: Cr$ ${v}.`, () => perguntar(`Mestre Bira: "Quer um extra hoje? Pago Cr$ ${valorExtra()}."`, ['Quero', 'Hoje não'], i => {
       if (i !== 0) return;
       const ids = Object.keys(EXTRAS_OBRA).filter(id => Obra.obra().etapas[o.etapa].tarefas.includes(id));
       const id = ids[G.dia % ids.length] || 'tijolos';
       l.extra = true; l.paga = false; l.metas[id] = (l.metas[id] || 0) + EXTRAS_OBRA[id]; l.valorExtra = valorExtra();
       avisar(`Extra: ${nomeTarefa(id)} mais ${EXTRAS_OBRA[id]}.`);
     }));
-    return falaBira(`Lista completa! ${l.extra ? 'O extra' : 'A diária'}: Cr$ ${v}. Bom serviço.`);
+    return diz(comBira(`Lista completa! ${l.extra ? 'O extra' : 'A diária'}: Cr$ ${v}. Bom serviço.`));
   }
-  if (l.paga) return falaBira('Por hoje tá pago, rapaz. Amanhã tem mais.');
+  if (l.paga) return diz(comBira('Por hoje tá pago, rapaz. Amanhã tem mais.'));
   // 6) O que falta.
-  if (o.funcao >= 3) return falaBira(`Mestre, a turma tá esperando as ordens na prancheta. Falta:\n${textoLista(l)}`);
-  return falaBira(`Ainda falta:\n${textoLista(l)}`);
+  if (o.funcao >= 3) return diz([`Mestre, o carregar a turma toca pela prancheta. Da sua lista, falta:\n${textoLista(l)}`, ...falaDaFuncaoNova(l)]);
+  return diz(`Ainda falta:\n${textoLista(l)}`);
 }
 // O extra paga OBRA_EXTRA (o dobro com Fama), sem a diária de novo.
 const valorExtra = () => OBRA_EXTRA * (typeof Habilidades !== 'undefined' && Habilidades.tem('fama') ? 2 : 1);
@@ -185,7 +239,7 @@ function propostaDeMestre() {
       if (i !== 0) { avisar('O Seu Moreira volta amanhã para perguntar de novo.'); return; }
       Obra.subir(); G.obra.indice = 3; G.obra.etapa = 0; G.obra.diasEtapa = 0; G.obra.lista = null;
       if (typeof EquipeObra !== 'undefined') EquipeObra.iniciar({});
-      sons.tocar('fanfarra', 1, 0, -2); avisar(`Mestre de obras! A diária agora é Cr$ ${DIARIAS[3]}. A turma espera as ordens na prancheta.`);
+      sons.tocar('fanfarra', 1, 0, -2); avisar(`Mestre de obras! A diária agora é Cr$ ${DIARIAS[3]}. Mestre não carrega: confere a frente da turma e faz a parte fina.`);
       if (MAPAS.vila) { poeObraNoMapa(MAPAS.vila); poeEntulhoDaObra(MAPAS.vila); }   // (o canteiro vai para o prédio)
     }));
   return true;
@@ -203,7 +257,8 @@ function acaoNaObra(o) {
     const r = Obra.trabalho(t, c.qtd);
     if (r === 'sem_lista') { avisar('Primeiro pegue a lista com o Mestre Bira.'); return true; }
     if (r === 'nao_pede') { avisar('Hoje a lista não pede isso.'); return true; }
-    largarCarga(); sons.tocar('pousar', 1, 0.05, -4); avisar(r === 'completa' ? 'Lista completa! Fale com o Mestre Bira.' : `Feito: ${nomeTarefa(t)}.`); return true;
+    largarCarga(); sons.tocar('pousar', 1, 0.05, -4); if (r === 'turma') { ajudouATurma(t); return true; }
+    avisar(r === 'completa' ? 'Lista completa! Fale com o Mestre Bira.' : `Feito: ${nomeTarefa(t)}.`); return true;
   }
   // Pedras trazidas na mochila (as do quintal, na picareta; depois também da pedreira).
   const e = entregarPedrasDaMochila();
@@ -271,8 +326,15 @@ function ferramentaNaObra(o, id) {
   const r = Obra.trabalho(t, n);
   if (r === 'nao_pede') avisar('Hoje a lista não pede isso.');
   else if (r === 'completa') avisar('Lista completa! Fale com o Mestre Bira.');
+  else if (r === 'turma') ajudouATurma(t);
 }
-const faltaNaLista = id => { const l = listaDeHoje(); return !!(l && l.metas[id] && (l.feito[id] || 0) < l.metas[id]); };
+// (C15, rodada 1) Para o mestre, a tarefa da turma que falta também vale: ele pode ajudar com as mãos (Obra.trabalho → 'turma').
+const faltaNaLista = id => { const l = listaDeHoje(); return !!(l && ((l.metas[id] && (l.feito[id] || 0) < l.metas[id]) || Obra.turmaPede(id, l))); };
+// O aviso do serviço do mestre numa frente da turma (não conta na lista dele).
+function ajudouATurma(id) {
+  const T = Obra.turmaDe(), nome = typeof nomeDaFrente === 'function' ? nomeDaFrente(id) : nomeTarefa(id);
+  avisar(`Você ajudou a turma: ${nome.toLowerCase()} ${Math.floor(T.feito[id] || 0)}/${T.metas[id]} (não conta na sua lista).`);
+}
 // Clicar no monte, nas ripas ou na masseira com o material do canteiro nos braços devolve.
 function devolveuCarga() {
   const c = G.jog.carga || {};
@@ -306,6 +368,7 @@ function peneirar() {
   const r = Obra.trabalho('areia', 1);
   if (r === 'sem_lista') { avisar('Primeiro pegue a lista com o Mestre Bira.'); return; }
   if (r === 'nao_pede') { avisar('Hoje a lista não pede areia.'); return; }
+  if (r === 'turma') ajudouATurma('areia');
   const pn = G.mapa && G.mapa.objs.find(x => x.id === 'peneira');   // (a peneira do canteiro da vez)
   sons.tocar('terra', 1.2, 0.08, -6); if (pn) lascas(pn.x, pn.y - TILE, 'terra');
   if (r === 'completa') avisar('Lista completa! Fale com o Mestre Bira.');
@@ -316,7 +379,36 @@ function conversarZe(p) {
     const r = Obra.trabalho('massa', 1);
     if (r !== 'nao_pede' && r !== 'sem_lista') { largarCarga(); sons.tocar('pousar', 0.9, 0.05, -4); avisar(r === 'completa' ? 'Zé: "Valeu! Massa no ponto. Lista completa, fala com o Bira."' : 'Zé: "Isso! Massa boa é igual feijão: nem mole, nem dura."'); return true; }   // (15/10, o jogador: sem a janela de conversa a cada massa; só o aviso no canto)
   }
+  // (C15) o mestre com comida na mão: o Zé come (o conferir fica para o clique seguinte)
+  if (typeof ehMestre === 'function' && ehMestre() && typeof alimentarPeao === 'function' && alimentarPeao('ze')) return true;
+  if (conferirPeao('ze')) return true;   // (C14) o Zé também é da turma do mestre
   return Conversas.abrir(p || 'ze', { nome: 'Zé' });   // (T2 das conversas) a fala do dia, pelo motor de falas
+}
+// (C14, 16/10) CONFERIR: o mestre fala com o peão no canteiro e vê a frente dele (a tarefa da turma e quanto já foi). Conta 1 na
+// lista do mestre por peão por dia (Obra.conferir) e vale a conversa do dia (+1 de humor). false = não era hora de conferir.
+// (C15) CONFERIR VIRA UMA DECISÃO PEQUENA (e não um item de checklist): o peão diz a frente e conta uma coisa do dia dele (o material
+// no fim, uma frente sem ninguém, o cansaço, uma ideia: EquipeObra.assunto) e o mestre responde com uma escolha de duas, que muda uma
+// coisa pequena no dia da turma (EquipeObra.responder): como o Dave escala os ajudantes do Bancho. A volta do peão sai no aviso do
+// canto (sem outra janela). Na 1ª conferida do jogo, a pergunta diz que a resposta muda o dia da turma (a 1ª vez com guia).
+function conferirPeao(id) {
+  if (typeof EquipeObra === 'undefined' || !G.equipeObra || !Obra.conferir(id)) return false;
+  const p = PEOES.find(x => x.id === id), l = G.obra.lista, T = Obra.turmaDe(l);
+  if (G.equipeObra.dia === G.dia) EquipeObra.garantirFrentes(T.metas);
+  const t = G.equipeObra.frente[id], h = EquipeObra.conversar(id);
+  const frente = TAREFAS_OBRA[t] ? `${nomeDaFrente(t).toLowerCase()}${T.metas[t] ? `, ${Math.min(T.metas[t], Math.floor(T.feito[t] || 0))}/${T.metas[t]}` : ''}` : 'sem frente hoje';
+  const jeito = h >= 8 ? 'Tá rendendo, mestre!' : h >= 5 ? 'Tô firme, mestre.' : h >= 3 ? 'Tá puxado, mestre... um café cairia bem.' : 'Não tô bem não, mestre.';
+  const conta = `(Conferido: ${l.feito.conferir || 0}/${l.metas.conferir}${Obra.completa() ? '. Lista completa: fale com o Mestre Bira' : ''}.)`;
+  sons.tocar('pagina', 1, 0.05, -6); hudSujo();
+  const nome = p ? p.nome : id, retrato = urlArte('retratos/' + id + '_normal');
+  // Sem a turma do mestre (o save de antes): só a frente, como na C14.
+  if (!l.turma || G.equipeObra.dia !== G.dia) { abrirConversa(nome, retrato, [`${jeito} A minha frente: ${frente}.\n${conta}`]); return true; }
+  const a = EquipeObra.assunto(id, T, (l.feito.conferir || 0) >= (l.metas.conferir || 0)), fa = EquipeObra.falaDoAssunto(id, a), m = /^@\w+ /.exec(fa.texto), emo = m ? m[0] : '';
+  const dica = G.limpou && !G.limpou.conferir_escolha ? '\n(O que você responder muda o dia da turma.)' : '';
+  if (G.limpou) G.limpou.conferir_escolha = (G.limpou.conferir_escolha || 0) + 1;
+  perguntarCom(nome, retrato, `${emo}A minha frente: ${frente}. ${fa.texto.slice(emo.length)}\n${conta}${dica}`, fa.opcoes, i => {
+    avisar(EquipeObra.responder(id, a, i)); hudSujo(); sons.tocar('pagina', 1.1, 0.05, -8);
+  });
+  return true;
 }
 // O entulho e o mato do canteiro da vez renascem toda manhã, na conta da lista do dia: a de hoje (o que ainda falta) ou a que o
 // Bira vai dar (o sorteio é fixo pelo dia), mais 2 de folga; o que a lista não pede fica em 2, de enfeite. (tarefa 7, o robô
@@ -442,8 +534,21 @@ ATUALIZADORES.push(() => {
 NOITE.push(linhas => {
   const l = listaDeHoje(); if (!l) return;
   if (!l.paga && !l.fechado) Obra.fecharDia();
+  // (C15) A turma do mestre termina o dia dela (as horas que faltam até as 17h) e o resumo diz quanto ela fez; a lista toda feita
+  // é o dia redondo, que vale um dia e meio na etapa (só se o mestre fez a parte dele: o dia contou).
+  let redonda = false;
+  if (l.turma && G.obra.funcao >= 3) {
+    if (typeof turmaTrabalhaAte === 'function') turmaTrabalhaAte(24, true);
+    const tf = Obra.turmaFeita(l); redonda = tf.feitas === tf.total && tf.total > 0;
+    // (C16) o dia redondo do mestre: Cr$ 20 a mais (ECO.obra.mestreRedondo) só quando a turma fecha a lista dela e o mestre fez a parte
+    // dele (como no E7: "mais Cr$ 20 quando a lista fecha redonda"); antes saía em toda diária do mestre.
+    const mr = ECO.obra.mestreRedondo;
+    if (redonda && l.contou && mr && !l.pagouRedondo) { l.pagouRedondo = true; G.dinheiro += mr; G.ganhoHoje = (G.ganhoHoje || 0) + mr; }
+    const I = G.equipeObra && G.equipeObra.hoje && G.equipeObra.hoje.ideia, ideia = I && I.errada ? ` A ideia do ${PEOES.find(p => p.id === I.id).nome} não deu certo.` : '';   // (C15, rodada 1)
+    linhas.push(`A turma fez ${tf.feitas} de ${tf.total} da lista dela${redonda ? (l.contou ? `: dia redondo, a obra andou um dia e meio e o Bira acertou Cr$ ${mr} a mais.` : ', mas sem a sua parte de mestre o dia não contou na obra.') : ` (com tudo feito, o dia é redondo: a obra anda um dia e meio e o Bira paga Cr$ ${mr} a mais).`}${ideia}`);
+  }
   if (!l.contou) return;
-  const nome = Obra.obra().nome, r = Obra.avancar();
+  const nome = Obra.obra().nome, r = Obra.avancar(redonda);
   if (r.etapaNova) { G.obra.gratificacao = Object.assign({ nomeObra: nome }, r); linhas.push(r.obraPronta ? `${nome} ficou pronta! O Mestre Bira quer falar com você.` : `A obra avançou: começa a etapa ${Obra.obra().etapas[G.obra.etapa].nome}.`); }
   if (MAPAS.vila) poeObraNoMapa(MAPAS.vila);
 });

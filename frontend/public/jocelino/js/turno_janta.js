@@ -9,6 +9,8 @@
 // (anotar/montar e o preparo por banqueta ficam para o salão antigo e os testes velhos: modo 'antigo'.)
 // (o cardápio do Bancho, 13/10) No balcão só sai o que o jogador montou no cardápio da noite (Pensao.montarNoite): a Rosa repõe
 // o prato com "repõe" ligado; acabou tudo, o prato da casa; a sobra vai para o lixo no fechar.
+// (E4a das encomendas de festa, 17/10) A festa de um morador: a ponta do balcão reservada, a turma que entra junta e pede o prato da
+// panela reservada, a paciência maior sem ninguém ir embora e a conta da turma no fim (festaDaTurma e o bloco depois do _chegadas).
 
 class TurnoJanta {
   // (14/10, Tarefa A) Os números da janta moram no ECO (ECO.pensao.janta): lidos na hora, para o balanço mexer num lugar só.
@@ -78,10 +80,11 @@ class TurnoJanta {
   // O que a noite conta para a fama (estrelas → curtidas, pitadas) e para a experiência da Rosa: sem o prato da casa.
   static paraFama(r) { return { estrelas: Math.max(0, r.estrelas - (r.estrelasCasa || 0)), servidos: Math.max(0, r.servidos - (r.casa || 0)) }; }
 
-  constructor() { this.pensao = null; this.mesas = []; this.relatorio = TurnoJanta.relatorioVazio(); this.eventos = []; this._fila = []; this._rng = null; this.farinha = TurnoJanta.FARINHA_MAX; this._prontos = []; this._avisouFarinha = false; this.passe = []; this.bandeja = []; this.fogo = []; this.fatorPreparo = 1; this.bocas = TurnoJanta.BOCAS; this.gorjetaExtra = 0; this.paciencia = 1; this.moedas = []; }
+  constructor() { this.pensao = null; this.mesas = []; this.relatorio = TurnoJanta.relatorioVazio(); this.eventos = []; this._fila = []; this._rng = null; this.farinha = TurnoJanta.FARINHA_MAX; this._prontos = []; this._avisouFarinha = false; this.passe = []; this.bandeja = []; this.fogo = []; this.fatorPreparo = 1; this.bocas = TurnoJanta.BOCAS; this.gorjetaExtra = 0; this.paciencia = 1; this.moedas = []; this._turma = []; this.encomenda = null; this.reserva = null; }
 
   iniciar(p, dia, quantos) {
-    this.pensao = p;
+    this.pensao = p; this.dia = dia;
+    this._turma = []; this.encomenda = null; this.reserva = null;   // (E4a) a festa encomendada entra depois: festaDaTurma
     const f = mulberry(dia * 31337);
     this._rng = { randf: f, randi: () => Math.floor(f() * 4294967296) };
     this.mesas = [];
@@ -111,8 +114,9 @@ class TurnoJanta {
   static salao() { return (typeof ECO !== 'undefined' && ECO.pensao && ECO.pensao.salao) || { chegada: [4, 10], folgaBanco: 3, avulsos: 0.5, bebidaAjudante: 3 }; }
   // (14/10, Tarefa E1) Os números do jeito do cliente (ECO.pensao.jeitos); quem não tem jeito (o morador, o VIP, o Paladar) é o comum.
   static jeito(c) { const J = (typeof ECO !== 'undefined' && ECO.pensao && ECO.pensao.jeitos) || {}; return (c && c.jeito && J[c.jeito]) || { paciencia: 1, gorjeta: 1 }; }
-  // A paciência desta banqueta: a da noite (o ventilador, o rádio) vezes a do jeito do cliente.
-  pacienciaDe(m) { return (this.paciencia || 1) * (TurnoJanta.jeito(m && m.cliente).paciencia || 1); }
+  // A paciência desta banqueta: a da noite (o ventilador, o rádio) vezes a do jeito do cliente; a turma da festa espera junta (× 1,5).
+  pacienciaDe(m) { return (this.paciencia || 1) * (TurnoJanta.jeito(m && m.cliente).paciencia || 1) * (m && m.cliente && m.cliente.turma ? TurnoJanta.pacienciaTurma() : 1); }
+  static pacienciaTurma() { return (typeof ECO !== 'undefined' && ECO.encomendas && ECO.encomendas.paciencia) || 1; }
   // A gorjeta das estrelas com o jeito do cliente: o exigente só dá com estrelasGorjeta ou mais; o generoso dá mais; o apressado
   // servido rápido (a espera até o prato em até `rapido` da paciência dele) dá a gorjetaRapido.
   gorjetaDoJeito(m, preco, est) {
@@ -133,13 +137,14 @@ class TurnoJanta {
     // O Zezinho, lá pelas tantas, belisca uma cocada da panela (uma vez por noite).
     if (this.filho === 'zezinho' && !this._roubou && (this._zz = (this._zz || 0) + dt) > 30 && this.pensao.porcoes && this.pensao.porcoes('cocada_tijolinho') > 0) this.zezinhoApronta();
     if (!this._ultima && minutos >= TurnoJanta.ULTIMA_RODADA && minutos < TurnoJanta.FECHA_MAX) { this._ultima = true; this.eventos.push({ tipo: 'ultima_rodada' }); }
+    if (this.encomenda) this._turmaTick(dt, minutos);   // (E4a) a ponta reservada e a turma entrando, antes dos fregueses comuns
     if (this.rotatividade) this._chegadas(dt, minutos);
     else while (this._fila.length && minutos >= this._fila[0].minuto && minutos < TurnoJanta.FECHA_MAX) {
       let i = this.mesas.findIndex(m => m.estado === 'livre');
-      if (i < 0) i = this.mesas.findIndex(m => m.estado === 'suja');   // sem livre: senta ao lado da louça (o Dave)
+      if (i < 0) i = this.mesas.findIndex((m, k) => m.estado === 'suja' && !this._daTurma(k));   // sem livre: senta ao lado da louça (o Dave)
       if (i < 0) break;
       const comLouca = this.mesas[i].estado === 'suja';
-      this._sentar(i, this._fila.shift().cliente);
+      this._sentar(i, this._semDobro(this._fila.shift().cliente));
       if (comLouca) { const m = this.mesas[i]; m.louca = true; m.lendo = TurnoJanta.LENDO_LOUCA; this.eventos.push({ tipo: 'louca', mesa: i, cliente: m.cliente }, { tipo: 'reacao', mesa: i, reacao: 'nojo' }); }
     }
     this._cozinhar(dt);
@@ -169,7 +174,10 @@ class TurnoJanta {
           } else if (!this._avisouFarinha) { this._avisouFarinha = true; this.eventos.push({ tipo: 'farinha' }); }
         }
         const limite = (m.estado === 'pedido' ? TurnoJanta.PACIENCIA_PEDIDO : TurnoJanta.PACIENCIA_PRATO) * this.pacienciaDe(m);   // (Tarefa E1) com o jeito
-        if (m.espera >= limite) {
+        // (E4a, decisão do dono) a turma da festa não vai embora brava: esperou demais, cansa (uma estrela a menos) e continua
+        if (m.espera >= limite && m.cliente.turma) {
+          if (!m.cansou) { m.cansou = true; m.rapido = false; this.eventos.push({ tipo: 'turma_cansou', mesa: i, cliente: m.cliente }); }
+        } else if (m.espera >= limite) {
           this.relatorio.embora++;
           if (m.estado === 'prato') this.relatorio.perdida += this._precoPerdido(m);   // foi embora esperando o prato: a receita perdida
           if (m.cliente.mania === 'paladar') this.relatorio.paladar = 1;
@@ -243,16 +251,147 @@ class TurnoJanta {
     if (!this._fila.length || minutos < this._fila[0].minuto || minutos >= TurnoJanta.FECHA_MAX) return;
     const descansou = i => this._vagouEm[i] == null || this._t - this._vagouEm[i] >= S.folgaBanco;
     const escolhe = estado => {
-      let c = this.mesas.map((m, i) => i).filter(i => this.mesas[i].estado === estado && descansou(i));
+      let c = this.mesas.map((m, i) => i).filter(i => this.mesas[i].estado === estado && descansou(i) && !this._daTurma(i));   // (E4a) a ponta reservada é da turma
       if (c.length > 1) c = c.filter(i => i !== this._ultimoVago);
       return c.length ? c[Math.floor(ra() * c.length)] : -1;
     };
     let i = escolhe('livre');
     if (i < 0) i = escolhe('suja');   // salão cheio: senta do lado da louça (o Dave)
     if (i < 0) return;
-    this._entrar(i, this._fila.shift().cliente);
+    this._entrar(i, this._semDobro(this._fila.shift().cliente));
     this._ocupada[i] = true;
     this._chegadaT = S.chegada[0] + ra() * (S.chegada[1] - S.chegada[0]);
+  }
+
+  // ---------- (E4a das encomendas de festa; spec docs/superpowers/specs/2026-10-16-encomendas-festa-design.md, 3.4 a 3.6) ----------
+  // A festa de um morador na pensão (como a Party Night do Dave, mas de alguém que o jogador conhece): a turma dele janta junta na
+  // ponta do balcão. Quem monta a noite (E4b, pensao_tela.js), depois do iniciar: tira da despensa as porções da reserva
+  // (Encomendas.reservar e p.consumir) e chama t.festaDaTurma(e, { porcoes, raridade }).
+  // - A ponta: as k banquetas de x menor (perto da porta), k = Encomendas.pontaDaTurma (sobram sempre 2 para os fregueses comuns).
+  //   Das 17h45 (ECO.encomendas.reservaDesde) a banqueta da ponta que vagar fica 'reservada' (um estado novo de t.mesas[i]): o
+  //   freguês comum não senta nela (nem do lado da louça dela); quem já estava sentado termina e sai normalmente. As banquetas da
+  //   ponta voltam a ser comuns quando o último da turma sai.
+  // - A chegada: às 18h (chegada) a turma inteira está na porta, na frente da fila dos comuns (this._turma, à parte): o anfitrião
+  //   primeiro, os convidados atrás; cada um entra TURMA_INTERVALO s depois do outro, na primeira banqueta reservada da ponta (o
+  //   anfitrião na da ponta). Quem não coube espera na porta e entra quando uma banqueta da ponta vagar.
+  // - A panela reservada (t.reserva, fora da panela do cardápio: os fregueses comuns nem a veem): cada um da turma pede o prato da
+  //   festa e a porção sai da reserva (com a raridade dela); acabou a reserva (a turma pela metade), quem ficou sem pede do cardápio
+  //   da noite (ou o prato da casa), pelo preço normal. O prato da reserva paga × ECO.encomendas.fator (m.encomenda).
+  // - A paciência da turma é × ECO.encomendas.paciencia e ninguém da turma vai embora: esperou além dela, "cansou" (−1 estrela).
+  // - O bem servido (3 estrelas ou mais) e a conta da turma (Encomendas.contaDaTurma), quando o último da turma paga (ou no fechar):
+  //   r.encomenda = { quem, nome, ocasiao, prato, turma, vieram, pagos, bem, todos, conta, reservadas, daReserva, sobrou }. O turno
+  //   NÃO põe a conta no dinheiro, nos prêmios nem as curtidas: quem fecha a noite (E4b) chama Encomendas.fechar(p, e, { bem }) e
+  //   lança o que ele devolve em r.premios, no bolso e em r.curtidas (o encerrarJanta zera r.premios depois do fechar do turno).
+  // Eventos: 'turma_reserva' (17h45), 'turma_chegou' (cada um que entra), 'turma_cansou', 'festa_turma' (o anfitrião recebeu o
+  // prato: o momento da festa) e 'conta_turma' ({ valor, bem, turma, quem, nome }).
+  static TURMA_INTERVALO = 0.6;
+  // O x da banqueta i (a ponta são as de x menor). Aqui, o próprio índice; o palco troca pelo x do PALCO.ASSENTOS.
+  xDaBanqueta(i) { return i; }
+  // A banqueta i é da turma agora (a ponta, das 17h45 até o último da turma sair)?
+  _daTurma(i) { const e = this.encomenda; return !!e && e.reservou && !e.saiu && e.ponta.includes(i); }
+  // A turma ainda na porta, esperando banqueta (o robô limpa a louça da ponta).
+  turmaNaPorta() { return !!this.encomenda && this.encomenda.reservou && this._turma.length > 0; }
+  // Liga a festa da noite. e: a encomenda da agenda ({ quem, ocasiao, prato, turma }); reserva: as porções separadas ({ porcoes,
+  // raridade }, as que a despensa deu); convidados: a turma pronta (os testes), senão sorteada aqui.
+  festaDaTurma(e, reserva = null, convidados = null) {
+    if (!e || !e.turma) return null;
+    const E = ECO.encomendas, n = this.mesas.length, k = Encomendas.pontaDaTurma(n, e.turma);
+    const ponta = Encomendas.assentosDaPonta(this.mesas.map((m, i) => this.xDaBanqueta(i)), k);
+    this.encomenda = { quem: e.quem, nome: Encomendas.nome(e.quem), ocasiao: e.ocasiao, prato: e.prato, turma: e.turma, enfeite: Encomendas.enfeite(e),
+      ponta, reservaDesde: E.reservaDesde, chegada: E.chegada, reservou: false, saiu: false, vieram: 0, pagos: 0, bem: 0, daReserva: 0, conta: null, momento: false };
+    this.reserva = { prato: e.prato, porcoes: Math.max(0, (reserva && reserva.porcoes) | 0), raridade: (reserva && reserva.raridade) || 1 };
+    this.encomenda.reservadas = this.reserva.porcoes;
+    const turma = (convidados || this._sorteiaTurma(e)).slice(0, e.turma).map(c => Object.assign({}, c, { turma: true }));
+    turma[0] && (turma[0].anfitriao = true);
+    this._turma = turma; this._turmaT = 0; this.encomenda.total = turma.length;   // (total: quem veio de fato, se faltar gente para sortear)
+    // a folha de andar de cada um e a arte da ponta já começam a baixar (ninguém entra sem a arte dele)
+    if (typeof precarregarArtes === 'function') precarregarArtes(turma.map(c => `personagens/${c.id}/andar`).concat([this.encomenda.enfeite, 'salao/toalha_festa_4', 'salao/toalha_festa_2', 'salao/bolo_festa', 'ui/madeira/plaquinha_nome', 'fx/nota_musical']));
+    return this.encomenda;
+  }
+  // O anfitrião e os convidados (dos fregueses com boneco: Pratos.CLIENTES e CLIENTES_AVULSOS), sem repetir quem já está no salão
+  // (spec 3.4), nem o anfitrião, nem o anfitrião de outra festa marcada. Os convidados vêm sem a mania e sem o jeito (são a turma de
+  // alguém, não fregueses avulsos).
+  // (E8) Antes o sorteio tirava também todo mundo da fila da noite; com só 18 bonecos, da 3ª estrela em diante a turma vinha com 3
+  // (e as porções reservadas dos que "faltaram" iam para o lixo). Agora quem vem na noite só fica para o fim da fila do sorteio, e
+  // o _semDobro troca na porta quem entraria em dobro no salão (o freguês comum igual a um da turma sentado, ou o contrário).
+  _sorteiaTurma(e) {
+    const f = mulberry((this.dia || 1) * 104729 + 7), ja = this._foraDaTurma(e);
+    for (const m of this.mesas) if (m.estado !== 'livre' && m.cliente && m.cliente.id) ja.add(m.cliente.id);
+    // quem vem na noite do jeito dele (o morador da semana, o convidado, o VIP, o Paladar) não vira convidado; o freguês comum da
+    // fila pode, se faltar gente (o _semDobro troca ele na porta)
+    const naNoite = new Set(this._fila.map(x => x.cliente.id));
+    for (const x of this._fila) if (!TurnoJanta._comum(x.cliente)) ja.add(x.cliente.id);
+    if (typeof Clientela !== 'undefined' && this.pensao) for (const c of Clientela.daNoite(this.pensao, this.dia || 1)) ja.add(c.id);
+    // (revisão da E4a, na E4b) os avulsos (e os fregueses de fora da clientela) primeiro; os moradores só completam se faltar gente;
+    // (E8) e, de cada um, primeiro quem não vem na noite
+    const morador = id => typeof Clientela !== 'undefined' && !!Clientela.dado(id);
+    const todos = TurnoJanta._bonecos().filter(c => !ja.has(c.id)), de = (mor, noite) => todos.filter(c => morador(c.id) === mor && naNoite.has(c.id) === noite);
+    const r = [{ id: e.quem, nome: Encomendas.nome(e.quem), mania: '' }];
+    for (const pool of [de(false, false), de(true, false), de(false, true), de(true, true)])
+      while (r.length < e.turma && pool.length) { const c = pool.splice(Math.floor(f() * pool.length), 1)[0]; r.push({ id: c.id, nome: c.nome, mania: '' }); }
+    return r;
+  }
+  // Todos os fregueses com boneco ({ id, nome, mania, avulso, jeito }: os moradores de Pratos.CLIENTES e os de fora).
+  static _bonecos() {
+    return Pratos.CLIENTES.map(c => ({ id: c.id, nome: c.nome, mania: c.mania || '' }))
+      .concat(typeof CLIENTES_AVULSOS !== 'undefined' ? CLIENTES_AVULSOS.map(a => ({ id: a.id, nome: a.apelido || a.nome, mania: '', avulso: true, jeito: a.jeito || '' })) : []);
+  }
+  // O freguês comum da fila (o sorteio do iniciar: só id, nome, mania, avulso e jeito), que pode trocar de boneco sem mudar a noite.
+  static _comum(c) { return !!c && Object.keys(c).every(k => ['id', 'nome', 'mania', 'avulso', 'jeito'].includes(k)); }
+  // Quem nunca é convidado: o anfitrião e o anfitrião de outra festa marcada.
+  _foraDaTurma(e) {
+    const ja = new Set([e.quem]);
+    if (this.pensao) for (const x of this.pensao.agenda || []) if (x.tipo === 'encomenda' && !x.fim) ja.add(x.quem);
+    return ja;
+  }
+  // (E8) Ninguém em dobro no salão numa noite de festa: o da turma que vai entrar e já está sentado como freguês, ou o freguês comum
+  // da fila que é da turma (sentado ou na porta), troca por um boneco que não está no salão, nem na turma, nem é anfitrião, e de
+  // preferência não vem mais na noite. O anfitrião e o freguês que vem do jeito dele (morador da semana, VIP, Paladar, convidado)
+  // não trocam. Sem festa, nada muda (o mesmo cliente da fila).
+  _semDobro(c, daTurma = false) {
+    const e = this.encomenda; if (!e || e.saiu || !c || !c.id) return c;
+    const sentados = new Set(this.mesas.filter(m => m.estado !== 'livre' && m.estado !== 'reservada' && m.cliente && m.cliente.id).map(m => m.cliente.id));
+    const turma = new Set(this._turma.map(x => x.id).concat(this.mesas.filter(m => m.estado !== 'livre' && m.cliente && m.cliente.turma).map(m => m.cliente.id)));
+    const fora = this._foraDaTurma(e);
+    if (daTurma ? !sentados.has(c.id) || c.anfitriao : !TurnoJanta._comum(c) || !turma.has(c.id)) return c;
+    const naFila = new Set(this._fila.map(x => x.cliente.id)), livre = b => !sentados.has(b.id) && !turma.has(b.id) && !fora.has(b.id) && b.id !== c.id;
+    const ok = TurnoJanta._bonecos().filter(livre), pref = ok.filter(b => !naFila.has(b.id)), pool = pref.length ? pref : ok;
+    if (!pool.length) return c;
+    const f = this._rngDobro || (this._rngDobro = mulberry((this.dia || 1) * 7243 + 29)), b = pool[Math.floor(f() * pool.length)];
+    return daTurma ? Object.assign({}, c, { id: b.id, nome: b.nome, mania: '' }) : Object.assign({}, b);
+  }
+  _turmaTick(dt, minutos) {
+    const e = this.encomenda;
+    if (e.saiu) return;
+    if (!e.reservou && minutos >= e.reservaDesde) { e.reservou = true; this.eventos.push({ tipo: 'turma_reserva', ponta: e.ponta.slice(), quem: e.quem }); }
+    if (!e.reservou) return;
+    for (const i of e.ponta) if (this.mesas[i] && this.mesas[i].estado === 'livre') this.mesas[i].estado = 'reservada';
+    if (!this._turma.length || minutos < e.chegada || minutos >= TurnoJanta.FECHA_MAX) return;
+    if ((this._turmaT -= dt) > 1e-9) return;   // (a folga do arredondamento: 0,6 s cravados)
+    const i = e.ponta.find(j => this.mesas[j] && this.mesas[j].estado === 'reservada');
+    if (i == null) return;   // a ponta cheia: quem não coube espera na porta
+    const c = this._semDobro(this._turma.shift(), true);
+    this._entrar(i, c); e.vieram++;
+    if (this._ocupada) this._ocupada[i] = true;
+    this.eventos.push({ tipo: 'turma_chegou', mesa: i, cliente: c, anfitriao: !!c.anfitriao });
+    this._turmaT = TurnoJanta.TURMA_INTERVALO;
+  }
+  // A porção da reserva para quem é da turma (a raridade da reserva).
+  _tirarDaReserva() { const R = this.reserva; R.porcoes--; this.encomenda.daReserva++; return R.raridade || 1; }
+  // Um da turma saiu (pagou): conta o bem servido; o último fecha a conta da turma.
+  _turmaPagou(m, est) {
+    const e = this.encomenda; if (!e || e.conta != null) return;
+    e.pagos++; if (Encomendas.bemServido(est)) e.bem++;
+    if (e.pagos >= e.total) this._contaDaTurma();
+  }
+  // A conta da turma (o bônus do fim da noite do Dave): Cr$ bonus × os bem servidos. A ponta volta a ser comum.
+  _contaDaTurma() {
+    const e = this.encomenda; if (!e || e.conta != null) return;
+    e.conta = Encomendas.contaDaTurma(e.bem); e.saiu = true;
+    for (const m of this.mesas) if (m.estado === 'reservada') m.estado = 'livre';
+    this.relatorio.encomenda = { quem: e.quem, nome: e.nome, ocasiao: e.ocasiao, prato: e.prato, turma: e.turma, vieram: e.vieram, pagos: e.pagos, bem: e.bem,
+      todos: e.bem >= e.total, conta: e.conta, reservadas: e.reservadas, daReserva: e.daReserva, sobrou: Math.max(0, this.reserva ? this.reserva.porcoes : 0) };
+    this.eventos.push({ tipo: 'conta_turma', valor: e.conta, bem: e.bem, turma: e.turma, quem: e.quem, nome: e.nome });
   }
   // O cliente entra pela porta e anda até a banqueta i (tempoAndar); a banqueta já é dele. Sem caminhada, senta na hora.
   _entrar(i, cliente) {
@@ -304,7 +443,11 @@ class TurnoJanta {
     if (!m || m.estado !== 'pedido') return false;
     m.lendo = 0;
     const p = this.pensao, balcao = m.modo !== 'antigo';
-    if (balcao) {
+    // (E4a) quem é da turma da festa pede o prato da festa, da panela reservada (enquanto ela tiver: a turma pela metade pede do cardápio)
+    const daReserva = !!m.cliente.turma && !!this.reserva && this.reserva.porcoes > 0;
+    m.encomenda = daReserva;
+    if (daReserva) m.prato = this.reserva.prato;
+    else if (balcao) {
       // (o cardápio do Bancho, 13/10) No balcão o cliente escolhe entre os pratos com porção na panela (o cardápio que o jogador
       // montou). O cliente especial pede o prato dele: da panela, ou a Rosa faz à parte com a despensa (a cena do VIP no Dave).
       // Sem nenhum prato, o prato da casa (o Norimaki).
@@ -331,6 +474,7 @@ class TurnoJanta {
         const marcados = p.cardapio.length ? p.cardapio : p.receitas;
         for (const id of marcados) if (!this.relatorio.faltou.includes(id)) this.relatorio.faltou.push(id);
         m.estado = 'suja';
+        if (m.cliente.turma) this._turmaPagou(m, 0);   // (E4a) só o cafezinho: saiu sem o prato (não conta como bem servido)
         this.eventos.push({ tipo: 'cafe', mesa: i, cliente: m.cliente });
         return true;
       }
@@ -343,7 +487,7 @@ class TurnoJanta {
     const sorteio = this._rng.randi(), lista = bebidas.filter(b => b !== 'caipirinha' || !bebidas.includes('cerveja'));
     m.bebida = lista[sorteio % lista.length];
     if (m.bebida === 'cerveja' && bebidas.includes('caipirinha') && Math.floor(sorteio / lista.length) % 2) m.bebida = 'caipirinha';
-    m.raridade = balcao ? this._tirarPorcao(m.prato) : p.consumir(m.prato, this._rng, 1);
+    m.raridade = daReserva ? this._tirarDaReserva() : balcao ? this._tirarPorcao(m.prato) : p.consumir(m.prato, this._rng, 1);
     m.querBebida = this._rng.randf() < (this._ultima ? TurnoJanta.BEBIDA_ULTIMA : 0.5); m.bebidaServida = false;
     m.rapido = m.modo === 'antigo' ? m.espera < TurnoJanta.PACIENCIA_PEDIDO / 2 : true;
     m.estado = 'prato'; m.espera = 0; m.preparo = TurnoJanta.PREPARO; m.pronto = false; m.montado = false;
@@ -538,7 +682,11 @@ class TurnoJanta {
     return 'ok';
   }
   // O minuto em que chega o próximo cliente (para o "Adiantar"), ou -1.
-  proximaChegada() { return this._fila.length ? this._fila[0].minuto : -1; }
+  // (E4a) a turma da festa que ainda não entrou chega às 18h (a que espera banqueta na porta já chegou)
+  proximaChegada() {
+    const f = this._fila.length ? this._fila[0].minuto : -1, tm = this._turma && this._turma.length && this.encomenda ? this.encomenda.chegada : -1;
+    return f < 0 ? tm : tm < 0 ? f : Math.min(f, tm);
+  }
   // Leva o prato montado à banqueta dele.
   servir(i) {
     const m = this.mesas[i];
@@ -559,9 +707,11 @@ class TurnoJanta {
     if (!m.montado) return false;
     this._esperaSoma = (this._esperaSoma || 0) + m.espera; this._esperaN = (this._esperaN || 0) + 1;
     m.estado = 'comendo'; m.come = TurnoJanta.COMENDO; m.esperouPrato = m.espera;   // (Tarefa E1) a espera até o prato (o apressado)
-    if (m.espera > TurnoJanta.PACIENCIA_PRATO / 2) m.rapido = false;
+    if (m.espera > TurnoJanta.PACIENCIA_PRATO * (m.cliente.turma ? TurnoJanta.pacienciaTurma() : 1) / 2) m.rapido = false;   // (E4a) a turma espera mais
     m.reacao = m.certo ? Pensao.prato(m.prato).reacao : 'nojo';
     this.eventos.push({ tipo: 'reacao', mesa: i, reacao: m.reacao });
+    // (E4a) o momento da festa: o anfitrião recebeu o prato (o palco solta as notas e os corações sobre a ponta)
+    if (m.cliente.anfitriao && this.encomenda && !this.encomenda.momento) { this.encomenda.momento = true; this.eventos.push({ tipo: 'festa_turma', mesa: i, quem: this.encomenda.quem }); }
     // (as cenas de prato, 14/10) o prato chegou à banqueta: o lugar único da entrega (a cena do Bancho decide se toca, cena_prato.js)
     // (14/10, os sons) com a reação e a nota que o prato daria agora: o cliente que gostou (4★ ou mais) faz "huum, delícia!"
     this.eventos.push({ tipo: 'servido', mesa: i, prato: m.prato, cliente: m.cliente, certo: m.certo, reacao: m.reacao, estrelas: this._nota(m) });
@@ -573,7 +723,7 @@ class TurnoJanta {
     const sabor = Pratos.RARIDADE_SABOR[clamp(m.raridade, 1, 4)];
     // (Tarefa C) a bebida derramada não dá a estrela da bebida
     const bebida = m.modo === 'antigo' ? m.bebidaCerta : (!m.querBebida || (m.bebidaServida && !m.bebidaRuim));
-    const est = Pensao.estrelas(m.rapido, m.certo, sabor, bebida, gostaSalada);
+    const est = Math.max(1, Pensao.estrelas(m.rapido, m.certo, sabor, bebida, gostaSalada) - (m.cansou ? 1 : 0));   // (E4a) a turma que cansou de esperar
     return m.prato === Pensao.CASA ? Math.min(ECO.pensao.pratoCasa.estrelas, est) : est;
   }
   // O preço do prato de quem foi embora esperando ele (a receita perdida do fechamento): o preço de tabela, com o da festa.
@@ -590,7 +740,8 @@ class TurnoJanta {
     // O prato da casa (o Norimaki do Dave): o preço fixo do ECO, sem gorjeta nem curtida, e a nota fica no máximo em pratoCasa.estrelas.
     const casa = m.prato === Pensao.CASA, C = ECO.pensao.pratoCasa;
     const est = this._nota(m);
-    const preco = casa ? C.preco : Math.round(this.pensao.preco(m.prato, m.raridade) * (this.doTema(m.prato) ? 1.5 : 1) * (m.cafeAntes && m.bebidaMedida ? ECO.cafeBoasVindas : 1));
+    // (E4a) o prato da festa encomendada (da panela reservada) paga × ECO.encomendas.fator (Encomendas.pagamento)
+    const preco = casa ? C.preco : Math.round(this.pensao.preco(m.prato, m.raridade) * (m.encomenda ? ECO.encomendas.fator : this.doTema(m.prato) ? 1.5 : 1) * (m.cafeAntes && m.bebidaMedida ? ECO.cafeBoasVindas : 1));
     const gorj = casa ? 0 : this.gorjetaDoJeito(m, preco, est) + (m.bebidaMedida && TurnoJanta.gorjetaDaMedida(m.bebida) ? Math.round(preco * TurnoJanta.GORJETA_MEDIDA) : 0) + (this.gorjetaExtra > 0 ? Math.ceil(preco * this.gorjetaExtra * est / 5) : 0);
     const r = this.relatorio;
     r.servidos++; r.ganho += preco; r.vendaPratos += preco; r.estrelas += est; if (casa) { r.casa++; r.estrelasCasa += est; }
@@ -613,6 +764,7 @@ class TurnoJanta {
       return;
     }
     m.estado = 'suja';
+    if (m.cliente.turma) this._turmaPagou(m, est);   // (E4a) o bem servido da turma; o último fecha a conta
   }
   zezinhoApronta() {
     if (this.filho !== 'zezinho') return '';
@@ -631,7 +783,7 @@ class TurnoJanta {
   // A janta acaba quando não sobra ninguém (fila vazia depois da última chegada e nenhuma banqueta ocupada) ou à meia-noite.
   encerrado(minutos) {
     if (minutos >= TurnoJanta.FECHA_MAX) return true;
-    if (minutos < TurnoJanta.ULTIMA_CHEGADA || this._fila.length) return false;
+    if (minutos < TurnoJanta.ULTIMA_CHEGADA || this._fila.length || (this._turma && this._turma.length)) return false;   // (E4a) e a turma na porta
     return !this.mesas.some(m => ['chegando', 'pedido', 'prato', 'comendo'].includes(m.estado));
   }
   // Fecha a janta: quem está comendo paga; quem esperava vai embora sem castigo.
@@ -644,6 +796,13 @@ class TurnoJanta {
     this.passe = []; this.bandeja = []; this.fogo = []; this._maq = null;
     // (o cardápio do Bancho, 13/10) A sobra das panelas vai para o lixo (no Dave, o que sobra no cardápio é descartado).
     this.relatorio.sobra = this.pensao ? this.pensao.jogarSobra() : {};
+    // (E4a) a festa que não terminou (a meia-noite chegou com alguém da turma esperando): a conta com quem pagou; quem esperava vai
+    // embora sem castigo. A porção da reserva que sobrou vai para o lixo com a sobra das panelas.
+    if (this.encomenda) {
+      if (this.encomenda.conta == null) this._contaDaTurma();
+      const R = this.reserva; if (R && R.porcoes > 0) { this.relatorio.sobra[R.prato] = (this.relatorio.sobra[R.prato] || 0) + R.porcoes; R.porcoes = 0; }
+      this._turma = [];
+    }
     // (Tarefa A) os números que só fecham no fim: o mais pedido e os gargalos (segundos inteiros)
     const r = this.relatorio, g = r.gargalos;
     r.maisPedido = TurnoJanta.maisPedido(r.pedidos);

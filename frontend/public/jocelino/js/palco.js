@@ -62,6 +62,11 @@ function aplicaLayoutPalco() { Object.assign(PALCO, LAYOUT_PALCO[typeof temAmpli
 const noPalco = () => !!(G.mapa && G.mapa.palco);
 ATUALIZADORES.push(() => { if (noPalco()) aplicaLayoutPalco(); });
 ATUALIZADORES.push(() => document.body.classList.toggle('no-palco', noPalco()));
+// (E8 das encomendas de festa) Na noite da festa, até a conta da turma, os avisos mudam de lugar na tela baixa (estilo.css,
+// body.festa-turma): no alto da parede da 960 eles cobriam a ponta da turma. Com a ponta posta (17h45, a toalha), só os 2 últimos
+// aparecem (body.festa-ponta); na abertura (17h) ainda não: o aviso da festa sai junto com outros dois e não pode ficar escondido.
+ATUALIZADORES.push(() => { const e = noPalco() && G.turno && G.turno.encomenda && !G.turno.encomenda.saiu ? G.turno.encomenda : null;
+  document.body.classList.toggle('festa-turma', !!e); document.body.classList.toggle('festa-ponta', !!(e && e.reservou)); });
 const noSalaoDaPensao = () => G.mapaId === 'pensao_dentro' || G.mapaId === 'pensao_palco';
 // (13/10, o tema do restaurante) Dentro do salão (o palco e o salão da reforma) as caixas do restaurante vestem a lousa de giz e
 // madeira, como a pele única das telas do Bancho; fora dele nada muda. body.tema-salao pinta o selo da fama e os avisos; ao abrir
@@ -173,6 +178,8 @@ TurnoJanta.prototype.tempoAndar = function (i) {
   if (!noPalco() || !PALCO.ASSENTOS[i]) return 0;
   return Math.abs(PALCO.ASSENTOS[i].x - CLIENTE_PORTA_X) / CLIENTE_VEL;
 };
+// (E4a) A ponta da turma da festa são as banquetas de x menor (perto da porta): o x de verdade de cada banqueta no palco.
+TurnoJanta.prototype.xDaBanqueta = function (i) { return PALCO.ASSENTOS[i] ? PALCO.ASSENTOS[i].x : i; };
 function clientesDoPalco(b) {
   const t = G.turno;
   if (!t) { b._clientes = []; CLIENTES_SAINDO.length = 0; return []; }
@@ -208,6 +215,23 @@ const camadaViva = (y, desenha) => ({ tipo: 'camada', y, desenha });
 const ENFEITE_FESTA = { 'Noite do PF em Dobro': ['enfeite_pf', 18], 'Festa do Peixe Frito': ['enfeite_peixe', 18], 'Arraiá da Pensão': ['enfeite_arraia', 16],
   'Noite dos Doces da Vó': ['enfeite_doces', 9], 'Jogo do Santos na Rádio': ['enfeite_santos', 22], '': ['enfeite_festa', 5] };
 const CABECA_CLIENTE = 160;   // do pé do cliente ao alto da cabeça, no palco (o quadro de 114 px em escala 1,65)
+// (E4a das encomendas de festa) O enfeite da ocasião na cabeça da turma (a arte da E6, salao/enfeite_*): o ENCAIXE de cada um, em px
+// da base do enfeite abaixo do topo da cabeça (medido para a cabeça mediana, CABECA_CLIENTE). Sem a arte da ocasião, o genérico.
+const ENFEITE_OCASIAO = { 'salao/enfeite_aniversario': 7, 'salao/enfeite_batizado': 9, 'salao/enfeite_bodas': 28, 'salao/enfeite_casamento': 9,
+  'salao/enfeite_capacete': 18, 'salao/enfeite_malandro': 20, 'salao/enfeite_palha': 20, 'salao/enfeite_couro': 16, 'salao/enfeite_pescador': 18,
+  'salao/enfeite_time': 37, 'salao/enfeite_festa': 5 };
+// O enfeite de quem está na banqueta: [arte, encaixe] (a turma da festa encomendada, os convidados da festa do tema) ou null.
+function enfeiteDoCliente(t, m) {
+  if (m.cliente.turma && t.encomenda) { const a = t.encomenda.enfeite in ENFEITE_OCASIAO ? t.encomenda.enfeite : 'salao/enfeite_festa'; return [a, ENFEITE_OCASIAO[a]]; }
+  const E = m.cliente.convidado && ENFEITE_FESTA[t.festa || ''];
+  return E ? ['salao/' + E[0], E[1]] : null;
+}
+// O quanto o balão (e a barrinha da paciência) sobe para não tapar o enfeite: o que o enfeite passa da cabeça, menos a folga que já
+// havia entre a cabeça e a barrinha.
+function folgaDoEnfeite(t, m) {
+  const E = t && m && m.cliente ? enfeiteDoCliente(t, m) : null, img = E && spr(E[0]);
+  return img ? Math.max(0, Math.round(alturaArte(img) - E[1] - 14)) : 0;
+}
 function desenhaEnfeitesEBrilho(ctx) {
   const t = G.turno, b = G.mapa; if (!t || !b || !b._clientes) return;
   t.mesas.forEach((m, i) => {
@@ -217,9 +241,11 @@ function desenhaEnfeitesEBrilho(ctx) {
       g.addColorStop(0, `rgba(130,255,150,${a})`); g.addColorStop(1, 'rgba(130,255,150,0)');
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(p.x - r, y - r, r * 2, r * 2); ctx.restore();
     }
-    const E = m.cliente.convidado && ENFEITE_FESTA[t.festa || ''];
-    if (E) desenhaPe(ctx, 'salao/' + E[0], p.x, p.y - CABECA_CLIENTE + E[1], 1, 1);
+    const E = enfeiteDoCliente(t, m);
+    p._enfeite = E;   // (E4a) o enfeite vai junto quando ele levanta e sai andando até a porta
+    if (E) desenhaPe(ctx, E[0], p.x, p.y - CABECA_CLIENTE + E[1], 1, 1);
   });
+  for (const p of CLIENTES_SAINDO) if (p._enfeite) desenhaPe(ctx, p._enfeite[0], p.x, p.y - CABECA_CLIENTE + p._enfeite[1], 1, 1);
 }
 // O carimbo da bebida servida (o Dave: a nota aparece na tela): "NA MEDIDA!" (PERFEITA), "QUASE!" (BOA) ou, desde a Tarefa C,
 // "DERRAMOU!" (RUIM); bate grande e assenta, depois some. nota: 'medida', 'ok' ou 'ruim' (true/false valem como 'medida'/'ok').
@@ -255,6 +281,75 @@ function desenhaCoracoesPalco(ctx) {
   for (const c of CORACOES_PALCO) { if (c.t < 0) continue;
     const k = c.t / CORACAO_DURA;
     desenhaFx(ctx, 'coracao', c.x + Math.sin(c.t * 6) * 5, c.y - k * 70, { alfa: Math.min(1, (1 - k) * 2), escala: 1 + k * 0.3 }); }
+  for (const c of NOTAS_PALCO) { if (c.t < 0) continue;
+    const k = c.t / NOTA_DURA;
+    desenhaFx(ctx, 'nota_musical', c.x + Math.sin(c.t * 4 + c.x) * 9, c.y - k * 110, { alfa: Math.min(1, (1 - k) * 2), escala: 1.5 + k * 0.4, ang: Math.sin(c.t * 5) * 0.2 }); }
+}
+// ---- (E4a das encomendas de festa, spec 3.4) A ponta da turma e o momento da festa.
+// O momento: quando o anfitrião recebe o prato (o evento 'festa_turma' do turno, guardado em t.encomenda.momento), sobem as notas
+// (fx/nota_musical) e os corações sobre a ponta, e toca o rojão das noites de festa. Arte do Higgsfield; o código só sobe e apaga.
+const NOTAS_PALCO = [], NOTA_DURA = 2.4;
+ATUALIZADORES.push(dt => {
+  for (const c of NOTAS_PALCO) c.t += dt;
+  for (let k = NOTAS_PALCO.length - 1; k >= 0; k--) if (NOTAS_PALCO[k].t > NOTA_DURA || !noPalco()) NOTAS_PALCO.splice(k, 1);
+  const t = G.turno, e = t && t.encomenda;
+  if (!e || !e.momento || e._festejou || !noPalco()) return;
+  e._festejou = true;
+  e.ponta.forEach((i, k) => {
+    const A = PALCO.ASSENTOS[i]; if (!A) return;
+    NOTAS_PALCO.push({ x: A.x - 30, y: A.y - CABECA_CLIENTE - 30, t: -k * 0.18 }, { x: A.x + 34, y: A.y - CABECA_CLIENTE - 10, t: -k * 0.18 - 0.45 });
+    if (t.mesas[i] && t.mesas[i].cliente.turma) coracaoNoPalco(i);
+  });
+  if (typeof tocarSomDoEvento === 'function') tocarSomDoEvento({ tipo: 'inauguracao' });
+});
+// A toalha de festa cobre o trecho da ponta, do canto do balcão (282, 790) até a última banqueta reservada: a de 2 banquetas, a de 4,
+// ou duas toalhas lado a lado (a de 2 por cima da emenda) quando a ponta não bate com nenhuma. Só posiciona a arte da E6.
+const TOALHA_FESTA = { x: 282, y: 790, sobra: 62, folga: 45 };
+function toalhasDaPonta(k) {
+  const A = PALCO.ASSENTOS[Math.max(0, k - 1)]; if (!A || k <= 0) return [];
+  const T = TOALHA_FESTA, fim = A.x + T.sobra, w2 = 283, w4 = 600;
+  if (fim <= T.x + w2 + T.folga) return [['salao/toalha_festa_2', T.x]];
+  if (Math.abs(fim - (T.x + w4)) <= T.folga) return [['salao/toalha_festa_4', T.x]];
+  if (fim < T.x + w4) return [['salao/toalha_festa_2', fim - w2], ['salao/toalha_festa_2', T.x]];
+  return [['salao/toalha_festa_4', T.x], ['salao/toalha_festa_2', fim - w2]];
+}
+// A plaquinha de madeira (ui/madeira/plaquinha_nome, em 9 pedaços: as bordas numa escala fixa, o miolo esticado, como o border-image
+// do estilo.css) com o texto em letra de giz, em duas linhas ("Reservado:" e o nome), grande o bastante para ler na tela de 960. O
+// texto é fonte, não desenho.
+const PLAQUINHA_TURMA = { x: 290, y: 794, escala: 0.8, borda: [30, 36], letra: 27, entre: 25, pad: 6 };
+function desenhaPlaquinhaTurma(ctx, linhas) {
+  const img = spr('ui/madeira/plaquinha_nome'); if (!img) return null;
+  const P = PLAQUINHA_TURMA, [bv, bh] = P.borda, dv = bv * P.escala, dh = bh * P.escala, W = img.naturalWidth, H = img.naturalHeight;
+  ctx.save();
+  ctx.font = `400 ${P.letra}px 'Gochi Hand', Fredoka, cursive`;
+  const w = Math.max(2 * dh + 4, Math.ceil(Math.max(...linhas.map(l => ctx.measureText(l).width)) + 2 * (dh * 0.45 + P.pad)));
+  const h = Math.max(2 * dv + 2, Math.round(P.entre * linhas.length + 2 * (P.pad + 4))), x = P.x, y = P.y;
+  const sx = [0, bh, W - bh, W], sy = [0, bv, H - bv, H], dx = [x, x + dh, x + w - dh, x + w], dy = [y, y + dv, y + h - dv, y + h];
+  for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) {
+    const sw = sx[a + 1] - sx[a], sh = sy[b + 1] - sy[b], ww = dx[a + 1] - dx[a], hh = dy[b + 1] - dy[b];
+    if (sw > 0 && sh > 0 && ww > 0 && hh > 0) ctx.drawImage(img, sx[a], sy[b], sw, sh, dx[a], dy[b], ww, hh);
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(40,22,8,.9)'; ctx.fillStyle = '#f6f1e1';
+  linhas.forEach((l, k) => { const ly = y + h / 2 + (k - (linhas.length - 1) / 2) * P.entre + 1; ctx.strokeText(l, x + w / 2, ly); ctx.fillText(l, x + w / 2, ly); });
+  ctx.restore();
+  return { x, y, w, h };
+}
+const PONTA_NA_TELA = { toalhas: [], plaquinha: null, bolo: null, texto: '' };   // o que saiu no último quadro (os testes conferem)
+function desenhaPontaDaTurma(ctx) {
+  const t = G.turno, e = t && t.encomenda;
+  PONTA_NA_TELA.toalhas = []; PONTA_NA_TELA.plaquinha = null; PONTA_NA_TELA.bolo = null; PONTA_NA_TELA.texto = '';
+  if (!e || !e.reservou || e.saiu || !e.ponta.length) return;
+  const T = TOALHA_FESTA;
+  for (const [nome, x] of toalhasDaPonta(e.ponta.length)) { const a = spr(nome); if (a) ctx.drawImage(a, x, T.y, larguraArte(a), alturaArte(a)); PONTA_NA_TELA.toalhas.push([nome, x]); }
+  // o bolo com as velinhas, no aniversário: no tampo, entre o anfitrião e o vizinho dele
+  if (e.enfeite === 'salao/enfeite_aniversario') {
+    const A = PALCO.ASSENTOS[e.ponta[0]], B = PALCO.ASSENTOS[e.ponta[1] != null ? e.ponta[1] : e.ponta[0]];
+    if (A && B) { const x = B === A ? A.x + 70 : (A.x + B.x) / 2; desenhaPe(ctx, 'salao/bolo_festa', x, PALCO.LOUCA.base, 1, 1); PONTA_NA_TELA.bolo = { x, y: PALCO.LOUCA.base }; }
+  }
+  // (revisão da E4a, na E4b) as porções da reserva que ainda restam, em letra de giz ("Dona Zélia · 3 porções")
+  const n = t.reserva ? Math.max(0, t.reserva.porcoes | 0) : 0, nome = e.nome + (n ? ` · ${n} ${n === 1 ? 'porção' : 'porções'}` : '');
+  PONTA_NA_TELA.texto = `Reservado: ${nome}`;
+  PONTA_NA_TELA.plaquinha = desenhaPlaquinhaTurma(ctx, ['Reservado:', nome]);
 }
 // (14/10, o jogador: "tem hora que a bancada tá suja e a pessoa senta, faça uma imagem de 'desgosto' por causa da sujeira"; o Dave
 // mostra a carinha de insatisfação em cima da cabeça de quem se incomoda) Enquanto o freguês está incomodado, o balão fx/desgosto
@@ -294,7 +389,7 @@ function desenhaDesgostoPalco(ctx) {
   const t = G.turno; if (!t) return;
   t.mesas.forEach((m, i) => {
     const D = DESGOSTO_PALCO[i]; if (!D || !D.vis || i >= PALCO.ASSENTOS.length) return;
-    const A = PALCO.ASSENTOS[i], y = A.y - 114 * PALCO.ESCALA_GENTE - 34;
+    const A = PALCO.ASSENTOS[i], y = A.y - 114 * PALCO.ESCALA_GENTE - 34 - folgaDoEnfeite(t, m);   // (E4a) acima do enfeite
     // lendo o cardápio, no lugar do "..."; esperando o prato (o cheiro), ao lado do balão do pedido
     const x = m.estado === 'pedido' ? A.x : A.x - 50, yb = m.estado === 'pedido' ? y - 12 : y - 26;
     const k = Math.min(1, D.t / DESGOSTO_POP), pop = k < 1 ? 0.3 + 0.7 * k + Math.sin(k * Math.PI) * 0.35 : 1;   // o pulinho da entrada
@@ -351,6 +446,7 @@ ATUALIZADORES.push(dt => {
   }
 });
 function desenhaRosaCozinha(ctx) {
+  if (typeof Historias !== 'undefined' && Historias._h && Historias._ator('rosa')) return;   // (T9) a Rosa da cena saiu da cozinha: a do fogão some
   const R = ROSA_COZ, P = PALCO;
   if (!cozinhaDaRosaPronta() || R.estado === 'obra') {   // em obra: parada no salão (linha 1, coluna 2 da folha = em pé olhando para a esquerda)
     const img = spr('personagens/rosa/andar');
@@ -410,11 +506,16 @@ function camadasDaJanta() {
         }
         desenhaPrato(ctx, id, v.x, P.PRATO_Y, 1, 1.35);
         texto(ctx, String(n), v.x, P.PRATO_Y + 26, 18, '#fff', '900');
-        if (t && t.pratoTema === id) desenhaPe(ctx, 'salao/fita_tema', v.x, 539);
+        if (t && (t.pratoTema === id || (t.reserva && t.reserva.prato === id))) desenhaPe(ctx, 'salao/fita_tema', v.x, 539);   // (E4a) e o prato da festa encomendada
+        // (revisão da E4a, na E4b) a reserva da turma fica fora do número do nicho: um "+N" pequeno na fitinha
+        if (t && t.reserva && t.reserva.prato === id && t.reserva.porcoes > 0 && t.encomenda && !t.encomenda.saiu) texto(ctx, `+${t.reserva.porcoes}`, v.x + 30, 546, 14, '#ffe3ec', '900');
       });
     }),
     // Por cima dos clientes (856) e por baixo do balcão (858): o enfeite dos convidados e o brilho da bebida na medida.
     camadaViva(857, ctx => desenhaEnfeitesEBrilho(ctx)),
+    // (E4a) A ponta da turma da festa encomendada: a toalha de festa por cima da xadrez, o bolo no aniversário e a plaquinha
+    // "Reservado: Dona Zélia" pendurada na frente da toalha, das 17h45 até o último da turma sair.
+    camadaViva(P.TAMPO_Y + 80.6, ctx => desenhaPontaDaTurma(ctx)),
     // A Rosa viva na cozinha (ROSA_COZ): mexendo a panela ou levando o prato até o passe.
     camadaViva(cozinhaDaRosaPronta() ? 301 : ROSA_OBRA.y, ctx => desenhaRosaCozinha(ctx)),   // (em obra, no chão do salão, na ordem do pé dela)
     // As moedas da gorjeta no tampo (o Jocelino recolhe ao passar).
@@ -457,7 +558,7 @@ function desenhaBaloesPalco(ctx, b) {
   if (!t) return;
   t.mesas.forEach((m, i) => {
     if (i >= PALCO.ASSENTOS.length || !['pedido', 'prato', 'comendo'].includes(m.estado)) return;
-    const A = PALCO.ASSENTOS[i], x = A.x, y = A.y - 114 * PALCO.ESCALA_GENTE - 34;
+    const A = PALCO.ASSENTOS[i], x = A.x, y = A.y - 114 * PALCO.ESCALA_GENTE - 34 - folgaDoEnfeite(t, m);   // (E4a) o balão sobe acima do enfeite alto
     const bebe = t.querBebidaAgora(m);   // (Tarefa C) a cerveja só aparece no balão quando o prato chega
     if (m.cliente.mania === 'vip') texto(ctx, '★ ' + m.cliente.nome.split(',')[0], x, y - 42, 18, '#ffd34d', '900');
     if (m.estado === 'comendo') {
@@ -626,7 +727,7 @@ function palcoAlvoEm(px, py) {
   if (t) for (let i = 0; i < Math.min(t.mesas.length, P.ASSENTOS.length); i++) {
     const A = P.ASSENTOS[i], m = t.mesas[i];
     if (Math.abs(px - A.x) > 66 || py < A.y - 220 || py > P.TAMPO_Y + 60) continue;
-    if (m.estado !== 'livre') return { tipo: 'cliente', i, x: A.x };
+    if (m.estado !== 'livre' && m.estado !== 'reservada') return { tipo: 'cliente', i, x: A.x };   // (E4a) a banqueta reservada vazia não é alvo
   }
   if (dentro(P.PORTA)) return { tipo: 'porta', x: P.X_MIN };
   return null;
@@ -665,7 +766,7 @@ function palcoAgirNaFrente() {
     if (t.passaPrato().length) { const k = t.passe.findIndex(x => x.reservadoPara == null); cands.push({ tipo: 'passe', k: Math.max(0, k), x: P.PASSE.cx }); }
     // (revisão da D1) cada prato livre no lugar dele: perto da bancada do passe, a tecla X pega o prato de cima dela
     t.passe.forEach((x, k) => { if (x.reservadoPara == null && k >= P.PASSE.vagas.length) cands.push({ tipo: 'passe', k, x: vagaDoPasse(k).x }); });
-    t.mesas.forEach((m, i) => { if (i < P.ASSENTOS.length && m.estado !== 'livre') cands.push({ tipo: 'cliente', i, x: P.ASSENTOS[i].x, quer: m }); });
+    t.mesas.forEach((m, i) => { if (i < P.ASSENTOS.length && m.estado !== 'livre' && m.estado !== 'reservada') cands.push({ tipo: 'cliente', i, x: P.ASSENTOS[i].x, quer: m }); });
   }
   cands.push({ tipo: 'farinheira', x: P.FARINHEIRA.cx }, { tipo: 'bebedouro', x: P.BEBEDOURO.x + P.BEBEDOURO.w / 2 },
     { tipo: 'bacia', x: P.BACIA.x + P.BACIA.w / 2 }, { tipo: 'lixo', x: P.LIXO.x + P.LIXO.w / 2 });
@@ -728,6 +829,7 @@ function palcoAgir(a) {
     const m = t.mesas[a.i];
     // O estado pode ter mudado no caminho: revalida.
     if (!m || m.estado === 'livre') { avisar('A banqueta ficou vazia.'); return; }
+    if (m.estado === 'reservada') { avisar(t.encomenda && typeof AvisoFesta !== 'undefined' ? `Reservada para a turma ${AvisoFesta.da(t.encomenda)}.` : 'Banqueta reservada para a festa.'); return; }   // (E4a)
     if (m.estado === 'suja' || m.louca) {   // (a louça ao lado de quem sentou sai primeiro: senão ele vai embora)
       if (t.bandeja.length >= TurnoJanta.BANDEJA_MAX) return cheia();
       t.recolher(a.i); servir(); sons.tocar('louca_recolhe', 1, 0.06, -5);   // (o pacote de cozinha) os pratos batendo (Wash Dishes)
@@ -738,7 +840,9 @@ function palcoAgir(a) {
     // (14/10) o freguês de fora diz uma frase curta na primeira vez que o Jocelino fala com ele na noite
     // (Tarefa E1) com o jeito dele: na primeira vez, o que o jeito muda; depois, só o jeito ao lado do nome
     const jt = jeitoDoAvulso(m.cliente);
-    const fala = m.cliente.avulso && !m.falou && FALAS_AVULSOS[m.cliente.id] ? `${m.cliente.nome}: "${FALAS_AVULSOS[m.cliente.id]}" ${jt ? `(${jt.nome}: ${jt.dica}.) ` : ''}` : jt ? `(${jt.nome}) ` : '';
+    // (E4a) quem é da turma da festa encomendada: de quem é a festa
+    const turma = m.cliente.turma && t.encomenda && typeof AvisoFesta !== 'undefined' ? `(${m.cliente.anfitriao ? 'a festa' : 'a turma'} ${AvisoFesta.da(t.encomenda)}) ` : '';
+    const fala = turma + (m.cliente.avulso && !m.falou && FALAS_AVULSOS[m.cliente.id] ? `${m.cliente.nome}: "${FALAS_AVULSOS[m.cliente.id]}" ${jt ? `(${jt.nome}: ${jt.dica}.) ` : ''}` : jt ? `(${jt.nome}) ` : '');
     if (fala) m.falou = true;
     if (m.estado === 'chegando') avisar(`${fala}${m.cliente.nome} está chegando.`);
     else if (m.estado === 'pedido') avisar(`${fala}${m.cliente.nome} está lendo o cardápio.`);
@@ -767,8 +871,12 @@ function roboDoSalaoPasso(t, vai) {
   if (t.farinha <= FARINHA_URGENTE && peneira()) return true;
   if (cabe) for (let i = 0; i < n; i++) if (t.mesas[i].louca) { assento(i); return true; }
   // alguém vai chegar e não há banco livre: limpa um banco sujo antes (senão ele senta do lado da louça e vai embora)
-  const vemGente = t._fila.length && t._fila[0].minuto <= G.minutos + 10 && !t.mesas.some((m, i) => i < n && m.estado === 'livre');
-  if (vemGente && cabe) for (let i = 0; i < n; i++) if (t.mesas[i].estado === 'suja') { assento(i); return true; }
+  // (E4a) a turma da festa na porta e a louça numa banqueta da ponta: limpa (a banqueta volta a ser reservada e a turma entra)
+  if (cabe && t.turmaNaPorta && t.turmaNaPorta()) for (const i of t.encomenda.ponta) if (i < n && t.mesas[i].estado === 'suja') { assento(i); return true; }
+  // (revisão da E4a, na E4b) para o freguês comum, a ponta reservada não é vaga nem é a louça a limpar primeiro
+  const daPonta = i => !!(t._daTurma && t._daTurma(i));
+  const vemGente = t._fila.length && t._fila[0].minuto <= G.minutos + 10 && !t.mesas.some((m, i) => i < n && m.estado === 'livre' && !daPonta(i));
+  if (vemGente && cabe) for (let i = 0; i < n; i++) if (t.mesas[i].estado === 'suja' && !daPonta(i)) { assento(i); return true; }
   // a bebida pedida primeiro (o copo vai na bandeja junto com os pratos): sem ela o cliente come sem a 4ª estrela; deixa uma vaga
   // para o prato se alguém ainda espera prato
   const vagaPrato = t.mesas.some(m => m.estado === 'prato') ? 1 : 0;
@@ -1279,7 +1387,12 @@ function palcoAdiantar() {
   if (t.mesas.some(m => ['chegando', 'pedido', 'prato'].includes(m.estado))) { avisar('Ainda tem gente esperando.'); return false; }
   const prox = t.proximaChegada();
   if (prox < 0) { if (t.mesas.some(m => m.estado === 'comendo')) { avisar('Ainda tem gente comendo.'); return false; } G.minutos = TurnoJanta.FECHA; relogio._acum = 0; return true; }
-  if (!t.mesas.some(m => m.estado === 'livre')) { avisar('Recolha a louça: tem gente esperando banqueta.'); return false; }
+  // (revisão da E4a, na E4b) a banqueta da ponta reservada só conta para a turma: o próximo freguês comum não senta nela, e a turma
+  // que vem a seguir senta (a reservada é a vaga dela, não "gente esperando banqueta")
+  { const turmaVem = !!(t._turma && t._turma.length && t.encomenda && prox === t.encomenda.chegada), ponta = (t.encomenda && !t.encomenda.saiu && t.encomenda.ponta) || [];
+    const vaga = t.mesas.some((m, i) => (m.estado === 'livre' && (turmaVem || !t.encomenda || !t.encomenda.reservou || !ponta.includes(i))) || (turmaVem && m.estado === 'reservada'));
+    if (!vaga) { avisar(!turmaVem ? 'Recolha a louça: tem gente esperando banqueta.' : ponta.some(i => t.mesas[i] && t.mesas[i].estado === 'suja')
+      ? 'Recolha a louça da ponta: a turma da festa espera banqueta.' : 'A turma da festa espera uma banqueta da ponta vagar.'); return false; } }
   if (prox <= G.minutos) { avisar('O próximo cliente já está chegando.'); return false; }
   G.minutos = prox; relogio._acum = 0;
   return true;

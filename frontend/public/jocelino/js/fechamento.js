@@ -15,12 +15,13 @@
 
 // ---------- flutuantes no palco ----------
 const FLUTUANTES = [];
-function flutuar(x, y, texto, cor) { FLUTUANTES.push({ x, y, texto, cor, t: 0 }); }
-ATUALIZADORES.push(dt => { for (const f of FLUTUANTES) f.t += dt; for (let i = FLUTUANTES.length - 1; i >= 0; i--) if (FLUTUANTES[i].t > 1.4) FLUTUANTES.splice(i, 1); });
+// (E8) dur: quanto tempo fica (o padrão 1,4 s) e tam: a letra (24); a conta da turma da festa fica mais e maior, para dar tempo de ler
+function flutuar(x, y, texto, cor, dur = 1.4, tam = 24) { FLUTUANTES.push({ x, y, texto, cor, t: 0, dur, tam }); }
+ATUALIZADORES.push(dt => { for (const f of FLUTUANTES) f.t += dt; for (let i = FLUTUANTES.length - 1; i >= 0; i--) if (FLUTUANTES[i].t > (FLUTUANTES[i].dur || 1.4)) FLUTUANTES.splice(i, 1); });
 function desenhaFlutuantes(ctx) {
   for (const f of FLUTUANTES) {
-    ctx.save(); ctx.globalAlpha = Math.max(0, 1 - f.t / 1.4);
-    texto(ctx, f.texto, f.x, f.y - f.t * 60, 24, f.cor, '900');
+    ctx.save(); ctx.globalAlpha = Math.max(0, 1 - f.t / (f.dur || 1.4));
+    texto(ctx, f.texto, f.x, f.y - f.t * 60 * 1.4 / (f.dur || 1.4), f.tam || 24, f.cor, '900');
     ctx.restore();
   }
 }
@@ -196,7 +197,8 @@ function abrirFechamento(r, opc = {}) {
     parcela('Pratos', 'vendas', c.pratos, pratosQtd ? urlArte(iconePrato(mp ? mp.prato : 'pf_peao')) : null, '', 'Cr$ ', pratosQtd ? qtd(`${pratosQtd} ${pratosQtd === 1 ? 'prato' : 'pratos'}`) : null),
     parcela('Bebidas', 'bebidas', c.bebidas, urlArte('salao/bebida_cerveja'), '', 'Cr$ ', r.bebidas ? qtd(`${r.bebidas} ${r.bebidas === 1 ? 'copo' : 'copos'}`) : null),
     parcela('Gorjetas', 'gorjetas', c.gorjetas, urlArte('salao/moedas_balcao')),
-    parcela('Prêmios', 'premios', c.premios, urlItem('presente')),
+    // (E4b das encomendas de festa) a conta da turma (o bônus do fim da noite do Dave) entra nos prêmios, fora da venda dos pratos
+    parcela('Prêmios', 'premios', c.premios, urlItem('presente'), '', 'Cr$ ', r.festaTurma && r.festaTurma.conta ? qtd(`conta da turma Cr$ ${r.festaTurma.conta}`) : null),
     parcela('Receita', 'receita', c.receita, null, 'total'),
     el('div', { class: 'fx-sub fx-passo', 'data-passo': 'despesa' }, 'Saiu'),
     parcela('Despesa da noite', 'despesa', c.despesa, urlItem('fogao_gas'), 'menos', '− Cr$ '),
@@ -214,6 +216,8 @@ function abrirFechamento(r, opc = {}) {
   const destaques = [
     mp ? el('span', { class: 'fx-destaque' }, el('img', { src: urlArte(iconePrato(mp.prato)), alt: '' }), `O mais pedido: ${Pensao.prato(mp.prato).nome} ×${mp.qtd}`) : null,
     r.subiu ? el('span', { class: 'fx-destaque ouro' }, `A pensão subiu: ${p.nomeComEstrelas(r.subiu)}!`) : null,
+    r.festaTurma ? el('span', { class: 'fx-destaque ouro fx-festa-turma' }, ARTE_LISTA.includes('salao/fita_tema') ? el('img', { src: urlArte('salao/fita_tema'), alt: '' }) : null,
+      `${r.festaTurma.titulo}: ${r.festaTurma.bem} de ${r.festaTurma.turma} bem servidos`) : null,
     ...(r.aprendidas || []).map(id => el('span', { class: 'fx-destaque ouro' }, `Receita nova: ${Pratos.PRATOS[id].nome}`)),
     (r.metasFeitas || []).length ? el('span', { class: 'fx-destaque ouro' }, `${r.metasFeitas.length} ${r.metasFeitas.length === 1 ? 'meta cumprida' : 'metas cumpridas'}`) : null,
     r.paladar ? el('span', { class: 'fx-destaque' }, `O Doutor Paladar: ${r.paladar} ${r.paladar === 1 ? 'garfo' : 'garfos'}`) : null,
@@ -254,7 +258,7 @@ function abrirFechamento(r, opc = {}) {
     // (15/10, a clareza) o que é cada número, no "(?)" ao lado do botão (fechado, não ocupa linha a mais)
     el('div', { class: 'fx-pe pe' }, linhaLucro, linhaAjuda('fechamento', 'Lucro = receita − despesa − salários.', [
       `Nota da noite: a média das estrelas de quem comeu (1 a 5). ${GLOSSARIO.curtida}`, GLOSSARIO.pitada,
-      'Receita: pratos + bebidas + gorjetas + prêmios (cliente especial e metas).',
+      'Receita: pratos + bebidas + gorjetas + prêmios (cliente especial, metas e a conta da turma da festa encomendada).',
       GLOSSARIO.despesa + ' Salários: o da equipe, por noite (na reserva, meio salário).',
       'Da despensa: os ingredientes que as panelas da noite levaram (já estavam pagos: não saem do lucro). No lixo: a sobra da panela e os pratos perdidos.',
       'O gráfico: o lucro das últimas noites (a de hoje acesa); a frase compara com a noite anterior.',
@@ -353,6 +357,10 @@ function famaDoFechamento(r, p, linha) {
       ...(r.aprendidas || []).map(id => linha('Receita nova', Pratos.PRATOS[id].nome, 'lucro')),
       ...(r.favoritos || []).map(id => { const am = typeof Amizade !== 'undefined' ? Amizade.texto(id, 'janta') : '';   // (T1) a família sem número
         return linha('Prato favorito servido', `${(Clientela.dado(id) || { nome: id }).nome}${am ? ` (${am})` : ''}`, 'lucro'); }),
+      // (E4b) a festa encomendada: os bem servidos, a conta da turma, as curtidas da turma na Vila e a amizade com o anfitrião
+      r.festaTurma ? linha(`${r.festaTurma.titulo} (${r.festaTurma.ocasiao})`, `${r.festaTurma.bem} de ${r.festaTurma.turma} bem servidos · conta da turma Cr$ ${r.festaTurma.conta}`
+        + (r.festaTurma.curtidas ? ` · +${r.festaTurma.curtidas} ${r.festaTurma.curtidas === 1 ? 'curtida' : 'curtidas'}` : '')
+        + (r.festaTurma.amizade > 0 ? ` · +${r.festaTurma.amizade} de amizade` : ''), 'lucro largo') : null,
       r.ritinha ? linha('A Ritinha no caixa', `+Cr$ ${r.ritinha} de gorjeta`, 'lucro') : null,
       r.premioFuncao ? linha('Presente do cliente especial', TEXTO_FUNCAO[r.premioFuncao], 'lucro largo') : null,
       r.paladar ? el('div', { class: 'fx-linha fx-paladar largo' }, el('img', { class: 'fx-retrato', src: urlArte('retratos/paladar_' + (r.paladar >= 4 ? 'alegre' : 'normal')) }),

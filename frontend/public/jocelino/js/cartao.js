@@ -8,6 +8,8 @@
 // A meta da família: { titulo, texto, feito, meta }.
 function metaFamilia() {
   if (!G.obra) return null;
+  // (C20) Da carta do Moreira em diante, a meta da família é a firma (o capital, os marcos que faltam, a inauguração, a firma aberta).
+  { const fm = typeof Firma !== 'undefined' ? Firma.metaFamilia() : null; if (fm) return fm; }
   // (roteiro de 13/10) Antes da casa, o sonho da Rosa: a entrada da lojinha.
   if (G.lojinha && G.lojinha.conversou && !G.lojinha.comprada) return { titulo: 'A lojinha da Rosa', texto: `A lojinha da Rosa: a entrada de Cr$ ${ECO.lojinha.entrada} (a fachada amarela, na Vila)`, feito: Math.min(Math.max(0, G.dinheiro), ECO.lojinha.entrada), meta: ECO.lojinha.entrada };
   const casa = G.casa || {};
@@ -68,6 +70,11 @@ function metaDaBarrinha(noSalao) {
   const lj = typeof Lojinha !== 'undefined' && !noSalao ? Lojinha.metaDinheiro() : null;
   if (lj) return { tipo: 'lojinha', curto: lj.curto, texto: `${lj.texto} de entrada (a fachada amarela, na Vila)`, feito: lj.feito, meta: lj.meta };
   const b = typeof Bazar !== 'undefined' && G.bazar && !noSalao ? Bazar.metaEscolhida() : null;
+  // (C20, 17/10; a C19: "a meta do capital tem de aparecer desde o prédio, senão o jogador real paga depois") O capital da firma é a
+  // prioridade da barrinha da carta do Moreira até o pagamento, também no salão. Só o "Juntar para" escolhido DEPOIS da carta (que
+  // limpa a escolha de antes: firma.js) passa na frente, até ser comprado (C13: a meta não troca sozinha).
+  const fm = typeof Firma !== 'undefined' ? Firma.metaBarrinha() : null;
+  if (fm && !b) return fm;
   if (b) return { tipo: 'bazar', curto: `${b.nome}: ${b.curto} — ${de(b.preco)}`, texto: `Juntando para: ${b.nome} (${b.curto}) — Cr$ ${de(b.preco)}`, feito: f(b.preco), meta: b.preco };
   if (!noSalao) { const c = casaEtapas(), E = c && c.juntar;   // (revisão 3: a etapa em obra já foi paga; a barrinha junta para a seguinte, ou some)
     if (E) return { tipo: 'casa', curto: `Casa nova, ${E.nome}: Cr$ ${de(E.dinheiro)}`, texto: `${c.emObra ? `A casa nova: ${c.atual.nome} em obra; juntando para a próxima, ${E.nome}` : `A casa nova (${E.nome})`}: Cr$ ${de(E.dinheiro)} e o material, na plaquinha do terreno`, feito: f(E.dinheiro), meta: E.dinheiro }; }
