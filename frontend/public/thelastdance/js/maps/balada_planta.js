@@ -209,8 +209,9 @@
         ciclo3d: [["parado", 4.5], ["fumar", 3.2]],
         falarDe: { x: 4.6, y: 3.2 }, fala: ["\"Mais um ano solteiro... de novo, né?\"", "\"Esse DJ tá tocando só as minhas!\""],
         visual: { pele: "#b9825a", roupa: "#1a1a1a", calca: "#ececec", cabelo: "#2a1a10", estilo: "curto" } },
-      { id: "vini", nome: "Vini", personagem: "vini", postura: "em_pe", x: 4.4, y: 4.4, dir: "esquerda",
-        falarDe: { x: 4.4, y: 5.15 }, fala: ["\"Já mostrou o insta pra alguma gata? Mostra pra mim de novo.\"", "\"Aumenta esse som!\""],
+      // o Vini em 3D (trancado com a senha), dançando na pista com as meninas
+      { id: "vini", nome: "Vini", personagem: "vini", personagem3d: true, pose3d: "dancar", postura: "em_pe", x: 11.6, y: 6.3, dir: "baixo",
+        falarDe: { x: 11.6, y: 7.05 }, fala: ["\"Já mostrou o insta pra alguma gata? Mostra pra mim de novo.\"", "\"Aumenta esse som!\""],
         visual: { pele: "#c98f63", roupa: "#2b2b2b", calca: "#e79b8c", cabelo: "#2a1a10", estilo: "volume" } },
     ],
 
