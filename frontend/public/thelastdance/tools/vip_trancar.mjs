@@ -18,7 +18,7 @@ const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const NPC = (id) => "assets/characters/npcs/" + id;
 // Pacotes (pastas ou arquivos). js/vip.js (PACOTES_DA_TELA) usa estes mesmos nomes.
 const PACOTES = {
-  amigos: ["gustavinho", "vibola", "vini", "juan", "pabo", "elcio", "jamil", "borrinha", "miltinho", "genival", "kaleb", "thiago", "sapata", "dj", "mogli", "cassio", "pantera"].map(NPC), // rostos reais
+  amigos: ["gustavinho", "vibola", "vini", "juan", "pabo", "elcio", "jamil", "borrinha", "miltinho", "genival", "kaleb", "thiago", "sapata", "dj", "mogli", "cassio", "pantera", "pietro"].map(NPC), // rostos reais
   padaria: [NPC("dona_cida"), NPC("garcom_ze")],                                                  // dupla da padaria
   vozes: ["assets/audio/amigos"],                        // vozes gravadas (churrasco, ligação da Mãe, áudio no ZapZap)
   sertanejo: ["assets/audio/local/casa_amigo.mp3"],      // música com dono (jogo fechado por senha)

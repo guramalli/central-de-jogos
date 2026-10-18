@@ -248,6 +248,9 @@
       { id: "cassio", nome: "Cássio", personagem: "cassio", personagem3d: true, so3d: true, postura: "em_pe", x: 22.3, y: 6.7, dir: "baixo",
         reage: { raio: 2.2, pose: "bravo", voz: "assets/audio/amigos/cassio_balada.mp3", fala: "Ah, Marcelinho! Tá na boca!" },
         falarDe: { x: 22.3, y: 7.45 }, fala: ["\"Ah, Marcelinho! Tá na boca!\""] },
+      // o Pietro em 3D (trancado com a senha), de farda, parado do lado do Kaleb no lounge
+      { id: "pietro", nome: "Pietro", personagem: "pietro", personagem3d: true, so3d: true, postura: "em_pe", x: 14.1, y: 13.8, dir: "baixo",
+        falarDe: { x: 14.1, y: 14.55 }, fala: ["\"Folga do quartel hoje. Bora curtir!\"", "\"O Kaleb aí só fala... eu é que seguro ele. 😂\""] },
       // o Genival em 3D (trancado com a senha), dançando na pista
       { id: "genival", nome: "Genival", personagem: "genival", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 11.0, y: 9.6, dir: "baixo",
         voz: "assets/audio/amigos/genival_balada.mp3", // áudio dele (trancado), ao interagir
