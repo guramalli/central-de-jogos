@@ -192,15 +192,19 @@
           "\"Bota na conta do aniversariante. Quem é o aniversariante?\""],
         visual: { pele: "#e0b48e", roupa: "#f2d21b", calca: "#1a1a1a", cabelo: "#111", estilo: "bone" } },
       // no camarote VIP: três sentados nos sofás, três em pé conversando
-      { id: "juan", nome: "Juan", personagem: "juan", postura: "sentado", assento: 0.45, x: 2.0, y: 0.45, dir: "baixo",
-        falarDe: { x: 2.0, y: 1.3 }, fala: ["\"Camarote é outra coisa, né? Senta aí!\"", "\"Pede mais um balde que esse acabou.\""],
+      // o Juan em 3D (trancado com a senha): anda de um lado para o outro no camarote, sempre no telefone; chegou perto, ele avisa
+      { id: "juan", nome: "Juan", personagem: "juan", personagem3d: true, so3d: true, postura: "em_pe", x: 2.4, y: 3.9, dir: "baixo",
+        vaiVem: { ate: { x: 5.4, y: 3.9 }, vel: 0.75, pausa: 2.2, ida: "andar_d", volta: "andar_e" },
+        reage: { raio: 1.7, fala: "Peraí, peraí... tô fechando um terreno aqui! 📱" },
+        falarDe: { x: 2.4, y: 4.65 }, fala: ["\"Peraí, peraí... tô fechando um terreno aqui! 📱\""],
         visual: { pele: "#d29a6e", roupa: "#4f6b2a", calca: "#22304a", cabelo: "#5a3a22", estilo: "curto" } },
       // o Jamil em 3D (trancado com a senha), em pé no VIP olhando o movimento (animação do modelo)
       { id: "jamil", nome: "Jamil", personagem: "jamil", personagem3d: true, pose3d: "olhar", postura: "em_pe", x: 2.5, y: 3.0, dir: "baixo",
         falarDe: { x: 2.5, y: 3.75 }, fala: ["\"Paz do Senhor.\""],
         visual: { pele: "#d6a27a", roupa: "#d9cfbd", calca: "#d9cfbd", cabelo: "#4a4a4a", estilo: "curto" } },
-      { id: "elcio", nome: "Elcio", personagem: "elcio", postura: "sentado", assento: 0.45, x: 0.45, y: 4.6, dir: "direita",
-        falarDe: { x: 1.2, y: 4.1 }, fala: ["\"Óculos escuros na balada? É o brilho do camarote, irmão.\"", "\"Cadê a piscina dessa balada?\""],
+      // o Elcio de barman: atrás do balcão de bebidas
+      { id: "elcio", nome: "Elcio", personagem: "elcio", postura: "em_pe", x: 19.1, y: 1.35, dir: "baixo",
+        falarDe: { x: 19.15, y: 3.25 }, fala: ["\"O que vai ser hoje? A da casa é por minha conta... brincadeira, paga aí. 🍸\"", "\"Óculos escuros no bar? É o brilho das garrafas, irmão.\""],
         visual: { pele: "#c48d63", roupa: "#c48d63", calca: "#e0404a", cabelo: "#1c120c", estilo: "curto" } },
       { id: "gustavinho", nome: "Gustavinho", personagem: "gustavinho", personagem3d: true, postura: "em_pe", x: 3.6, y: 3.0, dir: "baixo",
         falarDe: { x: 3.6, y: 3.75 }, fala: ["\"She is the one?\""],

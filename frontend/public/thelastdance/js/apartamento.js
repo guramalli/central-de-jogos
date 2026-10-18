@@ -598,12 +598,32 @@
     ctx.drawImage(f.img, q * f.larg, 0, f.larg, f.alt, x - f.pes[0] * e, y - f.pes[1] * e, f.larg * e, f.alt * e);
     ctx.restore();
   }
+  // vaiVem: { ate: {x, y}, vel, pausa, ida, volta } — o NPC anda de onde começou até "ate" e volta, parando um pouco
+  // em cada ponta (tira "parado"). Para enquanto o jogador está perto (raio do "reage"). Devolve a tira da vez.
+  function vaiVem(n, agora) {
+    const v = n.vaiVem;
+    if (!v.de) v.de = { x: n.x, y: n.y };
+    const dt = Math.min(0.1, (agora - (n.vvUlt || agora)) / 1000); n.vvUlt = agora;
+    const perto = !jog.oculto && Math.hypot(jog.x - n.x, jog.y - n.y) < ((n.reage && n.reage.raio) || 1.5);
+    if (!perto) n.vvT = (n.vvT || 0) + dt;
+    const L = Math.hypot(v.ate.x - v.de.x, v.ate.y - v.de.y), tA = L / (v.vel || 0.8), P = v.pausa || 1.5;
+    const t = (n.vvT || 0) % (2 * (tA + P));
+    let k, tira;
+    if (t < tA) { k = t / tA; tira = v.ida; }
+    else if (t < tA + P) { k = 1; tira = "parado"; }
+    else if (t < 2 * tA + P) { k = 1 - (t - tA - P) / tA; tira = v.volta; }
+    else { k = 0; tira = "parado"; }
+    n.x = v.de.x + (v.ate.x - v.de.x) * k; n.y = v.de.y + (v.ate.y - v.de.y) * k;
+    n.falarDe = { x: n.x, y: n.y + 0.75 };
+    return perto ? "parado" : tira;
+  }
   function desenharNpcSprites(ctx, n) {
     if (n.cena && n.sprites3d.cenas && n.sprites3d.cenas[n.cena.nome]) { desenharCenaDupla(ctx, n); return; }
     const m = n.sprites3d, d = m[n.dir] || m.baixo, agora = performance.now();
     const rindo = n.rindoAte && agora < n.rindoAte && d.rir;
     // ciclo3d: [[pose, segundos], ...] — alterna sozinha (ex.: parado, um gole, dança); pose que não é laço toca uma vez
     let f = rindo ? d.rir : (n.pose3d && d[n.pose3d]) || d.parado, q = null;
+    if (n.vaiVem && !rindo) { const tv = vaiVem(n, agora); if (d[tv]) f = d[tv]; }
     // reage: { raio, pose?, fala } — quando o jogador chega perto, fala (e toca a pose uma vez, se tiver); rearma quando ele se afasta
     const r = n.reage;
     if (r && !n.oculta) {
