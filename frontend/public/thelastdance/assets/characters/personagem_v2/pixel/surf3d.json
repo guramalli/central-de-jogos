@@ -1,0 +1,28 @@
+{
+  "versao": 1,
+  "altura_em_pe_px": 259.0,
+  "surf": {
+    "folha": "surf3d/surf.webp",
+    "larg": 168,
+    "alt": 262,
+    "quadros": 8,
+    "fps": 2.181818181818182,
+    "pixelado": true,
+    "pes": [
+      102.1,
+      250.6
+    ]
+  },
+  "remar": {
+    "folha": "surf3d/remar.webp",
+    "larg": 294,
+    "alt": 176,
+    "quadros": 8,
+    "fps": 6,
+    "pixelado": true,
+    "pes": [
+      192.9,
+      127.6
+    ]
+  }
+}

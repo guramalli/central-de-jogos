@@ -1082,13 +1082,16 @@
   }
 
   // Parede na frente do personagem fica transparente (dá para vê-lo atrás da mureta).
+  let retJog = null; // onde o personagem em quadros foi desenhado no último quadro (tela, sem a câmera)
   function cobreJogador(c) {
     const pts = [];
     for (const x of [c.x0, c.x1]) for (const y of [c.y0, c.y1]) for (const z of [0, c.z1]) pts.push(T(x, y, z));
     const [jx, jy] = T(jog.x, jog.y, 0);
     const minX = Math.min(...pts.map((q) => q[0])), maxX = Math.max(...pts.map((q) => q[0]));
     const minY = Math.min(...pts.map((q) => q[1])), maxY = Math.max(...pts.map((q) => q[1]));
-    return jx + 40 > minX && jx - 40 < maxX && jy > minY && jy - ALTURA_PERSONAGEM < maxY;
+    // personagem em quadros (cabeça grande, poses largas): o retângulo onde ele foi desenhado; modular: a caixa padrão
+    const r = conjunto !== MODULAR && retJog ? retJog : { x0: jx - 40, x1: jx + 40, y0: jy - ALTURA_PERSONAGEM, y1: jy };
+    return r.x1 + 6 > minX && r.x0 - 6 < maxX && r.y1 > minY && r.y0 < maxY;
   }
 
   function desenharJogador(ctx) {
@@ -1122,6 +1125,7 @@
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(im, q * f.larg, 0, f.larg, f.alt, x - px * e, y - py * e, f.larg * e, f.alt * e);
     ctx.restore();
+    retJog = { x0: x - px * e, x1: x + (f.larg - px) * e, y0: y - py * e, y1: Math.max(y, y + (f.alt - py) * e) };
     if (sentadoSprite) cobrirComAssento(ctx);
     if (ef && ef.brilho > 0) linhaDeLuz(ctx, x, meio, ef);
   }

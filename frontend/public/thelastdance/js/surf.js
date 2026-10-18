@@ -81,6 +81,31 @@
   const quadroFrente = {}, quadroLado = {};
   let pesAbaixo = 0; // quanto os pés subiram com os joelhos dobrados (o corpo desce isso para os pés ficarem na prancha)
 
+  // Personagem 3D em pixel art (tester): sem camisa, de bermuda, com a animação de surf e a remada
+  // (assets/characters/personagem_v2/pixel/surf3d.json). Vale quando o tester escolheu o 3D (ou ?conjunto=3d).
+  let surf3d = null;
+  const usa3d = (() => {
+    const c = params.get("conjunto");
+    if (c) return /^3d/.test(c);
+    try { return /^3d/.test(global.localStorage.getItem("nsf_conjunto") || ""); } catch (e) { return false; }
+  })();
+  async function carregar3d() {
+    const pasta = "assets/characters/personagem_v2/pixel/";
+    const m = await (await global.fetch(pasta + "surf3d.json")).json();
+    await Promise.all(["surf", "remar"].map((k) => new Promise((ok, erro) => {
+      const im = new global.Image();
+      im.onload = () => { m[k].img = im; ok(); };
+      im.onerror = () => erro(new Error("surf3d: " + m[k].folha));
+      im.src = pasta + m[k].folha;
+    })));
+    m.escala = (1375 * ESC) / m.altura_em_pe_px; // mesma altura do personagem antigo no mar
+    surf3d = m;
+  }
+  function desenharTira3d(ctx, f, x, y) {
+    const q = Math.floor(s.relogio * f.fps) % f.quadros, e = surf3d.escala;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(f.img, q * f.larg, 0, f.larg, f.alt, x - f.pes[0] * e, y - f.pes[1] * e, f.larg * e, f.alt * e);
+  }
   async function carregarHeroi() {
     const pm = new global.PersonagemModular(global.PERSONAGEM_MODULAR, "personagem_modular/");
     await pm.carregar();
@@ -454,7 +479,7 @@
     ctx.beginPath(); ctx.moveTo(-74, 12); ctx.lineTo(-64, 26); ctx.lineTo(-58, 12); ctx.fill();
   }
   function desenharSurfista(ctx) {
-    if (!heroi || s.fase === "intro" || s.fase === "fim") return;
+    if ((!heroi && !surf3d) || s.fase === "intro" || s.fase === "fim") return;
     let [x, y] = posPrancha();
     x -= s.cam;
     // inclinação da prancha acompanha a subida/descida na parede
@@ -467,6 +492,7 @@
     ctx.translate(x, y);
     if (s.fase === "remando") { // deitado remando
       ctx.save(); ctx.translate(40, 2); prancha(ctx); ctx.restore();
+      if (surf3d) { desenharTira3d(ctx, surf3d.remar, 34, 4); ctx.restore(); return; }
       heroi.definirVista("lado_direito");
       ctx.rotate(Math.PI / 2);
       heroi.desenhar(ctx, -2, 10 - 130 * ESC, ESC);
@@ -477,8 +503,8 @@
     const m = s.manobra;
     if (m && m.vira && m.t > m.dur * 0.2 && m.t < m.dur * 0.75) ctx.scale(-1, 1); // rasgada: vira para trás
     prancha(ctx);
-    heroi.definirVista("frente");
-    heroi.desenhar(ctx, 0, pesAbaixo * ESC + 2, ESC);
+    if (surf3d) desenharTira3d(ctx, surf3d.surf, 4, 2);
+    else { heroi.definirVista("frente"); heroi.desenhar(ctx, 0, pesAbaixo * ESC + 2, ESC); }
     ctx.restore();
   }
   function gotas(ctx) {
@@ -649,7 +675,8 @@
   })();
 
   s.forca = 0.6; s.crista = -500; s.quebrada = true; gerarSecoes(-500); // de fundo, enquanto lê as instruções
-  carregarHeroi().catch((e) => NSF.estado.erros.push(String(e)));
+  (usa3d ? carregar3d().catch((e) => { NSF.estado.erros.push(String(e)); return carregarHeroi(); }) : carregarHeroi())
+    .catch((e) => NSF.estado.erros.push(String(e)));
   NSF.iniciar(tela, desenhar, { adaptar: true });
   global.NSF_SURF.desenhar = desenhar;
   if (params.has("direto")) { caixa.hidden = true; novaOnda(); } else mostrarInicio();
