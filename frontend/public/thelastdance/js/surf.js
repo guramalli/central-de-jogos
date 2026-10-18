@@ -19,7 +19,7 @@
   "use strict";
 
   // ---------- regras (sem tela: testadas em tests/surf.test.js) ----------
-  const REGRAS = { ondas: 3, segundosOnda: 30, vCrista: 360 };
+  const REGRAS = { ondas: 3, segundosOnda: 30, vCrista: 450 };
   // pontos de cada manobra (floater e tubo ganham também por segundo; aéreo ganha por volta completa no ar)
   const PONTOS = { drop: 100, pulinho: 50, cavada: 150, cutback: 500, floater: 300, floaterSeg: 400, aereo: 1000, giro: 1000,
     tubo: 500, tuboSeg: 700, tubaco: 1500, cuspido: 500, onda: 300 };
@@ -33,7 +33,7 @@
   //   Segurando D (ou A) ele "trima" (pouco atrito); soltando, ele trava a prancha (stall): perde velocidade e a
   //   onda o alcança (tubo). BOMBEAR: ▲▼ (W/S) alternados e rápidos = batidinhas na prancha, cada uma soma velocidade.
   // RITMO: deixa tudo mais rápido ou mais lento sem mudar o jeito (velocidades x RITMO, acelerações x RITMO²)
-  const RITMO = 1.25;
+  const RITMO = 1.56;
   const FISICA = {
     vMin: 80 * RITMO, vMax: 720 * RITMO,
     gravidade: 420 * RITMO * RITMO,  // px/s² na descida mais íngreme
@@ -84,7 +84,10 @@
   }
   const fmt = (n) => Math.round(n).toLocaleString("pt-BR");
   const limparNome = (n) => [...String(n == null ? "" : n).replace(/\s+/g, " ").trim()].slice(0, NOME_MAX).join("");
-  const Regras = { REGRAS, PONTOS, COMBO, NOME_MAX, RITMO, FISICA, fisica, bombear, multiplicador, valorCombo, repeticao, resultado, titulo, fmt, limparNome };
+  // AÉREO: o embalo (velocidade) vira altura. Devagar é um pulinho; embalado ele voa alto e dá tempo de girar 2, 3 vezes
+  const AEREO = { gravidade: 1500, vyMin: 520, vyMax: 1100, base: 300, porVelocidade: 0.85, giro: 34, freioGiro: 0.6 };
+  const impulsoAereo = (v) => Math.max(AEREO.vyMin, Math.min(AEREO.vyMax, AEREO.base + v * AEREO.porVelocidade));
+  const Regras = { REGRAS, PONTOS, COMBO, NOME_MAX, RITMO, FISICA, AEREO, impulsoAereo, fisica, bombear, multiplicador, valorCombo, repeticao, resultado, titulo, fmt, limparNome };
   if (typeof module !== "undefined") module.exports = Regras;
   if (!global.document) return;
 
@@ -144,9 +147,10 @@
   }
   async function carregar3d() {
     const pasta = "assets/characters/personagem_v2/pixel/";
-    const m = await (await global.fetch(pasta + "surf3d.json")).json();
+    const m = await (await global.fetch(pasta + "surf3d.json", { cache: "no-cache" })).json(); // sempre o mais novo
+    const v = "?v=" + (m.versao || 1); // muda a "versao" no json quando as tiras mudarem: o navegador baixa de novo
     // surf e remar (Tripo) + poses feitas no Blender: agachado, cutback, aereo, floater (as que existirem no json)
-    await Promise.all(["surf", "remar", ...POSES3D].filter((k) => m[k]).map((k) => carregarImg(pasta + m[k].folha).then((im) => { m[k].img = im; })));
+    await Promise.all(["surf", "remar", "virar", ...POSES3D].filter((k) => m[k]).map((k) => carregarImg(pasta + m[k].folha + v).then((im) => { m[k].img = im; })));
     m.escala = (1375 * ESC) / m.altura_em_pe_px; // mesma altura do personagem antigo no mar
     surf3d = m;
   }
@@ -249,7 +253,7 @@
       x += len; primeira = false;
     }
   }
-  const vCrista = () => { const t = secaoEm(s.crista).tipo; return t === "tubular" ? 400 : t === "cheia" ? 310 : REGRAS.vCrista; };
+  const vCrista = () => { const t = secaoEm(s.crista).tipo; return t === "tubular" ? 500 : t === "cheia" ? 390 : REGRAS.vCrista; };
   function altura(d) {
     let h;
     if (d < 0) h = s.quebrada ? HMAX * Math.max(0.3, 0.62 + d / 2600) : HMAX * Math.max(0.15, 1 + d / 900);
@@ -263,7 +267,7 @@
   function novaOnda() {
     s.fase = "remando"; s.quebrada = false; s.forca = 0; s.pontos = 0; s.hist = []; s.tOnda = 0; s.combo = null;
     s.tubo = s.ar = s.floater = null; s.giro = 0; s.rastro = []; s.dir = 1; s.virar = 1; s.u = 0;
-    s.fis = { v: 200, rumo: 0, dir: 1 }; s.bombas = [];
+    s.fis = { v: 200, rumo: 0, dir: 1 }; s.bombas = []; s.embalo = 0;
     s.x = s.x || 0; s.crista = s.x - 110; s.h = 0; s.vh = 0; s.v = 0;
     s.remo = { t: 0, dur: 3.2 };
     poseAlvo = "base";
@@ -426,10 +430,10 @@
 
     if (s.ar) { // no ar: sobe, cai; A/D giram
       const ar = s.ar;
-      ar.t += dt; ar.vy -= 1350 * dt; ar.alt = Math.max(0, ar.alt + ar.vy * dt);
+      ar.t += dt; ar.vy -= AEREO.gravidade * dt; ar.alt = Math.max(0, ar.alt + ar.vy * dt);
       if (!ar.pequeno) {
-        if (ent.acelera) ar.giroV += 16 * dt; else if (ent.freia) ar.giroV -= 16 * dt;
-        ar.giroV *= Math.exp(-dt * 1.2);
+        if (ent.acelera) ar.giroV += AEREO.giro * dt; else if (ent.freia) ar.giroV -= AEREO.giro * dt;
+        ar.giroV *= Math.exp(-dt * AEREO.freioGiro);
         s.giro += ar.giroV * dt;
       }
       s.x += (vc + s.u) * dt;
@@ -446,6 +450,8 @@
     }
     if (s.h <= 0.01 && s.fis.rumo < 0) s.fis.rumo *= 0.5;  // no pé da onda não dá para descer mais
     const fis = fisica(s.fis, { cima: ent.cima, baixo: ent.baixo, anda }, dt, inc);
+    // embalo: o pico de velocidade dos últimos instantes (cai devagar) — é ele que vira altura no aéreo
+    s.embalo = Math.max(s.fis.v, (s.embalo || 0) - 180 * RITMO * dt);
     s.vh = fis.vh + (anda || ent.cima || ent.baixo ? 0 : (0.35 - s.h) * 0.9); // travado: escorrega para o meio da onda
     s.u += ((s.tubo && !anda ? Math.max(fis.u, -45) : fis.u) - s.u) * Math.min(1, dt * 4); // no tubo, a onda o engole devagar
 
@@ -524,7 +530,7 @@
   // Espaço: perto da crista = aéreo (o impulso só deixa mais alto); embaixo, um pulinho
   function pular(doFloater) {
     const grande = doFloater || s.h > 0.68;
-    s.ar = grande ? { t: 0, alt: 0, vy: 420 + s.fis.v * 0.7, giroV: 0, pequeno: false }
+    s.ar = grande ? { t: 0, alt: 0, vy: impulsoAereo(Math.max(s.fis.v, s.embalo || 0)), giroV: 0, pequeno: false }
       : { t: 0, alt: 0, vy: 320, giroV: 0, pequeno: true };
     if (grande) { s.h = 0.97; aviso("AÉREO!", "#ff8be6", 50); espirro(26, 1.2); }
     if (A()) A().swoosh(grande);
@@ -538,7 +544,7 @@
     s.giro = 0;
     s.h = 0.8; s.vh = -1.0; s.fis.rumo = -0.6; s.fis.v = Math.min(FISICA.vMax, s.fis.v + 60);
     const n = Math.abs(voltas);
-    const nome = n >= 2 ? "AÉREO 720!!" : n === 1 ? "AÉREO 360!" : "Aterrissou o aéreo!";
+    const nome = n ? `AÉREO ${360 * n}${"!".repeat(Math.min(4, n))}` : "Aterrissou o aéreo!";
     marcar(n ? "giro" : "aereo", PONTOS.aereo + PONTOS.giro * n, nome, "#ff8be6");
     espirro(30, 1.3); tremer(n ? 10 : 6); s.pausa = 0.07;
     if (A()) A().swoosh(true);
@@ -920,8 +926,8 @@
     ctx.fillStyle = "#1c2733";
     ctx.beginPath(); ctx.moveTo(-74, 12); ctx.lineTo(-64, 26); ctx.lineTo(-58, 12); ctx.fill();
   }
-  function desenharTira3d(ctx, f, x, y) {
-    const q = Math.floor(s.relogio * f.fps) % f.quadros, e = surf3d.escala;
+  function desenharTira3d(ctx, f, x, y, quadro) {
+    const q = quadro != null ? quadro : Math.floor(s.relogio * f.fps) % f.quadros, e = surf3d.escala;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(f.img, q * f.larg, 0, f.larg, f.alt, x - f.pes[0] * e, y - f.pes[1] * e, f.larg * e, f.alt * e);
   }
@@ -948,11 +954,21 @@
       return;
     }
     ctx.rotate(s.ang + s.giro);
-    const vira = Math.sign(s.virar) * Math.max(0.15, Math.abs(s.virar));
+    const tiraVirar = surf3d && surf3d.virar && surf3d.virar.img;
+    if (tiraVirar && Math.abs(s.virar) < 0.94 && !s.ar) {
+      // virada de verdade: o 3D girando no próprio eixo (quadros do Blender); a prancha encurta quando aponta para a câmera.
+      // Indo para a esquerda: os quadros como estão; voltando para a direita: os mesmos, espelhados.
+      const p = s.dir < 0 ? (1 - s.virar) / 2 : (1 + s.virar) / 2, lado = s.dir < 0 ? 1 : -1;
+      ctx.save(); ctx.scale(lado * Math.max(0.12, Math.cos(p * Math.PI / 2)), 1); prancha(ctx); ctx.restore();
+      ctx.scale(lado, 1);
+      desenharTira3d(ctx, surf3d.virar, 4, 2, Math.min(surf3d.virar.quadros - 1, Math.round(p * (surf3d.virar.quadros - 1))));
+      ctx.restore();
+      return;
+    }
+    const vira = tiraVirar ? Math.sign(s.virar) || 1 : Math.sign(s.virar) * Math.max(0.15, Math.abs(s.virar));
     ctx.scale(vira, 1); // a prancha aponta para onde ele vai (A volta: para trás)
     if (!surf3d && s.relogio - s.bomba < 0.13) ctx.scale(1, 0.9); // bombada: agacha e estica (no 3D, a tira agachada)
-    const agacha = s.tubo || ent.baixo ? 0.88 : 1;           // agachado no tubo / descendo
-    ctx.scale(1, agacha);
+    if (!surf3d && (s.tubo || ent.baixo)) ctx.scale(1, 0.88);    // agachado no tubo / descendo
     prancha(ctx);
     if (surf3d) desenharTira3d(ctx, pose3d(), 4, 2);
     else { heroi.definirVista("frente"); heroi.desenhar(ctx, 0, pesAbaixo * ESC + 2, ESC); }
@@ -1075,7 +1091,7 @@
   // botões na tela (celular): segurar = apertado; vários dedos ao mesmo tempo
   const botoes = doc.getElementById("botoes");
   if (botoes) {
-    botoes.hidden = !(toque || params.has("botoes"));
+    botoes.hidden = true; // aparecem quando a onda começa (com a caixa aberta, os toques são da caixa)
     for (const b of botoes.querySelectorAll("[data-acao]")) {
       const n = b.dataset.acao;
       const solta = (e) => { if (e) e.preventDefault(); b.classList.remove("apertado"); apertar(n, false); };
@@ -1140,7 +1156,8 @@
 
   // ---------- telas de começo e fim ----------
   const caixa = doc.getElementById("caixa");
-  function comecar() { caixa.hidden = true; s.onda = 0; s.totais = []; novaOnda(); pedirPartida(); }
+  const mostrarBotoes = (sim) => { const b = doc.getElementById("botoes"); if (b) b.hidden = !sim || !(toque || params.has("botoes")); };
+  function comecar() { caixa.hidden = true; mostrarBotoes(true); s.onda = 0; s.totais = []; novaOnda(); pedirPartida(); }
   // ---------- ranking (servidor do site: /api/thelastdance/surf) ----------
   const API = (NSF.API || "") + "/api/thelastdance/surf";
   const NOME_SALVO = "nsf_surf_nome";
@@ -1181,6 +1198,8 @@
   }
   function mostrarInicio() {
     caixa.innerHTML = "";
+    caixa.classList.remove("fim");
+    mostrarBotoes(false);
     const h = doc.createElement("h1"); h.textContent = "🏄 Surf na praia";
     const p = doc.createElement("p");
     p.textContent = toque ? "Joystick: → vai · ← volta (a prancha vira) · ↑↓ sobe e desce a onda · PULAR. Ele nunca cai!"
@@ -1205,6 +1224,8 @@
   }
   function mostrarFim(total, recorde, novo) {
     caixa.innerHTML = "";
+    caixa.classList.add("fim");
+    mostrarBotoes(false);
     const h = doc.createElement("h1"); h.textContent = titulo(total);
     const t = doc.createElement("div"); t.className = "total"; t.textContent = fmt(total);
     const p = doc.createElement("p"); p.textContent = `pontos · ondas: ${s.totais.map(fmt).join(" + ")}`;

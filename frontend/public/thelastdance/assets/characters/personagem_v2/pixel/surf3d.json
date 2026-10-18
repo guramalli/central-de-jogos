@@ -1,5 +1,5 @@
 {
-  "versao": 1,
+  "versao": 2,
   "altura_em_pe_px": 259.0,
   "surf": {
     "folha": "surf3d/surf.webp",
@@ -71,6 +71,18 @@
     "pes": [
       97.7,
       237.3
+    ]
+  },
+  "virar": {
+    "folha": "surf3d/virar.webp",
+    "larg": 184,
+    "alt": 262,
+    "quadros": 7,
+    "fps": 0,
+    "pixelado": true,
+    "pes": [
+      127.7,
+      244.0
     ]
   }
 }
