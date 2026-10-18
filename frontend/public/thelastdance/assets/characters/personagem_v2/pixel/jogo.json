@@ -245,6 +245,112 @@
           "pixelado": true
         }
       }
+    },
+    "3d_azul": {
+      "baixo": {
+        "folha": "3d_azul/andar_baixo.webp",
+        "larg": 152,
+        "alt": 324,
+        "quadros": 8,
+        "fps": 8,
+        "pes": [
+          76.3,
+          312.9
+        ],
+        "altura_px": 304,
+        "pixelado": true,
+        "parado": {
+          "folha": "3d_azul/parado_baixo.webp",
+          "larg": 152,
+          "alt": 324,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            76.3,
+            312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        }
+      },
+      "cima": {
+        "folha": "3d_azul/andar_cima.webp",
+        "larg": 152,
+        "alt": 324,
+        "quadros": 8,
+        "fps": 8,
+        "pes": [
+          76.3,
+          312.9
+        ],
+        "altura_px": 304,
+        "pixelado": true,
+        "parado": {
+          "folha": "3d_azul/parado_cima.webp",
+          "larg": 152,
+          "alt": 324,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            76.3,
+            312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        }
+      },
+      "direita": {
+        "folha": "3d_azul/andar_direita.webp",
+        "larg": 152,
+        "alt": 324,
+        "quadros": 8,
+        "fps": 8,
+        "pes": [
+          76.3,
+          312.9
+        ],
+        "altura_px": 304,
+        "pixelado": true,
+        "parado": {
+          "folha": "3d_azul/parado_direita.webp",
+          "larg": 152,
+          "alt": 324,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            76.3,
+            312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        }
+      },
+      "esquerda": {
+        "folha": "3d_azul/andar_esquerda.webp",
+        "larg": 152,
+        "alt": 324,
+        "quadros": 8,
+        "fps": 8,
+        "pes": [
+          76.3,
+          312.9
+        ],
+        "altura_px": 304,
+        "pixelado": true,
+        "parado": {
+          "folha": "3d_azul/parado_esquerda.webp",
+          "larg": 152,
+          "alt": 324,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            76.3,
+            312.9
+          ],
+          "altura_px": 304,
+          "pixelado": true
+        }
+      }
     }
   },
   "altura_personagem_px": 320

@@ -1496,6 +1496,7 @@
     const valido = (n) => n && (j.conjuntos[n] || n === MODULAR);
     // o modular é o protagonista; as folhas antigas continuam no botão Sprites
     const pedido = valido(params.get("conjunto")) ? params.get("conjunto") : valido(pref.ler("nsf_conjunto")) ? pref.ler("nsf_conjunto") : MODULAR;
+    if (params.get("conjunto") === pedido) pref.gravar("nsf_conjunto", pedido); // escolhido pelo link (tester): vale nas outras telas
     return carregarConjunto(pedido).then(() => { conjunto = pedido; });
   }).then(() => {
     // toca quando ele acorda no quarto (não toda vez que volta para casa)
