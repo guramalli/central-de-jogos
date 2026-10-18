@@ -252,6 +252,9 @@
       { id: "genival", nome: "Genival", personagem: "genival", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 11.0, y: 9.6, dir: "baixo",
         voz: "assets/audio/amigos/genival_balada.mp3", // áudio dele (trancado), ao interagir
         falarDe: { x: 11.0, y: 10.3 }, fala: ["\"Essa é a minha música!\"", "\"Hoje eu só saio daqui quando acender a luz!\""] },
+      // o Pantera em 3D (trancado com a senha), de camisa verde (sem logos), dançando do outro lado do Genival
+      { id: "pantera", nome: "Pantera", personagem: "pantera", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 10.0, y: 10.0, dir: "baixo",
+        falarDe: { x: 10.0, y: 10.7 }, fala: ["\"Hoje é dia de comemorar, parceiro! 💚\"", "\"Bora, Genival, não para não!\""] },
       // o Sapata em 3D (trancado com a senha), dançando na pista do lado do Genival
       { id: "sapata", nome: "Sapata", personagem: "sapata", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 12.5, y: 9.75, dir: "baixo",
         falarDe: { x: 12.5, y: 10.4 }, fala: ["\"Treino de perna hoje foi aqui na pista!\"", "\"Bora, Genival, mostra o passinho!\""] },
