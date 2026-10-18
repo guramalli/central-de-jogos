@@ -210,8 +210,27 @@
     }
     ctx.restore();
   };
+  // botão DANÇAR: ele dança onde estiver (a tira "dancar" do personagem 3D); andar ou sentar para a dança
+  let bDancar = null;
+  function dancar(api, sim) {
+    const j = api && api.jog;
+    if (!j) return;
+    j.dancando = sim;
+    if (sim) { j.pose = "dancar"; j.dir = "baixo"; } else if (j.pose === "dancar") j.pose = null;
+    if (bDancar) { bDancar.textContent = sim ? "⏹ Parar" : "💃 Dançar"; bDancar.setAttribute("aria-pressed", String(sim)); }
+  }
+  PLANTA.aoIniciar = (api) => {
+    if (bDancar || typeof document === "undefined") return;
+    bDancar = document.createElement("button");
+    bDancar.type = "button"; bDancar.id = "dancar";
+    bDancar.addEventListener("click", (e) => { e.stopPropagation(); dancar(api, !api.jog.dancando); bDancar.blur(); });
+    document.body.appendChild(bDancar);
+    dancar(api, false);
+  };
   // fachos de luz saindo do palco e varrendo a pista; globo espelhado no meio
   PLANTA.aoDesenhar = (ctx, T, agora) => {
+    const api = typeof window !== "undefined" && window.NSF_APTO;
+    if (api && api.jog && api.jog.dancando && (api.jog.andando || api.jog.sentado || api.jog.pose !== "dancar")) dancar(api, false);
     if (!efeitos()) return;
     const t = agora / 1000;
     ctx.save();
