@@ -63,7 +63,7 @@
     // O carro leva para: (mesmos lugares de antes; a padaria volta para cá)
     destinos: [
       { nome: "Padaria", descricao: "Café, pão na chapa e energia para mais uma noite", url: "padaria.html", ativo: true },
-      { nome: "Balada", descricao: "Em breve", ativo: false },
+      { nome: "Balada", descricao: "Música alta, camarote e a turma toda na pista 🪩", url: "balada.html", ativo: true },
       { nome: "Casa do amigo", descricao: "Churrasco, cerveja gelada e piscina", url: "casa_amigo.html", ativo: true },
       // só depois de aceitar o convite do Vibola para surfar (logo após a ligação da Gatinha de Campinas)
       { nome: "Praia", descricao: "A turma tá na areia e o mar tá clássico 🏄", url: "surf.html", ativo: true, so: "nsf_surf" },

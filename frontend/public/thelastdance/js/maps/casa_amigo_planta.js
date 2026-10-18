@@ -117,7 +117,7 @@
     destinos: [
       { nome: "Casa", descricao: "Voltar de carro para o prédio", url: "garagem.html?comodo=carro", ativo: true },
       { nome: "Padaria", descricao: "Café, pão na chapa e energia para mais uma noite", url: "padaria.html", ativo: true },
-      { nome: "Balada", descricao: "Em breve", ativo: false },
+      { nome: "Balada", descricao: "Música alta, camarote e a turma toda na pista 🪩", url: "balada.html", ativo: true },
     ],
 
     pontos: [

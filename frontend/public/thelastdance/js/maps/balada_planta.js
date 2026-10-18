@@ -236,6 +236,8 @@
 
     destinos: [
       { nome: "Casa", descricao: "Voltar de carro para o prédio", url: "garagem.html?comodo=carro", ativo: true },
+      { nome: "Padaria", descricao: "Café, pão na chapa e energia para mais uma noite", url: "padaria.html", ativo: true },
+      { nome: "Casa do amigo", descricao: "Churrasco, cerveja gelada e piscina", url: "casa_amigo.html", ativo: true },
     ],
 
     pontos: [

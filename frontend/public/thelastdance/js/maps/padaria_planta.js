@@ -142,7 +142,7 @@
     // Para onde a porta da rua leva (menu ao sair).
     destinos: [
       { nome: "Casa", descricao: "Voltar de carro para o prédio", url: "garagem.html?comodo=carro", ativo: true },
-      { nome: "Balada", descricao: "Em breve", ativo: false },
+      { nome: "Balada", descricao: "Música alta, camarote e a turma toda na pista 🪩", url: "balada.html", ativo: true },
     ],
 
     pontos: [
