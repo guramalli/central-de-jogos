@@ -218,6 +218,10 @@
       { id: "miltinho", nome: "Miltinho", personagem: "miltinho", personagem3d: true, so3d: true, postura: "em_pe", x: 14.1, y: 7.0, dir: "baixo",
         ciclo3d: [["parado", 3], ["dancar", 6], ["boxe", 4.4], ["parado", 2], ["chute", 2.5], ["dancar", 5]],
         falarDe: { x: 14.1, y: 7.75 }, fala: ["\"Quimono rosa, parceiro. Só quem pode, pode.\"", "\"Chega mais não, que eu tô aquecendo! 🥋\""] },
+      // o Kaleb em 3D (trancado com a senha), de mochila perto da entrada: quando você chega perto, solta uns socos no ar
+      { id: "kaleb", nome: "Kaleb", personagem: "kaleb", personagem3d: true, so3d: true, postura: "em_pe", x: 3.4, y: 16.8, dir: "baixo",
+        reage: { raio: 2.2, pose: "soco", fala: "Ó SE EU QUISESSE!" },
+        falarDe: { x: 3.4, y: 17.45 }, fala: ["\"Ó se eu quisesse...\"", "\"Tô só esperando o pessoal chegar.\""] },
       // o Genival em 3D (trancado com a senha), dançando na pista
       { id: "genival", nome: "Genival", personagem: "genival", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 11.0, y: 9.6, dir: "baixo",
         falarDe: { x: 11.0, y: 10.3 }, fala: ["\"Essa é a minha música!\"", "\"Hoje eu só saio daqui quando acender a luz!\""] },
