@@ -20,7 +20,7 @@
     "padaria.html": ["padaria", "vozes"],
     "elevador.html": ["vozes"],
     "garagem.html": ["vozes"],
-    "surf.html": [],
+    "surf.html": ["amigos"],             // a turma assistindo da areia
     "balada.html": ["vozes"],
   };
   const PACOTE_TESTE = "vozes"; // pequeno: confere se a chave abre (na entrada)

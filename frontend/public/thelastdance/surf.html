@@ -30,6 +30,19 @@
   #caixa button, #caixa a { display: block; width: 100%; box-sizing: border-box; margin-top: 10px; font: 700 17px system-ui, sans-serif;
            color: #fff; background: #b0279a; border: 2px solid #ff8be6; border-radius: 999px; padding: 12px; cursor: pointer; text-decoration: none; }
   #caixa a { background: transparent; }
+  /* botões na tela (celular): setas à esquerda, PULAR à direita */
+  #botoes { position: fixed; inset: auto 0 0 0; pointer-events: none; display: flex; justify-content: space-between; align-items: flex-end;
+            padding: 0 max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); }
+  #botoes[hidden] { display: none; }
+  #botoes .cruz { display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(2, 56px); gap: 6px; }
+  #botoes button { pointer-events: auto; touch-action: none; -webkit-user-select: none; user-select: none; border-radius: 16px;
+            border: 2px solid rgba(255,255,255,0.75); background: rgba(20,10,30,0.4); color: #fff; opacity: 0.9; font: 800 26px system-ui, sans-serif;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.35); }
+  #botoes button.apertado { background: rgba(255,90,216,0.75); transform: translateY(2px); box-shadow: none; }
+  #botoes .cima { grid-column: 2; grid-row: 1; } #botoes .esq { grid-column: 1; grid-row: 2; }
+  #botoes .baixo { grid-column: 2; grid-row: 2; } #botoes .dir { grid-column: 3; grid-row: 2; }
+  #botoes .pular { width: 104px; height: 104px; border-radius: 50%; font-size: 20px; background: rgba(255,90,216,0.55); }
+  #botoes small { display: block; font-size: 11px; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -39,6 +52,15 @@
   <button id="som" aria-pressed="true">Som: ligado</button>
 </div>
 <div id="caixa" role="dialog" aria-label="Surf" hidden></div>
+<div id="botoes" hidden>
+  <div class="cruz">
+    <button class="cima" data-acao="cima" aria-label="Subir a onda">▲</button>
+    <button class="esq" data-acao="freia" aria-label="Frear">◀</button>
+    <button class="baixo" data-acao="baixo" aria-label="Descer a onda">▼</button>
+    <button class="dir" data-acao="acelera" aria-label="Acelerar">▶</button>
+  </div>
+  <button class="pular" data-acao="pula" aria-label="Pular">🏄<small>PULAR</small></button>
+</div>
 <!-- Minigame de surf (js/surf.js). ?direto = pula as instruções -->
 <script src="js/base.js"></script>
 <script src="js/vip.js"></script>
