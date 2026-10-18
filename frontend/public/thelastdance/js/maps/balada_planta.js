@@ -214,6 +214,13 @@
       { id: "vini", nome: "Vini", personagem: "vini", personagem3d: true, pose3d: "dancar", postura: "em_pe", x: 11.6, y: 6.3, dir: "baixo",
         falarDe: { x: 11.6, y: 7.05 }, fala: ["\"Já mostrou o insta pra alguma gata? Mostra pra mim de novo.\"", "\"Aumenta esse som!\""],
         visual: { pele: "#c98f63", roupa: "#2b2b2b", calca: "#e79b8c", cabelo: "#2a1a10", estilo: "volume" } },
+      // o Miltinho em 3D (trancado com a senha), de quimono rosa na pista: dança, treina boxe e solta um chute
+      { id: "miltinho", nome: "Miltinho", personagem: "miltinho", personagem3d: true, so3d: true, postura: "em_pe", x: 14.1, y: 7.0, dir: "baixo",
+        ciclo3d: [["parado", 3], ["dancar", 6], ["boxe", 4.4], ["parado", 2], ["chute", 2.5], ["dancar", 5]],
+        falarDe: { x: 14.1, y: 7.75 }, fala: ["\"Quimono rosa, parceiro. Só quem pode, pode.\"", "\"Chega mais não, que eu tô aquecendo! 🥋\""] },
+      // o Genival em 3D (trancado com a senha), dançando na pista
+      { id: "genival", nome: "Genival", personagem: "genival", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 11.0, y: 9.6, dir: "baixo",
+        falarDe: { x: 11.0, y: 10.3 }, fala: ["\"Essa é a minha música!\"", "\"Hoje eu só saio daqui quando acender a luz!\""] },
     ],
 
     destinos: [
