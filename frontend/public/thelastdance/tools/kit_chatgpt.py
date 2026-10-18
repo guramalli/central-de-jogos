@@ -301,14 +301,14 @@ KITS = {
             ("sofa_vip", "Sofá do camarote VIP (veludo vermelho)", "peca",
              "a luxurious long VIP sofa in deep RED tufted velvet (chesterfield buttons), with low gold metal legs and a "
              "few small black cushions. The backrest is at the BACK (the thin upright block on the far side of the guide); "
-             "the seat faces the viewer, toward the lower-left.", []),
+             "the seat faces the viewer, toward the lower-left.", ["--pela-largura"]),
             ("sofa_lounge", "Sofá do lounge (couro preto)", "peca",
              "a long modern lounge sofa in BLACK leather with stitched cushions and dark wooden legs. The backrest is at "
              "the BACK (the thin upright block on the far side of the guide); the seat faces the viewer, toward the "
-             "lower-left.", []),
+             "lower-left.", ["--pela-largura"]),
             ("sofa_lounge_costas", "Sofá do lounge de costas", "peca",
              "the same long black leather lounge sofa seen from BEHIND: the backrest is the thin upright block on the NEAR "
-             "side of the guide (lower-left), so we see the back of the backrest; the seat faces away from the viewer.", []),
+             "side of the guide (lower-left), so we see the back of the backrest; the seat faces away from the viewer.", ["--pela-largura"]),
             ("mesinha_vip", "Mesinha do camarote (com champanhe)", "peca",
              "a small low round black lacquer table with a gold rim; on top a silver ice bucket with a champagne bottle "
              "(no label text), two champagne flutes and a small glowing candle.", ["--uniforme"]),
@@ -320,11 +320,11 @@ KITS = {
              "dark top; on top two beer bottles and a lit candle in a glass. No stools.", ["--uniforme"]),
             ("guarda_corpo", "Guarda-corpo do VIP (módulo de 1 m)", "peca",
              "a 1-meter section of the VIP area railing: polished GOLD metal posts at both ends and a gold top rail, with "
-             "dark smoked-glass panel between them. Several sections will stand side by side.", []),
+             "dark smoked-glass panel between them. Several sections will stand side by side.", ["--pela-largura"]),
             ("cordao_fila", "Cordão da fila (trecho)", "peca",
              "a 1.2 m section of a queue barrier at a nightclub entrance: TWO shiny gold stanchion posts with round heavy "
              "bases, one at each end of the gray block, connected by a sagging thick RED VELVET rope with gold hooks. The "
-             "gray block is only the outer size: there is empty space between the two posts, under the rope.", []),
+             "gray block is only the outer size: there is empty space between the two posts, under the rope.", ["--pela-largura"]),
             ("pulpito_hostess", "Púlpito da hostess", "peca",
              "a small black hostess podium at a nightclub entrance with a thin gold edge, a tablet with a guest list on the "
              "slanted top and a small gooseneck lamp. Its front faces the DARKEST front-left face.", ["--uniforme"]),
@@ -345,7 +345,7 @@ KITS = {
              "small metal plate at the base.", ["--faces"]),
             ("floreira", "Floreira (módulo)", "peca",
              "one module (1.4 m long) of a low black planter box full of dense tropical leafy plants and ferns, with a soft "
-             "warm uplight. Several modules will stand side by side.", []),
+             "warm uplight. Several modules will stand side by side.", ["--pela-largura"]),
             ("balcao_gv", "Balcão do guarda-volumes", "peca",
              "a coat-check counter of a nightclub: dark wood front panel (the DARKEST front-left face) with a small brass "
              "bell and a stack of numbered plastic tags on the dark top, a small glowing sign holder.", ["--faces"]),
@@ -403,9 +403,9 @@ KITS = {
              "a closed dark restroom door with a small glowing PINK neon woman icon on it and a metal push plate. No text.", []),
         ],
         # cópias que não se geram: (nome, de, guia, opções)
-        "derivados": [("sofa_vip_lado", "sofa_vip", "sofa_vip_lado", ["--espelhar"]),
-                      ("sofa_lounge_lado", "sofa_lounge", "sofa_lounge_lado", ["--espelhar"]),
-                      ("guarda_corpo_lado", "guarda_corpo", "guarda_corpo_lado", ["--espelhar"]),
+        "derivados": [("sofa_vip_lado", "sofa_vip", "sofa_vip_lado", ["--espelhar", "--pela-largura"]),
+                      ("sofa_lounge_lado", "sofa_lounge", "sofa_lounge_lado", ["--espelhar", "--pela-largura"]),
+                      ("guarda_corpo_lado", "guarda_corpo", "guarda_corpo_lado", ["--espelhar", "--pela-largura"]),
                       ("balcao_guarda_volumes", "balcao_gv", "balcao_guarda_volumes", ["--espelhar", "--faces"])],
     },
 }

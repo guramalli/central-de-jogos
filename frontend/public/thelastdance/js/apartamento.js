@@ -67,6 +67,7 @@
   const toque = { ativo: false, sx: 0, sy: 0 };
   let demo = params.has("demo");
   let mostrarGrade = params.has("grade"), mostrarNomes = params.has("nomes");
+  const mostrarBlocos = params.has("blocos"); // conferência: o contorno 3D de cada bloco por cima da arte
 
   // ---------- entrada ----------
   const MAPA = { ArrowUp: "c", KeyW: "c", ArrowDown: "b", KeyS: "b", ArrowLeft: "e", KeyA: "e", ArrowRight: "d", KeyD: "d" };
@@ -1534,6 +1535,19 @@
         }
         ctx.restore();
       }
+    }
+    if (mostrarBlocos) { // arestas de cada bloco (pegada no chão em ciano, topo em amarelo)
+      ctx.save(); ctx.lineWidth = 1.5;
+      for (const c of P.caixas) {
+        if (c.oculto) continue;
+        const z0 = c.z0 || 0, z1 = c.z1 || 0;
+        const base = [T(c.x0, c.y0, z0), T(c.x1, c.y0, z0), T(c.x1, c.y1, z0), T(c.x0, c.y1, z0)];
+        const topo = [T(c.x0, c.y0, z1), T(c.x1, c.y0, z1), T(c.x1, c.y1, z1), T(c.x0, c.y1, z1)];
+        ctx.strokeStyle = "rgba(0,255,255,0.9)"; ctx.beginPath(); base.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p))); ctx.closePath(); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,230,0,0.9)"; ctx.beginPath(); topo.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p))); ctx.closePath(); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,230,0,0.5)"; ctx.beginPath(); for (let i = 0; i < 4; i++) { ctx.moveTo(...base[i]); ctx.lineTo(...topo[i]); } ctx.stroke();
+      }
+      ctx.restore();
     }
     if (mostrarNomes) {
       for (const c of P.caixas) if (c.nome && !c.oculto) rotulo(ctx, c.nome, (c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, c.z1);

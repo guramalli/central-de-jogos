@@ -1288,7 +1288,7 @@
       "escala": 2.0,
       "origem_px": [
         115.3,
-        190.3
+        94.3
       ],
       "tamanho_m": [
         2.4,
@@ -1298,9 +1298,9 @@
       "descricao": "sofá de veludo vermelho do camarote, encosto do lado y = 0, assento virado para +y",
       "ajuste": {
         "x": 0.34,
-        "y": 0.44,
+        "y": 0.34,
         "espelhado": false,
-        "proporcao": 0.773
+        "proporcao": 1.0
       }
     },
     "sofa_lounge": {
@@ -1308,7 +1308,7 @@
       "escala": 2.0,
       "origem_px": [
         115.3,
-        190.3
+        106.3
       ],
       "tamanho_m": [
         2.4,
@@ -1318,9 +1318,9 @@
       "descricao": "sofá de couro preto do lounge, encosto do lado y = 0, assento virado para +y",
       "ajuste": {
         "x": 0.355,
-        "y": 0.444,
+        "y": 0.355,
         "espelhado": false,
-        "proporcao": 0.801
+        "proporcao": 1.0
       }
     },
     "mesinha_vip": {
@@ -1368,7 +1368,7 @@
       "escala": 2.0,
       "origem_px": [
         22.3,
-        200.1
+        99.1
       ],
       "tamanho_m": [
         1.0,
@@ -1378,9 +1378,9 @@
       "descricao": "módulo de 1 m do guarda-corpo dourado do camarote (repete lado a lado), ao longo de x",
       "ajuste": {
         "x": 0.164,
-        "y": 0.255,
+        "y": 0.164,
         "espelhado": false,
-        "proporcao": 0.642
+        "proporcao": 1.0
       }
     },
     "cordao_fila": {
@@ -1388,7 +1388,7 @@
       "escala": 2.0,
       "origem_px": [
         21.9,
-        200.9
+        62.9
       ],
       "tamanho_m": [
         1.2,
@@ -1398,9 +1398,9 @@
       "descricao": "trecho de 1,2 m do cordão da fila: dois postes dourados nas pontas e corda de veludo vermelho",
       "ajuste": {
         "x": 0.153,
-        "y": 0.285,
+        "y": 0.153,
         "espelhado": false,
-        "proporcao": 0.538
+        "proporcao": 1.0
       }
     },
     "pulpito_hostess": {
@@ -1508,7 +1508,7 @@
       "escala": 2.0,
       "origem_px": [
         345.7,
-        190.3
+        94.3
       ],
       "tamanho_m": [
         0.8,
@@ -1518,9 +1518,9 @@
       "descricao": "sofá vermelho do camarote encostado na parede da esquerda (espelho do sofa_vip)",
       "ajuste": {
         "x": 0.34,
-        "y": 0.44,
+        "y": 0.34,
         "espelhado": true,
-        "proporcao": 0.773
+        "proporcao": 1.0
       }
     },
     "sofa_lounge_lado": {
@@ -1528,7 +1528,7 @@
       "escala": 2.0,
       "origem_px": [
         345.7,
-        190.3
+        106.3
       ],
       "tamanho_m": [
         0.8,
@@ -1538,9 +1538,9 @@
       "descricao": "sofá de couro preto virado para +x (espelho do sofa_lounge)",
       "ajuste": {
         "x": 0.355,
-        "y": 0.444,
+        "y": 0.355,
         "espelhado": true,
-        "proporcao": 0.801
+        "proporcao": 1.0
       }
     },
     "guarda_corpo_lado": {
@@ -1548,7 +1548,7 @@
       "escala": 2.0,
       "origem_px": [
         144.7,
-        200.1
+        99.1
       ],
       "tamanho_m": [
         0.15,
@@ -1558,9 +1558,9 @@
       "descricao": "módulo do guarda-corpo dourado ao longo de y (espelho do guarda_corpo)",
       "ajuste": {
         "x": 0.164,
-        "y": 0.255,
+        "y": 0.164,
         "espelhado": true,
-        "proporcao": 0.642
+        "proporcao": 1.0
       }
     },
     "floreira": {
@@ -1568,7 +1568,7 @@
       "escala": 2.0,
       "origem_px": [
         43.3,
-        180.3
+        78.3
       ],
       "tamanho_m": [
         1.4,
@@ -1578,9 +1578,9 @@
       "descricao": "módulo de 1,4 m de floreira baixa separando o lounge da pista (repete lado a lado)",
       "ajuste": {
         "x": 0.206,
-        "y": 0.309,
+        "y": 0.206,
         "espelhado": false,
-        "proporcao": 0.665
+        "proporcao": 1.0
       }
     },
     "balcao_gv": {
@@ -1773,6 +1773,46 @@
         280,
         512
       ]
+    },
+    "sofa_lounge_costas": {
+      "arquivo": "sofa_lounge_costas.png",
+      "escala": 2.0,
+      "origem_px": [
+        115.3,
+        87.4
+      ],
+      "tamanho_m": [
+        2.4,
+        0.8,
+        0.45
+      ],
+      "descricao": "o mesmo sofá de couro preto visto de costas: encosto do lado y = 0,8 (perto da câmera), assento para -y",
+      "ajuste": {
+        "x": 0.353,
+        "y": 0.353,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "mesinha_lounge": {
+      "arquivo": "mesinha_lounge.png",
+      "escala": 2.0,
+      "origem_px": [
+        115.5,
+        68.9
+      ],
+      "tamanho_m": [
+        0.8,
+        0.8,
+        0.45
+      ],
+      "descricao": "mesinha de centro baixa do lounge",
+      "ajuste": {
+        "x": 0.205,
+        "y": 0.205,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
     }
   }
 }
