@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#0b0712">
 <meta name="robots" content="noindex, nofollow">
 <title>Noite Sem Fim — surf na praia</title>
@@ -58,6 +58,13 @@
   #botoes .baixo { grid-column: 2; grid-row: 2; } #botoes .dir { grid-column: 3; grid-row: 2; }
   #botoes .pular { width: 104px; height: 104px; border-radius: 50%; font-size: 20px; background: rgba(255,90,216,0.55); }
   #botoes small { display: block; font-size: 11px; font-weight: 700; }
+  /* celular deitado (tela baixa): botões menores e mais transparentes, encostados nos cantos */
+  @media (max-height: 500px) {
+    #botoes { padding: 0 max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+    #botoes .cruz { grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(2, 46px); gap: 4px; }
+    #botoes button { font-size: 21px; opacity: 0.7; background: rgba(20,10,30,0.25); }
+    #botoes .pular { width: 84px; height: 84px; font-size: 17px; }
+  }
 </style>
 </head>
 <body>

@@ -19,7 +19,7 @@
   "use strict";
 
   // ---------- regras (sem tela: testadas em tests/surf.test.js) ----------
-  const REGRAS = { ondas: 3, segundosOnda: 34, vCrista: 220 }; // mais lento: dá tempo de montar as manobras
+  const REGRAS = { ondas: 3, segundosOnda: 30, vCrista: 290 };
   // pontos de cada manobra (floater e tubo ganham também por segundo; aéreo ganha por volta completa no ar)
   const PONTOS = { drop: 100, pulinho: 50, cavada: 150, cutback: 500, floater: 300, floaterSeg: 400, aereo: 1000, giro: 1000,
     tubo: 500, tuboSeg: 700, tubaco: 1500, cuspido: 500, onda: 300 };
@@ -33,15 +33,15 @@
   //   Segurando D (ou A) ele "trima" (pouco atrito); soltando, ele trava a prancha (stall): perde velocidade e a
   //   onda o alcança (tubo). BOMBEAR: ▲▼ (W/S) alternados e rápidos = batidinhas na prancha, cada uma soma velocidade.
   const FISICA = {
-    vMin: 60, vMax: 560,
-    gravidade: 300,     // px/s² na descida mais íngreme (do pé à crista a 360 px/s, ele quase chega lá em cima)
-    empurrao: 80,       // a onda empurrando (no pocket)
+    vMin: 80, vMax: 720,
+    gravidade: 420,     // px/s² na descida mais íngreme
+    empurrao: 110,      // a onda empurrando (no pocket)
     atrito: 30,         // perda fixa
     arrasto: 0.35,      // perda proporcional à velocidade, trimando
     arrastoTravado: 1.4,// perda proporcional à velocidade, com a prancha travada (sem D/A)
     deriva: 50,         // a onda corre um pouco mais que ele (na crista); no ombro, mais
-    face: 230,          // altura da parede em px (converte velocidade em "alturas por segundo")
-    bomba: 70,          // ganho de cada bombada (diminui perto da velocidade máxima)
+    face: 240,          // altura da parede em px (converte velocidade em "alturas por segundo")
+    bomba: 90,          // ganho de cada bombada (diminui perto da velocidade máxima)
     bombaJanela: 0.45,  // ▲ e ▼ alternados com menos de 0,45 s entre eles contam como bombada
     rumoMax: 0.85,
   };
@@ -245,7 +245,7 @@
       x += len; primeira = false;
     }
   }
-  const vCrista = () => { const t = secaoEm(s.crista).tipo; return t === "tubular" ? 240 : t === "cheia" ? 190 : REGRAS.vCrista; };
+  const vCrista = () => { const t = secaoEm(s.crista).tipo; return t === "tubular" ? 320 : t === "cheia" ? 250 : REGRAS.vCrista; };
   function altura(d) {
     let h;
     if (d < 0) h = s.quebrada ? HMAX * Math.max(0.3, 0.62 + d / 2600) : HMAX * Math.max(0.15, 1 + d / 900);
@@ -273,7 +273,7 @@
     s.fase = "surfando"; s.quebrada = true; s.remo = null;
     gerarSecoes(s.crista);
     s.v = REGRAS.vCrista + 140; s.h = 0.95; s.vh = -1.2; s.u = 120; s.dir = 1;
-    s.fis = { v: 300, rumo: -0.7, dir: 1 }; // o drop: desce a parede e já ganha velocidade
+    s.fis = { v: 380, rumo: -0.7, dir: 1 }; // o drop: desce a parede e já ganha velocidade
     marcar("drop", PONTOS.drop, "DROP!");
     if (A()) A().swoosh(true);
     falar("drop");
@@ -388,7 +388,8 @@
       ? Math.max(cantoCrista, s.crista - W * (W < 900 ? 0.3 : 0.32) + lim(s.x - s.crista, -200, 1400) * 0.55) // segue a onda
       : s.x - W * (W < 900 ? 0.36 : 0.4);
     s.cam += (alvoCam - s.cam) * Math.min(1, dt * 3.5);
-    if (s.fase === "surfando") s.cam = lim(s.cam, s.x - W * 0.7, s.x - W * 0.08); // ele nunca sai da tela
+    // ele nunca sai da tela; no celular fica entre os botões (setas à esquerda, PULAR à direita)
+    if (s.fase === "surfando") s.cam = toque ? lim(s.cam, s.x - W * 0.64, s.x - W * 0.34) : lim(s.cam, s.x - W * 0.7, s.x - W * 0.08);
     s.tremor = Math.max(0, s.tremor - dt * 40);
     for (const a of s.avisos) { a.vida -= dt; a.y -= dt * 60; }
     s.avisos = s.avisos.filter((a) => a.vida > 0);
@@ -926,7 +927,7 @@
     if (surf3d) desenharTira3d(ctx, pose3d(), 4, 2);
     else { heroi.definirVista("frente"); heroi.desenhar(ctx, 0, pesAbaixo * ESC + 2, ESC); }
     ctx.restore();
-    if (s.fis.v > 380 && !s.ar && s.fase === "surfando") { // linhas de velocidade
+    if (s.fis.v > 480 && !s.ar && s.fase === "surfando") { // linhas de velocidade
       ctx.fillStyle = "rgba(255,255,255,0.5)";
       for (let i = 0; i < 4; i++) ctx.fillRect(x - s.dir * (160 + ((s.relogio * 900 + i * 70) % 140)) - (s.dir < 0 ? 70 : 0), y - 40 - i * 26, 70, 3);
     }
@@ -1035,6 +1036,13 @@
   global.addEventListener("keyup", (e) => { const n = teclaDe(e); if (n) apertar(n, false); });
   global.addEventListener("blur", () => { for (const k of Object.keys(ent)) ent[k] = false; });
   tela.addEventListener("pointerdown", () => { if (s.fase === "remando") remar(); });
+  // Safari (iPhone): toques rápidos davam zoom (duplo toque e pinça). Bloqueia o gesto na página toda,
+  // menos na caixa (nome do ranking, botões) e no painel de cima, que precisam do clique normal.
+  const livre = (e) => e.target && e.target.closest && e.target.closest("#caixa, #painel");
+  for (const tipo of ["touchstart", "touchend", "touchmove"]) {
+    doc.addEventListener(tipo, (e) => { if (!livre(e) && e.cancelable) e.preventDefault(); }, { passive: false });
+  }
+  for (const tipo of ["gesturestart", "gesturechange", "dblclick"]) doc.addEventListener(tipo, (e) => e.preventDefault(), { passive: false });
   // botões na tela (celular): segurar = apertado; vários dedos ao mesmo tempo
   const botoes = doc.getElementById("botoes");
   if (botoes) {
