@@ -15,8 +15,8 @@ export const SURF = {
   nomeMax: 10,
   minSegundos: 75,          // 3 ondas de 28 s + remada e nota: uma partida de verdade passa de 100 s
   maxSegundos: 3 * 3600,
-  pontosPorSegundo: 4000,   // teto generoso (as melhores ondas rendem bem menos que isso)
-  pontosMax: 500000,
+  pontosPorSegundo: 20000,  // teto generoso: com combo x5 e aéreos de 1440 os bons passam de 5 mil por segundo
+  pontosMax: 5000000,
   top: 10,
 };
 
