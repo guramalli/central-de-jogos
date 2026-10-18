@@ -107,7 +107,7 @@
           "\"Ô churrasqueiro, solta uma linguiça aqui pro torcedor!\""],
         visual: { pele: "#e0b48e", roupa: "#f2d21b", calca: "#1a1a1a", cabelo: "#111", estilo: "bone" } },
       // na banqueta da ponta da ilha, de lado, virado para a turma (assento alto: 0,75 m)
-      { id: "pabo", nome: "Pabo", personagem: "pabo", postura: "sentado", assento: 0.75, x: 3.475, y: 3.275, dir: "direita",
+      { id: "pabo", nome: "Pablo", personagem: "pabo", postura: "sentado", assento: 0.75, x: 3.475, y: 3.275, dir: "direita",
         falarDe: { x: 4.2, y: 3.4 }, fala: ["\"Me vê só a proteína dessa picanha, sem a gordura.\"",
           "\"Bora treinar amanhã? Ah, esqueci: você só treina a mandíbula.\""],
         visual: { pele: "#c98f63", roupa: "#2b2b2b", calca: "#b5b5b5", cabelo: "#6b4226", estilo: "curto" } },

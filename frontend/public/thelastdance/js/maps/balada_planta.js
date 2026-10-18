@@ -179,7 +179,7 @@
 
       // ---- a turma (rosto real: arte só com a senha; sem ela, o boneco provisório com as cores de "visual")
       // no bar, pegando bebida (de costas, virados para o balcão)
-      { id: "pabo", nome: "Pabo", personagem: "pabo", postura: "em_pe", x: 17.15, y: 3.1, dir: "cima",
+      { id: "pabo", nome: "Pablo", personagem: "pabo", postura: "em_pe", x: 17.15, y: 3.1, dir: "cima",
         falarDe: { x: 17.15, y: 3.85 }, fala: ["\"Barman, me vê uma água com gás. Amanhã tem treino.\"", "\"Proteína em forma de caipirinha existe?\""],
         visual: { pele: "#d29a6e", roupa: "#1f6fb2", calca: "#22304a", cabelo: "#2a1a10", estilo: "curto" } },
       { id: "borrinha", nome: "Borrinha", personagem: "borrinha", postura: "em_pe", x: 20.35, y: 3.1, dir: "cima",

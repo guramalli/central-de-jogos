@@ -86,7 +86,7 @@
         { quem: "juan", texto: "Ninguém mais acordou assim. Só você. Todo domingo." },
       ],
       [ // a turma completa
-        { quem: "eu", texto: "Pabo, Elcio, Jamil! Agora sim a família tá completa!" },
+        { quem: "eu", texto: "Pablo, Elcio, Jamil! Agora sim a família tá completa!" },
         { quem: "jamil", texto: "Vim abençoar essa carne. E esse churrasqueiro, que precisa mais." },
         { quem: "pabo", texto: "Picanha é proteína. Então tá liberado." },
         { quem: "elcio", texto: "Alguém viu meu protetor solar?" },
