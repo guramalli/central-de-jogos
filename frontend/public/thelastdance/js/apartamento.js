@@ -603,16 +603,16 @@
     const rindo = n.rindoAte && agora < n.rindoAte && d.rir;
     // ciclo3d: [[pose, segundos], ...] — alterna sozinha (ex.: parado, um gole, dança); pose que não é laço toca uma vez
     let f = rindo ? d.rir : (n.pose3d && d[n.pose3d]) || d.parado, q = null;
-    // reage: { raio, pose, fala } — quando o jogador chega perto, toca a pose uma vez e fala (rearma quando ele se afasta)
+    // reage: { raio, pose?, fala } — quando o jogador chega perto, fala (e toca a pose uma vez, se tiver); rearma quando ele se afasta
     const r = n.reage;
     if (r && !n.oculta) {
       const perto = !jog.oculto && Math.hypot(jog.x - n.x, jog.y - n.y) < (r.raio || 1.5);
-      if (perto && !n.reagiu && d[r.pose]) {
+      if (perto && !n.reagiu && (!r.pose || d[r.pose])) {
         n.reagiu = agora;
         if (r.fala) n.balao = { texto: r.fala, ate: agora + 3000 };
       }
       if (!perto && n.reagiu && agora - n.reagiu > 1500) n.reagiu = null;
-      const fr = n.reagiu && d[r.pose], tr = fr && (agora - n.reagiu) / 1000;
+      const fr = n.reagiu && r.pose && d[r.pose], tr = fr && (agora - n.reagiu) / 1000;
       if (fr && tr < fr.quadros / fr.fps) { f = fr; q = Math.floor(tr * fr.fps); }
     }
     if (q == null && !rindo && !n.pose3d && n.ciclo3d) {

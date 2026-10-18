@@ -197,18 +197,18 @@
         visual: { pele: "#d29a6e", roupa: "#4f6b2a", calca: "#22304a", cabelo: "#5a3a22", estilo: "curto" } },
       // o Jamil em 3D (trancado com a senha), em pé no VIP olhando o movimento (animação do modelo)
       { id: "jamil", nome: "Jamil", personagem: "jamil", personagem3d: true, pose3d: "olhar", postura: "em_pe", x: 2.5, y: 3.0, dir: "baixo",
-        falarDe: { x: 2.5, y: 3.75 }, fala: ["\"Terno na balada. Elegância não tira folga.\"", "\"Amanhã cedo tem missa, hein. Não vai dormir tarde.\""],
+        falarDe: { x: 2.5, y: 3.75 }, fala: ["\"Paz do Senhor.\""],
         visual: { pele: "#d6a27a", roupa: "#d9cfbd", calca: "#d9cfbd", cabelo: "#4a4a4a", estilo: "curto" } },
       { id: "elcio", nome: "Elcio", personagem: "elcio", postura: "sentado", assento: 0.45, x: 0.45, y: 4.6, dir: "direita",
         falarDe: { x: 1.2, y: 4.1 }, fala: ["\"Óculos escuros na balada? É o brilho do camarote, irmão.\"", "\"Cadê a piscina dessa balada?\""],
         visual: { pele: "#c48d63", roupa: "#c48d63", calca: "#e0404a", cabelo: "#1c120c", estilo: "curto" } },
       { id: "gustavinho", nome: "Gustavinho", personagem: "gustavinho", personagem3d: true, postura: "em_pe", x: 3.6, y: 3.0, dir: "baixo",
-        falarDe: { x: 3.6, y: 3.75 }, fala: ["\"Hoje a noite promete, parceiro!\"", "\"Já viu a ruiva da pista? Vai lá, vai!\""],
+        falarDe: { x: 3.6, y: 3.75 }, fala: ["\"She is the one?\""],
         visual: { pele: "#c48d63", roupa: "#111111", calca: "#2f5fb0", cabelo: "#2a1a10", estilo: "curto" } },
       // o Vibola em 3D (pixel art, trancado com a senha), fumando: fica parado e de vez em quando dá um trago
       { id: "vibola", nome: "Vibola", personagem: "vibola", personagem3d: true, postura: "em_pe", x: 4.6, y: 2.4, dir: "baixo",
         ciclo3d: [["parado", 4.5], ["fumar", 3.2]],
-        falarDe: { x: 4.6, y: 3.2 }, fala: ["\"Mais um ano solteiro... de novo, né?\"", "\"Esse DJ tá tocando só as minhas!\""],
+        falarDe: { x: 4.6, y: 3.2 }, fala: ["\"Tem alguma velha bolada por aí?\""],
         visual: { pele: "#b9825a", roupa: "#1a1a1a", calca: "#ececec", cabelo: "#2a1a10", estilo: "curto" } },
       // o Vini em 3D (trancado com a senha), dançando na pista com as meninas
       { id: "vini", nome: "Vini", personagem: "vini", personagem3d: true, pose3d: "dancar", postura: "em_pe", x: 11.6, y: 6.3, dir: "baixo",
@@ -224,6 +224,7 @@
         falarDe: { x: 3.4, y: 17.45 }, fala: ["\"Ó se eu quisesse...\"", "\"Tô só esperando o pessoal chegar.\""] },
       // o Thiago Mourão em 3D (trancado com a senha), dançando no camarote
       { id: "thiago", nome: "Thiago Mourão", personagem: "thiago", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 3.8, y: 5.3, dir: "baixo",
+        reage: { raio: 1.8, fala: "Pode parecer que não, mas eu sou o rei daqui." },
         falarDe: { x: 3.8, y: 6.05 }, fala: ["\"Camarote é isso aqui, ó: só alegria!\"", "\"Solta o som, DJ!\""] },
       // o Genival em 3D (trancado com a senha), dançando na pista
       { id: "genival", nome: "Genival", personagem: "genival", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 11.0, y: 9.6, dir: "baixo",
