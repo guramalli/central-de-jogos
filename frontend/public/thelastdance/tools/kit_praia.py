@@ -27,6 +27,7 @@ TAM_JOGO = {
     "onda_parede": ("alt", 150), "onda_espuma": ("alt", 110), "onda_crista": ("alt", 215),
     "guarda_sol": ("alt", 170), "isopor": ("alt", 62), "cadeira_praia": ("alt", 92), "coqueiro": ("alt", 240),
     "prancha_fincada": ("alt", 120), "prancha": ("larg", 98),
+    "spray": ("alt", 92), "crista_espuma": ("alt", 30),
 }
 
 ESTILO_COMUM = ("high-resolution pixel art with crisp chunky pixels (each art pixel clearly visible, no blur, no "
@@ -60,6 +61,18 @@ PEDIDOS = [
      "a horizontally TILEABLE band of WHITEWATER (the foam of a wave that already broke), seen from the side: a "
      "rolling mass of white and light-blue foam, bubbly and lumpy on top, flat at the bottom, with small splashes. "
      "The left and right edges must match so it can repeat. Each frame: the foam churns and bubbles move."),
+    ("spray", "Leque de água da rasgada (3 quadros)", "folha3", "landscape",
+     "the WATER SPRAY thrown by a surfboard rail in a hard turn, seen from the side: a big fan-shaped curtain of "
+     "water flying from the BOTTOM-LEFT corner (where the board rail cuts the water) up and to the RIGHT, like a "
+     "crescent wing of white and light-cyan water with chunky droplets breaking off at its tips. No surfer, no "
+     "board, no wave, only the spray. Frame 1: the spray just starting (small, dense, close to the bottom-left); "
+     "frame 2: fully open (biggest, tallest arc); frame 3: breaking apart into scattered droplets falling. "
+     "Same size and same bottom-left starting point in the 3 frames."),
+    ("crista_espuma", "Espuma da crista (faixa)", "unica", "landscape",
+     "a thin horizontally TILEABLE strip of FOAM for the very TOP EDGE (the lip) of an ocean wave seen from the side: "
+     "a band of white and pale-cyan churning foam, lumpy and bubbly on top with small spray droplets flying above "
+     "it, flat-ish on the bottom where it sits on the turquoise water. Very wide and short (about 6 times wider than "
+     "tall), filling the whole width of the image. The left and right edges must match perfectly so it can repeat."),
     ("prancha", "Prancha dele (a que ele surfa)", "unica", "landscape",
      "ONE SURFBOARD on its own (no surfer), lying perfectly HORIZONTAL, seen from the SIDE and a little from above "
      "(so the top deck shows as a thin strip): a 6-foot shortboard, white deck with a thin hot-pink stripe running "
@@ -228,7 +241,7 @@ def reduzir(im, nome, cheia):
     return Image.fromarray(a)
 
 
-EMENDAR = ("onda_parede", "onda_espuma", "areia")  # texturas que repetem lado a lado
+EMENDAR = ("onda_parede", "onda_espuma", "areia", "crista_espuma")  # texturas que repetem lado a lado
 
 
 def emendar(im, frac=0.3):

@@ -355,6 +355,35 @@
   // ---------- efeitos ----------
   function aviso(texto, cor, tam) { s.avisos.push({ texto, y: 0, vida: 1.6, cor, tam }); if (s.avisos.length > 3) s.avisos.shift(); }
   function gota(x, y, vx, vy, r) { if (s.gotas.length < 400) s.gotas.push({ x, y, vx, vy, r, vida: 1 }); }
+  // LEQUE de água (rasgada): a borda da prancha joga uma cortina de água para trás e para cima, do tamanho da
+  // velocidade. Com a arte "spray" do kit, mostra também o leque desenhado (3 quadros); sem ela, só as gotas.
+  const leques = [];
+  function leque(forca) {
+    const [x, y] = posPrancha(), f = Math.max(0.6, Math.min(1.6, forca || 1));
+    const vel = s.fis ? Math.min(1.6, s.fis.v / (FISICA.vMax * 0.55)) : 1;
+    const n = Math.round(26 * f * (0.6 + 0.4 * vel));
+    for (let i = 0; i < n; i++) {
+      const a = rnd(0.25, 1.25), v = rnd(380, 820) * f * (0.7 + 0.3 * vel);   // ângulo: de quase deitado a bem para cima
+      gota(x - s.dir * rnd(10, 60), y - rnd(0, 18), -s.dir * Math.cos(a) * v, -Math.sin(a) * v, rnd(3, 8));
+    }
+    if (quadro("spray")) leques.push({ x: x - s.dir * 30, y, dir: s.dir, t: 0, esc: 0.8 + 0.4 * f });
+  }
+  function desenharLeques(ctx, dt) {
+    for (let i = leques.length - 1; i >= 0; i--) {
+      const l = leques[i];
+      l.t += dt;
+      if (l.t > 0.42) { leques.splice(i, 1); continue; }
+      const q = ARTE[`spray_${Math.min(2, Math.floor(l.t / 0.14))}`];
+      if (!q) continue;
+      const w = q.width * PX * l.esc, h = q.height * PX * l.esc;
+      ctx.save();
+      ctx.globalAlpha = l.t > 0.28 ? 1 - (l.t - 0.28) / 0.14 : 1;
+      ctx.translate(l.x - s.cam, l.y + 8);
+      ctx.scale(-l.dir, 1);                                               // a arte joga para a direita: espelha conforme a manobra
+      ctx.drawImage(q, -w * 0.15, -h, w, h);
+      ctx.restore();
+    }
+  }
   function espirro(n, forca) {
     const [x, y] = posPrancha(), f = forca || 1;
     for (let i = 0; i < n; i++) gota(x - rnd(0, 50), y, rnd(-260, 60) * f, rnd(-520, -180) * f, rnd(2, 5));
@@ -505,20 +534,20 @@
       s.noFundo = false;
       if (pode("cavada", 1.0)) {
         marcar("cavada", PONTOS.cavada, "Cavada"); s.ultimaCavada = s.relogio;
-        espirro(10, 0.7); if (A()) A().swoosh(false);
+        leque(1); if (A()) A().swoosh(false);
       }
     }
     // cutback: voltando (prancha para trás) e subindo a parede
     if (s.dir < 0 && s.virar < -0.5 && s.fis.rumo > 0.3 && s.h > 0.4 && pode("cutback", 1.4)) {
       marcar("cutback", PONTOS.cutback, "CUTBACK", "#ffd36b");
-      espirro(26, 1.2); tremer(5);
+      leque(1.4); tremer(5);
       if (A()) A().swoosh(true);
       if (Math.random() < 0.7) falar("cutback");
     }
     // chegou na crista: subindo, vira floater; senão, só encosta e volta
     if (s.h >= 1) {
       s.h = 1;
-      if (s.vh > 0.4 && !s.tubo) { s.floater = { t: 0 }; aviso("Floater...", "#ffd36b", 38); espirro(14, 0.9); }
+      if (s.vh > 0.4 && !s.tubo) { s.floater = { t: 0 }; aviso("Floater...", "#ffd36b", 38); leque(1.1); }
       else { s.vh = -0.4; s.fis.rumo = Math.min(s.fis.rumo, -0.3); }
     }
     if (pulouAgora) return pular(false);
@@ -577,6 +606,7 @@
   // arte da praia (kit do ChatGPT, tools/kit_praia.py); enquanto não carrega (ou se faltar), fica o desenho por código
   const ARTE = {};
   ["ceu_mar", "ilhas", "areia", "guarda_sol", "isopor", "cadeira_praia", "coqueiro",
+    "crista_espuma", ...[0, 1, 2].map((i) => `spray_${i}`),
     ...[0, 1, 2].flatMap((i) => [`onda_crista_${i}`, `onda_parede_${i}`, `onda_espuma_${i}`])].forEach((n) => {
     const im = new Image();
     im.onload = () => {
@@ -724,11 +754,32 @@
       }
     }
     ctx.restore();
+    if (beiradaArte(ctx, topo)) return;
     // beirada da crista (linha clara + espuma pontilhada no alto)
     ctx.fillStyle = "#eafffb";
     for (const [x, y] of topo) ctx.fillRect(x, y - 2, 9, 4);
     ctx.fillStyle = "#ffffff";
     for (let i = 0; i < topo.length; i += 3) { const [x, y] = topo[i]; if (((i * 13 + Math.floor(s.relogio * 8)) % 5) < 2) ctx.fillRect(x, y - 6, 5, 4); }
+  }
+  // Beirada da crista com arte: uma faixa de espuma (bolhas soltas em cima, espuma branca embaixo) que acompanha
+  // o topo da onda, em colunas finas. Usa a arte "crista_espuma" do kit (quando existir) ou o topo da arte da espuma.
+  function beiradaArte(ctx, topo) {
+    const propria = ARTE.crista_espuma, esp = propria || quadro("onda_espuma");
+    if (!esp) return false;
+    const y0 = propria ? 0 : Math.round(esp.height * 0.08), y1 = propria ? esp.height : Math.round(esp.height * 0.66);
+    const sh = y1 - y0, esc = propria ? 1 : 0.5;                       // altura da faixa em px da arte
+    const passo = 8, sw = passo / (PX * esc);                          // largura da coluna na arte
+    for (let i = 0; i < topo.length; i++) {
+      const [x, y] = topo[i];
+      const alt = Y_BASE - y;
+      if (alt < 30) continue;
+      const k = Math.max(0.45, Math.min(1, alt / HMAX));               // onda baixa (ombro): faixa menor
+      const h = sh * PX * esc * k;
+      const sx = (((x + s.cam) / (PX * esc)) % esp.width + esp.width) % esp.width;
+      const w = Math.min(sw, esp.width - sx);
+      ctx.drawImage(esp, sx, y0, w, sh, Math.floor(x), Math.round(y - h * 0.82), passo + 1, h);
+    }
+    return true;
   }
   function rastro(ctx) { // marca da prancha na água
     ctx.fillStyle = "rgba(240,255,255,0.75)";
@@ -909,8 +960,14 @@
   function gotas(ctx) {
     for (const g of s.gotas) {
       ctx.globalAlpha = Math.max(0, g.vida);
-      ctx.fillStyle = g.r > 3.5 ? "#ffffff" : "#d8f4ff";
-      ctx.fillRect(g.x - s.cam - g.r, g.y - g.r, g.r * 2, g.r * 2);
+      const x = g.x - s.cam, r = g.r;
+      if (r > 5) { // gota grande: borda azul-clara e miolo branco (cara de pixel art)
+        ctx.fillStyle = "#9fe6f5"; ctx.fillRect(x - r - 2, g.y - r - 2, r * 2 + 4, r * 2 + 4);
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(x - r, g.y - r, r * 2, r * 2);
+      } else {
+        ctx.fillStyle = r > 3.5 ? "#ffffff" : "#d8f4ff";
+        ctx.fillRect(x - r, g.y - r, r * 2, r * 2);
+      }
     }
     ctx.globalAlpha = 1;
   }
@@ -1062,7 +1119,7 @@
     const fr = prepararCamada(frente);
     if (noTubo) labio(fr);
     espuma(fr);
-    aguaDaFrente(fr); gotas(fr); areia(fr); turma(fr, dt);
+    aguaDaFrente(fr); desenharLeques(fr, dt); gotas(fr); areia(fr); turma(fr, dt);
     ctx.save();
     ctx.translate(tx, ty);
     ctx.imageSmoothingEnabled = false;
