@@ -169,12 +169,12 @@
         "sentado": {
           "folha": "3d/sentado_baixo.webp",
           "larg": 188,
-          "alt": 300,
+          "alt": 298,
           "quadros": 8,
           "fps": 2,
           "pes": [
             94.3,
-            300.9
+            298.9
           ],
           "altura_px": 304,
           "pixelado": true
@@ -299,12 +299,12 @@
         "sentado": {
           "folha": "3d/sentado_cima.webp",
           "larg": 188,
-          "alt": 300,
+          "alt": 298,
           "quadros": 8,
           "fps": 2,
           "pes": [
             94.3,
-            300.9
+            281.6
           ],
           "altura_px": 304,
           "pixelado": true
@@ -416,12 +416,12 @@
         "sentado": {
           "folha": "3d/sentado_direita.webp",
           "larg": 188,
-          "alt": 300,
+          "alt": 298,
           "quadros": 8,
           "fps": 2,
           "pes": [
             94.3,
-            300.9
+            298.9
           ],
           "altura_px": 304,
           "pixelado": true
@@ -533,12 +533,12 @@
         "sentado": {
           "folha": "3d/sentado_esquerda.webp",
           "larg": 188,
-          "alt": 300,
+          "alt": 298,
           "quadros": 8,
           "fps": 2,
           "pes": [
             94.3,
-            300.9
+            281.6
           ],
           "altura_px": 304,
           "pixelado": true
@@ -652,12 +652,12 @@
         "sentado": {
           "folha": "3d_azul/sentado_baixo.webp",
           "larg": 188,
-          "alt": 300,
+          "alt": 298,
           "quadros": 8,
           "fps": 2,
           "pes": [
             94.3,
-            300.9
+            298.9
           ],
           "altura_px": 304,
           "pixelado": true
@@ -782,12 +782,12 @@
         "sentado": {
           "folha": "3d_azul/sentado_cima.webp",
           "larg": 188,
-          "alt": 300,
+          "alt": 298,
           "quadros": 8,
           "fps": 2,
           "pes": [
             94.3,
-            300.9
+            281.6
           ],
           "altura_px": 304,
           "pixelado": true
@@ -899,12 +899,12 @@
         "sentado": {
           "folha": "3d_azul/sentado_direita.webp",
           "larg": 188,
-          "alt": 300,
+          "alt": 298,
           "quadros": 8,
           "fps": 2,
           "pes": [
             94.3,
-            300.9
+            298.9
           ],
           "altura_px": 304,
           "pixelado": true
@@ -1016,12 +1016,12 @@
         "sentado": {
           "folha": "3d_azul/sentado_esquerda.webp",
           "larg": 188,
-          "alt": 300,
+          "alt": 298,
           "quadros": 8,
           "fps": 2,
           "pes": [
             94.3,
-            300.9
+            281.6
           ],
           "altura_px": 304,
           "pixelado": true

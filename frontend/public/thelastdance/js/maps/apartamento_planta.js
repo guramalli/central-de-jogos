@@ -438,7 +438,9 @@
   async function vinho() {
     const api = E.api, n = E.npc, p = perfilEnc() || {};
     E.fase = "vinho";
-    api.sentar({ x: 3.25, y: 5.15, dir: "direita" });
+    // personagem 3D: um pouco mais para a direita na poltrona (encaixa melhor no desenho dela)
+    const tresD = api.poseConjunto && api.poseConjunto("sentado", "direita");
+    api.sentar({ x: tresD ? 3.34 : 3.25, y: tresD ? 5.06 : 5.15, dir: "direita" });
     await andar(n, 5.75, 4.6);
     await andar(n, 5.1, 5.15);
     sentarNpc(n, 5.1, 5.15, "esquerda");

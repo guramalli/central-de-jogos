@@ -12,7 +12,6 @@
   const VEL = 2.2;            // m/s
   const RAIO = 0.22;          // corpo do personagem no chão (m)
   let SENTA_LADO = 0.06, SENTA_FRENTE = 0.06; // quanto o personagem em quadros afunda no assento (em metros)
-  let SENTA_ENCOSTO = 0.62; // sentado de costas para a câmera: o encosto esconde abaixo desta altura (m)
   const ALTURA_PERSONAGEM = 173; // px lógicos (≈ 1,73 m na escala do mapa); a escala vem da folha (jogo.json)
   const INICIOS = Object.assign({ inicio: { x: P.inicio.x, y: P.inicio.y } }, P.inicios || {});
 
@@ -1113,11 +1112,6 @@
     }
     const meio = y - ALTURA_PERSONAGEM * 0.5; // o "clique" fecha no meio do corpo
     ctx.save();
-    if (sentadoSprite && (jog.dir === "esquerda" || jog.dir === "cima")) {
-      // de costas para a câmera: o encosto do assento fica na frente dele e esconde do quadril para baixo
-      const corte = T(jog.x, jog.y, SENTA_ENCOSTO)[1];
-      ctx.beginPath(); ctx.rect(x - 400, corte - 2000, 800, 2000); ctx.clip();
-    }
     if (!sentadoSprite) {
       ctx.fillStyle = "rgba(0,0,0,0.35)";
       ctx.beginPath(); ctx.ellipse(x, y, 46 * (ef ? Math.min(1, ef.sx) : 1), 13, 0, 0, 2 * Math.PI); ctx.fill();
@@ -1128,7 +1122,43 @@
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(im, q * f.larg, 0, f.larg, f.alt, x - px * e, y - py * e, f.larg * e, f.alt * e);
     ctx.restore();
+    if (sentadoSprite) cobrirComAssento(ctx);
     if (ef && ef.brilho > 0) linhaDeLuz(ctx, x, meio, ef);
+  }
+  // Sentado de costas para a câmera (esquerda = olhando para -x, cima = para -y): o encosto e o assento ficam entre ele
+  // e a câmera. Redesenha o próprio assento por cima, só nessas partes (silhueta exata do encosto e do bloco do
+  // assento): o corte segue o móvel, a coxa aparece em cima do assento e a canela some atrás da frente dele.
+  function cobrirComAssento(ctx) {
+    const costas = jog.dir === "esquerda" ? "x" : jog.dir === "cima" ? "y" : null;
+    if (!costas) return;
+    const c = P.caixas.find((k) => (k.tipo === "sofa" || k.tipo === "cadeira") && !k.oculto &&
+      jog.x >= k.x0 - 0.05 && jog.x <= k.x1 + 0.05 && jog.y >= k.y0 - 0.05 && jog.y <= k.y1 + 0.05);
+    if (!c) return;
+    const assento = Math.min(c.z1 * 0.55, 0.45), espessura = 0.26; // altura do assento e grossura do encosto (m)
+    const blocos = [
+      [c.x0, c.y0, c.x1, c.y1, assento],                                        // o assento inteiro, até a almofada
+      costas === "x" ? [c.x1 - espessura, c.y0, c.x1, c.y1, c.z1] : [c.x0, c.y1 - espessura, c.x1, c.y1, c.z1], // encosto
+    ];
+    ctx.save();
+    ctx.beginPath();
+    for (const [x0, y0, x1, y1, z] of blocos) { // silhueta = contorno convexo dos 8 cantos projetados
+      const pts = [];
+      for (const xx of [x0, x1]) for (const yy of [y0, y1]) for (const zz of [0, z]) pts.push(T(xx, yy, zz));
+      const h = contornoConvexo(pts);
+      h.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+      ctx.closePath();
+    }
+    ctx.clip();
+    caixa(ctx, c);
+    ctx.restore();
+  }
+  function contornoConvexo(pts) { // cadeia monótona; sempre no mesmo sentido (a união dos recortes não faz buraco)
+    const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const giro = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const baixo = [], cima = [];
+    for (const q of p) { while (baixo.length >= 2 && giro(baixo[baixo.length - 2], baixo[baixo.length - 1], q) <= 0) baixo.pop(); baixo.push(q); }
+    for (const q of p.reverse()) { while (cima.length >= 2 && giro(cima[cima.length - 2], cima[cima.length - 1], q) <= 0) cima.pop(); cima.push(q); }
+    return baixo.slice(0, -1).concat(cima.slice(0, -1));
   }
   function linhaDeLuz(ctx, x, meio, ef) { // linha de luz rosa-branca onde ele some/aparece
     const larg = 70 * Math.max(ef.sx, 0.12) + 14, alt = 4 + 12 * ef.brilho;
@@ -1539,7 +1569,7 @@
         ctx.restore();
       },
       get conjunto() { return conjunto; },
-      ajusteSentar(l, fr, enc) { SENTA_LADO = l; SENTA_FRENTE = fr; if (enc != null) SENTA_ENCOSTO = enc; }, // conferência
+      ajusteSentar(l, fr) { SENTA_LADO = l; SENTA_FRENTE = fr; }, // conferência
       trocarConjunto(nome) { // looks do personagem em quadros (guarda-roupa do 3D)
         return carregarConjunto(nome).then(() => { conjunto = nome; pref.gravar("nsf_conjunto", nome); marcar(); });
       },
