@@ -98,6 +98,16 @@
   @keyframes balanca { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) translateY(-3px); } }
   @keyframes pisca { 0%, 100% { opacity: .2; transform: scale(.7); } 50% { opacity: 1; transform: scale(1.1); } }
   @keyframes neon { 0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; } 20%, 24%, 55% { opacity: .55; } }
+  /* mod do surf (aberto a todos) */
+  .mod-surf { display: flex; align-items: center; gap: 14px; margin: 18px auto 6px; max-width: 520px; padding: 14px 16px;
+              border-radius: 18px; text-decoration: none; color: #f3ecff; border: 2px solid #22d3ee;
+              background: linear-gradient(135deg, rgba(255,90,216,0.22), rgba(34,211,238,0.18)); box-shadow: 0 0 22px rgba(34,211,238,0.25); }
+  .mod-surf:hover { box-shadow: 0 0 30px rgba(255,90,216,0.45); }
+  .mod-ic { font-size: 34px; }
+  .mod-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+  .mod-txt b { font: 800 20px/1.1 ui-monospace, "Courier New", monospace; color: #ff8be6; letter-spacing: .5px; text-shadow: 0 0 10px rgba(255,90,216,.6); }
+  .mod-txt small { color: #cfe9f3; font-size: 13px; }
+  .mod-jogar { font: 800 14px system-ui, sans-serif; padding: 10px 14px; border-radius: 999px; background: #22d3ee; color: #0b0712; }
   @media (prefers-reduced-motion: reduce) { .raios, .anel::after, .cara, .brilho, .nome .dance { animation: none; } }
 </style>
 </head>
@@ -122,32 +132,12 @@
 
   <div class="vip" id="vip" aria-live="polite"></div>
 
-  <section id="atalhos" hidden>
-    <h2>🎬 Ir direto para</h2>
-    <div class="atalhos">
-      <a href="apartamento.html?comodo=quarto">🏠 Quarto</a>
-      <a href="elevador.html?descer=1">🛗 Elevador</a>
-      <a href="garagem.html">🚗 Garagem</a>
-      <a href="padaria.html">🥐 Padaria</a>
-      <a href="casa_amigo.html">🍖 Churrasco</a>
-      <a href="surf.html">🏄 Surf</a>
-    </div>
-    <h2>🍷 Encontro no apê com...</h2>
-    <div class="atalhos">
-      <a href="apartamento.html?comodo=entrada&amp;chegada=1&amp;encontro=loira_cargo">Júlia</a>
-      <a href="apartamento.html?comodo=entrada&amp;chegada=1&amp;encontro=vestido_vermelho">Rafaela</a>
-      <a href="apartamento.html?comodo=entrada&amp;chegada=1&amp;encontro=cacheada_saia">Lívia</a>
-      <a href="apartamento.html?comodo=entrada&amp;chegada=1&amp;encontro=morena_moletom">Tati</a>
-      <a href="apartamento.html?comodo=entrada&amp;chegada=1&amp;encontro=coroa_fitness">Sandra</a>
-      <a href="apartamento.html?comodo=entrada&amp;chegada=1&amp;encontro=gordinha_loira">Kelly</a>
-    </div>
-    <h2>🧪 Tester: roupas do personagem</h2>
-    <div class="atalhos">
-      <a href="apartamento.html?comodo=quarto&amp;conjunto=3d">👕 Camiseta branca</a>
-      <a href="apartamento.html?comodo=quarto&amp;conjunto=3d_azul">👕 Camiseta azul</a>
-      <a href="surf.html">🏄 Surf (sem camisa)</a>
-    </div>
-  </section>
+  <a class="mod-surf" href="surf.html?mod">
+    <span class="mod-ic" aria-hidden="true">🏄</span>
+    <span class="mod-txt"><b>binho_pg_surfer</b><small>O minigame de surf, aberto a todos: tubo, aéreo, cutback e ranking geral.</small></span>
+    <span class="mod-jogar">SURFAR</span>
+  </a>
+
 
   <section>
     <h2>Sobre o jogo</h2>
@@ -169,29 +159,6 @@
     </ul>
   </section>
 
-  <details id="testes" hidden>
-    <summary>Páginas de teste (desenvolvimento)</summary>
-    <a class="cartao" href="garagem.html">
-      <span class="icone">🚗</span>
-      <span><b>Garagem do prédio</b><small>Ande até o carro e toque nele para escolher o destino; o elevador leva de volta para casa.</small></span>
-    </a>
-    <a class="cartao" href="casa_amigo.html">
-      <span class="icone">🍖</span>
-      <span><b>Casa do amigo</b><small>Varanda gourmet com churrasqueira, cervejeira e caixa de som. Também dá para ir de carro pela garagem.</small></span>
-    </a>
-    <a class="cartao" href="padaria.html">
-      <span class="icone">🥐</span>
-      <span><b>Padaria</b><small>Converse com a Dona Cida no balcão.</small></span>
-    </a>
-    <a class="cartao" href="modular/">
-      <span class="icone">🧍</span>
-      <span><b>Personagem modular (protótipo)</b><small>4 direções, troca de cor da roupa, tipo físico. Segure as setas para andar.</small></span>
-    </a>
-    <a class="cartao" href="apartamento.html?comodo=quarto&amp;demo">
-      <span class="icone">🎬</span>
-      <span><b>Passeio automático</b><small>O personagem anda sozinho por todos os cômodos.</small></span>
-    </a>
-  </details>
 
   <footer>Dica: toque no chão para andar e nas setinhas rosa para usar as coisas. No celular, deitado (paisagem) mostra o lugar inteiro.</footer>
 </main>
@@ -200,11 +167,11 @@
   // Área dos amigos: senha (conferida no servidor) libera os personagens com rosto dos amigos neste aparelho.
   (function () {
     const caixa = document.getElementById("vip");
-    const jogar = document.getElementById("jogar"), testes = document.getElementById("testes");
+    const jogar = document.getElementById("jogar");
     function desenhar() {
       caixa.replaceChildren();
       const liberado = NSF.VIP.ativo() || NSF.VIP.local;
-      jogar.hidden = !liberado; testes.hidden = !liberado; document.getElementById("atalhos").hidden = !liberado;
+      jogar.hidden = !liberado;
       caixa.classList.toggle("portao", !liberado);
       if (!liberado) { // portão: só convidados
         const t = document.createElement("b"); t.textContent = "🔒 Jogo fechado: só para convidados";

@@ -53,7 +53,9 @@
   const local = (host === "localhost" || host === "127.0.0.1" || host === "") && !/[?&]portao/.test(global.location ? global.location.search : "");
   const tela = global.location ? global.location.pathname.split("/").pop() : "";
   const paginaInicial = !(tela in PACOTES_DA_TELA);
-  const paraEntrada = () => { if (!local && !paginaInicial) global.location.replace("./"); };
+  // abertas a todos (sem senha): o mod do surf. Com a senha, a tela ainda abre os pacotes dela (os amigos na areia)
+  const ABERTAS = new Set(["surf.html"]);
+  const paraEntrada = () => { if (!local && !paginaInicial && !ABERTAS.has(tela)) global.location.replace("./"); };
   if (!chaveValida(chaveSalva)) paraEntrada(); // sem senha: nem carrega o jogo
 
   function abrir(chaveHex, pacotes) {

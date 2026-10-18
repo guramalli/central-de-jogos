@@ -358,6 +358,7 @@
     for (let i = 0; i < n; i++) gota(x - rnd(0, 50), y, rnd(-260, 60) * f, rnd(-520, -180) * f, rnd(2, 5));
   }
   function falar(tipo) {
+    if (!turmaVisivel()) return;
     if (s.fala && s.relogio - s.fala.t < 1.4) return; // não atropela a fala anterior
     s.fala = { quem: Math.floor(Math.random() * AMIGOS.length), texto: escolher(FALAS[tipo]), t: s.relogio };
   }
@@ -865,7 +866,9 @@
     }));
   }
   const ALT_AMIGO = 330; // px na tela (estão mais perto da câmera que o surfista)
+  const turmaVisivel = () => AMIGOS.some((a) => a.pm || a.tira);
   function turma(ctx, dt) {
+    if (!turmaVisivel()) return; // sem a senha (o mod aberto a todos): a praia fica sem a turma
     const pulo = Math.max(0, 1 - (s.relogio - s.festa) / 1.1);
     AMIGOS.forEach((a, i) => {
       const x = W * a.x, y = H - 8 - Math.abs(Math.sin((s.relogio - s.festa) * 9 + i)) * 30 * pulo;
@@ -1156,6 +1159,12 @@
 
   // ---------- telas de começo e fim ----------
   const caixa = doc.getElementById("caixa");
+  // ?mod: aberto pela página inicial (o mod do surf, para todos): o botão de cima e o do fim voltam para o início
+  const MOD = params.has("mod");
+  const VOLTAR = MOD ? { href: "./", texto: "← Início", fim: "Voltar para o início" }
+    : { href: "garagem.html?comodo=carro", texto: "← Carro", fim: "Voltar para o carro" };
+  const bVoltar = doc.getElementById("voltar");
+  if (bVoltar) { bVoltar.href = VOLTAR.href; bVoltar.textContent = VOLTAR.texto; }
   const mostrarBotoes = (sim) => { const b = doc.getElementById("botoes"); if (b) b.hidden = !sim || !(toque || params.has("botoes")); };
   function comecar() { caixa.hidden = true; mostrarBotoes(true); s.onda = 0; s.totais = []; novaOnda(); pedirPartida(); }
   // ---------- ranking (servidor do site: /api/thelastdance/surf) ----------
@@ -1200,7 +1209,7 @@
     caixa.innerHTML = "";
     caixa.classList.remove("fim");
     mostrarBotoes(false);
-    const h = doc.createElement("h1"); h.textContent = "🏄 Surf na praia";
+    const h = doc.createElement("h1"); h.textContent = "🏄 binho_pg_surfer";
     const p = doc.createElement("p");
     p.textContent = toque ? "Joystick: → vai · ← volta (a prancha vira) · ↑↓ sobe e desce a onda · PULAR. Ele nunca cai!"
       : "D vai · A volta (a prancha vira) · W/S sobe e desce a onda · Espaço pula. Ele nunca cai!";
@@ -1242,7 +1251,7 @@
     const lista = doc.createElement("div"); lista.className = "lista"; lista.textContent = "Carregando o ranking...";
     const b = doc.createElement("button"); b.type = "button"; b.textContent = "Surfar de novo";
     b.addEventListener("click", comecar);
-    const v = doc.createElement("a"); v.href = "garagem.html?comodo=carro"; v.textContent = "Voltar para o carro";
+    const v = doc.createElement("a"); v.href = VOLTAR.href; v.textContent = VOLTAR.fim;
     caixa.append(h, t, p, r, form, msg, lista, b, v);
     caixa.hidden = false;
     // antes de gravar: onde essa pontuação ficaria
