@@ -1242,6 +1242,473 @@
         "espelhado": false,
         "proporcao": 1.0
       }
+    },
+    "balcao_bar": {
+      "arquivo": "balcao_bar.png",
+      "escala": 2.0,
+      "origem_px": [
+        102.8,
+        231.0
+      ],
+      "tamanho_m": [
+        1.3,
+        0.7,
+        1.1
+      ],
+      "descricao": "módulo do balcão do bar (repete lado a lado), lado dos clientes virado para +y",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "bar_fundo": {
+      "arquivo": "bar_fundo.png",
+      "escala": 2.0,
+      "origem_px": [
+        88.6,
+        201.6
+      ],
+      "tamanho_m": [
+        1.3,
+        0.6,
+        1.0
+      ],
+      "descricao": "módulo do fundo do bar (geladeiras com porta de vidro), encostado na parede, portas para +y",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "sofa_vip": {
+      "arquivo": "sofa_vip.png",
+      "escala": 2.0,
+      "origem_px": [
+        115.3,
+        190.3
+      ],
+      "tamanho_m": [
+        2.4,
+        0.8,
+        0.45
+      ],
+      "descricao": "sofá de veludo vermelho do camarote, encosto do lado y = 0, assento virado para +y",
+      "ajuste": {
+        "x": 0.34,
+        "y": 0.44,
+        "espelhado": false,
+        "proporcao": 0.773
+      }
+    },
+    "sofa_lounge": {
+      "arquivo": "sofa_lounge.png",
+      "escala": 2.0,
+      "origem_px": [
+        115.3,
+        190.3
+      ],
+      "tamanho_m": [
+        2.4,
+        0.8,
+        0.45
+      ],
+      "descricao": "sofá de couro preto do lounge, encosto do lado y = 0, assento virado para +y",
+      "ajuste": {
+        "x": 0.355,
+        "y": 0.444,
+        "espelhado": false,
+        "proporcao": 0.801
+      }
+    },
+    "mesinha_vip": {
+      "arquivo": "mesinha_vip.png",
+      "escala": 2.0,
+      "origem_px": [
+        76.0,
+        100.8
+      ],
+      "tamanho_m": [
+        0.6,
+        0.6,
+        0.5
+      ],
+      "descricao": "mesinha baixa do camarote com balde de champanhe",
+      "ajuste": {
+        "x": 0.168,
+        "y": 0.168,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "mesa_alta": {
+      "arquivo": "mesa_alta.png",
+      "escala": 2.0,
+      "origem_px": [
+        78.0,
+        210.8
+      ],
+      "tamanho_m": [
+        0.6,
+        0.6,
+        1.05
+      ],
+      "descricao": "mesa alta redonda de balada (bistrô), feita de barril",
+      "ajuste": {
+        "x": 0.213,
+        "y": 0.213,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "guarda_corpo": {
+      "arquivo": "guarda_corpo.png",
+      "escala": 2.0,
+      "origem_px": [
+        22.3,
+        200.1
+      ],
+      "tamanho_m": [
+        1.0,
+        0.15,
+        1.0
+      ],
+      "descricao": "módulo de 1 m do guarda-corpo dourado do camarote (repete lado a lado), ao longo de x",
+      "ajuste": {
+        "x": 0.164,
+        "y": 0.255,
+        "espelhado": false,
+        "proporcao": 0.642
+      }
+    },
+    "cordao_fila": {
+      "arquivo": "cordao_fila.png",
+      "escala": 2.0,
+      "origem_px": [
+        21.9,
+        200.9
+      ],
+      "tamanho_m": [
+        1.2,
+        0.15,
+        1.0
+      ],
+      "descricao": "trecho de 1,2 m do cordão da fila: dois postes dourados nas pontas e corda de veludo vermelho",
+      "ajuste": {
+        "x": 0.153,
+        "y": 0.285,
+        "espelhado": false,
+        "proporcao": 0.538
+      }
+    },
+    "pulpito_hostess": {
+      "arquivo": "pulpito_hostess.png",
+      "escala": 2.0,
+      "origem_px": [
+        76.5,
+        220.3
+      ],
+      "tamanho_m": [
+        0.6,
+        0.6,
+        1.1
+      ],
+      "descricao": "púlpito da hostess na entrada, frente para +y",
+      "ajuste": {
+        "x": 0.228,
+        "y": 0.228,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "palco_borda": {
+      "arquivo": "palco_borda.png",
+      "escala": 2.0,
+      "origem_px": [
+        88.4,
+        91.0
+      ],
+      "tamanho_m": [
+        1.4,
+        0.6,
+        0.45
+      ],
+      "descricao": "módulo de 1,4 m da borda do palco do DJ (repete lado a lado), frente para +y",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "cabine_dj": {
+      "arquivo": "cabine_dj.png",
+      "escala": 2.0,
+      "origem_px": [
+        102.9,
+        268.3
+      ],
+      "tamanho_m": [
+        2.0,
+        0.7,
+        1.2
+      ],
+      "descricao": "cabine do DJ, frente (para o público) virada para +y",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "caixa_som_palco": {
+      "arquivo": "caixa_som_palco.png",
+      "escala": 2.0,
+      "origem_px": [
+        117.5,
+        398.9
+      ],
+      "tamanho_m": [
+        0.8,
+        0.8,
+        1.9
+      ],
+      "descricao": "pilha de caixas de som do palco, alto-falantes virados para +y",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "pilar_balada": {
+      "arquivo": "pilar_balada.png",
+      "escala": 2.0,
+      "origem_px": [
+        88.5,
+        682.3
+      ],
+      "tamanho_m": [
+        0.6,
+        0.6,
+        3.4
+      ],
+      "descricao": "pilar quadrado escuro da balada com fitas de LED",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "sofa_vip_lado": {
+      "arquivo": "sofa_vip_lado.png",
+      "escala": 2.0,
+      "origem_px": [
+        345.7,
+        190.3
+      ],
+      "tamanho_m": [
+        0.8,
+        2.4,
+        0.45
+      ],
+      "descricao": "sofá vermelho do camarote encostado na parede da esquerda (espelho do sofa_vip)",
+      "ajuste": {
+        "x": 0.34,
+        "y": 0.44,
+        "espelhado": true,
+        "proporcao": 0.773
+      }
+    },
+    "sofa_lounge_lado": {
+      "arquivo": "sofa_lounge_lado.png",
+      "escala": 2.0,
+      "origem_px": [
+        345.7,
+        190.3
+      ],
+      "tamanho_m": [
+        0.8,
+        2.4,
+        0.45
+      ],
+      "descricao": "sofá de couro preto virado para +x (espelho do sofa_lounge)",
+      "ajuste": {
+        "x": 0.355,
+        "y": 0.444,
+        "espelhado": true,
+        "proporcao": 0.801
+      }
+    },
+    "guarda_corpo_lado": {
+      "arquivo": "guarda_corpo_lado.png",
+      "escala": 2.0,
+      "origem_px": [
+        144.7,
+        200.1
+      ],
+      "tamanho_m": [
+        0.15,
+        1.0,
+        1.0
+      ],
+      "descricao": "módulo do guarda-corpo dourado ao longo de y (espelho do guarda_corpo)",
+      "ajuste": {
+        "x": 0.164,
+        "y": 0.255,
+        "espelhado": true,
+        "proporcao": 0.642
+      }
+    },
+    "floreira": {
+      "arquivo": "floreira.png",
+      "escala": 2.0,
+      "origem_px": [
+        43.3,
+        180.3
+      ],
+      "tamanho_m": [
+        1.4,
+        0.3,
+        0.9
+      ],
+      "descricao": "módulo de 1,4 m de floreira baixa separando o lounge da pista (repete lado a lado)",
+      "ajuste": {
+        "x": 0.206,
+        "y": 0.309,
+        "espelhado": false,
+        "proporcao": 0.665
+      }
+    },
+    "balcao_gv": {
+      "arquivo": "balcao_gv.png",
+      "escala": 2.0,
+      "origem_px": [
+        89.2,
+        211.4
+      ],
+      "tamanho_m": [
+        3.0,
+        0.6,
+        1.05
+      ],
+      "descricao": "balcão do guarda-volumes, lado do atendimento virado para +y",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "cabine_fotos": {
+      "arquivo": "cabine_fotos.png",
+      "escala": 2.0,
+      "origem_px": [
+        203.8,
+        443.6
+      ],
+      "tamanho_m": [
+        1.5,
+        1.4,
+        2.2
+      ],
+      "descricao": "cabine de fotos com cortina, entrada virada para +y",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "parede_balada": {
+      "tipo": "textura_parede",
+      "arquivo": "parede_balada.png",
+      "px_por_m": 200,
+      "largura_m": 2.0,
+      "altura_m": 3.4,
+      "descricao": "textura reta de parede; o jogo inclina e repete a cada largura_m"
+    },
+    "piso_balada": {
+      "tipo": "textura_piso",
+      "arquivo": "piso_balada.png",
+      "tamanho_px": [
+        512,
+        512
+      ],
+      "metros": 2.0
+    },
+    "piso_pista": {
+      "tipo": "textura_piso",
+      "arquivo": "piso_pista.png",
+      "tamanho_px": [
+        512,
+        512
+      ],
+      "metros": 2.0
+    },
+    "piso_vip": {
+      "tipo": "textura_piso",
+      "arquivo": "piso_vip.png",
+      "tamanho_px": [
+        512,
+        512
+      ],
+      "metros": 2.0
+    },
+    "neon_vip": {
+      "tipo": "decal",
+      "arquivo": "neon_vip.png",
+      "tamanho_px": [
+        512,
+        342
+      ]
+    },
+    "neon_club": {
+      "tipo": "decal",
+      "arquivo": "neon_club.png",
+      "tamanho_px": [
+        512,
+        339
+      ]
+    },
+    "neon_bar": {
+      "tipo": "decal",
+      "arquivo": "neon_bar.png",
+      "tamanho_px": [
+        512,
+        251
+      ]
+    },
+    "neon_banheiros": {
+      "tipo": "decal",
+      "arquivo": "neon_banheiros.png",
+      "tamanho_px": [
+        512,
+        171
+      ]
+    },
+    "balcao_guarda_volumes": {
+      "arquivo": "balcao_guarda_volumes.png",
+      "escala": 2.0,
+      "origem_px": [
+        434.8,
+        211.4
+      ],
+      "tamanho_m": [
+        0.6,
+        3.0,
+        1.05
+      ],
+      "descricao": "balcão do guarda-volumes ao longo de y, atendimento virado para +x (espelho do balcao_gv)",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": true,
+        "proporcao": 1.0
+      }
     }
   }
 }
