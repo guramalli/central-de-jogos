@@ -139,6 +139,104 @@
           502
         ]
       }
+    },
+    "3d": {
+      "baixo": {
+        "folha": "3d/andar_baixo.webp",
+        "larg": 275,
+        "alt": 514,
+        "quadros": 8,
+        "fps": 8,
+        "pes": [
+          138.0,
+          493.0
+        ],
+        "altura_px": 477,
+        "parado": {
+          "folha": "3d/parado_baixo.webp",
+          "larg": 275,
+          "alt": 514,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            138.0,
+            493.0
+          ],
+          "altura_px": 477
+        }
+      },
+      "cima": {
+        "folha": "3d/andar_cima.webp",
+        "larg": 275,
+        "alt": 514,
+        "quadros": 8,
+        "fps": 8,
+        "pes": [
+          138.0,
+          493.0
+        ],
+        "altura_px": 477,
+        "parado": {
+          "folha": "3d/parado_cima.webp",
+          "larg": 275,
+          "alt": 514,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            138.0,
+            493.0
+          ],
+          "altura_px": 477
+        }
+      },
+      "direita": {
+        "folha": "3d/andar_direita.webp",
+        "larg": 275,
+        "alt": 514,
+        "quadros": 8,
+        "fps": 8,
+        "pes": [
+          138.0,
+          493.0
+        ],
+        "altura_px": 477,
+        "parado": {
+          "folha": "3d/parado_direita.webp",
+          "larg": 275,
+          "alt": 514,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            138.0,
+            493.0
+          ],
+          "altura_px": 477
+        }
+      },
+      "esquerda": {
+        "folha": "3d/andar_esquerda.webp",
+        "larg": 275,
+        "alt": 514,
+        "quadros": 8,
+        "fps": 8,
+        "pes": [
+          138.0,
+          493.0
+        ],
+        "altura_px": 477,
+        "parado": {
+          "folha": "3d/parado_esquerda.webp",
+          "larg": 275,
+          "alt": 514,
+          "quadros": 8,
+          "fps": 2,
+          "pes": [
+            138.0,
+            493.0
+          ],
+          "altura_px": 477
+        }
+      }
     }
   },
   "altura_personagem_px": 320

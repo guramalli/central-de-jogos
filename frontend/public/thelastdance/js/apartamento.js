@@ -1094,10 +1094,13 @@
     if (jog.oculto && !ef) return;
     if (jog.semCorpo) return; // o mapa desenha outra imagem no lugar dele (ex.: de tarja, no encontro)
     if (conjunto === MODULAR && heroi) { desenharModular(ctx, ef); return; }
-    const f = manifesto.conjuntos[conjunto][jog.dir], im = folhas[f.folha];
-    const q = quadroSprite(f), px = f.pes[0], py = f.pes[1];
+    // conjunto de quadros: a tira de andar; parado, a tira "parado" (se o conjunto tiver) em vez do 1º quadro de andar
+    const fAndar = manifesto.conjuntos[conjunto][jog.dir];
+    const f = !jog.andando && fAndar.parado ? fAndar.parado : fAndar, im = folhas[f.folha];
+    const q = f === fAndar ? quadroSprite(f) : Math.floor(performance.now() / 1000 * f.fps) % f.quadros;
+    const px = f.pes[0], py = f.pes[1];
     const [x, y] = T(jog.x, jog.y, 0);
-    const e = ALTURA_PERSONAGEM / (manifesto.altura_personagem_px || 128);
+    const e = ALTURA_PERSONAGEM / (f.altura_px || manifesto.altura_personagem_px || 128);
     const meio = y - ALTURA_PERSONAGEM * 0.5; // o "clique" fecha no meio do corpo
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.35)";
@@ -1464,7 +1467,8 @@
   // Baixa só as folhas de um conjunto (no celular, carregar os 3 conjuntos de uma vez pesaria ~6 MB).
   function carregarConjunto(nome) {
     if (nome === MODULAR) return carregarModular();
-    const arquivos = Object.values(manifesto.conjuntos[nome]).map((f) => f.folha).filter((a) => !folhas[a]);
+    const arquivos = Object.values(manifesto.conjuntos[nome]).flatMap((f) => [f.folha, f.parado && f.parado.folha])
+      .filter((a) => a && !folhas[a]);
     return Promise.all(arquivos.map((arq) => new Promise((ok, erro) => {
       const im = new Image();
       im.onload = () => { folhas[arq] = im; ok(); };
