@@ -5,12 +5,14 @@
 //
 //   POST /vip  ← { senha }  → 200 { chave } | 401 senha errada | 429 tentativas demais | 503 ainda não configurado
 //   GET /vip/estado         → { configurado, problema } (o que falta no Render; nunca mostra a senha nem a chave)
+//   /surf/...               → ranking do minigame de surf (routes/thelastdanceSurf.js)
 //
 // Variáveis: TLD_SENHA (a senha que você passa para os amigos) e TLD_CHAVE (64 caracteres hex, gerada pelo
 // frontend/public/thelastdance/tools/vip_trancar.mjs). Trocar a senha = trocar TLD_SENHA no Render (a chave fica).
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { createHash, timingSafeEqual } from "node:crypto";
+import { criaRotasSurf, bancoPrisma } from "./thelastdanceSurf.js";
 
 const resumo = (s) => createHash("sha256").update(String(s).normalize("NFC").trim().toLowerCase(), "utf8").digest();
 
@@ -20,8 +22,10 @@ export function senhaConfere(digitada, certa) {
   return timingSafeEqual(resumo(digitada), resumo(certa));
 }
 
-export function criaRotasTheLastDance({ env = process.env, limite = true } = {}) {
+export function criaRotasTheLastDance({ env = process.env, limite = true, surfDb = null, agora } = {}) {
   const r = Router();
+  // ranking do surf (sem conta; ver routes/thelastdanceSurf.js). A assinatura das partidas usa o JWT_SECRET do servidor.
+  r.use("/surf", criaRotasSurf({ db: surfDb || bancoPrisma(() => import("../db.js").then((m) => m.prisma)), segredo: env.JWT_SECRET || "", limite, ...(agora ? { agora } : {}) }));
   const tentativas = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
     max: 8,                   // 8 senhas erradas por IP: dá para errar umas vezes, não dá para chutar senha em massa

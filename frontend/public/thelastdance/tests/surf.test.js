@@ -1,40 +1,44 @@
-// Regras do minigame de surf (js/surf.js): nota dos juízes, bônus perto da espuma, repetição e resultado final.
+// Regras do minigame de surf (js/surf.js): pontos das manobras, combo, repetição, resultado final e nome do ranking.
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("node:fs");
 const path = require("node:path");
 const R = require("../js/surf.js");
 
-test("surf: nota vai de 0 a 10 e cresce com os pontos", () => {
-  assert.strictEqual(R.nota(0), 0);
-  assert.strictEqual(R.nota(-50), 0);
-  assert.ok(R.nota(5000) < R.nota(10000));
-  assert.ok(R.nota(1e9) <= 10);
-  assert.strictEqual(R.nota(10000), 6.3);
+test("surf: cada manobra tem seus pontos; o aéreo ganha por volta e o tubo por segundo", () => {
+  const P = R.PONTOS;
+  assert.ok(P.cutback > P.cavada && P.aereo > P.cutback);
+  assert.ok(P.tuboSeg > 0 && P.floaterSeg > 0 && P.giro > 0);
+  for (const v of Object.values(P)) assert.ok(Number.isInteger(v) && v > 0);
 });
 
-test("surf: perto da espuma vale até 3x, longe vale 1x", () => {
-  assert.strictEqual(R.proximidade(0), 3);
-  assert.strictEqual(R.proximidade(-40), 3);
-  assert.strictEqual(R.proximidade(800), 1);
-  assert.strictEqual(R.proximidade(5000), 1);
-  assert.ok(R.proximidade(200) > R.proximidade(600));
+test("surf: combo multiplica pela variedade (manobras diferentes), até x5", () => {
+  assert.strictEqual(R.multiplicador([]), 1);
+  assert.strictEqual(R.multiplicador(["cutback"]), 1);
+  assert.strictEqual(R.multiplicador(["cutback", "cutback", "cutback"]), 1);
+  assert.strictEqual(R.multiplicador(["cavada", "cutback", "floater"]), 3);
+  assert.strictEqual(R.multiplicador(["drop", "cavada", "cutback", "floater", "aereo", "giro", "tubo"]), 5);
+  assert.strictEqual(R.valorCombo([{ nome: "cavada", pts: 150 }, { nome: "cutback", pts: 500 }]), 1300);
+  assert.strictEqual(R.valorCombo([{ nome: "cutback", pts: 500 }]), 500);
 });
 
 test("surf: repetir a mesma manobra vale menos; variar volta ao normal", () => {
-  assert.strictEqual(R.repeticao([], "batida"), 1);
-  assert.strictEqual(R.repeticao(["batida"], "batida"), 0.6);
-  assert.strictEqual(R.repeticao(["batida", "batida"], "batida"), 0.35);
-  assert.strictEqual(R.repeticao(["batida", "batida", "batida", "batida"], "batida"), 0.2);
-  assert.strictEqual(R.repeticao(["batida", "cavada"], "batida"), 1);
+  assert.strictEqual(R.repeticao([], "cutback"), 1);
+  assert.strictEqual(R.repeticao(["cutback"], "cutback"), 0.6);
+  assert.strictEqual(R.repeticao(["cutback", "cutback"], "cutback"), 0.35);
+  assert.strictEqual(R.repeticao(["cutback", "cutback", "cutback", "cutback"], "cutback"), 0.2);
+  assert.strictEqual(R.repeticao(["cutback", "cavada"], "cutback"), 1);
 });
 
-test("surf: resultado = soma das 2 melhores notas", () => {
-  assert.strictEqual(R.resultado([3, 8.2, 7]), 15.2);
-  assert.strictEqual(R.resultado([5]), 5);
+test("surf: pontuação final = soma das 3 ondas; nome do ranking com até 10 letras", () => {
+  assert.strictEqual(R.resultado([12000, 8000, 15500]), 35500);
   assert.strictEqual(R.resultado([]), 0);
-  assert.match(R.titulo(18), /Campeão/);
-  assert.match(R.titulo(2), /churrasco/);
+  assert.match(R.titulo(50000), /Campeão/);
+  assert.match(R.titulo(500), /churrasco/);
+  assert.strictEqual(R.limparNome("  Gustavo   Brabo  "), "Gustavo Br");
+  assert.strictEqual(R.limparNome("Zé"), "Zé");
+  assert.strictEqual(R.limparNome(null), "");
+  assert.strictEqual(R.NOME_MAX, 10);
 });
 
 test("surf: a página existe, está atrás da senha e o carro leva até ela", () => {

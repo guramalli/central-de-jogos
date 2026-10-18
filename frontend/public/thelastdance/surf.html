@@ -30,6 +30,21 @@
   #caixa button, #caixa a { display: block; width: 100%; box-sizing: border-box; margin-top: 10px; font: 700 17px system-ui, sans-serif;
            color: #fff; background: #b0279a; border: 2px solid #ff8be6; border-radius: 999px; padding: 12px; cursor: pointer; text-decoration: none; }
   #caixa a { background: transparent; }
+  /* ranking */
+  #caixa form.nome { display: flex; gap: 8px; margin-top: 12px; }
+  #caixa form.nome[hidden] { display: none; }
+  #caixa form.nome input { flex: 1; min-width: 0; font: 700 18px system-ui, sans-serif; padding: 10px 14px; border-radius: 999px;
+           border: 2px solid #ff8be6; background: #1b1030; color: #fff; }
+  #caixa form.nome button { width: auto; margin: 0; padding: 10px 16px; white-space: nowrap; }
+  #caixa .msg { color: #ffd36b; font-weight: 700; }
+  #caixa ol.ranking { list-style: none; margin: 8px 0 4px; padding: 0; text-align: left; }
+  #caixa ol.ranking li { display: flex; gap: 10px; padding: 5px 10px; border-radius: 10px; }
+  #caixa ol.ranking li:nth-child(odd) { background: rgba(255,255,255,0.05); }
+  #caixa ol.ranking li.eu { background: rgba(255,90,216,0.35); color: #fff; font-weight: 800; }
+  #caixa ol.ranking li.fora { margin-top: 6px; }
+  #caixa ol.ranking b { width: 2.6em; color: #ff8be6; }
+  #caixa ol.ranking span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #caixa ol.ranking em { font-style: normal; font-weight: 800; color: #ffd36b; }
   /* botões na tela (celular): setas à esquerda, PULAR à direita */
   #botoes { position: fixed; inset: auto 0 0 0; pointer-events: none; display: flex; justify-content: space-between; align-items: flex-end;
             padding: 0 max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); }

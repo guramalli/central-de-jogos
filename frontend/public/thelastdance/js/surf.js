@@ -1,6 +1,8 @@
 // Minigame de surf (surf.html): visto da areia, olhando para o mar. A onda quebra da esquerda para a direita e ele
-// surfa na parede dela. 3 ondas; cada onda ganha uma nota de 0 a 10 dos juízes e o resultado é a soma das 2 melhores
-// (como no campeonato de verdade). A turma assiste da areia (os amigos de costas, olhando o mar) e comemora.
+// surfa na parede dela. 3 ondas. PONTOS (como nos jogos de surf): cada manobra vale pontos (tabela PONTOS); manobras
+// emendadas viram COMBO e o combo multiplica pela variedade (manobras diferentes: x2, x3... até x5). A pontuação final é
+// a soma de tudo e vai para o RANKING no servidor (nome de até 10 letras; ver backend/src/routes/thelastdanceSurf.js).
+// A turma assiste da areia (os amigos de costas, olhando o mar) e comemora.
 // CONTROLE (inspirado nos jogos de surf: poucos comandos; a inclinação da onda dá a velocidade):
 //   D / →  vai (para a frente, pela parede)     A / ←  volta (a prancha vira para trás, em direção à espuma)
 //         — ir e voltar têm a mesma velocidade —
@@ -18,25 +20,31 @@
 
   // ---------- regras (sem tela: testadas em tests/surf.test.js) ----------
   const REGRAS = { ondas: 3, segundosOnda: 28, vCrista: 300 };
-  // nota dos juízes: cresce rápido no começo e fica difícil perto do 10
-  const nota = (pontos) => Math.min(10, Math.round(100 * (1 - Math.exp(-Math.max(0, pontos) / 10000))) / 10);
-  // perto da espuma (d pequeno) vale até 3x; longe, no ombro da onda, 1x
-  const proximidade = (d) => 1 + 2 * Math.max(0, 1 - Math.max(0, d) / 800);
+  // pontos de cada manobra (floater e tubo ganham também por segundo; aéreo ganha por volta completa no ar)
+  const PONTOS = { drop: 100, pulinho: 50, cavada: 150, cutback: 500, floater: 300, floaterSeg: 400, aereo: 1000, giro: 1000,
+    tubo: 500, tuboSeg: 700, tubaco: 1500, cuspido: 500, onda: 300 };
+  // combo: manobras com menos de 2,5 s entre uma e outra; multiplica pelo número de manobras DIFERENTES (até x5)
+  const COMBO = { janela: 2.5, maxMult: 5 };
+  const NOME_MAX = 10;
+  const multiplicador = (nomes) => Math.max(1, Math.min(COMBO.maxMult, new Set(nomes).size));
+  const valorCombo = (itens) => Math.round(itens.reduce((t, i) => t + i.pts, 0) * multiplicador(itens.map((i) => i.nome)));
   // a mesma manobra seguida vale cada vez menos
   function repeticao(historico, nome) {
     let n = 0;
     for (let i = historico.length - 1; i >= 0 && historico[i] === nome; i--) n++;
     return [1, 0.6, 0.35, 0.2][Math.min(n, 3)];
   }
-  // resultado: soma das 2 melhores notas
-  const resultado = (notas) => Math.round(10 * notas.slice().sort((a, b) => b - a).slice(0, 2).reduce((s, n) => s + n, 0)) / 10;
+  // resultado: a soma dos pontos das ondas
+  const resultado = (ondas) => ondas.reduce((t, p) => t + p, 0);
   function titulo(total) {
-    if (total >= 17) return "Campeão da praia 🏆";
-    if (total >= 12) return "Mandou bem 🤙";
-    if (total >= 6) return "Dá pro gasto 🏄";
+    if (total >= 40000) return "Campeão da praia 🏆";
+    if (total >= 20000) return "Mandou bem 🤙";
+    if (total >= 8000) return "Dá pro gasto 🏄";
     return "Melhor voltar pro churrasco 😂";
   }
-  const Regras = { REGRAS, nota, proximidade, repeticao, resultado, titulo };
+  const fmt = (n) => Math.round(n).toLocaleString("pt-BR");
+  const limparNome = (n) => [...String(n == null ? "" : n).replace(/\s+/g, " ").trim()].slice(0, NOME_MAX).join("");
+  const Regras = { REGRAS, PONTOS, COMBO, NOME_MAX, multiplicador, valorCombo, repeticao, resultado, titulo, fmt, limparNome };
   if (typeof module !== "undefined") module.exports = Regras;
   if (!global.document) return;
 
@@ -160,6 +168,7 @@
   // ---------- estado ----------
   const s = {
     fase: "intro", onda: 0, notas: [], pontos: 0, hist: [], tOnda: 0,
+    totais: [], combo: null, partida: null,
     x: 0, h: 0.5, vh: 0, v: 0, crista: 0, forca: 0, quebrada: false, secoes: [], tuboL: 90,
     remo: null, tubo: null, ar: null, floater: null, giro: 0, ang: 0, noFundo: false,
     dir: 1, virar: 1, u: 0, m: 1,          // dir: para onde a prancha aponta; u: velocidade em relação à crista; m: impulso
@@ -195,7 +204,7 @@
 
   // ---------- fases ----------
   function novaOnda() {
-    s.fase = "remando"; s.quebrada = false; s.forca = 0; s.pontos = 0; s.hist = []; s.tOnda = 0;
+    s.fase = "remando"; s.quebrada = false; s.forca = 0; s.pontos = 0; s.hist = []; s.tOnda = 0; s.combo = null;
     s.tubo = s.ar = s.floater = null; s.giro = 0; s.rastro = []; s.dir = 1; s.virar = 1; s.u = 0; s.m = 1;
     s.x = s.x || 0; s.crista = s.x - 110; s.h = 0; s.vh = 0; s.v = 0;
     s.remo = { t: 0, dur: 3.2 };
@@ -210,38 +219,55 @@
     s.fase = "surfando"; s.quebrada = true; s.remo = null;
     gerarSecoes(s.crista);
     s.v = REGRAS.vCrista + 140; s.h = 0.95; s.vh = -1.4; s.u = 160; s.m = 1.2; s.dir = 1;
-    pontuar("DROP!", 200);
+    marcar("drop", PONTOS.drop, "DROP!");
     if (A()) A().swoosh(true);
     falar("drop");
   }
   function fimOnda() {
     if (s.fase !== "surfando") return;
     if (s.tubo) sairTubo();
-    pontuar("Completou a onda!", 600);
-    const n = nota(s.pontos);
-    s.notas.push(n); s.onda++;
-    s.fase = "nota"; s.espera = 3.2; s.ultimaNota = n; s.ar = null; s.giro = 0;
-    falar(n >= 8 ? "notaAlta" : "notaBoa");
+    fecharCombo();
+    pontuar("Completou a onda!", PONTOS.onda);
+    s.totais.push(s.pontos); s.onda++;
+    s.fase = "nota"; s.espera = 3.2; s.ar = null; s.giro = 0; s.floater = null;
+    falar(s.pontos >= 12000 ? "notaAlta" : "notaBoa");
     s.festa = s.relogio;
   }
   function fimJogo() {
     s.fase = "fim";
-    const total = resultado(s.notas);
+    const total = resultado(s.totais);
     let recorde = 0;
-    try { recorde = +global.localStorage.getItem("nsf_surf_recorde") || 0; if (total > recorde) global.localStorage.setItem("nsf_surf_recorde", String(total)); } catch (e) { /* ok */ }
+    try { recorde = +global.localStorage.getItem(RECORDE) || 0; if (total > recorde) global.localStorage.setItem(RECORDE, String(total)); } catch (e) { /* ok */ }
     mostrarFim(total, Math.max(total, recorde), total > recorde && recorde > 0);
   }
 
   // ---------- pontos e manobras ----------
-  function pontuar(texto, pts, cor) {
+  const RECORDE = "nsf_surf_recorde_pts";
+  const NOMES = { drop: "Drop", pulinho: "Pulinho", cavada: "Cavada", cutback: "Cutback", floater: "Floater", aereo: "Aéreo", giro: "360", tubo: "Tubo" };
+  function pontuar(texto, pts, cor) { // pontos fora de combo (completar a onda)
     s.pontos += pts;
-    aviso(pts ? `${texto} +${pts}` : texto, cor || "#ffffff", pts >= 2000 ? 54 : 42);
+    aviso(pts ? `${texto} +${fmt(pts)}` : texto, cor || "#ffffff", 42);
   }
   const pode = (nome, seg) => s.relogio - (s.ultima[nome] || -99) > seg;
-  function manobra(nome, base, d, extra) {
-    const fator = repeticao(s.hist, nome);
+  // uma manobra: vale os pontos dela (menos, se repetir a mesma seguida) e entra no combo aberto
+  function marcar(nome, pts, texto, cor) {
+    pts = Math.round(pts * repeticao(s.hist, nome));
     s.hist.push(nome); s.ultima[nome] = s.relogio;
-    return Math.round(base * proximidade(d) * fator * (extra || 1));
+    if (!s.combo) s.combo = { itens: [] };
+    s.combo.itens.push({ nome, pts }); s.combo.ate = s.relogio + COMBO.janela;
+    aviso(`${texto} +${fmt(pts)}`, cor || "#ffffff", pts >= 2000 ? 54 : 42);
+  }
+  // o combo fecha quando passa a janela sem manobra nova: soma x variedade vai para os pontos da onda
+  function fecharCombo() {
+    const c = s.combo;
+    if (!c) return;
+    s.combo = null;
+    const pts = valorCombo(c.itens), m = multiplicador(c.itens.map((i) => i.nome));
+    s.pontos += pts;
+    if (c.itens.length > 1) {
+      aviso(`COMBO x${m}! +${fmt(pts)}`, m >= 3 ? "#7dff9a" : "#ffd36b", m >= 3 ? 56 : 46);
+      if (m >= 3) { s.festa = s.relogio; tremer(4); }
+    }
   }
   function entrarTubo() {
     s.tubo = { t: 0, grande: secaoEm(s.crista).tipo === "tubular" };
@@ -249,13 +275,12 @@
     falar("tubo");
   }
   function sairTubo(cuspido) {
-    const t = s.tubo.t, grande = s.tubo.grande;
+    const t = s.tubo.t;
     s.tubo = null; s.ultima.tubo = s.relogio;
     if (t < 0.5) return;
     const tubaco = t >= 2;
-    const pts = Math.round((900 + 1500 * t + (tubaco ? 1500 : 0)) * (grande ? 1.5 : 1) * repeticao(s.hist, "tubo"));
-    s.hist.push("tubo");
-    pontuar(`${tubaco ? "TUBAÇO" : "TUBO"} ${t.toFixed(1)}s${cuspido ? " (cuspido!)" : ""}`, pts, "#9ff3ff");
+    const pts = PONTOS.tubo + Math.round(PONTOS.tuboSeg * t) + (tubaco ? PONTOS.tubaco : 0) + (cuspido ? PONTOS.cuspido : 0);
+    marcar("tubo", pts, `${tubaco ? "TUBAÇO" : "TUBO"} ${t.toFixed(1)}s${cuspido ? " (cuspido!)" : ""}`, "#9ff3ff");
     espirro(cuspido ? 40 : 26, cuspido ? 1.4 : 1);
     if (cuspido) tremer(8);
     if (A()) A().swoosh(true);
@@ -323,6 +348,10 @@
   function atualizarSurf(dt) {
     const vc = vCrista();
     s.tOnda += dt;
+    if (s.combo) { // no tubo, no ar ou na crista o combo segue aberto; parado 2,5 s sem manobra, fecha
+      if (s.tubo || s.ar || s.floater) s.combo.ate = s.relogio + COMBO.janela;
+      else if (s.relogio > s.combo.ate) fecharCombo();
+    }
     s.forca = Math.min(1, s.forca + dt * 0.6);
     s.crista += vc * dt;
     s.tuboL += ((secaoEm(s.crista).tipo === "tubular" ? 280 : 200) - s.tuboL) * Math.min(1, dt * 2);
@@ -361,12 +390,12 @@
       f.t += dt; s.h = 1; s.vh = 0;
       s.x += (vc + s.u) * dt;
       if (pulouAgora) { // do floater direto para o aéreo
-        const t = f.t; s.floater = null; pontuar("Floater", Math.round(400 + 800 * t)); return pular(true);
+        const t = f.t; s.floater = null; marcar("floater", PONTOS.floater + Math.round(PONTOS.floaterSeg * t), "Floater"); return pular(true);
       }
       if (ent.baixo || (!ent.cima && f.t > 0.35) || f.t > 2.2) {
         const d = s.x - s.crista;
         s.floater = null; s.h = 0.9; s.vh = -1.2;
-        pontuar("FLOATER", manobra("floater", 500 + 900 * Math.min(2, f.t), d), "#ffd36b");
+        marcar("floater", PONTOS.floater + Math.round(PONTOS.floaterSeg * Math.min(2.2, f.t)), "FLOATER", "#ffd36b");
         espirro(20, 1); tremer(4); s.pausa = 0.05;
         if (A()) A().swoosh(true);
         falar("floater"); s.festa = s.relogio;
@@ -398,14 +427,13 @@
     if (s.noFundo && s.vh > 0.8) { // cavada: foi ao pé da onda e voltou subindo com força
       s.noFundo = false;
       if (pode("cavada", 1.0)) {
-        pontuar("Cavada", manobra("cavada", 300, d)); s.ultimaCavada = s.relogio;
+        marcar("cavada", PONTOS.cavada, "Cavada"); s.ultimaCavada = s.relogio;
         espirro(10, 0.7); if (A()) A().swoosh(false);
       }
     }
     // cutback: voltando (prancha para trás) e subindo a parede
     if (s.dir < 0 && s.u < -120 && s.vh > 0.6 && s.h > 0.4 && pode("cutback", 1.4)) {
-      const combo = s.relogio - s.ultimaCavada < 1.8 ? 1.3 : 1;
-      pontuar(combo > 1 ? "CUTBACK COMBO" : "CUTBACK", manobra("cutback", 900, d, combo * (0.7 + 0.3 * s.m)), "#ffd36b");
+      marcar("cutback", PONTOS.cutback, "CUTBACK", "#ffd36b");
       espirro(26, 1.2); tremer(5);
       if (A()) A().swoosh(true);
       if (Math.random() < 0.7) falar("cutback");
@@ -440,13 +468,13 @@
   function aterrissar() {
     const ar = s.ar, d = s.x - s.crista;
     s.ar = null;
-    if (ar.pequeno) { s.giro = 0; if (pode("pulinho", 1.5)) pontuar("Pulinho", 150); return; }
+    if (ar.pequeno) { s.giro = 0; if (pode("pulinho", 1.5)) marcar("pulinho", PONTOS.pulinho, "Pulinho"); return; }
     const voltas = Math.round(s.giro / DOIS_PI);
     s.giro = 0;
     s.h = 0.8; s.vh = -1.0; s.m = Math.min(1.6, s.m + 0.2);
     const n = Math.abs(voltas);
     const nome = n >= 2 ? "AÉREO 720!!" : n === 1 ? "AÉREO 360!" : "Aterrissou o aéreo!";
-    pontuar(nome, manobra(n ? "giro" : "aereo", 1800 + 1600 * n, d), "#ff8be6");
+    marcar(n ? "giro" : "aereo", PONTOS.aereo + PONTOS.giro * n, nome, "#ff8be6");
     espirro(30, 1.3); tremer(n ? 10 : 6); s.pausa = 0.07;
     if (A()) A().swoosh(true);
     falar(n ? "giro" : "aereo"); s.festa = s.relogio;
@@ -860,11 +888,20 @@
     ctx.globalAlpha = 1;
     if (s.fase === "intro" || s.fase === "fim") return;
     texto(ctx, `Onda ${Math.min(s.onda + 1, REGRAS.ondas)}/${REGRAS.ondas}`, W - 24, 130, 34, "#fff", "right");
-    texto(ctx, s.notas.map((n) => n.toFixed(1)).join("  ·  ") || "", W - 24, 175, 28, "#ffd36b", "right");
+    texto(ctx, s.totais.map(fmt).join("  ·  ") || "", W - 24, 175, 28, "#ffd36b", "right");
     if (s.fase === "remando") texto(ctx, "Lá vem a onda... 🌊", meio, 300, 56, "#ffd36b");
     if (s.fase === "surfando") {
-      texto(ctx, String(Math.round(s.pontos)), meio, 140, 58, "#fff");
-      texto(ctx, `nota ${nota(s.pontos).toFixed(1)}`, meio, 182, 28, "#ffd36b");
+      texto(ctx, fmt(resultado(s.totais) + s.pontos), meio, 140, 58, "#fff");
+      texto(ctx, `esta onda: ${fmt(s.pontos)}`, meio, 182, 26, "#ffd36b");
+      if (s.combo) { // combo aberto: soma x variedade e a barrinha do tempo que falta para fechar
+        const c = s.combo, m = multiplicador(c.itens.map((i) => i.nome));
+        const nomes = c.itens.slice(-4).map((i) => NOMES[i.nome] || i.nome).join(" + ");
+        texto(ctx, `COMBO x${m}  ${fmt(valorCombo(c.itens))}`, meio, 320, 40, m >= 3 ? "#7dff9a" : "#ffd36b");
+        texto(ctx, (c.itens.length > 4 ? "... + " : "") + nomes, meio, 352, 22, "#fff");
+        const resta = s.tubo || s.ar || s.floater ? 1 : lim((c.ate - s.relogio) / COMBO.janela, 0, 1);
+        ctx.fillStyle = "rgba(20,10,30,0.6)"; ctx.fillRect(meio - 90, 362, 180, 6);
+        ctx.fillStyle = m >= 3 ? "#7dff9a" : "#ffd36b"; ctx.fillRect(meio - 90, 362, 180 * resta, 6);
+      }
       const tw = Math.min(420, W - 80), tx = meio - tw / 2;
       ctx.fillStyle = "rgba(20,10,30,0.6)"; ctx.fillRect(tx, 200, tw, 10);
       ctx.fillStyle = "#9ff3ff"; ctx.fillRect(tx, 200, tw * Math.max(0, 1 - s.tOnda / REGRAS.segundosOnda), 10);
@@ -884,10 +921,11 @@
       }
     }
     if (s.fase === "nota") {
-      ctx.fillStyle = "rgba(20,10,30,0.7)"; ctx.beginPath(); ctx.roundRect(meio - 230, 230, 460, 190, 24); ctx.fill();
-      texto(ctx, "Nota dos juízes", meio, 285, 32, "#fff");
-      texto(ctx, s.ultimaNota.toFixed(1), meio, 370, 84, s.ultimaNota >= 8 ? "#7dff9a" : s.ultimaNota >= 5 ? "#ffd36b" : "#ff8b8b");
-      texto(ctx, "Completou a onda 🤙", meio, 410, 24, "#c9b8ee");
+      const ult = s.totais[s.totais.length - 1] || 0;
+      ctx.fillStyle = "rgba(20,10,30,0.7)"; ctx.beginPath(); ctx.roundRect(meio - 230, 230, 460, 200, 24); ctx.fill();
+      texto(ctx, `Onda ${s.totais.length}`, meio, 285, 32, "#fff");
+      texto(ctx, fmt(ult), meio, 365, 76, ult >= 12000 ? "#7dff9a" : ult >= 5000 ? "#ffd36b" : "#ff8b8b");
+      texto(ctx, `Total: ${fmt(resultado(s.totais))} pontos 🤙`, meio, 412, 24, "#c9b8ee");
     }
   }
 
@@ -954,7 +992,45 @@
 
   // ---------- telas de começo e fim ----------
   const caixa = doc.getElementById("caixa");
-  function comecar() { caixa.hidden = true; s.onda = 0; s.notas = []; novaOnda(); }
+  function comecar() { caixa.hidden = true; s.onda = 0; s.totais = []; novaOnda(); pedirPartida(); }
+  // ---------- ranking (servidor do site: /api/thelastdance/surf) ----------
+  const API = (NSF.API || "") + "/api/thelastdance/surf";
+  const NOME_SALVO = "nsf_surf_nome";
+  async function pedirPartida() { // a "ficha" da partida: o servidor marca a hora do começo (só vale uma gravação)
+    s.partida = null;
+    try {
+      const r = await global.fetch(API + "/partida", { method: "POST" });
+      if (r.ok) s.partida = (await r.json()).partida;
+    } catch (e) { /* sem internet: joga normal, só não entra no ranking */ }
+  }
+  async function pedir(caminho, opcoes) {
+    const r = await global.fetch(API + caminho, opcoes);
+    let j = {};
+    try { j = await r.json(); } catch (e) { /* sem corpo */ }
+    if (!r.ok) throw new Error(j.error || "O ranking está fora do ar agora.");
+    return j;
+  }
+  function tabelaRanking(lista, top, total, posicao, eu) {
+    lista.innerHTML = "";
+    const ol = doc.createElement("ol"); ol.className = "ranking";
+    top.forEach((x, i) => {
+      const li = doc.createElement("li"); if (x.eu) li.className = "eu";
+      const pos = doc.createElement("b"); pos.textContent = `${i + 1}º`;
+      const nome = doc.createElement("span"); nome.textContent = x.nome;
+      const pts = doc.createElement("em"); pts.textContent = fmt(x.pontos);
+      li.append(pos, nome, pts); ol.appendChild(li);
+    });
+    if (eu && posicao > top.length) { // fora do top 10: a linha dele embaixo
+      const li = doc.createElement("li"); li.className = "eu fora";
+      const pos = doc.createElement("b"); pos.textContent = `${posicao}º`;
+      const nome = doc.createElement("span"); nome.textContent = eu.nome;
+      const pts = doc.createElement("em"); pts.textContent = fmt(eu.pontos);
+      li.append(pos, nome, pts); ol.appendChild(li);
+    }
+    if (!top.length) { const li = doc.createElement("li"); li.textContent = "Ninguém no ranking ainda. Seja o primeiro!"; ol.appendChild(li); }
+    const t = doc.createElement("small"); t.textContent = `${fmt(total)} ${total === 1 ? "surfista" : "surfistas"} no ranking`;
+    lista.append(ol, t);
+  }
   function mostrarInicio() {
     caixa.innerHTML = "";
     const h = doc.createElement("h1"); h.textContent = "🏄 Surf na praia";
@@ -964,28 +1040,61 @@
     const ul = doc.createElement("ul");
     for (const t of ["Voltando (prancha para trás) e subindo a parede: CUTBACK", "Suba até a crista e ande em cima dela: FLOATER",
       "Perto da crista, pule: AÉREO (no ar, ◀/▶ ou A/D giram: 360!)", "Sem apertar nada, a onda te alcança e cobre: TUBO (2 s = tubaço)",
-      "Desça até o pé da onda e suba com tudo: cavada (descer dá impulso)", "3 ondas; a nota final é a soma das 2 melhores"]) {
+      "Desça até o pé da onda e suba com tudo: cavada (descer dá impulso)",
+      "Emende manobras DIFERENTES: o combo multiplica (até x5)", "3 ondas: a soma dos pontos vai para o ranking"]) {
       const li = doc.createElement("li"); li.textContent = t; ul.appendChild(li);
     }
     const b = doc.createElement("button"); b.type = "button"; b.textContent = "Bora surfar!";
     b.addEventListener("click", comecar);
     caixa.append(h, p, ul, b);
     let recorde = 0;
-    try { recorde = +global.localStorage.getItem("nsf_surf_recorde") || 0; } catch (e) { /* ok */ }
-    if (recorde) { const r = doc.createElement("small"); r.textContent = `Seu recorde: ${recorde.toFixed(1)}`; caixa.appendChild(r); }
+    try { recorde = +global.localStorage.getItem(RECORDE) || 0; } catch (e) { /* ok */ }
+    if (recorde) { const r = doc.createElement("small"); r.textContent = `Seu recorde: ${fmt(recorde)} pontos`; caixa.appendChild(r); }
     caixa.hidden = false;
   }
   function mostrarFim(total, recorde, novo) {
     caixa.innerHTML = "";
     const h = doc.createElement("h1"); h.textContent = titulo(total);
-    const p = doc.createElement("p"); p.textContent = `Notas: ${s.notas.map((n) => n.toFixed(1)).join(" · ")}`;
-    const t = doc.createElement("div"); t.className = "total"; t.textContent = total.toFixed(1);
-    const r = doc.createElement("small"); r.textContent = novo ? "Novo recorde! 🎉" : `Recorde: ${recorde.toFixed(1)}`;
+    const t = doc.createElement("div"); t.className = "total"; t.textContent = fmt(total);
+    const p = doc.createElement("p"); p.textContent = `pontos · ondas: ${s.totais.map(fmt).join(" + ")}`;
+    const r = doc.createElement("small"); r.textContent = novo ? "Seu novo recorde! 🎉" : `Seu recorde: ${fmt(recorde)}`;
+    // ranking: o nome (até 10 letras) e a tabela geral com a posição dele
+    const form = doc.createElement("form"); form.className = "nome";
+    const campo = doc.createElement("input");
+    campo.type = "text"; campo.maxLength = NOME_MAX; campo.placeholder = "Seu nome"; campo.autocomplete = "nickname";
+    campo.setAttribute("aria-label", `Seu nome no ranking (até ${NOME_MAX} letras)`);
+    try { campo.value = global.localStorage.getItem(NOME_SALVO) || ""; } catch (e) { /* ok */ }
+    const salvar = doc.createElement("button"); salvar.type = "submit"; salvar.textContent = "Entrar no ranking";
+    form.append(campo, salvar);
+    const msg = doc.createElement("small"); msg.className = "msg";
+    const lista = doc.createElement("div"); lista.className = "lista"; lista.textContent = "Carregando o ranking...";
     const b = doc.createElement("button"); b.type = "button"; b.textContent = "Surfar de novo";
     b.addEventListener("click", comecar);
     const v = doc.createElement("a"); v.href = "garagem.html?comodo=carro"; v.textContent = "Voltar para o carro";
-    caixa.append(h, t, p, r, b, v);
+    caixa.append(h, t, p, r, form, msg, lista, b, v);
     caixa.hidden = false;
+    // antes de gravar: onde essa pontuação ficaria
+    pedir(`/ranking?pontos=${Math.round(total)}`).then((j) => {
+      tabelaRanking(lista, j.top, j.total, j.posicao);
+      if (!form.hidden) msg.textContent = `Com ${fmt(total)} pontos você fica em ${j.posicao}º de ${fmt(j.total + 1)}. Ponha seu nome!`;
+    }).catch((e) => { lista.textContent = e.message; });
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nome = limparNome(campo.value);
+      if (!nome) { msg.textContent = "Escreva seu nome (até 10 letras)."; campo.focus(); return; }
+      if (!s.partida) { msg.textContent = "Sem conexão com o servidor nesta partida: não deu para entrar no ranking."; return; }
+      salvar.disabled = true; msg.textContent = "Salvando...";
+      try {
+        const j = await pedir("/ranking", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ partida: s.partida, nome, pontos: Math.round(total) }) });
+        try { global.localStorage.setItem(NOME_SALVO, nome); } catch (e2) { /* ok */ }
+        form.hidden = true;
+        msg.textContent = `${nome}, você ficou em ${j.posicao}º lugar de ${fmt(j.total)}! ${j.posicao <= 3 ? "🏆" : "🤙"}`;
+        tabelaRanking(lista, j.top, j.total, j.posicao, j.eu);
+      } catch (e2) {
+        msg.textContent = e2.message; salvar.disabled = false;
+      }
+    });
   }
 
   // ---------- começo ----------

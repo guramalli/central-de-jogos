@@ -13,6 +13,7 @@
   const host = global.location ? global.location.hostname : "";
   const API = /(^|\.)educacaogamer\.com\.br$/.test(host) ? "https://api.educacaogamer.com.br"
     : "http://localhost:4000"; // o site rodando no computador (backend com npm run dev)
+  NSF.API = API; // o servidor do site (também usado pelo ranking do surf)
   // o que cada tela abre (os nomes batem com tools/vip_trancar.mjs)
   const PACOTES_DA_TELA = {
     "casa_amigo.html": ["amigos", "sertanejo", "vozes"],
