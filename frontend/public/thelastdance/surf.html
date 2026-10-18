@@ -30,6 +30,13 @@
   #caixa li { margin: 3px 0; }
   #caixa .total { font-size: 64px; font-weight: 800; color: #ffd36b; line-height: 1.1; }
   #caixa small { display: block; margin: 6px 0; color: #c9b8ee; }
+  #caixa .surfistas { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 4px 0 6px; }
+  #caixa .surfistas small { flex-basis: 100%; margin: 0; }
+  #caixa button.surfista { width: 104px; margin: 0; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.18); }
+  #caixa button.surfista canvas { height: 84px; width: auto; image-rendering: pixelated; }
+  #caixa button.surfista span { font-size: 15px; }
+  #caixa button.surfista.escolhido { border-color: #ff8be6; background: rgba(255,90,216,.22); box-shadow: 0 0 12px rgba(255,90,216,.5); }
   #caixa button, #caixa a { display: block; width: 100%; box-sizing: border-box; margin-top: 10px; font: 700 17px system-ui, sans-serif;
            color: #fff; background: #b0279a; border: 2px solid #ff8be6; border-radius: 999px; padding: 12px; cursor: pointer; text-decoration: none; }
   #caixa a { background: transparent; }

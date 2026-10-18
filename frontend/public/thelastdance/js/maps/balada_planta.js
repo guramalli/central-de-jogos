@@ -222,6 +222,9 @@
       { id: "kaleb", nome: "Kaleb", personagem: "kaleb", personagem3d: true, so3d: true, postura: "em_pe", x: 3.4, y: 16.8, dir: "baixo",
         reage: { raio: 2.2, pose: "soco", fala: "Ó SE EU QUISESSE!" },
         falarDe: { x: 3.4, y: 17.45 }, fala: ["\"Ó se eu quisesse...\"", "\"Tô só esperando o pessoal chegar.\""] },
+      // o Thiago Mourão em 3D (trancado com a senha), dançando no camarote
+      { id: "thiago", nome: "Thiago Mourão", personagem: "thiago", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 3.8, y: 5.3, dir: "baixo",
+        falarDe: { x: 3.8, y: 6.05 }, fala: ["\"Camarote é isso aqui, ó: só alegria!\"", "\"Solta o som, DJ!\""] },
       // o Genival em 3D (trancado com a senha), dançando na pista
       { id: "genival", nome: "Genival", personagem: "genival", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 11.0, y: 9.6, dir: "baixo",
         falarDe: { x: 11.0, y: 10.3 }, fala: ["\"Essa é a minha música!\"", "\"Hoje eu só saio daqui quando acender a luz!\""] },

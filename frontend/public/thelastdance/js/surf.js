@@ -146,14 +146,45 @@
       || ((s.tubo || s.relogio - s.bomba < 0.18 || travado) && p("agachado"))
       || surf3d.surf;
   }
-  async function carregar3d() {
-    const pasta = "assets/characters/personagem_v2/pixel/";
-    const m = await (await global.fetch(pasta + "surf3d.json", { cache: "no-cache" })).json(); // sempre o mais novo
-    const v = "?v=" + (m.versao || 1); // muda a "versao" no json quando as tiras mudarem: o navegador baixa de novo
+  // Surfistas para escolher na tela inicial. O Binho é aberto; os amigos (rosto real) vêm do pacote trancado
+  // (só aparecem com a senha). Cada um tem um surf3d.json com as mesmas tiras.
+  const SURFISTAS = [
+    { id: "binho", nome: "Binho", pasta: "assets/characters/personagem_v2/pixel/" },
+    { id: "kaleb", nome: "Kaleb", pasta: "assets/characters/npcs/kaleb/", vip: true },
+  ];
+  const SURFISTA_SALVO = "nsf_surf_surfista";
+  async function carregarSurfista(sf) {
+    if (sf.vip && NSF.VIP) await NSF.VIP.pronto;
+    const url = (u) => (sf.vip && NSF.VIP ? NSF.VIP.url(u) : u);
+    const r = await global.fetch(url(sf.pasta + "surf3d.json"), { cache: "no-cache" }); // sempre o mais novo
+    if (!r.ok) throw new Error("surf3d: " + sf.id);
+    const m = await r.json();
+    const v = sf.vip ? "" : "?v=" + (m.versao || 1); // muda a "versao" no json quando as tiras mudarem: o navegador baixa de novo
     // surf e remar (Tripo) + poses feitas no Blender: agachado, cutback, aereo, floater (as que existirem no json)
-    await Promise.all(["surf", "remar", "virar", ...POSES3D].filter((k) => m[k]).map((k) => carregarImg(pasta + m[k].folha + v).then((im) => { m[k].img = im; })));
+    await Promise.all(["surf", "remar", "virar", ...POSES3D].filter((k) => m[k]).map((k) => carregarImg(url(sf.pasta + m[k].folha) + v).then((im) => { m[k].img = im; })));
     m.escala = (1375 * ESC) / m.altura_em_pe_px; // mesma altura do personagem antigo no mar
-    surf3d = m;
+    sf.m = m;
+    return m;
+  }
+  function escolherSurfista(id) {
+    const sf = SURFISTAS.find((x) => x.id === id && x.m);
+    if (!sf) return false;
+    surf3d = sf.m;
+    try { global.localStorage.setItem(SURFISTA_SALVO, id); } catch (e) { /* ok */ }
+    return true;
+  }
+  async function carregar3d() {
+    await carregarSurfista(SURFISTAS[0]);
+    surf3d = SURFISTAS[0].m;
+    // os amigos: carregam por trás; se a tela inicial estiver aberta, ela ganha a escolha
+    for (const sf of SURFISTAS.slice(1)) {
+      carregarSurfista(sf).then(() => {
+        let salvo = null;
+        try { salvo = global.localStorage.getItem(SURFISTA_SALVO); } catch (e) { /* ok */ }
+        if (salvo === sf.id && s.fase === "intro") escolherSurfista(sf.id);
+        if (!caixa.hidden && !caixa.classList.contains("fim") && s.fase === "intro") mostrarInicio();
+      }).catch(() => { /* sem a senha: só o Binho */ });
+    }
   }
   function carregarImg(url) {
     return new Promise((ok, erro) => {
@@ -1290,7 +1321,25 @@
     const b = doc.createElement("button"); b.type = "button"; b.textContent = "Bora surfar!";
     b.addEventListener("click", comecar);
     const cred = doc.createElement("small"); cred.className = "credito"; cred.textContent = "Música: DavidKBD — Skank the Summer";
-    caixa.append(h, p, p2, ul, b, cred);
+    caixa.append(h, p, p2, ul);
+    // escolha do surfista (só quando tem mais de um carregado: os amigos precisam da senha)
+    const prontos = SURFISTAS.filter((x) => x.m);
+    if (prontos.length > 1) {
+      const linha = doc.createElement("div"); linha.className = "surfistas";
+      const t = doc.createElement("small"); t.textContent = "Escolha o surfista:";
+      linha.appendChild(t);
+      for (const sf of prontos) {
+        const bt = doc.createElement("button"); bt.type = "button"; bt.className = "surfista" + (surf3d === sf.m ? " escolhido" : "");
+        const f = sf.m.surf, c = doc.createElement("canvas"); c.width = f.larg; c.height = f.alt;
+        const cx = c.getContext("2d"); cx.imageSmoothingEnabled = false; cx.drawImage(f.img, 0, 0, f.larg, f.alt, 0, 0, f.larg, f.alt);
+        const n = doc.createElement("span"); n.textContent = sf.nome;
+        bt.append(c, n);
+        bt.addEventListener("click", () => { escolherSurfista(sf.id); mostrarInicio(); });
+        linha.appendChild(bt);
+      }
+      caixa.appendChild(linha);
+    }
+    caixa.append(b, cred);
     let recorde = 0;
     try { recorde = +global.localStorage.getItem(RECORDE) || 0; } catch (e) { /* ok */ }
     if (recorde) { const r = doc.createElement("small"); r.textContent = `Seu recorde: ${fmt(recorde)} pontos`; caixa.appendChild(r); }
