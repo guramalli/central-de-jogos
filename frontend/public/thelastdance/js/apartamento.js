@@ -912,7 +912,8 @@
     jog.andando = wx !== 0 || wy !== 0;
     if (!jog.andando) { jog.tempo = 0; return; }
     jog.dir = direcaoSprite(sx, sy);
-    ISO.mover(P, jog, wx * VEL * dt, wy * VEL * dt, RAIO);
+    const v = VEL * (jog.correndo || 1); // jog.correndo: multiplicador (ex.: 2,5 correndo para o banheiro)
+    ISO.mover(P, jog, wx * v * dt, wy * v * dt, RAIO);
     jog.tempo += dt * 1000;
   }
 

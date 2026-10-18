@@ -243,6 +243,35 @@
     }
     ctx.restore();
   };
+  // DOR DE BARRIGA: no meio da balada (uma vez por noite, depois de um tempo andando por lá) ele reclama,
+  // corre para o banheiro masculino, some lá dentro, toca a diarreia uns segundos e ele volta saindo pela porta.
+  const PORTA_BANHEIRO = { x: 24.1, y: 0.55 };
+  let barrigaFeita = false;
+  function dorDeBarriga(api) {
+    if (barrigaFeita || !api || !api.irPara) return;
+    barrigaFeita = true;
+    try { sessionStorage.setItem("nsf_balada_barriga", "1"); } catch (e) { /* ok */ }
+    const j = api.jog, A = NSF.Audio;
+    if (j.dancando) dancar(api, false);
+    if (A && A.peido) A.peido();
+    api.pensar("Ai... minha barriga... 😰 Aquele pão com ovo da padaria...", 2600);
+    setTimeout(() => {
+      api.falar("BANHEIRO! SAI DA FRENTE! 🏃💨", 3000);
+      j.correndo = 2.5;
+      api.irPara(PORTA_BANHEIRO.x, PORTA_BANHEIRO.y + 0.4, () => {
+        j.correndo = 1;
+        api.efeito.tipo = null;
+        j.dir = "cima";
+        j.oculto = true;            // entrou no banheiro
+        if (A && A.diarreia) A.diarreia(5);
+        setTimeout(() => {
+          j.oculto = false; j.dir = "baixo";
+          j.x = PORTA_BANHEIRO.x; j.y = PORTA_BANHEIRO.y + 0.5;
+          api.falar("Ufa... nem pergunta. 😅", 2600);
+        }, 5600);
+      });
+    }, 2700);
+  }
   // botão DANÇAR: ele dança onde estiver (a tira "dancar" do personagem 3D); andar ou sentar para a dança
   let bDancar = null;
   function dancar(api, sim) {
@@ -254,6 +283,17 @@
   }
   PLANTA.aoIniciar = (api) => {
     if (bDancar || typeof document === "undefined") return;
+    // a dor de barriga vem uma vez por noite, entre 1,5 e 3 minutos de balada (só quando ele não está fazendo nada)
+    try { barrigaFeita = sessionStorage.getItem("nsf_balada_barriga") === "1"; } catch (e) { /* ok */ }
+    const params = new URLSearchParams(location.search);
+    const espera = params.has("barriga") ? 3000 : 90000 + Math.random() * 90000;
+    const tentar = () => {
+      if (barrigaFeita) return;
+      const ocupado = (api.ocupado && api.ocupado()) || api.jog.oculto || (NSF.Paquera && NSF.Paquera.aberta()) || api.npcs.some((n) => n.cena);
+      if (ocupado) { setTimeout(tentar, 5000); return; }
+      dorDeBarriga(api);
+    };
+    if (!barrigaFeita || params.has("barriga")) { barrigaFeita = false; setTimeout(tentar, espera); }
     bDancar = document.createElement("button");
     bDancar.type = "button"; bDancar.id = "dancar";
     bDancar.addEventListener("click", (e) => { e.stopPropagation(); dancar(api, !api.jog.dancando); bDancar.blur(); });

@@ -359,6 +359,37 @@
     o.start(t); lfo.start(t); s.start(t); o.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05); s.stop(t + dur + 0.05);
   }
 
+  // Diarreia (a piada do banheiro): uns segundos de rajadas "molhadas" (ruído filtrado que treme), "bloops" graves
+  // e, no fim, a descarga (ruído que sobe e desce). Tudo sintetizado, ~ seg segundos.
+  function diarreia(seg) {
+    if (!pronto()) return;
+    const D = seg || 4.5, t0 = ctx.currentTime + 0.05;
+    let t = t0;
+    while (t < t0 + D - 1.6) { // rajadas
+      const dur = 0.18 + Math.random() * 0.5;
+      const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+      s.buffer = obterRuido(); f.type = "bandpass"; f.frequency.setValueAtTime(260 + Math.random() * 240, t); f.Q.value = 2.2;
+      f.frequency.linearRampToValueAtTime(120 + Math.random() * 80, t + dur);
+      lfo.type = "square"; lfo.frequency.value = 18 + Math.random() * 22; lg.gain.value = 0.35; lfo.connect(lg); lg.connect(g.gain);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.55, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f); f.connect(g); g.connect(busEfeitos);
+      s.start(t); lfo.start(t); s.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05);
+      if (Math.random() < 0.6) { // "bloop" grave
+        const o = ctx.createOscillator(), og = ctx.createGain(), bt = t + dur * 0.5;
+        o.type = "sine"; o.frequency.setValueAtTime(140 + Math.random() * 60, bt); o.frequency.exponentialRampToValueAtTime(55, bt + 0.12);
+        og.gain.setValueAtTime(0.0001, bt); og.gain.linearRampToValueAtTime(0.35, bt + 0.01); og.gain.exponentialRampToValueAtTime(0.0001, bt + 0.14);
+        o.connect(og); og.connect(busEfeitos); o.start(bt); o.stop(bt + 0.16);
+      }
+      t += dur + 0.08 + Math.random() * 0.35;
+    }
+    // descarga
+    const td = t0 + D - 1.4, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = obterRuido(); s.loop = true; f.type = "lowpass"; f.frequency.setValueAtTime(400, td); f.frequency.linearRampToValueAtTime(1800, td + 0.4);
+    f.frequency.linearRampToValueAtTime(500, td + 1.4);
+    g.gain.setValueAtTime(0.0001, td); g.gain.linearRampToValueAtTime(0.4, td + 0.25); g.gain.exponentialRampToValueAtTime(0.0001, td + 1.4);
+    s.connect(f); f.connect(g); g.connect(busEfeitos); s.start(td); s.stop(td + 1.5);
+  }
+
   // Assobio: senoide aguda com vibrato, deslizando entre as notas de uma frase alegre.
   function assobio() {
     if (!pronto()) return;
@@ -608,7 +639,7 @@
       volumeMusica();
     },
     abafar(sim) { abafado = sim; volumeMusica(); },
-    clique, peido, assobio, curtida, ding, mar, swoosh, tchibum, portaElevador, alarmeCarro, chiado, tv, ronco, tapa, voz, risadinha, rangido, batidas, match,
+    clique, peido, diarreia, assobio, curtida, ding, mar, swoosh, tchibum, portaElevador, alarmeCarro, chiado, tv, ronco, tapa, voz, risadinha, rangido, batidas, match,
     ligado: () => ligadoSom,
     // para conferência/testes: estado do contexto e volumes
     estado: () => ({ contexto: ctx ? ctx.state : "sem", musica: busMusica ? +busMusica.gain.value.toFixed(2) : 0,
