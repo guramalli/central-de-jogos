@@ -172,8 +172,8 @@
       { id: "duda", nome: "Duda", personagem: "balada_morena", personagem3d: true, so3d: true, paquera: "balada_morena", postura: "em_pe", x: 13.4, y: 4.9, dir: "baixo",
         falarDe: { x: 13.4, y: 5.7 }, fala: ["\"Adoro essa pista!\"", "\"Bora pro bar depois?\""] },
 
-      // no lounge: a Lari, sentada no sofá de vestido vermelho (pode nem dar bola; se der, levanta para o beijo ou o tapa)
-      { id: "lari", nome: "Lari", personagem: "balada_vestido", personagem3d: true, so3d: true, paquera: "balada_vestido",
+      // no lounge: a Clarissa, sentada no sofá de vestido vermelho (pode nem dar bola; se der, levanta para o beijo ou o tapa)
+      { id: "clarissa", nome: "Clarissa", personagem: "balada_vestido", personagem3d: true, so3d: true, paquera: "balada_vestido",
         postura: "sentado", assento: 0.45, x: 11.0, y: 13.4, dir: "baixo",
         falarDe: { x: 10.2, y: 14.55 }, fala: ["\"Hm?\""] },
 

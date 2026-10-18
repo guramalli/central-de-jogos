@@ -19,7 +19,7 @@
       balada_loira: { nome: "Carol", retrato: "assets/characters/npcs/balada_loira/retrato.png", tipo: "simpatica", rapido: true },
       balada_morena: { nome: "Duda", retrato: "assets/characters/npcs/balada_morena/retrato.png", tipo: "timida", rapido: true },
       // sentada no sofá do lounge: pode nem dar bola (ignora); se der, levanta (levanta: onde ela fica em pé) e beija ou dá tapa
-      balada_vestido: { nome: "Lari", retrato: "assets/characters/npcs/balada_vestido/retrato.png", tipo: "metida", rapido: true,
+      balada_vestido: { nome: "Clarissa", retrato: "assets/characters/npcs/balada_vestido/retrato.png", tipo: "metida", rapido: true,
         ignora: 0.35, levanta: { x: 10.75, y: 14.1 },
         ignorou: ["Ela olha o celular e finge que você nem existe.", "Ela nem tira o olho do drink.", "Ela dá um meio sorriso... e vira pro outro lado."] },
 
