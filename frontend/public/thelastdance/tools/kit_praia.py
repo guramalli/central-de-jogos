@@ -52,6 +52,13 @@ PEDIDOS = [
      "a horizontally TILEABLE band of WHITEWATER (the foam of a wave that already broke), seen from the side: a "
      "rolling mass of white and light-blue foam, bubbly and lumpy on top, flat at the bottom, with small splashes. "
      "The left and right edges must match so it can repeat. Each frame: the foam churns and bubbles move."),
+    ("prancha", "Prancha dele (a que ele surfa)", "unica", "landscape",
+     "ONE SURFBOARD on its own (no surfer), lying perfectly HORIZONTAL, seen from the SIDE and a little from above "
+     "(so the top deck shows as a thin strip): a 6-foot shortboard, white deck with a thin hot-pink stripe running "
+     "along the rail from nose to tail (same board as the one stuck in the sand), the NOSE pointing to the RIGHT and "
+     "slightly raised (rocker), the squash TAIL on the LEFT with three small dark fins under it and a coiled black "
+     "leash cord at the tail. Clean dark navy outline, simple flat shading. It fills the width of the image, "
+     "centered, no water, no shadow, no logos or text."),
     ("ceu_mar", "Fundo: céu e mar ao longe", "unica", "landscape",
      "a wide panoramic BACKGROUND: a bright sunny tropical sky with soft color bands (deep blue at the top to pale "
      "warm near the horizon), a few fluffy pixel clouds, and the calm open sea below the horizon (the horizon line at "
