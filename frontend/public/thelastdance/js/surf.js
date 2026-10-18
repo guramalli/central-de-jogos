@@ -19,13 +19,49 @@
   "use strict";
 
   // ---------- regras (sem tela: testadas em tests/surf.test.js) ----------
-  const REGRAS = { ondas: 3, segundosOnda: 28, vCrista: 300 };
+  const REGRAS = { ondas: 3, segundosOnda: 34, vCrista: 220 }; // mais lento: dá tempo de montar as manobras
   // pontos de cada manobra (floater e tubo ganham também por segundo; aéreo ganha por volta completa no ar)
   const PONTOS = { drop: 100, pulinho: 50, cavada: 150, cutback: 500, floater: 300, floaterSeg: 400, aereo: 1000, giro: 1000,
     tubo: 500, tuboSeg: 700, tubaco: 1500, cuspido: 500, onda: 300 };
   // combo: manobras com menos de 2,5 s entre uma e outra; multiplica pelo número de manobras DIFERENTES (até x5)
   const COMBO = { janela: 2.5, maxMult: 5 };
   const NOME_MAX = 10;
+  // ---------- física da prancha (inspirada nos jogos de surf e na física de verdade) ----------
+  // A prancha tem VELOCIDADE (v) e um RUMO na parede (rumo: subindo > 0, descendo < 0). Como num balanço:
+  //   descer a parede transforma altura em velocidade; subir gasta. A parte íngreme perto da crista (o "pocket",
+  //   inc = 1) empurra mais; no ombro (inc baixo) a onda perde força e ele escorrega de volta para o pocket.
+  //   Segurando D (ou A) ele "trima" (pouco atrito); soltando, ele trava a prancha (stall): perde velocidade e a
+  //   onda o alcança (tubo). BOMBEAR: ▲▼ (W/S) alternados e rápidos = batidinhas na prancha, cada uma soma velocidade.
+  const FISICA = {
+    vMin: 60, vMax: 560,
+    gravidade: 300,     // px/s² na descida mais íngreme (do pé à crista a 360 px/s, ele quase chega lá em cima)
+    empurrao: 80,       // a onda empurrando (no pocket)
+    atrito: 30,         // perda fixa
+    arrasto: 0.35,      // perda proporcional à velocidade, trimando
+    arrastoTravado: 1.4,// perda proporcional à velocidade, com a prancha travada (sem D/A)
+    deriva: 50,         // a onda corre um pouco mais que ele (na crista); no ombro, mais
+    face: 230,          // altura da parede em px (converte velocidade em "alturas por segundo")
+    bomba: 70,          // ganho de cada bombada (diminui perto da velocidade máxima)
+    bombaJanela: 0.45,  // ▲ e ▼ alternados com menos de 0,45 s entre eles contam como bombada
+    rumoMax: 0.85,
+  };
+  // um passo da física: st = { v, rumo, dir }; c = { cima, baixo, anda }; inc = inclinação da parede (0,3 a 1)
+  // devolve vh (alturas da parede por segundo) e u (px/s em relação à crista; + = à frente dela)
+  function fisica(st, c, dt, inc) {
+    const F = FISICA;
+    const alvo = c.cima ? F.rumoMax : c.baixo ? -F.rumoMax : -0.1; // sem nada: segue a linha da onda, descendo de leve
+    st.rumo += (alvo - st.rumo) * Math.min(1, dt * 5);
+    const acel = -F.gravidade * Math.sin(st.rumo) * inc + F.empurrao * inc * (c.anda ? 1 : 0.4)
+      - F.atrito - (c.anda ? F.arrasto : F.arrastoTravado) * st.v;
+    st.v = Math.max(F.vMin, Math.min(F.vMax, st.v + acel * dt));
+    const ao_longo = st.v * Math.cos(st.rumo);
+    const deriva = F.deriva + 230 * (1 - inc); // no ombro a onda perde força: ele escorrega de volta para o pocket
+    const u = !c.anda ? -(deriva + 70)            // travado: a onda vem pegando ele (tubo)
+      : st.dir > 0 ? ao_longo - deriva : -ao_longo + deriva * 0.6;
+    return { vh: st.v * Math.sin(st.rumo) / F.face, u };
+  }
+  // bombada: soma velocidade, menos quando já está rápido
+  const bombear = (v) => Math.min(FISICA.vMax, v + FISICA.bomba * (1 - v / FISICA.vMax));
   const multiplicador = (nomes) => Math.max(1, Math.min(COMBO.maxMult, new Set(nomes).size));
   const valorCombo = (itens) => Math.round(itens.reduce((t, i) => t + i.pts, 0) * multiplicador(itens.map((i) => i.nome)));
   // a mesma manobra seguida vale cada vez menos
@@ -44,7 +80,7 @@
   }
   const fmt = (n) => Math.round(n).toLocaleString("pt-BR");
   const limparNome = (n) => [...String(n == null ? "" : n).replace(/\s+/g, " ").trim()].slice(0, NOME_MAX).join("");
-  const Regras = { REGRAS, PONTOS, COMBO, NOME_MAX, multiplicador, valorCombo, repeticao, resultado, titulo, fmt, limparNome };
+  const Regras = { REGRAS, PONTOS, COMBO, NOME_MAX, FISICA, fisica, bombear, multiplicador, valorCombo, repeticao, resultado, titulo, fmt, limparNome };
   if (typeof module !== "undefined") module.exports = Regras;
   if (!global.document) return;
 
@@ -154,9 +190,14 @@
 
   // ---------- controles ----------
   const ent = { cima: false, baixo: false, freia: false, acelera: false, pula: false };
-  let pulouAgora = false, freouAgora = false;
+  let pulouAgora = false, freouAgora = false, bombouAgora = false, batida = { nome: null, t: -9 };
   function apertar(nome, sim) {
     if (!(nome in ent)) return;
+    if (sim && !ent[nome] && (nome === "cima" || nome === "baixo")) { // batidinhas na prancha: ▲▼ alternados e rápidos
+      const t = global.performance.now() / 1000;
+      if (batida.nome && batida.nome !== nome && t - batida.t < FISICA.bombaJanela) bombouAgora = true;
+      batida = { nome, t };
+    }
     if (sim && !ent[nome]) {
       if (nome === "pula") pulouAgora = true;
       if (nome === "freia") freouAgora = true;
@@ -168,7 +209,7 @@
   // ---------- estado ----------
   const s = {
     fase: "intro", onda: 0, notas: [], pontos: 0, hist: [], tOnda: 0,
-    totais: [], combo: null, partida: null,
+    totais: [], combo: null, partida: null, fis: { v: 200, rumo: 0, dir: 1 }, bomba: -9, bombas: [],
     x: 0, h: 0.5, vh: 0, v: 0, crista: 0, forca: 0, quebrada: false, secoes: [], tuboL: 90,
     remo: null, tubo: null, ar: null, floater: null, giro: 0, ang: 0, noFundo: false,
     dir: 1, virar: 1, u: 0, m: 1,          // dir: para onde a prancha aponta; u: velocidade em relação à crista; m: impulso
@@ -192,7 +233,7 @@
       x += len; primeira = false;
     }
   }
-  const vCrista = () => { const t = secaoEm(s.crista).tipo; return t === "tubular" ? 330 : t === "cheia" ? 260 : 300; };
+  const vCrista = () => { const t = secaoEm(s.crista).tipo; return t === "tubular" ? 240 : t === "cheia" ? 190 : REGRAS.vCrista; };
   function altura(d) {
     let h;
     if (d < 0) h = s.quebrada ? HMAX * Math.max(0.3, 0.62 + d / 2600) : HMAX * Math.max(0.15, 1 + d / 900);
@@ -205,7 +246,8 @@
   // ---------- fases ----------
   function novaOnda() {
     s.fase = "remando"; s.quebrada = false; s.forca = 0; s.pontos = 0; s.hist = []; s.tOnda = 0; s.combo = null;
-    s.tubo = s.ar = s.floater = null; s.giro = 0; s.rastro = []; s.dir = 1; s.virar = 1; s.u = 0; s.m = 1;
+    s.tubo = s.ar = s.floater = null; s.giro = 0; s.rastro = []; s.dir = 1; s.virar = 1; s.u = 0;
+    s.fis = { v: 200, rumo: 0, dir: 1 }; s.bombas = [];
     s.x = s.x || 0; s.crista = s.x - 110; s.h = 0; s.vh = 0; s.v = 0;
     s.remo = { t: 0, dur: 3.2 };
     poseAlvo = "base";
@@ -218,7 +260,8 @@
   function dropar() {
     s.fase = "surfando"; s.quebrada = true; s.remo = null;
     gerarSecoes(s.crista);
-    s.v = REGRAS.vCrista + 140; s.h = 0.95; s.vh = -1.4; s.u = 160; s.m = 1.2; s.dir = 1;
+    s.v = REGRAS.vCrista + 140; s.h = 0.95; s.vh = -1.2; s.u = 120; s.dir = 1;
+    s.fis = { v: 300, rumo: -0.7, dir: 1 }; // o drop: desce a parede e já ganha velocidade
     marcar("drop", PONTOS.drop, "DROP!");
     if (A()) A().swoosh(true);
     falar("drop");
@@ -325,7 +368,7 @@
       s.forca = Math.max(0, s.forca - dt * 0.5);
       if ((s.espera -= dt) <= 0) { if (s.onda >= REGRAS.ondas) fimJogo(); else novaOnda(); }
     }
-    pulouAgora = freouAgora = false;
+    pulouAgora = freouAgora = bombouAgora = false;
     // câmera: ele um pouco à esquerda do meio, olhando um pouco à frente quando está rápido
     // com a arte, a crista fica encostada no canto esquerdo da tela (o que fica atrás dela, a espuma, quase não aparece)
     const cr = ARTE.onda_crista_0, cantoCrista = cr ? s.crista - cr.width * PX * 0.35 + 70 : -Infinity;
@@ -344,7 +387,6 @@
     if (s.quebrada && s.forca > 0.5 && Math.random() < dt * 30) gota(s.crista + rnd(-40, 30), Y_BASE - altura(1) + rnd(0, 30), rnd(-160, 20), rnd(-260, -80), rnd(2, 4));
     aplicarPose(dt);
   }
-  const U = 290; // velocidade de ir e de voltar (px/s em relação à crista): a mesma nos dois sentidos
   function atualizarSurf(dt) {
     const vc = vCrista();
     s.tOnda += dt;
@@ -356,13 +398,13 @@
     s.crista += vc * dt;
     s.tuboL += ((secaoEm(s.crista).tipo === "tubular" ? 280 : 200) - s.tuboL) * Math.min(1, dt * 2);
 
-    // ---- para onde vai: D vai, A volta (mesma velocidade); sem nada, a onda o alcança devagar ----
+    // ---- para onde vai: D vai, A volta (a prancha vira; virar custa um pouco de velocidade, lá em cima quase nada) ----
+    const antes = s.dir;
     if (ent.acelera && !ent.freia) s.dir = 1;
     else if (ent.freia && !ent.acelera) s.dir = -1;
-    const anda = ent.acelera !== ent.freia;
-    let alvoU = anda ? s.dir * U : s.tubo ? -45 : -110; // no tubo, a onda o engole devagar
-    if (s.x - s.crista > 1300) alvoU = Math.min(alvoU, -160);   // longe demais, no ombro: a onda perde força
-    s.u += (alvoU - s.u) * Math.min(1, dt * 2.6);
+    if (s.dir !== antes && !s.ar) s.fis.v *= s.h > 0.45 ? 0.95 : 0.86;
+    s.fis.dir = s.dir;
+    const anda = ent.acelera !== ent.freia;   // sem D/A: trava a prancha (stall) e a onda o alcança (tubo)
     s.virar += (s.dir - s.virar) * Math.min(1, dt * 11);       // a prancha vira (de um lado para o outro)
 
     if (s.ar) { // no ar: sobe, cai; A/D giram
@@ -378,11 +420,17 @@
       return;
     }
 
-    // ---- sobe e desce: W/S; sem nada, desce devagar até o meio-baixo da onda (onde o tubo se forma) ----
-    const alvoVh = ent.cima ? 1.5 : ent.baixo ? -1.5 : (0.33 - s.h) * 1.2;
-    s.vh += (alvoVh - s.vh) * Math.min(1, dt * 6);
-    // impulso: descer a parede dá, subir gasta; um pouco de atrito
-    s.m = lim(s.m - s.vh * (s.vh > 0 ? 0.3 : 0.6) * dt - 0.04 * dt, 0.3, 1.6);
+    // ---- física: W/S mudam o rumo na parede; descer dá velocidade, subir gasta; o pocket empurra; bombada soma ----
+    const dAqui = s.x - s.crista, inc = lim(altura(dAqui) / (HMAX * Math.max(0.3, s.forca)), 0.3, 1);
+    if (bombouAgora) {
+      s.fis.v = bombear(s.fis.v); s.bomba = s.relogio;
+      s.bombas = s.bombas.filter((t) => s.relogio - t < 1.2); s.bombas.push(s.relogio);
+      const [bx, by] = posPrancha(); for (let i = 0; i < 4; i++) gota(bx - s.dir * rnd(20, 50), by + 4, -s.dir * rnd(40, 160), rnd(-260, -120), rnd(2, 4));
+    }
+    if (s.h <= 0.01 && s.fis.rumo < 0) s.fis.rumo *= 0.5;  // no pé da onda não dá para descer mais
+    const fis = fisica(s.fis, { cima: ent.cima, baixo: ent.baixo, anda }, dt, inc);
+    s.vh = fis.vh + (anda || ent.cima || ent.baixo ? 0 : (0.35 - s.h) * 0.9); // travado: escorrega para o meio da onda
+    s.u += ((s.tubo && !anda ? Math.max(fis.u, -45) : fis.u) - s.u) * Math.min(1, dt * 4); // no tubo, a onda o engole devagar
 
     // ---- floater: em cima da crista ----
     if (s.floater) {
@@ -394,7 +442,7 @@
       }
       if (ent.baixo || (!ent.cima && f.t > 0.35) || f.t > 2.2) {
         const d = s.x - s.crista;
-        s.floater = null; s.h = 0.9; s.vh = -1.2;
+        s.floater = null; s.h = 0.9; s.vh = -1.2; s.fis.rumo = -0.6;
         marcar("floater", PONTOS.floater + Math.round(PONTOS.floaterSeg * Math.min(2.2, f.t)), "FLOATER", "#ffd36b");
         espirro(20, 1); tremer(4); s.pausa = 0.05;
         if (A()) A().swoosh(true);
@@ -413,7 +461,7 @@
     if (s.tubo) {
       s.tubo.t += dt;
       if (d < -10) { // fundo demais: o tubo cospe ele para fora (sem cair)
-        d = s.tuboL * 0.75; s.x = s.crista + d; s.u = U * 1.2; s.dir = 1; s.m = Math.min(1.6, s.m + 0.4);
+        d = s.tuboL * 0.75; s.x = s.crista + d; s.u = 260; s.dir = s.fis.dir = 1; s.fis.v = Math.min(FISICA.vMax, s.fis.v + 220);
         sairTubo(true);
       } else if (!cobre) sairTubo();
     } else if (d < 5) { // na espuma, fora do tubo: ela empurra para a frente
@@ -424,7 +472,7 @@
     // ---- manobras ----
     if (s.h <= 0) { s.h = 0; if (s.vh < 0) s.vh = 0; }
     if (s.h < 0.14) s.noFundo = true;
-    if (s.noFundo && s.vh > 0.8) { // cavada: foi ao pé da onda e voltou subindo com força
+    if (s.noFundo && s.vh > 0.5) { // cavada: foi ao pé da onda e voltou subindo com força
       s.noFundo = false;
       if (pode("cavada", 1.0)) {
         marcar("cavada", PONTOS.cavada, "Cavada"); s.ultimaCavada = s.relogio;
@@ -432,7 +480,7 @@
       }
     }
     // cutback: voltando (prancha para trás) e subindo a parede
-    if (s.dir < 0 && s.u < -120 && s.vh > 0.6 && s.h > 0.4 && pode("cutback", 1.4)) {
+    if (s.dir < 0 && s.virar < -0.5 && s.fis.rumo > 0.3 && s.h > 0.4 && pode("cutback", 1.4)) {
       marcar("cutback", PONTOS.cutback, "CUTBACK", "#ffd36b");
       espirro(26, 1.2); tremer(5);
       if (A()) A().swoosh(true);
@@ -442,7 +490,7 @@
     if (s.h >= 1) {
       s.h = 1;
       if (s.vh > 0.4 && !s.tubo) { s.floater = { t: 0 }; aviso("Floater...", "#ffd36b", 38); espirro(14, 0.9); }
-      else s.vh = -0.4;
+      else { s.vh = -0.4; s.fis.rumo = Math.min(s.fis.rumo, -0.3); }
     }
     if (pulouAgora) return pular(false);
 
@@ -450,7 +498,7 @@
     const [bx, by] = posPrancha();
     s.rastro.push({ x: bx - 40 * s.dir, y: by + 6, vida: 1 });
     if (s.rastro.length > 70) s.rastro.shift();
-    const curva = (Math.abs(s.vh) + Math.abs(s.dir - s.virar)) * (0.6 + 0.4 * s.m);
+    const curva = (Math.abs(s.vh) + Math.abs(s.dir - s.virar)) * (0.5 + s.fis.v / 500);
     if (Math.random() < dt * 30 * curva) gota(bx - s.dir * rnd(30, 60), by + 4, -s.dir * rnd(40, 200), rnd(-300, -120) * Math.min(1.5, curva), rnd(2, 4));
     poseAlvo = s.tubo ? "tubo" : s.h > 0.8 ? "batida" : ent.baixo || s.h < 0.2 ? "agacha" : "base";
     s.v = vc + s.u;
@@ -459,7 +507,7 @@
   // Espaço: perto da crista = aéreo (o impulso só deixa mais alto); embaixo, um pulinho
   function pular(doFloater) {
     const grande = doFloater || s.h > 0.68;
-    s.ar = grande ? { t: 0, alt: 0, vy: 520 + s.m * 260, giroV: 0, pequeno: false }
+    s.ar = grande ? { t: 0, alt: 0, vy: 420 + s.fis.v * 0.7, giroV: 0, pequeno: false }
       : { t: 0, alt: 0, vy: 320, giroV: 0, pequeno: true };
     if (grande) { s.h = 0.97; aviso("AÉREO!", "#ff8be6", 50); espirro(26, 1.2); }
     if (A()) A().swoosh(grande);
@@ -471,7 +519,7 @@
     if (ar.pequeno) { s.giro = 0; if (pode("pulinho", 1.5)) marcar("pulinho", PONTOS.pulinho, "Pulinho"); return; }
     const voltas = Math.round(s.giro / DOIS_PI);
     s.giro = 0;
-    s.h = 0.8; s.vh = -1.0; s.m = Math.min(1.6, s.m + 0.2);
+    s.h = 0.8; s.vh = -1.0; s.fis.rumo = -0.6; s.fis.v = Math.min(FISICA.vMax, s.fis.v + 60);
     const n = Math.abs(voltas);
     const nome = n >= 2 ? "AÉREO 720!!" : n === 1 ? "AÉREO 360!" : "Aterrissou o aéreo!";
     marcar(n ? "giro" : "aereo", PONTOS.aereo + PONTOS.giro * n, nome, "#ff8be6");
@@ -859,13 +907,14 @@
     ctx.rotate(s.ang + s.giro);
     const vira = Math.sign(s.virar) * Math.max(0.15, Math.abs(s.virar));
     ctx.scale(vira, 1); // a prancha aponta para onde ele vai (A volta: para trás)
+    if (s.relogio - s.bomba < 0.13) ctx.scale(1, 0.9); // bombada: agacha e estica
     const agacha = s.tubo || ent.baixo ? 0.88 : 1;           // agachado no tubo / descendo
     ctx.scale(1, agacha);
     prancha(ctx);
     if (surf3d) desenharTira3d(ctx, surf3d.surf, 4, 2);
     else { heroi.definirVista("frente"); heroi.desenhar(ctx, 0, pesAbaixo * ESC + 2, ESC); }
     ctx.restore();
-    if (s.m > 1.25 && !s.ar && s.fase === "surfando") { // linhas de velocidade (impulso alto)
+    if (s.fis.v > 380 && !s.ar && s.fase === "surfando") { // linhas de velocidade
       ctx.fillStyle = "rgba(255,255,255,0.5)";
       for (let i = 0; i < 4; i++) ctx.fillRect(x - s.dir * (160 + ((s.relogio * 900 + i * 70) % 140)) - (s.dir < 0 ? 70 : 0), y - 40 - i * 26, 70, 3);
     }
@@ -906,15 +955,16 @@
       ctx.fillStyle = "rgba(20,10,30,0.6)"; ctx.fillRect(tx, 200, tw, 10);
       ctx.fillStyle = "#9ff3ff"; ctx.fillRect(tx, 200, tw * Math.max(0, 1 - s.tOnda / REGRAS.segundosOnda), 10);
       // velocímetro
-      const vel = lim((s.m - 0.2) / 1.4, 0, 1);
+      const vel = lim((s.fis.v - FISICA.vMin) / (FISICA.vMax - FISICA.vMin), 0, 1);
       ctx.fillStyle = "rgba(20,10,30,0.6)"; ctx.fillRect(24, 220, 180, 14);
       ctx.fillStyle = vel > 0.7 ? "#ff8be6" : "#7dff9a"; ctx.fillRect(24, 220, 180 * vel, 14);
-      texto(ctx, "impulso", 24, 212, 20, "#fff", "left");
+      texto(ctx, "velocidade", 24, 212, 20, "#fff", "left");
+      if (s.bombas.filter((t) => s.relogio - t < 1.2).length >= 2) texto(ctx, "🔥 bombando!", 24, 262, 22, "#ff8be6", "left");
       if (s.tubo) texto(ctx, `TUBO ${s.tubo.t.toFixed(1)}s!`, meio, 255, 34, "#9ff3ff");
       else if (s.floater) texto(ctx, "Em cima da crista! Solte ou desça para fechar o floater", meio, 255, 28, "#ffd36b");
       else if (secaoEm(s.crista).tipo === "tubular" && s.x - s.crista < 420) texto(ctx, "🌀 Seção tubular: solte tudo e deixe a onda te cobrir!", meio, 255, 28, "#9ff3ff");
       if (!toque) { // legenda do teclado
-        const ajuda = "D vai · A volta · W/S sobe e desce · Espaço pula (perto da crista: aéreo)";
+        const ajuda = "D vai · A volta · W/S sobe e desce (alternado e rápido: bombeia) · Espaço pula";
         ctx.font = "700 22px system-ui, sans-serif"; ctx.fillStyle = "rgba(20,10,30,0.55)";
         const lw = Math.min(W - 24, ctx.measureText(ajuda).width + 40); ctx.beginPath(); ctx.roundRect(meio - lw / 2, AREIA - 52, lw, 38, 14); ctx.fill();
         ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.fillText(ajuda, meio, AREIA - 26); ctx.textAlign = "left";
@@ -1037,6 +1087,9 @@
     const p = doc.createElement("p");
     p.textContent = toque ? "▶ vai · ◀ volta (a prancha vira) · ▲▼ sobe e desce a onda · PULAR. Ele nunca cai!"
       : "D vai · A volta (a prancha vira) · W/S sobe e desce a onda · Espaço pula. Ele nunca cai!";
+    const p2 = doc.createElement("p");
+    p2.textContent = (toque ? "▲▼" : "W/S") + " alternados e rápidos = batidinhas na prancha: bombeia e ganha velocidade. "
+      + "Descer a onda acelera; subir freia. Solte tudo e a onda te alcança (tubo).";
     const ul = doc.createElement("ul");
     for (const t of ["Voltando (prancha para trás) e subindo a parede: CUTBACK", "Suba até a crista e ande em cima dela: FLOATER",
       "Perto da crista, pule: AÉREO (no ar, ◀/▶ ou A/D giram: 360!)", "Sem apertar nada, a onda te alcança e cobre: TUBO (2 s = tubaço)",
@@ -1046,7 +1099,7 @@
     }
     const b = doc.createElement("button"); b.type = "button"; b.textContent = "Bora surfar!";
     b.addEventListener("click", comecar);
-    caixa.append(h, p, ul, b);
+    caixa.append(h, p, p2, ul, b);
     let recorde = 0;
     try { recorde = +global.localStorage.getItem(RECORDE) || 0; } catch (e) { /* ok */ }
     if (recorde) { const r = doc.createElement("small"); r.textContent = `Seu recorde: ${fmt(recorde)} pontos`; caixa.appendChild(r); }

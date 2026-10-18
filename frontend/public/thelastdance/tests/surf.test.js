@@ -41,6 +41,25 @@ test("surf: pontuação final = soma das 3 ondas; nome do ranking com até 10 le
   assert.strictEqual(R.NOME_MAX, 10);
 });
 
+test("surf: física — descer acelera, subir freia, bombear soma e travar deixa a onda pegar", () => {
+  const dt = 1 / 60, rodar = (seg, c, st, inc = 1) => { let o; for (let i = 0; i < seg * 60; i++) o = R.fisica(st, c, dt, inc); return o; };
+  const desce = { v: 250, rumo: 0, dir: 1 }; rodar(1, { anda: true, baixo: true }, desce);
+  const sobe = { v: 250, rumo: 0, dir: 1 }; rodar(1, { anda: true, cima: true }, sobe);
+  assert.ok(desce.v > 320 && sobe.v < 180, `${desce.v} ${sobe.v}`);
+  // trimando no pocket anda para a frente; no ombro escorrega de volta
+  assert.ok(rodar(4, { anda: true }, { v: 250, rumo: 0, dir: 1 }, 1).u > 120);
+  assert.ok(rodar(4, { anda: true }, { v: 250, rumo: 0, dir: 1 }, 0.3).u < 0);
+  // travado (sem D/A): perde velocidade e a onda vem pegando
+  const travado = { v: 300, rumo: 0, dir: 1 }, o = rodar(2, {}, travado);
+  assert.ok(travado.v < 120 && o.u < -60);
+  // ir e voltar parecidos
+  const ir = rodar(3, { anda: true }, { v: 250, rumo: 0, dir: 1 }).u, voltar = rodar(3, { anda: true }, { v: 250, rumo: 0, dir: -1 }).u;
+  assert.ok(Math.abs(Math.abs(ir) - Math.abs(voltar)) < 60, `${ir} ${voltar}`);
+  // bombada: soma, e soma menos quando já está rápido
+  assert.ok(R.bombear(200) - 200 > R.bombear(450) - 450);
+  assert.ok(R.bombear(R.FISICA.vMax) <= R.FISICA.vMax);
+});
+
 test("surf: a página existe, está atrás da senha e o carro leva até ela", () => {
   const raiz = path.join(__dirname, "..");
   const html = fs.readFileSync(path.join(raiz, "surf.html"), "utf8");
