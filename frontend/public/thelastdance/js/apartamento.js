@@ -758,6 +758,19 @@
       NSF.Ligacao.atender(roteiro, { aoTerminar: (r) => { n.resultado = r; } });
       return;
     }
+    // voz gravada (pacote trancado dos amigos): toca o áudio com as ondinhas de voz nele; sem som/senha, cai na fala escrita
+    const A = NSF.Audio, agora = performance.now();
+    if (n.voz && A && A.voz && A.ligado && A.ligado()) {
+      if (n.falandoAte && agora < n.falandoAte) return; // já está falando
+      n.falandoAte = agora + 1500;
+      A.voz(NSF.VIP ? NSF.VIP.url(n.voz) : n.voz).then((dur) => {
+        n.balao = null; n.falandoAte = performance.now() + dur * 1000;
+      }).catch(() => { n.falandoAte = 0; falarTexto(n); });
+      return;
+    }
+    falarTexto(n);
+  }
+  function falarTexto(n) {
     if (n.fala) {
       const lista = Array.isArray(n.fala) ? n.fala : [n.fala];
       n.vezFala = ((n.vezFala == null ? -1 : n.vezFala) + 1) % lista.length;

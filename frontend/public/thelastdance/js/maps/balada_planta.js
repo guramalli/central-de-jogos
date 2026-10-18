@@ -226,8 +226,16 @@
       { id: "thiago", nome: "Thiago Mourão", personagem: "thiago", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 3.8, y: 5.3, dir: "baixo",
         reage: { raio: 1.8, fala: "Pode parecer que não, mas eu sou o rei daqui." },
         falarDe: { x: 3.8, y: 6.05 }, fala: ["\"Camarote é isso aqui, ó: só alegria!\"", "\"Solta o som, DJ!\""] },
+      // o DJ em 3D (trancado com a senha), atrás da cabine: mãos nos pratos, cabeça no beat e, de vez em quando, a mão para o alto
+      { id: "dj", nome: "DJ", personagem: "dj", personagem3d: true, so3d: true, postura: "em_pe", x: 11.0, y: 0.6, dir: "baixo",
+        ciclo3d: [["parado", 8], ["hype", 2.4]],
+        falarDe: { x: 11.0, y: 2.56 }, fala: ["\"Essa próxima é pra você! 🎧\"", "\"Mãozinha pro alto, pista!\""] },
+      // o Mogli em 3D (trancado com a senha), dançando do lado da Bruna (a menina de rosa)
+      { id: "mogli", nome: "Mogli", personagem: "mogli", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 21.5, y: 7.3, dir: "baixo",
+        falarDe: { x: 21.5, y: 8.05 }, fala: ["\"Blazer na balada, parceiro. Classe não se perde.\"", "\"Já chamei a de rosa pra dançar, segura aí!\""] },
       // o Genival em 3D (trancado com a senha), dançando na pista
       { id: "genival", nome: "Genival", personagem: "genival", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 11.0, y: 9.6, dir: "baixo",
+        voz: "assets/audio/amigos/genival_balada.mp3", // áudio dele (trancado), ao interagir
         falarDe: { x: 11.0, y: 10.3 }, fala: ["\"Essa é a minha música!\"", "\"Hoje eu só saio daqui quando acender a luz!\""] },
       // o Sapata em 3D (trancado com a senha), dançando na pista do lado do Genival
       { id: "sapata", nome: "Sapata", personagem: "sapata", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 12.5, y: 9.75, dir: "baixo",
