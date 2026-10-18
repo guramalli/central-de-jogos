@@ -630,7 +630,12 @@
       const perto = !jog.oculto && Math.hypot(jog.x - n.x, jog.y - n.y) < (r.raio || 1.5);
       if (perto && !n.reagiu && (!r.pose || d[r.pose])) {
         n.reagiu = agora;
-        if (r.fala) n.balao = { texto: r.fala, ate: agora + 3000 };
+        const A = NSF.Audio;
+        if (r.voz && A && A.voz && A.ligado && A.ligado()) { // voz gravada (trancada): a pose começa junto com o som
+          A.voz(NSF.VIP ? NSF.VIP.url(r.voz) : r.voz).then((dur) => {
+            const t = performance.now(); n.reagiu = t; n.balao = null; n.falandoAte = t + dur * 1000;
+          }).catch(() => { if (r.fala) n.balao = { texto: r.fala, ate: performance.now() + 3000 }; });
+        } else if (r.fala) n.balao = { texto: r.fala, ate: agora + 3000 };
       }
       if (!perto && n.reagiu && agora - n.reagiu > 1500) n.reagiu = null;
       const fr = n.reagiu && r.pose && d[r.pose], tr = fr && (agora - n.reagiu) / 1000;

@@ -244,6 +244,10 @@
       // o Mogli em 3D (trancado com a senha), dançando do lado da Bruna (a menina de rosa)
       { id: "mogli", nome: "Mogli", personagem: "mogli", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 21.5, y: 7.3, dir: "baixo",
         falarDe: { x: 21.5, y: 8.05 }, fala: ["\"Blazer na balada, parceiro. Classe não se perde.\"", "\"Já chamei a de rosa pra dançar, segura aí!\""] },
+      // o Cássio em 3D (trancado com a senha), de capacete, conversando com o Mogli; chegou perto: o áudio dele + a animação de bravo juntos
+      { id: "cassio", nome: "Cássio", personagem: "cassio", personagem3d: true, so3d: true, postura: "em_pe", x: 22.3, y: 6.7, dir: "baixo",
+        reage: { raio: 2.2, pose: "bravo", voz: "assets/audio/amigos/cassio_balada.mp3", fala: "Ah, Marcelinho! Tá na boca!" },
+        falarDe: { x: 22.3, y: 7.45 }, fala: ["\"Ah, Marcelinho! Tá na boca!\""] },
       // o Genival em 3D (trancado com a senha), dançando na pista
       { id: "genival", nome: "Genival", personagem: "genival", personagem3d: true, so3d: true, pose3d: "dancar", postura: "em_pe", x: 11.0, y: 9.6, dir: "baixo",
         voz: "assets/audio/amigos/genival_balada.mp3", // áudio dele (trancado), ao interagir
