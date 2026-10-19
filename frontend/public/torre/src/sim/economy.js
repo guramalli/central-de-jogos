@@ -48,7 +48,8 @@ export function floorCost(i, era, M = mods()) {
   const c = M.flag.prefab ? { ...fc, ...(FLAGS.viva ? VIVA.floorCostPrefab : BAL.floorCostPrefab) } : fc;
   const wall = Math.pow(2, Math.max(0, altOf(i) - c.wallStart) / c.wallDouble);
   const mod = Math.pow(mpfAt(i) / MPF, c.modulePow || 0) * techMult('fcost'); // módulo maior nas eras altas: mais material por peça
-  return BRICKS * Math.pow(1 + i / c.scale, c.pow) * Math.pow(c.eraMult, era) * wall * mod * Math.pow(0.85, S.lv.projeto) * M.mult('fcost');
+  const mult = 1 + ((c.mult || 1) - 1) * Math.min(1, i / 40); // o encarecimento entra aos poucos nos primeiros 40 andares
+  return BRICKS * mult * Math.pow(1 + i / c.scale, c.pow) * Math.pow(c.eraMult, era) * wall * mod * Math.pow(0.85, S.lv.projeto) * M.mult('fcost');
 }
 
 // ---------- taxas instantâneas derivadas do estado ----------

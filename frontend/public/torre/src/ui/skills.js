@@ -10,9 +10,8 @@ import { SKILL_LAYOUT, COLS, BW, ROW, ERA_ROW0, colX, upgradePos, BASE_POS, SHOR
 import { S, save } from '../sim/state.js';
 import { cost, unlocked, maxed, canBuy, buy, stageBlock, STAGE_OF } from '../sim/economy.js';
 import { upgradeEffect } from '../sim/preview.js';
-import { withTarget } from '../render/canvas.js';
-import { render } from '../render/scene.js';
-import { SHAFT_X } from '../render/tower.js';
+import { W } from '../data/constants.js';
+import { setViewInset } from '../render/camera.js';
 import { V } from '../render/view.js';
 import { $, setText, setHTML } from './dom.js';
 import { fmt, fmtM } from './format.js';
@@ -31,24 +30,7 @@ const BRANCH_INFO = {
   merc: ['Mercado', 'quanto dinheiro a torre rende'],
 };
 
-// onde a prévia aponta a câmera para cada melhoria
-function focus(k) {
-  const top = Math.floor(S.floors) * FH, b = UP[k].b;
-  if (b === 'obra' || k === 'guindaste') return { cx: 10, cy: top + 46, z: 0.62 };
-  if (k === 'olaria') return { cx: 400, cy: 70, z: 0.6 };
-  if (b === 'forn') return { cx: 250, cy: 55, z: 0.6 };
-  if (k === 'motor') return { cx: SHAFT_X(1), cy: top + 30, z: 0.75 };
-  if (k === 'cacamba') return { cx: 170, cy: 45, z: 0.75 };
-  if (b === 'log') return { cx: SHAFT_X(1), cy: Math.min(top, 160), z: 0.45 };
-  if (k === 'fundacao') return { cx: 0, cy: 10, z: 0.5 };
-  if (k === 'bilheteria' || k === 'marketing') return { cx: -220, cy: 55, z: 0.7 };
-  if (k === 'heliponto') return { cx: 0, cy: top + 140, z: 0.45 };
-  if (k === 'porto') return { cx: 60, cy: top + 220, z: 0.35 };
-  return { cx: 0, cy: Math.max(60, top - 60), z: 0.45 }; // fachada: projeto, aluguel, tecnologias de engenharia e mercado
-}
-
-const overlay = $('skills'), svg = $('skSvg'), prev = $('sdPrev'), pctx = prev.getContext('2d');
-pctx.imageSmoothingEnabled = false;
+const overlay = $('skills'), svg = $('skSvg');
 
 let sel = null, built = false; // sel = chave da melhoria selecionada
 
@@ -177,17 +159,6 @@ function drawDetail() {
   setText(bt, `Comprar · R$ ${fmt(cost(k))}`);
 }
 
-// prévia animada: a própria cena, com a câmera onde a melhoria aparece e o nível seguinte aplicado
-function drawPreview() {
-  if (!sel || overlay.hidden) return;
-  const k = sel, up = !lockedUp(k) && !maxed(k);
-  if (up) S.lv[k]++;
-  try {
-    pctx.imageSmoothingEnabled = false;
-    withTarget(pctx, prev.width, prev.height, focus(k), render);
-  } finally { if (up) S.lv[k]--; }
-}
-
 function select(k) { sel = k; updateSkills(); }
 function onBuy() {
   if (!sel || lockedUp(sel) || !buy(sel)) return;
@@ -262,7 +233,7 @@ export function updateSkills() {
   updateTree();
   drawDetail();
 }
-export const tickSkills = () => drawPreview();
+export const tickSkills = () => {};
 export const skillsOpen = () => !overlay.hidden;
 
 const allKeys = () => COLS.flatMap(b => Object.keys(SKILL_LAYOUT[b])).filter(k => UP[k]);
@@ -275,17 +246,27 @@ function selectDefault() {
 }
 
 let opener = null;
+// quanto da cena a árvore cobre (a câmera do jogo deixa a torre na parte livre)
+function syncInset() {
+  if (overlay.hidden) { setViewInset(0, 0); return; }
+  const cv = $('cv'), wide = innerWidth > 820;
+  setViewInset(wide ? overlay.getBoundingClientRect().width * W / Math.max(1, cv.clientWidth) : 0, wide ? 0 : overlay.getBoundingClientRect().height / Math.max(1, cv.clientHeight));
+}
+addEventListener('resize', syncInset);
+
 export function openSkills() {
   opener = document.activeElement;
   overlay.hidden = false;
+  document.body.classList.add('sk-open');
   if (!built) build();
   if (!sel) selectDefault();
   userMoved = false;
-  updateSkills(); fit();
+  updateSkills(); fit(); syncInset();
   $('skClose').focus();
 }
 export function closeSkills() {
   overlay.hidden = true;
+  document.body.classList.remove('sk-open'); syncInset();
   if (opener && opener.focus) opener.focus();
 }
 

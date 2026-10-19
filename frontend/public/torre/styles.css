@@ -283,7 +283,6 @@ canvas.drag{cursor:grabbing}
 .hs-more{display:none;font-size:12px;color:var(--muted);line-height:1.5;border-top:1px solid #2b3044;padding-top:4px;white-space:pre-line}
 .hsum[aria-expanded="true"] .hs-more{display:block}
 .hsum.in-tree{position:static;width:auto;cursor:default;margin-top:4px;flex-shrink:0}
-@media (max-width:820px){.hsum.in-tree{order:-1;margin:0 0 4px}}
 @media (max-width:520px){.hsum:not(.in-tree){width:186px;top:calc(max(15px,env(safe-area-inset-top,0px)) + 54px);padding:6px 8px 5px}.hs-inc{flex-direction:column;align-items:flex-start;gap:0}.hs-row{grid-template-columns:62px 1fr 46px;font-size:11px}.hs-more{font-size:11px}}
 
 /* fim de jogo */
@@ -295,6 +294,10 @@ canvas.drag{cursor:grabbing}
 .win-box p{margin:0;color:var(--muted);line-height:1.45}
 .win-box .kv{text-align:left}
 .win-b{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+
+/* com a árvore aberta, o botão Melhorias sai do caminho */
+body.sk-open .upbtn{display:none}
+@media (min-width:821px){body.sk-open .plate-money,body.sk-open .hsum:not(.in-tree){display:none}}
 
 /* botão Melhorias */
 .upbtn{position:absolute;right:max(14px,env(safe-area-inset-right,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));
@@ -311,13 +314,13 @@ canvas.drag{cursor:grabbing}
 @media (max-width:520px){.plate-floor b{font-size:24px}.plate-money b{font-size:21px}.upbtn{font-size:16px;padding:10px 16px}}
 
 /* ===================== Melhorias (estilo árvore de habilidades) ===================== */
-.sk{position:fixed;inset:0;z-index:55;background:repeating-conic-gradient(rgba(255,255,255,.028) 0 25%,transparent 0 50%) 0 0/4px 4px,radial-gradient(ellipse at 50% 40%,#1a1f2e 0%,#0b0d13 70%);display:grid;
-  grid-template-rows:auto minmax(0,1fr) auto;color:var(--fg)}
+.sk{position:fixed;top:0;right:0;bottom:0;width:min(58vw,820px);z-index:55;background:repeating-conic-gradient(rgba(255,255,255,.028) 0 25%,transparent 0 50%) 0 0/4px 4px,radial-gradient(ellipse at 50% 40%,#1a1f2e 0%,#0b0d13 70%);display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;color:var(--fg);box-shadow:-4px 0 0 0 #2b3044,-8px 0 0 0 rgba(0,0,0,.35)}
 .tmap{z-index:60}
 .sk-h{display:flex;align-items:center;gap:12px;padding:10px max(14px,env(safe-area-inset-right,0px)) 8px max(14px,env(safe-area-inset-left,0px))}
 .sk-t{font-family:var(--f-display);font-size:20px;letter-spacing:.06em;text-transform:uppercase}
 .sk-money{font-family:var(--f-display);font-size:20px;color:var(--good);font-weight:700;font-variant-numeric:tabular-nums}
-.sk-body{display:grid;grid-template-columns:minmax(0,1fr) 310px;min-height:0;position:relative}
+.sk-body{display:grid;grid-template-columns:minmax(0,1fr) 270px;min-height:0;position:relative}
 .sk-tree{min-height:0;position:relative}
 .sk-tree svg{width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
 .sk-tree svg.drag{cursor:grabbing}
@@ -330,15 +333,21 @@ canvas.drag{cursor:grabbing}
 .sk-lv span{font-family:var(--f-display);font-size:13px;color:var(--muted);margin-left:4px}
 .sk-desc{margin:0;font-size:14px;line-height:1.45}
 .sk-fx{font-family:var(--f-display);font-size:14px;color:var(--c);background:rgba(255,255,255,.04);border-left:3px solid var(--c);padding:6px 9px;font-variant-numeric:tabular-nums}
-.sk-prev{width:100%;height:auto;aspect-ratio:320/190;cursor:default;image-rendering:pixelated;border:2px solid #2b3044;background:#000}
 .sk-neg{grid-column:1/-1;overflow:auto;padding:0 14px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;align-content:start;max-width:1100px;margin:0 auto;width:100%}
 .sk-f{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px max(14px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));border-top:1px solid var(--line);background:rgba(11,13,19,.9)}
 @media (max-width:820px){
-  .sk-body{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(300px,48dvh) auto;overflow:auto}
-    .sk-d{border-left:0;border-top:4px solid var(--c,#f2b630)}
-    .sk-t{display:none}
+  .sk{top:auto;left:0;width:auto;height:60dvh;box-shadow:0 -4px 0 0 #2b3044,0 -8px 0 0 rgba(0,0,0,.35)}
+  .sk-body{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+  .sk-d{border-left:0;border-top:4px solid var(--c,#f2b630);padding:6px 12px;gap:4px;overflow:visible}
+  .sk-d .sk-name{font-size:17px}.sk-d .sk-fx{font-size:12px;padding:3px 7px}.sk-d .btn.wide{padding:6px 10px;margin:2px}
+  .sk-d .sk-lv,.sk-d .sk-kind,.sk-d .sk-desc{display:none}
+  .sk-d .hint{font-size:11px}
+  #skSave{display:none}
+  .sk-t{display:none}
   #skIn,#skOut{display:none}
-  .sk-h{gap:8px}
+  .sk-h{gap:8px;padding:6px 12px}
+  .sk-f{padding:4px 12px max(6px,env(safe-area-inset-bottom,0px))}
+  .hsum.in-tree{display:none}
 }
 
 /* nós da árvore (pixel art: emblemas e ícones são sprites desenhados em src/ui/icons.js) */
@@ -390,5 +399,4 @@ canvas.drag{cursor:grabbing}
 .sk .btn.ghost:hover:not(:disabled){--pbc:var(--accent)}
 .sk .btn.wide{margin:3px 2px}
 .sk-d{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--c,#f2b630) 35%,transparent)}
-.sk-prev{border:0;box-shadow:0 -3px 0 0 #2b3044,0 3px 0 0 #2b3044,-3px 0 0 0 #2b3044,3px 0 0 0 #2b3044;margin:3px 0}
 .sk-lv i{transform:none;width:10px;height:10px;border-width:3px}

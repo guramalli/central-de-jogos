@@ -85,6 +85,8 @@ export const isOverview = () => ctl.overview && !ctl.free;
 export const isFree = () => ctl.free;
 export const cinematic = () => ctl.cine;
 export const snapCamera = () => { ctl.snap = true; };
+// parte da tela coberta pela árvore de Melhorias: right = pixels do canvas cobertos à direita; bottom = fração coberta embaixo
+export function setViewInset(right = 0, bottom = 0) { ctl.insetR = right; ctl.insetB = bottom; }
 export function resetCamera() { ctl.userZ = 1; ctl.overview = false; ctl.free = false; ctl.cine = null; ctl.snap = true; }
 
 // momentos especiais só quando a câmera está seguindo a obra
@@ -119,12 +121,13 @@ export function updateCamera(dt, buildTop, topY, zCap = ZMAX, above = 0) {
   cam.z = Math.exp(Math.log(cam.z) + (Math.log(tz) - Math.log(cam.z)) * k);
 
   // enquadramento: o topo pronto fica a 40% da altura da tela (sobra 1 andar de céu para o guindaste)
-  let ty = anchorGround ? (H / 2 - 50) / cam.z : buildTop + above / 2 - 0.1 * H / cam.z;
+  const ib = ctl.insetB || 0; // árvore aberta embaixo: o topo da obra sobe para a parte visível (de 40% para ~25% da altura)
+  let ty = anchorGround ? (H / 2 - 50) / cam.z : buildTop + above / 2 - (0.1 + 0.28 * ib) * H / cam.z;
   ty = Math.max(ty, (H / 2 - 110) / cam.z); // nunca deixa o chão subir acima de H-110
   const ky = ctl.snap ? 1 : 1 - Math.exp(-dt * (c || anchorGround ? 4 : 2.5));
   if (Math.abs(ty - cam.cy) * cam.z > H * 3) cam.cy = ty; // salto grande (carregar save): vai direto
   else cam.cy += (ty - cam.cy) * ky;
-  const tx = 30 * Math.min(1, cam.z);
+  const tx = 30 * Math.min(1, cam.z) + (ctl.insetR || 0) / 2 / cam.z; // árvore aberta à direita: a torre vai para o meio da parte livre
   cam.cx += (tx - cam.cx) * (ctl.snap ? 1 : 1 - Math.exp(-dt * 3));
   ctl.snap = false;
 }
