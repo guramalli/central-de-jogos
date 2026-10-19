@@ -19,6 +19,8 @@ import { V } from '../render/view.js';
 import { $, setText, setHTML } from './dom.js';
 import { fmt, fmtM } from './format.js';
 import { updateBusiness } from './business.js';
+import { iconSprite, badgeSprite, lockSprite, starSprite } from './icons.js';
+import { spriteDataURL } from '../render/sprites.js';
 
 const COLOR = Object.fromEntries(TBRANCHES.map(b => [b.id, b.color]));
 const PE_COLOR = '#a08ae8';
@@ -72,9 +74,9 @@ const fog = n => n.ring <= openRing ? 'open' : n.ring === openRing + 1 ? 'hint' 
 // ---------- SVG ----------
 const NS = 'http://www.w3.org/2000/svg';
 const mk = (tag, a, parent) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); parent && parent.appendChild(e); return e; };
-const poly = (r, n, rot) => Array.from({ length: n }, (_, i) => { const a = rot + i * 2 * Math.PI / n; return `${(r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a)).toFixed(1)}`; }).join(' ');
-const star = (r, inner = 0.45) => Array.from({ length: 10 }, (_, i) => { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * inner : r; return `${(rr * Math.cos(a)).toFixed(1)},${(rr * Math.sin(a)).toFixed(1)}`; }).join(' ');
 const Y = y => -y; // y do layout cresce para cima; no SVG cresce para baixo
+// linha em ângulo reto (sobe, anda de lado, sobe), como trilha de placa de circuito
+const elbow = (x0, y0, x1, y1) => x0 === x1 ? `M${x0} ${Y(y0)} V ${Y(y1)}` : `M${x0} ${Y(y0)} V ${Y((y0 + y1) / 2)} H ${x1} V ${Y(y1)}`;
 
 let vp, upEls = {}, peEls = {}, peEdges = [], ringEls = [];
 
@@ -94,28 +96,31 @@ function build() {
   const [bx, by] = BASE_POS;
   for (const b of COLS) {
     const x = colX(b), c = COLOR[b];
-    mk('path', { d: `M${bx} ${Y(by)} C ${bx} ${Y(by + 40)}, ${x} ${Y(by + 20)}, ${x} ${Y(60)}`, class: 'sk-trunk', style: `--c:${c}` }, gEdges);
+    mk('path', { d: `M${bx} ${Y(by)} V ${Y(12)} H ${x} V ${Y(60)}`, class: 'sk-trunk', style: `--c:${c}` }, gEdges);
     const lab = mk('g', { class: 'sk-blabel', transform: `translate(${x} ${Y(-115)})`, style: `--c:${c}` }, gNodes);
-    mk('rect', { x: -BW / 2 + 12, y: -22, width: BW - 24, height: 56, rx: 2 }, lab);
+    mk('rect', { x: -BW / 2 + 12, y: -22, width: BW - 24, height: 56 }, lab);
+    mk('rect', { x: -BW / 2 + 18, y: -16, width: BW - 36, height: 44, class: 'bev' }, lab);
     const t1 = mk('text', { y: 2, 'text-anchor': 'middle', class: 'n' }, lab); t1.textContent = BRANCH_INFO[b][0];
     const t2 = mk('text', { y: 24, 'text-anchor': 'middle', class: 'd' }, lab); t2.textContent = BRANCH_INFO[b][1];
   }
   const base = mk('g', { class: 'sk-base', transform: `translate(${bx} ${Y(by)})` }, gNodes);
-  mk('circle', { r: 30 }, base);
+  mk('image', { x: -40, y: -40, width: 80, height: 80, class: 'px', href: spriteDataURL(badgeSprite('#f2b630', 'max')) }, base);
   const bt = mk('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central' }, base); bt.textContent = 'OBRA';
   // compras com dinheiro
   for (const b in SKILL_LAYOUT) {
     const L = SKILL_LAYOUT[b], c = COLOR[b];
     for (const k in L) {
       const [x, y] = upgradePos(b, k), from = L[k][2], [x0, y0] = from ? upgradePos(b, from) : [colX(b), 60];
-      const e = mk('line', { x1: x0, y1: Y(y0), x2: x, y2: Y(y), class: 'sk-edge', style: `--c:${c}` }, gEdges);
+      const e = mk('path', { d: elbow(x0, y0, x, y), class: 'sk-edge', style: `--c:${c}` }, gEdges);
       const n = mk('g', { class: 'sk-node', transform: `translate(${x} ${Y(y)})`, style: `--c:${c}`, 'data-up': k }, gNodes);
-      mk('polygon', { points: poly(38, 6, Math.PI / 6), class: 'halo' }, n);
-      mk('polygon', { points: poly(30, 6, Math.PI / 6), class: 's' }, n);
-      const lv = mk('text', { class: 'lvl', 'text-anchor': 'middle', 'dominant-baseline': 'central' }, n);
-      const lk = mk('g', { class: 'lock' }, n); mk('rect', { x: -7, y: -2, width: 14, height: 11, rx: 1 }, lk); mk('path', { d: 'M-4 -2v-4a4 4 0 0 1 8 0v4', fill: 'none', 'stroke-width': 2.5 }, lk);
+      mk('rect', { x: -40, y: -40, width: 80, height: 80, class: 'halo' }, n);
+      const badge = mk('image', { x: -36, y: -36, width: 72, height: 72, class: 'px' }, n);
+      mk('image', { x: -19.2, y: -21.2, width: 38.4, height: 38.4, class: 'px ico', href: spriteDataURL(iconSprite(k)) }, n);
+      mk('image', { x: -15, y: -15, width: 30, height: 30, class: 'px lock', href: spriteDataURL(lockSprite()) }, n);
+      mk('rect', { x: 13, y: 15, width: 26, height: 20, class: 'lvbox' }, n);
+      const lv = mk('text', { class: 'lvl', x: 26, y: 26, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, n);
       const nm = mk('text', { class: 'nm', y: 54, 'text-anchor': 'middle' }, n); nm.textContent = SHORT[k] || UP[k].n;
-      upEls[k] = { n, lv, e, cls: '' };
+      upEls[k] = { n, lv, e, badge, cls: '', st: '' };
     }
   }
   // Pesquisa: arestas (o centro da antiga árvore radial vira uma linha pontilhada saindo do topo das compras do ramo)
@@ -123,7 +128,7 @@ function build() {
     if (a === CENTER || b === CENTER) {
       const id = a === CENTER ? b : a, root = researchRoot(NODES[id].b);
       const p0 = root ? upgradePos(NODES[id].b, root) : BASE_POS, p1 = researchPos(id);
-      const l = mk('line', { x1: p0[0], y1: Y(p0[1]), x2: p1[0], y2: Y(p1[1]), class: 'sk-pedge link' }, gEdges);
+      const l = mk('path', { d: elbow(p0[0], p0[1], p1[0], p1[1]), class: 'sk-pedge link' }, gEdges);
       peEdges.push({ a: CENTER, b: id, el: l, cls: '' });
       continue;
     }
@@ -131,7 +136,7 @@ function build() {
     const na = NODES[a], nb = NODES[b];
     if ((na.kind === 'bridge' && na.bridge[0] === 'cien' && nb.b === 'obra') || (nb.kind === 'bridge' && nb.bridge[0] === 'cien' && na.b === 'obra')) continue;
     const p0 = researchPos(a), p1 = researchPos(b);
-    const l = mk('line', { x1: p0[0], y1: Y(p0[1]), x2: p1[0], y2: Y(p1[1]), class: 'sk-pedge' }, gEdges);
+    const l = mk('path', { d: elbow(p0[0], p0[1], p1[0], p1[1]), class: 'sk-pedge' }, gEdges);
     peEdges.push({ a, b, el: l, cls: '' });
   }
   // Pesquisa: nós (estrelas; notáveis maiores com nome; chaves octogonais; pontes em losango)
@@ -139,13 +144,12 @@ function build() {
     if (id === CENTER) continue;
     const nd = NODES[id], [x, y] = researchPos(id), c = nd.b ? COLOR[nd.b] : PE_COLOR;
     const g = mk('g', { class: 'sk-pe', transform: `translate(${x} ${Y(y)})`, style: `--c:${c}`, 'data-pe': id }, gNodes);
-    const r = nd.kind === 'key' ? 24 : nd.kind === 'notable' ? 20 : 14;
-    const shape = nd.kind === 'key' ? poly(r, 8, Math.PI / 8) : nd.kind === 'bridge' ? poly(r, 4, 0) : star(r, nd.kind === 'notable' ? 0.5 : 0.45);
-    mk('polygon', { points: nd.kind === 'key' ? poly(r + 7, 8, Math.PI / 8) : star(r + 8), class: 'halo' }, g);
-    mk('polygon', { points: shape, class: 's' }, g);
-    if (nd.kind === 'notable' || nd.kind === 'key') { const t = mk('text', { class: 'nm', y: r + 16, 'text-anchor': 'middle' }, g); t.textContent = nd.name; }
+    const sz = (nd.kind === 'key' ? 25 : nd.kind === 'notable' ? 21 : 15) * 2.4;
+    mk('rect', { x: -sz / 2 - 5, y: -sz / 2 - 5, width: sz + 10, height: sz + 10, class: 'halo' }, g);
+    const img = mk('image', { x: -sz / 2, y: -sz / 2, width: sz, height: sz, class: 'px' }, g);
+    if (nd.kind === 'notable' || nd.kind === 'key') { const t = mk('text', { class: 'nm', y: sz / 2 + 16, 'text-anchor': 'middle' }, g); t.textContent = nd.name; }
     const q = mk('text', { class: 'q', 'text-anchor': 'middle', 'dominant-baseline': 'central' }, g); q.textContent = '?';
-    peEls[id] = { g, cls: '' };
+    peEls[id] = { g, img, cls: '', st: '' };
   }
   built = true;
 }
@@ -158,8 +162,10 @@ function updateTree() {
     const e = upEls[k], lk = lockedUp(k), mx = maxed(k), lv = S.lv[k];
     setText(e.lv, lk ? '' : String(lv));
     const isSel = sel && sel.t === 'up' && sel.k === k;
-    const cls = 'sk-node' + (lk ? ' locked' : mx ? ' max' : canBuy(k) ? ' can' : lv > 0 ? ' own' : ' open') + (isSel ? ' sel' : '');
+    const st = lk ? 'locked' : mx ? 'max' : canBuy(k) ? 'can' : lv > 0 ? 'own' : 'open';
+    const cls = 'sk-node ' + st + (isSel ? ' sel' : '');
     if (cls !== e.cls) { e.n.setAttribute('class', cls); e.cls = cls; }
+    if (st !== e.st) { e.badge.setAttribute('href', spriteDataURL(badgeSprite(COLOR[UP[k].b], st))); e.st = st; }
     e.e.classList.toggle('on', lv > 0);
   }
   for (const id in peEls) {
@@ -172,6 +178,8 @@ function updateTree() {
     else c += ' open';
     if (sel && sel.t === 'pe' && sel.id === id) c += ' sel';
     if (c !== e.cls) { e.g.setAttribute('class', c); e.cls = c; }
+    const st = f === 'hidden' ? '' : f === 'hint' ? 'hint' : owned(id) ? 'own' : !learnBlock(id) ? 'can' : 'open';
+    if (st && st !== e.st) { e.img.setAttribute('href', spriteDataURL(starSprite(nd.kind, st, nd.b ? COLOR[nd.b] : PE_COLOR))); e.st = st; }
   }
   for (const e of peEdges) {
     const fa = e.a === CENTER ? 'open' : fog(NODES[e.a]), fb = fog(NODES[e.b]);
@@ -331,8 +339,8 @@ export function updateSkills() {
 export const tickSkills = () => drawPreview();
 export const skillsOpen = () => !overlay.hidden;
 
-// algo para comprar ou pontos para gastar? (pontinho no botão Melhorias)
-export const anyToBuy = () => Object.values(SKILL_LAYOUT).some(L => Object.keys(L).some(k => !lockedUp(k) && canBuy(k))) || peAvailable() > 0;
+// algo para comprar com dinheiro? (pontinho no botão Melhorias; os pontos ★ têm selo próprio)
+export const anyToBuy = () => Object.values(SKILL_LAYOUT).some(L => Object.keys(L).some(k => !lockedUp(k) && canBuy(k)));
 
 function selectDefault() {
   const ks = Object.values(SKILL_LAYOUT).flatMap(L => Object.keys(L));

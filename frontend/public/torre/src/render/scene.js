@@ -11,6 +11,8 @@ import { dust, updateParticles, drawParticles } from './particles.js';
 import { drawSky, drawClouds } from './sky.js';
 import { drawGroundBack, drawGroundFront } from './ground.js';
 import { worker } from './workers.js';
+import { blit } from './sprites.js';
+import { palletSprite } from './props.js';
 import { facade, drawFloors, clipWorld, shafts, scaffold, crane, airship, floorLOD } from './tower.js';
 import { drawTourGround, drawTourAir, drawForSale } from './tourism.js';
 import { buildState, buildStateWith, drawBuild, drawPallets, workX } from './construction.js';
@@ -113,7 +115,7 @@ export function render() {
 
 function topStock(y0, s) {
   const n = Math.min(8, Math.ceil(S.top / 8));
-  for (let i = 0; i < n; i++) { const x = TL + TW - 46 + (i % 2) * 20, y = y0 + SLAB + Math.floor(i / 2) * 11; R(x, y, 19, 10, s.brick); R(x, y + 9, 18, 1, s.hi); }
+  for (let i = 0; i < n; i++) { const x = TL + TW - 46 + (i % 2) * 20, y = y0 + SLAB + Math.floor(i / 2) * 11; blit(palletSprite(s.brick), x - 2, y - 1, 0, 13); }
 }
 
 function drawCapped(y0, nb) {
@@ -152,7 +154,7 @@ function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
   // pedreiros lentos: material sobrando no topo vira paletes empilhados do lado esquerdo
   if (sg.overloaded) for (let k = 0; k < Math.min(10, Math.floor(sg.surplus * 4)); k++) {
     const x = TL + 6 + (k % 2) * 22, yy = y0 + SLAB + Math.floor(k / 2) * 12;
-    R(x, yy, 21, 3, '#8b5a2b'); R(x + 1, yy + 3, 19, 8, s.brick); R(x + 1, yy + 10, 19, 1, s.hi);
+    blit(palletSprite(s.brick), x - 1, yy - 1, 0, 13);
   }
   const idle = !!sg.starving; // falta material: ninguém tem o que assentar
   // o pedreiro mais perto da próxima peça vai até ela

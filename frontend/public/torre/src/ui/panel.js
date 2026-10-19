@@ -5,7 +5,7 @@ import { ERAS, eraAt } from '../data/eras.js';
 import { UP, BRANCHES } from '../data/upgrades.js';
 import { S } from '../sim/state.js';
 import { rates, isCapped, bottleneck, offlineMax, cost } from '../sim/economy.js';
-import { peAvailable } from '../sim/talents.js';
+import { peAvailable, peEarned } from '../sim/talents.js';
 import { clamp } from '../render/canvas.js';
 import { V } from '../render/view.js';
 import { MODES } from '../render/scene.js';
@@ -39,6 +39,22 @@ export function showPage(p) {
   updateUI();
 }
 
+// pontos ★ ganhos viram notificação no botão Melhorias: selo com o saldo e "+N ★" subindo quando chegam
+let lastPe = null, popTimer = 0;
+function peNotify() {
+  const earned = peEarned(), avail = peAvailable(), badge = $('upPe');
+  badge.hidden = avail <= 0;
+  setText(badge, '★ ' + fmt(avail));
+  if (lastPe !== null && earned > lastPe) {
+    const pop = $('upPePop'), btn = $('openUp');
+    setText(pop, `+${fmt(earned - lastPe)} ★ ${earned - lastPe > 1 ? 'pontos' : 'ponto'} de pesquisa`);
+    pop.classList.remove('on'); btn.classList.remove('pe-new'); void pop.offsetWidth;
+    pop.classList.add('on'); btn.classList.add('pe-new');
+    clearTimeout(popTimer); popTimer = setTimeout(() => { pop.classList.remove('on'); btn.classList.remove('pe-new'); }, 2600);
+  }
+  lastPe = earned;
+}
+
 // Modo Obra Viva: na tela só o andar e o dinheiro; o resto mora na tela de Melhorias
 function updateHud() {
   const fl = Math.floor(S.floors);
@@ -46,6 +62,7 @@ function updateHud() {
   setText($('hAlt'), fmtM(S.floors * MPF));
   setText($('hMoney'), 'R$ ' + fmt(S.money));
   $('openUp').querySelector('.dot').hidden = !anyToBuy();
+  peNotify();
   updateSkills();
   if (mapOpen()) updateMap();
   setText($('skSave'), `Salvo neste navegador · continua por até ${fmt(offlineMax() / 3600)} h fora do jogo.`);

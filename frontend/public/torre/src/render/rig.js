@@ -1,0 +1,319 @@
+// Esqueleto 2D do operário (vista de lado, virado para a direita).
+// Cada quadro é uma pose: ângulos dos ossos calculados por funções de animação (andar, carregar, martelar,
+// furar, parado, sentado, mestre). Os membros são "pintados" pixel a pixel como cápsulas entre as juntas,
+// com o tom escolhido pela direção da luz em cada pixel — assim o membro gira sem borrar o pixel art.
+// O quadro pronto ganha o contorno escuro de 1 px e vai para o cache (render/sprites.js).
+//
+// Unidades: pixels de mundo, y para cima, origem no chão entre os pés. Ângulos em graus:
+//   coxa/braço: 0 = apontando para baixo, positivo = para a frente.
+//   joelho: dobra para trás (positivo); cotovelo: dobra para a frente (positivo).
+import { makeSprite, shade } from './sprites.js';
+
+export const RIG_W = 100, RIG_H = 96, RIG_AX = 42, RIG_AY = 90; // sprite e ponto dos pés
+
+// tamanhos dos ossos
+const THIGH = 12, SHIN = 12, ANKLE = 3, TORSO = 14, UARM = 9, FARM = 9;
+
+// paletas: [sombra forte, sombra, base, luz, brilho]
+export const SKINS = [
+  { s: ['#a86a44', '#c58a5c', '#e0a878', '#f2c49a', '#ffe0c0'], hair: '#5a3a22' },
+  { s: ['#7e4e22', '#a26a32', '#c68642', '#dca468', '#f0c48e'], hair: '#2a1c12' },
+  { s: ['#4e2c10', '#6e4019', '#8d5524', '#a86e3a', '#c48a54'], hair: '#1a120c' },
+  { s: ['#b88442', '#d4a25e', '#f1c27d', '#ffdca6', '#fff0d0'], hair: '#8a5a2a' },
+];
+const MAT = {
+  vest: ['#8f4508', '#c4600f', '#ee7a1c', '#ff9a40', '#ffc07a'],
+  refl: ['#9aa6ab', '#c9d3d6', '#eef4f5', '#ffffff', '#ffffff'],
+  shirt: ['#1f3358', '#2c4a7a', '#3d63a3', '#5a85c8', '#86aee6'],
+  pants: ['#141c33', '#22304f', '#30446e', '#46609a', '#6380bf'],
+  boot: ['#1a110a', '#352214', '#553821', '#7a5332', '#9c7048'],
+  glove: ['#6e5228', '#9a7638', '#c09a54', '#dcbc78', '#f0d8a0'],
+  helm: ['#a8780c', '#dca516', '#f7c824', '#ffe266', '#fff6c8'],
+  helmB: ['#8e949c', '#c4c8ce', '#e6e9ed', '#f7f8fa', '#ffffff'],
+  suit: ['#7e8698', '#a9b0bd', '#d3d8e0', '#eceff4', '#ffffff'],
+  steel: ['#2e323a', '#4a4f5a', '#6c727e', '#9aa1ad', '#d0d5de'],
+  wood: ['#4e3218', '#6e4824', '#8b5a2b', '#a87440', '#c89060'],
+  drill: ['#8a5c08', '#c98f15', '#f2b630', '#ffd06a', '#fff0b0'],
+  belt: ['#1e140c', '#2e1f12', '#3e2a18', '#5a4026', '#7a5a38'],
+};
+
+// ---------- animações (IK de 2 ossos) ----------
+// Cada animação diz onde ficam os pés (tornozelos) e as mãos (pulsos); joelhos e cotovelos saem do IK.
+// pés: { x, y, fa (inclinação do pé, + = ponta para cima), plant (apoiado: segura a altura do quadril), pole }
+// mãos: { x, y } relativos ao ombro, com pole (para onde o cotovelo aponta), também relativo ao ombro.
+const R2D = Math.PI / 180;
+const ease = t => t * t * (3 - 2 * t);
+const lerp = (a, b, t) => a + (b - a) * t;
+const LEG = THIGH + SHIN;
+const KNEE_POLE = [14, -10], ELBOW_POLE = [-10, -6]; // relativos ao quadril/ombro: joelho para a frente; cotovelo para trás e para baixo
+
+// pé numa passada: q em [0,1); apoio em 60% do ciclo (desliza para trás no chão), balanço em 40% (arco para a frente)
+function stepFoot(q, stride, lift) {
+  const STANCE = 0.6, half = stride / 2;
+  if (q < STANCE) {
+    const u = q / STANCE, x = lerp(half, -half, u);
+    if (u < 0.75) return { x, y: ANKLE, fa: u < 0.12 ? 10 * (1 - u / 0.12) : 0, plant: true };
+    const k = (u - 0.75) / 0.25; // calcanhar sai do chão, a ponta continua apoiada
+    return { x, y: ANKLE + 3.2 * k, fa: -28 * k, plant: false };
+  }
+  const u = (q - STANCE) / (1 - STANCE), e = ease(u);
+  return { x: lerp(-half, half, e), y: ANKLE + 3.2 * (1 - u) + lift * Math.sin(Math.PI * u), fa: lerp(-28, 12, u), plant: false };
+}
+
+// passada (px) e quanto o corpo anda por ciclo: o pé de apoio percorre a passada em 60% do ciclo
+const STRIDE = carry => carry ? 15 : 19;
+export const walkDistance = carry => STRIDE(carry) / 0.6;
+
+export const ANIMS = {
+  // andar: 16 quadros por passada (2 passos)
+  walk: { frames: 16, pose(p, o) {
+    const stride = STRIDE(o.carry), f = stepFoot(p, stride, o.carry ? 4 : 5.5), b = stepFoot((p + 0.5) % 1, stride, o.carry ? 4 : 5.5);
+    const s = Math.sin(2 * Math.PI * p);
+    const pose = { lean: o.carry ? -2 : 4, hipX: 0.5, hipMax: LEG - 0.6, feet: [f, b] };
+    // braços balançam ao contrário das pernas; a mão sobe um pouco nos extremos
+    pose.hands = o.carry
+      ? [{ x: 12, y: -8 + 0.6 * s }, { x: 9, y: -8.5 + 0.6 * s }]
+      : [{ x: 1 - 0.42 * f.x * 1.6, y: -15.5 + Math.abs(f.x) * 0.16 }, { x: 1 - 0.42 * b.x * 1.6, y: -15.5 + Math.abs(b.x) * 0.16 }];
+    pose.head = [0, 0];
+    return pose;
+  } },
+  // parado (respiração): 8 quadros
+  idle: { frames: 8, pose(p, o) {
+    const br = Math.sin(2 * Math.PI * p);
+    const pose = { lean: 1, hipX: 0, hipMax: LEG - 1.2, breath: br > 0 ? 1 : 0 };
+    pose.feet = [{ x: 3.5, y: ANKLE, fa: 0, plant: true }, { x: -3, y: ANKLE, fa: 0, plant: true }];
+    pose.hands = o.carry ? [{ x: 12, y: -8 }, { x: 9, y: -8.5 }] : [{ x: 2.5, y: -16 + 0.5 * br }, { x: -1.5, y: -16 + 0.5 * br }];
+    pose.head = [0, 0];
+    return pose;
+  } },
+  // martelar: 12 quadros — prepara devagar (mão sobe por trás da cabeça), bate rápido, volta
+  hammer: { frames: 12, pose(p) {
+    const strike = [15, -3], up = [-3, 13], rest = [12, -8];
+    let hand, lean, pole;
+    if (p < 0.5) { const t = ease(p / 0.5); hand = [lerp(rest[0], up[0], t), lerp(rest[1], up[1], t) + 4 * Math.sin(Math.PI * t)]; lean = lerp(5, -3, t); pole = [lerp(-8, 10, t), lerp(-8, 4, t)]; }
+    else if (p < 0.66) { const t = (p - 0.5) / 0.16, e = t * t; hand = [lerp(up[0], strike[0], e), lerp(up[1], strike[1], e) + 3 * Math.sin(Math.PI * e)]; lean = lerp(-3, 9, e); pole = [lerp(10, 2, e), lerp(4, -10, e)]; }
+    else { const t = ease((p - 0.66) / 0.34); hand = [lerp(strike[0], rest[0], t), lerp(strike[1], rest[1], t)]; lean = lerp(9, 5, t); pole = [-6, -10]; }
+    const pose = { lean, hipX: 0.5, hipMax: LEG - 1.6 };
+    pose.feet = [{ x: 7, y: ANKLE, fa: 0, plant: true }, { x: -5, y: ANKLE, fa: 0, plant: true }];
+    pose.hands = [{ x: hand[0], y: hand[1], pole }, { x: 13, y: -5, pole: [-4, -12] }];
+    pose.head = [0, 0];
+    pose.tool = 'hammer';
+    pose.hit = p >= 0.62 && p < 0.76;
+    return pose;
+  } },
+  // furadeira: 4 quadros de tremida
+  drill: { frames: 4, pose(p) {
+    const k = Math.floor(p * 4), j = k % 2;
+    const pose = { lean: 6, hipX: 0.5, hipMax: LEG - 1.8, shakeX: j, shakeY: k === 1 ? 1 : 0 };
+    pose.feet = [{ x: 8, y: ANKLE, fa: 0, plant: true }, { x: -6, y: ANKLE, fa: 0, plant: true }];
+    pose.hands = [{ x: 15, y: -3, pole: [-4, -10] }, { x: 11, y: -8, pole: [-4, -12] }];
+    pose.head = [0, 0];
+    pose.tool = 'drill';
+    return pose;
+  } },
+  // sentado no chão, cansado (sem material): 8 quadros de respiração lenta
+  sit: { frames: 8, pose(p) {
+    const br = Math.sin(2 * Math.PI * p);
+    const pose = { lean: -16 + br * 1.5, hipX: 0, hipY: 6.5 };
+    pose.feet = [{ x: 23, y: ANKLE, fa: 14, plant: false, pole: [12, 6] }, { x: 11, y: ANKLE, fa: 6, plant: false, pole: [8, 16] }];
+    pose.hands = [{ x: -9, y: -15, pole: [-2, 2] }, { x: -12, y: -14, pole: [-4, 2] }];
+    pose.head = [0, br > 0 ? -1 : 0];
+    return pose;
+  } },
+  // mestre de obras com a prancheta: 8 quadros
+  boss: { frames: 8, pose(p) {
+    const br = Math.sin(2 * Math.PI * p);
+    const pose = { lean: br > 0 ? 1 : 0, hipX: 0, hipMax: LEG - 1.2 };
+    pose.feet = [{ x: 3, y: ANKLE, fa: 0, plant: true }, { x: -3.5, y: ANKLE, fa: 0, plant: true }];
+    pose.hands = [{ x: 9, y: -6, pole: [-6, -12] }, { x: -1.5, y: -16 + 0.5 * br }];
+    pose.head = [0, 0];
+    pose.tool = 'clipboard';
+    return pose;
+  } },
+};
+
+// IK de 2 ossos: junta do meio (joelho/cotovelo) entre a raiz e o alvo, do lado do pole.
+// Se o alvo está longe demais, o membro estica na direção dele.
+export function ik2(rx, ry, tx, ty, L1, L2, px, py) {
+  let dx = tx - rx, dy = ty - ry, d = Math.hypot(dx, dy) || 1e-6;
+  const dmax = L1 + L2 - 0.01, dmin = Math.abs(L1 - L2) + 0.01;
+  if (d > dmax) { dx *= dmax / d; dy *= dmax / d; d = dmax; }
+  if (d < dmin) { dx *= dmin / d; dy *= dmin / d; d = dmin; }
+  const a = Math.atan2(dy, dx), b = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))));
+  const j1 = [rx + L1 * Math.cos(a + b), ry + L1 * Math.sin(a + b)], j2 = [rx + L1 * Math.cos(a - b), ry + L1 * Math.sin(a - b)];
+  const j = Math.hypot(j1[0] - px, j1[1] - py) < Math.hypot(j2[0] - px, j2[1] - py) ? j1 : j2;
+  return { jx: j[0], jy: j[1], ex: rx + dx, ey: ry + dy };
+}
+
+// altura do quadril: a maior que ainda deixa os pés apoiados no chão (com o joelho levemente dobrado)
+function hipHeight(pose) {
+  let h = ANKLE + (pose.hipMax ?? LEG);
+  for (const f of pose.feet) if (f.plant) h = Math.min(h, f.y + Math.sqrt(Math.max(0, (LEG - 0.4) ** 2 - (f.x - pose.hipX) ** 2)));
+  return h;
+}
+
+// ---------- pintura ----------
+const LX = 0.5, LY = 0.85, LL = Math.hypot(LX, LY); // luz vinda da frente e de cima
+function painter(p) {
+  const px = (x, y, c) => { if (x >= 0 && y >= 0 && x < RIG_W && y < RIG_H) p.px(x, y, c); };
+  const toS = (lx, ly) => [RIG_AX + lx, RIG_AY - ly];
+  // cápsula entre A e B (coordenadas locais) de raio r; tone(t, u, idx) devolve a cor (t ao longo, u transversal)
+  function capsule(ax, ay, bx, by, r, pal, o = {}) {
+    const [sax, say] = toS(ax, ay), [sbx, sby] = toS(bx, by);
+    const dx = sbx - sax, dy = sby - say, L2 = dx * dx + dy * dy || 1e-6, L = Math.sqrt(L2);
+    const nx = -dy / L, ny = dx / L; // normal: osso para cima → frente; para baixo → costas; para a frente → baixo
+    const x0 = Math.floor(Math.min(sax, sbx) - r - 1), x1 = Math.ceil(Math.max(sax, sbx) + r + 1);
+    const y0 = Math.floor(Math.min(say, sby) - r - 1), y1 = Math.ceil(Math.max(say, sby) + r + 1);
+    const back = o.back ? 1 : 0;
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const cx = x + 0.5, cy = y + 0.5;
+      const tr = ((cx - sax) * dx + (cy - say) * dy) / L2, h = tr * L; let t = tr < 0 ? 0 : tr > 1 ? 1 : tr;
+      const qx = cx - (sax + dx * t), qy = cy - (say + dy * t), d = Math.hypot(qx, qy);
+      if (d > r) continue;
+      // tom pela luz: componente do deslocamento na direção da luz (y da tela para baixo)
+      const l = d < 1e-6 ? 0 : (qx * LX - qy * LY) / (d * LL) * Math.min(1, d / (r * 0.6));
+      let idx = l > 0.55 ? 3 : l > -0.2 ? 2 : l > -0.65 ? 1 : 0;
+      idx = Math.max(0, idx - back);
+      const u = (qx * nx + qy * ny) / r;
+      const c = o.band ? o.band(t, u, idx, pal, h) : null;
+      px(x, y, c || pal[idx]);
+    }
+  }
+  const rect = (lx, ly, w, h, c) => { const [x, y] = toS(lx, ly + h); p.r(x, y, w, h, c); };
+  return { capsule, rect, px, toS };
+}
+
+// junta da ponta de um osso
+const tip = (x, y, ang, len) => [x + Math.sin(ang * R2D) * len, y - Math.cos(ang * R2D) * len];
+
+export function drawRig(key, anim, frame, o) {
+  return makeSprite(key, RIG_W, RIG_H, p => {
+    const A = ANIMS[anim], ph = frame / A.frames, pose = A.pose(ph, o);
+    const { capsule, rect } = painter(p);
+    const sk = SKINS[o.skin].s, hair = SKINS[o.skin].hair;
+    const suit = o.suit;
+    const VEST = suit ? MAT.suit : MAT.vest, SLV = suit ? MAT.suit : MAT.shirt, PNT = suit ? MAT.suit : MAT.pants;
+    const BOOT = suit ? MAT.steel : MAT.boot, GLV = suit ? MAT.steel : MAT.glove;
+    const sx = pose.shakeX || 0, sy = pose.shakeY || 0;
+    const hx = pose.hipX + sx, hy = (pose.hipY ?? hipHeight(pose)) + sy;
+    // tronco: do quadril ao pescoço, inclinado
+    const [nx, ny] = tip(hx, hy + 3, 180 - pose.lean, TORSO + (pose.breath || 0));
+    const shX = hx + (nx - hx) * 0.82, shY = hy + 3 + (ny - hy - 3) * 0.82;
+
+    // perna: IK do quadril ao tornozelo, joelho para a frente; bota do calcanhar à ponta, inclinada por fa
+    const leg = (f, back) => {
+      const pl = f.pole || KNEE_POLE, k = ik2(hx, hy, f.x, f.y, THIGH, SHIN, hx + pl[0], hy + pl[1]);
+      capsule(hx, hy, k.jx, k.jy, 3.6, PNT, { back });
+      capsule(k.jx, k.jy, k.ex, k.ey, 3.1, PNT, { back, band: (t, u, i, pal) => t > 0.86 ? pal[Math.max(0, i - 1)] : t < 0.22 && u < -0.1 && !suit ? pal[Math.min(4, i + 1)] : null });
+      const c = Math.cos(f.fa * R2D), sn = Math.sin(f.fa * R2D);
+      const hlx = k.ex - 2 * c, hly = k.ey - 0.6 - 2 * sn, tox = k.ex + 6 * c, toy = k.ey - 0.6 + 6 * sn;
+      capsule(hlx, hly, tox, toy, 2.6, BOOT, { back, band: (t, u, i, pal) => u > 0.45 ? '#120c08' : t > 0.7 && u < -0.3 ? pal[4] : null });
+    };
+    // braço: IK do ombro ao pulso, cotovelo para trás (ou para onde o pole mandar); luva segue o antebraço
+    const arm = (hd, back, sxo = 0) => {
+      const ox = shX + sxo, oy = shY, pl = hd.pole || ELBOW_POLE;
+      const k = ik2(ox, oy, ox + hd.x, oy + hd.y, UARM, FARM, ox + pl[0], oy + pl[1]);
+      capsule(ox, oy, k.jx, k.jy, 2.9, SLV, { back, band: (t, u, i, pal) => t < 0.35 && !suit ? VEST[Math.max(0, i - back)] : null });
+      capsule(k.jx, k.jy, k.ex, k.ey, 2.6, SLV, { back, band: (t, u, i, pal) => t > 0.82 ? pal[Math.max(0, i - 1)] : null });
+      const ang = Math.atan2(k.ex - k.jx, -(k.ey - k.jy)) / R2D; // mesmo sistema de tip(): 0 = para baixo, 90 = para a frente
+      const [gx, gy] = tip(k.ex, k.ey, ang, 2.2);
+      capsule(k.ex, k.ey, gx, gy, 2.5, GLV, { back });
+      return { ex: k.jx, ey: k.jy, wx: k.ex, wy: k.ey, hx: gx, hy: gy, ang };
+    };
+
+    // 1) braço de trás, mochila e perna de trás
+    arm(pose.hands[1], 1, -2);
+    if (suit && o.pack) { const [bx, by] = tip(hx - 6, hy + 6, 180 - pose.lean, 13); capsule(hx - 7, hy + 7, bx, by, 4.2, MAT.steel, { band: (t, u) => t > 0.4 && t < 0.6 && u < 0 ? '#3b6fd1' : null }); }
+    leg(pose.feet[1], 1);
+    // 2) quadril e perna da frente
+    capsule(hx - 1, hy, hx + 1, hy + 3, 5.6, PNT);
+    leg(pose.feet[0], 0);
+    // 3) tronco com colete, faixas refletivas e cinto
+    const [tax, tay] = tip(hx, hy + 3, 180 - pose.lean, 2.5), [tbx, tby] = tip(hx, hy + 3, 180 - pose.lean, TORSO - 6.5 + (pose.breath || 0));
+    // z = altura acima do quadril ao longo do tronco; u > 0 = frente
+    capsule(tax, tay, tbx, tby, 7.2, VEST, { band: (t, u, i, pal, h) => {
+      const z = h + 5.5;
+      if (z < -0.5) return PNT[i];
+      if (z < 2) return suit ? MAT.steel[i] : u > 0.15 && u < 0.6 ? '#d9b54a' : MAT.belt[i];
+      if (suit) return z > 8 && z < 12 && u > 0.1 && u < 0.65 ? (z > 9 && z < 11 && u > 0.25 && u < 0.5 ? '#3b6fd1' : MAT.steel[2]) : null;
+      if (z > 16.5) return MAT.shirt[i];
+      if (z >= 8 && z < 10.5) return MAT.refl[z >= 9.5 ? Math.min(4, i + 1) : i];
+      if (z >= 10.5 && u > 0.08 && u < 0.45) return MAT.refl[i];
+      if (z > 3.5 && z < 6.5 && u > 0.15 && u < 0.62) return z < 4.5 ? pal[0] : pal[Math.max(0, i - 1)]; // bolso
+      return null;
+    } });
+    if (!suit && hy > 15) { // bolsa de ferramentas e martelo pendurado no cinto, atrás (sentado, fica no chão escondida)
+      const bx = Math.round(hx - 10), by = Math.round(hy - 6);
+      rect(bx, by, 5, 8, MAT.wood[1]); rect(bx, by + 7, 5, 1, MAT.wood[3]); rect(bx + 1, by + 2, 3, 1, MAT.wood[0]);
+      rect(bx + 1, by - 5, 1, 5, MAT.steel[2]); rect(bx, by - 6, 3, 2, MAT.steel[1]);
+    }
+    // 4) pescoço e cabeça
+    capsule(nx, ny - 1, nx + 0.5, ny + 1.5, 2.4, sk);
+    head(rect, Math.round(nx + 1 + pose.head[0]), Math.round(ny + 1 + pose.head[1]), o, sk, hair);
+    // 5) braço da frente e ferramenta
+    // carga na frente do peito, apoiada nas mãos (a mão da frente fica por cima)
+    if (o.carry) carry(rect, Math.round(shX + 1 + pose.hands[0].x - 1), Math.round(shY + pose.hands[0].y - 5), o.carry);
+    const aF = arm(pose.hands[0], 0, 1);
+    tool(capsule, rect, pose, aF, o);
+  });
+}
+
+// cabeça (não gira; desloca com o pescoço). (x, y) = base da cabeça, centro
+function head(rect, x, y, o, sk, hair) {
+  const P = (lx, ly, w, h, c) => rect(x + lx, y + ly, w, h, c);
+  if (o.suit) {
+    P(-7, -1, 15, 17, MAT.suit[1]); P(-6, 0, 13, 15, MAT.suit[2]); P(-6, 0, 2, 15, MAT.suit[1]); P(-3, 14, 7, 1, MAT.suit[4]);
+    P(-2, 3, 9, 10, '#22407a'); P(-1, 4, 8, 8, '#3b6fd1'); P(0, 5, 6, 6, '#5fb8ff'); P(1, 10, 3, 1, '#d9f1ff'); P(4, 8, 1, 2, '#d9f1ff');
+    P(-5, 15, 2, 3, MAT.steel[2]); P(-5, 18, 2, 1, '#ff5a4a');
+    return;
+  }
+  P(-5, 0, 11, 11, sk[2]); P(-5, 0, 2, 11, sk[1]); P(-5, 1, 1, 9, sk[0]);
+  P(-5, 3, 4, 6, hair); P(-5, 8, 5, 2, hair); P(-4, 2, 2, 1, hair);           // nuca e costeleta
+  P(-1, 4, 2, 3, sk[1]); P(-1, 5, 1, 1, sk[0]);                               // orelha
+  P(1, 9, 4, 1, sk[3]); P(5, 4, 1, 4, sk[3]);                                 // luz na testa e no nariz
+  P(6, 4, 1, 2, sk[2]); P(6, 4, 1, 1, sk[1]);                                 // nariz
+  P(3, 6, 1, 2, '#f4f1e8'); P(4, 6, 1, 2, '#1d1d22'); P(4, 7, 1, 1, '#3a3a48'); // olho
+  P(3, 8, 3, 1, hair);                                                        // sobrancelha
+  P(3, 3, 3, 1, '#8a3e2c'); P(4, 3, 1, 1, '#a8503a');                         // boca
+  P(1, 5, 2, 1, shade(sk[2], 0.08)); P(0, 1, 6, 1, sk[1]); P(-1, 0, 7, 1, sk[0]); // bochecha e queixo
+  const hc = o.boss ? MAT.helmB : MAT.helm;
+  P(-6, 10, 13, 5, hc[2]); P(-5, 15, 11, 2, hc[2]); P(-3, 17, 7, 1, hc[2]);
+  P(-6, 10, 3, 5, hc[1]); P(-5, 15, 2, 2, hc[1]); P(-3, 17, 7, 1, hc[3]);
+  P(0, 11, 2, 7, hc[3]); P(0, 16, 1, 2, hc[4]); P(3, 13, 2, 2, hc[4]); P(4, 14, 1, 1, '#ffffff');
+  P(-7, 9, 17, 2, hc[1]); P(-7, 9, 17, 1, hc[0]); P(6, 10, 4, 1, hc[3]);
+  if (o.boss) { P(-3, 12, 2, 2, '#3b6fd1'); P(-3, 13, 1, 1, '#86aee6'); }
+}
+
+function tool(capsule, rect, pose, a, o) {
+  if (pose.tool === 'hammer') {
+    const [ex, ey] = tip(a.hx, a.hy, a.ang, 11), [bx, by] = tip(a.hx, a.hy, a.ang, -2);
+    capsule(bx, by, ex, ey, 1.3, MAT.wood);
+    const [p1x, p1y] = tip(ex, ey, a.ang + 90, 4), [p2x, p2y] = tip(ex, ey, a.ang - 90, 4);
+    capsule(p1x, p1y, p2x, p2y, 2.2, MAT.steel);
+    if (pose.hit) { rect(Math.round(ex + 5), Math.round(ey + 3), 2, 2, '#ffe27a'); rect(Math.round(ex + 6), Math.round(ey - 3), 2, 2, '#fff2a8'); rect(Math.round(ex + 3), Math.round(ey + 6), 1, 1, '#ffe27a'); }
+  } else if (pose.tool === 'drill') {
+    const x = Math.round(a.hx), y = Math.round(a.hy);
+    rect(x - 2, y - 7, 5, 8, MAT.steel[2]); rect(x - 2, y - 7, 5, 1, MAT.steel[0]); rect(x + 2, y - 6, 1, 6, MAT.steel[3]); // cabo
+    rect(x - 4, y - 1, 15, 8, MAT.drill[2]); rect(x - 4, y + 5, 15, 2, MAT.drill[3]); rect(x - 4, y - 1, 15, 1, MAT.drill[0]); rect(x - 4, y - 1, 2, 8, MAT.drill[1]);
+    rect(x + 2, y + 2, 4, 2, MAT.steel[1]);
+    rect(x + 11, y + 1, 3, 4, MAT.steel[2]); rect(x + 14, y + 2, 7, 2, '#c7ccd6'); rect(x + 14, y + 3, 7, 1, '#ffffff');
+    if (pose.shakeX) { rect(x + 22, y + 4, 2, 1, '#e0d6c0'); rect(x + 21, y + 1, 1, 1, '#e0d6c0'); }
+  } else if (pose.tool === 'clipboard') {
+    const x = Math.round(a.hx), y = Math.round(a.hy);
+    rect(x - 2, y - 6, 12, 15, MAT.wood[2]); rect(x - 2, y - 6, 12, 1, MAT.wood[0]); rect(x - 2, y - 6, 1, 15, MAT.wood[1]);
+    rect(x - 1, y - 5, 10, 12, '#f4f1e6'); rect(x + 2, y + 7, 4, 2, MAT.steel[3]);
+    rect(x, y + 4, 7, 1, '#9097a9'); rect(x, y + 2, 8, 1, '#9097a9'); rect(x, y, 6, 1, '#9097a9'); rect(x, y - 2, 7, 1, '#9097a9'); rect(x + 7, y - 2, 1, 2, '#c0504d');
+    rect(x - 1, y - 1, 3, 3, MAT.glove[2]); // polegar por cima
+  }
+}
+
+// pilha de tijolos (ou vidro) acima da cabeça; (x, y) = base, centro
+function carry(rect, x, y, c) {
+  const cd = shade(c, -0.3), cl = shade(c, 0.3);
+  rect(x - 11, y, 23, 11, c); rect(x - 11, y, 23, 1, cd); rect(x - 11, y + 10, 23, 1, cl);
+  for (let r = 0; r < 3; r++) {
+    const yy = y + 1 + r * 3 + (r > 0 ? 0 : 0); rect(x - 11, yy + 3, 23, 1, cd);
+    for (let xx = x - 11 + (r % 2 ? 4 : 0) + 7; xx < x + 12; xx += 8) rect(xx, yy, 1, 3, cd);
+  }
+  rect(x - 11, y, 1, 11, cd); rect(x + 11, y + 1, 1, 9, cl);
+}

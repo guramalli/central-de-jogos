@@ -141,10 +141,14 @@ function stepFoot(q, stride, lift) {
   return { x: lerp(-half, half, e), y: ANKLE + 3.2 * (1 - u) + lift * Math.sin(Math.PI * u), fa: lerp(-28, 12, u), plant: false };
 }
 
+// passada (px) e quanto o corpo anda por ciclo: o pé de apoio percorre a passada em 60% do ciclo
+const STRIDE = carry => carry ? 15 : 19;
+const walkDistance = carry => STRIDE(carry) / 0.6;
+
 const ANIMS = {
   // andar: 16 quadros por passada (2 passos)
   walk: { frames: 16, pose(p, o) {
-    const stride = o.carry ? 15 : 19, f = stepFoot(p, stride, o.carry ? 4 : 5.5), b = stepFoot((p + 0.5) % 1, stride, o.carry ? 4 : 5.5);
+    const stride = STRIDE(o.carry), f = stepFoot(p, stride, o.carry ? 4 : 5.5), b = stepFoot((p + 0.5) % 1, stride, o.carry ? 4 : 5.5);
     const s = Math.sin(2 * Math.PI * p);
     const pose = { lean: o.carry ? -2 : 4, hipX: 0.5, hipMax: LEG - 0.6, feet: [f, b] };
     // braços balançam ao contrário das pernas; a mão sobe um pouco nos extremos

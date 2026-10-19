@@ -7,6 +7,8 @@ import { typeAt } from '../sim/realty.js';
 import { ctx, R, Rv, hash, mix } from './canvas.js';
 import { cam, worldY, sx, sy } from './camera.js';
 import { V } from './view.js';
+import { blit, shade } from './sprites.js';
+import { brickTile, eraTile, shaftTile, carSprite, shaftTopSprite, mastTile, jibTile, cabSprite, weightSprite, trolleySprite, hookSprite } from './props.js';
 
 const WIN_X = [12, 72, 132, 192];     // janelas: x relativo à borda esquerda
 const WIN_W = 36, WIN_Y = 22, WIN_H = 48;
@@ -36,51 +38,62 @@ export function facade(i, lvl = floorLOD()) {
   // andar recém-concluído: todas as luzes acendem por um instante (Obra Viva)
   const flash = V.flash && V.flash.i === i, occ = i < S.assigned || flash;
   const lit = flash ? () => true : litW;
-  R(TL, y0, TW, FH, s.wall);
-  if (lvl >= 3) {
-    if (e === 0) { // tijolos
-      for (let k = 0; k < 11; k++) {
-        const yy = y0 + SLAB + k * 8;
-        R(TL, yy, TW, 1, s.line);
-        for (let x = TL + (k % 2) * 8; x < TL + TW; x += 16) R(x, yy, 1, 8, s.line);
-      }
-    } else if (e === 1) { // painéis de concreto
-      for (let x = TL + 60; x < TL + TW; x += 60) R(x - 1, y0 + SLAB, 2, FH - SLAB, s.line);
-      R(TL, y0 + 52, TW, 1, s.line);
-      if (hash(i, 77) < .3) R(TL + 20 + hash(i, 78) * 180, y0 + 12, 3, 30, 'rgba(0,0,0,.07)');
-    } else if (e >= 3) {
-      for (let x = TL + 30; x < TL + TW; x += 60) R(x, y0 + SLAB, 1, FH - SLAB, s.line);
-    }
-  }
-  if (e === 2) { // pele de vidro
+  // perto: parede pronta num sprite de pixel art (tijolo ou a parede da era), janelas por cima
+  const brick = e === 0 && lvl >= 3, tiled = lvl >= 3 && e !== 2, v = Math.floor(hash(i, 5) * (brick ? 4 : 3));
+  if (brick) blit(brickTile(v), TL, y0, 0, FH);
+  else if (tiled) blit(eraTile(e, v, s), TL, y0, 0, FH);
+  else R(TL, y0, TW, FH, s.wall);
+  const mull = brick ? '#7a4a30' : shade(s.frame, 0.3);
+  if (e === 2) { // pele de vidro: caixilhos com brilho, vidro com reflexo e faixa opaca entre os andares
     const gy = y0 + SLAB + 6, gh = FH - SLAB - 12;
     R(TL + 4, gy, TW - 8, gh, s.glass);
+    if (lvl >= 3) { R(TL, y0 + SLAB, TW, 6, shade(s.wall, -0.2)); R(TL, y0 + FH - 6, TW, 6, shade(s.wall, -0.1)); R(TL, y0 + FH - 6, TW, 1, s.hi); }
     for (let c = 0; c < 8; c++) {
-      const x = TL + 4 + c * 29;
-      if (occ && lit(i, c)) R(x + 2, gy + 2, 25, gh - 4, lvl >= 2 ? '#7db5d8' : s.lit);
-      if (lvl >= 2) R(x, gy, 2, gh, s.frame);
-      if (lvl >= 3 && !(occ && lit(i, c))) R(x + 6, gy + 10, 3, gh - 30, 'rgba(255,255,255,.12)');
+      const x = TL + 4 + c * 29, on = occ && lit(i, c);
+      if (on) { R(x + 2, gy + 2, 25, gh - 4, lvl >= 2 ? '#7db5d8' : s.lit); if (lvl >= 3) { R(x + 2, gy + 2, 25, 6, '#a8d4ee'); R(x + 5, gy + 8, 8, 20, 'rgba(30,50,70,.25)'); } }
+      else if (lvl >= 3) { R(x + 2, gy + 2, 25, 10, shade(s.glass, 0.18)); for (let d = 0; d < 7; d++) R(x + 5 + d * 2, gy + 14 + d * 6, 3, 6, 'rgba(255,255,255,.13)'); }
+      if (lvl >= 2) { R(x, gy, 2, gh, s.frame); if (lvl >= 3) R(x + 1, gy, 1, gh, shade(s.frame, 0.35)); }
     }
-    if (lvl >= 2) { R(TL + 4, gy + gh / 2, TW - 8, 2, s.frame); }
+    if (lvl >= 2) { R(TL + 4, gy + gh / 2, TW - 8, 2, s.frame); if (lvl >= 3) R(TL + 4, gy + gh / 2 + 1, TW - 8, 1, shade(s.frame, 0.35)); }
   } else {
     const t = lvl >= 3 && occ ? typeAt(i) : null;
     for (let k = 0; k < 4; k++) {
       const wx = TL + WIN_X[k], wy = y0 + WIN_Y, on = occ && lit(i, k);
-      if (lvl >= 2) { R(wx - 3, wy - 3, WIN_W + 6, WIN_H + 6, s.frame); R(wx - 5, wy - 5, WIN_W + 10, 3, s.hi); }
+      if (lvl >= 2 && !tiled) { R(wx - 3, wy - 3, WIN_W + 6, WIN_H + 6, s.frame); R(wx - 5, wy - 5, WIN_W + 10, 3, s.hi); }
       R(wx, wy, WIN_W, WIN_H, on ? s.lit : s.glass);
       if (lvl >= 3) {
-        if (on) interior(i, k, wx, wy, t);
-        else { R(wx + 5, wy + 18, 4, 24, 'rgba(255,255,255,.16)'); R(wx + 12, wy + 28, 3, 14, 'rgba(255,255,255,.12)'); }
+        if (on) { interior(i, k, wx, wy, t); R(wx, wy + WIN_H - 3, WIN_W, 3, 'rgba(255,255,255,.22)'); }
+        else { // vidro com reflexo em diagonal e céu claro no alto
+          R(wx, wy + WIN_H - 8, WIN_W, 8, shade(s.glass, 0.2));
+          for (let d = 0; d < 6; d++) { R(wx + 3 + d * 2, wy + 10 + d * 5, 3, 5, 'rgba(255,255,255,.14)'); R(wx + 22 + d * 2, wy + 4 + d * 4, 2, 4, 'rgba(255,255,255,.10)'); }
+        }
         R(wx + 17, wy, 2, WIN_H, s.frame); R(wx, wy + 22, WIN_W, 2, s.frame);
+        R(wx + 19, wy, 1, WIN_H, mull); R(wx, wy + 24, WIN_W, 1, mull);
+        if (tiled && !brick) for (const [cx, cy] of [[wx, wy], [wx + WIN_W - 2, wy], [wx, wy + WIN_H - 2], [wx + WIN_W - 2, wy + WIN_H - 2]]) R(cx, cy, 2, 2, s.frame);
+        if (brick && hash(i, k + 31) < 0.3) floreira(wx, wy - 4, i, k);
       }
     }
-    if (e === 3 && lvl >= 2) R(TL, y0 + 80, TW, 3, s.lit);
-    if (e === 5 && lvl >= 2) R(TL, y0 + 82, TW, 3, s.frame);
+    if (!tiled && e === 3 && lvl >= 2) R(TL, y0 + 80, TW, 3, s.lit);
+    if (!tiled && e === 5 && lvl >= 2) R(TL, y0 + 82, TW, 3, s.frame);
   }
   // laje e quinas
   R(TL, y0, TW, SLAB, s.slab);
-  if (lvl >= 2) { R(TL, y0 + SLAB - 2, TW, 2, s.hi); R(TL, y0 + SLAB, TW, 2, 'rgba(0,0,0,.18)'); R(TL, y0, 3, FH, s.edge); R(TL + TW - 3, y0, 3, FH, s.edge); }
+  if (lvl >= 3) { // laje com aresta clara, sombra e marcas das formas
+    R(TL, y0 + SLAB - 2, TW, 2, s.hi); R(TL, y0 + 2, TW, 1, 'rgba(0,0,0,.25)'); R(TL, y0 + SLAB, TW, 1, 'rgba(0,0,0,.2)');
+    for (let x = TL + 6; x < TL + TW; x += 30) R(x, y0 + 3, 2, 2, 'rgba(0,0,0,.2)');
+    if (!brick) { R(TL, y0, 2, FH, s.edge); R(TL + TW - 2, y0, 2, FH, s.edge); R(TL + 2, y0, 1, FH, 'rgba(255,255,255,.12)'); }
+  }
+  else if (lvl >= 2) { R(TL, y0 + SLAB - 2, TW, 2, s.hi); R(TL, y0 + SLAB, TW, 2, 'rgba(0,0,0,.18)'); R(TL, y0, 3, FH, s.edge); R(TL + TW - 3, y0, 3, FH, s.edge); }
   if (e >= 4 && i % 25 === 0 && Math.floor(V.t * 2) % 2) R(TL + TW - 10, y0 + FH - 10, 6, 4, '#ff3b3b');
+}
+
+// floreira sob a janela (só em parte das janelas do tijolo)
+function floreira(wx, y, i, k) {
+  R(wx + 3, y - 5, 30, 5, '#6b4a30'); R(wx + 3, y - 1, 30, 1, '#8b6440'); R(wx + 3, y - 5, 30, 1, '#4a3220');
+  for (let f = 0; f < 6; f++) {
+    const fx = wx + 5 + f * 5, c = ['#e0504a', '#f7c824', '#f08ab0'][Math.floor(hash(i * 3 + f, k) * 3)];
+    R(fx, y, 3, 3, '#3c8a3f'); R(fx + 1, y + 3, 2, 2, c); R(fx + 1, y + 4, 1, 1, '#ffffff');
+  }
 }
 
 // Andares prontos [0, base) visíveis na tela
@@ -120,16 +133,18 @@ export function shafts(topWP, carrying) {
     const x0 = SHAFT_X(i), b = V.shaftBuild[i] ?? 1, h = top * b, yHi = Math.min(yHi0, h);
     Rv(x0, 0, 3, h, '#3b4152'); Rv(x0 + 27, 0, 3, h, '#3b4152');
     if (bars && yHi > yLo) {
-      for (let y = Math.floor(yLo / 24) * 24; y < yHi; y += 24) {
-        R(x0, y, 30, 2, '#2a2f3d');
-        if (cam.z >= 0.5) { R(x0 + 3, y + 2, 2, 22, '#30364a'); for (let d = 0; d < 6; d++) R(x0 + 4 + d * 4, y + 4 + d * 3, 3, 2, '#30364a'); }
+      const st = cam.z >= 0.5 ? shaftTile() : null;
+      for (let y = Math.max(0, Math.floor(yLo / 24) * 24); y < yHi; y += 24) {
+        if (st) blit(st, x0, Math.min(y, yHi - 24), 0, 24);
+        else R(x0, y, 30, 2, '#2a2f3d');
       }
     }
     if (b < 1) { // elevador novo sendo montado: a torre de trilhos sobe com faíscas na ponta
       if (Math.floor(V.t * 14) % 2) { R(x0 - 2, h - 3, 34, 3, '#ffe27a'); R(x0 + 4, h + 2, 3, 3, '#fff2a8'); R(x0 + 22, h + 4, 3, 3, '#fff2a8'); }
       continue;
     }
-    R(x0 - 3, top, 36, 12, '#6b7183'); R(x0 + 12, top + 4, 6, 4, Math.floor(V.t * 6) % 2 ? '#dfe3ea' : '#9aa0ad');
+    if (cam.z >= 0.4) blit(shaftTopSprite(), x0 - 4, top, 0, 13); else R(x0 - 3, top, 36, 12, '#6b7183');
+    R(x0 + 12, top + 4, 6, 4, Math.floor(V.t * 6) % 2 ? '#ff5a4a' : '#7a2a24');
     if (S.lv.motor > 0) { // motor mais forte: polia girando sobre o poço
       const q = Math.floor(V.t * (6 + 2 * Math.min(S.lv.motor, 6))) % 4, mx = x0 + 9;
       R(mx - 2, top + 12, 16, 12, '#3b4152'); R(mx, top + 14, 12, 8, '#7a8091');
@@ -138,9 +153,12 @@ export function shafts(topWP, carrying) {
     const ph = V.elev[i] % 1, a = ph < .45 ? ph / .45 : ph < .55 ? 1 : 1 - (ph - .55) / .45;
     const cy = a * topWP;
     R(x0 + 14, cy + 32, 2, Math.max(0, top - cy - 32), '#9aa0ad');
-    R(x0 + 3, cy, 24, 32, '#c9a227'); R(x0 + 3, cy + 30, 24, 2, '#e8c450');
-    R(x0 + 6, cy + 3, 18, 24, '#262a35');
-    if (ph < .5 && carrying) { R(x0 + 7, cy + 3, 16, load, bc); R(x0 + 7, cy + 2 + load, 16, 1, 'rgba(255,255,255,.35)'); R(x0 + 7, cy + 9, 16, 1, 'rgba(0,0,0,.2)'); }
+    if (cam.z >= 0.4) blit(carSprite(), x0 + 3, cy, 1, 33);
+    else { R(x0 + 3, cy, 24, 32, '#c9a227'); R(x0 + 6, cy + 3, 18, 24, '#262a35'); }
+    if (ph < .5 && carrying) { // carga: tijolos empilhados dentro da gaiola
+      R(x0 + 7, cy + 4, 16, load, bc); R(x0 + 7, cy + 3 + load, 16, 1, shade(bc, 0.3));
+      for (let yy = cy + 4 + 4; yy < cy + 4 + load; yy += 4) R(x0 + 7, yy, 16, 1, shade(bc, -0.25));
+    }
   }
 }
 
@@ -169,21 +187,29 @@ export function crane(buildTop, trolX, hookY) {
     if (bld > .6) { const w = (TW + 130) * (bld - .6) / .4; R(mx, jy, w, 3, '#e3a823'); R(mx - w * .4, jy, w * .4, 3, '#e3a823'); R(mx, jy + 14, w, 3, '#e3a823'); }
     return jy;
   }
-  // mastro treliçado
-  R(mx, y0, 3, jy - y0, '#e3a823'); R(mx + 13, y0, 3, jy - y0, '#e3a823');
-  if (cam.z >= 0.3) for (let y = y0 - (y0 % 14); y < jy; y += 14) { R(mx, y, 16, 2, '#c98f15'); for (let d = 0; d < 4; d++) R(mx + 3 + d * 3, y + 2 + d * 3, 3, 2, '#c98f15'); }
-  // lança e contra-lança
   const x0 = TL - 130, x1 = TL + TW + 130;
-  R(x0, jy, x1 - x0, 3, '#e3a823'); R(x0, jy + 14, x1 - x0, 3, '#e3a823');
-  if (cam.z >= 0.3) for (let x = x0; x < x1; x += 16) { R(x, jy + 3, 2, 11, '#c98f15'); for (let d = 0; d < 3; d++) R(x + 3 + d * 4, jy + 4 + d * 3, 3, 2, '#c98f15'); }
-  R(x0 + 4, jy - 30, 38, 30, '#5b6170'); R(x0 + 4, jy - 16, 38, 2, '#7a8091'); R(x0 + 4, jy - 6, 38, 2, '#7a8091');
-  R(mx - 6, jy - 24, 28, 22, '#2f5d8a'); R(mx - 2, jy - 18, 18, 9, '#bfe3ff'); R(mx - 2, jy - 10, 18, 2, '#24476a');
-  R(mx + 6, jy + 17, 4, 34, '#e3a823');
-  if (Math.floor(V.t * 2) % 2) R(mx + 5, jy + 51, 6, 4, '#ff3b3b');
+  if (cam.z < 0.3) { // longe: traços simples
+    R(mx, y0, 3, jy - y0, '#e3a823'); R(mx + 13, y0, 3, jy - y0, '#e3a823');
+    R(x0, jy, x1 - x0, 3, '#e3a823'); R(x0, jy + 14, x1 - x0, 3, '#e3a823');
+    R(x0 + 4, jy - 30, 38, 30, '#8d939e'); R(mx - 6, jy - 24, 28, 22, '#2f5d8a'); R(mx + 6, jy + 17, 4, 34, '#e3a823');
+    R(trolX - 1, hookY, 2, Math.max(0, jy - 8 - hookY), '#c7ccd6'); R(trolX - 7, hookY - 9, 14, 9, '#3b4152');
+    return jy;
+  }
+  // mastro treliçado e lança em seções de pixel art
+  const mt = mastTile(), jt = jibTile();
+  for (let y = y0; y < jy; y += 14) blit(mt, mx, Math.min(y, jy - 14), 0, 14);
+  for (let x = x0; x < x1; x += 16) blit(jt, Math.min(x, x1 - 16), jy, 0, 17);
+  // torre do topo com tirantes até as pontas da lança
+  R(mx + 5, jy + 17, 6, 34, '#d39a14'); R(mx + 5, jy + 17, 2, 34, '#ffd86a'); R(mx + 3, jy + 49, 10, 3, '#a8760c');
+  const tie = xe => { const n = Math.ceil(Math.abs(xe - mx - 8) / 3); for (let k = 0; k < n; k++) { const t = k / n; R(mx + 8 + (xe - mx - 8) * t - (xe < mx ? 3 : 0), jy + 50 - 32 * t, 3, 1, '#5a5f6a'); } };
+  tie(x1 - 10); tie(x0 + 10);
+  if (Math.floor(V.t * 2) % 2) { R(mx + 5, jy + 52, 6, 4, '#ff3b3b'); R(mx + 6, jy + 55, 4, 1, '#ffb0a8'); }
+  blit(weightSprite(), x0 + 4, jy, 1, 1);
+  blit(cabSprite(), mx - 6, jy - 2, 1, 1);
   // carrinho, cabo e gancho
-  R(trolX - 9, jy - 7, 18, 7, '#3b4152'); R(trolX - 6, jy - 9, 4, 3, '#222'); R(trolX + 2, jy - 9, 4, 3, '#222');
-  R(trolX - 1, hookY, 2, Math.max(0, jy - 7 - hookY), '#c7ccd6');
-  R(trolX - 7, hookY - 9, 14, 9, '#3b4152'); R(trolX - 7, hookY - 3, 14, 2, '#f2b630'); R(trolX - 1, hookY - 15, 3, 6, '#f2b630');
+  blit(trolleySprite(), trolX, jy + 2, 10, 0);
+  R(trolX - 1, hookY, 2, Math.max(0, jy - 8 - hookY), '#c7ccd6'); R(trolX, hookY, 1, Math.max(0, jy - 8 - hookY), '#eef0f4');
+  blit(hookSprite(), trolX, hookY, 8, 1);
   return jy;
 }
 
