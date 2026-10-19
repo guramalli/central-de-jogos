@@ -14,6 +14,8 @@ import { syncCameraButtons } from './ui/cameraControls.js';
 migrate(load());
 setNotice(runOffline());
 
+// Modo desenvolvedor: em localhost ou com ?dev no endereço. Para o jogador, nada de barra de teste.
+const DEV = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || new URLSearchParams(location.search).has('dev');
 let speed = 1;
 
 // ---------- loop ----------
@@ -30,6 +32,7 @@ function frame(now) {
 }
 
 // ---------- controles ----------
+$('devbar').hidden = !DEV;
 const spBtns = document.querySelectorAll('[data-sp]');
 spBtns.forEach(b => b.onclick = () => {
   speed = +b.dataset.sp;
@@ -61,5 +64,5 @@ function shot(name = 'shot') {
   return fetch('/__shot?name=' + encodeURIComponent(name), { method: 'POST', body: c.toDataURL('image/png') }).then(r => r.status);
 }
 
-// acesso pelo console para testes
-window.torre = { get S() { return S; }, V, cam, snap: snapCamera, draw: (n = 1) => { for (let i = 0; i < n; i++) { updateView(0.05, 1); render(); } }, shot };
+// acesso pelo console para testes (só no modo desenvolvedor)
+if (DEV) window.torre = { get S() { return S; }, V, cam, snap: snapCamera, draw: (n = 1) => { for (let i = 0; i < n; i++) { updateView(0.05, 1); render(); } }, shot };
