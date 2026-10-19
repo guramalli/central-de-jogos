@@ -32,7 +32,7 @@
         <div class="plate plate-floor" id="hPlateFloor" hidden><small>ANDAR</small><b id="hFloor">1</b><span id="hAlt">0 m</span></div>
         <div class="plate plate-money" id="hPlateMoney" hidden><b id="hMoney">R$ 0</b></div>
         <button class="hsum" id="hSum" hidden aria-expanded="false" title="Resumo da obra (toque para ver mais)">
-          <span class="hs-inc"><b id="hsInc">R$ 0/s</b> <i id="hsFpm">0 andares/min</i></span>
+          <span class="hs-inc"><b class="hs-incv">R$ 0/s</b> <i class="hs-fpm">0 andares/min</i></span>
           <span class="hs-row" data-k="prod"><em>Chegando</em><i class="hs-bar"><u></u></i><b>0/s</b></span>
           <span class="hs-row" data-k="tran"><em>Subindo</em><i class="hs-bar"><u></u></i><b>0/s</b></span>
           <span class="hs-row" data-k="lay"><em>Assentando</em><i class="hs-bar"><u></u></i><b>0/s</b></span>
@@ -243,6 +243,12 @@
       <canvas class="sk-prev" id="sdPrev" width="320" height="190" aria-label="Prévia do efeito na obra"></canvas>
       <div class="hint" id="sdReq"></div>
       <button class="btn wide" id="sdBuy">Comprar</button>
+      <div class="hsum in-tree" id="skSum" aria-label="Resumo da obra">
+        <span class="hs-inc"><b class="hs-incv">R$ 0/s</b> <i class="hs-fpm">0 andares/min</i></span>
+        <span class="hs-row" data-k="prod"><em>Chegando</em><i class="hs-bar"><u></u></i><b>0/s</b></span>
+        <span class="hs-row" data-k="tran"><em>Subindo</em><i class="hs-bar"><u></u></i><b>0/s</b></span>
+        <span class="hs-row" data-k="lay"><em>Assentando</em><i class="hs-bar"><u></u></i><b>0/s</b></span>
+      </div>
     </aside>
   </div>
   <footer class="sk-f">

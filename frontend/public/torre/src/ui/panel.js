@@ -41,20 +41,22 @@ export function showPage(p) {
 
 // Resumo da obra (sempre na tela, embaixo do dinheiro): renda, andares por minuto e o material em cada etapa.
 // A etapa mais lenta fica em âmbar (só a cor; nada escrito). Tocar abre os detalhes.
-const sumEl = $('hSum'), sumRows = [...sumEl.querySelectorAll('.hs-row')];
+const sumEl = $('hSum'), sumBoxes = [sumEl, $('skSum')]; // na tela e dentro da árvore de Melhorias
 sumEl.onclick = () => sumEl.setAttribute('aria-expanded', sumEl.getAttribute('aria-expanded') !== 'true');
 const perMin = v => v >= 10 ? fmt(v) : (Math.round(v * 10) / 10).toLocaleString('pt-BR');
 function updateSummary() {
-  sumEl.hidden = S.floors < 1; // aparece depois do 1º andar, junto com a primeira renda
+  sumEl.hidden = $('skSum').hidden = S.floors < 1; // aparece depois do 1º andar, junto com a primeira renda
   if (sumEl.hidden) return;
   const R = rates(), capped = isCapped(R), lo = Math.min(R.prod, R.tran, R.lay), hi = Math.max(R.prod, R.tran, R.lay) || 1;
-  setText($('hsInc'), `R$ ${fmt(R.income)}/s`);
-  setText($('hsFpm'), capped ? 'parada: limite da fundação' : `${perMin(lo / R.fcost * 60)} andares/min`);
-  for (const row of sumRows) {
-    const v = R[row.dataset.k];
-    row.querySelector('u').style.width = (100 * v / hi).toFixed(1) + '%';
-    setText(row.querySelector('b'), fmt(v) + '/s');
-    row.classList.toggle('slow', !capped && v === lo);
+  for (const box of sumBoxes) {
+    setText(box.querySelector('.hs-incv'), `R$ ${fmt(R.income)}/s`);
+    setText(box.querySelector('.hs-fpm'), capped ? 'parada: limite da fundação' : `${perMin(lo / R.fcost * 60)} andares/min`);
+    for (const row of box.querySelectorAll('.hs-row')) {
+      const v = R[row.dataset.k];
+      row.querySelector('u').style.width = (100 * v / hi).toFixed(1) + '%';
+      setText(row.querySelector('b'), fmt(v) + '/s');
+      row.classList.toggle('slow', !capped && v === lo);
+    }
   }
   if (sumEl.getAttribute('aria-expanded') === 'true') {
     const t = R.tour, lines = [
