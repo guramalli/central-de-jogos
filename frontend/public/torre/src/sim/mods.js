@@ -1,6 +1,8 @@
 // Soma os efeitos dos nós aprendidos na árvore de Engenharia.
 import { NODES } from '../data/talents.js';
 import { S } from './state.js';
+import { ERA_TECH } from '../data/upgrades.js';
+import { FLAGS } from '../data/flags.js';
 
 let cacheTree = null, cacheVer = -1, ver = 0, cache = null;
 export const invalidateMods = () => { ver++; };
@@ -25,7 +27,15 @@ export function computeMods(owned) {
   };
 }
 
+// Obra Viva: sem Pesquisa — só as regras especiais das tecnologias de era compradas
+let vivaBase = null;
 export function mods() {
+  if (FLAGS.viva) {
+    vivaBase ||= computeMods({});
+    const flag = {};
+    for (const k in ERA_TECH) if (ERA_TECH[k].flag && (S.lv[k] || 0) > 0) flag[ERA_TECH[k].flag] = true;
+    return { ...vivaBase, flag };
+  }
   if (!cache || cacheTree !== S.tree || cacheVer !== ver) {
     cache = computeMods(S.tree); cacheTree = S.tree; cacheVer = ver;
   }

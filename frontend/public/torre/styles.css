@@ -284,6 +284,16 @@ canvas.drag{cursor:grabbing}
 .hsum[aria-expanded="true"] .hs-more{display:block}
 @media (max-width:520px){.hsum{width:186px;top:calc(max(15px,env(safe-area-inset-top,0px)) + 54px);padding:6px 8px 5px}.hs-inc{flex-direction:column;align-items:flex-start;gap:0}.hs-row{grid-template-columns:62px 1fr 46px;font-size:11px}.hs-more{font-size:11px}}
 
+/* fim de jogo */
+.win{position:fixed;inset:0;z-index:70;background:rgba(5,8,18,.78);display:grid;place-items:center;padding:16px}
+.win-box{background:#141824;max-width:420px;width:100%;padding:20px;display:flex;flex-direction:column;gap:10px;text-align:center;
+  box-shadow:0 -3px 0 0 #f2b630,0 3px 0 0 #f2b630,-3px 0 0 0 #f2b630,3px 0 0 0 #f2b630}
+.win-box small{font-family:var(--f-display);letter-spacing:.16em;color:#f2b630;font-weight:700}
+.win-box b{font-family:var(--f-display);font-size:28px}
+.win-box p{margin:0;color:var(--muted);line-height:1.45}
+.win-box .kv{text-align:left}
+.win-b{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+
 /* botão Melhorias */
 .upbtn{position:absolute;right:max(14px,env(safe-area-inset-right,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));
   font-family:var(--f-display);font-size:19px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
@@ -292,19 +302,10 @@ canvas.drag{cursor:grabbing}
 .upbtn:hover{filter:brightness(1.08)}
 .upbtn:active{transform:translateY(3px);box-shadow:0 -3px 0 0 var(--ink),0 3px 0 0 var(--ink),-3px 0 0 0 var(--ink),3px 0 0 0 var(--ink),inset 0 4px 0 #a8791a}
 .upbtn .dot{position:absolute;top:-7px;right:-7px;width:16px;height:16px;background:var(--good);border:3px solid var(--ink);animation:pepulse 1.6s ease-in-out infinite}
-/* pontos de pesquisa no botão: selo roxo (saldo) e aviso subindo quando chegam pontos novos */
-.upbtn .pe-badge{position:absolute;top:-14px;left:-10px;font-style:normal;font-size:14px;font-weight:700;letter-spacing:0;text-transform:none;
   background:#a08ae8;color:var(--ink);padding:3px 7px 2px;font-variant-numeric:tabular-nums;
   box-shadow:0 -2px 0 0 var(--ink),0 2px 0 0 var(--ink),-2px 0 0 0 var(--ink),2px 0 0 0 var(--ink),inset 0 2px 0 #cfc4f5}
-.upbtn .pe-pop{position:absolute;right:0;bottom:calc(100% + 24px);font-style:normal;font-size:15px;font-weight:700;letter-spacing:0;text-transform:none;white-space:nowrap;
   background:rgba(17,19,26,.92);color:#cfc4f5;padding:6px 10px;pointer-events:none;opacity:0;
   box-shadow:0 -2px 0 0 #a08ae8,0 2px 0 0 #a08ae8,-2px 0 0 0 #a08ae8,2px 0 0 0 #a08ae8}
-.upbtn .pe-pop.on{animation:pepop 2.6s steps(26) forwards}
-@keyframes pepop{0%{opacity:0;transform:translateY(10px)}10%{opacity:1;transform:translateY(0)}80%{opacity:1;transform:translateY(-6px)}100%{opacity:0;transform:translateY(-14px)}}
-.upbtn.pe-new{animation:pebump .5s steps(5) 2}
-.upbtn.pe-new .pe-badge{background:#fff}
-@keyframes pebump{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-@media (prefers-reduced-motion:reduce){.upbtn.pe-new{animation:none}.upbtn .pe-pop.on{animation:none;opacity:1}}
 @media (max-width:520px){.plate-floor b{font-size:24px}.plate-money b{font-size:21px}.upbtn{font-size:16px;padding:10px 16px}}
 
 /* ===================== Melhorias (estilo árvore de habilidades) ===================== */
@@ -336,7 +337,6 @@ canvas.drag{cursor:grabbing}
     .sk-t{display:none}
   #skIn,#skOut{display:none}
   .sk-h{gap:8px}
-  .sk-legend{display:none}
 }
 
 /* nós da árvore (pixel art: emblemas e ícones são sprites desenhados em src/ui/icons.js) */
@@ -369,10 +369,6 @@ canvas.drag{cursor:grabbing}
 @media (prefers-reduced-motion:reduce){.sk-node.can .halo{animation:none;opacity:.7}}
 
 /* árvore única: tronco, ramos, anéis e Pesquisa */
-.sk-pts{font-family:var(--f-display);font-size:16px;font-weight:700;color:#a08ae8;border:1px solid #3a3360;padding:1px 8px}
-.sk-pts.has{color:var(--ink);background:#a08ae8;border-color:#a08ae8;animation:pepulse 1.6s ease-in-out infinite}
-.sk-legend{position:absolute;left:12px;bottom:10px;display:flex;gap:12px;font-size:12px;color:var(--muted);pointer-events:none}
-.sk-legend .lg-pe{color:#a08ae8}
 .sk-trunk{fill:none;stroke:var(--c);stroke-width:8;stroke-linecap:square;stroke-linejoin:miter}
 .sk-trunk0{fill:none;stroke:#6b7290;stroke-width:8;stroke-linecap:square;stroke-linejoin:miter}
 .sk-blabel rect{fill:#141824;stroke:var(--c);stroke-width:4}
@@ -381,36 +377,10 @@ canvas.drag{cursor:grabbing}
 .sk-blabel .d{font-family:var(--f-body);font-size:16px;fill:#9097a9}
 .sk-base text{font-family:var(--f-display);font-size:15px;font-weight:700;fill:#0b0c11}
 .sk-ring line{stroke:#2b3044;stroke-width:4;stroke-dasharray:8 8}
-.sk-ring text{font-family:var(--f-display);font-size:19px;fill:#5d6580}
-.sk-pedge{fill:none;stroke:#2b3044;stroke-width:4;stroke-linecap:square;stroke-linejoin:miter}
-.sk-pedge.link{stroke-dasharray:4 8;stroke:#3a4157;stroke-linecap:butt}
-.sk-pedge.link.lit{stroke:#8f7bd6}
-.sk-pedge.on{stroke:#a08ae8;stroke-width:5}
-.sk-pedge.hidden{display:none}
-g.sk-pe{cursor:pointer}
-g.sk-pe .halo{fill:none;stroke:none}
-g.sk-pe .nm{font-family:var(--f-display);font-size:17px;font-weight:600;fill:#cfc4f5;paint-order:stroke;stroke:#0b0d13;stroke-width:5px;stroke-linejoin:round}
-g.sk-pe .q{display:none;font-family:var(--f-display);font-size:15px;font-weight:700;fill:#5d6580}
-g.sk-pe.can .halo{stroke:var(--c);stroke-width:3;stroke-dasharray:6 6;animation:tpulse 1.4s steps(4) infinite,pxmarch .8s steps(4) infinite}
-g.sk-pe.hint .nm{display:none}
-g.sk-pe.hint .q{display:inline}
-g.sk-pe.hidden{display:none}
-g.sk-pe.sel .halo{stroke:#fff;stroke-width:3;stroke-dasharray:none;animation:none;opacity:1}
-.sk-effs{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:3px;color:#cfc4f5}
+.sk-ring text{font-family:var(--f-display);font-size:22px;font-weight:600;fill:#5d6580}
+.sk-ring text.sub{font-size:16px;font-weight:500}
+.sk-ring.open text{fill:#9aa3b8}
 /* Negócios: folha por cima da árvore */
-.sk-sheet{position:absolute;inset:0;z-index:2;background:rgba(11,13,19,.97);display:flex;flex-direction:column;min-height:0}
-.sk-sheet-h{display:flex;align-items:center;gap:10px;padding:10px 14px;font-family:var(--f-display);font-size:18px}
-.sk-sheet .sk-neg{flex:1;overflow:auto}
-/* Construtora: venda (prestígio) e Conselho */
-.sk-shares{color:#f2b630;border-color:#5a4a1a}
-.corpbtn{color:#f2b630}
-.cp-items{display:flex;flex-direction:column;gap:8px}
-.cp-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
-.cp-row b{font-family:var(--f-display);font-size:14px}
-.cp-lv{font-family:var(--f-display);font-size:12px;color:var(--muted)}
-.cp-next{font-size:12px;color:#f2b630}
-#cpSell.armed{background:#b3261e;border-color:#b3261e;color:#fff}
-@media (prefers-reduced-motion:reduce){g.sk-pe.can .halo,.sk-pts.has{animation:none}}
 
 /* botões e painel da árvore em moldura de pixel */
 .sk .btn{border:0;box-shadow:0 -2px 0 0 var(--pbc,var(--accent)),0 2px 0 0 var(--pbc,var(--accent)),-2px 0 0 0 var(--pbc,var(--accent)),2px 0 0 0 var(--pbc,var(--accent)),inset 0 2px 0 rgba(255,255,255,.25),inset 0 -3px 0 rgba(0,0,0,.25);margin:2px}

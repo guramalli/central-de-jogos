@@ -172,25 +172,23 @@ function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
     worker(x, fy, { walk: true, phase: V.t * 3, carry: go ? (pid === 'janelas' ? s.glass : s.brick) : null, flip: go, skin: 3 });
   }
   if (S.lv.mestre > 0) worker(TL + TW - 22, fy, { boss: true, flip: true, phase: V.t, skin: 2 });
-  if (S.lv.guindaste > 0) craneHelper(y0, s, pid, slotX);
+  if (S.lv.guindaste > 0) craneHelper(y0, s, pid);
 }
 
-// O guindaste ajuda os pedreiros: os elevadores deixam o material na pilha do topo (à direita) e o guindaste,
-// em ciclos calmos que não dependem da velocidade da obra, leva paletes (ou vigas, na estrutura) até onde
-// os pedreiros estão assentando. A obra segue bloco a bloco.
-const CRANE_CYCLE = 7, PICK_X = TL + TW - 36;
-function craneHelper(y0, s, pid, slotX) {
+// Guindaste de torre = transporte vertical (Logística): em ciclos calmos, que não dependem da velocidade da obra,
+// o gancho desce até o pátio do térreo, sobe com um palete (ou uma viga, na estrutura) e o deixa na pilha do topo,
+// junto do que os elevadores trazem; os pedreiros pegam dali. A obra segue bloco a bloco.
+const CRANE_CYCLE = 8, DROP_X = TL + TW - 36, PICK_X = 205;
+function craneHelper(y0, s, pid) {
   const q = (V.t % CRANE_CYCLE) / CRANE_CYCLE, park = y0 + FH * 0.75, deck = y0 + SLAB + 32, air = y0 + FH - 6;
-  const dropX = clamp(slotX + 20, TL + 40, PICK_X - 70), ease = t => t * t * (3 - 2 * t);
+  const ease = t => t * t * (3 - 2 * t), ground = 34;
   let tx, hy, load = false;
-  if (S.top < 0.3) { tx = PICK_X + 30 + Math.sin(V.t * 0.5) * 20; hy = park; }                  // sem material: espera
-  else if (q < 0.12) { tx = PICK_X; hy = lerp(park, deck, ease(q / 0.12)); }                     // desce na pilha
-  else if (q < 0.22) { tx = PICK_X; hy = deck; load = q > 0.17; }                                // engancha
-  else if (q < 0.36) { tx = PICK_X; hy = lerp(deck, air, ease((q - 0.22) / 0.14)); load = true; } // sobe
-  else if (q < 0.6) { tx = lerp(PICK_X, dropX, ease((q - 0.36) / 0.24)); hy = air; load = true; } // leva
-  else if (q < 0.72) { tx = dropX; hy = lerp(air, deck, ease((q - 0.6) / 0.12)); load = true; }  // pousa
-  else if (q < 0.8) { tx = dropX; hy = deck; }                                                   // solta
-  else { const t = ease((q - 0.8) / 0.2); tx = lerp(dropX, PICK_X, t); hy = lerp(deck, park, Math.min(1, t * 1.5)); } // volta
+  if (S.ground < 0.5) { tx = DROP_X + 30 + Math.sin(V.t * 0.5) * 20; hy = park; }               // pátio vazio: espera
+  else if (q < 0.3) { const t = ease(q / 0.3); tx = lerp(DROP_X, PICK_X, t); hy = lerp(deck, ground, t); }      // desce até o pátio
+  else if (q < 0.4) { tx = PICK_X; hy = ground; load = q > 0.35; }                                  // engancha o palete
+  else if (q < 0.82) { const t = ease((q - 0.4) / 0.42); tx = lerp(PICK_X, DROP_X, t); hy = lerp(ground, air, t); load = true; } // iça
+  else if (q < 0.92) { tx = DROP_X; hy = lerp(air, deck, ease((q - 0.82) / 0.1)); load = true; }   // pousa na pilha do topo
+  else { tx = DROP_X; hy = deck; }                                                                   // solta
   crane(y0, tx, hy);
   if (!load) return;
   if (pid === 'estrutura') { R(tx - 30, hy - 26, 60, 7, s.frame); R(tx - 30, hy - 26, 60, 2, s.hi); R(tx - 1, hy - 19, 2, 2, '#c7ccd6'); }

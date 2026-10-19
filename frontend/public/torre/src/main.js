@@ -7,9 +7,8 @@ import { cam, snapCamera } from './render/camera.js';
 import { updateView, render, resetMilestones } from './render/scene.js';
 import { H, setW } from './data/constants.js';
 import { ctxMain } from './render/canvas.js';
-import { updateUI, setNotice, resetPeNotify } from './ui/panel.js';
-import { prestige } from './sim/prestige.js';
-import { VIVA } from './data/viva.js';
+import { updateUI, setNotice } from './ui/panel.js';
+import { fmt } from './ui/format.js';
 import { closeMap, initMap } from './ui/talentMap.js';
 import { $ } from './ui/dom.js';
 import { initSkills, tickSkills, skillsOpen, closeSkills } from './ui/skills.js';
@@ -59,7 +58,8 @@ function tick(real) {
   updateView(dt, speed);
   render();
   if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
-  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); }
+  if (FLAGS.viva) S.playTime = (S.playTime || 0) + dt * speed;
+  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -88,13 +88,18 @@ for (const rs of [$('reset'), $('skReset')]) {
   };
 }
 
-// Vender a construtora (prestígio): a obra recomeça do chão com as Ações, a Pesquisa e o Conselho
-function doPrestige() {
-  const n = prestige(); if (!n) return;
-  setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); resetPeNotify();
-  closeSkills(); updateUI();
-  V.toast = { a: `CONSTRUTORA VENDIDA · +${n} AÇÕES`, b: `OBRA NOVA · +${Math.round(S.shares * VIVA.prestige.bonusPer * 100)}% EM TUDO`, t: 5 };
+// Fim de jogo (Obra Viva): na primeira vez que a torre chega à Órbita, faixa na cena e tela de parabéns
+function checkWin() {
+  if (!FLAGS.viva || !S.won || S.winSeen) return;
+  S.winSeen = true; save();
+  V.toast = { a: 'ÓRBITA ALCANÇADA', b: 'TORRE CONCLUÍDA', t: 6 };
+  const h = Math.floor(S.playTime / 3600), m = Math.floor(S.playTime % 3600 / 60);
+  $('winStats').innerHTML = `<span>Tempo de obra</span><b>${h} h ${String(m).padStart(2, '0')} min</b>`
+    + `<span>Peças construídas</span><b>${fmt(Math.floor(S.floors))}</b><span>Andares alugados</span><b>${fmt(S.rented)}</b>`;
+  $('win').hidden = false;
 }
+$('winGo').onclick = () => { $('win').hidden = true; };
+$('winNew').onclick = () => { $('win').hidden = true; doReset(); };
 
 initMap(updateUI);
 
@@ -111,7 +116,7 @@ document.body.classList.toggle('modo-novo', FLAGS.viva);
 if (FLAGS.viva) {
   for (const id of ['hPlateFloor', 'hPlateMoney', 'openUp']) $(id).hidden = false; // o resumo (hSum) aparece no 1º andar
   $('z-all').textContent = '⤢'; $('z-all').setAttribute('aria-label', 'Ver a torre inteira');
-  initSkills(doPrestige);
+  initSkills();
 }
 
 // som da obra: lembrado neste navegador (botão sobre a cena no modo atual; no rodapé das Melhorias no Obra Viva)

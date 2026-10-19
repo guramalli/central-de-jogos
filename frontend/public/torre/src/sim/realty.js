@@ -6,7 +6,9 @@ import { FLOOR_TYPES, TYPE_IDS } from '../data/floorTypes.js';
 import { S } from './state.js';
 import { mods } from './mods.js';
 import { FLAGS } from '../data/flags.js';
-import { floorOf } from '../data/height.js';
+import { floorOf, mpfAt } from '../data/height.js';
+import { VIVA } from '../data/viva.js';
+import { techMult } from './tech.js';
 
 const RB = BAL.rent;
 
@@ -22,7 +24,7 @@ export function rentSum(a, n) {
 export const pending = () => Math.max(0, Math.floor(S.floors) - S.assigned);
 export const typeUnlocked = t => S.maxAlt >= FLOOR_TYPES[t].alt;
 export const saleMult = () => (1 + 0.08 * S.lv.corretor) * mods().mult('sale');
-export const rentMult = () => (1 + 0.5 * S.lv.aluguel) * mods().mult('rent');
+export const rentMult = () => (1 + 0.5 * S.lv.aluguel) * techMult('rent') * mods().mult('rent');
 
 // Obra Viva: o tipo muda sozinho com a altura (só vista e turismo; nada para escolher)
 const AUTO_TYPES = ['apto', 'escr', 'hotel', 'rest', 'obs'];
@@ -32,6 +34,8 @@ const segsNow = () => {
   return autoSegs || (autoSegs = AUTO_TYPES.map(t => [Math.ceil(floorOf(FLOOR_TYPES[t].alt)), t]));
 };
 const rentOf = T => FLAGS.viva ? 1 : T.rent;
+// Obra Viva: módulo maior (eras altas) tem mais área para alugar
+const modRent = i => FLAGS.viva ? Math.pow(mpfAt(i) / 4, VIVA.rentModulePow) : 1;
 
 // tipo do andar i (busca nos segmentos)
 export function typeAt(i) {
@@ -87,7 +91,7 @@ export function assign(n, how) {
   eachPiece(S.assigned, n, (a, c, t) => {
     const T = FLOOR_TYPES[t], base = rentSum(a, c);
     if (how === 'sell') got += base * BAL.saleSecs * T.sale * sm;
-    else S.rentBase += base * rentOf(T);
+    else S.rentBase += base * rentOf(T) * modRent(a);
     S.typeCount[t] = (S.typeCount[t] || 0) + c;
   });
   S.assigned += n;

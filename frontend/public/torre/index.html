@@ -38,7 +38,7 @@
           <span class="hs-row" data-k="lay"><em>Assentando</em><i class="hs-bar"><u></u></i><b>0/s</b></span>
           <span class="hs-more" id="hsMore"></span>
         </button>
-        <button class="upbtn" id="openUp" hidden aria-haspopup="dialog">Melhorias<i class="dot" hidden></i><i class="pe-badge" id="upPe" hidden></i><i class="pe-pop" id="upPePop" aria-live="polite"></i></button>
+        <button class="upbtn" id="openUp" hidden aria-haspopup="dialog">Melhorias<i class="dot" hidden></i></button>
         <!-- aviso contextual: andares prontos sem destino -->
         <div class="ready" id="ready" hidden>
           <span><b id="readyN">0</b> <span id="readyTxt">andares prontos</span></span>
@@ -224,8 +224,6 @@
   <header class="sk-h">
     <b class="sk-t">Avanços da obra</b>
     <span class="sk-money" id="skMoney">R$ 0</span>
-    <span class="sk-pts" id="skPe" title="Pontos de Engenharia: vêm da altura da torre e pagam as estrelas de Pesquisa">★ 0</span>
-    <span class="sk-pts sk-shares" id="skShares" hidden title="Ações da construtora: bônus permanente em tudo">Ações 0</span>
     <span class="grow"></span>
     <button class="btn sm ghost" id="skOut" aria-label="Afastar">−</button>
     <button class="btn sm ghost" id="skIn" aria-label="Aproximar">+</button>
@@ -234,7 +232,6 @@
   </header>
   <div class="sk-body">
     <div class="sk-tree" id="skTree"><svg id="skSvg" aria-label="Árvore de avanços: arraste para mover, roda do mouse ou pinça para zoom"></svg>
-      <div class="sk-legend"><span class="lg-money">⬢ compra com dinheiro</span><span class="lg-pe">★ pesquisa com pontos</span></div>
     </div>
     <aside class="sk-d" id="skDetail">
       <div class="sk-kind" id="sdKind"></div>
@@ -247,47 +244,25 @@
       <div class="hint" id="sdReq"></div>
       <button class="btn wide" id="sdBuy">Comprar</button>
     </aside>
-    <div class="sk-sheet" id="skSheet" hidden>
-      <div class="sk-sheet-h"><b>Negócios</b><span class="grow"></span><button class="btn sm" id="skSheetClose">Voltar à árvore</button></div>
-      <div class="sk-neg" id="skNeg"></div>
-    </div>
-    <div class="sk-sheet" id="skCorp" hidden>
-      <div class="sk-sheet-h"><b>Construtora</b><span class="grow"></span><button class="btn sm" id="skCorpClose">Voltar à árvore</button></div>
-      <div class="sk-neg">
-        <div class="card">
-          <h2>Vender a construtora</h2>
-          <div class="body">
-            <p class="sk-desc" id="cpIntro"></p>
-            <div class="kv">
-              <span>Altura recorde desta obra</span><b id="cpAlt">0 m</b>
-              <span>Ações pela altura</span><b id="cpBase">0</b>
-              <span>Bônus pelas vendas (VGV)</span><b id="cpVgv">+0%</b>
-              <span>Você recebe</span><b id="cpGain">—</b>
-            </div>
-            <div class="hint">Zera: torre, dinheiro, melhorias, imóveis e dívida. Fica: Ações, Pesquisa aprendida e ★ ganhos, e o Conselho.</div>
-            <button class="btn wide" id="cpSell">Vender a construtora</button>
-          </div>
-        </div>
-        <div class="card">
-          <h2>Conselho <span class="mode" id="cpBal">0 Ações</span></h2>
-          <div class="body">
-            <div class="hint" id="cpBonus"></div>
-            <div class="cp-items" id="cpItems"></div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
   <footer class="sk-f">
-    <button class="resetbtn" id="skNegBtn" hidden>Negócios</button>
-    <button class="resetbtn corpbtn" id="skCorpBtn" hidden>Construtora</button>
-    <button class="resetbtn" id="skRespec" hidden>Redistribuir pontos</button>
     <span class="hint" id="skSave">Salvo neste navegador.</span>
     <span class="grow"></span>
     <button class="resetbtn" id="skSnd" aria-pressed="true">Som</button>
     <button class="resetbtn" id="skReset">Recomeçar</button>
     <span class="modelink" id="skMode"></span>
   </footer>
+</div>
+
+<!-- Fim de jogo (Obra Viva): chegou à Órbita -->
+<div class="win" id="win" hidden role="dialog" aria-modal="true" aria-labelledby="winT">
+  <div class="win-box">
+    <small>TORRE CONCLUÍDA</small>
+    <b id="winT">Órbita alcançada!</b>
+    <p>Sua construtora levou a torre do chão de Praia Grande até a órbita da Terra.</p>
+    <div class="kv" id="winStats"></div>
+    <div class="win-b"><button class="btn" id="winGo">Continuar construindo</button><button class="btn ghost" id="winNew">Recomeçar do zero</button></div>
+  </div>
 </div>
 
 <div class="tmap" id="tmap" hidden role="dialog" aria-modal="true" aria-label="Mapa da árvore de Engenharia">

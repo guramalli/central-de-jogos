@@ -10,6 +10,7 @@ import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
 import { tourism } from './tourism.js';
 import { bankInfo, bankTick } from './bank.js';
+import { techMult } from './tech.js';
 
 // ---------- melhorias compradas com dinheiro ----------
 export const cost = k => Math.ceil(UP[k].base * Math.pow(UP[k].k, S.lv[k] - (UP[k].start || 0)) * mods().mult('cost_' + UP[k].b));
@@ -22,6 +23,7 @@ export const canBuy = k => unlocked(k) && !maxed(k) && !stageBlock(k) && S.money
 // VIVA.stageMargin à frente da mais lenta não pode ser melhorada até as outras alcançarem.
 // Devolve a etapa que está segurando ('prod' | 'tran' | 'lay') ou null.
 export const STAGE_OF = k => UP[k].b === 'forn' ? 'prod' : UP[k].b === 'log' ? 'tran' : UP[k].b === 'obra' || k === 'guindaste' ? 'lay' : null;
+const craneLog = () => UP.guindaste.b === 'log'; // Obra Viva: guindaste soma no transporte; clássico: nos pedreiros
 export function stageBlock(k) {
   if (!FLAGS.viva) return null;
   const st = STAGE_OF(k); if (!st) return null;
@@ -39,38 +41,38 @@ export function buy(k) {
 
 // efeito de uma melhoria no nível atual: mul^nv (multiplica) ou 1 + add×nv (soma)
 export const eff = k => UP[k].mul ? Math.pow(UP[k].mul, S.lv[k]) : 1 + (UP[k].add || 0) * S.lv[k];
-// bônus das Ações (prestígio, só no Obra Viva): +bonusPer por Ação ganha
-export const shareMult = () => FLAGS.viva ? 1 + VIVA.prestige.bonusPer * (S.shares || 0) : 1;
 
 // material para assentar o andar i
 export function floorCost(i, era, M = mods()) {
   const fc = FLAGS.viva ? { ...BAL.floorCost, ...VIVA.floorCost } : BAL.floorCost;
-  const c = M.flag.prefab ? { ...fc, ...BAL.floorCostPrefab } : fc;
+  const c = M.flag.prefab ? { ...fc, ...(FLAGS.viva ? VIVA.floorCostPrefab : BAL.floorCostPrefab) } : fc;
   const wall = Math.pow(2, Math.max(0, altOf(i) - c.wallStart) / c.wallDouble);
-  const mod = Math.pow(mpfAt(i) / MPF, c.modulePow || 0); // módulo maior nas eras altas: mais material por peça
+  const mod = Math.pow(mpfAt(i) / MPF, c.modulePow || 0) * techMult('fcost'); // módulo maior nas eras altas: mais material por peça
   return BRICKS * Math.pow(1 + i / c.scale, c.pow) * Math.pow(c.eraMult, era) * wall * mod * Math.pow(0.85, S.lv.projeto) * M.mult('fcost');
 }
 
 // ---------- taxas instantâneas derivadas do estado ----------
 export function rates() {
   const L = S.lv, M = mods(), fl = Math.floor(S.floors), h = Math.max(MPF, altOf(fl)), era = eraAt(altOf(S.floors));
-  const all = M.mult('all') * shareMult();
-  const prod = 1.5 * L.fornec * eff('caminhao') * eff('olaria') * eff('premold') * M.mult('prod') * all;
-  let spd = 1.5 * eff('motor') * eff('maglev') * M.mult('tranSpd') * all;
+  const all = M.mult('all');
+  const prod = 1.5 * L.fornec * eff('caminhao') * eff('olaria') * eff('premold') * techMult('prod') * M.mult('prod') * all;
+  let spd = 1.5 * eff('motor') * eff('maglev') * techMult('tran') * M.mult('tranSpd') * all;
   if (M.flag.gravity) spd *= 1 + Math.log10(1 + h / 1000);
   const capc = 8 * eff('cacamba') * M.mult('tranCap');
   let hEff = h;
+  // Obra Viva: a altura pesa menos na viagem (h0·(h/h0)^pow), para a Logística acompanhar o Fornecimento sem crescer demais
+  if (FLAGS.viva && h > VIVA.trip.h0) hEff = VIVA.trip.h0 * Math.pow(h / VIVA.trip.h0, VIVA.trip.pow);
   if (M.flag.teleport) hEff = Math.min(hEff, 20000);
   if (M.flag.express) hEff = Math.pow(hEff, 0.85);
   const trip = 2 * hEff / spd + 2;
-  const lay = L.pedreiro * 1.3 * eff('treino') * eff('ferram') * eff('mestre') * eff('guindaste') * M.mult('lay') * all;
-  let tran = L.elevador * capc / trip;
+  const lay = L.pedreiro * 1.3 * eff('treino') * eff('ferram') * eff('mestre') * (craneLog() ? 1 : eff('guindaste')) * techMult('lay') * M.mult('lay') * all;
+  let tran = L.elevador * capc / trip * (craneLog() ? eff('guindaste') : 1);
   if (M.flag.helpers) tran += 0.25 * lay;
   const fcost = floorCost(fl, era, M);
   const capF = Math.floor(25 * Math.pow(M.flag.floatFound ? 3 : 2, L.fundacao) * M.mult('capF'));
-  const sm = shareMult(), rent = S.rentBase * rentMult() * sm;
+  const rent = S.rentBase * rentMult();
   const tour = tourism();
-  const income = rent + tour.revenue * sm;
+  const income = rent + tour.revenue;
   const bank = bankInfo(income);
   const net = income * (1 - bank.share);
   return { prod, tran, lay, trip, fcost, capF, rent, tour, income, bank, net, spd, capc, era };
@@ -78,7 +80,7 @@ export function rates() {
 
 export const isCapped = R => S.floors >= R.capF - 1e-9;
 export const bottleneck = R => R.prod <= R.tran && R.prod <= R.lay ? 'prod' : R.tran <= R.lay ? 'tran' : 'lay';
-export const offlineMax = () => 8 * 3600 + mods().plus('offline') + (FLAGS.viva ? VIVA.prestige.council.offline.hours * 3600 * ((S.council && S.council.offline) || 0) : 0);
+export const offlineMax = () => 8 * 3600 + mods().plus('offline');
 
 // ---------- passo da simulação ----------
 export function sim(dt) {
@@ -98,6 +100,7 @@ export function sim(dt) {
   if (FLAGS.viva && done > 0) { const pay = rentSum(before, done) * VIVA.floorPaySecs; S.money += pay; S.stats.floorPay = (S.stats.floorPay || 0) + pay; }
   S.maxAlt = Math.max(S.maxAlt, altOf(Math.floor(S.floors)));
   S.era = Math.max(S.era, eraAt(altOf(S.floors)));
+  if (FLAGS.viva && !S.won && S.maxAlt >= VIVA.winAlt) S.won = true; // chegou à Órbita: fim do jogo
   // reciclagem: 2%/s do estoque parado no térreo vira dinheiro (metade do valor de venda por material)
   if (M.flag.recycle && S.ground > 0) {
     const q = S.ground * (1 - Math.exp(-0.02 * dt));

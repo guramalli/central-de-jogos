@@ -1,32 +1,26 @@
-// Árvore única de avanços (modo Obra Viva), no estilo das árvores de habilidade de jogos de ação:
-// um tronco (a obra) embaixo, seis ramos coloridos subindo lado a lado. Embaixo de cada ramo, as compras com
-// dinheiro (hexágonos); acima, as estrelas de Pesquisa pagas com Pontos de Engenharia, anel por anel, com névoa
-// nos anéis que ainda não abriram. Painel à direita com o efeito e uma prévia animada na própria cena.
-// Nada aqui aponta o gargalo: o efeito mostrado é só o da própria etapa (o jogador descobre na obra).
-import { FH, MPF } from '../data/constants.js';
-import { floorOf } from '../data/height.js';
+// Árvore de avanços (modo Obra Viva), no estilo das árvores de habilidade de jogos de ação:
+// um tronco (a obra) embaixo e cinco ramos coloridos subindo lado a lado. Embaixo, as compras do dia a dia;
+// acima, uma fileira por era com as tecnologias de era — tudo com dinheiro (a Pesquisa saiu, decisão do usuário).
+// Painel à direita com o efeito e uma prévia animada na própria cena.
+import { FH } from '../data/constants.js';
 import { UP } from '../data/upgrades.js';
-import { NODES, EDGES, TBRANCHES, CENTER, RINGS, describeEffect, ringEraName, KIND_LABEL } from '../data/talents.js';
-import { SKILL_LAYOUT, COLS, BW, RES0, RING, colX, upgradePos, researchPos, BASE_POS, SHORT } from '../data/skillTree.js';
-import { VIVA } from '../data/viva.js';
+import { ERAS } from '../data/eras.js';
+import { TBRANCHES } from '../data/talents.js';
+import { SKILL_LAYOUT, COLS, BW, ROW, ERA_ROW0, colX, upgradePos, BASE_POS, SHORT } from '../data/skillTree.js';
 import { S, save } from '../sim/state.js';
 import { cost, unlocked, maxed, canBuy, buy, stageBlock, STAGE_OF } from '../sim/economy.js';
 import { upgradeEffect } from '../sim/preview.js';
-import { peAvailable, learn, learnBlock, owned, ringOpen, respec, branchStarted } from '../sim/talents.js';
 import { withTarget } from '../render/canvas.js';
 import { render } from '../render/scene.js';
 import { SHAFT_X } from '../render/tower.js';
 import { V } from '../render/view.js';
 import { $, setText, setHTML } from './dom.js';
 import { fmt, fmtM } from './format.js';
-import { updateBusiness } from './business.js';
-import { updateCorp, corpOpen, initCorp, closeCorp } from './corp.js';
-import { iconSprite, badgeSprite, lockSprite, starSprite } from './icons.js';
+import { iconSprite, badgeSprite, lockSprite } from './icons.js';
 import { spriteDataURL } from '../render/sprites.js';
 
 const COLOR = Object.fromEntries(TBRANCHES.map(b => [b.id, b.color]));
-const PE_COLOR = '#a08ae8';
-const BANK_AT = 60; // m
+const ERA_TOP = ERA_ROW0 + 5; // última fileira de tecnologia (era do Espaço)
 
 // o que cada ramo melhora (legenda embaixo da coluna)
 const BRANCH_INFO = {
@@ -35,7 +29,6 @@ const BRANCH_INFO = {
   log: ['Logística', 'quão rápido o material sobe'],
   eng: ['Engenharia', 'até onde a torre aguenta'],
   merc: ['Mercado', 'quanto dinheiro a torre rende'],
-  cien: ['Ciência', 'pesquisas que valem para tudo'],
 };
 
 // onde a prévia aponta a câmera para cada melhoria
@@ -51,21 +44,20 @@ function focus(k) {
   if (k === 'bilheteria' || k === 'marketing') return { cx: -220, cy: 55, z: 0.7 };
   if (k === 'heliponto') return { cx: 0, cy: top + 140, z: 0.45 };
   if (k === 'porto') return { cx: 60, cy: top + 220, z: 0.35 };
-  return { cx: 0, cy: Math.max(60, top - 60), z: 0.45 }; // fachada: projeto, corretor, aluguel, banco
+  return { cx: 0, cy: Math.max(60, top - 60), z: 0.45 }; // fachada: projeto, aluguel, tecnologias de engenharia e mercado
 }
 
 const overlay = $('skills'), svg = $('skSvg'), prev = $('sdPrev'), pctx = prev.getContext('2d');
 pctx.imageSmoothingEnabled = false;
 
-// seleção: { t: 'up', k } (compra com dinheiro) ou { t: 'pe', id } (estrela de Pesquisa)
-let sel = null, built = false;
+let sel = null, built = false; // sel = chave da melhoria selecionada
 
-const lockedUp = k => !unlocked(k) || (k === 'banco' && S.maxAlt < BANK_AT && S.debt <= 0);
+const lockedUp = k => !unlocked(k);
+const eraOf = k => UP[k].era ? ERAS[UP[k].era].n : '';
 const lockText = k => {
   const u = UP[k], parts = [];
   if (u.req && S.lv[u.req[0]] < u.req[1]) parts.push(`${UP[u.req[0]].n} no nível ${u.req[1]}`);
-  if (u.reqAlt && S.maxAlt < u.reqAlt) parts.push(`a torre chegar a ${fmtM(u.reqAlt)}`);
-  if (k === 'banco' && S.maxAlt < BANK_AT && S.debt <= 0) parts.push(`a torre chegar a ${fmtM(BANK_AT)}`);
+  if (u.reqAlt && S.maxAlt < u.reqAlt) parts.push(`a torre chegar a ${fmtM(u.reqAlt)}${u.era ? ` (${eraOf(k)})` : ''}`);
   return parts.length ? 'Libera quando ' + parts.join(' e ') + '.' : '';
 };
 
@@ -78,18 +70,13 @@ const HOLD_WHY = {
 };
 const holdText = (k, blk) => `${HOLD_WHY[blk][STAGE_OF(k)]}. Melhore ${blk === 'lay' ? 'a Mão de obra' : blk === 'prod' ? 'o Fornecimento' : 'a Logística'} antes — numa obra, as etapas andam juntas.`;
 
-// o que falta, curto, para escrever na árvore ("Treino nv 3", "torre em 1 km")
+// o que falta, curto, para escrever na árvore ("Treino nv 3", "torre em 1 km", "abre no Concreto")
 const reqShort = k => {
   const u = UP[k];
   if (u.req && S.lv[u.req[0]] < u.req[1]) return `${SHORT[u.req[0]] || UP[u.req[0]].n} nv ${u.req[1]}`;
-  if (u.reqAlt && S.maxAlt < u.reqAlt) return 'torre em ' + fmtM(u.reqAlt);
-  if (k === 'banco' && S.maxAlt < BANK_AT) return 'torre em ' + fmtM(BANK_AT);
+  if (u.reqAlt && S.maxAlt < u.reqAlt) return u.era ? 'abre em ' + fmtM(u.reqAlt) : 'torre em ' + fmtM(u.reqAlt);
   return '';
 };
-
-// névoa da Pesquisa: anéis abertos inteiros, o próximo como pista, os demais escondidos
-let openRing = 1;
-const fog = n => n.ring <= openRing ? 'open' : n.ring === openRing + 1 ? 'hint' : 'hidden';
 
 // ---------- SVG ----------
 const NS = 'http://www.w3.org/2000/svg';
@@ -98,19 +85,20 @@ const Y = y => -y; // y do layout cresce para cima; no SVG cresce para baixo
 // linha em ângulo reto (sobe, anda de lado, sobe), como trilha de placa de circuito
 const elbow = (x0, y0, x1, y1) => x0 === x1 ? `M${x0} ${Y(y0)} V ${Y(y1)}` : `M${x0} ${Y(y0)} V ${Y((y0 + y1) / 2)} H ${x1} V ${Y(y1)}`;
 
-let vp, upEls = {}, peEls = {}, peEdges = [], ringEls = [];
+let vp, upEls = {}, eraEls = [];
 
 function build() {
-  svg.innerHTML = ''; upEls = {}; peEls = {}; peEdges = []; ringEls = [];
+  svg.innerHTML = ''; upEls = {}; eraEls = [];
   vp = mk('g', {}, svg);
-  const gRings = mk('g', {}, vp), gEdges = mk('g', {}, vp), gNodes = mk('g', {}, vp);
-  // faixas dos anéis (só as abertas e a próxima aparecem)
-  for (let k = 1; k <= RINGS; k++) {
-    const y = RES0 + (k - 1) * RING - 40;
-    const g = mk('g', { class: 'sk-ring' }, gRings);
-    mk('line', { x1: colX(COLS[0]) - BW / 2, x2: colX(COLS[COLS.length - 1]) + BW / 2, y1: Y(y), y2: Y(y) }, g);
-    const t = mk('text', { x: colX(COLS[0]) - BW / 2 + 6, y: Y(y) - 8 }, g); t.textContent = `Pesquisa · anel ${k} · abre na era ${ringEraName(k)}`;
-    ringEls.push({ k, g });
+  const gBands = mk('g', {}, vp), gEdges = mk('g', {}, vp), gNodes = mk('g', {}, vp);
+  const xL = colX(COLS[0]) - BW / 2, xR = colX(COLS[COLS.length - 1]) + BW / 2;
+  // faixas das eras: onde começa cada fileira de tecnologia
+  for (let e = 1; e <= 5; e++) {
+    const y = (ERA_ROW0 + e - 0.5) * ROW, g = mk('g', { class: 'sk-ring' }, gBands);
+    mk('line', { x1: xL, x2: xR, y1: Y(y), y2: Y(y) }, g);
+    const t = mk('text', { x: xL - 14, y: Y(y) + 6, 'text-anchor': 'end' }, g); t.textContent = ERAS[e].n;
+    const t2 = mk('text', { x: xL - 14, y: Y(y) + 28, 'text-anchor': 'end', class: 'sub' }, g); t2.textContent = 'a partir de ' + fmtM(ERAS[e].m);
+    eraEls.push({ e, g, t });
   }
   // tronco e legendas dos ramos
   const [bx, by] = BASE_POS;
@@ -128,19 +116,20 @@ function build() {
   const base = mk('g', { class: 'sk-base', transform: `translate(${bx} ${Y(by)})` }, gNodes);
   mk('image', { x: -40, y: -40, width: 80, height: 80, class: 'px', href: spriteDataURL(badgeSprite('#f2b630', 'max')) }, base);
   const bt = mk('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central' }, base); bt.textContent = 'OBRA';
-  // compras com dinheiro
-  for (const b in SKILL_LAYOUT) {
+  // melhorias (compras do dia a dia e tecnologias de era)
+  for (const b of COLS) {
     const L = SKILL_LAYOUT[b], c = COLOR[b];
     for (const k in L) {
+      if (!UP[k]) continue;
       // linha: do requisito (ou da base do ramo, na 1ª fileira); quem depende só da altura fica sem linha
       const [x, y] = upgradePos(b, k), from = L[k][2], root = !from && L[k][1] === 1, [x0, y0] = from ? upgradePos(b, from) : [colX(b), 60];
       const e = from || root ? mk('path', { d: elbow(x0, y0, x, y), class: 'sk-edge', style: `--c:${c}` }, gEdges) : null;
       // o que falta para liberar: ao lado da linha do requisito, ou embaixo do nome
       const rq = mk('text', from ? { class: 'rq', x: Math.max(x0, x) - x + 12, y: -(y0 + y) / 2 + y + 6 + (x0 === x ? 0 : -14), 'text-anchor': 'start' } : { class: 'rq', y: 76, 'text-anchor': 'middle' }, null);
-      const n = mk('g', { class: 'sk-node', transform: `translate(${x} ${Y(y)})`, style: `--c:${c}`, 'data-up': k }, gNodes);
+      const n = mk('g', { class: 'sk-node' + (UP[k].era ? ' tech' : ''), transform: `translate(${x} ${Y(y)})`, style: `--c:${c}`, 'data-up': k }, gNodes);
       mk('rect', { x: -40, y: -40, width: 80, height: 80, class: 'halo' }, n);
       const badge = mk('image', { x: -36, y: -36, width: 72, height: 72, class: 'px' }, n);
-      mk('image', { x: -19.2, y: -21.2, width: 38.4, height: 38.4, class: 'px ico', href: spriteDataURL(iconSprite(k)) }, n);
+      mk('image', { x: -19.2, y: -21.2, width: 38.4, height: 38.4, class: 'px ico', href: spriteDataURL(iconSprite(UP[k].icon || k)) }, n);
       mk('image', { x: -15, y: -15, width: 30, height: 30, class: 'px lock', href: spriteDataURL(lockSprite()) }, n);
       mk('rect', { x: 13, y: 15, width: 26, height: 20, class: 'lvbox' }, n);
       const lv = mk('text', { class: 'lvl', x: 26, y: 26, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, n);
@@ -149,132 +138,49 @@ function build() {
       upEls[k] = { n, lv, e, rq, badge, cls: '', st: '' };
     }
   }
-  // Pesquisa: arestas (o centro da antiga árvore radial vira uma linha pontilhada saindo do topo das compras do ramo)
-  for (const [a, b] of EDGES) {
-    if (a === CENTER || b === CENTER) {
-      // sai da base do ramo (onde começam as compras) e sobe pela lateral, sem passar pelas melhorias
-      const id = a === CENTER ? b : a, br = NODES[id].b, p1 = researchPos(id);
-      const x0 = br ? colX(br) : BASE_POS[0], xg = x0 - BW / 2 + 12, ym = RES0 - 75;
-      const l = mk('path', { d: `M${x0} ${Y(60)} H ${xg} V ${Y(ym)} H ${p1[0]} V ${Y(p1[1])}`, class: 'sk-pedge link' }, gEdges);
-      peEdges.push({ a: CENTER, b: id, br, el: l, cls: '' });
-      continue;
-    }
-    // ponte entre o último e o primeiro ramo: só a ligação com o ramo do lado (a outra cruzaria a árvore toda)
-    const na = NODES[a], nb = NODES[b];
-    if ((na.kind === 'bridge' && na.bridge[0] === 'cien' && nb.b === 'obra') || (nb.kind === 'bridge' && nb.bridge[0] === 'cien' && na.b === 'obra')) continue;
-    const p0 = researchPos(a), p1 = researchPos(b);
-    const l = mk('path', { d: elbow(p0[0], p0[1], p1[0], p1[1]), class: 'sk-pedge' }, gEdges);
-    peEdges.push({ a, b, el: l, cls: '' });
-  }
-  // Pesquisa: nós (estrelas; notáveis maiores com nome; chaves octogonais; pontes em losango)
-  for (const id in NODES) {
-    if (id === CENTER) continue;
-    const nd = NODES[id], [x, y] = researchPos(id), c = nd.b ? COLOR[nd.b] : PE_COLOR;
-    const g = mk('g', { class: 'sk-pe', transform: `translate(${x} ${Y(y)})`, style: `--c:${c}`, 'data-pe': id }, gNodes);
-    const sz = (nd.kind === 'key' ? 25 : nd.kind === 'notable' ? 21 : 15) * 2.4;
-    mk('rect', { x: -sz / 2 - 5, y: -sz / 2 - 5, width: sz + 10, height: sz + 10, class: 'halo' }, g);
-    const img = mk('image', { x: -sz / 2, y: -sz / 2, width: sz, height: sz, class: 'px' }, g);
-    if (nd.kind === 'notable' || nd.kind === 'key') { const t = mk('text', { class: 'nm', y: sz / 2 + 16, 'text-anchor': 'middle' }, g); t.textContent = nd.name; }
-    const q = mk('text', { class: 'q', 'text-anchor': 'middle', 'dominant-baseline': 'central' }, g); q.textContent = '?';
-    peEls[id] = { g, img, cls: '', st: '' };
-  }
   built = true;
 }
 
 // ---------- estado visual ----------
 function updateTree() {
-  openRing = 0; for (let k = 1; k <= RINGS; k++) if (ringOpen(k)) openRing = k;
-  for (const r of ringEls) r.g.style.display = r.k <= openRing + 1 ? '' : 'none';
+  for (const r of eraEls) r.g.classList.toggle('open', S.maxAlt >= ERAS[r.e].m);
   for (const k in upEls) {
     const e = upEls[k], lk = lockedUp(k), mx = maxed(k), lv = S.lv[k];
     setText(e.lv, lk ? '' : String(lv));
-    const isSel = sel && sel.t === 'up' && sel.k === k;
     const blk = !lk && !mx ? stageBlock(k) : null;
     const st = lk ? 'locked' : mx ? 'max' : blk ? 'hold' : canBuy(k) ? 'can' : lv > 0 ? 'own' : 'open';
-    const cls = 'sk-node ' + st + (isSel ? ' sel' : '');
+    const cls = 'sk-node ' + st + (UP[k].era ? ' tech' : '') + (sel === k ? ' sel' : '');
     if (cls !== e.cls) { e.n.setAttribute('class', cls); e.cls = cls; }
     if (st !== e.st) { e.badge.setAttribute('href', spriteDataURL(badgeSprite(COLOR[UP[k].b], st === 'hold' ? (lv > 0 ? 'own' : 'open') : st))); e.st = st; }
     if (e.e) { e.e.classList.toggle('on', lv > 0); e.e.classList.toggle('open', !lk && lv === 0); }
     setText(e.rq, lk ? reqShort(k) : blk ? 'antes: ' + HOLD_NAME[blk] : '');
   }
-  for (const id in peEls) {
-    const nd = NODES[id], e = peEls[id], f = fog(nd);
-    let c = 'sk-pe ' + nd.kind;
-    if (f === 'hidden') c += ' hidden';
-    else if (f === 'hint') c += ' hint';
-    else if (owned(id)) c += ' own';
-    else if (!learnBlock(id)) c += ' can';
-    else c += ' open';
-    if (sel && sel.t === 'pe' && sel.id === id) c += ' sel';
-    if (c !== e.cls) { e.g.setAttribute('class', c); e.cls = c; }
-    const st = f === 'hidden' ? '' : f === 'hint' ? 'hint' : owned(id) ? 'own' : !learnBlock(id) ? 'can' : 'open';
-    if (st && st !== e.st) { e.img.setAttribute('href', spriteDataURL(starSprite(nd.kind, st, nd.b ? COLOR[nd.b] : PE_COLOR))); e.st = st; }
-  }
-  for (const e of peEdges) {
-    const fa = e.a === CENTER ? 'open' : fog(NODES[e.a]), fb = fog(NODES[e.b]);
-    const hide = fa === 'hidden' || fb === 'hidden';
-    const on = (e.a === CENTER || owned(e.a)) && owned(e.b);
-    const ready = e.a === CENTER && (!e.br || branchStarted(e.br));
-    const c = 'sk-pedge' + (e.a === CENTER ? ' link' : '') + (hide ? ' hidden' : on ? ' on' : ready ? ' lit' : '');
-    if (c !== e.cls) { e.el.setAttribute('class', c); e.cls = c; }
-  }
 }
 
 // ---------- painel ----------
 function drawDetail() {
-  const d = $('skDetail'), bt = $('sdBuy'), effs = $('sdEffs');
+  const d = $('skDetail'), bt = $('sdBuy');
   if (!sel) return;
-  if (sel.t === 'up') {
-    const k = sel.k, u = UP[k], lk = lockedUp(k), mx = maxed(k), can = !lk && canBuy(k);
-    d.style.setProperty('--c', COLOR[u.b]);
-    setText($('sdKind'), BRANCH_INFO[u.b][0] + ' · compra com dinheiro');
-    setText($('sdName'), u.n);
-    setHTML($('sdLv'), u.max !== undefined
-      ? Array.from({ length: u.max }, (_, i) => `<i class="${i < S.lv[k] ? 'on' : ''}"></i>`).join('') + `<span>Nv ${S.lv[k]} de ${u.max}</span>`
-      : `<span>Nível ${S.lv[k]}</span>`);
-    setText($('sdDesc'), u.d);
-    effs.innerHTML = ''; effs.hidden = true;
-    const fx = lk || mx ? '' : upgradeEffect(k);
-    setText($('sdFx'), fx || ''); $('sdFx').hidden = !fx;
-    prev.hidden = false;
-    const blk = !lk && !mx ? stageBlock(k) : null;
-    setText($('sdReq'), lk ? lockText(k) : mx ? 'Nível máximo.' : blk ? holdText(k, blk) : '');
-    bt.hidden = lk || mx; bt.disabled = !can;
-    setText(bt, `Comprar · R$ ${fmt(cost(k))}`);
-    return;
-  }
-  const id = sel.id, nd = NODES[id], f = fog(nd);
-  d.style.setProperty('--c', nd.b ? COLOR[nd.b] : PE_COLOR);
-  setHTML($('sdLv'), '');
-  prev.hidden = true; $('sdFx').hidden = true;
-  const branch = nd.b ? BRANCH_INFO[nd.b][0] : nd.bridge ? nd.bridge.map(b => BRANCH_INFO[b][0]).join(' + ') : '';
-  if (f !== 'open') {
-    setText($('sdKind'), `Pesquisa · anel ${nd.ring} · ainda desconhecida`);
-    setText($('sdName'), nd.kind === 'key' ? 'Tecnologia revolucionária' : nd.kind === 'notable' ? 'Grande avanço' : 'Pesquisa futura');
-    setText($('sdDesc'), `Os engenheiros só vão entender isto na era ${ringEraName(nd.ring)}.`);
-    effs.innerHTML = ''; effs.hidden = true; setText($('sdReq'), ''); bt.hidden = true;
-    return;
-  }
-  setText($('sdKind'), `Pesquisa · ${KIND_LABEL[nd.kind]}${branch ? ' · ' + branch : ''} · anel ${nd.ring}`);
-  setText($('sdName'), nd.name);
-  setText($('sdDesc'), nd.desc || 'Paga com Pontos de Engenharia (★), que vêm da altura recorde da torre. Vale para sempre e pode ser redistribuída de graça.');
-  const html = nd.eff.map(e => `<li>${describeEffect(e)}</li>`).join('');
-  if (effs.innerHTML !== html) effs.innerHTML = html;
-  effs.hidden = false;
-  const own = owned(id), block = learnBlock(id);
-  bt.hidden = own; bt.disabled = !!block;
-  setText(bt, `Aprender · ★ ${nd.cost}`);
-  setText($('sdReq'), own ? 'Aprendida.'
-    : block === 'Ligue a um nó já aprendido' ? 'Precisa estar ligada a uma pesquisa que você já aprendeu.'
-      : block === 'Compre uma melhoria do ramo' ? `Compre pelo menos 1 nível de uma melhoria de ${branch} (com dinheiro) para começar a pesquisar este ramo.`
-      : block === 'Pontos insuficientes' ? `Faltam ★ ${nd.cost - peAvailable()}. Os pontos vêm da altura da torre.`
-        : block === 'Anel fechado' ? `Abre na era ${ringEraName(nd.ring)}.` : '');
+  const k = sel, u = UP[k], lk = lockedUp(k), mx = maxed(k), can = !lk && canBuy(k);
+  d.style.setProperty('--c', COLOR[u.b]);
+  setText($('sdKind'), BRANCH_INFO[u.b][0] + (u.era ? ` · tecnologia da ${eraOf(k)}` : ' · compra com dinheiro'));
+  setText($('sdName'), u.n);
+  setHTML($('sdLv'), u.max !== undefined
+    ? Array.from({ length: u.max }, (_, i) => `<i class="${i < S.lv[k] ? 'on' : ''}"></i>`).join('') + `<span>Nv ${S.lv[k]} de ${u.max}</span>`
+    : `<span>Nível ${S.lv[k]}</span>`);
+  setText($('sdDesc'), u.d);
+  const fx = lk || mx ? '' : upgradeEffect(k);
+  setText($('sdFx'), fx || ''); $('sdFx').hidden = !fx;
+  const blk = !lk && !mx ? stageBlock(k) : null;
+  setText($('sdReq'), lk ? lockText(k) : mx ? 'Nível máximo.' : blk ? holdText(k, blk) : '');
+  bt.hidden = lk || mx; bt.disabled = !can;
+  setText(bt, `Comprar · R$ ${fmt(cost(k))}`);
 }
 
 // prévia animada: a própria cena, com a câmera onde a melhoria aparece e o nível seguinte aplicado
 function drawPreview() {
-  if (!sel || sel.t !== 'up' || overlay.hidden || !$('skSheet').hidden || corpOpen()) return;
-  const k = sel.k, up = !lockedUp(k) && !maxed(k);
+  if (!sel || overlay.hidden) return;
+  const k = sel, up = !lockedUp(k) && !maxed(k);
   if (up) S.lv[k]++;
   try {
     pctx.imageSmoothingEnabled = false;
@@ -282,13 +188,10 @@ function drawPreview() {
   } finally { if (up) S.lv[k]--; }
 }
 
-function select(s) { sel = s; updateSkills(); }
+function select(k) { sel = k; updateSkills(); }
 function onBuy() {
-  if (!sel) return;
-  if (sel.t === 'up') {
-    if (lockedUp(sel.k) || !buy(sel.k)) return;
-    if (sel.k === 'elevador') V.elev[S.lv.elevador - 1] = Math.random();
-  } else if (!learn(sel.id)) return;
+  if (!sel || lockedUp(sel) || !buy(sel)) return;
+  if (sel === 'elevador') V.elev[S.lv.elevador - 1] = Math.random();
   save(); updateSkills();
 }
 
@@ -300,12 +203,13 @@ function zoomAt(px, py, f) {
   const k = clampK(view.k * f);
   view.x = px - (px - view.x) * k / view.k; view.y = py - (py - view.y) * k / view.k; view.k = k; apply();
 }
-// enquadra as compras e os anéis de Pesquisa abertos
+// enquadra a árvore até a fileira da era mais alta já aberta (mais uma, como pista)
 function fit() {
   const w = svg.clientWidth, h = svg.clientHeight;
   if (w < 50 || h < 50) return;
-  const x0 = colX(COLS[0]) - BW / 2, x1 = colX(COLS[COLS.length - 1]) + BW / 2;
-  const top = RES0 + Math.max(0, openRing) * RING + 60, bottom = -150;
+  let open = 0; for (let e = 1; e <= 5; e++) if (S.maxAlt >= ERAS[e].m) open = e;
+  const x0 = colX(COLS[0]) - BW / 2 - 260, x1 = colX(COLS[COLS.length - 1]) + BW / 2;
+  const top = (Math.min(ERA_TOP, ERA_ROW0 + open + 1) + 0.6) * ROW, bottom = -150;
   view.k = clampK(Math.min(w / (x1 - x0), h / (top - bottom)));
   view.x = w / 2 - (x0 + x1) / 2 * view.k;
   view.y = h / 2 - Y((top + bottom) / 2) * view.k;
@@ -319,7 +223,7 @@ function fit() {
 const ptrs = new Map();
 let moved = 0, pinch = null, userMoved = false;
 svg.addEventListener('pointerdown', e => {
-  svg.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  try { svg.setPointerCapture(e.pointerId); } catch (_) { } ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (ptrs.size === 1) moved = 0;
   if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), k: view.k }; }
 });
@@ -341,9 +245,8 @@ const endPtr = e => {
     svg.classList.remove('drag');
     if (moved <= 4 && e.type === 'pointerup') {
       const el = document.elementFromPoint(e.clientX, e.clientY);
-      const up = el && el.closest && el.closest('[data-up]'), pe = el && el.closest && el.closest('[data-pe]');
-      if (up) select({ t: 'up', k: up.dataset.up });
-      else if (pe && !pe.classList.contains('hidden')) select({ t: 'pe', id: pe.dataset.pe });
+      const up = el && el.closest && el.closest('[data-up]');
+      if (up) select(up.dataset.up);
     }
   }
 };
@@ -356,30 +259,19 @@ new ResizeObserver(() => { if (!overlay.hidden && !userMoved) fit(); }).observe(
 export function updateSkills() {
   if (overlay.hidden) return;
   setText($('skMoney'), 'R$ ' + fmt(S.money));
-  setText($('skPe'), '★ ' + peAvailable());
-  $('skPe').classList.toggle('has', peAvailable() > 0);
-  $('skNegBtn').hidden = true; // Negócios saiu (imóveis automáticos, sem banco); os números estão no resumo da tela
-  $('skRespec').hidden = !S.peSpent;
-  updateCorp();
-  if (corpOpen()) return;
-  if (!$('skSheet').hidden) {
-    $('bankCard').hidden = S.maxAlt < BANK_AT && S.debt <= 0; // banco a partir de 60 m, como no modo clássico
-    updateBusiness('imoveis'); updateBusiness('banco');
-    return;
-  }
   updateTree();
   drawDetail();
 }
 export const tickSkills = () => drawPreview();
 export const skillsOpen = () => !overlay.hidden;
 
-// algo para comprar com dinheiro? (pontinho no botão Melhorias; os pontos ★ têm selo próprio)
-export const anyToBuy = () => Object.values(SKILL_LAYOUT).some(L => Object.keys(L).some(k => !lockedUp(k) && canBuy(k)));
+const allKeys = () => COLS.flatMap(b => Object.keys(SKILL_LAYOUT[b])).filter(k => UP[k]);
+// algo para comprar? (pontinho no botão Melhorias)
+export const anyToBuy = () => allKeys().some(k => !lockedUp(k) && canBuy(k));
 
 function selectDefault() {
-  const ks = Object.values(SKILL_LAYOUT).flatMap(L => Object.keys(L));
-  const open = ks.filter(k => !lockedUp(k) && !maxed(k)).sort((a, b) => cost(a) - cost(b));
-  sel = { t: 'up', k: open[0] || ks[0] };
+  const ks = allKeys(), open = ks.filter(k => !lockedUp(k) && !maxed(k)).sort((a, b) => cost(a) - cost(b));
+  sel = open[0] || ks[0];
 }
 
 let opener = null;
@@ -387,7 +279,6 @@ export function openSkills() {
   opener = document.activeElement;
   overlay.hidden = false;
   if (!built) build();
-  $('skSheet').hidden = true;
   if (!sel) selectDefault();
   userMoved = false;
   updateSkills(); fit();
@@ -398,28 +289,15 @@ export function closeSkills() {
   if (opener && opener.focus) opener.focus();
 }
 
-export function initSkills(onSell) {
-  initCorp(onSell, () => updateSkills());
-  // Negócios: os cards de imóveis, turismo e banco moram numa folha por cima da árvore
-  const neg = $('skNeg');
-  for (const id of ['pg-imoveis', 'pg-banco']) { const pg = $(id); while (pg.firstChild) neg.appendChild(pg.firstChild); }
-  const bank = neg.querySelector('#k-tier'); if (bank) bank.closest('.card').id = 'bankCard';
+export function initSkills() {
   $('openUp').onclick = openSkills;
   $('skClose').onclick = closeSkills;
   $('sdBuy').onclick = onBuy;
   $('skIn').onclick = () => { userMoved = true; zoomAt(svg.clientWidth / 2, svg.clientHeight / 2, 1.3); };
   $('skOut').onclick = () => { userMoved = true; zoomAt(svg.clientWidth / 2, svg.clientHeight / 2, 1 / 1.3); };
   $('skFit').onclick = () => { userMoved = false; fit(); };
-  $('skNegBtn').onclick = () => { closeCorp(); $('skSheet').hidden = false; updateSkills(); };
-  $('skSheetClose').onclick = () => { $('skSheet').hidden = true; updateSkills(); };
-  const rs = $('skRespec');
-  rs.onclick = () => {
-    if (rs.classList.contains('armed')) { respec(); save(); rs.classList.remove('armed'); rs.textContent = 'Redistribuir pontos'; updateSkills(); return; }
-    rs.classList.add('armed'); rs.textContent = 'Confirmar: devolver os pontos';
-    setTimeout(() => { rs.classList.remove('armed'); rs.textContent = 'Redistribuir pontos'; }, 3000);
-  };
   addEventListener('keydown', e => {
     if (overlay.hidden || e.key !== 'Escape' || e.defaultPrevented) return;
-    if (corpOpen()) closeCorp(); else if (!$('skSheet').hidden) $('skSheet').hidden = true; else closeSkills();
+    closeSkills();
   });
 }

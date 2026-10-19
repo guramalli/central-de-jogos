@@ -28,8 +28,9 @@ export function fresh() {
     // árvore de Engenharia
     tree: { [CENTER]: true }, peSpent: 0, peBonus: 0,
     stats: { saleTotal: 0, tourTotal: 0, interestTotal: 0 },
-    // prestígio (Obra Viva): recordes de todas as obras, Ações e Conselho — sobrevivem a "Vender a construtora"
-    bestAlt: 0, bestEra: 0, shares: 0, sharesBal: 0, council: {}, prestiges: 0,
+    won: false,                   // Obra Viva: já chegou à Órbita (fim do jogo, tela de parabéns uma vez)
+    winSeen: false,               // a tela de parabéns já foi mostrada
+    playTime: 0,                  // segundos de jogo ativo (para a tela de parabéns)
   };
 }
 
@@ -52,7 +53,6 @@ export function load() {
     S.lv = Object.assign(fresh().lv, o.lv || {});
     S.broker = Object.assign(fresh().broker, o.broker || {});
     S.stats = Object.assign(fresh().stats, o.stats || {});
-    S.council = Object.assign({}, o.council || {});
     return o.ver || 1;
   } catch (e) { return 0; /* save corrompido ou storage bloqueado: começa do zero */ }
 }

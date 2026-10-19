@@ -6,7 +6,7 @@ import { rates, isCapped, bottleneck, cost } from './economy.js';
 import { fmt } from '../ui/format.js';
 
 export const STAGE_NAME = { prod: 'produção', tran: 'transporte', lay: 'assentamento' };
-const STAGE_OF = { obra: 'lay', forn: 'prod', log: 'tran', guindaste: 'lay' };
+const STAGE_OF = { obra: 'lay', forn: 'prod', log: 'tran' };
 const TOURISM = ['bilheteria', 'marketing', 'heliponto', 'porto'];
 
 // andares por minuto que a obra realmente faz (o gargalo manda)
@@ -28,7 +28,7 @@ export function upgradeImpact(k) {
     const a = floorsPerMin(R0), b = floorsPerMin(R1);
     if (b > a * 1.005) return { text: `Obra: ${num(a)} → ${num(b)} andares/min`, good: true };
     if (isCapped(R0)) return { text: 'Não acelera agora: a fundação chegou ao limite', good: false };
-    const st = STAGE_OF[k] || STAGE_OF[u.b], neck = STAGE_NAME[bottleneck(R0)];
+    const st = STAGE_OF[u.b] || 'lay', neck = STAGE_NAME[bottleneck(R0)];
     if (st) return { text: `${cap1(STAGE_NAME[st])} ${num(R0[st])} → ${num(R1[st])}/s · não acelera enquanto o gargalo for ${neck}`, good: false };
     return { text: `Não acelera agora: o gargalo é ${neck}`, good: false };
   }
@@ -66,7 +66,7 @@ export function upgradeEffect(k) {
   try { R1 = rates(); } finally { S.lv[k]--; }
   if (k === 'fundacao') return `Limite da torre: ${fmt(R0.capF)} → ${fmt(R1.capF)} andares`;
   if (k === 'projeto') return `Material por andar: ${num(R0.fcost)} → ${num(R1.fcost)}`;
-  const st = STAGE_OF[k] || STAGE_OF[u.b];
+  const st = STAGE_OF[u.b] || 'lay';
   if (st) return `${STAGE_LABEL[st]}: ${num(R0[st])} → ${num(R1[st])} de material/s`;
   if (k === 'corretor') return 'Venda dos andares: +8% por nível';
   if (k === 'banco') return `Crédito: R$ ${fmt(R0.bank.limit)} → R$ ${fmt(R1.bank.limit)}`;

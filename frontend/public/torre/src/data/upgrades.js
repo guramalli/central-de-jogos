@@ -45,4 +45,47 @@ export const UP = {
 // Protótipo Obra Viva: as três compras iniciais ganham nome concreto e ficam liberadas desde o começo
 if (FLAGS.viva) for (const k in VIVA.upgrades) Object.assign(UP[k], VIVA.upgrades[k]);
 
+// Obra Viva: tecnologias de era — cada era nova abre 1 compra em cada ramo, no topo da coluna da árvore.
+// era: índice em ERAS (reqAlt = altura da era); st: o que multiplica (lay, prod, tran, fcost, rent, tour, ticket);
+// flag: regra especial (lida em economy.js), vale com nível 1; icon: ícone reaproveitado de ui/icons.js.
+const T = (b, era, n, d, extra) => ({ b, era, n, d, max: 3, k: 5, ...extra });
+const ERA_ALT = [0, 100, 1000, 12000, 50000, 100000];
+export const ERA_TECH = {
+  // Mão de obra
+  escoramento: T('obra', 1, 'Escoramento metálico', 'Escoras de aço no lugar da madeira: ×1,5 no assentamento por nível.', { base: 3e3, st: 'lay', mul: 1.5, icon: 'ferram' }),
+  soldadores: T('obra', 2, 'Equipe de soldadores', 'Estrutura de aço soldada no topo: ×1,5 no assentamento por nível.', { base: 1e5, st: 'lay', mul: 1.5, icon: 'mestre' }),
+  mutirao: T('obra', 3, 'Mutirão', 'Os pedreiros ajudam a subir material quando sobra tempo (parte do assentamento vira transporte).', { base: 3e6, max: 1, flag: 'helpers', icon: 'pedreiro' }),
+  robos: T('obra', 4, 'Robôs de montagem', 'Braços robóticos assentam junto: ×2 no assentamento por nível.', { base: 4e7, st: 'lay', mul: 2, icon: 'treino' }),
+  drones: T('obra', 5, 'Drones construtores', 'Drones montam as peças em gravidade baixa: ×2 no assentamento por nível.', { base: 4e8, st: 'lay', mul: 2, icon: 'guindaste' }),
+  // Fornecimento
+  usina: T('forn', 1, 'Usina de concreto', 'Concreto usinado chegando de caminhão-betoneira: ×1,5 de material por nível.', { base: 3e3, st: 'prod', mul: 1.5, icon: 'caminhao' }),
+  siderurgica: T('forn', 2, 'Siderúrgica parceira', 'Aço e vidro direto da fábrica: ×1,6 de material por nível.', { base: 1e5, st: 'prod', mul: 1.6, icon: 'premold' }),
+  usinaTopo: T('forn', 3, 'Usina no topo', 'Uma parte do material já é produzida lá em cima, sem passar pelos elevadores.', { base: 3e6, max: 1, flag: 'topPlant', icon: 'olaria' }),
+  fabrica: T('forn', 4, 'Fábrica automatizada', 'Linha de produção sem parar: ×2 de material por nível.', { base: 4e7, st: 'prod', mul: 2, icon: 'premold' }),
+  asteroides: T('forn', 5, 'Mineração de asteroides', 'Material vindo do espaço: ×2 de material por nível.', { base: 4e8, st: 'prod', mul: 2, icon: 'porto' }),
+  // Logística
+  cabos: T('log', 1, 'Cabos de aço', 'Elevadores com cabos mais fortes: ×1,4 na velocidade por nível.', { base: 3e3, st: 'tran', mul: 1.4, icon: 'motor' }),
+  expresso: T('log', 2, 'Elevador expresso', 'Viagens sem paradas: a altura pesa menos no tempo de subida.', { base: 1e5, max: 1, flag: 'express', icon: 'elevador' }),
+  pressurizada: T('log', 3, 'Cabine pressurizada', 'Elevadores para o ar rarefeito: ×1,6 na velocidade por nível.', { base: 3e6, st: 'tran', mul: 1.6, icon: 'elevador' }),
+  linear: T('log', 4, 'Elevador linear', 'Motor linear magnético: ×2 na velocidade por nível.', { base: 4e7, st: 'tran', mul: 2, icon: 'maglev' }),
+  teleporte: T('log', 5, 'Teletransporte de carga', 'Acima de 20 km a carga chega como se a torre parasse ali.', { base: 4e8, max: 1, flag: 'teleport', icon: 'maglev' }),
+  // Engenharia
+  calculo: T('eng', 1, 'Cálculo estrutural', 'Estrutura mais leve: −10% de material por andar a cada nível.', { base: 4e3, st: 'fcost', mul: 0.9, icon: 'projeto' }),
+  prefab: T('eng', 2, 'Pré-fabricação total', 'Andares saem prontos da fábrica: o material por andar cresce bem menos com a altura.', { base: 1.5e5, max: 1, flag: 'prefab', icon: 'premold' }),
+  flutuante: T('eng', 3, 'Fundação flutuante', 'Cada nível de fundação triplica o limite de altura (em vez de dobrar).', { base: 4e6, max: 1, flag: 'floatFound', icon: 'fundacao' }),
+  amortecedor: T('eng', 4, 'Amortecedores de vento', 'A torre balança menos: −15% de material por andar a cada nível.', { base: 5e7, st: 'fcost', mul: 0.85, icon: 'projeto' }),
+  gravidade: T('eng', 5, 'Gravidade artificial', 'Os elevadores ficam mais rápidos quanto mais alta a torre.', { base: 5e8, max: 1, flag: 'gravity', icon: 'fundacao' }),
+  // Mercado
+  imobiliaria: T('merc', 1, 'Imobiliária parceira', 'Andares sempre ocupados: +50% de aluguel por nível.', { base: 3e3, st: 'rent', add: 0.5, icon: 'corretor' }),
+  agencia: T('merc', 2, 'Agência de turismo', 'Excursões para a torre: +50% de turistas interessados por nível.', { base: 1e5, st: 'tour', add: 0.5, icon: 'marketing' }),
+  hotelNuvens: T('merc', 3, 'Hotel nas nuvens', 'Hospedagem acima das nuvens: +50% no ingresso por nível.', { base: 3e6, st: 'ticket', add: 0.5, icon: 'bilheteria' }),
+  publicidade: T('merc', 4, 'Publicidade global', 'A torre vira cartão-postal: +50% de aluguel por nível.', { base: 4e7, st: 'rent', add: 0.5, icon: 'marketing' }),
+  turismoEsp: T('merc', 5, 'Turismo espacial', 'Passeios até o espaço: +50% no ingresso por nível.', { base: 4e8, st: 'ticket', add: 0.5, icon: 'porto' }),
+};
+for (const k in ERA_TECH) ERA_TECH[k].reqAlt = ERA_ALT[ERA_TECH[k].era];
+if (FLAGS.viva) Object.assign(UP, ERA_TECH);
+// fator de uma etapa somando as tecnologias de era compradas (1 quando não há nenhuma)
+export const TECH_BY_STAGE = {};
+for (const k in ERA_TECH) if (ERA_TECH[k].st) (TECH_BY_STAGE[ERA_TECH[k].st] ||= []).push(k);
+
 export const KEYS = Object.keys(UP);

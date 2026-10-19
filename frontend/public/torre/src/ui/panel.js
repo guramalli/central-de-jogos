@@ -5,7 +5,7 @@ import { altOf, floorOf } from '../data/height.js';
 import { ERAS, eraAt } from '../data/eras.js';
 import { UP, BRANCHES } from '../data/upgrades.js';
 import { S } from '../sim/state.js';
-import { rates, isCapped, bottleneck, offlineMax, cost, shareMult } from '../sim/economy.js';
+import { rates, isCapped, bottleneck, offlineMax, cost } from '../sim/economy.js';
 import { peAvailable, peEarned } from '../sim/talents.js';
 import { clamp } from '../render/canvas.js';
 import { V } from '../render/view.js';
@@ -39,23 +39,6 @@ export function showPage(p) {
   updateUI();
 }
 
-// pontos ★ ganhos viram notificação no botão Melhorias: selo com o saldo e "+N ★" subindo quando chegam
-let lastPe = null, popTimer = 0;
-export const resetPeNotify = () => { lastPe = null; };
-function peNotify() {
-  const earned = peEarned(), avail = peAvailable(), badge = $('upPe');
-  badge.hidden = avail <= 0;
-  setText(badge, '★ ' + fmt(avail));
-  if (lastPe !== null && earned > lastPe) {
-    const pop = $('upPePop'), btn = $('openUp');
-    setText(pop, `+${fmt(earned - lastPe)} ★ ${earned - lastPe > 1 ? 'pontos' : 'ponto'} de pesquisa`);
-    pop.classList.remove('on'); btn.classList.remove('pe-new'); void pop.offsetWidth;
-    pop.classList.add('on'); btn.classList.add('pe-new');
-    clearTimeout(popTimer); popTimer = setTimeout(() => { pop.classList.remove('on'); btn.classList.remove('pe-new'); }, 2600);
-  }
-  lastPe = earned;
-}
-
 // Resumo da obra (sempre na tela, embaixo do dinheiro): renda, andares por minuto e o material em cada etapa.
 // A etapa mais lenta fica em âmbar (só a cor; nada escrito). Tocar abre os detalhes.
 const sumEl = $('hSum'), sumRows = [...sumEl.querySelectorAll('.hs-row')];
@@ -76,7 +59,7 @@ function updateSummary() {
   if (sumEl.getAttribute('aria-expanded') === 'true') {
     const t = R.tour, lines = [
       `Aluguel: R$ ${fmt(R.rent)}/s · ${fmt(S.rented)} andares alugados`,
-      S.lv.bilheteria > 0 ? `Turismo: R$ ${fmt(t.revenue * shareMult())}/s · ${fmt(t.served)} visitantes/s` + (t.queue > 0.05 ? ` (fila ${fmt(t.queue)}/s)` : '') : null,
+      S.lv.bilheteria > 0 ? `Turismo: R$ ${fmt(t.revenue)}/s · ${fmt(t.served)} visitantes/s` + (t.queue > 0.05 ? ` (fila ${fmt(t.queue)}/s)` : '') : null,
       `Material por andar: ${fmt(R.fcost)}`,
       `Limite da fundação: ${fmt(R.capF)} andares`,
       `Pátio no térreo: ${fmt(S.ground)} · no topo: ${fmt(S.top)}`,
@@ -93,7 +76,6 @@ function updateHud() {
   setText($('hMoney'), 'R$ ' + fmt(S.money));
   updateSummary();
   $('openUp').querySelector('.dot').hidden = !anyToBuy();
-  peNotify();
   updateSkills();
   if (mapOpen()) updateMap();
   setText($('skSave'), `Salvo neste navegador · continua por até ${fmt(offlineMax() / 3600)} h fora do jogo.`);
