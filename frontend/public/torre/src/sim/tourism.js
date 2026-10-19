@@ -7,6 +7,8 @@ import { MPF } from '../data/constants.js';
 import { S } from './state.js';
 import { mods } from './mods.js';
 import { typeCount } from './realty.js';
+import { FLAGS } from '../data/flags.js';
+import { VIVA } from '../data/viva.js';
 
 const T = BAL.tourism;
 
@@ -23,6 +25,8 @@ export function tourism() {
   return {
     demand, cap, ticket, served, queue: Math.max(0, demand - cap),
     space: { demand: sDemand, cap: sCap, served: sServed, ticket: sTicket },
-    revenue: served * ticket + sServed * sTicket,
+    // Obra Viva: antes do Elevador panorâmico, curiosos pagam um trocado para ver a obra famosa pelo tapume
+    curious: FLAGS.viva && L.bilheteria < 1 ? VIVA.curious : 0,
+    revenue: served * ticket + sServed * sTicket + (FLAGS.viva && L.bilheteria < 1 ? VIVA.curious : 0),
   };
 }

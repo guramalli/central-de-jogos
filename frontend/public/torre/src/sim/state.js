@@ -31,6 +31,7 @@ export function fresh() {
     won: false,                   // Obra Viva: já chegou à Órbita (fim do jogo, tela de parabéns uma vez)
     winSeen: false,               // a tela de parabéns já foi mostrada
     playTime: 0,                  // segundos de jogo ativo (para a tela de parabéns)
+    introSeen: false,             // Obra Viva: a abertura (história) já foi vista
   };
 }
 

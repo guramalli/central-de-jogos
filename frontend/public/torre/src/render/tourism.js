@@ -8,17 +8,36 @@ import { V } from './view.js';
 import { blit } from './sprites.js';
 import { tourist } from './workers.js';
 import { boothSprite, panoSprite, heliSprite, rocketSprite } from './props.js';
+import { FLAGS } from '../data/flags.js';
+import { COMPANY } from '../data/story.js';
 
 const SHIRTS = ['#e8505b', '#4fb0e8', '#f2d24a', '#7ad37a', '#c58be8', '#ff9f43'];
 
 // fila de visitantes no térreo, à esquerda da torre
 export function drawTourGround(tour) {
-  if (S.lv.bilheteria < 1 || worldY(H) > 300) return;
+  if (worldY(H) > 300) return;
+  if (S.lv.bilheteria < 1) { if (FLAGS.viva) curious(); return; }
   const n = Math.min(5, Math.ceil(tour.demand * 3 + (tour.queue > 0 ? 3 : 0)));
   for (let i = n - 1; i >= 0; i--) tourist(TL - 112 - i * 24, 0, i, { phase: V.t });
   // bilheteria
   blit(boothSprite(), TL - 94, 0, 3, 76);
   T('INGRESSOS', TL - 77, 75, 8, '#f2b630', 'center');
+}
+
+// Obra Viva, antes do Elevador panorâmico: tapume com a placa da construtora e curiosos tirando foto
+// (a torre já é famosa pelo projeto: rende um trocado, VIVA.curious)
+function curious() {
+  const x0 = TL - 146, x1 = TL - 16;
+  for (let x = x0; x < x1; x += 26) { R(x, 0, 25, 40, '#d9b57a'); R(x, 0, 1, 40, '#b8925a'); R(x + 2, 36, 21, 2, '#e8c891'); }
+  R(x0, 40, x1 - x0, 3, '#9a7444');
+  if (cam.z >= 0.3) {
+    R(x0 + 8, 40, 3, 34, '#5b6170'); R(x1 - 11, 40, 3, 34, '#5b6170');
+    R(x0 + 2, 60, x1 - x0 - 4, 40, '#20242f'); R(x0 + 4, 62, x1 - x0 - 8, 36, '#f2b630'); R(x0 + 4, 84, x1 - x0 - 8, 14, '#20242f');
+    T('CONSTRUTORA ' + COMPANY.toUpperCase(), (x0 + x1) / 2, 91, 8, '#f2b630', 'center');
+    T('EM BREVE: A TORRE', (x0 + x1) / 2, 77, 8, '#20242f', 'center');
+    T('MAIS ALTA DO MUNDO', (x0 + x1) / 2, 68, 8, '#20242f', 'center');
+  }
+  for (let i = 2; i >= 0; i--) tourist(TL - 32 - i * 40, 0, 1 + i * 4, { phase: V.t + i });
 }
 
 // cabine do elevador panorâmico, helicóptero e cápsula espacial

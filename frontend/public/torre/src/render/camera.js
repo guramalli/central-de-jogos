@@ -87,6 +87,8 @@ export const cinematic = () => ctl.cine;
 export const snapCamera = () => { ctl.snap = true; };
 // parte da tela coberta pela árvore de Melhorias: right = pixels do canvas cobertos à direita; bottom = fração coberta embaixo
 export function setViewInset(right = 0, bottom = 0) { ctl.insetR = right; ctl.insetB = bottom; }
+// abertura (história): f() devolve { cx, cy, z } a cada quadro; null devolve a câmera ao jogo
+export function setIntroCam(f) { ctl.intro = f; if (!f) ctl.snap = true; }
 export function resetCamera() { ctl.userZ = 1; ctl.overview = false; ctl.free = false; ctl.cine = null; ctl.snap = true; }
 
 // momentos especiais só quando a câmera está seguindo a obra
@@ -101,6 +103,7 @@ export function startMilestone(floors, title, sub) {
 // zCap: zoom máximo do modo; above: espaço extra acima do topo que o modo precisa mostrar (andar içado, megabloco)
 export function updateCamera(dt, buildTop, topY, zCap = ZMAX, above = 0) {
   ctl.topY = topY;
+  if (ctl.intro) { const p = ctl.intro(); cam.cx = p.cx; cam.cy = p.cy; cam.z = p.z; return; }
   if (ctl.free) {
     if (!ctl.hold) ctl.idle += dt;
     if (ctl.idle > FREE_RETURN) followBuild(); // esqueceu a câmera solta: volta a seguir a obra

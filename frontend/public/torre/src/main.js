@@ -17,6 +17,7 @@ import { syncCameraButtons } from './ui/cameraControls.js';
 import { syncEvents, recent } from './render/events.js';
 import { initEffects } from './render/effects.js';
 import { soundOn, setSound } from './ui/audio.js';
+import { initIntro, introActive, startIntro } from './ui/intro.js';
 
 // ?reset no endereço: apaga o save deste modo e começa do zero (o parâmetro sai do endereço,
 // para recarregar a página não apagar de novo)
@@ -53,12 +54,12 @@ const SIM_MAX_DT = 30;
 let last = performance.now(), uiT = 0, saveT = 0, noticeT = 12;
 function tick(real) {
   const dt = Math.min(.1, real);
-  let sd = Math.min(SIM_MAX_DT, real) * speed;
+  let sd = introActive() ? 0 : Math.min(SIM_MAX_DT, real) * speed; // a obra começa quando a história acaba
   while (sd > 0) { const st = Math.min(.25, sd); sim(st); sd -= st; }
   updateView(dt, speed);
   render();
   if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
-  if (FLAGS.viva) S.playTime = (S.playTime || 0) + dt * speed;
+  if (FLAGS.viva && !introActive()) S.playTime = (S.playTime || 0) + dt * speed;
   uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
@@ -78,7 +79,7 @@ spBtns.forEach(b => b.onclick = () => {
 });
 
 // Recomeçar: dois cliques (o primeiro arma por 3 s). Botão no topo (modo atual) e no rodapé das Melhorias (Obra Viva)
-function doReset() { resetState(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); updateUI(); }
+function doReset() { resetState(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); updateUI(); if (FLAGS.viva) { closeSkills(); startIntro(false); } }
 for (const rs of [$('reset'), $('skReset')]) {
   const disarm = () => { rs.classList.remove('armed'); rs.textContent = 'Recomeçar'; };
   rs.onclick = () => {
@@ -117,6 +118,9 @@ if (FLAGS.viva) {
   for (const id of ['hPlateFloor', 'hPlateMoney', 'openUp']) $(id).hidden = false; // o resumo (hSum) aparece no 1º andar
   $('z-all').textContent = '⤢'; $('z-all').setAttribute('aria-label', 'Ver a torre inteira');
   initSkills();
+  // abertura com a história (partida nova); não roda nos testes automáticos (?test=1 ou navegador controlado)
+  initIntro({ test: TEST || navigator.webdriver });
+  $('skStory').onclick = () => { closeSkills(); startIntro(true); };
 }
 
 // som da obra: lembrado neste navegador (botão sobre a cena no modo atual; no rodapé das Melhorias no Obra Viva)

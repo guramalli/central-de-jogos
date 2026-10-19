@@ -70,7 +70,14 @@ export function upgradeEffect(k) {
   if (k === 'fundacao' || u.flag === 'floatFound') return `Limite da torre: ${fmt(R0.capF)} → ${fmt(R1.capF)} andares`;
   if (u.b === 'merc') {
     if (R1.income > R0.income + 1e-9) return `Renda: R$ ${fmt(R0.income)}/s → R$ ${fmt(R1.income)}/s`;
-    if (TOURISM.includes(k) || u.st === 'tour' || u.st === 'ticket') return 'Ainda não rende: precisa de turistas chegando (Turismo)';
+    if (TOURISM.includes(k) || u.st === 'tour' || u.st === 'ticket') {
+      // por que não rende agora: o elevador panorâmico (lugares) ou o interesse (visitantes) é que está sobrando
+      const t = R0.tour, v = x => fmt(Math.round(x * 100) / 100);
+      if (!S.lv.bilheteria) return 'Sem visitantes ainda: o Elevador panorâmico (Turismo) abre a torre para turistas';
+      if (k === 'bilheteria' || k === 'heliponto') return `Já sobra lugar: chegam ${v(t.demand)} turistas/s e cabem ${v(t.cap)}/s. Marketing e mais altura trazem mais gente`;
+      if (k === 'porto') return 'Ainda sem efeito: o porto espacial só recebe turistas acima de 100 km';
+      return `Elevador panorâmico lotado: chegam ${v(t.demand)} turistas/s e cabem só ${v(t.cap)}/s. Amplie o Turismo primeiro`;
+    }
     return k === 'aluguel' || u.st === 'rent' ? `+${Math.round((u.add || 0.5) * 100)}% no aluguel de cada andar alugado` : null;
   }
   const st = STAGE_OF[u.b];

@@ -40,7 +40,7 @@ export function updateView(dt, speed) {
   if (V.lastEra === null) V.lastEra = S.era;
   if (S.era > V.lastEra) {
     V.lastEra = S.era;
-    V.toast = { a: `NOVA ERA · ANEL ${S.era + 1} DA ÁRVORE ABERTO`, b: ERAS[S.era].n.toUpperCase(), t: 4 };
+    V.toast = { a: FLAGS.viva ? 'NOVA ERA · NOVAS TECNOLOGIAS NA ÁRVORE' : `NOVA ERA · ANEL ${S.era + 1} DA ÁRVORE ABERTO`, b: ERAS[S.era].n.toUpperCase(), t: 4 };
     save();
   }
   if (V.toast) V.toast.t -= dt;

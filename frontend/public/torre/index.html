@@ -254,17 +254,39 @@
     <span class="hint" id="skSave">Salvo neste navegador.</span>
     <span class="grow"></span>
     <button class="resetbtn" id="skSnd" aria-pressed="true">Som</button>
+    <button class="resetbtn" id="skStory">História</button>
     <button class="resetbtn" id="skReset">Recomeçar</button>
     <span class="modelink" id="skMode"></span>
   </footer>
 </div>
+
+<!-- Abertura (Obra Viva): história em 4 quadros sobre a cena -->
+<div class="intro" id="intro" hidden role="dialog" aria-modal="true" aria-label="História da obra">
+  <button class="btn sm ghost in-skip" id="inSkip">Pular</button>
+  <div class="in-clips" id="inClips"></div>
+  <div class="in-era" id="inEra" hidden></div>
+  <div class="cheque" id="inCheque" hidden>
+    <div class="ch-top"><b>BANCO DA ORLA</b><span>Nº 000001</span></div>
+    <div class="ch-pay">Pague à <b id="inChequeTo">Construtora</b></div>
+    <div class="ch-val" id="inChequeVal">R$ 0,00</div>
+    <div class="ch-sig">Investidores do mundo todo</div>
+    <i class="ch-stamp">APROVADO</i>
+  </div>
+  <div class="in-card" id="inCard">
+    <small id="inK"></small>
+    <p id="inT"></p>
+    <div class="in-foot"><span class="in-dots" id="inDots"></span><button class="btn" id="inNext">Próximo</button></div>
+  </div>
+</div>
+<!-- manchetes de jornal e descobertas, sobre a cena -->
+<div class="news" id="news" hidden role="status"><small id="newsK"></small><b id="newsT"></b></div>
 
 <!-- Fim de jogo (Obra Viva): chegou à Órbita -->
 <div class="win" id="win" hidden role="dialog" aria-modal="true" aria-labelledby="winT">
   <div class="win-box">
     <small>TORRE CONCLUÍDA</small>
     <b id="winT">Órbita alcançada!</b>
-    <p>Sua construtora levou a torre do chão de Praia Grande até a órbita da Terra.</p>
+    <p>A torre da Construtora J. Santos saiu do chão de Praia Grande e alcançou a órbita da Terra. O impossível era só o começo.</p>
     <div class="kv" id="winStats"></div>
     <div class="win-b"><button class="btn" id="winGo">Continuar construindo</button><button class="btn ghost" id="winNew">Recomeçar do zero</button></div>
   </div>

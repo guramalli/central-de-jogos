@@ -1,7 +1,8 @@
 // Protótipo Obra Viva — Fase 1 (fatia vertical de 10 andares). Só vale com FLAGS.viva.
 // Números de teste, não finais: ajustar com o robô (tools/viva-ritmo.mjs) e com gente jogando.
 export const VIVA = {
-  startMoney: 0,         // a primeira compra vem do primeiro andar entregue
+  startMoney: 100,       // cheque dos investidores na abertura (história): ~3 compras logo de cara, 1º andar em ~20 s
+  curious: 0.5,          // R$/s dos curiosos no tapume antes do Elevador panorâmico (a torre já é famosa)
   floorPaySecs: 50,      // pagamento por andar entregue = aluguel-base do andar × isto (≈ R$ 25 nos primeiros)
   autoSellPct: 0,        // destino automático dos andares prontos (0 = aluga tudo); ninguém espera decisão manual
   hidden: ['corretor', 'banco'], // fora do Obra Viva (decisão do usuário: jogo simples, sem banco nem corretor)
