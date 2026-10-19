@@ -42,12 +42,6 @@ export function researchPos(id) {
   return [x, y + 180]; // notável
 }
 
-// melhoria do ramo de onde sai a linha pontilhada até o 1º anel de Pesquisa (a mais alta do ramo)
-export function researchRoot(b) {
-  const L = SKILL_LAYOUT[b]; if (!L) return null;
-  return Object.keys(L).sort((p, q) => L[q][1] - L[p][1] || Math.abs(L[p][0]) - Math.abs(L[q][0]))[0];
-}
-
 // nome curto embaixo do nó na árvore (o nome completo aparece no painel)
 export const SHORT = {
   pedreiro: 'Pedreiro', treino: 'Treino', ferram: 'Ferramenta', mestre: 'Mestre',

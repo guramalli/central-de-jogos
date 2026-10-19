@@ -360,6 +360,7 @@ canvas.drag{cursor:grabbing}
 .sk-ring text{font-family:var(--f-display);font-size:19px;fill:#5d6580}
 .sk-pedge{fill:none;stroke:#2b3044;stroke-width:4;stroke-linecap:square;stroke-linejoin:miter}
 .sk-pedge.link{stroke-dasharray:4 8;stroke:#3a4157;stroke-linecap:butt}
+.sk-pedge.link.ready{stroke:#8f7bd6}
 .sk-pedge.on{stroke:#a08ae8;stroke-width:5}
 .sk-pedge.hidden{display:none}
 g.sk-pe{cursor:pointer}

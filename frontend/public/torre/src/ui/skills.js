@@ -6,12 +6,12 @@
 import { FH, MPF } from '../data/constants.js';
 import { UP } from '../data/upgrades.js';
 import { NODES, EDGES, TBRANCHES, CENTER, RINGS, describeEffect, ringEraName, KIND_LABEL } from '../data/talents.js';
-import { SKILL_LAYOUT, COLS, BW, RES0, RING, colX, upgradePos, researchPos, researchRoot, BASE_POS, SHORT } from '../data/skillTree.js';
+import { SKILL_LAYOUT, COLS, BW, RES0, RING, colX, upgradePos, researchPos, BASE_POS, SHORT } from '../data/skillTree.js';
 import { VIVA } from '../data/viva.js';
 import { S, save } from '../sim/state.js';
 import { cost, unlocked, maxed, canBuy, buy } from '../sim/economy.js';
 import { upgradeEffect } from '../sim/preview.js';
-import { peAvailable, learn, learnBlock, owned, ringOpen, respec } from '../sim/talents.js';
+import { peAvailable, learn, learnBlock, owned, ringOpen, respec, branchStarted } from '../sim/talents.js';
 import { withTarget } from '../render/canvas.js';
 import { render } from '../render/scene.js';
 import { SHAFT_X } from '../render/tower.js';
@@ -126,10 +126,11 @@ function build() {
   // Pesquisa: arestas (o centro da antiga árvore radial vira uma linha pontilhada saindo do topo das compras do ramo)
   for (const [a, b] of EDGES) {
     if (a === CENTER || b === CENTER) {
-      const id = a === CENTER ? b : a, root = researchRoot(NODES[id].b);
-      const p0 = root ? upgradePos(NODES[id].b, root) : BASE_POS, p1 = researchPos(id);
-      const l = mk('path', { d: elbow(p0[0], p0[1], p1[0], p1[1]), class: 'sk-pedge link' }, gEdges);
-      peEdges.push({ a: CENTER, b: id, el: l, cls: '' });
+      // sai da base do ramo (onde começam as compras) e sobe pela lateral, sem passar pelas melhorias
+      const id = a === CENTER ? b : a, br = NODES[id].b, p1 = researchPos(id);
+      const x0 = br ? colX(br) : BASE_POS[0], xg = x0 - BW / 2 + 12, ym = RES0 - 75;
+      const l = mk('path', { d: `M${x0} ${Y(60)} H ${xg} V ${Y(ym)} H ${p1[0]} V ${Y(p1[1])}`, class: 'sk-pedge link' }, gEdges);
+      peEdges.push({ a: CENTER, b: id, br, el: l, cls: '' });
       continue;
     }
     // ponte entre o último e o primeiro ramo: só a ligação com o ramo do lado (a outra cruzaria a árvore toda)
@@ -185,7 +186,8 @@ function updateTree() {
     const fa = e.a === CENTER ? 'open' : fog(NODES[e.a]), fb = fog(NODES[e.b]);
     const hide = fa === 'hidden' || fb === 'hidden';
     const on = (e.a === CENTER || owned(e.a)) && owned(e.b);
-    const c = 'sk-pedge' + (e.a === CENTER ? ' link' : '') + (hide ? ' hidden' : on ? ' on' : '');
+    const ready = e.a === CENTER && (!e.br || branchStarted(e.br));
+    const c = 'sk-pedge' + (e.a === CENTER ? ' link' : '') + (hide ? ' hidden' : on ? ' on' : ready ? ' ready' : '');
     if (c !== e.cls) { e.el.setAttribute('class', c); e.cls = c; }
   }
 }
@@ -234,7 +236,8 @@ function drawDetail() {
   bt.hidden = own; bt.disabled = !!block;
   setText(bt, `Aprender · ★ ${nd.cost}`);
   setText($('sdReq'), own ? 'Aprendida.'
-    : block === 'Ligue a um nó já aprendido' ? 'Precisa estar ligada a uma pesquisa que você já aprendeu (ou ao topo das compras do ramo, no anel 1).'
+    : block === 'Ligue a um nó já aprendido' ? 'Precisa estar ligada a uma pesquisa que você já aprendeu.'
+      : block === 'Compre uma melhoria do ramo' ? `Compre pelo menos 1 nível de uma melhoria de ${branch} (com dinheiro) para começar a pesquisar este ramo.`
       : block === 'Pontos insuficientes' ? `Faltam ★ ${nd.cost - peAvailable()}. Os pontos vêm da altura da torre.`
         : block === 'Anel fechado' ? `Abre na era ${ringEraName(nd.ring)}.` : '');
 }
