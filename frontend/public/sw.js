@@ -46,6 +46,8 @@
 // (nem Ctrl+Shift+R resolvia). A subida de versão apaga a cópia guardada.
 // (eg-v16, sem subir versão) The Last Dance (/thelastdance/) também fica
 // FORA: protótipo em JS puro com nomes fixos; nunca foi guardado no cache.
+// (eg-v16, sem subir versão) Torre Infinita (/torre/) também fica FORA:
+// protótipo em módulos ES com nomes fixos; nunca foi guardado no cache.
 const VERSAO = "eg-v16";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
@@ -122,6 +124,9 @@ self.addEventListener("fetch", (evento) => {
 
   // ===== The Last Dance: fica de fora (ver eg-v16) =====
   if (url.pathname === "/thelastdance" || url.pathname.startsWith("/thelastdance/")) return;
+
+  // ===== Torre Infinita: fica de fora (ver eg-v16) =====
+  if (url.pathname === "/torre" || url.pathname.startsWith("/torre/")) return;
 
   // ===== Servidor de desenvolvimento (Vite): nunca cachear =====
   // O index.html registra este SW também no `npm run dev`. Lá os módulos

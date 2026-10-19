@@ -1,0 +1,63 @@
+import { SAVE_KEY } from '../data/constants.js';
+import { UP, KEYS } from '../data/upgrades.js';
+import { BAL } from '../data/balance.js';
+import { CENTER } from '../data/talents.js';
+
+export const SAVE_VERSION = 2;
+
+export function fresh() {
+  const lv = {};
+  KEYS.forEach(k => lv[k] = UP[k].start || 0);
+  return {
+    ver: SAVE_VERSION,
+    money: BAL.startMoney, floors: 0, ground: 10, top: 0, lv, last: Date.now(), era: 0,
+    maxAlt: 0,                    // altura recorde (m) — dá Pontos de Engenharia e libera tipos
+    // imóveis: andares [0, assigned) já têm destino; [assigned, floor(floors)) estão prontos esperando
+    assigned: 0, rented: 0, sold: 0,
+    rentBase: 0,                  // soma do aluguel-base dos andares alugados (antes dos multiplicadores)
+    typeSegs: [[0, 'apto']],      // [índice do andar, tipo] — tipo escolhido a partir daquele andar
+    typeCount: {},                // andares com destino, por tipo
+    broker: { on: true, sellPct: 30, acc: 0 },
+    // banco
+    debt: 0, inDefault: false,
+    // árvore de Engenharia
+    tree: { [CENTER]: true }, peSpent: 0, peBonus: 0,
+    stats: { saleTotal: 0, tourTotal: 0, interestTotal: 0 },
+  };
+}
+
+// Estado do jogo. `export let` é live binding: quem importa vê a troca feita por load()/resetState().
+export let S = fresh();
+
+// Devolve a versão do save carregado (0 se não havia save)
+export function load() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return 0;
+    const o = JSON.parse(raw);
+    // formato antigo: guarda uma cópia intacta antes de qualquer conversão (uma vez por versão)
+    if ((o.ver || 1) < SAVE_VERSION) {
+      const bk = SAVE_KEY + '-backup-v' + (o.ver || 1);
+      if (!localStorage.getItem(bk)) localStorage.setItem(bk, raw);
+    }
+    const f = fresh();
+    S = Object.assign(f, o);
+    S.lv = Object.assign(fresh().lv, o.lv || {});
+    S.broker = Object.assign(fresh().broker, o.broker || {});
+    S.stats = Object.assign(fresh().stats, o.stats || {});
+    return o.ver || 1;
+  } catch (e) { return 0; /* save corrompido ou storage bloqueado: começa do zero */ }
+}
+
+export function save() {
+  S.last = Date.now();
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { }
+}
+
+export function resetState() {
+  S = fresh();
+  save();
+}
+
+// Para testes e para o robô de balanceamento
+export function setState(o) { S = o; }

@@ -8,6 +8,7 @@
     { "source": "/grau-grinders", "destination": "/grau-grinders/", "permanent": false },
     { "source": "/jogorpg", "destination": "/jogorpg/", "permanent": false },
     { "source": "/thelastdance", "destination": "/thelastdance/", "permanent": false },
+    { "source": "/torre", "destination": "/torre/", "permanent": false },
     { "source": "/thelastdance/:pasta(reference|docs|tools|tests)/:resto*", "destination": "/thelastdance/", "permanent": false }
   ],
   "rewrites": [
@@ -19,6 +20,7 @@
     { "source": "/grau-grinders/", "destination": "/grau-grinders/index.html" },
     { "source": "/jogorpg/", "destination": "/jogorpg/index.html" },
     { "source": "/thelastdance/", "destination": "/thelastdance/index.html" },
+    { "source": "/torre/", "destination": "/torre/index.html" },
     { "source": "/v2", "destination": "/v2/index.html" },
     { "source": "/v2/(.*)", "destination": "/v2/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
@@ -51,6 +53,10 @@
     {
       "source": "/grau-grinders/Build/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+    },
+    {
+      "source": "/torre/(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     },
     {
       "source": "/jogorpg/(.*)",

@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Torre Infinita</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Rubik:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <section class="stage">
+    <div class="screen">
+      <div class="hud">
+        <div>
+          <div class="era" id="eraName">Tijolo e Madeira</div>
+          <div class="alt" id="alt">0 m</div>
+        </div>
+        <div class="money"><b id="money">R$ 0</b><span id="rent">+R$ 0/s</span></div>
+      </div>
+      <canvas id="cv" width="360" height="480" aria-label="Obra da torre em pixel art. Use a roda do mouse ou pinça para aproximar e afastar."></canvas>
+      <div class="erabar"><i id="eraFill"></i></div>
+      <div class="eranext"><span id="eraNext">Próxima era</span><span id="eraLeft"></span></div>
+      <div class="camctl" role="group" aria-label="Câmera">
+        <button id="z-out" aria-label="Afastar">−</button>
+        <button id="z-in" aria-label="Aproximar">+</button>
+        <button id="z-all" aria-pressed="false">Visão geral</button>
+        <span class="camhint">Roda do mouse ou pinça para zoom</span>
+      </div>
+      <div class="speed" role="group" aria-label="Velocidade de teste">
+        <span>Velocidade de teste:</span>
+        <button data-sp="1" aria-pressed="true">1×</button>
+        <button data-sp="10" aria-pressed="false">10×</button>
+        <button data-sp="100" aria-pressed="false">100×</button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <div class="card">
+      <div class="hazard"></div>
+      <h2>Canteiro <span class="mode" id="modeName">Tijolo a tijolo</span></h2>
+      <div class="body">
+        <div class="stats">
+          <div class="stat"><small>Andares</small><b id="floors">0</b></div>
+          <div class="stat"><small>Limite da fundação</small><b id="cap">25</b></div>
+          <div class="stat"><small>Material por andar</small><b id="fcost">39</b></div>
+          <div class="stat"><small>Andares por minuto</small><b id="fpm">0</b></div>
+        </div>
+        <div class="warn" id="capWarn" hidden>A fundação chegou ao limite. Reforce a fundação em Engenharia para continuar subindo.</div>
+        <div class="ready" id="ready" hidden>
+          <span><b id="readyN">0</b> <span id="readyTxt">andares prontos sem destino</span></span>
+          <div class="btnrow">
+            <button class="btn" id="qRent">Alugar todos</button>
+            <button class="btn ghost" id="qSell">Vender todos</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pages" role="tablist" id="pages">
+      <button role="tab" data-page="obra" aria-selected="true">Construção<span class="dot" hidden></span></button>
+      <button role="tab" data-page="neg" aria-selected="false">Negócios<span class="dot" hidden></span></button>
+      <button role="tab" data-page="arv" aria-selected="false">Árvore<span class="pill" hidden></span></button>
+    </div>
+
+    <section class="page" id="pg-obra">
+      <div class="card">
+        <h2>Fluxo de material</h2>
+        <div class="body">
+          <div class="flow">
+            <span class="lbl" id="l-prod">Produção</span><div class="bar" id="b-prod"><i></i></div><span class="val" id="v-prod">0/s</span>
+            <span class="lbl" id="l-tran">Transporte</span><div class="bar" id="b-tran"><i></i></div><span class="val" id="v-tran">0/s</span>
+            <span class="lbl" id="l-lay">Assentamento</span><div class="bar" id="b-lay"><i></i></div><span class="val" id="v-lay">0/s</span>
+          </div>
+          <div class="stock"><span id="s-ground">Térreo: 0</span><span id="s-top">No topo: 0</span></div>
+          <div class="hint" id="neckHint"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="tabs" role="tablist" id="tabs"></div>
+        <div class="tree" id="tree"></div>
+      </div>
+    </section>
+
+    <section class="page" id="pg-neg" hidden>
+      <div class="card">
+        <h2>Imóveis</h2>
+        <div class="body">
+          <div class="kv">
+            <span>Prontos esperando</span><b id="r-pend">0</b>
+            <span>Alugados</span><b id="r-rented">0</b>
+            <span>Vendidos</span><b id="r-sold">0</b>
+            <span>Renda de aluguel</span><b id="r-rent">R$ 0/s</b>
+          </div>
+          <div class="deal">
+            <div class="dealrow">
+              <span class="dl">Vender</span>
+              <button class="btn sm" data-sell="1">1</button><button class="btn sm" data-sell="10">10</button><button class="btn sm" data-sell="all">Todos</button>
+              <span class="dv" id="r-sellv"></span>
+            </div>
+            <div class="dealrow">
+              <span class="dl">Alugar</span>
+              <button class="btn sm" data-rent="1">1</button><button class="btn sm" data-rent="10">10</button><button class="btn sm" data-rent="all">Todos</button>
+              <span class="dv" id="r-rentv"></span>
+            </div>
+          </div>
+          <div>
+            <div class="sub">Tipo dos próximos andares</div>
+            <div class="types" id="types"></div>
+          </div>
+          <div class="broker" id="broker" hidden>
+            <label class="switch"><input type="checkbox" id="b-on"> Corretor decide sozinho</label>
+            <div class="presets" role="group" aria-label="Estratégia do corretor">
+              <button class="btn sm ghost" data-preset="70">Expansão<small>vende 70%</small></button>
+              <button class="btn sm ghost" data-preset="40">Equilibrado<small>vende 40%</small></button>
+              <button class="btn sm ghost" data-preset="10">Renda<small>vende 10%</small></button>
+            </div>
+            <input type="range" id="b-pct" min="0" max="100" step="5" aria-label="Porcentagem vendida pelo corretor">
+            <div class="split"><span id="b-sell">Vender 30%</span><span id="b-rent">Alugar 70%</span></div>
+          </div>
+          <div class="hint" id="brokerHint">Contrate um corretor em Construção › Mercado para decidir o destino dos andares sozinho, inclusive fora do jogo.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Turismo</h2>
+        <div class="body">
+          <div class="hint" id="t-off">Compre o Elevador panorâmico em Construção › Mercado para abrir a torre a visitantes (a partir de 40 m).</div>
+          <div id="t-on" hidden>
+            <div class="kv">
+              <span>Interessados</span><b id="t-dem">0/s</b>
+              <span>Capacidade</span><b id="t-cap">0/s</b>
+              <span>Ingresso</span><b id="t-tick">R$ 0</b>
+              <span>Receita</span><b id="t-rev">R$ 0/s</b>
+            </div>
+            <div class="bar tour" id="t-bar"><i></i></div>
+            <div class="hint" id="t-hint"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Banco <span class="mode" id="k-tier">Banco do bairro</span></h2>
+        <div class="body">
+          <div class="kv">
+            <span>Dívida</span><b id="k-debt">R$ 0</b>
+            <span>Limite de crédito</span><b id="k-lim">R$ 0</b>
+            <span>Juros</span><b id="k-rate">0%/min</b>
+            <span>Indo para o banco</span><b id="k-share">—</b>
+          </div>
+          <div class="warn" id="k-def" hidden></div>
+          <div class="dealrow">
+            <span class="dl">Pegar</span>
+            <button class="btn sm" data-loan="0.25">25%</button><button class="btn sm" data-loan="0.5">50%</button><button class="btn sm" data-loan="1">Máx.</button>
+            <span class="dv" id="k-avail"></span>
+          </div>
+          <div class="dealrow">
+            <span class="dl">Pagar</span>
+            <button class="btn sm" data-pay="0.25">25%</button><button class="btn sm" data-pay="1">Quitar</button>
+            <span class="dv"></span>
+          </div>
+          <div class="hint">Com dívida, 20% da renda paga o banco sozinha. Se a dívida passar de 120% do limite, entra em renegociação: juros pela metade e 40–60% da renda retida até voltar ao limite. A obra nunca para.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="pg-arv" hidden>
+      <div class="card">
+        <div class="hazard"></div>
+        <h2>Árvore de Engenharia</h2>
+        <div class="body">
+          <div class="pebig"><b id="a-pe">0</b><span>Pontos de Engenharia disponíveis</span></div>
+          <div class="hint" id="a-next"></div>
+          <button class="btn wide" id="a-open">Abrir mapa da árvore</button>
+          <div class="kv">
+            <span>Nós aprendidos</span><b id="a-count">0</b>
+            <span>Anéis abertos</span><b id="a-rings">1 de 7</b>
+          </div>
+          <div class="sub">Bônus ativos</div>
+          <ul class="bonus" id="a-bonus"></ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="foot">
+      <span id="footTxt">Salvo neste navegador. O progresso continua por até 8 h fora do jogo.</span>
+      <button id="reset">Recomeçar</button>
+    </div>
+  </aside>
+</div>
+
+<div class="tmap" id="tmap" hidden role="dialog" aria-modal="true" aria-label="Mapa da árvore de Engenharia">
+  <header class="tmap-h">
+    <b class="tmap-t">Árvore de Engenharia</b>
+    <span class="tmap-pe"><b id="m-pe">0</b> PE</span>
+    <span class="grow"></span>
+    <button class="btn sm ghost" id="m-out" aria-label="Afastar">−</button>
+    <button class="btn sm ghost" id="m-in" aria-label="Aproximar">+</button>
+    <button class="btn sm ghost" id="m-center">Centralizar</button>
+    <button class="btn sm ghost" id="m-respec">Redistribuir</button>
+    <button class="btn sm" id="m-close">Fechar</button>
+  </header>
+  <svg id="m-svg" class="tmap-svg"></svg>
+  <aside class="tmap-d" id="m-detail">
+    <div class="tmap-kind" id="d-kind"></div>
+    <div class="tmap-name" id="d-name">Escolha um nó</div>
+    <ul class="tmap-eff" id="d-eff"></ul>
+    <div class="hint" id="d-desc">Arraste para mover, use a roda do mouse ou pinça para zoom. Nós acesos ao lado dos seus podem ser aprendidos.</div>
+    <button class="btn wide" id="d-learn" hidden>Aprender</button>
+    <div class="hint" id="d-block"></div>
+  </aside>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
