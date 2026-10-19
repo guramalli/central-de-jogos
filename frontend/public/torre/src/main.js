@@ -1,4 +1,4 @@
-import { S, load, save, resetState } from './sim/state.js';
+import { S, load, save, resetState, saveKey } from './sim/state.js';
 import { sim } from './sim/economy.js';
 import { migrate } from './sim/migrate.js';
 import { runOffline } from './sim/offline.js';
@@ -16,6 +16,16 @@ import { syncEvents, recent } from './render/events.js';
 import { initEffects } from './render/effects.js';
 import { soundOn, setSound } from './ui/audio.js';
 
+// ?reset no endereço: apaga o save deste modo e começa do zero (o parâmetro sai do endereço,
+// para recarregar a página não apagar de novo)
+{
+  const u = new URL(location.href);
+  if (u.searchParams.has('reset')) {
+    try { localStorage.removeItem(saveKey()); } catch (e) { }
+    u.searchParams.delete('reset');
+    history.replaceState(null, '', u.pathname + u.search.replace('viva=', 'viva') + u.hash);
+  }
+}
 migrate(load());
 setNotice(runOffline());
 syncEvents();   // o que aconteceu fora do jogo vira resumo, não animação
@@ -59,8 +69,8 @@ spBtns.forEach(b => b.onclick = () => {
 const rs = $('reset');
 const disarm = () => { rs.classList.remove('armed'); rs.textContent = 'Recomeçar'; };
 rs.onclick = () => {
-  if (rs.classList.contains('armed')) { resetState(); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); disarm(); updateUI(); return; }
-  rs.classList.add('armed'); rs.textContent = 'Clique de novo para apagar tudo';
+  if (rs.classList.contains('armed')) { resetState(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); disarm(); updateUI(); return; }
+  rs.classList.add('armed'); rs.textContent = 'Confirmar: apagar tudo';
   setTimeout(disarm, 3000);
 };
 
