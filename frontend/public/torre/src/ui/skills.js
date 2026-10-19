@@ -67,6 +67,15 @@ const lockText = k => {
   return parts.length ? 'Libera quando ' + parts.join(' e ') + '.' : '';
 };
 
+// o que falta, curto, para escrever na árvore ("Treino nv 3", "torre em 1 km")
+const reqShort = k => {
+  const u = UP[k];
+  if (u.req && S.lv[u.req[0]] < u.req[1]) return `${SHORT[u.req[0]] || UP[u.req[0]].n} nv ${u.req[1]}`;
+  if (u.reqAlt && S.maxAlt < u.reqAlt) return 'torre em ' + fmtM(u.reqAlt);
+  if (k === 'banco' && S.maxAlt < BANK_AT) return 'torre em ' + fmtM(BANK_AT);
+  return '';
+};
+
 // névoa da Pesquisa: anéis abertos inteiros, o próximo como pista, os demais escondidos
 let openRing = 1;
 const fog = n => n.ring <= openRing ? 'open' : n.ring === openRing + 1 ? 'hint' : 'hidden';
@@ -96,13 +105,15 @@ function build() {
   const [bx, by] = BASE_POS;
   for (const b of COLS) {
     const x = colX(b), c = COLOR[b];
-    mk('path', { d: `M${bx} ${Y(by)} V ${Y(12)} H ${x} V ${Y(60)}`, class: 'sk-trunk', style: `--c:${c}` }, gEdges);
+    mk('path', { d: `M${x} ${Y(12)} V ${Y(60)}`, class: 'sk-trunk', style: `--c:${c}` }, gEdges); // cada ramo sobe na sua cor
     const lab = mk('g', { class: 'sk-blabel', transform: `translate(${x} ${Y(-115)})`, style: `--c:${c}` }, gNodes);
     mk('rect', { x: -BW / 2 + 12, y: -22, width: BW - 24, height: 56 }, lab);
     mk('rect', { x: -BW / 2 + 18, y: -16, width: BW - 36, height: 44, class: 'bev' }, lab);
     const t1 = mk('text', { y: 2, 'text-anchor': 'middle', class: 'n' }, lab); t1.textContent = BRANCH_INFO[b][0];
     const t2 = mk('text', { y: 24, 'text-anchor': 'middle', class: 'd' }, lab); t2.textContent = BRANCH_INFO[b][1];
   }
+  // tronco neutro: do OBRA até a base de todos os ramos (as cores começam onde cada ramo sobe)
+  mk('path', { d: `M${bx} ${Y(by)} V ${Y(12)} M${colX(COLS[0])} ${Y(12)} H ${colX(COLS[COLS.length - 1])}`, class: 'sk-trunk0' }, gEdges);
   const base = mk('g', { class: 'sk-base', transform: `translate(${bx} ${Y(by)})` }, gNodes);
   mk('image', { x: -40, y: -40, width: 80, height: 80, class: 'px', href: spriteDataURL(badgeSprite('#f2b630', 'max')) }, base);
   const bt = mk('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central' }, base); bt.textContent = 'OBRA';
@@ -110,8 +121,11 @@ function build() {
   for (const b in SKILL_LAYOUT) {
     const L = SKILL_LAYOUT[b], c = COLOR[b];
     for (const k in L) {
-      const [x, y] = upgradePos(b, k), from = L[k][2], [x0, y0] = from ? upgradePos(b, from) : [colX(b), 60];
-      const e = mk('path', { d: elbow(x0, y0, x, y), class: 'sk-edge', style: `--c:${c}` }, gEdges);
+      // linha: do requisito (ou da base do ramo, na 1ª fileira); quem depende só da altura fica sem linha
+      const [x, y] = upgradePos(b, k), from = L[k][2], root = !from && L[k][1] === 1, [x0, y0] = from ? upgradePos(b, from) : [colX(b), 60];
+      const e = from || root ? mk('path', { d: elbow(x0, y0, x, y), class: 'sk-edge', style: `--c:${c}` }, gEdges) : null;
+      // o que falta para liberar: ao lado da linha do requisito, ou embaixo do nome
+      const rq = mk('text', from ? { class: 'rq', x: Math.max(x0, x) - x + 12, y: -(y0 + y) / 2 + y + 6 + (x0 === x ? 0 : -14), 'text-anchor': 'start' } : { class: 'rq', y: 76, 'text-anchor': 'middle' }, null);
       const n = mk('g', { class: 'sk-node', transform: `translate(${x} ${Y(y)})`, style: `--c:${c}`, 'data-up': k }, gNodes);
       mk('rect', { x: -40, y: -40, width: 80, height: 80, class: 'halo' }, n);
       const badge = mk('image', { x: -36, y: -36, width: 72, height: 72, class: 'px' }, n);
@@ -120,7 +134,8 @@ function build() {
       mk('rect', { x: 13, y: 15, width: 26, height: 20, class: 'lvbox' }, n);
       const lv = mk('text', { class: 'lvl', x: 26, y: 26, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, n);
       const nm = mk('text', { class: 'nm', y: 54, 'text-anchor': 'middle' }, n); nm.textContent = SHORT[k] || UP[k].n;
-      upEls[k] = { n, lv, e, badge, cls: '', st: '' };
+      n.appendChild(rq);
+      upEls[k] = { n, lv, e, rq, badge, cls: '', st: '' };
     }
   }
   // Pesquisa: arestas (o centro da antiga árvore radial vira uma linha pontilhada saindo do topo das compras do ramo)
@@ -167,7 +182,8 @@ function updateTree() {
     const cls = 'sk-node ' + st + (isSel ? ' sel' : '');
     if (cls !== e.cls) { e.n.setAttribute('class', cls); e.cls = cls; }
     if (st !== e.st) { e.badge.setAttribute('href', spriteDataURL(badgeSprite(COLOR[UP[k].b], st))); e.st = st; }
-    e.e.classList.toggle('on', lv > 0);
+    if (e.e) { e.e.classList.toggle('on', lv > 0); e.e.classList.toggle('open', !lk && lv === 0); }
+    setText(e.rq, lk ? reqShort(k) : '');
   }
   for (const id in peEls) {
     const nd = NODES[id], e = peEls[id], f = fog(nd);
@@ -187,7 +203,7 @@ function updateTree() {
     const hide = fa === 'hidden' || fb === 'hidden';
     const on = (e.a === CENTER || owned(e.a)) && owned(e.b);
     const ready = e.a === CENTER && (!e.br || branchStarted(e.br));
-    const c = 'sk-pedge' + (e.a === CENTER ? ' link' : '') + (hide ? ' hidden' : on ? ' on' : ready ? ' ready' : '');
+    const c = 'sk-pedge' + (e.a === CENTER ? ' link' : '') + (hide ? ' hidden' : on ? ' on' : ready ? ' lit' : '');
     if (c !== e.cls) { e.el.setAttribute('class', c); e.cls = c; }
   }
 }

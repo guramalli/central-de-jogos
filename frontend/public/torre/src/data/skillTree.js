@@ -8,17 +8,18 @@ import { NODES, CENTER, TBRANCHES } from './talents.js';
 export const COLS = TBRANCHES.map(b => b.id);          // obra, forn, log, eng, merc, cien
 export const BW = 300;                                 // largura de um ramo
 export const SUB = 92;                                 // distância entre sub-colunas das compras
-export const ROW = 100;                                // distância entre linhas das compras
-export const RES0 = 560, RING = 270;                   // onde começa a Pesquisa e altura de cada anel
+export const ROW = 140;                                // distância entre linhas das compras
+export const RES0 = 720, RING = 270;                   // onde começa a Pesquisa e altura de cada anel
 export const colX = b => (COLS.indexOf(b) - (COLS.length - 1) / 2) * BW;
 
-// Compras com dinheiro: [sub-coluna, linha, de onde sai a linha] — linha 1 logo acima do tronco
+// Compras com dinheiro (layout "colunas subindo", decidido com o usuário): [sub-coluna, linha, de onde sai a linha].
+// As linhas seguem os pré-requisitos reais (req); quem só depende da altura da torre fica solto, sem linha.
 export const SKILL_LAYOUT = {
+  obra: { pedreiro: [0, 1], treino: [0, 2, 'pedreiro'], ferram: [0, 3, 'treino'], mestre: [0, 4, 'ferram'] },
   forn: { fornec: [0, 1], caminhao: [0, 2, 'fornec'], olaria: [0, 3, 'caminhao'], premold: [0, 4, 'olaria'] },
-  log: { elevador: [-1, 1], cacamba: [0, 1], motor: [1, 1], maglev: [0, 2, 'cacamba'] },
-  obra: { pedreiro: [-1, 1], ferram: [1, 1], treino: [-1, 2, 'pedreiro'], mestre: [1, 2, 'ferram'] },
-  eng: { fundacao: [0, 1], guindaste: [-1, 2, 'fundacao'], projeto: [1, 2, 'fundacao'] },
-  merc: { corretor: [-1, 1], bilheteria: [0, 1], aluguel: [1, 1], marketing: [0, 2, 'bilheteria'], banco: [1, 2, 'aluguel'], heliponto: [-1, 3, 'marketing'], porto: [0, 4, 'heliponto'] },
+  log: { elevador: [-0.6, 1], motor: [0.6, 1], cacamba: [0.6, 2, 'motor'], maglev: [0.6, 3, 'cacamba'] },
+  eng: { fundacao: [0, 1], guindaste: [-0.6, 2, 'fundacao'], projeto: [0.6, 2, 'fundacao'] },
+  merc: { aluguel: [-0.85, 1], bilheteria: [0, 1], corretor: [0.85, 1], marketing: [0, 2, 'bilheteria'], banco: [-0.85, 3], heliponto: [0.85, 3], porto: [0, 4] },
 };
 
 export const upgradePos = (b, k) => { const [c, r] = SKILL_LAYOUT[b][k]; return [colX(b) + c * SUB, r * ROW]; };

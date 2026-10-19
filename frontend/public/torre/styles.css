@@ -324,8 +324,10 @@ canvas.drag{cursor:grabbing}
 /* nós da árvore (pixel art: emblemas e ícones são sprites desenhados em src/ui/icons.js) */
 .sk-tree svg image.px{image-rendering:pixelated;image-rendering:crisp-edges}
 .sk-tree svg path,.sk-tree svg line,.sk-tree svg rect{shape-rendering:crispEdges}
-.sk-edge{fill:none;stroke:#2b3044;stroke-width:6;stroke-linecap:square;stroke-linejoin:miter}
+.sk-edge{fill:none;stroke:color-mix(in srgb,var(--c) 22%,#141824);stroke-width:6;stroke-linecap:square;stroke-linejoin:miter}
+.sk-edge.open{stroke:color-mix(in srgb,var(--c) 55%,#141824)}
 .sk-edge.on{stroke:var(--c)}
+.sk-node .rq{font-family:var(--f-display);font-size:15px;font-weight:600;fill:#8a91a3;paint-order:stroke;stroke:#0b0d13;stroke-width:4px;stroke-linejoin:round}
 .sk-node{cursor:pointer;outline:none}
 .sk-node .halo{fill:none;stroke:none}
 .sk-node .lvbox{fill:#0b0c11;stroke:var(--c);stroke-width:3}
@@ -350,7 +352,8 @@ canvas.drag{cursor:grabbing}
 .sk-pts.has{color:var(--ink);background:#a08ae8;border-color:#a08ae8;animation:pepulse 1.6s ease-in-out infinite}
 .sk-legend{position:absolute;left:12px;bottom:10px;display:flex;gap:12px;font-size:12px;color:var(--muted);pointer-events:none}
 .sk-legend .lg-pe{color:#a08ae8}
-.sk-trunk{fill:none;stroke:color-mix(in srgb,var(--c) 60%,#141824);stroke-width:8;stroke-linecap:square;stroke-linejoin:miter}
+.sk-trunk{fill:none;stroke:var(--c);stroke-width:8;stroke-linecap:square;stroke-linejoin:miter}
+.sk-trunk0{fill:none;stroke:#6b7290;stroke-width:8;stroke-linecap:square;stroke-linejoin:miter}
 .sk-blabel rect{fill:#141824;stroke:var(--c);stroke-width:4}
 .sk-blabel .bev{fill:none;stroke:color-mix(in srgb,var(--c) 35%,#141824);stroke-width:3}
 .sk-blabel .n{font-family:var(--f-display);font-size:24px;font-weight:700;fill:var(--c)}
@@ -360,7 +363,7 @@ canvas.drag{cursor:grabbing}
 .sk-ring text{font-family:var(--f-display);font-size:19px;fill:#5d6580}
 .sk-pedge{fill:none;stroke:#2b3044;stroke-width:4;stroke-linecap:square;stroke-linejoin:miter}
 .sk-pedge.link{stroke-dasharray:4 8;stroke:#3a4157;stroke-linecap:butt}
-.sk-pedge.link.ready{stroke:#8f7bd6}
+.sk-pedge.link.lit{stroke:#8f7bd6}
 .sk-pedge.on{stroke:#a08ae8;stroke-width:5}
 .sk-pedge.hidden{display:none}
 g.sk-pe{cursor:pointer}

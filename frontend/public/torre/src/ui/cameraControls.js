@@ -1,7 +1,7 @@
 // Controles da câmera: arrastar para mover, roda do mouse ou pinça para zoom no ponto
 // apontado, e os botões sobre o canvas.
 import { W, H } from '../data/constants.js';
-import { zoomAt, zoomBy, panBy, toggleOverview, followBuild, isOverview, isFree } from '../render/camera.js';
+import { zoomAt, zoomBy, panBy, toggleOverview, followBuild, isOverview, isFree, goTop, goBase } from '../render/camera.js';
 import { $ } from './dom.js';
 
 const cv = $('cv'), allBtn = $('z-all'), followBtn = $('z-follow');
@@ -15,6 +15,8 @@ $('z-in').onclick = () => { zoomBy(1.4); syncCameraButtons(); };
 $('z-out').onclick = () => { zoomBy(1 / 1.4); syncCameraButtons(); };
 allBtn.onclick = () => { toggleOverview(); syncCameraButtons(); };
 followBtn.onclick = () => { followBuild(); syncCameraButtons(); };
+$('z-top').onclick = () => { goTop(); syncCameraButtons(); };
+$('z-base').onclick = () => { goBase(); syncCameraButtons(); };
 
 // posição do ponteiro em pixels do canvas (o CSS amplia o canvas; descontando a borda)
 function toCanvas(clientX, clientY) {

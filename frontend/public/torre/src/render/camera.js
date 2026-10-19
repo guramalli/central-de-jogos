@@ -73,7 +73,14 @@ export function toggleOverview() {
   ctl.free = false;
   if (!ctl.overview && ctl.userZ < 0.6) ctl.userZ = 1;
 }
-export function followBuild() { ctl.free = false; ctl.overview = false; ctl.cine = null; if (ctl.userZ < 0.6) ctl.userZ = 1; }
+export function followBuild() { ctl.free = false; ctl.overview = false; ctl.cine = null; ctl.hold = false; if (ctl.userZ < 0.6) ctl.userZ = 1; }
+// botões de atalho: topo (volta a seguir a obra, direto) e base (térreo; fica lá até o jogador sair)
+export function goTop() { followBuild(); ctl.snap = true; }
+export function goBase() {
+  goFree(); ctl.hold = true;
+  cam.z = clamp(Math.max(ctl.userZ, 0.6), minZ(), ZMAX);
+  cam.cx = 30 * Math.min(1, cam.z); cam.cy = (H / 2 - 110) / cam.z;
+}
 export const isOverview = () => ctl.overview && !ctl.free;
 export const isFree = () => ctl.free;
 export const cinematic = () => ctl.cine;
@@ -93,7 +100,7 @@ export function startMilestone(floors, title, sub) {
 export function updateCamera(dt, buildTop, topY, zCap = ZMAX, above = 0) {
   ctl.topY = topY;
   if (ctl.free) {
-    ctl.idle += dt;
+    if (!ctl.hold) ctl.idle += dt;
     if (ctl.idle > FREE_RETURN) followBuild(); // esqueceu a câmera solta: volta a seguir a obra
     else { clampFree(); ctl.snap = false; return; }
   }
