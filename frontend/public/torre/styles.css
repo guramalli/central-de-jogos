@@ -4,8 +4,7 @@
 :root{
   --bg:#11131a; --panel:#181b25; --panel2:#1f2331; --line:#2b3044;
   --fg:#ece6d6; --muted:#9097a9; --accent:#f2b630; --bad:#ff6b4a; --good:#6fd08c; --ink:#0b0c11;
-  --f-display:"Chakra Petch", "Rubik", system-ui, sans-serif;   /* títulos, botões, valores: legível em tamanho pequeno */
-  --f-pixel:"Pixelify Sans", ui-monospace, "Courier New", monospace; /* só números grandes (altura, dinheiro) */
+  --f-display:"Chakra Petch", "Rubik", system-ui, sans-serif;   /* títulos, botões e números: legível em qualquer tamanho */
   --f-body:"Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme:dark;
 }
@@ -18,9 +17,9 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outli
   padding:12px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
 .top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 .eyebrow{font-family:var(--f-display);font-size:13px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
-.alt{font-family:var(--f-pixel);font-size:32px;line-height:1;font-weight:700;font-variant-numeric:tabular-nums}
+.alt{font-family:var(--f-display);font-size:32px;line-height:1;font-weight:700;font-variant-numeric:tabular-nums}
 .money{text-align:right}
-.money b{font-family:var(--f-pixel);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;display:block;line-height:1}
+.money b{font-family:var(--f-display);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;display:block;line-height:1}
 .money span{color:var(--good);font-size:13px;font-variant-numeric:tabular-nums}
 
 .game{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);gap:14px;min-height:0}
@@ -165,7 +164,7 @@ canvas.drag{cursor:grabbing}
 
 /* árvore (resumo) */
 .pebig{display:flex;align-items:baseline;gap:10px}
-.pebig b{font-family:var(--f-pixel);font-size:34px;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.pebig b{font-family:var(--f-display);font-size:34px;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
 .pebig span{color:var(--muted);font-size:13px}
 .bonus{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:13px}
 .bonus li{display:flex;justify-content:space-between;gap:8px}

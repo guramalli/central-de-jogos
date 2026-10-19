@@ -87,7 +87,7 @@ export function render() {
     if (y > 8 && y < H - 4 && lastY - y > 22) {
       lastY = y;
       r(0, y, Math.max(0, sx(TL) - 8), 1, 'rgba(255,255,255,.35)');
-      ctx.font = '9px "Pixelify Sans", monospace'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+      ctx.font = '600 9px "Chakra Petch", sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
       ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillText(fmtM(m), 4, y - 7);
     }
   });
@@ -210,8 +210,8 @@ function banner(a, b, alpha, y = 40) {
   for (let x = 0; x < W; x += 12) { r(x, y, 6, 4, '#f2b630'); r(x + 6, y, 6, 4, '#11131a'); r(x, y + 36, 6, 4, '#11131a'); r(x + 6, y + 36, 6, 4, '#f2b630'); }
   r(0, y + 4, W, 32, 'rgba(17,19,26,.92)');
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#f2b630'; ctx.font = '10px "Pixelify Sans", monospace'; ctx.fillText(a, W / 2, y + 13);
-  ctx.fillStyle = '#ece6d6'; ctx.font = '16px "Pixelify Sans", monospace'; ctx.fillText(b, W / 2, y + 27);
+  ctx.fillStyle = '#f2b630'; ctx.font = '600 10px "Chakra Petch", sans-serif'; ctx.fillText(a, W / 2, y + 13);
+  ctx.fillStyle = '#ece6d6'; ctx.font = '600 16px "Chakra Petch", sans-serif'; ctx.fillText(b, W / 2, y + 27);
   ctx.textAlign = 'left'; ctx.globalAlpha = 1;
 }
 function drawToast() {
@@ -224,6 +224,6 @@ function drawMilestone() {
   if (a <= 0) return;
   banner('MARCO DA OBRA', c.title, a, 24);
   ctx.globalAlpha = a; r(W / 2 - 110, 66, 220, 18, 'rgba(17,19,26,.75)');
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ece6d6'; ctx.font = '10px "Pixelify Sans", monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ece6d6'; ctx.font = '600 10px "Chakra Petch", sans-serif';
   ctx.fillText(c.sub, W / 2, 75); ctx.textAlign = 'left'; ctx.globalAlpha = 1;
 }

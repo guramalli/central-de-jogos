@@ -34,7 +34,7 @@ export function Rv(x, y, w, h, c) {
 export function T(str, x, y, size, color, align = 'left') {
   const px = Math.round(size * cam.z);
   if (px < 6) return false;
-  ctx.font = `${px}px "Pixelify Sans", monospace`; ctx.textAlign = align; ctx.textBaseline = 'middle';
+  ctx.font = `600 ${px}px "Chakra Petch", sans-serif`; ctx.textAlign = align; ctx.textBaseline = 'middle';
   ctx.fillStyle = color;
   ctx.fillText(str, Math.round(x * cam.z + W / 2 - cam.cx * cam.z), Math.round(H / 2 - (y - cam.cy) * cam.z));
   ctx.textAlign = 'left';
