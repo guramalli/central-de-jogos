@@ -46,20 +46,28 @@ export function brickTile(v) {
 // ponto de apoio = canto inferior esquerdo da carroceria, no chão (TRUCK_AX pixels da borda do sprite)
 export const TRUCK_AX = 12;
 const TRK = { cab: ['#1c3f63', '#2a5a8a', '#3a77b0', '#6aa2d6'], bed: ['#8f5a10', '#c47f17', '#ee9f26', '#ffc35a'], drum: ['#7e8594', '#a6adba', '#c9ced8', '#eef0f4'] };
-export function truckSprite(kind, f, tilt, load) {
-  return makeSprite(`truck-${kind}-${f}-${tilt ? 1 : 0}-${load || ''}`, 134, 78, p => {
+// mistura de duas cores hex, devolve hex (shade só aceita hex)
+export const hexMix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0')).join('');
+// cor da cabine por nível do Caminhão maior: azul → verde → amarelo → laranja → vermelho
+const TRUCK_TINT = ['#3a77b0', '#2f8aa8', '#2f9a7e', '#3aa04e', '#7aa832', '#c4a62e', '#e0902a', '#e0702a', '#d9502e', '#c0303a'];
+export function truckSprite(kind, f, tilt, load, lv = 0) {
+  return makeSprite(`truck-${kind}-${f}-${tilt ? 1 : 0}-${load || ''}-${lv}`, 134, 78, p => {
     const Q = (lx, ly, w, h, c) => p.r(lx + TRUCK_AX, 76 - ly - h, w, h, c);
+    const cc = TRUCK_TINT[Math.min(9, Math.max(0, lv - 1))], TC = [shade(cc, -0.45), shade(cc, -0.22), cc, shade(cc, 0.35)];
+    if (lv >= 7) { Q(72, 50, 4, 22, '#9aa0ab'); Q(72, 50, 1, 22, '#eef0f4'); Q(71, 70, 6, 2, '#5a5f6a'); } // escapamento cromado
     // chassi e para-choques
     Q(-2, 10, 118, 5, '#2a2d36'); Q(-2, 14, 118, 1, '#4a4f5c'); Q(112, 9, 6, 8, '#7c818c'); Q(112, 16, 6, 1, '#b4bac4'); Q(-4, 10, 4, 6, '#7c818c');
     // cabine
-    const c = TRK.cab;
+    const c = lv > 0 ? TC : TRK.cab;
     Q(76, 14, 38, 40, c[2]); Q(76, 14, 3, 40, c[1]); Q(111, 15, 2, 38, c[3]); Q(76, 50, 38, 4, c[1]); Q(78, 54, 34, 2, c[0]);
     Q(84, 32, 24, 16, '#9fd0f0'); Q(84, 46, 24, 2, '#d9f1ff'); Q(86, 34, 3, 10, '#d9f1ff'); Q(90, 40, 2, 5, '#d9f1ff'); Q(84, 32, 24, 1, c[0]);
     Q(95, 33, 6, 7, '#2a2a33'); Q(96, 40, 4, 4, '#e0a878'); Q(95, 43, 6, 2, '#f7c824');                 // motorista de capacete
     Q(81, 18, 1, 30, c[0]); Q(84, 28, 5, 2, c[0]);                                                       // porta e maçaneta
     Q(114, 36, 3, 9, '#3b4152'); Q(110, 18, 4, 4, '#ffe27a'); Q(110, 18, 4, 1, '#c9a227');               // espelho e farol
     Q(100, 18, 9, 7, c[1]); for (let k = 0; k < 3; k++) Q(101, 19 + k * 2, 7, 1, c[0]);                  // grade
-    Q(78, 56, 4, 3, '#ff8a1e');                                                                          // giroflex
+    if (lv >= 4) { Q(80, 56, 28, 3, '#3b4152'); Q(81, 57, 6, 3, f % 2 ? '#ffd23a' : '#ff8a1e'); Q(101, 57, 6, 3, f % 2 ? '#ff8a1e' : '#ffd23a'); } // barra de giroflex
+    else Q(78, 56, 4, 3, '#ff8a1e');                                                                     // giroflex
+    if (lv >= 10) { Q(86, 22, 12, 6, '#f4f1e6'); Q(88, 23, 8, 4, TC[0]); }                               // logotipo na porta
     if (kind === 'mixer') {
       // tambor da betoneira: barril com as pontas afinando, faixas espirais girando
       Q(2, 14, 72, 5, '#3e434d'); Q(2, 18, 72, 1, '#5a5f6a');                                          // longarina
@@ -70,7 +78,8 @@ export function truckSprite(kind, f, tilt, load) {
         const t = (y - 14.5) / 15, half = Math.round(34 * Math.sqrt(Math.max(0, 1 - t * t * 0.55)));
         const tone = y < 6 ? d[1] : y > 23 ? d[3] : y > 17 ? d[2] : d[2];
         Q(39 - half, 38 + y, half * 2, 1, y === 29 ? d[0] : tone);
-        for (let s = 0; s < 4; s++) { const sx = 39 - half + ((s * 17 + f * 4 + y * 0.6) % (half * 2)); Q(sx, 38 + y, 4, 1, y > 23 ? '#ffc35a' : '#ee9f26'); }
+        const ns = Math.min(6, 2 + Math.floor(lv / 2)), sc = lv >= 5 ? [TC[2], TC[3]] : ['#ee9f26', '#ffc35a'];  // mais faixas a cada 2 níveis
+        for (let s = 0; s < ns; s++) { const sx = 39 - half + ((s * 68 / ns + f * 4 + y * 0.6) % (half * 2)); Q(sx, 38 + y, 4, 1, y > 23 ? sc[1] : sc[0]); }
       }
       Q(5, 40, 2, 26, d[0]); Q(-6, 42, 12, 5, '#7c818c'); Q(-6, 46, 12, 1, '#b4bac4');                // calha
       if (tilt) { Q(-10, 28, 6, 15, '#7c818c'); Q(-10, 28, 6, 3, '#9aa0ab'); }
@@ -100,15 +109,18 @@ export function wheelSprite(f) {
 
 // ---------- guindaste ----------
 const Y3 = ['#a8760c', '#d39a14', '#f2b630', '#ffd86a'];
-// seção do mastro 16×14 (treliça: dois montantes, travessa e diagonal)
-export const mastTile = () => makeSprite('crane-mast', 16, 14, p => {
+const pal4 = c => [shade(c, -0.35), shade(c, -0.15), c, shade(c, 0.35)];
+// seção do mastro 16×14 (treliça: dois montantes, travessa e diagonal); cor = tinta do guindaste
+export const mastTile = (c = '#f2b630') => makeSprite('crane-mast-' + c, 16, 14, p => {
+  const Y3 = pal4(c);
   p.r(0, 0, 3, 14, Y3[2]); p.r(0, 0, 1, 14, Y3[3]); p.r(13, 0, 3, 14, Y3[1]); p.r(15, 0, 1, 14, Y3[0]);
   p.r(0, 12, 16, 2, Y3[1]); p.r(0, 12, 16, 1, Y3[2]);
   for (let d = 0; d < 10; d++) p.r(3 + d, 11 - d, 1, 2, d % 3 ? Y3[1] : Y3[0]);
   p.px(1, 13, '#5a5f6a'); p.px(14, 13, '#5a5f6a');
 }, { outline: null });
 // seção da lança 16×17 (banzo de cima, banzo de baixo e diagonais)
-export const jibTile = () => makeSprite('crane-jib', 16, 17, p => {
+export const jibTile = (c = '#f2b630') => makeSprite('crane-jib-' + c, 16, 17, p => {
+  const Y3 = pal4(c);
   p.r(0, 0, 16, 3, Y3[2]); p.r(0, 0, 16, 1, Y3[3]); p.r(0, 14, 16, 3, Y3[1]); p.r(0, 16, 16, 1, Y3[0]);
   p.r(0, 3, 2, 11, Y3[1]); p.r(0, 3, 1, 11, Y3[2]);
   for (let d = 0; d < 11; d++) p.r(2 + d, 3 + d, 2, 1, d % 3 ? Y3[1] : Y3[0]);

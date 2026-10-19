@@ -23,6 +23,7 @@ export const SKINS = [
 ];
 const MAT = {
   vest: ['#8f4508', '#c4600f', '#ee7a1c', '#ff9a40', '#ffc07a'],
+  vestG: ['#4f6a08', '#78980f', '#a6cc1c', '#c8e84a', '#e4f88a'], // colete verde-limão da equipe treinada (Treinamento 4+)
   refl: ['#9aa6ab', '#c9d3d6', '#eef4f5', '#ffffff', '#ffffff'],
   shirt: ['#1f3358', '#2c4a7a', '#3d63a3', '#5a85c8', '#86aee6'],
   pants: ['#141c33', '#22304f', '#30446e', '#46609a', '#6380bf'],
@@ -183,6 +184,9 @@ function painter(p) {
   return { capsule, rect, px, toS };
 }
 
+// furadeiras por nível de Ferramenta (1–2 amarela, 3–4 laranja, 5–6 vermelha, 7–8 azul, 9–10 preta e dourada)
+const DRILLS = [MAT.drill, ['#8a3a08', '#c45a10', '#ee7a1c', '#ffa050', '#ffd0a0'], ['#7a1a1a', '#a82828', '#d23c3c', '#f07070', '#ffb0b0'],
+  ['#12305a', '#1e4a8a', '#2e6ac4', '#5a92e6', '#9cc4ff'], ['#1a1a1e', '#2a2a30', '#3a3a42', '#c9a227', '#ffe27a']];
 // junta da ponta de um osso
 const tip = (x, y, ang, len) => [x + Math.sin(ang * R2D) * len, y - Math.cos(ang * R2D) * len];
 
@@ -194,7 +198,7 @@ export function drawRig(key, anim, frame, o) {
     const suit = o.suit;
     // civ: visitante (camisa e calça coloridas, mãos sem luva, tênis) — mesmo esqueleto dos operários
     const civ = o.civ, pal5 = c => [shade(c, -0.45), shade(c, -0.25), c, shade(c, 0.18), shade(c, 0.38)];
-    const VEST = civ ? pal5(civ.shirt) : suit ? MAT.suit : MAT.vest, SLV = civ ? VEST : suit ? MAT.suit : MAT.shirt;
+    const VEST = civ ? pal5(civ.shirt) : suit ? MAT.suit : (o.gear || 0) >= 4 ? MAT.vestG : MAT.vest, SLV = civ ? VEST : suit ? MAT.suit : MAT.shirt;
     const PNT = civ ? pal5(civ.pants) : suit ? MAT.suit : MAT.pants;
     const BOOT = civ ? ['#5a5f6a', '#9aa0ab', '#e8ebf0', '#f7f8fa', '#ffffff'] : suit ? MAT.steel : MAT.boot, GLV = civ ? sk : suit ? MAT.steel : MAT.glove;
     const sx = pose.shakeX || 0, sy = pose.shakeY || 0;
@@ -243,6 +247,7 @@ export function drawRig(key, anim, frame, o) {
       if (z > 16.5) return MAT.shirt[i];
       if (z >= 8 && z < 10.5) return MAT.refl[z >= 9.5 ? Math.min(4, i + 1) : i];
       if (z >= 10.5 && u > 0.08 && u < 0.45) return MAT.refl[i];
+      if ((o.gear || 0) >= 2 && z >= 13 && z < 14.5) return MAT.refl[i];           // Treinamento 2+: segunda faixa refletiva
       if (z > 3.5 && z < 6.5 && u > 0.15 && u < 0.62) return z < 4.5 ? pal[0] : pal[Math.max(0, i - 1)]; // bolso
       return null;
     } });
@@ -292,6 +297,11 @@ function head(rect, x, y, o, sk, hair) {
   P(0, 11, 2, 7, hc[3]); P(0, 16, 1, 2, hc[4]); P(3, 13, 2, 2, hc[4]); P(4, 14, 1, 1, '#ffffff');
   P(-7, 9, 17, 2, hc[1]); P(-7, 9, 17, 1, hc[0]); P(6, 10, 4, 1, hc[3]);
   if (o.boss) { P(-3, 12, 2, 2, '#3b6fd1'); P(-3, 13, 1, 1, '#86aee6'); }
+  const g = o.gear || 0; // Treinamento: um equipamento novo por nível (até o 6)
+  if (g >= 1 && !o.boss) { P(-4, 11, 3, 3, '#2f9a4e'); P(-3, 12, 1, 1, '#ffffff'); }                 // adesivo de segurança
+  if (g >= 3) { P(-2, 4, 4, 5, '#3b4152'); P(-2, 8, 4, 1, '#ee7a1c'); P(-1, 5, 2, 2, '#5a5f6a'); P(-1, 9, 2, 1, '#2a2a33'); } // protetor auricular
+  if (g >= 5) { P(2, 6, 5, 2, '#2a3550'); P(3, 7, 1, 1, '#9fd0f0'); }                                  // óculos de proteção
+  if (g >= 6) { P(6, 12, 3, 3, '#3b4152'); P(8, 13, 2, 1, '#fff6c8'); }                                // lanterna no capacete
 }
 
 function tool(capsule, rect, pose, a, o) {
@@ -302,12 +312,17 @@ function tool(capsule, rect, pose, a, o) {
     capsule(p1x, p1y, p2x, p2y, 2.2, MAT.steel);
     if (pose.hit) { rect(Math.round(ex + 5), Math.round(ey + 3), 2, 2, '#ffe27a'); rect(Math.round(ex + 6), Math.round(ey - 3), 2, 2, '#fff2a8'); rect(Math.round(ex + 3), Math.round(ey + 6), 1, 1, '#ffe27a'); }
   } else if (pose.tool === 'drill') {
-    const x = Math.round(a.hx), y = Math.round(a.hy);
+    // Ferramenta: a cada nível a furadeira melhora (cor, bateria, broca mais longa, corpo maior, luz de LED)
+    const x = Math.round(a.hx), y = Math.round(a.hy), tl = Math.max(1, o.tl || 1);
+    const D = DRILLS[Math.min(DRILLS.length - 1, Math.floor((tl - 1) / 2))], bl = 15 + (tl >= 5 ? 3 : 0), bit = 5 + Math.min(10, tl);
     rect(x - 2, y - 7, 5, 8, MAT.steel[2]); rect(x - 2, y - 7, 5, 1, MAT.steel[0]); rect(x + 2, y - 6, 1, 6, MAT.steel[3]); // cabo
-    rect(x - 4, y - 1, 15, 8, MAT.drill[2]); rect(x - 4, y + 5, 15, 2, MAT.drill[3]); rect(x - 4, y - 1, 15, 1, MAT.drill[0]); rect(x - 4, y - 1, 2, 8, MAT.drill[1]);
+    if (tl >= 2) { rect(x - 3, y - 10, 7, 4, '#2a2a33'); rect(x - 3, y - 10, 7, 1, '#4a4f5c'); rect(x + 2, y - 9, 1, 2, tl >= 6 ? '#5fe07a' : '#ffd23a'); } // bateria
+    rect(x - 4, y - 1, bl, 8, D[2]); rect(x - 4, y + 5, bl, 2, D[3]); rect(x - 4, y - 1, bl, 1, D[0]); rect(x - 4, y - 1, 2, 8, D[1]);
     rect(x + 2, y + 2, 4, 2, MAT.steel[1]);
-    rect(x + 11, y + 1, 3, 4, MAT.steel[2]); rect(x + 14, y + 2, 7, 2, '#c7ccd6'); rect(x + 14, y + 3, 7, 1, '#ffffff');
-    if (pose.shakeX) { rect(x + 22, y + 4, 2, 1, '#e0d6c0'); rect(x + 21, y + 1, 1, 1, '#e0d6c0'); }
+    const cx = x + bl - 4;
+    rect(cx, y + 1, 3, 4, MAT.steel[2]); rect(cx + 3, y + 2, bit, 2, '#c7ccd6'); rect(cx + 3, y + 3, bit, 1, '#ffffff');
+    if (tl >= 4) rect(cx - 2, y - 1, 2, 1, '#fff6c8');                                                 // LED
+    if (pose.shakeX) { rect(cx + bit + 4, y + 4, 2, 1, '#e0d6c0'); rect(cx + bit + 3, y + 1, 1, 1, '#e0d6c0'); if (tl >= 7) rect(cx + bit + 4, y + 2, 1, 1, '#ffe27a'); }
   } else if (o.civ && o.civ.camera) {
     const x = Math.round(a.hx), y = Math.round(a.hy);
     rect(x - 1, y - 2, 6, 5, '#1d1d22'); rect(x, y - 1, 2, 2, '#5fb8ff'); rect(x + 3, y + 3, 2, 1, '#3a3a48');

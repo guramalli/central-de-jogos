@@ -5,11 +5,11 @@ import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { ERAS, ERA_STYLE, eraAt } from '../data/eras.js';
 import { S } from '../sim/state.js';
 import { typeAt } from '../sim/realty.js';
-import { ctx, R, Rv, hash, mix } from './canvas.js';
+import { ctx, R, Rv, T, hash, mix } from './canvas.js';
 import { cam, worldY } from './camera.js';
 import { V } from './view.js';
 import { blit, shade } from './sprites.js';
-import { scaffoldTile, brickTile, eraTile, shaftTile, carSprite, shaftTopSprite, mastTile, jibTile, cabSprite, weightSprite, trolleySprite, hookSprite } from './props.js';
+import { scaffoldTile, brickTile, eraTile, shaftTile, carSprite, shaftTopSprite, mastTile, jibTile, cabSprite, weightSprite, trolleySprite, hookSprite, hexMix } from './props.js';
 
 const WIN_X = [12, 72, 132, 192];     // janelas: x relativo à borda esquerda
 const WIN_W = 36, WIN_Y = 22, WIN_H = 48;
@@ -121,10 +121,17 @@ export function shafts(topWP, carrying) {
   const yLo = Math.max(0, worldY(H) - 30), yHi0 = Math.min(top, worldY(0) + 30);
   const bc = ERA_STYLE[eraAt(altOf(S.floors))].brick;
   const bars = 24 * cam.z >= 3;
-  const load = 12 + 5 * Math.min(S.lv.cacamba, 2); // caçamba maior: carga mais alta
+  const load = Math.min(24, 10 + 1.5 * (S.lv.cacamba || 0)); // carrinho maior: carga mais alta a cada nível
+  const mg = S.lv.maglev || 0, ml = S.lv.motor || 0;
   for (let i = 0; i < n; i++) {
     const x0 = SHAFT_X(i), b = V.shaftBuild[i] ?? 1, h = top * b, yHi = Math.min(yHi0, h);
     Rv(x0, 0, 3, h, '#3b4152'); Rv(x0 + 27, 0, 3, h, '#3b4152');
+    if (mg > 0 && cam.z >= 0.25) { // elevador magnético: trilhos brilham mais a cada nível
+      const a = (0.25 + 0.12 * mg).toFixed(2);
+      R(x0 + 2, Math.max(0, yLo), 1, Math.max(0, Math.min(h, yHi0) - Math.max(0, yLo)), `rgba(95,215,255,${a})`);
+      R(x0 + 27, Math.max(0, yLo), 1, Math.max(0, Math.min(h, yHi0) - Math.max(0, yLo)), `rgba(95,215,255,${a})`);
+      for (let y = Math.max(0, Math.floor(yLo / 96) * 96); y < Math.min(h, yHi0); y += Math.max(24, 96 - mg * 12)) R(x0 - 1, y, 32, 2, `rgba(95,215,255,${a})`);
+    }
     if (bars && yHi > yLo) {
       const st = cam.z >= 0.5 ? shaftTile() : null;
       for (let y = Math.max(0, Math.floor(yLo / 24) * 24); y < yHi; y += 24) {
@@ -138,10 +145,13 @@ export function shafts(topWP, carrying) {
     }
     if (cam.z >= 0.4) blit(shaftTopSprite(), x0 - 4, top, 0, 13); else R(x0 - 3, top, 36, 12, '#6b7183');
     R(x0 + 12, top + 4, 6, 4, Math.floor(V.t * 6) % 2 ? '#ff5a4a' : '#7a2a24');
-    if (S.lv.motor > 0) { // motor mais forte: polia girando sobre o poço
-      const q = Math.floor(V.t * (6 + 2 * Math.min(S.lv.motor, 6))) % 4, mx = x0 + 9;
-      R(mx - 2, top + 12, 16, 12, '#3b4152'); R(mx, top + 14, 12, 8, '#7a8091');
-      R(mx + [1, 5, 9, 5][q], top + [17, 15, 17, 19][q], 2, 2, '#f2b630');
+    if (ml > 0) { // motor mais forte: a casa de máquinas cresce a cada nível (mais polias, aletas e tinta nova)
+      const q = Math.floor(V.t * (6 + 2 * Math.min(ml, 8))) % 4, np = Math.min(3, 1 + Math.floor(ml / 4));
+      const body = mix('#7a8091', '#3b82c4', Math.min(1, ml / 10));
+      const bw = Math.min(30, 14 + ml * 2), bx = x0 + 15 - bw / 2;
+      R(bx - 1, top + 12, bw + 2, 13, '#2a2f3d'); R(bx, top + 13, bw, 10, body);
+      for (let f = 0; f < Math.min(ml, 8); f++) R(bx + 2 + f * (bw - 4) / 8, top + 14, 1, 8, 'rgba(0,0,0,.25)'); // aletas
+      for (let k = 0; k < np; k++) { const px = x0 + 15 + (k - (np - 1) / 2) * 9 - 4; R(px, top + 25, 8, 8, '#3b4152'); R(px + 1, top + 26, 6, 6, '#9aa0ad'); R(px + [1, 3, 5, 3][(q + k) % 4], top + [29, 27, 29, 31][(q + k) % 4], 2, 2, '#f2b630'); }
     }
     const ph = V.elev[i] % 1, a = ph < .45 ? ph / .45 : ph < .55 ? 1 : 1 - (ph - .55) / .45;
     const cy = a * topWP;
@@ -179,7 +189,10 @@ export function crane(buildTop, trolX, hookY) {
     if (bld > .6) { const w = (TW + 130) * (bld - .6) / .4; R(mx, jy, w, 3, '#e3a823'); R(mx - w * .4, jy, w * .4, 3, '#e3a823'); R(mx, jy + 14, w, 3, '#e3a823'); }
     return jy;
   }
-  const x0 = TL - 130, x1 = TL + TW + 130;
+  // a cada nível o guindaste cresce: lança mais longa, mais contrapeso, tinta do amarelo ao vermelho (faixas brancas
+  // a partir do nv 8), luzes de sinalização e cabine maior
+  const gl = Math.max(1, S.lv.guindaste || 1), tint = hexMix('#f2b630', '#d23c28', Math.min(1, (gl - 1) / 9));
+  const x0 = TL - 120 - gl * 2, x1 = TL + TW + 100 + gl * 14;
   if (cam.z < 0.3) { // longe: traços simples
     R(mx, y0, 3, jy - y0, '#e3a823'); R(mx + 13, y0, 3, jy - y0, '#e3a823');
     R(x0, jy, x1 - x0, 3, '#e3a823'); R(x0, jy + 14, x1 - x0, 3, '#e3a823');
@@ -188,16 +201,37 @@ export function crane(buildTop, trolX, hookY) {
     return jy;
   }
   // mastro treliçado e lança em seções de pixel art
-  const mt = mastTile(), jt = jibTile();
-  for (let y = y0; y < jy; y += 14) blit(mt, mx, Math.min(y, jy - 14), 0, 14);
-  for (let x = x0; x < x1; x += 16) blit(jt, Math.min(x, x1 - 16), jy, 0, 17);
+  const mt = mastTile(tint), jt = jibTile(tint), jw = jibTile('#eef0f4');
+  for (let y = y0; y < jy; y += 14) blit(gl >= 8 && Math.floor(y / 14) % 2 ? mastTile('#eef0f4') : mt, mx, Math.min(y, jy - 14), 0, 14);
+  for (let x = x0, k = 0; x < x1; x += 16, k++) blit(gl >= 8 && k % 2 ? jw : jt, Math.min(x, x1 - 16), jy, 0, 17);
+  const mk = S.lv.marketing || 0, pub = S.lv.publicidade || 0;
+  if (mk > 0 || pub > 0) {
+    const bw = Math.min(220, 50 + mk * 14 + pub * 30), bh = pub ? 20 : 14, bx = mx + 34, by = jy + 17;
+    R(bx - 1, by, bw + 2, bh + 1, '#20242f');
+    if (pub) { // painel de LED: fundo escuro, letreiro correndo e cor que muda
+      R(bx, by + 1, bw, bh - 1, '#0e1220');
+      const hue = ['#5fe0ff', '#ffd23a', '#ff6a9a', '#7aff8a'][Math.floor(V.t / 3) % 4];
+      for (let x = 0; x < bw; x += 3) if ((x + Math.floor(V.t * 20) * 3) % 24 < 15) R(bx + x, by + 6, 2, 8, hue);
+      if (pub >= 2) for (let x = 0; x < bw; x += 6) R(bx + x, by + 2, 3, 1, 'rgba(255,255,255,.25)');
+    } else {
+      R(bx, by + 1, bw, bh - 1, '#f4f1e6'); R(bx, by + 1, bw, 3, tint);
+      T(bw >= 110 ? 'TORRE INFINITA' : 'TORRE', bx + bw / 2, by + 7, 8, '#20242f', 'center');
+    }
+    if (mk >= 3 && Math.floor(V.t * 3) % 2) for (let x = 4; x < bw; x += 24) R(bx + x, by + bh, 3, 2, '#ffe27a'); // lâmpadas
+  }
   // torre do topo com tirantes até as pontas da lança
   R(mx + 5, jy + 17, 6, 34, '#d39a14'); R(mx + 5, jy + 17, 2, 34, '#ffd86a'); R(mx + 3, jy + 49, 10, 3, '#a8760c');
   const tie = xe => { const n = Math.ceil(Math.abs(xe - mx - 8) / 3); for (let k = 0; k < n; k++) { const t = k / n; R(mx + 8 + (xe - mx - 8) * t - (xe < mx ? 3 : 0), jy + 50 - 32 * t, 3, 1, '#5a5f6a'); } };
   tie(x1 - 10); tie(x0 + 10);
-  if (Math.floor(V.t * 2) % 2) { R(mx + 5, jy + 52, 6, 4, '#ff3b3b'); R(mx + 6, jy + 55, 4, 1, '#ffb0a8'); }
-  blit(weightSprite(), x0 + 4, jy, 1, 1);
+  const blink = Math.floor(V.t * 2) % 2;
+  if (blink) { R(mx + 5, jy + 52, 6, 4, '#ff3b3b'); R(mx + 6, jy + 55, 4, 1, '#ffb0a8'); }
+  if (gl >= 3 && blink) { R(x1 - 6, jy + 17, 5, 4, '#ff3b3b'); }                  // luz na ponta da lança
+  if (gl >= 6 && !blink) { R(x0 + 1, jy + 17, 5, 4, '#ff3b3b'); }                 // e na contra-lança
+  if (gl >= 9 && blink) for (let y = y0 + 40; y < jy; y += 60) R(mx + 6, y, 4, 3, '#ff3b3b'); // e ao longo do mastro
+  const nw = Math.min(3, 1 + Math.floor(gl / 4));                                 // mais blocos de contrapeso
+  for (let k = 0; k < nw; k++) blit(weightSprite(), x0 + 4 + k * 38, jy, 1, 1);
   blit(cabSprite(), mx - 6, jy - 2, 1, 1);
+  if (gl >= 5) { R(mx - 7, jy - 26, 32, 3, shade(tint, -0.2)); R(mx - 4, jy - 29, 26, 3, shade(tint, 0.2)); } // cabine com teto/ar-condicionado
   // carrinho, cabo e gancho
   blit(trolleySprite(), trolX, jy + 2, 10, 0);
   R(trolX - 1, hookY, 2, Math.max(0, jy - 8 - hookY), '#c7ccd6'); R(trolX, hookY, 1, Math.max(0, jy - 8 - hookY), '#eef0f4');

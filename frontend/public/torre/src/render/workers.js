@@ -17,7 +17,7 @@ const SIL = { vest: '#ee7a1c', pants: '#30446e', helm: '#f7c824', suit: '#d3d8e0
 // quadro de uma animação (também usado para montar folhas de conferência)
 export function workerSprite(anim, frame, o = {}) {
   const q = { skin: 0, suit: false, pack: false, boss: false, carry: '', ...o };
-  const key = `rig|${anim}|${frame}|${q.skin}|${q.suit ? 1 : 0}|${q.pack ? 1 : 0}|${q.boss ? 1 : 0}|${q.carry}`;
+  const key = `rig|${anim}|${frame}|${q.skin}|${q.suit ? 1 : 0}|${q.pack ? 1 : 0}|${q.boss ? 1 : 0}|${q.carry}|${q.gear || 0}|${q.tl || 0}`;
   return drawRig(key, anim, frame, q);
 }
 
@@ -57,6 +57,8 @@ export function worker(x, y, o = {}) {
   const cyc = anim === 'walk' ? (o.flip ? -x : x) / walkDistance(!!o.carry)
     : anim === 'idle' || anim === 'sit' || anim === 'boss' ? ph / 2 : anim === 'drill' ? ph * 2 : ph;
   const n = ANIMS[anim].frames, frame = ((Math.floor((cyc % 1 + 1) % 1 * n)) + n) % n;
-  const spr = workerSprite(anim, frame, { skin, suit, pack: suit && (o.pack ?? era >= 5), boss: !!o.boss, carry: o.carry || '' });
+  // Treinamento e Ferramenta aparecem no equipamento de todos os operários (gear até 6; furadeira até o nível 10)
+  const gear = suit ? 0 : Math.min(6, S.lv.treino || 0), tl = anim === 'drill' ? Math.min(10, S.lv.ferram || 0) : 0;
+  const spr = workerSprite(anim, frame, { skin, suit, pack: suit && (o.pack ?? era >= 5), boss: !!o.boss, carry: o.carry || '', gear, tl });
   blit(spr, x, y, RIG_AX, RIG_AY, !!o.flip);
 }

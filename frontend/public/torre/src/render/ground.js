@@ -13,6 +13,7 @@ import { SHAFT_X } from './tower.js';
 import { zzz } from './signs.js';
 import { blit } from './sprites.js';
 import { truckSprite, wheelSprite, TRUCK_AX, orlaSprite, calcadaoTile, kilnSprite, palmTrunk, palmCrown, palletSprite } from './props.js';
+import { shade } from './sprites.js';
 
 const STOCK_X = 168, TRUCK_STOP = 248;
 const groundVisible = () => worldY(H) < 420; // o chão (ou algo perto dele) está na tela
@@ -57,14 +58,58 @@ export function drawGroundBack() {
   const piles = 3 + Math.min(8, S.lv.fundacao);
   for (let i = 0; i < piles; i++) { const px = TL + 4 + Math.floor(i * (TW - 14) / (piles - 1)); R(px, -depth - 30, 6, depth + 30, '#a3a9b2'); R(px, -depth - 30, 2, depth + 30, '#c7ccd6'); }
   R(TL - 12, -6, TW + 24, 6, '#5b4d3d');
-  if (S.lv.olaria > 0) kiln(430);
+  if (S.lv.olaria > 0) kiln(430, S.lv.olaria);
+  if (S.lv.premold > 0) precastYard(S.lv.premold);
+  for (let k = 0; k < Math.min(3, S.lv.usina || 0); k++) { // Usina de concreto: um silo por nível
+    const x = 508 + k * 15, h = 70 + k * 8;
+    R(x, 14, 3, h - 14, '#5a5f6a'); R(x + 9, 14, 3, h - 14, '#5a5f6a');
+    R(x - 1, 22, 14, h - 22, '#c9ced8'); R(x - 1, 22, 3, h - 22, '#eef0f4'); R(x + 10, 22, 3, h - 22, '#9aa0ab');
+    R(x + 2, 14, 8, 8, '#9aa0ab'); R(x + 4, 10, 4, 4, '#5a5f6a'); R(x - 2, h, 16, 3, '#7c818c');
+    R(x - 1, h - 20, 14, 3, '#3a77b0');
+  }
 }
 
 // Olaria própria: forno de tijolos com chaminé fumegando (atrás do caminhão)
-function kiln(x) {
+// a cada nível: chaminé mais alta, pilhas de tijolos secando ao lado e, a partir do nível 6, uma segunda chaminé
+function kiln(x, lv) {
   blit(kilnSprite(Math.floor(V.t * 5) % 2), x, 0, 1, 101);
-  for (let k = 0; k < 4; k++) { const q = (V.t * .5 + k / 4) % 1; R(x + 48 + Math.sin(q * 6 + k) * 4, 98 + q * 70, 8 + q * 10, 6 + q * 6, `rgba(220,220,225,${(.5 * (1 - q)).toFixed(2)})`); }
-  T('OLARIA', x + 35, 30, 9, '#f4e6c8', 'center');
+  const ext = Math.min(40, 4 * (lv - 1)), stacks = [[x + 47, 98 + ext]];
+  for (let y = 98; y < 98 + ext; y += 6) { R(x + 45, y, 12, 6, '#8a4c32'); R(x + 45, y, 12, 1, '#6e3b26'); }
+  if (ext) { R(x + 43, 96 + ext, 16, 4, '#5a3322'); R(x + 43, 99 + ext, 16, 1, '#7a4a30'); }
+  if (lv >= 6) { const h = 70 + (lv - 6) * 6; R(x + 6, 48, 10, h - 48, '#8a4c32'); for (let y = 48; y < h; y += 6) R(x + 6, y, 10, 1, '#6e3b26'); R(x + 4, h - 2, 14, 4, '#5a3322'); stacks.push([x + 7, h + 2]); }
+  for (const [sx, sy] of stacks) for (let k = 0; k < 4; k++) { const q = (V.t * .5 + k / 4) % 1; R(sx + Math.sin(q * 6 + k) * 4, sy + q * 70, 8 + q * 10, 6 + q * 6, `rgba(220,220,225,${(.5 * (1 - q)).toFixed(2)})`); }
+  // tijolos crus secando, entre o caminhão e o forno (uma pilha por nível, até 6)
+  if (cam.z >= 0.3) for (let k = 0; k < Math.min(6, lv); k++) {
+    const bx = x - 52 + k * 8, rows = 2 + (k % 3);
+    for (let r = 0; r < rows; r++) { R(bx, r * 5, 7, 4, r % 2 ? '#c0603c' : '#b0553a'); R(bx, r * 5 + 4, 7, 1, '#8a3f2a'); }
+  }
+  T('OLARIA' + (lv > 1 ? ' ' + lv : ''), x + 35, 30, 9, '#f4e6c8', 'center');
+}
+
+// Fábrica de pré-moldados: pátio na areia à esquerda da torre. A cada nível, mais um cavalete com painéis de parede;
+// a partir do nível 2 um pórtico rolante leva um painel de um lado ao outro; no 4 o pórtico ganha a placa
+function precastYard(lv) {
+  if (cam.z < 0.25) { R(-290, 0, 140, 30, '#9a9a94'); return; }
+  const X0 = -292, X1 = -146, st = ERA_STYLE[eraAt(altOf(S.floors))];
+  R(X0, -2, X1 - X0, 4, '#8f8f88'); R(X0, 1, X1 - X0, 1, '#b4b4ac');
+  const panel = (px, py, h) => { R(px, py, 7, h, '#b9b9b2'); R(px, py, 1, h, '#dcdcd4'); R(px + 6, py, 1, h, '#8f8f88'); R(px + 1, py + h * 0.45, 5, h * 0.25, '#5a6070'); };
+  for (let k = 0; k < Math.min(6, lv); k++) {
+    const rx = X0 + 8 + k * 23;
+    R(rx + 10, 0, 2, 56, '#6a4a2a'); R(rx + 1, 0, 20, 3, '#6a4a2a');              // cavalete em A
+    for (let j = 0; j < 3; j++) panel(rx + j * 7, 2, 52 - Math.abs(j - 1) * 6);
+  }
+  if (lv >= 2) {
+    const c = lv >= 5 ? '#d23c28' : '#f2b630', cd = shade(c, -0.3), top = 84;
+    for (const lx of [X0 - 4, X1 - 2]) { R(lx, 0, 6, top, c); R(lx, 0, 2, top, shade(c, 0.3)); R(lx - 3, 0, 12, 4, '#3b4152'); }
+    R(X0 - 6, top, X1 - X0 + 14, 7, c); R(X0 - 6, top, X1 - X0 + 14, 2, cd);
+    for (let x = X0; x < X1; x += 12) R(x, top + 2, 1, 4, cd);
+    const q = (V.t / 9) % 1, go = q < 0.5, t = go ? q * 2 : 2 - q * 2, e = t * t * (3 - 2 * t), tx = X0 + 12 + e * (X1 - X0 - 30);
+    R(tx - 6, top - 6, 18, 7, '#3b4152'); R(tx - 5, top - 5, 16, 2, '#7a8091');
+    const hy = 50 + Math.sin(V.t * 1.3) * 2;
+    R(tx + 2, hy, 1, top - 6 - hy, '#2a2a33'); R(tx - 1, hy - 3, 8, 3, '#2a2a33');
+    if (go) { R(tx - 14, hy - 30, 34, 26, '#b9b9b2'); R(tx - 14, hy - 30, 34, 2, '#dcdcd4'); R(tx - 4, hy - 22, 14, 10, st.glass || '#5a6070'); }
+    if (lv >= 4) { R(-252, top + 10, 64, 12, '#20242f'); T('PRÉ-MOLDADOS', -220, top + 16, 8, '#f4e6c8', 'center'); }
+  }
 }
 
 function coconut(px, sway) {
@@ -76,7 +121,7 @@ function coconut(px, sway) {
 function truck(tx, tilt, gy, empty = false) {
   const kind = S.lv.caminhao > 0 ? 'mixer' : 'dump';
   const load = kind === 'dump' && !empty && tilt ? '#c9ad72' : '';
-  blit(truckSprite(kind, Math.floor(V.t * 8) % 4, tilt, load), tx, gy, TRUCK_AX, 76);
+  blit(truckSprite(kind, Math.floor(V.t * 8) % 4, tilt, load, Math.min(10, S.lv.caminhao || 0)), tx, gy, TRUCK_AX, 76);
   const wf = tilt ? 0 : Math.floor(V.t * 10) % 2;
   for (const wx of [tx + 14, tx + 88]) blit(wheelSprite(wf), wx, gy, 1, 19);
 }
@@ -84,11 +129,11 @@ function truck(tx, tilt, gy, empty = false) {
 // carrinho de mão empurrado por quem está em wx: roda na frente, cabos na mão
 // (left = indo para a esquerda; load = cor da carga ou null se vazio)
 function wheelbarrow(wx, gy, load, ph, left) {
-  const b = Math.round(Math.sin(ph * Math.PI)), x = left ? wx - 40 : wx + 14;
+  const b = Math.round(Math.sin(ph * Math.PI)), x = left ? wx - 40 : wx + 14, lc = Math.min(10, S.lv.cacamba || 0), lh = 6 + Math.round(lc * 0.6);
   const P = (lx, ly, w, h, c) => R(left ? x + lx : x + 26 - lx - w, gy + ly, w, h, c);
   P(2, 0, 8, 8, '#222'); P(4, 2, 4, 4, '#888');
   P(0, 8 + b, 26, 10, '#5b6170'); P(0, 16 + b, 26, 2, '#7a8091');
-  if (load) { P(2, 18 + b, 22, 6, load); P(2, 23 + b, 22, 1, 'rgba(255,255,255,.35)'); }
+  if (load) { P(2, 18 + b, 22, lh, load); P(2, 17 + lh + b, 22, 1, 'rgba(255,255,255,.35)'); }
   P(24, 12 + b, 14, 2, '#8b5a2b');
 }
 
@@ -112,7 +157,7 @@ export function drawGroundFront(prod, sg = {}) {
   if (tilt && !sg.supplyLow && Math.floor(V.t * 10) % 3 === 0) spark(tx + 4, gy + 40, '#c9ad72');
   // serventes levando material do estoque ao elevador 1
   // com Caçamba maior eles empurram carrinhos de mão (mais carga por viagem)
-  const nw = Math.min(3, L.fornec), to = SHAFT_X(0) + 10, barrow = L.cacamba > 0;
+  const nw = Math.min(5, L.fornec), to = SHAFT_X(0) + 10, barrow = L.cacamba > 0;
   for (let i = 0; i < nw; i++) {
     if (sg.groundJam) { // fila na porta do elevador, carregados, esperando a vez
       const x = to + 18 + i * 24;

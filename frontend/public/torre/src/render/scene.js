@@ -147,6 +147,7 @@ function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
   // pedreiros caminham com velocidade de gente (quem acabou de ser contratado entra andando)
   const dtv = clamp(V.t - (V.bxT ?? V.t), 0, .1), stepMax = 150 * pace * dtv;
   if (!V.preview) V.bxT = V.t;
+  techBack(y0, fy);
   const bx = [];
   for (let j = 0; j < nb; j++) {
     const tx = idle ? home(j) : j === act ? clamp(slotX - 26, TL + 10, TL + TW - 40) : home(j);
@@ -171,8 +172,55 @@ function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
     const q = (V.t * .16 * pace) % 1, go = q < .5, x = lerp(TL + TW - 30, TL + 40, go ? q * 2 : 2 - q * 2);
     worker(x, fy, { walk: true, phase: V.t * 3, carry: go ? (pid === 'janelas' ? s.glass : s.brick) : null, flip: go, skin: 3 });
   }
-  if (S.lv.mestre > 0) worker(TL + TW - 22, fy, { boss: true, flip: true, phase: V.t, skin: 2 });
+  for (let k = 0; k < Math.min(3, Math.ceil((S.lv.mestre || 0) / 2)); k++) worker(TL + TW - 22 - k * 30, fy, { boss: true, flip: true, phase: V.t + k * 0.6, skin: (2 + k) % 4 });
   if (S.lv.guindaste > 0) craneHelper(y0, s, pid);
+  techFront(y0, fy, s);
+}
+
+// segmento grosso entre dois pontos (braços de robô)
+function seg(x1, y1, x2, y2, w, c) {
+  const n = Math.max(1, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / 2));
+  for (let k = 0; k <= n; k++) R(x1 + (x2 - x1) * k / n - w / 2, y1 + (y2 - y1) * k / n - w / 2, w, w, c);
+}
+// Tecnologias de era visíveis no topo (uma peça a mais por nível):
+// Robôs de montagem = braços robóticos na laje; Escoramento = escoras de aço; Teletransporte = plataforma com feixe
+function techBack(y0, fy) {
+  const esc = S.lv.escoramento || 0;
+  for (let k = 0; k < esc * 2; k++) { const x = TL + 14 + k * (TW - 28) / Math.max(1, esc * 2 - 1); R(x, fy, 3, 70, '#8f96a3'); R(x, fy, 1, 70, '#c7ccd6'); R(x - 3, fy + 68, 9, 3, '#5a5f6a'); R(x - 3, fy, 9, 2, '#5a5f6a'); }
+  if (S.lv.teleporte > 0) {
+    const px = TL + TW - 50, a = 0.35 + 0.25 * Math.sin(V.t * 4);
+    R(px, fy, 34, 4, '#3b4152'); R(px + 2, fy + 3, 30, 2, '#5fe0ff');
+    R(px + 4, fy + 5, 26, 70, `rgba(95,224,255,${a.toFixed(2)})`); R(px + 14, fy + 5, 6, 70, `rgba(220,250,255,${(a + .2).toFixed(2)})`);
+  }
+  const rb = Math.min(3, S.lv.robos || 0);
+  for (let k = 0; k < rb; k++) {
+    const bx = TL + 20 + k * 34, t = V.t * 1.6 + k * 1.7, a1 = 0.45 + Math.sin(t) * 0.4, a2 = 0.9 + Math.sin(t * 1.3) * 0.6;
+    R(bx - 9, fy, 18, 6, '#3b4152'); R(bx - 7, fy + 6, 14, 5, '#d0d5de'); R(bx - 7, fy + 10, 14, 1, '#f2b630');
+    const ex = bx + Math.sin(a1) * 30, ey = fy + 11 + Math.cos(a1) * 30, hx = ex + Math.sin(a1 + a2) * 26, hy = ey + Math.cos(a1 + a2) * 26;
+    seg(bx, fy + 11, ex, ey, 5, '#e0702a'); seg(ex, ey, hx, hy, 4, '#f2b630');
+    R(ex - 3, ey - 3, 6, 6, '#3b4152'); R(hx - 4, hy - 5, 8, 4, '#3b4152'); R(hx - 3, hy - 9, 2, 4, '#5a5f6a'); R(hx + 1, hy - 9, 2, 4, '#5a5f6a');
+    if (Math.floor(V.t * 2 + k) % 2) R(bx - 1, fy + 3, 2, 2, '#5fe07a');
+  }
+}
+// Soldadores = faíscas de solda na estrutura; Drones = drones levando peças ao redor do topo
+function techFront(y0, fy, s) {
+  const sd = Math.min(3, S.lv.soldadores || 0);
+  for (let k = 0; k < sd; k++) {
+    const x = TL + 40 + k * 70, y = fy + 64 - (k % 2) * 18;
+    if ((V.t * 1.7 + k * 0.37) % 1 < 0.55) {
+      R(x - 2, y - 2, 5, 5, '#fff6c8'); R(x - 4, y, 9, 1, '#ffffff'); R(x, y - 4, 1, 9, '#ffffff');
+      if (!V.fast && Math.random() < 0.35) dust(x, y, '#ffd23a', 1);
+    }
+  }
+  if (cam.z < 0.2) return;
+  const dn = Math.min(3, S.lv.drones || 0);
+  for (let k = 0; k < dn; k++) {
+    const x = Math.sin(V.t * 0.6 + k * 2.1) * (TW * 0.7), y = y0 + FH + 26 + Math.sin(V.t * 1.4 + k) * 14 + k * 10, f = Math.floor(V.t * 20 + k) % 2;
+    R(x - 8, y, 16, 5, '#3b4152'); R(x - 6, y + 4, 12, 2, '#d0d5de'); R(x - 1, y + 1, 2, 2, Math.floor(V.t * 3) % 2 ? '#ff3b3b' : '#5fe07a');
+    R(x - 13, y + 5, 2, 3, '#5a5f6a'); R(x + 11, y + 5, 2, 3, '#5a5f6a');
+    R(x - 18 + f * 2, y + 8, 12 - f * 4, 1, '#c7ccd6'); R(x + 6 + f * 2, y + 8, 12 - f * 4, 1, '#c7ccd6');
+    R(x, y - 6, 1, 6, '#2a2a33'); R(x - 6, y - 12, 12, 6, s.brick); R(x - 6, y - 7, 12, 1, s.hi);
+  }
 }
 
 // Guindaste de torre = transporte vertical (Logística): em ciclos calmos, que não dependem da velocidade da obra,
@@ -192,7 +240,7 @@ function craneHelper(y0, s, pid) {
   crane(y0, tx, hy);
   if (!load) return;
   if (pid === 'estrutura') { R(tx - 30, hy - 26, 60, 7, s.frame); R(tx - 30, hy - 26, 60, 2, s.hi); R(tx - 1, hy - 19, 2, 2, '#c7ccd6'); }
-  else blit(palletSprite(s.brick), tx - 11, hy - 20, 0, 13);
+  else { const n = Math.min(3, 1 + Math.floor((S.lv.guindaste || 1) / 4)); for (let k = 0; k < n; k++) blit(palletSprite(s.brick), tx - 11 - (n - 1) * 12 + k * 24, hy - 20, 0, 13); }
 }
 
 // textos que sobem e somem (compras, andar concluído)
