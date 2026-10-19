@@ -23,9 +23,15 @@ const groundVisible = () => worldY(H) < 420; // o chão (ou algo perto dele) est
 export function drawGroundBack() {
   if (!groundVisible()) return;
   // mar ao fundo
-  R(-1e7, 0, 2e7, 64, '#3b8fc6');
-  R(-1e7, 0, 2e7, 3, '#e8f2f6'); R(-1e7, 3, 2e7, 2, '#7ec4ec'); // espuma na beira
-  if (cam.z >= 0.25) for (let i = -40; i < 60; i++) { const x = i * 46 + ((V.t * 14) % 46); if (hash(i, 3) < .5) R(x, 20 + hash(i, 4) * 36, 14, 2, '#9fd4f2'); }
+  const mar = cam.z >= 0.25 && art('mar');
+  if (mar) { // mar do PixelLab: faixa de 64 px correndo devagar; cópias espelhadas uma sim, outra não (emenda sem costura)
+    const tw = mar.width * 2, off = (V.t * 5) % tw, x0 = Math.floor((worldX(0) - off) / tw) * tw + off;
+    for (let x = x0; x < worldX(W) + tw; x += tw) { blit(mar, x, 0, 0, mar.height); blit(mar, x + mar.width, 0, mar.width, mar.height, true); }
+  } else {
+    R(-1e7, 0, 2e7, 64, '#3b8fc6');
+    if (cam.z >= 0.25) for (let i = -40; i < 60; i++) { const x = i * 46 + ((V.t * 14) % 46); if (hash(i, 3) < .5) R(x, 20 + hash(i, 4) * 36, 14, 2, '#9fd4f2'); }
+  }
+  R(-1e7, 0, 2e7, 3, '#e8f2f6'); R(-1e7, 3, 2e7, 2, 'rgba(126,196,236,.8)'); // espuma na beira
   // prédios da orla, atrás da obra
   const orla = cam.z >= 0.35 && art('orla');
   if (orla) for (let k = 0; k < 4; k++) blit(orla, 150 + k * orla.width, 4, k % 2 ? orla.width : 0, orla.height, k % 2 === 1);
@@ -50,12 +56,8 @@ export function drawGroundBack() {
     R(-330, -2, 1e7, 2, '#b9a377'); R(-330, -16, 1e7, 1, '#9c8a62');
   }
   R(-1e7, -2, 2e7, 2, '#c4a46a');
-  // beira-mar reta até o fim: areia molhada e espuma das ondas chegando na faixa da praia (sem mar na frente)
-  R(-1e7, -6, 1e7 - 330, 6, '#cdb079');
-  if (cam.z >= 0.25) {
-    const x0 = Math.floor(worldX(0) / 60) * 60, x1 = Math.min(worldX(W), -330);
-    for (let x = x0; x < x1; x += 60) { const q = (V.t * 0.35 + hash(x / 60, 9)) % 1, w = 24 + 20 * Math.sin(q * Math.PI); R(x + 30 - w / 2, -2 - Math.round(3 * Math.sin(q * Math.PI)), w, 2, 'rgba(245,242,232,.85)'); }
-  }
+  // beira-mar: a onda sobe pela areia e volta (ciclo de ~6 s), com espuma na ponta e areia molhada por onde passou
+  shoreWash();
   // fundação (corte no solo)
   const depth = 30 + Math.min(180, S.lv.fundacao * 20);
   R(TL - 12, -depth, TW + 24, depth, '#7b6a55');
@@ -71,6 +73,23 @@ export function drawGroundBack() {
     R(x - 1, 22, 14, h - 22, '#c9ced8'); R(x - 1, 22, 3, h - 22, '#eef0f4'); R(x + 10, 22, 3, h - 22, '#9aa0ab');
     R(x + 2, 14, 8, 8, '#9aa0ab'); R(x + 4, 10, 4, 4, '#5a5f6a'); R(x - 2, h, 16, 3, '#7c818c');
     R(x - 1, h - 20, 14, 3, '#3a77b0');
+  }
+}
+
+// Ondas na praia (à esquerda do calçadão): a água avança rápido, recua devagar; a borda é ondulada e anda de lado
+const WASH_PER = 6.2;
+function shoreWash() {
+  const x0 = Math.floor(worldX(0) / 4) * 4, x1 = Math.min(worldX(W) + 4, -330);
+  if (x1 <= x0) return;
+  if (cam.z < 0.25) { R(x0, -8, x1 - x0, 8, '#cdb079'); return; }
+  const q = (V.t / WASH_PER) % 1, up = q < 0.35 ? Math.sin(q / 0.35 * Math.PI / 2) : Math.cos((q - 0.35) / 0.65 * Math.PI / 2);
+  const reach = 3 + 20 * up, wet = 3 + 20 * Math.max(up, q < 0.35 ? 0 : 1 - (q - 0.35) * 0.9); // a areia molhada some aos poucos
+  for (let x = x0; x < x1; x += 4) {
+    const k = 0.75 + 0.25 * Math.sin(x / 41 + V.t * 0.9) + 0.08 * Math.sin(x / 13), e = Math.round(reach * k), w = Math.round(wet * k);
+    if (w > e) R(x, -w, 4, w - e, '#ccae76');                                      // areia molhada
+    R(x, -e, 4, e, 'rgba(70,165,220,.62)'); R(x, -e + 2, 4, e - 2, 'rgba(255,255,255,.08)'); // lâmina d'água
+    R(x, -e, 4, 2, q < 0.5 ? '#f4fbfd' : 'rgba(244,251,253,.7)');                  // espuma na ponta
+    if (hash(x / 4, Math.floor(V.t * 3)) < 0.06) R(x + 1, -e + 3, 2, 1, '#ffffff'); // bolhas
   }
 }
 
@@ -241,19 +260,19 @@ export function drawGroundFront(prod, sg = {}) {
     if (sg.groundJam) { // fila na porta do elevador, carregados, esperando a vez
       const x = to + 18 + i * 24;
       if (barrow) wheelbarrow(x, gy, bc, 0, true);
-      worker(x, gy, { phase: 0, carry: barrow ? null : bc, flip: true, skin: i + 1 });
+      worker(x, gy, { phase: 0, carry: barrow ? null : bc, flip: true, skin: i + 1, suit: false });
       zzz(x, gy + (barrow ? 56 : 68), i);
       continue;
     }
     if (sg.supplyLow) { // nada para levar: esperam ao lado do estoque vazio
       const x = STOCK_X + 10 + i * 22;
-      worker(x, gy, { phase: 0, flip: i % 2 === 1, skin: i + 1 });
+      worker(x, gy, { phase: 0, flip: i % 2 === 1, skin: i + 1, suit: false });
       zzz(x, gy + 56, i + 3);
       continue;
     }
     const p = (V.t * .22 + i / nw) % 1, go = p < .5, x = lerp(STOCK_X + 30, to, go ? p * 2 : 2 - p * 2);
     if (barrow) wheelbarrow(x, gy, go ? bc : null, V.t * 3 + i, go);
-    worker(x, gy, { walk: true, phase: V.t * 3 + i, carry: barrow ? null : go ? bc : null, flip: go, skin: i + 1 });
+    worker(x, gy, { walk: true, phase: V.t * 3 + i, carry: barrow ? null : go ? bc : null, flip: go, skin: i + 1, suit: false });
   }
   // coqueiros
   coconut(-440, Math.round(Math.sin(V.t * 1.5) * 3)); // longe do trilho do elevador panorâmico

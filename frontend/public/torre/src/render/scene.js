@@ -138,11 +138,14 @@ function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
     const x = TL + 6 + (k % 2) * 22, yy = y0 + SLAB + Math.floor(k / 2) * 12;
     blit(palletSprite(s.brick), x - 1, yy - 1, 0, 13);
   }
-  const idle = !!sg.starving; // falta material: ninguém tem o que assentar
-  // o pedreiro mais perto da próxima peça vai até ela
+  // falta material: só a parte da equipe que o material sustenta trabalha (material chegando ÷ capacidade de assentar);
+  // os outros descansam com 💤. Com o prédio subindo rápido, quase todos trabalham.
+  const busyN = sg.starving ? Math.max(1, Math.min(nb, Math.round(nb * (sg.busy ?? 0)))) : nb;
+  const resting = j => j >= busyN;
+  // o pedreiro (que está trabalhando) mais perto da próxima peça vai até ela
   const home = j => nb === 1 ? 0 : TL + 34 + j * (TW - 100) / (nb - 1);
   let act = 0, best = 1e9;
-  for (let j = 0; j < nb; j++) { const d = Math.abs(home(j) - slotX); if (d < best) { best = d; act = j; } }
+  for (let j = 0; j < busyN; j++) { const d = Math.abs(home(j) - slotX); if (d < best) { best = d; act = j; } }
   const fy = y0 + SLAB, pace = 1 + 0.15 * Math.min(S.lv.treino, 6), drill = S.lv.ferram > 0;
   // pedreiros caminham com velocidade de gente (quem acabou de ser contratado entra andando)
   const dtv = clamp(V.t - (V.bxT ?? V.t), 0, .1), stepMax = 150 * pace * dtv;
@@ -150,17 +153,17 @@ function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
   techBack(y0, fy);
   const bx = [];
   for (let j = 0; j < nb; j++) {
-    const tx = idle ? home(j) : j === act ? clamp(slotX - 26, TL + 10, TL + TW - 40) : home(j);
+    const tx = resting(j) ? home(j) : j === act ? clamp(slotX - 26, TL + 10, TL + TW - 40) : home(j);
     const x = V.preview || V.bx[j] === undefined ? tx : V.bx[j] + clamp(tx - V.bx[j], -stepMax, stepMax);
     if (!V.preview) V.bx[j] = x;
     bx[j] = x;
-    const walk = Math.abs(x - tx) > 2, sit = idle && !walk;
-    worker(x, fy, { sit, hammer: working && !walk && !idle, drill, phase: V.t * (j === act ? 3 : 1.6) * pace + j * .37, walk, flip: walk && tx < x, skin: j });
+    const walk = Math.abs(x - tx) > 2, sit = resting(j) && !walk;
+    worker(x, fy, { sit, hammer: working && !walk && !sit, drill, phase: V.t * (j === act ? 3 : 1.6) * pace + j * .37, walk, flip: walk && tx < x, skin: j });
     if (sit) zzz(x, fy + 42, j);
     else if (sg.overloaded && !walk) sweat(x, fy + 50, j);
   }
   // peça a caminho: tijolo nas paredes, vidro nas janelas
-  if (working && !idle && (pid === 'paredes' || pid === 'janelas')) {
+  if (working && (pid === 'paredes' || pid === 'janelas')) {
     const f = st.frac, hx = bx[act] + 22, hy = fy + 44, ty = pid === 'paredes' ? y0 + SLAB + 40 : y0 + 46;
     const px = lerp(hx, slotX - 10, f), py = lerp(hy, ty, f) + Math.sin(f * Math.PI) * 16;
     if (pid === 'paredes') { R(px, py, 19, 10, s.brick); R(px, py + 9, 18, 1, s.hi); }

@@ -20,6 +20,7 @@ export function obraSigns(R0) {
   return {
     capped,
     starving: !capped && S.top < 0.6 && supply < R0.lay * 0.6,             // pedreiros parados boa parte do tempo
+    busy: R0.lay > 0 ? Math.min(1, supply / R0.lay) : 1,                       // fração da equipe que o material sustenta
     overloaded: !capped && S.top > R0.fcost * 0.5,                          // material sobrando no topo
     groundJam: !capped && S.ground > R0.fcost * 0.6 && R0.tran < R0.prod,   // elevador não dá conta
     supplyLow: !capped && S.ground < 1.5 && R0.prod < R0.tran,              // pouco material chegando

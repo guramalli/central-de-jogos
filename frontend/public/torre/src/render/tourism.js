@@ -69,7 +69,11 @@ export function drawTourGround(tour) {
   for (let i = n - 1; i >= 0; i--) tourist(BOOTH_X - 40 - i * 24, 0, i, { phase: V.t });
   // bilheteria
   const ba = art('bilheteria');
-  if (ba) { blit(ba, BOOTH_X, 0, 0, ba.height); R(BOOTH_X + ba.width / 2 - 26, ba.height + 4, 52, 11, '#20242f'); T('INGRESSOS', BOOTH_X + ba.width / 2, ba.height + 9, 8, '#f2b630', 'center'); }
+  if (ba) { // bilheteria do PixelLab, de frente; a placa "TICKETS" do desenho ganha o texto em português por cima
+    blit(ba, BOOTH_X, 0, 0, ba.height);
+    R(BOOTH_X + 13, ba.height - 13, 41, 12, '#f4f1e6'); R(BOOTH_X + 13, ba.height - 13, 41, 1, '#20242f'); R(BOOTH_X + 13, ba.height - 2, 41, 1, '#20242f');
+    T('INGRESSOS', BOOTH_X + 33.5, ba.height - 7, 7, '#20335a', 'center');
+  }
   else { blit(boothSprite(), BOOTH_X, 0, 3, 76); T('INGRESSOS', BOOTH_X + 17, 75, 8, '#f2b630', 'center'); }
 }
 
@@ -91,7 +95,7 @@ function curious() {
 
 // cabine do elevador panorâmico, helicóptero e cápsula espacial
 export function drawTourAir(topWP) {
-  if (S.lv.bilheteria >= 1) panoramic(topWP);
+  // o helicóptero voa por trás da torre e do elevador panorâmico: é desenhado antes da cabine
   if (S.lv.heliponto >= 1) {
     // voo próprio: circula em volta dos últimos andares, um pouco abaixo do topo (passa por trás da torre),
     // e sobe devagar quando a obra cresce (no máximo ~1 andar a cada 2 s), em vez de pular junto com cada andar
@@ -104,6 +108,7 @@ export function drawTourAir(topWP) {
     if (ha) { blit(ha, x, y, ha.width / 2, ha.height - 6, f); if (Math.floor(V.t * 20) % 2) R(x - ha.width * 0.42, y + ha.height - 8, ha.width * 0.62, 1, 'rgba(230,235,245,.7)'); }
     else blit(heliSprite(Math.floor(V.t * 20) % 2), x, y, 56, 32, !f);
   }
+  if (S.lv.bilheteria >= 1) panoramic(topWP);
   if (S.lv.porto >= 1) {
     const ph = (V.t / 14) % 1;
     if (ph < .6) {

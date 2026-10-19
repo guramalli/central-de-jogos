@@ -18,5 +18,8 @@ export const ICON_ART = new Set(['pedreiro', 'treino', 'ferram', 'mestre', 'forn
 export const iconURL = k => ICON_ART.has(k) ? 'assets/icones/' + k + '.png' : null;
 
 // começa a baixar tudo logo ao abrir o jogo (as trocas aparecem assim que cada imagem chega)
-const SCENE = ['olaria', 'coqueiro', 'bilheteria', 'helicoptero', 'foguete', 'balao', 'aviao', 'navio', 'orla', 'nuvem-0', 'nuvem-1', 'nuvem-2', 'nuvem-3'];
+const SCENE = ['olaria', 'coqueiro', 'bilheteria', 'helicoptero', 'foguete', 'balao', 'aviao', 'navio', 'orla', 'nuvem-0', 'nuvem-1', 'nuvem-2', 'nuvem-3', 'mar'];
+for (const a of ['andar', 'carregar', 'martelar', 'furar', 'parado', 'sentado']) SCENE.push('boneco/' + a, 'espacial/' + a);
+SCENE.push('mestre/andar', 'mestre/prancheta');
+for (let e = 0; e < 7; e++) SCENE.push('fachadas/' + e, 'fachadas/' + e + '-acesa'); // uma fachada por era
 export function preloadArt() { SCENE.forEach(art); }

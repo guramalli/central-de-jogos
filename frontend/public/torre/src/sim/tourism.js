@@ -17,7 +17,10 @@ export function tourism() {
   const hotels = typeCount('hotel'), obs = typeCount('obs');
   const demand = L.bilheteria < 1 ? 0
     : T.demand * Math.pow(alt, T.demandPow) * (1 + 0.25 * L.marketing) * (1 + 0.15 * Math.log2(1 + hotels / 10)) * techMult('tour') * M.mult('tourism');
-  const cap = T.capPanoramic * L.bilheteria + T.capHeli * L.heliponto;
+  // Obra Viva: a capacidade acompanha a altura (cabines maiores e mais rápidas, como aparece na cena), no mesmo
+  // ritmo dos interessados, e cada nível multiplica (×1,6) em vez de somar; assim Marketing e Agência continuam valendo
+  const lvCap = n => n < 1 ? 0 : FLAGS.viva ? Math.pow(1.6, n - 1) * Math.pow(Math.max(1, alt / 40), T.demandPow) : n;
+  const cap = T.capPanoramic * lvCap(L.bilheteria) + T.capHeli * lvCap(L.heliponto);
   const ticket = T.ticket * Math.pow(alt / 10, T.ticketPow) * (1 + 0.25 * Math.log2(1 + obs / 10)) * techMult('ticket') * M.mult('ticket');
   const served = Math.min(demand, cap);
   const sDemand = L.porto < 1 ? 0 : T.spaceDemand * Math.pow(alt / 1000, 0.8) * M.mult('tourism');

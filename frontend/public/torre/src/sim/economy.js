@@ -66,8 +66,11 @@ export function rates() {
   if (M.flag.teleport) hEff = Math.min(hEff, 20000);
   if (M.flag.express) hEff = Math.pow(hEff, 0.85);
   const trip = 2 * hEff / spd + 2;
+  // Obra Viva: a velocidade (Motor, Magnético, tecnologias) multiplica o material subindo inteiro. Sem isso, os 2 s
+  // fixos de carga e descarga viravam quase toda a viagem no fim do jogo e o "×2,8" do Magnético rendia +3%.
+  const spd0 = 1.5 * M.mult('tranSpd') * all, tripEff = FLAGS.viva ? (2 * hEff / spd0 + 2) / (spd / spd0) : trip;
   const lay = L.pedreiro * 1.3 * eff('treino') * eff('ferram') * eff('mestre') * (craneLog() ? 1 : eff('guindaste')) * techMult('lay') * M.mult('lay') * all;
-  let tran = L.elevador * capc / trip * (craneLog() ? eff('guindaste') : 1);
+  let tran = L.elevador * capc / tripEff * (craneLog() ? eff('guindaste') : 1);
   if (M.flag.helpers) tran += 0.25 * lay;
   const fcost = floorCost(fl, era, M);
   const capF = Math.floor(25 * Math.pow(M.flag.floatFound ? 3 : 2, L.fundacao) * M.mult('capF'));

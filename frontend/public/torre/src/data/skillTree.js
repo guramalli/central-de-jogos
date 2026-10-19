@@ -17,16 +17,18 @@ export const SKILL_LAYOUT = {
   forn: { fornec: [0, 1], caminhao: [0, 2, 'fornec'], olaria: [0, 3, 'caminhao'], premold: [0, 4, 'olaria'] },
   log: { elevador: [-0.6, 1], motor: [0.6, 1], guindaste: [-0.6, 2, 'elevador'], cacamba: [0.6, 2, 'motor'], maglev: [0.6, 3, 'cacamba'] },
   eng: { fundacao: [0, 1], projeto: [0, 2, 'fundacao'] },
-  merc: { aluguel: [-0.6, 1], bilheteria: [0.6, 1], marketing: [0.6, 2, 'bilheteria'], heliponto: [-0.6, 3], porto: [0, 4] },
+  merc: { aluguel: [-0.6, 1], bilheteria: [0.6, 1], marketing: [0.6, 2, 'bilheteria'], heliponto: [-0.6, 3] },
 };
 // tecnologias de era: uma por era no centro da coluna, ligadas à compra (ou tecnologia) de baixo
-const LINK0 = { obra: 'mestre', forn: 'premold', log: 'maglev', eng: 'projeto', merc: 'porto' };
+const LINK0 = { obra: 'mestre', forn: 'premold', log: 'maglev', eng: 'projeto', merc: 'heliponto' };
 for (const b of COLS) {
   let prev = LINK0[b];
   for (const k of Object.keys(ERA_TECH).filter(k => ERA_TECH[k].b === b).sort((x, y) => ERA_TECH[x].era - ERA_TECH[y].era)) {
     SKILL_LAYOUT[b][k] = [0, ERA_ROW0 + ERA_TECH[k].era, prev, 'tech']; prev = k;
   }
 }
+// o porto espacial só abre a 100 km: fica na fileira da era do Espaço, ao lado do Turismo espacial
+SKILL_LAYOUT.merc.porto = ERA_TECH.turismoEsp ? [0.75, ERA_ROW0 + ERA_TECH.turismoEsp.era, 'turismoEsp'] : [0, 4];
 
 export const upgradePos = (b, k) => { const [c, r] = SKILL_LAYOUT[b][k]; return [colX(b) + c * SUB, r * ROW]; };
 export const BASE_POS = [0, -40];

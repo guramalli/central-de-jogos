@@ -6,9 +6,10 @@ import { ERAS, ERA_STYLE, eraAt } from '../data/eras.js';
 import { S } from '../sim/state.js';
 import { typeAt } from '../sim/realty.js';
 import { ctx, R, Rv, T, hash, mix } from './canvas.js';
-import { cam, worldY } from './camera.js';
+import { cam, worldY, sx, sy } from './camera.js';
 import { V } from './view.js';
 import { blit, shade } from './sprites.js';
+import { art } from './assets.js';
 import { scaffoldTile, brickTile, eraTile, shaftTile, carSprite, shaftTopSprite, mastTile, jibTile, cabSprite, weightSprite, trolleySprite, hookSprite, hexMix } from './props.js';
 
 const WIN_X = [12, 72, 132, 192];     // janelas: x relativo à borda esquerda
@@ -33,12 +34,28 @@ function interior(i, k, wx, y, t) {
   else { R(wx, y, 6, WIN_H, c); R(wx + WIN_W - 6, y, 6, WIN_H, c); if (hash(i, k + 5) < .35) { R(wx + 14, y, 8, 18, 'rgba(30,30,40,.45)'); R(wx + 15, y + 18, 6, 6, 'rgba(30,30,40,.45)'); } }
 }
 
+// Fachadas do PixelLab (assets/fachadas/<era>.png, 240×96) e onde ficam as janelas em cada uma [x, y, w, h]
+// (pixels da imagem); a versão "-acesa" tem o vidro pintado de luz quente e é recortada por cima de cada janela acesa
+const FAC_WIN = [[[11,23,24,41],[75,23,24,41],[141,23,23,41],[205,23,23,41]],[[16,28,33,40],[73,28,33,40],[134,28,33,40],[191,28,33,40]],[[0,1,30,87],[30,1,30,87],[60,1,30,87],[90,1,30,87],[120,1,30,87],[150,1,30,87],[180,1,30,87],[210,1,30,87]],[[8,30,28,32],[73,30,28,32],[139,30,28,32],[204,30,28,32]],[[10,34,28,29],[80,34,28,29],[134,34,26,29],[201,34,29,29]],[[11,35,22,22],[76,35,22,22],[142,35,22,22],[207,35,22,22]],[[9,34,24,24],[75,34,24,24],[141,34,24,24],[207,34,24,24]]];
+function subImg(img, x0, y0, w, h, wx, wyTop) {
+  const X = Math.round(sx(wx)), Y = Math.round(sy(wyTop)), X1 = Math.round(sx(wx + w)), Y1 = Math.round(sy(wyTop - h));
+  if (X1 > X && Y1 > Y) ctx.drawImage(img, x0, y0, w, h, X, Y, X1 - X, Y1 - Y);
+}
+
 // Fachada do andar i. lvl: 1 simples, 2 molduras, 3 completo
 export function facade(i, lvl = floorLOD()) {
   const e = eraAt(altOf(i)), s = ERA_STYLE[e], y0 = i * FH;
   // andar recém-concluído: todas as luzes acendem por um instante (Obra Viva)
   const flash = V.flash && V.flash.i === i, occ = i < S.assigned || flash;
   const lit = flash ? () => true : litW;
+  const fa = lvl >= 2 && art('fachadas/' + e);
+  if (fa) { // arte do PixelLab: parede pronta da era; janelas acesas vêm da versão acesa
+    blit(fa, TL, y0, 0, fa.height);
+    const fl = occ && art('fachadas/' + e + '-acesa');
+    if (fl) FAC_WIN[e].forEach(([x, y, w, h], k) => { if (lit(i, k)) subImg(fl, x, y, w, h, TL + x, y0 + FH - y); });
+    if (e >= 4 && i % 25 === 0 && Math.floor(V.t * 2) % 2) R(TL + TW - 10, y0 + FH - 10, 6, 4, '#ff3b3b');
+    return;
+  }
   // perto: parede pronta num sprite de pixel art (tijolo ou a parede da era), janelas por cima
   const brick = e === 0 && lvl >= 3, tiled = lvl >= 3 && e !== 2, v = Math.floor(hash(i, 5) * (brick ? 4 : 3));
   if (brick) blit(brickTile(v), TL, y0, 0, FH);

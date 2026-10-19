@@ -32,10 +32,10 @@ export const VIVA = {
     ferram: { n: 'Ferramenta elétrica', d: 'Furadeiras no lugar do martelo: ×1,5 no assentamento.', base: 80, req: null },
     corretor: { d: 'O destino dos andares já é automático. +8% no preço de venda por nível.' },
     // ritmo moderado (tools/prestigio.mjs): multiplicadores menores que os do modo clássico
-    motor: { mul: 1.5, k: 2.1, max: 10, d: '×1,5 velocidade dos elevadores.' }, // forte, mas com teto: no fim quem puxa são as tecnologias de era
+    motor: { mul: 1.2, k: 2.1, max: 10, d: '×1,2 velocidade dos elevadores (e do material subindo).' }, // forte, mas com teto: no fim quem puxa são as tecnologias de era
     olaria: { mul: 1.9, d: '×1,9 produção por nível.' },
     premold: { mul: 2.5, d: '×2,5 produção por nível.' },
-    maglev: { mul: 2.8, d: '×2,8 velocidade dos elevadores.' },
+    maglev: { mul: 1.6, d: '×1,6 velocidade dos elevadores (e do material subindo).' },
     mestre: { mul: 1.75, d: '×1,75 assentamento por nível.' },
     // guindaste de torre é transporte vertical (decisão do usuário): fica na Logística e soma no material subindo
     guindaste: { b: 'log', req: ['elevador', 2], add: 0.6, k: 2.5, d: 'Iça paletes do térreo até o topo junto com os elevadores: +60% de material subindo por nível.' },

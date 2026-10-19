@@ -64,10 +64,10 @@ export const ERA_TECH = {
   fabrica: T('forn', 4, 'Fábrica automatizada', 'Linha de produção sem parar: ×2 de material por nível.', { base: 4e7, st: 'prod', mul: 2, icon: 'premold' }),
   asteroides: T('forn', 5, 'Mineração de asteroides', 'Material vindo do espaço: ×2 de material por nível.', { base: 4e8, st: 'prod', mul: 2, icon: 'porto' }),
   // Logística
-  cabos: T('log', 1, 'Cabos de aço', 'Elevadores com cabos mais fortes: ×1,4 na velocidade por nível.', { base: 3e3, st: 'tran', mul: 1.4, icon: 'motor' }),
+  cabos: T('log', 1, 'Cabos de aço', 'Elevadores com cabos mais fortes: ×1,2 na velocidade por nível.', { base: 3e3, st: 'tran', mul: 1.2, icon: 'motor' }),
   expresso: T('log', 2, 'Elevador expresso', 'Viagens sem paradas: a altura pesa menos no tempo de subida.', { base: 1e5, max: 1, flag: 'express', icon: 'elevador' }),
-  pressurizada: T('log', 3, 'Cabine pressurizada', 'Elevadores para o ar rarefeito: ×1,6 na velocidade por nível.', { base: 3e6, st: 'tran', mul: 1.6, icon: 'elevador' }),
-  linear: T('log', 4, 'Elevador linear', 'Motor linear magnético: ×2 na velocidade por nível.', { base: 4e7, st: 'tran', mul: 2, icon: 'maglev' }),
+  pressurizada: T('log', 3, 'Cabine pressurizada', 'Elevadores para o ar rarefeito: ×1,25 na velocidade por nível.', { base: 3e6, st: 'tran', mul: 1.25, icon: 'elevador' }),
+  linear: T('log', 4, 'Elevador linear', 'Motor linear magnético: ×1,4 na velocidade por nível.', { base: 4e7, st: 'tran', mul: 1.4, icon: 'maglev' }),
   teleporte: T('log', 5, 'Teletransporte de carga', 'Acima de 20 km a carga chega como se a torre parasse ali.', { base: 4e8, max: 1, flag: 'teleport', icon: 'maglev' }),
   // Engenharia
   calculo: T('eng', 1, 'Cálculo estrutural', 'Estrutura mais leve: −10% de material por andar a cada nível.', { base: 4e3, st: 'fcost', mul: 0.9, icon: 'projeto' }),

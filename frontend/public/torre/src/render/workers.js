@@ -7,9 +7,10 @@ import { MPF } from '../data/constants.js';
 import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { eraAt } from '../data/eras.js';
 import { S } from '../sim/state.js';
-import { R } from './canvas.js';
-import { cam } from './camera.js';
-import { blit } from './sprites.js';
+import { R, ctx } from './canvas.js';
+import { cam, sx, sy } from './camera.js';
+import { art } from './assets.js';
+import { blit, shade } from './sprites.js';
 import { drawRig, ANIMS, SKINS, RIG_AX, RIG_AY, walkDistance } from './rig.js';
 
 const SIL = { vest: '#ee7a1c', pants: '#30446e', helm: '#f7c824', suit: '#d3d8e0', suitD: '#a9b0bd', visor: '#f7f8fb' };
@@ -36,6 +37,18 @@ export function tourist(x, y, i, o = {}) {
   blit(drawRig(`civ|${anim}|${frame}|${i % 60}`, anim, frame, q), x, y, RIG_AX, RIG_AY, !!o.flip);
 }
 
+// folhas do PixelLab: [arquivo, quadros]; células de 88×88 com os pés no ponto (44, 84)
+const SHEETS = { walk: ['andar', 8], carry: ['carregar', 5], hammer: ['martelar', 8], drill: ['furar', 6], idle: ['parado', 4], sit: ['sentado', 3], boss: ['prancheta', 8] };
+const CELL = 88, FEET_X = 44, FEET_Y = 84;
+// onde ficam as mãos em cada quadro de "carregar" (célula)
+const HANDS = { boneco: [[60, 51], [61, 46], [60, 46], [61, 45], [62, 47]], espacial: [[66, 50], [67, 49], [67, 50], [66, 50], [66, 51]] };
+function blitCell(img, i, x, y, flip) {
+  const z = cam.z, X = Math.round(sx(x - FEET_X)), Y = Math.round(sy(y + FEET_Y)), w = Math.round(CELL * z), h = Math.round(CELL * z);
+  if (X > ctx.canvas.width || X + w < 0 || Y > ctx.canvas.height || Y + h < 0) return;
+  if (flip) { ctx.save(); ctx.translate(X + w, Y); ctx.scale(-1, 1); ctx.drawImage(img, i * CELL, 0, CELL, CELL, 0, 0, w, h); ctx.restore(); }
+  else ctx.drawImage(img, i * CELL, 0, CELL, CELL, X, Y, w, h);
+}
+
 export function worker(x, y, o = {}) {
   if (cam.z < 0.07) return; // menor que 4 px: nem desenha
   const era = eraAt(altOf(S.floors)), suit = o.suit ?? era >= 3;
@@ -57,6 +70,22 @@ export function worker(x, y, o = {}) {
   const cyc = anim === 'walk' ? (o.flip ? -x : x) / walkDistance(!!o.carry)
     : anim === 'idle' || anim === 'sit' || anim === 'boss' ? ph / 2 : anim === 'drill' ? ph * 2 : ph;
   const n = ANIMS[anim].frames, frame = ((Math.floor((cyc % 1 + 1) % 1 * n)) + n) % n;
+  // bonecos do PixelLab (folhas em assets/<conjunto>): pedreiro, pedreiro de traje espacial (eras altas) e mestre de obras;
+  // usados quando a arte já carregou (antes disso, o esqueleto por código)
+  {
+    const set = suit ? 'espacial' : o.boss ? 'mestre' : 'boneco'; // nas eras altas o mestre também usa traje (parado, de olho na obra)
+    const key = o.boss ? (suit ? 'idle' : anim === 'walk' ? 'walk' : 'boss') : anim === 'walk' && o.carry ? 'carry' : anim;
+    const sh = SHEETS[key], img = sh && art(set + '/' + sh[0]);
+    if (img) {
+      const m = sh[1], f = ((Math.floor((cyc % 1 + 1) % 1 * m)) + m) % m;
+      blitCell(img, f, x, y, !!o.flip);
+      if (sh[0] === 'carregar') { // o bloco é desenhado pelo jogo (mesmo bloco e cor da era que a construção usa), apoiado nas mãos
+        const [hx, hy] = HANDS[set][f], dx = hx - FEET_X, bx = o.flip ? x - dx - 3 : x + dx - 16, by = y + FEET_Y - hy;
+        R(bx, by, 19, 10, o.carry); R(bx, by + 9, 19, 1, shade(o.carry, 0.3)); R(bx, by, 19, 1, shade(o.carry, -0.3)); R(bx + 9, by + 1, 1, 8, shade(o.carry, -0.2));
+      }
+      return;
+    }
+  }
   // Treinamento e Ferramenta aparecem no equipamento de todos os operários (gear até 6; furadeira até o nível 10)
   const gear = suit ? 0 : Math.min(6, S.lv.treino || 0), tl = anim === 'drill' ? Math.min(10, S.lv.ferram || 0) : 0;
   const spr = workerSprite(anim, frame, { skin, suit, pack: suit && (o.pack ?? era >= 5), boss: !!o.boss, carry: o.carry || '', gear, tl });
