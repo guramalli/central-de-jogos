@@ -4,6 +4,7 @@ export const VIVA = {
   startMoney: 0,         // a primeira compra vem do primeiro andar entregue
   floorPaySecs: 50,      // pagamento por andar entregue = aluguel-base do andar × isto (≈ R$ 25 nos primeiros)
   autoSellPct: 0,        // destino automático dos andares prontos (0 = aluga tudo); ninguém espera decisão manual
+  hidden: ['corretor', 'banco'], // fora do Obra Viva (decisão do usuário: jogo simples, sem banco nem corretor)
   stageMargin: 0.5,      // etapas andam juntas: nenhuma melhora se já está 50% à frente da mais lenta (economy.js stageBlock)
   revealAt: 10,          // andares até os painéis avançados (Imóveis, Engenharia) aparecerem
   priority: 3,           // compras prioritárias mostradas; o resto fica em "Mais melhorias"

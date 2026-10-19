@@ -6,6 +6,7 @@ import { FLOOR_TYPES, TYPE_IDS } from '../data/floorTypes.js';
 import { S } from './state.js';
 import { mods } from './mods.js';
 import { FLAGS } from '../data/flags.js';
+import { floorOf } from '../data/height.js';
 
 const RB = BAL.rent;
 
@@ -23,9 +24,18 @@ export const typeUnlocked = t => S.maxAlt >= FLOOR_TYPES[t].alt;
 export const saleMult = () => (1 + 0.08 * S.lv.corretor) * mods().mult('sale');
 export const rentMult = () => (1 + 0.5 * S.lv.aluguel) * mods().mult('rent');
 
+// Obra Viva: o tipo muda sozinho com a altura (só vista e turismo; nada para escolher)
+const AUTO_TYPES = ['apto', 'escr', 'hotel', 'rest', 'obs'];
+let autoSegs = null;
+const segsNow = () => {
+  if (!FLAGS.viva) return S.typeSegs;
+  return autoSegs || (autoSegs = AUTO_TYPES.map(t => [Math.ceil(floorOf(FLOOR_TYPES[t].alt)), t]));
+};
+const rentOf = T => FLAGS.viva ? 1 : T.rent;
+
 // tipo do andar i (busca nos segmentos)
 export function typeAt(i) {
-  const s = S.typeSegs;
+  const s = segsNow();
   for (let k = s.length - 1; k >= 0; k--) if (i >= s[k][0]) return s[k][1];
   return s[0][1];
 }
@@ -48,7 +58,7 @@ function mergeTail() {
 
 // percorre [a, a+n) em pedaços de mesmo tipo
 function eachPiece(a, n, fn) {
-  const segs = S.typeSegs, end = a + n;
+  const segs = segsNow(), end = a + n;
   for (let i = 0; i < segs.length; i++) {
     const s0 = segs[i][0], s1 = i + 1 < segs.length ? segs[i + 1][0] : Infinity;
     const lo = Math.max(a, s0), hi = Math.min(end, s1);
@@ -63,7 +73,7 @@ export function preview(n) {
   eachPiece(S.assigned, n, (a, c, t) => {
     const T = FLOOR_TYPES[t], base = rentSum(a, c);
     sale += base * BAL.saleSecs * T.sale;
-    rent += base * T.rent;
+    rent += base * rentOf(T);
   });
   return { n, sale: sale * saleMult(), rent, rentNow: rent * rentMult() };
 }
@@ -77,7 +87,7 @@ export function assign(n, how) {
   eachPiece(S.assigned, n, (a, c, t) => {
     const T = FLOOR_TYPES[t], base = rentSum(a, c);
     if (how === 'sell') got += base * BAL.saleSecs * T.sale * sm;
-    else S.rentBase += base * T.rent;
+    else S.rentBase += base * rentOf(T);
     S.typeCount[t] = (S.typeCount[t] || 0) + c;
   });
   S.assigned += n;
@@ -91,7 +101,7 @@ export function assign(n, how) {
 export function brokerTick() {
   if ((S.lv.corretor < 1 && !FLAGS.viva) || !S.broker.on) return;
   const n = pending(); if (n <= 0) return;
-  const q = S.broker.acc + n * S.broker.sellPct / 100;
+  const q = S.broker.acc + n * (FLAGS.viva ? 0 : S.broker.sellPct) / 100; // Obra Viva: tudo alugado
   const nSell = Math.min(n, Math.floor(q));
   S.broker.acc = q - nSell;
   assign(nSell, 'sell');

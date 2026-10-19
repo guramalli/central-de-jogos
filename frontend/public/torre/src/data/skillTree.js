@@ -19,7 +19,7 @@ export const SKILL_LAYOUT = {
   forn: { fornec: [0, 1], caminhao: [0, 2, 'fornec'], olaria: [0, 3, 'caminhao'], premold: [0, 4, 'olaria'] },
   log: { elevador: [-0.6, 1], motor: [0.6, 1], cacamba: [0.6, 2, 'motor'], maglev: [0.6, 3, 'cacamba'] },
   eng: { fundacao: [0, 1], guindaste: [-0.6, 2, 'fundacao'], projeto: [0.6, 2, 'fundacao'] },
-  merc: { aluguel: [-0.85, 1], bilheteria: [0, 1], corretor: [0.85, 1], marketing: [0, 2, 'bilheteria'], banco: [-0.85, 3], heliponto: [0.85, 3], porto: [0, 4] },
+  merc: { aluguel: [-0.6, 1], bilheteria: [0.6, 1], marketing: [0.6, 2, 'bilheteria'], heliponto: [-0.6, 3], porto: [0, 4] },
 };
 
 export const upgradePos = (b, k) => { const [c, r] = SKILL_LAYOUT[b][k]; return [colX(b) + c * SUB, r * ROW]; };

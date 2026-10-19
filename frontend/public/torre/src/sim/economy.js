@@ -14,7 +14,7 @@ import { bankInfo, bankTick } from './bank.js';
 // ---------- melhorias compradas com dinheiro ----------
 export const cost = k => Math.ceil(UP[k].base * Math.pow(UP[k].k, S.lv[k] - (UP[k].start || 0)) * mods().mult('cost_' + UP[k].b));
 export const reqMet = k => (!UP[k].req || S.lv[UP[k].req[0]] >= UP[k].req[1]) && (!UP[k].reqAlt || S.maxAlt >= UP[k].reqAlt);
-export const unlocked = reqMet;
+export const unlocked = k => reqMet(k) && !(FLAGS.viva && VIVA.hidden.includes(k));
 export const maxed = k => UP[k].max !== undefined && S.lv[k] >= UP[k].max;
 export const canBuy = k => unlocked(k) && !maxed(k) && !stageBlock(k) && S.money >= cost(k);
 

@@ -31,6 +31,13 @@
         <!-- modo Obra Viva: só o andar e o dinheiro na tela, e o botão Melhorias -->
         <div class="plate plate-floor" id="hPlateFloor" hidden><small>ANDAR</small><b id="hFloor">1</b><span id="hAlt">0 m</span></div>
         <div class="plate plate-money" id="hPlateMoney" hidden><b id="hMoney">R$ 0</b></div>
+        <button class="hsum" id="hSum" hidden aria-expanded="false" title="Resumo da obra (toque para ver mais)">
+          <span class="hs-inc"><b id="hsInc">R$ 0/s</b> <i id="hsFpm">0 andares/min</i></span>
+          <span class="hs-row" data-k="prod"><em>Chegando</em><i class="hs-bar"><u></u></i><b>0/s</b></span>
+          <span class="hs-row" data-k="tran"><em>Subindo</em><i class="hs-bar"><u></u></i><b>0/s</b></span>
+          <span class="hs-row" data-k="lay"><em>Assentando</em><i class="hs-bar"><u></u></i><b>0/s</b></span>
+          <span class="hs-more" id="hsMore"></span>
+        </button>
         <button class="upbtn" id="openUp" hidden aria-haspopup="dialog">Melhorias<i class="dot" hidden></i><i class="pe-badge" id="upPe" hidden></i><i class="pe-pop" id="upPePop" aria-live="polite"></i></button>
         <!-- aviso contextual: andares prontos sem destino -->
         <div class="ready" id="ready" hidden>

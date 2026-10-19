@@ -358,7 +358,7 @@ export function updateSkills() {
   setText($('skMoney'), 'R$ ' + fmt(S.money));
   setText($('skPe'), '★ ' + peAvailable());
   $('skPe').classList.toggle('has', peAvailable() > 0);
-  $('skNegBtn').hidden = floorOf(S.maxAlt) < VIVA.revealAt;
+  $('skNegBtn').hidden = true; // Negócios saiu (imóveis automáticos, sem banco); os números estão no resumo da tela
   $('skRespec').hidden = !S.peSpent;
   updateCorp();
   if (corpOpen()) return;

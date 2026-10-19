@@ -30,6 +30,7 @@ import { soundOn, setSound } from './ui/audio.js';
   }
 }
 migrate(load());
+if (FLAGS.viva) { S.debt = 0; S.inDefault = false; } // banco saiu do Obra Viva: dívidas antigas perdoadas
 // resumo do tempo fora: no modo atual vai para a dica do painel; no Obra Viva, numa faixa sobre a cena
 function welcome(msg) {
   if (!msg) return;
@@ -108,7 +109,7 @@ document.body.classList.toggle('modo-novo', FLAGS.viva);
   $('skMode').innerHTML = `<a href="${href}">Modo clássico (progresso antigo)</a>`;
 }
 if (FLAGS.viva) {
-  for (const id of ['hPlateFloor', 'hPlateMoney', 'openUp']) $(id).hidden = false;
+  for (const id of ['hPlateFloor', 'hPlateMoney', 'openUp']) $(id).hidden = false; // o resumo (hSum) aparece no 1º andar
   $('z-all').textContent = '⤢'; $('z-all').setAttribute('aria-label', 'Ver a torre inteira');
   initSkills(doPrestige);
 }

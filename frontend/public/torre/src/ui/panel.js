@@ -5,7 +5,7 @@ import { altOf, floorOf } from '../data/height.js';
 import { ERAS, eraAt } from '../data/eras.js';
 import { UP, BRANCHES } from '../data/upgrades.js';
 import { S } from '../sim/state.js';
-import { rates, isCapped, bottleneck, offlineMax, cost } from '../sim/economy.js';
+import { rates, isCapped, bottleneck, offlineMax, cost, shareMult } from '../sim/economy.js';
 import { peAvailable, peEarned } from '../sim/talents.js';
 import { clamp } from '../render/canvas.js';
 import { V } from '../render/view.js';
@@ -56,12 +56,42 @@ function peNotify() {
   lastPe = earned;
 }
 
+// Resumo da obra (sempre na tela, embaixo do dinheiro): renda, andares por minuto e o material em cada etapa.
+// A etapa mais lenta fica em âmbar (só a cor; nada escrito). Tocar abre os detalhes.
+const sumEl = $('hSum'), sumRows = [...sumEl.querySelectorAll('.hs-row')];
+sumEl.onclick = () => sumEl.setAttribute('aria-expanded', sumEl.getAttribute('aria-expanded') !== 'true');
+const perMin = v => v >= 10 ? fmt(v) : (Math.round(v * 10) / 10).toLocaleString('pt-BR');
+function updateSummary() {
+  sumEl.hidden = S.floors < 1; // aparece depois do 1º andar, junto com a primeira renda
+  if (sumEl.hidden) return;
+  const R = rates(), capped = isCapped(R), lo = Math.min(R.prod, R.tran, R.lay), hi = Math.max(R.prod, R.tran, R.lay) || 1;
+  setText($('hsInc'), `R$ ${fmt(R.income)}/s`);
+  setText($('hsFpm'), capped ? 'parada: limite da fundação' : `${perMin(lo / R.fcost * 60)} andares/min`);
+  for (const row of sumRows) {
+    const v = R[row.dataset.k];
+    row.querySelector('u').style.width = (100 * v / hi).toFixed(1) + '%';
+    setText(row.querySelector('b'), fmt(v) + '/s');
+    row.classList.toggle('slow', !capped && v === lo);
+  }
+  if (sumEl.getAttribute('aria-expanded') === 'true') {
+    const t = R.tour, lines = [
+      `Aluguel: R$ ${fmt(R.rent)}/s · ${fmt(S.rented)} andares alugados`,
+      S.lv.bilheteria > 0 ? `Turismo: R$ ${fmt(t.revenue * shareMult())}/s · ${fmt(t.served)} visitantes/s` + (t.queue > 0.05 ? ` (fila ${fmt(t.queue)}/s)` : '') : null,
+      `Material por andar: ${fmt(R.fcost)}`,
+      `Limite da fundação: ${fmt(R.capF)} andares`,
+      `Pátio no térreo: ${fmt(S.ground)} · no topo: ${fmt(S.top)}`,
+    ].filter(Boolean);
+    setText($('hsMore'), lines.join('\n'));
+  }
+}
+
 // Modo Obra Viva: na tela só o andar e o dinheiro; o resto mora na tela de Melhorias
 function updateHud() {
   const fl = Math.floor(S.floors);
   setText($('hFloor'), fmt(fl + 1));
   setText($('hAlt'), fmtM(altOf(S.floors)));
   setText($('hMoney'), 'R$ ' + fmt(S.money));
+  updateSummary();
   $('openUp').querySelector('.dot').hidden = !anyToBuy();
   peNotify();
   updateSkills();

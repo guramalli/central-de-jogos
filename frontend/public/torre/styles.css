@@ -266,6 +266,24 @@ canvas.drag{cursor:grabbing}
 .plate-money{--pb:#6fd08c;right:max(15px,env(safe-area-inset-right,0px));justify-content:center;min-height:48px}
 .plate-money b{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
 
+/* resumo da obra: sempre na tela, embaixo do dinheiro; toque abre os detalhes */
+.hsum{position:absolute;right:max(15px,env(safe-area-inset-right,0px));top:calc(max(15px,env(safe-area-inset-top,0px)) + 64px);width:228px;
+  background:rgba(17,19,26,.84);border:0;color:var(--fg);font-family:var(--f-display);text-align:left;padding:7px 9px 6px;cursor:pointer;
+  display:flex;flex-direction:column;gap:4px;box-shadow:0 -2px 0 0 #2b3044,0 2px 0 0 #2b3044,-2px 0 0 0 #2b3044,2px 0 0 0 #2b3044}
+.hs-inc{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.hs-inc b{font-size:15px;color:#6fd08c;font-variant-numeric:tabular-nums}
+.hs-inc i{font-style:normal;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hs-row{display:grid;grid-template-columns:74px 1fr 58px;align-items:center;gap:6px;font-size:12px}
+.hs-row em{font-style:normal;color:var(--muted)}
+.hs-row b{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.hs-bar{height:7px;background:#232838;position:relative;display:block}
+.hs-bar u{position:absolute;inset:0 auto 0 0;background:#5aa36e;width:0}
+.hs-row.slow .hs-bar u{background:#f2b630}
+.hs-row.slow b{color:#f2b630}
+.hs-more{display:none;font-size:12px;color:var(--muted);line-height:1.5;border-top:1px solid #2b3044;padding-top:4px;white-space:pre-line}
+.hsum[aria-expanded="true"] .hs-more{display:block}
+@media (max-width:520px){.hsum{width:186px;top:calc(max(15px,env(safe-area-inset-top,0px)) + 54px);padding:6px 8px 5px}.hs-inc{flex-direction:column;align-items:flex-start;gap:0}.hs-row{grid-template-columns:62px 1fr 46px;font-size:11px}.hs-more{font-size:11px}}
+
 /* botão Melhorias */
 .upbtn{position:absolute;right:max(14px,env(safe-area-inset-right,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));
   font-family:var(--f-display);font-size:19px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
