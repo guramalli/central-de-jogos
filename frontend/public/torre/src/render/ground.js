@@ -13,6 +13,7 @@ import { SHAFT_X } from './tower.js';
 import { zzz } from './signs.js';
 import { blit } from './sprites.js';
 import { islandSprite } from './props.js';
+import { art } from './assets.js';
 import { truckSprite, wheelSprite, TRUCK_AX, TRUCK_AY, BED_STEPS, orlaSprite, calcadaoTile, kilnSprite, palmTrunk, palmCrown, palletSprite } from './props.js';
 import { shade } from './sprites.js';
 
@@ -26,7 +27,9 @@ export function drawGroundBack() {
   R(-1e7, 0, 2e7, 3, '#e8f2f6'); R(-1e7, 3, 2e7, 2, '#7ec4ec'); // espuma na beira
   if (cam.z >= 0.25) for (let i = -40; i < 60; i++) { const x = i * 46 + ((V.t * 14) % 46); if (hash(i, 3) < .5) R(x, 20 + hash(i, 4) * 36, 14, 2, '#9fd4f2'); }
   // prédios da orla, atrás da obra
-  for (let i = 0; i < 16; i++) {
+  const orla = cam.z >= 0.35 && art('orla');
+  if (orla) for (let k = 0; k < 4; k++) blit(orla, 150 + k * orla.width, 4, k % 2 ? orla.width : 0, orla.height, k % 2 === 1);
+  else for (let i = 0; i < 16; i++) {
     const bx = 150 + i * 74 + hash(i, 20) * 20, bw = 52 + hash(i, 22) * 22, bh = 110 + hash(i, 21) * 210;
     if (cam.z >= 0.35) blit(orlaSprite(i, bw, bh, i % 3 ? '#8ea6b8' : '#9fb3c2'), bx, 4, 0, Math.round(bh) + 16);
     else { R(bx, 4, bw, bh, i % 3 ? '#8ea6b8' : '#9fb3c2'); R(bx, 4 + bh, bw, 4, '#7d93a5'); }
@@ -34,7 +37,9 @@ export function drawGroundBack() {
   // do lado do mar: mar aberto, com uma ilha no horizonte (azulada pela distância) e um navio passando
   blit(islandSprite(), -860, 62, 0, 85);
   const shx = -900 - ((V.t * 6) % 1400);
-  R(shx, 50, 70, 8, '#3e4a5c'); R(shx + 4, 58, 50, 6, '#5a6676'); R(shx + 10, 64, 8, 6, '#c0504d'); R(shx + 26, 64, 18, 4, '#d9dde4'); R(shx, 49, 70, 1, '#2a3340');
+  const ship = art('navio');
+  if (ship) blit(ship, shx, 52, 0, ship.height);
+  else { R(shx, 50, 70, 8, '#3e4a5c'); R(shx + 4, 58, 50, 6, '#5a6676'); R(shx + 10, 64, 8, 6, '#c0504d'); R(shx + 26, 64, 18, 4, '#d9dde4'); R(shx, 49, 70, 1, '#2a3340'); }
   // areia e calçadão
   R(-1e7, -1e6, 2e7, 1e6, '#e2c98e');
   if (cam.z >= 0.3) for (let i = 0; i < 90; i++) R(-700 + hash(i, 31) * 1600, -20 - hash(i, 32) * 400, 3, 3, '#c9ad72');
@@ -72,25 +77,38 @@ export function drawGroundBack() {
 // Olaria própria: forno de tijolos com chaminé fumegando (atrás do caminhão)
 // a cada nível: chaminé mais alta, pilhas de tijolos secando ao lado e, a partir do nível 6, uma segunda chaminé
 function kiln(x, lv) {
+  const ka = art('olaria');
+  if (ka) {
+    blit(ka, x, 0, 0, ka.height);
+    if (Math.floor(V.t * 6) % 2) R(x + 25, 5, 10, 9, 'rgba(255,190,70,.35)');                 // fogo piscando na boca do forno
+    for (let k = 0; k < 3 + Math.min(4, lv); k++) { const q = (V.t * .5 + k / (3 + Math.min(4, lv))) % 1; R(x + 50 + Math.sin(q * 6 + k) * 4, ka.height + q * 70, 8 + q * 10, 6 + q * 6, `rgba(220,220,225,${(.5 * (1 - q)).toFixed(2)})`); }
+    kilnStacks(x, lv);
+    T('OLARIA' + (lv > 1 ? ' ' + lv : ''), x + 30, 30, 9, '#f4e6c8', 'center');
+    return;
+  }
   blit(kilnSprite(Math.floor(V.t * 5) % 2), x, 0, 1, 101);
   const ext = Math.min(40, 4 * (lv - 1)), stacks = [[x + 47, 98 + ext]];
   for (let y = 98; y < 98 + ext; y += 6) { R(x + 45, y, 12, 6, '#8a4c32'); R(x + 45, y, 12, 1, '#6e3b26'); }
   if (ext) { R(x + 43, 96 + ext, 16, 4, '#5a3322'); R(x + 43, 99 + ext, 16, 1, '#7a4a30'); }
   if (lv >= 6) { const h = 70 + (lv - 6) * 6; R(x + 6, 48, 10, h - 48, '#8a4c32'); for (let y = 48; y < h; y += 6) R(x + 6, y, 10, 1, '#6e3b26'); R(x + 4, h - 2, 14, 4, '#5a3322'); stacks.push([x + 7, h + 2]); }
   for (const [sx, sy] of stacks) for (let k = 0; k < 4; k++) { const q = (V.t * .5 + k / 4) % 1; R(sx + Math.sin(q * 6 + k) * 4, sy + q * 70, 8 + q * 10, 6 + q * 6, `rgba(220,220,225,${(.5 * (1 - q)).toFixed(2)})`); }
-  // tijolos crus secando, entre o caminhão e o forno (uma pilha por nível, até 6)
+  kilnStacks(x, lv);
+  T('OLARIA' + (lv > 1 ? ' ' + lv : ''), x + 35, 30, 9, '#f4e6c8', 'center');
+}
+
+// tijolos crus secando, entre o caminhão e o forno (uma pilha por nível, até 6)
+function kilnStacks(x, lv) {
   if (cam.z >= 0.3) for (let k = 0; k < Math.min(6, lv); k++) {
     const bx = x - 52 + k * 8, rows = 2 + (k % 3);
     for (let r = 0; r < rows; r++) { R(bx, r * 5, 7, 4, r % 2 ? '#c0603c' : '#b0553a'); R(bx, r * 5 + 4, 7, 1, '#8a3f2a'); }
   }
-  T('OLARIA' + (lv > 1 ? ' ' + lv : ''), x + 35, 30, 9, '#f4e6c8', 'center');
 }
 
 // Fábrica de pré-moldados: pátio na areia à esquerda da torre. A cada nível, mais um cavalete com painéis de parede;
 // a partir do nível 2 um pórtico rolante leva um painel de um lado ao outro; no 4 o pórtico ganha a placa
 function precastYard(lv) {
-  if (cam.z < 0.25) { R(-290, 0, 140, 30, '#9a9a94'); return; }
-  const X0 = -292, X1 = -146, st = ERA_STYLE[eraAt(altOf(S.floors))];
+  if (cam.z < 0.25) { R(-660, 0, 140, 30, '#9a9a94'); return; }
+  const X0 = -660, X1 = -514, st = ERA_STYLE[eraAt(altOf(S.floors))];
   R(X0, -2, X1 - X0, 4, '#8f8f88'); R(X0, 1, X1 - X0, 1, '#b4b4ac');
   const panel = (px, py, h) => { R(px, py, 7, h, '#b9b9b2'); R(px, py, 1, h, '#dcdcd4'); R(px + 6, py, 1, h, '#8f8f88'); R(px + 1, py + h * 0.45, 5, h * 0.25, '#5a6070'); };
   for (let k = 0; k < Math.min(6, lv); k++) {
@@ -108,12 +126,15 @@ function precastYard(lv) {
     const hy = 50 + Math.sin(V.t * 1.3) * 2;
     R(tx + 2, hy, 1, top - 6 - hy, '#2a2a33'); R(tx - 1, hy - 3, 8, 3, '#2a2a33');
     if (go) { R(tx - 14, hy - 30, 34, 26, '#b9b9b2'); R(tx - 14, hy - 30, 34, 2, '#dcdcd4'); R(tx - 4, hy - 22, 14, 10, st.glass || '#5a6070'); }
-    if (lv >= 4) { R(-252, top + 10, 64, 12, '#20242f'); T('PRÉ-MOLDADOS', -220, top + 16, 8, '#f4e6c8', 'center'); }
+    if (lv >= 4) { R((X0 + X1) / 2 - 32, top + 10, 64, 12, '#20242f'); T('PRÉ-MOLDADOS', (X0 + X1) / 2, top + 16, 8, '#f4e6c8', 'center'); }
   }
 }
 
+const PALM_BASE = 0.343; // onde fica o pé do tronco na largura da imagem do coqueiro (0–1)
 function coconut(px, sway) {
   if (cam.z < 0.25) { for (let s = 0; s < 190; s += 30) R(px + Math.round(Math.sin(s / 190 * 1.4) * 14), s, 9, 30, '#7a5531'); R(px - 30 + sway, 186, 88, 10, '#3c8a3f'); return; }
+  const pa = art('coqueiro');
+  if (pa) { blit(pa, px, 0, PALM_BASE * pa.width, pa.height); return; }
   blit(palmTrunk(), px - 10, 0, 0, 200);
   blit(palmCrown(Math.max(-3, Math.min(3, sway))), px + 14, 192, 70, 28);
 }
@@ -235,7 +256,7 @@ export function drawGroundFront(prod, sg = {}) {
     worker(x, gy, { walk: true, phase: V.t * 3 + i, carry: barrow ? null : go ? bc : null, flip: go, skin: i + 1 });
   }
   // coqueiros
-  coconut(-300, Math.round(Math.sin(V.t * 1.5) * 3));
+  coconut(-440, Math.round(Math.sin(V.t * 1.5) * 3)); // longe do trilho do elevador panorâmico
   coconut(560, Math.round(Math.sin(V.t * 1.5 + 1) * 3));
   // pássaros
   if (cam.z >= 0.2) for (let i = 0; i < 4; i++) {

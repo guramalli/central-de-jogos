@@ -20,7 +20,7 @@ export const V = {
 };
 
 export function resetView() {
-  V.lastK = -1; V.lastPhase = -1; V.fast = false; V.lastEra = null; V.toast = null; V.bx = [];
+  V.lastK = -1; V.lastPhase = -1; V.fast = false; V.lastEra = null; V.toast = null; V.bx = []; V.heliY = undefined;
   V.floats = []; V.flash = null; V.shaftBuild = []; V.craneBuild = 1;
   resetCamera();
 }

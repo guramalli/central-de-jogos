@@ -18,6 +18,8 @@ import { syncEvents, recent } from './render/events.js';
 import { initEffects } from './render/effects.js';
 import { soundOn, setSound } from './ui/audio.js';
 import { initIntro, introActive, startIntro } from './ui/intro.js';
+import { preloadArt } from './render/assets.js';
+preloadArt();
 
 // ?reset no endereço: apaga o save deste modo e começa do zero (o parâmetro sai do endereço,
 // para recarregar a página não apagar de novo)

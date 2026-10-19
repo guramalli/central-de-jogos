@@ -16,6 +16,7 @@ import { V } from '../render/view.js';
 import { $, setText, setHTML } from './dom.js';
 import { fmt, fmtM } from './format.js';
 import { iconSprite, badgeSprite, lockSprite } from './icons.js';
+import { iconURL } from '../render/assets.js';
 import { spriteDataURL } from '../render/sprites.js';
 
 const COLOR = Object.fromEntries(TBRANCHES.map(b => [b.id, b.color]));
@@ -111,7 +112,7 @@ function build() {
       const n = mk('g', { class: 'sk-node' + (UP[k].era ? ' tech' : ''), transform: `translate(${x} ${Y(y)})`, style: `--c:${c}`, 'data-up': k }, gNodes);
       mk('rect', { x: -40, y: -40, width: 80, height: 80, class: 'halo' }, n);
       const badge = mk('image', { x: -36, y: -36, width: 72, height: 72, class: 'px' }, n);
-      mk('image', { x: -19.2, y: -21.2, width: 38.4, height: 38.4, class: 'px ico', href: spriteDataURL(iconSprite(UP[k].icon || k)) }, n);
+      mk('image', { x: -19.2, y: -21.2, width: 38.4, height: 38.4, class: 'px ico', href: iconURL(k) || spriteDataURL(iconSprite(UP[k].icon || k)) }, n); // ícone do PixelLab quando existe
       mk('image', { x: -15, y: -15, width: 30, height: 30, class: 'px lock', href: spriteDataURL(lockSprite()) }, n);
       mk('rect', { x: 13, y: 15, width: 26, height: 20, class: 'lvbox' }, n);
       const lv = mk('text', { class: 'lvl', x: 26, y: 26, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, n);

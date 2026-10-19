@@ -8,6 +8,7 @@ import { cam, worldY } from './camera.js';
 import { V } from './view.js';
 import { blit } from './sprites.js';
 import { cloudSprite, planeSprite, balloonSprite } from './props.js';
+import { art } from './assets.js';
 
 const altAt = screenY => Math.max(0, altOf(worldY(screenY) / FH)); // altura (m) na linha da tela
 const yOfAlt = m => floorOf(m) * FH;                                  // y de mundo de uma altura
@@ -62,29 +63,29 @@ export function drawSky() {
 function cloud(x, y, w, alpha) {
   ctx.globalAlpha = alpha;
   if (w * cam.z < 14) R(x, y, w, w * .2, '#f3f7fb');
-  else { const c = cloudSprite(w); blit(c, x, y, 0, c.height); }
+  else { const c = art('nuvem-' + (Math.floor(w) % 4)) || cloudSprite(w); blit(c, x, y, 0, c.height); } // nuvens do PixelLab (4 formas)
   ctx.globalAlpha = 1;
 }
 
+// todas as nuvens passam por trás da torre (pedido do usuário): a chamada da frente não desenha nada
 export function drawClouds(front) {
+  if (front) return;
   const lo = worldY(H) - 600, hi = worldY(0) + 200;
   CLOUDS.forEach(c => {
-    if (c.front !== front) return;
     const y = yOfAlt(c.m); if (y < lo || y > hi) return;
     const x = ((c.x + V.t * c.s) % 2800 + 2800) % 2800 - 1400;
-    cloud(x, y, c.w, front ? .7 : 1);
+    cloud(x, y, c.w, 1);
   });
-  if (front) return;
   // avião na faixa de cruzeiro (~10,5 km)
   const py = yOfAlt(10500);
   if (py > lo && py < hi) {
     const x = ((V.t * 220) % 3600) - 1800;
-    blit(planeSprite(), x, py, 4, 56);
+    const pl = art('aviao'); if (pl) blit(pl, x, py, 4, pl.height - 4); else blit(planeSprite(), x, py, 4, 56);
   }
   // balão meteorológico (~30 km)
   const by = yOfAlt(30000);
   if (by > lo && by < hi) {
     const x = -260 + Math.sin(V.t * .4) * 60;
-    blit(balloonSprite(), x, by - 64, 32, 136);
+    const bl = art('balao'); if (bl) blit(bl, x, by - 64, bl.width / 2, bl.height - 4); else blit(balloonSprite(), x, by - 64, 32, 136);
   }
 }
