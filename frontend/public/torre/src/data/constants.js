@@ -15,7 +15,6 @@ export const WORKER_H = 58;      // altura de um operário
 
 export const MPF = 4;            // metros por andar
 export const BRICKS = 39;        // material por andar na economia (não é a contagem visual de blocos)
-export const PANELS = 6;         // painéis por andar (modo painéis)
 
 export const SAVE_KEY = 'torre-infinita-v1';
 export const OFFLINE_MAX_S = 8 * 3600;

@@ -339,6 +339,9 @@ canvas.drag{cursor:grabbing}
 .sk-node.locked .lvbox,.sk-node.locked .lvl{display:none}
 .sk-node.locked .nm{fill:#5d6580}
 .sk-node.open .ico{opacity:.75}
+.sk-node.hold .ico{opacity:.35}
+.sk-node.hold .lock{display:inline}
+.sk-node.hold .rq{fill:#f2b630}
 .sk-node.max .lvbox{fill:#ffe9a8;stroke:#0b0c11}
 .sk-node.max .lvl{fill:var(--ink)}
 .sk-node.can .halo{stroke:var(--c);stroke-width:4;stroke-dasharray:8 8;animation:tpulse 1.4s steps(4) infinite,pxmarch .8s steps(4) infinite}
@@ -380,6 +383,15 @@ g.sk-pe.sel .halo{stroke:#fff;stroke-width:3;stroke-dasharray:none;animation:non
 .sk-sheet{position:absolute;inset:0;z-index:2;background:rgba(11,13,19,.97);display:flex;flex-direction:column;min-height:0}
 .sk-sheet-h{display:flex;align-items:center;gap:10px;padding:10px 14px;font-family:var(--f-display);font-size:18px}
 .sk-sheet .sk-neg{flex:1;overflow:auto}
+/* Construtora: venda (prestígio) e Conselho */
+.sk-shares{color:#f2b630;border-color:#5a4a1a}
+.corpbtn{color:#f2b630}
+.cp-items{display:flex;flex-direction:column;gap:8px}
+.cp-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.cp-row b{font-family:var(--f-display);font-size:14px}
+.cp-lv{font-family:var(--f-display);font-size:12px;color:var(--muted)}
+.cp-next{font-size:12px;color:#f2b630}
+#cpSell.armed{background:#b3261e;border-color:#b3261e;color:#fff}
 @media (prefers-reduced-motion:reduce){g.sk-pe.can .halo,.sk-pts.has{animation:none}}
 
 /* botões e painel da árvore em moldura de pixel */

@@ -1,6 +1,7 @@
 // Céu: gradiente pela altitude de cada faixa da tela (funciona em qualquer zoom),
 // estrelas, curvatura da Terra e satélite em coordenadas de tela; nuvens, avião e balão no mundo.
 import { W, H, FH, MPF } from '../data/constants.js';
+import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { SKY } from '../data/eras.js';
 import { ctx, r, R, hash, clamp, mix, mixRGB } from './canvas.js';
 import { cam, worldY } from './camera.js';
@@ -8,8 +9,8 @@ import { V } from './view.js';
 import { blit } from './sprites.js';
 import { cloudSprite, planeSprite, balloonSprite } from './props.js';
 
-const M2Y = FH / MPF; // pixels de mundo por metro
-const altAt = screenY => Math.max(0, worldY(screenY) / M2Y);
+const altAt = screenY => Math.max(0, altOf(worldY(screenY) / FH)); // altura (m) na linha da tela
+const yOfAlt = m => floorOf(m) * FH;                                  // y de mundo de uma altura
 
 const CLOUDS = [];
 for (let i = 0; i < 110; i++) CLOUDS.push({ m: 300 + i * 140 + hash(i, 1) * 110, x: hash(i, 2) * 2400 - 1200, w: 160 + Math.floor(hash(i, 3) * 260), s: 14 + hash(i, 4) * 30, front: hash(i, 5) < .3 });
@@ -69,19 +70,19 @@ export function drawClouds(front) {
   const lo = worldY(H) - 600, hi = worldY(0) + 200;
   CLOUDS.forEach(c => {
     if (c.front !== front) return;
-    const y = c.m * M2Y; if (y < lo || y > hi) return;
+    const y = yOfAlt(c.m); if (y < lo || y > hi) return;
     const x = ((c.x + V.t * c.s) % 2800 + 2800) % 2800 - 1400;
     cloud(x, y, c.w, front ? .7 : 1);
   });
   if (front) return;
   // avião na faixa de cruzeiro (~10,5 km)
-  const py = 10500 * M2Y;
+  const py = yOfAlt(10500);
   if (py > lo && py < hi) {
     const x = ((V.t * 220) % 3600) - 1800;
     blit(planeSprite(), x, py, 4, 56);
   }
   // balão meteorológico (~30 km)
-  const by = 30000 * M2Y;
+  const by = yOfAlt(30000);
   if (by > lo && by < hi) {
     const x = -260 + Math.sin(V.t * .4) * 60;
     blit(balloonSprite(), x, by - 64, 32, 136);

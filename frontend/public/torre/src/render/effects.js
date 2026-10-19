@@ -1,5 +1,6 @@
 // Obra Viva — o que cada evento mostra e toca. Só apresentação: nada aqui mexe em saldo.
 import { FH, TW, TL, SLAB, MPF } from '../data/constants.js';
+import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { ERA_STYLE, eraAt } from '../data/eras.js';
 import { UP } from '../data/upgrades.js';
 import { S } from '../sim/state.js';
@@ -35,8 +36,8 @@ export function updateEffects(dt) {
 }
 
 function onFloor(e) {
-  const y = e.to * FH, st = ERA_STYLE[eraAt(y / FH * MPF)];
-  if (V.mode <= 2 && e.n <= 2) {
+  const y = e.to * FH, st = ERA_STYLE[eraAt(altOf(y / FH))];
+  if (e.n <= 2) {
     // celebração completa: luzes acendem, poeira na laje e "+1 andar"
     V.flash = { i: e.to - 1, t: 1.8 };
     for (let k = 0; k < 6; k++) dust(TL + 20 + k * 40, y + 2, k % 2 ? '#ffe27a' : '#d8cdb8', 3, 1.2);

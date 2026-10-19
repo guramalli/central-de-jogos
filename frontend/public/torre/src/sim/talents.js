@@ -9,11 +9,12 @@ import { FLAGS } from '../data/flags.js';
 export const peFromAlt = m => m <= 0 ? 0 : Math.floor(BAL.pe.mult * Math.pow(m, BAL.pe.pow));
 // altura (m) em que se ganha o próximo ponto
 export const nextPeAlt = m => Math.pow((peFromAlt(m) + 1) / BAL.pe.mult, 1 / BAL.pe.pow);
-export const peEarned = () => peFromAlt(S.maxAlt) + S.peBonus;
+// ★ vêm da maior altura já alcançada em qualquer obra (vender a construtora não tira pontos)
+export const peEarned = () => peFromAlt(Math.max(S.maxAlt, S.bestAlt || 0)) + S.peBonus;
 export const peAvailable = () => peEarned() - S.peSpent;
 
 export const owned = id => !!S.tree[id];
-export const ringOpen = k => S.era >= ringEra(k);
+export const ringOpen = k => Math.max(S.era, S.bestEra || 0) >= ringEra(k);
 export const reachable = id => ADJ[id].some(n => S.tree[n]);
 
 // Obra Viva: a pesquisa de um ramo só começa depois de comprar pelo menos 1 nível de uma melhoria dele

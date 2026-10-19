@@ -7,10 +7,12 @@ import { cam, snapCamera } from './render/camera.js';
 import { updateView, render, resetMilestones } from './render/scene.js';
 import { H, setW } from './data/constants.js';
 import { ctxMain } from './render/canvas.js';
-import { updateUI, setNotice } from './ui/panel.js';
+import { updateUI, setNotice, resetPeNotify } from './ui/panel.js';
+import { prestige } from './sim/prestige.js';
+import { VIVA } from './data/viva.js';
 import { closeMap, initMap } from './ui/talentMap.js';
 import { $ } from './ui/dom.js';
-import { initSkills, tickSkills, skillsOpen } from './ui/skills.js';
+import { initSkills, tickSkills, skillsOpen, closeSkills } from './ui/skills.js';
 import { FLAGS } from './data/flags.js';
 import { syncCameraButtons } from './ui/cameraControls.js';
 import { syncEvents, recent } from './render/events.js';
@@ -85,6 +87,14 @@ for (const rs of [$('reset'), $('skReset')]) {
   };
 }
 
+// Vender a construtora (prestígio): a obra recomeça do chão com as Ações, a Pesquisa e o Conselho
+function doPrestige() {
+  const n = prestige(); if (!n) return;
+  setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); resetPeNotify();
+  closeSkills(); updateUI();
+  V.toast = { a: `CONSTRUTORA VENDIDA · +${n} AÇÕES`, b: `OBRA NOVA · +${Math.round(S.shares * VIVA.prestige.bonusPer * 100)}% EM TUDO`, t: 5 };
+}
+
 initMap(updateUI);
 
 // Modo: Obra Viva é o padrão (tela limpa + Melhorias); ?classico abre o modo antigo. Saves separados.
@@ -100,7 +110,7 @@ document.body.classList.toggle('modo-novo', FLAGS.viva);
 if (FLAGS.viva) {
   for (const id of ['hPlateFloor', 'hPlateMoney', 'openUp']) $(id).hidden = false;
   $('z-all').textContent = '⤢'; $('z-all').setAttribute('aria-label', 'Ver a torre inteira');
-  initSkills();
+  initSkills(doPrestige);
 }
 
 // som da obra: lembrado neste navegador (botão sobre a cena no modo atual; no rodapé das Melhorias no Obra Viva)

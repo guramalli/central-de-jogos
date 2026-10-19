@@ -1,6 +1,7 @@
 // Atualiza a interface (chamado a cada 0,2 s): indicadores do topo, cartão Construção,
 // melhorias, próximo objetivo e a barra de painéis (que revela sistemas conforme o progresso).
 import { MPF } from '../data/constants.js';
+import { altOf, floorOf } from '../data/height.js';
 import { ERAS, eraAt } from '../data/eras.js';
 import { UP, BRANCHES } from '../data/upgrades.js';
 import { S } from '../sim/state.js';
@@ -8,7 +9,6 @@ import { rates, isCapped, bottleneck, offlineMax, cost } from '../sim/economy.js
 import { peAvailable, peEarned } from '../sim/talents.js';
 import { clamp } from '../render/canvas.js';
 import { V } from '../render/view.js';
-import { MODES } from '../render/scene.js';
 import { $, setText, setHTML } from './dom.js';
 import { fmt, fmtM } from './format.js';
 import { updateUpgrades, NECK_BRANCH } from './upgrades.js';
@@ -41,6 +41,7 @@ export function showPage(p) {
 
 // pontos ★ ganhos viram notificação no botão Melhorias: selo com o saldo e "+N ★" subindo quando chegam
 let lastPe = null, popTimer = 0;
+export const resetPeNotify = () => { lastPe = null; };
 function peNotify() {
   const earned = peEarned(), avail = peAvailable(), badge = $('upPe');
   badge.hidden = avail <= 0;
@@ -59,7 +60,7 @@ function peNotify() {
 function updateHud() {
   const fl = Math.floor(S.floors);
   setText($('hFloor'), fmt(fl + 1));
-  setText($('hAlt'), fmtM(S.floors * MPF));
+  setText($('hAlt'), fmtM(altOf(S.floors)));
   setText($('hMoney'), 'R$ ' + fmt(S.money));
   $('openUp').querySelector('.dot').hidden = !anyToBuy();
   peNotify();
@@ -70,7 +71,7 @@ function updateHud() {
 
 export function updateUI() {
   if (FLAGS.viva) { updateHud(); return; }
-  const R = rates(), m = S.floors * MPF, e = eraAt(m), capped = isCapped(R);
+  const R = rates(), m = altOf(S.floors), e = eraAt(m), capped = isCapped(R);
   // topo: só o essencial
   setText($('alt'), fmtM(m)); setText($('eraName'), ERAS[e].n);
   setText($('money'), 'R$ ' + fmt(S.money));
@@ -81,12 +82,12 @@ export function updateUI() {
 
   if (page === 'obra') {
     // construção: gargalo e progresso do andar
-    setText($('modeName'), MODES[V.mode]);
+    setText($('modeName'), 'Bloco a bloco');
     setText($('neck'), NECK_NAME[neck]);
     setText($('neckHint'), notice || (capped ? '' : `Melhore ${BRANCHES.find(b => b.id === NECK_BRANCH[neck]).n} para acelerar.`));
     const p = S.floors - Math.floor(S.floors), eff = capped ? 0 : Math.min(R.prod, R.tran, R.lay), fps = eff / R.fcost;
     $('floorFill').style.width = (capped ? 100 : p * 100) + '%';
-    const etapa = V.mode === 1 ? ' · ' + phaseAt(p, FLAGS.viva ? VIVA.phases : PHASES).n : '';
+    const etapa = ' · ' + phaseAt(p, FLAGS.viva ? VIVA.phases : PHASES).n;
     setText($('floorPct'), capped ? 'Obra parada' : `${Math.floor(p * 100)}%${etapa}`);
     setText($('floorTime'), !fps ? '' : fps >= 1 ? `${fmt(fps)} andares/s` : `andar ${Math.floor(S.floors) + 1} pronto em ~${fmt((1 - p) / fps)} s`);
     $('capWarn').hidden = !capped;
@@ -131,7 +132,7 @@ export function updateUI() {
   // barra de painéis: revelação gradual e avisos
   const pe = peAvailable();
   // protótipo Obra Viva: painéis avançados só depois dos primeiros andares
-  const early = FLAGS.viva && S.maxAlt / MPF < VIVA.revealAt;
+  const early = FLAGS.viva && floorOf(S.maxAlt) < VIVA.revealAt;
   $('nav').hidden = early;
   navBtns.forEach(b => {
     const p = b.dataset.nav;

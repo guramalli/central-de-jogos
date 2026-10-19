@@ -4,12 +4,13 @@
 // nos anéis que ainda não abriram. Painel à direita com o efeito e uma prévia animada na própria cena.
 // Nada aqui aponta o gargalo: o efeito mostrado é só o da própria etapa (o jogador descobre na obra).
 import { FH, MPF } from '../data/constants.js';
+import { floorOf } from '../data/height.js';
 import { UP } from '../data/upgrades.js';
 import { NODES, EDGES, TBRANCHES, CENTER, RINGS, describeEffect, ringEraName, KIND_LABEL } from '../data/talents.js';
 import { SKILL_LAYOUT, COLS, BW, RES0, RING, colX, upgradePos, researchPos, BASE_POS, SHORT } from '../data/skillTree.js';
 import { VIVA } from '../data/viva.js';
 import { S, save } from '../sim/state.js';
-import { cost, unlocked, maxed, canBuy, buy } from '../sim/economy.js';
+import { cost, unlocked, maxed, canBuy, buy, stageBlock, STAGE_OF } from '../sim/economy.js';
 import { upgradeEffect } from '../sim/preview.js';
 import { peAvailable, learn, learnBlock, owned, ringOpen, respec, branchStarted } from '../sim/talents.js';
 import { withTarget } from '../render/canvas.js';
@@ -19,6 +20,7 @@ import { V } from '../render/view.js';
 import { $, setText, setHTML } from './dom.js';
 import { fmt, fmtM } from './format.js';
 import { updateBusiness } from './business.js';
+import { updateCorp, corpOpen, initCorp, closeCorp } from './corp.js';
 import { iconSprite, badgeSprite, lockSprite, starSprite } from './icons.js';
 import { spriteDataURL } from '../render/sprites.js';
 
@@ -66,6 +68,15 @@ const lockText = k => {
   if (k === 'banco' && S.maxAlt < BANK_AT && S.debt <= 0) parts.push(`a torre chegar a ${fmtM(BANK_AT)}`);
   return parts.length ? 'Libera quando ' + parts.join(' e ') + '.' : '';
 };
+
+// etapas andando juntas: quem está segurando e a explicação (só na árvore; a obra continua sem texto)
+const HOLD_NAME = { prod: 'Fornecimento', tran: 'Logística', lay: 'Mão de obra' };
+const HOLD_WHY = {
+  prod: { tran: 'Falta material para subir', lay: 'Não chega material para tanta gente' },
+  tran: { prod: 'Pátio cheio: os elevadores não levam o que já chega', lay: 'O material não sobe rápido o bastante' },
+  lay: { prod: 'Material sobrando no topo: os pedreiros não dão conta', tran: 'Os pedreiros não dão conta do que já sobe' },
+};
+const holdText = (k, blk) => `${HOLD_WHY[blk][STAGE_OF(k)]}. Melhore ${blk === 'lay' ? 'a Mão de obra' : blk === 'prod' ? 'o Fornecimento' : 'a Logística'} antes — numa obra, as etapas andam juntas.`;
 
 // o que falta, curto, para escrever na árvore ("Treino nv 3", "torre em 1 km")
 const reqShort = k => {
@@ -178,12 +189,13 @@ function updateTree() {
     const e = upEls[k], lk = lockedUp(k), mx = maxed(k), lv = S.lv[k];
     setText(e.lv, lk ? '' : String(lv));
     const isSel = sel && sel.t === 'up' && sel.k === k;
-    const st = lk ? 'locked' : mx ? 'max' : canBuy(k) ? 'can' : lv > 0 ? 'own' : 'open';
+    const blk = !lk && !mx ? stageBlock(k) : null;
+    const st = lk ? 'locked' : mx ? 'max' : blk ? 'hold' : canBuy(k) ? 'can' : lv > 0 ? 'own' : 'open';
     const cls = 'sk-node ' + st + (isSel ? ' sel' : '');
     if (cls !== e.cls) { e.n.setAttribute('class', cls); e.cls = cls; }
-    if (st !== e.st) { e.badge.setAttribute('href', spriteDataURL(badgeSprite(COLOR[UP[k].b], st))); e.st = st; }
+    if (st !== e.st) { e.badge.setAttribute('href', spriteDataURL(badgeSprite(COLOR[UP[k].b], st === 'hold' ? (lv > 0 ? 'own' : 'open') : st))); e.st = st; }
     if (e.e) { e.e.classList.toggle('on', lv > 0); e.e.classList.toggle('open', !lk && lv === 0); }
-    setText(e.rq, lk ? reqShort(k) : '');
+    setText(e.rq, lk ? reqShort(k) : blk ? 'antes: ' + HOLD_NAME[blk] : '');
   }
   for (const id in peEls) {
     const nd = NODES[id], e = peEls[id], f = fog(nd);
@@ -225,7 +237,8 @@ function drawDetail() {
     const fx = lk || mx ? '' : upgradeEffect(k);
     setText($('sdFx'), fx || ''); $('sdFx').hidden = !fx;
     prev.hidden = false;
-    setText($('sdReq'), lk ? lockText(k) : mx ? 'Nível máximo.' : '');
+    const blk = !lk && !mx ? stageBlock(k) : null;
+    setText($('sdReq'), lk ? lockText(k) : mx ? 'Nível máximo.' : blk ? holdText(k, blk) : '');
     bt.hidden = lk || mx; bt.disabled = !can;
     setText(bt, `Comprar · R$ ${fmt(cost(k))}`);
     return;
@@ -260,7 +273,7 @@ function drawDetail() {
 
 // prévia animada: a própria cena, com a câmera onde a melhoria aparece e o nível seguinte aplicado
 function drawPreview() {
-  if (!sel || sel.t !== 'up' || overlay.hidden || !$('skSheet').hidden) return;
+  if (!sel || sel.t !== 'up' || overlay.hidden || !$('skSheet').hidden || corpOpen()) return;
   const k = sel.k, up = !lockedUp(k) && !maxed(k);
   if (up) S.lv[k]++;
   try {
@@ -345,8 +358,10 @@ export function updateSkills() {
   setText($('skMoney'), 'R$ ' + fmt(S.money));
   setText($('skPe'), '★ ' + peAvailable());
   $('skPe').classList.toggle('has', peAvailable() > 0);
-  $('skNegBtn').hidden = S.maxAlt / MPF < VIVA.revealAt;
+  $('skNegBtn').hidden = floorOf(S.maxAlt) < VIVA.revealAt;
   $('skRespec').hidden = !S.peSpent;
+  updateCorp();
+  if (corpOpen()) return;
   if (!$('skSheet').hidden) {
     $('bankCard').hidden = S.maxAlt < BANK_AT && S.debt <= 0; // banco a partir de 60 m, como no modo clássico
     updateBusiness('imoveis'); updateBusiness('banco');
@@ -383,7 +398,8 @@ export function closeSkills() {
   if (opener && opener.focus) opener.focus();
 }
 
-export function initSkills() {
+export function initSkills(onSell) {
+  initCorp(onSell, () => updateSkills());
   // Negócios: os cards de imóveis, turismo e banco moram numa folha por cima da árvore
   const neg = $('skNeg');
   for (const id of ['pg-imoveis', 'pg-banco']) { const pg = $(id); while (pg.firstChild) neg.appendChild(pg.firstChild); }
@@ -394,7 +410,7 @@ export function initSkills() {
   $('skIn').onclick = () => { userMoved = true; zoomAt(svg.clientWidth / 2, svg.clientHeight / 2, 1.3); };
   $('skOut').onclick = () => { userMoved = true; zoomAt(svg.clientWidth / 2, svg.clientHeight / 2, 1 / 1.3); };
   $('skFit').onclick = () => { userMoved = false; fit(); };
-  $('skNegBtn').onclick = () => { $('skSheet').hidden = false; updateSkills(); };
+  $('skNegBtn').onclick = () => { closeCorp(); $('skSheet').hidden = false; updateSkills(); };
   $('skSheetClose').onclick = () => { $('skSheet').hidden = true; updateSkills(); };
   const rs = $('skRespec');
   rs.onclick = () => {
@@ -404,6 +420,6 @@ export function initSkills() {
   };
   addEventListener('keydown', e => {
     if (overlay.hidden || e.key !== 'Escape' || e.defaultPrevented) return;
-    if (!$('skSheet').hidden) $('skSheet').hidden = true; else closeSkills();
+    if (corpOpen()) closeCorp(); else if (!$('skSheet').hidden) $('skSheet').hidden = true; else closeSkills();
   });
 }

@@ -8,7 +8,7 @@ import { VIVA } from '../data/viva.js';
 // o protótipo Obra Viva usa um save separado, para não misturar com o modo atual
 export const saveKey = () => SAVE_KEY + (FLAGS.viva ? '-viva' : '');
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export function fresh() {
   const lv = {};
@@ -28,6 +28,8 @@ export function fresh() {
     // árvore de Engenharia
     tree: { [CENTER]: true }, peSpent: 0, peBonus: 0,
     stats: { saleTotal: 0, tourTotal: 0, interestTotal: 0 },
+    // prestígio (Obra Viva): recordes de todas as obras, Ações e Conselho — sobrevivem a "Vender a construtora"
+    bestAlt: 0, bestEra: 0, shares: 0, sharesBal: 0, council: {}, prestiges: 0,
   };
 }
 
@@ -50,6 +52,7 @@ export function load() {
     S.lv = Object.assign(fresh().lv, o.lv || {});
     S.broker = Object.assign(fresh().broker, o.broker || {});
     S.stats = Object.assign(fresh().stats, o.stats || {});
+    S.council = Object.assign({}, o.council || {});
     return o.ver || 1;
   } catch (e) { return 0; /* save corrompido ou storage bloqueado: começa do zero */ }
 }

@@ -4,6 +4,7 @@
 // o: { walk, phase, carry (cor da carga), hammer, drill (furadeira no lugar do martelo), sit (sentado),
 //      boss (mestre de obras: capacete branco e prancheta), flip, skin (0..3), suit, pack }
 import { MPF } from '../data/constants.js';
+import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { eraAt } from '../data/eras.js';
 import { S } from '../sim/state.js';
 import { R } from './canvas.js';
@@ -37,7 +38,7 @@ export function tourist(x, y, i, o = {}) {
 
 export function worker(x, y, o = {}) {
   if (cam.z < 0.07) return; // menor que 4 px: nem desenha
-  const era = eraAt(S.floors * MPF), suit = o.suit ?? era >= 3;
+  const era = eraAt(altOf(S.floors)), suit = o.suit ?? era >= 3;
   const skin = (o.skin ?? 0) % SKINS.length;
 
   // pequeno demais para detalhe: só a silhueta

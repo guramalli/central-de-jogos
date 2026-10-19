@@ -363,24 +363,6 @@ export const balloonSprite = () => makeSprite('balloon', 64, 140, p => {
   Q(-1, 14, 2, 50, '#9a9a9a'); Q(-8, 0, 16, 14, '#e05a3c'); Q(-8, 12, 16, 2, '#ff8a6a'); Q(-6, 4, 4, 4, '#f7f8fa');
 });
 
-// ---------- dirigível dos megablocos (310×116), hélices em 2 quadros ----------
-export function airshipSprite(f) {
-  return makeSprite('airship-' + f, 316, 118, p => {
-    const Q = (lx, ly, w, h, c) => p.r(lx + 158, 88 - ly - h, w, h, c);
-    for (let dy = 0; dy < 80; dy++) {
-      const t = (dy - 38) / 40, hw = Math.round(150 * Math.sqrt(Math.max(0, 1 - t * t)));
-      const c = dy < 12 ? '#8d939e' : dy < 26 ? '#a8adb8' : dy < 56 ? '#c8ccd4' : dy < 70 ? '#dfe2e8' : '#eef0f4';
-      Q(-hw, dy, hw * 2, 1, c);
-      for (let x = -120; x <= 120; x += 30) if (Math.abs(x) < hw - 4) Q(x, dy, 1, 1, shade(c, -0.08));
-    }
-    Q(-150, 36, 300, 6, '#f2b630'); Q(-150, 41, 300, 1, '#ffd86a'); Q(-150, 36, 300, 1, '#c98f15');
-    Q(128, 30, 28, 4, '#8d939e'); Q(146, 12, 10, 50, '#a8adb8'); Q(146, 12, 3, 50, '#8d939e'); Q(146, 36, 10, 6, '#f2b630');
-    Q(-44, -26, 88, 26, '#3b4152'); Q(-44, -4, 88, 4, '#56607a'); Q(-44, -26, 88, 2, '#2a2d36');
-    for (let k = 0; k < 5; k++) { Q(-36 + k * 16, -18, 10, 9, '#9fd0f0'); Q(-36 + k * 16, -11, 10, 2, '#d9f1ff'); }
-    for (const sx of [-64, 60]) { Q(sx, -12, 4, 14, '#5a5f6a'); const l = f ? 18 : 8; Q(sx - 1, -12 - (f ? 0 : 5), 6, l, '#dfe3ea'); }
-  });
-}
-
 // ---------- turismo: bilheteria, cabine panorâmica, helicóptero, foguete ----------
 export const boothSprite = () => makeSprite('booth', 44, 78, p => {
   const Q = (lx, ly, w, h, c) => p.r(lx + 3, 76 - ly - h, w, h, c);

@@ -1,14 +1,15 @@
 // Torre em coordenadas de mundo: fachadas com nível de detalhe pelo zoom, poços de elevador,
-// andaime, guindaste e dirigível.
+// andaime e guindaste.
 import { H, FH, SLAB, TW, TL, MPF } from '../data/constants.js';
+import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { ERAS, ERA_STYLE, eraAt } from '../data/eras.js';
 import { S } from '../sim/state.js';
 import { typeAt } from '../sim/realty.js';
 import { ctx, R, Rv, hash, mix } from './canvas.js';
-import { cam, worldY, sx, sy } from './camera.js';
+import { cam, worldY } from './camera.js';
 import { V } from './view.js';
 import { blit, shade } from './sprites.js';
-import { scaffoldTile, airshipSprite, brickTile, eraTile, shaftTile, carSprite, shaftTopSprite, mastTile, jibTile, cabSprite, weightSprite, trolleySprite, hookSprite } from './props.js';
+import { scaffoldTile, brickTile, eraTile, shaftTile, carSprite, shaftTopSprite, mastTile, jibTile, cabSprite, weightSprite, trolleySprite, hookSprite } from './props.js';
 
 const WIN_X = [12, 72, 132, 192];     // janelas: x relativo à borda esquerda
 const WIN_W = 36, WIN_Y = 22, WIN_H = 48;
@@ -34,7 +35,7 @@ function interior(i, k, wx, y, t) {
 
 // Fachada do andar i. lvl: 1 simples, 2 molduras, 3 completo
 export function facade(i, lvl = floorLOD()) {
-  const e = eraAt(i * MPF), s = ERA_STYLE[e], y0 = i * FH;
+  const e = eraAt(altOf(i)), s = ERA_STYLE[e], y0 = i * FH;
   // andar recém-concluído: todas as luzes acendem por um instante (Obra Viva)
   const flash = V.flash && V.flash.i === i, occ = i < S.assigned || flash;
   const lit = flash ? () => true : litW;
@@ -104,21 +105,13 @@ export function drawFloors(base) {
   if (lvl > 0) { for (let i = lo; i < hi; i++) facade(i, lvl); return; }
   // muito longe: faixas por era, separando andares com e sem destino
   const cuts = new Set([lo, hi, Math.min(Math.max(S.assigned, lo), hi)]);
-  ERAS.forEach(e => { const f = Math.ceil(e.m / MPF); if (f > lo && f < hi) cuts.add(f); });
+  ERAS.forEach(e => { const f = Math.ceil(floorOf(e.m)); if (f > lo && f < hi) cuts.add(f); });
   const pts = [...cuts].sort((a, b) => a - b);
   for (let k = 0; k < pts.length - 1; k++) {
     const a = pts[k], b = pts[k + 1]; if (b <= a) continue;
-    const f = FAR[eraAt(a * MPF)];
+    const f = FAR[eraAt(altOf(a))];
     Rv(TL, a * FH, TW, (b - a) * FH, a < S.assigned ? f.occ : f.vac);
   }
-}
-
-// Recorte em coordenadas de mundo (para painéis parciais)
-export function clipWorld(x, y, w, h, fn) {
-  ctx.save(); ctx.beginPath();
-  const x0 = sx(x), y0 = sy(y + h);
-  ctx.rect(Math.round(x0), Math.round(y0), Math.round(w * cam.z), Math.round(h * cam.z));
-  ctx.clip(); fn(); ctx.restore();
 }
 
 // ---------- poços dos elevadores de carga ----------
@@ -126,7 +119,7 @@ export const SHAFT_X = i => TL + TW + 8 + i * 36;
 export function shafts(topWP, carrying) {
   const n = Math.min(S.lv.elevador, 6), top = topWP + 40;
   const yLo = Math.max(0, worldY(H) - 30), yHi0 = Math.min(top, worldY(0) + 30);
-  const bc = ERA_STYLE[eraAt(S.floors * MPF)].brick;
+  const bc = ERA_STYLE[eraAt(altOf(S.floors))].brick;
   const bars = 24 * cam.z >= 3;
   const load = 12 + 5 * Math.min(S.lv.cacamba, 2); // caçamba maior: carga mais alta
   for (let i = 0; i < n; i++) {
@@ -165,7 +158,7 @@ export function shafts(topWP, carrying) {
 // ---------- andaime no lado esquerdo do andar em obra ----------
 // posts = false quando os pilares do andar são montados peça por peça (modo bloco a bloco)
 export function scaffold(y0, posts = true) {
-  const fr = ERA_STYLE[eraAt(S.floors * MPF)].frame;
+  const fr = ERA_STYLE[eraAt(altOf(S.floors))].frame;
   if (cam.z >= 0.3) { const t = scaffoldTile(); for (let y = y0 - FH; y < y0 + FH + 24; y += 32) blit(t, TL - 20, y, 0, 32); }
   else { for (const px of [TL - 16, TL - 5]) R(px, y0 - FH, 4, FH * 2 + 24, '#8f969f'); for (let y = y0 - FH + 8; y < y0 + FH + 20; y += 32) R(TL - 20, y, 22, 4, '#a8814a'); }
   if (posts) { R(TL - 2, y0, 6, FH, fr); R(TL + TW - 4, y0, 6, FH, fr); R(-3, y0, 6, FH, fr); }
@@ -212,7 +205,3 @@ export function crane(buildTop, trolX, hookY) {
   return jy;
 }
 
-// ---------- dirigível dos megablocos ----------
-export function airship(cx, y) {
-  blit(airshipSprite(Math.floor(V.t * 12) % 2), cx, y, 158, 88);
-}

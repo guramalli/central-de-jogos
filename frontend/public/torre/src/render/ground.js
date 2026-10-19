@@ -1,6 +1,7 @@
 // Térreo em coordenadas de mundo: orla de Praia Grande, fundação, estoque, caminhão e serventes.
 // Dividido em fundo (antes da torre) e frente (depois da torre).
 import { W, H, TW, TL, MPF } from '../data/constants.js';
+import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { ERA_STYLE, eraAt } from '../data/eras.js';
 import { S } from '../sim/state.js';
 import { R, T, hash, lerp, clamp } from './canvas.js';
@@ -27,10 +28,14 @@ export function drawGroundBack() {
     if (cam.z >= 0.35) blit(orlaSprite(i, bw, bh, i % 3 ? '#8ea6b8' : '#9fb3c2'), bx, 4, 0, Math.round(bh) + 16);
     else { R(bx, 4, bw, bh, i % 3 ? '#8ea6b8' : '#9fb3c2'); R(bx, 4 + bh, bw, 4, '#7d93a5'); }
   }
-  for (let i = 0; i < 10; i++) { // e alguns do outro lado, do lado do mar
-    const bx = -1400 - i * 80, bw = 50, bh = 90 + hash(i, 40) * 120;
-    R(bx, 4, bw, bh, '#8ea6b8');
+  // do lado do mar: mar aberto, com uma ilha no horizonte (azulada pela distância) e um navio passando
+  for (let dy = 0; dy < 46; dy += 2) {
+    const t = dy / 46, w = 520 * Math.sqrt(1 - t) * (0.75 + 0.25 * Math.cos(t * 9));
+    R(-1480 + (520 - w) * 0.55, 54 + dy, w, 2, dy > 30 ? '#86a7bb' : '#7a9cb2');
   }
+  R(-1480, 54, 560, 4, '#6f93aa');
+  const shx = -900 - ((V.t * 6) % 1400);
+  R(shx, 50, 70, 8, '#3e4a5c'); R(shx + 4, 58, 50, 6, '#5a6676'); R(shx + 10, 64, 8, 6, '#c0504d'); R(shx + 26, 64, 18, 4, '#d9dde4'); R(shx, 49, 70, 1, '#2a3340');
   // areia e calçadão
   R(-1e7, -1e6, 2e7, 1e6, '#e2c98e');
   if (cam.z >= 0.3) for (let i = 0; i < 90; i++) R(-700 + hash(i, 31) * 1600, -20 - hash(i, 32) * 400, 3, 3, '#c9ad72');
@@ -91,7 +96,7 @@ function wheelbarrow(wx, gy, load, ph, left) {
 // pouco fornecimento deixa o estoque vazio e o caminhão chegando sem carga
 export function drawGroundFront(prod, sg = {}) {
   if (!groundVisible()) return;
-  const gy = 0, L = S.lv, st = ERA_STYLE[eraAt(S.floors * MPF)], bc = st.brick;
+  const gy = 0, L = S.lv, st = ERA_STYLE[eraAt(altOf(S.floors))], bc = st.brick;
   // estoque de material no térreo
   const stacks = Math.min(sg.groundJam ? 40 : 20, Math.ceil(S.ground / 6));
   for (let i = 0; i < stacks; i++) {

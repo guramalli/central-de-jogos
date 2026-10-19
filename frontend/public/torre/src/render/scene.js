@@ -1,11 +1,12 @@
-// Monta o quadro: céu, térreo, torre, obra no topo (4 modos), turismo, partículas e faixas.
-import { W, H, FH, SLAB, TW, TL, MPF, PANELS } from '../data/constants.js';
+// Monta o quadro: céu, térreo, torre, obra no topo (sempre bloco a bloco), turismo, partículas e faixas.
+import { W, H, FH, SLAB, TW, TL, MPF } from '../data/constants.js';
+import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { ERAS, ERA_STYLE, MARKS, eraAt } from '../data/eras.js';
 import { S, save } from '../sim/state.js';
 import { rates, isCapped } from '../sim/economy.js';
 import { fmt, fmtM } from '../ui/format.js';
 import { ctx, r, R, T, lerp, clamp } from './canvas.js';
-import { cam, sx, sy, updateCamera, startMilestone, cinematic, MILESTONES, ZMAX } from './camera.js';
+import { cam, sx, sy, updateCamera, startMilestone, cinematic, MILESTONES } from './camera.js';
 import { V } from './view.js';
 import { dust, updateParticles, drawParticles } from './particles.js';
 import { drawSky, drawClouds } from './sky.js';
@@ -13,7 +14,7 @@ import { drawGroundBack, drawGroundFront } from './ground.js';
 import { worker } from './workers.js';
 import { blit } from './sprites.js';
 import { palletSprite } from './props.js';
-import { facade, drawFloors, clipWorld, shafts, scaffold, crane, airship, floorLOD } from './tower.js';
+import { drawFloors, shafts, scaffold, crane, floorLOD } from './tower.js';
 import { drawTourGround, drawTourAir, drawForSale } from './tourism.js';
 import { buildState, buildStateWith, drawBuild, drawPallets, workX } from './construction.js';
 import { FLAGS } from '../data/flags.js';
@@ -22,9 +23,7 @@ import { VIVA } from '../data/viva.js';
 import { pollEvents, emit } from './events.js';
 import { updateEffects, MAX_TOP_WORKERS } from './effects.js';
 
-export const MODES = { 1: 'Bloco a bloco', 2: 'Painéis içados', 3: 'Andares inteiros', 4: 'Megablocos' };
-
-const baseFloor = () => V.mode === 4 ? Math.floor(S.floors / 5) * 5 : Math.floor(S.floors);
+const baseFloor = () => Math.floor(S.floors);
 let msIdx = -1; // próximo marco de andares ainda não comemorado
 
 // Avança o estado visual (elevadores, modo de animação, câmera, faixas)
@@ -34,15 +33,8 @@ export function updateView(dt, speed) {
   updateEffects(dt);
   const R0 = rates();
   for (let i = 0; i < 6; i++) V.elev[i] += dt * speed / R0.trip;
-  // modo visual pela velocidade real (andares por segundo), com histerese
-  const fr = Math.min(R0.prod, R0.tran, R0.lay) / R0.fcost * speed, g = S.lv.guindaste;
-  const want = fr > 1.5 && g >= 4 ? 4 : fr > .35 && g >= 2 ? 3 : fr > .08 && g >= 1 ? 2 : 1;
-  if (!isCapped(R0)) {
-    if (want !== V.mode) {
-      V.modeHold += dt;
-      if (V.modeHold > 1.2) { V.mode = want; V.lastK = -1; V.modeHold = 0; }
-    } else V.modeHold = 0;
-  }
+  // obra muito rápida: os efeitos por peça (poeira, som, etapas) viram agregados para não piscar
+  V.fast = Math.min(R0.prod, R0.tran, R0.lay) / R0.fcost * speed > 0.5;
   updateParticles(dt);
   // era nova (S.era é atualizado pela simulação; aqui só se anuncia)
   if (V.lastEra === null) V.lastEra = S.era;
@@ -58,25 +50,15 @@ export function updateView(dt, speed) {
   if (msIdx < MILESTONES.length && fl >= MILESTONES[msIdx]) {
     while (msIdx < MILESTONES.length && fl >= MILESTONES[msIdx]) msIdx++;
     const m = MILESTONES[msIdx - 1];
-    startMilestone(m, `${fmt(m)} ANDARES`, `${fmtM(m * MPF)} · ${ERAS[eraAt(m * MPF)].n}`);
+    startMilestone(m, `${fmt(m)} ANDARES`, `${fmtM(altOf(m))} · ${ERAS[eraAt(altOf(m))].n}`);
   }
-  // modos rápidos precisam ver acima do topo: andar içado (3) e megabloco com dirigível (4)
-  const [zCap, above] = V.mode === 4 ? [0.42, FH * 6] : V.mode === 3 ? [0.75, FH * 2] : [ZMAX, 0];
-  updateCamera(dt, baseFloor() * FH, (S.floors + 1) * FH, zCap, above);
+  updateCamera(dt, baseFloor() * FH, (S.floors + 1) * FH);
 }
 export const resetMilestones = () => { msIdx = -1; };
 
-// linha reta em coordenadas de mundo (cabos)
-function line(x0, y0, x1, y1, c) {
-  ctx.strokeStyle = c; ctx.lineWidth = Math.max(1, Math.round(2 * cam.z));
-  ctx.beginPath(); ctx.moveTo(Math.round(sx(x0)) + .5, Math.round(sy(y0)) + .5); ctx.lineTo(Math.round(sx(x1)) + .5, Math.round(sy(y1)) + .5); ctx.stroke();
-}
-// desenha fn com o mundo deslocado (andares içados balançando)
-function shifted(dx, dy, fn) { cam.cx -= dx; cam.cy -= dy; fn(); cam.cx += dx; cam.cy += dy; }
-
 export function render() {
   const R0 = rates(), built = Math.floor(S.floors), p = S.floors - built, capped = isCapped(R0);
-  const mode = V.mode, base = baseFloor(), topWP = base * FH;
+  const base = baseFloor(), topWP = base * FH;
   const sg = obraSigns(R0);
   drawSky(); drawClouds(false);
   drawGroundBack();
@@ -87,7 +69,7 @@ export function render() {
   // marcos de altitude na lateral esquerda (pula rótulos colados no anterior)
   let lastY = 1e9;
   MARKS.forEach(m => {
-    const y = sy(m / MPF * FH);
+    const y = sy(floorOf(m) * FH);
     if (y > 8 && y < H - 4 && lastY - y > 22) {
       lastY = y;
       r(0, y, Math.max(0, sx(TL) - 8), 1, 'rgba(255,255,255,.35)');
@@ -95,14 +77,11 @@ export function render() {
       ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillText(fmtM(m), 4, y - 7);
     }
   });
-  const e = eraAt(base * MPF), s = ERA_STYLE[e], working = !capped && S.top > 0.05;
+  const e = eraAt(altOf(base)), s = ERA_STYLE[e], working = !capped && S.top > 0.05;
   const nb = Math.min(S.lv.pedreiro, 4), y0 = topWP;
   if (capped) drawCapped(y0, nb);
-  else if (mode === 1) drawBlocks(y0, p, s, e, Math.min(S.lv.pedreiro, MAX_TOP_WORKERS), working, sg);
-  else if (mode === 2) drawPanels(y0, built, p, s, e, nb);
-  else if (mode === 3) drawWholeFloor(y0, built, p, e, nb);
-  else drawMegablock(y0, base);
-  if (!capped && mode < 4) drawForSale(topWP);
+  else drawBlocks(y0, p, s, e, Math.min(S.lv.pedreiro, MAX_TOP_WORKERS), working, sg);
+  if (!capped) drawForSale(topWP);
   drawGroundFront(R0.prod, sg);
   drawTourGround(R0.tour);
   drawParticles();
@@ -120,7 +99,7 @@ function topStock(y0, s) {
 
 function drawCapped(y0, nb) {
   scaffold(y0);
-  const s = ERA_STYLE[eraAt(S.floors * MPF)]; // laje do andar parado (onde os pedreiros ficam)
+  const s = ERA_STYLE[eraAt(altOf(S.floors))]; // laje do andar parado (onde os pedreiros ficam)
   R(TL, y0, TW, SLAB, s.slab); R(TL, y0 + SLAB - 2, TW, 2, s.hi); R(TL, y0 + 2, TW, 1, 'rgba(0,0,0,.25)');
   if (FLAGS.viva) { // sem texto: a obra parou, os pedreiros sentam (respirando devagar) e a base avisa
     const n = Math.min(nb, 4), gap = n > 1 ? (TW - 70) / (n - 1) : 0;
@@ -144,13 +123,13 @@ function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
   if (st.delivery !== undefined) drawPallets(R, y0, st, s);
   const slotX = workX(st);
   // peça nova: poeira e som; etapa nova: aviso sonoro (eventos só de apresentação; nada disso na prévia)
-  if (!V.preview && V.lastK >= 0 && st.unit > V.lastK) {
+  if (!V.preview && !V.fast && V.lastK >= 0 && st.unit > V.lastK) {
     dust(slotX, y0 + SLAB + (pid === 'estrutura' ? FH - 20 : 30), '#d8cdb8', 4);
     if (e >= 2 || S.lv.ferram > 0) dust(slotX, y0 + SLAB + 30, '#ffe27a', 2);
     emit('piece_placed', { piece: S.lv.ferram > 0 && pid === 'paredes' ? 'drill' : PIECE[pid] });
   }
   if (!V.preview) {
-    if (V.lastPhase >= 0 && ph > V.lastPhase) emit('floor_phase_changed', { phase: st.phase.id });
+    if (!V.fast && V.lastPhase >= 0 && ph > V.lastPhase) emit('floor_phase_changed', { phase: st.phase.id });
     V.lastK = st.unit; V.lastPhase = ph;
   }
   if (st.delivery === undefined) topStock(y0, s);
@@ -193,7 +172,29 @@ function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
     worker(x, fy, { walk: true, phase: V.t * 3, carry: go ? (pid === 'janelas' ? s.glass : s.brick) : null, flip: go, skin: 3 });
   }
   if (S.lv.mestre > 0) worker(TL + TW - 22, fy, { boss: true, flip: true, phase: V.t, skin: 2 });
-  if (S.lv.guindaste > 0) crane(y0, TL + TW + 60 + Math.sin(V.t * .5) * 30, y0 + FH * .6);
+  if (S.lv.guindaste > 0) craneHelper(y0, s, pid, slotX);
+}
+
+// O guindaste ajuda os pedreiros: os elevadores deixam o material na pilha do topo (à direita) e o guindaste,
+// em ciclos calmos que não dependem da velocidade da obra, leva paletes (ou vigas, na estrutura) até onde
+// os pedreiros estão assentando. A obra segue bloco a bloco.
+const CRANE_CYCLE = 7, PICK_X = TL + TW - 36;
+function craneHelper(y0, s, pid, slotX) {
+  const q = (V.t % CRANE_CYCLE) / CRANE_CYCLE, park = y0 + FH * 0.75, deck = y0 + SLAB + 32, air = y0 + FH - 6;
+  const dropX = clamp(slotX + 20, TL + 40, PICK_X - 70), ease = t => t * t * (3 - 2 * t);
+  let tx, hy, load = false;
+  if (S.top < 0.3) { tx = PICK_X + 30 + Math.sin(V.t * 0.5) * 20; hy = park; }                  // sem material: espera
+  else if (q < 0.12) { tx = PICK_X; hy = lerp(park, deck, ease(q / 0.12)); }                     // desce na pilha
+  else if (q < 0.22) { tx = PICK_X; hy = deck; load = q > 0.17; }                                // engancha
+  else if (q < 0.36) { tx = PICK_X; hy = lerp(deck, air, ease((q - 0.22) / 0.14)); load = true; } // sobe
+  else if (q < 0.6) { tx = lerp(PICK_X, dropX, ease((q - 0.36) / 0.24)); hy = air; load = true; } // leva
+  else if (q < 0.72) { tx = dropX; hy = lerp(air, deck, ease((q - 0.6) / 0.12)); load = true; }  // pousa
+  else if (q < 0.8) { tx = dropX; hy = deck; }                                                   // solta
+  else { const t = ease((q - 0.8) / 0.2); tx = lerp(dropX, PICK_X, t); hy = lerp(deck, park, Math.min(1, t * 1.5)); } // volta
+  crane(y0, tx, hy);
+  if (!load) return;
+  if (pid === 'estrutura') { R(tx - 30, hy - 26, 60, 7, s.frame); R(tx - 30, hy - 26, 60, 2, s.hi); R(tx - 1, hy - 19, 2, 2, '#c7ccd6'); }
+  else blit(palletSprite(s.brick), tx - 11, hy - 20, 0, 13);
 }
 
 // textos que sobem e somem (compras, andar concluído)
@@ -205,51 +206,6 @@ function drawFloats() {
     if (f.b) { T(f.b, f.x + 1, y - 16, 9, '#11131a', 'center'); T(f.b, f.x, y - 15, 9, '#ece6d6', 'center'); }
   }
   ctx.globalAlpha = 1;
-}
-
-// Modo 2: painéis içados pelo guindaste
-function drawPanels(y0, built, p, s, e, nb) {
-  scaffold(y0);
-  const PW = TW / PANELS, n = Math.floor(p * PANELS);
-  R(TL, y0, TW, SLAB, s.slab);
-  if (n > 0) clipWorld(TL, y0 - 2, PW * n, FH + 4, () => facade(built));
-  if (n !== V.lastK && n > V.lastK && V.lastK >= 0) dust(TL + (n - 1) * PW + PW / 2, y0 + 30, e >= 2 ? '#ffe27a' : '#d8cdb8', 8);
-  V.lastK = n;
-  const f = p * PANELS - n, sxp = TL + n * PW, hiY = y0 + FH + 26, startX = TL + TW + 70;
-  let px, py;
-  if (f < .35) { px = startX; py = lerp(y0, hiY, f / .35); }
-  else if (f < .7) { px = lerp(startX, sxp, (f - .35) / .35); py = hiY; }
-  else { px = sxp; py = lerp(hiY, y0, (f - .7) / .3); }
-  crane(y0, px + PW / 2, py + FH + 2);
-  line(px + PW / 2, py + FH + 2, px + 4, py + FH, '#c7ccd6'); line(px + PW / 2, py + FH + 2, px + PW - 4, py + FH, '#c7ccd6');
-  R(px, py, PW, FH, s.wall); R(px, py, PW, SLAB, s.slab);
-  R(px + 6, py + 22, PW - 12, 48, s.frame); R(px + 9, py + 25, PW - 18, 42, s.glass); R(px, py + FH - 3, PW, 3, s.hi);
-  for (let j = 0; j < Math.min(nb, 3); j++) {
-    const wx = clamp(sxp - 30 + j * 30, TL + 12, TL + TW - 30);
-    worker(wx, y0 + SLAB, { hammer: true, phase: V.t * 2 + j * .4, skin: j });
-  }
-}
-
-// Modo 3: o guindaste iça o andar inteiro
-function drawWholeFloor(y0, built, p, e, nb) {
-  const f = p, sway = Math.round(Math.sin(V.t * 1.8) * (1 - f) * 12), lift = Math.round((1 - f) * FH * 2.4);
-  const hookY = y0 + lift + FH + 40;
-  crane(y0, sway, hookY);
-  shifted(sway, lift, () => facade(built));
-  line(sway, hookY - 9, TL + sway + 6, y0 + lift + FH, '#c7ccd6'); line(sway, hookY - 9, TL + TW + sway - 6, y0 + lift + FH, '#c7ccd6');
-  if (f > .92 && Math.floor(V.t * 10) % 2) dust(0, y0 + 4, e >= 2 ? '#ffe27a' : '#d8cdb8', 3);
-  for (let j = 0; j < Math.min(nb, 2); j++) worker(j ? TL + TW - 30 : TL + 20, y0 + SLAB, { hammer: f > .85, phase: V.t * 2 + j, skin: j, flip: j === 1 });
-}
-
-// Modo 4: dirigível baixa megablocos de 5 andares
-function drawMegablock(y0, base) {
-  const f = (S.floors - base) / 5, dy = Math.round((1 - f) * FH * 3), sway = Math.round(Math.sin(V.t * 1.2) * (1 - f) * 16);
-  shifted(sway, dy, () => { for (let j = 0; j < 5; j++) facade(base + j); });
-  const topY = y0 + 5 * FH + dy, ay = topY + 70;
-  line(sway, ay - 26, TL + sway + 8, topY, '#c7ccd6'); line(sway, ay - 26, TL + TW + sway - 8, topY, '#c7ccd6');
-  airship(sway, ay);
-  if (f > .95) dust(0, y0 + 4, '#ffe27a', 5);
-  for (let j = 0; j < 2; j++) worker(j ? TL + TW - 30 : TL + 20, y0 + SLAB, { hammer: f > .85, phase: V.t * 2 + j, skin: j, flip: j === 1 });
 }
 
 // faixa listrada no alto da tela (era nova)
