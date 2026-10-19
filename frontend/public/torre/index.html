@@ -20,15 +20,17 @@
         </div>
         <div class="money"><b id="money">R$ 0</b><span id="rent">+R$ 0/s</span></div>
       </div>
-      <canvas id="cv" width="360" height="480" aria-label="Obra da torre em pixel art. Use a roda do mouse ou pinça para aproximar e afastar."></canvas>
+      <div class="view">
+        <canvas id="cv" width="360" height="480" aria-label="Obra da torre em pixel art. Arraste para mover a câmera; roda do mouse ou pinça para zoom."></canvas>
+        <div class="camctl" role="group" aria-label="Câmera">
+          <button id="z-follow" hidden>Seguir a obra</button>
+          <button id="z-all" aria-pressed="false" title="Mostrar a torre inteira">Ver tudo</button>
+          <button id="z-out" aria-label="Afastar">−</button>
+          <button id="z-in" aria-label="Aproximar">+</button>
+        </div>
+      </div>
       <div class="erabar"><i id="eraFill"></i></div>
       <div class="eranext"><span id="eraNext">Próxima era</span><span id="eraLeft"></span></div>
-      <div class="camctl" role="group" aria-label="Câmera">
-        <button id="z-out" aria-label="Afastar">−</button>
-        <button id="z-in" aria-label="Aproximar">+</button>
-        <button id="z-all" aria-pressed="false">Visão geral</button>
-        <span class="camhint">Roda do mouse ou pinça para zoom</span>
-      </div>
       <div class="speed" id="devbar" role="group" aria-label="Velocidade de teste" hidden>
         <span>Velocidade de teste:</span>
         <button data-sp="1" aria-pressed="true">1×</button>
@@ -63,7 +65,7 @@
     <div class="pages" role="tablist" id="pages">
       <button role="tab" data-page="obra" aria-selected="true">Construção<span class="dot" hidden></span></button>
       <button role="tab" data-page="neg" aria-selected="false">Negócios<span class="dot" hidden></span></button>
-      <button role="tab" data-page="arv" aria-selected="false">Árvore<span class="pill" hidden></span></button>
+      <button data-page="arv" aria-haspopup="dialog">Árvore<span class="pill" hidden></span></button>
     </div>
 
     <section class="page" id="pg-obra">
@@ -167,24 +169,6 @@
       </div>
     </section>
 
-    <section class="page" id="pg-arv" hidden>
-      <div class="card">
-        <div class="hazard"></div>
-        <h2>Árvore de Engenharia</h2>
-        <div class="body">
-          <div class="pebig"><b id="a-pe">0</b><span>Pontos de Engenharia disponíveis</span></div>
-          <div class="hint" id="a-next"></div>
-          <button class="btn wide" id="a-open">Abrir mapa da árvore</button>
-          <div class="kv">
-            <span>Nós aprendidos</span><b id="a-count">0</b>
-            <span>Anéis abertos</span><b id="a-rings">1 de 7</b>
-          </div>
-          <div class="sub">Bônus ativos</div>
-          <ul class="bonus" id="a-bonus"></ul>
-        </div>
-      </div>
-    </section>
-
     <div class="foot">
       <span id="footTxt">Salvo neste navegador. O progresso continua por até 8 h fora do jogo.</span>
       <button id="reset">Recomeçar</button>
@@ -208,9 +192,10 @@
     <div class="tmap-kind" id="d-kind"></div>
     <div class="tmap-name" id="d-name">Escolha um nó</div>
     <ul class="tmap-eff" id="d-eff"></ul>
-    <div class="hint" id="d-desc">Arraste para mover, use a roda do mouse ou pinça para zoom. Nós acesos ao lado dos seus podem ser aprendidos.</div>
+    <div class="hint" id="d-desc"></div>
     <button class="btn wide" id="d-learn" hidden>Aprender</button>
     <div class="hint" id="d-block"></div>
+    <div class="tmap-sum" id="d-sum"></div>
   </aside>
 </div>
 

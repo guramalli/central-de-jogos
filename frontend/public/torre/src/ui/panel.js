@@ -11,8 +11,7 @@ import { $, setText, setHTML } from './dom.js';
 import { fmt, fmtM } from './format.js';
 import { updateTree } from './upgrades.js';
 import { updateBusiness, businessAlert } from './business.js';
-import { updateTalentPanel } from './talentPanel.js';
-import { updateMap, mapOpen } from './talentMap.js';
+import { updateMap, mapOpen, openMap } from './talentMap.js';
 
 const HINT = {
   prod: 'Gargalo na produção: contrate fornecedores em Fornecimento.',
@@ -28,11 +27,12 @@ export const setNotice = msg => { notice = msg; };
 // ---------- páginas do painel ----------
 let page = 'obra';
 const pageBtns = document.querySelectorAll('#pages [data-page]');
-pageBtns.forEach(b => b.onclick = () => showPage(b.dataset.page));
+// Construção e Negócios trocam o painel; Árvore abre o mapa em tela cheia
+pageBtns.forEach(b => b.onclick = () => b.dataset.page === 'arv' ? openMap() : showPage(b.dataset.page));
 export function showPage(p) {
   page = p;
-  pageBtns.forEach(b => b.setAttribute('aria-selected', b.dataset.page === p));
-  ['obra', 'neg', 'arv'].forEach(id => $('pg-' + id).hidden = id !== p);
+  pageBtns.forEach(b => { if (b.dataset.page !== 'arv') b.setAttribute('aria-selected', b.dataset.page === p); });
+  ['obra', 'neg'].forEach(id => $('pg-' + id).hidden = id !== p);
   updateUI();
 }
 
@@ -71,7 +71,6 @@ export function updateUI() {
   canObra = updateTree();
 
   updateBusiness(page === 'neg');
-  if (page === 'arv') updateTalentPanel();
   if (mapOpen()) updateMap();
 
   // indicadores nas abas de página

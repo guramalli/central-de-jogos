@@ -2,7 +2,8 @@
 import { NODES, EDGES, TBRANCHES, RINGS, ringRadius, ringEraName, describeEffect, KIND_LABEL } from '../data/talents.js';
 import { save } from '../sim/state.js';
 import { learn, learnBlock, owned, ringOpen, reachable, peAvailable, respec } from '../sim/talents.js';
-import { $, setText } from './dom.js';
+import { $, setText, setHTML } from './dom.js';
+import { summaryHTML } from './talentPanel.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const mk = (tag, attrs = {}, parent) => {
@@ -132,10 +133,10 @@ export function updateMap() {
 
 function showDetail(id) {
   const learnBtn = $('d-learn');
+  setHTML($('d-sum'), id ? '' : summaryHTML());
   if (!id) {
-    setText($('d-kind'), ''); setText($('d-name'), 'Escolha um nó'); $('d-eff').innerHTML = '';
-    setText($('d-desc'), 'Arraste para mover, use a roda do mouse ou pinça para zoom. Nós acesos ao lado dos seus podem ser aprendidos.');
-    learnBtn.hidden = true; setText($('d-block'), '');
+    setText($('d-kind'), ''); setText($('d-name'), 'Árvore de Engenharia'); $('d-eff').innerHTML = '';
+    setText($('d-desc'), ''); learnBtn.hidden = true; setText($('d-block'), '');
     return;
   }
   const n = NODES[id];

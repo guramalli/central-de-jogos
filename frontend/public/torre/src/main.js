@@ -7,7 +7,7 @@ import { cam, snapCamera } from './render/camera.js';
 import { updateView, render, resetMilestones } from './render/scene.js';
 import { renderTabs, renderTree } from './ui/upgrades.js';
 import { updateUI, setNotice } from './ui/panel.js';
-import { openMap, closeMap, initMap } from './ui/talentMap.js';
+import { closeMap, initMap } from './ui/talentMap.js';
 import { $ } from './ui/dom.js';
 import { syncCameraButtons } from './ui/cameraControls.js';
 
@@ -47,7 +47,6 @@ rs.onclick = () => {
   setTimeout(disarm, 3000);
 };
 
-$('a-open').onclick = openMap;
 initMap(updateUI);
 
 addEventListener('beforeunload', save);
