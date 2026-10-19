@@ -8,7 +8,7 @@ import { ctx, R, Rv, hash, mix } from './canvas.js';
 import { cam, worldY, sx, sy } from './camera.js';
 import { V } from './view.js';
 import { blit, shade } from './sprites.js';
-import { brickTile, eraTile, shaftTile, carSprite, shaftTopSprite, mastTile, jibTile, cabSprite, weightSprite, trolleySprite, hookSprite } from './props.js';
+import { scaffoldTile, airshipSprite, brickTile, eraTile, shaftTile, carSprite, shaftTopSprite, mastTile, jibTile, cabSprite, weightSprite, trolleySprite, hookSprite } from './props.js';
 
 const WIN_X = [12, 72, 132, 192];     // janelas: x relativo à borda esquerda
 const WIN_W = 36, WIN_Y = 22, WIN_H = 48;
@@ -166,9 +166,8 @@ export function shafts(topWP, carrying) {
 // posts = false quando os pilares do andar são montados peça por peça (modo bloco a bloco)
 export function scaffold(y0, posts = true) {
   const fr = ERA_STYLE[eraAt(S.floors * MPF)].frame;
-  for (const px of [TL - 16, TL - 5]) R(px, y0 - FH, 4, FH * 2 + 24, '#9c7a45');
-  for (let y = y0 - FH + 8; y < y0 + FH + 20; y += 32) { R(TL - 20, y, 22, 4, '#a8814a'); R(TL - 20, y + 4, 22, 1, '#6b4f28'); }
-  for (let k = 0; k < 6; k++) R(TL - 15 + k * 1.5, y0 + 10 + k * 12, 3, 3, '#7d5f32');
+  if (cam.z >= 0.3) { const t = scaffoldTile(); for (let y = y0 - FH; y < y0 + FH + 24; y += 32) blit(t, TL - 20, y, 0, 32); }
+  else { for (const px of [TL - 16, TL - 5]) R(px, y0 - FH, 4, FH * 2 + 24, '#8f969f'); for (let y = y0 - FH + 8; y < y0 + FH + 20; y += 32) R(TL - 20, y, 22, 4, '#a8814a'); }
   if (posts) { R(TL - 2, y0, 6, FH, fr); R(TL + TW - 4, y0, 6, FH, fr); R(-3, y0, 6, FH, fr); }
 }
 
@@ -215,14 +214,5 @@ export function crane(buildTop, trolX, hookY) {
 
 // ---------- dirigível dos megablocos ----------
 export function airship(cx, y) {
-  for (let dy = 0; dy < 80; dy += 4) {
-    const t = (dy - 38) / 40, hw = 150 * Math.sqrt(Math.max(0, 1 - t * t));
-    R(cx - hw, y + dy, hw * 2, 4, dy < 24 ? '#a8adb8' : dy > 56 ? '#e0e3ea' : '#c8ccd4');
-  }
-  R(cx - 150, y + 36, 300, 6, '#f2b630');
-  R(cx + 128, y + 30, 28, 4, '#a8adb8'); R(cx + 146, y + 14, 8, 46, '#a8adb8');
-  R(cx - 44, y - 26, 88, 26, '#3b4152'); for (let k = 0; k < 5; k++) R(cx - 36 + k * 16, y - 18, 10, 9, '#bfe3ff');
-  const f = Math.floor(V.t * 12) % 2;
-  R(cx - 64, y - 12 + f * 4, 4, 18 - f * 8, '#dfe3ea'); R(cx + 60, y - 12 + (1 - f) * 4, 4, 18 - (1 - f) * 8, '#dfe3ea');
+  blit(airshipSprite(Math.floor(V.t * 12) % 2), cx, y, 158, 88);
 }
-

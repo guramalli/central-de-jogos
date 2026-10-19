@@ -20,6 +20,21 @@ export function workerSprite(anim, frame, o = {}) {
   return drawRig(key, anim, frame, q);
 }
 
+// visitante (turismo): mesmo esqueleto, roupa colorida; parado na fila respirando ou andando
+const SHIRTS = ['#e8505b', '#4fb0e8', '#f2d24a', '#7ad37a', '#c58be8', '#ff9f43'];
+const PANTS = ['#33456b', '#5a4632', '#2f6a5a', '#d8cfb8', '#4a4f5c'];
+export function tourist(x, y, i, o = {}) {
+  if (cam.z < 0.1) return;
+  if (cam.z < 0.2) { R(x - 6, y, 12, 26, PANTS[i % PANTS.length]); R(x - 7, y + 24, 14, 18, SHIRTS[i % SHIRTS.length]); R(x - 5, y + 42, 11, 11, SKINS[i % 4].s[2]); return; }
+  const civ = { shirt: SHIRTS[i % SHIRTS.length], pants: PANTS[(i * 3 + 1) % PANTS.length], stripe: i % 5 === 2,
+    hat: i % 3 === 0 ? 'sun' : i % 4 === 1 ? 'cap' : '', hatC: SHIRTS[(i + 2) % SHIRTS.length], camera: i % 4 === 1 };
+  const anim = o.walk ? 'walk' : 'idle', n = ANIMS[anim].frames;
+  const cyc = o.walk ? x / walkDistance(false) : (o.phase ?? 0) / 2 + i * 0.37;
+  const frame = ((Math.floor((cyc % 1 + 1) % 1 * n)) + n) % n;
+  const q = { skin: i % 4, suit: false, pack: false, boss: false, carry: '', civ };
+  blit(drawRig(`civ|${anim}|${frame}|${i % 60}`, anim, frame, q), x, y, RIG_AX, RIG_AY, !!o.flip);
+}
+
 export function worker(x, y, o = {}) {
   if (cam.z < 0.07) return; // menor que 4 px: nem desenha
   const era = eraAt(S.floors * MPF), suit = o.suit ?? era >= 3;

@@ -5,6 +5,8 @@ import { SKY } from '../data/eras.js';
 import { ctx, r, R, hash, clamp, mix, mixRGB } from './canvas.js';
 import { cam, worldY } from './camera.js';
 import { V } from './view.js';
+import { blit } from './sprites.js';
+import { cloudSprite, planeSprite, balloonSprite } from './props.js';
 
 const M2Y = FH / MPF; // pixels de mundo por metro
 const altAt = screenY => Math.max(0, worldY(screenY) / M2Y);
@@ -55,19 +57,11 @@ export function drawSky() {
   }
 }
 
-// nuvem: três "bolhas" feitas de faixas horizontais
+// nuvem: cúmulo em pixel art (sprite com 4 tons); de longe vira uma faixa
 function cloud(x, y, w, alpha) {
-  if (w * cam.z < 14) { ctx.globalAlpha = alpha; R(x, y, w, w * .2, '#f3f7fb'); ctx.globalAlpha = 1; return; }
   ctx.globalAlpha = alpha;
-  const puffs = [[.25, .22], [.5, .3], [.75, .2]];
-  for (const [fx, fr] of puffs) {
-    const cx = x + w * fx, rad = w * fr;
-    for (let dy = -rad; dy < rad; dy += 6) {
-      if (dy < -rad * .35) continue; // base achatada
-      const hw = Math.sqrt(Math.max(0, rad * rad - dy * dy));
-      R(cx - hw, y + rad * .35 + dy, hw * 2, 6, dy < -rad * .1 ? '#d6e2ee' : '#ffffff');
-    }
-  }
+  if (w * cam.z < 14) R(x, y, w, w * .2, '#f3f7fb');
+  else { const c = cloudSprite(w); blit(c, x, y, 0, c.height); }
   ctx.globalAlpha = 1;
 }
 
@@ -84,15 +78,12 @@ export function drawClouds(front) {
   const py = 10500 * M2Y;
   if (py > lo && py < hi) {
     const x = ((V.t * 220) % 3600) - 1800;
-    R(x, py, 150, 26, '#e9edf2'); R(x + 120, py + 26, 26, 30, '#e9edf2'); R(x + 40, py - 10, 60, 10, '#c3c9d2'); R(x + 50, py - 28, 30, 18, '#c3c9d2');
-    for (let k = 0; k < 9; k++) R(x + 20 + k * 12, py + 14, 6, 6, '#3a6fd1');
-    R(x, py, 150, 3, '#c3c9d2');
+    blit(planeSprite(), x, py, 4, 56);
   }
   // balão meteorológico (~30 km)
   const by = 30000 * M2Y;
   if (by > lo && by < hi) {
     const x = -260 + Math.sin(V.t * .4) * 60;
-    for (let dy = 0; dy < 70; dy += 5) { const t = (dy - 35) / 35, hw = 30 * Math.sqrt(Math.max(0, 1 - t * t)); R(x - hw, by + dy, hw * 2, 5, dy > 45 ? '#ffffff' : '#e8e8e8'); }
-    R(x - 1, by - 50, 2, 50, '#999'); R(x - 8, by - 64, 16, 14, '#e05a3c');
+    blit(balloonSprite(), x, by - 64, 32, 136);
   }
 }

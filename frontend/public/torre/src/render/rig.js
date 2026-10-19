@@ -192,8 +192,11 @@ export function drawRig(key, anim, frame, o) {
     const { capsule, rect } = painter(p);
     const sk = SKINS[o.skin].s, hair = SKINS[o.skin].hair;
     const suit = o.suit;
-    const VEST = suit ? MAT.suit : MAT.vest, SLV = suit ? MAT.suit : MAT.shirt, PNT = suit ? MAT.suit : MAT.pants;
-    const BOOT = suit ? MAT.steel : MAT.boot, GLV = suit ? MAT.steel : MAT.glove;
+    // civ: visitante (camisa e calça coloridas, mãos sem luva, tênis) — mesmo esqueleto dos operários
+    const civ = o.civ, pal5 = c => [shade(c, -0.45), shade(c, -0.25), c, shade(c, 0.18), shade(c, 0.38)];
+    const VEST = civ ? pal5(civ.shirt) : suit ? MAT.suit : MAT.vest, SLV = civ ? VEST : suit ? MAT.suit : MAT.shirt;
+    const PNT = civ ? pal5(civ.pants) : suit ? MAT.suit : MAT.pants;
+    const BOOT = civ ? ['#5a5f6a', '#9aa0ab', '#e8ebf0', '#f7f8fa', '#ffffff'] : suit ? MAT.steel : MAT.boot, GLV = civ ? sk : suit ? MAT.steel : MAT.glove;
     const sx = pose.shakeX || 0, sy = pose.shakeY || 0;
     const hx = pose.hipX + sx, hy = (pose.hipY ?? hipHeight(pose)) + sy;
     // tronco: do quadril ao pescoço, inclinado
@@ -234,6 +237,7 @@ export function drawRig(key, anim, frame, o) {
     capsule(tax, tay, tbx, tby, 7.2, VEST, { band: (t, u, i, pal, h) => {
       const z = h + 5.5;
       if (z < -0.5) return PNT[i];
+      if (civ) return z < 1 ? PNT[Math.max(0, i - 1)] : z > 16.5 ? pal[Math.min(4, i + 1)] : civ.stripe && z > 7 && z < 9.5 ? '#f7f8fa' : null;
       if (z < 2) return suit ? MAT.steel[i] : u > 0.15 && u < 0.6 ? '#d9b54a' : MAT.belt[i];
       if (suit) return z > 8 && z < 12 && u > 0.1 && u < 0.65 ? (z > 9 && z < 11 && u > 0.25 && u < 0.5 ? '#3b6fd1' : MAT.steel[2]) : null;
       if (z > 16.5) return MAT.shirt[i];
@@ -242,7 +246,7 @@ export function drawRig(key, anim, frame, o) {
       if (z > 3.5 && z < 6.5 && u > 0.15 && u < 0.62) return z < 4.5 ? pal[0] : pal[Math.max(0, i - 1)]; // bolso
       return null;
     } });
-    if (!suit && hy > 15) { // bolsa de ferramentas e martelo pendurado no cinto, atrás (sentado, fica no chão escondida)
+    if (!suit && !civ && hy > 15) { // bolsa de ferramentas e martelo pendurado no cinto, atrás (sentado, fica no chão escondida)
       const bx = Math.round(hx - 10), by = Math.round(hy - 6);
       rect(bx, by, 5, 8, MAT.wood[1]); rect(bx, by + 7, 5, 1, MAT.wood[3]); rect(bx + 1, by + 2, 3, 1, MAT.wood[0]);
       rect(bx + 1, by - 5, 1, 5, MAT.steel[2]); rect(bx, by - 6, 3, 2, MAT.steel[1]);
@@ -276,6 +280,12 @@ function head(rect, x, y, o, sk, hair) {
   P(3, 8, 3, 1, hair);                                                        // sobrancelha
   P(3, 3, 3, 1, '#8a3e2c'); P(4, 3, 1, 1, '#a8503a');                         // boca
   P(1, 5, 2, 1, shade(sk[2], 0.08)); P(0, 1, 6, 1, sk[1]); P(-1, 0, 7, 1, sk[0]); // bochecha e queixo
+  if (o.civ) { // cabelo e, às vezes, boné ou chapéu de praia
+    P(-5, 9, 11, 3, hair); P(-6, 4, 2, 7, hair); P(-4, 12, 8, 1, hair); P(1, 11, 3, 1, shade(hair, 0.25));
+    if (o.civ.hat === 'cap') { P(-5, 11, 11, 4, o.civ.hatC); P(-5, 11, 11, 1, shade(o.civ.hatC, -0.3)); P(5, 11, 5, 1, shade(o.civ.hatC, -0.2)); P(-1, 14, 3, 1, shade(o.civ.hatC, 0.3)); }
+    if (o.civ.hat === 'sun') { P(-9, 10, 19, 2, '#e8c46a'); P(-9, 10, 19, 1, '#b8923a'); P(-4, 12, 9, 4, '#f2d688'); P(-4, 13, 9, 1, '#c0504d'); }
+    return;
+  }
   const hc = o.boss ? MAT.helmB : MAT.helm;
   P(-6, 10, 13, 5, hc[2]); P(-5, 15, 11, 2, hc[2]); P(-3, 17, 7, 1, hc[2]);
   P(-6, 10, 3, 5, hc[1]); P(-5, 15, 2, 2, hc[1]); P(-3, 17, 7, 1, hc[3]);
@@ -298,6 +308,9 @@ function tool(capsule, rect, pose, a, o) {
     rect(x + 2, y + 2, 4, 2, MAT.steel[1]);
     rect(x + 11, y + 1, 3, 4, MAT.steel[2]); rect(x + 14, y + 2, 7, 2, '#c7ccd6'); rect(x + 14, y + 3, 7, 1, '#ffffff');
     if (pose.shakeX) { rect(x + 22, y + 4, 2, 1, '#e0d6c0'); rect(x + 21, y + 1, 1, 1, '#e0d6c0'); }
+  } else if (o.civ && o.civ.camera) {
+    const x = Math.round(a.hx), y = Math.round(a.hy);
+    rect(x - 1, y - 2, 6, 5, '#1d1d22'); rect(x, y - 1, 2, 2, '#5fb8ff'); rect(x + 3, y + 3, 2, 1, '#3a3a48');
   } else if (pose.tool === 'clipboard') {
     const x = Math.round(a.hx), y = Math.round(a.hy);
     rect(x - 2, y - 6, 12, 15, MAT.wood[2]); rect(x - 2, y - 6, 12, 1, MAT.wood[0]); rect(x - 2, y - 6, 1, 15, MAT.wood[1]);

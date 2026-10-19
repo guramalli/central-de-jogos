@@ -64,8 +64,8 @@ function kiln(x) {
 
 function coconut(px, sway) {
   if (cam.z < 0.25) { for (let s = 0; s < 190; s += 30) R(px + Math.round(Math.sin(s / 190 * 1.4) * 14), s, 9, 30, '#7a5531'); R(px - 30 + sway, 186, 88, 10, '#3c8a3f'); return; }
-  blit(palmTrunk(), px - 4, 0, 0, 196);
-  blit(palmCrown(Math.max(-3, Math.min(3, sway))), px + 14 + 0, 190, 50, 22);
+  blit(palmTrunk(), px - 10, 0, 0, 200);
+  blit(palmCrown(Math.max(-3, Math.min(3, sway))), px + 14, 192, 70, 28);
 }
 
 function truck(tx, tilt, gy, empty = false) {

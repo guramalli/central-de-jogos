@@ -214,31 +214,48 @@ export const shaftTopSprite = () => makeSprite('shaft-top', 38, 14, p => {
 });
 
 // ---------- coqueiro ----------
-// tronco curvo com anéis (40×196) e copa em 7 posições de balanço (96×44)
-export const palmTrunk = () => makeSprite('palm-trunk', 40, 196, p => {
-  for (let s = 0; s < 190; s++) {
-    const bend = Math.round(Math.sin(s / 190 * 1.4) * 14), y = 195 - s, x = 4 + bend;
-    const ring = s % 10 < 2;
-    p.r(x, y, 9, 1, ring ? '#5e3f22' : '#7a5531'); p.r(x, y, 2, 1, ring ? '#4a3018' : '#5e3f22'); p.r(x + 6, y, 2, 1, ring ? '#7a5531' : '#9a7044');
+// tronco curvo afinando para cima, com casca em escamas (44×200)
+export const palmTrunk = () => makeSprite('palm-trunk2', 44, 200, p => {
+  for (let s = 0; s < 192; s++) {
+    const bend = Math.sin(s / 192 * 1.4) * 14, w = Math.round(12 - 4 * s / 192), x = Math.round(6 + bend - w / 2 + 4), y = 199 - s;
+    const k = s % 8, scale = k < 2;
+    p.r(x, y, w, 1, scale ? '#6a4626' : '#86603a');
+    p.r(x, y, 2, 1, '#5a3a1e'); p.r(x + w - 3, y, 2, 1, scale ? '#86603a' : '#a87c4c');
+    if (scale) p.r(x + Math.round(w / 2) - 1 + (k ? 1 : -1), y, 2, 1, '#4e321a');      // escama (chevron)
+    if (k === 2) p.r(x + 2, y, w - 5, 1, '#9a7044');
   }
-});
+  for (let k = 0; k < 7; k++) p.r(18 + (k % 3) - 1 + Math.round(k * 1.2), 6 + k, 12 - k, 1, k % 2 ? '#7a5a2a' : '#5e4420'); // colar de fibras no alto
+}, { outline: '#3a2614' });
+
+// copa: folhas arqueadas com folíolos dos dois lados; sway desloca e muda a curva (7 posições)
 export function palmCrown(sway) {
-  return makeSprite('palm-crown-' + sway, 100, 56, p => {
-    const cx = 50 + sway, cy = 20;
-    const leaf = (dir, len, droop, c, cd) => {
-      for (let k = 0; k < len; k++) {
-        const t = k / len, x = Math.round(cx + dir * k), y = Math.round(cy - 2 + droop * t * t * len / 3 - (1 - t) * 3);
-        const w = Math.max(2, Math.round(7 * (1 - t * 0.6)));
-        p.r(x, y, 1, w, c); p.r(x, y, 1, 1, shade(c, 0.25)); p.r(x, y + w - 1, 1, 1, cd);
-        if (k % 2 === 0 && t > 0.12) p.r(x, y + w, 1, 2 + Math.round(4 * (1 - t)), k % 4 ? cd : c); // folíolos
+  return makeSprite('palm-crown3-' + sway, 140, 100, p => {
+    const cx = 70 + sway * 0.6, cy = 26;
+    const line = (x0, y0, x1, y1, c) => { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) | 0 || 1; for (let k = 0; k <= n; k++) p.px(Math.round(x0 + (x1 - x0) * k / n), Math.round(y0 + (y1 - y0) * k / n), c); };
+    // folha: dir (−1/1), comprimento, ângulo de saída (graus acima da horizontal), queda; cores [folíolo claro, folíolo escuro, nervura]
+    const frond = (dir, L, up, droop, pal) => {
+      const a = up * Math.PI / 180, bend = sway * 0.02 * dir;
+      let px0 = cx, py0 = cy;
+      for (let k = 1; k <= L; k++) {
+        const t = k / L, x = cx + dir * Math.cos(a) * k, y = cy - Math.sin(a) * k + droop * t * t * L * (1 + bend);
+        // folíolos: saem para baixo e para fora, mais curtos na ponta
+        if (k % 3 === 0 && t > 0.1) {
+          const len = 10 * (1 - t * 0.6), tx = x - px0, ty = y - py0, tl = Math.hypot(tx, ty) || 1, ux = tx / tl, uy = ty / tl;
+          for (const side of [1, -1]) {
+            const ang = side * 1.05, rx = ux * Math.cos(ang) - uy * Math.sin(ang), ry = ux * Math.sin(ang) + uy * Math.cos(ang);
+            const dy = Math.abs(ry) + 0.6; // sempre caindo um pouco
+            line(x, y, x + rx * len * 0.8, y + dy * len * 0.8, side > 0 ? pal[1] : pal[0]);
+          }
+        }
+        line(px0, py0, x, y, pal[2]); px0 = x; py0 = y;
       }
     };
-    leaf(-1, 44, 1.0, '#3c8a3f', '#2a6a2e'); leaf(1, 44, 1.0, '#3c8a3f', '#2a6a2e');
-    leaf(-1, 32, 1.8, '#2f6e33', '#225526'); leaf(1, 32, 1.8, '#2f6e33', '#225526');
-    leaf(-1, 26, 0.3, '#4aa64c', '#3c8a3f'); leaf(1, 26, 0.3, '#4aa64c', '#3c8a3f');
-    leaf(-1, 16, -0.6, '#5cbf5e', '#4aa64c'); leaf(1, 16, -0.6, '#5cbf5e', '#4aa64c');
-    for (const [dx, dy] of [[-5, 4], [2, 5], [-1, 8]]) { p.r(cx + dx, cy + dy, 5, 5, '#6b4a24'); p.r(cx + dx + 1, cy + dy + 1, 2, 1, '#9a7044'); }
-  });
+    const back = ['#2f6e33', '#245a28', '#3a5a22'], mid = ['#3f9142', '#2f7434', '#5a7a2a'], front = ['#5cbf5e', '#3f9142', '#7a9a3a'];
+    frond(-1, 46, 42, 1.55, back); frond(1, 46, 42, 1.55, back); frond(-1, 30, 74, 1.7, back);
+    frond(-1, 60, 22, 1.25, mid); frond(1, 60, 22, 1.25, mid); frond(-1, 50, 2, 0.8, mid); frond(1, 52, 2, 0.8, mid);
+    frond(-1, 38, 58, 1.7, front); frond(1, 38, 58, 1.7, front); frond(1, 26, 86, 1.9, front);
+    for (const [dx, dy] of [[-5, 3], [1, 4], [-2, 7], [4, 1]]) { p.r(cx + dx, cy + dy, 5, 5, '#6b4a24'); p.r(cx + dx, cy + dy + 4, 5, 1, '#4e3418'); p.r(cx + dx + 1, cy + dy + 1, 2, 1, '#a07848'); }
+  }, { outline: '#1e3a1c' });
 }
 
 // ---------- prédios da orla (fundo) ----------
@@ -296,3 +313,118 @@ export function palletSprite(c) {
     for (const [x, y] of [[8, 2], [14, 2], [5, 6], [11, 6], [17, 6]]) p.r(x, y, 1, 3, cd);
   });
 }
+
+// ---------- céu: nuvem cúmulo (largura em passos de 20 px), avião e balão ----------
+export function cloudSprite(w) {
+  w = Math.max(40, Math.round(w / 20) * 20);
+  const h = Math.round(w * 0.5);
+  return makeSprite('cloud-' + w, w, h, p => {
+    const puffs = [[0.2, 0.6, 0.18], [0.4, 0.42, 0.25], [0.63, 0.5, 0.21], [0.82, 0.64, 0.14], [0.3, 0.72, 0.16], [0.56, 0.72, 0.19]];
+    const m = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (y > h * 0.84) continue;
+      for (const [fx, fy, fr] of puffs) if (Math.hypot(x + 0.5 - fx * w, (y + 0.5 - fy * h) * 1.15) < Math.min(fr * w, fy * h * 1.15 - 1)) { m[y * w + x] = 1; break; }
+    }
+    const at = (x, y) => x >= 0 && y >= 0 && x < w && y < h && m[y * w + x];
+    const sh = Math.max(2, Math.round(h * 0.12));
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (!at(x, y)) continue;
+      const top = !at(x, y - 2) || !at(x - 1, y - 3), bottom = !at(x, y + sh) || y > h * 0.74;
+      p.px(x, y, top ? '#ffffff' : bottom ? (!at(x, y + 2) ? '#b9cadd' : '#d2deeb') : '#eef4fa');
+    }
+  }, { outline: null });
+}
+// avião voando para a direita: fuselagem com nariz arredondado, deriva atrás, asa enflechada e turbina
+export const planeSprite = () => makeSprite('plane', 168, 60, p => {
+  const Q = (lx, ly, w, h, c) => p.r(lx + 4, 56 - ly - h, w, h, c);
+  // deriva (cauda vertical) e estabilizador
+  for (let k = 0; k < 26; k++) Q(4 + Math.round(k * 0.7), 18 + k, 22 - Math.round(k * 0.55), 1, k > 20 ? '#2c4a7a' : '#3b6fd1');
+  Q(0, 14, 26, 4, '#c3c9d2'); Q(0, 14, 26, 1, '#9aa3b0');
+  // fuselagem: cone da cauda subindo, corpo, nariz arredondado
+  for (let y = 0; y < 20; y++) {
+    const tail = Math.max(0, Math.round((8 - y) * 3)), nose = Math.round(14 - Math.sqrt(Math.max(0, 100 - (y - 10) * (y - 10))) * 1.4);
+    const c = y < 4 ? '#b8c0cb' : y < 8 ? '#d3d9e1' : y < 16 ? '#e9edf2' : '#ffffff';
+    Q(tail, 8 + y, 160 - tail - Math.max(0, nose), 1, c);
+  }
+  Q(30, 17, 112, 1, '#3b6fd1'); Q(30, 15, 112, 1, '#86aee6');
+  for (let k = 0; k < 11; k++) { Q(40 + k * 9, 19, 4, 4, '#2c4a7a'); Q(40 + k * 9, 22, 4, 1, '#86aee6'); }
+  Q(145, 19, 5, 4, '#2c4a7a'); Q(150, 19, 3, 3, '#2c4a7a'); Q(145, 22, 6, 1, '#86aee6');
+  // asa enflechada (de baixo da fuselagem para trás) e turbina
+  for (let k = 0; k < 9; k++) Q(66 - k * 4, 8 - k, 34, 1, k < 2 ? '#9aa3b0' : '#c3c9d2');
+  Q(70, 2, 20, 6, '#8d939e'); Q(70, 6, 20, 2, '#b8c0cb'); Q(88, 3, 3, 4, '#3e434d');
+});
+
+export const balloonSprite = () => makeSprite('balloon', 64, 140, p => {
+  const Q = (lx, ly, w, h, c) => p.r(lx + 32, 136 - ly - h, w, h, c);
+  for (let dy = 0; dy < 70; dy++) {
+    const t = (dy - 35) / 35, hw = Math.round(30 * Math.sqrt(Math.max(0, 1 - t * t)));
+    Q(-hw, 64 + dy, hw * 2, 1, dy > 52 ? '#ffffff' : dy > 30 ? '#eeeeee' : '#d6d6d6'); Q(-hw, 64 + dy, Math.min(3, hw), 1, '#c4c4c4');
+  }
+  Q(-1, 14, 2, 50, '#9a9a9a'); Q(-8, 0, 16, 14, '#e05a3c'); Q(-8, 12, 16, 2, '#ff8a6a'); Q(-6, 4, 4, 4, '#f7f8fa');
+});
+
+// ---------- dirigível dos megablocos (310×116), hélices em 2 quadros ----------
+export function airshipSprite(f) {
+  return makeSprite('airship-' + f, 316, 118, p => {
+    const Q = (lx, ly, w, h, c) => p.r(lx + 158, 88 - ly - h, w, h, c);
+    for (let dy = 0; dy < 80; dy++) {
+      const t = (dy - 38) / 40, hw = Math.round(150 * Math.sqrt(Math.max(0, 1 - t * t)));
+      const c = dy < 12 ? '#8d939e' : dy < 26 ? '#a8adb8' : dy < 56 ? '#c8ccd4' : dy < 70 ? '#dfe2e8' : '#eef0f4';
+      Q(-hw, dy, hw * 2, 1, c);
+      for (let x = -120; x <= 120; x += 30) if (Math.abs(x) < hw - 4) Q(x, dy, 1, 1, shade(c, -0.08));
+    }
+    Q(-150, 36, 300, 6, '#f2b630'); Q(-150, 41, 300, 1, '#ffd86a'); Q(-150, 36, 300, 1, '#c98f15');
+    Q(128, 30, 28, 4, '#8d939e'); Q(146, 12, 10, 50, '#a8adb8'); Q(146, 12, 3, 50, '#8d939e'); Q(146, 36, 10, 6, '#f2b630');
+    Q(-44, -26, 88, 26, '#3b4152'); Q(-44, -4, 88, 4, '#56607a'); Q(-44, -26, 88, 2, '#2a2d36');
+    for (let k = 0; k < 5; k++) { Q(-36 + k * 16, -18, 10, 9, '#9fd0f0'); Q(-36 + k * 16, -11, 10, 2, '#d9f1ff'); }
+    for (const sx of [-64, 60]) { Q(sx, -12, 4, 14, '#5a5f6a'); const l = f ? 18 : 8; Q(sx - 1, -12 - (f ? 0 : 5), 6, l, '#dfe3ea'); }
+  });
+}
+
+// ---------- turismo: bilheteria, cabine panorâmica, helicóptero, foguete ----------
+export const boothSprite = () => makeSprite('booth', 44, 78, p => {
+  const Q = (lx, ly, w, h, c) => p.r(lx + 3, 76 - ly - h, w, h, c);
+  Q(0, 0, 34, 62, '#2f5d8a'); Q(0, 0, 3, 62, '#24476a'); Q(31, 0, 3, 62, '#3a77b0');
+  Q(4, 28, 26, 22, '#24476a'); Q(6, 30, 22, 18, '#bfe3ff'); Q(6, 44, 22, 4, '#e2f4ff');
+  Q(14, 32, 7, 8, '#2a2a33'); Q(15, 38, 5, 5, '#e0a878'); Q(13, 30, 9, 3, '#c0504d');            // atendente
+  Q(2, 24, 30, 3, '#8b5a2b'); Q(2, 26, 30, 1, '#a87440');
+  for (let k = 0; k < 5; k++) Q(-2 + k * 8, 62, 8, 8, k % 2 ? '#f7f8fa' : '#c0504d');               // toldo listrado
+  Q(-2, 62, 40, 1, '#8a3a36'); for (let k = 0; k < 5; k++) Q(-1 + k * 8, 60, 6, 2, k % 2 ? '#e8ebf0' : '#a8403c');
+  Q(6, 6, 22, 14, '#24476a'); Q(8, 8, 18, 10, '#3a77b0');
+});
+export const panoSprite = (a, b) => makeSprite(`pano-${a}-${b}`, 28, 38, p => {
+  p.r(1, 1, 26, 36, '#2b3142'); p.r(1, 1, 26, 2, '#56607a');
+  p.r(3, 4, 22, 28, '#9fd8ef'); p.r(3, 4, 22, 6, '#c8ecf8'); p.r(14, 4, 1, 28, '#7ab8d0');
+  p.r(6, 18, 5, 12, a); p.r(6, 13, 5, 5, '#e0a878'); p.r(6, 12, 5, 2, '#3a2a1a');
+  p.r(16, 18, 5, 12, b); p.r(16, 13, 5, 5, '#8d5524'); p.r(16, 12, 5, 2, '#1d1d22');
+  p.r(3, 30, 22, 2, '#e9f6fb'); p.r(1, 34, 26, 3, '#3b4152');
+});
+export function heliSprite(f) {
+  return makeSprite('heli-' + f, 110, 40, p => {
+    const Q = (lx, ly, w, h, c) => p.r(lx + 56, 32 - ly - h, w, h, c);
+    Q(-18, 0, 38, 20, '#d94a3a'); Q(-18, 0, 38, 3, '#a8342a'); Q(-18, 17, 38, 3, '#f06a5a');
+    Q(6, 6, 13, 11, '#9fd0f0'); Q(6, 14, 13, 3, '#d9f1ff'); Q(10, 8, 4, 5, '#2a2a33');
+    Q(-48, 10, 32, 5, '#d94a3a'); Q(-48, 10, 32, 1, '#a8342a'); Q(-52, 6, 6, 16, '#d94a3a'); Q(-52, 6, 2, 16, '#a8342a');
+    Q(-54, 12, 3, 3, f ? '#2d3340' : '#8d939e');
+    Q(-14, -6, 32, 3, '#3b4152'); Q(-10, -4, 2, 4, '#3b4152'); Q(12, -4, 2, 4, '#3b4152');
+    Q(-1, 20, 3, 3, '#2d3340');
+    const w = f ? 76 : 44; Q(1 - w / 2, 23, w, 2, '#2d3340');
+  });
+}
+export const rocketSprite = () => makeSprite('rocket', 22, 58, p => {
+  const Q = (lx, ly, w, h, c) => p.r(lx + 2, 56 - ly - h, w, h, c);
+  Q(0, 0, 18, 42, '#eef1f6'); Q(0, 0, 4, 42, '#c9ced8'); Q(14, 0, 2, 42, '#ffffff');
+  Q(3, 42, 12, 8, '#d94a3a'); Q(6, 50, 6, 4, '#d94a3a'); Q(3, 42, 3, 8, '#a8342a');
+  Q(0, 24, 18, 4, '#3b6fd1'); Q(6, 30, 6, 6, '#22407a'); Q(7, 31, 4, 4, '#5fb8ff');
+  Q(-2, 0, 4, 10, '#a8342a'); Q(16, 0, 4, 10, '#a8342a');
+});
+
+// ---------- andaime: tubos de aço, travessas, tábuas e braçadeiras (26×32, repete na vertical) ----------
+export const scaffoldTile = () => makeSprite('scaffold', 26, 32, p => {
+  for (const x of [4, 15]) { p.r(x, 0, 4, 32, '#8f969f'); p.r(x, 0, 1, 32, '#c7ccd6'); p.r(x + 3, 0, 1, 32, '#5e646e'); }
+  for (let d = 0; d < 11; d++) p.r(8 + d * 0.65, 4 + d * 2, 2, 2, '#6f7680');
+  p.r(0, 24, 26, 4, '#a8814a'); p.r(0, 24, 26, 1, '#c89a5e'); p.r(0, 27, 26, 1, '#6b4f28');
+  for (const x of [5, 13, 20]) p.r(x, 25, 1, 2, '#8b6a3a');
+  p.r(0, 28, 26, 1, 'rgba(0,0,0,.25)');
+  for (const x of [3, 14]) { p.r(x, 22, 6, 2, '#5a5f6a'); p.r(x + 1, 22, 1, 1, '#b4bac4'); }
+}, { outline: null });
