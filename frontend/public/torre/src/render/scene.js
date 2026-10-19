@@ -120,8 +120,11 @@ function topStock(y0, s) {
 
 function drawCapped(y0, nb) {
   scaffold(y0);
-  if (FLAGS.viva) { // sem texto: a obra parou, os pedreiros sentam e a base avisa
-    for (let j = 0; j < nb; j++) { const x = TL + 30 + j * 56; worker(x, y0 + SLAB, { sit: true, phase: 0, skin: j, flip: j % 2 === 1 }); zzz(x, y0 + SLAB + 44, j); }
+  const s = ERA_STYLE[eraAt(S.floors * MPF)]; // laje do andar parado (onde os pedreiros ficam)
+  R(TL, y0, TW, SLAB, s.slab); R(TL, y0 + SLAB - 2, TW, 2, s.hi); R(TL, y0 + 2, TW, 1, 'rgba(0,0,0,.25)');
+  if (FLAGS.viva) { // sem texto: a obra parou, os pedreiros sentam (respirando devagar) e a base avisa
+    const n = Math.min(nb, 4), gap = n > 1 ? (TW - 70) / (n - 1) : 0;
+    for (let j = 0; j < n; j++) { const x = TL + 26 + j * gap + (j % 2 ? 18 : 0); worker(x, y0 + SLAB, { sit: true, phase: V.t * 0.6 + j * 0.7, skin: j, flip: j % 2 === 1 }); zzz(x, y0 + SLAB + 44, j); }
     warn(0, 8); warn(0, y0 + FH + 14); // na base (rachaduras) e no topo (obra parada)
     return;
   }
