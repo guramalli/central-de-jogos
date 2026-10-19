@@ -4,7 +4,9 @@ import { eraAt } from '../data/eras.js';
 import { UP } from '../data/upgrades.js';
 import { S } from './state.js';
 import { mods } from './mods.js';
-import { rentMult, brokerTick, rentAt } from './realty.js';
+import { rentMult, brokerTick, rentAt, rentSum } from './realty.js';
+import { FLAGS } from '../data/flags.js';
+import { VIVA } from '../data/viva.js';
 import { tourism } from './tourism.js';
 import { bankInfo, bankTick } from './bank.js';
 
@@ -66,10 +68,14 @@ export function sim(dt) {
   S.ground += R.prod * (1 - direct) * dt;
   S.top += R.prod * direct * dt;
   const mv = Math.min(R.tran * dt, S.ground); S.ground -= mv; S.top += mv;
+  const before = Math.floor(S.floors);
   if (S.floors < R.capF) {
     const use = Math.min(R.lay * dt, S.top); S.top -= use;
     S.floors = Math.min(R.capF, S.floors + use / R.fcost);
   }
+  // Obra Viva: a construtora recebe pelo andar entregue (uma vez por andar; vale também offline)
+  const done = Math.floor(S.floors) - before;
+  if (FLAGS.viva && done > 0) { const pay = rentSum(before, done) * VIVA.floorPaySecs; S.money += pay; S.stats.floorPay = (S.stats.floorPay || 0) + pay; }
   S.maxAlt = Math.max(S.maxAlt, Math.floor(S.floors) * MPF);
   S.era = Math.max(S.era, eraAt(S.floors * MPF));
   // reciclagem: 2%/s do estoque parado no térreo vira dinheiro (metade do valor de venda por material)

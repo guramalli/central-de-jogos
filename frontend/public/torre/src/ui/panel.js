@@ -14,6 +14,9 @@ import { fmt, fmtM } from './format.js';
 import { updateUpgrades, NECK_BRANCH } from './upgrades.js';
 import { updateBusiness, businessAlert } from './business.js';
 import { updateMap, mapOpen, openMap } from './talentMap.js';
+import { FLAGS } from '../data/flags.js';
+import { VIVA } from '../data/viva.js';
+import { phaseAt, PHASES } from '../render/construction.js';
 
 const NECK_NAME = { prod: 'produção', tran: 'transporte', lay: 'assentamento', cap: 'fundação no limite' };
 const FLOW = [['prod', 'Produção'], ['tran', 'Transporte'], ['lay', 'Assentamento']];
@@ -52,8 +55,9 @@ export function updateUI() {
     setText($('neckHint'), notice || (capped ? '' : `Melhore ${BRANCHES.find(b => b.id === NECK_BRANCH[neck]).n} para acelerar.`));
     const p = S.floors - Math.floor(S.floors), eff = capped ? 0 : Math.min(R.prod, R.tran, R.lay), fps = eff / R.fcost;
     $('floorFill').style.width = (capped ? 100 : p * 100) + '%';
-    setText($('floorPct'), capped ? 'Obra parada' : `${Math.floor(p * 100)}% do próximo andar`);
-    setText($('floorTime'), !fps ? '' : fps >= 1 ? `${fmt(fps)} andares/s` : `~${fmt(1 / fps)} s por andar`);
+    const etapa = V.mode === 1 ? ' · ' + phaseAt(p, FLAGS.viva ? VIVA.phases : PHASES).n : '';
+    setText($('floorPct'), capped ? 'Obra parada' : `${Math.floor(p * 100)}%${etapa}`);
+    setText($('floorTime'), !fps ? '' : fps >= 1 ? `${fmt(fps)} andares/s` : `andar ${Math.floor(S.floors) + 1} pronto em ~${fmt((1 - p) / fps)} s`);
     $('capWarn').hidden = !capped;
     if ($('pg-obra').querySelector('details').open) {
       const mx = Math.max(R.prod, R.tran, R.lay), bn = bottleneck(R);
@@ -66,7 +70,12 @@ export function updateUI() {
       setText($('s-ground'), fmt(S.ground)); setText($('s-top'), fmt(S.top));
     }
     // próximo objetivo
-    if (capped) {
+    const fl = Math.floor(S.floors);
+    if (FLAGS.viva && fl < VIVA.revealAt && !capped) {
+      setText($('goalTitle'), `Construir ${VIVA.revealAt} andares`);
+      setText($('goalSub'), `Faltam ${VIVA.revealAt - fl} · cada andar entregue paga a obra`);
+      $('goalFill').style.width = clamp(S.floors / VIVA.revealAt * 100, 0, 100) + '%';
+    } else if (capped) {
       const c = cost('fundacao');
       setText($('goalTitle'), 'Reforçar a fundação');
       setText($('goalSub'), `${UP.fundacao.n} custa R$ ${fmt(c)}`);
@@ -90,6 +99,9 @@ export function updateUI() {
 
   // barra de painéis: revelação gradual e avisos
   const pe = peAvailable();
+  // protótipo Obra Viva: painéis avançados só depois dos primeiros andares
+  const early = FLAGS.viva && S.maxAlt / MPF < VIVA.revealAt;
+  $('nav').hidden = early;
   navBtns.forEach(b => {
     const p = b.dataset.nav;
     if (p === 'banco') b.hidden = S.maxAlt < BANK_AT && S.debt <= 0;

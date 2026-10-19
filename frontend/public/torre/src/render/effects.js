@@ -8,6 +8,10 @@ import { dust } from './particles.js';
 import { SHAFT_X } from './tower.js';
 import { onEvent } from './events.js';
 import { sfx } from '../ui/audio.js';
+import { FLAGS } from '../data/flags.js';
+import { VIVA } from '../data/viva.js';
+import { rentSum } from '../sim/realty.js';
+import { fmt } from '../ui/format.js';
 
 export const MAX_TOP_WORKERS = 6; // acima disso, os pedreiros viram uma equipe com contador
 
@@ -36,8 +40,10 @@ function onFloor(e) {
     // celebração completa: luzes acendem, poeira na laje e "+1 andar"
     V.flash = { i: e.to - 1, t: 1.8 };
     for (let k = 0; k < 6; k++) dust(TL + 20 + k * 40, y + 2, k % 2 ? '#ffe27a' : '#d8cdb8', 3, 1.2);
-    const first = S.assigned < e.to && S.lv.corretor < 1 && e.to <= 3;
-    float(0, y + 30, '+1 ANDAR', first ? 'pronto para alugar ou vender' : '');
+    // protótipo Obra Viva: a recompensa do andar entregue aparece junto; no modo atual, o lembrete de decidir o destino
+    const first = !FLAGS.viva && S.assigned < e.to && S.lv.corretor < 1 && e.to <= 3;
+    const pay = FLAGS.viva ? `+R$ ${fmt(rentSum(e.from, e.n) * VIVA.floorPaySecs)} pela obra` : '';
+    float(0, y + 30, '+1 ANDAR', pay || (first ? 'pronto para alugar ou vender' : ''));
     sfx('floor');
   } else if (floatGate <= 0) {
     // obra rápida: um aviso agregado de vez em quando

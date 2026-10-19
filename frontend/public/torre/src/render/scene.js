@@ -13,7 +13,9 @@ import { drawGroundBack, drawGroundFront } from './ground.js';
 import { worker } from './workers.js';
 import { facade, drawFloors, clipWorld, shafts, scaffold, crane, airship, floorLOD } from './tower.js';
 import { drawTourGround, drawTourAir, drawForSale } from './tourism.js';
-import { buildState, drawBuild, workX } from './construction.js';
+import { buildState, buildStateWith, drawBuild, drawPallets, workX } from './construction.js';
+import { FLAGS } from '../data/flags.js';
+import { VIVA } from '../data/viva.js';
 import { pollEvents, emit } from './events.js';
 import { updateEffects, MAX_TOP_WORKERS } from './effects.js';
 
@@ -118,22 +120,24 @@ function drawCapped(y0, nb) {
 }
 
 // Modo 1: bloco a bloco — o andar é montado em etapas (estrutura, paredes, janelas, acabamento)
-const PIECE = ['beam', 'brick', 'glass', 'brick']; // som de cada peça por etapa
+// som de cada peça por etapa
+const PIECE = { entrega: 'brick', estrutura: 'beam', paredes: 'brick', janelas: 'glass', acabamento: 'brick' };
 function drawBlocks(y0, p, s, e, nb, working) {
   scaffold(y0, false);
   R(TL, y0, TW, SLAB, s.slab); R(TL, y0 + SLAB - 2, TW, 2, s.hi);
-  const lvl = floorLOD(), st = buildState(p), ph = st.phase.i;
+  const lvl = floorLOD(), st = FLAGS.viva ? buildStateWith(p, VIVA.phases) : buildState(p), ph = st.phase.i, pid = st.phase.id;
   drawBuild(R, y0, st, s, lvl);
+  if (st.delivery !== undefined) drawPallets(R, y0, st, s);
   const slotX = workX(st);
   // peça nova: poeira e som; etapa nova: aviso sonoro (eventos só de apresentação)
   if (V.lastK >= 0 && st.unit > V.lastK) {
-    dust(slotX, y0 + SLAB + (ph === 0 ? FH - 20 : 30), '#d8cdb8', 4);
+    dust(slotX, y0 + SLAB + (pid === 'estrutura' ? FH - 20 : 30), '#d8cdb8', 4);
     if (e >= 2 || S.lv.ferram > 0) dust(slotX, y0 + SLAB + 30, '#ffe27a', 2);
-    emit('piece_placed', { piece: S.lv.ferram > 0 && ph === 1 ? 'drill' : PIECE[ph] });
+    emit('piece_placed', { piece: S.lv.ferram > 0 && pid === 'paredes' ? 'drill' : PIECE[pid] });
   }
   if (V.lastPhase >= 0 && ph > V.lastPhase) emit('floor_phase_changed', { phase: st.phase.id });
   V.lastK = st.unit; V.lastPhase = ph;
-  topStock(y0, s);
+  if (st.delivery === undefined) topStock(y0, s);
   // o pedreiro mais perto da próxima peça vai até ela
   const home = j => nb === 1 ? 0 : TL + 34 + j * (TW - 100) / (nb - 1);
   let act = 0, best = 1e9;
@@ -148,17 +152,17 @@ function drawBlocks(y0, p, s, e, nb, working) {
     worker(V.bx[j], fy, { hammer: working && !walk, drill, phase: V.t * (j === act ? 3 : 1.6) * pace + j * .37, walk, flip: walk && tx < V.bx[j], skin: j });
   }
   // peça a caminho: tijolo nas paredes, vidro nas janelas
-  if (working && (ph === 1 || ph === 2)) {
-    const f = st.frac, hx = V.bx[act] + 22, hy = fy + 44, ty = ph === 1 ? y0 + SLAB + 40 : y0 + 46;
+  if (working && (pid === 'paredes' || pid === 'janelas')) {
+    const f = st.frac, hx = V.bx[act] + 22, hy = fy + 44, ty = pid === 'paredes' ? y0 + SLAB + 40 : y0 + 46;
     const bx = lerp(hx, slotX - 10, f), by = lerp(hy, ty, f) + Math.sin(f * Math.PI) * 16;
-    if (ph === 1) { R(bx, by, 19, 10, s.brick); R(bx, by + 9, 18, 1, s.hi); }
+    if (pid === 'paredes') { R(bx, by, 19, 10, s.brick); R(bx, by + 9, 18, 1, s.hi); }
     else { R(bx, by, 16, 20, s.frame); R(bx + 2, by + 2, 12, 16, s.glass); R(bx + 4, by + 6, 2, 10, 'rgba(255,255,255,.4)'); }
   }
   // acima de MAX_TOP_WORKERS, os pedreiros viram uma equipe com contador (limite visual)
   if (S.lv.pedreiro > MAX_TOP_WORKERS) { R(-72, y0 + FH + 8, 144, 16, 'rgba(17,19,26,.75)'); T(`EQUIPE DE ${S.lv.pedreiro} PEDREIROS`, 0, y0 + FH + 16, 9, '#ece6d6', 'center'); }
   if (S.lv.pedreiro >= 2) {
     const q = (V.t * .16 * pace) % 1, go = q < .5, x = lerp(TL + TW - 30, TL + 40, go ? q * 2 : 2 - q * 2);
-    worker(x, fy, { walk: true, phase: V.t * 3, carry: go ? (ph === 2 ? s.glass : s.brick) : null, flip: go, skin: 3 });
+    worker(x, fy, { walk: true, phase: V.t * 3, carry: go ? (pid === 'janelas' ? s.glass : s.brick) : null, flip: go, skin: 3 });
   }
   if (S.lv.mestre > 0) worker(TL + TW - 22, fy, { boss: true, flip: true, phase: V.t, skin: 2 });
   if (S.lv.guindaste > 0) crane(y0, TL + TW + 60 + Math.sin(V.t * .5) * 30, y0 + FH * .6);

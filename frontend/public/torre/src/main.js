@@ -10,6 +10,7 @@ import { ctx } from './render/canvas.js';
 import { updateUI, setNotice } from './ui/panel.js';
 import { closeMap, initMap } from './ui/talentMap.js';
 import { $ } from './ui/dom.js';
+import { FLAGS } from './data/flags.js';
 import { syncCameraButtons } from './ui/cameraControls.js';
 import { syncEvents, recent } from './render/events.js';
 import { initEffects } from './render/effects.js';
@@ -64,6 +65,15 @@ rs.onclick = () => {
 };
 
 initMap(updateUI);
+
+// comparação A/B: link para alternar entre o modo atual e o protótipo Obra Viva (saves separados)
+{
+  const u = new URL(location.href), viva = FLAGS.viva;
+  if (viva) u.searchParams.delete('viva'); else u.searchParams.set('viva', '');
+  $('modeLink').innerHTML = viva
+    ? `Protótipo Obra Viva · <a href="${u.href.replace('viva=', 'viva')}">voltar ao modo atual</a>`
+    : `<a href="${u.href.replace('viva=', 'viva')}">Testar protótipo Obra Viva</a>`;
+}
 
 // som da obra: botão sobre a cena, lembrado neste navegador
 const snd = $('snd');

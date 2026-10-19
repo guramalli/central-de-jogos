@@ -5,6 +5,7 @@ import { BAL } from '../data/balance.js';
 import { FLOOR_TYPES, TYPE_IDS } from '../data/floorTypes.js';
 import { S } from './state.js';
 import { mods } from './mods.js';
+import { FLAGS } from '../data/flags.js';
 
 const RB = BAL.rent;
 
@@ -85,9 +86,10 @@ export function assign(n, how) {
   return got;
 }
 
-// Corretor: aplica a regra "vender X% / alugar o resto" aos andares prontos
+// Corretor: aplica a regra "vender X% / alugar o resto" aos andares prontos.
+// No protótipo Obra Viva a regra vale desde o início: nenhum andar fica esperando decisão manual.
 export function brokerTick() {
-  if (S.lv.corretor < 1 || !S.broker.on) return;
+  if ((S.lv.corretor < 1 && !FLAGS.viva) || !S.broker.on) return;
   const n = pending(); if (n <= 0) return;
   const q = S.broker.acc + n * S.broker.sellPct / 100;
   const nSell = Math.min(n, Math.floor(q));

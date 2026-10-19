@@ -11,14 +11,43 @@ export const PHASES = [
   { id: 'acabamento', n: 'Acabamento', end: 1 },
 ];
 
-// Etapa do progresso p: { i, id, n, f } (f = 0..1 dentro da etapa)
-export function phaseAt(p) {
+// Etapa do progresso p: { i, id, n, f } (f = 0..1 dentro da etapa). phases: lista de etapas (padrão PHASES)
+export function phaseAt(p, phases = PHASES) {
   p = Math.min(1, Math.max(0, p));
   let a = 0;
-  for (let i = 0; i < PHASES.length; i++) {
-    const b = PHASES[i].end;
-    if (p < b || i === PHASES.length - 1) return { i, id: PHASES[i].id, n: PHASES[i].n, f: b > a ? Math.min(1, (p - a) / (b - a)) : 1 };
+  for (let i = 0; i < phases.length; i++) {
+    const b = phases[i].end;
+    if (p < b || i === phases.length - 1) return { i, id: phases[i].id, n: phases[i].n, f: b > a ? Math.min(1, (p - a) / (b - a)) : 1 };
     a = b;
+  }
+}
+
+// Etapa extra de entrega de material antes da estrutura (protótipo Obra Viva): paletes chegando ao andar
+export const DELIVERIES = 6;
+const startOf = (phases, i) => i === 0 ? 0 : phases[i - 1].end;
+
+// Estado da montagem com uma lista de etapas que começa com 'entrega' (as demais seguem PHASES)
+export function buildStateWith(p, phases) {
+  if (phases === PHASES || phases[0].id !== 'entrega') return buildState(p);
+  const ph = phaseAt(p, phases);
+  if (ph.i === 0) {
+    const st = buildState(0), u = ph.f * DELIVERIES;
+    return { ...st, phase: ph, cols: 0, colGrow: 0, beam: 0, delivery: ph.f, unit: Math.floor(u), frac: u - Math.floor(u), target: TW - 40 };
+  }
+  // mesma fração dentro da etapa equivalente de PHASES
+  const j = ph.i - 1, a = startOf(PHASES, j), b = PHASES[j].end;
+  const st = buildState(a + (b - a) * ph.f);
+  return { ...st, phase: ph, delivery: 1, unit: st.unit + DELIVERIES };
+}
+
+// Paletes de material sobre a laje: chegam na entrega e vão sendo consumidos pelas paredes
+export function drawPallets(R, y0, st, s) {
+  const left = st.delivery < 1 ? Math.floor(st.delivery * DELIVERIES)                     // chegando
+    : st.bricks < BRICKS.length ? DELIVERIES - Math.floor(st.bricks / BRICKS.length * DELIVERIES) // sendo usados
+      : 0;                                                                                       // acabou
+  for (let k = 0; k < left; k++) {
+    const x = TL + TW - 58 + (k % 2) * 24, y = y0 + SLAB + Math.floor(k / 2) * 13;
+    R(x, y, 22, 3, '#8b5a2b'); R(x + 1, y + 3, 20, 9, s.brick); R(x + 1, y + 11, 20, 1, s.hi); R(x + 10, y + 3, 1, 9, s.line);
   }
 }
 

@@ -228,3 +228,12 @@ canvas.drag{cursor:grabbing}
 /* resumo dentro do mapa */
 .tmap-sum{display:flex;flex-direction:column;gap:8px}
 .tmap-sum p{margin:0}
+
+/* protótipo Obra Viva: compras prioritárias em destaque, o resto recolhido */
+.upmore{border-top:1px solid var(--line)}
+.upmore summary{cursor:pointer;color:var(--muted);font-size:12px;padding:9px 12px;list-style:none;user-select:none}
+.upmore summary::-webkit-details-marker{display:none}
+.upmore summary::before{content:"▸ ";color:var(--accent)}
+.upmore[open] summary::before{content:"▾ "}
+.modelink{color:var(--muted);font-size:11.5px}
+.modelink a{color:var(--accent)}

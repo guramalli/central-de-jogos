@@ -2,7 +2,7 @@
 // Sobe o nível por um instante, mede rates() antes e depois e desfaz. Não altera o save.
 import { UP } from '../data/upgrades.js';
 import { S } from './state.js';
-import { rates, isCapped, bottleneck } from './economy.js';
+import { rates, isCapped, bottleneck, cost } from './economy.js';
 import { fmt } from '../ui/format.js';
 
 export const STAGE_NAME = { prod: 'produção', tran: 'transporte', lay: 'assentamento' };
@@ -41,4 +41,16 @@ export function upgradeImpact(k) {
     if (TOURISM.includes(k)) return { text: R0.tour.demand > R0.tour.cap ? 'Sem efeito agora' : 'Sem efeito agora: ainda não falta lugar para turistas', good: false };
   }
   return null;
+}
+
+// Prioridade de compra: quanto a melhoria acelera a obra (e a renda) por real gasto, com as fórmulas reais.
+// Usado para mostrar só as compras que importam agora (protótipo Obra Viva) e pelo robô de ritmo.
+export function priorityScore(k) {
+  const R0 = rates(), inc = R => R.income + 1, fpm = R => Math.max(1e-9, floorsPerMin(R));
+  S.lv[k]++;
+  let R1;
+  try { R1 = rates(); } finally { S.lv[k]--; }
+  let g = Math.log(fpm(R1) / fpm(R0)) + 0.5 * Math.log(inc(R1) / inc(R0));
+  if (k === 'fundacao' && S.floors > R0.capF * 0.7) g += 1; // perto do limite, a fundação vira prioridade
+  return g / cost(k);
 }

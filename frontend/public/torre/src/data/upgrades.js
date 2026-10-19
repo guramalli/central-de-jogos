@@ -1,4 +1,6 @@
 // Melhorias do dia a dia, compradas com dinheiro.
+import { FLAGS } from './flags.js';
+import { VIVA } from './viva.js';
 // custo = base * k^(nível - start)
 // req: [id, nível mínimo] de outra melhoria; reqAlt: altura mínima já alcançada (m); max: nível máximo.
 export const BRANCHES = [
@@ -38,5 +40,8 @@ export const UP = {
   heliponto: { b: 'merc', n: 'Heliponto no topo', d: 'Passeios de helicóptero: +1 visitante/s de capacidade.', base: 60000, k: 2.4, reqAlt: 1000 },
   porto: { b: 'merc', n: 'Porto espacial', d: 'Turismo espacial: +0,05 turista espacial/s, com ingresso 40× mais caro.', base: 5e9, k: 3, reqAlt: 100000 },
 };
+
+// Protótipo Obra Viva: as três compras iniciais ganham nome concreto e ficam liberadas desde o começo
+if (FLAGS.viva) for (const k in VIVA.upgrades) Object.assign(UP[k], VIVA.upgrades[k]);
 
 export const KEYS = Object.keys(UP);

@@ -2,6 +2,11 @@ import { SAVE_KEY } from '../data/constants.js';
 import { UP, KEYS } from '../data/upgrades.js';
 import { BAL } from '../data/balance.js';
 import { CENTER } from '../data/talents.js';
+import { FLAGS } from '../data/flags.js';
+import { VIVA } from '../data/viva.js';
+
+// o protótipo Obra Viva usa um save separado, para não misturar com o modo atual
+export const saveKey = () => SAVE_KEY + (FLAGS.viva ? '-viva' : '');
 
 export const SAVE_VERSION = 2;
 
@@ -10,14 +15,14 @@ export function fresh() {
   KEYS.forEach(k => lv[k] = UP[k].start || 0);
   return {
     ver: SAVE_VERSION,
-    money: BAL.startMoney, floors: 0, ground: 10, top: 0, lv, last: Date.now(), era: 0,
+    money: FLAGS.viva ? VIVA.startMoney : BAL.startMoney, floors: 0, ground: 10, top: 0, lv, last: Date.now(), era: 0,
     maxAlt: 0,                    // altura recorde (m) — dá Pontos de Engenharia e libera tipos
     // imóveis: andares [0, assigned) já têm destino; [assigned, floor(floors)) estão prontos esperando
     assigned: 0, rented: 0, sold: 0,
     rentBase: 0,                  // soma do aluguel-base dos andares alugados (antes dos multiplicadores)
     typeSegs: [[0, 'apto']],      // [índice do andar, tipo] — tipo escolhido a partir daquele andar
     typeCount: {},                // andares com destino, por tipo
-    broker: { on: true, sellPct: 30, acc: 0 },
+    broker: { on: true, sellPct: FLAGS.viva ? VIVA.autoSellPct : 30, acc: 0 },
     // banco
     debt: 0, inDefault: false,
     // árvore de Engenharia
@@ -32,12 +37,12 @@ export let S = fresh();
 // Devolve a versão do save carregado (0 se não havia save)
 export function load() {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(saveKey());
     if (!raw) return 0;
     const o = JSON.parse(raw);
     // formato antigo: guarda uma cópia intacta antes de qualquer conversão (uma vez por versão)
     if ((o.ver || 1) < SAVE_VERSION) {
-      const bk = SAVE_KEY + '-backup-v' + (o.ver || 1);
+      const bk = saveKey() + '-backup-v' + (o.ver || 1);
       if (!localStorage.getItem(bk)) localStorage.setItem(bk, raw);
     }
     const f = fresh();
@@ -51,7 +56,7 @@ export function load() {
 
 export function save() {
   S.last = Date.now();
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { }
+  try { localStorage.setItem(saveKey(), JSON.stringify(S)); } catch (e) { }
 }
 
 export function resetState() {
