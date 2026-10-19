@@ -30,7 +30,7 @@ export const UP = {
   guindaste: { b: 'eng', n: 'Guindaste de torre', d: '+50% assentamento. Nv 1 iça painéis, Nv 2 iça andares inteiros, Nv 4 libera o dirigível de megablocos.', base: 250, k: 2.8, max: 10, req: ['fundacao', 1] },
   projeto: { b: 'eng', n: 'Projeto otimizado', d: '−15% de material por andar.', base: 600, k: 3.4, max: 8, req: ['fundacao', 2] },
   // Mercado
-  corretor: { b: 'merc', n: 'Corretor de imóveis', d: 'Nv 1 decide sozinho o destino de cada andar pronto (regra em Negócios). +8% no preço de venda por nível.', base: 150, k: 4, max: 6 },
+  corretor: { b: 'merc', n: 'Corretor de imóveis', d: 'Nv 1 decide sozinho o destino de cada andar pronto (regra em Imóveis). +8% no preço de venda por nível.', base: 150, k: 4, max: 6 },
   aluguel: { b: 'merc', n: 'Andares comerciais', d: '+50% de renda de aluguel por nível.', base: 120, k: 2.1 },
   bilheteria: { b: 'merc', n: 'Elevador panorâmico', d: 'Leva turistas ao topo: +0,3 visitante/s de capacidade.', base: 200, k: 1.9, reqAlt: 40 },
   marketing: { b: 'merc', n: 'Marketing da torre', d: '+25% de turistas interessados.', base: 400, k: 2.2, req: ['bilheteria', 1] },

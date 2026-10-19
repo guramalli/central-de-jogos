@@ -5,7 +5,10 @@ import { R } from './canvas.js';
 export function spark(x, y, c, s = 1) {
   V.parts.push({ x, y, vx: (Math.random() - .5) * 120 * s, vy: (Math.random() * 110 + 30) * s, l: .5 + Math.random() * .4, c, sz: 3 * s });
 }
-export function dust(x, y, c, n, s = 1) { for (let i = 0; i < n; i++) spark(x, y, c, s); }
+// quem pediu menos movimento no sistema recebe um terço das partículas; no modo de teste (?test=1), nenhuma
+const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const testMode = typeof location !== 'undefined' && new URLSearchParams(location.search).get('test') === '1';
+export function dust(x, y, c, n, s = 1) { if (testMode) return; if (calm) n = Math.ceil(n / 3); for (let i = 0; i < n; i++) spark(x, y, c, s); }
 
 export function updateParticles(dt) {
   V.parts.forEach(q => { q.x += q.vx * dt; q.y += q.vy * dt; q.vy -= 360 * dt; q.l -= dt; });

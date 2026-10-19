@@ -3,7 +3,7 @@
 import { H, TW, TL, MPF } from '../data/constants.js';
 import { ERA_STYLE, eraAt } from '../data/eras.js';
 import { S } from '../sim/state.js';
-import { R, hash, lerp, clamp } from './canvas.js';
+import { R, T, hash, lerp, clamp } from './canvas.js';
 import { cam, worldY } from './camera.js';
 import { V } from './view.js';
 import { spark } from './particles.js';
@@ -45,6 +45,16 @@ export function drawGroundBack() {
   const piles = 3 + Math.min(8, S.lv.fundacao);
   for (let i = 0; i < piles; i++) { const px = TL + 4 + Math.floor(i * (TW - 14) / (piles - 1)); R(px, -depth - 30, 6, depth + 30, '#a3a9b2'); R(px, -depth - 30, 2, depth + 30, '#c7ccd6'); }
   R(TL - 12, -6, TW + 24, 6, '#5b4d3d');
+  if (S.lv.olaria > 0) kiln(430);
+}
+
+// Olaria própria: forno de tijolos com chaminé fumegando (atrás do caminhão)
+function kiln(x) {
+  R(x, 0, 70, 46, '#9a5b3a'); R(x, 46, 70, 4, '#7d4630'); R(x + 46, 50, 12, 46, '#7d4630'); R(x + 44, 94, 16, 4, '#5a3322');
+  for (let k = 0; k < 5; k++) R(x, 8 + k * 8, 70, 1, '#7d4630');
+  R(x + 20, 0, 22, 22, '#2a1a12'); R(x + 23, 3, 16, 12, Math.floor(V.t * 5) % 2 ? '#ff8a1e' : '#ffb347');
+  for (let k = 0; k < 4; k++) { const q = (V.t * .5 + k / 4) % 1; R(x + 48 + Math.sin(q * 6 + k) * 4, 98 + q * 70, 8 + q * 10, 6 + q * 6, `rgba(220,220,225,${(.5 * (1 - q)).toFixed(2)})`); }
+  T('OLARIA', x + 35, 30, 9, '#f4e6c8', 'center');
 }
 
 function coconut(px, sway) {
@@ -59,10 +69,25 @@ function coconut(px, sway) {
 function truck(tx, tilt, gy) {
   const bed = tilt ? '#d38a1f' : '#f2a62a';
   R(tx, gy + 14, 76, 28, bed); R(tx, gy + 38, 76, 4, '#b8741a');
-  if (tilt) { R(tx + 4, gy + 42, 68, 10, '#c9ad72'); }
+  if (S.lv.caminhao > 0) { // caminhão maior vira caminhão-betoneira com o tambor girando
+    R(tx + 4, gy + 40, 68, 30, '#c9ced8'); R(tx + 4, gy + 66, 68, 4, '#e8ebf0'); R(tx + 4, gy + 40, 68, 3, '#9aa0ad');
+    for (let k = 0; k < 4; k++) { const sx = tx + 4 + ((V.t * 26 + k * 17) % 68); R(sx, gy + 43, 5, 23, '#f2a62a'); }
+    R(tx - 8, gy + 44, 12, 6, '#9aa0ad'); if (tilt) R(tx - 10, gy + 30, 6, 14, '#9aa0ad');
+  } else if (tilt) { R(tx + 4, gy + 42, 68, 10, '#c9ad72'); }
   for (let x = tx + 6; x < tx + 72; x += 14) R(x, gy + 16, 2, 22, '#d38a1f');
   R(tx + 76, gy + 14, 38, 40, '#2f5d8a'); R(tx + 84, gy + 32, 24, 16, '#bfe3ff'); R(tx + 76, gy + 14, 38, 4, '#24476a');
   for (const wx of [tx + 14, tx + 88]) { R(wx, gy, 18, 18, '#222'); R(wx + 5, gy + 5, 8, 8, '#888'); }
+}
+
+// carrinho de mão empurrado por quem está em wx: roda na frente, cabos na mão
+// (left = indo para a esquerda; load = cor da carga ou null se vazio)
+function wheelbarrow(wx, gy, load, ph, left) {
+  const b = Math.round(Math.sin(ph * Math.PI)), x = left ? wx - 40 : wx + 14;
+  const P = (lx, ly, w, h, c) => R(left ? x + lx : x + 26 - lx - w, gy + ly, w, h, c);
+  P(2, 0, 8, 8, '#222'); P(4, 2, 4, 4, '#888');
+  P(0, 8 + b, 26, 10, '#5b6170'); P(0, 16 + b, 26, 2, '#7a8091');
+  if (load) { P(2, 18 + b, 22, 6, load); P(2, 23 + b, 22, 1, 'rgba(255,255,255,.35)'); }
+  P(24, 12 + b, 14, 2, '#8b5a2b');
 }
 
 export function drawGroundFront(prod) {
@@ -81,10 +106,12 @@ export function drawGroundFront(prod) {
   truck(tx, tilt, gy);
   if (tilt && Math.floor(V.t * 10) % 3 === 0) spark(tx + 4, gy + 40, '#c9ad72');
   // serventes levando material do estoque ao elevador 1
-  const nw = Math.min(3, L.fornec), to = SHAFT_X(0) + 10;
+  // com Caçamba maior eles empurram carrinhos de mão (mais carga por viagem)
+  const nw = Math.min(3, L.fornec), to = SHAFT_X(0) + 10, barrow = L.cacamba > 0;
   for (let i = 0; i < nw; i++) {
     const p = (V.t * .22 + i / nw) % 1, go = p < .5, x = lerp(STOCK_X + 30, to, go ? p * 2 : 2 - p * 2);
-    worker(x, gy, { walk: true, phase: V.t * 3 + i, carry: go ? bc : null, flip: go, skin: i + 1 });
+    if (barrow) wheelbarrow(x, gy, go ? bc : null, V.t * 3 + i, go);
+    worker(x, gy, { walk: true, phase: V.t * 3 + i, carry: barrow ? null : go ? bc : null, flip: go, skin: i + 1 });
   }
   // coqueiros
   coconut(-300, Math.round(Math.sin(V.t * 1.5) * 3));

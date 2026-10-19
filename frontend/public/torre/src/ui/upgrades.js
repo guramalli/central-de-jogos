@@ -4,9 +4,13 @@
 import { BRANCHES, UP, KEYS } from '../data/upgrades.js';
 import { S, save } from '../sim/state.js';
 import { cost, unlocked, maxed, canBuy, buy } from '../sim/economy.js';
+import { upgradeImpact } from '../sim/preview.js';
 import { V } from '../render/view.js';
 import { $, setText } from './dom.js';
 import { fmt, fmtM } from './format.js';
+
+const BANK_AT = 60; // m: a melhoria do banco só aparece junto com o painel do banco
+const shown = k => k !== 'banco' || S.maxAlt >= BANK_AT || S.debt > 0;
 
 const listEl = $('ups');
 // categoria que resolve cada gargalo
@@ -38,7 +42,7 @@ export function updateUpgrades(neck) {
   lastNeck = neck;
   const hot = NECK_BRANCH[neck];
   const cats = [hot, ...BRANCHES.map(b => b.id).filter(b => b !== hot)];
-  const vis = cats.map(b => [b, KEYS.filter(k => UP[k].b === b && unlocked(k) && !maxed(k))]).filter(([, ks]) => ks.length);
+  const vis = cats.map(b => [b, KEYS.filter(k => UP[k].b === b && unlocked(k) && !maxed(k) && shown(k))]).filter(([, ks]) => ks.length);
   const sn = soon();
   const key = vis.map(([b, ks]) => b + ':' + ks.join(',')).join('|') + '#' + sn.join(',');
   if (key !== builtKey) {
@@ -52,7 +56,7 @@ export function updateUpgrades(neck) {
       ks.forEach(k => {
         const row = document.createElement('div');
         row.className = 'up' + (b === hot ? ' hot' : ''); row.id = 'up-' + k;
-        row.innerHTML = `<span class="nm">${UP[k].n}<small></small></span><span class="ds">${UP[k].d}</span><button class="btn sm buy"></button>`;
+        row.innerHTML = `<span class="nm">${UP[k].n}<small></small></span><span class="ds">${UP[k].d}</span><span class="fx"></span><button class="btn sm buy"></button>`;
         row.querySelector('.buy').onclick = () => onBuy(k);
         listEl.appendChild(row);
       });
@@ -71,6 +75,12 @@ export function updateUpgrades(neck) {
     const bt = row.querySelector('.buy');
     setText(bt, 'R$ ' + fmt(cost(k)));
     bt.disabled = !can;
+    bt.setAttribute('aria-label', `${UP[k].n}, R$ ${fmt(cost(k))}`);
+    // antes → depois com as fórmulas reais; avisa quando o gargalo impede o ganho
+    const im = upgradeImpact(k), fx = row.querySelector('.fx');
+    setText(fx, im ? im.text : '');
+    fx.hidden = !im;
+    if (im) fx.classList.toggle('meh', !im.good);
   }));
   return any;
 }

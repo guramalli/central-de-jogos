@@ -13,16 +13,11 @@ import { drawGroundBack, drawGroundFront } from './ground.js';
 import { worker } from './workers.js';
 import { facade, drawFloors, clipWorld, shafts, scaffold, crane, airship, floorLOD } from './tower.js';
 import { drawTourGround, drawTourAir, drawForSale } from './tourism.js';
+import { buildState, drawBuild, workX } from './construction.js';
+import { pollEvents, emit } from './events.js';
+import { updateEffects, MAX_TOP_WORKERS } from './effects.js';
 
 export const MODES = { 1: 'Bloco a bloco', 2: 'Painéis içados', 3: 'Andares inteiros', 4: 'Megablocos' };
-
-// blocos visuais do modo 1 (20×11, sem os vãos das janelas), em ordem de assentamento
-const BLOCKS = [];
-for (let row = 0; row < 8; row++) for (let col = 0; col < 12; col++) {
-  const x = col * 20 + 10, y = SLAB + row * 11 + 5;
-  const inWin = [12, 72, 132, 192].some(wx => x > wx && x < wx + 36) && y > 22 && y < 70;
-  if (!inWin) BLOCKS.push({ x: TL + col * 20, y: SLAB + row * 11 });
-}
 
 const baseFloor = () => V.mode === 4 ? Math.floor(S.floors / 5) * 5 : Math.floor(S.floors);
 let msIdx = -1; // próximo marco de andares ainda não comemorado
@@ -30,6 +25,8 @@ let msIdx = -1; // próximo marco de andares ainda não comemorado
 // Avança o estado visual (elevadores, modo de animação, câmera, faixas)
 export function updateView(dt, speed) {
   V.t += dt;
+  pollEvents();          // compras, andares concluídos e eras viram eventos visuais
+  updateEffects(dt);
   const R0 = rates();
   for (let i = 0; i < 6; i++) V.elev[i] += dt * speed / R0.trip;
   // modo visual pela velocidade real (andares por segundo), com histerese
@@ -94,7 +91,7 @@ export function render() {
   const e = eraAt(base * MPF), s = ERA_STYLE[e], working = !capped && S.top > 0.05;
   const nb = Math.min(S.lv.pedreiro, 4), y0 = topWP;
   if (capped) drawCapped(y0, nb);
-  else if (mode === 1) drawBlocks(y0, p, s, e, nb, working);
+  else if (mode === 1) drawBlocks(y0, p, s, e, Math.min(S.lv.pedreiro, MAX_TOP_WORKERS), working);
   else if (mode === 2) drawPanels(y0, built, p, s, e, nb);
   else if (mode === 3) drawWholeFloor(y0, built, p, e, nb);
   else drawMegablock(y0, base);
@@ -102,6 +99,7 @@ export function render() {
   drawGroundFront(R0.prod);
   drawTourGround(R0.tour);
   drawParticles();
+  drawFloats();
   drawClouds(true);
   drawToast();
   drawMilestone();
@@ -119,44 +117,62 @@ function drawCapped(y0, nb) {
   for (let j = 0; j < nb; j++) worker(TL + 30 + j * 56, y0 + SLAB, { phase: 0, skin: j, flip: j % 2 === 1 });
 }
 
-// Modo 1: bloco a bloco
+// Modo 1: bloco a bloco — o andar é montado em etapas (estrutura, paredes, janelas, acabamento)
+const PIECE = ['beam', 'brick', 'glass', 'brick']; // som de cada peça por etapa
 function drawBlocks(y0, p, s, e, nb, working) {
-  scaffold(y0);
+  scaffold(y0, false);
   R(TL, y0, TW, SLAB, s.slab); R(TL, y0 + SLAB - 2, TW, 2, s.hi);
-  const lvl = floorLOD();
-  const n = Math.floor(p * BLOCKS.length);
-  for (let k = 0; k < n; k++) {
-    const b = BLOCKS[k];
-    R(b.x, y0 + b.y, 20, 11, s.line); R(b.x, y0 + b.y + 1, 19, 10, s.brick);
-    if (lvl >= 3) R(b.x, y0 + b.y + 10, 19, 1, s.hi);
+  const lvl = floorLOD(), st = buildState(p), ph = st.phase.i;
+  drawBuild(R, y0, st, s, lvl);
+  const slotX = workX(st);
+  // peça nova: poeira e som; etapa nova: aviso sonoro (eventos só de apresentação)
+  if (V.lastK >= 0 && st.unit > V.lastK) {
+    dust(slotX, y0 + SLAB + (ph === 0 ? FH - 20 : 30), '#d8cdb8', 4);
+    if (e >= 2 || S.lv.ferram > 0) dust(slotX, y0 + SLAB + 30, '#ffe27a', 2);
+    emit('piece_placed', { piece: S.lv.ferram > 0 && ph === 1 ? 'drill' : PIECE[ph] });
   }
-  if (n !== V.lastK && V.lastK >= 0 && n > V.lastK) {
-    const b = BLOCKS[n - 1]; dust(b.x + 10, y0 + b.y + 6, '#d8cdb8', 4);
-    if (e >= 2) dust(b.x + 10, y0 + b.y + 6, '#ffe27a', 2);
-  }
-  V.lastK = n;
+  if (V.lastPhase >= 0 && ph > V.lastPhase) emit('floor_phase_changed', { phase: st.phase.id });
+  V.lastK = st.unit; V.lastPhase = ph;
   topStock(y0, s);
-  const slot = BLOCKS[Math.min(n, BLOCKS.length - 1)], slotX = slot.x + 10;
-  // o pedreiro mais perto do próximo bloco vai até ele
+  // o pedreiro mais perto da próxima peça vai até ela
   const home = j => nb === 1 ? 0 : TL + 34 + j * (TW - 100) / (nb - 1);
   let act = 0, best = 1e9;
   for (let j = 0; j < nb; j++) { const d = Math.abs(home(j) - slotX); if (d < best) { best = d; act = j; } }
-  const fy = y0 + SLAB;
+  const fy = y0 + SLAB, pace = 1 + 0.15 * Math.min(S.lv.treino, 6), drill = S.lv.ferram > 0;
+  // pedreiros caminham com velocidade de gente (quem acabou de ser contratado entra andando)
+  const dtv = clamp(V.t - (V.bxT ?? V.t), 0, .1), stepMax = 150 * pace * dtv; V.bxT = V.t;
   for (let j = 0; j < nb; j++) {
     const tx = j === act ? clamp(slotX - 26, TL + 10, TL + TW - 40) : home(j);
-    V.bx[j] = V.bx[j] === undefined ? tx : lerp(V.bx[j], tx, .12);
-    worker(V.bx[j], fy, { hammer: working, phase: V.t * (j === act ? 3 : 1.6) + j * .37, walk: Math.abs(V.bx[j] - tx) > 2, skin: j });
+    V.bx[j] = V.bx[j] === undefined ? tx : V.bx[j] + clamp(tx - V.bx[j], -stepMax, stepMax);
+    const walk = Math.abs(V.bx[j] - tx) > 2;
+    worker(V.bx[j], fy, { hammer: working && !walk, drill, phase: V.t * (j === act ? 3 : 1.6) * pace + j * .37, walk, flip: walk && tx < V.bx[j], skin: j });
   }
-  if (working && n < BLOCKS.length) {
-    const f = p * BLOCKS.length - n, hx = V.bx[act] + 22, hy = fy + 44;
-    const bx = lerp(hx, slot.x, f), by = lerp(hy, y0 + slot.y, f) + Math.sin(f * Math.PI) * 16;
-    R(bx, by, 19, 10, s.brick); R(bx, by + 9, 18, 1, s.hi);
+  // peça a caminho: tijolo nas paredes, vidro nas janelas
+  if (working && (ph === 1 || ph === 2)) {
+    const f = st.frac, hx = V.bx[act] + 22, hy = fy + 44, ty = ph === 1 ? y0 + SLAB + 40 : y0 + 46;
+    const bx = lerp(hx, slotX - 10, f), by = lerp(hy, ty, f) + Math.sin(f * Math.PI) * 16;
+    if (ph === 1) { R(bx, by, 19, 10, s.brick); R(bx, by + 9, 18, 1, s.hi); }
+    else { R(bx, by, 16, 20, s.frame); R(bx + 2, by + 2, 12, 16, s.glass); R(bx + 4, by + 6, 2, 10, 'rgba(255,255,255,.4)'); }
   }
+  // acima de MAX_TOP_WORKERS, os pedreiros viram uma equipe com contador (limite visual)
+  if (S.lv.pedreiro > MAX_TOP_WORKERS) { R(-72, y0 + FH + 8, 144, 16, 'rgba(17,19,26,.75)'); T(`EQUIPE DE ${S.lv.pedreiro} PEDREIROS`, 0, y0 + FH + 16, 9, '#ece6d6', 'center'); }
   if (S.lv.pedreiro >= 2) {
-    const q = (V.t * .16) % 1, go = q < .5, x = lerp(TL + TW - 30, TL + 40, go ? q * 2 : 2 - q * 2);
-    worker(x, fy, { walk: true, phase: V.t * 3, carry: go ? s.brick : null, flip: go, skin: 3 });
+    const q = (V.t * .16 * pace) % 1, go = q < .5, x = lerp(TL + TW - 30, TL + 40, go ? q * 2 : 2 - q * 2);
+    worker(x, fy, { walk: true, phase: V.t * 3, carry: go ? (ph === 2 ? s.glass : s.brick) : null, flip: go, skin: 3 });
   }
+  if (S.lv.mestre > 0) worker(TL + TW - 22, fy, { boss: true, flip: true, phase: V.t, skin: 2 });
   if (S.lv.guindaste > 0) crane(y0, TL + TW + 60 + Math.sin(V.t * .5) * 30, y0 + FH * .6);
+}
+
+// textos que sobem e somem (compras, andar concluído)
+function drawFloats() {
+  for (const f of V.floats) {
+    const k = f.t / f.life, y = f.y + f.t * 20;
+    ctx.globalAlpha = clamp((1 - k) * 3, 0, 1) * clamp(f.t * 6, 0, 1);
+    T(f.a, f.x + 1, y - 1, 13, '#11131a', 'center'); T(f.a, f.x, y, 13, f.c, 'center');
+    if (f.b) { T(f.b, f.x + 1, y - 16, 9, '#11131a', 'center'); T(f.b, f.x, y - 15, 9, '#ece6d6', 'center'); }
+  }
+  ctx.globalAlpha = 1;
 }
 
 // Modo 2: painéis içados pelo guindaste

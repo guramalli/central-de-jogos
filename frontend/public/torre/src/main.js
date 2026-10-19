@@ -11,24 +11,39 @@ import { updateUI, setNotice } from './ui/panel.js';
 import { closeMap, initMap } from './ui/talentMap.js';
 import { $ } from './ui/dom.js';
 import { syncCameraButtons } from './ui/cameraControls.js';
+import { syncEvents, recent } from './render/events.js';
+import { initEffects } from './render/effects.js';
+import { soundOn, setSound } from './ui/audio.js';
 
 migrate(load());
 setNotice(runOffline());
+syncEvents();   // o que aconteceu fora do jogo vira resumo, não animação
+initEffects();
 
 // Modo desenvolvedor: em localhost ou com ?dev no endereço. Para o jogador, nada de barra de teste.
 const DEV = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || new URLSearchParams(location.search).has('dev');
+// Modo de teste (?test=1): no máximo 30 quadros/s, sem partículas e sem som (economiza CPU nos testes)
+const TEST = new URLSearchParams(location.search).get('test') === '1';
 let speed = 1;
 
 // ---------- loop ----------
-let last = performance.now(), uiT = 0, saveT = 0;
-function frame(now) {
-  const dt = Math.min(.1, (now - last) / 1000); last = now;
-  let sd = dt * speed;
+// A simulação usa o tempo real que passou (até SIM_MAX_DT por quadro): com a janela coberta ou o
+// navegador economizando quadros, a obra não fica mais lenta. A animação continua limitada a 0,1 s.
+const SIM_MAX_DT = 30;
+let last = performance.now(), uiT = 0, saveT = 0, noticeT = 12;
+function tick(real) {
+  const dt = Math.min(.1, real);
+  let sd = Math.min(SIM_MAX_DT, real) * speed;
   while (sd > 0) { const st = Math.min(.25, sd); sim(st); sd -= st; }
   updateView(dt, speed);
   render();
   uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); }
-  saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > 12) setNotice(null); }
+  saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
+}
+function frame(now) {
+  if (TEST && now - last < 1000 / 30 - 1) { requestAnimationFrame(frame); return; }
+  const real = Math.max(0, (now - last) / 1000); last = now;
+  tick(real);
   requestAnimationFrame(frame);
 }
 
@@ -43,15 +58,29 @@ spBtns.forEach(b => b.onclick = () => {
 const rs = $('reset');
 const disarm = () => { rs.classList.remove('armed'); rs.textContent = 'Recomeçar'; };
 rs.onclick = () => {
-  if (rs.classList.contains('armed')) { resetState(); resetView(); resetMilestones(); syncCameraButtons(); closeMap(); disarm(); updateUI(); return; }
+  if (rs.classList.contains('armed')) { resetState(); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); disarm(); updateUI(); return; }
   rs.classList.add('armed'); rs.textContent = 'Clique de novo para apagar tudo';
   setTimeout(disarm, 3000);
 };
 
 initMap(updateUI);
 
+// som da obra: botão sobre a cena, lembrado neste navegador
+const snd = $('snd');
+const syncSnd = () => { snd.setAttribute('aria-pressed', soundOn()); snd.textContent = soundOn() ? 'Som' : 'Mudo'; };
+snd.onclick = () => { setSound(!soundOn()); syncSnd(); };
+syncSnd();
+
 addEventListener('beforeunload', save);
-document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+// Aba escondida: salva. Ao voltar, o tempo fora vira progresso (mesmas regras do offline,
+// com resumo) e as animações retomam do estado atual, sem repetir o que passou.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { save(); return; }
+  const msg = runOffline();
+  if (msg) { setNotice(msg); noticeT = V.t + 12; }
+  syncEvents(); snapCamera();
+  last = performance.now();
+});
 
 // O canvas acompanha o espaço da tela: altura de arte fixa (480), largura proporcional.
 const cvEl = $('cv'), viewEl = $('view');
@@ -76,4 +105,9 @@ function shot(name = 'shot') {
 }
 
 // acesso pelo console para testes (só no modo desenvolvedor)
-if (DEV) window.torre = { get S() { return S; }, V, cam, snap: snapCamera, draw: (n = 1) => { for (let i = 0; i < n; i++) { updateView(0.05, 1); render(); } }, shot };
+// step(seg, fps): avança o jogo quadro a quadro sem depender do navegador (testes automáticos)
+if (DEV || TEST) window.torre = {
+  get S() { return S; }, V, cam, snap: snapCamera, shot, events: recent,
+  draw: (n = 1) => { for (let i = 0; i < n; i++) { updateView(0.05, 1); render(); } },
+  step: (sec, fps = 30) => { for (let i = 0; i < sec * fps; i++) tick(1 / fps); },
+};

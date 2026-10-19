@@ -15,6 +15,7 @@ const FAR = ERA_STYLE.map(s => ({ occ: mix(s.wall, s.lit, 0.3), vac: mix(s.wall,
 
 // janela acesa ou apagada, muda devagar com o tempo
 export function lit(i, k) { return hash(i * 7 + k, Math.floor(V.t / 9 + hash(i, k) * 9)) < .42; }
+const litW = lit;
 
 // nível de detalhe pelo tamanho de um andar na tela
 export const floorLOD = () => { const px = FH * cam.z; return px >= 40 ? 3 : px >= 12 ? 2 : px >= 2.5 ? 1 : 0; };
@@ -31,7 +32,10 @@ function interior(i, k, wx, y, t) {
 
 // Fachada do andar i. lvl: 1 simples, 2 molduras, 3 completo
 export function facade(i, lvl = floorLOD()) {
-  const e = eraAt(i * MPF), s = ERA_STYLE[e], y0 = i * FH, occ = i < S.assigned;
+  const e = eraAt(i * MPF), s = ERA_STYLE[e], y0 = i * FH;
+  // andar recém-concluído: todas as luzes acendem por um instante (Obra Viva)
+  const flash = V.flash && V.flash.i === i, occ = i < S.assigned || flash;
+  const lit = flash ? () => true : litW;
   R(TL, y0, TW, FH, s.wall);
   if (lvl >= 3) {
     if (e === 0) { // tijolos
@@ -108,35 +112,46 @@ export function clipWorld(x, y, w, h, fn) {
 export const SHAFT_X = i => TL + TW + 8 + i * 36;
 export function shafts(topWP, carrying) {
   const n = Math.min(S.lv.elevador, 6), top = topWP + 40;
-  const yLo = Math.max(0, worldY(H) - 30), yHi = Math.min(top, worldY(0) + 30);
+  const yLo = Math.max(0, worldY(H) - 30), yHi0 = Math.min(top, worldY(0) + 30);
   const bc = ERA_STYLE[eraAt(S.floors * MPF)].brick;
   const bars = 24 * cam.z >= 3;
+  const load = 12 + 5 * Math.min(S.lv.cacamba, 2); // caçamba maior: carga mais alta
   for (let i = 0; i < n; i++) {
-    const x0 = SHAFT_X(i);
-    Rv(x0, 0, 3, top, '#3b4152'); Rv(x0 + 27, 0, 3, top, '#3b4152');
+    const x0 = SHAFT_X(i), b = V.shaftBuild[i] ?? 1, h = top * b, yHi = Math.min(yHi0, h);
+    Rv(x0, 0, 3, h, '#3b4152'); Rv(x0 + 27, 0, 3, h, '#3b4152');
     if (bars && yHi > yLo) {
       for (let y = Math.floor(yLo / 24) * 24; y < yHi; y += 24) {
         R(x0, y, 30, 2, '#2a2f3d');
         if (cam.z >= 0.5) { R(x0 + 3, y + 2, 2, 22, '#30364a'); for (let d = 0; d < 6; d++) R(x0 + 4 + d * 4, y + 4 + d * 3, 3, 2, '#30364a'); }
       }
     }
+    if (b < 1) { // elevador novo sendo montado: a torre de trilhos sobe com faíscas na ponta
+      if (Math.floor(V.t * 14) % 2) { R(x0 - 2, h - 3, 34, 3, '#ffe27a'); R(x0 + 4, h + 2, 3, 3, '#fff2a8'); R(x0 + 22, h + 4, 3, 3, '#fff2a8'); }
+      continue;
+    }
     R(x0 - 3, top, 36, 12, '#6b7183'); R(x0 + 12, top + 4, 6, 4, Math.floor(V.t * 6) % 2 ? '#dfe3ea' : '#9aa0ad');
+    if (S.lv.motor > 0) { // motor mais forte: polia girando sobre o poço
+      const q = Math.floor(V.t * (6 + 2 * Math.min(S.lv.motor, 6))) % 4, mx = x0 + 9;
+      R(mx - 2, top + 12, 16, 12, '#3b4152'); R(mx, top + 14, 12, 8, '#7a8091');
+      R(mx + [1, 5, 9, 5][q], top + [17, 15, 17, 19][q], 2, 2, '#f2b630');
+    }
     const ph = V.elev[i] % 1, a = ph < .45 ? ph / .45 : ph < .55 ? 1 : 1 - (ph - .55) / .45;
     const cy = a * topWP;
     R(x0 + 14, cy + 32, 2, Math.max(0, top - cy - 32), '#9aa0ad');
     R(x0 + 3, cy, 24, 32, '#c9a227'); R(x0 + 3, cy + 30, 24, 2, '#e8c450');
     R(x0 + 6, cy + 3, 18, 24, '#262a35');
-    if (ph < .5 && carrying) { R(x0 + 7, cy + 3, 16, 12, bc); R(x0 + 7, cy + 14, 16, 1, 'rgba(255,255,255,.35)'); R(x0 + 7, cy + 9, 16, 1, 'rgba(0,0,0,.2)'); }
+    if (ph < .5 && carrying) { R(x0 + 7, cy + 3, 16, load, bc); R(x0 + 7, cy + 2 + load, 16, 1, 'rgba(255,255,255,.35)'); R(x0 + 7, cy + 9, 16, 1, 'rgba(0,0,0,.2)'); }
   }
 }
 
 // ---------- andaime no lado esquerdo do andar em obra ----------
-export function scaffold(y0) {
+// posts = false quando os pilares do andar são montados peça por peça (modo bloco a bloco)
+export function scaffold(y0, posts = true) {
   const fr = ERA_STYLE[eraAt(S.floors * MPF)].frame;
   for (const px of [TL - 16, TL - 5]) R(px, y0 - FH, 4, FH * 2 + 24, '#9c7a45');
   for (let y = y0 - FH + 8; y < y0 + FH + 20; y += 32) { R(TL - 20, y, 22, 4, '#a8814a'); R(TL - 20, y + 4, 22, 1, '#6b4f28'); }
   for (let k = 0; k < 6; k++) R(TL - 15 + k * 1.5, y0 + 10 + k * 12, 3, 3, '#7d5f32');
-  R(TL - 2, y0, 6, FH, fr); R(TL + TW - 4, y0, 6, FH, fr); R(-3, y0, 6, FH, fr);
+  if (posts) { R(TL - 2, y0, 6, FH, fr); R(TL + TW - 4, y0, 6, FH, fr); R(-3, y0, 6, FH, fr); }
 }
 
 // ---------- guindaste de escalada (apoiado no topo da obra) ----------
@@ -144,6 +159,16 @@ export function scaffold(y0) {
 export function crane(buildTop, trolX, hookY) {
   const mx = TL + 10, jy = buildTop + FH + 52, y0 = buildTop + SLAB;
   R(mx - 8, buildTop, 32, SLAB + 4, '#5b6170'); R(mx - 8, buildTop + SLAB + 2, 32, 2, '#7a8091'); // base parafusada na laje
+  // guindaste recém-comprado: o mastro sobe, depois a lança se abre (Obra Viva)
+  const bld = V.craneBuild ?? 1;
+  if (bld < 1) {
+    const mt = y0 + (jy - y0) * Math.min(1, bld / .6);
+    R(mx, y0, 3, mt - y0, '#e3a823'); R(mx + 13, y0, 3, mt - y0, '#e3a823');
+    if (cam.z >= 0.3) for (let y = y0 - (y0 % 14); y < mt; y += 14) R(mx, y, 16, 2, '#c98f15');
+    if (Math.floor(V.t * 14) % 2) R(mx - 2, mt - 2, 20, 3, '#ffe27a');
+    if (bld > .6) { const w = (TW + 130) * (bld - .6) / .4; R(mx, jy, w, 3, '#e3a823'); R(mx - w * .4, jy, w * .4, 3, '#e3a823'); R(mx, jy + 14, w, 3, '#e3a823'); }
+    return jy;
+  }
   // mastro treliçado
   R(mx, y0, 3, jy - y0, '#e3a823'); R(mx + 13, y0, 3, jy - y0, '#e3a823');
   if (cam.z >= 0.3) for (let y = y0 - (y0 % 14); y < jy; y += 14) { R(mx, y, 16, 2, '#c98f15'); for (let d = 0; d < 4; d++) R(mx + 3 + d * 3, y + 2 + d * 3, 3, 2, '#c98f15'); }
