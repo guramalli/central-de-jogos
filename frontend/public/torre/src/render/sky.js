@@ -12,7 +12,7 @@ const altAt = screenY => Math.max(0, worldY(screenY) / M2Y);
 const CLOUDS = [];
 for (let i = 0; i < 110; i++) CLOUDS.push({ m: 300 + i * 140 + hash(i, 1) * 110, x: hash(i, 2) * 2400 - 1200, w: 160 + Math.floor(hash(i, 3) * 260), s: 14 + hash(i, 4) * 30, front: hash(i, 5) < .3 });
 const STARS = [];
-for (let i = 0; i < 120; i++) STARS.push({ x: Math.floor(hash(i, 7) * W), y: Math.floor(hash(i, 8) * H), b: hash(i, 9) });
+for (let i = 0; i < 300; i++) STARS.push({ x: Math.floor(hash(i, 7) * 960), y: Math.floor(hash(i, 8) * H), b: hash(i, 9) });
 
 function skyCols(m) {
   for (let i = 0; i < SKY.length - 1; i++) {
@@ -35,7 +35,7 @@ export function drawSky() {
   const top = altAt(0), bottom = altAt(H);
   const sa = clamp((top - 18000) / 40000, 0, 1);
   if (sa > 0) STARS.forEach((s, i) => {
-    if (altAt(s.y) < 18000 || s.b * sa <= .25) return;
+    if (s.x >= W || altAt(s.y) < 18000 || s.b * sa <= .25) return;
     const tw = (Math.sin(V.t * 2 + i) + 1) / 2;
     r(s.x, s.y, s.b > .85 ? 2 : 1, s.b > .85 ? 2 : 1, `rgba(255,255,255,${(0.4 + tw * .6) * sa})`);
   });
@@ -44,12 +44,12 @@ export function drawSky() {
     ctx.fillStyle = 'rgba(120,190,255,.35)'; ctx.beginPath(); ctx.arc(W / 2, cy, Rr + 7, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#2a63a8'; ctx.beginPath(); ctx.arc(W / 2, cy, Rr, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#3f7d4a';
-    for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.ellipse(40 + i * 60 + hash(i, 11) * 30, cy - Rr + 12 + hash(i, 12) * 30, 20 + hash(i, 13) * 20, 6, 0, 0, Math.PI * 2); ctx.fill(); }
+    for (let i = 0; i < 14; i++) { ctx.beginPath(); ctx.ellipse(40 + i * 60 + hash(i, 11) * 30, cy - Rr + 12 + hash(i, 12) * 30, 20 + hash(i, 13) * 20, 6, 0, 0, Math.PI * 2); ctx.fill(); }
     ctx.fillStyle = 'rgba(255,255,255,.55)';
-    for (let i = 0; i < 8; i++) { const x = ((i * 53 + V.t * 4) % 420) - 30; ctx.fillRect(Math.round(x), Math.round(cy - Rr + 6 + hash(i, 14) * 18), 18, 3); }
+    for (let i = 0; i < 16; i++) { const x = ((i * 53 + V.t * 4) % (W + 60)) - 30; ctx.fillRect(Math.round(x), Math.round(cy - Rr + 6 + hash(i, 14) * 18), 18, 3); }
   }
   if (top > 140000) { // satélite
-    const x = ((V.t * 12) % 440) - 40, y = 80 + Math.sin(V.t * .3) * 14;
+    const x = ((V.t * 12) % (W + 80)) - 40, y = 80 + Math.sin(V.t * .3) * 14;
     r(x, y, 6, 4, '#d7d9df'); r(x - 9, y + 1, 8, 2, '#3b6fd1'); r(x + 7, y + 1, 8, 2, '#3b6fd1');
     if (Math.floor(V.t * 2) % 2) r(x + 2, y - 2, 2, 2, '#ff4d4d');
   }

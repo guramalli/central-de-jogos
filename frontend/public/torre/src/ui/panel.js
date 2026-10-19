@@ -1,83 +1,100 @@
-// Atualiza HUD e painel lateral (chamado a cada 0,2 s)
+// Atualiza a interface (chamado a cada 0,2 s): indicadores do topo, cartão Construção,
+// melhorias, próximo objetivo e a barra de painéis (que revela sistemas conforme o progresso).
 import { MPF } from '../data/constants.js';
 import { ERAS, eraAt } from '../data/eras.js';
+import { UP, BRANCHES } from '../data/upgrades.js';
 import { S } from '../sim/state.js';
-import { rates, isCapped, bottleneck, offlineMax } from '../sim/economy.js';
+import { rates, isCapped, bottleneck, offlineMax, cost } from '../sim/economy.js';
 import { peAvailable } from '../sim/talents.js';
 import { clamp } from '../render/canvas.js';
 import { V } from '../render/view.js';
 import { MODES } from '../render/scene.js';
 import { $, setText, setHTML } from './dom.js';
 import { fmt, fmtM } from './format.js';
-import { updateTree } from './upgrades.js';
+import { updateUpgrades, NECK_BRANCH } from './upgrades.js';
 import { updateBusiness, businessAlert } from './business.js';
 import { updateMap, mapOpen, openMap } from './talentMap.js';
 
-const HINT = {
-  prod: 'Gargalo na produção: contrate fornecedores em Fornecimento.',
-  tran: 'Gargalo no transporte: o material demora a subir. Melhore os elevadores em Logística.',
-  lay: 'Gargalo no assentamento: contrate e treine pedreiros em Mão de obra.',
-};
+const NECK_NAME = { prod: 'produção', tran: 'transporte', lay: 'assentamento', cap: 'fundação no limite' };
 const FLOW = [['prod', 'Produção'], ['tran', 'Transporte'], ['lay', 'Assentamento']];
+const BANK_AT = 60; // m: o banco aparece a partir daqui
 
-// Aviso temporário que substitui a dica do gargalo (ex.: resumo offline)
+// Aviso temporário no lugar da dica do gargalo (ex.: resumo offline)
 let notice = null;
 export const setNotice = msg => { notice = msg; };
 
-// ---------- páginas do painel ----------
+// ---------- painéis ----------
 let page = 'obra';
-const pageBtns = document.querySelectorAll('#pages [data-page]');
-// Construção e Negócios trocam o painel; Árvore abre o mapa em tela cheia
-pageBtns.forEach(b => b.onclick = () => b.dataset.page === 'arv' ? openMap() : showPage(b.dataset.page));
+const navBtns = document.querySelectorAll('#nav [data-nav]');
+navBtns.forEach(b => b.onclick = () => b.dataset.nav === 'eng' ? openMap() : showPage(b.dataset.nav));
 export function showPage(p) {
   page = p;
-  pageBtns.forEach(b => { if (b.dataset.page !== 'arv') b.setAttribute('aria-selected', b.dataset.page === p); });
-  ['obra', 'neg'].forEach(id => $('pg-' + id).hidden = id !== p);
+  navBtns.forEach(b => { if (b.dataset.nav !== 'eng') b.toggleAttribute('aria-current', b.dataset.nav === p); });
+  ['obra', 'imoveis', 'banco'].forEach(id => $('pg-' + id).hidden = id !== p);
+  $('pg-' + p).parentElement.scrollTop = 0;
   updateUI();
 }
 
 export function updateUI() {
-  const R = rates(), m = S.floors * MPF, e = eraAt(m);
-  // HUD
+  const R = rates(), m = S.floors * MPF, e = eraAt(m), capped = isCapped(R);
+  // topo: só o essencial
   setText($('alt'), fmtM(m)); setText($('eraName'), ERAS[e].n);
   setText($('money'), 'R$ ' + fmt(S.money));
-  setText($('rent'), (R.net >= 0 ? '+' : '') + 'R$ ' + fmt(R.net) + '/s' + (R.bank.share > 0 ? ` (${Math.round(R.bank.share * 100)}% ao banco)` : ''));
-  if (e + 1 < ERAS.length) {
-    const a = ERAS[e].m, b = ERAS[e + 1].m;
-    $('eraFill').style.width = clamp((m - a) / (b - a) * 100, 0, 100) + '%';
-    setText($('eraNext'), 'Próxima: ' + ERAS[e + 1].n); setText($('eraLeft'), 'faltam ' + fmtM(b - m));
-  } else {
-    const a = ERAS[e].m;
-    $('eraFill').style.width = ((m - a) / 1e6 * 100 % 100) + '%';
-    setText($('eraNext'), 'Sem limite acima'); setText($('eraLeft'), '');
-  }
-  // canteiro
-  setText($('floors'), fmt(Math.floor(S.floors))); setText($('cap'), fmt(R.capF) + ' andares'); setText($('fcost'), fmt(R.fcost));
-  const capped = isCapped(R), eff = capped ? 0 : Math.min(R.prod, R.tran, R.lay);
-  setText($('fpm'), fmt(eff / R.fcost * 60)); $('capWarn').hidden = !capped; setText($('modeName'), MODES[V.mode]);
-  setText($('footTxt'), `Salvo neste navegador. O progresso continua por até ${fmt(offlineMax() / 3600)} h fora do jogo.`);
+  setText($('rent'), (R.net >= 0 ? '+' : '') + 'R$ ' + fmt(R.net) + '/s' + (R.bank.share > 0 ? ` · ${Math.round(R.bank.share * 100)}% ao banco` : ''));
 
-  // Construção
-  let canObra;
+  const neck = capped ? 'cap' : bottleneck(R);
+  const canObra = updateUpgrades(neck);
+
   if (page === 'obra') {
-    const mx = Math.max(R.prod, R.tran, R.lay), neck = bottleneck(R);
-    FLOW.forEach(([k, n]) => {
-      $('b-' + k).firstElementChild.style.width = (R[k] / mx * 100) + '%'; $('b-' + k).classList.toggle('neck', k === neck);
-      setText($('v-' + k), fmt(R[k]) + '/s'); setHTML($('l-' + k), n + (k === neck ? '<span class="chip">gargalo</span>' : ''));
-    });
-    setText($('neckHint'), notice || HINT[neck]);
-    setText($('s-ground'), 'Esperando no térreo: ' + fmt(S.ground)); setText($('s-top'), 'No topo: ' + fmt(S.top));
+    // construção: gargalo e progresso do andar
+    setText($('modeName'), MODES[V.mode]);
+    setText($('neck'), NECK_NAME[neck]);
+    setText($('neckHint'), notice || (capped ? '' : `Melhore ${BRANCHES.find(b => b.id === NECK_BRANCH[neck]).n} para acelerar.`));
+    const p = S.floors - Math.floor(S.floors), eff = capped ? 0 : Math.min(R.prod, R.tran, R.lay), fps = eff / R.fcost;
+    $('floorFill').style.width = (capped ? 100 : p * 100) + '%';
+    setText($('floorPct'), capped ? 'Obra parada' : `${Math.floor(p * 100)}% do próximo andar`);
+    setText($('floorTime'), !fps ? '' : fps >= 1 ? `${fmt(fps)} andares/s` : `~${fmt(1 / fps)} s por andar`);
+    $('capWarn').hidden = !capped;
+    if ($('pg-obra').querySelector('details').open) {
+      const mx = Math.max(R.prod, R.tran, R.lay), bn = bottleneck(R);
+      FLOW.forEach(([k, n]) => {
+        $('b-' + k).firstElementChild.style.width = (R[k] / mx * 100) + '%'; $('b-' + k).classList.toggle('neck', k === bn);
+        setText($('v-' + k), fmt(R[k]) + '/s'); setHTML($('l-' + k), n + (k === bn ? '<span class="chip">gargalo</span>' : ''));
+      });
+      setText($('floors'), fmt(Math.floor(S.floors))); setText($('cap'), fmt(R.capF));
+      setText($('fcost'), fmt(R.fcost)); setText($('fpm'), fmt(fps * 60));
+      setText($('s-ground'), fmt(S.ground)); setText($('s-top'), fmt(S.top));
+    }
+    // próximo objetivo
+    if (capped) {
+      const c = cost('fundacao');
+      setText($('goalTitle'), 'Reforçar a fundação');
+      setText($('goalSub'), `${UP.fundacao.n} custa R$ ${fmt(c)}`);
+      $('goalFill').style.width = clamp(S.money / c * 100, 0, 100) + '%';
+    } else if (e + 1 < ERAS.length) {
+      const a = ERAS[e].m, b = ERAS[e + 1].m;
+      const nx = ERAS[e + 1].n;
+      setText($('goalTitle'), `Chegar ${nx === 'Espaço' ? 'ao' : 'à'} ${nx}`);
+      setText($('goalSub'), `Faltam ${fmtM(b - m)} · abre o anel ${e + 2} da Engenharia`);
+      $('goalFill').style.width = clamp((m - a) / (b - a) * 100, 0, 100) + '%';
+    } else {
+      setText($('goalTitle'), 'Subir sem limite');
+      setText($('goalSub'), 'Você chegou à última era.');
+      $('goalFill').style.width = '100%';
+    }
   }
-  canObra = updateTree();
 
-  updateBusiness(page === 'neg');
+  updateBusiness(page);
   if (mapOpen()) updateMap();
+  setText($('footTxt'), `Salvo neste navegador · continua por até ${fmt(offlineMax() / 3600)} h fora do jogo.`);
 
-  // indicadores nas abas de página
+  // barra de painéis: revelação gradual e avisos
   const pe = peAvailable();
-  pageBtns.forEach(b => {
-    const p = b.dataset.page;
-    if (p === 'arv') { const pill = b.querySelector('.pill'); pill.hidden = pe <= 0; setText(pill, pe + ' PE'); return; }
-    b.querySelector('.dot').hidden = p === page || !(p === 'obra' ? canObra : businessAlert());
+  navBtns.forEach(b => {
+    const p = b.dataset.nav;
+    if (p === 'banco') b.hidden = S.maxAlt < BANK_AT && S.debt <= 0;
+    if (p === 'eng') { const pill = b.querySelector('.pill'); pill.hidden = pe <= 0; setText(pill, pe + ' PE'); return; }
+    const alert = p === 'obra' ? canObra : p === 'imoveis' ? businessAlert() : S.inDefault;
+    b.querySelector('.dot').hidden = p === page || !alert;
   });
 }

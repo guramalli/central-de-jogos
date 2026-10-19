@@ -1,5 +1,8 @@
-// Resolução-base do canvas (pixels de arte). O CSS amplia mantendo os pixels nítidos.
-export const W = 360, H = 480;
+// Resolução-base do canvas (pixels de arte). A altura é fixa; a largura acompanha o espaço
+// da tela (retrato no celular, mais larga no desktop). O CSS amplia mantendo os pixels nítidos.
+export const H = 480;
+export let W = 360; // live binding: quem importa vê a largura atual
+export const setW = w => { W = w; };
 
 // Mundo, em pixels de arte na câmera aproximada (zoom 1). x = 0 é o centro da torre, y = 0 é o chão, y cresce para cima.
 export const FH = 96;            // altura de um andar (com laje) — 4 andares cabem na tela no zoom 1

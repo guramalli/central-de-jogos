@@ -11,169 +11,195 @@
 </head>
 <body>
 <div class="app">
-  <section class="stage">
-    <div class="screen">
-      <div class="hud">
-        <div>
-          <div class="era" id="eraName">Tijolo e Madeira</div>
-          <div class="alt" id="alt">0 m</div>
-        </div>
-        <div class="money"><b id="money">R$ 0</b><span id="rent">+R$ 0/s</span></div>
-      </div>
-      <div class="view">
+  <!-- indicadores essenciais -->
+  <header class="top">
+    <div>
+      <div class="eyebrow" id="eraName">Tijolo e Madeira</div>
+      <div class="alt" id="alt">0 m</div>
+    </div>
+    <div class="money"><b id="money">R$ 0</b><span id="rent">+R$ 0/s</span></div>
+  </header>
+
+  <main class="game">
+    <!-- a torre é a protagonista -->
+    <section class="stage">
+      <div class="view" id="view">
         <canvas id="cv" width="360" height="480" aria-label="Obra da torre em pixel art. Arraste para mover a câmera; roda do mouse ou pinça para zoom."></canvas>
+        <!-- aviso contextual: andares prontos sem destino -->
+        <div class="ready" id="ready" hidden>
+          <span><b id="readyN">0</b> <span id="readyTxt">andares prontos</span></span>
+          <button class="btn sm" id="qRent">Alugar</button>
+          <button class="btn sm ghost" id="qSell">Vender</button>
+        </div>
         <div class="camctl" role="group" aria-label="Câmera">
           <button id="z-follow" hidden>Seguir a obra</button>
           <button id="z-all" aria-pressed="false" title="Mostrar a torre inteira">Ver tudo</button>
           <button id="z-out" aria-label="Afastar">−</button>
           <button id="z-in" aria-label="Aproximar">+</button>
         </div>
-      </div>
-      <div class="erabar"><i id="eraFill"></i></div>
-      <div class="eranext"><span id="eraNext">Próxima era</span><span id="eraLeft"></span></div>
-      <div class="speed" id="devbar" role="group" aria-label="Velocidade de teste" hidden>
-        <span>Velocidade de teste:</span>
-        <button data-sp="1" aria-pressed="true">1×</button>
-        <button data-sp="10" aria-pressed="false">10×</button>
-        <button data-sp="100" aria-pressed="false">100×</button>
-      </div>
-    </div>
-  </section>
-
-  <aside class="panel">
-    <div class="card">
-      <div class="hazard"></div>
-      <h2>Canteiro <span class="mode" id="modeName">Tijolo a tijolo</span></h2>
-      <div class="body">
-        <div class="stats">
-          <div class="stat"><small>Andares</small><b id="floors">0</b></div>
-          <div class="stat"><small>Limite da fundação</small><b id="cap">25</b></div>
-          <div class="stat"><small>Material por andar</small><b id="fcost">39</b></div>
-          <div class="stat"><small>Andares por minuto</small><b id="fpm">0</b></div>
+        <div class="speed" id="devbar" role="group" aria-label="Velocidade de teste" hidden>
+          <span>Teste:</span>
+          <button data-sp="1" aria-pressed="true">1×</button>
+          <button data-sp="10" aria-pressed="false">10×</button>
+          <button data-sp="100" aria-pressed="false">100×</button>
         </div>
-        <div class="warn" id="capWarn" hidden>A fundação chegou ao limite. Reforce a fundação em Engenharia para continuar subindo.</div>
-        <div class="ready" id="ready" hidden>
-          <span><b id="readyN">0</b> <span id="readyTxt">andares prontos sem destino</span></span>
-          <div class="btnrow">
-            <button class="btn" id="qRent">Alugar todos</button>
-            <button class="btn ghost" id="qSell">Vender todos</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="pages" role="tablist" id="pages">
-      <button role="tab" data-page="obra" aria-selected="true">Construção<span class="dot" hidden></span></button>
-      <button role="tab" data-page="neg" aria-selected="false">Negócios<span class="dot" hidden></span></button>
-      <button data-page="arv" aria-haspopup="dialog">Árvore<span class="pill" hidden></span></button>
-    </div>
-
-    <section class="page" id="pg-obra">
-      <div class="card">
-        <h2>Fluxo de material</h2>
-        <div class="body">
-          <div class="flow">
-            <span class="lbl" id="l-prod">Produção</span><div class="bar" id="b-prod"><i></i></div><span class="val" id="v-prod">0/s</span>
-            <span class="lbl" id="l-tran">Transporte</span><div class="bar" id="b-tran"><i></i></div><span class="val" id="v-tran">0/s</span>
-            <span class="lbl" id="l-lay">Assentamento</span><div class="bar" id="b-lay"><i></i></div><span class="val" id="v-lay">0/s</span>
-          </div>
-          <div class="stock"><span id="s-ground">Térreo: 0</span><span id="s-top">No topo: 0</span></div>
-          <div class="hint" id="neckHint"></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="tabs" role="tablist" id="tabs"></div>
-        <div class="tree" id="tree"></div>
       </div>
     </section>
 
-    <section class="page" id="pg-neg" hidden>
-      <div class="card">
-        <h2>Imóveis</h2>
-        <div class="body">
-          <div class="kv">
-            <span>Prontos esperando</span><b id="r-pend">0</b>
-            <span>Alugados</span><b id="r-rented">0</b>
-            <span>Vendidos</span><b id="r-sold">0</b>
-            <span>Renda de aluguel</span><b id="r-rent">R$ 0/s</b>
+    <aside class="side">
+      <!-- ===== Obra: construção, melhorias e objetivo ===== -->
+      <section class="page" id="pg-obra">
+        <div class="card">
+          <h2>Construção <span class="mode" id="modeName">Bloco a bloco</span></h2>
+          <div class="body">
+            <div class="neckline">Gargalo: <b id="neck">transporte</b> <span class="hint" id="neckHint"></span></div>
+            <div class="bar prog"><i id="floorFill"></i></div>
+            <div class="progline"><span id="floorPct">0% do próximo andar</span><span id="floorTime"></span></div>
+            <div class="warn" id="capWarn" hidden>A fundação chegou ao limite. Compre <b>Fundação reforçada</b> nas melhorias para continuar subindo.</div>
+            <details class="more">
+              <summary>Detalhes da obra</summary>
+              <div class="flow">
+                <span class="lbl" id="l-prod">Produção</span><div class="bar" id="b-prod"><i></i></div><span class="val" id="v-prod">0/s</span>
+                <span class="lbl" id="l-tran">Transporte</span><div class="bar" id="b-tran"><i></i></div><span class="val" id="v-tran">0/s</span>
+                <span class="lbl" id="l-lay">Assentamento</span><div class="bar" id="b-lay"><i></i></div><span class="val" id="v-lay">0/s</span>
+              </div>
+              <div class="kv">
+                <span>Andares</span><b id="floors">0</b>
+                <span>Limite da fundação</span><b id="cap">25</b>
+                <span>Material por andar</span><b id="fcost">39</b>
+                <span>Andares por minuto</span><b id="fpm">0</b>
+                <span>Material no térreo</span><b id="s-ground">0</b>
+                <span>Material no topo</span><b id="s-top">0</b>
+              </div>
+            </details>
           </div>
-          <div class="deal">
-            <div class="dealrow">
-              <span class="dl">Vender</span>
-              <button class="btn sm" data-sell="1">1</button><button class="btn sm" data-sell="10">10</button><button class="btn sm" data-sell="all">Todos</button>
-              <span class="dv" id="r-sellv"></span>
-            </div>
-            <div class="dealrow">
-              <span class="dl">Alugar</span>
-              <button class="btn sm" data-rent="1">1</button><button class="btn sm" data-rent="10">10</button><button class="btn sm" data-rent="all">Todos</button>
-              <span class="dv" id="r-rentv"></span>
-            </div>
-          </div>
-          <div>
-            <div class="sub">Tipo dos próximos andares</div>
-            <div class="types" id="types"></div>
-          </div>
-          <div class="broker" id="broker" hidden>
-            <label class="switch"><input type="checkbox" id="b-on"> Corretor decide sozinho</label>
-            <div class="presets" role="group" aria-label="Estratégia do corretor">
-              <button class="btn sm ghost" data-preset="70">Expansão<small>vende 70%</small></button>
-              <button class="btn sm ghost" data-preset="40">Equilibrado<small>vende 40%</small></button>
-              <button class="btn sm ghost" data-preset="10">Renda<small>vende 10%</small></button>
-            </div>
-            <input type="range" id="b-pct" min="0" max="100" step="5" aria-label="Porcentagem vendida pelo corretor">
-            <div class="split"><span id="b-sell">Vender 30%</span><span id="b-rent">Alugar 70%</span></div>
-          </div>
-          <div class="hint" id="brokerHint">Contrate um corretor em Construção › Mercado para decidir o destino dos andares sozinho, inclusive fora do jogo.</div>
         </div>
-      </div>
 
-      <div class="card">
-        <h2>Turismo</h2>
-        <div class="body">
-          <div class="hint" id="t-off">Compre o Elevador panorâmico em Construção › Mercado para abrir a torre a visitantes (a partir de 40 m).</div>
-          <div id="t-on" hidden>
+        <div class="card">
+          <h2>Melhorias</h2>
+          <div class="ups" id="ups"></div>
+        </div>
+
+        <div class="goal" id="goal">
+          <small>Próximo objetivo</small>
+          <b id="goalTitle">Chegar à Era do Concreto</b>
+          <div class="bar thin"><i id="goalFill"></i></div>
+          <span class="hint" id="goalSub">Faltam 100 m</span>
+        </div>
+      </section>
+
+      <!-- ===== Imóveis (e turismo, quando liberar) ===== -->
+      <section class="page" id="pg-imoveis" hidden>
+        <div class="card">
+          <h2>Imóveis</h2>
+          <div class="body">
             <div class="kv">
-              <span>Interessados</span><b id="t-dem">0/s</b>
-              <span>Capacidade</span><b id="t-cap">0/s</b>
-              <span>Ingresso</span><b id="t-tick">R$ 0</b>
-              <span>Receita</span><b id="t-rev">R$ 0/s</b>
+              <span>Prontos esperando</span><b id="r-pend">0</b>
+              <span>Alugados</span><b id="r-rented">0</b>
+              <span>Vendidos</span><b id="r-sold">0</b>
+              <span>Renda de aluguel</span><b id="r-rent">R$ 0/s</b>
             </div>
-            <div class="bar tour" id="t-bar"><i></i></div>
-            <div class="hint" id="t-hint"></div>
+            <div class="deal">
+              <div class="dealrow">
+                <span class="dl">Vender</span>
+                <button class="btn sm" data-sell="1">1</button><button class="btn sm" data-sell="10">10</button><button class="btn sm" data-sell="all">Todos</button>
+                <span class="dv" id="r-sellv"></span>
+              </div>
+              <div class="dealrow">
+                <span class="dl">Alugar</span>
+                <button class="btn sm" data-rent="1">1</button><button class="btn sm" data-rent="10">10</button><button class="btn sm" data-rent="all">Todos</button>
+                <span class="dv" id="r-rentv"></span>
+              </div>
+            </div>
+            <div>
+              <div class="sub">Tipo dos próximos andares</div>
+              <div class="types" id="types"></div>
+            </div>
+            <div class="broker" id="broker" hidden>
+              <label class="switch"><input type="checkbox" id="b-on"> Corretor decide sozinho</label>
+              <div class="presets" role="group" aria-label="Estratégia do corretor">
+                <button class="btn sm ghost" data-preset="70">Expansão<small>vende 70%</small></button>
+                <button class="btn sm ghost" data-preset="40">Equilibrado<small>vende 40%</small></button>
+                <button class="btn sm ghost" data-preset="10">Renda<small>vende 10%</small></button>
+              </div>
+              <input type="range" id="b-pct" min="0" max="100" step="5" aria-label="Porcentagem vendida pelo corretor">
+              <div class="split"><span id="b-sell">Vender 30%</span><span id="b-rent">Alugar 70%</span></div>
+            </div>
+            <div class="hint" id="brokerHint">Contrate um <b>Corretor de imóveis</b> nas melhorias para decidir o destino dos andares sozinho, inclusive fora do jogo.</div>
           </div>
         </div>
-      </div>
 
-      <div class="card">
-        <h2>Banco <span class="mode" id="k-tier">Banco do bairro</span></h2>
-        <div class="body">
-          <div class="kv">
-            <span>Dívida</span><b id="k-debt">R$ 0</b>
-            <span>Limite de crédito</span><b id="k-lim">R$ 0</b>
-            <span>Juros</span><b id="k-rate">0%/min</b>
-            <span>Indo para o banco</span><b id="k-share">—</b>
+        <div class="card" id="tourCard" hidden>
+          <h2>Turismo</h2>
+          <div class="body">
+            <div class="hint" id="t-off">Compre o <b>Elevador panorâmico</b> nas melhorias para abrir a torre a visitantes.</div>
+            <div id="t-on" hidden>
+              <div class="kv">
+                <span>Interessados</span><b id="t-dem">0/s</b>
+                <span>Capacidade</span><b id="t-cap">0/s</b>
+                <span>Ingresso</span><b id="t-tick">R$ 0</b>
+                <span>Receita</span><b id="t-rev">R$ 0/s</b>
+              </div>
+              <div class="bar tour" id="t-bar"><i></i></div>
+              <div class="hint" id="t-hint"></div>
+            </div>
           </div>
-          <div class="warn" id="k-def" hidden></div>
-          <div class="dealrow">
-            <span class="dl">Pegar</span>
-            <button class="btn sm" data-loan="0.25">25%</button><button class="btn sm" data-loan="0.5">50%</button><button class="btn sm" data-loan="1">Máx.</button>
-            <span class="dv" id="k-avail"></span>
-          </div>
-          <div class="dealrow">
-            <span class="dl">Pagar</span>
-            <button class="btn sm" data-pay="0.25">25%</button><button class="btn sm" data-pay="1">Quitar</button>
-            <span class="dv"></span>
-          </div>
-          <div class="hint">Com dívida, 20% da renda paga o banco sozinha. Se a dívida passar de 120% do limite, entra em renegociação: juros pela metade e 40–60% da renda retida até voltar ao limite. A obra nunca para.</div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <div class="foot">
-      <span id="footTxt">Salvo neste navegador. O progresso continua por até 8 h fora do jogo.</span>
-      <button id="reset">Recomeçar</button>
-    </div>
-  </aside>
+      <!-- ===== Banco ===== -->
+      <section class="page" id="pg-banco" hidden>
+        <div class="card">
+          <h2>Banco <span class="mode" id="k-tier">Banco do bairro</span></h2>
+          <div class="body">
+            <div class="kv">
+              <span>Dívida</span><b id="k-debt">R$ 0</b>
+              <span>Limite de crédito</span><b id="k-lim">R$ 0</b>
+              <span>Juros</span><b id="k-rate">0%/min</b>
+              <span>Indo para o banco</span><b id="k-share">—</b>
+            </div>
+            <div class="warn" id="k-def" hidden></div>
+            <div class="dealrow">
+              <span class="dl">Pegar</span>
+              <button class="btn sm" data-loan="0.25">25%</button><button class="btn sm" data-loan="0.5">50%</button><button class="btn sm" data-loan="1">Máx.</button>
+              <span class="dv" id="k-avail"></span>
+            </div>
+            <div class="dealrow">
+              <span class="dl">Pagar</span>
+              <button class="btn sm" data-pay="0.25">25%</button><button class="btn sm" data-pay="1">Quitar</button>
+              <span class="dv"></span>
+            </div>
+            <div class="hint">Com dívida, 20% da renda paga o banco sozinha. Se a dívida passar de 120% do limite, entra em renegociação: juros pela metade e 40–60% da renda retida até voltar ao limite. A obra nunca para.</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="foot">
+        <span id="footTxt">Salvo neste navegador.</span>
+        <button id="reset">Recomeçar</button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- painéis avançados -->
+  <nav class="nav" id="nav" aria-label="Painéis">
+    <button data-nav="obra" aria-current="page">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14h12v-2H2zM3 11h4V7H3zm6 0h4V4H9zM4 6h2V3H4z"/></svg>
+      <span>Obra</span><i class="dot" hidden></i>
+    </button>
+    <button data-nav="imoveis">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14V6l6-4 6 4v8h-4v-4H6v4z"/></svg>
+      <span>Imóveis</span><i class="dot" hidden></i>
+    </button>
+    <button data-nav="eng" aria-haspopup="dialog">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7 1h2v3h3v2H9v2h4v2H9v5H7v-5H3V8h4V6H4V4h3z"/></svg>
+      <span>Engenharia</span><i class="pill" hidden></i>
+    </button>
+    <button data-nav="banco" hidden>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6l7-4 7 4v1H1zm1 2h2v4H2zm4 0h2v4H6zm4 0h2v4h-2zm-9 5h14v2H1z"/></svg>
+      <span>Banco</span><i class="dot" hidden></i>
+    </button>
+  </nav>
 </div>
 
 <div class="tmap" id="tmap" hidden role="dialog" aria-modal="true" aria-label="Mapa da árvore de Engenharia">

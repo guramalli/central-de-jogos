@@ -5,7 +5,8 @@ import { runOffline } from './sim/offline.js';
 import { V, resetView } from './render/view.js';
 import { cam, snapCamera } from './render/camera.js';
 import { updateView, render, resetMilestones } from './render/scene.js';
-import { renderTabs, renderTree } from './ui/upgrades.js';
+import { H, setW } from './data/constants.js';
+import { ctx } from './render/canvas.js';
 import { updateUI, setNotice } from './ui/panel.js';
 import { closeMap, initMap } from './ui/talentMap.js';
 import { $ } from './ui/dom.js';
@@ -42,7 +43,7 @@ spBtns.forEach(b => b.onclick = () => {
 const rs = $('reset');
 const disarm = () => { rs.classList.remove('armed'); rs.textContent = 'Recomeçar'; };
 rs.onclick = () => {
-  if (rs.classList.contains('armed')) { resetState(); resetView(); resetMilestones(); syncCameraButtons(); closeMap(); disarm(); renderTree(); updateUI(); return; }
+  if (rs.classList.contains('armed')) { resetState(); resetView(); resetMilestones(); syncCameraButtons(); closeMap(); disarm(); updateUI(); return; }
   rs.classList.add('armed'); rs.textContent = 'Clique de novo para apagar tudo';
   setTimeout(disarm, 3000);
 };
@@ -52,7 +53,18 @@ initMap(updateUI);
 addEventListener('beforeunload', save);
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
-renderTabs(); renderTree(); updateUI();
+// O canvas acompanha o espaço da tela: altura de arte fixa (480), largura proporcional.
+const cvEl = $('cv'), viewEl = $('view');
+function fitCanvas() {
+  const w = cvEl.clientWidth, h = cvEl.clientHeight;
+  if (w < 10 || h < 10) return;
+  const nw = Math.max(300, Math.min(960, Math.round(H * w / h)));
+  if (nw !== cvEl.width) { cvEl.width = nw; setW(nw); ctx.imageSmoothingEnabled = false; render(); }
+}
+new ResizeObserver(fitCanvas).observe(viewEl);
+fitCanvas();
+
+updateUI();
 requestAnimationFrame(frame);
 
 // grava o canvas ampliado 2× em .shots/<nome>.png (só com o servidor de desenvolvimento)

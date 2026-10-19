@@ -1,4 +1,6 @@
-// Lista de melhorias compradas com dinheiro, por ramo
+// Melhorias compradas com dinheiro: uma lista única, com as categorias como cabeçalhos.
+// Só aparece o que já está liberado; a categoria do gargalo atual sobe para o topo e fica destacada;
+// no fim, uma linha curta avisa o que está perto de liberar.
 import { BRANCHES, UP, KEYS } from '../data/upgrades.js';
 import { S, save } from '../sim/state.js';
 import { cost, unlocked, maxed, canBuy, buy } from '../sim/economy.js';
@@ -6,63 +8,69 @@ import { V } from '../render/view.js';
 import { $, setText } from './dom.js';
 import { fmt, fmtM } from './format.js';
 
-const tabsEl = $('tabs'), treeEl = $('tree');
-let tab = 'obra';
-
-function depth(k) { let d = 0, c = UP[k]; while (c.req) { d++; c = UP[c.req[0]]; } return d; }
-
-function reqText(k) {
-  const u = UP[k], parts = [];
-  if (u.req && S.lv[u.req[0]] < u.req[1]) parts.push(`${UP[u.req[0]].n} nível ${u.req[1]}`);
-  if (u.reqAlt && S.maxAlt < u.reqAlt) parts.push(`torre com ${fmtM(u.reqAlt)}`);
-  return 'Requer ' + parts.join(' e ');
-}
-
-export function renderTabs() {
-  tabsEl.innerHTML = '';
-  BRANCHES.forEach(b => {
-    const bt = document.createElement('button');
-    bt.role = 'tab'; bt.id = 'tab-' + b.id; bt.setAttribute('aria-selected', b.id === tab); bt.textContent = b.n;
-    bt.onclick = () => { tab = b.id; renderTabs(); renderTree(); };
-    const dot = document.createElement('span'); dot.className = 'dot'; dot.hidden = true; bt.appendChild(dot);
-    tabsEl.appendChild(bt);
-  });
-}
-
-export function renderTree() {
-  treeEl.innerHTML = '';
-  KEYS.filter(k => UP[k].b === tab).forEach(k => {
-    const u = UP[k]; const bt = document.createElement('button');
-    bt.className = 'node d' + depth(k); bt.id = 'n-' + k;
-    bt.innerHTML = `<span class="nm">${u.n}</span><span class="lv"></span><span class="ds">${u.d}</span><span class="ct"></span>`;
-    bt.onclick = () => onBuy(k);
-    treeEl.appendChild(bt);
-  });
-  updateTree();
-}
+const listEl = $('ups');
+// categoria que resolve cada gargalo
+export const NECK_BRANCH = { prod: 'forn', tran: 'log', lay: 'obra', cap: 'eng' };
+let builtKey = '';
 
 function onBuy(k) {
   if (!buy(k)) return;
   if (k === 'elevador') V.elev[S.lv.elevador - 1] = Math.random();
-  updateTree(); save();
+  save(); updateUpgrades(lastNeck);
 }
 
-// devolve true se há algo comprável em algum ramo (para o pontinho da página)
-export function updateTree() {
-  KEYS.forEach(k => {
-    const el = $('n-' + k); if (!el) return;
-    const ok = unlocked(k), mx = maxed(k), can = canBuy(k);
-    setText(el.querySelector('.lv'), mx ? 'MÁX' : 'Nv ' + S.lv[k]);
-    setText(el.querySelector('.ct'), !ok ? reqText(k) : mx ? 'Nível máximo' : 'R$ ' + fmt(cost(k)));
-    const cls = 'node d' + depth(k) + (!ok ? ' locked' : mx ? ' max' : can ? ' can' : ' cant');
-    if (el.className !== cls) el.className = cls;
-    el.disabled = !ok || mx || !can;
-  });
-  let anyAll = false;
-  BRANCHES.forEach(b => {
-    const any = KEYS.some(k => UP[k].b === b.id && canBuy(k));
-    anyAll ||= any;
-    const d = document.querySelector('#tab-' + b.id + ' .dot'); if (d) d.hidden = !any || b.id === tab;
-  });
-  return anyAll;
+// melhorias trancadas a um passo de liberar
+function soon() {
+  const out = [];
+  for (const k of KEYS) {
+    const u = UP[k];
+    if (unlocked(k) || maxed(k)) continue;
+    if (u.req && !unlocked(u.req[0])) continue; // ainda dois passos longe
+    if (u.req && S.lv[u.req[0]] < u.req[1]) out.push(`${u.n} (${UP[u.req[0]].n} nível ${u.req[1]})`);
+    else if (u.reqAlt) out.push(`${u.n} (torre com ${fmtM(u.reqAlt)})`);
+  }
+  return out.slice(0, 3);
+}
+
+let lastNeck = 'tran';
+// neck: 'prod' | 'tran' | 'lay' | 'cap'. Devolve true se há algo comprável.
+export function updateUpgrades(neck) {
+  lastNeck = neck;
+  const hot = NECK_BRANCH[neck];
+  const cats = [hot, ...BRANCHES.map(b => b.id).filter(b => b !== hot)];
+  const vis = cats.map(b => [b, KEYS.filter(k => UP[k].b === b && unlocked(k) && !maxed(k))]).filter(([, ks]) => ks.length);
+  const sn = soon();
+  const key = vis.map(([b, ks]) => b + ':' + ks.join(',')).join('|') + '#' + sn.join(',');
+  if (key !== builtKey) {
+    builtKey = key;
+    listEl.innerHTML = '';
+    vis.forEach(([b, ks]) => {
+      const h = document.createElement('div');
+      h.className = 'upcat' + (b === hot ? ' hot' : '');
+      h.innerHTML = BRANCHES.find(x => x.id === b).n + (b === hot ? '<span class="chip">gargalo</span>' : '');
+      listEl.appendChild(h);
+      ks.forEach(k => {
+        const row = document.createElement('div');
+        row.className = 'up' + (b === hot ? ' hot' : ''); row.id = 'up-' + k;
+        row.innerHTML = `<span class="nm">${UP[k].n}<small></small></span><span class="ds">${UP[k].d}</span><button class="btn sm buy"></button>`;
+        row.querySelector('.buy').onclick = () => onBuy(k);
+        listEl.appendChild(row);
+      });
+    });
+    if (sn.length) {
+      const d = document.createElement('div');
+      d.className = 'upsoon'; d.textContent = 'Em breve: ' + sn.join(' · ');
+      listEl.appendChild(d);
+    }
+  }
+  let any = false;
+  vis.forEach(([, ks]) => ks.forEach(k => {
+    const row = $('up-' + k); if (!row) return;
+    const can = canBuy(k); any ||= can;
+    setText(row.querySelector('small'), 'Nv ' + S.lv[k]);
+    const bt = row.querySelector('.buy');
+    setText(bt, 'R$ ' + fmt(cost(k)));
+    bt.disabled = !can;
+  }));
+  return any;
 }

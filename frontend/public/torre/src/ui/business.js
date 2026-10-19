@@ -13,24 +13,24 @@ const num = v => v.toFixed(v < 10 ? 2 : 1).replace('.', ',');
 
 // ---------- ações ----------
 const qty = v => v === 'all' ? Infinity : +v;
-document.querySelectorAll('[data-sell]').forEach(b => b.onclick = () => { assign(qty(b.dataset.sell), 'sell'); save(); updateBusiness(true); });
-document.querySelectorAll('[data-rent]').forEach(b => b.onclick = () => { assign(qty(b.dataset.rent), 'rent'); save(); updateBusiness(true); });
-$('qRent').onclick = () => { assign(Infinity, 'rent'); save(); updateBusiness(true); };
-$('qSell').onclick = () => { assign(Infinity, 'sell'); save(); updateBusiness(true); };
+document.querySelectorAll('[data-sell]').forEach(b => b.onclick = () => { assign(qty(b.dataset.sell), 'sell'); save(); updateBusiness('imoveis'); });
+document.querySelectorAll('[data-rent]').forEach(b => b.onclick = () => { assign(qty(b.dataset.rent), 'rent'); save(); updateBusiness('imoveis'); });
+$('qRent').onclick = () => { assign(Infinity, 'rent'); save(); updateBusiness('imoveis'); };
+$('qSell').onclick = () => { assign(Infinity, 'sell'); save(); updateBusiness('imoveis'); };
 
 document.querySelectorAll('[data-loan]').forEach(b => b.onclick = () => {
-  const R = rates(); borrow(R.bank.available * +b.dataset.loan, R.income); save(); updateBusiness(true);
+  const R = rates(); borrow(R.bank.available * +b.dataset.loan, R.income); save(); updateBusiness('banco');
 });
 document.querySelectorAll('[data-pay]').forEach(b => b.onclick = () => {
-  repay(S.debt * +b.dataset.pay); save(); updateBusiness(true);
+  repay(S.debt * +b.dataset.pay); save(); updateBusiness('banco');
 });
 
 const bOn = $('b-on'), bPct = $('b-pct');
-bOn.onchange = () => { S.broker.on = bOn.checked; save(); updateBusiness(true); };
-bPct.oninput = () => { S.broker.sellPct = +bPct.value; updateBusiness(true); };
+bOn.onchange = () => { S.broker.on = bOn.checked; save(); updateBusiness('imoveis'); };
+bPct.oninput = () => { S.broker.sellPct = +bPct.value; updateBusiness('imoveis'); };
 bPct.onchange = () => save();
 const presets = document.querySelectorAll('[data-preset]');
-presets.forEach(b => b.onclick = () => { S.broker.sellPct = +b.dataset.preset; S.broker.on = true; save(); updateBusiness(true); });
+presets.forEach(b => b.onclick = () => { S.broker.sellPct = +b.dataset.preset; S.broker.on = true; save(); updateBusiness('imoveis'); });
 
 // ---------- tipos de andar ----------
 const typesEl = $('types');
@@ -38,24 +38,26 @@ TYPE_IDS.forEach(t => {
   const T = FLOOR_TYPES[t], bt = document.createElement('button');
   bt.className = 'type'; bt.id = 'ty-' + t;
   bt.innerHTML = `<b>${T.n}</b><small class="tm">aluguel ×${num(T.rent)} · venda ×${num(T.sale)}</small><small class="td"></small>`;
-  bt.onclick = () => { if (setBuildType(t)) { save(); updateBusiness(true); } };
+  bt.onclick = () => { if (setBuildType(t)) { save(); updateBusiness('imoveis'); } };
   typesEl.appendChild(bt);
 });
 
 // ---------- atualização ----------
-// visible: a página Negócios está aberta (o resto só atualiza o aviso do canteiro)
-export function updateBusiness(visible) {
+// page: painel aberto ('imoveis' atualiza imóveis e turismo; 'banco' atualiza o banco).
+// O aviso de andares prontos, sobre o canvas, atualiza sempre.
+export function updateBusiness(page) {
   const p = pending(), hasBroker = S.lv.corretor >= 1;
   // aviso no canteiro: só sem corretor ligado
   const showReady = p > 0 && !(hasBroker && S.broker.on);
   $('ready').hidden = !showReady;
   if (showReady) {
     setText($('readyN'), fmt(p));
-    setText($('readyTxt'), p === 1 ? 'andar pronto sem destino' : 'andares prontos sem destino');
+    setText($('readyTxt'), p === 1 ? 'andar pronto' : 'andares prontos');
   }
-  if (!visible) return;
-
+  if (page !== 'imoveis' && page !== 'banco') return;
   const R = rates();
+  if (page === 'banco') { updateBank(R); return; }
+
   // imóveis
   setText($('r-pend'), fmt(p)); setText($('r-rented'), fmt(S.rented)); setText($('r-sold'), fmt(S.sold));
   setText($('r-rent'), money(R.rent) + '/s');
@@ -79,7 +81,8 @@ export function updateBusiness(visible) {
     presets.forEach(b => { b.setAttribute('aria-pressed', S.broker.on && +b.dataset.preset === S.broker.sellPct); b.disabled = false; });
   }
 
-  // turismo
+  // turismo: aparece quando a torre fica alta o bastante para atrair visitantes
+  $('tourCard').hidden = S.maxAlt < 40;
   const T = R.tour, on = S.lv.bilheteria >= 1;
   $('t-off').hidden = on; $('t-on').hidden = !on;
   if (on) {
@@ -92,8 +95,9 @@ export function updateBusiness(visible) {
     if (T.space.cap > 0) h += ` Turismo espacial: ${num(T.space.served)}/s a ${money(T.space.ticket)}.`;
     setText($('t-hint'), h);
   }
+}
 
-  // banco
+function updateBank(R) {
   const B = R.bank;
   setText($('k-tier'), ['Banco do bairro', 'Banco regional', 'Banco nacional', 'Mercado de títulos'][Math.min(3, S.lv.banco)]);
   setText($('k-debt'), money(S.debt)); setText($('k-lim'), money(B.limit));
@@ -106,5 +110,5 @@ export function updateBusiness(visible) {
   document.querySelectorAll('[data-pay]').forEach(b => b.disabled = S.debt <= 0 || S.money < 1);
 }
 
-// algo pede atenção em Negócios?
-export const businessAlert = () => pending() > 0 && !(S.lv.corretor >= 1 && S.broker.on) || S.inDefault;
+// andares prontos esperando decisão (aviso no botão Imóveis)
+export const businessAlert = () => pending() > 0 && !(S.lv.corretor >= 1 && S.broker.on);
