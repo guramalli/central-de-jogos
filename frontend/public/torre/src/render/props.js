@@ -44,15 +44,17 @@ export function brickTile(v) {
 
 // ---------- caminhão: carroceria basculante (nível 0) ou betoneira (Caminhão maior) ----------
 // ponto de apoio = canto inferior esquerdo da carroceria, no chão (TRUCK_AX pixels da borda do sprite)
-export const TRUCK_AX = 12;
+export const TRUCK_AX = 32, TRUCK_AY = 110; // margem à esquerda e em cima para a caçamba basculando
 const TRK = { cab: ['#1c3f63', '#2a5a8a', '#3a77b0', '#6aa2d6'], bed: ['#8f5a10', '#c47f17', '#ee9f26', '#ffc35a'], drum: ['#7e8594', '#a6adba', '#c9ced8', '#eef0f4'] };
 // mistura de duas cores hex, devolve hex (shade só aceita hex)
 export const hexMix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0')).join('');
 // cor da cabine por nível do Caminhão maior: azul → verde → amarelo → laranja → vermelho
 const TRUCK_TINT = ['#3a77b0', '#2f8aa8', '#2f9a7e', '#3aa04e', '#7aa832', '#c4a62e', '#e0902a', '#e0702a', '#d9502e', '#c0303a'];
-export function truckSprite(kind, f, tilt, load, lv = 0) {
-  return makeSprite(`truck-${kind}-${f}-${tilt ? 1 : 0}-${load || ''}-${lv}`, 134, 78, p => {
-    const Q = (lx, ly, w, h, c) => p.r(lx + TRUCK_AX, 76 - ly - h, w, h, c);
+// ang: quadro da caçamba basculando (0 = abaixada … BED_STEPS = toda erguida); amt: carga que ainda resta (0–4)
+export const BED_STEPS = 6;
+export function truckSprite(kind, f, tilt, load, lv = 0, ang = 0, amt = 4) {
+  return makeSprite(`truck-${kind}-${f}-${tilt ? 1 : 0}-${load || ''}-${lv}-${ang}-${amt}`, 154, 112, p => {
+    const Q = (lx, ly, w, h, c) => p.r(lx + TRUCK_AX, TRUCK_AY - ly - h, w, h, c);
     const cc = TRUCK_TINT[Math.min(9, Math.max(0, lv - 1))], TC = [shade(cc, -0.45), shade(cc, -0.22), cc, shade(cc, 0.35)];
     if (lv >= 7) { Q(72, 50, 4, 22, '#9aa0ab'); Q(72, 50, 1, 22, '#eef0f4'); Q(71, 70, 6, 2, '#5a5f6a'); } // escapamento cromado
     // chassi e para-choques
@@ -85,12 +87,29 @@ export function truckSprite(kind, f, tilt, load, lv = 0) {
       if (tilt) { Q(-10, 28, 6, 15, '#7c818c'); Q(-10, 28, 6, 3, '#9aa0ab'); }
       Q(70, 36, 5, 18, '#5a5f6a'); Q(66, 52, 10, 4, '#7c818c');                                         // suporte do motor do tambor
     } else {
-      // caçamba basculante com nervuras
-      const b = TRK.bed, up = tilt ? 4 : 0;
-      Q(0, 14 + up, 76, 26, b[2]); Q(0, 38 + up, 76, 3, b[3]); Q(0, 14 + up, 76, 3, b[1]); Q(0, 14 + up, 2, 26, b[0]);
-      for (let x = 7; x < 72; x += 14) { Q(x, 17 + up, 3, 21, b[1]); Q(x, 17 + up, 1, 21, b[3]); }
-      Q(2, 20 + up, 10, 6, '#f4f1e6'); Q(3, 21 + up, 8, 4, '#c0504d');                                  // placa
-      if (load) { for (let x = 4; x < 72; x += 8) { const hgt = 3 + Math.round(4 * Math.sin((x - 4) / 68 * Math.PI)); Q(x, 41 + up, 7, hgt, load); Q(x, 40 + up + hgt, 7, 1, shade(load, 0.25)); Q(x + 7, 41 + up, 1, hgt, shade(load, -0.3)); } }
+      // caçamba basculante com nervuras, girada pixel a pixel em volta da dobradiça de trás (lx 0, ly 14):
+      // mapeamento inverso, cada pixel de destino busca a cor na caçamba deitada (sem borrar a pixel art)
+      const b = TRK.bed, a = ang / BED_STEPS * 44 * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+      const hgtAt = x => x < 4 || x >= 72 ? 0 : Math.round((3 + 4 * Math.sin((x - 4) / 68 * Math.PI)) * amt / 4);
+      const bed = (x, y) => { // x 0..75, y 0.. (0 = fundo da caçamba)
+        if (x < 0 || x > 75 || y < 0) return null;
+        if (y >= 27) { const h = load ? hgtAt(x) : 0; return y < 27 + h ? (y === 26 + h ? shade(load, 0.25) : x % 8 === 7 ? shade(load, -0.3) : load) : null; }
+        if (y >= 24) return b[3];
+        if (y < 3) return b[1];
+        if (x < 2) return b[0];
+        if (x >= 2 && x < 12 && y >= 6 && y < 12) return x >= 3 && x < 11 && y >= 7 && y < 11 ? '#c0504d' : '#f4f1e6'; // placa
+        const rx = (x - 7) % 14;
+        if (x >= 7 && x < 72 && rx >= 0 && rx < 3) return rx === 0 ? b[3] : b[1];
+        return b[2];
+      };
+      if (ang > 0) { // pistão hidráulico do chassi até a barriga da caçamba
+        const ex = 38 * ca, ey = 38 * sa;
+        for (let k = 0; k <= 20; k++) { const t = k / 20; Q(46 + (ex - 46) * t, 15 + ey * t, 3, 2, k % 5 ? '#9aa0ab' : '#5a5f6a'); }
+      }
+      for (let dy = -2; dy < 92; dy++) for (let dx = -40; dx < 82; dx++) {
+        const c = bed(Math.floor(dx * ca + (dy + 0.5) * sa), Math.floor(-dx * sa + (dy + 0.5) * ca));
+        if (c) Q(dx, 14 + dy, 1, 1, c);
+      }
     }
   });
 }
@@ -314,6 +333,35 @@ export function kilnSprite(f) {
     const fire = f ? ['#ff8a1e', '#ffb347', '#ffe27a'] : ['#ffb347', '#ff8a1e', '#fff2a8'];
     Q(22, 2, 18, 10, fire[0]); Q(25, 4, 12, 9, fire[1]); Q(28 + f, 6, 5, 6, fire[2]); Q(22, 0, 18, 3, '#3a2216');
   });
+}
+
+// ---------- ilha no horizonte (320×86): morro com mata, costão de pedra e farol; azulada pela distância ----------
+export function islandSprite() {
+  return makeSprite('island2', 320, 86, p => {
+    const HZ = '#9cc3dc', hz = c => hexMix(c, HZ, 0.42);
+    const G = ['#2f5e3e', '#3d7049', '#4c8456', '#5f9a62', '#7bb27a'].map(hz), ROCK = ['#6c7680', '#87919a', '#a3acb3'].map(hz);
+    const hAt = x => Math.max(64 * Math.exp(-(((x - 112) / 56) ** 2)), 46 * Math.exp(-(((x - 214) / 48) ** 2)), 16 * Math.exp(-(((x - 286) / 26) ** 2)), 7 * Math.exp(-(((x - 30) / 28) ** 2)))
+      + hash(Math.floor(x / 3), 77) * 1.6;
+    for (let x = 0; x < 320; x++) {
+      const h = Math.round(hAt(x)), sl = hAt(x + 2) - hAt(x - 2); // subida para a direita = face virada para a luz (esquerda)
+      if (h < 2) continue;
+      for (let y = 0; y < h; y++) {
+        let c;
+        const rock = y < 5 + Math.round(hash(x, 5) * 3);
+        if (rock) c = ROCK[y < 2 ? 0 : (x + y) % 5 === 0 ? 2 : 1];
+        else {
+          let t = 2 + (sl > 1.2 ? 1 : sl < -1.2 ? -1 : 0) + (y > h - 3 ? 1 : 0);
+          if (hash(x * 7 + Math.floor(y / 3), y) < 0.12) t -= 1;                     // copas de árvore mais escuras
+          c = G[Math.max(0, Math.min(4, t))];
+        }
+        p.px(x, 85 - y, c);
+      }
+    }
+    for (let x = 0; x < 320; x += 1) if (hAt(x) >= 2) p.px(x, 85, hz('#f2f7f9'));    // espuma batendo no costão
+    // farol no pico (Ilha da Moela)
+    const fx = 110, fy = 85 - Math.round(hAt(fx));
+    p.r(fx, fy - 13, 4, 13, hz('#f4f4f0')); p.r(fx, fy - 9, 4, 2, hz('#c0303a')); p.r(fx, fy - 16, 4, 3, hz('#c0303a')); p.px(fx + 1, fy - 15, '#fff6c8');
+  }, { outline: null });
 }
 
 // ---------- palete com tijolos (22×14) ----------

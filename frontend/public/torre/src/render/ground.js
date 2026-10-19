@@ -12,16 +12,18 @@ import { worker } from './workers.js';
 import { SHAFT_X } from './tower.js';
 import { zzz } from './signs.js';
 import { blit } from './sprites.js';
-import { truckSprite, wheelSprite, TRUCK_AX, orlaSprite, calcadaoTile, kilnSprite, palmTrunk, palmCrown, palletSprite } from './props.js';
+import { islandSprite } from './props.js';
+import { truckSprite, wheelSprite, TRUCK_AX, TRUCK_AY, BED_STEPS, orlaSprite, calcadaoTile, kilnSprite, palmTrunk, palmCrown, palletSprite } from './props.js';
 import { shade } from './sprites.js';
 
-const STOCK_X = 168, TRUCK_STOP = 248;
+const STOCK_X = 168;
 const groundVisible = () => worldY(H) < 420; // o chão (ou algo perto dele) está na tela
 
 export function drawGroundBack() {
   if (!groundVisible()) return;
   // mar ao fundo
   R(-1e7, 0, 2e7, 64, '#3b8fc6');
+  R(-1e7, 0, 2e7, 3, '#e8f2f6'); R(-1e7, 3, 2e7, 2, '#7ec4ec'); // espuma na beira
   if (cam.z >= 0.25) for (let i = -40; i < 60; i++) { const x = i * 46 + ((V.t * 14) % 46); if (hash(i, 3) < .5) R(x, 20 + hash(i, 4) * 36, 14, 2, '#9fd4f2'); }
   // prédios da orla, atrás da obra
   for (let i = 0; i < 16; i++) {
@@ -30,11 +32,7 @@ export function drawGroundBack() {
     else { R(bx, 4, bw, bh, i % 3 ? '#8ea6b8' : '#9fb3c2'); R(bx, 4 + bh, bw, 4, '#7d93a5'); }
   }
   // do lado do mar: mar aberto, com uma ilha no horizonte (azulada pela distância) e um navio passando
-  for (let dy = 0; dy < 46; dy += 2) {
-    const t = dy / 46, w = 520 * Math.sqrt(1 - t) * (0.75 + 0.25 * Math.cos(t * 9));
-    R(-1480 + (520 - w) * 0.55, 54 + dy, w, 2, dy > 30 ? '#86a7bb' : '#7a9cb2');
-  }
-  R(-1480, 54, 560, 4, '#6f93aa');
+  blit(islandSprite(), -860, 62, 0, 85);
   const shx = -900 - ((V.t * 6) % 1400);
   R(shx, 50, 70, 8, '#3e4a5c'); R(shx + 4, 58, 50, 6, '#5a6676'); R(shx + 10, 64, 8, 6, '#c0504d'); R(shx + 26, 64, 18, 4, '#d9dde4'); R(shx, 49, 70, 1, '#2a3340');
   // areia e calçadão
@@ -47,10 +45,12 @@ export function drawGroundBack() {
     R(-330, -2, 1e7, 2, '#b9a377'); R(-330, -16, 1e7, 1, '#9c8a62');
   }
   R(-1e7, -2, 2e7, 2, '#c4a46a');
-  // mar em primeiro plano, à esquerda
-  R(-1e7, -1e6, 1e7 - 330, 1e6, '#2f7fb8');
-  if (cam.z >= 0.25) for (let y = -16; y > -400; y -= 18) { const o = (V.t * 26 + y * 3) % 80; R(-700 + o, y, 26, 3, '#7ec4ec'); R(-560 + o, y - 8, 20, 3, '#7ec4ec'); }
-  R(-330, -1e6, 10, 1e6, '#f5f2e8');
+  // beira-mar reta até o fim: areia molhada e espuma das ondas chegando na faixa da praia (sem mar na frente)
+  R(-1e7, -6, 1e7 - 330, 6, '#cdb079');
+  if (cam.z >= 0.25) {
+    const x0 = Math.floor(worldX(0) / 60) * 60, x1 = Math.min(worldX(W), -330);
+    for (let x = x0; x < x1; x += 60) { const q = (V.t * 0.35 + hash(x / 60, 9)) % 1, w = 24 + 20 * Math.sin(q * Math.PI); R(x + 30 - w / 2, -2 - Math.round(3 * Math.sin(q * Math.PI)), w, 2, 'rgba(245,242,232,.85)'); }
+  }
   // fundação (corte no solo)
   const depth = 30 + Math.min(180, S.lv.fundacao * 20);
   R(TL - 12, -depth, TW + 24, depth, '#7b6a55');
@@ -118,11 +118,52 @@ function coconut(px, sway) {
   blit(palmCrown(Math.max(-3, Math.min(3, sway))), px + 14, 192, 70, 28);
 }
 
-function truck(tx, tilt, gy, empty = false) {
-  const kind = S.lv.caminhao > 0 ? 'mixer' : 'dump';
-  const load = kind === 'dump' && !empty && tilt ? '#c9ad72' : '';
-  blit(truckSprite(kind, Math.floor(V.t * 8) % 4, tilt, load, Math.min(10, S.lv.caminhao || 0)), tx, gy, TRUCK_AX, 76);
-  const wf = tilt ? 0 : Math.floor(V.t * 10) % 2;
+// caminhão de entrega: o de areia (caçamba basculante) para de ré no monte de areia; a betoneira (Caminhão maior)
+// para na tremonha e despeja concreto pela calha. Chegam e vão embora por fora da tela.
+const T_IN = 3, T_UP = 1.2, T_POUR = 1.8, T_DOWN = 1, T_OUT = 3, T_CYCLE = T_IN + T_UP + T_POUR + T_DOWN + T_OUT;
+const DUMP_STOP = 266, MIX_STOP = 296;
+function truckPlan(prod, empty) {
+  const per = Math.max(T_CYCLE + 1, clamp(40 / Math.max(.1, prod), 4, 18)), s = V.t % per;
+  const kind = S.lv.caminhao > 0 ? 'mixer' : 'dump', stop = kind === 'mixer' ? MIX_STOP : DUMP_STOP;
+  const off = Math.max(900, worldX(W) + 60); // fora da tela, à direita (o caminhão nunca "some" à vista)
+  const ease = t => t * t * (3 - 2 * t);
+  let tx = off, lift = 0, pour = 0, moving = 0;
+  const t1 = T_IN, t2 = t1 + T_UP, t3 = t2 + T_POUR, t4 = t3 + T_DOWN, t5 = t4 + T_OUT;
+  if (s < t1) { tx = lerp(off, stop, ease(s / T_IN)); moving = 1; }
+  else if (s < t2) { tx = stop; lift = (s - t1) / T_UP; }
+  else if (s < t3) { tx = stop; lift = 1; pour = (s - t2) / T_POUR; }
+  else if (s < t4) { tx = stop; lift = 1 - (s - t3) / T_DOWN; pour = 1; }
+  else if (s < t5) { tx = lerp(stop, off, ease((s - t4) / T_OUT)); moving = 1; pour = 1; }
+  else pour = 1;
+  if (empty) { lift = 0; pour = 0; }
+  return { kind, stop, tx, lift, pour, moving, pouring: !empty && s >= t2 && s < t3, s, t2 };
+}
+
+// monte de areia ao lado do estoque (cresce com o material no pátio) e a areia caindo da caçamba
+function sandPile(x, gy, pouring, pq) {
+  const h = 5 + Math.round(13 * Math.min(1, S.ground / 60) + (pouring ? pq * 4 : 0)), w = h * 3;
+  for (let r = 0; r < h; r += 2) { const ww = Math.round(w * (1 - r / h)); R(x - ww / 2, gy + r, ww, 2, r % 4 ? '#d9bd80' : '#cfb072'); }
+  R(x - w / 2, gy, w, 1, '#b8975a');
+  return h;
+}
+
+// tremonha de concreto: funil de aço em pernas, mangueira até o elevador; enche durante o despejo
+function hopper(x, gy, fill) {
+  R(x - 11, gy, 3, 10, '#5a5f6a'); R(x + 8, gy, 3, 10, '#5a5f6a'); R(x - 11, gy + 4, 22, 2, '#5a5f6a');
+  for (let r = 0; r < 12; r++) { const w = 8 + r * 2; R(x - w / 2, gy + 8 + r, w, 1, r < 1 ? '#5a5f6a' : r > 10 ? '#b4bac4' : '#7c818c'); } // funil
+  if (fill > 0) { const lv = Math.round(10 * fill), w = 8 + lv * 2; R(x - w / 2 + 2, gy + 8 + lv, w - 4, 2, '#9a9e9a'); R(x - w / 2 + 3, gy + 9 + lv, 3, 1, '#c2c6c2'); }
+  const to = SHAFT_X(0) + 28; // mangueira da bomba até o pé do elevador
+  R(Math.min(to, x - 3), gy + 1, Math.abs(x - 3 - to), 3, '#2a2d36'); R(Math.min(to, x - 3), gy + 3, Math.abs(x - 3 - to), 1, '#4a4f5c');
+}
+
+function truck(tx, gy, plan, empty) {
+  const { kind, lift, pour } = plan;
+  const ang = kind === 'dump' ? Math.round(lift * BED_STEPS) : 0;
+  const amt = kind === 'dump' && !empty ? Math.max(0, 4 - Math.round(pour * 4)) : 4;
+  const load = kind === 'dump' && !empty && amt > 0 ? '#c9ad72' : '';
+  const drum = kind === 'mixer' ? Math.floor(V.t * (plan.pouring ? 16 : 8)) % 4 : Math.floor(V.t * 8) % 4; // tambor gira mais rápido despejando
+  blit(truckSprite(kind, drum, kind === 'mixer' && lift > 0.3, load, Math.min(10, S.lv.caminhao || 0), ang, amt), tx, gy, TRUCK_AX, TRUCK_AY);
+  const wf = plan.moving ? Math.floor(V.t * 10) % 2 : 0;
   for (const wx of [tx + 14, tx + 88]) blit(wheelSprite(wf), wx, gy, 1, 19);
 }
 
@@ -150,11 +191,28 @@ export function drawGroundFront(prod, sg = {}) {
     else { R(x, y, 15, 8, bc); R(x, y + 7, 14, 1, st.hi); }
   }
   // caminhão de entrega (chega, descarrega, vai embora)
-  const per = clamp(40 / Math.max(.1, prod), 4, 16), ph = (V.t % per) / per;
-  const tx = ph < .3 ? lerp(800, TRUCK_STOP, ph / .3) : ph < .6 ? TRUCK_STOP : lerp(TRUCK_STOP, 900, (ph - .6) / .4);
-  const tilt = ph >= .3 && ph < .6;
-  truck(tx, tilt, gy, !!sg.supplyLow);
-  if (tilt && !sg.supplyLow && Math.floor(V.t * 10) % 3 === 0) spark(tx + 4, gy + 40, '#c9ad72');
+  const empty = !!sg.supplyLow, plan = truckPlan(prod, empty);
+  if (plan.kind === 'dump') {
+    const px = DUMP_STOP - 26, ph = sandPile(px, gy, plan.pouring, (plan.s - plan.t2) / T_POUR);
+    if (plan.pouring) { // areia escorrendo da traseira da caçamba para o monte: jorro contínuo + grãos soltos
+      const pq = (plan.s - plan.t2) / T_POUR, w = Math.round(7 * (1 - pq * 0.6));
+      R(DUMP_STOP - 22 - w / 2, gy + ph, w, 30 - ph, '#d9bd80'); R(DUMP_STOP - 22 - w / 2, gy + ph, 2, 30 - ph, '#c9ad72');
+      for (let k = 0; k < 14; k++) {
+        const q = (V.t * 2.6 + k / 14) % 1, x = DUMP_STOP - 22 + Math.sin(k * 7.3) * (3 + q * 6), y = gy + 30 - q * (30 - ph);
+        R(x, y, 2, 2, k % 3 ? '#e6cc92' : '#b8975a');
+      }
+    }
+    if (plan.pouring && Math.floor(V.t * 10) % 3 === 0) spark(px, gy + ph, '#c9ad72');
+  } else {
+    const hx = MIX_STOP - 16, fill = plan.pouring ? (plan.s - plan.t2) / T_POUR : Math.max(0, 1 - ((V.t % 30) / 8));
+    hopper(hx, gy, plan.tx === plan.stop || plan.pouring ? fill : 0.15);
+  }
+  truck(plan.tx, gy, plan, empty);
+  if (plan.kind === 'mixer' && plan.pouring) { // concreto escorrendo da ponta da calha para a tremonha
+    const cx = plan.tx - 10, top = gy + 29, bot = gy + 19;
+    R(cx - 2, bot, 5, top - bot, '#8e928e'); R(cx - 1, bot, 2, top - bot, '#b4b8b4');
+    for (let k = 0; k < 4; k++) { const q = (V.t * 3 + k / 4) % 1; R(cx - 3 + (k % 2) * 6, top - q * (top - bot), 2, 2, '#9a9e9a'); }
+  }
   // serventes levando material do estoque ao elevador 1
   // com Caçamba maior eles empurram carrinhos de mão (mais carga por viagem)
   const nw = Math.min(5, L.fornec), to = SHAFT_X(0) + 10, barrow = L.cacamba > 0;
