@@ -1,10 +1,24 @@
 // Canvas e utilitários de desenho em pixel
-import { W, H } from '../data/constants.js';
+import { W, H, setW, setH } from '../data/constants.js';
 import { cam } from './camera.js';
+import { V } from './view.js';
 
 export const cv = document.getElementById('cv');
-export const ctx = cv.getContext('2d');
-ctx.imageSmoothingEnabled = false;
+export const ctxMain = cv.getContext('2d');
+ctxMain.imageSmoothingEnabled = false;
+// live binding: aponta para o canvas do jogo, ou por um instante para o canvas de uma prévia
+export let ctx = ctxMain;
+
+// Desenha fn() noutro canvas (prévia da tela de Melhorias): troca contexto, tamanho e câmera,
+// liga V.preview (sem partículas, eventos nem estado de animação) e restaura tudo no fim.
+export function withTarget(c2d, w, h, camState, fn) {
+  const saved = { ctx, W, H, cx: cam.cx, cy: cam.cy, z: cam.z, preview: V.preview };
+  ctx = c2d; setW(w); setH(h); Object.assign(cam, camState); V.preview = true;
+  try { fn(); } finally {
+    ctx = saved.ctx; setW(saved.W); setH(saved.H);
+    cam.cx = saved.cx; cam.cy = saved.cy; cam.z = saved.z; V.preview = saved.preview;
+  }
+}
 
 // retângulo em coordenadas de TELA (x, y = canto superior esquerdo)
 export const r = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); };

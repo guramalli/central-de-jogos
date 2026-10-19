@@ -54,3 +54,28 @@ export function priorityScore(k) {
   if (k === 'fundacao' && S.floors > R0.capF * 0.7) g += 1; // perto do limite, a fundação vira prioridade
   return g / cost(k);
 }
+
+// Efeito da melhoria em números, sem mencionar gargalo (modo Obra Viva: o jogador descobre o
+// problema olhando a obra). Só a etapa que a melhoria mexe: "Elevadores: 2,2 → 3,3 de material/s".
+const STAGE_LABEL = { prod: 'Material chegando', tran: 'Elevadores subindo', lay: 'Pedreiros assentando' };
+export function upgradeEffect(k) {
+  const u = UP[k]; if (!u) return null;
+  const R0 = rates();
+  S.lv[k]++;
+  let R1;
+  try { R1 = rates(); } finally { S.lv[k]--; }
+  if (k === 'fundacao') return `Limite da torre: ${fmt(R0.capF)} → ${fmt(R1.capF)} andares`;
+  if (k === 'projeto') return `Material por andar: ${num(R0.fcost)} → ${num(R1.fcost)}`;
+  const st = STAGE_OF[k] || STAGE_OF[u.b];
+  if (st) return `${STAGE_LABEL[st]}: ${num(R0[st])} → ${num(R1[st])} de material/s`;
+  if (k === 'corretor') return 'Venda dos andares: +8% por nível';
+  if (k === 'banco') return `Crédito: R$ ${fmt(R0.bank.limit)} → R$ ${fmt(R1.bank.limit)}`;
+  if (k === 'aluguel') return R0.rent < 0.01 ? '+50% no aluguel de cada andar alugado' : `Aluguel: R$ ${fmt(R0.rent)} → R$ ${fmt(R1.rent)}/s`;
+  if (TOURISM.includes(k)) {
+    if (k === 'marketing') return R0.tour.demand < 0.01 ? '+25% de turistas interessados' : `Turistas interessados: ${num(R0.tour.demand)} → ${num(R1.tour.demand)}/s`;
+    if (k === 'porto') return `Turistas espaciais: ${num(R0.tour.space.cap)} → ${num(R1.tour.space.cap)}/s`;
+    return `Lugares para turistas: ${num(R0.tour.cap)} → ${num(R1.tour.cap)}/s`;
+  }
+  const d = R1.income - R0.income;
+  return d > 1e-9 ? `Renda: +R$ ${fmt(d)}/s` : null;
+}

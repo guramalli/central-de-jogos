@@ -17,6 +17,7 @@ import { updateMap, mapOpen, openMap } from './talentMap.js';
 import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
 import { phaseAt, PHASES } from '../render/construction.js';
+import { updateSkills, anyToBuy } from './skills.js';
 
 const NECK_NAME = { prod: 'produção', tran: 'transporte', lay: 'assentamento', cap: 'fundação no limite' };
 const FLOW = [['prod', 'Produção'], ['tran', 'Transporte'], ['lay', 'Assentamento']];
@@ -38,7 +39,20 @@ export function showPage(p) {
   updateUI();
 }
 
+// Modo Obra Viva: na tela só o andar e o dinheiro; o resto mora na tela de Melhorias
+function updateHud() {
+  const fl = Math.floor(S.floors);
+  setText($('hFloor'), fmt(fl + 1));
+  setText($('hAlt'), fmtM(S.floors * MPF));
+  setText($('hMoney'), 'R$ ' + fmt(S.money));
+  $('openUp').querySelector('.dot').hidden = !anyToBuy();
+  updateSkills();
+  if (mapOpen()) updateMap();
+  setText($('skSave'), `Salvo neste navegador · continua por até ${fmt(offlineMax() / 3600)} h fora do jogo.`);
+}
+
 export function updateUI() {
+  if (FLAGS.viva) { updateHud(); return; }
   const R = rates(), m = S.floors * MPF, e = eraAt(m), capped = isCapped(R);
   // topo: só o essencial
   setText($('alt'), fmtM(m)); setText($('eraName'), ERAS[e].n);

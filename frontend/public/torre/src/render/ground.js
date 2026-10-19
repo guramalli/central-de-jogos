@@ -9,6 +9,7 @@ import { V } from './view.js';
 import { spark } from './particles.js';
 import { worker } from './workers.js';
 import { SHAFT_X } from './tower.js';
+import { zzz } from './signs.js';
 
 const STOCK_X = 168, TRUCK_STOP = 248;
 const groundVisible = () => worldY(H) < 420; // o chão (ou algo perto dele) está na tela
@@ -66,14 +67,14 @@ function coconut(px, sway) {
   R(tx - 4, ty - 8, 8, 8, '#6b4a24'); R(tx + 4, ty - 6, 7, 7, '#7a5531');
 }
 
-function truck(tx, tilt, gy) {
+function truck(tx, tilt, gy, empty = false) {
   const bed = tilt ? '#d38a1f' : '#f2a62a';
   R(tx, gy + 14, 76, 28, bed); R(tx, gy + 38, 76, 4, '#b8741a');
   if (S.lv.caminhao > 0) { // caminhão maior vira caminhão-betoneira com o tambor girando
     R(tx + 4, gy + 40, 68, 30, '#c9ced8'); R(tx + 4, gy + 66, 68, 4, '#e8ebf0'); R(tx + 4, gy + 40, 68, 3, '#9aa0ad');
     for (let k = 0; k < 4; k++) { const sx = tx + 4 + ((V.t * 26 + k * 17) % 68); R(sx, gy + 43, 5, 23, '#f2a62a'); }
     R(tx - 8, gy + 44, 12, 6, '#9aa0ad'); if (tilt) R(tx - 10, gy + 30, 6, 14, '#9aa0ad');
-  } else if (tilt) { R(tx + 4, gy + 42, 68, 10, '#c9ad72'); }
+  } else if (tilt && !empty) { R(tx + 4, gy + 42, 68, 10, '#c9ad72'); }
   for (let x = tx + 6; x < tx + 72; x += 14) R(x, gy + 16, 2, 22, '#d38a1f');
   R(tx + 76, gy + 14, 38, 40, '#2f5d8a'); R(tx + 84, gy + 32, 24, 16, '#bfe3ff'); R(tx + 76, gy + 14, 38, 4, '#24476a');
   for (const wx of [tx + 14, tx + 88]) { R(wx, gy, 18, 18, '#222'); R(wx + 5, gy + 5, 8, 8, '#888'); }
@@ -90,11 +91,13 @@ function wheelbarrow(wx, gy, load, ph, left) {
   P(24, 12 + b, 14, 2, '#8b5a2b');
 }
 
-export function drawGroundFront(prod) {
+// sg: sinais da obra (render/signs.js) — elevador lento empilha material e deixa serventes esperando;
+// pouco fornecimento deixa o estoque vazio e o caminhão chegando sem carga
+export function drawGroundFront(prod, sg = {}) {
   if (!groundVisible()) return;
   const gy = 0, L = S.lv, st = ERA_STYLE[eraAt(S.floors * MPF)], bc = st.brick;
   // estoque de material no térreo
-  const stacks = Math.min(20, Math.ceil(S.ground / 6));
+  const stacks = Math.min(sg.groundJam ? 40 : 20, Math.ceil(S.ground / 6));
   for (let i = 0; i < stacks; i++) {
     const x = STOCK_X + (i % 5) * 16, y = gy + Math.floor(i / 5) * 9;
     R(x, y, 15, 8, bc); R(x, y + 7, 14, 1, st.hi); R(x, y, 15, 1, 'rgba(0,0,0,.2)');
@@ -103,12 +106,25 @@ export function drawGroundFront(prod) {
   const per = clamp(40 / Math.max(.1, prod), 4, 16), ph = (V.t % per) / per;
   const tx = ph < .3 ? lerp(800, TRUCK_STOP, ph / .3) : ph < .6 ? TRUCK_STOP : lerp(TRUCK_STOP, 900, (ph - .6) / .4);
   const tilt = ph >= .3 && ph < .6;
-  truck(tx, tilt, gy);
-  if (tilt && Math.floor(V.t * 10) % 3 === 0) spark(tx + 4, gy + 40, '#c9ad72');
+  truck(tx, tilt, gy, !!sg.supplyLow);
+  if (tilt && !sg.supplyLow && Math.floor(V.t * 10) % 3 === 0) spark(tx + 4, gy + 40, '#c9ad72');
   // serventes levando material do estoque ao elevador 1
   // com Caçamba maior eles empurram carrinhos de mão (mais carga por viagem)
   const nw = Math.min(3, L.fornec), to = SHAFT_X(0) + 10, barrow = L.cacamba > 0;
   for (let i = 0; i < nw; i++) {
+    if (sg.groundJam) { // fila na porta do elevador, carregados, esperando a vez
+      const x = to + 18 + i * 24;
+      if (barrow) wheelbarrow(x, gy, bc, 0, true);
+      worker(x, gy, { phase: 0, carry: barrow ? null : bc, flip: true, skin: i + 1 });
+      zzz(x, gy + (barrow ? 56 : 68), i);
+      continue;
+    }
+    if (sg.supplyLow) { // nada para levar: esperam ao lado do estoque vazio
+      const x = STOCK_X + 10 + i * 22;
+      worker(x, gy, { phase: 0, flip: i % 2 === 1, skin: i + 1 });
+      zzz(x, gy + 56, i + 3);
+      continue;
+    }
     const p = (V.t * .22 + i / nw) % 1, go = p < .5, x = lerp(STOCK_X + 30, to, go ? p * 2 : 2 - p * 2);
     if (barrow) wheelbarrow(x, gy, go ? bc : null, V.t * 3 + i, go);
     worker(x, gy, { walk: true, phase: V.t * 3 + i, carry: barrow ? null : go ? bc : null, flip: go, skin: i + 1 });

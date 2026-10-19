@@ -6,10 +6,11 @@ import { V, resetView } from './render/view.js';
 import { cam, snapCamera } from './render/camera.js';
 import { updateView, render, resetMilestones } from './render/scene.js';
 import { H, setW } from './data/constants.js';
-import { ctx } from './render/canvas.js';
+import { ctxMain } from './render/canvas.js';
 import { updateUI, setNotice } from './ui/panel.js';
 import { closeMap, initMap } from './ui/talentMap.js';
 import { $ } from './ui/dom.js';
+import { initSkills, tickSkills, skillsOpen } from './ui/skills.js';
 import { FLAGS } from './data/flags.js';
 import { syncCameraButtons } from './ui/cameraControls.js';
 import { syncEvents, recent } from './render/events.js';
@@ -27,7 +28,13 @@ import { soundOn, setSound } from './ui/audio.js';
   }
 }
 migrate(load());
-setNotice(runOffline());
+// resumo do tempo fora: no modo atual vai para a dica do painel; no Obra Viva, numa faixa sobre a cena
+function welcome(msg) {
+  if (!msg) return;
+  setNotice(msg);
+  if (FLAGS.viva) V.toast = { a: 'ENQUANTO VOCÊ ESTEVE FORA', b: msg.replace(/^Enquanto você esteve fora: /, '').toUpperCase(), t: 5 };
+}
+welcome(runOffline());
 syncEvents();   // o que aconteceu fora do jogo vira resumo, não animação
 initEffects();
 
@@ -48,6 +55,7 @@ function tick(real) {
   while (sd > 0) { const st = Math.min(.25, sd); sim(st); sd -= st; }
   updateView(dt, speed);
   render();
+  if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
   uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
@@ -66,29 +74,39 @@ spBtns.forEach(b => b.onclick = () => {
   spBtns.forEach(x => x.setAttribute('aria-pressed', x === b));
 });
 
-const rs = $('reset');
-const disarm = () => { rs.classList.remove('armed'); rs.textContent = 'Recomeçar'; };
-rs.onclick = () => {
-  if (rs.classList.contains('armed')) { resetState(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); disarm(); updateUI(); return; }
-  rs.classList.add('armed'); rs.textContent = 'Confirmar: apagar tudo';
-  setTimeout(disarm, 3000);
-};
+// Recomeçar: dois cliques (o primeiro arma por 3 s). Botão no topo (modo atual) e no rodapé das Melhorias (Obra Viva)
+function doReset() { resetState(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); updateUI(); }
+for (const rs of [$('reset'), $('skReset')]) {
+  const disarm = () => { rs.classList.remove('armed'); rs.textContent = 'Recomeçar'; };
+  rs.onclick = () => {
+    if (rs.classList.contains('armed')) { disarm(); doReset(); return; }
+    rs.classList.add('armed'); rs.textContent = 'Confirmar: apagar tudo';
+    setTimeout(disarm, 3000);
+  };
+}
 
 initMap(updateUI);
 
-// comparação A/B: link para alternar entre o modo atual e o protótipo Obra Viva (saves separados)
+// Modo: Obra Viva é o padrão (tela limpa + Melhorias); ?classico abre o modo antigo. Saves separados.
+document.body.classList.toggle('modo-novo', FLAGS.viva);
 {
-  const u = new URL(location.href), viva = FLAGS.viva;
-  if (viva) u.searchParams.delete('viva'); else u.searchParams.set('viva', '');
-  $('modeLink').innerHTML = viva
-    ? `Protótipo Obra Viva · <a href="${u.href.replace('viva=', 'viva')}">voltar ao modo atual</a>`
-    : `<a href="${u.href.replace('viva=', 'viva')}">Testar protótipo Obra Viva</a>`;
+  const u = new URL(location.href);
+  u.searchParams.delete('viva');
+  if (FLAGS.viva) u.searchParams.set('classico', ''); else u.searchParams.delete('classico');
+  const href = u.href.replace('classico=', 'classico');
+  $('modeLink').innerHTML = FLAGS.viva ? '' : `Modo clássico · <a href="${href}">ir para o jogo novo</a>`;
+  $('skMode').innerHTML = `<a href="${href}">Modo clássico (progresso antigo)</a>`;
+}
+if (FLAGS.viva) {
+  for (const id of ['hPlateFloor', 'hPlateMoney', 'openUp']) $(id).hidden = false;
+  $('z-all').textContent = '⤢'; $('z-all').setAttribute('aria-label', 'Ver a torre inteira');
+  initSkills();
 }
 
-// som da obra: botão sobre a cena, lembrado neste navegador
-const snd = $('snd');
-const syncSnd = () => { snd.setAttribute('aria-pressed', soundOn()); snd.textContent = soundOn() ? 'Som' : 'Mudo'; };
-snd.onclick = () => { setSound(!soundOn()); syncSnd(); };
+// som da obra: lembrado neste navegador (botão sobre a cena no modo atual; no rodapé das Melhorias no Obra Viva)
+const sndBtns = [$('snd'), $('skSnd')];
+const syncSnd = () => sndBtns.forEach(b => { b.setAttribute('aria-pressed', soundOn()); b.textContent = soundOn() ? 'Som' : 'Mudo'; });
+sndBtns.forEach(b => b.onclick = () => { setSound(!soundOn()); syncSnd(); });
 syncSnd();
 
 addEventListener('beforeunload', save);
@@ -97,7 +115,7 @@ addEventListener('beforeunload', save);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { save(); return; }
   const msg = runOffline();
-  if (msg) { setNotice(msg); noticeT = V.t + 12; }
+  if (msg) { welcome(msg); noticeT = V.t + 12; }
   syncEvents(); snapCamera();
   last = performance.now();
 });
@@ -108,7 +126,7 @@ function fitCanvas() {
   const w = cvEl.clientWidth, h = cvEl.clientHeight;
   if (w < 10 || h < 10) return;
   const nw = Math.max(300, Math.min(960, Math.round(H * w / h)));
-  if (nw !== cvEl.width) { cvEl.width = nw; setW(nw); ctx.imageSmoothingEnabled = false; render(); }
+  if (nw !== cvEl.width) { cvEl.width = nw; setW(nw); ctxMain.imageSmoothingEnabled = false; render(); }
 }
 new ResizeObserver(fitCanvas).observe(viewEl);
 fitCanvas();

@@ -15,6 +15,7 @@ import { facade, drawFloors, clipWorld, shafts, scaffold, crane, airship, floorL
 import { drawTourGround, drawTourAir, drawForSale } from './tourism.js';
 import { buildState, buildStateWith, drawBuild, drawPallets, workX } from './construction.js';
 import { FLAGS } from '../data/flags.js';
+import { obraSigns, zzz, sweat, warn, cracks } from './signs.js';
 import { VIVA } from '../data/viva.js';
 import { pollEvents, emit } from './events.js';
 import { updateEffects, MAX_TOP_WORKERS } from './effects.js';
@@ -74,8 +75,10 @@ function shifted(dx, dy, fn) { cam.cx -= dx; cam.cy -= dy; fn(); cam.cx += dx; c
 export function render() {
   const R0 = rates(), built = Math.floor(S.floors), p = S.floors - built, capped = isCapped(R0);
   const mode = V.mode, base = baseFloor(), topWP = base * FH;
+  const sg = obraSigns(R0);
   drawSky(); drawClouds(false);
   drawGroundBack();
+  if (FLAGS.viva && capped) cracks();
   drawTourAir(topWP);
   shafts(topWP, S.ground > 0.5);
   drawFloors(base);
@@ -93,14 +96,15 @@ export function render() {
   const e = eraAt(base * MPF), s = ERA_STYLE[e], working = !capped && S.top > 0.05;
   const nb = Math.min(S.lv.pedreiro, 4), y0 = topWP;
   if (capped) drawCapped(y0, nb);
-  else if (mode === 1) drawBlocks(y0, p, s, e, Math.min(S.lv.pedreiro, MAX_TOP_WORKERS), working);
+  else if (mode === 1) drawBlocks(y0, p, s, e, Math.min(S.lv.pedreiro, MAX_TOP_WORKERS), working, sg);
   else if (mode === 2) drawPanels(y0, built, p, s, e, nb);
   else if (mode === 3) drawWholeFloor(y0, built, p, e, nb);
   else drawMegablock(y0, base);
   if (!capped && mode < 4) drawForSale(topWP);
-  drawGroundFront(R0.prod);
+  drawGroundFront(R0.prod, sg);
   drawTourGround(R0.tour);
   drawParticles();
+  if (V.preview) { drawClouds(true); return; } // prévia: sem textos, faixas nem marcos
   drawFloats();
   drawClouds(true);
   drawToast();
@@ -114,6 +118,11 @@ function topStock(y0, s) {
 
 function drawCapped(y0, nb) {
   scaffold(y0);
+  if (FLAGS.viva) { // sem texto: a obra parou, os pedreiros sentam e a base avisa
+    for (let j = 0; j < nb; j++) { const x = TL + 30 + j * 56; worker(x, y0 + SLAB, { sit: true, phase: 0, skin: j, flip: j % 2 === 1 }); zzz(x, y0 + SLAB + 44, j); }
+    warn(0, 8); warn(0, y0 + FH + 14); // na base (rachaduras) e no topo (obra parada)
+    return;
+  }
   R(-70, y0 + 26, 140, 34, '#2a2d38'); R(-66, y0 + 30, 132, 26, '#f2b630');
   if (!T('LIMITE DA FUNDAÇÃO', 0, y0 + 43, 11, '#11131a', 'center')) R(-50, y0 + 41, 100, 4, '#11131a');
   for (let j = 0; j < nb; j++) worker(TL + 30 + j * 56, y0 + SLAB, { phase: 0, skin: j, flip: j % 2 === 1 });
@@ -122,41 +131,55 @@ function drawCapped(y0, nb) {
 // Modo 1: bloco a bloco — o andar é montado em etapas (estrutura, paredes, janelas, acabamento)
 // som de cada peça por etapa
 const PIECE = { entrega: 'brick', estrutura: 'beam', paredes: 'brick', janelas: 'glass', acabamento: 'brick' };
-function drawBlocks(y0, p, s, e, nb, working) {
+function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
   scaffold(y0, false);
   R(TL, y0, TW, SLAB, s.slab); R(TL, y0 + SLAB - 2, TW, 2, s.hi);
   const lvl = floorLOD(), st = FLAGS.viva ? buildStateWith(p, VIVA.phases) : buildState(p), ph = st.phase.i, pid = st.phase.id;
   drawBuild(R, y0, st, s, lvl);
   if (st.delivery !== undefined) drawPallets(R, y0, st, s);
   const slotX = workX(st);
-  // peça nova: poeira e som; etapa nova: aviso sonoro (eventos só de apresentação)
-  if (V.lastK >= 0 && st.unit > V.lastK) {
+  // peça nova: poeira e som; etapa nova: aviso sonoro (eventos só de apresentação; nada disso na prévia)
+  if (!V.preview && V.lastK >= 0 && st.unit > V.lastK) {
     dust(slotX, y0 + SLAB + (pid === 'estrutura' ? FH - 20 : 30), '#d8cdb8', 4);
     if (e >= 2 || S.lv.ferram > 0) dust(slotX, y0 + SLAB + 30, '#ffe27a', 2);
     emit('piece_placed', { piece: S.lv.ferram > 0 && pid === 'paredes' ? 'drill' : PIECE[pid] });
   }
-  if (V.lastPhase >= 0 && ph > V.lastPhase) emit('floor_phase_changed', { phase: st.phase.id });
-  V.lastK = st.unit; V.lastPhase = ph;
+  if (!V.preview) {
+    if (V.lastPhase >= 0 && ph > V.lastPhase) emit('floor_phase_changed', { phase: st.phase.id });
+    V.lastK = st.unit; V.lastPhase = ph;
+  }
   if (st.delivery === undefined) topStock(y0, s);
+  // pedreiros lentos: material sobrando no topo vira paletes empilhados do lado esquerdo
+  if (sg.overloaded) for (let k = 0; k < Math.min(10, Math.floor(sg.surplus * 4)); k++) {
+    const x = TL + 6 + (k % 2) * 22, yy = y0 + SLAB + Math.floor(k / 2) * 12;
+    R(x, yy, 21, 3, '#8b5a2b'); R(x + 1, yy + 3, 19, 8, s.brick); R(x + 1, yy + 10, 19, 1, s.hi);
+  }
+  const idle = !!sg.starving; // falta material: ninguém tem o que assentar
   // o pedreiro mais perto da próxima peça vai até ela
   const home = j => nb === 1 ? 0 : TL + 34 + j * (TW - 100) / (nb - 1);
   let act = 0, best = 1e9;
   for (let j = 0; j < nb; j++) { const d = Math.abs(home(j) - slotX); if (d < best) { best = d; act = j; } }
   const fy = y0 + SLAB, pace = 1 + 0.15 * Math.min(S.lv.treino, 6), drill = S.lv.ferram > 0;
   // pedreiros caminham com velocidade de gente (quem acabou de ser contratado entra andando)
-  const dtv = clamp(V.t - (V.bxT ?? V.t), 0, .1), stepMax = 150 * pace * dtv; V.bxT = V.t;
+  const dtv = clamp(V.t - (V.bxT ?? V.t), 0, .1), stepMax = 150 * pace * dtv;
+  if (!V.preview) V.bxT = V.t;
+  const bx = [];
   for (let j = 0; j < nb; j++) {
-    const tx = j === act ? clamp(slotX - 26, TL + 10, TL + TW - 40) : home(j);
-    V.bx[j] = V.bx[j] === undefined ? tx : V.bx[j] + clamp(tx - V.bx[j], -stepMax, stepMax);
-    const walk = Math.abs(V.bx[j] - tx) > 2;
-    worker(V.bx[j], fy, { hammer: working && !walk, drill, phase: V.t * (j === act ? 3 : 1.6) * pace + j * .37, walk, flip: walk && tx < V.bx[j], skin: j });
+    const tx = idle ? home(j) : j === act ? clamp(slotX - 26, TL + 10, TL + TW - 40) : home(j);
+    const x = V.preview || V.bx[j] === undefined ? tx : V.bx[j] + clamp(tx - V.bx[j], -stepMax, stepMax);
+    if (!V.preview) V.bx[j] = x;
+    bx[j] = x;
+    const walk = Math.abs(x - tx) > 2, sit = idle && !walk;
+    worker(x, fy, { sit, hammer: working && !walk && !idle, drill, phase: V.t * (j === act ? 3 : 1.6) * pace + j * .37, walk, flip: walk && tx < x, skin: j });
+    if (sit) zzz(x, fy + 42, j);
+    else if (sg.overloaded && !walk) sweat(x, fy + 50, j);
   }
   // peça a caminho: tijolo nas paredes, vidro nas janelas
-  if (working && (pid === 'paredes' || pid === 'janelas')) {
-    const f = st.frac, hx = V.bx[act] + 22, hy = fy + 44, ty = pid === 'paredes' ? y0 + SLAB + 40 : y0 + 46;
-    const bx = lerp(hx, slotX - 10, f), by = lerp(hy, ty, f) + Math.sin(f * Math.PI) * 16;
-    if (pid === 'paredes') { R(bx, by, 19, 10, s.brick); R(bx, by + 9, 18, 1, s.hi); }
-    else { R(bx, by, 16, 20, s.frame); R(bx + 2, by + 2, 12, 16, s.glass); R(bx + 4, by + 6, 2, 10, 'rgba(255,255,255,.4)'); }
+  if (working && !idle && (pid === 'paredes' || pid === 'janelas')) {
+    const f = st.frac, hx = bx[act] + 22, hy = fy + 44, ty = pid === 'paredes' ? y0 + SLAB + 40 : y0 + 46;
+    const px = lerp(hx, slotX - 10, f), py = lerp(hy, ty, f) + Math.sin(f * Math.PI) * 16;
+    if (pid === 'paredes') { R(px, py, 19, 10, s.brick); R(px, py + 9, 18, 1, s.hi); }
+    else { R(px, py, 16, 20, s.frame); R(px + 2, py + 2, 12, 16, s.glass); R(px + 4, py + 6, 2, 10, 'rgba(255,255,255,.4)'); }
   }
   // acima de MAX_TOP_WORKERS, os pedreiros viram uma equipe com contador (limite visual)
   if (S.lv.pedreiro > MAX_TOP_WORKERS) { R(-72, y0 + FH + 8, 144, 16, 'rgba(17,19,26,.75)'); T(`EQUIPE DE ${S.lv.pedreiro} PEDREIROS`, 0, y0 + FH + 16, 9, '#ece6d6', 'center'); }

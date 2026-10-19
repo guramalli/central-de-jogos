@@ -1,6 +1,6 @@
 // Operário de ~58 px de altura (arte provisória por retângulos; será trocada por sprite do PixelLab).
 // Coordenadas de mundo: (x, y) = centro dos pés. Virado para a direita; flip vira para a esquerda.
-// o: { walk, phase, carry (cor da carga), hammer, drill (furadeira no lugar do martelo),
+// o: { walk, phase, carry (cor da carga), hammer, drill (furadeira no lugar do martelo), sit (sentado),
 //      boss (mestre de obras: capacete branco e prancheta), flip, skin (0..3), suit, pack }
 import { MPF } from '../data/constants.js';
 import { eraAt } from '../data/eras.js';
@@ -18,7 +18,10 @@ export function worker(x, y, o = {}) {
   const pants = suit ? '#dfe3ea' : '#33456b', pantsD = suit ? '#b9bfca' : '#26355a';
   const boot = suit ? '#7a8296' : '#4a3524', bootHi = suit ? '#9aa3b5' : '#6b4a30';
   const f = o.flip;
-  const P = (lx, ly, w, h, c) => R(f ? x - lx - w : x + lx, y + ly, w, h, c);
+  // sit: sentado na laje (sem material para trabalhar) — o corpo desce, as pernas vão para a frente
+  const D = o.sit ? -15 : 0;
+  const P = (lx, ly, w, h, c) => R(f ? x - lx - w : x + lx, y + ly + D, w, h, c);
+  const Pg = (lx, ly, w, h, c) => R(f ? x - lx - w : x + lx, y + ly, w, h, c);
 
   // pequeno demais para detalhe: só a silhueta
   if (cam.z < 0.2) {
@@ -36,8 +39,12 @@ export function worker(x, y, o = {}) {
   if (suit && (o.pack ?? era >= 5)) { P(-13, 25, 5, 17, '#9aa3b5'); P(-13, 38, 5, 2, '#6b7183'); }
 
   // pernas
-  P(-5 - walk, 5, 6, 18, pantsD); P(-6 - walk, 0, 8, 5, boot);
-  P(0 + walk, 5, 6, 18, pants); P(-1 + walk, 0, 9, 5, boot); P(-1 + walk, 4, 9, 1, bootHi);
+  if (o.sit) {
+    Pg(-6, 4, 18, 6, pantsD); Pg(-4, 6, 18, 6, pants); Pg(10, 0, 6, 8, pants); Pg(10, 0, 9, 4, boot); Pg(10, 3, 9, 1, bootHi);
+  } else {
+    P(-5 - walk, 5, 6, 18, pantsD); P(-6 - walk, 0, 8, 5, boot);
+    P(0 + walk, 5, 6, 18, pants); P(-1 + walk, 0, 9, 5, boot); P(-1 + walk, 4, 9, 1, bootHi);
+  }
 
   // tronco
   P(-8, 22, 16, 19, vest); P(-8, 22, 3, 19, vestD);

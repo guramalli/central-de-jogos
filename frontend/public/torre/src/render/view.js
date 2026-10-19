@@ -17,6 +17,7 @@ export const V = {
   flash: null,     // andar recém-concluído com as luzes acesas { i, t }
   shaftBuild: [],  // montagem de cada elevador novo (0..1)
   craneBuild: 1,   // montagem do guindaste (0..1)
+  preview: false,  // desenhando uma prévia (tela de Melhorias): nada de efeitos colaterais
 };
 
 export function resetView() {

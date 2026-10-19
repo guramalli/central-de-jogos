@@ -291,7 +291,7 @@ rs.onclick = () => {
 };
 addEventListener('keydown', e => {
   if (overlay.hidden) return;
-  if (e.key === 'Escape') closeMap();
+  if (e.key === 'Escape') { e.preventDefault(); closeMap(); }
   else if (e.key === '+' || e.key === '=') $('m-in').click();
   else if (e.key === '-') $('m-out').click();
 });

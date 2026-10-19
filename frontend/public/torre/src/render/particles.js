@@ -3,6 +3,7 @@ import { V } from './view.js';
 import { R } from './canvas.js';
 
 export function spark(x, y, c, s = 1) {
+  if (V.preview) return;
   V.parts.push({ x, y, vx: (Math.random() - .5) * 120 * s, vy: (Math.random() * 110 + 30) * s, l: .5 + Math.random() * .4, c, sz: 3 * s });
 }
 // quem pediu menos movimento no sistema recebe um terço das partículas; no modo de teste (?test=1), nenhuma
@@ -15,6 +16,7 @@ export function updateParticles(dt) {
   if (V.parts.length > 400) V.parts.splice(0, V.parts.length - 400);
 }
 export function drawParticles() {
+  if (V.preview) return;
   V.parts = V.parts.filter(q => q.l > 0);
   V.parts.forEach(q => R(q.x, q.y, q.sz, q.sz, q.c));
 }

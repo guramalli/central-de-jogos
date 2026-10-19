@@ -28,6 +28,10 @@
     <section class="stage">
       <div class="view" id="view">
         <canvas id="cv" width="360" height="480" aria-label="Obra da torre em pixel art. Arraste para mover a câmera; roda do mouse ou pinça para zoom."></canvas>
+        <!-- modo Obra Viva: só o andar e o dinheiro na tela, e o botão Melhorias -->
+        <div class="plate plate-floor" id="hPlateFloor" hidden><small>ANDAR</small><b id="hFloor">1</b><span id="hAlt">0 m</span></div>
+        <div class="plate plate-money" id="hPlateMoney" hidden><b id="hMoney">R$ 0</b></div>
+        <button class="upbtn" id="openUp" hidden aria-haspopup="dialog">Melhorias<i class="dot" hidden></i></button>
         <!-- aviso contextual: andares prontos sem destino -->
         <div class="ready" id="ready" hidden>
           <span><b id="readyN">0</b> <span id="readyTxt">andares prontos</span></span>
@@ -204,6 +208,39 @@
       <span>Banco</span><i class="dot" hidden></i>
     </button>
   </nav>
+</div>
+
+<!-- Melhorias (modo Obra Viva): abas coloridas por ramo, árvore subindo de baixo para cima e painel com prévia -->
+<div class="sk" id="skills" hidden role="dialog" aria-modal="true" aria-label="Melhorias da obra">
+  <header class="sk-h">
+    <b class="sk-t">Melhorias da obra</b>
+    <span class="sk-money" id="skMoney">R$ 0</span>
+    <span class="grow"></span>
+    <button class="btn sm" id="skClose">Fechar</button>
+  </header>
+  <div class="sk-flow" id="skFlow"></div>
+  <nav class="sk-tabs" id="skTabs" role="tablist"></nav>
+  <div class="sk-body">
+    <div class="sk-tree" id="skTree"><svg id="skSvg" aria-label="Árvore de melhorias do ramo"></svg></div>
+    <aside class="sk-d" id="skDetail">
+      <div class="sk-kind" id="sdKind"></div>
+      <div class="sk-name" id="sdName"></div>
+      <div class="sk-lv" id="sdLv"></div>
+      <p class="sk-desc" id="sdDesc"></p>
+      <div class="sk-fx" id="sdFx"></div>
+      <canvas class="sk-prev" id="sdPrev" width="320" height="190" aria-label="Prévia do efeito na obra"></canvas>
+      <div class="hint" id="sdReq"></div>
+      <button class="btn wide" id="sdBuy">Comprar</button>
+    </aside>
+    <div class="sk-neg" id="skNeg" hidden></div>
+  </div>
+  <footer class="sk-f">
+    <span class="hint" id="skSave">Salvo neste navegador.</span>
+    <span class="grow"></span>
+    <button class="resetbtn" id="skSnd" aria-pressed="true">Som</button>
+    <button class="resetbtn" id="skReset">Recomeçar</button>
+    <span class="modelink" id="skMode"></span>
+  </footer>
 </div>
 
 <div class="tmap" id="tmap" hidden role="dialog" aria-modal="true" aria-label="Mapa da árvore de Engenharia">
