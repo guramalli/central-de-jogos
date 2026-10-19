@@ -11,5 +11,5 @@ export function runOffline() {
   while (t > 0) { const st = Math.min(5, t); sim(st); t -= st; }
   const df = Math.floor(S.floors) - Math.floor(f0), dm = S.money - m0;
   if (df < 1 && dm < 1) return null;
-  return `Enquanto você esteve fora: +${fmt(df)} andares, +R$ ${fmt(dm)}`;
+  return `Enquanto você esteve fora: +${fmt(df)} ${df === 1 ? "andar" : "andares"}, +R$ ${fmt(dm)}`;
 }
