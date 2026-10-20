@@ -10,7 +10,7 @@ import { S } from '../sim/state.js';
 import { R, ctx } from './canvas.js';
 import { cam, sx, sy } from './camera.js';
 import { art } from './assets.js';
-import { blit, shade } from './sprites.js';
+import { blit } from './sprites.js';
 import { drawRig, ANIMS, SKINS, RIG_AX, RIG_AY, walkDistance } from './rig.js';
 
 const SIL = { vest: '#ee7a1c', pants: '#30446e', helm: '#f7c824', suit: '#d3d8e0', suitD: '#a9b0bd', visor: '#f7f8fb' };
@@ -40,13 +40,32 @@ export function tourist(x, y, i, o = {}) {
 // folhas do PixelLab: [arquivo, quadros]; células de 88×88 com os pés no ponto (44, 84)
 const SHEETS = { walk: ['andar', 8], carry: ['carregar', 5], hammer: ['martelar', 8], drill: ['furar', 6], idle: ['parado', 4], sit: ['sentado', 3], boss: ['prancheta', 8] };
 const CELL = 88, FEET_X = 44, FEET_Y = 84;
-// onde ficam as mãos em cada quadro de "carregar" (célula)
-const HANDS = { boneco: [[60, 51], [61, 46], [60, 46], [61, 45], [62, 47]], espacial: [[66, 50], [67, 49], [67, 50], [66, 50], [66, 51]] };
 function blitCell(img, i, x, y, flip) {
   const z = cam.z, X = Math.round(sx(x - FEET_X)), Y = Math.round(sy(y + FEET_Y)), w = Math.round(CELL * z), h = Math.round(CELL * z);
   if (X > ctx.canvas.width || X + w < 0 || Y > ctx.canvas.height || Y + h < 0) return;
   if (flip) { ctx.save(); ctx.translate(X + w, Y); ctx.scale(-1, 1); ctx.drawImage(img, i * CELL, 0, CELL, CELL, 0, 0, w, h); ctx.restore(); }
   else ctx.drawImage(img, i * CELL, 0, CELL, CELL, X, Y, w, h);
+}
+
+// troca os pixels magenta (cor marcadora da caixa) pela cor do material, com luz e sombra pela luminosidade
+const tintCache = new Map();
+function tinted(img, color, set) {
+  const k = set + color; let c = tintCache.get(k);
+  if (c) return c;
+  c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height), p = d.data;
+  const n = parseInt(color.slice(1), 16), cr = n >> 16, cg = (n >> 8) & 255, cb = n & 255;
+  for (let i = 0; i < p.length; i += 4) {
+    const r = p[i], gg = p[i + 1], b = p[i + 2];
+    const mx = Math.max(r, b);
+    // magenta: verde abaixo do azul e bem abaixo do vermelho (do rosa claro ao roxo); colete laranja, pele e jeans ficam de fora
+    if (!p[i + 3] || mx < 50 || gg >= b || r - gg < 50 || Math.min(r, b) < 0.5 * mx || (gg > 0.3 * r && r < 200)) continue;
+    const f = Math.max(0.4, Math.min(1.35, 0.35 + 0.65 * (mx + gg) / 255)); // rosa claro = face iluminada
+    p[i] = Math.min(255, cr * f); p[i + 1] = Math.min(255, cg * f); p[i + 2] = Math.min(255, cb * f);
+  }
+  g.putImageData(d, 0, 0); tintCache.set(k, c);
+  return c;
 }
 
 export function worker(x, y, o = {}) {
@@ -73,16 +92,15 @@ export function worker(x, y, o = {}) {
   // bonecos do PixelLab (folhas em assets/<conjunto>): pedreiro, pedreiro de traje espacial (eras altas) e mestre de obras;
   // usados quando a arte já carregou (antes disso, o esqueleto por código)
   {
-    const set = suit ? 'espacial' : o.boss ? 'mestre' : 'boneco'; // nas eras altas o mestre também usa traje (parado, de olho na obra)
+    // serventes do térreo (role 'servente'): boné azul e colete verde; só andar, carregar e parado
+    const serv = o.role === 'servente' && !suit && !o.boss && (anim === 'walk' || anim === 'idle');
+    const set = serv ? 'servente' : suit ? 'espacial' : o.boss ? 'mestre' : 'boneco'; // nas eras altas o mestre também usa traje (parado, de olho na obra)
     const key = o.boss ? (suit ? 'idle' : anim === 'walk' ? 'walk' : 'boss') : anim === 'walk' && o.carry ? 'carry' : anim;
-    const sh = SHEETS[key], img = sh && art(set + '/' + sh[0]);
+    const sh = SHEETS[key], img = sh && (art(set + '/' + sh[0]) || (serv && art('boneco/' + sh[0])));
     if (img) {
       const m = sh[1], f = ((Math.floor((cyc % 1 + 1) % 1 * m)) + m) % m;
-      blitCell(img, f, x, y, !!o.flip);
-      if (sh[0] === 'carregar') { // o bloco é desenhado pelo jogo (mesmo bloco e cor da era que a construção usa), apoiado nas mãos
-        const [hx, hy] = HANDS[set][f], dx = hx - FEET_X, bx = o.flip ? x - dx - 3 : x + dx - 16, by = y + FEET_Y - hy;
-        R(bx, by, 19, 10, o.carry); R(bx, by + 9, 19, 1, shade(o.carry, 0.3)); R(bx, by, 19, 1, shade(o.carry, -0.3)); R(bx + 9, by + 1, 1, 8, shade(o.carry, -0.2));
-      }
+      // carregar: a caixa magenta do desenho vira a cor do material da era (mesma cor dos blocos da construção)
+      blitCell(sh[0] === 'carregar' && o.carry ? tinted(img, o.carry, img.src || set) : img, f, x, y, !!o.flip);
       return;
     }
   }

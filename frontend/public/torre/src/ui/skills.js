@@ -8,8 +8,8 @@ import { ERAS } from '../data/eras.js';
 import { TBRANCHES } from '../data/talents.js';
 import { SKILL_LAYOUT, COLS, BW, ROW, ERA_ROW0, colX, upgradePos, BASE_POS, SHORT } from '../data/skillTree.js';
 import { S, save } from '../sim/state.js';
-import { cost, unlocked, maxed, canBuy, buy, stageBlock, STAGE_OF } from '../sim/economy.js';
-import { upgradeEffect } from '../sim/preview.js';
+import { cost, unlocked, maxed, canBuy, buy, stageBlock, STAGE_OF, rates, isCapped } from '../sim/economy.js';
+import { upgradeEffect, priorityScore } from '../sim/preview.js';
 import { W } from '../data/constants.js';
 import { setViewInset } from '../render/camera.js';
 import { V } from '../render/view.js';
@@ -17,6 +17,8 @@ import { $, setText, setHTML } from './dom.js';
 import { fmt, fmtM } from './format.js';
 import { iconSprite, badgeSprite, lockSprite } from './icons.js';
 import { iconURL } from '../render/assets.js';
+import { VIVA } from '../data/viva.js';
+import { boardLv, boardCost, boardMaxed, buyBoard, canDeliver, pointsFor, city, nextCity } from '../sim/prestige.js';
 import { spriteDataURL } from '../render/sprites.js';
 
 const COLOR = Object.fromEntries(TBRANCHES.map(b => [b.id, b.color]));
@@ -36,9 +38,12 @@ const overlay = $('skills'), svg = $('skSvg');
 let sel = null, built = false; // sel = chave da melhoria selecionada
 
 const lockedUp = k => !unlocked(k);
+// ícone: o do PixelLab; senão o desenhado por código; senão o da tecnologia irmã (par da era)
+const iconHref = k => { const u = UP[k], spr = iconSprite(u.icon || k); return iconURL(k) || iconURL(u.icon) || (spr && spriteDataURL(spr)) || (u.pair && iconURL(u.pair)) || spriteDataURL(iconSprite('motor')); };
 const eraOf = k => UP[k].era ? ERAS[UP[k].era].n : '';
 const lockText = k => {
   const u = UP[k], parts = [];
+  if (u.pair && S.lv[u.pair] > 0) return `Nesta obra você escolheu ${UP[u.pair].n}. A outra opção volta na próxima obra.`;
   if (u.req && S.lv[u.req[0]] < u.req[1]) parts.push(`${UP[u.req[0]].n} no nível ${u.req[1]}`);
   if (u.reqAlt && S.maxAlt < u.reqAlt) parts.push(`a torre chegar a ${fmtM(u.reqAlt)}${u.era ? ` (${eraOf(k)})` : ''}`);
   return parts.length ? 'Libera quando ' + parts.join(' e ') + '.' : '';
@@ -56,6 +61,7 @@ const holdText = (k, blk) => `${HOLD_WHY[blk][STAGE_OF(k)]}. Melhore ${blk === '
 // o que falta, curto, para escrever na árvore ("Treino nv 3", "torre em 1 km", "abre no Concreto")
 const reqShort = k => {
   const u = UP[k];
+  if (u.pair && S.lv[u.pair] > 0) return 'outra escolhida';
   if (u.req && S.lv[u.req[0]] < u.req[1]) return `${SHORT[u.req[0]] || UP[u.req[0]].n} nv ${u.req[1]}`;
   if (u.reqAlt && S.maxAlt < u.reqAlt) return u.era ? 'abre em ' + fmtM(u.reqAlt) : 'torre em ' + fmtM(u.reqAlt);
   return '';
@@ -112,7 +118,7 @@ function build() {
       const n = mk('g', { class: 'sk-node' + (UP[k].era ? ' tech' : ''), transform: `translate(${x} ${Y(y)})`, style: `--c:${c}`, 'data-up': k }, gNodes);
       mk('rect', { x: -40, y: -40, width: 80, height: 80, class: 'halo' }, n);
       const badge = mk('image', { x: -36, y: -36, width: 72, height: 72, class: 'px' }, n);
-      mk('image', { x: -19.2, y: -21.2, width: 38.4, height: 38.4, class: 'px ico', href: iconURL(k) || spriteDataURL(iconSprite(UP[k].icon || k)) }, n); // ícone do PixelLab quando existe
+      mk('image', { x: -19.2, y: -21.2, width: 38.4, height: 38.4, class: 'px ico', href: iconHref(k) }, n); // ícone do PixelLab quando existe
       mk('image', { x: -15, y: -15, width: 30, height: 30, class: 'px lock', href: spriteDataURL(lockSprite()) }, n);
       mk('rect', { x: 13, y: 15, width: 26, height: 20, class: 'lvbox' }, n);
       const lv = mk('text', { class: 'lvl', x: 26, y: 26, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, n);
@@ -127,12 +133,15 @@ function build() {
 // ---------- estado visual ----------
 function updateTree() {
   for (const r of eraEls) r.g.classList.toggle('open', S.maxAlt >= ERAS[r.e].m);
+  const capped = isCapped(rates()); // obra parada no limite: a Fundação brilha (sem texto)
+  // começo do jogo (antes de 10 andares, só na 1ª obra): brilho nas 3 compras que mais rendem agora
+  const rec = new Set(S.floors < 10 && (S.obra || 1) === 1 ? Object.keys(upEls).filter(k => k !== 'imoveis' && canBuy(k)).map(k => [k, priorityScore(k)]).sort((a, b) => b[1] - a[1]).slice(0, 3).map(x => x[0]) : []);
   for (const k in upEls) {
-    const e = upEls[k], lk = lockedUp(k), mx = maxed(k), lv = S.lv[k];
+    const e = upEls[k], lk = lockedUp(k), mx = maxed(k) && k !== 'imoveis', lv = k === 'imoveis' ? (policyOf() === 'sell' ? 'V' : 'A') : S.lv[k];
     setText(e.lv, lk ? '' : String(lv));
     const blk = !lk && !mx ? stageBlock(k) : null;
     const st = lk ? 'locked' : mx ? 'max' : blk ? 'hold' : canBuy(k) ? 'can' : lv > 0 ? 'own' : 'open';
-    const cls = 'sk-node ' + st + (UP[k].era ? ' tech' : '') + (sel === k ? ' sel' : '');
+    const cls = 'sk-node ' + st + (UP[k].era ? ' tech' : '') + (UP[k].pair && S.lv[UP[k].pair] > 0 ? ' taken' : '') + (sel === k ? ' sel' : '') + (capped && k === 'fundacao' ? ' need' : '') + (rec.has(k) ? ' rec' : '');
     if (cls !== e.cls) { e.n.setAttribute('class', cls); e.cls = cls; }
     if (st !== e.st) { e.badge.setAttribute('href', spriteDataURL(badgeSprite(COLOR[UP[k].b], st === 'hold' ? (lv > 0 ? 'own' : 'open') : st))); e.st = st; }
     if (e.e) { e.e.classList.toggle('on', lv > 0); e.e.classList.toggle('open', !lk && lv === 0); }
@@ -141,9 +150,24 @@ function updateTree() {
 }
 
 // ---------- painel ----------
+// Imóveis da era: escolha de política (alugar × vender), sem custo
+const policyOf = () => (S.policy && S.policy[S.era]) === 'sell' ? 'sell' : 'rent';
+function drawPolicy(d, bt) {
+  const sell = policyOf() === 'sell';
+  d.style.setProperty('--c', COLOR.merc);
+  setText($('sdKind'), BRANCH_INFO.merc[0] + ' · ' + ERAS[S.era].n);
+  setText($('sdName'), UP.imoveis.n);
+  setHTML($('sdLv'), `<span>Agora: ${sell ? 'vendendo' : 'alugando'} os andares desta era</span>`);
+  setText($('sdDesc'), UP.imoveis.d);
+  setText($('sdFx'), sell ? 'Cada andar pronto vira dinheiro na hora.' : 'Cada andar pronto soma no aluguel por segundo.'); $('sdFx').hidden = false;
+  setText($('sdReq'), 'Vale para os andares que ficarem prontos daqui em diante, nesta era.');
+  bt.hidden = false; bt.disabled = false; setText(bt, sell ? 'Mudar para alugar' : 'Mudar para vender');
+}
+
 function drawDetail() {
   const d = $('skDetail'), bt = $('sdBuy');
   if (!sel) return;
+  if (sel === 'imoveis') { drawPolicy(d, bt); return; }
   const k = sel, u = UP[k], lk = lockedUp(k), mx = maxed(k), can = !lk && canBuy(k);
   d.style.setProperty('--c', COLOR[u.b]);
   setText($('sdKind'), BRANCH_INFO[u.b][0] + (u.era ? ` · tecnologia da ${eraOf(k)}` : ' · compra com dinheiro'));
@@ -162,6 +186,7 @@ function drawDetail() {
 
 function select(k) { sel = k; updateSkills(); }
 function onBuy() {
+  if (sel === 'imoveis') { S.policy = { ...S.policy, [S.era]: policyOf() === 'sell' ? 'rent' : 'sell' }; save(); updateSkills(); return; }
   if (!sel || lockedUp(sel) || !buy(sel)) return;
   if (sel === 'elevador') V.elev[S.lv.elevador - 1] = Math.random();
   save(); updateSkills();
@@ -228,11 +253,45 @@ svg.addEventListener('wheel', e => { e.preventDefault(); userMoved = true; const
 new ResizeObserver(() => { if (!overlay.hidden && !userMoved) fit(); }).observe(svg);
 
 // ---------- atualização ----------
+// quadro "Construtora" (prestígio): aparece depois que a primeira obra pode ser entregue
+let boardBuilt = false;
+function buildBoard() {
+  const row = $('skBoardRow'); row.innerHTML = '';
+  for (const k in VIVA.board) {
+    const b = VIVA.board[k], c = document.createElement('div'); c.className = 'skb-card'; c.dataset.k = k;
+    c.innerHTML = `<b>${b.n}</b><u></u><i>${b.d}</i><button type="button"></button>`;
+    c.querySelector('button').onclick = () => { if (buyBoard(k)) { save(); updateSkills(); } };
+    row.appendChild(c);
+  }
+  // no celular o quadro começa recolhido (a árvore precisa do espaço); tocar no título abre e fecha
+  if (innerWidth <= 820) $('skBoard').classList.add('fold');
+  document.querySelector('.skb-h').onclick = () => $('skBoard').classList.toggle('fold');
+  boardBuilt = true;
+}
+function updateBoard() {
+  const show = S.pontosTotal > 0 || canDeliver();
+  $('skBoard').hidden = !show;
+  const dv = $('skDeliver');
+  dv.hidden = !canDeliver();
+  if (!dv.hidden && !dv.classList.contains('armed')) setText(dv, `Entregar a obra (+${pointsFor(S.maxAlt)} ★) → ${nextCity().n}`);
+  if (!show) return;
+  if (!boardBuilt) buildBoard();
+  setText($('skPts'), '★ ' + fmt(S.pontos || 0));
+  setText($('skObra'), `Obra nº ${S.obra || 1} · ${city().n}`);
+  for (const c of $('skBoardRow').children) {
+    const k = c.dataset.k, b = VIVA.board[k], lv = boardLv(k), mx = boardMaxed(k), bt = c.querySelector('button');
+    setText(c.querySelector('u'), `Nível ${lv} de ${b.max}`);
+    setText(bt, mx ? 'Máximo' : `★ ${fmt(boardCost(k))}`);
+    bt.disabled = mx || (S.pontos || 0) < boardCost(k);
+  }
+}
+
 export function updateSkills() {
   if (overlay.hidden) return;
   setText($('skMoney'), 'R$ ' + fmt(S.money));
   updateTree();
   drawDetail();
+  updateBoard();
 }
 export const tickSkills = () => {};
 export const skillsOpen = () => !overlay.hidden;

@@ -9,6 +9,7 @@ import { mods } from './mods.js';
 import { typeCount } from './realty.js';
 import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
+import { boardMult, cityMult } from './prestige.js';
 
 const T = BAL.tourism;
 
@@ -16,7 +17,7 @@ export function tourism() {
   const L = S.lv, M = mods(), alt = altOf(S.floors);
   const hotels = typeCount('hotel'), obs = typeCount('obs');
   const demand = L.bilheteria < 1 ? 0
-    : T.demand * Math.pow(alt, T.demandPow) * (1 + 0.25 * L.marketing) * (1 + 0.15 * Math.log2(1 + hotels / 10)) * techMult('tour') * M.mult('tourism');
+    : T.demand * Math.pow(alt, T.demandPow) * (1 + 0.25 * L.marketing) * (1 + 0.15 * Math.log2(1 + hotels / 10)) * techMult('tour') * M.mult('tourism') * boardMult('tour') * cityMult('tour');
   // Obra Viva: a capacidade acompanha a altura (cabines maiores e mais rápidas, como aparece na cena), no mesmo
   // ritmo dos interessados, e cada nível multiplica (×1,6) em vez de somar; assim Marketing e Agência continuam valendo
   const lvCap = n => n < 1 ? 0 : FLAGS.viva ? Math.pow(1.6, n - 1) * Math.pow(Math.max(1, alt / 40), T.demandPow) : n;

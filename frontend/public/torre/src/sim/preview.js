@@ -67,7 +67,11 @@ export function upgradeEffect(k) {
   let R1;
   try { R1 = rates(); } finally { S.lv[k]--; }
   const fpm = R => floorsPerMin(R);
-  if (k === 'fundacao' || u.flag === 'floatFound') return `Limite da torre: ${fmt(R0.capF)} → ${fmt(R1.capF)} andares`;
+  if (k === 'fundacao' || u.flag === 'floatFound' || u.st === 'capF') return `Limite da torre: ${fmt(R0.capF)} → ${fmt(R1.capF)} andares`;
+  if (u.st === 'fundCost') { const c0 = cost('fundacao'); S.lv[k]++; const c1 = cost('fundacao'); S.lv[k]--; return `Fundação reforçada: R$ ${fmt(c0)} → R$ ${fmt(c1)}`; }
+  if (u.st === 'sale') return `+${Math.round((u.add || 0) * 100)}% no valor de cada andar vendido (política Vender nos Imóveis da era)`;
+  if (u.st === 'rent' && u.b !== 'merc') return R1.income > R0.income + 1e-9 ? `Renda: R$ ${fmt(R0.income)}/s → R$ ${fmt(R1.income)}/s` : `+${Math.round((u.add || 0) * 100)}% no aluguel de cada andar alugado`;
+  if (u.st === 'fcost') return `Material por andar: ${num(R0.fcost)} → ${num(R1.fcost)}`;
   if (u.b === 'merc') {
     if (R1.income > R0.income + 1e-9) return `Renda: R$ ${fmt(R0.income)}/s → R$ ${fmt(R1.income)}/s`;
     if (TOURISM.includes(k) || u.st === 'tour' || u.st === 'ticket') {

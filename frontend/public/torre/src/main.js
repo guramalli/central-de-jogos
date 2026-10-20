@@ -3,7 +3,7 @@ import { sim } from './sim/economy.js';
 import { migrate } from './sim/migrate.js';
 import { runOffline } from './sim/offline.js';
 import { V, resetView } from './render/view.js';
-import { cam, snapCamera } from './render/camera.js';
+import { cam, snapCamera, panBy } from './render/camera.js';
 import { updateView, render, resetMilestones } from './render/scene.js';
 import { H, setW } from './data/constants.js';
 import { ctxMain } from './render/canvas.js';
@@ -17,7 +17,10 @@ import { syncCameraButtons } from './ui/cameraControls.js';
 import { syncEvents, recent } from './render/events.js';
 import { initEffects } from './render/effects.js';
 import { soundOn, setSound } from './ui/audio.js';
-import { initIntro, introActive, startIntro } from './ui/intro.js';
+import { initIntro, introActive, startIntro, showNews } from './ui/intro.js';
+import { deliver, city } from './sim/prestige.js';
+import { initMilestones } from './ui/milestones.js';
+const cityName = () => city().n;
 import { preloadArt } from './render/assets.js';
 preloadArt();
 
@@ -91,6 +94,18 @@ for (const rs of [$('reset'), $('skReset')]) {
   };
 }
 
+// Prestígio "Nova obra": entregar a torre (dois cliques) e recomeçar na próxima cidade com os bônus do quadro
+{
+  const dv = $('skDeliver'), disarm = () => dv.classList.remove('armed');
+  dv.onclick = () => {
+    if (!dv.classList.contains('armed')) { dv.classList.add('armed'); dv.textContent = 'Confirmar: entregar esta obra'; setTimeout(disarm, 3000); return; }
+    disarm();
+    const got = deliver();
+    setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeSkills(); updateUI();
+    showNews('JORNAL DA OBRA', `Construtora J. Santos entrega a torre e começa a obra nº ${S.obra} em ${cityName()} (+${got} ★)`);
+  };
+}
+
 // Fim de jogo (Obra Viva): na primeira vez que a torre chega à Órbita, faixa na cena e tela de parabéns
 function checkWin() {
   if (!FLAGS.viva || !S.won || S.winSeen) return;
@@ -122,6 +137,7 @@ if (FLAGS.viva) {
   initSkills();
   // abertura com a história (partida nova); não roda nos testes automáticos (?test=1 ou navegador controlado)
   initIntro({ test: TEST || navigator.webdriver });
+  initMilestones();
   $('skStory').onclick = () => { closeSkills(); startIntro(true); };
 }
 
@@ -168,6 +184,7 @@ function shot(name = 'shot') {
 // step(seg, fps): avança o jogo quadro a quadro sem depender do navegador (testes automáticos)
 if (DEV || TEST) window.torre = {
   get S() { return S; }, V, cam, snap: snapCamera, shot, events: recent,
+  look: (cx, cy, z = cam.z) => { panBy(0, 0); cam.z = z; cam.cx = cx; cam.cy = cy; }, // câmera livre num ponto (capturas)
   draw: (n = 1) => { for (let i = 0; i < n; i++) { updateView(0.05, 1); render(); } },
   step: (sec, fps = 30) => { for (let i = 0; i < sec * fps; i++) tick(1 / fps); },
 };

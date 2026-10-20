@@ -6,9 +6,11 @@ import { FLOOR_TYPES, TYPE_IDS } from '../data/floorTypes.js';
 import { S } from './state.js';
 import { mods } from './mods.js';
 import { FLAGS } from '../data/flags.js';
-import { floorOf, mpfAt } from '../data/height.js';
+import { floorOf, mpfAt, altOf } from '../data/height.js';
+import { eraAt } from '../data/eras.js';
 import { VIVA } from '../data/viva.js';
 import { techMult } from './tech.js';
+import { boardMult, cityMult } from './prestige.js';
 
 const RB = BAL.rent;
 
@@ -23,8 +25,8 @@ export function rentSum(a, n) {
 
 export const pending = () => Math.max(0, Math.floor(S.floors) - S.assigned);
 export const typeUnlocked = t => S.maxAlt >= FLOOR_TYPES[t].alt;
-export const saleMult = () => (1 + 0.08 * S.lv.corretor) * mods().mult('sale');
-export const rentMult = () => (1 + 0.5 * S.lv.aluguel) * techMult('rent') * mods().mult('rent');
+export const saleMult = () => (1 + 0.08 * S.lv.corretor) * mods().mult('sale') * techMult('sale');
+export const rentMult = () => (1 + 0.5 * S.lv.aluguel) * techMult('rent') * mods().mult('rent') * boardMult('rent') * cityMult('rent');
 
 // Obra Viva: o tipo muda sozinho com a altura (só vista e turismo; nada para escolher)
 const AUTO_TYPES = ['apto', 'escr', 'hotel', 'rest', 'obs'];
@@ -105,6 +107,15 @@ export function assign(n, how) {
 export function brokerTick() {
   if ((S.lv.corretor < 1 && !FLAGS.viva) || !S.broker.on) return;
   const n = pending(); if (n <= 0) return;
+  if (FLAGS.viva) { // Obra Viva: cada era tem sua política (alugar por padrão; vender = dinheiro na hora)
+    let left = n;
+    while (left > 0) {
+      const e = eraAt(altOf(S.assigned)); let c = 1;
+      while (c < left && eraAt(altOf(S.assigned + c)) === e) c++;
+      assign(c, S.policy && S.policy[e] === 'sell' ? 'sell' : 'rent'); left -= c;
+    }
+    return;
+  }
   const q = S.broker.acc + n * (FLAGS.viva ? 0 : S.broker.sellPct) / 100; // Obra Viva: tudo alugado
   const nSell = Math.min(n, Math.floor(q));
   S.broker.acc = q - nSell;

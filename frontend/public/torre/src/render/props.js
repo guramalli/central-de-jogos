@@ -49,7 +49,7 @@ const TRK = { cab: ['#1c3f63', '#2a5a8a', '#3a77b0', '#6aa2d6'], bed: ['#8f5a10'
 // mistura de duas cores hex, devolve hex (shade só aceita hex)
 export const hexMix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0')).join('');
 // cor da cabine por nível do Caminhão maior: azul → verde → amarelo → laranja → vermelho
-const TRUCK_TINT = ['#3a77b0', '#2f8aa8', '#2f9a7e', '#3aa04e', '#7aa832', '#c4a62e', '#e0902a', '#e0702a', '#d9502e', '#c0303a'];
+export const TRUCK_TINT = ['#3a77b0', '#2f8aa8', '#2f9a7e', '#3aa04e', '#7aa832', '#c4a62e', '#e0902a', '#e0702a', '#d9502e', '#c0303a'];
 // ang: quadro da caçamba basculando (0 = abaixada … BED_STEPS = toda erguida); amt: carga que ainda resta (0–4)
 export const BED_STEPS = 6;
 export function truckSprite(kind, f, tilt, load, lv = 0, ang = 0, amt = 4) {

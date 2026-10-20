@@ -44,8 +44,10 @@ export function showPage(p) {
 const sumEl = $('hSum'), sumBoxes = [sumEl, $('skSum')]; // na tela e dentro da árvore de Melhorias
 sumEl.onclick = () => sumEl.setAttribute('aria-expanded', sumEl.getAttribute('aria-expanded') !== 'true');
 const perMin = v => v >= 10 ? fmt(v) : (Math.round(v * 10) / 10).toLocaleString('pt-BR');
+// Obra Viva: o resumo saiu da tela (decisão do usuário, out/2026: mostrar a etapa mais lenta tirava a graça de descobrir).
+const SHOW_SUMMARY = false;
 function updateSummary() {
-  sumEl.hidden = $('skSum').hidden = S.floors < 1; // aparece depois do 1º andar, junto com a primeira renda
+  sumEl.hidden = $('skSum').hidden = !SHOW_SUMMARY || S.floors < 1;
   if (sumEl.hidden) return;
   const R = rates(), capped = isCapped(R), lo = Math.min(R.prod, R.tran, R.lay), hi = Math.max(R.prod, R.tran, R.lay) || 1;
   for (const box of sumBoxes) {
@@ -78,6 +80,7 @@ function updateHud() {
   setText($('hMoney'), 'R$ ' + fmt(S.money));
   updateSummary();
   $('openUp').querySelector('.dot').hidden = !anyToBuy();
+  $('openUp').classList.toggle('alert', isCapped(rates())); // obra parada no limite da fundação: o botão pulsa
   updateSkills();
   if (mapOpen()) updateMap();
   setText($('skSave'), `Salvo neste navegador · continua por até ${fmt(offlineMax() / 3600)} h fora do jogo.`);

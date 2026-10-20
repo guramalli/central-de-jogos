@@ -5,11 +5,13 @@ import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { ERAS, ERA_STYLE, eraAt } from '../data/eras.js';
 import { S } from '../sim/state.js';
 import { typeAt } from '../sim/realty.js';
-import { ctx, R, Rv, T, hash, mix } from './canvas.js';
+import { ctx, R, Rv, T, hash, mix, mixRGB } from './canvas.js';
 import { cam, worldY, sx, sy } from './camera.js';
 import { V } from './view.js';
 import { blit, shade } from './sprites.js';
 import { art } from './assets.js';
+import { FLAGS } from '../data/flags.js';
+import { techShaft, techShaftsExtra, techFacade } from './techvis.js';
 import { scaffoldTile, brickTile, eraTile, shaftTile, carSprite, shaftTopSprite, mastTile, jibTile, cabSprite, weightSprite, trolleySprite, hookSprite, hexMix } from './props.js';
 
 const WIN_X = [12, 72, 132, 192];     // janelas: x relativo à borda esquerda
@@ -18,7 +20,9 @@ const CURTAINS = ['#c0504d', '#4f81bd', '#9bbb59', '#8064a2', '#f79646', '#2c8c8
 const FAR = ERA_STYLE.map(s => ({ occ: mix(s.wall, s.lit, 0.3), vac: mix(s.wall, '#000000', 0.25) }));
 
 // janela acesa ou apagada, muda devagar com o tempo
-export function lit(i, k) { return hash(i * 7 + k, Math.floor(V.t / 9 + hash(i, k) * 9)) < .42; }
+// Obra Viva: Aluguel (mais moradores) acende mais janelas a cada nível
+const litP = () => FLAGS.viva ? Math.min(0.7, 0.42 + 0.03 * (S.lv.aluguel || 0)) : 0.42;
+export function lit(i, k) { return hash(i * 7 + k, Math.floor(V.t / 9 + hash(i, k) * 9)) < litP(); }
 const litW = lit;
 
 // nível de detalhe pelo tamanho de um andar na tela
@@ -36,10 +40,28 @@ function interior(i, k, wx, y, t) {
 
 // Fachadas do PixelLab (assets/fachadas/<era>.png, 240×96) e onde ficam as janelas em cada uma [x, y, w, h]
 // (pixels da imagem); a versão "-acesa" tem o vidro pintado de luz quente e é recortada por cima de cada janela acesa
-const FAC_WIN = [[[11,23,24,41],[75,23,24,41],[141,23,23,41],[205,23,23,41]],[[16,28,33,40],[73,28,33,40],[134,28,33,40],[191,28,33,40]],[[0,1,30,87],[30,1,30,87],[60,1,30,87],[90,1,30,87],[120,1,30,87],[150,1,30,87],[180,1,30,87],[210,1,30,87]],[[8,30,28,32],[73,30,28,32],[139,30,28,32],[204,30,28,32]],[[10,34,28,29],[80,34,28,29],[134,34,26,29],[201,34,29,29]],[[11,35,22,22],[76,35,22,22],[142,35,22,22],[207,35,22,22]],[[9,34,24,24],[75,34,24,24],[141,34,24,24],[207,34,24,24]]];
+const FAC_WIN = [[[11,23,24,41],[75,23,24,41],[141,23,23,41],[205,23,23,41]],[[16,28,33,40],[73,28,33,40],[134,28,33,40],[191,28,33,40]],[[0,0,15,88],[21,0,31,88],[62,0,26,88],[93,0,23,88],[123,0,24,88],[150,0,34,88],[194,0,25,88],[225,0,15,88]],[[8,30,28,32],[73,30,28,32],[139,30,28,32],[204,30,28,32]],[[10,34,28,29],[80,34,28,29],[134,34,26,29],[201,34,29,29]],[[11,35,22,22],[76,35,22,22],[142,35,22,22],[207,35,22,22]],[[9,34,24,24],[75,34,24,24],[141,34,24,24],[207,34,24,24]]];
 function subImg(img, x0, y0, w, h, wx, wyTop) {
   const X = Math.round(sx(wx)), Y = Math.round(sy(wyTop)), X1 = Math.round(sx(wx + w)), Y1 = Math.round(sy(wyTop - h));
   if (X1 > X && Y1 > Y) ctx.drawImage(img, x0, y0, w, h, X, Y, X1 - X, Y1 - Y);
+}
+
+// Longe (andar pequeno na tela): versão reduzida e suavizada da fachada do PixelLab, para a cor de longe bater com a de perto.
+// Reduz em passos de metade (cada passo tira a média de vizinhos) até 24×10; guarda também a cor média (faixas de muito longe).
+const farCache = [];
+function shrink(img, w, h) {
+  let src = img, cw = img.width, ch = img.height;
+  while (cw / 2 >= w) { const c = document.createElement('canvas'); c.width = Math.round(cw / 2); c.height = Math.max(h, Math.round(ch / 2)); const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.drawImage(src, 0, 0, c.width, c.height); src = c; cw = c.width; ch = c.height; }
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.drawImage(src, 0, 0, w, h);
+  return c;
+}
+function avgColor(img) { const c = shrink(img, 1, 1), d = c.getContext('2d').getImageData(0, 0, 1, 1).data; return `rgb(${d[0]},${d[1]},${d[2]})`; }
+function farFacade(e) {
+  if (farCache[e]) return farCache[e];
+  const fa = art('fachadas/' + e), fl = art('fachadas/' + e + '-acesa');
+  if (!fa || !fl) return null;
+  const off = shrink(fa, 24, 10), on = shrink(fl, 24, 10);
+  return (farCache[e] = { off, on, vac: avgColor(fa), occ: mixRGB(avgColor(fa), avgColor(fl), 0.45) });
 }
 
 // Fachada do andar i. lvl: 1 simples, 2 molduras, 3 completo
@@ -48,6 +70,14 @@ export function facade(i, lvl = floorLOD()) {
   // andar recém-concluído: todas as luzes acendem por um instante (Obra Viva)
   const flash = V.flash && V.flash.i === i, occ = i < S.assigned || flash;
   const lit = flash ? () => true : litW;
+  if (lvl === 1) { // longe: a fachada reduzida (acesa nos andares com morador, metade das janelas)
+    const ff = farFacade(e);
+    if (ff) {
+      const X = Math.round(sx(TL)), X1 = Math.round(sx(TL + TW)), Y = Math.round(sy(y0 + FH)), Y1 = Math.round(sy(y0));
+      if (X1 > X && Y1 > Y) { ctx.drawImage(ff.off, X, Y, X1 - X, Y1 - Y); if (occ) { ctx.globalAlpha = 0.45; ctx.drawImage(ff.on, X, Y, X1 - X, Y1 - Y); ctx.globalAlpha = 1; } }
+      return;
+    }
+  }
   const fa = lvl >= 2 && art('fachadas/' + e);
   if (fa) { // arte do PixelLab: parede pronta da era; janelas acesas vêm da versão acesa
     blit(fa, TL, y0, 0, fa.height);
@@ -119,14 +149,14 @@ export function drawFloors(base) {
   const lo = Math.max(0, Math.floor(worldY(H) / FH)), hi = Math.min(base, Math.ceil(worldY(0) / FH) + 1);
   if (hi <= lo) return;
   const lvl = floorLOD();
-  if (lvl > 0) { for (let i = lo; i < hi; i++) facade(i, lvl); return; }
+  if (lvl > 0) { for (let i = lo; i < hi; i++) { facade(i, lvl); techFacade(i, i * FH, lvl); } return; }
   // muito longe: faixas por era, separando andares com e sem destino
   const cuts = new Set([lo, hi, Math.min(Math.max(S.assigned, lo), hi)]);
   ERAS.forEach(e => { const f = Math.ceil(floorOf(e.m)); if (f > lo && f < hi) cuts.add(f); });
   const pts = [...cuts].sort((a, b) => a - b);
   for (let k = 0; k < pts.length - 1; k++) {
     const a = pts[k], b = pts[k + 1]; if (b <= a) continue;
-    const f = FAR[eraAt(altOf(a))];
+    const ea = eraAt(altOf(a)), f = farFacade(ea) || FAR[ea]; // muito longe: cor média da fachada do PixelLab
     Rv(TL, a * FH, TW, (b - a) * FH, a < S.assigned ? f.occ : f.vac);
   }
 }
@@ -175,11 +205,20 @@ export function shafts(topWP, carrying) {
     R(x0 + 14, cy + 32, 2, Math.max(0, top - cy - 32), '#9aa0ad');
     if (cam.z >= 0.4) blit(carSprite(), x0 + 3, cy, 1, 33);
     else { R(x0 + 3, cy, 24, 32, '#c9a227'); R(x0 + 6, cy + 3, 18, 24, '#262a35'); }
+    const op = cam.z >= 0.6, bw = op ? 11 : 16; // perto: o ascensorista aparece em pé no canto da gaiola
     if (ph < .5 && carrying) { // carga: tijolos empilhados dentro da gaiola
-      R(x0 + 7, cy + 4, 16, load, bc); R(x0 + 7, cy + 3 + load, 16, 1, shade(bc, 0.3));
-      for (let yy = cy + 4 + 4; yy < cy + 4 + load; yy += 4) R(x0 + 7, yy, 16, 1, shade(bc, -0.25));
+      R(x0 + 7, cy + 4, bw, load, bc); R(x0 + 7, cy + 3 + load, bw, 1, shade(bc, 0.3));
+      for (let yy = cy + 4 + 4; yy < cy + 4 + load; yy += 4) R(x0 + 7, yy, bw, 1, shade(bc, -0.25));
     }
+    if (op) {
+      R(x0 + 19, cy + 4, 2, 7, '#2b3550'); R(x0 + 22, cy + 4, 2, 7, '#2b3550');           // pernas
+      R(x0 + 18, cy + 11, 7, 9, '#e8742a'); R(x0 + 18, cy + 15, 7, 1, '#f4e9a8');         // colete com faixa
+      R(x0 + 19, cy + 20, 5, 5, '#c98e64'); R(x0 + 18, cy + 25, 7, 2, '#f2c230'); R(x0 + 19, cy + 27, 5, 1, '#f2c230'); // rosto e capacete
+      R(x0 + 17, cy + 14, 1, 4, '#c98e64');                                                // mão na alavanca
+    }
+    techShaft(i, x0, cy, top, yLo, yHi);
   }
+  if (n > 0) techShaftsExtra(SHAFT_X(n - 1) + 30, top, topWP, yLo, yHi0);
 }
 
 // ---------- andaime no lado esquerdo do andar em obra ----------

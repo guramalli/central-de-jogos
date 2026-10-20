@@ -82,10 +82,46 @@ export const ERA_TECH = {
   publicidade: T('merc', 4, 'Publicidade global', 'A torre vira cartão-postal: +50% de aluguel por nível.', { base: 4e7, st: 'rent', add: 0.5, icon: 'marketing' }),
   turismoEsp: T('merc', 5, 'Turismo espacial', 'Passeios até o espaço: +50% no ingresso por nível.', { base: 4e8, st: 'ticket', add: 0.5, icon: 'porto' }),
 };
+// Alternativas (escolha 1 de 2 por era e ramo; a outra fica travada até a próxima obra). Mesmo preço da irmã.
+// Estilos opostos: Obra assenta mais rápido × gasta menos material; Fornecimento quantidade × qualidade (aluguel);
+// Logística velocidade × capacidade da gaiola; Engenharia limite × custo; Mercado aluguel/ingresso × venda.
+// Estágios novos: cap (carga por viagem), capF (limite da fundação), fundCost (preço da Fundação), sale (valor de venda);
+// st2/mul2/add2 = segundo efeito da mesma tecnologia.
+const ALT_TECH = {
+  argamassa: T('obra', 1, 'Argamassa polimérica', 'Assenta com menos material: −5% de material por andar a cada nível.', { base: 3e3, st: 'fcost', mul: 0.95, icon: 'argamassa', pair: 'escoramento' }),
+  parafusada: T('obra', 2, 'Estrutura parafusada', 'Vigas parafusadas no lugar da solda: −6% de material por andar a cada nível.', { base: 1e5, st: 'fcost', mul: 0.94, pair: 'soldadores' }),
+  turnoNoite: T('obra', 3, 'Turno da noite', 'A obra não para à noite: ×1,6 no assentamento por nível.', { base: 3e6, st: 'lay', mul: 1.6, pair: 'mutirao' }),
+  impressao3d: T('obra', 4, 'Impressão 3D de paredes', 'Paredes impressas no lugar: −10% de material por andar a cada nível.', { base: 4e7, st: 'fcost', mul: 0.9, pair: 'robos' }),
+  exoesqueleto: T('obra', 5, 'Exoesqueletos', 'Pedreiros mais fortes: ×1,5 no assentamento e ×1,3 no material subindo por nível.', { base: 4e8, st: 'lay', mul: 1.5, st2: 'tran', mul2: 1.3, pair: 'drones' }),
+  concretoAD: T('forn', 1, 'Concreto de alto desempenho', 'Andares de mais qualidade: +30% de aluguel por nível.', { base: 3e3, st: 'rent', add: 0.3, pair: 'usina' }),
+  vidroSolar: T('forn', 2, 'Vidro solar', 'Fachada que gera energia: +40% de aluguel por nível.', { base: 1e5, st: 'rent', add: 0.4, pair: 'siderurgica' }),
+  modulosProntos: T('forn', 3, 'Fábrica de módulos', 'Peças maiores saindo da fábrica: ×1,6 de material por nível.', { base: 3e6, st: 'prod', mul: 1.6, pair: 'usinaTopo' }),
+  nanotubos: T('forn', 4, 'Nanotubos de carbono', 'Material mais leve e forte: −10% de material por andar a cada nível.', { base: 4e7, st: 'fcost', mul: 0.9, pair: 'fabrica' }),
+  reciclagem: T('forn', 5, 'Reciclagem total', 'Nada se perde: ×1,5 de material e −5% de material por andar a cada nível.', { base: 4e8, st: 'prod', mul: 1.5, st2: 'fcost', mul2: 0.95, pair: 'asteroides' }),
+  gaiolaDupla: T('log', 1, 'Gaiola dupla', 'Cada viagem leva mais: ×1,25 de carga por viagem a cada nível.', { base: 3e3, st: 'cap', mul: 1.25, pair: 'cabos' }),
+  contrapeso: T('log', 2, 'Contrapeso inteligente', 'Elevadores equilibrados: ×1,5 no material subindo.', { base: 1e5, max: 1, st: 'tran', mul: 1.5, pair: 'expresso' }),
+  esteira: T('log', 3, 'Esteira vertical', 'Uma esteira sobe junto dos elevadores: ×1,3 de carga por viagem a cada nível.', { base: 3e6, st: 'cap', mul: 1.3, pair: 'pressurizada' }),
+  tuboPneumatico: T('log', 4, 'Tubo pneumático', 'Material soprado até o topo: ×1,4 de carga por viagem a cada nível.', { base: 4e7, st: 'cap', mul: 1.4, pair: 'linear' }),
+  elevadorEspacial: T('log', 5, 'Cabo espacial', 'Um cabo do chão até a órbita: ×2,5 no material subindo.', { base: 4e8, max: 1, st: 'tran', mul: 2.5, pair: 'teleporte' }),
+  estacas: T('eng', 1, 'Estacas profundas', 'Fundação mais funda: +50% no limite da torre a cada nível.', { base: 4e3, st: 'capF', mul: 1.5, pair: 'calculo' }),
+  fundacaoBarata: T('eng', 2, 'Fundação em série', 'Formas reaproveitadas: a Fundação reforçada custa 40% menos.', { base: 1.5e5, max: 1, st: 'fundCost', mul: 0.6, pair: 'prefab' }),
+  contrafortes: T('eng', 3, 'Contrafortes', 'Apoios externos: o limite da torre dobra.', { base: 4e6, max: 1, st: 'capF', mul: 2, pair: 'flutuante' }),
+  grafeno: T('eng', 4, 'Núcleo de grafeno', 'Coluna central de grafeno: o limite da torre dobra a cada nível.', { base: 5e7, st: 'capF', mul: 2, pair: 'amortecedor' }),
+  ancoraOrbital: T('eng', 5, 'Âncora orbital', 'A torre se prende à órbita: o limite triplica.', { base: 5e8, max: 1, st: 'capF', mul: 3, pair: 'gravidade' }),
+  corretores: T('merc', 1, 'Corretores próprios', 'Andares vendidos valem mais: +50% na venda por nível.', { base: 3e3, st: 'sale', add: 0.5, pair: 'imobiliaria' }),
+  lojas: T('merc', 2, 'Lojas no térreo', 'Comércio na base da torre: +40% de aluguel por nível.', { base: 1e5, st: 'rent', add: 0.4, pair: 'agencia' }),
+  eventos: T('merc', 3, 'Salões de evento', 'Andares disputados para festas: +60% na venda por nível.', { base: 3e6, st: 'sale', add: 0.6, pair: 'hotelNuvens' }),
+  leilao: T('merc', 4, 'Leilão de coberturas', 'Coberturas vão a leilão: +80% na venda por nível.', { base: 4e7, st: 'sale', add: 0.8, pair: 'publicidade' }),
+  condominioOrbital: T('merc', 5, 'Condomínio orbital', 'Morar no espaço vale ouro: +100% na venda por nível.', { base: 4e8, st: 'sale', add: 1, pair: 'turismoEsp' }),
+};
+for (const k in ALT_TECH) { ALT_TECH[k].icon = k; ERA_TECH[ALT_TECH[k].pair].pair = k; }
+Object.assign(ERA_TECH, ALT_TECH);
 for (const k in ERA_TECH) ERA_TECH[k].reqAlt = ERA_ALT[ERA_TECH[k].era];
 if (FLAGS.viva) Object.assign(UP, ERA_TECH);
-// fator de uma etapa somando as tecnologias de era compradas (1 quando não há nenhuma)
+// fator de uma etapa somando as tecnologias de era compradas (1 quando não há nenhuma); st2 = segundo efeito
 export const TECH_BY_STAGE = {};
-for (const k in ERA_TECH) if (ERA_TECH[k].st) (TECH_BY_STAGE[ERA_TECH[k].st] ||= []).push(k);
+for (const k in ERA_TECH) { const u = ERA_TECH[k]; if (u.st) (TECH_BY_STAGE[u.st] ||= []).push(k); if (u.st2) (TECH_BY_STAGE[u.st2] ||= []).push(k); }
 
+// Obra Viva: política de imóveis da era (não é compra: alterna Alugar/Vender sem custo; max 0 = a economia nunca "compra")
+if (FLAGS.viva) UP.imoveis = { b: 'merc', n: 'Imóveis da era', d: 'Decida o destino dos andares desta era: alugar (renda contínua) ou vender (dinheiro na hora, cerca de 20 min de aluguel por andar).', base: 0, k: 1, max: 0, icon: 'corretores' };
 export const KEYS = Object.keys(UP);

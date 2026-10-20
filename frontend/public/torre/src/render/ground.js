@@ -4,8 +4,8 @@ import { W, H, TW, TL, MPF } from '../data/constants.js';
 import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { ERA_STYLE, eraAt } from '../data/eras.js';
 import { S } from '../sim/state.js';
-import { R, T, hash, lerp, clamp } from './canvas.js';
-import { cam, worldX, worldY } from './camera.js';
+import { R, T, hash, lerp, clamp, ctx } from './canvas.js';
+import { cam, worldX, worldY, sx, sy } from './camera.js';
 import { V } from './view.js';
 import { spark } from './particles.js';
 import { worker } from './workers.js';
@@ -14,6 +14,9 @@ import { zzz } from './signs.js';
 import { blit } from './sprites.js';
 import { islandSprite } from './props.js';
 import { art } from './assets.js';
+import { techYard, techFoundation } from './techvis.js';
+import { city } from '../sim/prestige.js';
+import { dumpArt, mixerArt, TRUCK_TOP, DUMP_PIVOT, DUMP_GROUND, MIX_AX, MIX_GROUND } from './trucks.js';
 import { truckSprite, wheelSprite, TRUCK_AX, TRUCK_AY, BED_STEPS, orlaSprite, calcadaoTile, kilnSprite, palmTrunk, palmCrown, palletSprite } from './props.js';
 import { shade } from './sprites.js';
 
@@ -22,18 +25,22 @@ const groundVisible = () => worldY(H) < 420; // o chão (ou algo perto dele) est
 
 export function drawGroundBack() {
   if (!groundVisible()) return;
-  // mar ao fundo
-  const mar = cam.z >= 0.25 && art('mar');
-  if (mar) { // mar do PixelLab: faixa de 64 px correndo devagar; cópias espelhadas uma sim, outra não (emenda sem costura)
+  const sc = city().scene; // cada obra numa cidade (prestígio): mar, horizonte, ponto turístico, árvore e cor do chão
+  // mar ao fundo (na Lua, uma planície cinza)
+  if (!sc.sea) { R(-1e7, 0, 2e7, 64, sc.plain); for (let i = -40; i < 60; i++) if (hash(i, 7) < .35) R(i * 53, 8 + hash(i, 8) * 40, 18, 4, 'rgba(0,0,0,.18)'); }
+  const mar = sc.sea && cam.z >= 0.25 && art(sc.sea);
+  if (!sc.sea) { /* sem mar */ }
+  else if (mar) { // mar do PixelLab: faixa de 64 px correndo devagar; cópias espelhadas uma sim, outra não (emenda sem costura)
     const tw = mar.width * 2, off = (V.t * 5) % tw, x0 = Math.floor((worldX(0) - off) / tw) * tw + off;
-    for (let x = x0; x < worldX(W) + tw; x += tw) { blit(mar, x, 0, 0, mar.height); blit(mar, x + mar.width, 0, mar.width, mar.height, true); }
+    for (let x = x0; x < worldX(W) + tw; x += tw) { seaTile(mar, x, false); seaTile(mar, x + mar.width, true); }
   } else {
     R(-1e7, 0, 2e7, 64, '#3b8fc6');
     if (cam.z >= 0.25) for (let i = -40; i < 60; i++) { const x = i * 46 + ((V.t * 14) % 46); if (hash(i, 3) < .5) R(x, 20 + hash(i, 4) * 36, 14, 2, '#9fd4f2'); }
   }
-  R(-1e7, 0, 2e7, 3, '#e8f2f6'); R(-1e7, 3, 2e7, 2, 'rgba(126,196,236,.8)'); // espuma na beira
-  // prédios da orla, atrás da obra
-  const orla = cam.z >= 0.35 && art('orla');
+  if (sc.sea && !mar) { R(-1e7, 0, 2e7, 3, '#e8f2f6'); R(-1e7, 3, 2e7, 2, 'rgba(126,196,236,.8)'); } // espuma na beira (só no mar por código)
+  if (sc.seaTint) R(-1e7, 0, 2e7, 64, sc.seaTint); // Ártico: mar mais escuro e frio
+  // prédios da orla (ou da cidade), atrás da obra
+  const orla = cam.z >= 0.35 && art(sc.skyline);
   if (orla) for (let k = 0; k < 4; k++) blit(orla, 150 + k * orla.width, 4, k % 2 ? orla.width : 0, orla.height, k % 2 === 1);
   else for (let i = 0; i < 16; i++) {
     const bx = 150 + i * 74 + hash(i, 20) * 20, bw = 52 + hash(i, 22) * 22, bh = 110 + hash(i, 21) * 210;
@@ -41,30 +48,35 @@ export function drawGroundBack() {
     else { R(bx, 4, bw, bh, i % 3 ? '#8ea6b8' : '#9fb3c2'); R(bx, 4 + bh, bw, 4, '#7d93a5'); }
   }
   // do lado do mar: mar aberto, com uma ilha no horizonte (azulada pela distância) e um navio passando
-  blit(islandSprite(), -860, 62, 0, 85);
+  const lm = sc.landmark && art(sc.landmark);
+  if (lm) blit(lm, -860, sc.landmarkY ?? (sc.sea ? 62 : 64), 0, lm.height); // a Terra fica alta no céu da Lua
+  else if (!sc.landmark) blit(islandSprite(), -860, 62, 0, 85);
   const shx = -900 - ((V.t * 6) % 1400);
   const ship = art('navio');
-  if (ship) blit(ship, shx, 52, 0, ship.height);
+  if (!sc.ship) { /* sem navio */ }
+  else if (ship) blit(ship, shx, 52, 0, ship.height);
   else { R(shx, 50, 70, 8, '#3e4a5c'); R(shx + 4, 58, 50, 6, '#5a6676'); R(shx + 10, 64, 8, 6, '#c0504d'); R(shx + 26, 64, 18, 4, '#d9dde4'); R(shx, 49, 70, 1, '#2a3340'); }
   // areia e calçadão
-  R(-1e7, -1e6, 2e7, 1e6, '#e2c98e');
-  if (cam.z >= 0.3) for (let i = 0; i < 90; i++) R(-700 + hash(i, 31) * 1600, -20 - hash(i, 32) * 400, 3, 3, '#c9ad72');
-  R(-1e7, -16, 2e7, 16, '#d7bb7c');
-  if (cam.z >= 0.4) { // calçadão com as ondas pretas e brancas
+  R(-1e7, -1e6, 2e7, 1e6, sc.sand);
+  if (cam.z >= 0.3) for (let i = 0; i < 90; i++) R(-700 + hash(i, 31) * 1600, -20 - hash(i, 32) * 400, 3, 3, 'rgba(0,0,0,.08)');
+  R(-1e7, -16, 2e7, 16, sc.sand2);
+  if (sc.calcadao && cam.z >= 0.4) { // calçadão com as ondas pretas e brancas
     const ct = calcadaoTile(), x0 = Math.floor(worldX(0) / 64) * 64, x1 = Math.min(worldX(W), -330 + 1e9);
     for (let x = Math.max(x0, -330); x < x1; x += 64) blit(ct, x, -16, 0, 14);
     R(-330, -2, 1e7, 2, '#b9a377'); R(-330, -16, 1e7, 1, '#9c8a62');
   }
   R(-1e7, -2, 2e7, 2, '#c4a46a');
   // beira-mar: a onda sobe pela areia e volta (ciclo de ~6 s), com espuma na ponta e areia molhada por onde passou
-  shoreWash();
+  if (sc.sea) shoreWash();
   // fundação (corte no solo)
   const depth = 30 + Math.min(180, S.lv.fundacao * 20);
   R(TL - 12, -depth, TW + 24, depth, '#7b6a55');
   if (cam.z >= 0.3) for (let i = 0; i < 40; i++) R(TL - 8 + hash(i, 50) * (TW + 14), -depth + hash(i, 51) * depth, 4, 3, '#6a5a47');
   const piles = 3 + Math.min(8, S.lv.fundacao);
   for (let i = 0; i < piles; i++) { const px = TL + 4 + Math.floor(i * (TW - 14) / (piles - 1)); R(px, -depth - 30, 6, depth + 30, '#a3a9b2'); R(px, -depth - 30, 2, depth + 30, '#c7ccd6'); }
+  techFoundation(depth);
   R(TL - 12, -6, TW + 24, 6, '#5b4d3d');
+  techYard();
   if (S.lv.olaria > 0) kiln(430, S.lv.olaria);
   if (S.lv.premold > 0) precastYard(S.lv.premold);
   for (let k = 0; k < Math.min(3, S.lv.usina || 0); k++) { // Usina de concreto: um silo por nível
@@ -74,6 +86,14 @@ export function drawGroundBack() {
     R(x + 2, 14, 8, 8, '#9aa0ab'); R(x + 4, 10, 4, 4, '#5a5f6a'); R(x - 2, h, 16, 3, '#7c818c');
     R(x - 1, h - 20, 14, 3, '#3a77b0');
   }
+}
+
+// uma cópia do mar, encostada exatamente na vizinha (posição e largura pelos pixels da tela, sem fresta de arredondamento)
+function seaTile(img, x, flip) {
+  const X = Math.round(sx(x)), X1 = Math.round(sx(x + img.width)), Y = Math.round(sy(img.height)), Y1 = Math.round(sy(0));
+  if (X1 < 0 || X > ctx.canvas.width || X1 <= X) return;
+  if (flip) { ctx.save(); ctx.translate(X1, Y); ctx.scale(-1, 1); ctx.drawImage(img, 0, 0, X1 - X, Y1 - Y); ctx.restore(); }
+  else ctx.drawImage(img, X, Y, X1 - X, Y1 - Y);
 }
 
 // Ondas na praia (à esquerda do calçadão): a água avança rápido, recua devagar; a borda é ondulada e anda de lado
@@ -87,8 +107,8 @@ function shoreWash() {
   for (let x = x0; x < x1; x += 4) {
     const k = 0.75 + 0.25 * Math.sin(x / 41 + V.t * 0.9) + 0.08 * Math.sin(x / 13), e = Math.round(reach * k), w = Math.round(wet * k);
     if (w > e) R(x, -w, 4, w - e, '#ccae76');                                      // areia molhada
-    R(x, -e, 4, e, 'rgba(70,165,220,.62)'); R(x, -e + 2, 4, e - 2, 'rgba(255,255,255,.08)'); // lâmina d'água
-    R(x, -e, 4, 2, q < 0.5 ? '#f4fbfd' : 'rgba(244,251,253,.7)');                  // espuma na ponta
+    R(x, -e, 4, e, 'rgba(64,196,214,.55)'); R(x, -Math.min(e, 3), 4, Math.min(e, 3), 'rgba(64,196,214,.35)'); // lâmina d'água (cor do mar raso)
+    R(x, -e, 4, 2, q < 0.5 ? 'rgba(244,251,253,.9)' : 'rgba(244,251,253,.6)');      // espuma só na ponta da onda
     if (hash(x / 4, Math.floor(V.t * 3)) < 0.06) R(x + 1, -e + 3, 2, 1, '#ffffff'); // bolhas
   }
 }
@@ -150,10 +170,11 @@ function precastYard(lv) {
 }
 
 const PALM_BASE = 0.343; // onde fica o pé do tronco na largura da imagem do coqueiro (0–1)
-function coconut(px, sway) {
+function coconut(px, sway, tree = 'coqueiro') {
   if (cam.z < 0.25) { for (let s = 0; s < 190; s += 30) R(px + Math.round(Math.sin(s / 190 * 1.4) * 14), s, 9, 30, '#7a5531'); R(px - 30 + sway, 186, 88, 10, '#3c8a3f'); return; }
-  const pa = art('coqueiro');
-  if (pa) { blit(pa, px, 0, PALM_BASE * pa.width, pa.height); return; }
+  const pa = art(tree);
+  if (pa) { blit(pa, px, 0, (tree === 'coqueiro' ? PALM_BASE : 0.5) * pa.width, pa.height); return; }
+  if (tree !== 'coqueiro') return;
   blit(palmTrunk(), px - 10, 0, 0, 200);
   blit(palmCrown(Math.max(-3, Math.min(3, sway))), px + 14, 192, 70, 28);
 }
@@ -201,6 +222,12 @@ function truck(tx, gy, plan, empty) {
   const ang = kind === 'dump' ? Math.round(lift * BED_STEPS) : 0;
   const amt = kind === 'dump' && !empty ? Math.max(0, 4 - Math.round(pour * 4)) : 4;
   const load = kind === 'dump' && !empty && amt > 0 ? '#c9ad72' : '';
+  const lvT = Math.min(10, S.lv.caminhao || 0), bob = plan.moving ? Math.floor(V.t * 12) % 2 : 0; // andando: o caminhão balança 1 px
+  const pa = cam.z >= 0.3 && (kind === 'dump' ? dumpArt(lvT, ang, amt, BED_STEPS) : mixerArt(lvT));
+  if (pa) { // caminhão do PixelLab
+    if (kind === 'dump') blit(pa, tx, gy + bob, DUMP_PIVOT, TRUCK_TOP + DUMP_GROUND); else blit(pa, tx, gy + bob, MIX_AX, MIX_GROUND);
+    return;
+  }
   const drum = kind === 'mixer' ? Math.floor(V.t * (plan.pouring ? 16 : 8)) % 4 : Math.floor(V.t * 8) % 4; // tambor gira mais rápido despejando
   blit(truckSprite(kind, drum, kind === 'mixer' && lift > 0.3, load, Math.min(10, S.lv.caminhao || 0), ang, amt), tx, gy, TRUCK_AX, TRUCK_AY);
   const wf = plan.moving ? Math.floor(V.t * 10) % 2 : 0;
@@ -260,25 +287,25 @@ export function drawGroundFront(prod, sg = {}) {
     if (sg.groundJam) { // fila na porta do elevador, carregados, esperando a vez
       const x = to + 18 + i * 24;
       if (barrow) wheelbarrow(x, gy, bc, 0, true);
-      worker(x, gy, { phase: 0, carry: barrow ? null : bc, flip: true, skin: i + 1, suit: false });
+      worker(x, gy, { phase: 0, carry: barrow ? null : bc, flip: true, skin: i + 1, suit: false, role: 'servente' });
       zzz(x, gy + (barrow ? 56 : 68), i);
       continue;
     }
     if (sg.supplyLow) { // nada para levar: esperam ao lado do estoque vazio
       const x = STOCK_X + 10 + i * 22;
-      worker(x, gy, { phase: 0, flip: i % 2 === 1, skin: i + 1, suit: false });
+      worker(x, gy, { phase: 0, flip: i % 2 === 1, skin: i + 1, suit: false, role: 'servente' });
       zzz(x, gy + 56, i + 3);
       continue;
     }
     const p = (V.t * .22 + i / nw) % 1, go = p < .5, x = lerp(STOCK_X + 30, to, go ? p * 2 : 2 - p * 2);
     if (barrow) wheelbarrow(x, gy, go ? bc : null, V.t * 3 + i, go);
-    worker(x, gy, { walk: true, phase: V.t * 3 + i, carry: barrow ? null : go ? bc : null, flip: go, skin: i + 1, suit: false });
+    worker(x, gy, { walk: true, phase: V.t * 3 + i, carry: barrow ? null : go ? bc : null, flip: go, skin: i + 1, suit: false, role: 'servente' });
   }
   // coqueiros
-  coconut(-440, Math.round(Math.sin(V.t * 1.5) * 3)); // longe do trilho do elevador panorâmico
-  coconut(560, Math.round(Math.sin(V.t * 1.5 + 1) * 3));
-  // pássaros
-  if (cam.z >= 0.2) for (let i = 0; i < 4; i++) {
+  const sc = city().scene;
+  if (sc.tree) { coconut(-440, Math.round(Math.sin(V.t * 1.5) * 3), sc.tree); coconut(560, Math.round(Math.sin(V.t * 1.5 + 1) * 3), sc.tree); } // longe do trilho do panorâmico
+  // pássaros (não na Lua)
+  if (cam.z >= 0.2 && sc.sea) for (let i = 0; i < 4; i++) {
     const x = ((V.t * (40 + i * 9) + i * 300) % 1600) - 700, y = 340 + i * 46 + Math.sin(V.t * 3 + i) * 6, f = Math.floor(V.t * 6 + i) % 2;
     R(x, y, 4, 3, '#2d3340'); R(x - 6, y + (f ? 3 : -2), 6, 2, '#2d3340'); R(x + 4, y + (f ? 3 : -2), 6, 2, '#2d3340');
   }

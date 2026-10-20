@@ -20,11 +20,11 @@ const topY = () => Math.floor(S.floors) * FH;
 let floatGate = 0; // limita textos quando a obra está muito rápida
 
 // texto que sobe e some (coordenadas de mundo)
-export function float(x, y, a, b = '', c = '#f2b630', life = 2.2) {
-  if (V.floats.length > 6) V.floats.shift();
+export function float(x, y, a, b = '', c = '#f2b630', life = 2.2, extra = null) {
+  while (V.floats.length >= 3) V.floats.shift(); // no máximo 3 textos na tela
   // compras seguidas no mesmo lugar empilham em vez de se sobrepor
   const near = V.floats.filter(f => f.t < 1.2 && Math.abs(f.x - x) < 90 && f.y >= y - 4 && f.y < y + 140).length;
-  V.floats.push({ x, y: y + near * 30, a, b, c, t: 0, life });
+  V.floats.push({ x, y: y + near * 30, a, b, c, t: 0, life, ...extra });
 }
 
 export function updateEffects(dt) {
@@ -72,7 +72,10 @@ const LABEL = {
 function onBuy(e) {
   const { k, lv } = e, [x, y] = spot(k);
   const label = LABEL[k] || UP[k].n.toUpperCase();
-  float(x, y, label, lv > 1 ? 'nível ' + lv : '', '#6fd08c');
+  // compras em sequência viram um texto só ("+3 MELHORIAS"), que se renova a cada compra
+  const last = V.floats.find(f => f.buy && f.t < 1.6);
+  if (last) { last.n = (last.n || 1) + 1; last.a = `+${last.n} MELHORIAS`; last.b = label + (lv > 1 ? ' · nível ' + lv : ''); last.t = Math.min(last.t, 0.25); }
+  else float(x, y, label, lv > 1 ? 'nível ' + lv : '', '#6fd08c', 2.2, { buy: true });
   if (k === 'pedreiro') {
     // o novo pedreiro entra pela direita, vindo do elevador
     const j = Math.min(lv, MAX_TOP_WORKERS) - 1;

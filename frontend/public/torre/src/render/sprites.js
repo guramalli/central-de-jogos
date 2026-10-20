@@ -56,9 +56,9 @@ export function fromGrid(key, rows, pal, opts) {
 
 // carimba o sprite no mundo: (x, y) é o ponto de apoio em coordenadas de mundo (y para cima);
 // (ax, ay) é onde fica esse ponto dentro do sprite, em pixels (y para baixo). flip espelha na horizontal.
-export function blit(spr, x, y, ax, ay, flip = false) {
-  const z = cam.z, ox = W / 2 - cam.cx * z, oy = H / 2 + cam.cy * z;
-  const x0 = Math.round((x - (flip ? spr.width - ax : ax)) * z + ox), y0 = Math.round(oy - (y + ay) * z);
+export function blit(spr, x, y, ax, ay, flip = false, k = 1) { // k: escala (1 pixel do sprite = k pixels de mundo)
+  const z = cam.z * k, ox = W / 2 - cam.cx * cam.z, oy = H / 2 + cam.cy * cam.z;
+  const x0 = Math.round((x * cam.z - (flip ? spr.width - ax : ax) * z) + ox), y0 = Math.round(oy - y * cam.z - ay * z);
   const w = Math.max(1, Math.round(spr.width * z)), h = Math.max(1, Math.round(spr.height * z));
   if (x0 > W || y0 > H || x0 + w < 0 || y0 + h < 0) return;
   if (flip) { ctx.save(); ctx.translate(x0 + w, y0); ctx.scale(-1, 1); ctx.drawImage(spr, 0, 0, w, h); ctx.restore(); }

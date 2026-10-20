@@ -9,8 +9,10 @@ import { V } from './view.js';
 import { blit } from './sprites.js';
 import { cloudSprite, planeSprite, balloonSprite } from './props.js';
 import { art } from './assets.js';
+import { city } from '../sim/prestige.js';
 
-const altAt = screenY => Math.max(0, altOf(worldY(screenY) / FH)); // altura (m) na linha da tela
+// altura (m) na linha da tela; na Base Lunar o céu já começa no espaço (skyAlt da cidade)
+const altAt = screenY => Math.max(0, altOf(worldY(screenY) / FH)) + (city().scene.skyAlt || 0);
 const yOfAlt = m => floorOf(m) * FH;                                  // y de mundo de uma altura
 
 const CLOUDS = [];
@@ -43,7 +45,7 @@ export function drawSky() {
     const tw = (Math.sin(V.t * 2 + i) + 1) / 2;
     r(s.x, s.y, s.b > .85 ? 2 : 1, s.b > .85 ? 2 : 1, `rgba(255,255,255,${(0.4 + tw * .6) * sa})`);
   });
-  if (bottom > 14000) { // curvatura da Terra lá embaixo
+  if (bottom > 14000 && !city().scene.skyAlt) { // curvatura da Terra lá embaixo (não na Lua, onde o chão é a própria Lua)
     const k = clamp((bottom - 14000) / 1200, 0, 140), Rr = 1100, cy = H + Rr - k;
     ctx.fillStyle = 'rgba(120,190,255,.35)'; ctx.beginPath(); ctx.arc(W / 2, cy, Rr + 7, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#2a63a8'; ctx.beginPath(); ctx.arc(W / 2, cy, Rr, 0, Math.PI * 2); ctx.fill();
@@ -69,7 +71,7 @@ function cloud(x, y, w, alpha) {
 
 // todas as nuvens passam por trás da torre (pedido do usuário): a chamada da frente não desenha nada
 export function drawClouds(front) {
-  if (front) return;
+  if (front || city().scene.noClouds) return; // sem nuvens, avião nem balão na Lua
   const lo = worldY(H) - 600, hi = worldY(0) + 200;
   CLOUDS.forEach(c => {
     const y = yOfAlt(c.m); if (y < lo || y > hi) return;

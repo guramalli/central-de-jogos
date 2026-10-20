@@ -8,7 +8,7 @@ import { VIVA } from '../data/viva.js';
 // o protótipo Obra Viva usa um save separado, para não misturar com o modo atual
 export const saveKey = () => SAVE_KEY + (FLAGS.viva ? '-viva' : '');
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export function fresh() {
   const lv = {};
@@ -31,6 +31,10 @@ export function fresh() {
     won: false,                   // Obra Viva: já chegou à Órbita (fim do jogo, tela de parabéns uma vez)
     winSeen: false,               // a tela de parabéns já foi mostrada
     playTime: 0,                  // segundos de jogo ativo (para a tela de parabéns)
+    policy: {},                   // Obra Viva: política de imóveis por era ('sell' = vender; padrão alugar)
+    // prestígio "Nova obra": ficam de uma obra para outra (ver sim/prestige.js)
+    obra: 1, cidade: 0, pontos: 0, pontosTotal: 0, board: {}, bestAlt: 0,
+    marcos: {},                   // marcos dos primeiros minutos já mostrados (ui/milestones.js)
     introSeen: false,             // Obra Viva: a abertura (história) já foi vista
   };
 }
@@ -54,6 +58,7 @@ export function load() {
     S.lv = Object.assign(fresh().lv, o.lv || {});
     S.broker = Object.assign(fresh().broker, o.broker || {});
     S.stats = Object.assign(fresh().stats, o.stats || {});
+    S.board = Object.assign({}, o.board || {}); S.ver = SAVE_VERSION;
     return o.ver || 1;
   } catch (e) { return 0; /* save corrompido ou storage bloqueado: começa do zero */ }
 }

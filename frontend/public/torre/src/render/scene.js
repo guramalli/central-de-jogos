@@ -1,4 +1,5 @@
 // Monta o quadro: céu, térreo, torre, obra no topo (sempre bloco a bloco), turismo, partículas e faixas.
+import { techTop } from './techvis.js';
 import { W, H, FH, SLAB, TW, TL, MPF } from '../data/constants.js';
 import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { ERAS, ERA_STYLE, MARKS, eraAt } from '../data/eras.js';
@@ -188,6 +189,7 @@ function seg(x1, y1, x2, y2, w, c) {
 // Tecnologias de era visíveis no topo (uma peça a mais por nível):
 // Robôs de montagem = braços robóticos na laje; Escoramento = escoras de aço; Teletransporte = plataforma com feixe
 function techBack(y0, fy) {
+  techTop(y0, fy);
   const esc = S.lv.escoramento || 0;
   for (let k = 0; k < esc * 2; k++) { const x = TL + 14 + k * (TW - 28) / Math.max(1, esc * 2 - 1); R(x, fy, 3, 70, '#8f96a3'); R(x, fy, 1, 70, '#c7ccd6'); R(x - 3, fy + 68, 9, 3, '#5a5f6a'); R(x - 3, fy, 9, 2, '#5a5f6a'); }
   if (S.lv.teleporte > 0) {
