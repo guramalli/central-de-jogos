@@ -4,6 +4,7 @@ import { BAL } from '../data/balance.js';
 import { CENTER } from '../data/talents.js';
 import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
+import { TIPS } from '../data/tips.js';
 
 // o protótipo Obra Viva usa um save separado, para não misturar com o modo atual
 export const saveKey = () => SAVE_KEY + (FLAGS.viva ? '-viva' : '');
@@ -39,6 +40,7 @@ export function fresh() {
     // rodada de 20 min (Obra Viva): tempo restante, encerrada, ★ já creditadas; gerentes ligados por ramo
     roundLeft: FLAGS.viva ? VIVA.round.secs : 0, roundOver: false, roundPaid: false, mgr: {}, mgrPool: 0,
     offers: [], perks: [], marksDone: 0, rushLeft: 0, // contratos de altura da rodada (sim/contracts.js)
+    dicas: {},                    // dicas para quem começa já vistas (ui/tips.js)
   };
 }
 
@@ -60,6 +62,7 @@ export function load() {
     // Obra Viva antes das rodadas (v<5): a campanha começa do zero; ficam só a abertura vista e os marcos
     if (FLAGS.viva && (o.ver || 1) < 5) { S = Object.assign(f, { introSeen: !!o.introSeen, marcos: o.marcos || {} }); return o.ver || 1; }
     S = Object.assign(f, o);
+    if (FLAGS.viva && !('dicas' in o) && (o.floors > 0 || (o.obra || 1) > 1)) S.dicas = Object.fromEntries(Object.keys(TIPS).map(k => [k, true])); // quem já joga não vê as dicas de começo
     S.lv = Object.assign(fresh().lv, o.lv || {});
     S.broker = Object.assign(fresh().broker, o.broker || {});
     S.stats = Object.assign(fresh().stats, o.stats || {});

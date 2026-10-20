@@ -61,6 +61,7 @@ export function render() {
   const R0 = rates(), built = Math.floor(S.floors), p = S.floors - built, capped = isCapped(R0);
   const base = baseFloor(), topWP = base * FH;
   const sg = obraSigns(R0);
+  if (!V.preview) V.signs = sg; // as dicas para quem começa leem os sinais (ui/tips.js)
   drawSky(); drawClouds(false);
   drawGroundBack();
   if (FLAGS.viva && capped) cracks();

@@ -34,7 +34,7 @@ export function initOffers() {
   $('offerBtn').onclick = () => { openUntil = Infinity; updateOffers(); }; // reaberta pelo botão: fica até escolher
   $('skOffer').onclick = () => { closeSkills(); openUntil = Infinity; updateOffers(); }; // com a árvore aberta, o aviso fica no topo dela
   // tocar fora dos cartões recolhe a proposta (ela continua no botão)
-  addEventListener('pointerdown', e => { if (!$('offer').hidden && !$('offer').contains(e.target) && e.target !== $('offerBtn')) { openUntil = -1; updateOffers(); } });
+  addEventListener('pointerdown', e => { if (!$('offer').hidden && !$('offer').contains(e.target) && e.target !== $('offerBtn') && !e.target.closest('#coach')) { openUntil = -1; updateOffers(); } });
 }
 
 export function updateOffers() {

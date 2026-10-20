@@ -22,6 +22,8 @@ import { initIntro, introActive, startIntro, showNews, clearNews } from './ui/in
 import { endRound, startNextRound, city } from './sim/prestige.js';
 import { initRoundEnd, checkRoundEnd } from './ui/roundEnd.js';
 import { initOffers, updateOffers } from './ui/offers.js';
+import { initCoach, dropTip } from './ui/coach.js';
+import { initTips, updateTips, setTips, tickTips } from './ui/tips.js';
 import { initMilestones } from './ui/milestones.js';
 const cityName = () => city().n;
 import { preloadArt } from './render/assets.js';
@@ -67,8 +69,9 @@ function tick(real) {
   updateView(dt, speed);
   render();
   if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
+  tickTips(); // o quadro da dica acompanha o alvo
   if (FLAGS.viva && !introActive()) S.playTime = (S.playTime || 0) + dt * speed;
-  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); updateOffers(); }
+  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); updateOffers(); updateTips(); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -87,7 +90,7 @@ spBtns.forEach(b => b.onclick = () => {
 });
 
 // Recomeçar: dois cliques (o primeiro arma por 3 s). Botão no topo (modo atual) e no rodapé das Melhorias (Obra Viva)
-function doReset() { resetState(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); updateUI(); if (FLAGS.viva) { closeSkills(); startIntro(false); } }
+function doReset() { dropTip(); resetState(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); updateUI(); if (FLAGS.viva) { closeSkills(); startIntro(false); } }
 for (const rs of [$('reset'), $('skReset')]) {
   const disarm = () => { rs.classList.remove('armed'); rs.textContent = 'Recomeçar'; };
   rs.onclick = () => {
@@ -150,6 +153,7 @@ if (FLAGS.viva) {
   initMilestones();
   initRoundEnd();
   initOffers();
+  initCoach(); initTips({ test: TEST || navigator.webdriver });
   $('skStory').onclick = () => { closeSkills(); startIntro(true); };
 }
 
@@ -196,6 +200,7 @@ function shot(name = 'shot') {
 // step(seg, fps): avança o jogo quadro a quadro sem depender do navegador (testes automáticos)
 if (DEV || TEST) window.torre = {
   get S() { return S; }, V, cam, snap: snapCamera, shot, events: recent,
+  dicas: on => setTips(on), // liga as dicas nos testes automáticos (desligadas por padrão com ?test=1)
   look: (cx, cy, z = cam.z) => { panBy(0, 0); cam.z = z; cam.cx = cx; cam.cy = cy; }, // câmera livre num ponto (capturas)
   draw: (n = 1) => { for (let i = 0; i < n; i++) { updateView(0.05, 1); render(); } },
   step: (sec, fps = 30) => { for (let i = 0; i < sec * fps; i++) tick(1 / fps); },

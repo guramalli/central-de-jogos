@@ -269,6 +269,7 @@
     <span class="grow"></span>
     <button class="resetbtn" id="skSnd" aria-pressed="true">Som</button>
     <button class="resetbtn" id="skStory">História</button>
+    <button class="resetbtn" id="skTips">Dicas</button>
     <button class="resetbtn" id="skReset">Recomeçar</button>
     <span class="modelink" id="skMode"></span>
   </footer>
@@ -304,6 +305,13 @@
     <div class="kv" id="winStats"></div>
     <div class="win-b"><button class="btn" id="winGo">Continuar construindo</button><button class="btn ghost" id="winNew">Recomeçar do zero</button></div>
   </div>
+</div>
+
+<!-- dicas para quem começa (ui/coach.js + ui/tips.js): quadro em volta do alvo, balão, Entendi / Pular -->
+<div class="coach" id="coach" hidden role="dialog" aria-live="polite">
+  <div class="co-veil"></div>
+  <div class="co-hole"></div>
+  <div class="co-box"><p id="coText"></p><div class="co-b"><button class="btn" id="coOk">Entendi</button><button class="co-skip" id="coSkip">Pular dicas</button></div></div>
 </div>
 
 <div class="win round-end" id="roundEnd" hidden role="dialog" aria-modal="true" aria-labelledby="reTitle">

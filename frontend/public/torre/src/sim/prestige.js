@@ -7,7 +7,7 @@ import { CITIES, cityOf } from '../data/cities.js';
 import { S, fresh, setState, save, saveKey } from './state.js';
 
 // o que passa de uma obra para a outra
-const KEEP = ['obra', 'cidade', 'pontosTotal', 'bestAlt', 'won', 'winSeen', 'introSeen', 'playTime', 'marcos', 'mgr'];
+const KEEP = ['obra', 'cidade', 'pontosTotal', 'bestAlt', 'won', 'winSeen', 'introSeen', 'playTime', 'marcos', 'mgr', 'dicas'];
 
 export const pointsFor = alt => alt <= 0 ? 0 : Math.max(1, Math.floor(VIVA.prestige.k * Math.pow(alt / 1000, VIVA.prestige.pow)));
 export const canDeliver = () => FLAGS.viva && !S.roundOver && S.maxAlt > 0;

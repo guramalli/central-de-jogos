@@ -520,3 +520,17 @@ body.sk-open .offer,body.sk-open .offerbtn:not(.sk-offer),body.intro .offer,body
 @media (max-width:520px){.offer-row{grid-template-columns:1fr}.of-card i{font-size:11px}.offer{bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + 60px)}}
 .sk-offer{position:static;font-size:13px;padding:4px 10px;margin-left:8px}
 @media (prefers-reduced-motion:reduce){.offerbtn.pulse{animation:none}}
+
+/* dicas para quem começa (Obra Viva) */
+.coach{position:fixed;inset:0;z-index:90;pointer-events:none}
+.co-veil{position:absolute;inset:0;pointer-events:auto}
+.coach.act .co-veil{pointer-events:none}
+.co-hole{position:fixed;border:3px solid #f2b630;box-shadow:0 0 0 9999px rgba(5,8,18,.6);pointer-events:none}
+.co-box{position:fixed;width:min(320px,calc(100vw - 16px));background:#141824;color:var(--fg);padding:12px 14px;pointer-events:auto;
+  box-shadow:0 -3px 0 0 #f2b630,0 3px 0 0 #f2b630,-3px 0 0 0 #f2b630,3px 0 0 0 #f2b630,0 8px 0 rgba(0,0,0,.45)}
+.co-box p{margin:0 0 10px;line-height:1.4;font-size:14px}
+.co-b{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.co-skip{background:none;border:0;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:4px}
+.coach.act .co-hole{animation:coPulse 1.2s ease-in-out infinite}
+@keyframes coPulse{50%{border-color:#ffe08a}}
+@media (prefers-reduced-motion:reduce){.coach.act .co-hole{animation:none}}

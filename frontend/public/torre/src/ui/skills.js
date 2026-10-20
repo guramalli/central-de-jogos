@@ -297,6 +297,14 @@ export function updateSkills() {
   updateBoard();
 }
 export const tickSkills = () => {};
+export const selectedKey = () => sel;
+// traz um nó para a área visível da árvore (as dicas apontam para ele)
+export function revealNode(k) {
+  const el = svg.querySelector(`[data-up="${k}"]`); if (!el) return;
+  const r = el.getBoundingClientRect(), t = svg.getBoundingClientRect(), m = 24;
+  if (r.left >= t.left + m && r.right <= t.right - m && r.top >= t.top + m && r.bottom <= t.bottom - m) return;
+  view.x += t.left + t.width / 2 - (r.left + r.width / 2); view.y += t.top + t.height / 2 - (r.top + r.height / 2); apply();
+}
 export const skillsOpen = () => !overlay.hidden;
 
 const allKeys = () => COLS.flatMap(b => Object.keys(SKILL_LAYOUT[b])).filter(k => UP[k]);
