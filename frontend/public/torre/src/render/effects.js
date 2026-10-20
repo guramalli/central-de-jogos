@@ -13,6 +13,7 @@ import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
 import { rentSum } from '../sim/realty.js';
 import { fmt } from '../ui/format.js';
+import { eraVis, onMoon } from './eravis.js';
 
 export const MAX_TOP_WORKERS = 6; // acima disso, os pedreiros viram uma equipe com contador
 
@@ -36,7 +37,7 @@ export function updateEffects(dt) {
 }
 
 function onFloor(e) {
-  const y = e.to * FH, st = ERA_STYLE[eraAt(altOf(y / FH))];
+  const y = e.to * FH, st = ERA_STYLE[eraVis(altOf(y / FH))];
   if (e.n <= 2) {
     // celebração completa: luzes acendem, poeira na laje e "+1 andar"
     V.flash = { i: e.to - 1, t: 1.8 };

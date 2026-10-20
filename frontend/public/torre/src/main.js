@@ -26,6 +26,7 @@ import { initCoach, dropTip } from './ui/coach.js';
 import { initHome, openHome, closeHome, homeOpen } from './ui/home.js';
 import { initTutorial, openTutorial } from './ui/tutorial.js';
 import { initJornal, checkJornal, drawArquivo } from './ui/jornal.js';
+import { initGear, closeGear, gearOpen, updateGear, frozen, placeHudButtons, setPaused, deliverMsg } from './ui/gear.js';
 import { initRanking, openRanking, pedirFicha, sairDoRanking, definirApelido, rankTick, esquecerJogador } from './ui/ranking.js';
 import { initTips, updateTips, setTips, tickTips } from './ui/tips.js';
 import { initMilestones } from './ui/milestones.js';
@@ -67,15 +68,17 @@ let speed = 1;
 const SIM_MAX_DT = 30;
 let last = performance.now(), uiT = 0, saveT = 0, noticeT = 12;
 function tick(real) {
-  const dt = Math.min(.1, real);
-  let sd = introActive() || homeOpen() ? 0 : Math.min(SIM_MAX_DT, real) * speed; // a obra começa quando a história acaba
+  const fz = frozen(); // pausa ou engrenagem aberta: nada anda (nem as animações)
+  const dt = fz ? 0 : Math.min(.1, real);
+  let sd = introActive() || homeOpen() || fz ? 0 : Math.min(SIM_MAX_DT, real) * speed; // a obra começa quando a história acaba
   while (sd > 0) { const st = Math.min(.25, sd); sim(st); sd -= st; }
   updateView(dt, speed);
   render();
   if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
   tickTips(); // o quadro da dica acompanha o alvo
-  if (FLAGS.viva && !introActive() && !homeOpen()) S.playTime = (S.playTime || 0) + dt * speed;
-  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); updateOffers(); updateTips(); rankTick(); checkJornal(homeOpen() || introActive()); }
+  if (FLAGS.viva && !introActive() && !homeOpen() && !fz) S.playTime = (S.playTime || 0) + dt * speed;
+  // a interface segue o tempo real, mesmo pausada
+  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); updateOffers(); updateTips(); rankTick(); checkJornal(homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -118,18 +121,19 @@ function startNext() {
 {
   const dv = $('skDeliver'), disarm = () => dv.classList.remove('armed');
   dv.onclick = () => {
-    if (S.roundOver) { if (S.roundPaid) startNext(); return; }
-    if (dv.disabled) return;
-    if (!dv.classList.contains('armed')) { dv.classList.add('armed'); dv.textContent = 'Confirmar: entregar antes do prazo'; setTimeout(disarm, 3000); return; }
-    disarm();
-    endRound(); closeSkills(); checkRoundEnd(); updateUI(); // entrega antecipada: placar da obra entregue
+    if (S.roundOver) { if (S.roundPaid) { closeGear(); startNext(); } return; }
+    $('dvMsg').innerHTML = deliverMsg(); $('dvConfirm').hidden = false; // antes do prazo: aviso com a multa ou o bônus
+  };
+  $('dvOk').onclick = () => {
+    if (S.roundOver) return;
+    endRound(); closeGear(); closeSkills(); checkRoundEnd(); updateUI(); // entrega antecipada: placar da obra entregue
   };
 }
 // meta do contrato: manchete uma vez por obra quando a torre passa dela
 function checkMeta() {
   if (!FLAGS.viva || S.metaOk || S.roundOver || S.maxAlt < metaAlt()) return;
   S.metaOk = true;
-  showNews('JORNAL DA OBRA', `Meta do contrato batida no dia ${roundDay()}! A J. Santos já pode entregar a torre de ${cityName()} antes do prazo, com bônus`);
+  showNews('JORNAL DA OBRA', `Meta do contrato batida no dia ${roundDay()}! Agora a J. Santos pode entregar a torre de ${cityName()} antes do prazo sem multa, e ainda com bônus (na engrenagem ⚙)`);
 }
 
 // Fim de jogo (Obra Viva): na primeira vez que a torre chega à Órbita, faixa na cena e tela de parabéns
@@ -150,7 +154,7 @@ initMap(updateUI);
 // Obra Viva é o único modo no navegador (o clássico foi retirado do site).
 document.body.classList.toggle('modo-novo', FLAGS.viva);
 if (FLAGS.viva) {
-  for (const id of ['hPlateFloor', 'hPlateMoney', 'hPlateClock', 'openUp']) $(id).hidden = false; // o resumo (hSum) aparece no 1º andar
+  for (const id of ['hPlateFloor', 'hPlateMoney', 'hPlateClock', 'hudBtns', 'openUp']) $(id).hidden = false; // o resumo (hSum) aparece no 1º andar
   $('z-all').textContent = '⤢'; $('z-all').setAttribute('aria-label', 'Ver a torre inteira');
   initSkills();
   // abertura com a história (partida nova); não roda nos testes automáticos (?test=1 ou navegador controlado)
@@ -165,13 +169,14 @@ if (FLAGS.viva) {
   // página de Início: trocar de espaço limpa a cena (como o Recomeçar, sem apagar); partida nova abre a história
   const onSwitch = () => { dropTip(); clearNews(); resetRoundEnd(); resetOffers(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeSkills(); updateUI(); };
   initTutorial({ play: () => document.getElementById('hmContinue').click() }); // "Jogar" = Continuar/Novo jogo
-  initRanking(); initJornal();
+  initRanking(); initJornal(); initGear();
   initHome({ onSwitch: () => { onSwitch(); pedirFicha(); }, onHowto: openTutorial, onRanking: openRanking, onRankLeave: sairDoRanking, onRankJoin: definirApelido, onSound: () => syncSnd(), onJornais: drawArquivo,
     onForget: esquecerJogador, // apagar um espaço tira o apelido daquele jogador do ranking
     onNewGame: () => { if (!(TEST || navigator.webdriver)) startIntro(false); } }); // nos testes, sem abertura
-  $('skHome').onclick = () => { closeSkills(); openHome(); };
+  $('skHome').onclick = () => { closeGear(); closeSkills(); openHome(); };
+  $('gearCfg').onclick = () => { closeGear(); closeSkills(); openHome(); $('hmCfg').click(); };
   if (!(TEST || navigator.webdriver)) openHome();
-  $('skStory').onclick = () => { closeSkills(); startIntro(true); };
+  $('skStory').onclick = () => { closeGear(); closeSkills(); startIntro(true); };
 }
 
 // som da obra: lembrado neste navegador (botão sobre a cena no modo atual; no rodapé das Melhorias no Obra Viva)

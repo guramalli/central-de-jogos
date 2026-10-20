@@ -2,6 +2,7 @@
 // Números de teste, não finais: ajustar com o robô (tools/viva-ritmo.mjs) e com gente jogando.
 export const VIVA = {
   startMoney: 100,       // cheque dos investidores na abertura (história): ~3 compras logo de cara, 1º andar em ~20 s
+  tourism: { capHeli: 0.6 }, // lugares por nível do heliponto (o panorâmico usa BAL.tourism.capPanoramic)
   curious: 0.5,          // R$/s dos curiosos no tapume antes do Elevador panorâmico (a torre já é famosa)
   floorPaySecs: 50,      // pagamento por andar entregue = aluguel-base do andar × isto (≈ R$ 25 nos primeiros)
   autoSellPct: 0,        // destino automático dos andares prontos (0 = aluga tudo); ninguém espera decisão manual
@@ -36,7 +37,9 @@ export const VIVA = {
     motor: { mul: 1.2, k: 2.1, max: 10, d: '×1,2 velocidade dos elevadores (e do material subindo).' }, // forte, mas com teto: no fim quem puxa são as tecnologias de era
     olaria: { mul: 1.9, d: '×1,9 produção por nível.' },
     premold: { mul: 2.5, d: '×2,5 produção por nível.' },
-    maglev: { mul: 1.6, d: '×1,6 velocidade dos elevadores (e do material subindo).' },
+    // sem teto (decisão do usuário, out/2026: com ×12 de preço e máx. 6 a Logística travava no fim): o mais forte da
+    // Logística por compra, com o preço subindo ×6 a cada nível (robô: Órbita segue na 13ª obra, sem as obras empacadas)
+    maglev: { mul: 1.5, k: 6, max: undefined, d: '×1,5 velocidade dos elevadores (e do material subindo) por nível, sem limite.' },
     mestre: { mul: 1.75, d: '×1,75 assentamento por nível.' },
     // guindaste de torre é transporte vertical (decisão do usuário): fica na Logística e soma no material subindo
     guindaste: { b: 'log', req: ['elevador', 2], add: 0.6, k: 2.5, d: 'Iça paletes do térreo até o topo junto com os elevadores: +60% de material subindo por nível.' },
@@ -46,7 +49,7 @@ export const VIVA = {
   // cada era nova deixa a peça ~2,6× mais cara (2,3× com a Pré-fabricação total); módulo grande pede um pouco mais de material
   // robô (tools/ritmo-longo.mjs): 1 km ~0h25 · 12 km ~0h57 · 100 km ~3h45 · Órbita ~13h30; peça nunca abaixo de ~1,2 s no alto
   floorCost: { mult: 5, pow: 0.95, eraMult: 2.4, modulePow: 1 }, // mult entra aos poucos nos primeiros 40 andares; eraMult/modulePow altos: com o prestígio, uma obra sozinha não vai longe
-  floorCostPrefab: { pow: 0.85, eraMult: 4.5 },
+  floorCostPrefab: { pow: 0.92, eraMult: 2.35 }, // abaixo do normal (0,95 e 2,4): ~20–30% menos material; antes (4,5) encarecia o andar
   // Rodadas "Nova obra" (decisão do usuário, out/2026): cada rodada de 20 min (ou entrega antecipada) rende pontos
   // = floor(k × km^pow) (retorno decrescente); os pontos compram o quadro "Construtora" (bônus permanentes, aditivos)
   manager: { share: 0.5, rate: 2 }, // gerentes: verba comum de metade da renda (nunca mais que metade do caixa); até 2 compras/s por ramo
@@ -60,7 +63,7 @@ export const VIVA = {
   // Órbita; o piso por obra impede juntar ★ entregando torres baixas de propósito. Antecipar rende até +bonus de ★
   // (proporcional aos dias que sobram). No fim do ano a entrega vale sempre.
   meta: { rec: 0.6, piso: 100, cresce: 1.8, bonus: 0.25 },
-  prestige: { k: 12, pow: 0.6, rep: 0.03 }, // ★ = 12 × km^0,6 (mín. 1); rep: Reputação = +3% em tudo por ★ ganha no total (robô com contratos: Órbita na 13ª rodada)
+  prestige: { k: 12, pow: 0.6, rep: 0.04 }, // pontos = 12 × km^0,6 (mín. 1); rep: Reputação = +4% em tudo por ponto ganho no total (era 3%; subiu quando os pares de tecnologias foram equilibrados, para o robô atento seguir chegando à Órbita na 13ª obra)
   // Construtora J. Santos (só Reputação, decisão do usuário 20/10/2026): sem compras com ★; os gerentes chegam um por obra
   board: {
     gerObra: { n: 'Gerente de obra', d: 'Contrata pedreiros e compra treino, ferramentas e mestres sozinho.', mgr: 'obra', obra: 2 },

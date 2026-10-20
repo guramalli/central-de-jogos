@@ -461,6 +461,30 @@ export const rocketSprite = () => makeSprite('rocket', 22, 58, p => {
   Q(-2, 0, 4, 10, '#a8342a'); Q(16, 0, 4, 10, '#a8342a');
 });
 
+// ---------- eras altas (Estratosfera em diante): andaime de liga leve e elevador em tubo fechado ----------
+// andaime: tubos brancos com faixa azul, travessa em X e plataforma de grade metálica (26×32)
+export const scaffoldHiTile = () => makeSprite('scaffold-hi', 26, 32, p => {
+  for (const x of [4, 16]) { p.r(x, 0, 3, 32, '#dfe3ea'); p.r(x, 0, 1, 32, '#ffffff'); p.r(x + 2, 0, 1, 32, '#9aa0ad'); p.r(x, 10, 3, 3, '#3b6fd1'); }
+  for (let d = 0; d < 10; d++) { p.r(7 + d, 2 + d * 2, 1, 2, '#9aa0ad'); p.r(15 - d, 2 + d * 2, 1, 2, '#7c8597'); }
+  p.r(0, 23, 26, 5, '#6b7183'); p.r(0, 23, 26, 1, '#b4bac4'); p.r(0, 27, 26, 1, '#3b4152');
+  for (let x = 1; x < 26; x += 3) p.r(x, 24, 2, 3, '#4a5060'); // grade
+  p.r(0, 28, 26, 1, 'rgba(0,0,0,.3)');
+}, { outline: null });
+// poço em tubo: trilhos grossos, painéis escuros de vidro com reflexo e anel de fixação a cada 24 px (30×24)
+export const shaftHiTile = () => makeSprite('shaft-hi', 30, 24, p => {
+  p.r(3, 0, 24, 24, 'rgba(40,60,96,.55)'); p.r(5, 0, 2, 24, 'rgba(170,210,255,.35)'); p.r(22, 0, 1, 24, 'rgba(170,210,255,.2)');
+  for (const x of [0, 26]) { p.r(x, 0, 4, 24, '#c9ced8'); p.r(x, 0, 1, 24, '#ffffff'); p.r(x + 3, 0, 1, 24, '#7c8597'); }
+  p.r(0, 20, 30, 4, '#9aa0ad'); p.r(0, 20, 30, 1, '#e6e9ef'); p.r(0, 23, 30, 1, '#5d6573');
+  p.r(13, 21, 4, 2, '#5fd7ff');
+}, { outline: null });
+// cápsula do elevador do espaço (26×34): casco branco arredondado, janela azul e luzes
+export const capsuleSprite = () => makeSprite('elev-capsule', 26, 34, p => {
+  p.r(3, 1, 20, 32, '#eef1f6'); p.r(1, 4, 24, 26, '#eef1f6'); p.r(1, 4, 2, 26, '#c9ced8'); p.r(22, 4, 2, 26, '#ffffff');
+  p.r(3, 1, 20, 2, '#ffffff'); p.r(3, 31, 20, 2, '#9aa0ad');
+  p.r(5, 6, 16, 20, '#22407a'); p.r(6, 7, 14, 18, '#2f5fa8'); p.r(7, 8, 3, 10, '#7fc4ff');
+  p.r(1, 28, 24, 2, '#3b6fd1'); p.r(10, 0, 6, 2, '#7c8597');
+});
+
 // ---------- andaime: tubos de aço, travessas, tábuas e braçadeiras (26×32, repete na vertical) ----------
 export const scaffoldTile = () => makeSprite('scaffold', 26, 32, p => {
   for (const x of [4, 15]) { p.r(x, 0, 4, 32, '#8f969f'); p.r(x, 0, 1, 32, '#c7ccd6'); p.r(x + 3, 0, 1, 32, '#5e646e'); }

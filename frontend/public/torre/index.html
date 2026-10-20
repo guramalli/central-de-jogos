@@ -29,9 +29,13 @@
       <div class="view" id="view">
         <canvas id="cv" width="360" height="480" aria-label="Obra da torre em pixel art. Arraste para mover a câmera; roda do mouse ou pinça para zoom."></canvas>
         <!-- modo Obra Viva: só o andar e o dinheiro na tela, e o botão Melhorias -->
-        <div class="plate plate-floor" id="hPlateFloor" hidden><small>ANDAR</small><b id="hFloor">1</b><span id="hAlt">0 m</span></div>
+        <div class="plate plate-floor" id="hPlateFloor" hidden><small>ANDAR</small><b id="hFloor">1</b><span id="hAlt">0 m</span>
+          <div class="day-bar" id="hPlateClock" hidden title="Dia da obra: o contrato vence no último dia do prazo"><i id="hClockBar"></i><span>Dia <b id="hClock">1</b> <em id="hClockOf">de 365</em></span></div></div>
+        <div class="hud-btns" id="hudBtns" hidden>
+          <button class="hud-btn" id="gearBtn" title="Configurações" aria-label="Configurações"><svg viewBox="0 0 16 16" width="18" height="18" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M7 1h2v2h2V2h1v2h1v1h-1v1h2v2h-2v2h1v1h-1v1h-1v-1h-1v2H9v1H7v-1H5v1H4v-1H3v-1h1V9H2V7h2V5H3V4h1V3h1v1h2zM7 6v1H6v2h1v1h2V9h1V7H9V6z"/></svg></button>
+          <button class="hud-btn" id="pauseBtn" title="Pausar" aria-label="Pausar"><svg viewBox="0 0 16 16" width="18" height="18" shape-rendering="crispEdges" aria-hidden="true"><path class="pz-ic" fill="currentColor" d="M4 3h3v10H4zM9 3h3v10H9z"/><path class="pl-ic" fill="currentColor" d="M5 3h2v1h2v1h2v1h2v4h-2v1H9v1H7v1H5z"/></svg></button>
+        </div>
         <div class="plate plate-money" id="hPlateMoney" hidden><b id="hMoney">R$ 0</b></div>
-        <div class="plate plate-clock" id="hPlateClock" hidden title="Dia da obra: o contrato vence no dia 365"><small>DIA</small><b id="hClock">1</b><span id="hClockOf">de 365</span><i class="clk-bar"><i id="hClockBar"></i></i></div>
         <button class="hsum" id="hSum" hidden aria-expanded="false" title="Resumo da obra (toque para ver mais)">
           <span class="hs-inc"><b class="hs-incv">R$ 0/s</b> <i class="hs-fpm">0 andares/min</i></span>
           <span class="hs-row" data-k="prod"><em>Chegando</em><i class="hs-bar"><u></u></i><b>0/s</b></span>
@@ -231,7 +235,7 @@
   <header class="sk-h">
     <b class="sk-t">Avanços da obra</b>
     <span class="sk-money" id="skMoney">R$ 0</span>
-    <span class="sk-clock" id="skClock" title="Dia da obra: o contrato vence no dia 365">Dia 1 de 365</span>
+    <span class="day-bar sk-clock" id="skClock" title="Dia da obra: o contrato vence no último dia do prazo"><i id="skClockBar"></i><span id="skClockT">Dia 1 de 365</span></span>
     <button class="offerbtn sk-offer" id="skOffer" hidden>Proposta</button>
     <span class="grow"></span>
     <button class="btn sm ghost" id="skOut" aria-label="Afastar">−</button>
@@ -263,16 +267,30 @@
     <header class="skb-h"><b>Construtora J. Santos</b><span class="skb-rep" id="skRep" title="A fama da construtora: cada torre entregue deixa toda a obra mais forte, para sempre">Reputação +0%</span><span class="skb-obra" id="skObra"></span></header>
     <div class="skb-row" id="skBoardRow"></div>
   </section>
-  <footer class="sk-f">
+</div>
+
+<!-- engrenagem (ui/gear.js): opções que ficavam no rodapé das Melhorias; a obra para com o painel aberto -->
+<div class="win gear" id="gear" hidden role="dialog" aria-modal="true" aria-labelledby="gearT">
+  <div class="win-box">
+    <small>CONFIGURAÇÕES</small>
+    <b id="gearT">Obra nº 1</b>
+    <button class="resetbtn deliver" id="skDeliver">Entregar a obra</button>
+    <div class="dv-confirm" id="dvConfirm" hidden><p id="dvMsg"></p><div class="win-b"><button class="btn" id="dvOk">Confirmar entrega</button><button class="btn ghost" id="dvNo">Cancelar</button></div></div>
+    <div class="gear-grid">
+      <button class="resetbtn" id="skSnd" aria-pressed="true">Som</button>
+      <button class="resetbtn" id="skTips">Dicas</button>
+      <button class="resetbtn" id="skStory">História</button>
+      <button class="resetbtn" id="gearCfg">Mais configurações</button>
+      <button class="resetbtn" id="skHome">Início</button>
+      <button class="resetbtn" id="skReset">Recomeçar</button>
+    </div>
     <span class="hint" id="skSave">Salvo neste navegador.</span>
-    <button class="resetbtn deliver" id="skDeliver" hidden>Entregar a obra</button>
-    <span class="grow"></span>
-    <button class="resetbtn" id="skSnd" aria-pressed="true">Som</button>
-    <button class="resetbtn" id="skStory">História</button>
-    <button class="resetbtn" id="skTips">Dicas</button>
-    <button class="resetbtn" id="skHome">Início</button>
-    <button class="resetbtn" id="skReset">Recomeçar</button>
-  </footer>
+    <div class="win-b"><button class="btn" id="gearClose">Voltar à obra</button></div>
+  </div>
+</div>
+<!-- pausa (ui/gear.js) -->
+<div class="paused" id="paused" hidden role="dialog" aria-label="Jogo pausado">
+  <div class="pz-box"><small>PAUSA</small><b>Obra parada</b><span>Os dias do contrato não passam enquanto estiver pausado.</span><button class="btn" id="pauseGo">Continuar</button></div>
 </div>
 
 <!-- Abertura (Obra Viva): história em 4 quadros sobre a cena -->

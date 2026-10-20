@@ -11,6 +11,7 @@ import { boothSprite, heliSprite, rocketSprite } from './props.js';
 import { art } from './assets.js';
 import { FLAGS } from '../data/flags.js';
 import { COMPANY } from '../data/story.js';
+import { onMoon } from './eravis.js';
 
 const SHIRTS = ['#e8505b', '#4fb0e8', '#f2d24a', '#7ad37a', '#c58be8', '#ff9f43'];
 
@@ -88,6 +89,7 @@ export function drawTourGround(tour) {
 const TAPUME_ANDARES = 4;
 // bilheteria (aberta: "INGRESSOS"; fechada: janela baixada e "ABRE EM BREVE")
 function booth(aberta) {
+  if (onMoon()) { moonBooth(aberta); return; }
   const ba = art('bilheteria');
   if (ba) { // bilheteria do PixelLab, de frente; a placa "TICKETS" do desenho ganha o texto em português por cima
     blit(ba, BOOTH_X, 0, 0, ba.height);
@@ -100,6 +102,20 @@ function booth(aberta) {
     }
   }
   else { blit(boothSprite(), BOOTH_X, 0, 3, 76); T(aberta ? 'INGRESSOS' : 'EM BREVE', BOOTH_X + 17, 75, 8, '#f2b630', 'center'); }
+}
+
+// Lua: módulo pressurizado com cúpula, janela redonda, câmara de ar e a placa (60×48)
+function moonBooth(aberta) {
+  const x = BOOTH_X;
+  R(x + 2, 0, 60, 4, '#5d6573');                                                     // base
+  R(x + 4, 4, 56, 30, '#e6e9ef'); R(x + 4, 4, 3, 30, '#c9ced8'); R(x + 56, 4, 4, 30, '#ffffff');
+  R(x + 10, 34, 44, 6, '#e6e9ef'); R(x + 18, 40, 28, 5, '#d3d8e0'); R(x + 26, 45, 12, 3, '#c9ced8'); // cúpula em degraus
+  R(x + 4, 20, 56, 2, '#3b6fd1');                                                    // faixa
+  R(x + 8, 6, 14, 14, '#7c8597'); R(x + 10, 8, 10, 12, aberta ? '#2f3a4e' : '#4d5566'); R(x + 10, 8, 10, 1, '#9aa0ad'); // câmara de ar
+  R(x + 29, 8, 18, 10, '#7c8597'); R(x + 31, 9, 14, 8, aberta ? '#ffd27a' : '#22407a'); R(x + 32, 10, 4, 3, 'rgba(255,255,255,.5)'); // janela
+  R(x + 50, 36, 2, 10, '#9aa0ad'); R(x + 48, 46, 6, 2, aberta ? '#6fd08c' : '#ff5a4a');  // antena com luz
+  R(x + 12, 24, 40, 9, '#f4f1e6'); R(x + 12, 24, 40, 1, '#20242f');
+  T(aberta ? 'INGRESSOS' : 'EM BREVE', x + 32, 28.5, 6, '#20335a', 'center');
 }
 
 // Obra Viva, antes do Elevador panorâmico: tapume com a placa da construtora e curiosos tirando foto

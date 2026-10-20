@@ -315,7 +315,7 @@ body.sk-open .upbtn{display:none}
 
 /* ===================== Melhorias (estilo árvore de habilidades) ===================== */
 .sk{position:fixed;top:0;right:0;bottom:0;width:min(58vw,820px);z-index:55;background:repeating-conic-gradient(rgba(255,255,255,.028) 0 25%,transparent 0 50%) 0 0/4px 4px,radial-gradient(ellipse at 50% 40%,#1a1f2e 0%,#0b0d13 70%);display:grid;
-  grid-template-rows:auto minmax(0,1fr) auto auto;color:var(--fg);box-shadow:-4px 0 0 0 #2b3044,-8px 0 0 0 rgba(0,0,0,.35)}
+  grid-template-rows:auto minmax(0,1fr) auto;color:var(--fg);box-shadow:-4px 0 0 0 #2b3044,-8px 0 0 0 rgba(0,0,0,.35)}
 .tmap{z-index:60}
 .sk-h{display:flex;align-items:center;gap:12px;padding:10px max(14px,env(safe-area-inset-right,0px)) 8px max(14px,env(safe-area-inset-left,0px))}
 .sk-t{font-family:var(--f-display);font-size:20px;letter-spacing:.06em;text-transform:uppercase}
@@ -334,7 +334,6 @@ body.sk-open .upbtn{display:none}
 .sk-desc{margin:0;font-size:14px;line-height:1.45}
 .sk-fx{font-family:var(--f-display);font-size:14px;color:var(--c);background:rgba(255,255,255,.04);border-left:3px solid var(--c);padding:6px 9px;font-variant-numeric:tabular-nums}
 .sk-neg{grid-column:1/-1;overflow:auto;padding:0 14px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;align-content:start;max-width:1100px;margin:0 auto;width:100%}
-.sk-f{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px max(14px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));border-top:1px solid var(--line);background:rgba(11,13,19,.9)}
 @media (max-width:820px){
   .sk{top:auto;left:0;width:auto;height:60dvh;box-shadow:0 -4px 0 0 #2b3044,0 -8px 0 0 rgba(0,0,0,.35)}
   .sk-body{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
@@ -346,7 +345,6 @@ body.sk-open .upbtn{display:none}
   .sk-t{display:none}
   #skIn,#skOut{display:none}
   .sk-h{gap:8px;padding:6px 12px}
-  .sk-f{padding:4px 12px max(6px,env(safe-area-inset-bottom,0px))}
   .hsum.in-tree{display:none}
 }
 
@@ -486,13 +484,6 @@ body.intro .plate,body.intro .hsum,body.intro .upbtn,body.intro .camctl,body.int
 .sk-node.rec .halo{stroke:#6fd08c;stroke-width:5;stroke-dasharray:none;animation:needGlow 1.3s ease-in-out infinite}
 
 /* rodadas de 20 min (Obra Viva): relógio embaixo do dinheiro, âmbar no último minuto; placar no fim; cartão de gerente */
-.plate-clock{--pb:#7c8597;right:max(15px,env(safe-area-inset-right,0px));top:calc(max(15px,env(safe-area-inset-top,0px)) + 60px);align-items:flex-end}
-.plate-clock small{font-size:10px;letter-spacing:.14em;color:#9aa0ad;font-weight:700}
-.plate-clock b{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
-.plate-clock.warn{--pb:#f2b630}.plate-clock.warn b{color:#f2b630}
-@media (min-width:821px){body.sk-open .plate-clock{display:none}}
-@media (max-width:520px){.plate-clock{top:calc(max(15px,env(safe-area-inset-top,0px)) + 52px)}.plate-clock b{font-size:17px}}
-body.intro .plate-clock{display:none!important}
 .round-end .kv b.rec{color:#f2b630}
 .skb-card.mgr.own button{background:#6fd08c}
 .skb-card.mgr.own.off button{background:#3b4152;color:#cfd3dc}
@@ -608,11 +599,6 @@ body.home-open .plate,body.home-open .upbtn,body.home-open .camctl,body.home-ope
 .jn-list li{cursor:pointer;align-items:center}.jn-list li b{font-family:var(--f-display);color:#f2b630;min-width:56px}
 
 /* dia da obra (contrato de 365 dias): DIA 78 / de 365 e a barrinha do prazo enchendo */
-.plate-clock span{font-size:11px;color:#9aa0ad;margin-top:-2px}
-.clk-bar{display:block;width:64px;height:4px;margin-top:4px;background:#2a2f3c;box-shadow:0 0 0 1px #11131a}
-.clk-bar>i{display:block;height:100%;width:0;background:#7c8597;transition:width .3s linear}
-.plate-clock.warn .clk-bar>i{background:#f2b630}
-@media (max-width:520px){.clk-bar{width:52px}}
 
 /* fim do ano: aditivo × carta da próxima cidade; portfólio de torres entregues no Início */
 .re-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left}
@@ -633,3 +619,41 @@ body.home-open .plate,body.home-open .upbtn,body.home-open .camctl,body.home-ope
 .round-end .kv b{font-size:16px}.round-end .kv{gap:4px 12px}
 #skDeliver:disabled{background:#2a2f3c;color:#9aa0ad;border-color:#2a2f3c;cursor:default;animation:none}
 .ch-stamp{top:58px}
+
+/* dia da obra: barrinha embaixo do andar (canto esquerdo) com o texto por dentro e o tempo enchendo de verde por trás;
+   a mesma no cabeçalho da árvore; âmbar no fim do prazo */
+.plate-floor .day-bar{margin-top:6px;width:118px}
+.day-bar{position:relative;display:block;height:18px;background:#232836;box-shadow:inset 0 0 0 1px #3a4152;overflow:hidden}
+.day-bar>i{position:absolute;left:0;top:0;bottom:0;width:0;background:#3f9e57;box-shadow:inset 0 -3px 0 #2f7d43,inset 0 2px 0 #63c97b;transition:width .3s linear}
+.day-bar>span{position:relative;display:block;text-align:center;font:600 11px/18px var(--f-display);color:#f4f1e6;text-shadow:0 1px 0 rgba(0,0,0,.7);white-space:nowrap;letter-spacing:.02em}
+.day-bar b,.day-bar em{font:inherit;font-style:normal}
+.day-bar.warn>i{background:#e0a020;box-shadow:inset 0 -3px 0 #b07a10,inset 0 2px 0 #f6c95a}
+.sk-clock.day-bar{display:inline-block;width:150px;margin-left:12px;vertical-align:middle;color:inherit}
+@media (max-width:520px){.plate-floor .day-bar{width:100px}.day-bar>span{font-size:10px}.sk-clock.day-bar{width:120px}}
+.sk-clock.day-bar{flex:0 0 auto;width:128px;margin-left:10px}
+@media (max-width:520px){.sk-clock.day-bar{width:112px}}
+
+/* engrenagem e pausa (ui/gear.js): dois botões embaixo da placa do andar; painel com as opções; aviso de pausa */
+.hud-btns{position:absolute;display:flex;gap:6px;z-index:6}
+.hud-btn{width:34px;height:34px;display:grid;place-items:center;background:rgba(17,19,26,.88);color:#e8e2d0;border:0;cursor:pointer;
+  box-shadow:0 0 0 2px #3a4152,0 3px 0 rgba(0,0,0,.35);padding:0}
+.hud-btn:hover{color:#f2b630;box-shadow:0 0 0 2px #f2b630,0 3px 0 rgba(0,0,0,.35)}
+.hud-btn .pl-ic{display:none}.hud-btn.on .pz-ic{display:none}.hud-btn.on .pl-ic{display:inline}
+.hud-btn.on{color:#6fd08c;box-shadow:0 0 0 2px #6fd08c,0 3px 0 rgba(0,0,0,.35)}
+body.intro .hud-btns{display:none!important}
+.gear{z-index:72}
+.gear .win-box{gap:12px}
+.gear .deliver{width:100%;padding:10px;font-size:14px}
+.gear-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gear-grid .resetbtn{padding:9px 8px;font-size:13px}
+.gear .hint{font-size:11px;color:var(--muted)}
+.paused{position:fixed;inset:0;z-index:71;display:grid;place-items:center;background:rgba(5,8,18,.55);cursor:pointer}
+.pz-box{background:#141824;box-shadow:0 0 0 3px #6fd08c,0 10px 0 rgba(0,0,0,.4);padding:18px 22px;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;max-width:300px}
+.pz-box small{font-family:var(--f-display);letter-spacing:.16em;color:#6fd08c;font-weight:700}
+.pz-box b{font-family:var(--f-display);font-size:24px}
+.pz-box span{font-size:12.5px;color:var(--muted)}
+.paused[hidden],.gear[hidden]{display:none}
+.dv-confirm{background:#1c2130;box-shadow:0 0 0 2px #f2b630;padding:10px;text-align:left}
+.dv-confirm p{font-size:12.5px;line-height:1.5;margin:0 0 8px;color:#cfd3dc}.dv-confirm p b{font-size:inherit;color:#f4f1e6}
+.dv-bad{color:#ff9a8a}.gear .deliver.multa{background:#3b4152;color:#f4f1e6;border-color:#3b4152}
+.dv-confirm[hidden]{display:none}

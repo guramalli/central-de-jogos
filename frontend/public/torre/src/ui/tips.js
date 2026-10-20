@@ -14,6 +14,7 @@ import { skillsOpen, closeSkills, selectedKey, revealNode } from './skills.js';
 import { cfg, setCfg } from './config.js';
 import { homeOpen } from './home.js';
 import { showTip, coachBusy, coachTip, dropTip, rectOf, worldRect, updateCoach } from './coach.js';
+import { closeGear } from './gear.js';
 
 const $ = id => document.getElementById(id);
 let enabled = false;
@@ -34,7 +35,7 @@ const tip = id => showTip(id, TARGET[id], { action: !!TIPS[id].a });
 
 export function initTips({ test = false } = {}) {
   enabled = FLAGS.viva && !test;
-  $('skTips').onclick = () => { dropTip(); setCfg({ dicas: true }); S.dicas = {}; save(); closeSkills(); }; // rever todas desde o começo (e religa)
+  $('skTips').onclick = () => { dropTip(); setCfg({ dicas: true }); S.dicas = {}; save(); closeGear(); closeSkills(); }; // rever todas desde o começo (e religa)
 }
 export const setTips = on => { enabled = FLAGS.viva && !!on; };
 export const tickTips = () => { if (enabled) updateCoach(); };

@@ -12,6 +12,7 @@ import { cam, sx, sy } from './camera.js';
 import { art } from './assets.js';
 import { blit } from './sprites.js';
 import { drawRig, ANIMS, SKINS, RIG_AX, RIG_AY, walkDistance } from './rig.js';
+import { eraVis, onMoon } from './eravis.js';
 
 const SIL = { vest: '#ee7a1c', pants: '#30446e', helm: '#f7c824', suit: '#d3d8e0', suitD: '#a9b0bd', visor: '#f7f8fb' };
 
@@ -30,7 +31,7 @@ const TSHEET = { walk: ['andar', 8], idle: ['parado', 4] };
 export function tourist(x, y, i, o = {}) {
   if (cam.z < 0.1) return;
   if (cam.z >= 0.2) {
-    const sh = TSHEET[o.walk ? 'walk' : 'idle'], img = art(`turista${(i % 3) + 1}/${sh[0]}`);
+    const sh = TSHEET[o.walk ? 'walk' : 'idle'], img = art(onMoon() ? `espacial/${sh[0]}` : `turista${(i % 3) + 1}/${sh[0]}`); // na Lua, turistas de traje
     if (img) {
       const cyc = o.walk ? (o.flip ? -x : x) / 52 : (o.phase ?? 0) / 2 + i * 0.37, m = sh[1];
       blitCell(img, ((Math.floor((cyc % 1 + 1) % 1 * m)) + m) % m, x, y, !!o.flip);
@@ -80,7 +81,7 @@ function tinted(img, color, set) {
 
 export function worker(x, y, o = {}) {
   if (cam.z < 0.07) return; // menor que 4 px: nem desenha
-  const era = eraAt(altOf(S.floors)), suit = o.suit ?? era >= 3;
+  const era = eraVis(altOf(S.floors)), suit = o.suit ?? era >= 3;
   const skin = (o.skin ?? 0) % SKINS.length;
 
   // pequeno demais para detalhe: só a silhueta

@@ -11,6 +11,6 @@ export const CITIES = [
   { id: 'artico', n: 'Ártico', mods: { tran: 0.85, lay: 0.9, rent: 1.2 }, regra: 'Frio extremo: elevadores 15% e pedreiros 10% mais lentos, mas aluguel +20% (quem mora aqui paga bem).',
     scene: { skyline: 'artico-orla', landmark: 'iceberg', tree: 'pinheiro', sea: 'mar', seaTint: 'rgba(20,40,70,.35)', sand: '#eef3f7', sand2: '#d9e3ec', calcadao: false, ship: false } },
   { id: 'lua', n: 'Base Lunar', mods: { tran: 1.3, prod: 0.8, tour: 1.5 }, regra: 'Gravidade baixa: elevadores 30% mais rápidos e turismo +50%, mas o material chega 20% mais devagar.',
-    scene: { skyline: 'lua-base', landmark: 'terra', tree: null, sea: null, plain: '#5c5f66', sand: '#9a9ca2', sand2: '#86888f', calcadao: false, ship: false, skyAlt: 400000, noClouds: true, landmarkY: 320 } },
+    scene: { skyline: 'lua-base', landmark: 'terra', tree: null, sea: null, plain: '#5c5f66', sand: '#9a9ca2', sand2: '#86888f', calcadao: false, ship: false, skyAlt: 400000, noClouds: true, landmarkY: 320, moon: true, eraMin: 5 } },
 ];
 export const cityOf = i => CITIES[i < CITIES.length ? i : 1 + (i - 1) % (CITIES.length - 1)];

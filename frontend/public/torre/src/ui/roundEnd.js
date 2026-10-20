@@ -72,7 +72,7 @@ export function checkRoundEnd() {
     $('reTitle').textContent = obra;
     stats([['Altura', fmtM(S.maxAlt)], ['Entregue', `dia ${t ? t.dia : roundDay()} de ${roundDays()}`],
       ['Recorde', rec ? 'Novo recorde!' : fmtM(S.lastBest || 0), rec ? 'rec' : ''],
-      ['Reputação ganha', fmtPct(repPct(S.lastGot || 0)) + (early ? ` (com +${early}% de antecipação)` : '')],
+      ['Reputação ganha', fmtPct(repPct(S.lastGot || 0)) + (early ? ` (com +${early}% de antecipação)` : S.lastMulta ? ` (multa de ${S.lastMulta}%)` : '')],
       ['Reputação total', fmtPct(repPct(S.pontosTotal || 0))],
       ['Paga para sempre', reais(t ? t.taxa : admTaxa(S.maxAlt))]]);
     $('reGo').textContent = `Começar a obra em ${nx}`;

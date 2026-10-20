@@ -271,14 +271,7 @@ function buildBoard() {
 }
 function updateBoard() {
   $('skBoard').hidden = false;
-  // obra entregue: o botão começa a próxima obra; no fim do ano a escolha fica no placar; em andamento: entrega antes
-  // do prazo (dois cliques) só depois da meta do contrato, com o bônus de antecipação
-  const dv = $('skDeliver');
-  dv.hidden = S.roundOver && !S.roundPaid;
-  dv.disabled = !S.roundOver && !canDeliver();
-  if (S.roundOver) setText(dv, `Começar a obra em ${nextCity().n}`);
-  else if (dv.disabled) setText(dv, `Meta do contrato: ${fmtM(metaAlt())} · faltam ${fmtM(Math.max(0, metaAlt() - S.maxAlt))}`);
-  else if (!dv.classList.contains('armed')) setText(dv, `Entregar antes: ${fmtPct(repPct(deliverPoints()))} de Reputação (com bônus)`);
+  // o botão de entregar mora no painel da engrenagem (ui/gear.js)
   if (!boardBuilt) buildBoard();
   setText($('skRep'), `Reputação ${fmtPct(repPct(S.pontosTotal || 0))}`);
   setText($('skObra'), `Obra nº ${S.obra || 1} · ${city().n}`);

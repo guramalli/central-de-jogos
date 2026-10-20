@@ -82,8 +82,9 @@ function updateHud() {
   // dia da obra (contrato de 365 dias por cima dos 20 min), com a barrinha do prazo; âmbar no último minuto real (~18 dias)
   const left = Math.ceil(S.roundLeft || 0), dia = roundDay(), dias = roundDays();
   setText($('hClock'), String(dia)); setText($('hClockOf'), `de ${dias}`);
-  setText($('skClock'), `Dia ${dia} de ${dias}`); // a placa some com a árvore aberta no computador; a árvore tem o seu
-  const w = (roundFrac() * 100).toFixed(1) + '%'; if ($('hClockBar').style.width !== w) $('hClockBar').style.width = w;
+  setText($('skClockT'), `Dia ${dia} de ${dias}`); // a árvore tem a sua barrinha no cabeçalho
+  const w = (roundFrac() * 100).toFixed(1) + '%'; // a barrinha enche de verde com o tempo
+  for (const id of ['hClockBar', 'skClockBar']) if ($(id).style.width !== w) $(id).style.width = w;
   $('hPlateClock').classList.toggle('warn', left <= 60); $('skClock').classList.toggle('warn', left <= 60);
   updateSummary();
   $('openUp').querySelector('.dot').hidden = !anyToBuy();

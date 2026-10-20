@@ -20,9 +20,11 @@ export function tourism() {
   const demand = L.bilheteria < 1 ? 0
     : T.demand * Math.pow(alt, T.demandPow) * (1 + 0.25 * L.marketing) * (1 + 0.15 * Math.log2(1 + hotels / 10)) * techMult('tour') * M.mult('tourism') * boardMult('tour') * cityMult('tour');
   // Obra Viva: a capacidade acompanha a altura (cabines maiores e mais rápidas, como aparece na cena), no mesmo
-  // ritmo dos interessados, e cada nível multiplica (×1,6) em vez de somar; assim Marketing e Agência continuam valendo
-  const lvCap = n => n < 1 ? 0 : FLAGS.viva ? Math.pow(1.6, n - 1) * Math.pow(Math.max(1, alt / 40), T.demandPow) : n;
-  const cap = T.capPanoramic * lvCap(L.bilheteria) + T.capHeli * lvCap(L.heliponto);
+  // ritmo dos interessados, e cada nível SOMA lugares (decisão do usuário, out/2026: com ×1,6 por nível sobravam
+  // lugares demais para os turistas, mesmo com Marketing); panorâmico ≈ 0,8 e heliponto ≈ 1,6 da procura sem marketing
+  const lvCap = n => n < 1 ? 0 : FLAGS.viva ? n * Math.pow(Math.max(1, alt / 40), T.demandPow) : n;
+  const capHeli = FLAGS.viva ? VIVA.tourism.capHeli : T.capHeli;
+  const cap = T.capPanoramic * lvCap(L.bilheteria) + capHeli * lvCap(L.heliponto);
   const ticket = T.ticket * Math.pow(alt / 10, T.ticketPow) * (1 + 0.25 * Math.log2(1 + obs / 10)) * techMult('ticket') * M.mult('ticket');
   const served = Math.min(demand, cap);
   const sDemand = L.porto < 1 ? 0 : T.spaceDemand * Math.pow(alt / 1000, 0.8) * M.mult('tourism');

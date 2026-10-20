@@ -12,7 +12,10 @@ import { blit, shade } from './sprites.js';
 import { art } from './assets.js';
 import { FLAGS } from '../data/flags.js';
 import { techShaft, techShaftsExtra, techFacade } from './techvis.js';
-import { scaffoldTile, brickTile, eraTile, shaftTile, carSprite, shaftTopSprite, mastTile, jibTile, cabSprite, weightSprite, trolleySprite, hookSprite, hexMix } from './props.js';
+import { scaffoldTile, scaffoldHiTile, shaftHiTile, capsuleSprite, brickTile, eraTile, shaftTile, carSprite, shaftTopSprite, mastTile, jibTile, cabSprite, weightSprite, trolleySprite, hookSprite, hexMix } from './props.js';
+import { eraVis, onMoon } from './eravis.js';
+import { facadeImg, spaceDecor } from './spacedecor.js';
+const hiTech = () => eraVis(altOf(S.floors)) >= 3; // andaime e elevador de era alta
 
 const WIN_X = [12, 72, 132, 192];     // janelas: x relativo à borda esquerda
 const WIN_W = 36, WIN_Y = 22, WIN_H = 48;
@@ -66,7 +69,7 @@ function farFacade(e) {
 
 // Fachada do andar i. lvl: 1 simples, 2 molduras, 3 completo
 export function facade(i, lvl = floorLOD()) {
-  const e = eraAt(altOf(i)), s = ERA_STYLE[e], y0 = i * FH;
+  const e = eraVis(altOf(i)), s = ERA_STYLE[e], y0 = i * FH;
   // andar recém-concluído: todas as luzes acendem por um instante (Obra Viva)
   const flash = V.flash && V.flash.i === i, occ = i < S.assigned || flash;
   const lit = flash ? () => true : litW;
@@ -80,9 +83,10 @@ export function facade(i, lvl = floorLOD()) {
   }
   const fa = lvl >= 2 && art('fachadas/' + e);
   if (fa) { // arte do PixelLab: parede pronta da era; janelas acesas vêm da versão acesa
-    blit(fa, TL, y0, 0, fa.height);
+    blit(facadeImg(fa, e, i), TL, y0, 0, fa.height);
     const fl = occ && art('fachadas/' + e + '-acesa');
     if (fl) FAC_WIN[e].forEach(([x, y, w, h], k) => { if (lit(i, k)) subImg(fl, x, y, w, h, TL + x, y0 + FH - y); });
+    if (e >= 5) spaceDecor(e, i, y0, occ); // espaço: detalhes por andar para a fachada não se repetir
     if (e >= 4 && i % 25 === 0 && Math.floor(V.t * 2) % 2) R(TL + TW - 10, y0 + FH - 10, 6, 4, '#ff3b3b');
     return;
   }
@@ -156,7 +160,7 @@ export function drawFloors(base) {
   const pts = [...cuts].sort((a, b) => a - b);
   for (let k = 0; k < pts.length - 1; k++) {
     const a = pts[k], b = pts[k + 1]; if (b <= a) continue;
-    const ea = eraAt(altOf(a)), f = farFacade(ea) || FAR[ea]; // muito longe: cor média da fachada do PixelLab
+    const ea = eraVis(altOf(a)), f = farFacade(ea) || FAR[ea]; // muito longe: cor média da fachada do PixelLab
     Rv(TL, a * FH, TW, (b - a) * FH, a < S.assigned ? f.occ : f.vac);
   }
 }
@@ -180,8 +184,8 @@ export function shafts(topWP, carrying) {
 function shaft(i, topWP, carrying) {
   const top = topWP + 40;
   const yLo = Math.max(0, worldY(H) - 30), yHi0 = Math.min(top, worldY(0) + 30);
-  const bc = ERA_STYLE[eraAt(altOf(S.floors))].brick;
-  const bars = 24 * cam.z >= 3;
+  const bc = ERA_STYLE[eraVis(altOf(S.floors))].brick;
+  const bars = 24 * cam.z >= 3, hi = hiTech();
   const load = Math.min(24, 10 + 1.5 * (S.lv.cacamba || 0)); // carrinho maior: carga mais alta a cada nível
   const mg = S.lv.maglev || 0, ml = S.lv.motor || 0;
   {
@@ -194,10 +198,10 @@ function shaft(i, topWP, carrying) {
       for (let y = Math.max(0, Math.floor(yLo / 96) * 96); y < Math.min(h, yHi0); y += Math.max(24, 96 - mg * 12)) R(x0 - 1, y, 32, 2, `rgba(95,215,255,${a})`);
     }
     if (bars && yHi > yLo) {
-      const st = cam.z >= 0.5 ? shaftTile() : null;
+      const st = cam.z >= 0.5 ? (hi ? shaftHiTile() : shaftTile()) : null;
       for (let y = Math.max(0, Math.floor(yLo / 24) * 24); y < yHi; y += 24) {
         if (st) blit(st, x0, Math.min(y, yHi - 24), 0, 24);
-        else R(x0, y, 30, 2, '#2a2f3d');
+        else R(x0, y, 30, 2, hi ? '#9aa0ad' : '#2a2f3d');
       }
     }
     if (b < 1) { // elevador novo sendo montado: a torre de trilhos sobe com faíscas na ponta
@@ -217,8 +221,8 @@ function shaft(i, topWP, carrying) {
     const ph = V.elev[i] % 1, a = ph < .45 ? ph / .45 : ph < .55 ? 1 : 1 - (ph - .55) / .45;
     const cy = a * topWP;
     R(x0 + 14, cy + 32, 2, Math.max(0, top - cy - 32), '#9aa0ad');
-    if (cam.z >= 0.4) blit(carSprite(), x0 + 3, cy, 1, 33);
-    else { R(x0 + 3, cy, 24, 32, '#c9a227'); R(x0 + 6, cy + 3, 18, 24, '#262a35'); }
+    if (cam.z >= 0.4) blit(hi ? capsuleSprite() : carSprite(), x0 + 3, cy, 1, 33);
+    else { R(x0 + 3, cy, 24, 32, hi ? '#eef1f6' : '#c9a227'); R(x0 + 6, cy + 3, 18, 24, hi ? '#2f5fa8' : '#262a35'); }
     const bw = 16; // dentro da gaiola só o material (pedido do usuário)
     if (ph < .5 && carrying) { // carga: tijolos empilhados dentro da gaiola
       R(x0 + 7, cy + 4, bw, load, bc); R(x0 + 7, cy + 3 + load, bw, 1, shade(bc, 0.3));
@@ -231,9 +235,13 @@ function shaft(i, topWP, carrying) {
 // ---------- andaime no lado esquerdo do andar em obra ----------
 // posts = false quando os pilares do andar são montados peça por peça (modo bloco a bloco)
 export function scaffold(y0, posts = true) {
-  const fr = ERA_STYLE[eraAt(altOf(S.floors))].frame;
-  if (cam.z >= 0.3) { const t = scaffoldTile(); for (let y = y0 - FH; y < y0 + FH + 24; y += 32) blit(t, TL - 20, y, 0, 32); }
-  else { for (const px of [TL - 16, TL - 5]) R(px, y0 - FH, 4, FH * 2 + 24, '#8f969f'); for (let y = y0 - FH + 8; y < y0 + FH + 20; y += 32) R(TL - 20, y, 22, 4, '#a8814a'); }
+  const fr = ERA_STYLE[eraVis(altOf(S.floors))].frame;
+  const hi = hiTech(); // Estratosfera em diante (e na Lua): liga leve com grade metálica e luz piscando
+  if (cam.z >= 0.3) {
+    const t = hi ? scaffoldHiTile() : scaffoldTile(); for (let y = y0 - FH; y < y0 + FH + 24; y += 32) blit(t, TL - 20, y, 0, 32);
+    if (hi && Math.floor(V.t * 1.5) % 2) R(TL - 18, y0 + FH + 22, 3, 3, '#ff5a4a');
+  }
+  else { for (const px of [TL - 16, TL - 5]) R(px, y0 - FH, 4, FH * 2 + 24, hi ? '#dfe3ea' : '#8f969f'); for (let y = y0 - FH + 8; y < y0 + FH + 20; y += 32) R(TL - 20, y, 22, 4, hi ? '#6b7183' : '#a8814a'); }
   if (posts) { R(TL - 2, y0, 6, FH, fr); R(TL + TW - 4, y0, 6, FH, fr); R(-3, y0, 6, FH, fr); }
 }
 

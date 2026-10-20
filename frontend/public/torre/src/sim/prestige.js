@@ -14,10 +14,20 @@ const KEEP = ['obra', 'cidade', 'pontosTotal', 'bestAlt', 'won', 'winSeen', 'int
 export const repPct = pts => Math.round(VIVA.prestige.rep * 100 * (pts || 0) * 1e6) / 1e6;
 export const pointsFor = alt => alt <= 0 ? 0 : Math.max(1, Math.floor(VIVA.prestige.k * Math.pow(alt / 1000, VIVA.prestige.pow)));
 export const metaAlt = () => Math.min(VIVA.winAlt, Math.max(VIVA.meta.rec * (S.bestAlt || 0), VIVA.meta.piso * Math.pow(VIVA.meta.cresce, (S.obra || 1) - 1)));
-export const canDeliver = () => FLAGS.viva && !S.roundOver && S.maxAlt > 0 && S.maxAlt >= metaAlt();
+// entregar antes do prazo vale sempre (decisão do usuário, out/2026); o que muda é o resultado (deliverTerms)
+export const canDeliver = () => FLAGS.viva && !S.roundOver && S.maxAlt > 0;
 // bônus de antecipação (fração): só antes do fim do prazo, pelos dias que sobram
 export const earlyBonus = () => FLAGS.viva && !S.roundOver ? VIVA.meta.bonus * (1 - roundFrac()) : 0;
-export const deliverPoints = () => Math.round(pointsFor(S.maxAlt) * (1 + earlyBonus()));
+// termos da entrega agora: no fim do prazo, normal; antes do prazo com a meta batida, bônus de antecipação;
+// antes do prazo sem a meta, multa: Reputação e taxa da torre × (altura ÷ meta)² (torre baixa quase não rende)
+export function deliverTerms() {
+  const base = pointsFor(S.maxAlt), taxa0 = admTaxa(S.maxAlt), meta = metaAlt();
+  if (!FLAGS.viva || S.roundOver) return { early: false, metaOk: true, factor: 1, bonus: 0, multa: 0, pts: base, base, taxa: taxa0, meta };
+  if (S.maxAlt >= meta) { const bonus = earlyBonus(); return { early: true, metaOk: true, factor: 1, bonus, multa: 0, pts: Math.round(base * (1 + bonus)), base, taxa: taxa0, meta }; }
+  const factor = Math.pow(S.maxAlt / meta, 2);
+  return { early: true, metaOk: false, factor, bonus: 0, multa: Math.round((1 - factor) * 100), pts: Math.floor(base * factor), base, taxa: taxa0 * factor, meta };
+}
+export const deliverPoints = () => deliverTerms().pts;
 export const city = () => cityOf(S.cidade || 0);
 export const nextCity = () => cityOf((S.cidade || 0) + 1);
 // dia da obra (decisão do usuário, out/2026): os 20 min de relógio aparecem como um contrato de 365 dias,
@@ -51,13 +61,13 @@ export const cityMult = st => (FLAGS.viva && city().mods[st]) || 1;
 // fim da rodada (relógio zerou ou entrega antecipada): credita as ★ uma vez e congela a obra
 export function endRound() {
   if (!FLAGS.viva || S.roundPaid) return 0;
-  const got = deliverPoints(); S.lastEarly = earlyBonus(); S.lastGot = got; // o placar mostra
+  const dt = deliverTerms(), got = dt.pts; S.lastEarly = dt.bonus; S.lastMulta = dt.multa; S.lastGot = got; // o placar mostra
   S.pontosTotal = (S.pontosTotal || 0) + got;
   S.altTotal = (S.altTotal || 0) + S.maxAlt; // recorde total = soma das alturas das obras
   S.lastBest = S.bestAlt || 0; // recorde antes desta rodada (o placar mostra "Novo recorde!")
   S.bestAlt = Math.max(S.bestAlt || 0, S.maxAlt);
   // a torre fica de pé na cidade e entra no portfólio, pagando a taxa de administração nas próximas obras
-  S.torres = [...(S.torres || []), { obra: S.obra || 1, cidade: city().n, alt: S.maxAlt, dia: roundDay(), taxa: admTaxa(S.maxAlt) }];
+  S.torres = [...(S.torres || []), { obra: S.obra || 1, cidade: city().n, alt: S.maxAlt, dia: roundDay(), taxa: dt.taxa }];
   S.roundOver = true; S.roundPaid = true;
   return got;
 }

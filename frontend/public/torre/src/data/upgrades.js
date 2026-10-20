@@ -35,10 +35,10 @@ export const UP = {
   // Mercado
   corretor: { b: 'merc', n: 'Corretor de imóveis', d: 'Nv 1 decide sozinho o destino de cada andar pronto (regra em Imóveis). +8% no preço de venda por nível.', base: 150, k: 4, max: 6 },
   aluguel: { b: 'merc', n: 'Andares comerciais', d: '+50% de renda de aluguel por nível.', base: 120, k: 2.1 },
-  bilheteria: { b: 'merc', n: 'Elevador panorâmico', d: 'Leva turistas ao topo: +0,3 visitante/s de capacidade.', base: 200, k: 1.9, reqAlt: 40 },
+  bilheteria: { b: 'merc', n: 'Elevador panorâmico', d: 'Leva turistas ao topo: mais lugares a cada nível (os lugares crescem com a altura).', base: 200, k: 1.9, reqAlt: 40 },
   marketing: { b: 'merc', n: 'Marketing da torre', d: '+25% de turistas interessados.', base: 400, k: 2.2, req: ['bilheteria', 1] },
   banco: { b: 'merc', n: 'Relacionamento bancário', d: 'Sobe o nível do banco: mais crédito e juros menores.', base: 2500, k: 30, max: 3 },
-  heliponto: { b: 'merc', n: 'Heliponto no topo', d: 'Passeios de helicóptero: +1 visitante/s de capacidade.', base: 60000, k: 2.4, reqAlt: 1000 },
+  heliponto: { b: 'merc', n: 'Heliponto no topo', d: 'Passeios de helicóptero: muitos lugares a mais por nível (crescem com a altura).', base: 60000, k: 2.4, reqAlt: 1000 },
   porto: { b: 'merc', n: 'Porto espacial', d: 'Turismo espacial: +0,05 turista espacial/s, com ingresso 40× mais caro.', base: 5e9, k: 3, reqAlt: 100000 },
 };
 
@@ -83,33 +83,34 @@ export const ERA_TECH = {
   turismoEsp: T('merc', 5, 'Turismo espacial', 'Passeios até o espaço: +50% no ingresso por nível.', { base: 4e8, st: 'ticket', add: 0.5, icon: 'porto' }),
 };
 // Alternativas (escolha 1 de 2 por era e ramo; a outra fica travada até a próxima obra). Mesmo preço da irmã.
+// Números equilibrados com tools/pares.mjs (out/2026): os dois lados de cada par rendem parecido (A/B entre ~0,85 e ~1,15).
 // Estilos opostos: Obra assenta mais rápido × gasta menos material; Fornecimento quantidade × qualidade (aluguel);
 // Logística velocidade × capacidade da gaiola; Engenharia limite × custo; Mercado aluguel/ingresso × venda.
 // Estágios novos: cap (carga por viagem), capF (limite da fundação), fundCost (preço da Fundação), sale (valor de venda);
 // st2/mul2/add2 = segundo efeito da mesma tecnologia.
 const ALT_TECH = {
   argamassa: T('obra', 1, 'Argamassa polimérica', 'Assenta com menos material: −5% de material por andar a cada nível.', { base: 3e3, st: 'fcost', mul: 0.95, icon: 'argamassa', pair: 'escoramento' }),
-  parafusada: T('obra', 2, 'Estrutura parafusada', 'Vigas parafusadas no lugar da solda: −6% de material por andar a cada nível.', { base: 1e5, st: 'fcost', mul: 0.94, pair: 'soldadores' }),
-  turnoNoite: T('obra', 3, 'Turno da noite', 'A obra não para à noite: ×1,6 no assentamento por nível.', { base: 3e6, st: 'lay', mul: 1.6, pair: 'mutirao' }),
+  parafusada: T('obra', 2, 'Estrutura parafusada', 'Vigas parafusadas no lugar da solda: −4% de material por andar a cada nível.', { base: 1e5, st: 'fcost', mul: 0.96, pair: 'soldadores' }),
+  turnoNoite: T('obra', 3, 'Turno da noite', 'A obra não para à noite: ×1,6 no assentamento e ×1,3 no material subindo por nível.', { base: 3e6, st: 'lay', mul: 1.6, st2: 'tran', mul2: 1.3, pair: 'mutirao' }),
   impressao3d: T('obra', 4, 'Impressão 3D de paredes', 'Paredes impressas no lugar: −10% de material por andar a cada nível.', { base: 4e7, st: 'fcost', mul: 0.9, pair: 'robos' }),
-  exoesqueleto: T('obra', 5, 'Exoesqueletos', 'Pedreiros mais fortes: ×1,5 no assentamento e ×1,3 no material subindo por nível.', { base: 4e8, st: 'lay', mul: 1.5, st2: 'tran', mul2: 1.3, pair: 'drones' }),
-  concretoAD: T('forn', 1, 'Concreto de alto desempenho', 'Andares de mais qualidade: +30% de aluguel por nível.', { base: 3e3, st: 'rent', add: 0.3, pair: 'usina' }),
-  vidroSolar: T('forn', 2, 'Vidro solar', 'Fachada que gera energia: +40% de aluguel por nível.', { base: 1e5, st: 'rent', add: 0.4, pair: 'siderurgica' }),
-  modulosProntos: T('forn', 3, 'Fábrica de módulos', 'Peças maiores saindo da fábrica: ×1,6 de material por nível.', { base: 3e6, st: 'prod', mul: 1.6, pair: 'usinaTopo' }),
+  exoesqueleto: T('obra', 5, 'Exoesqueletos', 'Pedreiros mais fortes: ×1,4 no assentamento e ×1,1 no material subindo por nível.', { base: 4e8, st: 'lay', mul: 1.4, st2: 'tran', mul2: 1.1, pair: 'drones' }),
+  concretoAD: T('forn', 1, 'Concreto de alto desempenho', 'Andares de mais qualidade: +15% de aluguel por nível.', { base: 3e3, st: 'rent', add: 0.15, pair: 'usina' }),
+  vidroSolar: T('forn', 2, 'Vidro solar', 'Fachada que gera energia: +20% de aluguel por nível.', { base: 1e5, st: 'rent', add: 0.2, pair: 'siderurgica' }),
+  modulosProntos: T('forn', 3, 'Fábrica de módulos', 'Peças maiores saindo da fábrica: ×2,2 de material por nível.', { base: 3e6, st: 'prod', mul: 2.2, pair: 'usinaTopo' }),
   nanotubos: T('forn', 4, 'Nanotubos de carbono', 'Material mais leve e forte: −10% de material por andar a cada nível.', { base: 4e7, st: 'fcost', mul: 0.9, pair: 'fabrica' }),
   reciclagem: T('forn', 5, 'Reciclagem total', 'Nada se perde: ×1,5 de material e −5% de material por andar a cada nível.', { base: 4e8, st: 'prod', mul: 1.5, st2: 'fcost', mul2: 0.95, pair: 'asteroides' }),
   gaiolaDupla: T('log', 1, 'Gaiola dupla', 'Cada viagem leva mais: ×1,25 de carga por viagem a cada nível.', { base: 3e3, st: 'cap', mul: 1.25, pair: 'cabos' }),
-  contrapeso: T('log', 2, 'Contrapeso inteligente', 'Elevadores equilibrados: ×1,5 no material subindo.', { base: 1e5, max: 1, st: 'tran', mul: 1.5, pair: 'expresso' }),
+  contrapeso: T('log', 2, 'Contrapeso inteligente', 'Elevadores equilibrados: ×1,4 no material subindo por nível.', { base: 1e5, st: 'tran', mul: 1.4, pair: 'expresso' }),
   esteira: T('log', 3, 'Esteira vertical', 'Uma esteira sobe junto dos elevadores: ×1,3 de carga por viagem a cada nível.', { base: 3e6, st: 'cap', mul: 1.3, pair: 'pressurizada' }),
   tuboPneumatico: T('log', 4, 'Tubo pneumático', 'Material soprado até o topo: ×1,4 de carga por viagem a cada nível.', { base: 4e7, st: 'cap', mul: 1.4, pair: 'linear' }),
-  elevadorEspacial: T('log', 5, 'Cabo espacial', 'Um cabo do chão até a órbita: ×2,5 no material subindo.', { base: 4e8, max: 1, st: 'tran', mul: 2.5, pair: 'teleporte' }),
-  estacas: T('eng', 1, 'Estacas profundas', 'Fundação mais funda: +50% no limite da torre a cada nível.', { base: 4e3, st: 'capF', mul: 1.5, pair: 'calculo' }),
-  fundacaoBarata: T('eng', 2, 'Fundação em série', 'Formas reaproveitadas: a Fundação reforçada custa 40% menos.', { base: 1.5e5, max: 1, st: 'fundCost', mul: 0.6, pair: 'prefab' }),
+  elevadorEspacial: T('log', 5, 'Cabo espacial', 'Um cabo do chão até a órbita: ×1,5 no material subindo.', { base: 4e8, max: 1, st: 'tran', mul: 1.5, pair: 'teleporte' }),
+  estacas: T('eng', 1, 'Estacas profundas', 'Fundação mais funda: +70% no limite da torre e −4% de material por andar a cada nível.', { base: 4e3, st: 'capF', mul: 1.7, st2: 'fcost', mul2: 0.96, pair: 'calculo' }),
+  fundacaoBarata: T('eng', 2, 'Fundação em série', 'Formas reaproveitadas: a Fundação reforçada custa 60% menos e cada andar gasta 20% menos material.', { base: 1.5e5, max: 1, st: 'fundCost', mul: 0.4, st2: 'fcost', mul2: 0.8, pair: 'prefab' }),
   contrafortes: T('eng', 3, 'Contrafortes', 'Apoios externos: o limite da torre dobra.', { base: 4e6, max: 1, st: 'capF', mul: 2, pair: 'flutuante' }),
   grafeno: T('eng', 4, 'Núcleo de grafeno', 'Coluna central de grafeno: o limite da torre dobra a cada nível.', { base: 5e7, st: 'capF', mul: 2, pair: 'amortecedor' }),
-  ancoraOrbital: T('eng', 5, 'Âncora orbital', 'A torre se prende à órbita: o limite triplica.', { base: 5e8, max: 1, st: 'capF', mul: 3, pair: 'gravidade' }),
+  ancoraOrbital: T('eng', 5, 'Âncora orbital', 'A torre se prende à órbita: o limite triplica e o material sobe ×2.', { base: 5e8, max: 1, st: 'capF', mul: 3, st2: 'tran', mul2: 2, pair: 'gravidade' }),
   corretores: T('merc', 1, 'Corretores próprios', 'Andares vendidos valem mais: +50% na venda por nível.', { base: 3e3, st: 'sale', add: 0.5, pair: 'imobiliaria' }),
-  lojas: T('merc', 2, 'Lojas no térreo', 'Comércio na base da torre: +40% de aluguel por nível.', { base: 1e5, st: 'rent', add: 0.4, pair: 'agencia' }),
+  lojas: T('merc', 2, 'Lojas no térreo', 'Comércio na base da torre: +10% de aluguel por nível.', { base: 1e5, st: 'rent', add: 0.1, pair: 'agencia' }),
   eventos: T('merc', 3, 'Salões de evento', 'Andares disputados para festas: +60% na venda por nível.', { base: 3e6, st: 'sale', add: 0.6, pair: 'hotelNuvens' }),
   leilao: T('merc', 4, 'Leilão de coberturas', 'Coberturas vão a leilão: +80% na venda por nível.', { base: 4e7, st: 'sale', add: 0.8, pair: 'publicidade' }),
   condominioOrbital: T('merc', 5, 'Condomínio orbital', 'Morar no espaço vale ouro: +100% na venda por nível.', { base: 4e8, st: 'sale', add: 1, pair: 'turismoEsp' }),

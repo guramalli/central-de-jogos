@@ -11,6 +11,8 @@ import { cloudSprite, planeSprite, balloonSprite } from './props.js';
 import { cfg } from '../ui/config.js';
 import { art } from './assets.js';
 import { city } from '../sim/prestige.js';
+import { drawEarth, prepEarth } from './earth.js';
+import { moonEarth } from './moon.js';
 
 // altura (m) na linha da tela; na Base Lunar o céu já começa no espaço (skyAlt da cidade)
 const altAt = screenY => Math.max(0, altOf(worldY(screenY) / FH)) + (city().scene.skyAlt || 0);
@@ -46,15 +48,11 @@ export function drawSky() {
     const tw = (Math.sin(V.t * 2 + i) + 1) / 2;
     r(s.x, s.y, s.b > .85 ? 2 : 1, s.b > .85 ? 2 : 1, `rgba(255,255,255,${(0.4 + tw * .6) * sa})`);
   });
+  if (top > 8000 && !city().scene.skyAlt) prepEarth(2); // a textura da Terra fica pronta antes de ela aparecer
   if (bottom > 14000 && !city().scene.skyAlt) { // curvatura da Terra lá embaixo (não na Lua, onde o chão é a própria Lua)
-    const k = clamp((bottom - 14000) / 1200, 0, 140), Rr = 1100, cy = H + Rr - k;
-    ctx.fillStyle = 'rgba(120,190,255,.35)'; ctx.beginPath(); ctx.arc(W / 2, cy, Rr + 7, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#2a63a8'; ctx.beginPath(); ctx.arc(W / 2, cy, Rr, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#3f7d4a';
-    for (let i = 0; i < 14; i++) { ctx.beginPath(); ctx.ellipse(40 + i * 60 + hash(i, 11) * 30, cy - Rr + 12 + hash(i, 12) * 30, 20 + hash(i, 13) * 20, 6, 0, 0, Math.PI * 2); ctx.fill(); }
-    ctx.fillStyle = 'rgba(255,255,255,.55)';
-    for (let i = 0; i < 16; i++) { const x = ((i * 53 + V.t * 4) % (W + 60)) - 30; ctx.fillRect(Math.round(x), Math.round(cy - Rr + 6 + hash(i, 14) * 18), 18, 3); }
+    drawEarth(ctx, W, H, clamp((bottom - 14000) / 1200, 0, 140), V.t, cfg().leve); // render/earth.js
   }
+  if (city().scene.moon) moonEarth(W); // a Terra no céu da Lua
   if (top > 140000) { // satélite
     const x = ((V.t * 12) % (W + 80)) - 40, y = 80 + Math.sin(V.t * .3) * 14;
     r(x, y, 6, 4, '#d7d9df'); r(x - 9, y + 1, 8, 2, '#3b6fd1'); r(x + 7, y + 1, 8, 2, '#3b6fd1');

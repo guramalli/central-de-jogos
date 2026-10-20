@@ -25,6 +25,7 @@ import { obraSigns, zzz, sweat, warn, cracks } from './signs.js';
 import { VIVA } from '../data/viva.js';
 import { pollEvents, emit } from './events.js';
 import { updateEffects, MAX_TOP_WORKERS } from './effects.js';
+import { eraVis } from './eravis.js';
 
 const baseFloor = () => Math.floor(S.floors);
 let msIdx = -1; // próximo marco de andares ainda não comemorado
@@ -108,7 +109,7 @@ export function render() {
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,24,38,.55)'; ctx.strokeText(`${n} · ${fmtM(m)}`, 4, y - 7);
     ctx.fillStyle = '#f2b630'; ctx.fillText(`${n} · ${fmtM(m)}`, 4, y - 7);
   });
-  const e = eraAt(altOf(base)), s = ERA_STYLE[e], working = !capped && S.top > 0.05;
+  const e = eraVis(altOf(base)), s = ERA_STYLE[e], working = !capped && S.top > 0.05;
   const nb = Math.min(S.lv.pedreiro, 4), y0 = topWP;
   if (capped) drawCapped(y0, nb);
   else drawBlocks(y0, p, s, e, Math.min(S.lv.pedreiro, MAX_TOP_WORKERS), working, sg);
@@ -130,7 +131,7 @@ function topStock(y0, s) {
 
 function drawCapped(y0, nb) {
   scaffold(y0);
-  const s = ERA_STYLE[eraAt(altOf(S.floors))]; // laje do andar parado (onde os pedreiros ficam)
+  const s = ERA_STYLE[eraVis(altOf(S.floors))]; // laje do andar parado (onde os pedreiros ficam)
   R(TL, y0, TW, SLAB, s.slab); R(TL, y0 + SLAB - 2, TW, 2, s.hi); R(TL, y0 + 2, TW, 1, 'rgba(0,0,0,.25)');
   if (FLAGS.viva) { // sem texto: a obra parou, os pedreiros sentam (respirando devagar) e a base avisa
     const n = Math.min(nb, 4), gap = n > 1 ? (TW - 70) / (n - 1) : 0;
