@@ -10,10 +10,10 @@ import { cam } from './camera.js';
 const cache = new Map();
 export const OUTLINE = '#1b1622';
 
-const newCanvas = (w, h) => {
-  const c = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h) : Object.assign(document.createElement('canvas'), { width: w, height: h });
-  return c;
-};
+// canvas comum no navegador: no Safari do iPhone, OffscreenCanvas pequeno (cabine do elevador, travessas do poço) saía em branco
+const newCanvas = (w, h) => typeof document !== 'undefined'
+  ? Object.assign(document.createElement('canvas'), { width: w, height: h })
+  : new OffscreenCanvas(w, h);
 
 // contorno: todo pixel transparente vizinho (4 direções) de um pixel opaco vira contorno
 function outlinePass(c, color) {
