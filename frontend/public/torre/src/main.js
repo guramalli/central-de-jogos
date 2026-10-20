@@ -3,7 +3,7 @@ import { sim } from './sim/economy.js';
 import { migrate } from './sim/migrate.js';
 import { runOffline } from './sim/offline.js';
 import { V, resetView } from './render/view.js';
-import { cam, snapCamera, panBy } from './render/camera.js';
+import { cam, snapCamera, panBy, followBuild } from './render/camera.js';
 import { updateView, render, resetMilestones } from './render/scene.js';
 import { H, setW } from './data/constants.js';
 import { ctxMain } from './render/canvas.js';
@@ -17,8 +17,9 @@ import { syncCameraButtons } from './ui/cameraControls.js';
 import { syncEvents, recent } from './render/events.js';
 import { initEffects } from './render/effects.js';
 import { soundOn, setSound } from './ui/audio.js';
-import { initIntro, introActive, startIntro, showNews } from './ui/intro.js';
-import { deliver, city } from './sim/prestige.js';
+import { initIntro, introActive, startIntro, showNews, clearNews } from './ui/intro.js';
+import { endRound, startNextRound, city } from './sim/prestige.js';
+import { initRoundEnd, checkRoundEnd } from './ui/roundEnd.js';
 import { initMilestones } from './ui/milestones.js';
 const cityName = () => city().n;
 import { preloadArt } from './render/assets.js';
@@ -65,7 +66,7 @@ function tick(real) {
   render();
   if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
   if (FLAGS.viva && !introActive()) S.playTime = (S.playTime || 0) + dt * speed;
-  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); }
+  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -98,11 +99,17 @@ for (const rs of [$('reset'), $('skReset')]) {
 {
   const dv = $('skDeliver'), disarm = () => dv.classList.remove('armed');
   dv.onclick = () => {
+    if (S.roundOver) { // depois do placar e do quadro: começa a próxima rodada na cidade seguinte
+      const got = S.pontosTotal;
+      startNextRound();
+      setNotice(null); resetView(); resetMilestones(); syncEvents(); followBuild(); syncCameraButtons(); closeSkills(); updateUI();
+      clearNews();
+      showNews('JORNAL DA OBRA', `Construtora J. Santos começa a obra nº ${S.obra} em ${cityName()} (${got} ★ na história da empresa)`);
+      return;
+    }
     if (!dv.classList.contains('armed')) { dv.classList.add('armed'); dv.textContent = 'Confirmar: entregar esta obra'; setTimeout(disarm, 3000); return; }
     disarm();
-    const got = deliver();
-    setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeSkills(); updateUI();
-    showNews('JORNAL DA OBRA', `Construtora J. Santos entrega a torre e começa a obra nº ${S.obra} em ${cityName()} (+${got} ★)`);
+    endRound(); closeSkills(); checkRoundEnd(); updateUI(); // entrega antecipada: mesmo placar do fim do relógio
   };
 }
 
@@ -132,12 +139,13 @@ document.body.classList.toggle('modo-novo', FLAGS.viva);
   $('skMode').innerHTML = `<a href="${href}">Modo clássico (progresso antigo)</a>`;
 }
 if (FLAGS.viva) {
-  for (const id of ['hPlateFloor', 'hPlateMoney', 'openUp']) $(id).hidden = false; // o resumo (hSum) aparece no 1º andar
+  for (const id of ['hPlateFloor', 'hPlateMoney', 'hPlateClock', 'openUp']) $(id).hidden = false; // o resumo (hSum) aparece no 1º andar
   $('z-all').textContent = '⤢'; $('z-all').setAttribute('aria-label', 'Ver a torre inteira');
   initSkills();
   // abertura com a história (partida nova); não roda nos testes automáticos (?test=1 ou navegador controlado)
   initIntro({ test: TEST || navigator.webdriver });
   initMilestones();
+  initRoundEnd();
   $('skStory').onclick = () => { closeSkills(); startIntro(true); };
 }
 
@@ -148,11 +156,11 @@ sndBtns.forEach(b => b.onclick = () => { setSound(!soundOn()); syncSnd(); });
 syncSnd();
 
 addEventListener('beforeunload', save);
-// Aba escondida: salva. Ao voltar, o tempo fora vira progresso (mesmas regras do offline,
+// Aba escondida: salva. Ao voltar, no modo clássico o tempo fora vira progresso (mesmas regras do offline,
 // com resumo) e as animações retomam do estado atual, sem repetir o que passou.
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { save(); return; }
-  const msg = runOffline();
+  const msg = FLAGS.viva ? null : runOffline(); // Obra Viva: aba escondida pausa a rodada
   if (msg) { welcome(msg); noticeT = V.t + 12; }
   syncEvents(); snapCamera();
   last = performance.now();

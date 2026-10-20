@@ -5,7 +5,8 @@ import { altOf, floorOf } from '../data/height.js';
 import { ERAS, eraAt } from '../data/eras.js';
 import { VIVA } from '../data/viva.js';
 import { UP } from '../data/upgrades.js';
-import { INTRO, HEADLINES, DISCOVERY, COMPANY } from '../data/story.js';
+import { INTRO, HEADLINES, DISCOVERY, COMPANY, headline } from '../data/story.js';
+import { city } from '../sim/prestige.js';
 import { S, save } from '../sim/state.js';
 import { setIntroCam } from '../render/camera.js';
 import { onEvent } from '../render/events.js';
@@ -80,6 +81,8 @@ function finish() {
 // manchete de jornal (ou descoberta) sobre a cena, sem pausar o jogo; várias seguidas entram em fila
 const queue = [];
 let newsBusy = false;
+// rodada nova: as manchetes que sobraram da obra anterior saem da fila
+export function clearNews() { queue.length = 0; clearTimeout($('news')._t); newsBusy = false; $('news').hidden = true; }
 export function showNews(kicker, text) { queue.push([kicker, text]); if (!newsBusy) nextNews(); }
 function nextNews() {
   const n = $('news'), item = queue.shift();
@@ -98,7 +101,7 @@ export function initIntro({ test = false } = {}) {
   $('inChequeVal').textContent = `R$ ${fmt(VIVA.startMoney)},00`;
   $('inChequeTo').textContent = `Construtora ${COMPANY}`;
   onEvent(e => {
-    if (e.type === 'era_unlocked' && HEADLINES[e.era]) showNews('JORNAL DA ORLA', HEADLINES[e.era]);
+    if (e.type === 'era_unlocked' && HEADLINES[e.era]) showNews('JORNAL DA ORLA', headline(e.era, city().n));
     else if (e.type === 'upgrade_purchased' && e.from === 0 && DISCOVERY[e.k]) showNews(`DESCOBERTA · ${UP[e.k].n.toUpperCase()}`, DISCOVERY[e.k]);
   });
   // partida nova: abertura; save antigo (já construindo) não vê

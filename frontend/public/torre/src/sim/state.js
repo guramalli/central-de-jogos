@@ -8,7 +8,7 @@ import { VIVA } from '../data/viva.js';
 // o protótipo Obra Viva usa um save separado, para não misturar com o modo atual
 export const saveKey = () => SAVE_KEY + (FLAGS.viva ? '-viva' : '');
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export function fresh() {
   const lv = {};
@@ -36,6 +36,8 @@ export function fresh() {
     obra: 1, cidade: 0, pontos: 0, pontosTotal: 0, board: {}, bestAlt: 0,
     marcos: {},                   // marcos dos primeiros minutos já mostrados (ui/milestones.js)
     introSeen: false,             // Obra Viva: a abertura (história) já foi vista
+    // rodada de 20 min (Obra Viva): tempo restante, encerrada, ★ já creditadas; gerentes ligados por ramo
+    roundLeft: FLAGS.viva ? VIVA.round.secs : 0, roundOver: false, roundPaid: false, mgr: {}, mgrPool: 0,
   };
 }
 
@@ -54,6 +56,8 @@ export function load() {
       if (!localStorage.getItem(bk)) localStorage.setItem(bk, raw);
     }
     const f = fresh();
+    // Obra Viva antes das rodadas (v<5): a campanha começa do zero; ficam só a abertura vista e os marcos
+    if (FLAGS.viva && (o.ver || 1) < 5) { S = Object.assign(f, { introSeen: !!o.introSeen, marcos: o.marcos || {} }); return o.ver || 1; }
     S = Object.assign(f, o);
     S.lv = Object.assign(fresh().lv, o.lv || {});
     S.broker = Object.assign(fresh().broker, o.broker || {});

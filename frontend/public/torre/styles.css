@@ -484,3 +484,19 @@ body.intro .plate,body.intro .hsum,body.intro .upbtn,body.intro .camctl,body.int
 
 /* começo do jogo: as 3 compras que mais rendem agora brilham em verde (some depois de 10 andares) */
 .sk-node.rec .halo{stroke:#6fd08c;stroke-width:5;stroke-dasharray:none;animation:needGlow 1.3s ease-in-out infinite}
+
+/* rodadas de 20 min (Obra Viva): relógio embaixo do dinheiro, âmbar no último minuto; placar no fim; cartão de gerente */
+.plate-clock{--pb:#7c8597;right:max(15px,env(safe-area-inset-right,0px));top:calc(max(15px,env(safe-area-inset-top,0px)) + 60px);align-items:flex-end}
+.plate-clock small{font-size:10px;letter-spacing:.14em;color:#9aa0ad;font-weight:700}
+.plate-clock b{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.plate-clock.warn{--pb:#f2b630}.plate-clock.warn b{color:#f2b630}
+@media (min-width:821px){body.sk-open .plate-clock{display:none}}
+@media (max-width:520px){.plate-clock{top:calc(max(15px,env(safe-area-inset-top,0px)) + 52px)}.plate-clock b{font-size:17px}}
+body.intro .plate-clock{display:none!important}
+.round-end .kv b.rec{color:#f2b630}
+.skb-card.mgr.own button{background:#6fd08c}
+.skb-card.mgr.own.off button{background:#3b4152;color:#cfd3dc}
+@media (max-width:820px){.news{top:calc(max(15px,env(safe-area-inset-top,0px)) + 112px)}} /* abaixo do relógio da rodada */
+.sk-clock{font-family:var(--f-display);font-weight:700;font-variant-numeric:tabular-nums;color:#cfd3dc;margin-left:10px}.sk-clock.warn{color:#f2b630}
+.skb-rep{color:#9fd0a8;font-size:12px;margin-left:8px}
+.sk-money,.sk-clock{white-space:nowrap}

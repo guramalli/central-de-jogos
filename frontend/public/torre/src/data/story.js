@@ -14,13 +14,16 @@ export const INTRO = [
 ];
 
 // manchete quando a torre entra numa era (a Órbita fecha a história na tela de parabéns)
+// {cidade} vira o nome da cidade da obra atual (headline)
 export const HEADLINES = {
-  1: `Torre da ${COMPANY} já é o prédio mais alto do litoral paulista`,
-  2: 'Passou o Burj Khalifa! Engenheiros do mundo todo visitam a obra em Praia Grande',
+  1: `Torre da ${COMPANY} já é o prédio mais alto de {cidade}`,
+  2: 'Passou o Burj Khalifa! Engenheiros do mundo todo visitam a obra em {cidade}',
   3: 'Acima dos aviões: operários agora trabalham com trajes pressurizados',
   4: 'Na mesosfera, a torre cruza a camada onde os meteoros queimam',
   5: `A torre chega ao espaço: a ${COMPANY} é a primeira construtora fora da Terra`,
 };
+
+export const headline = (era, cidade) => HEADLINES[era] && HEADLINES[era].replace('{cidade}', cidade);
 
 // frase de descoberta ao comprar o 1º nível de cada tecnologia de era
 export const DISCOVERY = {

@@ -45,11 +45,13 @@ export const VIVA = {
   // Ritmo do Obra Viva: material por andar (sobrescreve BAL.floorCost; ajustado com tools/prestigio.mjs)
   // cada era nova deixa a peça ~2,6× mais cara (2,3× com a Pré-fabricação total); módulo grande pede um pouco mais de material
   // robô (tools/ritmo-longo.mjs): 1 km ~0h25 · 12 km ~0h57 · 100 km ~3h45 · Órbita ~13h30; peça nunca abaixo de ~1,2 s no alto
-  floorCost: { mult: 5, pow: 0.95, eraMult: 5, modulePow: 1 }, // mult entra aos poucos nos primeiros 40 andares; eraMult/modulePow altos: com o prestígio, uma obra sozinha não vai longe
+  floorCost: { mult: 5, pow: 0.95, eraMult: 2.4, modulePow: 1 }, // mult entra aos poucos nos primeiros 40 andares; eraMult/modulePow altos: com o prestígio, uma obra sozinha não vai longe
   floorCostPrefab: { pow: 0.85, eraMult: 4.5 },
-  // Prestígio "Nova obra" (decisão do usuário, out/2026): entregar a torre a partir de minAlt rende pontos
+  // Rodadas "Nova obra" (decisão do usuário, out/2026): cada rodada de 20 min (ou entrega antecipada) rende pontos
   // = floor(k × km^pow) (retorno decrescente); os pontos compram o quadro "Construtora" (bônus permanentes, aditivos)
-  prestige: { minAlt: 1000, k: 8, pow: 1, rep: 0.012 }, // pontos = 8 por km (linear: vale ir mais alto); rep: Reputação = +1,2% em tudo por ★ ganha no total
+  manager: { share: 0.5, rate: 2 }, // gerentes: verba comum de metade da renda (nunca mais que metade do caixa); até 2 compras/s por ramo
+  round: { secs: 1200 }, // rodada de 20 min de relógio (só corre com o jogo aberto)
+  prestige: { k: 12, pow: 0.6, rep: 0.06 }, // ★ = 12 × km^0,6 (mín. 1); rep: Reputação = +6% em tudo por ★ ganha no total (robô: Órbita na 13ª rodada)
   board: {
     capital: { n: 'Capital inicial', d: '+R$ 400 no cheque de cada obra nova por nível.', base: 3, grow: 1.6, max: 10, start: 'money', add: 400 },
     pedreiros: { n: 'Equipe fixa', d: '+1 pedreiro já contratado em cada obra nova.', base: 4, grow: 1.8, max: 5, start: 'pedreiro', add: 1 },
@@ -59,6 +61,11 @@ export const VIVA = {
     escola: { n: 'Escola de pedreiros', d: '+10% no assentamento por nível.', base: 5, grow: 1.5, max: 10, st: 'lay', add: 0.1 },
     marca: { n: 'Marca J. Santos', d: '+15% de aluguel e de turismo por nível.', base: 6, grow: 1.6, max: 10, st: 'rent', st2: 'tour', add: 0.15 },
     fundacao: { n: 'Fundação de série', d: '+1 nível de Fundação já pronto em cada obra nova.', base: 8, grow: 2, max: 5, start: 'fundacao', add: 1 },
-    offline: { n: 'Plantão noturno', d: '+1 h de obra enquanto você está fora, por nível.', base: 6, grow: 2, max: 4, st: 'offline', add: 3600 },
+    // gerentes (sim/managers.js): compram sozinhos o básico do ramo; ligam e desligam no próprio cartão
+    gerObra: { n: 'Gerente de obra', d: 'Contrata pedreiros e compra treino, ferramentas e mestres sozinho.', base: 2, grow: 1, max: 1, mgr: 'obra' },
+    gerForn: { n: 'Gerente de suprimentos', d: 'Compra fornecedores, caminhões, olaria e pré-molde sozinho.', base: 2, grow: 1, max: 1, mgr: 'forn' },
+    gerLog: { n: 'Gerente de logística', d: 'Compra elevadores, motores, caçambas e guindaste sozinho.', base: 2, grow: 1, max: 1, mgr: 'log' },
+    gerEng: { n: 'Gerente de engenharia', d: 'Reforça a fundação e compra projetos sozinho.', base: 3, grow: 1, max: 1, mgr: 'eng' },
+    gerMerc: { n: 'Gerente comercial', d: 'Compra aluguel, turismo e marketing sozinho.', base: 3, grow: 1, max: 1, mgr: 'merc' },
   },
 };

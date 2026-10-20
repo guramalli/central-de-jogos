@@ -19,6 +19,7 @@ import { iconSprite, badgeSprite, lockSprite } from './icons.js';
 import { iconURL } from '../render/assets.js';
 import { VIVA } from '../data/viva.js';
 import { boardLv, boardCost, boardMaxed, buyBoard, canDeliver, pointsFor, city, nextCity } from '../sim/prestige.js';
+import { managerOn, setManager } from '../sim/managers.js';
 import { spriteDataURL } from '../render/sprites.js';
 
 const COLOR = Object.fromEntries(TBRANCHES.map(b => [b.id, b.color]));
@@ -258,9 +259,13 @@ let boardBuilt = false;
 function buildBoard() {
   const row = $('skBoardRow'); row.innerHTML = '';
   for (const k in VIVA.board) {
-    const b = VIVA.board[k], c = document.createElement('div'); c.className = 'skb-card'; c.dataset.k = k;
+    const b = VIVA.board[k], c = document.createElement('div'); c.className = 'skb-card' + (b.mgr ? ' mgr' : ''); c.dataset.k = k;
     c.innerHTML = `<b>${b.n}</b><u></u><i>${b.d}</i><button type="button"></button>`;
-    c.querySelector('button').onclick = () => { if (buyBoard(k)) { save(); updateSkills(); } };
+    c.querySelector('button').onclick = () => {
+      if (b.mgr && boardLv(k)) setManager(b.mgr, !managerOn(b.mgr)); // gerente já contratado: liga e desliga
+      else if (!buyBoard(k)) return;
+      save(); updateSkills();
+    };
     row.appendChild(c);
   }
   // no celular o quadro começa recolhido (a árvore precisa do espaço); tocar no título abre e fecha
@@ -269,17 +274,26 @@ function buildBoard() {
   boardBuilt = true;
 }
 function updateBoard() {
-  const show = S.pontosTotal > 0 || canDeliver();
-  $('skBoard').hidden = !show;
+  $('skBoard').hidden = false;
+  // rodada encerrada: o botão começa a próxima obra; em andamento: entrega antes (dois cliques)
   const dv = $('skDeliver');
-  dv.hidden = !canDeliver();
-  if (!dv.hidden && !dv.classList.contains('armed')) setText(dv, `Entregar a obra (+${pointsFor(S.maxAlt)} ★) → ${nextCity().n}`);
-  if (!show) return;
+  dv.hidden = !S.roundOver && !canDeliver();
+  if (S.roundOver) setText(dv, `Começar a próxima obra → ${nextCity().n}`);
+  else if (!dv.hidden && !dv.classList.contains('armed')) setText(dv, `Entregar a obra (+${pointsFor(S.maxAlt)} ★)`);
   if (!boardBuilt) buildBoard();
   setText($('skPts'), '★ ' + fmt(S.pontos || 0));
+  setText($('skRep'), `Reputação +${fmt(Math.round(VIVA.prestige.rep * (S.pontosTotal || 0) * 100))}%`);
   setText($('skObra'), `Obra nº ${S.obra || 1} · ${city().n}`);
   for (const c of $('skBoardRow').children) {
     const k = c.dataset.k, b = VIVA.board[k], lv = boardLv(k), mx = boardMaxed(k), bt = c.querySelector('button');
+    if (b.mgr) { // gerente: contratado uma vez, depois o botão liga e desliga
+      const own = lv >= 1, on = own && managerOn(b.mgr);
+      c.classList.toggle('own', own); c.classList.toggle('off', own && !on);
+      setText(c.querySelector('u'), own ? (on ? 'Trabalhando' : 'De folga') : 'Gerente');
+      setText(bt, own ? (on ? 'Ligado' : 'Desligado') : `★ ${fmt(boardCost(k))}`);
+      bt.disabled = !own && (S.pontos || 0) < boardCost(k);
+      continue;
+    }
     setText(c.querySelector('u'), `Nível ${lv} de ${b.max}`);
     setText(bt, mx ? 'Máximo' : `★ ${fmt(boardCost(k))}`);
     bt.disabled = mx || (S.pontos || 0) < boardCost(k);

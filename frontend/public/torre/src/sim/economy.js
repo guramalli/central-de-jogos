@@ -8,7 +8,8 @@ import { mods } from './mods.js';
 import { rentMult, brokerTick, rentAt, rentSum } from './realty.js';
 import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
-import { boardMult, cityMult } from './prestige.js';
+import { boardMult, cityMult, endRound } from './prestige.js';
+import { managerTick } from './managers.js';
 import { tourism } from './tourism.js';
 import { bankInfo, bankTick } from './bank.js';
 import { techMult } from './tech.js';
@@ -20,7 +21,7 @@ export const reqMet = k => (!UP[k].req || S.lv[UP[k].req[0]] >= UP[k].req[1]) &&
 export const pairTaken = k => !!(UP[k].pair && S.lv[UP[k].pair] > 0);
 export const unlocked = k => reqMet(k) && !(FLAGS.viva && VIVA.hidden.includes(k)) && !pairTaken(k);
 export const maxed = k => UP[k].max !== undefined && S.lv[k] >= UP[k].max;
-export const canBuy = k => unlocked(k) && !maxed(k) && !stageBlock(k) && S.money >= cost(k);
+export const canBuy = k => !(FLAGS.viva && S.roundOver) && unlocked(k) && !maxed(k) && !stageBlock(k) && S.money >= cost(k);
 
 // Obra Viva: as etapas do fluxo andam juntas, como numa obra real. Uma etapa que já está mais de
 // VIVA.stageMargin à frente da mais lenta não pode ser melhorada até as outras alcançarem.
@@ -74,7 +75,8 @@ export function rates() {
   const spd0 = 1.5 * M.mult('tranSpd') * all, tripEff = FLAGS.viva ? (2 * hEff / spd0 + 2) / (spd / spd0) : trip;
   const lay = L.pedreiro * 1.3 * eff('treino') * eff('ferram') * eff('mestre') * (craneLog() ? 1 : eff('guindaste')) * techMult('lay') * M.mult('lay') * all * boardMult('lay') * cityMult('lay');
   let tran = L.elevador * capc / tripEff * (craneLog() ? eff('guindaste') : 1) * boardMult('tran') * cityMult('tran');
-  if (M.flag.helpers) tran += 0.25 * lay;
+  // Mutirão: no Obra Viva no máximo dobra o que os elevadores sobem (sem teto, o excesso de pedreiros virava bola de neve)
+  if (M.flag.helpers) tran += FLAGS.viva ? Math.min(0.25 * lay, tran) : 0.25 * lay;
   const fcost = floorCost(fl, era, M);
   const capF = Math.floor(25 * Math.pow(M.flag.floatFound ? 3 : 2, L.fundacao) * M.mult('capF') * techMult('capF'));
   const rent = S.rentBase * rentMult();
@@ -91,11 +93,24 @@ export const offlineMax = () => 8 * 3600 + mods().plus('offline') + boardMult('o
 
 // ---------- passo da simulação ----------
 export function sim(dt) {
+  // Obra Viva: rodada de 20 min; encerrada, nada anda. O passo em que o relógio zera ainda conta.
+  let ends = false;
+  if (FLAGS.viva) {
+    if (S.roundOver) return;
+    S.roundLeft = Math.max(0, S.roundLeft - dt);
+    ends = S.roundLeft <= 0;
+  }
+  simStep(dt);
+  if (FLAGS.viva) managerTick(dt);
+  if (ends) endRound();
+}
+function simStep(dt) {
   const R = rates(), M = mods();
   // material: produção → térreo → elevadores → topo → andares
-  const direct = M.flag.topPlant ? 0.25 : 0;
-  S.ground += R.prod * (1 - direct) * dt;
-  S.top += R.prod * direct * dt;
+  // Usina no topo: 25% do material nasce lá em cima; no Obra Viva no máximo o mesmo tanto que os elevadores sobem
+  const direct = M.flag.topPlant ? (FLAGS.viva ? Math.min(0.25 * R.prod, R.tran) : 0.25 * R.prod) : 0;
+  S.ground += (R.prod - direct) * dt;
+  S.top += direct * dt;
   const mv = Math.min(R.tran * dt, S.ground); S.ground -= mv; S.top += mv;
   const before = Math.floor(S.floors);
   if (S.floors < R.capF) {

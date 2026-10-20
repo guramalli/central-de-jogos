@@ -78,12 +78,16 @@ function updateHud() {
   setText($('hFloor'), fmt(fl + 1));
   setText($('hAlt'), fmtM(altOf(S.floors)));
   setText($('hMoney'), 'R$ ' + fmt(S.money));
+  const left = Math.ceil(S.roundLeft || 0); // relógio da rodada (mm:ss), âmbar no último minuto
+  const clk = `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`;
+  for (const id of ['hClock', 'skClock']) setText($(id), clk); // a placa some com a árvore aberta no computador; a árvore tem o seu
+  $('hPlateClock').classList.toggle('warn', left <= 60); $('skClock').classList.toggle('warn', left <= 60);
   updateSummary();
   $('openUp').querySelector('.dot').hidden = !anyToBuy();
-  $('openUp').classList.toggle('alert', isCapped(rates())); // obra parada no limite da fundação: o botão pulsa
+  $('openUp').classList.toggle('alert', isCapped(rates()) || !!S.roundOver); // obra parada (limite da fundação ou rodada encerrada): o botão pulsa
   updateSkills();
   if (mapOpen()) updateMap();
-  setText($('skSave'), `Salvo neste navegador · continua por até ${fmt(offlineMax() / 3600)} h fora do jogo.`);
+  setText($('skSave'), 'Salvo neste navegador · o relógio da obra para quando você sai.');
 }
 
 export function updateUI() {

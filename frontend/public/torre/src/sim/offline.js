@@ -1,9 +1,11 @@
 import { S } from './state.js';
 import { sim, offlineMax } from './economy.js';
 import { fmt } from '../ui/format.js';
+import { FLAGS } from '../data/flags.js';
 
 // Simula o tempo fora do jogo (até 8 h, mais bônus da árvore). Devolve uma mensagem ou null.
 export function runOffline() {
+  if (FLAGS.viva) return null; // Obra Viva: rodadas de 20 min só correm com o jogo aberto (sem ganho offline)
   const away = Math.min(offlineMax(), (Date.now() - S.last) / 1000);
   if (away <= 30 || S.floors + S.money <= 0) return null;
   const f0 = S.floors, m0 = S.money;
