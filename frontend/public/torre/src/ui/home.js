@@ -7,7 +7,6 @@ import { FLAGS } from '../data/flags.js';
 import { cfg, setCfg } from './config.js';
 import { setSound, setVolume } from './audio.js';
 import { fmtM } from './format.js';
-import { art } from '../render/assets.js';
 import { dropTip } from './coach.js';
 
 const $ = id => document.getElementById(id);
@@ -29,8 +28,6 @@ function show(panel) {
 }
 
 function drawMain() {
-  const img = art('logo');
-  if (img) { $('hmLogoImg').src = img.src; $('hmLogoImg').hidden = false; $('hmLogoTxt').hidden = true; }
   const r = slotSummary(activeSlot());
   $('hmContinue').textContent = r ? 'Continuar' : 'Novo jogo';
   $('hmContinueSub').textContent = r ? `${resumo(r)} · ${ago(r.last)}` : 'Comece a obra da Construtora J. Santos';
@@ -88,6 +85,10 @@ export function closeHome() {
 export function initHome(h = {}) {
   if (!FLAGS.viva) return;
   hooks = h;
+  // logo do PixelLab: a própria tela carrega a imagem e troca o texto quando ela chega (o Início abre antes do resto da arte)
+  const logo = $('hmLogoImg');
+  logo.onload = () => { logo.hidden = false; $('hmLogoTxt').hidden = true; };
+  logo.src = 'assets/logo.png';
   $('hmContinue').onclick = () => play(activeSlot());
   $('hmSlots').onclick = () => show('hmSlotsP');
   $('hmCfg').onclick = () => show('hmCfgP');
