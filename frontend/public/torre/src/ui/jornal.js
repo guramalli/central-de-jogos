@@ -52,7 +52,7 @@ export function checkJornal(bloqueado) {
     S.jornais = [...(S.jornais || []), jj].sort((a, b) => a.n - b.n); save();
     const img = foto(), f = fotos(); f['alt' + novoAlt] = img;
     try { localStorage.setItem(fotosKey(), JSON.stringify(f)); } catch (e) { }
-    mostrar(jj, img); fechaT = V.t + 6;
+    mostrar(jj, img); fechaT = Infinity; // só fecha com um toque
     return;
   }
   const andares = Math.floor(S.floors);
@@ -72,7 +72,7 @@ export function checkJornal(bloqueado) {
   S.jornais = [...(S.jornais || []), ...novos].sort((a, b) => a.n - b.n); save();
   const img = foto(), f = fotos(); f[n] = img;
   try { localStorage.setItem(fotosKey(), JSON.stringify(f)); } catch (e) { }
-  mostrar(j, img); fechaT = V.t + 6;
+  mostrar(j, img); fechaT = Infinity; // só fecha com um toque
 }
 
 // portfólio (página de Início): torres entregues e arquivo de jornais

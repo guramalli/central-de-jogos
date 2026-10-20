@@ -56,6 +56,9 @@
           <button class="btn sm" id="qRent">Alugar</button>
           <button class="btn sm ghost" id="qSell">Vender</button>
         </div>
+        <div class="st-panel" id="stPanel" hidden role="dialog" aria-label="Status da obra"><small>STATUS DA OBRA</small><div class="kv" id="stRows"></div></div>
+        <button class="st-btn" id="stBtn" hidden title="Números atuais da obra">Status da obra</button>
+        <button class="pip" id="pip" hidden title="Ver o térreo"><canvas id="pipCv" width="200" height="125"></canvas><small id="pipLabel">TÉRREO</small></button>
         <div class="camctl" role="group" aria-label="Câmera">
           <button id="z-follow" hidden>Seguir a obra</button>
           <button id="z-top" title="Ir para o topo da obra" aria-label="Ir para o topo da obra">⤒</button>
@@ -313,7 +316,7 @@
   </div>
 </div>
 <!-- manchetes de jornal e descobertas, sobre a cena -->
-<div class="news" id="news" hidden role="status"><small id="newsK"></small><b id="newsT"></b></div>
+<div class="news" id="news" hidden role="status"><small id="newsK"></small><em class="news-n" id="newsN"></em><b id="newsT"></b><i class="news-tap">toque para fechar</i></div>
 
 <!-- Fim de jogo (Obra Viva): chegou à Órbita -->
 <div class="win" id="win" hidden role="dialog" aria-modal="true" aria-labelledby="winT">

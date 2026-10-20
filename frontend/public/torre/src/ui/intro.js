@@ -78,22 +78,25 @@ function finish() {
   }
 }
 
-// manchete de jornal (ou descoberta) sobre a cena, sem pausar o jogo; várias seguidas entram em fila
+// manchete de jornal (ou descoberta, meta batida, gerente…) na frente da obra e das Melhorias, sem pausar o jogo.
+// Só fecha com um toque (pedido do usuário, out/2026: quem joga fica com as Melhorias abertas o tempo todo e perdia os
+// avisos que sumiam sozinhos); vários seguidos entram em fila, com o contador dos que faltam
 const queue = [];
 let newsBusy = false;
 // rodada nova: as manchetes que sobraram da obra anterior saem da fila
-export function clearNews() { queue.length = 0; clearTimeout($('news')._t); newsBusy = false; $('news').hidden = true; }
-export function showNews(kicker, text) { queue.push([kicker, text]); if (!newsBusy) nextNews(); }
+export function clearNews() { queue.length = 0; newsBusy = false; $('news').hidden = true; }
+export function showNews(kicker, text) { queue.push([kicker, text]); if (!newsBusy) nextNews(); else countNews(); }
+const countNews = () => { $('newsN').textContent = queue.length ? `+${queue.length}` : ''; };
 function nextNews() {
   const n = $('news'), item = queue.shift();
   if (!item) { newsBusy = false; n.hidden = true; return; }
   newsBusy = true;
-  $('newsK').textContent = item[0]; $('newsT').textContent = item[1];
+  $('newsK').textContent = item[0]; $('newsT').textContent = item[1]; countNews();
   n.hidden = false; n.classList.remove('in'); void n.offsetWidth; n.classList.add('in');
-  clearTimeout(n._t); n._t = setTimeout(nextNews, 7000);
 }
 
 export function initIntro({ test = false, auto = true } = {}) {
+  $('news').onclick = () => nextNews(); // toque fecha e mostra o próximo da fila
   $('inNext').onclick = next;
   $('inSkip').onclick = finish;
   $('news').onclick = () => { clearTimeout($('news')._t); nextNews(); };

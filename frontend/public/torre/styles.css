@@ -663,3 +663,33 @@ body.intro .hud-btns{display:none!important}
 .re-rank-hint{grid-column:1/-1;margin:0;font-size:11.5px;color:var(--muted);text-align:center}
 .re-actions{grid-column:1/-1;display:flex;gap:8px;justify-content:center}.re-actions .btn{min-width:110px;padding:7px 12px}
 .win{display:flex;overflow-y:auto}.win>.win-box{margin:auto;flex-shrink:0}
+
+/* janelinha da obra (ui/pip.js): acima dos botões de câmera, a outra ponta da obra ao vivo */
+.pip{position:absolute;left:max(12px,env(safe-area-inset-left,0px));bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 40px);z-index:6;padding:0;border:0;cursor:pointer;
+  background:#0b0d13;box-shadow:0 0 0 2px #3a4152,0 3px 0 rgba(0,0,0,.35);width:160px;height:100px;overflow:hidden}
+.pip:hover{box-shadow:0 0 0 2px #f2b630,0 3px 0 rgba(0,0,0,.35)}
+.pip canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+.pip small{position:absolute;left:4px;top:3px;font:700 9px/1 var(--f-display);letter-spacing:.12em;color:#f4f1e6;background:rgba(17,19,26,.75);padding:2px 4px}
+.pip[hidden]{display:none}
+body.intro .pip{display:none!important}
+@media (max-width:520px){.pip{width:120px;height:75px}}
+
+/* status da obra (ui/status.js): botão acima da janelinha; painel com os números lado a lado (sem destacar o gargalo) */
+.st-btn{position:absolute;left:max(12px,env(safe-area-inset-left,0px));bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 148px);z-index:6;
+  font:700 11px/1 var(--f-display);letter-spacing:.08em;color:#f4f1e6;background:rgba(17,19,26,.88);border:0;padding:8px 10px;cursor:pointer;
+  box-shadow:0 0 0 2px #3a4152,0 3px 0 rgba(0,0,0,.35);width:160px;text-align:left}
+.st-btn:hover,.st-btn.on{box-shadow:0 0 0 2px #f2b630,0 3px 0 rgba(0,0,0,.35)}
+.st-btn[hidden]{display:none}
+.st-panel{position:absolute;left:max(12px,env(safe-area-inset-left,0px));bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 184px);z-index:7;width:230px;
+  background:rgba(17,19,26,.94);box-shadow:0 0 0 2px #f2b630,0 4px 0 rgba(0,0,0,.4);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.st-panel small{font:700 10px/1 var(--f-display);letter-spacing:.14em;color:#f2b630}
+.st-panel .kv{font-size:12px;gap:3px 10px}.st-panel .kv b{font-size:12px}
+.st-panel[hidden]{display:none}
+body.intro .st-btn,body.intro .st-panel{display:none!important}
+@media (max-width:520px){.st-btn{width:120px;bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 123px)}.st-panel{bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 158px)}}
+
+/* avisos na frente da obra e das Melhorias; só fecham com um toque (ui/intro.js showNews) */
+.news{z-index:61;cursor:pointer;pointer-events:auto}
+.news .news-n{position:absolute;right:10px;top:8px;font:700 11px/1 var(--f-display);font-style:normal;color:#8a3f2a}
+.news .news-tap{display:block;font-style:normal;font-size:10px;color:#7a6a52;text-align:right;margin-top:4px}
+@media (min-width:821px){body.sk-open .news{left:calc((100vw - min(58vw, 820px)) / 2);width:min(400px,calc(100vw - min(58vw, 820px) - 32px));top:calc(max(15px,env(safe-area-inset-top,0px)) + 165px)}}

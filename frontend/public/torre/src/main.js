@@ -26,6 +26,8 @@ import { initCoach, dropTip } from './ui/coach.js';
 import { initHome, openHome, closeHome, homeOpen } from './ui/home.js';
 import { initTutorial, openTutorial } from './ui/tutorial.js';
 import { initJornal, checkJornal, drawArquivo } from './ui/jornal.js';
+import { initPip, tickPip } from './ui/pip.js';
+import { initStatus, updateStatus } from './ui/status.js';
 import { initGear, closeGear, gearOpen, updateGear, frozen, placeHudButtons, setPaused, deliverMsg } from './ui/gear.js';
 import { initRanking, openRanking, pedirFicha, sairDoRanking, definirApelido, rankTick, esquecerJogador } from './ui/ranking.js';
 import { initTips, updateTips, setTips, tickTips } from './ui/tips.js';
@@ -74,11 +76,12 @@ function tick(real) {
   while (sd > 0) { const st = Math.min(.25, sd); sim(st); sd -= st; }
   updateView(dt, speed);
   render();
+  tickPip(Math.min(.1, real), introActive() || homeOpen()); // janelinha com a outra ponta da obra
   if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
   tickTips(); // o quadro da dica acompanha o alvo
   if (FLAGS.viva && !introActive() && !homeOpen() && !fz) S.playTime = (S.playTime || 0) + dt * speed;
   // a interface segue o tempo real, mesmo pausada
-  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); updateOffers(); updateTips(); rankTick(); checkJornal(homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); }
+  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); updateOffers(); updateTips(); rankTick(); checkJornal(homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -170,7 +173,7 @@ if (FLAGS.viva) {
   // página de Início: trocar de espaço limpa a cena (como o Recomeçar, sem apagar); partida nova abre a história
   const onSwitch = () => { dropTip(); clearNews(); resetRoundEnd(); resetOffers(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeSkills(); updateUI(); };
   initTutorial({ play: () => document.getElementById('hmContinue').click() }); // "Jogar" = Continuar/Novo jogo
-  initRanking(); initJornal(); initGear();
+  initRanking(); initJornal(); initGear(); initPip(); initStatus();
   initHome({ onSwitch: () => { onSwitch(); pedirFicha(); }, onHowto: openTutorial, onRanking: openRanking, onRankLeave: sairDoRanking, onRankJoin: definirApelido, onSound: () => syncSnd(), onJornais: drawArquivo,
     onForget: esquecerJogador, // apagar um espaço tira o apelido daquele jogador do ranking
     onNewGame: () => { if (!(TEST || navigator.webdriver)) startIntro(false); } }); // nos testes, sem abertura
