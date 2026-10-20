@@ -10,6 +10,7 @@ import { typeCount } from './realty.js';
 import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
 import { boardMult, cityMult } from './prestige.js';
+import { perkMult } from './contracts.js';
 
 const T = BAL.tourism;
 
@@ -31,6 +32,7 @@ export function tourism() {
     space: { demand: sDemand, cap: sCap, served: sServed, ticket: sTicket },
     // Obra Viva: antes do Elevador panorâmico, curiosos pagam um trocado para ver a obra famosa pelo tapume
     curious: FLAGS.viva && L.bilheteria < 1 ? VIVA.curious : 0,
-    revenue: served * ticket + sServed * sTicket + (FLAGS.viva && L.bilheteria < 1 ? VIVA.curious : 0),
+    // contrato Agência de turismo: multiplica a receita (não só a procura, que costuma esbarrar na capacidade)
+    revenue: (served * ticket + sServed * sTicket) * perkMult('tour') + (FLAGS.viva && L.bilheteria < 1 ? VIVA.curious : 0),
   };
 }

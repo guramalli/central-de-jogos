@@ -18,8 +18,8 @@ import { fmt, fmtM } from './format.js';
 import { iconSprite, badgeSprite, lockSprite } from './icons.js';
 import { iconURL } from '../render/assets.js';
 import { VIVA } from '../data/viva.js';
-import { boardLv, boardCost, boardMaxed, buyBoard, canDeliver, pointsFor, city, nextCity } from '../sim/prestige.js';
-import { managerOn, setManager } from '../sim/managers.js';
+import { canDeliver, pointsFor, city, nextCity } from '../sim/prestige.js';
+import { managerOn, setManager, hasManager, managerArrives } from '../sim/managers.js';
 import { spriteDataURL } from '../render/sprites.js';
 
 const COLOR = Object.fromEntries(TBRANCHES.map(b => [b.id, b.color]));
@@ -254,21 +254,17 @@ svg.addEventListener('wheel', e => { e.preventDefault(); userMoved = true; const
 new ResizeObserver(() => { if (!overlay.hidden && !userMoved) fit(); }).observe(svg);
 
 // ---------- atualização ----------
-// quadro "Construtora" (prestígio): aparece depois que a primeira obra pode ser entregue
+// faixa "Construtora J. Santos" (só Reputação): ★ ganhas no total, Reputação e os gerentes, que chegam um por obra
 let boardBuilt = false;
 function buildBoard() {
   const row = $('skBoardRow'); row.innerHTML = '';
   for (const k in VIVA.board) {
-    const b = VIVA.board[k], c = document.createElement('div'); c.className = 'skb-card' + (b.mgr ? ' mgr' : ''); c.dataset.k = k;
+    const b = VIVA.board[k], c = document.createElement('div'); c.className = 'skb-card mgr'; c.dataset.k = k;
     c.innerHTML = `<b>${b.n}</b><u></u><i>${b.d}</i><button type="button"></button>`;
-    c.querySelector('button').onclick = () => {
-      if (b.mgr && boardLv(k)) setManager(b.mgr, !managerOn(b.mgr)); // gerente já contratado: liga e desliga
-      else if (!buyBoard(k)) return;
-      save(); updateSkills();
-    };
+    c.querySelector('button').onclick = () => { if (!hasManager(b.mgr)) return; setManager(b.mgr, !managerOn(b.mgr)); save(); updateSkills(); };
     row.appendChild(c);
   }
-  // no celular o quadro começa recolhido (a árvore precisa do espaço); tocar no título abre e fecha
+  // no celular a faixa começa recolhida (a árvore precisa do espaço); tocar no título abre e fecha
   if (innerWidth <= 820) $('skBoard').classList.add('fold');
   document.querySelector('.skb-h').onclick = () => $('skBoard').classList.toggle('fold');
   boardBuilt = true;
@@ -281,22 +277,15 @@ function updateBoard() {
   if (S.roundOver) setText(dv, `Começar a próxima obra → ${nextCity().n}`);
   else if (!dv.hidden && !dv.classList.contains('armed')) setText(dv, `Entregar a obra (+${pointsFor(S.maxAlt)} ★)`);
   if (!boardBuilt) buildBoard();
-  setText($('skPts'), '★ ' + fmt(S.pontos || 0));
+  setText($('skPts'), `★ ${fmt(S.pontosTotal || 0)} ganhas`);
   setText($('skRep'), `Reputação +${fmt(Math.round(VIVA.prestige.rep * (S.pontosTotal || 0) * 100))}%`);
   setText($('skObra'), `Obra nº ${S.obra || 1} · ${city().n}`);
   for (const c of $('skBoardRow').children) {
-    const k = c.dataset.k, b = VIVA.board[k], lv = boardLv(k), mx = boardMaxed(k), bt = c.querySelector('button');
-    if (b.mgr) { // gerente: contratado uma vez, depois o botão liga e desliga
-      const own = lv >= 1, on = own && managerOn(b.mgr);
-      c.classList.toggle('own', own); c.classList.toggle('off', own && !on);
-      setText(c.querySelector('u'), own ? (on ? 'Trabalhando' : 'De folga') : 'Gerente');
-      setText(bt, own ? (on ? 'Ligado' : 'Desligado') : `★ ${fmt(boardCost(k))}`);
-      bt.disabled = !own && (S.pontos || 0) < boardCost(k);
-      continue;
-    }
-    setText(c.querySelector('u'), `Nível ${lv} de ${b.max}`);
-    setText(bt, mx ? 'Máximo' : `★ ${fmt(boardCost(k))}`);
-    bt.disabled = mx || (S.pontos || 0) < boardCost(k);
+    const b = VIVA.board[c.dataset.k], bt = c.querySelector('button'), own = hasManager(b.mgr), on = own && managerOn(b.mgr);
+    c.classList.toggle('own', own); c.classList.toggle('off', own && !on);
+    setText(c.querySelector('u'), own ? (on ? 'Trabalhando' : 'De folga') : `Chega na obra ${managerArrives(b.mgr)}`);
+    setText(bt, own ? (on ? 'Ligado' : 'Desligado') : `Obra ${managerArrives(b.mgr)}`);
+    bt.disabled = !own;
   }
 }
 

@@ -8,7 +8,7 @@ import { VIVA } from '../data/viva.js';
 // o protótipo Obra Viva usa um save separado, para não misturar com o modo atual
 export const saveKey = () => SAVE_KEY + (FLAGS.viva ? '-viva' : '');
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 export function fresh() {
   const lv = {};
@@ -38,6 +38,7 @@ export function fresh() {
     introSeen: false,             // Obra Viva: a abertura (história) já foi vista
     // rodada de 20 min (Obra Viva): tempo restante, encerrada, ★ já creditadas; gerentes ligados por ramo
     roundLeft: FLAGS.viva ? VIVA.round.secs : 0, roundOver: false, roundPaid: false, mgr: {}, mgrPool: 0,
+    offers: [], perks: [], marksDone: 0, rushLeft: 0, // contratos de altura da rodada (sim/contracts.js)
   };
 }
 
@@ -62,7 +63,7 @@ export function load() {
     S.lv = Object.assign(fresh().lv, o.lv || {});
     S.broker = Object.assign(fresh().broker, o.broker || {});
     S.stats = Object.assign(fresh().stats, o.stats || {});
-    S.board = Object.assign({}, o.board || {}); S.ver = SAVE_VERSION;
+    S.board = {}; S.pontos = 0; S.ver = SAVE_VERSION; // v6: sem compras com ★ (só Reputação)
     return o.ver || 1;
   } catch (e) { return 0; /* save corrompido ou storage bloqueado: começa do zero */ }
 }

@@ -11,6 +11,7 @@ import { eraAt } from '../data/eras.js';
 import { VIVA } from '../data/viva.js';
 import { techMult } from './tech.js';
 import { boardMult, cityMult } from './prestige.js';
+import { perkMult } from './contracts.js';
 
 const RB = BAL.rent;
 
@@ -26,7 +27,7 @@ export function rentSum(a, n) {
 export const pending = () => Math.max(0, Math.floor(S.floors) - S.assigned);
 export const typeUnlocked = t => S.maxAlt >= FLOOR_TYPES[t].alt;
 export const saleMult = () => (1 + 0.08 * S.lv.corretor) * mods().mult('sale') * techMult('sale');
-export const rentMult = () => (1 + 0.5 * S.lv.aluguel) * techMult('rent') * mods().mult('rent') * boardMult('rent') * cityMult('rent');
+export const rentMult = () => (1 + 0.5 * S.lv.aluguel) * techMult('rent') * mods().mult('rent') * boardMult('rent') * cityMult('rent') * perkMult('rent');
 
 // Obra Viva: o tipo muda sozinho com a altura (só vista e turismo; nada para escolher)
 const AUTO_TYPES = ['apto', 'escr', 'hotel', 'rest', 'obs'];

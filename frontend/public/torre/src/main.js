@@ -13,6 +13,7 @@ import { closeMap, initMap } from './ui/talentMap.js';
 import { $ } from './ui/dom.js';
 import { initSkills, tickSkills, skillsOpen, closeSkills } from './ui/skills.js';
 import { FLAGS } from './data/flags.js';
+import { VIVA } from './data/viva.js';
 import { syncCameraButtons } from './ui/cameraControls.js';
 import { syncEvents, recent } from './render/events.js';
 import { initEffects } from './render/effects.js';
@@ -20,6 +21,7 @@ import { soundOn, setSound } from './ui/audio.js';
 import { initIntro, introActive, startIntro, showNews, clearNews } from './ui/intro.js';
 import { endRound, startNextRound, city } from './sim/prestige.js';
 import { initRoundEnd, checkRoundEnd } from './ui/roundEnd.js';
+import { initOffers, updateOffers } from './ui/offers.js';
 import { initMilestones } from './ui/milestones.js';
 const cityName = () => city().n;
 import { preloadArt } from './render/assets.js';
@@ -66,7 +68,7 @@ function tick(real) {
   render();
   if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
   if (FLAGS.viva && !introActive()) S.playTime = (S.playTime || 0) + dt * speed;
-  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); }
+  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); updateOffers(); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -104,7 +106,8 @@ for (const rs of [$('reset'), $('skReset')]) {
       startNextRound();
       setNotice(null); resetView(); resetMilestones(); syncEvents(); followBuild(); syncCameraButtons(); closeSkills(); updateUI();
       clearNews();
-      showNews('JORNAL DA OBRA', `Construtora J. Santos começa a obra nº ${S.obra} em ${cityName()} (${got} ★ na história da empresa)`);
+      const mg = Object.values(VIVA.board).find(b => b.obra === S.obra); // gerente que chega nesta obra
+      showNews('JORNAL DA OBRA', `Construtora J. Santos começa a obra nº ${S.obra} em ${cityName()} (${got} ★ na história da empresa)` + (mg ? `. Chega o ${mg.n}: ${mg.d.charAt(0).toLowerCase() + mg.d.slice(1)}` : ''));
       return;
     }
     if (!dv.classList.contains('armed')) { dv.classList.add('armed'); dv.textContent = 'Confirmar: entregar esta obra'; setTimeout(disarm, 3000); return; }
@@ -146,6 +149,7 @@ if (FLAGS.viva) {
   initIntro({ test: TEST || navigator.webdriver });
   initMilestones();
   initRoundEnd();
+  initOffers();
   $('skStory').onclick = () => { closeSkills(); startIntro(true); };
 }
 

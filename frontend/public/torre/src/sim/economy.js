@@ -10,12 +10,13 @@ import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
 import { boardMult, cityMult, endRound } from './prestige.js';
 import { managerTick } from './managers.js';
+import { perkMult, contractTick } from './contracts.js';
 import { tourism } from './tourism.js';
 import { bankInfo, bankTick } from './bank.js';
 import { techMult } from './tech.js';
 
 // ---------- melhorias compradas com dinheiro ----------
-export const cost = k => Math.ceil(UP[k].base * Math.pow(UP[k].k, S.lv[k] - (UP[k].start || 0)) * mods().mult('cost_' + UP[k].b) * (k === 'fundacao' ? techMult('fundCost') : 1));
+export const cost = k => Math.ceil(UP[k].base * Math.pow(UP[k].k, S.lv[k] - (UP[k].start || 0)) * mods().mult('cost_' + UP[k].b) * (k === 'fundacao' ? techMult('fundCost') : 1) * perkMult('cost'));
 export const reqMet = k => (!UP[k].req || S.lv[UP[k].req[0]] >= UP[k].req[1]) && (!UP[k].reqAlt || S.maxAlt >= UP[k].reqAlt);
 // par de tecnologias de era: comprar uma trava a irmã até a próxima obra
 export const pairTaken = k => !!(UP[k].pair && S.lv[UP[k].pair] > 0);
@@ -53,14 +54,14 @@ export function floorCost(i, era, M = mods()) {
   const wall = Math.pow(2, Math.max(0, altOf(i) - c.wallStart) / c.wallDouble);
   const mod = Math.pow(mpfAt(i) / MPF, c.modulePow || 0) * techMult('fcost'); // módulo maior nas eras altas: mais material por peça
   const mult = 1 + ((c.mult || 1) - 1) * Math.min(1, i / 40); // o encarecimento entra aos poucos nos primeiros 40 andares
-  return BRICKS * mult * Math.pow(1 + i / c.scale, c.pow) * Math.pow(c.eraMult, era) * wall * mod * Math.pow(0.85, S.lv.projeto) * M.mult('fcost');
+  return BRICKS * mult * Math.pow(1 + i / c.scale, c.pow) * Math.pow(c.eraMult, era) * wall * mod * Math.pow(0.85, S.lv.projeto) * M.mult('fcost') * perkMult('fcost');
 }
 
 // ---------- taxas instantâneas derivadas do estado ----------
 export function rates() {
   const L = S.lv, M = mods(), fl = Math.floor(S.floors), h = Math.max(MPF, altOf(fl)), era = eraAt(altOf(S.floors));
   const all = M.mult('all');
-  const prod = 1.5 * L.fornec * eff('caminhao') * eff('olaria') * eff('premold') * techMult('prod') * M.mult('prod') * all * boardMult('prod') * cityMult('prod');
+  const prod = 1.5 * L.fornec * eff('caminhao') * eff('olaria') * eff('premold') * techMult('prod') * M.mult('prod') * all * boardMult('prod') * cityMult('prod') * perkMult('prod');
   let spd = 1.5 * eff('motor') * eff('maglev') * techMult('tran') * M.mult('tranSpd') * all;
   if (M.flag.gravity) spd *= 1 + Math.log10(1 + h / 1000);
   const capc = 8 * eff('cacamba') * M.mult('tranCap') * techMult('cap');
@@ -73,8 +74,8 @@ export function rates() {
   // Obra Viva: a velocidade (Motor, Magnético, tecnologias) multiplica o material subindo inteiro. Sem isso, os 2 s
   // fixos de carga e descarga viravam quase toda a viagem no fim do jogo e o "×2,8" do Magnético rendia +3%.
   const spd0 = 1.5 * M.mult('tranSpd') * all, tripEff = FLAGS.viva ? (2 * hEff / spd0 + 2) / (spd / spd0) : trip;
-  const lay = L.pedreiro * 1.3 * eff('treino') * eff('ferram') * eff('mestre') * (craneLog() ? 1 : eff('guindaste')) * techMult('lay') * M.mult('lay') * all * boardMult('lay') * cityMult('lay');
-  let tran = L.elevador * capc / tripEff * (craneLog() ? eff('guindaste') : 1) * boardMult('tran') * cityMult('tran');
+  const lay = L.pedreiro * 1.3 * eff('treino') * eff('ferram') * eff('mestre') * (craneLog() ? 1 : eff('guindaste')) * techMult('lay') * M.mult('lay') * all * boardMult('lay') * cityMult('lay') * perkMult('lay');
+  let tran = L.elevador * capc / tripEff * (craneLog() ? eff('guindaste') : 1) * boardMult('tran') * cityMult('tran') * perkMult('tran');
   // Mutirão: no Obra Viva no máximo dobra o que os elevadores sobem (sem teto, o excesso de pedreiros virava bola de neve)
   if (M.flag.helpers) tran += FLAGS.viva ? Math.min(0.25 * lay, tran) : 0.25 * lay;
   const fcost = floorCost(fl, era, M);
@@ -101,7 +102,7 @@ export function sim(dt) {
     ends = S.roundLeft <= 0;
   }
   simStep(dt);
-  if (FLAGS.viva) managerTick(dt);
+  if (FLAGS.viva) { contractTick(dt); managerTick(dt); }
   if (ends) endRound();
 }
 function simStep(dt) {

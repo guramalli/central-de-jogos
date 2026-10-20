@@ -51,21 +51,14 @@ export const VIVA = {
   // = floor(k × km^pow) (retorno decrescente); os pontos compram o quadro "Construtora" (bônus permanentes, aditivos)
   manager: { share: 0.5, rate: 2 }, // gerentes: verba comum de metade da renda (nunca mais que metade do caixa); até 2 compras/s por ramo
   round: { secs: 1200 }, // rodada de 20 min de relógio (só corre com o jogo aberto)
-  prestige: { k: 12, pow: 0.6, rep: 0.06 }, // ★ = 12 × km^0,6 (mín. 1); rep: Reputação = +6% em tudo por ★ ganha no total (robô: Órbita na 13ª rodada)
+  prestige: { k: 12, pow: 0.6, rep: 0.03 }, // ★ = 12 × km^0,6 (mín. 1); rep: Reputação = +3% em tudo por ★ ganha no total (robô com contratos: Órbita na 13ª rodada)
+  // Construtora J. Santos (só Reputação, decisão do usuário 20/10/2026): sem compras com ★; os gerentes chegam um por obra
   board: {
-    capital: { n: 'Capital inicial', d: '+R$ 400 no cheque de cada obra nova por nível.', base: 3, grow: 1.6, max: 10, start: 'money', add: 400 },
-    pedreiros: { n: 'Equipe fixa', d: '+1 pedreiro já contratado em cada obra nova.', base: 4, grow: 1.8, max: 5, start: 'pedreiro', add: 1 },
-    fornecedores: { n: 'Fornecedores parceiros', d: '+1 fornecedor já contratado em cada obra nova.', base: 4, grow: 1.8, max: 5, start: 'fornec', add: 1 },
-    rede: { n: 'Rede de fornecimento', d: '+10% de material chegando por nível.', base: 5, grow: 1.5, max: 10, st: 'prod', add: 0.1 },
-    elevadores: { n: 'Engenharia de elevadores', d: '+10% de material subindo por nível.', base: 5, grow: 1.5, max: 10, st: 'tran', add: 0.1 },
-    escola: { n: 'Escola de pedreiros', d: '+10% no assentamento por nível.', base: 5, grow: 1.5, max: 10, st: 'lay', add: 0.1 },
-    marca: { n: 'Marca J. Santos', d: '+15% de aluguel e de turismo por nível.', base: 6, grow: 1.6, max: 10, st: 'rent', st2: 'tour', add: 0.15 },
-    fundacao: { n: 'Fundação de série', d: '+1 nível de Fundação já pronto em cada obra nova.', base: 8, grow: 2, max: 5, start: 'fundacao', add: 1 },
-    // gerentes (sim/managers.js): compram sozinhos o básico do ramo; ligam e desligam no próprio cartão
-    gerObra: { n: 'Gerente de obra', d: 'Contrata pedreiros e compra treino, ferramentas e mestres sozinho.', base: 2, grow: 1, max: 1, mgr: 'obra' },
-    gerForn: { n: 'Gerente de suprimentos', d: 'Compra fornecedores, caminhões, olaria e pré-molde sozinho.', base: 2, grow: 1, max: 1, mgr: 'forn' },
-    gerLog: { n: 'Gerente de logística', d: 'Compra elevadores, motores, caçambas e guindaste sozinho.', base: 2, grow: 1, max: 1, mgr: 'log' },
-    gerEng: { n: 'Gerente de engenharia', d: 'Reforça a fundação e compra projetos sozinho.', base: 3, grow: 1, max: 1, mgr: 'eng' },
-    gerMerc: { n: 'Gerente comercial', d: 'Compra aluguel, turismo e marketing sozinho.', base: 3, grow: 1, max: 1, mgr: 'merc' },
+    gerObra: { n: 'Gerente de obra', d: 'Contrata pedreiros e compra treino, ferramentas e mestres sozinho.', mgr: 'obra', obra: 2 },
+    gerForn: { n: 'Gerente de suprimentos', d: 'Compra fornecedores, caminhões, olaria e pré-molde sozinho.', mgr: 'forn', obra: 3 },
+    gerLog: { n: 'Gerente de logística', d: 'Compra elevadores, motores, caçambas e guindaste sozinho.', mgr: 'log', obra: 4 },
+    gerEng: { n: 'Gerente de engenharia', d: 'Reforça a fundação e compra projetos sozinho.', mgr: 'eng', obra: 5 },
+    gerMerc: { n: 'Gerente comercial', d: 'Compra aluguel, turismo e marketing sozinho.', mgr: 'merc', obra: 6 },
   },
+
 };
