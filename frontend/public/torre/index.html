@@ -270,6 +270,7 @@
     <button class="resetbtn" id="skSnd" aria-pressed="true">Som</button>
     <button class="resetbtn" id="skStory">História</button>
     <button class="resetbtn" id="skTips">Dicas</button>
+    <button class="resetbtn" id="skHome">Início</button>
     <button class="resetbtn" id="skReset">Recomeçar</button>
     <span class="modelink" id="skMode"></span>
   </footer>
@@ -307,6 +308,61 @@
   </div>
 </div>
 
+<!-- página de Início (ui/home.js): logo, continuar, espaços de save, como jogar, ranking, configurações -->
+<div class="home" id="home" hidden role="dialog" aria-modal="true" aria-label="Torre Infinita — Início">
+  <div class="hm-main" id="hmMain">
+    <div class="hm-logo" id="homeLogo"><img id="hmLogoImg" alt="Torre Infinita" hidden><b id="hmLogoTxt">TORRE<br>INFINITA</b></div>
+    <button class="hm-btn hm-primary" id="hmContinue">Continuar</button>
+    <span class="hm-sub" id="hmContinueSub"></span>
+    <button class="hm-btn" id="hmSlots">Jogos salvos</button>
+    <button class="hm-btn" id="hmHowto">Como jogar</button>
+    <button class="hm-btn" id="hmRank">Ranking</button>
+    <button class="hm-btn" id="hmCfg">Configurações</button>
+    <a class="hm-classic" id="hmClassic" href="?classico">Modo clássico</a>
+  </div>
+  <section class="hm-panel" id="hmSlotsP" hidden aria-label="Jogos salvos">
+    <header><b>Jogos salvos</b><button class="hm-back" data-back>Voltar</button></header>
+    <div class="hm-slots" id="hmSlotsList"></div>
+  </section>
+  <section class="hm-panel" id="hmCfgP" hidden aria-label="Configurações">
+    <header><b>Configurações</b><button class="hm-back" data-back>Voltar</button></header>
+    <div class="hm-cfg">
+      <label class="hm-row"><span>Som</span><input type="checkbox" id="cfSom"></label>
+      <label class="hm-row"><span>Volume</span><input type="range" id="cfVol" min="0" max="100" step="5"></label>
+      <label class="hm-row"><span>Gráficos leves<small>sem partículas, menos nuvens, sem ondas na areia</small></span><input type="checkbox" id="cfLeve"></label>
+      <label class="hm-row"><span>Dicas</span><input type="checkbox" id="cfDicas"></label>
+      <button class="hm-btn hm-small" id="cfRever">Rever as dicas</button>
+      <h4>Ranking</h4>
+      <div class="hm-row" id="cfRankRow"><span id="cfRankTxt">Você ainda não está no ranking.</span><button class="hm-btn hm-small" id="cfRankSair" hidden>Sair do ranking</button></div>
+      <div class="hm-row"><input id="cfNick" maxlength="12" placeholder="Apelido (3 a 12 letras)" autocomplete="off" spellcheck="false"><button class="hm-btn hm-small" id="cfNickOk">Entrar / trocar apelido</button></div>
+      <h4>Dados do jogo (espaço <span id="cfSlotN">1</span>)</h4>
+      <div class="hm-actions"><button class="hm-btn hm-small" id="cfExport">Exportar save</button><button class="hm-btn hm-small" id="cfImport">Importar save</button><button class="hm-btn hm-small hm-danger" id="cfDel">Apagar este espaço</button></div>
+      <input type="file" id="cfFile" accept=".json,application/json" hidden>
+      <p class="hm-msg" id="cfMsg" role="status"></p>
+    </div>
+  </section>
+</div>
+
+<!-- ranking online (ui/ranking.js) -->
+<div class="howto" id="ranking" hidden role="dialog" aria-modal="true" aria-labelledby="rkTitle">
+  <div class="ht-box">
+    <header><b id="rkTitle">Ranking</b><button class="hm-back" id="rkClose">Fechar</button></header>
+    <div class="rk-tabs"><button class="rk-tab on" data-l="obra">Melhor obra</button><button class="rk-tab" data-l="total">Recorde total</button><button class="rk-tab" data-l="orbita">Tempo até a Órbita</button></div>
+    <ol class="rk-list" id="rkList"></ol>
+    <p class="rk-me" id="rkMe"></p>
+  </div>
+</div>
+
+<!-- como jogar (ui/tutorial.js): capturas do jogo com destaques -->
+<div class="howto" id="howto" hidden role="dialog" aria-modal="true" aria-labelledby="htTitle">
+  <div class="ht-box">
+    <header><b id="htTitle"></b><button class="hm-back" id="htClose">Fechar</button></header>
+    <img id="htImg" alt="">
+    <p id="htText"></p>
+    <div class="ht-nav"><button class="hm-btn hm-small" id="htPrev">← Anterior</button><span class="ht-dots" id="htDots"></span><button class="hm-btn hm-small hm-primary" id="htNext">Próximo →</button></div>
+  </div>
+</div>
+
 <!-- dicas para quem começa (ui/coach.js + ui/tips.js): quadro em volta do alvo, balão, Entendi / Pular -->
 <div class="coach" id="coach" hidden role="dialog" aria-live="polite">
   <div class="co-veil"></div>
@@ -319,6 +375,10 @@
     <small>FIM DA OBRA</small>
     <b id="reTitle">Obra nº 1</b>
     <div class="kv" id="reStats"></div>
+    <div class="re-rank" id="reRank" hidden>
+      <div id="reRankForm" hidden><label for="reNick">Entrar no ranking? Seu apelido:</label><div class="re-nick"><input id="reNick" maxlength="12" autocomplete="off" spellcheck="false"><button class="btn" id="reNickOk">Entrar</button><button class="hm-back" id="reNickNo">Agora não</button></div></div>
+      <p id="reRankMsg" role="status"></p>
+    </div>
     <div class="win-b"><button class="btn" id="reGo">Continuar</button></div>
   </div>
 </div>

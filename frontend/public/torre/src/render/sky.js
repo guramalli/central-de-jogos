@@ -8,6 +8,7 @@ import { cam, worldY } from './camera.js';
 import { V } from './view.js';
 import { blit } from './sprites.js';
 import { cloudSprite, planeSprite, balloonSprite } from './props.js';
+import { cfg } from '../ui/config.js';
 import { art } from './assets.js';
 import { city } from '../sim/prestige.js';
 
@@ -73,7 +74,9 @@ function cloud(x, y, w, alpha) {
 export function drawClouds(front) {
   if (front || city().scene.noClouds) return; // sem nuvens, avião nem balão na Lua
   const lo = worldY(H) - 600, hi = worldY(0) + 200;
-  CLOUDS.forEach(c => {
+  const leve = cfg().leve;
+  CLOUDS.forEach((c, k) => {
+    if (leve && k % 2) return; // gráficos leves: metade das nuvens
     const y = yOfAlt(c.m); if (y < lo || y > hi) return;
     const x = ((c.x + V.t * c.s) % 2800 + 2800) % 2800 - 1400;
     cloud(x, y, c.w, 1);

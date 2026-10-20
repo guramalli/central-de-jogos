@@ -11,6 +11,8 @@ import { V } from '../render/view.js';
 import { hasManager } from '../sim/managers.js';
 import { introActive } from './intro.js';
 import { skillsOpen, closeSkills, selectedKey, revealNode } from './skills.js';
+import { cfg } from './config.js';
+import { homeOpen } from './home.js';
 import { showTip, coachBusy, coachTip, dropTip, rectOf, worldRect, updateCoach } from './coach.js';
 
 const $ = id => document.getElementById(id);
@@ -38,7 +40,7 @@ export const setTips = on => { enabled = FLAGS.viva && !!on; };
 export const tickTips = () => { if (enabled) updateCoach(); };
 
 export function updateTips() {
-  if (!enabled || introActive()) return;
+  if (!enabled || !cfg().dicas || introActive() || homeOpen()) return; // nada por cima da página de Início
   updateCoach();
   if (shown('roundEnd') && coachBusy() && coachTip() !== 'fimobra') dropTip(); // o placar vem primeiro
   if (coachBusy()) return;

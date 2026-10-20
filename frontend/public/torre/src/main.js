@@ -20,9 +20,12 @@ import { initEffects } from './render/effects.js';
 import { soundOn, setSound } from './ui/audio.js';
 import { initIntro, introActive, startIntro, showNews, clearNews } from './ui/intro.js';
 import { endRound, startNextRound, city } from './sim/prestige.js';
-import { initRoundEnd, checkRoundEnd } from './ui/roundEnd.js';
-import { initOffers, updateOffers } from './ui/offers.js';
+import { initRoundEnd, checkRoundEnd, resetRoundEnd } from './ui/roundEnd.js';
+import { initOffers, updateOffers, resetOffers } from './ui/offers.js';
 import { initCoach, dropTip } from './ui/coach.js';
+import { initHome, openHome, closeHome, homeOpen } from './ui/home.js';
+import { initTutorial, openTutorial } from './ui/tutorial.js';
+import { initRanking, openRanking, pedirFicha, sairDoRanking, definirApelido, rankTick, esquecerJogador } from './ui/ranking.js';
 import { initTips, updateTips, setTips, tickTips } from './ui/tips.js';
 import { initMilestones } from './ui/milestones.js';
 const cityName = () => city().n;
@@ -64,14 +67,14 @@ const SIM_MAX_DT = 30;
 let last = performance.now(), uiT = 0, saveT = 0, noticeT = 12;
 function tick(real) {
   const dt = Math.min(.1, real);
-  let sd = introActive() ? 0 : Math.min(SIM_MAX_DT, real) * speed; // a obra começa quando a história acaba
+  let sd = introActive() || homeOpen() ? 0 : Math.min(SIM_MAX_DT, real) * speed; // a obra começa quando a história acaba
   while (sd > 0) { const st = Math.min(.25, sd); sim(st); sd -= st; }
   updateView(dt, speed);
   render();
   if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
   tickTips(); // o quadro da dica acompanha o alvo
-  if (FLAGS.viva && !introActive()) S.playTime = (S.playTime || 0) + dt * speed;
-  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); updateOffers(); updateTips(); }
+  if (FLAGS.viva && !introActive() && !homeOpen()) S.playTime = (S.playTime || 0) + dt * speed;
+  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); updateOffers(); updateTips(); rankTick(); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -90,7 +93,7 @@ spBtns.forEach(b => b.onclick = () => {
 });
 
 // Recomeçar: dois cliques (o primeiro arma por 3 s). Botão no topo (modo atual) e no rodapé das Melhorias (Obra Viva)
-function doReset() { dropTip(); resetState(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); updateUI(); if (FLAGS.viva) { closeSkills(); startIntro(false); } }
+function doReset() { dropTip(); if (FLAGS.viva) esquecerJogador(); resetState(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); updateUI(); if (FLAGS.viva) { closeSkills(); startIntro(false); } }
 for (const rs of [$('reset'), $('skReset')]) {
   const disarm = () => { rs.classList.remove('armed'); rs.textContent = 'Recomeçar'; };
   rs.onclick = () => {
@@ -106,7 +109,7 @@ for (const rs of [$('reset'), $('skReset')]) {
   dv.onclick = () => {
     if (S.roundOver) { // depois do placar e do quadro: começa a próxima rodada na cidade seguinte
       const got = S.pontosTotal;
-      startNextRound();
+      startNextRound(); pedirFicha(); // ficha do ranking para a obra nova
       setNotice(null); resetView(); resetMilestones(); syncEvents(); followBuild(); syncCameraButtons(); closeSkills(); updateUI();
       clearNews();
       const mg = Object.values(VIVA.board).find(b => b.obra === S.obra); // gerente que chega nesta obra
@@ -149,11 +152,20 @@ if (FLAGS.viva) {
   $('z-all').textContent = '⤢'; $('z-all').setAttribute('aria-label', 'Ver a torre inteira');
   initSkills();
   // abertura com a história (partida nova); não roda nos testes automáticos (?test=1 ou navegador controlado)
-  initIntro({ test: TEST || navigator.webdriver });
+  initIntro({ test: TEST || navigator.webdriver, auto: false });
   initMilestones();
   initRoundEnd();
   initOffers();
   initCoach(); initTips({ test: TEST || navigator.webdriver });
+  // página de Início: trocar de espaço limpa a cena (como o Recomeçar, sem apagar); partida nova abre a história
+  const onSwitch = () => { dropTip(); clearNews(); resetRoundEnd(); resetOffers(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeSkills(); updateUI(); };
+  initTutorial({ play: () => document.getElementById('hmContinue').click() }); // "Jogar" = Continuar/Novo jogo
+  initRanking();
+  initHome({ onSwitch: () => { onSwitch(); pedirFicha(); }, onHowto: openTutorial, onRanking: openRanking, onRankLeave: sairDoRanking, onRankJoin: definirApelido,
+    onForget: esquecerJogador, // apagar um espaço tira o apelido daquele jogador do ranking
+    onNewGame: () => { if (!(TEST || navigator.webdriver)) startIntro(false); } }); // nos testes, sem abertura
+  $('skHome').onclick = () => { closeSkills(); openHome(); };
+  if (!(TEST || navigator.webdriver)) openHome();
   $('skStory').onclick = () => { closeSkills(); startIntro(true); };
 }
 
@@ -200,7 +212,8 @@ function shot(name = 'shot') {
 // step(seg, fps): avança o jogo quadro a quadro sem depender do navegador (testes automáticos)
 if (DEV || TEST) window.torre = {
   get S() { return S; }, V, cam, snap: snapCamera, shot, events: recent,
-  dicas: on => setTips(on), // liga as dicas nos testes automáticos (desligadas por padrão com ?test=1)
+  dicas: on => setTips(on),
+  home: on => (on ? openHome() : closeHome()), // abre/fecha a página de Início (desligada por padrão com ?test=1) // liga as dicas nos testes automáticos (desligadas por padrão com ?test=1)
   look: (cx, cy, z = cam.z) => { panBy(0, 0); cam.z = z; cam.cx = cx; cam.cy = cy; }, // câmera livre num ponto (capturas)
   draw: (n = 1) => { for (let i = 0; i < n; i++) { updateView(0.05, 1); render(); } },
   step: (sec, fps = 30) => { for (let i = 0; i < sec * fps; i++) tick(1 / fps); },

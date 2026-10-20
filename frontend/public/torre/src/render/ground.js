@@ -9,11 +9,12 @@ import { cam, worldX, worldY, sx, sy } from './camera.js';
 import { V } from './view.js';
 import { spark } from './particles.js';
 import { worker } from './workers.js';
-import { SHAFT_X } from './tower.js';
+import { SHAFT_X, SHAFT_W } from './tower.js';
 import { zzz } from './signs.js';
 import { blit } from './sprites.js';
 import { islandSprite } from './props.js';
 import { art } from './assets.js';
+import { cfg } from '../ui/config.js';
 import { techYard, techFoundation } from './techvis.js';
 import { city } from '../sim/prestige.js';
 import { dumpArt, mixerArt, TRUCK_TOP, DUMP_PIVOT, DUMP_GROUND, MIX_AX, MIX_GROUND } from './trucks.js';
@@ -67,7 +68,7 @@ export function drawGroundBack() {
   }
   R(-1e7, -2, 2e7, 2, '#c4a46a');
   // beira-mar: a onda sobe pela areia e volta (ciclo de ~6 s), com espuma na ponta e areia molhada por onde passou
-  if (sc.sea) shoreWash();
+  if (sc.sea && !cfg().leve) shoreWash(); // gráficos leves: sem ondas na areia
   // fundação (corte no solo)
   const depth = 30 + Math.min(180, S.lv.fundacao * 20);
   R(TL - 12, -depth, TW + 24, depth, '#7b6a55');
@@ -213,7 +214,7 @@ function hopper(x, gy, fill) {
   R(x - 11, gy, 3, 10, '#5a5f6a'); R(x + 8, gy, 3, 10, '#5a5f6a'); R(x - 11, gy + 4, 22, 2, '#5a5f6a');
   for (let r = 0; r < 12; r++) { const w = 8 + r * 2; R(x - w / 2, gy + 8 + r, w, 1, r < 1 ? '#5a5f6a' : r > 10 ? '#b4bac4' : '#7c818c'); } // funil
   if (fill > 0) { const lv = Math.round(10 * fill), w = 8 + lv * 2; R(x - w / 2 + 2, gy + 8 + lv, w - 4, 2, '#9a9e9a'); R(x - w / 2 + 3, gy + 9 + lv, 3, 1, '#c2c6c2'); }
-  const to = SHAFT_X(0) + 28; // mangueira da bomba até o pé do elevador
+  const to = SHAFT_X(0) + SHAFT_W - 2; // mangueira da bomba até o pé do elevador
   R(Math.min(to, x - 3), gy + 1, Math.abs(x - 3 - to), 3, '#2a2d36'); R(Math.min(to, x - 3), gy + 3, Math.abs(x - 3 - to), 1, '#4a4f5c');
 }
 
@@ -282,7 +283,7 @@ export function drawGroundFront(prod, sg = {}) {
   }
   // serventes levando material do estoque ao elevador 1
   // com Caçamba maior eles empurram carrinhos de mão (mais carga por viagem)
-  const nw = Math.min(5, L.fornec), to = SHAFT_X(0) + 10, barrow = L.cacamba > 0;
+  const nw = Math.min(5, L.fornec), to = SHAFT_X(0) + SHAFT_W / 3, barrow = L.cacamba > 0;
   for (let i = 0; i < nw; i++) {
     if (sg.groundJam) { // fila na porta do elevador, carregados, esperando a vez
       const x = to + 18 + i * 24;
@@ -305,7 +306,7 @@ export function drawGroundFront(prod, sg = {}) {
   const sc = city().scene;
   if (sc.tree) { coconut(-440, Math.round(Math.sin(V.t * 1.5) * 3), sc.tree); coconut(560, Math.round(Math.sin(V.t * 1.5 + 1) * 3), sc.tree); } // longe do trilho do panorâmico
   // pássaros (não na Lua)
-  if (cam.z >= 0.2 && sc.sea) for (let i = 0; i < 4; i++) {
+  if (cam.z >= 0.2 && sc.sea && !cfg().leve) for (let i = 0; i < 4; i++) {
     const x = ((V.t * (40 + i * 9) + i * 300) % 1600) - 700, y = 340 + i * 46 + Math.sin(V.t * 3 + i) * 6, f = Math.floor(V.t * 6 + i) % 2;
     R(x, y, 4, 3, '#2d3340'); R(x - 6, y + (f ? 3 : -2), 6, 2, '#2d3340'); R(x + 4, y + (f ? 3 : -2), 6, 2, '#2d3340');
   }

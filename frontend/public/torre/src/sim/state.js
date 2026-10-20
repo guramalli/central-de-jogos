@@ -7,7 +7,16 @@ import { VIVA } from '../data/viva.js';
 import { TIPS } from '../data/tips.js';
 
 // o protótipo Obra Viva usa um save separado, para não misturar com o modo atual
-export const saveKey = () => SAVE_KEY + (FLAGS.viva ? '-viva' : '');
+// Obra Viva: 3 espaços de save; o 1 é a chave de sempre (o save de antes vira o espaço 1 sem conversão)
+const SLOT_KEY = 'torre-infinita-espaco';
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } };
+// o espaço desta aba fica guardado aqui (lido uma vez); a chave do localStorage só lembra o último espaço usado.
+// Assim outra aba que troca de espaço não faz esta gravar no lugar errado.
+let slot = null;
+export const activeSlot = () => { if (!FLAGS.viva) return 1; if (slot == null) { const n = Number(lsGet(SLOT_KEY)); slot = n === 2 || n === 3 ? n : 1; } return slot; };
+const keyOf = n => SAVE_KEY + (FLAGS.viva ? '-viva' + (n > 1 ? '-' + n : '') : '');
+export const saveKey = () => keyOf(activeSlot());
 
 export const SAVE_VERSION = 6;
 
@@ -37,6 +46,9 @@ export function fresh() {
     obra: 1, cidade: 0, pontos: 0, pontosTotal: 0, board: {}, bestAlt: 0,
     marcos: {},                   // marcos dos primeiros minutos já mostrados (ui/milestones.js)
     introSeen: false,             // Obra Viva: a abertura (história) já foi vista
+    altTotal: 0,                  // soma das alturas de todas as obras entregues (ranking "recorde total")
+    orbitaSec: 0,                 // segundos de jogo até a primeira Órbita (ranking)
+    rank: { jogador: '', apelido: '', ativo: false, nao: false, ficha: '', fichaObra: 0, enviado: {} }, // ranking online (ui/ranking.js)
     // rodada de 20 min (Obra Viva): tempo restante, encerrada, ★ já creditadas; gerentes ligados por ramo
     roundLeft: FLAGS.viva ? VIVA.round.secs : 0, roundOver: false, roundPaid: false, mgr: {}, mgrPool: 0,
     offers: [], perks: [], marksDone: 0, rushLeft: 0, // contratos de altura da rodada (sim/contracts.js)
@@ -62,6 +74,8 @@ export function load() {
     // Obra Viva antes das rodadas (v<5): a campanha começa do zero; ficam só a abertura vista e os marcos
     if (FLAGS.viva && (o.ver || 1) < 5) { S = Object.assign(f, { introSeen: !!o.introSeen, marcos: o.marcos || {} }); return o.ver || 1; }
     S = Object.assign(f, o);
+    if (!('altTotal' in o)) S.altTotal = o.bestAlt || 0;
+    S.rank = Object.assign(fresh().rank, o.rank || {});
     if (FLAGS.viva && !('dicas' in o) && (o.floors > 0 || (o.obra || 1) > 1)) S.dicas = Object.fromEntries(Object.keys(TIPS).map(k => [k, true])); // quem já joga não vê as dicas de começo
     S.lv = Object.assign(fresh().lv, o.lv || {});
     S.broker = Object.assign(fresh().broker, o.broker || {});
@@ -83,3 +97,45 @@ export function resetState() {
 
 // Para testes e para o robô de balanceamento
 export function setState(o) { S = o; }
+
+// ---------- espaços de save (Obra Viva) ----------
+// troca de espaço: grava o atual e carrega o outro (vazio = partida nova, só gravada quando o jogo salvar)
+export function setSlot(n) {
+  if (!FLAGS.viva || ![1, 2, 3].includes(n)) return;
+  save();
+  slot = n; lsSet(SLOT_KEY, String(n));
+  if (!load()) S = fresh();
+}
+// resumo de um espaço (null = vazio)
+export function slotSummary(n) {
+  const raw = lsGet(keyOf(n));
+  if (!raw) return null;
+  try {
+    const o = JSON.parse(raw);
+    return { obra: o.obra || 1, cidade: o.cidade || 0, bestAlt: Math.max(o.bestAlt || 0, o.maxAlt || 0), pontosTotal: o.pontosTotal || 0, won: !!o.won, last: o.last || 0 };
+  } catch (e) { return null; }
+}
+// apaga o espaço; devolve o jogador do ranking que estava nele (para tirar o apelido do ranking)
+export function deleteSlot(n) {
+  let jogador = '';
+  try { const o = JSON.parse(lsGet(keyOf(n)) || 'null'); jogador = (o && o.rank && (o.rank.ativo || o.rank.apelido) && o.rank.jogador) || ''; } catch (e) { }
+  if (n === activeSlot() && S.rank && (S.rank.ativo || S.rank.apelido)) jogador = S.rank.jogador || jogador;
+  try { localStorage.removeItem(keyOf(n)); } catch (e) { }
+  if (n === activeSlot()) S = fresh();
+  return jogador;
+}
+export const exportSave = () => JSON.stringify(S);
+// importa um save (texto JSON) para o espaço n; confere antes de gravar e não mexe no espaço se recusar
+export function importSave(texto, n) {
+  let o;
+  try { o = JSON.parse(texto); } catch (e) { return { ok: false, erro: 'O arquivo não é um save da Torre Infinita.' }; }
+  const okNum = v => typeof v === 'number' && Number.isFinite(v);
+  if (!o || typeof o !== 'object' || !okNum(o.ver) || !o.lv || typeof o.lv !== 'object' || !okNum(o.floors) || !okNum(o.money) || (o.obra != null && !okNum(o.obra)) || (o.roundLeft != null && !okNum(o.roundLeft)))
+    return { ok: false, erro: 'O arquivo não é um save da Torre Infinita.' };
+  if (o.ver > SAVE_VERSION) return { ok: false, erro: 'Esse save é de uma versão mais nova do jogo.' };
+  if (FLAGS.viva && o.ver < 5) return { ok: false, erro: 'Esse save é de uma versão antiga do jogo (antes das obras de 20 minutos) e não pode ser importado.' };
+  const antes = lsGet(keyOf(n)); if (antes) lsSet(keyOf(n) + '-antes-importar', antes); // cópia do que havia no espaço
+  lsSet(keyOf(n), JSON.stringify(o));
+  if (n === activeSlot()) load();
+  return { ok: true };
+}

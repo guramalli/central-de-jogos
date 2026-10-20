@@ -2,9 +2,10 @@
 // Só começam depois do primeiro toque/clique do jogador (regra dos navegadores),
 // respeitam o botão de som, ficam mudos com a aba escondida e têm taxa máxima por tipo
 // para não virar barulho quando a obra acelera.
-const KEY = 'torre-infinita-som';
+import { cfg, setCfg } from './config.js';
 let ctx = null, master = null, on = true, noiseBuf = null;
-try { on = localStorage.getItem(KEY) !== '0'; } catch (e) { }
+on = cfg().som; // preferência de som e volume nas configurações do aparelho (ui/config.js)
+const gainOf = () => 0.28 * cfg().vol;
 // modo de teste (?test=1): sem som, sem mexer na preferência salva do jogador
 const TEST = new URLSearchParams(location.search).get('test') === '1';
 if (TEST) on = false;
@@ -14,10 +15,12 @@ const GAP = { brick: .11, beam: .2, glass: .2, phase: .35, floor: .5, buy: .08, 
 const last = {};
 
 export const soundOn = () => on;
+// volume (0..1), nas configurações
+export function setVolume(v) { setCfg({ vol: Math.max(0, Math.min(1, v)) }); if (master) master.gain.value = gainOf(); }
 export function setSound(v) {
   if (TEST) return;
   on = !!v;
-  try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) { }
+  setCfg({ som: on });
   if (on) unlock(); else if (ctx && ctx.state === 'running') ctx.suspend();
 }
 
@@ -26,7 +29,7 @@ export function unlock() {
   try {
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-      ctx = new AC(); master = ctx.createGain(); master.gain.value = .2; master.connect(ctx.destination);
+      ctx = new AC(); master = ctx.createGain(); master.gain.value = gainOf(); master.connect(ctx.destination);
       noiseBuf = ctx.createBuffer(1, ctx.sampleRate * .5, ctx.sampleRate);
       const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }

@@ -1,0 +1,129 @@
+// Página de Início (Obra Viva): logo, Continuar/Novo jogo, 3 espaços de save, Como jogar, Ranking e Configurações.
+// Abre sempre ao carregar (menos nos testes automáticos); enquanto aberta, a simulação e o relógio da rodada param
+// (main.js consulta homeOpen()). A cena continua desenhada atrás, desfocada.
+import { S, save, activeSlot, setSlot, slotSummary, deleteSlot, exportSave, importSave } from '../sim/state.js';
+import { cityOf } from '../data/cities.js';
+import { FLAGS } from '../data/flags.js';
+import { cfg, setCfg } from './config.js';
+import { setSound, setVolume } from './audio.js';
+import { fmtM } from './format.js';
+import { art } from '../render/assets.js';
+import { dropTip } from './coach.js';
+
+const $ = id => document.getElementById(id);
+let open = false, hooks = {};
+export const homeOpen = () => open;
+
+const ago = ms => {
+  if (!ms) return '';
+  const m = Math.floor((Date.now() - ms) / 60000);
+  return m < 1 ? 'agora há pouco' : m < 60 ? `há ${m} min` : m < 1440 ? `há ${Math.floor(m / 60)} h` : `há ${Math.floor(m / 1440)} dia${m >= 2880 ? 's' : ''}`;
+};
+const resumo = r => `Obra nº ${r.obra} · ${cityOf(r.cidade).n} · recorde ${fmtM(r.bestAlt)}${r.won ? ' · Órbita ✓' : ''}`;
+
+function show(panel) {
+  $('hmMain').hidden = !!panel;
+  for (const id of ['hmSlotsP', 'hmCfgP']) $(id).hidden = id !== panel;
+  if (panel === 'hmSlotsP') drawSlots();
+  if (panel === 'hmCfgP') drawCfg();
+}
+
+function drawMain() {
+  const img = art('logo');
+  if (img) { $('hmLogoImg').src = img.src; $('hmLogoImg').hidden = false; $('hmLogoTxt').hidden = true; }
+  const r = slotSummary(activeSlot());
+  $('hmContinue').textContent = r ? 'Continuar' : 'Novo jogo';
+  $('hmContinueSub').textContent = r ? `${resumo(r)} · ${ago(r.last)}` : 'Comece a obra da Construtora J. Santos';
+}
+
+function drawSlots() {
+  const box = $('hmSlotsList'); box.innerHTML = '';
+  for (const n of [1, 2, 3]) {
+    const r = slotSummary(n), d = document.createElement('div');
+    d.className = 'hm-slot' + (n === activeSlot() ? ' on' : ''); d.dataset.n = n;
+    d.innerHTML = `<b>Espaço ${n}</b><span>${r ? `${resumo(r)} · ${r.pontosTotal} ★ · ${ago(r.last)}` : 'Vazio'}</span>
+      <div class="hm-acts"><button class="hm-btn hm-small hm-play">${r ? 'Jogar' : 'Novo jogo'}</button>${r ? '<button class="hm-btn hm-small hm-danger hm-del">Apagar</button>' : ''}</div>`;
+    d.querySelector('.hm-play').onclick = () => play(n);
+    const del = d.querySelector('.hm-del');
+    if (del) del.onclick = () => {
+      if (!del.classList.contains('armed')) { del.classList.add('armed'); del.textContent = 'Confirmar'; setTimeout(() => { del.classList.remove('armed'); del.textContent = 'Apagar'; }, 3000); return; }
+      const j = deleteSlot(n); hooks.onForget?.(j); if (n === activeSlot()) hooks.onSwitch?.(); drawSlots(); drawMain();
+    };
+    box.appendChild(d);
+  }
+}
+
+function drawCfg() {
+  const c = cfg();
+  $('cfSom').checked = c.som; $('cfVol').value = String(Math.round(c.vol * 100)); $('cfLeve').checked = c.leve; $('cfDicas').checked = c.dicas;
+  $('cfSlotN').textContent = activeSlot();
+  const rk = S.rank || {};
+  $('cfRankTxt').textContent = rk.ativo && rk.apelido ? `No ranking como “${rk.apelido}”.` : 'Você ainda não está no ranking.';
+  $('cfRankSair').hidden = !(rk.ativo && rk.apelido);
+  $('cfNick').value = rk.apelido || '';
+  $('cfMsg').textContent = '';
+}
+
+// joga no espaço n: troca (se for outro), fecha o Início; partida nova abre a história
+function play(n) {
+  if (n !== activeSlot()) { setSlot(n); hooks.onSwitch?.(); }
+  const novo = !slotSummary(n);
+  closeHome();
+  if (novo || !S.introSeen) hooks.onNewGame?.();
+}
+
+export function openHome() {
+  if (!FLAGS.viva) return;
+  dropTip(); // uma dica aberta não fica por cima do Início
+  open = true; document.body.classList.add('home-open');
+  $('home').hidden = false; show(null); drawMain();
+  $('hmContinue').focus({ preventScroll: true });
+}
+export function closeHome() {
+  open = false; document.body.classList.remove('home-open');
+  $('home').hidden = true; save();
+}
+
+// hooks: onSwitch (trocou de espaço: limpar a cena), onNewGame (abrir a história), onHowto, onRanking, onRankLeave, onReviewTips
+export function initHome(h = {}) {
+  if (!FLAGS.viva) return;
+  hooks = h;
+  $('hmContinue').onclick = () => play(activeSlot());
+  $('hmSlots').onclick = () => show('hmSlotsP');
+  $('hmCfg').onclick = () => show('hmCfgP');
+  $('hmHowto').onclick = () => hooks.onHowto?.();
+  $('hmRank').onclick = () => hooks.onRanking?.();
+  for (const b of document.querySelectorAll('#home [data-back]')) b.onclick = () => show(null);
+  $('cfSom').onchange = e => setSound(e.target.checked);
+  $('cfVol').oninput = $('cfVol').onchange = e => setVolume(Number(e.target.value) / 100);
+  $('cfLeve').onchange = e => setCfg({ leve: e.target.checked });
+  $('cfDicas').onchange = e => setCfg({ dicas: e.target.checked });
+  $('cfRever').onclick = () => { setCfg({ dicas: true }); S.dicas = {}; save(); closeHome(); hooks.onReviewTips?.(); };
+  $('cfRankSair').onclick = async () => { const ok = await hooks.onRankLeave?.(); drawCfg(); if (ok === false) $('cfMsg').textContent = 'Não deu para falar com o ranking agora; seu apelido sai assim que a conexão voltar.'; };
+  $('cfNickOk').onclick = () => { const erro = hooks.onRankJoin?.($('cfNick').value); drawCfg(); $('cfMsg').textContent = erro || 'Apelido salvo. Seus recordes vão para o ranking no fim das próximas obras.'; };
+  $('cfExport').onclick = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([exportSave()], { type: 'application/json' }));
+    a.download = `torre-infinita-espaco${activeSlot()}.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    $('cfMsg').textContent = 'Save exportado.';
+  };
+  $('cfImport').onclick = () => $('cfFile').click();
+  $('cfFile').onchange = async e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    if (f.size > 2e6) { e.target.value = ''; $('cfMsg').textContent = 'Arquivo grande demais para ser um save.'; return; }
+    const r = importSave(await f.text(), activeSlot());
+    e.target.value = '';
+    if (r.ok) { hooks.onSwitch?.(); $('cfMsg').textContent = 'Save importado neste espaço.'; drawMain(); }
+    else $('cfMsg').textContent = r.erro;
+  };
+  const del = $('cfDel');
+  del.onclick = () => {
+    if (!del.classList.contains('armed')) { del.classList.add('armed'); del.textContent = 'Confirmar: apagar tudo deste espaço'; setTimeout(() => { del.classList.remove('armed'); del.textContent = 'Apagar este espaço'; }, 3000); return; }
+    const j = deleteSlot(activeSlot()); hooks.onForget?.(j); hooks.onSwitch?.(); show(null); drawMain();
+  };
+  addEventListener('keydown', e => {
+    if (!open) return;
+    if (e.key === 'Escape' && $('hmMain').hidden) show(null);
+  });
+}

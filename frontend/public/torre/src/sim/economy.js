@@ -123,7 +123,7 @@ function simStep(dt) {
   if (FLAGS.viva && done > 0) { const pay = rentSum(before, done) * VIVA.floorPaySecs; S.money += pay; S.stats.floorPay = (S.stats.floorPay || 0) + pay; }
   S.maxAlt = Math.max(S.maxAlt, altOf(Math.floor(S.floors)));
   S.era = Math.max(S.era, eraAt(altOf(S.floors)));
-  if (FLAGS.viva && !S.won && S.maxAlt >= VIVA.winAlt) S.won = true; // chegou à Órbita: fim do jogo
+  if (FLAGS.viva && !S.won && S.maxAlt >= VIVA.winAlt) { S.won = true; S.orbitaSec = S.orbitaSec || S.playTime || 0; } // chegou à Órbita (tempo de jogo para o ranking)
   // reciclagem: 2%/s do estoque parado no térreo vira dinheiro (metade do valor de venda por material)
   if (M.flag.recycle && S.ground > 0) {
     const q = S.ground * (1 - Math.exp(-0.02 * dt));

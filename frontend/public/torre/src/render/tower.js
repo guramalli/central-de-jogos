@@ -162,15 +162,29 @@ export function drawFloors(base) {
 }
 
 // ---------- poços dos elevadores de carga ----------
-export const SHAFT_X = i => TL + TW + 8 + i * 36;
+// poços ampliados (SHAFT_K): a cabine fica do tamanho dos operários. Cada poço é desenhado no seu desenho de 30 px de
+// largura, num referencial ampliado em volta da base dele (câmera escalada), então trilhos, cabine e carga crescem juntos.
+export const SHAFT_K = 1.6, SHAFT_W = 30 * SHAFT_K;
+export const SHAFT_X = i => TL + TW + 8 + i * (SHAFT_W + 8);
+function inShaftFrame(x0, fn) {
+  const { cx, cy, z } = cam;
+  cam.z = z * SHAFT_K; cam.cx = x0 - (x0 - cx) / SHAFT_K; cam.cy = cy / SHAFT_K;
+  try { fn(); } finally { cam.cx = cx; cam.cy = cy; cam.z = z; }
+}
 export function shafts(topWP, carrying) {
-  const n = Math.min(S.lv.elevador, 6), top = topWP + 40;
+  const n = Math.min(S.lv.elevador, 6);
+  for (let i = 0; i < n; i++) inShaftFrame(SHAFT_X(i), () => shaft(i, topWP / SHAFT_K, carrying));
+  if (n > 0) inShaftFrame(SHAFT_X(n - 1), () => techShaftsExtra(SHAFT_X(n - 1) + 30, (topWP + 40 * SHAFT_K) / SHAFT_K, topWP / SHAFT_K, Math.max(0, worldY(H) - 30), worldY(0) + 30));
+}
+// um poço (coordenadas do referencial ampliado: x0 = base, topWP = altura do topo dividida por SHAFT_K)
+function shaft(i, topWP, carrying) {
+  const top = topWP + 40;
   const yLo = Math.max(0, worldY(H) - 30), yHi0 = Math.min(top, worldY(0) + 30);
   const bc = ERA_STYLE[eraAt(altOf(S.floors))].brick;
   const bars = 24 * cam.z >= 3;
   const load = Math.min(24, 10 + 1.5 * (S.lv.cacamba || 0)); // carrinho maior: carga mais alta a cada nível
   const mg = S.lv.maglev || 0, ml = S.lv.motor || 0;
-  for (let i = 0; i < n; i++) {
+  {
     const x0 = SHAFT_X(i), b = V.shaftBuild[i] ?? 1, h = top * b, yHi = Math.min(yHi0, h);
     Rv(x0, 0, 3, h, '#3b4152'); Rv(x0 + 27, 0, 3, h, '#3b4152');
     if (mg > 0 && cam.z >= 0.25) { // elevador magnético: trilhos brilham mais a cada nível
@@ -188,7 +202,7 @@ export function shafts(topWP, carrying) {
     }
     if (b < 1) { // elevador novo sendo montado: a torre de trilhos sobe com faíscas na ponta
       if (Math.floor(V.t * 14) % 2) { R(x0 - 2, h - 3, 34, 3, '#ffe27a'); R(x0 + 4, h + 2, 3, 3, '#fff2a8'); R(x0 + 22, h + 4, 3, 3, '#fff2a8'); }
-      continue;
+      return;
     }
     if (cam.z >= 0.4) blit(shaftTopSprite(), x0 - 4, top, 0, 13); else R(x0 - 3, top, 36, 12, '#6b7183');
     R(x0 + 12, top + 4, 6, 4, Math.floor(V.t * 6) % 2 ? '#ff5a4a' : '#7a2a24');
@@ -205,20 +219,13 @@ export function shafts(topWP, carrying) {
     R(x0 + 14, cy + 32, 2, Math.max(0, top - cy - 32), '#9aa0ad');
     if (cam.z >= 0.4) blit(carSprite(), x0 + 3, cy, 1, 33);
     else { R(x0 + 3, cy, 24, 32, '#c9a227'); R(x0 + 6, cy + 3, 18, 24, '#262a35'); }
-    const op = cam.z >= 0.6, bw = op ? 11 : 16; // perto: o ascensorista aparece em pé no canto da gaiola
+    const bw = 16; // dentro da gaiola só o material (pedido do usuário)
     if (ph < .5 && carrying) { // carga: tijolos empilhados dentro da gaiola
       R(x0 + 7, cy + 4, bw, load, bc); R(x0 + 7, cy + 3 + load, bw, 1, shade(bc, 0.3));
       for (let yy = cy + 4 + 4; yy < cy + 4 + load; yy += 4) R(x0 + 7, yy, bw, 1, shade(bc, -0.25));
     }
-    if (op) {
-      R(x0 + 19, cy + 4, 2, 7, '#2b3550'); R(x0 + 22, cy + 4, 2, 7, '#2b3550');           // pernas
-      R(x0 + 18, cy + 11, 7, 9, '#e8742a'); R(x0 + 18, cy + 15, 7, 1, '#f4e9a8');         // colete com faixa
-      R(x0 + 19, cy + 20, 5, 5, '#c98e64'); R(x0 + 18, cy + 25, 7, 2, '#f2c230'); R(x0 + 19, cy + 27, 5, 1, '#f2c230'); // rosto e capacete
-      R(x0 + 17, cy + 14, 1, 4, '#c98e64');                                                // mão na alavanca
-    }
     techShaft(i, x0, cy, top, yLo, yHi);
   }
-  if (n > 0) techShaftsExtra(SHAFT_X(n - 1) + 30, top, topWP, yLo, yHi0);
 }
 
 // ---------- andaime no lado esquerdo do andar em obra ----------

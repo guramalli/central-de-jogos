@@ -7,6 +7,7 @@ import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
 import { toggleOverview, isOverview } from '../render/camera.js';
 import { openSkills } from './skills.js';
+import { rankNoPlacar } from './ranking.js';
 import { fmt, fmtM } from './format.js';
 
 const $ = id => document.getElementById(id);
@@ -21,6 +22,9 @@ export function initRoundEnd() {
   };
 }
 
+// troca de espaço: o próximo placar abre de novo, mesmo que o outro espaço também esteja no fim da obra
+export const resetRoundEnd = () => { shown = false; };
+
 export function checkRoundEnd() {
   if (!FLAGS.viva) return;
   if (!S.roundOver) { shown = false; $('roundEnd').hidden = true; return; }
@@ -34,4 +38,5 @@ export function checkRoundEnd() {
     + `<span>★ ganhas</span><b>+${fmt(pointsFor(S.maxAlt))}</b>`
     + `<span>Reputação</span><b>+${fmt(Math.round(VIVA.prestige.rep * (S.pontosTotal || 0) * 100))}%</b>`;
   $('roundEnd').hidden = false;
+  rankNoPlacar(); // apelido (1ª vez) ou envio dos recordes
 }

@@ -1,6 +1,7 @@
 // Partículas em coordenadas de mundo (poeira, faíscas)
 import { V } from './view.js';
 import { R } from './canvas.js';
+import { cfg } from '../ui/config.js';
 
 export function spark(x, y, c, s = 1) {
   if (V.preview) return;
@@ -9,7 +10,8 @@ export function spark(x, y, c, s = 1) {
 // quem pediu menos movimento no sistema recebe um terço das partículas; no modo de teste (?test=1), nenhuma
 const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const testMode = typeof location !== 'undefined' && new URLSearchParams(location.search).get('test') === '1';
-export function dust(x, y, c, n, s = 1) { if (testMode) return; if (calm) n = Math.ceil(n / 3); for (let i = 0; i < n; i++) spark(x, y, c, s); }
+// gráficos leves (configurações): sem partículas
+export function dust(x, y, c, n, s = 1) { if (testMode || cfg().leve) return; if (calm) n = Math.ceil(n / 3); for (let i = 0; i < n; i++) spark(x, y, c, s); }
 
 export function updateParticles(dt) {
   V.parts.forEach(q => { q.x += q.vx * dt; q.y += q.vy * dt; q.vy -= 360 * dt; q.l -= dt; });

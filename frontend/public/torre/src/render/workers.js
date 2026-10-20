@@ -25,8 +25,18 @@ export function workerSprite(anim, frame, o = {}) {
 // visitante (turismo): mesmo esqueleto, roupa colorida; parado na fila respirando ou andando
 const SHIRTS = ['#e8505b', '#4fb0e8', '#f2d24a', '#7ad37a', '#c58be8', '#ff9f43'];
 const PANTS = ['#33456b', '#5a4632', '#2f6a5a', '#d8cfb8', '#4a4f5c'];
+// turistas do PixelLab (assets/turista1..3: andar 8 quadros, parado 4); antes de carregar, o esqueleto por código
+const TSHEET = { walk: ['andar', 8], idle: ['parado', 4] };
 export function tourist(x, y, i, o = {}) {
   if (cam.z < 0.1) return;
+  if (cam.z >= 0.2) {
+    const sh = TSHEET[o.walk ? 'walk' : 'idle'], img = art(`turista${(i % 3) + 1}/${sh[0]}`);
+    if (img) {
+      const cyc = o.walk ? (o.flip ? -x : x) / 52 : (o.phase ?? 0) / 2 + i * 0.37, m = sh[1];
+      blitCell(img, ((Math.floor((cyc % 1 + 1) % 1 * m)) + m) % m, x, y, !!o.flip);
+      return;
+    }
+  }
   if (cam.z < 0.2) { R(x - 6, y, 12, 26, PANTS[i % PANTS.length]); R(x - 7, y + 24, 14, 18, SHIRTS[i % SHIRTS.length]); R(x - 5, y + 42, 11, 11, SKINS[i % 4].s[2]); return; }
   const civ = { shirt: SHIRTS[i % SHIRTS.length], pants: PANTS[(i * 3 + 1) % PANTS.length], stripe: i % 5 === 2,
     hat: i % 3 === 0 ? 'sun' : i % 4 === 1 ? 'cap' : '', hatC: SHIRTS[(i + 2) % SHIRTS.length], camera: i % 4 === 1 };

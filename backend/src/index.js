@@ -40,6 +40,7 @@ import lendaGuildaRoutes from "./routes/lendaGuilda.js";
 import lendaMercadoRoutes from "./routes/lendaMercado.js";
 import jocelinoRoutes from "./routes/jocelino.js";
 import theLastDanceRoutes from "./routes/thelastdance.js";
+import torreRoutes from "./routes/torre.js";
 import { setupSocket } from "./socket/index.js";
 import { ipEstaBanido, mensagemDoBanido } from "./ipBan.js";
 import { verifyToken } from "./utils/jwt.js";
@@ -168,6 +169,7 @@ app.use("/api/lenda/guilda", lendaGuildaRoutes); // Lenda do Campinho: guildas (
 app.use("/api/lenda", lendaRoutes); // Lenda do Campinho (RPG): save na nuvem e casas dos jogadores
 app.use("/api/jocelino", jocelinoRoutes); // Família Santos (jogo em /jocelino/): save na conta
 app.use("/api/thelastdance", theLastDanceRoutes); // The Last Dance: senha da área dos amigos (TLD_SENHA/TLD_CHAVE)
+app.use("/api/torre", torreRoutes); // Torre Infinita: ranking online sem conta (apelido + ficha assinada)
 
 // Rede de segurança: qualquer erro não tratado numa rota (que ninguém
 // prendeu com try/catch) cai aqui, em vez de vazar detalhe técnico interno

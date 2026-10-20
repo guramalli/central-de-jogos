@@ -7,7 +7,7 @@ import { CITIES, cityOf } from '../data/cities.js';
 import { S, fresh, setState, save, saveKey } from './state.js';
 
 // o que passa de uma obra para a outra
-const KEEP = ['obra', 'cidade', 'pontosTotal', 'bestAlt', 'won', 'winSeen', 'introSeen', 'playTime', 'marcos', 'mgr', 'dicas'];
+const KEEP = ['obra', 'cidade', 'pontosTotal', 'bestAlt', 'won', 'winSeen', 'introSeen', 'playTime', 'marcos', 'mgr', 'dicas', 'altTotal', 'orbitaSec', 'rank'];
 
 export const pointsFor = alt => alt <= 0 ? 0 : Math.max(1, Math.floor(VIVA.prestige.k * Math.pow(alt / 1000, VIVA.prestige.pow)));
 export const canDeliver = () => FLAGS.viva && !S.roundOver && S.maxAlt > 0;
@@ -27,6 +27,7 @@ export function endRound() {
   if (!FLAGS.viva || S.roundPaid) return 0;
   const got = pointsFor(S.maxAlt);
   S.pontosTotal = (S.pontosTotal || 0) + got;
+  S.altTotal = (S.altTotal || 0) + S.maxAlt; // recorde total = soma das alturas das obras
   S.lastBest = S.bestAlt || 0; // recorde antes desta rodada (o placar mostra "Novo recorde!")
   S.bestAlt = Math.max(S.bestAlt || 0, S.maxAlt);
   S.roundOver = true; S.roundPaid = true;

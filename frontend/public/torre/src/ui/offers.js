@@ -29,6 +29,8 @@ function render(o) {
   }
 }
 
+export const resetOffers = () => { shownM = null; openUntil = -1; }; // troca de espaço
+
 export function initOffers() {
   if (!FLAGS.viva) return;
   $('offerBtn').onclick = () => { openUntil = Infinity; updateOffers(); }; // reaberta pelo botão: fica até escolher

@@ -25,12 +25,12 @@ const PANO_STYLE = [
   { w: 100, frame: '#b8902a', hi: '#f2d070', roof: '#7a5a14', n: 4 },
   { w: 100, frame: '#c9a227', hi: '#ffe58a', roof: '#3a2a10', n: 4 },
 ];
-function panoCabin(x, y, st, tier, seed) {
+function panoCabin(x, y, st, tier, seed, people = true) {
   const w = st.w, h = 96, simple = cam.z < 0.3;
   // chão, teto e fundo escurecido (o interior)
   R(x, y, w, 6, st.roof); R(x, y + 5, w, 1, st.hi);
   R(x + 3, y + 6, w - 6, h - 16, 'rgba(40,70,95,.55)');
-  if (!simple) for (let i = 0; i < st.n; i++) tourist(x + 14 + i * ((w - 28) / Math.max(1, st.n - 1)), y + 6, seed + i * 3, { phase: V.t + i * 0.7 });
+  if (!simple && people) for (let i = 0; i < st.n; i++) tourist(x + 14 + i * ((w - 28) / Math.max(1, st.n - 1)), y + 6, seed + i * 3, { phase: V.t + i * 0.7 });
   // vidro da frente (deixa ver os turistas), reflexos em diagonal
   R(x + 3, y + 6, w - 6, h - 16, 'rgba(175,228,248,.22)');
   if (!simple) for (let k = 0; k < 3; k++) { const rx = x + 8 + k * (w / 3); for (let j = 0; j < 14; j++) R(rx + j, y + h - 18 - j * 4, 2, 3, 'rgba(255,255,255,.28)'); }
@@ -53,11 +53,23 @@ function panoramic(topWP) {
   if (cam.z >= 0.25) for (let y = FH / 2; y < topWP; y += FH) { R(RAIL_X, y, TL - RAIL_X, 3, '#5b6170'); R(RAIL_X - 6, y - 2, 10, 7, '#3b4152'); }
   // plataforma de embarque no térreo
   R(RAIL_X - 4 - st.w - 10, 0, st.w + 18, 5, '#7c818c'); R(RAIL_X - 4 - st.w - 10, 4, st.w + 18, 1, '#b4bac4');
-  const per = Math.max(12, 22 - lv), top = Math.max(0, topWP - FH * 1.1);
-  const cabs = tier >= 3 ? 2 : 1;
+  // ciclo: sobe (35%), fica lá em cima (10%), desce (35%) e para no térreo (20%): quem estava dentro sai andando
+  // e os próximos da fila entram (pedido do usuário)
+  const per = Math.max(14, 24 - lv), top = Math.max(0, topWP - FH * 1.1);
+  const cabs = tier >= 3 ? 2 : 1, cx = RAIL_X - 12 - st.w;
   for (let c = 0; c < cabs; c++) {
-    const ph = (V.t / per + c * 0.5) % 1, a = ph < .4 ? (1 - Math.cos(ph / .4 * Math.PI)) / 2 : ph < .5 ? 1 : ph < .9 ? (1 + Math.cos((ph - .5) / .4 * Math.PI)) / 2 : 0;
-    panoCabin(RAIL_X - 12 - st.w, a * top, st, tier, 7 + c * 11);
+    const ph = (V.t / per + c * 0.5) % 1;
+    const a = ph < .35 ? (1 - Math.cos(ph / .35 * Math.PI)) / 2 : ph < .45 ? 1 : ph < .8 ? (1 + Math.cos((ph - .45) / .35 * Math.PI)) / 2 : 0;
+    const boarding = ph >= .8 && cam.z >= 0.3;
+    panoCabin(cx, a * top, st, tier, 7 + c * 11, !boarding);
+    if (boarding) {
+      const q = (ph - .8) / .2, n = st.n, seed = 7 + c * 11;
+      for (let i = 0; i < n; i++) {
+        const home = cx + 14 + i * ((st.w - 28) / Math.max(1, n - 1)), out = home - 150 - i * 30;
+        if (q < .5) { const k = Math.min(1, q / .4); if (k < 1) tourist(home + (out - home) * k, 0, seed + i * 3, { walk: true, flip: true }); }  // saem para a esquerda
+        else { const k = Math.min(1, (q - .5) / .4), sx0 = home - 120 - i * 26; tourist(sx0 + (home - sx0) * k, 6 * k, seed + 1 + i * 5, k < 1 ? { walk: true } : { phase: V.t + i }); } // os próximos entram
+      }
+    }
   }
 }
 

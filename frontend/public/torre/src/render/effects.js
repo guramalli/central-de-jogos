@@ -6,7 +6,7 @@ import { UP } from '../data/upgrades.js';
 import { S } from '../sim/state.js';
 import { V } from './view.js';
 import { dust } from './particles.js';
-import { SHAFT_X } from './tower.js';
+import { SHAFT_X, SHAFT_W } from './tower.js';
 import { onEvent } from './events.js';
 import { sfx } from '../ui/audio.js';
 import { FLAGS } from '../data/flags.js';
@@ -57,7 +57,7 @@ function onFloor(e) {
 // onde cada compra aparece na cena
 function spot(k) {
   const b = UP[k].b;
-  if (k === 'elevador' || k === 'motor' || k === 'cacamba' || k === 'maglev') return [SHAFT_X(Math.min(S.lv.elevador, 6) - 1) + 15, topY() + 70];
+  if (k === 'elevador' || k === 'motor' || k === 'cacamba' || k === 'maglev') return [SHAFT_X(Math.min(S.lv.elevador, 6) - 1) + SHAFT_W / 2, topY() + 70];
   if (b === 'forn') return [200, 90];
   if (k === 'fundacao') return [0, 40];
   return [0, topY() + FH + 20];

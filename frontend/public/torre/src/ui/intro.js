@@ -93,7 +93,7 @@ function nextNews() {
   clearTimeout(n._t); n._t = setTimeout(nextNews, 7000);
 }
 
-export function initIntro({ test = false } = {}) {
+export function initIntro({ test = false, auto = true } = {}) {
   $('inNext').onclick = next;
   $('inSkip').onclick = finish;
   $('news').onclick = () => { clearTimeout($('news')._t); nextNews(); };
@@ -106,5 +106,5 @@ export function initIntro({ test = false } = {}) {
   });
   // partida nova: abertura; save antigo (já construindo) não vê
   if (!S.introSeen && S.floors >= 1) { S.introSeen = true; return; }
-  if (!S.introSeen && !test) startIntro(false);
+  if (!S.introSeen && !test && auto) startIntro(false); // com a página de Início, a história abre em "Novo jogo"
 }

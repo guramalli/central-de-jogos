@@ -21,3 +21,14 @@ export const TIPS = {
 };
 export const START_SEQ = ['andar', 'dinheiro', 'relogio', 'melhorias'];
 export const TREE_SEQ = ['ramos', 'pedreiro', 'efeito', 'comprar'];
+
+// "Como jogar" (página de Início): capturas do jogo em assets/tutorial/N.jpg (tools/tutorial-capturas.mjs)
+export const TUTORIAL = [
+  { titulo: 'A obra sobe sozinha', texto: 'Você é dono da Construtora J. Santos. Os operários constroem sozinhos; você decide no que investir. Em cima: o andar, o dinheiro e o relógio da obra (20 minutos).' },
+  { titulo: 'Melhorias', texto: 'Toque em Melhorias para abrir a árvore. Cada cor é uma etapa: Fornecimento traz o material, Logística sobe, Mão de obra assenta, Engenharia aumenta o limite e Mercado aumenta a renda.' },
+  { titulo: 'O efeito de cada compra', texto: 'Ao escolher uma melhoria, o painel mostra o que muda: quantos tijolos por segundo os pedreiros assentam, quanto material sobe, quanto a torre rende.' },
+  { titulo: 'Leia a obra', texto: 'A obra mostra o que falta: pedreiros dormindo 💤 = falta material lá em cima; material empilhado no térreo = os elevadores não dão conta; rachaduras = chegou ao limite da fundação.' },
+  { titulo: 'Contratos de altura', texto: 'Em certas alturas chega uma proposta: escolha 1 de 3 bônus. Ele vale até o fim da obra. Escolher bem faz a obra ir muito mais longe.' },
+  { titulo: 'Fim da obra', texto: 'Quando o relógio zera, a altura vira ★. Cada ★ deixa a construtora mais forte para sempre (Reputação), e a próxima obra começa numa cidade nova.' },
+  { titulo: 'Gerentes e ranking', texto: 'A partir da 2ª obra chegam gerentes que compram o básico sozinhos. Entre no ranking com um apelido e tente chegar mais alto que todo mundo — até a Órbita!' },
+];
