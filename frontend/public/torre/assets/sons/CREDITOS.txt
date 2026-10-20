@@ -1,0 +1,21 @@
+Sons do Torre Infinita — todos em domínio público (CC0 1.0), cortados e convertidos por tools/sons-processa.py.
+Crédito não é obrigatório pela licença; fica registrado por gentileza.
+
+Freesound (freesound.org, licença Creative Commons 0):
+  martelo.mp3       — "Hammering Nail" por se2001 (freesound.org/people/se2001/sounds/513346/)
+  furadeira.mp3     — "Power Drill.wav" por powpowrider (freesound.org/people/powpowrider/sounds/89099/)
+  elevador.mp3      — "Elevator_DingDong.wav" por uniuniversal (freesound.org/people/uniuniversal/sounds/634327/)
+  re-caminhao.mp3   — "Construction site truck reversing" por idomusics (freesound.org/people/idomusics/sounds/804483/)
+  betoneira.mp3     — "Concrete Mixer" por Breviceps (freesound.org/people/Breviceps/sounds/464647/)
+  motor.mp3         — "Compressor Industrial Construction Atlas Copco XAVS 186" por breiti (freesound.org/people/breiti/sounds/412508/)
+  jornal.mp3        — "newspaper_open_point.wav" por rambler52 (freesound.org/people/rambler52/sounds/332112/)
+  amb-canteiro.mp3  — "INDUSTRY CONSTRUCTION SITE 01.wav" por sengjinn (freesound.org/people/sengjinn/sounds/193351/)
+  amb-mar.mp3       — "Gentle Ocean Waves Loop" por kkenny101 (freesound.org/people/kkenny101/sounds/852826/)
+  amb-vento.mp3     — "WIND_loop" por kevinklang (freesound.org/people/kevinklang/sounds/841982/)
+
+OpenGameArt (opengameart.org/content/chiptune-sfx-pack), "Chiptune SFX Pack" por FrogPog, CC0:
+  compra.mp3 (coin), andar.mp3 (level_up), entrega.mp3 (level_passed), multa.mp3 (fail), proposta.mp3 (pick_up)
+
+Kenney (kenney.nl), CC0:
+  Impact Sounds — tijolo-0..4 (impactPlank_medium), viga-0..4 (impactMetal_light), vidro-0..4 (impactGlass_light)
+  Interface Sounds — clique (click_001), etapa (tick_001), aviso (pluck_001)

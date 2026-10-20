@@ -8,6 +8,7 @@ import { V } from '../render/view.js';
 import { showNews } from './intro.js';
 import { fmtM } from './format.js';
 import { closeSkills, skillsOpen } from './skills.js';
+import { sfx } from './audio.js';
 
 const $ = id => document.getElementById(id);
 const OPEN_SECS = 8;
@@ -43,7 +44,7 @@ export function updateOffers() {
   if (!FLAGS.viva) return;
   const o = S.roundOver ? null : offerNow();
   if (!o) { shownM = null; for (const id of ['offer', 'offerBtn', 'skOffer']) $(id).hidden = true; return; }
-  if (o.m !== shownM) { shownM = o.m; render(o); shownAt = V.t; openUntil = skillsOpen() ? -1 : V.t + OPEN_SECS; }
+  if (o.m !== shownM) { shownM = o.m; render(o); shownAt = V.t; openUntil = skillsOpen() ? -1 : V.t + OPEN_SECS; sfx('offer'); }
   const open = V.t < openUntil && !skillsOpen();
   $('offer').hidden = !open;
   $('offerBtn').hidden = open;

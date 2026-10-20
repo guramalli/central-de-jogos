@@ -92,7 +92,7 @@ function onBuy(e) {
     if (lv <= MAX_TOP_WORKERS) V.bx[j] = TL + TW + 70;
     sfx('buy');
   } else if (k === 'elevador') {
-    V.shaftBuild[lv - 1] = 0; sfx('machine');
+    V.shaftBuild[lv - 1] = 0; sfx('machine'); sfx('elevador', 1.6);
   } else if (k === 'guindaste' && lv === 1) {
     V.craneBuild = 0; sfx('machine');
   } else if (k === 'fundacao') {
@@ -100,7 +100,8 @@ function onBuy(e) {
     sfx('machine');
   } else if (k === 'ferram') {
     dust(0, topY() + SLAB + 30, '#ffe27a', 8); sfx('drill');
-  } else sfx('buy');
+  } else if (k === 'caminhao' || k === 'usina') { sfx('buy'); sfx('mixer', 0.25); }
+  else sfx('buy');
 }
 
 let wired = false;

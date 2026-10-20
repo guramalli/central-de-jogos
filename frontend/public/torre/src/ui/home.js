@@ -54,7 +54,7 @@ function drawSlots() {
 
 function drawCfg() {
   const c = cfg();
-  $('cfSom').checked = c.som; $('cfVol').value = String(Math.round(c.vol * 100)); $('cfLeve').checked = c.leve; $('cfDicas').checked = c.dicas;
+  $('cfSom').checked = c.som; $('cfAmb').checked = c.ambiente !== false; $('cfVol').value = String(Math.round(c.vol * 100)); $('cfLeve').checked = c.leve; $('cfDicas').checked = c.dicas;
   $('cfSlotN').textContent = activeSlot();
   const rk = S.rank || {};
   $('cfRankTxt').textContent = rk.ativo && rk.apelido ? `No ranking como “${rk.apelido}”.` : 'Você ainda não está no ranking.';
@@ -102,6 +102,7 @@ export function initHome(h = {}) {
   $('cfSom').onchange = e => { setSound(e.target.checked); hooks.onSound?.(); }; // o botão Som do rodapé acompanha
   $('cfVol').oninput = $('cfVol').onchange = e => setVolume(Number(e.target.value) / 100);
   $('cfLeve').onchange = e => setCfg({ leve: e.target.checked });
+  $('cfAmb').onchange = e => setCfg({ ambiente: e.target.checked });
   $('cfDicas').onchange = e => setCfg({ dicas: e.target.checked });
   $('cfRever').onclick = () => { setCfg({ dicas: true }); S.dicas = {}; save(); closeHome(); hooks.onReviewTips?.(); };
   $('cfRankSair').onclick = async () => { const ok = await hooks.onRankLeave?.(); drawCfg(); if (ok === false) $('cfMsg').textContent = 'Não deu para falar com o ranking agora; seu apelido sai assim que a conexão voltar.'; };

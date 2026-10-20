@@ -9,6 +9,7 @@ import { V } from '../render/view.js';
 import { fmtM, fmt } from './format.js';
 import { altOf } from '../data/height.js';
 import { VIVA } from '../data/viva.js';
+import { sfx } from './audio.js';
 
 const $ = id => document.getElementById(id);
 const fotosKey = () => 'torre-jornais-espaco' + activeSlot();
@@ -29,6 +30,7 @@ function foto() {
   try { return c.toDataURL('image/jpeg', 0.72); } catch (e) { return ''; }
 }
 function mostrar(j, img) {
+  sfx('jornal');
   $('jnTitle').textContent = j.titulo; $('jnSub').textContent = j.sub;
   $('jnDate').textContent = `Obra nº ${j.obra} · ${j.cidade}` + (j.dia ? ` · dia ${j.dia}` : '');
   $('jnImg').src = img || ''; $('jnImg').hidden = !img;

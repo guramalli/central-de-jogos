@@ -3,9 +3,10 @@ import { sim } from './sim/economy.js';
 import { migrate } from './sim/migrate.js';
 import { runOffline } from './sim/offline.js';
 import { V, resetView } from './render/view.js';
-import { cam, snapCamera, panBy, followBuild } from './render/camera.js';
+import { cam, snapCamera, panBy, followBuild, worldY, isFree } from './render/camera.js';
 import { updateView, render, resetMilestones } from './render/scene.js';
-import { H, setW } from './data/constants.js';
+import { H, FH, setW } from './data/constants.js';
+import { altOf } from './data/height.js';
 import { ctxMain } from './render/canvas.js';
 import { updateUI, setNotice } from './ui/panel.js';
 import { fmt, fmtPct } from './ui/format.js';
@@ -17,7 +18,7 @@ import { VIVA } from './data/viva.js';
 import { syncCameraButtons } from './ui/cameraControls.js';
 import { syncEvents, recent } from './render/events.js';
 import { initEffects } from './render/effects.js';
-import { soundOn, setSound } from './ui/audio.js';
+import { soundOn, setSound, tickAmbience, soundsLoaded } from './ui/audio.js';
 import { initIntro, introActive, startIntro, showNews, clearNews } from './ui/intro.js';
 import { endRound, startNextRound, city, metaAlt, roundDays, roundDay, repPct } from './sim/prestige.js';
 import { initRoundEnd, checkRoundEnd, resetRoundEnd } from './ui/roundEnd.js';
@@ -77,6 +78,12 @@ function tick(real) {
   updateView(dt, speed);
   render();
   tickPip(Math.min(.1, real), introActive() || homeOpen()); // janelinha com a outra ponta da obra
+  if (FLAGS.viva) { // som ambiente: canteiro e mar com o térreo à vista, vento nas eras altas (ui/audio.js)
+    const sc = city().scene, alt = altOf(Math.max(0, cam.cy) / FH) + (sc.skyAlt || 0);
+    const ground = Math.max(0, Math.min(1, 1 - (worldY(H) - 100) / 600));
+    const wind = sc.moon ? 0 : Math.max(0, Math.min(1, (alt - 3000) / 9000)) * Math.max(0, Math.min(1, 1 - (alt - 80000) / 40000));
+    tickAmbience({ ground, sea: !!sc.sea, wind, top: !isFree() && !S.roundOver && S.floors >= 2, active: !fz && !homeOpen() && !introActive(), dt: Math.min(.1, real) });
+  }
   if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
   tickTips(); // o quadro da dica acompanha o alvo
   if (FLAGS.viva && !introActive() && !homeOpen() && !fz) S.playTime = (S.playTime || 0) + dt * speed;
@@ -225,7 +232,7 @@ function shot(name = 'shot') {
 // acesso pelo console para testes (só no modo desenvolvedor)
 // step(seg, fps): avança o jogo quadro a quadro sem depender do navegador (testes automáticos)
 if (DEV || TEST) window.torre = {
-  get S() { return S; }, V, cam, snap: snapCamera, shot, events: recent,
+  get S() { return S; }, V, cam, snap: snapCamera, shot, events: recent, sons: () => soundsLoaded(),
   dicas: on => setTips(on),
   home: on => (on ? openHome() : closeHome()), // abre/fecha a página de Início (desligada por padrão com ?test=1) // liga as dicas nos testes automáticos (desligadas por padrão com ?test=1)
   look: (cx, cy, z = cam.z) => { panBy(0, 0); cam.z = z; cam.cx = cx; cam.cy = cy; }, // câmera livre num ponto (capturas)

@@ -12,6 +12,7 @@ import { setIntroCam } from '../render/camera.js';
 import { onEvent } from '../render/events.js';
 import { fmt, fmtM } from './format.js';
 import { $ } from './dom.js';
+import { sfx } from './audio.js';
 
 let on = false, idx = 0, t0 = 0, replay = false, timer = 0;
 export const introActive = () => on;
@@ -91,7 +92,7 @@ function nextNews() {
   const n = $('news'), item = queue.shift();
   if (!item) { newsBusy = false; n.hidden = true; return; }
   newsBusy = true;
-  $('newsK').textContent = item[0]; $('newsT').textContent = item[1]; countNews();
+  $('newsK').textContent = item[0]; $('newsT').textContent = item[1]; countNews(); sfx('news');
   n.hidden = false; n.classList.remove('in'); void n.offsetWidth; n.classList.add('in');
 }
 

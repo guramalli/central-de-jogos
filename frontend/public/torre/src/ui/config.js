@@ -1,8 +1,8 @@
 // Configurações do aparelho (Obra Viva): valem para todos os espaços de save e não vão no save.
 //   vol 0..1 · som liga/desliga · leve = gráficos leves (sem partículas, menos nuvens, sem ondas na areia nem pássaros)
-//   dicas = dicas para quem começa ligadas
+//   dicas = dicas para quem começa ligadas · ambiente = som de fundo da obra (canteiro, mar, vento)
 const KEY = 'torre-config';
-const DEF = { vol: 0.7, som: true, leve: false, dicas: true };
+const DEF = { vol: 0.7, som: true, ambiente: true, leve: false, dicas: true };
 let c = null;
 function read() {
   let o = {};

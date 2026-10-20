@@ -12,6 +12,7 @@ import { V } from '../render/view.js';
 import { rankNoPlacar } from './ranking.js';
 import { guardarFotoTorre } from './jornal.js';
 import { fmt, fmtM, fmtPct } from './format.js';
+import { sfx } from './audio.js';
 
 const $ = id => document.getElementById(id);
 let shown = '', fotoT = 0, hooks = {};
@@ -54,6 +55,7 @@ export function checkRoundEnd() {
   const estado = S.roundPaid ? 'entregue' : 'ano';
   if (shown === estado) return;
   shown = estado;
+  sfx(estado === 'ano' ? 'news' : S.lastMulta ? 'multa' : 'entrega'); // fim do prazo, entrega (ou entrega com multa)
   if (!isOverview()) toggleOverview();
   const nx = nextCity().n, obra = `Obra nº ${S.obra || 1} · ${city().n}`;
   $('reChoice').hidden = estado !== 'ano';
