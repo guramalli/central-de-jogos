@@ -19,7 +19,7 @@ import { iconSprite, badgeSprite, lockSprite } from './icons.js';
 import { iconURL } from '../render/assets.js';
 import { VIVA } from '../data/viva.js';
 import { canDeliver, pointsFor, city, nextCity, metaAlt, deliverPoints, earlyBonus, repPct } from '../sim/prestige.js';
-import { managerOn, setManager, hasManager, managerArrives } from '../sim/managers.js';
+import { managerOn, managerFree, setManager, hasManager, managerArrives } from '../sim/managers.js';
 import { spriteDataURL } from '../render/sprites.js';
 
 const COLOR = Object.fromEntries(TBRANCHES.map(b => [b.id, b.color]));
@@ -283,7 +283,7 @@ function updateBoard() {
   for (const c of $('skBoardRow').children) {
     const b = VIVA.board[c.dataset.k], bt = c.querySelector('button'), own = hasManager(b.mgr), on = own && managerOn(b.mgr);
     c.classList.toggle('own', own); c.classList.toggle('off', own && !on);
-    setText(c.querySelector('u'), own ? (on ? 'Trabalhando' : 'De folga') : `Chega na obra ${managerArrives(b.mgr)}`);
+    setText(c.querySelector('u'), own ? (on ? 'Trabalhando' : managerFree(b.mgr) ? 'Liberado: ligue no botão' : 'Libera no 5º andar') : `Chega na obra ${managerArrives(b.mgr)}`);
     setText(bt, own ? (on ? 'Ligado' : 'Desligado') : `Obra ${managerArrives(b.mgr)}`);
     bt.disabled = !own;
   }

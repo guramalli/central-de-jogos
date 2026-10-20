@@ -13,8 +13,10 @@ const acc = {}; // compras acumuladas por ramo (ritmo VIVA.manager.rate por segu
 // cada gerente chega numa obra (VIVA.board[k].obra); depois disso fica de uma obra para a outra
 export const managerArrives = b => { const k = Object.keys(VIVA.board).find(x => VIVA.board[x].mgr === b); return k ? VIVA.board[k].obra : Infinity; };
 export const hasManager = b => (S.obra || 1) >= managerArrives(b);
-// o Encarregado só começa depois do 5º andar da 1ª obra (as primeiras compras ficam com quem joga, guiadas pelas dicas)
-export const managerOn = b => hasManager(b) && (S.mgr || {})[b] !== false && (b !== 'basico' || (S.obra || 1) > 1 || S.floors >= 5);
+// liberado: chegou nesta campanha (o Encarregado só depois do 5º andar da 1ª obra)
+export const managerFree = b => hasManager(b) && (b !== 'basico' || (S.obra || 1) > 1 || S.floors >= 5);
+// trabalhando: liberado E ligado por quem joga (decisão do usuário, out/2026: nada liga sozinho; o aviso diz que liberou)
+export const managerOn = b => managerFree(b) && (S.mgr || {})[b] === true;
 export function setManager(b, on) { S.mgr = { ...(S.mgr || {}), [b]: !!on }; }
 const BASICO = ['pedreiro', 'fornec', 'motor', 'cacamba'];
 export const managerKeys = b => b === 'basico' ? BASICO.slice() : KEYS.filter(k => UP[k].b === b && !UP[k].era && !UP[k].pair && k !== 'imoveis' && !VIVA.hidden.includes(k));

@@ -28,6 +28,7 @@ import { initHome, openHome, closeHome, homeOpen } from './ui/home.js';
 import { initTutorial, openTutorial } from './ui/tutorial.js';
 import { initJornal, checkJornal, drawArquivo } from './ui/jornal.js';
 import { initPip, tickPip } from './ui/pip.js';
+import { managerFree } from './sim/managers.js';
 import { initStatus, updateStatus } from './ui/status.js';
 import { initGear, closeGear, gearOpen, updateGear, frozen, placeHudButtons, setPaused, deliverMsg } from './ui/gear.js';
 import { initRanking, openRanking, pedirFicha, sairDoRanking, definirApelido, rankTick, esquecerJogador } from './ui/ranking.js';
@@ -88,7 +89,7 @@ function tick(real) {
   tickTips(); // o quadro da dica acompanha o alvo
   if (FLAGS.viva && !introActive() && !homeOpen() && !fz) S.playTime = (S.playTime || 0) + dt * speed;
   // a interface segue o tempo real, mesmo pausada
-  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); updateOffers(); updateTips(); rankTick(); checkJornal(homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
+  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); if (!homeOpen() && !introActive()) checkManagers(); updateOffers(); updateTips(); rankTick(); checkJornal(homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -126,7 +127,7 @@ function startNext() {
   setNotice(null); resetView(); resetMilestones(); syncEvents(); followBuild(); syncCameraButtons(); closeSkills(); updateUI();
   checkRoundEnd(); clearNews();
   const mg = Object.values(VIVA.board).find(b => b.obra === S.obra); // gerente que chega nesta obra
-  showNews('JORNAL DA OBRA', `Construtora J. Santos começa a obra nº ${S.obra} em ${cityName()} (Reputação ${fmtPct(repPct(got))}). Prazo: 365 dias` + (mg ? `. Chega o ${mg.n}: ${mg.d.charAt(0).toLowerCase() + mg.d.slice(1)}` : ''));
+  showNews('JORNAL DA OBRA', `Construtora J. Santos começa a obra nº ${S.obra} em ${cityName()} (Reputação ${fmtPct(repPct(got))}). Prazo: 365 dias`); // gerente novo: aviso próprio (checkManagers)
 }
 {
   const dv = $('skDeliver'), disarm = () => dv.classList.remove('armed');
@@ -138,6 +139,17 @@ function startNext() {
     if (S.roundOver) return;
     endRound(); closeGear(); closeSkills(); checkRoundEnd(); updateUI(); // entrega antecipada: placar da obra entregue
   };
+}
+// gerente liberado (chegou nesta obra; o Encarregado no 5º andar): aviso uma vez por gerente, que só fecha com um toque.
+// Ninguém liga sozinho: quem joga liga no cartão da faixa Construtora, nas Melhorias
+function checkManagers() {
+  if (!FLAGS.viva) return;
+  for (const k in VIVA.board) {
+    const b = VIVA.board[k];
+    if (!b.mgr || (S.mgrAviso || {})[b.mgr] || !managerFree(b.mgr)) continue;
+    S.mgrAviso = { ...(S.mgrAviso || {}), [b.mgr]: true };
+    showNews('CONSTRUTORA J. SANTOS', `${b.n} liberado! Ligue no cartão dele (Melhorias → faixa Construtora) para ele começar: ${b.d.charAt(0).toLowerCase() + b.d.slice(1)}`);
+  }
 }
 // meta do contrato: manchete uma vez por obra quando a torre passa dela
 function checkMeta() {

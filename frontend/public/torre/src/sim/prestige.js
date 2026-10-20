@@ -7,7 +7,7 @@ import { CITIES, cityOf } from '../data/cities.js';
 import { S, fresh, setState, save, saveKey } from './state.js';
 
 // o que passa de uma obra para a outra
-const KEEP = ['obra', 'cidade', 'pontosTotal', 'bestAlt', 'won', 'winSeen', 'introSeen', 'playTime', 'marcos', 'mgr', 'dicas', 'altTotal', 'orbitaSec', 'rank', 'jornais', 'torres', 'marcosAlt'];
+const KEEP = ['obra', 'cidade', 'pontosTotal', 'bestAlt', 'won', 'winSeen', 'introSeen', 'playTime', 'marcos', 'mgr', 'dicas', 'altTotal', 'orbitaSec', 'rank', 'jornais', 'torres', 'marcosAlt', 'mgrAviso'];
 
 // Reputação na tela (decisão do usuário, 20/10/2026: sem ★): os pontos internos (S.pontosTotal, pointsFor) só aparecem
 // como porcentagem, VIVA.prestige.rep por ponto
