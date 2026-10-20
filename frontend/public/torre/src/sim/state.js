@@ -15,7 +15,7 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } };
 // Assim outra aba que troca de espaço não faz esta gravar no lugar errado.
 let slot = null;
 export const activeSlot = () => { if (!FLAGS.viva) return 1; if (slot == null) { const n = Number(lsGet(SLOT_KEY)); slot = n === 2 || n === 3 ? n : 1; } return slot; };
-const keyOf = n => SAVE_KEY + (FLAGS.viva ? '-viva' + (n > 1 ? '-' + n : '') : '');
+const keyOf = n => SAVE_KEY + (FLAGS.viva ? '-viva' + (n > 1 ? '-' + n : '') : '') + (FLAGS.risco ? '-risco' : ''); // protótipo com risco: save próprio
 export const saveKey = () => keyOf(activeSlot());
 
 export const SAVE_VERSION = 6;

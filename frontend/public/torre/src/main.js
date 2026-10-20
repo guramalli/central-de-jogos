@@ -34,6 +34,7 @@ import { initGear, closeGear, gearOpen, updateGear, frozen, placeHudButtons, set
 import { initRanking, openRanking, pedirFicha, sairDoRanking, definirApelido, rankTick, esquecerJogador } from './ui/ranking.js';
 import { initTips, updateTips, setTips, tickTips } from './ui/tips.js';
 import { initMilestones } from './ui/milestones.js';
+import { initRisco, tickRisco, riscoFx, resetRisco } from './ui/risco.js';
 const cityName = () => city().n;
 import { preloadArt } from './render/assets.js';
 preloadArt();
@@ -78,6 +79,7 @@ function tick(real) {
   while (sd > 0) { const st = Math.min(.25, sd); sim(st); sd -= st; }
   updateView(dt, speed);
   render();
+  if (FLAGS.risco) riscoFx(dt, V.t); // protótipo com risco: balanço, tremor, clima e desabamento
   tickPip(Math.min(.1, real), introActive() || homeOpen()); // janelinha com a outra ponta da obra
   if (FLAGS.viva) { // som ambiente: canteiro e mar com o térreo à vista, vento nas eras altas (ui/audio.js)
     const sc = city().scene, alt = altOf(Math.max(0, cam.cy) / FH) + (sc.skyAlt || 0);
@@ -89,7 +91,7 @@ function tick(real) {
   tickTips(); // o quadro da dica acompanha o alvo
   if (FLAGS.viva && !introActive() && !homeOpen() && !fz) S.playTime = (S.playTime || 0) + dt * speed;
   // a interface segue o tempo real, mesmo pausada
-  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); if (!homeOpen() && !introActive()) checkManagers(); updateOffers(); updateTips(); rankTick(); checkJornal(homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
+  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); if (!homeOpen() && !introActive()) checkManagers(); updateOffers(); updateTips(); rankTick(); checkJornal(homeOpen() || introActive()); if (FLAGS.risco) tickRisco(homeOpen() || introActive() || fz); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -129,6 +131,7 @@ function startNext() {
   const mg = Object.values(VIVA.board).find(b => b.obra === S.obra); // gerente que chega nesta obra
   showNews('JORNAL DA OBRA', `Construtora J. Santos começa a obra nº ${S.obra} em ${cityName()} (Reputação ${fmtPct(repPct(got))}). Prazo: 365 dias`); // gerente novo: aviso próprio (checkManagers)
 }
+if (FLAGS.risco) initRisco({ onNext: () => { startNext(); resetRisco(); } }); // desabou: a obra é perdida e começa a próxima
 {
   const dv = $('skDeliver'), disarm = () => dv.classList.remove('armed');
   dv.onclick = () => {

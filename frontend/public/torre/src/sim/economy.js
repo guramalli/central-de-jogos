@@ -14,6 +14,7 @@ import { perkMult, contractTick } from './contracts.js';
 import { tourism } from './tourism.js';
 import { bankInfo, bankTick } from './bank.js';
 import { techMult } from './tech.js';
+import { riscoTick, riscoLay } from './risco.js';
 
 // ---------- melhorias compradas com dinheiro ----------
 // soft: { at, k } — depois do nível `at`, cada nível multiplica o preço por `k` (Obra Viva: turismo sem virar ralo)
@@ -112,12 +113,13 @@ export function sim(dt) {
   // No fim do ano a obra para esperando a escolha (aditivo ou entregar); as ★ só saem na entrega (endRound).
   let ends = false;
   if (FLAGS.viva) {
-    if (S.roundOver) return;
+    if (S.roundOver || S.colapso) return;
     S.roundLeft = Math.max(0, S.roundLeft - dt);
     ends = S.roundLeft <= 0;
   }
   simStep(dt);
   if (FLAGS.viva) { contractTick(dt); managerTick(dt); }
+  if (FLAGS.risco) riscoTick(dt);
   if (ends) S.roundOver = true;
 }
 function simStep(dt) {
@@ -130,7 +132,7 @@ function simStep(dt) {
   const mv = Math.min(R.tran * dt, S.ground); S.ground -= mv; S.top += mv;
   const before = Math.floor(S.floors);
   if (S.floors < R.capF) {
-    const use = Math.min(R.lay * dt, S.top); S.top -= use;
+    const use = Math.min(R.lay * dt * (FLAGS.risco ? riscoLay() : 1), S.top); S.top -= use;
     S.floors = Math.min(R.capF, S.floors + use / R.fcost);
   }
   // Obra Viva: a construtora recebe pelo andar entregue (uma vez por andar; vale também offline)

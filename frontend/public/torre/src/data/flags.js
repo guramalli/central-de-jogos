@@ -6,4 +6,6 @@ const inBrowser = typeof location !== 'undefined';
 
 export const FLAGS = {
   viva: globalThis.TORRE_FLAGS?.viva ?? inBrowser,
+  // protótipo "Obra Viva com risco" (index.html?risco): intempéries que podem derrubar a torre (sim/risco.js)
+  risco: globalThis.TORRE_FLAGS?.risco ?? (inBrowser && new URLSearchParams(location.search).has('risco')),
 };

@@ -15,6 +15,7 @@ const LISTAS = { obra: 'Melhor obra', total: 'Recorde total', orbita: 'Tempo atÃ
 let lista = 'obra';
 
 async function api(path, { method = 'GET', body } = {}) {
+  if (FLAGS.risco) return { ok: false, offline: true, data: {} }; // protÃ³tipo com risco: nada vai para o ranking
   const ac = new AbortController(), t = setTimeout(() => ac.abort(), 6000);
   try {
     const r = await fetch(API + '/api/torre' + path, { method, signal: ac.signal, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });

@@ -2,6 +2,7 @@
 // Embaixo, as compras do dia a dia; acima, uma fileira por era com as tecnologias de era (data/upgrades.js ERA_TECH).
 // Tudo com dinheiro — a Pesquisa saiu (decisão do usuário). Coordenadas em unidades do SVG, com y para cima.
 import { ERA_TECH } from './upgrades.js';
+import { FLAGS } from './flags.js';
 
 export const COLS = ['obra', 'forn', 'log', 'eng', 'merc'];
 export const BW = 300;                                 // largura de um ramo
@@ -36,6 +37,11 @@ function isAlt(k) { const p = ERA_TECH[k].pair; return !!p && Object.keys(ERA_TE
 // o porto espacial só abre a 100 km: fica na fileira da era do Espaço, ao lado do Turismo espacial
 SKILL_LAYOUT.merc.porto = ERA_TECH.turismoEsp ? [1.4, ERA_ROW0 + ERA_TECH.turismoEsp.era, 'condominioOrbital'] : [0, 4]; // Mercado é a última coluna: sobra espaço à direita
 
+// protótipo com risco: as defesas ficam ao lado das compras de Engenharia e Mão de obra
+if (FLAGS.risco) {
+  Object.assign(SKILL_LAYOUT.eng, { contravento: [-0.75, 2, 'fundacao'], sondagem: [0.75, 2, 'fundacao'], clima: [0.75, 3, 'sondagem'] });
+  Object.assign(SKILL_LAYOUT.obra, { seguranca: [0.75, 2, 'pedreiro'], manutencao: [0.75, 3, 'seguranca'] });
+}
 export const upgradePos = (b, k) => { const [c, r] = SKILL_LAYOUT[b][k]; return [colX(b) + c * SUB, r * ROW]; };
 export const BASE_POS = [0, -40];
 
@@ -56,5 +62,6 @@ export const SHORT = {
   concretoAD: 'Concreto AD', vidroSolar: 'Vidro solar', modulosProntos: 'Módulos', nanotubos: 'Nanotubos', reciclagem: 'Reciclagem',
   gaiolaDupla: 'Gaiola dupla', contrapeso: 'Contrapeso', esteira: 'Esteira', tuboPneumatico: 'Tubo', elevadorEspacial: 'Cabo esp.',
   estacas: 'Estacas', fundacaoBarata: 'Fund. série', contrafortes: 'Contrafortes', grafeno: 'Grafeno', ancoraOrbital: 'Âncora',
+  contravento: 'Contravento', sondagem: 'Sondagem', clima: 'Clima', seguranca: 'Segurança', manutencao: 'Manutenção',
   imoveis: 'Imóveis', corretores: 'Corretores', lojas: 'Lojas', eventos: 'Eventos', leilao: 'Leilão', condominioOrbital: 'Condomínio',
 };

@@ -126,4 +126,12 @@ for (const k in ERA_TECH) { const u = ERA_TECH[k]; if (u.st) (TECH_BY_STAGE[u.st
 
 // Obra Viva: política de imóveis da era (não é compra: alterna Alugar/Vender sem custo; max 0 = a economia nunca "compra")
 if (FLAGS.viva) UP.imoveis = { b: 'merc', n: 'Imóveis da era', d: 'Decida o destino dos andares desta era: alugar (renda contínua) ou vender (dinheiro na hora, cerca de 20 min de aluguel por andar).', base: 0, k: 1, max: 0, icon: 'corretores' };
+// protótipo "Obra Viva com risco": defesas contra as intempéries (sim/risco.js). Não rendem nada na economia.
+if (FLAGS.risco) Object.assign(UP, {
+  contravento: { b: 'eng', n: 'Contraventamento', d: 'Treliças em X e amortecedores: cada nível corta o dano de ventania e furacão.', base: 60, k: 2.2, icon: 'escoramento' },
+  sondagem: { b: 'eng', n: 'Sondagem e estacas', d: 'Conhece o solo e crava estacas: cada nível corta o dano de terremoto e de recalque do solo (a Fundação também ajuda).', base: 80, k: 2.3, icon: 'estacas' },
+  clima: { b: 'eng', n: 'Proteção climática', d: 'Drenagem, lonas e aquecimento: cada nível corta o dano de chuva forte, nevasca e tempestade de areia.', base: 50, k: 2.1, icon: 'pressurizada' },
+  seguranca: { b: 'obra', n: 'Segurança do trabalho', d: 'EPIs, redes e treinamento. O Ministério do Trabalho exige mais a cada altura: abaixo do exigido, a obra é embargada e multada.', base: 40, k: 2.0, icon: 'treino' },
+  manutencao: { b: 'obra', n: 'Equipe de manutenção', d: 'Recupera a integridade da torre aos poucos: +0,15 por segundo a cada nível.', base: 70, k: 2.2, icon: 'mestre' },
+});
 export const KEYS = Object.keys(UP);
