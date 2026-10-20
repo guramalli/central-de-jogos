@@ -21,11 +21,13 @@ const topY = () => Math.floor(S.floors) * FH;
 let floatGate = 0; // limita textos quando a obra está muito rápida
 
 // texto que sobe e some (coordenadas de mundo)
+const RISE = 20, GAP = 34; // os textos sobem RISE px/s; dois textos na mesma faixa ficam a pelo menos GAP px
 export function float(x, y, a, b = '', c = '#f2b630', life = 2.2, extra = null) {
   while (V.floats.length >= 3) V.floats.shift(); // no máximo 3 textos na tela
-  // compras seguidas no mesmo lugar empilham em vez de se sobrepor
-  const near = V.floats.filter(f => f.t < 1.2 && Math.abs(f.x - x) < 90 && f.y >= y - 4 && f.y < y + 140).length;
-  V.floats.push({ x, y: y + near * 30, a, b, c, t: 0, life, ...extra });
+  // fila: o novo texto nasce acima de todos os que estão subindo na mesma faixa (pela altura de agora, não a de nascer)
+  let yy = y;
+  for (const f of V.floats) if (Math.abs(f.x - x) < 120) { const cur = f.y + f.t * RISE; if (Math.abs(cur - yy) < GAP || (cur > yy && cur < yy + 160)) yy = Math.max(yy, cur + GAP); }
+  V.floats.push({ x, y: yy, a, b, c, t: 0, life, ...extra });
 }
 
 export function updateEffects(dt) {
@@ -36,6 +38,13 @@ export function updateEffects(dt) {
   if (V.craneBuild < 1) V.craneBuild = Math.min(1, V.craneBuild + dt / 2.2);
 }
 
+// andares concluídos em seguida viram um texto só ("+3 ANDARES"), que se renova; devolve se juntou
+function mergeFloor(n, pay) {
+  const last = V.floats.find(f => f.floor && f.t < 1.4);
+  if (!last) return false;
+  last.n = (last.n || 1) + n; last.a = `+${last.n} ANDARES`; if (pay) last.b = pay; last.t = Math.min(last.t, 0.25);
+  return true;
+}
 function onFloor(e) {
   const y = e.to * FH, st = ERA_STYLE[eraVis(altOf(y / FH))];
   if (e.n <= 2) {
@@ -45,12 +54,12 @@ function onFloor(e) {
     // protótipo Obra Viva: a recompensa do andar entregue aparece junto; no modo atual, o lembrete de decidir o destino
     const first = !FLAGS.viva && S.assigned < e.to && S.lv.corretor < 1 && e.to <= 3;
     const pay = FLAGS.viva ? `+R$ ${fmt(rentSum(e.from, e.n) * VIVA.floorPaySecs)} pela obra` : '';
-    float(0, y + 30, '+1 ANDAR', pay || (first ? 'pronto para alugar ou vender' : ''));
+    if (!mergeFloor(e.n, pay)) float(0, y + 30, '+1 ANDAR', pay || (first ? 'pronto para alugar ou vender' : ''), '#f2b630', 2.2, { floor: true, n: 1 });
     sfx('floor');
-  } else if (floatGate <= 0) {
+  } else if (!mergeFloor(e.n, '') && floatGate <= 0) {
     // obra rápida: um aviso agregado de vez em quando
     floatGate = 1.2;
-    float(0, y + FH * 1.2, `+${e.n} ${e.n === 1 ? 'ANDAR' : 'ANDARES'}`);
+    float(0, y + FH * 1.2, `+${e.n} ${e.n === 1 ? 'ANDAR' : 'ANDARES'}`, '', '#f2b630', 2.2, { floor: true, n: e.n });
     sfx('floor');
   }
 }

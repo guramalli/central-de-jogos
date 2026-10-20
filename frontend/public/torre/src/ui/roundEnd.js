@@ -4,7 +4,7 @@
 // - obra entregue (pela carta ou antes do prazo, depois da meta): Reputação ganha, ranking e "Começar a obra em <cidade>".
 // Recarregar com a obra parada reabre o placar no mesmo ponto.
 import { S, save } from '../sim/state.js';
-import { pointsFor, city, nextCity, roundDay, roundDays, admTaxa, endRound, extendRound, metaAlt, repPct } from '../sim/prestige.js';
+import { pointsFor, city, nextCity, roundDay, roundDays, admTaxa, endRound, extendRound, metaAlt, repPct, deliverTerms } from '../sim/prestige.js';
 import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
 import { toggleOverview, isOverview, followBuild } from '../render/camera.js';
@@ -59,7 +59,7 @@ export function checkRoundEnd() {
   $('reChoice').hidden = estado !== 'ano';
   $('reGoRow').hidden = estado !== 'entregue';
   if (estado === 'ano') {
-    const rec = S.maxAlt > (S.bestAlt || 0), meta = metaAlt(), got = pointsFor(S.maxAlt), tot = S.pontosTotal || 0;
+    const rec = S.maxAlt > (S.bestAlt || 0), meta = metaAlt(), dterm = deliverTerms(), got = dterm.pts, tot = S.pontosTotal || 0;
     $('reKind').textContent = 'FIM DO PRAZO';
     $('reTitle').textContent = obra;
     stats([['Altura', fmtM(S.maxAlt)], ['Prazo', `dia ${roundDay()} de ${roundDays()}`],
@@ -73,7 +73,7 @@ export function checkRoundEnd() {
       + `<li>Na entrega, pela altura que a torre tiver:</li>${ex(1.5)}${ex(2)}</ul>`;
     $('reNewTitle').textContent = nx.toUpperCase();
     $('reNewTxt').innerHTML = `<ul><li>Entrega a torre agora; ${nx} quer uma ainda mais alta</li>`
-      + `<li>Reputação agora: <b>${fmtPct(repPct(got))}</b>${tot ? ` (total ${fmtPct(repPct(tot + got))})` : ''}</li>`
+      + `<li>Reputação agora: <b>${fmtPct(repPct(got))}</b>${tot ? ` (total ${fmtPct(repPct(tot + got))})` : ''}${dterm.sobra >= 0.01 ? `, com +${Math.round(dterm.sobra * 100)}% pelo caixa que sobrou` : ''}</li>`
       + `<li>${city().n} paga <b>${reais(admTaxa(S.maxAlt))}</b> para sempre</li>`
       + `<li>A obra nova começa do zero, mais forte</li>`
       + `<li>Regra de ${nx}: ${nextCity().regra}</li></ul>`; // cada cidade muda uma etapa (data/cities.js)
@@ -86,6 +86,7 @@ export function checkRoundEnd() {
     stats([['Altura', fmtM(S.maxAlt)], ['Entregue', `dia ${t ? t.dia : roundDay()} de ${roundDays()}`],
       ['Recorde', rec ? 'Novo recorde!' : fmtM(S.lastBest || 0), rec ? 'rec' : ''],
       ['Reputação ganha', fmtPct(repPct(S.lastGot || 0)) + (early ? ` (com +${early}% de antecipação)` : S.lastMulta ? ` (multa de ${S.lastMulta}%)` : '')],
+      ...(S.lastSobra >= 0.01 ? [['Caixa que sobrou', `+${Math.round(S.lastSobra * 100)}% na Reputação`]] : []),
       ['Reputação total', fmtPct(repPct(S.pontosTotal || 0))],
       ['Paga para sempre', reais(t ? t.taxa : admTaxa(S.maxAlt))]]);
     $('reGo').textContent = `Começar a obra em ${nx}`;

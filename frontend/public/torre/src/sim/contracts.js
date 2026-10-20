@@ -21,7 +21,7 @@ export function perkMult(st) {
   let up = 0, down = 0;
   for (const id of S.perks || []) {
     const c = CONTRACTS[id]; if (!c) continue;
-    for (const [s2, mul] of [[c.st, c.mul], [c.st2, c.mul2]]) if (s2 === st) { if (mul > 1) up += mul - 1; else down += 1 - mul; }
+    for (const [s2, mul] of [[c.st, c.mul], [c.st2, c.mul2], ...(c.sts || []).map(x => [x, c.mul])]) if (s2 === st) { if (mul > 1) up += mul - 1; else down += 1 - mul; }
   }
   let m = (1 + up) * Math.max(0.5, 1 - down);
   if ((S.rushLeft || 0) > 0 && RUSH_ST.includes(st)) m *= 3;

@@ -57,7 +57,8 @@ const reais = v => 'R$ ' + (v < 10 ? v.toFixed(1).replace('.', ',') : fmt(v)) + 
 export function deliverMsg() {
   const t = deliverTerms(), tot = S.pontosTotal || 0, faltam = roundDays() - roundDay(), c = city().n;
   const rep = `Reputação ${fmtPct(repPct(tot))} → <b>${fmtPct(repPct(tot + t.pts))}</b>`;
-  const head = `Entregar a torre de ${c} (${fmtM(S.maxAlt)}) no dia ${roundDay()}, ${faltam} dias antes do fim do contrato.`;
+  const head = `Entregar a torre de ${c} (${fmtM(S.maxAlt)}) no dia ${roundDay()}, ${faltam} dias antes do fim do contrato.`
+    + (t.sobra >= 0.01 ? `<br>O caixa que sobrou rende <b>+${Math.round(t.sobra * 100)}%</b> na Reputação.` : '');
   if (t.metaOk) return `${head}<br>A meta do contrato (${fmtM(t.meta)}) foi batida: <b>bônus de antecipação de +${Math.round(t.bonus * 100)}%</b>.<br>${rep}<br>${c} paga <b>${reais(t.taxa)}</b> para sempre. A próxima obra começa em ${nextCity().n}.`;
   return `${head}<br><span class="dv-bad">A meta do contrato é ${fmtM(t.meta)} e a torre não chegou lá: <b>multa de ${t.multa}%</b> na Reputação e na taxa desta torre.</span><br>`
     + `${rep} (sem a multa seriam ${fmtPct(repPct(tot + t.base))})<br>${c} paga só <b>${reais(t.taxa)}</b> para sempre. A próxima obra começa em ${nextCity().n}.`;

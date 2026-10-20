@@ -23,9 +23,9 @@ export const TORRE = {
   apelidoMin: 3, apelidoMax: 12,
   fichaDias: 60,             // uma obra com aditivos pode atravessar semanas de tempo real
   obraSegMax: 48 * 3600,     // cada ano de contrato são 20 min de jogo; aditivos somam (até 144 anos, na prática ilimitado)
-  altPorSegundo: 1500,       // m por segundo de jogo numa obra (o melhor robô fica perto de 600)
+  altPorSegundo: 3000,       // m por segundo de jogo numa obra (depois da Órbita o robô passa de 1.600)
   altMinTeto: 3000,          // começo de obra: teto mínimo
-  altMax: 2_000_000,         // 2.000 km numa obra (o melhor robô fica abaixo de 800 km)
+  altMax: 5_000_000,         // 5.000 km numa obra (marcos depois da Órbita vão até 2.000 km; o robô chega perto disso)
   orbitaAlt: 400_000,        // 400 km
   orbitaMin: 3 * 3600,       // a Órbita só conta depois de 3 h de jogo somado (o robô atento leva ~4h20)
   top: 10,

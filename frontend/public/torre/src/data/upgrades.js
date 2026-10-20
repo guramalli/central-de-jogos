@@ -44,6 +44,7 @@ export const UP = {
 
 // Protótipo Obra Viva: as três compras iniciais ganham nome concreto e ficam liberadas desde o começo
 if (FLAGS.viva) for (const k in VIVA.upgrades) Object.assign(UP[k], VIVA.upgrades[k]);
+if (FLAGS.viva) for (const k of ['bilheteria', 'heliponto', 'porto']) UP[k].soft = VIVA.softTourism; // ×4 por nível depois do 10º
 
 // Obra Viva: tecnologias de era — cada era nova abre 1 compra em cada ramo, no topo da coluna da árvore.
 // era: índice em ERAS (reqAlt = altura da era); st: o que multiplica (lay, prod, tran, fcost, rent, tour, ticket);
@@ -102,18 +103,18 @@ const ALT_TECH = {
   gaiolaDupla: T('log', 1, 'Gaiola dupla', 'Cada viagem leva mais: ×1,25 de carga por viagem a cada nível.', { base: 3e3, st: 'cap', mul: 1.25, pair: 'cabos' }),
   contrapeso: T('log', 2, 'Contrapeso inteligente', 'Elevadores equilibrados: ×1,5 no material subindo por nível.', { base: 1e5, st: 'tran', mul: 1.5, pair: 'expresso' }),
   esteira: T('log', 3, 'Esteira vertical', 'Uma esteira sobe junto dos elevadores: ×1,3 de carga por viagem a cada nível.', { base: 3e6, st: 'cap', mul: 1.3, pair: 'pressurizada' }),
-  tuboPneumatico: T('log', 4, 'Tubo pneumático', 'Material soprado até o topo: ×1,4 de carga por viagem a cada nível.', { base: 4e7, st: 'cap', mul: 1.4, pair: 'linear' }),
+  tuboPneumatico: T('log', 4, 'Tubo pneumático', 'Material soprado até o topo: ×1,3 de carga por viagem e −8% de material por andar a cada nível.', { base: 4e7, st: 'cap', mul: 1.3, st2: 'fcost', mul2: 0.92, pair: 'linear' }),
   elevadorEspacial: T('log', 5, 'Cabo espacial', 'Um cabo do chão até a órbita: ×1,5 no material subindo.', { base: 4e8, max: 1, st: 'tran', mul: 1.5, pair: 'teleporte' }),
   estacas: T('eng', 1, 'Estacas profundas', 'Fundação mais funda: +70% no limite da torre e −4% de material por andar a cada nível.', { base: 4e3, st: 'capF', mul: 1.7, st2: 'fcost', mul2: 0.96, pair: 'calculo' }),
   fundacaoBarata: T('eng', 2, 'Fundação em série', 'Formas reaproveitadas: a Fundação reforçada custa 60% menos e cada andar gasta 20% menos material.', { base: 1.5e5, max: 1, st: 'fundCost', mul: 0.4, st2: 'fcost', mul2: 0.8, pair: 'prefab' }),
-  contrafortes: T('eng', 3, 'Contrafortes', 'Apoios externos: o limite da torre dobra.', { base: 4e6, max: 1, st: 'capF', mul: 2, pair: 'flutuante' }),
+  contrafortes: T('eng', 3, 'Contrafortes', 'Apoios externos: o limite da torre dobra e o material sobe ×1,3 (menos balanço nos elevadores).', { base: 4e6, max: 1, st: 'capF', mul: 2, st2: 'tran', mul2: 1.3, pair: 'flutuante' }),
   grafeno: T('eng', 4, 'Núcleo de grafeno', 'Coluna central de grafeno: o limite da torre dobra a cada nível.', { base: 5e7, st: 'capF', mul: 2, pair: 'amortecedor' }),
   ancoraOrbital: T('eng', 5, 'Âncora orbital', 'A torre se prende à órbita: o limite triplica e o material sobe ×2.', { base: 5e8, max: 1, st: 'capF', mul: 3, st2: 'tran', mul2: 2, pair: 'gravidade' }),
   corretores: T('merc', 1, 'Corretores próprios', 'Andares vendidos valem mais: +50% na venda por nível.', { base: 3e3, st: 'sale', add: 0.5, pair: 'imobiliaria' }),
   lojas: T('merc', 2, 'Lojas no térreo', 'Comércio na base da torre: +10% de aluguel por nível.', { base: 1e5, st: 'rent', add: 0.1, pair: 'agencia' }),
-  eventos: T('merc', 3, 'Salões de evento', 'Andares disputados para festas: +60% na venda por nível.', { base: 3e6, st: 'sale', add: 0.6, pair: 'hotelNuvens' }),
+  eventos: T('merc', 3, 'Salões de evento', 'Andares disputados para festas: +60% na venda e +50% no pagamento por andar concluído, por nível.', { base: 3e6, st: 'sale', add: 0.6, st2: 'floorPay', add2: 0.5, pair: 'hotelNuvens' }),
   leilao: T('merc', 4, 'Leilão de coberturas', 'Coberturas vão a leilão: +80% na venda por nível.', { base: 4e7, st: 'sale', add: 0.8, pair: 'publicidade' }),
-  condominioOrbital: T('merc', 5, 'Condomínio orbital', 'Morar no espaço vale ouro: +100% na venda por nível.', { base: 4e8, st: 'sale', add: 1, pair: 'turismoEsp' }),
+  condominioOrbital: T('merc', 5, 'Condomínio orbital', 'Morar no espaço vale ouro: +100% na venda e +50% no pagamento por andar concluído, por nível.', { base: 4e8, st: 'sale', add: 1, st2: 'floorPay', add2: 0.5, pair: 'turismoEsp' }),
 };
 for (const k in ALT_TECH) { ALT_TECH[k].icon = k; ERA_TECH[ALT_TECH[k].pair].pair = k; }
 Object.assign(ERA_TECH, ALT_TECH);

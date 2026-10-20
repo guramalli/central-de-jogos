@@ -8,6 +8,7 @@ import { FLAGS } from '../data/flags.js';
 import { V } from '../render/view.js';
 import { fmtM, fmt } from './format.js';
 import { altOf } from '../data/height.js';
+import { VIVA } from '../data/viva.js';
 
 const $ = id => document.getElementById(id);
 const fotosKey = () => 'torre-jornais-espaco' + activeSlot();
@@ -40,9 +41,23 @@ export function checkJornal(bloqueado) {
   if (!FLAGS.viva) return;
   if (!$('jornal').hidden && V.t > fechaT) fechar();
   if (bloqueado || S.roundOver) return;
+  // marcos depois da Órbita (VIVA.marcosOrbita): uma capa na 1ª vez, com o bônus permanente
+  const vistosAlt = new Set((S.jornais || []).filter(x => x.alt).map(x => x.alt));
+  const novoAlt = (S.marcosAlt || []).find(m => !vistosAlt.has(m));
+  if (novoAlt && !pend) {
+    const mk = VIVA.marcosOrbita.find(x => x.m === novoAlt), cidade = city().n;
+    const jj = { n: Math.floor(S.floors), alt: novoAlt, obra: S.obra || 1, cidade, dia: roundDay(),
+      titulo: `A torre da J. Santos passa o marco ${mk.n === 'Mil quilômetros' ? 'dos mil quilômetros' : `"${mk.n}"`}: ${fmtM(novoAlt)} acima de ${cidade}`,
+      sub: `Bônus permanente para a construtora: +${Math.round(VIVA.marcosBonus * 100)}% em tudo.` };
+    S.jornais = [...(S.jornais || []), jj].sort((a, b) => a.n - b.n); save();
+    const img = foto(), f = fotos(); f['alt' + novoAlt] = img;
+    try { localStorage.setItem(fotosKey(), JSON.stringify(f)); } catch (e) { }
+    mostrar(jj, img); fechaT = V.t + 6;
+    return;
+  }
   const andares = Math.floor(S.floors);
   if (!pend) {
-    const n = proximoJornal(andares, (S.jornais || []).map(j => j.n));
+    const n = proximoJornal(andares, (S.jornais || []).filter(j => !j.alt).map(j => j.n));
     if (n) pend = { n, at: V.t + 1.6 }; // espera a câmera afastar no marco
     return;
   }
@@ -51,7 +66,7 @@ export function checkJornal(bloqueado) {
   const cidade = city().n;
   const j = { n, obra: S.obra || 1, cidade, dia: roundDay(), titulo: manchete(n, cidade), sub: `A torre da Construtora J. Santos já tem ${fmtM(altOf(n))} de altura.` };
   // marcos menores que ficaram para trás nesta passada também contam como noticiados
-  const vistos = new Set((S.jornais || []).map(x => x.n)), novos = [j];
+  const vistos = new Set((S.jornais || []).filter(x => !x.alt).map(x => x.n)), novos = [j];
   for (const m of [100, 500]) if (m < n && !vistos.has(m)) novos.push({ ...j, n: m, titulo: manchete(m, cidade) });
   for (let m = 1000; m < n; m += 1000) if (!vistos.has(m)) novos.push({ ...j, n: m, titulo: manchete(m, cidade) });
   S.jornais = [...(S.jornais || []), ...novos].sort((a, b) => a.n - b.n); save();
@@ -77,9 +92,9 @@ export function drawArquivo() {
   ul.innerHTML = lista.length ? '' : '<li class="rk-wait">Nenhuma capa ainda. A primeira sai no andar 100!</li>';
   for (const j of lista) {
     const li = document.createElement('li');
-    li.innerHTML = `<b>${j.n.toLocaleString('pt-BR')}</b><span></span>`;
+    li.innerHTML = `<b>${j.alt ? fmtM(j.alt) : j.n.toLocaleString('pt-BR')}</b><span></span>`;
     li.querySelector('span').textContent = j.titulo;
-    li.onclick = () => { mostrar(j, f[j.n]); fechaT = Infinity; };
+    li.onclick = () => { mostrar(j, f[j.alt ? 'alt' + j.alt : j.n]); fechaT = Infinity; };
     ul.appendChild(li);
   }
 }

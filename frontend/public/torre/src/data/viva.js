@@ -2,7 +2,15 @@
 // Números de teste, não finais: ajustar com o robô (tools/viva-ritmo.mjs) e com gente jogando.
 export const VIVA = {
   startMoney: 100,       // cheque dos investidores na abertura (história): ~3 compras logo de cara, 1º andar em ~20 s
-  tourism: { capHeli: 0.6 }, // lugares por nível do heliponto (o panorâmico usa BAL.tourism.capPanoramic)
+  tourism: { capHeli: 0.6 },
+  // caixa que sobra (vistoria de 20/10/2026: metade do dinheiro sumia na troca de cidade): na entrega, a fração do que
+  // foi ganho na obra e ficou no caixa rende até +k de Reputação (poupar vira escolha, não desperdício)
+  sobra: { k: 0.5 },
+  // depois da Órbita (vistoria de 20/10: nada a buscar): marcos reais alcançáveis; na 1ª vez na campanha, capa de jornal
+  // e ×(1 + bonus) permanente em tudo. A parede de material acima de 400 km dobra a cada 400 km (floorCost.wallDouble)
+  marcosOrbita: [{ m: 540000, n: 'Telescópio Hubble' }, { m: 1000000, n: 'Mil quilômetros' }, { m: 1500000, n: 'Órbita média dos satélites' }, { m: 2000000, n: 'Fim da órbita baixa' }],
+  marcosBonus: 0.1,
+  softTourism: { at: 10, k: 4 }, // Elevador panorâmico, Heliponto e Porto: ×4 por nível depois do 10º (eram 65% do gasto e 1,7% da renda) // lugares por nível do heliponto (o panorâmico usa BAL.tourism.capPanoramic)
   curious: 0.5,          // R$/s dos curiosos no tapume antes do Elevador panorâmico (a torre já é famosa)
   floorPaySecs: 50,      // pagamento por andar entregue = aluguel-base do andar × isto (≈ R$ 25 nos primeiros)
   autoSellPct: 0,        // destino automático dos andares prontos (0 = aluga tudo); ninguém espera decisão manual
@@ -49,7 +57,7 @@ export const VIVA = {
   // Ritmo do Obra Viva: material por andar (sobrescreve BAL.floorCost; ajustado com tools/prestigio.mjs)
   // cada era nova deixa a peça ~2,6× mais cara (2,3× com a Pré-fabricação total); módulo grande pede um pouco mais de material
   // robô (tools/ritmo-longo.mjs): 1 km ~0h25 · 12 km ~0h57 · 100 km ~3h45 · Órbita ~13h30; peça nunca abaixo de ~1,2 s no alto
-  floorCost: { mult: 5, pow: 0.95, eraMult: 2.4, modulePow: 1 }, // mult entra aos poucos nos primeiros 40 andares; eraMult/modulePow altos: com o prestígio, uma obra sozinha não vai longe
+  floorCost: { mult: 5, pow: 0.95, eraMult: 2.4, modulePow: 1, wallDouble: 400000 }, // mult entra aos poucos nos primeiros 40 andares; eraMult/modulePow altos: com o prestígio, uma obra sozinha não vai longe
   floorCostPrefab: { pow: 0.92, eraMult: 2.35 }, // abaixo do normal (0,95 e 2,4): ~20–30% menos material; antes (4,5) encarecia o andar
   // Rodadas "Nova obra" (decisão do usuário, out/2026): cada rodada de 20 min (ou entrega antecipada) rende pontos
   // = floor(k × km^pow) (retorno decrescente); os pontos compram o quadro "Construtora" (bônus permanentes, aditivos)
@@ -64,9 +72,11 @@ export const VIVA = {
   // Órbita; o piso por obra impede juntar ★ entregando torres baixas de propósito. Antecipar rende até +bonus de ★
   // (proporcional aos dias que sobram). No fim do ano a entrega vale sempre.
   meta: { rec: 0.6, piso: 100, cresce: 1.8, bonus: 0.25 },
-  prestige: { k: 12, pow: 0.6, rep: 0.04 }, // pontos = 12 × km^0,6 (mín. 1); rep: Reputação = +4% em tudo por ponto ganho no total (era 3%; subiu quando os pares de tecnologias foram equilibrados, para o robô atento seguir chegando à Órbita na 13ª obra)
+  prestige: { k: 12, pow: 0.6, rep: 0.025 }, // pontos = 12 × km^0,6 (mín. 1); rep: Reputação = +2,5% em tudo por ponto ganho no total (já foi 3% e 4%; caiu com o caixa que sobra virando Reputação e a lista de compras sem travar nos empates; robô atento: Órbita na 12ª obra)
   // Construtora J. Santos (só Reputação, decisão do usuário 20/10/2026): sem compras com ★; os gerentes chegam um por obra
   board: {
+    // Encarregado (vistoria de 20/10: cliques demais no começo): desde a 1ª obra compra só o básico, a partir do 5º andar
+    encarregado: { n: 'Encarregado', d: 'Compra sozinho o básico: pedreiros, fornecedores, motores e carrinhos (a partir do 5º andar da 1ª obra).', mgr: 'basico', obra: 1 },
     gerObra: { n: 'Gerente de obra', d: 'Contrata pedreiros e compra treino, ferramentas e mestres sozinho.', mgr: 'obra', obra: 2 },
     gerForn: { n: 'Gerente de suprimentos', d: 'Compra fornecedores, caminhões, olaria e pré-molde sozinho.', mgr: 'forn', obra: 3 },
     gerLog: { n: 'Gerente de logística', d: 'Compra elevadores, motores, caçambas e guindaste sozinho.', mgr: 'log', obra: 4 },

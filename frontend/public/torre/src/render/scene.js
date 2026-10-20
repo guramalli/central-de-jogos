@@ -84,21 +84,24 @@ export function render() {
     }
   });
   // meta do contrato (Obra Viva): linha verde contínua até a torre passar dela; acima da tela, o aviso fica preso
-  // no alto (abaixo da placa do andar) com uma seta
+  // no alto à DIREITA, embaixo do dinheiro (à esquerda ficam a placa do andar, o dia, a engrenagem e a pausa)
   if (FLAGS.viva && !S.roundOver && S.maxAlt < metaAlt()) {
     const y = sy(floorOf(metaAlt()) * FH), TOPO = 64;
     if (y < H - 4) {
-      const acima = y < TOPO, ty = acima ? TOPO + 8 : y + 8, txt = `${acima ? '▲ ' : ''}META DO CONTRATO · ${fmtM(metaAlt())}`;
+      const acima = y < TOPO, txt = `${acima ? '▲ ' : ''}META DO CONTRATO · ${fmtM(metaAlt())}`;
+      ctx.font = '700 9px "Chakra Petch", sans-serif'; ctx.textBaseline = 'middle';
+      const tx = acima ? W - 8 : 4, ty = acima ? TOPO + 16 : y + 8;
+      ctx.textAlign = acima ? 'right' : 'left';
       if (!acima) r(0, y, Math.max(0, sx(TL) - 8), 2, 'rgba(111,208,140,.85)');
-      ctx.font = '700 9px "Chakra Petch", sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,24,38,.55)'; ctx.strokeText(txt, 4, ty);
-      ctx.fillStyle = '#6fd08c'; ctx.fillText(txt, 4, ty);
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,24,38,.55)'; ctx.strokeText(txt, tx, ty);
+      ctx.fillStyle = '#6fd08c'; ctx.fillText(txt, tx, ty);
+      ctx.textAlign = 'left';
     }
   }
   // marcos do mundo real (Torre Eiffel, Everest…): só uma marca dourada tracejada na régua, sem notícia;
   // o nome some quando encosta num rótulo de altura ou noutro marco
   let lastW = 1e9;
-  MARCOS_MUNDO.forEach(({ m, n }) => {
+  [...MARCOS_MUNDO, ...(FLAGS.viva ? VIVA.marcosOrbita : [])].forEach(({ m, n }) => { // marcos do mundo + os de depois da Órbita
     const y = sy(floorOf(m) * FH);
     if (y < 8 || y > H - 4) return;
     const xe = Math.max(0, sx(TL) - 8);

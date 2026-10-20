@@ -98,7 +98,10 @@ export function assign(n, how) {
     S.typeCount[t] = (S.typeCount[t] || 0) + c;
   });
   S.assigned += n;
-  if (how === 'sell') { S.sold += n; S.money += got; S.stats.saleTotal += got; }
+  if (how === 'sell') {
+    S.sold += n; S.money += got; S.stats.saleTotal += got;
+    if (FLAGS.viva) S.mgrPool = (S.mgrPool || 0) + VIVA.manager.share * got; // a verba dos gerentes também recebe as vendas
+  }
   else S.rented += n;
   return got;
 }
@@ -125,4 +128,7 @@ export function brokerTick() {
 }
 
 export const typeCount = t => S.typeCount[t] || 0;
+// Obra Viva: a era atual está em Vender? E quanto vale vender o próximo andar (a lista de compras soma isso à renda)
+export const sellingNow = () => FLAGS.viva && !!S.policy && S.policy[eraAt(altOf(S.floors))] === 'sell';
+export const saleValueNext = () => { const i = Math.floor(S.floors); return rentSum(i, 1) * BAL.saleSecs * FLOOR_TYPES[typeAt(i)].sale * saleMult(); };
 export { TYPE_IDS };

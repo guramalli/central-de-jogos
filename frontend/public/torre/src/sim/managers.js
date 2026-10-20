@@ -13,9 +13,11 @@ const acc = {}; // compras acumuladas por ramo (ritmo VIVA.manager.rate por segu
 // cada gerente chega numa obra (VIVA.board[k].obra); depois disso fica de uma obra para a outra
 export const managerArrives = b => { const k = Object.keys(VIVA.board).find(x => VIVA.board[x].mgr === b); return k ? VIVA.board[k].obra : Infinity; };
 export const hasManager = b => (S.obra || 1) >= managerArrives(b);
-export const managerOn = b => hasManager(b) && (S.mgr || {})[b] !== false;
+// o Encarregado só começa depois do 5º andar da 1ª obra (as primeiras compras ficam com quem joga, guiadas pelas dicas)
+export const managerOn = b => hasManager(b) && (S.mgr || {})[b] !== false && (b !== 'basico' || (S.obra || 1) > 1 || S.floors >= 5);
 export function setManager(b, on) { S.mgr = { ...(S.mgr || {}), [b]: !!on }; }
-export const managerKeys = b => KEYS.filter(k => UP[k].b === b && !UP[k].era && !UP[k].pair && k !== 'imoveis' && !VIVA.hidden.includes(k));
+const BASICO = ['pedreiro', 'fornec', 'motor', 'cacamba'];
+export const managerKeys = b => b === 'basico' ? BASICO.slice() : KEYS.filter(k => UP[k].b === b && !UP[k].era && !UP[k].pair && k !== 'imoveis' && !VIVA.hidden.includes(k));
 
 export function managerTick(dt) {
   const mine = Object.keys(VIVA.board).map(k => VIVA.board[k].mgr).filter(b => b && managerOn(b));

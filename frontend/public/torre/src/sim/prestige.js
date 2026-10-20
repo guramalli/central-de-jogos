@@ -7,7 +7,7 @@ import { CITIES, cityOf } from '../data/cities.js';
 import { S, fresh, setState, save, saveKey } from './state.js';
 
 // o que passa de uma obra para a outra
-const KEEP = ['obra', 'cidade', 'pontosTotal', 'bestAlt', 'won', 'winSeen', 'introSeen', 'playTime', 'marcos', 'mgr', 'dicas', 'altTotal', 'orbitaSec', 'rank', 'jornais', 'torres'];
+const KEEP = ['obra', 'cidade', 'pontosTotal', 'bestAlt', 'won', 'winSeen', 'introSeen', 'playTime', 'marcos', 'mgr', 'dicas', 'altTotal', 'orbitaSec', 'rank', 'jornais', 'torres', 'marcosAlt'];
 
 // Reputação na tela (decisão do usuário, 20/10/2026: sem ★): os pontos internos (S.pontosTotal, pointsFor) só aparecem
 // como porcentagem, VIVA.prestige.rep por ponto
@@ -20,12 +20,14 @@ export const canDeliver = () => FLAGS.viva && !S.roundOver && S.maxAlt > 0;
 export const earlyBonus = () => FLAGS.viva && !S.roundOver ? VIVA.meta.bonus * (1 - roundFrac()) : 0;
 // termos da entrega agora: no fim do prazo, normal; antes do prazo com a meta batida, bônus de antecipação;
 // antes do prazo sem a meta, multa: Reputação e taxa da torre × (altura ÷ meta)² (torre baixa quase não rende)
+// caixa que sobra: fração do que foi ganho na obra (caixa + gasto em compras) que ficou no caixa, × VIVA.sobra.k
+export const sobraBonus = () => { const m = Math.max(0, S.money || 0), sp = S.spent || 0; return FLAGS.viva && m + sp > 0 ? VIVA.sobra.k * m / (m + sp) : 0; };
 export function deliverTerms() {
-  const base = pointsFor(S.maxAlt), taxa0 = admTaxa(S.maxAlt), meta = metaAlt();
-  if (!FLAGS.viva || S.roundOver) return { early: false, metaOk: true, factor: 1, bonus: 0, multa: 0, pts: base, base, taxa: taxa0, meta };
-  if (S.maxAlt >= meta) { const bonus = earlyBonus(); return { early: true, metaOk: true, factor: 1, bonus, multa: 0, pts: Math.round(base * (1 + bonus)), base, taxa: taxa0, meta }; }
+  const base = pointsFor(S.maxAlt), taxa0 = admTaxa(S.maxAlt), meta = metaAlt(), sobra = sobraBonus();
+  if (!FLAGS.viva || S.roundOver) return { early: false, metaOk: true, factor: 1, bonus: 0, multa: 0, sobra, pts: Math.round(base * (1 + sobra)), base, taxa: taxa0, meta };
+  if (S.maxAlt >= meta) { const bonus = earlyBonus(); return { early: true, metaOk: true, factor: 1, bonus, multa: 0, sobra, pts: Math.round(base * (1 + bonus) * (1 + sobra)), base, taxa: taxa0, meta }; }
   const factor = Math.pow(S.maxAlt / meta, 2);
-  return { early: true, metaOk: false, factor, bonus: 0, multa: Math.round((1 - factor) * 100), pts: Math.floor(base * factor), base, taxa: taxa0 * factor, meta };
+  return { early: true, metaOk: false, factor, bonus: 0, multa: Math.round((1 - factor) * 100), sobra, pts: Math.floor(base * factor * (1 + sobra)), base, taxa: taxa0 * factor, meta };
 }
 export const deliverPoints = () => deliverTerms().pts;
 export const city = () => cityOf(S.cidade || 0);
@@ -53,7 +55,9 @@ export function extendRound() {
 // Reputação (só Reputação): cada ★ já ganha soma VIVA.prestige.rep em tudo ('prod', 'tran', 'lay', 'rent', 'tour'); 'offline' = 0
 export function boardMult(st) {
   if (!FLAGS.viva) return st === 'offline' ? 0 : 1;
-  return st === 'offline' ? 0 : 1 + VIVA.prestige.rep * (S.pontosTotal || 0);
+  if (st === 'offline') return 0;
+  // marcos depois da Órbita: ×(1 + bonus) por marco alcançado na campanha
+  return (1 + VIVA.prestige.rep * (S.pontosTotal || 0)) * Math.pow(1 + VIVA.marcosBonus, (S.marcosAlt || []).length);
 }
 // regra da cidade atual (1 quando a cidade não mexe nessa etapa)
 export const cityMult = st => (FLAGS.viva && city().mods[st]) || 1;
@@ -61,7 +65,7 @@ export const cityMult = st => (FLAGS.viva && city().mods[st]) || 1;
 // fim da rodada (relógio zerou ou entrega antecipada): credita as ★ uma vez e congela a obra
 export function endRound() {
   if (!FLAGS.viva || S.roundPaid) return 0;
-  const dt = deliverTerms(), got = dt.pts; S.lastEarly = dt.bonus; S.lastMulta = dt.multa; S.lastGot = got; // o placar mostra
+  const dt = deliverTerms(), got = dt.pts; S.lastEarly = dt.bonus; S.lastMulta = dt.multa; S.lastSobra = dt.sobra; S.lastGot = got; // o placar mostra
   S.pontosTotal = (S.pontosTotal || 0) + got;
   S.altTotal = (S.altTotal || 0) + S.maxAlt; // recorde total = soma das alturas das obras
   S.lastBest = S.bestAlt || 0; // recorde antes desta rodada (o placar mostra "Novo recorde!")

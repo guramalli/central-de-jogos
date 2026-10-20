@@ -55,6 +55,8 @@ export function fresh() {
     dicas: {},                    // dicas para quem começa já vistas (ui/tips.js)
     jornais: [],                  // capas de jornal dos marcos de andares já noticiados (ui/jornal.js)
     torres: [],                   // torres entregues { obra, cidade, alt, dia, taxa }: portfólio e taxa de administração
+    marcosAlt: [],                // marcos depois da Órbita já alcançados na campanha (VIVA.marcosOrbita)
+    spent: 0,                     // gasto em compras nesta obra (caixa que sobra ÷ ganho vira Reputação na entrega)
     metaOk: false,                // a torre já passou da meta do contrato nesta obra (manchete uma vez)
     anos: 1,                      // anos de contrato desta obra (cada aditivo soma 1: mais 365 dias)
   };

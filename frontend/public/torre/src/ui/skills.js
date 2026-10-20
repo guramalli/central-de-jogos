@@ -8,7 +8,7 @@ import { ERAS } from '../data/eras.js';
 import { TBRANCHES } from '../data/talents.js';
 import { SKILL_LAYOUT, COLS, BW, ROW, ERA_ROW0, colX, upgradePos, BASE_POS, SHORT } from '../data/skillTree.js';
 import { S, save } from '../sim/state.js';
-import { cost, unlocked, maxed, canBuy, buy, stageBlock, STAGE_OF, rates, isCapped } from '../sim/economy.js';
+import { cost, unlocked, maxed, canBuy, buy, buyN, costN, stageBlock, STAGE_OF, rates, isCapped } from '../sim/economy.js';
 import { upgradeEffect, priorityScore } from '../sim/preview.js';
 import { W } from '../data/constants.js';
 import { setViewInset } from '../render/camera.js';
@@ -168,6 +168,7 @@ function drawPolicy(d, bt) {
 function drawDetail() {
   const d = $('skDetail'), bt = $('sdBuy');
   if (!sel) return;
+  $('sdBuy5').hidden = true;
   if (sel === 'imoveis') { drawPolicy(d, bt); return; }
   const k = sel, u = UP[k], lk = lockedUp(k), mx = maxed(k), can = !lk && canBuy(k);
   d.style.setProperty('--c', COLOR[u.b]);
@@ -183,6 +184,10 @@ function drawDetail() {
   setText($('sdReq'), lk ? lockText(k) : mx ? 'Nível máximo.' : blk ? holdText(k, blk) : '');
   bt.hidden = lk || mx; bt.disabled = !can;
   setText(bt, `Comprar · R$ ${fmt(cost(k))}`);
+  // compra em lote (básicos com pelo menos 2 níveis pela frente): até 5 de uma vez
+  const b5 = $('sdBuy5'), left = u.max !== undefined ? u.max - S.lv[k] : 5, n5 = Math.min(5, left);
+  b5.hidden = lk || mx || !!u.era || n5 < 2;
+  if (!b5.hidden) { const c5 = costN(k, n5); b5.disabled = !can || S.money < c5; setText(b5, `Comprar ×${n5} · R$ ${fmt(c5)}`); }
 }
 
 function select(k) { sel = k; updateSkills(); }
@@ -340,6 +345,7 @@ export function initSkills() {
   $('openUp').onclick = openSkills;
   $('skClose').onclick = closeSkills;
   $('sdBuy').onclick = onBuy;
+  $('sdBuy5').onclick = () => { if (!sel || sel === 'imoveis' || lockedUp(sel) || !buyN(sel, 5)) return; if (sel === 'elevador') V.elev[S.lv.elevador - 1] = Math.random(); save(); updateSkills(); };
   $('skIn').onclick = () => { userMoved = true; zoomAt(svg.clientWidth / 2, svg.clientHeight / 2, 1.3); };
   $('skOut').onclick = () => { userMoved = true; zoomAt(svg.clientWidth / 2, svg.clientHeight / 2, 1 / 1.3); };
   $('skFit').onclick = () => { userMoved = false; fit(); };

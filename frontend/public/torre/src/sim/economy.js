@@ -16,7 +16,9 @@ import { bankInfo, bankTick } from './bank.js';
 import { techMult } from './tech.js';
 
 // ---------- melhorias compradas com dinheiro ----------
-export const cost = k => Math.ceil(UP[k].base * Math.pow(UP[k].k, S.lv[k] - (UP[k].start || 0)) * mods().mult('cost_' + UP[k].b) * (k === 'fundacao' ? techMult('fundCost') : 1) * perkMult('cost'));
+// soft: { at, k } — depois do nível `at`, cada nível multiplica o preço por `k` (Obra Viva: turismo sem virar ralo)
+const softMult = k => { const u = UP[k], s = FLAGS.viva && u.soft, lv = S.lv[k] || 0; return s && lv > s.at ? Math.pow(s.k / u.k, lv - s.at) : 1; };
+export const cost = k => Math.ceil(UP[k].base * Math.pow(UP[k].k, S.lv[k] - (UP[k].start || 0)) * softMult(k) * mods().mult('cost_' + UP[k].b) * (k === 'fundacao' ? techMult('fundCost') : 1) * perkMult('cost'));
 export const reqMet = k => (!UP[k].req || S.lv[UP[k].req[0]] >= UP[k].req[1]) && (!UP[k].reqAlt || S.maxAlt >= UP[k].reqAlt);
 // par de tecnologias de era: comprar uma trava a irmã até a próxima obra
 export const pairTaken = k => !!(UP[k].pair && S.lv[UP[k].pair] > 0);
@@ -39,9 +41,20 @@ export function stageBlock(k) {
 
 export function buy(k) {
   if (!canBuy(k)) return false;
-  S.money -= cost(k);
+  const c = cost(k);
+  S.money -= c; S.spent = (S.spent || 0) + c; // gasto da obra (o caixa que sobra vira Reputação na entrega)
   S.lv[k]++;
   return true;
+}
+
+// compra em lote (vistoria de 20/10: menos cliques no começo): até n níveis seguidos, parando quando o dinheiro acaba
+export function buyN(k, n) { let c = 0; while (c < n && buy(k)) c++; return c; }
+// preço somado dos próximos n níveis (respeitando o máximo)
+export function costN(k, n) {
+  const lv = S.lv[k], m = UP[k].max !== undefined ? Math.max(0, Math.min(n, UP[k].max - lv)) : n;
+  let t = 0;
+  try { for (let i = 0; i < m; i++) { t += cost(k); S.lv[k]++; } } finally { S.lv[k] = lv; }
+  return t;
 }
 
 // efeito de uma melhoria no nível atual: mul^nv (multiplica) ou 1 + add×nv (soma)
@@ -122,8 +135,9 @@ function simStep(dt) {
   }
   // Obra Viva: a construtora recebe pelo andar entregue (uma vez por andar; vale também offline)
   const done = Math.floor(S.floors) - before;
-  if (FLAGS.viva && done > 0) { const pay = rentSum(before, done) * VIVA.floorPaySecs; S.money += pay; S.stats.floorPay = (S.stats.floorPay || 0) + pay; }
+  if (FLAGS.viva && done > 0) { const pay = rentSum(before, done) * VIVA.floorPaySecs * techMult('floorPay'); S.money += pay; S.stats.floorPay = (S.stats.floorPay || 0) + pay; S.mgrPool = (S.mgrPool || 0) + VIVA.manager.share * pay; }
   S.maxAlt = Math.max(S.maxAlt, altOf(Math.floor(S.floors)));
+  if (FLAGS.viva && S.maxAlt >= VIVA.marcosOrbita[0].m) for (const mk of VIVA.marcosOrbita) if (S.maxAlt >= mk.m && !(S.marcosAlt || []).includes(mk.m)) S.marcosAlt = [...(S.marcosAlt || []), mk.m];
   S.era = Math.max(S.era, eraAt(altOf(S.floors)));
   if (FLAGS.viva && !S.won && S.maxAlt >= VIVA.winAlt) { S.won = true; S.orbitaSec = S.orbitaSec || S.playTime || 0; } // chegou à Órbita (tempo de jogo para o ranking)
   // reciclagem: 2%/s do estoque parado no térreo vira dinheiro (metade do valor de venda por material)

@@ -209,7 +209,12 @@ function shaft(i, topWP, carrying) {
       return;
     }
     if (cam.z >= 0.4) blit(shaftTopSprite(), x0 - 4, top, 0, 13); else R(x0 - 3, top, 36, 12, '#6b7183');
-    R(x0 + 12, top + 4, 6, 4, Math.floor(V.t * 6) % 2 ? '#ff5a4a' : '#7a2a24');
+    const jam = FLAGS.viva && V.signs && V.signs.groundJam; // elevadores não dão conta: sinais sem texto (render/signs.js)
+    R(x0 + 12, top + 4, 6, 4, jam ? (Math.floor(V.t * 8) % 2 ? '#ffb020' : '#6a4a10') : Math.floor(V.t * 6) % 2 ? '#ff5a4a' : '#7a2a24');
+    if (jam && Math.floor(V.t * 3 + i * 0.5) % 2) { // porta do térreo piscando em âmbar
+      const c = '#f2b630';
+      R(x0 - 3, 0, 36, 3, c); R(x0 - 3, 38, 36, 3, c); R(x0 - 3, 0, 3, 41, c); R(x0 + 30, 0, 3, 41, c);
+    }
     if (ml > 0) { // motor mais forte: a casa de máquinas cresce a cada nível (mais polias, aletas e tinta nova)
       const q = Math.floor(V.t * (6 + 2 * Math.min(ml, 8))) % 4, np = Math.min(3, 1 + Math.floor(ml / 4));
       const body = mix('#7a8091', '#3b82c4', Math.min(1, ml / 10));

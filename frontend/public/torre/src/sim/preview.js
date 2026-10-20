@@ -6,6 +6,7 @@ import { rates, isCapped, bottleneck, cost } from './economy.js';
 import { fmt } from '../ui/format.js';
 import { eraAt } from '../data/eras.js';
 import { altOf } from '../data/height.js';
+import { sellingNow, saleValueNext } from './realty.js';
 
 export const STAGE_NAME = { prod: 'produção', tran: 'transporte', lay: 'assentamento' };
 const STAGE_OF = { obra: 'lay', forn: 'prod', log: 'tran' };
@@ -47,14 +48,26 @@ export function upgradeImpact(k) {
 
 // Prioridade de compra: quanto a melhoria acelera a obra (e a renda) por real gasto, com as fórmulas reais.
 // Usado para mostrar só as compras que importam agora (protótipo Obra Viva) e pelo robô de ritmo.
+// mínimo suave das três etapas: quase o mínimo, mas melhorar qualquer etapa empatada conta um pouco. Com o mínimo
+// exato, produção = assentamento zerava a pontuação de toda compra isolada e os gerentes travavam a obra inteira
+export const softMin = (a, b, c) => Math.pow(Math.pow(a, -8) + Math.pow(b, -8) + Math.pow(c, -8), -1 / 8);
+const flowSoft = R => isCapped(R) ? 0 : softMin(R.prod, R.tran, R.lay) / R.fcost * 60;
 export function priorityScore(k) {
-  const R0 = rates(), inc = R => R.income + 1, fpm = R => Math.max(1e-9, floorsPerMin(R));
-  S.lv[k]++;
-  let R1;
-  try { R1 = rates(); } finally { S.lv[k]--; }
-  let g = Math.log(fpm(R1) / fpm(R0)) + 0.5 * Math.log(inc(R1) / inc(R0));
+  // renda que conta: aluguel/turismo + (era em Vender) andares por segundo × valor de venda do próximo andar
+  const sell = sellingNow(), inc = R => R.income + 1 + (sell ? floorsPerMin(R) / 60 * saleValueNext() : 0);
+  const fpm = R => Math.max(1e-9, flowSoft(R));
+  // tecnologia de era com vários níveis: avalia o pacote inteiro (todos os níveis que faltam, pelo preço somado), para
+  // não recomendar o lado que só parece melhor no 1º nível (vistoria de 20/10: Cabos × Gaiola dupla)
+  const u = UP[k], n = u.era && u.max > 1 ? Math.max(1, u.max - (S.lv[k] || 0)) : 1;
+  const c1 = cost(k), price = n > 1 ? c1 * (Math.pow(u.k, n) - 1) / (u.k - 1) : c1;
+  const R0 = rates(), i0 = inc(R0);
+  S.lv[k] += n;
+  let R1, i1;
+  try { R1 = rates(); i1 = inc(R1); } finally { S.lv[k] -= n; }
+  let g = Math.log(fpm(R1) / fpm(R0)) + 0.5 * Math.log(i1 / i0);
+  if (g < 0.01) g = 0; // menos de 1% de ganho não conta (a lista e os gerentes não gastam no que quase não rende)
   if (k === 'fundacao' && S.floors > R0.capF * 0.7) g += 1; // perto do limite, a fundação vira prioridade
-  return g / cost(k);
+  return g / price;
 }
 
 // Efeito da melhoria em números, sem mencionar gargalo (modo Obra Viva: o jogador descobre o
