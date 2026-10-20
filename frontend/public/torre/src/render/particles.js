@@ -4,7 +4,7 @@ import { R } from './canvas.js';
 import { cfg } from '../ui/config.js';
 
 export function spark(x, y, c, s = 1) {
-  if (V.preview) return;
+  if (V.preview || cfg().leve) return; // gráficos leves: sem faíscas
   V.parts.push({ x, y, vx: (Math.random() - .5) * 120 * s, vy: (Math.random() * 110 + 30) * s, l: .5 + Math.random() * .4, c, sz: 3 * s });
 }
 // quem pediu menos movimento no sistema recebe um terço das partículas; no modo de teste (?test=1), nenhuma

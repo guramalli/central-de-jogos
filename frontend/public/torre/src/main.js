@@ -161,7 +161,7 @@ if (FLAGS.viva) {
   const onSwitch = () => { dropTip(); clearNews(); resetRoundEnd(); resetOffers(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeSkills(); updateUI(); };
   initTutorial({ play: () => document.getElementById('hmContinue').click() }); // "Jogar" = Continuar/Novo jogo
   initRanking();
-  initHome({ onSwitch: () => { onSwitch(); pedirFicha(); }, onHowto: openTutorial, onRanking: openRanking, onRankLeave: sairDoRanking, onRankJoin: definirApelido,
+  initHome({ onSwitch: () => { onSwitch(); pedirFicha(); }, onHowto: openTutorial, onRanking: openRanking, onRankLeave: sairDoRanking, onRankJoin: definirApelido, onSound: () => syncSnd(),
     onForget: esquecerJogador, // apagar um espaço tira o apelido daquele jogador do ranking
     onNewGame: () => { if (!(TEST || navigator.webdriver)) startIntro(false); } }); // nos testes, sem abertura
   $('skHome').onclick = () => { closeSkills(); openHome(); };

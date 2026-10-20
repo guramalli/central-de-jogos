@@ -65,6 +65,7 @@ function drawCfg() {
 function play(n) {
   if (n !== activeSlot()) { setSlot(n); hooks.onSwitch?.(); }
   const novo = !slotSummary(n);
+  S.vazio = false; // começou a jogar neste espaço
   closeHome();
   if (novo || !S.introSeen) hooks.onNewGame?.();
 }
@@ -95,7 +96,7 @@ export function initHome(h = {}) {
   $('hmHowto').onclick = () => hooks.onHowto?.();
   $('hmRank').onclick = () => hooks.onRanking?.();
   for (const b of document.querySelectorAll('#home [data-back]')) b.onclick = () => show(null);
-  $('cfSom').onchange = e => setSound(e.target.checked);
+  $('cfSom').onchange = e => { setSound(e.target.checked); hooks.onSound?.(); }; // o botão Som do rodapé acompanha
   $('cfVol').oninput = $('cfVol').onchange = e => setVolume(Number(e.target.value) / 100);
   $('cfLeve').onchange = e => setCfg({ leve: e.target.checked });
   $('cfDicas').onchange = e => setCfg({ dicas: e.target.checked });

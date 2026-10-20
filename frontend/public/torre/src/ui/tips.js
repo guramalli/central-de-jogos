@@ -11,7 +11,7 @@ import { V } from '../render/view.js';
 import { hasManager } from '../sim/managers.js';
 import { introActive } from './intro.js';
 import { skillsOpen, closeSkills, selectedKey, revealNode } from './skills.js';
-import { cfg } from './config.js';
+import { cfg, setCfg } from './config.js';
 import { homeOpen } from './home.js';
 import { showTip, coachBusy, coachTip, dropTip, rectOf, worldRect, updateCoach } from './coach.js';
 
@@ -34,7 +34,7 @@ const tip = id => showTip(id, TARGET[id], { action: !!TIPS[id].a });
 
 export function initTips({ test = false } = {}) {
   enabled = FLAGS.viva && !test;
-  $('skTips').onclick = () => { dropTip(); S.dicas = {}; save(); closeSkills(); }; // rever todas desde o começo
+  $('skTips').onclick = () => { dropTip(); setCfg({ dicas: true }); S.dicas = {}; save(); closeSkills(); }; // rever todas desde o começo (e religa)
 }
 export const setTips = on => { enabled = FLAGS.viva && !!on; };
 export const tickTips = () => { if (enabled) updateCoach(); };

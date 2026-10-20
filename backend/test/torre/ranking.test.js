@@ -98,3 +98,11 @@ test("sair do ranking apaga o jogador", async () => {
   assert.equal((await req("DELETE", "/ranking", { jogador: J(1) })).status, 200);
   assert.deepEqual((await pega(req, "obra")).top.map((x) => x.apelido), ["Bia"]);
 });
+
+test("moderação: remover um apelido ofensivo apaga o jogador de todas as listas", async () => {
+  const { obra, req, db } = await servidor();
+  const { removerApelido } = await import("../../src/routes/torre.js");
+  await obra(J(1), "Fulano"); await obra(J(2), "Bia");
+  assert.equal(await removerApelido(db, "fulano"), 1, "sem diferença de maiúsculas");
+  assert.deepEqual((await pega(req, "obra")).top.map((x) => x.apelido), ["Bia"]);
+});

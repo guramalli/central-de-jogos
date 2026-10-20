@@ -112,6 +112,7 @@ export function slotSummary(n) {
   if (!raw) return null;
   try {
     const o = JSON.parse(raw);
+    if (o.vazio) return null; // espaço apagado (a partida em branco que o jogo salva sozinho não conta)
     return { obra: o.obra || 1, cidade: o.cidade || 0, bestAlt: Math.max(o.bestAlt || 0, o.maxAlt || 0), pontosTotal: o.pontosTotal || 0, won: !!o.won, last: o.last || 0 };
   } catch (e) { return null; }
 }
@@ -121,7 +122,7 @@ export function deleteSlot(n) {
   try { const o = JSON.parse(lsGet(keyOf(n)) || 'null'); jogador = (o && o.rank && (o.rank.ativo || o.rank.apelido) && o.rank.jogador) || ''; } catch (e) { }
   if (n === activeSlot() && S.rank && (S.rank.ativo || S.rank.apelido)) jogador = S.rank.jogador || jogador;
   try { localStorage.removeItem(keyOf(n)); } catch (e) { }
-  if (n === activeSlot()) S = fresh();
+  if (n === activeSlot()) { S = fresh(); S.vazio = true; } // até o jogador começar a jogar
   return jogador;
 }
 export const exportSave = () => JSON.stringify(S);

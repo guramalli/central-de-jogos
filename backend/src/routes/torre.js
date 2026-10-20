@@ -74,6 +74,7 @@ export function bancoMemoria() {
     async total(l) { return da(l).length; },
     async naFrente(l, x) { return da(l).filter((y) => ordem(l)(y, x) < 0).length; },
     async apagar(j) { linhas.delete(j); },
+    async apagarApelido(a) { let n = 0; for (const [j, x] of linhas) if (x.apelido.toLowerCase() === a.toLowerCase()) { linhas.delete(j); n++; } return n; },
   };
 }
 
@@ -121,8 +122,12 @@ export function bancoPrisma(carregar) {
       return Number(r[0].n);
     },
     async apagar(j) { await tabela(); await prisma.$executeRaw`DELETE FROM torre_jogadores WHERE jogador = ${j}`; },
+    async apagarApelido(a) { await tabela(); return Number(await prisma.$executeRaw`DELETE FROM torre_jogadores WHERE lower(apelido) = lower(${a})`); },
   };
 }
+
+// moderação (scripts/torre-ranking.js): tira do ranking quem usa um apelido ofensivo que passou pelo filtro
+export const removerApelido = (db, apelido) => db.apagarApelido(String(apelido || '').trim());
 
 export function criaRotasTorre({ db, segredo, agora = () => Date.now(), limite = true }) {
   const r = Router();
