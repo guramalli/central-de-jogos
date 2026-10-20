@@ -162,6 +162,7 @@ if (FLAGS.viva) {
   initMilestones();
   initRoundEnd({
     onNext: startNext,
+    onExit: () => openHome(),
     onExtend: () => { updateUI(); syncCameraButtons(); showNews('JORNAL DA OBRA', `Aditivo assinado: a J. Santos fica mais 365 dias em ${cityName()}. Novo prazo: dia ${roundDays()}`); },
   });
   initOffers();

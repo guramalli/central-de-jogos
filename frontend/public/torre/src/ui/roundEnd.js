@@ -17,7 +17,7 @@ const $ = id => document.getElementById(id);
 let shown = '', fotoT = 0, hooks = {};
 const reais = v => 'R$ ' + (v < 10 ? v.toFixed(1).replace('.', ',') : fmt(v)) + '/s';
 
-// hooks: onExtend (aditivo assinado), onNext (começar a próxima obra)
+// hooks: onExtend (aditivo assinado), onNext (começar a próxima obra), onExit (ir para o Início)
 export function initRoundEnd(h = {}) {
   if (!FLAGS.viva) return;
   hooks = h;
@@ -32,6 +32,12 @@ export function initRoundEnd(h = {}) {
     checkRoundEnd();
   };
   $('reGo').onclick = () => hooks.onNext?.();
+  // fim do prazo: Salvar grava agora; Sair salva e vai para o Início (a escolha fica pendente e o placar volta)
+  $('reSave').onclick = () => {
+    save(); $('reSave').textContent = 'Salvo!';
+    clearTimeout($('reSave')._t); $('reSave')._t = setTimeout(() => { $('reSave').textContent = 'Salvar'; }, 2000);
+  };
+  $('reExit').onclick = () => { save(); $('roundEnd').hidden = true; shown = ''; hooks.onExit?.(); };
 }
 
 // troca de espaço: o próximo placar abre de novo, mesmo que o outro espaço também esteja no fim da obra
@@ -59,11 +65,18 @@ export function checkRoundEnd() {
     stats([['Altura', fmtM(S.maxAlt)], ['Prazo', `dia ${roundDay()} de ${roundDays()}`],
       ['Meta do contrato', S.maxAlt >= meta ? 'batida' : `${fmtM(meta)} (não batida)`, S.maxAlt >= meta ? 'rec' : ''],
       ['Recorde', rec ? 'Novo recorde!' : fmtM(S.bestAlt || 0), rec ? 'rec' : '']]);
-    $('reMoreTxt').innerHTML = `Mais 365 dias nesta obra.<br>A torre segue de ${fmtM(S.maxAlt)}.<br>A Reputação só vem na entrega.`;
+    // os dois cartões com a mesma estrutura, para comparar linha a linha (pedido do usuário: o texto anterior confundia).
+    // Aditivo: a Reputação não fica guardada; sai na entrega, pela altura que a torre tiver (cresce menos que a altura)
+    const ex = f => `<li class="sub">com ${fmtM(S.maxAlt * f)}: <b>${fmtPct(repPct(pointsFor(S.maxAlt * f)))}</b></li>`;
+    $('reMoreTxt').innerHTML = `<ul><li>Mais 365 dias nesta mesma torre (${fmtM(S.maxAlt)})</li>`
+      + `<li>Reputação agora: <b>nenhuma</b></li>`
+      + `<li>Na entrega, pela altura que a torre tiver:</li>${ex(1.5)}${ex(2)}</ul>`;
     $('reNewTitle').textContent = nx.toUpperCase();
-    $('reNewTxt').innerHTML = `${nx} viu a torre de ${city().n} e quer uma ainda mais alta.<br>`
-      + `Entrega agora: <b>Reputação ${fmtPct(repPct(tot))} → ${fmtPct(repPct(tot + got))}</b><br>`
-      + `${city().n} paga <b>${reais(admTaxa(S.maxAlt))}</b> para sempre`;
+    $('reNewTxt').innerHTML = `<ul><li>Entrega a torre agora; ${nx} quer uma ainda mais alta</li>`
+      + `<li>Reputação agora: <b>${fmtPct(repPct(got))}</b>${tot ? ` (total ${fmtPct(repPct(tot + got))})` : ''}</li>`
+      + `<li>${city().n} paga <b>${reais(admTaxa(S.maxAlt))}</b> para sempre</li>`
+      + `<li>A obra nova começa do zero, mais forte</li>`
+      + `<li>Regra de ${nx}: ${nextCity().regra}</li></ul>`; // cada cidade muda uma etapa (data/cities.js)
     $('reNew').textContent = `Aceitar o contrato de ${nx}`;
     $('reRank').hidden = true;
   } else {

@@ -28,7 +28,7 @@ export const TUTORIAL = [
   { titulo: 'Melhorias', texto: 'Toque em Melhorias para abrir a árvore. Cada cor é uma etapa: Fornecimento traz o material, Logística sobe, Mão de obra assenta, Engenharia aumenta o limite e Mercado aumenta a renda.' },
   { titulo: 'O efeito de cada compra', texto: 'Ao escolher uma melhoria, o painel mostra o que muda: quantos tijolos por segundo os pedreiros assentam, quanto material sobe, quanto a torre rende.' },
   { titulo: 'Leia a obra', texto: 'A obra mostra o que falta: pedreiros dormindo 💤 = falta material lá em cima; material empilhado no térreo = os elevadores não dão conta; rachaduras = chegou ao limite da fundação.' },
-  { titulo: 'Contratos de altura', texto: 'Em certas alturas chega uma proposta: escolha 1 de 3 bônus. Ele vale até o fim da obra. Escolher bem faz a obra ir muito mais longe.' },
+  { titulo: 'Contratos de altura', texto: 'Em certas alturas chega uma proposta (a primeira aos 2 km): escolha 1 de 3 bônus. Ele vale até o fim da obra. Escolher bem faz a obra ir muito mais longe.' },
   { titulo: 'Fim do prazo', texto: 'No dia 365 você escolhe: um aditivo de mais 365 dias na mesma torre, ou entregar e aceitar o contrato de outra cidade. A torre entregue aumenta a Reputação (para sempre) e paga uma taxa em todas as obras seguintes. Bateu a meta do contrato antes? Dá para entregar antes do prazo, com bônus.' },
   { titulo: 'Gerentes e ranking', texto: 'A partir da 2ª obra chegam gerentes que compram o básico sozinhos. Entre no ranking com um apelido e tente chegar mais alto que todo mundo — até a Órbita!' },
 ];

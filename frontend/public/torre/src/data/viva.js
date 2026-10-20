@@ -38,8 +38,9 @@ export const VIVA = {
     olaria: { mul: 1.9, d: '×1,9 produção por nível.' },
     premold: { mul: 2.5, d: '×2,5 produção por nível.' },
     // sem teto (decisão do usuário, out/2026: com ×12 de preço e máx. 6 a Logística travava no fim): o mais forte da
-    // Logística por compra, com o preço subindo ×6 a cada nível (robô: Órbita segue na 13ª obra, sem as obras empacadas)
-    maglev: { mul: 1.5, k: 6, max: undefined, d: '×1,5 velocidade dos elevadores (e do material subindo) por nível, sem limite.' },
+    // Logística por compra, com o preço subindo ×8 a cada nível (era ×6; subiu quando a Fábrica de módulos ganhou carga
+    // por viagem e virou escolha de verdade). Robô: Órbita na 13ª obra, sem as obras empacadas
+    maglev: { mul: 1.5, k: 8, max: undefined, d: '×1,5 velocidade dos elevadores (e do material subindo) por nível, sem limite.' },
     mestre: { mul: 1.75, d: '×1,75 assentamento por nível.' },
     // guindaste de torre é transporte vertical (decisão do usuário): fica na Logística e soma no material subindo
     guindaste: { b: 'log', req: ['elevador', 2], add: 0.6, k: 2.5, d: 'Iça paletes do térreo até o topo junto com os elevadores: +60% de material subindo por nível.' },

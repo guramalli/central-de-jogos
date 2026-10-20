@@ -657,3 +657,9 @@ body.intro .hud-btns{display:none!important}
 .dv-confirm p{font-size:12.5px;line-height:1.5;margin:0 0 8px;color:#cfd3dc}.dv-confirm p b{font-size:inherit;color:#f4f1e6}
 .dv-bad{color:#ff9a8a}.gear .deliver.multa{background:#3b4152;color:#f4f1e6;border-color:#3b4152}
 .dv-confirm[hidden]{display:none}
+.re-card ul{margin:0;padding:0 0 0 14px;display:flex;flex-direction:column;gap:5px}
+.re-card li{font-size:12.5px;line-height:1.35;color:#cfd3dc}.re-card li.sub{list-style:none;margin-left:-2px;color:#9aa0ad}.re-card li b{color:#f4f1e6}
+.re-card li{text-transform:none;letter-spacing:0;font-family:var(--f-body,inherit)}
+.re-rank-hint{grid-column:1/-1;margin:0;font-size:11.5px;color:var(--muted);text-align:center}
+.re-actions{grid-column:1/-1;display:flex;gap:8px;justify-content:center}.re-actions .btn{min-width:110px;padding:7px 12px}
+.win{display:flex;overflow-y:auto}.win>.win-box{margin:auto;flex-shrink:0}

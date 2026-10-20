@@ -4,6 +4,8 @@ import { UP } from '../data/upgrades.js';
 import { S } from './state.js';
 import { rates, isCapped, bottleneck, cost } from './economy.js';
 import { fmt } from '../ui/format.js';
+import { eraAt } from '../data/eras.js';
+import { altOf } from '../data/height.js';
 
 export const STAGE_NAME = { prod: 'produção', tran: 'transporte', lay: 'assentamento' };
 const STAGE_OF = { obra: 'lay', forn: 'prod', log: 'tran' };
@@ -68,8 +70,16 @@ export function upgradeEffect(k) {
   try { R1 = rates(); } finally { S.lv[k]--; }
   const fpm = R => floorsPerMin(R);
   if (k === 'fundacao' || u.flag === 'floatFound' || u.st === 'capF') return `Limite da torre: ${fmt(R0.capF)} → ${fmt(R1.capF)} andares`;
-  if (u.st === 'fundCost') { const c0 = cost('fundacao'); S.lv[k]++; const c1 = cost('fundacao'); S.lv[k]--; return `Fundação reforçada: R$ ${fmt(c0)} → R$ ${fmt(c1)}`; }
-  if (u.st === 'sale') return `+${Math.round((u.add || 0) * 100)}% no valor de cada andar vendido (política Vender nos Imóveis da era)`;
+  if (u.st === 'fundCost') { // preço da Fundação e, se houver, o segundo efeito (material por andar)
+    const c0 = cost('fundacao'); let c1;
+    S.lv[k]++; try { c1 = cost('fundacao'); } finally { S.lv[k]--; }
+    const mat = u.st2 === 'fcost' ? ` · Material por andar: ${num(R0.fcost)} → ${num(R1.fcost)}` : '';
+    return `Fundação reforçada: R$ ${fmt(c0)} → R$ ${fmt(c1)}${mat}`;
+  }
+  if (u.st === 'sale') { // só vale quando os andares da era atual são vendidos (Imóveis da era)
+    if (!S.policy || S.policy[eraAt(altOf(S.floors))] !== 'sell') return 'Sem efeito enquanto os andares desta era são alugados — mude para Vender em Imóveis da era';
+    return `+${Math.round((u.add || 0) * 100)}% no valor de cada andar vendido (política Vender nos Imóveis da era)`;
+  }
   if (u.st === 'rent' && u.b !== 'merc') return R1.income > R0.income + 1e-9 ? `Renda: R$ ${fmt(R0.income)}/s → R$ ${fmt(R1.income)}/s` : `+${Math.round((u.add || 0) * 100)}% no aluguel de cada andar alugado`;
   if (u.st === 'fcost') return `Material por andar: ${num(R0.fcost)} → ${num(R1.fcost)}`;
   if (u.b === 'merc') {
