@@ -29,7 +29,7 @@ export function tickPip(dt, hidden) {
   const m = vendoChao ? 'topo' : 'chao';
   if (m !== mode) { mode = m; $('pipLabel').textContent = m === 'chao' ? 'TÉRREO' : 'TOPO'; el.title = m === 'chao' ? 'Ver o térreo' : 'Ver o topo'; }
   const c = $('pipCv'), g = c.getContext('2d');
-  const cam = m === 'chao' ? { cx: 215, cy: 50, z: 0.85 } : { cx: 10, cy: Math.floor(S.floors) * FH + FH * 0.55, z: 0.5 };
+  const cam = m === 'chao' ? { cx: 215, cy: 52, z: 1.1 } : { cx: 10, cy: Math.floor(S.floors) * FH + FH * 0.55, z: 0.66 }; // canvas 264×165
   g.imageSmoothingEnabled = false;
   withTarget(g, c.width, c.height, cam, () => render());
 }

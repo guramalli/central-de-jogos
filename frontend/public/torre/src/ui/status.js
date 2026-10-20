@@ -1,5 +1,6 @@
-// Status da obra (pedido do usuário, out/2026): botão acima da janelinha que abre os números atuais da obra.
-// Mostra as taxas lado a lado, sem destacar qual etapa está segurando a obra (quem compara é o jogador).
+// Status da obra (pedido do usuário, out/2026): os números atuais da obra lado a lado, sem destacar qual etapa está
+// segurando a obra (quem compara é o jogador). No computador fica no painel das Melhorias, embaixo dos botões de
+// compra (#skStatus); no celular, onde o painel é compacto, num botão acima da janelinha (#stBtn → #stPanel).
 import { S } from '../sim/state.js';
 import { rates, isCapped } from '../sim/economy.js';
 import { floorsPerMin } from '../sim/preview.js';
@@ -19,9 +20,9 @@ export function initStatus() {
 export function updateStatus(hidden) {
   if (!FLAGS.viva) return;
   const b = $('stBtn'); if (b.hidden !== !!hidden) b.hidden = !!hidden;
-  const p = $('stPanel');
+  const p = $('stPanel'), tree = document.body.classList.contains('sk-open');
   if (hidden) { p.hidden = true; b.classList.remove('on'); return; }
-  if (p.hidden) return;
+  if (p.hidden && !tree) return;
   const R = rates(), capped = isCapped(R);
   const rows = [
     ['Suprimento chegando', rate(R.prod)],
@@ -35,5 +36,5 @@ export function updateStatus(hidden) {
     ['Limite da fundação', fmt(R.capF) + ' andares'],
   ];
   const html = rows.map(([k, v]) => `<span>${k}</span><b>${v}</b>`).join('');
-  if ($('stRows').innerHTML !== html) $('stRows').innerHTML = html;
+  for (const id of ['stRows', 'skStRows']) if ($(id).innerHTML !== html) $(id).innerHTML = html;
 }

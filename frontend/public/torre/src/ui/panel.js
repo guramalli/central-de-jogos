@@ -85,7 +85,8 @@ function updateHud() {
   setText($('skClockT'), `Dia ${dia} de ${dias}`); // a árvore tem a sua barrinha no cabeçalho
   const w = (roundFrac() * 100).toFixed(1) + '%'; // a barrinha enche de verde com o tempo
   for (const id of ['hClockBar', 'skClockBar']) if ($(id).style.width !== w) $(id).style.width = w;
-  $('hPlateClock').classList.toggle('warn', left <= 60); $('skClock').classList.toggle('warn', left <= 60);
+  // 'late' (não 'warn': a classe genérica .warn é a caixa de alerta vermelha e deslocava o texto da barrinha)
+  $('hPlateClock').classList.toggle('late', left <= 60); $('skClock').classList.toggle('late', left <= 60);
   updateSummary();
   $('openUp').querySelector('.dot').hidden = !anyToBuy();
   $('openUp').classList.toggle('alert', isCapped(rates()) || !!S.roundOver); // obra parada (limite da fundação ou rodada encerrada): o botão pulsa
