@@ -137,16 +137,8 @@ $('winNew').onclick = () => { $('win').hidden = true; doReset(); };
 
 initMap(updateUI);
 
-// Modo: Obra Viva é o padrão (tela limpa + Melhorias); ?classico abre o modo antigo. Saves separados.
+// Obra Viva é o único modo no navegador (o clássico foi retirado do site).
 document.body.classList.toggle('modo-novo', FLAGS.viva);
-{
-  const u = new URL(location.href);
-  u.searchParams.delete('viva');
-  if (FLAGS.viva) u.searchParams.set('classico', ''); else u.searchParams.delete('classico');
-  const href = u.href.replace('classico=', 'classico');
-  $('modeLink').innerHTML = FLAGS.viva ? '' : `Modo clássico · <a href="${href}">ir para o jogo novo</a>`;
-  $('skMode').innerHTML = `<a href="${href}">Modo clássico (progresso antigo)</a>`;
-}
 if (FLAGS.viva) {
   for (const id of ['hPlateFloor', 'hPlateMoney', 'hPlateClock', 'openUp']) $(id).hidden = false; // o resumo (hSum) aparece no 1º andar
   $('z-all').textContent = '⤢'; $('z-all').setAttribute('aria-label', 'Ver a torre inteira');

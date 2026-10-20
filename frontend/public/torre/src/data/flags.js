@@ -1,10 +1,9 @@
-// Chaves de funcionalidade (comparação A/B entre modos).
-// viva: Obra Viva (economia dos quatro pilares + tela limpa com a árvore de Melhorias). É o padrão no navegador;
-// ?classico abre o modo antigo, com o menu lateral. Saves separados.
-// Em Node (testes e robôs) o padrão é o clássico; defina globalThis.TORRE_FLAGS = { viva: true } ANTES de importar.
+// Chaves de funcionalidade.
+// viva: Obra Viva (o jogo). No navegador é sempre ligado: o modo clássico foi retirado do site (decisão do usuário,
+// out/2026; ?classico não abre mais nada). O código do clássico continua só para os testes e o robô de balanceamento:
+// em Node o padrão é o clássico; defina globalThis.TORRE_FLAGS = { viva: true } ANTES de importar.
 const inBrowser = typeof location !== 'undefined';
-const fromUrl = name => inBrowser && new URLSearchParams(location.search).has(name);
 
 export const FLAGS = {
-  viva: globalThis.TORRE_FLAGS?.viva ?? (inBrowser && !fromUrl('classico')),
+  viva: globalThis.TORRE_FLAGS?.viva ?? inBrowser,
 };

@@ -76,17 +76,30 @@ function panoramic(topWP) {
 // fila de visitantes no térreo, à esquerda da torre
 export function drawTourGround(tour) {
   if (worldY(H) > 300) return;
-  if (S.lv.bilheteria < 1) { if (FLAGS.viva) curious(); return; }
-  const n = Math.min(5, Math.ceil(tour.demand * 3 + (tour.queue > 0 ? 3 : 0)));
-  for (let i = n - 1; i >= 0; i--) tourist(BOOTH_X - 40 - i * 24, 0, i, { phase: V.t });
-  // bilheteria
+  const aberta = S.lv.bilheteria >= 1;
+  // Obra Viva, antes do Elevador panorâmico: nos primeiros andares, o tapume "em breve" com os curiosos;
+  // depois a bilheteria aparece fechada ("ABRE EM BREVE") e os curiosos esperam ao lado
+  if (!aberta && FLAGS.viva && S.floors < TAPUME_ANDARES) { curious(); return; }
+  if (!aberta && !FLAGS.viva) return;
+  const n = aberta ? Math.min(5, Math.ceil(tour.demand * 3 + (tour.queue > 0 ? 3 : 0))) : 3;
+  for (let i = n - 1; i >= 0; i--) tourist(BOOTH_X - 40 - i * 24, 0, aberta ? i : 1 + i * 4, { phase: V.t + (aberta ? 0 : i) });
+  booth(aberta);
+}
+const TAPUME_ANDARES = 4;
+// bilheteria (aberta: "INGRESSOS"; fechada: janela baixada e "ABRE EM BREVE")
+function booth(aberta) {
   const ba = art('bilheteria');
   if (ba) { // bilheteria do PixelLab, de frente; a placa "TICKETS" do desenho ganha o texto em português por cima
     blit(ba, BOOTH_X, 0, 0, ba.height);
     R(BOOTH_X + 13, ba.height - 13, 41, 12, '#f4f1e6'); R(BOOTH_X + 13, ba.height - 13, 41, 1, '#20242f'); R(BOOTH_X + 13, ba.height - 2, 41, 1, '#20242f');
-    T('INGRESSOS', BOOTH_X + 33.5, ba.height - 7, 7, '#20335a', 'center');
+    T(aberta ? 'INGRESSOS' : 'EM BREVE', BOOTH_X + 33.5, ba.height - 7, 7, '#20335a', 'center');
+    if (!aberta) { // janela com a porta de enrolar baixada
+      const wx = BOOTH_X + 22, wy = ba.height - 49, ww = 29, wh = 21; // a janela do desenho (pixels 22–51 × 28–49, de cima)
+      R(wx, wy, ww, wh, '#8a8f99'); for (let y = wy + 2; y < wy + wh; y += 3) R(wx, y, ww, 1, '#6c727e');
+      R(wx + 1, wy + wh / 2 - 4, ww - 2, 8, '#c0303a'); T('FECHADO', wx + ww / 2, wy + wh / 2, 5, '#f4f1e6', 'center');
+    }
   }
-  else { blit(boothSprite(), BOOTH_X, 0, 3, 76); T('INGRESSOS', BOOTH_X + 17, 75, 8, '#f2b630', 'center'); }
+  else { blit(boothSprite(), BOOTH_X, 0, 3, 76); T(aberta ? 'INGRESSOS' : 'EM BREVE', BOOTH_X + 17, 75, 8, '#f2b630', 'center'); }
 }
 
 // Obra Viva, antes do Elevador panorâmico: tapume com a placa da construtora e curiosos tirando foto
