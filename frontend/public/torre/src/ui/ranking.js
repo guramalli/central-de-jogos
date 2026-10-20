@@ -7,6 +7,7 @@ import { S, save } from '../sim/state.js';
 import { VIVA } from '../data/viva.js';
 import { FLAGS } from '../data/flags.js';
 import { fmtM } from './format.js';
+import { roundSecs } from '../sim/prestige.js';
 
 const $ = id => document.getElementById(id);
 export const API = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) ? 'http://localhost:4000' : 'https://api.educacaogamer.com.br';
@@ -28,7 +29,7 @@ function jogador() {
   if (!r.jogador) r.jogador = (crypto.randomUUID ? crypto.randomUUID() : 'j' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12));
   return r.jogador;
 }
-const segJogo = () => VIVA.round.secs - (S.roundLeft || 0);
+const segJogo = () => roundSecs(); // tempo de jogo da obra inteira (com os aditivos)
 
 // ficha da obra atual (a não ser que a pessoa tenha dito "agora não" ou saído do ranking)
 let fichaT = 0;

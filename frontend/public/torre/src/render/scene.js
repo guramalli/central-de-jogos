@@ -3,6 +3,8 @@ import { techTop } from './techvis.js';
 import { W, H, FH, SLAB, TW, TL, MPF } from '../data/constants.js';
 import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { ERAS, ERA_STYLE, MARKS, eraAt } from '../data/eras.js';
+import { MARCOS_MUNDO } from '../data/story.js';
+import { metaAlt } from '../sim/prestige.js';
 import { S, save } from '../sim/state.js';
 import { rates, isCapped } from '../sim/economy.js';
 import { fmt, fmtM } from '../ui/format.js';
@@ -70,14 +72,41 @@ export function render() {
   drawFloors(base);
   // marcos de altitude na lateral esquerda (pula rótulos colados no anterior)
   let lastY = 1e9;
+  const ys = [];
   MARKS.forEach(m => {
     const y = sy(floorOf(m) * FH);
     if (y > 8 && y < H - 4 && lastY - y > 22) {
-      lastY = y;
+      lastY = y; ys.push(y);
       r(0, y, Math.max(0, sx(TL) - 8), 1, 'rgba(255,255,255,.35)');
       ctx.font = '600 9px "Chakra Petch", sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
       ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillText(fmtM(m), 4, y - 7);
     }
+  });
+  // meta do contrato (Obra Viva): linha verde contínua até a torre passar dela; acima da tela, o aviso fica preso
+  // no alto (abaixo da placa do andar) com uma seta
+  if (FLAGS.viva && !S.roundOver && S.maxAlt < metaAlt()) {
+    const y = sy(floorOf(metaAlt()) * FH), TOPO = 64;
+    if (y < H - 4) {
+      const acima = y < TOPO, ty = acima ? TOPO + 8 : y + 8, txt = `${acima ? '▲ ' : ''}META DO CONTRATO · ${fmtM(metaAlt())}`;
+      if (!acima) r(0, y, Math.max(0, sx(TL) - 8), 2, 'rgba(111,208,140,.85)');
+      ctx.font = '700 9px "Chakra Petch", sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,24,38,.55)'; ctx.strokeText(txt, 4, ty);
+      ctx.fillStyle = '#6fd08c'; ctx.fillText(txt, 4, ty);
+    }
+  }
+  // marcos do mundo real (Torre Eiffel, Everest…): só uma marca dourada tracejada na régua, sem notícia;
+  // o nome some quando encosta num rótulo de altura ou noutro marco
+  let lastW = 1e9;
+  MARCOS_MUNDO.forEach(({ m, n }) => {
+    const y = sy(floorOf(m) * FH);
+    if (y < 8 || y > H - 4) return;
+    const xe = Math.max(0, sx(TL) - 8);
+    for (let x = 0; x < xe; x += 6) r(x, y, 3, 1, 'rgba(242,182,48,.8)');
+    if (lastW - y < 16 || ys.some(v => Math.abs(v - y) < 12)) return;
+    lastW = y;
+    ctx.font = '600 9px "Chakra Petch", sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,24,38,.55)'; ctx.strokeText(`${n} · ${fmtM(m)}`, 4, y - 7);
+    ctx.fillStyle = '#f2b630'; ctx.fillText(`${n} · ${fmtM(m)}`, 4, y - 7);
   });
   const e = eraAt(altOf(base)), s = ERA_STYLE[e], working = !capped && S.top > 0.05;
   const nb = Math.min(S.lv.pedreiro, 4), y0 = topWP;

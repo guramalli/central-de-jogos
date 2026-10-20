@@ -8,7 +8,7 @@ import { mods } from './mods.js';
 import { rentMult, brokerTick, rentAt, rentSum } from './realty.js';
 import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
-import { boardMult, cityMult, endRound } from './prestige.js';
+import { boardMult, cityMult, admTotal } from './prestige.js';
 import { managerTick } from './managers.js';
 import { perkMult, contractTick } from './contracts.js';
 import { tourism } from './tourism.js';
@@ -82,10 +82,11 @@ export function rates() {
   const capF = Math.floor(25 * Math.pow(M.flag.floatFound ? 3 : 2, L.fundacao) * M.mult('capF') * techMult('capF'));
   const rent = S.rentBase * rentMult();
   const tour = tourism();
-  const income = rent + tour.revenue;
+  const adm = admTotal(); // taxa de administração das torres já entregues
+  const income = rent + tour.revenue + adm;
   const bank = bankInfo(income);
   const net = income * (1 - bank.share);
-  return { prod, tran, lay, trip, fcost, capF, rent, tour, income, bank, net, spd, capc, era };
+  return { prod, tran, lay, trip, fcost, capF, rent, tour, adm, income, bank, net, spd, capc, era };
 }
 
 export const isCapped = R => S.floors >= R.capF - 1e-9;
@@ -94,7 +95,8 @@ export const offlineMax = () => 8 * 3600 + mods().plus('offline') + boardMult('o
 
 // ---------- passo da simulação ----------
 export function sim(dt) {
-  // Obra Viva: rodada de 20 min; encerrada, nada anda. O passo em que o relógio zera ainda conta.
+  // Obra Viva: rodada de 20 min (365 dias); encerrada, nada anda. O passo em que o relógio zera ainda conta.
+  // No fim do ano a obra para esperando a escolha (aditivo ou entregar); as ★ só saem na entrega (endRound).
   let ends = false;
   if (FLAGS.viva) {
     if (S.roundOver) return;
@@ -103,7 +105,7 @@ export function sim(dt) {
   }
   simStep(dt);
   if (FLAGS.viva) { contractTick(dt); managerTick(dt); }
-  if (ends) endRound();
+  if (ends) S.roundOver = true;
 }
 function simStep(dt) {
   const R = rates(), M = mods();

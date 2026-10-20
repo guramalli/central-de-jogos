@@ -12,7 +12,7 @@
 //   orbita = segundos de jogo somados até a primeira obra que passou de 400 km (menor é melhor), só depois de
 //            TORRE.orbitaMin de jogo somado.
 // Conferências: o tempo real desde a ficha precisa ser pelo menos o tempo de jogo da obra (o relógio da obra pausa
-// fora do jogo, então pode passar de 20 min, até 7 dias); altura com teto por segundo de jogo e teto absoluto.
+// fora do jogo, então pode passar do tempo de jogo, até 60 dias; com aditivos a obra soma 20 min por ano de contrato); altura com teto por segundo de jogo e teto absoluto.
 // A tabela nasce sozinha, como a do surf.
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
@@ -21,8 +21,8 @@ import { confereNome } from "../lenda/filtroNome.js";
 
 export const TORRE = {
   apelidoMin: 3, apelidoMax: 12,
-  fichaDias: 7,
-  obraSegMax: 1260,          // 20 min de relógio + folga
+  fichaDias: 60,             // uma obra com aditivos pode atravessar semanas de tempo real
+  obraSegMax: 48 * 3600,     // cada ano de contrato são 20 min de jogo; aditivos somam (até 144 anos, na prática ilimitado)
   altPorSegundo: 1500,       // m por segundo de jogo numa obra (o melhor robô fica perto de 600)
   altMinTeto: 3000,          // começo de obra: teto mínimo
   altMax: 2_000_000,         // 2.000 km numa obra (o melhor robô fica abaixo de 800 km)

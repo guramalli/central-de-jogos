@@ -50,7 +50,16 @@ export const VIVA = {
   // Rodadas "Nova obra" (decisão do usuário, out/2026): cada rodada de 20 min (ou entrega antecipada) rende pontos
   // = floor(k × km^pow) (retorno decrescente); os pontos compram o quadro "Construtora" (bônus permanentes, aditivos)
   manager: { share: 0.5, rate: 2 }, // gerentes: verba comum de metade da renda (nunca mais que metade do caixa); até 2 compras/s por ramo
-  round: { secs: 1200 }, // rodada de 20 min de relógio (só corre com o jogo aberto)
+  // rodada de 20 min de relógio (só corre com o jogo aberto); o jogador vê um contrato de 365 dias (~3,3 s por dia)
+  round: { secs: 1200, dias: 365 },
+  // torres entregues (decisão do usuário, 20/10/2026): cada uma paga uma taxa de administração fixa, R$ k × km^pow por
+  // segundo, em todas as obras seguintes. Fixa e pequena de propósito: a renda na entrega é 10^5–10^6 vezes a do começo
+  // da obra nova, então uma parte do aluguel acabaria com o começo; assim a taxa ajuda a arrancar e depois some na conta.
+  adm: { k: 2, pow: 0.6 },
+  // meta do contrato: entregar antes do dia 365 só depois de chegar a max(rec × recorde, piso × cresce^(obra−1)), até a
+  // Órbita; o piso por obra impede juntar ★ entregando torres baixas de propósito. Antecipar rende até +bonus de ★
+  // (proporcional aos dias que sobram). No fim do ano a entrega vale sempre.
+  meta: { rec: 0.6, piso: 100, cresce: 1.8, bonus: 0.25 },
   prestige: { k: 12, pow: 0.6, rep: 0.03 }, // ★ = 12 × km^0,6 (mín. 1); rep: Reputação = +3% em tudo por ★ ganha no total (robô com contratos: Órbita na 13ª rodada)
   // Construtora J. Santos (só Reputação, decisão do usuário 20/10/2026): sem compras com ★; os gerentes chegam um por obra
   board: {

@@ -13,7 +13,7 @@ export const CONTRACTS = {
   investidor: { n: 'Investidor', d: 'Dinheiro na hora: 90 segundos da renda atual.', cash: 90 },
   fundacao: { n: 'Fundação reforçada', d: '+1 nível de Fundação na hora.', fund: 1 },
   enxuto: { n: 'Projeto enxuto', d: 'Cada andar gasta 20% menos material até o fim desta obra.', st: 'fcost', mul: 0.8 },
-  mutirao: { n: 'Mutirão de fim de semana', d: 'Por 60 segundos, toda a obra anda 3× mais rápido.', rush: 60 },
+  mutirao: { n: 'Mutirão', d: 'Por 18 dias, toda a obra anda 3× mais rápido.', rush: 60 }, // 60 s de relógio ≈ 18 dias do contrato
   credito: { n: 'Crédito de obra', d: 'Todas as compras 20% mais baratas até o fim desta obra.', st: 'cost', mul: 0.8 },
 };
 export const CONTRACT_IDS = Object.keys(CONTRACTS);

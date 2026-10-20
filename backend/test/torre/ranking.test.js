@@ -29,13 +29,13 @@ after(() => { for (const s of servidores) s.close(); });
 const J = (n) => `jogador-${n}-0000-aaaa`;
 const pega = async (req, l, j) => (await req("GET", `/ranking?lista=${l}${j ? "&jogador=" + j : ""}`)).json();
 
-test("ficha: só o servidor fabrica, vale para o jogador dela e por até 7 dias", () => {
+test("ficha: só o servidor fabrica, vale para o jogador dela e por até 60 dias", () => {
   const f = assinarFicha("s", 1_800_000_000_000, J(1));
   assert.deepEqual(lerFicha("s", f, J(1)), { inicio: 1_800_000_000_000 });
   assert.equal(lerFicha("s", f, J(2)), null, "de outro jogador");
   assert.equal(lerFicha("outro", f, J(1)), null);
   assert.equal(lerFicha("s", "lixo", J(1)), null);
-  assert.equal(TORRE.fichaDias, 7);
+  assert.equal(TORRE.fichaDias, 60);
 });
 
 test("melhor obra e soma das obras: o servidor soma; GET mostra o top e a minha posição", async () => {
@@ -58,6 +58,12 @@ test("ficha de uso único: a mesma obra não conta duas vezes", async () => {
   assert.equal((await req("POST", "/ranking", corpo)).status, 200);
   assert.equal((await req("POST", "/ranking", corpo)).status, 409);
   assert.equal((await pega(req, "total")).top[0].valor, 5000);
+});
+
+test("aditivos: uma obra de vários anos de contrato (mais de 20 min de jogo) entra; acima do teto de tempo, não", async () => {
+  const { obra } = await servidor();
+  assert.equal((await obra(J(1), "Ana", { alt: 9000, seg: 3 * 1200 })).status, 200, "três anos de contrato");
+  assert.equal((await obra(J(2), "Bia", { seg: TORRE.obraSegMax + 1 })).status, 400, "acima do teto de tempo");
 });
 
 test("conferências da obra: rápida demais, altura impossível, ficha de outro jogador", async () => {

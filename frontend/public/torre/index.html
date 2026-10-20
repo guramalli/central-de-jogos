@@ -31,7 +31,7 @@
         <!-- modo Obra Viva: só o andar e o dinheiro na tela, e o botão Melhorias -->
         <div class="plate plate-floor" id="hPlateFloor" hidden><small>ANDAR</small><b id="hFloor">1</b><span id="hAlt">0 m</span></div>
         <div class="plate plate-money" id="hPlateMoney" hidden><b id="hMoney">R$ 0</b></div>
-        <div class="plate plate-clock" id="hPlateClock" hidden title="Tempo que falta nesta obra"><small>OBRA</small><b id="hClock">20:00</b></div>
+        <div class="plate plate-clock" id="hPlateClock" hidden title="Dia da obra: o contrato vence no dia 365"><small>DIA</small><b id="hClock">1</b><span id="hClockOf">de 365</span><i class="clk-bar"><i id="hClockBar"></i></i></div>
         <button class="hsum" id="hSum" hidden aria-expanded="false" title="Resumo da obra (toque para ver mais)">
           <span class="hs-inc"><b class="hs-incv">R$ 0/s</b> <i class="hs-fpm">0 andares/min</i></span>
           <span class="hs-row" data-k="prod"><em>Chegando</em><i class="hs-bar"><u></u></i><b>0/s</b></span>
@@ -231,7 +231,7 @@
   <header class="sk-h">
     <b class="sk-t">Avanços da obra</b>
     <span class="sk-money" id="skMoney">R$ 0</span>
-    <span class="sk-clock" id="skClock" title="Tempo que falta nesta obra">20:00</span>
+    <span class="sk-clock" id="skClock" title="Dia da obra: o contrato vence no dia 365">Dia 1 de 365</span>
     <button class="offerbtn sk-offer" id="skOffer" hidden>Proposta</button>
     <span class="grow"></span>
     <button class="btn sm ghost" id="skOut" aria-label="Afastar">−</button>
@@ -260,7 +260,7 @@
     </aside>
   </div>
   <section class="sk-board" id="skBoard" hidden aria-label="Construtora J. Santos: Reputação e gerentes">
-    <header class="skb-h"><b>Construtora J. Santos</b><span class="skb-pts" id="skPts">★ 0</span><span class="skb-rep" id="skRep" title="Cada ★ já ganha deixa toda a obra mais forte">Reputação +0%</span><span class="skb-obra" id="skObra"></span></header>
+    <header class="skb-h"><b>Construtora J. Santos</b><span class="skb-rep" id="skRep" title="A fama da construtora: cada torre entregue deixa toda a obra mais forte, para sempre">Reputação +0%</span><span class="skb-obra" id="skObra"></span></header>
     <div class="skb-row" id="skBoardRow"></div>
   </section>
   <footer class="sk-f">
@@ -284,8 +284,8 @@
     <div class="ch-top"><b>BANCO DA ORLA</b><span>Nº 000001</span></div>
     <div class="ch-pay">Pague à <b id="inChequeTo">Construtora</b></div>
     <div class="ch-val" id="inChequeVal">R$ 0,00</div>
-    <div class="ch-sig">Investidores do mundo todo</div>
-    <i class="ch-stamp">APROVADO</i>
+    <div class="ch-sig">Prefeitura de Praia Grande</div>
+    <i class="ch-stamp">ADIANTAMENTO</i>
   </div>
   <div class="in-card" id="inCard">
     <small id="inK"></small>
@@ -301,7 +301,7 @@
   <div class="win-box">
     <small>TORRE CONCLUÍDA</small>
     <b id="winT">Órbita alcançada!</b>
-    <p>A torre da Construtora J. Santos saiu do chão de Praia Grande e alcançou a órbita da Terra. O impossível era só o começo.</p>
+    <p>Começou com um terreno vazio em Praia Grande. Obra após obra, cidade após cidade, uma torre da Construtora J. Santos alcançou a órbita da Terra. O impossível era só o começo.</p>
     <div class="kv" id="winStats"></div>
     <div class="win-b"><button class="btn" id="winGo">Continuar construindo</button><button class="btn ghost" id="winNew">Recomeçar do zero</button></div>
   </div>
@@ -316,11 +316,19 @@
     <button class="hm-btn" id="hmSlots">Jogos salvos</button>
     <button class="hm-btn" id="hmHowto">Como jogar</button>
     <button class="hm-btn" id="hmRank">Ranking</button>
+    <button class="hm-btn" id="hmJornais">Portfólio</button>
     <button class="hm-btn" id="hmCfg">Configurações</button>
   </div>
   <section class="hm-panel" id="hmSlotsP" hidden aria-label="Jogos salvos">
     <header><b>Jogos salvos</b><button class="hm-back" data-back>Voltar</button></header>
     <div class="hm-slots" id="hmSlotsList"></div>
+  </section>
+  <section class="hm-panel" id="hmJornaisP" hidden aria-label="Portfólio da construtora">
+    <header><b>Portfólio da Construtora J. Santos</b><button class="hm-back" data-back>Voltar</button></header>
+    <h4 class="pf-h">Torres entregues</h4>
+    <ol class="pf-list" id="pfList"></ol>
+    <h4 class="pf-h">Jornais</h4>
+    <ol class="rk-list jn-list" id="jnList"></ol>
   </section>
   <section class="hm-panel" id="hmCfgP" hidden aria-label="Configurações">
     <header><b>Configurações</b><button class="hm-back" data-back>Voltar</button></header>
@@ -339,6 +347,18 @@
       <p class="hm-msg" id="cfMsg" role="status"></p>
     </div>
   </section>
+</div>
+
+<!-- capa de jornal nos marcos de andares (ui/jornal.js) -->
+<div class="jornal" id="jornal" hidden role="dialog" aria-label="Notícia do jornal">
+  <div class="jn-page">
+    <div class="jn-mast">JORNAL DA ORLA</div>
+    <div class="jn-date" id="jnDate"></div>
+    <h2 class="jn-title" id="jnTitle"></h2>
+    <img id="jnImg" alt="A torre da Construtora J. Santos" hidden>
+    <p class="jn-sub" id="jnSub"></p>
+    <small class="jn-tap">toque para fechar</small>
+  </div>
 </div>
 
 <!-- ranking online (ui/ranking.js) -->
@@ -370,14 +390,18 @@
 
 <div class="win round-end" id="roundEnd" hidden role="dialog" aria-modal="true" aria-labelledby="reTitle">
   <div class="win-box">
-    <small>FIM DA OBRA</small>
+    <small id="reKind">FIM DO PRAZO</small>
     <b id="reTitle">Obra nº 1</b>
     <div class="kv" id="reStats"></div>
+    <div class="re-choice" id="reChoice" hidden>
+      <div class="re-card" id="reMoreCard"><small>ADITIVO</small><p id="reMoreTxt"></p><button class="btn ghost" id="reMore">Continuar aqui</button></div>
+      <div class="re-card new" id="reNewCard"><small id="reNewTitle">PRÓXIMA CIDADE</small><p id="reNewTxt"></p><button class="btn" id="reNew">Aceitar o contrato</button></div>
+    </div>
     <div class="re-rank" id="reRank" hidden>
       <div id="reRankForm" hidden><label for="reNick">Entrar no ranking? Seu apelido:</label><div class="re-nick"><input id="reNick" maxlength="12" autocomplete="off" spellcheck="false"><button class="btn" id="reNickOk">Entrar</button><button class="hm-back" id="reNickNo">Agora não</button></div></div>
       <p id="reRankMsg" role="status"></p>
     </div>
-    <div class="win-b"><button class="btn" id="reGo">Continuar</button></div>
+    <div class="win-b" id="reGoRow" hidden><button class="btn" id="reGo">Começar a próxima obra</button></div>
   </div>
 </div>
 

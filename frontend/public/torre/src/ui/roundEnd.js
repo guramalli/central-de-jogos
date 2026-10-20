@@ -1,42 +1,83 @@
-// Fim da rodada (Obra Viva): quando S.roundOver liga (relógio zerou ou entrega antecipada), a câmera mostra a torre
-// inteira e o placar abre uma vez: altura, recorde, ★ ganhas. "Continuar" abre a faixa Construtora; o botão do
-// rodapé da árvore (#skDeliver) vira "Começar a próxima obra". Recarregar com a rodada encerrada reabre o placar.
-import { S } from '../sim/state.js';
-import { pointsFor, city } from '../sim/prestige.js';
+// Fim do ano e entrega da obra (Obra Viva). Quando S.roundOver liga, a câmera mostra a torre inteira e o placar abre:
+// - fim do ano (prazo vencido, ainda não entregue): dados da obra e duas escolhas — o aditivo (+365 dias na mesma torre,
+//   Reputação só na entrega) ou a carta do próximo cliente (entregar agora: Reputação e a torre paga a taxa para sempre);
+// - obra entregue (pela carta ou antes do prazo, depois da meta): Reputação ganha, ranking e "Começar a obra em <cidade>".
+// Recarregar com a obra parada reabre o placar no mesmo ponto.
+import { S, save } from '../sim/state.js';
+import { pointsFor, city, nextCity, roundDay, roundDays, admTaxa, endRound, extendRound, metaAlt, repPct } from '../sim/prestige.js';
 import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
-import { toggleOverview, isOverview } from '../render/camera.js';
-import { openSkills } from './skills.js';
+import { toggleOverview, isOverview, followBuild } from '../render/camera.js';
+import { V } from '../render/view.js';
 import { rankNoPlacar } from './ranking.js';
-import { fmt, fmtM } from './format.js';
+import { guardarFotoTorre } from './jornal.js';
+import { fmt, fmtM, fmtPct } from './format.js';
 
 const $ = id => document.getElementById(id);
-let shown = false;
+let shown = '', fotoT = 0, hooks = {};
+const reais = v => 'R$ ' + (v < 10 ? v.toFixed(1).replace('.', ',') : fmt(v)) + '/s';
 
-export function initRoundEnd() {
+// hooks: onExtend (aditivo assinado), onNext (começar a próxima obra)
+export function initRoundEnd(h = {}) {
   if (!FLAGS.viva) return;
-  $('reGo').onclick = () => {
-    $('roundEnd').hidden = true;
-    openSkills();
-    $('skBoard').classList.remove('fold'); // o quadro aparece aberto, mesmo no celular
+  hooks = h;
+  $('reMore').onclick = () => {
+    if (!extendRound()) return;
+    $('roundEnd').hidden = true; shown = '';
+    followBuild();
+    hooks.onExtend?.();
   };
+  $('reNew').onclick = () => {
+    endRound(); save();
+    checkRoundEnd();
+  };
+  $('reGo').onclick = () => hooks.onNext?.();
 }
 
 // troca de espaço: o próximo placar abre de novo, mesmo que o outro espaço também esteja no fim da obra
-export const resetRoundEnd = () => { shown = false; };
+export const resetRoundEnd = () => { shown = ''; };
+
+function stats(rows) {
+  $('reStats').innerHTML = rows.map(([k, v, cls]) => `<span>${k}</span><b class="${cls || ''}">${v}</b>`).join('');
+}
 
 export function checkRoundEnd() {
   if (!FLAGS.viva) return;
-  if (!S.roundOver) { shown = false; $('roundEnd').hidden = true; return; }
-  if (shown) return;
-  shown = true;
+  if (!S.roundOver) { shown = ''; $('roundEnd').hidden = true; return; }
+  if (fotoT && V.t > fotoT) { fotoT = 0; guardarFotoTorre(S.obra || 1); } // foto da torre inteira para o portfólio
+  const estado = S.roundPaid ? 'entregue' : 'ano';
+  if (shown === estado) return;
+  shown = estado;
   if (!isOverview()) toggleOverview();
-  const rec = S.maxAlt > (S.lastBest || 0);
-  $('reTitle').textContent = `Obra nº ${S.obra || 1} · ${city().n}`;
-  $('reStats').innerHTML = `<span>Altura</span><b>${fmtM(S.maxAlt)}</b>`
-    + `<span>Recorde</span><b class="${rec ? 'rec' : ''}">${rec ? 'Novo recorde!' : fmtM(S.lastBest || 0)}</b>`
-    + `<span>★ ganhas</span><b>+${fmt(pointsFor(S.maxAlt))}</b>`
-    + `<span>Reputação</span><b>+${fmt(Math.round(VIVA.prestige.rep * (S.pontosTotal || 0) * 100))}%</b>`;
+  const nx = nextCity().n, obra = `Obra nº ${S.obra || 1} · ${city().n}`;
+  $('reChoice').hidden = estado !== 'ano';
+  $('reGoRow').hidden = estado !== 'entregue';
+  if (estado === 'ano') {
+    const rec = S.maxAlt > (S.bestAlt || 0), meta = metaAlt(), got = pointsFor(S.maxAlt), tot = S.pontosTotal || 0;
+    $('reKind').textContent = 'FIM DO PRAZO';
+    $('reTitle').textContent = obra;
+    stats([['Altura', fmtM(S.maxAlt)], ['Prazo', `dia ${roundDay()} de ${roundDays()}`],
+      ['Meta do contrato', S.maxAlt >= meta ? 'batida' : `${fmtM(meta)} (não batida)`, S.maxAlt >= meta ? 'rec' : ''],
+      ['Recorde', rec ? 'Novo recorde!' : fmtM(S.bestAlt || 0), rec ? 'rec' : '']]);
+    $('reMoreTxt').innerHTML = `Mais 365 dias nesta obra.<br>A torre segue de ${fmtM(S.maxAlt)}.<br>A Reputação só vem na entrega.`;
+    $('reNewTitle').textContent = nx.toUpperCase();
+    $('reNewTxt').innerHTML = `${nx} viu a torre de ${city().n} e quer uma ainda mais alta.<br>`
+      + `Entrega agora: <b>Reputação ${fmtPct(repPct(tot))} → ${fmtPct(repPct(tot + got))}</b><br>`
+      + `${city().n} paga <b>${reais(admTaxa(S.maxAlt))}</b> para sempre`;
+    $('reNew').textContent = `Aceitar o contrato de ${nx}`;
+    $('reRank').hidden = true;
+  } else {
+    const rec = S.maxAlt > (S.lastBest || 0), t = (S.torres || []).at(-1), early = Math.round((S.lastEarly || 0) * 100);
+    $('reKind').textContent = 'OBRA ENTREGUE';
+    $('reTitle').textContent = obra;
+    stats([['Altura', fmtM(S.maxAlt)], ['Entregue', `dia ${t ? t.dia : roundDay()} de ${roundDays()}`],
+      ['Recorde', rec ? 'Novo recorde!' : fmtM(S.lastBest || 0), rec ? 'rec' : ''],
+      ['Reputação ganha', fmtPct(repPct(S.lastGot || 0)) + (early ? ` (com +${early}% de antecipação)` : '')],
+      ['Reputação total', fmtPct(repPct(S.pontosTotal || 0))],
+      ['Paga para sempre', reais(t ? t.taxa : admTaxa(S.maxAlt))]]);
+    $('reGo').textContent = `Começar a obra em ${nx}`;
+    fotoT = V.t + 1.2; // espera a câmera mostrar a torre inteira
+    rankNoPlacar(); // apelido (1ª vez) ou envio dos recordes
+  }
   $('roundEnd').hidden = false;
-  rankNoPlacar(); // apelido (1ª vez) ou envio dos recordes
 }

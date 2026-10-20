@@ -7,12 +7,38 @@ import { CITIES, cityOf } from '../data/cities.js';
 import { S, fresh, setState, save, saveKey } from './state.js';
 
 // o que passa de uma obra para a outra
-const KEEP = ['obra', 'cidade', 'pontosTotal', 'bestAlt', 'won', 'winSeen', 'introSeen', 'playTime', 'marcos', 'mgr', 'dicas', 'altTotal', 'orbitaSec', 'rank'];
+const KEEP = ['obra', 'cidade', 'pontosTotal', 'bestAlt', 'won', 'winSeen', 'introSeen', 'playTime', 'marcos', 'mgr', 'dicas', 'altTotal', 'orbitaSec', 'rank', 'jornais', 'torres'];
 
+// Reputação na tela (decisão do usuário, 20/10/2026: sem ★): os pontos internos (S.pontosTotal, pointsFor) só aparecem
+// como porcentagem, VIVA.prestige.rep por ponto
+export const repPct = pts => Math.round(VIVA.prestige.rep * 100 * (pts || 0) * 1e6) / 1e6;
 export const pointsFor = alt => alt <= 0 ? 0 : Math.max(1, Math.floor(VIVA.prestige.k * Math.pow(alt / 1000, VIVA.prestige.pow)));
-export const canDeliver = () => FLAGS.viva && !S.roundOver && S.maxAlt > 0;
+export const metaAlt = () => Math.min(VIVA.winAlt, Math.max(VIVA.meta.rec * (S.bestAlt || 0), VIVA.meta.piso * Math.pow(VIVA.meta.cresce, (S.obra || 1) - 1)));
+export const canDeliver = () => FLAGS.viva && !S.roundOver && S.maxAlt > 0 && S.maxAlt >= metaAlt();
+// bônus de antecipação (fração): só antes do fim do prazo, pelos dias que sobram
+export const earlyBonus = () => FLAGS.viva && !S.roundOver ? VIVA.meta.bonus * (1 - roundFrac()) : 0;
+export const deliverPoints = () => Math.round(pointsFor(S.maxAlt) * (1 + earlyBonus()));
 export const city = () => cityOf(S.cidade || 0);
 export const nextCity = () => cityOf((S.cidade || 0) + 1);
+// dia da obra (decisão do usuário, out/2026): os 20 min de relógio aparecem como um contrato de 365 dias,
+// contando do dia 1 ao 365; roundFrac é a parte do prazo já passada (0–1), para a barrinha
+// com aditivos (S.anos), o prazo soma 365 dias por ano e o dia continua contando (366, 367…)
+const anos = () => Math.max(1, S.anos || 1);
+export const roundDays = () => VIVA.round.dias * anos();
+export const roundSecs = () => VIVA.round.secs * anos() - (S.roundLeft || 0); // tempo de jogo desta obra (ranking)
+export const roundFrac = () => Math.min(1, Math.max(0, roundSecs() / (VIVA.round.secs * anos())));
+export const roundDay = () => Math.min(roundDays(), 1 + Math.floor(roundFrac() * roundDays()));
+// taxa de administração que uma torre entregue paga por segundo, para sempre
+export const admTaxa = alt => alt > 0 ? VIVA.adm.k * Math.pow(alt / 1000, VIVA.adm.pow) : 0;
+export const admTotal = () => FLAGS.viva ? (S.torres || []).reduce((a, t) => a + (t.taxa || 0), 0) : 0;
+// fim do ano (o prazo venceu e a obra parou, ainda sem entregar): dá para assinar o aditivo de mais 365 dias
+export const canExtend = () => FLAGS.viva && S.roundOver && !S.roundPaid;
+export function extendRound() {
+  if (!canExtend()) return false;
+  S.anos = anos() + 1; S.roundLeft = VIVA.round.secs; S.roundOver = false;
+  save();
+  return true;
+}
 
 // Reputação (só Reputação): cada ★ já ganha soma VIVA.prestige.rep em tudo ('prod', 'tran', 'lay', 'rent', 'tour'); 'offline' = 0
 export function boardMult(st) {
@@ -25,17 +51,20 @@ export const cityMult = st => (FLAGS.viva && city().mods[st]) || 1;
 // fim da rodada (relógio zerou ou entrega antecipada): credita as ★ uma vez e congela a obra
 export function endRound() {
   if (!FLAGS.viva || S.roundPaid) return 0;
-  const got = pointsFor(S.maxAlt);
+  const got = deliverPoints(); S.lastEarly = earlyBonus(); S.lastGot = got; // o placar mostra
   S.pontosTotal = (S.pontosTotal || 0) + got;
   S.altTotal = (S.altTotal || 0) + S.maxAlt; // recorde total = soma das alturas das obras
   S.lastBest = S.bestAlt || 0; // recorde antes desta rodada (o placar mostra "Novo recorde!")
   S.bestAlt = Math.max(S.bestAlt || 0, S.maxAlt);
+  // a torre fica de pé na cidade e entra no portfólio, pagando a taxa de administração nas próximas obras
+  S.torres = [...(S.torres || []), { obra: S.obra || 1, cidade: city().n, alt: S.maxAlt, dia: roundDay(), taxa: admTaxa(S.maxAlt) }];
   S.roundOver = true; S.roundPaid = true;
   return got;
 }
 // próxima rodada: guarda o save antigo e recomeça na próxima cidade com os bônus de partida do quadro
 export function startNextRound() {
   if (!FLAGS.viva || !S.roundOver) return;
+  if (!S.roundPaid) endRound(); // fim do ano sem escolher: aceitar o contrato da próxima cidade é entregar esta
   try { localStorage.setItem(saveKey() + '-obra-' + S.obra, JSON.stringify(S)); } catch (e) { }
   const keep = {};
   for (const k of KEEP) keep[k] = S[k];

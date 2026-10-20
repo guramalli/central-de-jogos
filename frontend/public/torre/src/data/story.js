@@ -4,13 +4,15 @@ export const COMPANY = 'J. Santos';
 
 // cam: 'descend' (do céu até o terreno), 'ground' (térreo), 'rise' (sobe pelas eras até a Órbita), 'fans' (curiosos no tapume)
 // dur: segundos até passar sozinho (0 = espera o botão)
+// A história (revista com o usuário, out/2026): uma construtora pequena ganha o primeiro contrato — 365 dias, meta de
+// 100 m — e cada torre entregue leva a fama da J. Santos a outra cidade, com uma obra mais alta, até a Órbita.
 export const INTRO = [
-  { cam: 'descend', dur: 6, kicker: 'PRAIA GRANDE · 2026', text: 'Um terreno vazio na orla. Por enquanto.' },
+  { cam: 'descend', dur: 6, kicker: 'PRAIA GRANDE · 2026', text: 'Um terreno vazio na orla. E uma construtora pequena com um sonho grande.' },
   { cam: 'ground', dur: 7.5, kicker: `CONSTRUTORA ${COMPANY.toUpperCase()}`,
-    text: `A Construtora ${COMPANY} anunciou o projeto mais ousado da história: uma torre que não para de subir.`,
-    clips: ['Loucura ou gênio?', 'Engenheiros dizem que é impossível', `Torre da ${COMPANY} vira notícia no mundo todo`] },
-  { cam: 'rise', dur: 7.5, kicker: 'ATÉ ONDE?', text: 'Pressão, frio, gravidade… ninguém sabe o que existe lá em cima. Nós vamos descobrir.' },
-  { cam: 'fans', dur: 0, kicker: 'O MUNDO ESTÁ DE OLHO', text: 'E os primeiros turistas já chegaram para ver o começo da obra.', cheque: true },
+    text: `A prefeitura de Praia Grande deu à ${COMPANY} o primeiro contrato: 365 dias para erguer uma torre de pelo menos 100 metros.`,
+    clips: ['Construtora pequena ganha contrato na orla', 'Prazo: 365 dias. Meta: 100 metros', `Dono da ${COMPANY} promete: "um dia, a Órbita"`] },
+  { cam: 'rise', dur: 7.5, kicker: 'O SONHO', text: 'Cada torre entregue leva a fama da construtora a outra cidade, com uma obra ainda mais alta. Pressão, frio, gravidade… até a Órbita.' },
+  { cam: 'fans', dur: 0, kicker: 'DIA 1 DE 365', text: 'Os curiosos já estão no tapume. Com o adiantamento da prefeitura, a obra começa hoje.', cheque: true },
 ];
 
 // manchete quando a torre entra numa era (a Órbita fecha a história na tela de parabéns)
@@ -78,3 +80,32 @@ export const DISCOVERY = {
   leilao: 'Coberturas vendidas em leilão para o mundo todo',
   condominioOrbital: 'O primeiro condomínio de luxo no espaço',
 };
+
+// Capa de jornal nos marcos de andares (decisão do usuário, out/2026): 100, 500, 1.000 e depois a cada 1.000.
+// Cada marco sai uma vez só na campanha (S.jornais); se passar de vários de uma vez, a capa é do maior.
+export const ehMarcoJornal = n => n === 100 || n === 500 || (n >= 1000 && n % 1000 === 0);
+export function proximoJornal(andares, vistos) {
+  const v = new Set(vistos);
+  let melhor = null;
+  for (const n of [100, 500]) if (andares >= n && !v.has(n)) melhor = n;
+  for (let n = 1000; n <= andares; n += 1000) if (!v.has(n)) melhor = n;
+  return melhor;
+}
+const fmtN = n => n.toLocaleString('pt-BR');
+export function manchete(n, cidade) {
+  if (n === 100) return `Construtora ${COMPANY} chega a 100 andares numa torre que desafia as leis da física`;
+  if (n === 500) return `500 andares! Engenheiros do mundo inteiro vêm a ${cidade} ver a torre da ${COMPANY}`;
+  if (n === 1000) return `Mil andares: a torre da ${COMPANY} já é a obra mais alta da história`;
+  const t = [
+    `${fmtN(n)} andares: a Construtora ${COMPANY} não para de subir`,
+    `${fmtN(n)} andares em ${cidade}: cientistas ainda tentam explicar como a torre fica de pé`,
+    `Torre da ${COMPANY} passa de ${fmtN(n)} andares e vizinhos já usam binóculo para ver o topo`,
+    `Marco histórico: ${fmtN(n)} andares na torre da Construtora ${COMPANY}`,
+  ];
+  return t[(n / 1000) % t.length];
+}
+// marcos do mundo real: só uma marca na régua de altura da tela (sem jornal)
+export const MARCOS_MUNDO = [
+  { m: 165, n: 'Edifício Itália' }, { m: 330, n: 'Torre Eiffel' }, { m: 828, n: 'Burj Khalifa' },
+  { m: 8849, n: 'Everest' }, { m: 10500, n: 'Altura dos aviões' }, { m: 100000, n: 'Linha de Kármán' }, { m: 408000, n: 'Estação Espacial' },
+];

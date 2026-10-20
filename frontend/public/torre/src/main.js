@@ -8,7 +8,7 @@ import { updateView, render, resetMilestones } from './render/scene.js';
 import { H, setW } from './data/constants.js';
 import { ctxMain } from './render/canvas.js';
 import { updateUI, setNotice } from './ui/panel.js';
-import { fmt } from './ui/format.js';
+import { fmt, fmtPct } from './ui/format.js';
 import { closeMap, initMap } from './ui/talentMap.js';
 import { $ } from './ui/dom.js';
 import { initSkills, tickSkills, skillsOpen, closeSkills } from './ui/skills.js';
@@ -19,12 +19,13 @@ import { syncEvents, recent } from './render/events.js';
 import { initEffects } from './render/effects.js';
 import { soundOn, setSound } from './ui/audio.js';
 import { initIntro, introActive, startIntro, showNews, clearNews } from './ui/intro.js';
-import { endRound, startNextRound, city } from './sim/prestige.js';
+import { endRound, startNextRound, city, metaAlt, roundDays, roundDay, repPct } from './sim/prestige.js';
 import { initRoundEnd, checkRoundEnd, resetRoundEnd } from './ui/roundEnd.js';
 import { initOffers, updateOffers, resetOffers } from './ui/offers.js';
 import { initCoach, dropTip } from './ui/coach.js';
 import { initHome, openHome, closeHome, homeOpen } from './ui/home.js';
 import { initTutorial, openTutorial } from './ui/tutorial.js';
+import { initJornal, checkJornal, drawArquivo } from './ui/jornal.js';
 import { initRanking, openRanking, pedirFicha, sairDoRanking, definirApelido, rankTick, esquecerJogador } from './ui/ranking.js';
 import { initTips, updateTips, setTips, tickTips } from './ui/tips.js';
 import { initMilestones } from './ui/milestones.js';
@@ -74,7 +75,7 @@ function tick(real) {
   if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
   tickTips(); // o quadro da dica acompanha o alvo
   if (FLAGS.viva && !introActive() && !homeOpen()) S.playTime = (S.playTime || 0) + dt * speed;
-  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); updateOffers(); updateTips(); rankTick(); }
+  uiT += dt; if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); updateOffers(); updateTips(); rankTick(); checkJornal(homeOpen() || introActive()); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -103,23 +104,32 @@ for (const rs of [$('reset'), $('skReset')]) {
   };
 }
 
-// Prestígio "Nova obra": entregar a torre (dois cliques) e recomeçar na próxima cidade com os bônus do quadro
+// Entrega e próxima obra: a obra entregue (pela carta da próxima cidade no fim do ano, ou antes do prazo depois da
+// meta, com dois cliques) recomeça na cidade seguinte; o aditivo continua na mesma torre (ui/roundEnd.js)
+function startNext() {
+  if (!S.roundOver) return;
+  const got = S.pontosTotal;
+  startNextRound(); pedirFicha(); // ficha do ranking para a obra nova
+  setNotice(null); resetView(); resetMilestones(); syncEvents(); followBuild(); syncCameraButtons(); closeSkills(); updateUI();
+  checkRoundEnd(); clearNews();
+  const mg = Object.values(VIVA.board).find(b => b.obra === S.obra); // gerente que chega nesta obra
+  showNews('JORNAL DA OBRA', `Construtora J. Santos começa a obra nº ${S.obra} em ${cityName()} (Reputação ${fmtPct(repPct(got))}). Prazo: 365 dias` + (mg ? `. Chega o ${mg.n}: ${mg.d.charAt(0).toLowerCase() + mg.d.slice(1)}` : ''));
+}
 {
   const dv = $('skDeliver'), disarm = () => dv.classList.remove('armed');
   dv.onclick = () => {
-    if (S.roundOver) { // depois do placar e do quadro: começa a próxima rodada na cidade seguinte
-      const got = S.pontosTotal;
-      startNextRound(); pedirFicha(); // ficha do ranking para a obra nova
-      setNotice(null); resetView(); resetMilestones(); syncEvents(); followBuild(); syncCameraButtons(); closeSkills(); updateUI();
-      clearNews();
-      const mg = Object.values(VIVA.board).find(b => b.obra === S.obra); // gerente que chega nesta obra
-      showNews('JORNAL DA OBRA', `Construtora J. Santos começa a obra nº ${S.obra} em ${cityName()} (${got} ★ na história da empresa)` + (mg ? `. Chega o ${mg.n}: ${mg.d.charAt(0).toLowerCase() + mg.d.slice(1)}` : ''));
-      return;
-    }
-    if (!dv.classList.contains('armed')) { dv.classList.add('armed'); dv.textContent = 'Confirmar: entregar esta obra'; setTimeout(disarm, 3000); return; }
+    if (S.roundOver) { if (S.roundPaid) startNext(); return; }
+    if (dv.disabled) return;
+    if (!dv.classList.contains('armed')) { dv.classList.add('armed'); dv.textContent = 'Confirmar: entregar antes do prazo'; setTimeout(disarm, 3000); return; }
     disarm();
-    endRound(); closeSkills(); checkRoundEnd(); updateUI(); // entrega antecipada: mesmo placar do fim do relógio
+    endRound(); closeSkills(); checkRoundEnd(); updateUI(); // entrega antecipada: placar da obra entregue
   };
+}
+// meta do contrato: manchete uma vez por obra quando a torre passa dela
+function checkMeta() {
+  if (!FLAGS.viva || S.metaOk || S.roundOver || S.maxAlt < metaAlt()) return;
+  S.metaOk = true;
+  showNews('JORNAL DA OBRA', `Meta do contrato batida no dia ${roundDay()}! A J. Santos já pode entregar a torre de ${cityName()} antes do prazo, com bônus`);
 }
 
 // Fim de jogo (Obra Viva): na primeira vez que a torre chega à Órbita, faixa na cena e tela de parabéns
@@ -146,14 +156,17 @@ if (FLAGS.viva) {
   // abertura com a história (partida nova); não roda nos testes automáticos (?test=1 ou navegador controlado)
   initIntro({ test: TEST || navigator.webdriver, auto: false });
   initMilestones();
-  initRoundEnd();
+  initRoundEnd({
+    onNext: startNext,
+    onExtend: () => { updateUI(); syncCameraButtons(); showNews('JORNAL DA OBRA', `Aditivo assinado: a J. Santos fica mais 365 dias em ${cityName()}. Novo prazo: dia ${roundDays()}`); },
+  });
   initOffers();
   initCoach(); initTips({ test: TEST || navigator.webdriver });
   // página de Início: trocar de espaço limpa a cena (como o Recomeçar, sem apagar); partida nova abre a história
   const onSwitch = () => { dropTip(); clearNews(); resetRoundEnd(); resetOffers(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeSkills(); updateUI(); };
   initTutorial({ play: () => document.getElementById('hmContinue').click() }); // "Jogar" = Continuar/Novo jogo
-  initRanking();
-  initHome({ onSwitch: () => { onSwitch(); pedirFicha(); }, onHowto: openTutorial, onRanking: openRanking, onRankLeave: sairDoRanking, onRankJoin: definirApelido, onSound: () => syncSnd(),
+  initRanking(); initJornal();
+  initHome({ onSwitch: () => { onSwitch(); pedirFicha(); }, onHowto: openTutorial, onRanking: openRanking, onRankLeave: sairDoRanking, onRankJoin: definirApelido, onSound: () => syncSnd(), onJornais: drawArquivo,
     onForget: esquecerJogador, // apagar um espaço tira o apelido daquele jogador do ranking
     onNewGame: () => { if (!(TEST || navigator.webdriver)) startIntro(false); } }); // nos testes, sem abertura
   $('skHome').onclick = () => { closeSkills(); openHome(); };

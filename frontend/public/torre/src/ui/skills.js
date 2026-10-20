@@ -14,11 +14,11 @@ import { W } from '../data/constants.js';
 import { setViewInset } from '../render/camera.js';
 import { V } from '../render/view.js';
 import { $, setText, setHTML } from './dom.js';
-import { fmt, fmtM } from './format.js';
+import { fmt, fmtM, fmtPct } from './format.js';
 import { iconSprite, badgeSprite, lockSprite } from './icons.js';
 import { iconURL } from '../render/assets.js';
 import { VIVA } from '../data/viva.js';
-import { canDeliver, pointsFor, city, nextCity } from '../sim/prestige.js';
+import { canDeliver, pointsFor, city, nextCity, metaAlt, deliverPoints, earlyBonus, repPct } from '../sim/prestige.js';
 import { managerOn, setManager, hasManager, managerArrives } from '../sim/managers.js';
 import { spriteDataURL } from '../render/sprites.js';
 
@@ -254,7 +254,7 @@ svg.addEventListener('wheel', e => { e.preventDefault(); userMoved = true; const
 new ResizeObserver(() => { if (!overlay.hidden && !userMoved) fit(); }).observe(svg);
 
 // ---------- atualização ----------
-// faixa "Construtora J. Santos" (só Reputação): ★ ganhas no total, Reputação e os gerentes, que chegam um por obra
+// faixa "Construtora J. Santos" (só Reputação): Reputação e os gerentes, que chegam um por obra
 let boardBuilt = false;
 function buildBoard() {
   const row = $('skBoardRow'); row.innerHTML = '';
@@ -271,14 +271,16 @@ function buildBoard() {
 }
 function updateBoard() {
   $('skBoard').hidden = false;
-  // rodada encerrada: o botão começa a próxima obra; em andamento: entrega antes (dois cliques)
+  // obra entregue: o botão começa a próxima obra; no fim do ano a escolha fica no placar; em andamento: entrega antes
+  // do prazo (dois cliques) só depois da meta do contrato, com o bônus de antecipação
   const dv = $('skDeliver');
-  dv.hidden = !S.roundOver && !canDeliver();
-  if (S.roundOver) setText(dv, `Começar a próxima obra → ${nextCity().n}`);
-  else if (!dv.hidden && !dv.classList.contains('armed')) setText(dv, `Entregar a obra (+${pointsFor(S.maxAlt)} ★)`);
+  dv.hidden = S.roundOver && !S.roundPaid;
+  dv.disabled = !S.roundOver && !canDeliver();
+  if (S.roundOver) setText(dv, `Começar a obra em ${nextCity().n}`);
+  else if (dv.disabled) setText(dv, `Meta do contrato: ${fmtM(metaAlt())} · faltam ${fmtM(Math.max(0, metaAlt() - S.maxAlt))}`);
+  else if (!dv.classList.contains('armed')) setText(dv, `Entregar antes: ${fmtPct(repPct(deliverPoints()))} de Reputação (com bônus)`);
   if (!boardBuilt) buildBoard();
-  setText($('skPts'), `★ ${fmt(S.pontosTotal || 0)} ganhas`);
-  setText($('skRep'), `Reputação +${fmt(Math.round(VIVA.prestige.rep * (S.pontosTotal || 0) * 100))}%`);
+  setText($('skRep'), `Reputação ${fmtPct(repPct(S.pontosTotal || 0))}`);
   setText($('skObra'), `Obra nº ${S.obra || 1} · ${city().n}`);
   for (const c of $('skBoardRow').children) {
     const b = VIVA.board[c.dataset.k], bt = c.querySelector('button'), own = hasManager(b.mgr), on = own && managerOn(b.mgr);

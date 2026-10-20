@@ -6,7 +6,8 @@ import { cityOf } from '../data/cities.js';
 import { FLAGS } from '../data/flags.js';
 import { cfg, setCfg } from './config.js';
 import { setSound, setVolume } from './audio.js';
-import { fmtM } from './format.js';
+import { fmtM, fmtPct } from './format.js';
+import { repPct } from '../sim/prestige.js';
 import { dropTip } from './coach.js';
 
 const $ = id => document.getElementById(id);
@@ -22,7 +23,8 @@ const resumo = r => `Obra nº ${r.obra} · ${cityOf(r.cidade).n} · recorde ${fm
 
 function show(panel) {
   $('hmMain').hidden = !!panel;
-  for (const id of ['hmSlotsP', 'hmCfgP']) $(id).hidden = id !== panel;
+  for (const id of ['hmSlotsP', 'hmCfgP', 'hmJornaisP']) $(id).hidden = id !== panel;
+  if (panel === 'hmJornaisP') hooks.onJornais?.();
   if (panel === 'hmSlotsP') drawSlots();
   if (panel === 'hmCfgP') drawCfg();
 }
@@ -38,7 +40,7 @@ function drawSlots() {
   for (const n of [1, 2, 3]) {
     const r = slotSummary(n), d = document.createElement('div');
     d.className = 'hm-slot' + (n === activeSlot() ? ' on' : ''); d.dataset.n = n;
-    d.innerHTML = `<b>Espaço ${n}</b><span>${r ? `${resumo(r)} · ${r.pontosTotal} ★ · ${ago(r.last)}` : 'Vazio'}</span>
+    d.innerHTML = `<b>Espaço ${n}</b><span>${r ? `${resumo(r)} · Reputação ${fmtPct(repPct(r.pontosTotal))} · ${ago(r.last)}` : 'Vazio'}</span>
       <div class="hm-acts"><button class="hm-btn hm-small hm-play">${r ? 'Jogar' : 'Novo jogo'}</button>${r ? '<button class="hm-btn hm-small hm-danger hm-del">Apagar</button>' : ''}</div>`;
     d.querySelector('.hm-play').onclick = () => play(n);
     const del = d.querySelector('.hm-del');
@@ -93,6 +95,7 @@ export function initHome(h = {}) {
   $('hmContinue').onclick = () => play(activeSlot());
   $('hmSlots').onclick = () => show('hmSlotsP');
   $('hmCfg').onclick = () => show('hmCfgP');
+  $('hmJornais').onclick = () => show('hmJornaisP');
   $('hmHowto').onclick = () => hooks.onHowto?.();
   $('hmRank').onclick = () => hooks.onRanking?.();
   for (const b of document.querySelectorAll('#home [data-back]')) b.onclick = () => show(null);

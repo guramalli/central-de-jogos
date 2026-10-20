@@ -53,6 +53,10 @@ export function fresh() {
     roundLeft: FLAGS.viva ? VIVA.round.secs : 0, roundOver: false, roundPaid: false, mgr: {}, mgrPool: 0,
     offers: [], perks: [], marksDone: 0, rushLeft: 0, // contratos de altura da rodada (sim/contracts.js)
     dicas: {},                    // dicas para quem começa já vistas (ui/tips.js)
+    jornais: [],                  // capas de jornal dos marcos de andares já noticiados (ui/jornal.js)
+    torres: [],                   // torres entregues { obra, cidade, alt, dia, taxa }: portfólio e taxa de administração
+    metaOk: false,                // a torre já passou da meta do contrato nesta obra (manchete uma vez)
+    anos: 1,                      // anos de contrato desta obra (cada aditivo soma 1: mais 365 dias)
   };
 }
 
@@ -134,7 +138,7 @@ export function importSave(texto, n) {
   if (!o || typeof o !== 'object' || !okNum(o.ver) || !o.lv || typeof o.lv !== 'object' || !okNum(o.floors) || !okNum(o.money) || (o.obra != null && !okNum(o.obra)) || (o.roundLeft != null && !okNum(o.roundLeft)))
     return { ok: false, erro: 'O arquivo não é um save da Torre Infinita.' };
   if (o.ver > SAVE_VERSION) return { ok: false, erro: 'Esse save é de uma versão mais nova do jogo.' };
-  if (FLAGS.viva && o.ver < 5) return { ok: false, erro: 'Esse save é de uma versão antiga do jogo (antes das obras de 20 minutos) e não pode ser importado.' };
+  if (FLAGS.viva && o.ver < 5) return { ok: false, erro: 'Esse save é de uma versão antiga do jogo (antes dos contratos de 365 dias) e não pode ser importado.' };
   const antes = lsGet(keyOf(n)); if (antes) lsSet(keyOf(n) + '-antes-importar', antes); // cópia do que havia no espaço
   lsSet(keyOf(n), JSON.stringify(o));
   if (n === activeSlot()) load();

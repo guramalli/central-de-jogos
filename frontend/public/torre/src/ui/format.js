@@ -16,3 +16,6 @@ export function fmtM(m) {
     ? Math.floor(m) + ' m'
     : (m / 1000).toFixed(m < 1e4 ? 2 : m < 1e6 ? 1 : 0).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' km';
 }
+
+// porcentagem de Reputação: sempre por extenso, com milhar (+1.534%), nunca abreviada
+export const fmtPct = v => '+' + Math.round(v || 0).toLocaleString('pt-BR') + '%';

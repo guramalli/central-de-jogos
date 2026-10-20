@@ -16,6 +16,7 @@ import { updateBusiness, businessAlert } from './business.js';
 import { updateMap, mapOpen, openMap } from './talentMap.js';
 import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
+import { roundDay, roundFrac, roundDays } from '../sim/prestige.js';
 import { phaseAt, PHASES } from '../render/construction.js';
 import { updateSkills, anyToBuy } from './skills.js';
 
@@ -78,16 +79,18 @@ function updateHud() {
   setText($('hFloor'), fmt(fl + 1));
   setText($('hAlt'), fmtM(altOf(S.floors)));
   setText($('hMoney'), 'R$ ' + fmt(S.money));
-  const left = Math.ceil(S.roundLeft || 0); // relógio da rodada (mm:ss), âmbar no último minuto
-  const clk = `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`;
-  for (const id of ['hClock', 'skClock']) setText($(id), clk); // a placa some com a árvore aberta no computador; a árvore tem o seu
+  // dia da obra (contrato de 365 dias por cima dos 20 min), com a barrinha do prazo; âmbar no último minuto real (~18 dias)
+  const left = Math.ceil(S.roundLeft || 0), dia = roundDay(), dias = roundDays();
+  setText($('hClock'), String(dia)); setText($('hClockOf'), `de ${dias}`);
+  setText($('skClock'), `Dia ${dia} de ${dias}`); // a placa some com a árvore aberta no computador; a árvore tem o seu
+  const w = (roundFrac() * 100).toFixed(1) + '%'; if ($('hClockBar').style.width !== w) $('hClockBar').style.width = w;
   $('hPlateClock').classList.toggle('warn', left <= 60); $('skClock').classList.toggle('warn', left <= 60);
   updateSummary();
   $('openUp').querySelector('.dot').hidden = !anyToBuy();
   $('openUp').classList.toggle('alert', isCapped(rates()) || !!S.roundOver); // obra parada (limite da fundação ou rodada encerrada): o botão pulsa
   updateSkills();
   if (mapOpen()) updateMap();
-  setText($('skSave'), 'Salvo neste navegador · o relógio da obra para quando você sai.');
+  setText($('skSave'), 'Salvo neste navegador · os dias da obra só passam com o jogo aberto.');
 }
 
 export function updateUI() {
