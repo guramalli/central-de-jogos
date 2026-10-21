@@ -10,6 +10,7 @@ import { art } from '../render/assets.js';
 import { FH, TW, TL } from '../data/constants.js';
 import { cam, setIntroCam } from '../render/camera.js';
 import { showNews } from './intro.js';
+import { cfg } from './config.js';
 import { fmt, fmtM, fmtPct } from './format.js';
 import { sfx, tickClima } from './audio.js';
 
@@ -132,8 +133,9 @@ export function tickRisco(paused, bloqueado) {
       if (e.tipo === 'fiscal' && e.falta > 0) sfx('apito');
       if (e.tipo === 'seguro') showNews('SEGURO DE OBRA', 'O seguro segurou a torre de pé com 1 de integridade. Ele não vale de novo nesta torre.');
       else if (!AMEACAS[e.tipo]) continue;
-      else if (e.tipo === 'fiscal') showNews('MINISTÉRIO DO TRABALHO', e.falta > 0 ? `Obra embargada: a fiscalização exigia Segurança do trabalho ${segExigida()}. Obra parada e multa no caixa.` : 'Fiscalização aprovou a obra: equipamentos de segurança em dia.');
-      else if (!S.colapso) showNews('DANO NA ESTRUTURA', `${nomeAmeaca(e.tipo)}: −${e.dano} de integridade. Quem protege: ${defesa(e.tipo)}.`);
+      else if (e.tipo === 'fiscal' && e.falta > 0) showNews('MINISTÉRIO DO TRABALHO', `Obra embargada: a fiscalização exigia Segurança do trabalho ${segExigida()}. Obra parada e multa no caixa.`);
+      else if (e.tipo === 'fiscal') ensina('fiscal:ok', 'MINISTÉRIO DO TRABALHO', 'Fiscalização aprovou a obra: equipamentos de segurança em dia.');
+      else if (!S.colapso) ensina('dano:' + e.tipo, 'DANO NA ESTRUTURA', `${nomeAmeaca(e.tipo)}: −${e.dano} de integridade. Quem protege: ${defesa(e.tipo)}.`);
     }
     ultimoLog = s.log.length;
   }
@@ -177,6 +179,12 @@ export function tickRisco(paused, bloqueado) {
 const fimQueda = () => { fall = null; pararQueda(); setIntroCam(null); }; // a câmera volta a seguir a obra
 export const resetRisco = () => { fimQueda(); ultimoLog = riscoState().log.length; guardar = null; interdVista = null; $('rkOver').hidden = true; $('rkAno').hidden = true; $('rkInterd').hidden = true; };
 
+// avisos que ensinam (dano de cada intempérie, fiscalização aprovada): só na 1ª vez de cada tipo e só com as dicas ligadas
+// (pedido do usuário, 21/10/2026: o aviso de dano aparecia a cada golpe e só fechava com um toque). O dano continua no aviso do topo.
+function ensina(chave, titulo, txt) {
+  if (cfg().dicas === false || (S.dicas && S.dicas[chave])) return;
+  S.dicas = { ...(S.dicas || {}), [chave]: true }; showNews(titulo, txt);
+}
 // efeitos na cena (a cada quadro, depois de render())
 const VENTO = ['vento', 'furacao', 'ventoAlt'], TREME = ['sismo', 'recalque', 'tsunami'], CLIMA = ['chuva', 'nevasca', 'granizo', 'raios', 'gelo', 'meteoros', 'solar'];
 export function riscoFx(dt, t, mudo = false) {

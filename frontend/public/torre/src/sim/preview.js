@@ -8,7 +8,7 @@ import { eraAt } from '../data/eras.js';
 import { altOf } from '../data/height.js';
 import { sellingNow, saleValueNext } from './realty.js';
 import { FLAGS } from '../data/flags.js';
-import { danoDe, regenAgora, segExigida, faixaDe, AMEACAS } from './risco.js';
+import { danoDe, regenAgora, segExigida, faixaDe, AMEACAS, riscoState } from './risco.js';
 
 export const STAGE_NAME = { prod: 'produção', tran: 'transporte', lay: 'assentamento' };
 const STAGE_OF = { obra: 'lay', forn: 'prod', log: 'tran' };
@@ -77,9 +77,17 @@ export function priorityScore(k) {
 const STAGE_LABEL = { prod: 'Material chegando', tran: 'Material subindo', lay: 'Pedreiros assentando' };
 // modo com risco: o efeito das defesas é o dano (ou a cura, ou a exigência da fiscalização) de agora → depois
 const virg = v => v.toFixed(2).replace('.', ',');
-// a ameaça mais forte que a defesa enfrenta na faixa de altura atual
-const pior = k => faixaDe(S.maxAlt).filter(t => AMEACAS[t].def === k).sort((a, b) => danoDe(b) - danoDe(a))[0];
-const dano = (k, l) => { const t = pior(k); return t ? `Dano de ${AMEACAS[t].n.toLowerCase()}: ~${danoDe(t, l)} → ~${danoDe(t, l + 1)}` : 'Nenhuma ameaça desta defesa nesta altura'; };
+// as ameaças que a defesa enfrenta agora: as da faixa de altura e, perto do limite da fundação, o recalque (pedido do usuário,
+// 21/10/2026: o painel só mostrava o tsunami enquanto o recalque ameaçava); a avisada (ou em andamento) vem primeiro
+function ameacasDe(k) {
+  const lista = faixaDe(S.maxAlt).filter(t => AMEACAS[t].def === k && AMEACAS[t].base);
+  if (k === 'sondagem' && S.floors >= rates().capF * 0.85 && !lista.includes('recalque')) lista.push('recalque');
+  const r = riscoState(), agora = (r.ativa && r.ativa.tipo) || (r.prox && r.prox.tipo);
+  return lista.sort((a, b) => (b === agora) - (a === agora) || danoDe(b) - danoDe(a));
+}
+// pior ameaça da defesa (usada pelo robô e por quem quer só uma)
+const pior = k => ameacasDe(k)[0];
+const dano = (k, l) => { const ts = ameacasDe(k); return ts.length ? ts.map(t => `${AMEACAS[t].n}: ~${danoDe(t, l)} → ~${danoDe(t, l + 1)}`).join('\n') : 'Nenhuma ameaça desta defesa nesta altura'; };
 const DEFESA_EFEITO = {
   contravento: l => dano('contravento', l),
   sondagem: l => dano('sondagem', l),

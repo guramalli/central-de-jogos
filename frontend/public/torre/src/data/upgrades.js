@@ -132,7 +132,7 @@ if (FLAGS.viva) UP.imoveis = { b: 'merc', n: 'Imóveis da era', d: 'Decida o des
 if (FLAGS.risco && UP.maglev) UP.maglev.k = 4;
 if (FLAGS.risco) Object.assign(UP, {
   contravento: { b: 'eng', n: 'Contraventamento', d: 'Treliças em X e amortecedores. Protege de: ventania, furacão e vento de altitude.', base: 120, k: 2.5, icon: 'escoramento' },
-  sondagem: { b: 'eng', n: 'Sondagem e estacas', d: 'Estudo do solo, estacas profundas e quebra-mar. Protege de: terremoto, recalque do solo e tsunami (a Fundação também ajuda).', base: 150, k: 2.5, icon: 'estacas' },
+  sondagem: { b: 'eng', n: 'Sondagem e estacas', d: 'Estudo do solo, estacas profundas e quebra-mar. Protege de: terremoto, recalque do solo e tsunami. Contra o recalque, o que mais ajuda é a Fundação reforçada (afasta a torre do limite).', base: 150, k: 2.5, icon: 'estacas' },
   clima: { b: 'eng', n: 'Proteção climática', d: 'Drenagem, para-raios, lonas, aquecimento e blindagem. Protege de: chuva forte, granizo, raios, nevasca, gelo, meteoros e tempestade solar.', base: 100, k: 2.4, icon: 'pressurizada' },
   seguranca: { b: 'obra', n: 'Segurança do trabalho', d: 'EPIs, redes e treinamento. O Ministério do Trabalho exige mais a cada altura: abaixo do exigido, a obra é embargada e multada.', base: 100, k: 2.0, icon: 'treino' },
   manutencao: { b: 'eng', n: 'Equipe de manutenção', d: 'Recupera a integridade da torre aos poucos, a cada nível.', base: 150, k: 2.5, icon: 'mestre' },
