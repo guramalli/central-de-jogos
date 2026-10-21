@@ -13,6 +13,7 @@ const ctl = {
   userZ: 1,          // zoom escolhido pelo jogador (modo seguir)
   overview: false,   // visão geral ligada
   free: false,       // câmera solta pelo jogador
+  vel: 0, lastTop: null, // velocidade de subida do topo (mundo/s), para a câmera mirar à frente
   idle: 0,           // segundos desde o último toque na câmera livre
   cine: null,        // momento especial em andamento { t, title, sub }
   snap: true,        // próximo quadro pula direto para o alvo
@@ -127,7 +128,13 @@ export function updateCamera(dt, buildTop, topY, zCap = ZMAX, above = 0) {
   const ib = ctl.insetB || 0; // árvore aberta embaixo: o topo da obra sobe para a parte visível (de 40% para ~25% da altura)
   let ty = anchorGround ? (H / 2 - 50) / cam.z : buildTop + above / 2 - (0.1 + 0.28 * ib) * H / cam.z;
   ty = Math.max(ty, (H / 2 - 110) / cam.z); // nunca deixa o chão subir acima de H-110
-  const ky = ctl.snap ? 1 : 1 - Math.exp(-dt * (c || anchorGround ? 4 : 2.5));
+  // obra rápida (pedido do usuário, 21/10/2026: a 255 andares/min o topo sumia da tela): a câmera mira à frente na proporção da
+  // velocidade de subida, então o atraso da perseguição suave some e o topo fica no mesmo lugar da tela
+  const rate = c || anchorGround ? 4 : 2.5;
+  if (ctl.lastTop != null && dt > 0 && !ctl.snap) { const v = (buildTop - ctl.lastTop) / dt; if (Math.abs(v) * cam.z < H * 60) ctl.vel += (v - ctl.vel) * Math.min(1, dt * 3); } else ctl.vel = 0;
+  ctl.lastTop = buildTop;
+  if (!anchorGround && ctl.vel > 0) ty += ctl.vel / rate;
+  const ky = ctl.snap ? 1 : 1 - Math.exp(-dt * rate);
   if (Math.abs(ty - cam.cy) * cam.z > H * 3) cam.cy = ty; // salto grande (carregar save): vai direto
   else cam.cy += (ty - cam.cy) * ky;
   const tx = 30 * Math.min(1, cam.z) + (ctl.insetR || 0) / 2 / cam.z; // árvore aberta à direita: a torre vai para o meio da parte livre
