@@ -5,7 +5,7 @@ import { altOf, floorOf } from '../data/height.js';
 import { ERAS, eraAt } from '../data/eras.js';
 import { VIVA } from '../data/viva.js';
 import { UP } from '../data/upgrades.js';
-import { INTRO, HEADLINES, DISCOVERY, COMPANY, headline } from '../data/story.js';
+import { INTRO, HEADLINES, DISCOVERY, COMPANY, CHEQUE_DE, headline } from '../data/story.js';
 import { city } from '../sim/prestige.js';
 import { S, save } from '../sim/state.js';
 import { setIntroCam } from '../render/camera.js';
@@ -103,7 +103,7 @@ export function initIntro({ test = false, auto = true } = {}) {
   $('news').onclick = () => { clearTimeout($('news')._t); nextNews(); };
   addEventListener('keydown', e => { if (!on) return; if (e.key === 'Escape') finish(); });
   $('inChequeVal').textContent = `R$ ${fmt(VIVA.startMoney)},00`;
-  $('inChequeTo').textContent = `Construtora ${COMPANY}`;
+  $('inChequeTo').textContent = `Construtora ${COMPANY}`; $('inChequeDe').textContent = CHEQUE_DE[0]; $('inChequeSelo').textContent = CHEQUE_DE[1];
   onEvent(e => {
     if (e.type === 'era_unlocked' && HEADLINES[e.era]) showNews('JORNAL DA ORLA', headline(e.era, city().n));
     else if (e.type === 'upgrade_purchased' && e.from === 0 && DISCOVERY[e.k]) showNews(`DESCOBERTA · ${UP[e.k].n.toUpperCase()}`, DISCOVERY[e.k]);

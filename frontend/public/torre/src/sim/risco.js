@@ -1,4 +1,4 @@
-// Modo "Obra Viva com risco" (index.html?risco): uma torre só, em Praia Grande, que precisa sobreviver ano a ano.
+// Modo "Obra Viva com risco" (index.html?risco): uma torre só, em Santa Brisa, que precisa sobreviver ano a ano.
 // A torre tem integridade. De tempos em tempos chega uma ameaça, avisada antes; o dano depende da altura, do ano
 // (cresce sem teto: uma hora a torre cai), do dia do ano e das defesas compradas na árvore. As ameaças mudam com a
 // altura (faixas). Sobreviver aos 365 dias dá Reputação e 1 prêmio à escolha entre 3 (acumulam até a torre cair).
@@ -40,7 +40,7 @@ export const AMEACAS = {
   solar: { n: 'Tempestade solar', base: 20, def: 'clima', grupo: 'clima' },
   fiscal: { n: 'Fiscalização do Ministério do Trabalho', base: 0, def: 'seguranca' },
 };
-// faixas de altura (Praia Grande): cada faixa traz ameaças novas; as de baixo continuam com peso menor
+// faixas de altura (Santa Brisa): cada faixa traz ameaças novas; as de baixo continuam com peso menor
 const FAIXAS = [
   { de: 0, pesos: { chuva: 2.5, vento: 3, sismo: 1 } },
   { de: 1000, pesos: { furacao: 2, tsunami: 1.5, raios: 2, granizo: 1.5 } },
@@ -90,6 +90,7 @@ function sortear() {
 export function riscoTick(dt) {
   const s = st();
   if (S.colapso || s.fimAno) return;
+  S.torreSeg = (S.torreSeg || 0) + dt; // tempo de jogo desta torre (ranking)
   s.integ = Math.min(s.max, s.integ + regenAgora() * dt);
   if (s.embargo > 0) s.embargo = Math.max(0, s.embargo - dt);
   if (s.lento > 0) s.lento = Math.max(0, s.lento - dt);

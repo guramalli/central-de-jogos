@@ -1,4 +1,4 @@
-// Térreo em coordenadas de mundo: orla de Praia Grande, fundação, estoque, caminhão e serventes.
+// Térreo em coordenadas de mundo: orla de Santa Brisa, fundação, estoque, caminhão e serventes.
 // Dividido em fundo (antes da torre) e frente (depois da torre).
 import { W, H, TW, TL, MPF } from '../data/constants.js';
 import { altOf, floorOf, mpfAt } from '../data/height.js';

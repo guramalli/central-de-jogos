@@ -107,7 +107,7 @@ export function tickRisco(paused, bloqueado) {
   if (s.fimAno && an.hidden && !S.colapso && !bloqueado) {
     const g = s.ganhoAno || 0;
     $('rkAnoT').textContent = `ANO ${s.ano} CONCLUÍDO`;
-    $('rkAnoTxt').textContent = `A torre aguentou mais um ano com ${fmtM(S.maxAlt)}. Reputação +${fmtPct(repPct(g))} (total ${fmtPct(repPct(S.pontosTotal || 0))}). A integridade que sobrou (${Math.ceil(s.integ)}) vira reforço: integridade máxima +${s.reforco || 0} no próximo ano. Escolha um prêmio: ele vale até a torre cair.`;
+    $('rkAnoTxt').textContent = `A torre aguentou mais um ano com ${fmtM(S.maxAlt)}. Reputação ${fmtPct(repPct(g))} (total ${fmtPct(repPct(S.pontosTotal || 0))}). A integridade que sobrou (${Math.ceil(s.integ)}) vira reforço: integridade máxima +${s.reforco || 0} no próximo ano. Escolha um prêmio: ele vale até a torre cair.`;
     $('rkPremios').innerHTML = (s.oferta || []).map(id => cartao(id, 'rk-premio')).join('');
     an.hidden = false; sfx('entrega');
   } else if (!s.fimAno && !an.hidden) an.hidden = true;

@@ -1,8 +1,8 @@
-// Cidades do prestígio "Nova obra" (Obra Viva): cada entrega leva a Construtora J. Santos para a próxima cidade.
+// Cidades do prestígio "Nova obra" (Obra Viva): cada entrega leva a Construtora Vigaluz para a próxima cidade.
 // mods: regra simples da cidade (multiplicadores sobre as etapas e a renda); cena: chaves da arte em assets/ (PixelLab)
 // e cores do chão. Depois da última, volta ao Rio com a obra seguinte (os pontos continuam crescendo).
 export const CITIES = [
-  { id: 'praia-grande', n: 'Praia Grande', mods: {}, regra: 'A orla onde tudo começou.',
+  { id: 'praia-grande', n: 'Santa Brisa', mods: {}, regra: 'A orla onde tudo começou.',
     scene: { skyline: 'orla', landmark: null, tree: 'coqueiro', sea: 'mar', sand: '#e2c98e', sand2: '#d7bb7c', calcadao: true, ship: true } },
   { id: 'rio', n: 'Rio de Janeiro', mods: { tour: 1.3, rent: 1.1, prod: 0.9 }, regra: 'Cartão-postal: turismo +30% e aluguel +10%, mas o material chega 10% mais devagar.',
     scene: { skyline: 'rio-orla', landmark: 'rio-pao', tree: 'coqueiro', sea: 'mar', sand: '#ecd29a', sand2: '#dcc184', calcadao: true, ship: true } },

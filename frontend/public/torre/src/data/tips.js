@@ -25,7 +25,7 @@ export const TREE_SEQ = ['ramos', 'pedreiro', 'efeito', 'comprar'];
 
 // "Como jogar" (página de Início): capturas do jogo em assets/tutorial/N.jpg (tools/tutorial-capturas.mjs)
 export const TUTORIAL = FLAGS.risco ? [
-  { titulo: 'A torre sobe sozinha', texto: 'Você é dono da Construtora J. Santos. Os operários constroem sozinhos; você decide no que investir. Em cima: o andar, o dinheiro, o ano e o dia (cada ano tem 365 dias) e a integridade da torre.' },
+  { titulo: 'A torre sobe sozinha', texto: 'Você é dono da Construtora Vigaluz. Os operários constroem sozinhos; você decide no que investir. Em cima: o andar, o dinheiro, o ano e o dia (cada ano tem 365 dias) e a integridade da torre.' },
   { titulo: 'Melhorias', texto: 'Toque em Melhorias para abrir a árvore. Fornecimento traz o material, Logística sobe, Mão de obra assenta, Mercado aumenta a renda e Engenharia aumenta o limite e guarda as defesas da torre.' },
   { titulo: 'O efeito de cada compra', texto: 'Ao escolher uma melhoria, o painel mostra o que muda. Nas defesas, mostra quanto dano a ameaça mais forte da sua altura vai fazer agora → depois da compra.' },
   { titulo: 'Leia a obra', texto: 'A obra mostra o que falta: pedreiros dormindo 💤 = falta material lá em cima; material empilhado no térreo = os elevadores não dão conta; fachadas trincadas e quebradas = a integridade está caindo.' },
@@ -33,7 +33,7 @@ export const TUTORIAL = FLAGS.risco ? [
   { titulo: 'Fim do ano', texto: 'Sobreviveu aos 365 dias? Você ganha Reputação e escolhe 1 de 3 prêmios, que valem até a torre cair e se somam. A integridade que sobrou vira reforço: metade dela soma na integridade máxima do ano seguinte.' },
   { titulo: 'Se a torre cair', texto: 'Os anos ficam mais difíceis e uma hora a torre cai. Aí você escolhe 1 prêmio para guardar e começa uma torre nova com toda a Reputação. Quanto mais alto você chegar, mais forte volta.' },
 ] : [
-  { titulo: 'A obra sobe sozinha', texto: 'Você é dono da Construtora J. Santos. Os operários constroem sozinhos; você decide no que investir. Em cima: o andar, o dinheiro e o dia da obra (o contrato vence no dia 365).' },
+  { titulo: 'A obra sobe sozinha', texto: 'Você é dono da Construtora Vigaluz. Os operários constroem sozinhos; você decide no que investir. Em cima: o andar, o dinheiro e o dia da obra (o contrato vence no dia 365).' },
   { titulo: 'Melhorias', texto: 'Toque em Melhorias para abrir a árvore. Cada cor é uma etapa: Fornecimento traz o material, Logística sobe, Mão de obra assenta, Engenharia aumenta o limite e Mercado aumenta a renda.' },
   { titulo: 'O efeito de cada compra', texto: 'Ao escolher uma melhoria, o painel mostra o que muda: quantos tijolos por segundo os pedreiros assentam, quanto material sobe, quanto a torre rende.' },
   { titulo: 'Leia a obra', texto: 'A obra mostra o que falta: pedreiros dormindo 💤 = falta material lá em cima; material empilhado no térreo = os elevadores não dão conta; rachaduras = chegou ao limite da fundação.' },

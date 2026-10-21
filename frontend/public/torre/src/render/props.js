@@ -310,7 +310,7 @@ export function orlaSprite(i, bw, bh, base) {
   }, { outline: null });
 }
 
-// ---------- calçadão de Praia Grande: ondas pretas e brancas (64×14) ----------
+// ---------- calçadão de Santa Brisa: ondas pretas e brancas (64×14) ----------
 export const calcadaoTile = () => makeSprite('calcadao', 64, 14, p => {
   for (let y = 0; y < 14; y++) for (let x = 0; x < 64; x++) {
     const band = Math.floor((y + 3.2 * Math.sin(2 * Math.PI * x / 32) + 20) / 3.5) % 2;

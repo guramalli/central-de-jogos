@@ -47,7 +47,7 @@ export function techYard() {
   for (const [ks, w, draw] of YARD) if (ks.some(lv)) { draw(x + w / 2); x += w; }
   if (lv('imobiliaria') || lv('corretores')) { // placa da imobiliária entre o trilho do panorâmico e a bilheteria
     const px = -250; R(px - 2, 0, 4, 40, '#5a5f6a'); R(px - 30, 22, 60, 20, '#1f5a3a'); R(px - 28, 24, 56, 16, '#f4f1e6');
-    T('J. SANTOS', px, 36, 6, '#20242f', 'center'); T(lv('corretores') ? 'CORRETORES' : 'IMÓVEIS', px, 29, 7, '#1f5a3a', 'center');
+    T('VIGALUZ', px, 36, 6, '#20242f', 'center'); T(lv('corretores') ? 'CORRETORES' : 'IMÓVEIS', px, 29, 7, '#1f5a3a', 'center');
   }
 }
 

@@ -260,7 +260,7 @@ svg.addEventListener('wheel', e => { e.preventDefault(); userMoved = true; const
 new ResizeObserver(() => { if (!overlay.hidden && !userMoved) fit(); }).observe(svg);
 
 // ---------- atualização ----------
-// faixa "Construtora J. Santos" (só Reputação): Reputação e os gerentes, que chegam um por obra
+// faixa "Construtora Vigaluz" (só Reputação): Reputação e os gerentes, que chegam um por obra
 let boardBuilt = false;
 function buildBoard() {
   const row = $('skBoardRow'); row.innerHTML = '';

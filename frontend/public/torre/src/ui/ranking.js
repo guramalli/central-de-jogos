@@ -15,7 +15,7 @@ const LISTAS = { obra: 'Melhor obra', total: 'Recorde total', orbita: 'Tempo at�
 let lista = 'obra';
 
 async function api(path, { method = 'GET', body } = {}) {
-  if (FLAGS.risco) return { ok: false, offline: true, data: {} }; // protótipo com risco: nada vai para o ranking
+  if (FLAGS.risco && !path.startsWith('/unica')) return { ok: false, offline: true, data: {} }; // torre única: só o ranking dela
   const ac = new AbortController(), t = setTimeout(() => ac.abort(), 6000);
   try {
     const r = await fetch(API + '/api/torre' + path, { method, signal: ac.signal, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });
@@ -35,6 +35,7 @@ const segJogo = () => roundSecs(); // tempo de jogo da obra inteira (com os adit
 // ficha da obra atual (a não ser que a pessoa tenha dito "agora não" ou saído do ranking)
 let fichaT = 0;
 export async function pedirFicha() {
+  if (FLAGS.risco) return fichaUnica();
   if (!FLAGS.viva || rk().nao || S.roundOver) return;
   if (rk().fichaObra === S.obra && rk().ficha) return;
   const alvo = rk(), obra = S.obra, seg0 = segJogo();
@@ -47,21 +48,23 @@ export async function pedirFicha() {
 const PEND = 'torre-rank-apagar';
 const pendentes = () => { try { return JSON.parse(localStorage.getItem(PEND) || '[]'); } catch (e) { return []; } };
 let tickT = 0;
-export function rankTick() {
+export function rankTick(bloqueado = false) {
   if (!FLAGS.viva) return;
+  if (FLAGS.risco) tickUnica(bloqueado);
   const now = performance.now();
   if (now - tickT < 60000) return;
   tickT = now;
-  if (!rk().nao && !S.roundOver && !(rk().fichaObra === S.obra && rk().ficha) && now - fichaT > 55000) pedirFicha();
+  if (!FLAGS.risco && !rk().nao && !S.roundOver && !(rk().fichaObra === S.obra && rk().ficha) && now - fichaT > 55000) pedirFicha();
   if (rk().apagarPendente) sairDoRanking();
   const p = pendentes();
-  if (p.length) Promise.all(p.map(j => api('/ranking', { method: 'DELETE', body: { jogador: j } }).then(r => (r.ok ? null : j))))
+  if (p.length) Promise.all(p.map(j => api(ROTA(), { method: 'DELETE', body: { jogador: j } }).then(r => (r.ok ? null : j))))
     .then(rest => { try { localStorage.setItem(PEND, JSON.stringify(rest.filter(Boolean))); } catch (e) { } });
 }
 // apagar um espaço ou recomeçar: o apelido daquele jogador sai do ranking (se a rede falhar, tenta depois)
+const ROTA = () => FLAGS.risco ? '/unica/ranking' : '/ranking';
 export function esquecerJogador(j = (rk().ativo || rk().apelido) ? rk().jogador : '') {
   if (!j) return;
-  api('/ranking', { method: 'DELETE', body: { jogador: j } }).then(r => { if (!r.ok) try { localStorage.setItem(PEND, JSON.stringify([...pendentes(), j])); } catch (e) { } });
+  api(ROTA(), { method: 'DELETE', body: { jogador: j } }).then(r => { if (!r.ok) try { localStorage.setItem(PEND, JSON.stringify([...pendentes(), j])); } catch (e) { } });
 }
 
 // envia os recordes desta obra; devolve { ok, posicoes } | { erro: 'nome', msg } | { offline }
@@ -83,7 +86,8 @@ export async function enviarRecordes() {
 export async function sairDoRanking() {
   const r = rk();
   Object.assign(r, { ativo: false, nao: true, ficha: '' });
-  const res = r.jogador ? await api('/ranking', { method: 'DELETE', body: { jogador: r.jogador } }) : { ok: true };
+  const res = r.jogador ? await api(ROTA(), { method: 'DELETE', body: { jogador: r.jogador } }) : { ok: true };
+  if (FLAGS.risco) esconderCartao();
   r.apagarPendente = !res.ok; save();
   return res.ok;
 }
@@ -92,7 +96,7 @@ export function definirApelido(nome) {
   nome = String(nome || '').trim();
   if ([...nome].length < 3 || [...nome].length > 12) return 'O apelido precisa ter de 3 a 12 letras.';
   Object.assign(rk(), { apelido: nome, ativo: true, nao: false, naoObra: 0 }); save();
-  pedirFicha();
+  pedirFicha(); if (FLAGS.risco) enviarUnica();
   return '';
 }
 
@@ -139,17 +143,21 @@ async function drawRanking() {
   const meu = ++pedido;
   for (const b of document.querySelectorAll('.rk-tab')) b.classList.toggle('on', b.dataset.l === lista);
   const ul = $('rkList'); ul.innerHTML = '<li class="rk-wait">Carregando…</li>'; $('rkMe').textContent = '';
-  const q = `?lista=${lista}` + (rk().jogador ? `&jogador=${encodeURIComponent(rk().jogador)}` : '');
-  const res = await api('/ranking' + q);
+  const q = FLAGS.risco ? (rk().jogador ? `?jogador=${encodeURIComponent(rk().jogador)}` : '') : `?lista=${lista}` + (rk().jogador ? `&jogador=${encodeURIComponent(rk().jogador)}` : '');
+  const res = await api(ROTA() + q);
   if (meu !== pedido) return; // trocou de aba antes da resposta chegar
   if (!res.ok) { ul.innerHTML = '<li class="rk-wait">Ranking fora do ar agora. Tente mais tarde.</li>'; return; }
   const top = res.data.top || [];
   ul.innerHTML = top.length ? '' : '<li class="rk-wait">Ninguém nesta lista ainda. Seja o primeiro!</li>';
   top.forEach((x, k) => { const li = document.createElement('li'); li.innerHTML = `<b>${k + 1}.</b> <span></span> <i>${valorTxt(lista, x.valor)}</i>`; li.querySelector('span').textContent = x.apelido; ul.appendChild(li); });
   const eu = res.data.eu;
-  $('rkMe').textContent = eu ? `Você: Nº ${eu.posicao} de ${res.data.total} · ${valorTxt(lista, eu.valor)}` : rk().ativo ? 'Você ainda não tem marca nesta lista.' : 'Entre no ranking no fim de uma obra ou nas Configurações.';
+  $('rkMe').textContent = eu ? `Você: Nº ${eu.posicao} de ${res.data.total} · ${valorTxt(lista, eu.valor)}` : FLAGS.risco ? `Para entrar: uma torre acima de ${fmtM(res.data.corte || 0)} — o campo do apelido aparece na hora.` : rk().ativo ? 'Você ainda não tem marca nesta lista.' : 'Entre no ranking no fim de uma obra ou nas Configurações.';
 }
-export function openRanking() { $('ranking').hidden = false; lista = 'obra'; drawRanking(); }
+export function openRanking() {
+  $('ranking').hidden = false; lista = 'obra';
+  if (FLAGS.risco) for (const b of document.querySelectorAll('.rk-tab')) b.hidden = b.dataset.l !== 'obra'; // torre única: só "torre mais alta"
+  drawRanking();
+}
 
 export function initRanking() {
   if (!FLAGS.viva) return;
@@ -159,5 +167,77 @@ export function initRanking() {
   for (const b of document.querySelectorAll('.rk-tab')) b.onclick = () => { lista = b.dataset.l; drawRanking(); };
   $('rkClose').onclick = () => { $('ranking').hidden = true; };
   addEventListener('keydown', e => { if (e.key === 'Escape' && !$('ranking').hidden) { e.stopPropagation(); $('ranking').hidden = true; } }, true);
+  if (FLAGS.risco) initUnica();
   pedirFicha();
+}
+
+// ---------- torre única: ranking de quem chegou mais alto (top 20) ----------
+// A ficha é pedida no começo de cada torre (S.riscoTentativa); o corte (altura do 20º) vem do servidor a cada 2 min.
+// Quando a torre passa do corte, aparece um cartão no pé da tela com o campo do apelido, sem pausar a obra. Depois de
+// entrar, a altura vai sozinha a cada minuto em que a torre subiu, no fim do ano e no desabamento.
+const U = { corte: null, total: 0, tCorte: -1e9, tFicha: -1e9, tEnvio: -1e9, enviada: 0, msgAte: 0 };
+const torreAtual = () => S.riscoTentativa || 1;
+async function fichaUnica() {
+  const r = rk(); if (r.nao || (r.fichaU && r.fichaUTorre === torreAtual())) return;
+  const alvo = r, torre = torreAtual(), seg0 = S.torreSeg || 0;
+  U.tFicha = performance.now();
+  const res = await api('/unica/partida', { method: 'POST', body: { jogador: jogador() } });
+  if (res.ok && res.data.ficha && rk() === alvo && torreAtual() === torre) { Object.assign(alvo, { fichaU: res.data.ficha, fichaUTorre: torre, fichaUSeg: seg0 }); save(); }
+}
+async function buscarCorte() {
+  U.tCorte = performance.now();
+  const res = await api('/unica/ranking');
+  if (res.ok) { U.corte = res.data.corte || 0; U.total = res.data.total || 0; }
+}
+// envia a altura desta torre; devolve { ok, posicao } | { erro: 'nome', msg } | { offline } | { pulou }
+export async function enviarUnica() {
+  const r = rk();
+  if (!r.ativo || !r.apelido) return { pulou: true };
+  if (!r.fichaU || r.fichaUTorre !== torreAtual()) { await fichaUnica(); if (!r.fichaU || r.fichaUTorre !== torreAtual()) return { offline: true }; }
+  U.tEnvio = performance.now();
+  const alt = Math.round(S.maxAlt), res = await api('/unica/ranking', { method: 'POST', body: {
+    ficha: r.fichaU, jogador: jogador(), apelido: r.apelido, alt, seg: Math.max(0, Math.round((S.torreSeg || 0) - (r.fichaUSeg || 0))) } });
+  if (res.ok && res.data.ok) { U.enviada = alt; r.posicao = res.data.posicao; save(); return { ok: true, posicao: res.data.posicao }; }
+  if (res.data && res.data.erro === 'nome') return { erro: 'nome', msg: res.data.error || 'Esse apelido não pode ser usado.' };
+  return { offline: !!res.offline, msg: res.data && res.data.error };
+}
+const card = () => $('rkEntrar');
+function esconderCartao() { if (card()) card().hidden = true; }
+function initUnica() {
+  const c = document.createElement('div'); c.id = 'rkEntrar'; c.className = 'rk-entrar'; c.hidden = true;
+  c.innerHTML = '<b id="rkEntrarT">Sua torre chegou ao nível do ranking!</b><small id="rkEntrarS">Escolha um apelido para entrar no top 20 das torres mais altas.</small>' +
+    '<div class="rk-entrar-f"><input id="rkEntrarNick" maxlength="12" placeholder="Seu apelido" autocomplete="off"><button type="button" id="rkEntrarOk">Entrar</button><button type="button" class="ghost" id="rkEntrarNo">Agora não</button></div><small id="rkEntrarMsg"></small>';
+  document.body.appendChild(c);
+  const css = document.createElement('style');
+  css.textContent = `.rk-entrar{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);z-index:62;width:min(420px,92vw);background:rgba(20,18,30,.95);border:2px solid #f2b630;border-radius:12px;padding:12px 14px;color:#f4efe6;display:flex;flex-direction:column;gap:6px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .rk-entrar b{font:700 16px "Chakra Petch";color:#f2b630}.rk-entrar small{font:13px Rubik;color:#d8d0c4}
+  .rk-entrar-f{display:flex;gap:6px}.rk-entrar input{flex:1;min-width:0;font:15px Rubik;padding:8px;border-radius:8px;border:1px solid #4b4560;background:#221f2e;color:#fff}
+  .rk-entrar button{font:700 14px "Chakra Petch";border:0;border-radius:8px;padding:8px 12px;background:#f2b630;color:#1b1622;cursor:pointer}.rk-entrar button.ghost{background:#3a3550;color:#f4efe6}`;
+  document.head.appendChild(css);
+  const ok = async () => {
+    const nome = $('rkEntrarNick').value.trim();
+    if ([...nome].length < 3 || [...nome].length > 12) { $('rkEntrarMsg').textContent = 'O apelido precisa ter de 3 a 12 letras.'; return; }
+    Object.assign(rk(), { apelido: nome, ativo: true, nao: false }); $('rkEntrarMsg').textContent = 'Enviando…';
+    const res = await enviarUnica();
+    if (res.erro === 'nome') { rk().ativo = false; save(); $('rkEntrarMsg').textContent = res.msg; return; }
+    save();
+    $('rkEntrarMsg').textContent = res.ok ? `Você está no ranking como ${nome}: Nº ${res.posicao}!` : 'Ranking fora do ar agora. Seu apelido ficou guardado; tentamos de novo daqui a pouco.';
+    U.msgAte = performance.now() + 5000;
+  };
+  $('rkEntrarOk').onclick = ok;
+  $('rkEntrarNick').onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') ok(); };
+  $('rkEntrarNo').onclick = () => { rk().naoTorre = torreAtual(); save(); esconderCartao(); }; // só nesta torre
+  buscarCorte(); fichaUnica();
+}
+function tickUnica(bloqueado) {
+  const now = performance.now(), r = rk();
+  if (now - U.tCorte > 120000) buscarCorte();
+  if (!r.nao && !(r.fichaU && r.fichaUTorre === torreAtual()) && now - U.tFicha > 55000) fichaUnica();
+  // cartão para entrar: torre acima do corte (e de pelo menos 40 m), quem ainda não entrou e não disse "agora não" nesta torre
+  const c = card(); if (!c) return;
+  const pode = !bloqueado && U.corte != null && !r.ativo && !r.nao && r.naoTorre !== torreAtual() && !S.colapso && S.maxAlt >= 40 && S.maxAlt > U.corte;
+  if (pode && c.hidden) { c.hidden = false; $('rkEntrarMsg').textContent = ''; $('rkEntrarNick').value = r.apelido || ''; }
+  else if (!pode && !c.hidden && !(r.ativo && now < U.msgAte)) c.hidden = true;
+  // quem já está no ranking: a altura vai sozinha (a cada minuto em que subiu, no fim do ano e no desabamento)
+  if (r.ativo && r.apelido && S.maxAlt > U.enviada && (now - U.tEnvio > 60000 || (S.risco && S.risco.fimAno) || S.colapso)) enviarUnica();
 }

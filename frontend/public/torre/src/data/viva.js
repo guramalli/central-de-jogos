@@ -73,7 +73,7 @@ export const VIVA = {
   // (proporcional aos dias que sobram). No fim do ano a entrega vale sempre.
   meta: { rec: 0.6, piso: 100, cresce: 1.8, bonus: 0.25 },
   prestige: { k: 12, pow: 0.6, rep: 0.025 }, // pontos = 12 × km^0,6 (mín. 1); rep: Reputação = +2,5% em tudo por ponto ganho no total (já foi 3% e 4%; caiu com o caixa que sobra virando Reputação e a lista de compras sem travar nos empates; robô atento: Órbita na 12ª obra)
-  // Construtora J. Santos (só Reputação, decisão do usuário 20/10/2026): sem compras com ★; os gerentes chegam um por obra
+  // Construtora Vigaluz (só Reputação, decisão do usuário 20/10/2026): sem compras com ★; os gerentes chegam um por obra
   board: {
     // Encarregado (vistoria de 20/10: cliques demais no começo): desde a 1ª obra compra só o básico, a partir do 5º andar
     encarregado: { n: 'Encarregado', d: 'Compra sozinho o básico: pedreiros, fornecedores, motores e carrinhos (a partir do 5º andar da 1ª obra).', mgr: 'basico', obra: 1 },

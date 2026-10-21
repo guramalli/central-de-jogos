@@ -49,7 +49,7 @@ export function checkJornal(bloqueado) {
   if (novoAlt && !pend) {
     const mk = VIVA.marcosOrbita.find(x => x.m === novoAlt), cidade = city().n;
     const jj = { n: Math.floor(S.floors), alt: novoAlt, obra: S.obra || 1, cidade, dia: roundDay(),
-      titulo: `A torre da J. Santos passa o marco ${mk.n === 'Mil quilômetros' ? 'dos mil quilômetros' : `"${mk.n}"`}: ${fmtM(novoAlt)} acima de ${cidade}`,
+      titulo: `A torre da Vigaluz passa o marco ${mk.n === 'Mil quilômetros' ? 'dos mil quilômetros' : `"${mk.n}"`}: ${fmtM(novoAlt)} acima de ${cidade}`,
       sub: `Bônus permanente para a construtora: +${Math.round(VIVA.marcosBonus * 100)}% em tudo.` };
     S.jornais = [...(S.jornais || []), jj].sort((a, b) => a.n - b.n); save();
     const img = foto(), f = fotos(); f['alt' + novoAlt] = img;
@@ -66,7 +66,7 @@ export function checkJornal(bloqueado) {
   if (V.t < pend.at) return;
   const n = pend.n; pend = null;
   const cidade = city().n;
-  const j = { n, obra: S.obra || 1, cidade, dia: roundDay(), titulo: manchete(n, cidade), sub: `A torre da Construtora J. Santos já tem ${fmtM(altOf(n))} de altura.` };
+  const j = { n, obra: S.obra || 1, cidade, dia: roundDay(), titulo: manchete(n, cidade), sub: `A torre da Construtora Vigaluz já tem ${fmtM(altOf(n))} de altura.` };
   // marcos menores que ficaram para trás nesta passada também contam como noticiados
   const vistos = new Set((S.jornais || []).filter(x => !x.alt).map(x => x.n)), novos = [j];
   for (const m of [100, 500]) if (m < n && !vistos.has(m)) novos.push({ ...j, n: m, titulo: manchete(m, cidade) });

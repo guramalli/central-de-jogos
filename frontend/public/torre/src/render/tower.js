@@ -297,7 +297,7 @@ export function crane(buildTop, trolX, hookY) {
       if (pub >= 2) for (let x = 0; x < bw; x += 6) R(bx + x, by + 2, 3, 1, 'rgba(255,255,255,.25)');
     } else {
       R(bx, by + 1, bw, bh - 1, '#f4f1e6'); R(bx, by + 1, bw, 3, tint);
-      T(bw >= 150 ? 'CONSTRUTORA J. SANTOS' : 'J. SANTOS', bx + bw / 2, by + 7, 8, '#20242f', 'center');
+      T(bw >= 150 ? 'CONSTRUTORA VIGALUZ' : 'VIGALUZ', bx + bw / 2, by + 7, 8, '#20242f', 'center');
     }
     if (mk >= 3 && Math.floor(V.t * 3) % 2) for (let x = 4; x < bw; x += 24) R(bx + x, by + bh, 3, 2, '#ffe27a'); // lâmpadas
   }

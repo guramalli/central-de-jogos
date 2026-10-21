@@ -6,6 +6,13 @@
 //   GET    /ranking?lista=obra|total|orbita[&jogador=]              → { total, top, eu }
 //   DELETE /ranking  ← { jogador }                                  → { ok }  ("sair do ranking")
 //
+// Torre única (modo principal do jogo desde 21/10/2026): ranking de quem chegou mais alto numa torre.
+//   POST   /unica/partida ← { jogador }                              → { ficha }  (pedida no começo de cada torre)
+//   POST   /unica/ranking ← { ficha, jogador, apelido, alt, seg }    → { ok, posicao }  (a mesma ficha atualiza enquanto
+//                           a torre cresce; vale a maior altura; ficha mais velha que a última aceita é recusada)
+//   GET    /unica/ranking[?jogador=]                                 → { total, top (20), corte, eu }  (corte: altura do 20º)
+//   DELETE /unica/ranking ← { jogador }                              → { ok }
+//
 // O servidor não confia em totais vindos do jogo: ele SOMA as obras que recebe. Cada obra vem com uma ficha assinada
 // (JWT_SECRET), presa ao jogador e de USO ÚNICO (precisa ser mais nova que a última aceita). Listas:
 //   obra   = maior altura numa obra (m);  total = soma das alturas das obras enviadas (m);
@@ -29,6 +36,7 @@ export const TORRE = {
   orbitaAlt: 400_000,        // 400 km
   orbitaMin: 3 * 3600,       // a Órbita só conta depois de 3 h de jogo somado (o robô atento leva ~4h20)
   top: 10,
+  topUnica: 20,             // torre única: as 20 torres mais altas (o 20º é o corte para entrar)
 };
 const ORDEM = { obra: "obra_max DESC", total: "total DESC", orbita: "orbita ASC" };
 const jogadorOk = (j) => typeof j === "string" && /^[A-Za-z0-9-]{8,40}$/.test(j);
@@ -63,7 +71,8 @@ const valorDe = (l, x) => (l === "obra" ? x.obra_max : l === "total" ? x.total :
 
 // banco em memória (testes): uma linha por jogador
 export function bancoMemoria() {
-  const linhas = new Map(); let seq = 0;
+  const linhas = new Map(), unica = new Map(); let seq = 0;
+  const uOrdem = (a, b) => b.alt_max - a.alt_max || a.seq - b.seq;
   const ordem = (l) => (a, b) => (l === "orbita" ? a.orbita - b.orbita : valorDe(l, b) - valorDe(l, a)) || a.seq - b.seq;
   const da = (l) => [...linhas.values()].filter((x) => l !== "orbita" || x.orbita != null);
   return {
@@ -74,7 +83,18 @@ export function bancoMemoria() {
     async total(l) { return da(l).length; },
     async naFrente(l, x) { return da(l).filter((y) => ordem(l)(y, x) < 0).length; },
     async apagar(j) { linhas.delete(j); },
-    async apagarApelido(a) { let n = 0; for (const [j, x] of linhas) if (x.apelido.toLowerCase() === a.toLowerCase()) { linhas.delete(j); n++; } return n; },
+    async apagarApelido(a) {
+      let n = 0;
+      for (const m of [linhas, unica]) for (const [j, x] of m) if (x.apelido.toLowerCase() === a.toLowerCase()) { m.delete(j); n++; }
+      return n;
+    },
+    // torre única: maior altura; empate = quem chegou primeiro
+    async uJogador(j) { return unica.get(j) || null; },
+    async uSalvar(j, d) { const a = unica.get(j); unica.set(j, { ...d, jogador: j, seq: a && a.alt_max >= d.alt_max ? a.seq : ++seq }); },
+    async uTop(n) { return [...unica.values()].sort(uOrdem).slice(0, n).map((x) => ({ apelido: x.apelido, valor: x.alt_max })); },
+    async uTotal() { return unica.size; },
+    async uNaFrente(x) { return [...unica.values()].filter((y) => uOrdem(y, x) < 0).length; },
+    async uApagar(j) { unica.delete(j); },
   };
 }
 
@@ -89,6 +109,10 @@ export function bancoPrisma(carregar) {
       obra_max DOUBLE PRECISION NOT NULL DEFAULT 0, orbita DOUBLE PRECISION, ip VARCHAR(16), atualizado TIMESTAMPTZ NOT NULL DEFAULT now())`);
     await prisma.$executeRawUnsafe("CREATE INDEX IF NOT EXISTS torre_jogadores_obra ON torre_jogadores (obra_max DESC)");
     await prisma.$executeRawUnsafe("CREATE INDEX IF NOT EXISTS torre_jogadores_total ON torre_jogadores (total DESC)");
+    await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS torre_unica (
+      jogador VARCHAR(40) PRIMARY KEY, apelido VARCHAR(24) NOT NULL, ultima_ficha BIGINT NOT NULL DEFAULT 0,
+      alt_max DOUBLE PRECISION NOT NULL DEFAULT 0, alcancado TIMESTAMPTZ NOT NULL DEFAULT now(), ip VARCHAR(16))`);
+    await prisma.$executeRawUnsafe("CREATE INDEX IF NOT EXISTS torre_unica_alt ON torre_unica (alt_max DESC, alcancado ASC)");
   })().catch((e) => { pronta = null; throw e; }));
   const linha = (x) => x && ({ ...x, ultima_ficha: Number(x.ultima_ficha), obras: Number(x.obras), segs: Number(x.segs), total: Number(x.total),
     obra_max: Number(x.obra_max), orbita: x.orbita == null ? null : Number(x.orbita) });
@@ -122,7 +146,32 @@ export function bancoPrisma(carregar) {
       return Number(r[0].n);
     },
     async apagar(j) { await tabela(); await prisma.$executeRaw`DELETE FROM torre_jogadores WHERE jogador = ${j}`; },
-    async apagarApelido(a) { await tabela(); return Number(await prisma.$executeRaw`DELETE FROM torre_jogadores WHERE lower(apelido) = lower(${a})`); },
+    async uJogador(j) {
+      await tabela(); const r = await prisma.$queryRaw`SELECT * FROM torre_unica WHERE jogador = ${j}`;
+      return r[0] ? { ...r[0], ultima_ficha: Number(r[0].ultima_ficha), alt_max: Number(r[0].alt_max) } : null;
+    },
+    async uSalvar(j, d) {
+      await tabela();
+      await prisma.$executeRaw`INSERT INTO torre_unica (jogador, apelido, ultima_ficha, alt_max, ip) VALUES (${j}, ${d.apelido}, ${d.ultima_ficha}, ${d.alt_max}, ${d.ip})
+        ON CONFLICT (jogador) DO UPDATE SET apelido = EXCLUDED.apelido, ultima_ficha = EXCLUDED.ultima_ficha, ip = EXCLUDED.ip,
+          alcancado = CASE WHEN EXCLUDED.alt_max > torre_unica.alt_max THEN now() ELSE torre_unica.alcancado END,
+          alt_max = GREATEST(torre_unica.alt_max, EXCLUDED.alt_max)`;
+    },
+    async uTop(n) {
+      await tabela(); const r = await prisma.$queryRaw`SELECT apelido, alt_max AS v FROM torre_unica ORDER BY alt_max DESC, alcancado ASC LIMIT ${n}`;
+      return r.map((x) => ({ apelido: x.apelido, valor: Number(x.v) }));
+    },
+    async uTotal() { await tabela(); const r = await prisma.$queryRaw`SELECT COUNT(*)::int AS n FROM torre_unica`; return Number(r[0].n); },
+    async uNaFrente(x) {
+      await tabela();
+      const r = await prisma.$queryRaw`SELECT COUNT(*)::int AS n FROM torre_unica t WHERE t.alt_max > ${x.alt_max} OR (t.alt_max = ${x.alt_max} AND t.alcancado < (SELECT alcancado FROM torre_unica WHERE jogador = ${x.jogador}))`;
+      return Number(r[0].n);
+    },
+    async uApagar(j) { await tabela(); await prisma.$executeRaw`DELETE FROM torre_unica WHERE jogador = ${j}`; },
+    async apagarApelido(a) {
+      await tabela();
+      return Number(await prisma.$executeRaw`DELETE FROM torre_jogadores WHERE lower(apelido) = lower(${a})`) + Number(await prisma.$executeRaw`DELETE FROM torre_unica WHERE lower(apelido) = lower(${a})`);
+    },
   };
 }
 
@@ -190,6 +239,50 @@ export function criaRotasTorre({ db, segredo, agora = () => Date.now(), limite =
       res.set("Cache-Control", "no-store");
       res.json({ ok: true, posicoes });
     } catch (e) { erroBanco(res, e); }
+  });
+
+  // ---------- torre única ----------
+  r.post("/unica/partida", ...(limite ? [lim(60, 10)] : []), (req, res) => {
+    if (!segredo) return semSegredo(res);
+    const { jogador } = req.body || {};
+    if (!jogadorOk(jogador)) return invalido(res, "Jogador inválido.");
+    res.set("Cache-Control", "no-store");
+    res.json({ ficha: assinarFicha(segredo, agora(), jogador) });
+  });
+  r.get("/unica/ranking", async (req, res) => {
+    try {
+      const [top, total] = await Promise.all([db.uTop(TORRE.topUnica), db.uTotal()]);
+      const corpo = { total, top, corte: top.length >= TORRE.topUnica ? top[TORRE.topUnica - 1].valor : 0, eu: null };
+      const jogador = req.query.jogador;
+      if (jogadorOk(jogador)) { const m = await db.uJogador(jogador); if (m) corpo.eu = { posicao: (await db.uNaFrente(m)) + 1, valor: m.alt_max }; }
+      res.set("Cache-Control", "no-store");
+      res.json(corpo);
+    } catch (e) { erroBanco(res, e); }
+  });
+  r.post("/unica/ranking", ...(limite ? [lim(240, 60)] : []), async (req, res) => {
+    if (!segredo) return semSegredo(res);
+    const { ficha, jogador, apelido } = req.body || {};
+    const ap = conferirApelido(apelido);
+    if (!ap.ok) return res.status(400).json({ erro: "nome", error: ap.msg });
+    const f = lerFicha(segredo, ficha, jogador);
+    if (!f) return invalido(res, "Torre inválida para o ranking.");
+    const real = (agora() - f.inicio) / 1000, alt = num(req.body.alt), seg = num(req.body.seg);
+    if (alt == null || seg == null) return invalido(res, "Dados da torre inválidos.");
+    if (real > TORRE.fichaDias * 86400 || seg > TORRE.obraSegMax || real < seg - 5) return invalido(res, "Torre fora do tempo.");
+    if (alt > Math.min(TORRE.altMax, Math.max(TORRE.altMinTeto, TORRE.altPorSegundo * seg))) return invalido(res, "Altura inválida.");
+    try {
+      const antes = await db.uJogador(jogador);
+      if (antes && f.inicio < antes.ultima_ficha) return invalido(res, "Essa torre já foi substituída por uma mais nova.", 409);
+      await db.uSalvar(jogador, { apelido: ap.nome, ultima_ficha: f.inicio, alt_max: Math.max(alt, antes ? antes.alt_max : 0), ip: ipResumo(req) });
+      const eu = await db.uJogador(jogador);
+      res.set("Cache-Control", "no-store");
+      res.json({ ok: true, posicao: (await db.uNaFrente(eu)) + 1 });
+    } catch (e) { erroBanco(res, e); }
+  });
+  r.delete("/unica/ranking", ...(limite ? [lim(20, 60)] : []), async (req, res) => {
+    const { jogador } = req.body || {};
+    if (!jogadorOk(jogador)) return invalido(res, "Jogador inválido.");
+    try { await db.uApagar(jogador); res.json({ ok: true }); } catch (e) { erroBanco(res, e); }
   });
 
   r.delete("/ranking", ...(limite ? [lim(20, 60)] : []), async (req, res) => {

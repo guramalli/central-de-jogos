@@ -81,7 +81,7 @@ function tick(real) {
   while (sd > 0) { const st = Math.min(.25, sd); sim(st); sd -= st; }
   updateView(dt, speed);
   render();
-  if (FLAGS.risco) riscoFx(dt, V.t); // protótipo com risco: balanço, tremor, clima e desabamento
+  if (FLAGS.risco && !introActive()) riscoFx(dt, V.t); // torre única: balanço, tremor, clima e desabamento (não durante a abertura)
   tickPip(Math.min(.1, real), introActive() || homeOpen()); // janelinha com a outra ponta da obra
   if (FLAGS.viva) { // som ambiente: canteiro e mar com o térreo à vista, vento nas eras altas (ui/audio.js)
     const sc = city().scene, alt = altOf(Math.max(0, cam.cy) / FH) + (sc.skyAlt || 0);
@@ -93,7 +93,7 @@ function tick(real) {
   tickTips(); // o quadro da dica acompanha o alvo
   if (FLAGS.viva && !introActive() && !homeOpen() && !fz) S.playTime = (S.playTime || 0) + dt * speed;
   // a interface segue o tempo real, mesmo pausada
-  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); if (!homeOpen() && !introActive()) checkManagers(); updateOffers(); updateTips(); rankTick(); checkJornal(homeOpen() || introActive()); if (FLAGS.risco) tickRisco(homeOpen() || introActive() || fz, homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
+  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); if (!homeOpen() && !introActive()) checkManagers(); updateOffers(); updateTips(); rankTick(homeOpen() || introActive()); checkJornal(homeOpen() || introActive()); if (FLAGS.risco) tickRisco(homeOpen() || introActive() || fz, homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -131,12 +131,12 @@ function startNext() {
   setNotice(null); resetView(); resetMilestones(); syncEvents(); followBuild(); syncCameraButtons(); closeSkills(); updateUI();
   checkRoundEnd(); clearNews();
   const mg = Object.values(VIVA.board).find(b => b.obra === S.obra); // gerente que chega nesta obra
-  showNews('JORNAL DA OBRA', `Construtora J. Santos começa a obra nº ${S.obra} em ${cityName()} (Reputação ${fmtPct(repPct(got))}). Prazo: 365 dias`); // gerente novo: aviso próprio (checkManagers)
+  showNews('JORNAL DA OBRA', `Construtora Vigaluz começa a obra nº ${S.obra} em ${cityName()} (Reputação ${fmtPct(repPct(got))}). Prazo: 365 dias`); // gerente novo: aviso próprio (checkManagers)
 }
 if (FLAGS.risco) initRisco({ onNext: guardar => { // desabou: torre nova com a Reputação e o prêmio guardado
   novaTorre(guardar); resetRisco();
   setNotice(null); resetView(); resetMilestones(); syncEvents(); followBuild(); syncCameraButtons(); closeSkills(); updateUI(); clearNews();
-  showNews('JORNAL DA OBRA', `Construtora J. Santos recomeça em Praia Grande: torre nº ${S.riscoTentativa} (Reputação ${fmtPct(repPct(S.pontosTotal || 0))}).`);
+  showNews('JORNAL DA OBRA', `Construtora Vigaluz recomeça em Santa Brisa: torre nº ${S.riscoTentativa} (Reputação ${fmtPct(repPct(S.pontosTotal || 0))}).`);
 } });
 {
   const dv = $('skDeliver'), disarm = () => dv.classList.remove('armed');
@@ -157,14 +157,14 @@ function checkManagers() {
     const b = VIVA.board[k];
     if (!b.mgr || (S.mgrAviso || {})[b.mgr] || !managerFree(b.mgr)) continue;
     S.mgrAviso = { ...(S.mgrAviso || {}), [b.mgr]: true };
-    showNews('CONSTRUTORA J. SANTOS', `${b.n} liberado! Ligue no cartão dele (Melhorias → faixa Construtora) para ele começar: ${b.d.charAt(0).toLowerCase() + b.d.slice(1)}`);
+    showNews('CONSTRUTORA VIGALUZ', `${b.n} liberado! Ligue no cartão dele (Melhorias → faixa Construtora) para ele começar: ${b.d.charAt(0).toLowerCase() + b.d.slice(1)}`);
   }
 }
 // meta do contrato: manchete uma vez por obra quando a torre passa dela
 function checkMeta() {
   if (!FLAGS.viva || FLAGS.risco || S.metaOk || S.roundOver || S.maxAlt < metaAlt()) return; // risco: torre única, sem meta
   S.metaOk = true;
-  showNews('JORNAL DA OBRA', `Meta do contrato batida no dia ${roundDay()}! Agora a J. Santos pode entregar a torre de ${cityName()} antes do prazo sem multa, e ainda com bônus (na engrenagem ⚙)`);
+  showNews('JORNAL DA OBRA', `Meta do contrato batida no dia ${roundDay()}! Agora a Vigaluz pode entregar a torre de ${cityName()} antes do prazo sem multa, e ainda com bônus (na engrenagem ⚙)`);
 }
 
 // Fim de jogo (Obra Viva): na primeira vez que a torre chega à Órbita, faixa na cena e tela de parabéns
@@ -194,7 +194,7 @@ if (FLAGS.viva) {
   initRoundEnd({
     onNext: startNext,
     onExit: () => openHome(),
-    onExtend: () => { updateUI(); syncCameraButtons(); showNews('JORNAL DA OBRA', `Aditivo assinado: a J. Santos fica mais 365 dias em ${cityName()}. Novo prazo: dia ${roundDays()}`); },
+    onExtend: () => { updateUI(); syncCameraButtons(); showNews('JORNAL DA OBRA', `Aditivo assinado: a Vigaluz fica mais 365 dias em ${cityName()}. Novo prazo: dia ${roundDays()}`); },
   });
   initOffers();
   initCoach(); initTips({ test: TEST || navigator.webdriver });

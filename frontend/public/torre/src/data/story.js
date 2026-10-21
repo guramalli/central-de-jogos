@@ -1,19 +1,33 @@
 // História do Obra Viva: abertura em 4 quadros, manchetes por era e frases de descoberta das tecnologias.
-// Só conteúdo (a interface fica em ui/intro.js). Nome da construtora decidido com o usuário: J. Santos.
-export const COMPANY = 'J. Santos';
+// Só conteúdo (a interface fica em ui/intro.js). Nome da construtora: Vigaluz (fictício; decisão do usuário, 21/10/2026 —
+// antes J. Santos).
+import { FLAGS } from './flags.js';
+export const COMPANY = 'Vigaluz';
 
 // cam: 'descend' (do céu até o terreno), 'ground' (térreo), 'rise' (sobe pelas eras até a Órbita), 'fans' (curiosos no tapume)
 // dur: segundos até passar sozinho (0 = espera o botão)
 // A história (revista com o usuário, out/2026): uma construtora pequena ganha o primeiro contrato — 365 dias, meta de
-// 100 m — e cada torre entregue leva a fama da J. Santos a outra cidade, com uma obra mais alta, até a Órbita.
-export const INTRO = [
-  { cam: 'descend', dur: 6, kicker: 'PRAIA GRANDE · 2026', text: 'Um terreno vazio na orla. E uma construtora pequena com um sonho grande.' },
+// 100 m — e cada torre entregue leva a fama da construtora a outra cidade, com uma obra mais alta, até a Órbita.
+// Torre única (modo principal): o terreno da orla onde três torres já desabaram; a Vigaluz quer a mais alta do mundo e de pé.
+const INTRO_RISCO = [
+  { cam: 'descend', dur: 6, kicker: 'SANTA BRISA · 2026', text: 'Um terreno vazio na orla. Três torres já caíram aqui: o vento do mar, a areia fofa e a pressa derrubaram todas.' },
   { cam: 'ground', dur: 7.5, kicker: `CONSTRUTORA ${COMPANY.toUpperCase()}`,
-    text: `A prefeitura de Praia Grande deu à ${COMPANY} o primeiro contrato: 365 dias para erguer uma torre de pelo menos 100 metros.`,
+    text: `A ${COMPANY}, uma construtora estreante, comprou o terreno que ninguém quer. O plano: erguer a torre mais alta do mundo — e mantê-la de pé.`,
+    clips: ['Terreno da orla volta à venda depois do 3º desabamento', 'Construtora estreante compra o "terreno maldito"', `Engenheira-chefe da ${COMPANY}: "desta vez a torre fica de pé"`] },
+  { cam: 'rise', dur: 7.5, kicker: 'O DESAFIO', text: 'Cada ano traz ventos mais fortes, tempestades, terremotos e até meteoros. Cada ano de pé deixa a construtora mais respeitada. Até onde a torre aguenta?' },
+  { cam: 'fans', dur: 0, kicker: 'ANO 1 · DIA 1', text: 'Os curiosos já apostam quanto tempo ela dura. Com o dinheiro dos sócios, a obra começa hoje.', cheque: true },
+];
+const INTRO_RODADAS = [
+  { cam: 'descend', dur: 6, kicker: 'SANTA BRISA · 2026', text: 'Um terreno vazio na orla. E uma construtora pequena com um sonho grande.' },
+  { cam: 'ground', dur: 7.5, kicker: `CONSTRUTORA ${COMPANY.toUpperCase()}`,
+    text: `A prefeitura de Santa Brisa deu à ${COMPANY} o primeiro contrato: 365 dias para erguer uma torre de pelo menos 100 metros.`,
     clips: ['Construtora pequena ganha contrato na orla', 'Prazo: 365 dias. Meta: 100 metros', `Dono da ${COMPANY} promete: "um dia, a Órbita"`] },
   { cam: 'rise', dur: 7.5, kicker: 'O SONHO', text: 'Cada torre entregue leva a fama da construtora a outra cidade, com uma obra ainda mais alta. Pressão, frio, gravidade… até a Órbita.' },
   { cam: 'fans', dur: 0, kicker: 'DIA 1 DE 365', text: 'Os curiosos já estão no tapume. Com o adiantamento da prefeitura, a obra começa hoje.', cheque: true },
 ];
+export const INTRO = FLAGS.risco ? INTRO_RISCO : INTRO_RODADAS;
+// quem assina o cheque da abertura
+export const CHEQUE_DE = FLAGS.risco ? ['Sócios da construtora', 'CAPITAL INICIAL'] : ['Prefeitura de Santa Brisa', 'ADIANTAMENTO'];
 
 // manchete quando a torre entra numa era (a Órbita fecha a história na tela de parabéns)
 // {cidade} vira o nome da cidade da obra atual (headline)
