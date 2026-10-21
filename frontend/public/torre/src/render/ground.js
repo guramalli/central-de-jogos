@@ -7,6 +7,7 @@ import { S } from '../sim/state.js';
 import { R, T, hash, lerp, clamp, ctx } from './canvas.js';
 import { cam, worldX, worldY, sx, sy } from './camera.js';
 import { V } from './view.js';
+import { obraParada } from '../sim/risco.js';
 import { spark } from './particles.js';
 import { worker } from './workers.js';
 import { SHAFT_X, SHAFT_W } from './tower.js';
@@ -190,7 +191,7 @@ function coconut(px, sway, tree = 'coqueiro') {
 const T_IN = 3, T_UP = 1.2, T_POUR = 1.8, T_DOWN = 1, T_OUT = 3, T_CYCLE = T_IN + T_UP + T_POUR + T_DOWN + T_OUT;
 const DUMP_STOP = 266, MIX_STOP = 296;
 function truckPlan(prod, empty) {
-  const per = Math.max(T_CYCLE + 1, clamp(40 / Math.max(.1, prod), 4, 18)), s = V.t % per;
+  const per = Math.max(T_CYCLE + 1, clamp(40 / Math.max(.1, prod), 4, 18)), s = V.tObra % per; // relógio da obra: o caminhão para na interdição
   const kind = S.lv.caminhao > 0 ? 'mixer' : 'dump', stop = kind === 'mixer' ? MIX_STOP : DUMP_STOP;
   const off = Math.max(900, worldX(W) + 60); // fora da tela, à direita (o caminhão nunca "some" à vista)
   const ease = t => t * t * (3 - 2 * t);
@@ -228,15 +229,15 @@ function truck(tx, gy, plan, empty) {
   const ang = kind === 'dump' ? Math.round(lift * BED_STEPS) : 0;
   const amt = kind === 'dump' && !empty ? Math.max(0, 4 - Math.round(pour * 4)) : 4;
   const load = kind === 'dump' && !empty && amt > 0 ? '#c9ad72' : '';
-  const lvT = Math.min(10, S.lv.caminhao || 0), bob = plan.moving ? Math.floor(V.t * 12) % 2 : 0; // andando: o caminhão balança 1 px
+  const lvT = Math.min(10, S.lv.caminhao || 0), bob = plan.moving ? Math.floor(V.tObra * 12) % 2 : 0; // andando: o caminhão balança 1 px
   const pa = cam.z >= 0.3 && (kind === 'dump' ? dumpArt(lvT, ang, amt, BED_STEPS) : mixerArt(lvT));
   if (pa) { // caminhão do PixelLab
     if (kind === 'dump') blit(pa, tx, gy + bob, DUMP_PIVOT, TRUCK_TOP + DUMP_GROUND); else blit(pa, tx, gy + bob, MIX_AX, MIX_GROUND);
     return;
   }
-  const drum = kind === 'mixer' ? Math.floor(V.t * (plan.pouring ? 16 : 8)) % 4 : Math.floor(V.t * 8) % 4; // tambor gira mais rápido despejando
+  const drum = kind === 'mixer' ? Math.floor(V.tObra * (plan.pouring ? 16 : 8)) % 4 : Math.floor(V.t * 8) % 4; // tambor gira mais rápido despejando
   blit(truckSprite(kind, drum, kind === 'mixer' && lift > 0.3, load, Math.min(10, S.lv.caminhao || 0), ang, amt), tx, gy, TRUCK_AX, TRUCK_AY);
-  const wf = plan.moving ? Math.floor(V.t * 10) % 2 : 0;
+  const wf = plan.moving ? Math.floor(V.tObra * 10) % 2 : 0;
   for (const wx of [tx + 14, tx + 88]) blit(wheelSprite(wf), wx, gy, 1, 19);
 }
 
@@ -289,23 +290,24 @@ export function drawGroundFront(prod, sg = {}) {
   // serventes levando material do estoque ao elevador 1
   // com Caçamba maior eles empurram carrinhos de mão (mais carga por viagem)
   const nw = Math.min(5, L.fornec), to = SHAFT_X(0) + SHAFT_W / 3, barrow = L.cacamba > 0;
+  const parada = obraParada(); // embargo/interdição: todos em pé, parados onde estavam, sem 💤 (não é falta de material)
   for (let i = 0; i < nw; i++) {
-    if (sg.groundJam) { // fila na porta do elevador, carregados, esperando a vez
+    if (sg.groundJam && !parada) { // fila na porta do elevador, carregados, esperando a vez
       const x = to + 18 + i * 24;
       if (barrow) wheelbarrow(x, gy, bc, 0, true);
       worker(x, gy, { phase: 0, carry: barrow ? null : bc, flip: true, skin: i + 1, suit: onMoon(), role: 'servente' });
       zzz(x, gy + (barrow ? 56 : 68), i);
       continue;
     }
-    if (sg.supplyLow) { // nada para levar: esperam ao lado do estoque vazio
+    if (sg.supplyLow && !parada) { // nada para levar: esperam ao lado do estoque vazio
       const x = STOCK_X + 10 + i * 22;
       worker(x, gy, { phase: 0, flip: i % 2 === 1, skin: i + 1, suit: onMoon(), role: 'servente' });
       zzz(x, gy + 56, i + 3);
       continue;
     }
-    const p = (V.t * .22 + i / nw) % 1, go = p < .5, x = lerp(STOCK_X + 30, to, go ? p * 2 : 2 - p * 2);
-    if (barrow) wheelbarrow(x, gy, go ? bc : null, V.t * 3 + i, go);
-    worker(x, gy, { walk: true, phase: V.t * 3 + i, carry: barrow ? null : go ? bc : null, flip: go, skin: i + 1, suit: onMoon(), role: 'servente' });
+    const p = (V.tObra * .22 + i / nw) % 1, go = p < .5, x = lerp(STOCK_X + 30, to, go ? p * 2 : 2 - p * 2); // parada: ficam onde estavam
+    if (barrow) wheelbarrow(x, gy, go ? bc : null, parada ? 0 : V.t * 3 + i, go);
+    worker(x, gy, parada ? { phase: 0, carry: barrow ? null : go ? bc : null, flip: go, skin: i + 1, suit: onMoon(), role: 'servente' } : { walk: true, phase: V.t * 3 + i, carry: barrow ? null : go ? bc : null, flip: go, skin: i + 1, suit: onMoon(), role: 'servente' });
   }
   // coqueiros
   const sc = city().scene;

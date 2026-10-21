@@ -33,7 +33,7 @@ import { initTips, updateTips, setTips, tickTips } from './ui/tips.js';
 import { initMilestones } from './ui/milestones.js';
 import { initRisco, tickRisco, riscoFx, resetRisco } from './ui/risco.js';
 import { preloadArt } from './render/assets.js';
-import { migrarRisco, novaTorre } from './sim/risco.js';
+import { migrarRisco, novaTorre, obraParada } from './sim/risco.js';
 preloadArt();
 
 // ?reset no endereço: apaga o save deste modo e começa do zero (o parâmetro sai do endereço,
@@ -83,7 +83,7 @@ function tick(real) {
     const sc = city().scene, alt = altOf(Math.max(0, cam.cy) / FH) + (sc.skyAlt || 0);
     const ground = Math.max(0, Math.min(1, 1 - (worldY(H) - 100) / 600));
     const wind = sc.moon ? 0 : Math.max(0, Math.min(1, (alt - 3000) / 9000)) * Math.max(0, Math.min(1, 1 - (alt - 80000) / 40000));
-    tickAmbience({ ground, sea: !!sc.sea, wind, top: !isFree() && S.floors >= 2, active: !fz && !homeOpen() && !introActive(), dt: Math.min(.1, real) });
+    tickAmbience({ obra: !obraParada(), ground, sea: !!sc.sea, wind, top: !isFree() && S.floors >= 2, active: !fz && !homeOpen() && !introActive(), dt: Math.min(.1, real) });
   }
   if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
   tickTips(); // o quadro da dica acompanha o alvo

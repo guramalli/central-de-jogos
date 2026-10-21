@@ -240,7 +240,7 @@ function shaft(i, topWP, carrying) {
       R(x0 - 3, 0, 36, 3, c); R(x0 - 3, 38, 36, 3, c); R(x0 - 3, 0, 3, 41, c); R(x0 + 30, 0, 3, 41, c);
     }
     if (ml > 0) { // motor mais forte: a casa de máquinas cresce a cada nível (mais polias, aletas e tinta nova)
-      const q = Math.floor(V.t * (6 + 2 * Math.min(ml, 8))) % 4, np = Math.min(3, 1 + Math.floor(ml / 4));
+      const q = Math.floor(V.tObra * (6 + 2 * Math.min(ml, 8))) % 4, np = Math.min(3, 1 + Math.floor(ml / 4));
       const body = mix('#7a8091', '#3b82c4', Math.min(1, ml / 10));
       const bw = Math.min(30, 14 + ml * 2), bx = x0 + 15 - bw / 2;
       R(bx - 1, top + 12, bw + 2, 13, '#2a2f3d'); R(bx, top + 13, bw, 10, body);

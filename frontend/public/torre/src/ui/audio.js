@@ -35,7 +35,7 @@ let loading = false, prontos = false; // prontos: os arquivos já foram baixados
 
 export const soundOn = () => on;
 // sons já decodificados e loops de ambiente tocando (para conferir no console: torre.sons())
-export const soundsLoaded = () => ({ arquivos: Object.keys(buf).length, ambiente: Object.keys(amb) });
+export const soundsLoaded = () => ({ arquivos: Object.keys(buf).length, ambiente: Object.keys(amb), obra: !obraMuda });
 // volume (0..1), nas configurações
 export function setVolume(v) { setCfg({ vol: Math.max(0, Math.min(1, v)) }); if (master) master.gain.value = gainOf(); }
 export function setSound(v) {
@@ -227,16 +227,18 @@ function rajada(nome, g, vol, intervalo) {
 let nextTruck = 20, nextHammer = 4;
 // chamada a cada quadro por main.js. o: { ground 0..1 (térreo à vista), sea (cidade com mar), wind 0..1 (eras altas),
 // top (acompanhando o topo com a obra andando), active (jogo correndo: sem pausa, Início nem abertura), dt }
+let obraMuda = false; // obra parada (embargo/interdição): o canteiro fica em silêncio
 export function tickAmbience(o) {
+  if (o.obra === false) obraMuda = true; else if (o.obra) obraMuda = false;
   if (!ctx || !ambBus || ctx.state !== 'running') return;
   const t = ctx.currentTime, onAmb = on && o.active && cfg().ambiente !== false && !document.hidden;
   ambBus.gain.setTargetAtTime(onAmb ? 1 : 0, t, 0.4);
   const set = (k, v) => amb[k] && amb[k].gain.gain.setTargetAtTime(v, t, 0.6);
-  set('canteiro', 0.55 * o.ground);
+  set('canteiro', obraMuda ? 0 : 0.55 * o.ground); // obra embargada ou interditada: sem barulho de obra
   set('mar', o.sea ? 0.45 * o.ground : 0);
   if (amb.vento) rajada('ambVento', amb.vento.gain, onAmb ? 0.5 * o.wind : 0, [10, 20]); // vento de fundo em rajadas, não em loop
   if (!onAmb) return;
   // sons soltos de vez em quando: ré do caminhão no térreo, marteladas no topo
-  if ((nextTruck -= o.dt) <= 0) { nextTruck = 30 + Math.random() * 40; if (o.ground > 0.5) sfx('truck'); }
-  if ((nextHammer -= o.dt) <= 0) { nextHammer = 5 + Math.random() * 6; if (o.top) sfx('hammer'); }
+  if ((nextTruck -= o.dt) <= 0) { nextTruck = 30 + Math.random() * 40; if (o.ground > 0.5 && !obraMuda) sfx('truck'); }
+  if ((nextHammer -= o.dt) <= 0) { nextHammer = 5 + Math.random() * 6; if (o.top && !obraMuda) sfx('hammer'); }
 }

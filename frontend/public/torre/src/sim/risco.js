@@ -299,6 +299,8 @@ export function sortearPremios(rand = Math.random) {
 // cheque do Patrocínio guardado: a torre nova começa sem renda, então vale pela melhor altura da campanha
 export const chequeGuardado = () => Math.max(500, Math.round(1000 * 40 * Math.pow((S.bestAlt || 0) / 1000, 1.2)));
 
+// obra parada: embargada pela fiscalização ou interditada pela Defesa Civil (ninguém trabalha, nada de barulho de obra)
+export const obraParada = () => FLAGS.risco && !!S.risco && (!!S.risco.interd || S.risco.embargo > 0);
 // fração do assentamento que anda (embargo para a obra; chuva e neve deixam mais lenta)
 export const riscoLay = () => { const s = st(); return s.interd || s.embargo > 0 ? 0 : s.lento > 0 ? 0.6 : 1; };
 // chovendo forte (chuva, granizo, raios, furacão — e a chuva que continua deixando a obra lenta): os bonecos vestem capa

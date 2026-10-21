@@ -16,6 +16,7 @@ export const V = {
   flash: null,     // andar recém-concluído com as luzes acesas { i, t }
   shaftBuild: [],  // montagem de cada elevador novo (0..1)
   craneBuild: 1,   // montagem do guindaste (0..1)
+  tObra: 0,        // relógio da obra: para quando a obra está embargada ou interditada (funcionários, guindaste, elevadores, caminhões)
   choque: 0,       // modo com risco: segundos de choque elétrico nos pedreiros do topo (raio)
   preview: false,  // desenhando uma prévia (tela de Melhorias): nada de efeitos colaterais
 };

@@ -10,6 +10,7 @@ import { fmt, fmtM } from '../ui/format.js';
 import { ctx, r, R, T, lerp, clamp } from './canvas.js';
 import { cam, sx, sy, updateCamera, startMilestone, cinematic, MILESTONES } from './camera.js';
 import { V } from './view.js';
+import { obraParada } from '../sim/risco.js';
 import { dust, updateParticles, drawParticles } from './particles.js';
 import { drawSky, drawClouds } from './sky.js';
 import { drawGroundBack, drawGroundFront } from './ground.js';
@@ -32,10 +33,11 @@ let msIdx = -1; // próximo marco de andares ainda não comemorado
 // Avança o estado visual (elevadores, modo de animação, câmera, faixas)
 export function updateView(dt, speed) {
   V.t += dt;
+  const parada = obraParada(); if (!parada) V.tObra += dt; // embargada ou interditada: o relógio da obra para
   pollEvents();          // compras, andares concluídos e eras viram eventos visuais
   updateEffects(dt);
   const R0 = rates();
-  for (let i = 0; i < 6; i++) V.elev[i] += dt * speed / R0.trip;
+  if (!parada) for (let i = 0; i < 6; i++) V.elev[i] += dt * speed / R0.trip;
   // obra muito rápida: os efeitos por peça (poeira, som, etapas) viram agregados para não piscar
   V.fast = Math.min(R0.prod, R0.tran, R0.lay) / R0.fcost * speed > 0.5;
   updateParticles(dt);
@@ -125,7 +127,8 @@ function drawCapped(y0, nb) {
   R(TL, y0, TW, SLAB, s.slab); R(TL, y0 + SLAB - 2, TW, 2, s.hi); R(TL, y0 + 2, TW, 1, 'rgba(0,0,0,.25)');
   if (FLAGS.viva) { // sem texto: a obra parou, os pedreiros sentam (respirando devagar) e a base avisa
     const n = Math.min(nb, 4), gap = n > 1 ? (TW - 70) / (n - 1) : 0;
-    for (let j = 0; j < n; j++) { const x = TL + 26 + j * gap + (j % 2 ? 18 : 0); worker(x, y0 + SLAB, { sit: true, phase: V.t * 0.6 + j * 0.7, skin: j, flip: j % 2 === 1 }); zzz(x, y0 + SLAB + 44, j); }
+    const parada = obraParada(); // embargo/interdição: em pé e imóveis, sem 💤
+    for (let j = 0; j < n; j++) { const x = TL + 26 + j * gap + (j % 2 ? 18 : 0); if (parada) { worker(x, y0 + SLAB, { phase: 0, skin: j, flip: j % 2 === 1 }); continue; } worker(x, y0 + SLAB, { sit: true, phase: V.t * 0.6 + j * 0.7, skin: j, flip: j % 2 === 1 }); zzz(x, y0 + SLAB + 44, j); }
     warn(0, 8); warn(0, y0 + FH + 14); // na base (rachaduras) e no topo (obra parada)
     return;
   }
@@ -138,6 +141,7 @@ function drawCapped(y0, nb) {
 // som de cada peça por etapa
 const PIECE = { entrega: 'brick', estrutura: 'beam', paredes: 'brick', janelas: 'glass', acabamento: 'brick' };
 function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
+  const parada = obraParada();
   scaffold(y0, false);
   R(TL, y0, TW, SLAB, s.slab); R(TL, y0 + SLAB - 2, TW, 2, s.hi);
   const lvl = floorLOD(), st = FLAGS.viva ? buildStateWith(p, VIVA.phases) : buildState(p), ph = st.phase.i, pid = st.phase.id;
@@ -179,13 +183,14 @@ function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
     const x = V.preview || V.bx[j] === undefined ? tx : V.bx[j] + clamp(tx - V.bx[j], -stepMax, stepMax);
     if (!V.preview) V.bx[j] = x;
     bx[j] = x;
+    if (parada) { worker(x, fy, { phase: 0, skin: j, flip: j % 2 === 1 }); continue; } // obra parada: ninguém se mexe
     const walk = Math.abs(x - tx) > 2, sit = resting(j) && !walk;
     worker(x, fy, { sit, hammer: working && !walk && !sit, drill, phase: V.t * (j === act ? 3 : 1.6) * pace + j * .37, walk, flip: walk && tx < x, skin: j });
     if (sit) zzz(x, fy + 42, j);
     else if (sg.overloaded && !walk) sweat(x, fy + 50, j);
   }
   // peça a caminho: tijolo nas paredes, vidro nas janelas
-  if (working && (pid === 'paredes' || pid === 'janelas')) {
+  if (working && !parada && (pid === 'paredes' || pid === 'janelas')) {
     const f = st.frac, hx = bx[act] + 22, hy = fy + 44, ty = pid === 'paredes' ? y0 + SLAB + 40 : y0 + 46;
     const px = lerp(hx, slotX - 10, f), py = lerp(hy, ty, f) + Math.sin(f * Math.PI) * 16;
     if (pid === 'paredes') { R(px, py, 19, 10, s.brick); R(px, py + 9, 18, 1, s.hi); }
@@ -193,11 +198,11 @@ function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
   }
   // acima de MAX_TOP_WORKERS, os pedreiros viram uma equipe com contador (limite visual)
   if (S.lv.pedreiro > MAX_TOP_WORKERS) { R(-72, y0 + FH + 8, 144, 16, 'rgba(17,19,26,.75)'); T(`EQUIPE DE ${S.lv.pedreiro} PEDREIROS`, 0, y0 + FH + 16, 9, '#ece6d6', 'center'); }
-  if (S.lv.pedreiro >= 2) {
-    const q = (V.t * .16 * pace) % 1, go = q < .5, x = lerp(TL + TW - 30, TL + 40, go ? q * 2 : 2 - q * 2);
-    worker(x, fy, { walk: true, phase: V.t * 3, carry: go ? (pid === 'janelas' ? s.glass : s.brick) : null, flip: go, skin: 3 });
+  if (S.lv.pedreiro >= 2) { // o carregador para onde estava
+    const q = (V.tObra * .16 * pace) % 1, go = q < .5, x = lerp(TL + TW - 30, TL + 40, go ? q * 2 : 2 - q * 2);
+    worker(x, fy, parada ? { phase: 0, carry: go ? (pid === 'janelas' ? s.glass : s.brick) : null, flip: go, skin: 3 } : { walk: true, phase: V.t * 3, carry: go ? (pid === 'janelas' ? s.glass : s.brick) : null, flip: go, skin: 3 });
   }
-  for (let k = 0; k < Math.min(3, Math.ceil((S.lv.mestre || 0) / 2)); k++) worker(TL + TW - 22 - k * 30, fy, { boss: true, flip: true, phase: V.t + k * 0.6, skin: (2 + k) % 4 });
+  for (let k = 0; k < Math.min(3, Math.ceil((S.lv.mestre || 0) / 2)); k++) worker(TL + TW - 22 - k * 30, fy, { boss: true, flip: true, phase: parada ? 0 : V.t + k * 0.6, skin: (2 + k) % 4 });
   if (S.lv.guindaste > 0) craneHelper(y0, s, pid);
   techFront(y0, fy, s);
 }
@@ -254,10 +259,10 @@ function techFront(y0, fy, s) {
 // junto do que os elevadores trazem; os pedreiros pegam dali. A obra segue bloco a bloco.
 const CRANE_CYCLE = 8, DROP_X = TL + TW - 36, PICK_X = 205;
 function craneHelper(y0, s, pid) {
-  const q = (V.t % CRANE_CYCLE) / CRANE_CYCLE, park = y0 + FH * 0.75, deck = y0 + SLAB + 32, air = y0 + FH - 6;
+  const q = (V.tObra % CRANE_CYCLE) / CRANE_CYCLE, park = y0 + FH * 0.75, deck = y0 + SLAB + 32, air = y0 + FH - 6;
   const ease = t => t * t * (3 - 2 * t), ground = 34;
   let tx, hy, load = false;
-  if (S.ground < 0.5) { tx = DROP_X + 30 + Math.sin(V.t * 0.5) * 20; hy = park; }               // pátio vazio: espera
+  if (S.ground < 0.5) { tx = DROP_X + 30 + Math.sin(V.tObra * 0.5) * 20; hy = park; }               // pátio vazio: espera
   else if (q < 0.3) { const t = ease(q / 0.3); tx = lerp(DROP_X, PICK_X, t); hy = lerp(deck, ground, t); }      // desce até o pátio
   else if (q < 0.4) { tx = PICK_X; hy = ground; load = q > 0.35; }                                  // engancha o palete
   else if (q < 0.82) { const t = ease((q - 0.4) / 0.42); tx = lerp(PICK_X, DROP_X, t); hy = lerp(ground, air, t); load = true; } // iça
