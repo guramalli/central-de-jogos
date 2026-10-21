@@ -16,10 +16,11 @@ export const RISCO = {
   hit: 4,             // duração da ameaça na tela
   regen: 0.06,        // integridade por segundo por nível de Manutenção
   def: 0.35,          // cada nível de defesa divide o dano por (1 + def × nível)
-  anoK: 1.35,         // dano × anoK^(ano − 1): sem teto
+  anoK: 1.5,          // dano × anoK^(ano − 1): sem teto
+  gapAno: 0.9,        // a cada ano as ameaças vêm mais seguidas (intervalo × gapAno^(ano − 1), no mínimo metade)
   diaK: 0.5,          // +50% do dia 1 ao dia 365
   bonusAno: 1,        // pontos de Reputação por ano sobrevivido (além da altura nova)
-  curaAno: 0.5,       // na virada do ano, cura essa fração do que falta
+  reforco: 0.5,       // na virada do ano, essa fração da integridade que sobrou soma na integridade máxima
   altPow: 0.35,       // peso da altura no dano: (1 + (altura/150 m)^altPow)
 };
 // tipo → nome, dano-base, nó de defesa, grupo dos prêmios de defesa, se deixa a obra mais lenta (s)
@@ -61,8 +62,8 @@ const st = () => {
   return s;
 };
 export const riscoState = st;
-// Segurança do trabalho exigida pela fiscalização: sobe com a altura (2 em 100 m, 4 em 1 km, 7 em 10 km…)
-export const segExigida = () => 1 + Math.floor(Math.log2(1 + S.maxAlt / 100));
+// Segurança do trabalho exigida pela fiscalização: sobe com a altura (2 em 100 m, 6 em 1 km, 11 em 10 km, 16 em 100 km)
+export const segExigida = () => 1 + Math.floor(1.6 * Math.log2(1 + S.maxAlt / 100));
 // fator da altura, do ano (sem teto) e do dia do ano
 const fator = () => (1 + Math.pow(S.maxAlt / 150, RISCO.altPow)) * Math.pow(RISCO.anoK, st().ano - 1) * (1 + RISCO.diaK * roundFrac());
 // dano estimado de uma ameaça agora (o aviso mostra e vai subindo até ela chegar); nivelDef: nível da defesa a usar
@@ -81,7 +82,7 @@ function sortear() {
   const tot = Object.values(pesos).reduce((a, b) => a + b, 0);
   let x = Math.random() * tot, tipo = 'vento';
   for (const k in pesos) { x -= pesos[k]; if (x <= 0) { tipo = k; break; } }
-  const g = RISCO.gap[0] + Math.random() * (RISCO.gap[1] - RISCO.gap[0]);
+  const g = (RISCO.gap[0] + Math.random() * (RISCO.gap[1] - RISCO.gap[0])) * Math.max(0.5, Math.pow(RISCO.gapAno, s.ano - 1));
   s.prox = { tipo, em: g };
 }
 
@@ -141,6 +142,7 @@ export function fimDoAno() {
   S.pontosTotal = (S.pontosTotal || 0) + pts;
   S.bestAlt = Math.max(S.bestAlt || 0, S.maxAlt);
   s.ganhoAno = pts;
+  s.reforco = Math.round(RISCO.reforco * Math.max(0, s.integ)); // quem cuidou da torre começa o próximo ano mais forte
   s.oferta = sortearPremios(); s.ultimaOferta = s.oferta.slice();
   s.fimAno = true;
 }
@@ -155,7 +157,7 @@ export function aplicarNaHora(id, guardado) {
 export function escolherPremio(id) {
   const s = st();
   if (!s.fimAno || !s.oferta || !s.oferta.includes(id)) return false;
-  s.integ = Math.min(s.max, s.integ + RISCO.curaAno * (s.max - s.integ));
+  s.max += Math.round(RISCO.reforco * Math.max(0, s.integ)); s.reforco = 0; // a integridade que sobrou continua; metade dela vira integridade máxima
   s.premios.push(id); aplicarNaHora(id, false);
   s.ano++; S.roundLeft = VIVA.round.secs;
   s.fimAno = false; s.oferta = null;

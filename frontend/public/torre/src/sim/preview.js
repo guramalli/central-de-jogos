@@ -8,7 +8,7 @@ import { eraAt } from '../data/eras.js';
 import { altOf } from '../data/height.js';
 import { sellingNow, saleValueNext } from './realty.js';
 import { FLAGS } from '../data/flags.js';
-import { danoDe, regenAgora, segExigida } from './risco.js';
+import { danoDe, regenAgora, segExigida, faixaDe, AMEACAS } from './risco.js';
 
 export const STAGE_NAME = { prod: 'produção', tran: 'transporte', lay: 'assentamento' };
 const STAGE_OF = { obra: 'lay', forn: 'prod', log: 'tran' };
@@ -77,10 +77,13 @@ export function priorityScore(k) {
 const STAGE_LABEL = { prod: 'Material chegando', tran: 'Material subindo', lay: 'Pedreiros assentando' };
 // modo com risco: o efeito das defesas é o dano (ou a cura, ou a exigência da fiscalização) de agora → depois
 const virg = v => v.toFixed(2).replace('.', ',');
+// a ameaça mais forte que a defesa enfrenta na faixa de altura atual
+const pior = k => faixaDe(S.maxAlt).filter(t => AMEACAS[t].def === k).sort((a, b) => danoDe(b) - danoDe(a))[0];
+const dano = (k, l) => { const t = pior(k); return t ? `Dano de ${AMEACAS[t].n.toLowerCase()}: ~${danoDe(t, l)} → ~${danoDe(t, l + 1)}` : 'Nenhuma ameaça desta defesa nesta altura'; };
 const DEFESA_EFEITO = {
-  contravento: l => `Dano de ventania: ~${danoDe('vento', l)} → ~${danoDe('vento', l + 1)}`,
-  sondagem: l => `Dano de terremoto: ~${danoDe('sismo', l)} → ~${danoDe('sismo', l + 1)}`,
-  clima: l => `Dano de chuva: ~${danoDe('chuva', l)} → ~${danoDe('chuva', l + 1)}`,
+  contravento: l => dano('contravento', l),
+  sondagem: l => dano('sondagem', l),
+  clima: l => dano('clima', l),
   manutencao: l => `Recupera integridade: ${virg(regenAgora(l))}/s → ${virg(regenAgora(l + 1))}/s`,
   seguranca: l => `Fiscalização exige ${segExigida()} · você tem ${l} → ${l + 1}`,
 };

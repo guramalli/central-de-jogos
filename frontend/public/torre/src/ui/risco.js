@@ -3,6 +3,7 @@
 import { S, save } from '../sim/state.js';
 import { AMEACAS, riscoState, danoDe, avisando, segExigida, escolherPremio, premiosDaTentativa } from '../sim/risco.js';
 import { PREMIOS } from '../data/premios.js';
+import { UP } from '../data/upgrades.js';
 import { repPct } from '../sim/prestige.js';
 import { towerFx, weatherFx, ARTE_RISCO } from '../render/riscoFx.js';
 import { art } from '../render/assets.js';
@@ -15,6 +16,8 @@ import { sfx } from './audio.js';
 
 const $ = id => document.getElementById(id);
 let onNext = null, fall = null, ultimoLog = 0, guardar = null;
+// nome da defesa que protege de cada ameaça (aparece no aviso e no dano)
+const defesa = t => AMEACAS[t] && UP[AMEACAS[t].def] ? UP[AMEACAS[t].def].n : '';
 const ICON = { vento: '🌬️', furacao: '🌀', chuva: '🌧️', nevasca: '❄️', sismo: '⚠️', recalque: '🧱', fiscal: '🦺', tsunami: '🌊', raios: '⚡', granizo: '🧊', gelo: '🧊', ventoAlt: '🌬️', meteoros: '☄️', solar: '☀️' };
 const cartao = (id, cls) => { const p = PREMIOS[id]; return `<button type="button" class="${cls}" data-premio="${id}"><img src="assets/icones/${p.icon}.png" alt=""><b>${p.n}</b><small>${p.d}</small></button>`; };
 
@@ -29,7 +32,9 @@ export function initRisco(o) {
   .rk-bar.mid>i{background:#f2b630!important}.rk-bar.low>i{background:#e8553f!important}
   .rk-bar>span{position:relative;display:block;text-align:center;font:700 10px/18px "Chakra Petch";color:#fff;text-shadow:0 1px 2px #000}
   .rk-warn{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:40;background:rgba(20,18,30,.9);border:1px solid #f2b630;color:#f2b630;
-    font:600 14px "Chakra Petch";padding:7px 14px;border-radius:8px;pointer-events:none;white-space:nowrap;max-width:94vw;overflow:hidden;text-overflow:ellipsis}
+    font:600 14px "Chakra Petch";padding:7px 14px;border-radius:8px;pointer-events:none;max-width:92vw;text-align:center;line-height:1.3}
+  .rk-warn small{display:block;font:500 12px Rubik;opacity:.9}
+  @media (max-width:640px){.rk-warn{top:200px;font-size:13px}}
   .rk-warn.fatal{border-color:#e8553f;background:rgba(150,30,20,.92);color:#fff;animation:rkp .6s infinite alternate}
   .rk-warn.now{border-color:#e8553f;background:rgba(120,20,20,.94);color:#fff}
   @keyframes rkp{to{transform:translateX(-50%) scale(1.04)}}
@@ -85,6 +90,7 @@ export function tickRisco(paused, bloqueado) {
     w.textContent = t === 'fiscal'
       ? `🦺 Fiscalização do Ministério do Trabalho em ${Math.ceil(s.prox.em)} s · exige Segurança ${segExigida()} (você tem ${S.lv.seguranca || 0})`
       : `${ICON[t]} ${AMEACAS[t].n} em ${Math.ceil(s.prox.em)} s · dano ~${d}${fatal ? ' · DERRUBA A TORRE' : ''}`;
+    if (t !== 'fiscal') w.insertAdjacentHTML('beforeend', `<small>Protege: ${defesa(t)}</small>`);
   } else w.hidden = true;
   // cada golpe vira aviso (fica até tocar), uma vez
   if (s.log.length > ultimoLog) {
@@ -92,7 +98,7 @@ export function tickRisco(paused, bloqueado) {
       if (e.tipo === 'seguro') showNews('SEGURO DE OBRA', 'O seguro segurou a torre de pé com 1 de integridade. Ele não vale de novo nesta torre.');
       else if (!AMEACAS[e.tipo]) continue;
       else if (e.tipo === 'fiscal') showNews('MINISTÉRIO DO TRABALHO', e.falta > 0 ? `Obra embargada: a fiscalização exigia Segurança do trabalho ${segExigida()}. Obra parada e multa no caixa.` : 'Fiscalização aprovou a obra: equipamentos de segurança em dia.');
-      else if (!S.colapso) showNews('DANO NA ESTRUTURA', `${AMEACAS[e.tipo].n}: −${e.dano} de integridade.`);
+      else if (!S.colapso) showNews('DANO NA ESTRUTURA', `${AMEACAS[e.tipo].n}: −${e.dano} de integridade. Quem protege: ${defesa(e.tipo)}.`);
     }
     ultimoLog = s.log.length;
   }
@@ -101,7 +107,7 @@ export function tickRisco(paused, bloqueado) {
   if (s.fimAno && an.hidden && !S.colapso && !bloqueado) {
     const g = s.ganhoAno || 0;
     $('rkAnoT').textContent = `ANO ${s.ano} CONCLUÍDO`;
-    $('rkAnoTxt').textContent = `A torre aguentou mais um ano com ${fmtM(S.maxAlt)}. Reputação +${fmtPct(repPct(g))} (total ${fmtPct(repPct(S.pontosTotal || 0))}). Escolha um prêmio: ele vale até a torre cair.`;
+    $('rkAnoTxt').textContent = `A torre aguentou mais um ano com ${fmtM(S.maxAlt)}. Reputação +${fmtPct(repPct(g))} (total ${fmtPct(repPct(S.pontosTotal || 0))}). A integridade que sobrou (${Math.ceil(s.integ)}) vira reforço: integridade máxima +${s.reforco || 0} no próximo ano. Escolha um prêmio: ele vale até a torre cair.`;
     $('rkPremios').innerHTML = (s.oferta || []).map(id => cartao(id, 'rk-premio')).join('');
     an.hidden = false; sfx('entrega');
   } else if (!s.fimAno && !an.hidden) an.hidden = true;

@@ -6,6 +6,7 @@ const inBrowser = typeof location !== 'undefined';
 
 export const FLAGS = {
   viva: globalThis.TORRE_FLAGS?.viva ?? inBrowser,
-  // protótipo "Obra Viva com risco" (index.html?risco): intempéries que podem derrubar a torre (sim/risco.js)
-  risco: globalThis.TORRE_FLAGS?.risco ?? (inBrowser && new URLSearchParams(location.search).has('risco')),
+  // torre única com intempéries (sim/risco.js): o modo principal no site desde 21/10/2026 (decisão do usuário);
+  // o jogo de rodadas (uma obra por cidade) continua em index.html?rodadas. Em Node o padrão é desligado.
+  risco: globalThis.TORRE_FLAGS?.risco ?? (inBrowser && !new URLSearchParams(location.search).has('rodadas')),
 };

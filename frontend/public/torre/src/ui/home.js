@@ -98,6 +98,7 @@ export function initHome(h = {}) {
   $('hmJornais').onclick = () => show('hmJornaisP');
   $('hmHowto').onclick = () => hooks.onHowto?.();
   $('hmRank').onclick = () => hooks.onRanking?.();
+  if (FLAGS.risco) $('hmRank').hidden = true; // torre única: sem ranking (por enquanto)
   for (const b of document.querySelectorAll('#home [data-back]')) b.onclick = () => show(null);
   $('cfSom').onchange = e => { setSound(e.target.checked); hooks.onSound?.(); }; // o botão Som do rodapé acompanha
   $('cfVol').oninput = $('cfVol').onchange = e => setVolume(Number(e.target.value) / 100);

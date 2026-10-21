@@ -66,7 +66,7 @@ export const ERA_TECH = {
   asteroides: T('forn', 5, 'Mineração de asteroides', 'Material vindo do espaço: ×2 de material por nível.', { base: 4e8, st: 'prod', mul: 2, icon: 'porto' }),
   // Logística
   cabos: T('log', 1, 'Cabos de aço', 'Elevadores com cabos mais fortes: ×1,2 na velocidade por nível.', { base: 3e3, st: 'tran', mul: 1.2, icon: 'motor' }),
-  expresso: T('log', 2, 'Elevador expresso', 'Viagens sem paradas: a altura pesa menos no tempo de subida.', { base: 1e5, max: 1, flag: 'express', icon: 'elevador' }),
+  expresso: T('log', 2, 'Elevador expresso', 'Viagens sem paradas: a altura pesa menos no tempo de subida.', { base: 3e5, max: 1, flag: 'express', icon: 'elevador' }),
   pressurizada: T('log', 3, 'Cabine pressurizada', 'Elevadores para o ar rarefeito: ×1,25 na velocidade por nível.', { base: 3e6, st: 'tran', mul: 1.25, icon: 'elevador' }),
   linear: T('log', 4, 'Elevador linear', 'Motor linear magnético: ×1,4 na velocidade por nível.', { base: 4e7, st: 'tran', mul: 1.4, icon: 'maglev' }),
   teleporte: T('log', 5, 'Teletransporte de carga', 'Acima de 20 km a carga chega como se a torre parasse ali.', { base: 4e8, max: 1, flag: 'teleport', icon: 'maglev' }),
@@ -101,7 +101,7 @@ const ALT_TECH = {
   nanotubos: T('forn', 4, 'Nanotubos de carbono', 'Material mais leve e forte: −10% de material por andar a cada nível.', { base: 4e7, st: 'fcost', mul: 0.9, pair: 'fabrica' }),
   reciclagem: T('forn', 5, 'Reciclagem total', 'Nada se perde: ×1,5 de material e −5% de material por andar a cada nível.', { base: 4e8, st: 'prod', mul: 1.5, st2: 'fcost', mul2: 0.95, pair: 'asteroides' }),
   gaiolaDupla: T('log', 1, 'Gaiola dupla', 'Cada viagem leva mais: ×1,25 de carga por viagem a cada nível.', { base: 3e3, st: 'cap', mul: 1.25, pair: 'cabos' }),
-  contrapeso: T('log', 2, 'Contrapeso inteligente', 'Elevadores equilibrados: ×1,5 no material subindo por nível.', { base: 1e5, st: 'tran', mul: 1.5, pair: 'expresso' }),
+  contrapeso: T('log', 2, 'Contrapeso inteligente', 'Elevadores equilibrados: ×1,5 no material subindo por nível.', { base: 4e4, st: 'tran', mul: 1.5, pair: 'expresso' }),
   esteira: T('log', 3, 'Esteira vertical', 'Uma esteira sobe junto dos elevadores: ×1,3 de carga por viagem a cada nível.', { base: 3e6, st: 'cap', mul: 1.3, pair: 'pressurizada' }),
   tuboPneumatico: T('log', 4, 'Tubo pneumático', 'Material soprado até o topo: ×1,3 de carga por viagem e −8% de material por andar a cada nível.', { base: 4e7, st: 'cap', mul: 1.3, st2: 'fcost', mul2: 0.92, pair: 'linear' }),
   elevadorEspacial: T('log', 5, 'Cabo espacial', 'Um cabo do chão até a órbita: ×1,5 no material subindo.', { base: 4e8, max: 1, st: 'tran', mul: 1.5, pair: 'teleporte' }),
@@ -128,10 +128,10 @@ for (const k in ERA_TECH) { const u = ERA_TECH[k]; if (u.st) (TECH_BY_STAGE[u.st
 if (FLAGS.viva) UP.imoveis = { b: 'merc', n: 'Imóveis da era', d: 'Decida o destino dos andares desta era: alugar (renda contínua) ou vender (dinheiro na hora, cerca de 20 min de aluguel por andar).', base: 0, k: 1, max: 0, icon: 'corretores' };
 // protótipo "Obra Viva com risco": defesas contra as intempéries (sim/risco.js). Não rendem nada na economia.
 if (FLAGS.risco) Object.assign(UP, {
-  contravento: { b: 'eng', n: 'Contraventamento', d: 'Treliças em X e amortecedores: cada nível corta o dano de ventania e furacão.', base: 60, k: 2.2, icon: 'escoramento' },
-  sondagem: { b: 'eng', n: 'Sondagem e estacas', d: 'Conhece o solo e crava estacas: cada nível corta o dano de terremoto e de recalque do solo (a Fundação também ajuda).', base: 80, k: 2.3, icon: 'estacas' },
-  clima: { b: 'eng', n: 'Proteção climática', d: 'Drenagem, lonas e aquecimento: cada nível corta o dano de chuva forte, nevasca e tempestade de areia.', base: 50, k: 2.1, icon: 'pressurizada' },
-  seguranca: { b: 'obra', n: 'Segurança do trabalho', d: 'EPIs, redes e treinamento. O Ministério do Trabalho exige mais a cada altura: abaixo do exigido, a obra é embargada e multada.', base: 40, k: 2.0, icon: 'treino' },
-  manutencao: { b: 'eng', n: 'Equipe de manutenção', d: 'Recupera a integridade da torre aos poucos, a cada nível.', base: 70, k: 2.2, icon: 'mestre' },
+  contravento: { b: 'eng', n: 'Contraventamento', d: 'Treliças em X e amortecedores. Protege de: ventania, furacão e vento de altitude.', base: 120, k: 2.5, icon: 'escoramento' },
+  sondagem: { b: 'eng', n: 'Sondagem e estacas', d: 'Estudo do solo, estacas profundas e quebra-mar. Protege de: terremoto, recalque do solo e tsunami (a Fundação também ajuda).', base: 150, k: 2.5, icon: 'estacas' },
+  clima: { b: 'eng', n: 'Proteção climática', d: 'Drenagem, para-raios, lonas, aquecimento e blindagem. Protege de: chuva forte, granizo, raios, nevasca, gelo, meteoros e tempestade solar.', base: 100, k: 2.4, icon: 'pressurizada' },
+  seguranca: { b: 'obra', n: 'Segurança do trabalho', d: 'EPIs, redes e treinamento. O Ministério do Trabalho exige mais a cada altura: abaixo do exigido, a obra é embargada e multada.', base: 100, k: 2.0, icon: 'treino' },
+  manutencao: { b: 'eng', n: 'Equipe de manutenção', d: 'Recupera a integridade da torre aos poucos, a cada nível.', base: 150, k: 2.5, icon: 'mestre' },
 });
 export const KEYS = Object.keys(UP);
