@@ -12,6 +12,20 @@ Freesound (freesound.org, licença Creative Commons 0):
   amb-canteiro.mp3  — "INDUSTRY CONSTRUCTION SITE 01.wav" por sengjinn (freesound.org/people/sengjinn/sounds/193351/)
   amb-mar.mp3       — "Gentle Ocean Waves Loop" por kkenny101 (freesound.org/people/kkenny101/sounds/852826/)
   amb-vento.mp3     — "WIND_loop" por kevinklang (freesound.org/people/kevinklang/sounds/841982/)
+  Intempéries (torre única):
+  clima-chuva.mp3     — "Heavy_Rain_Loop.wav" por Rubaoliva (freesound.org/people/Rubaoliva/sounds/624645/)
+  clima-trovao.mp3    — "Heavy Thunder Strike - no Rain" por BlueDelta (freesound.org/people/BlueDelta/sounds/446753/)
+  clima-terremoto.mp3 — "Earthquake or distant space shuttle rumble" por metrostock99 (freesound.org/people/metrostock99/sounds/203281/)
+  clima-racha.mp3     — "Cracking Earthquake" por uagadugu (freesound.org/people/uagadugu/sounds/222521/)
+  clima-granizo.mp3   — "hail on car" por ikayuka (freesound.org/people/ikayuka/sounds/240742/)
+  clima-furacao.mp3   — "Wind Whipping By" por FunWithSound (freesound.org/people/FunWithSound/sounds/361487/)
+  clima-onda.mp3      — "Waves crashing on a rocky shore - Reunion Island" por nyoz (freesound.org/people/nyoz/sounds/615750/)
+  clima-solar.mp3     — "Neon Lamp, Switch On, Hum" por Kinoton (freesound.org/people/Kinoton/sounds/351430/)
+  clima-apito.mp3     — "traffic_control.wav" por Heigh-hoo (freesound.org/people/Heigh-hoo/sounds/28165/)
+  clima-desaba-1.mp3  — "building collapse / demolition" por greyfeather (freesound.org/people/greyfeather/sounds/712918/)
+  clima-desaba-2.mp3  — "Crashing Collapse of Wood Building" por craigsmith (freesound.org/people/craigsmith/sounds/487142/)
+  clima-gelo.mp3      — "Ice cracking" por timbreknight (freesound.org/people/timbreknight/sounds/342546/)
+  clima-nevasca.mp3   — "Wind Artic Cold" por cobratronik (freesound.org/people/cobratronik/sounds/117136/)
 
 OpenGameArt (opengameart.org/content/chiptune-sfx-pack), "Chiptune SFX Pack" por FrogPog, CC0:
   compra.mp3 (coin), andar.mp3 (level_up), entrega.mp3 (level_passed), multa.mp3 (fail), proposta.mp3 (pick_up)

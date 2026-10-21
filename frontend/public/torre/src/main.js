@@ -81,7 +81,7 @@ function tick(real) {
   while (sd > 0) { const st = Math.min(.25, sd); sim(st); sd -= st; }
   updateView(dt, speed);
   render();
-  if (FLAGS.risco && !introActive()) riscoFx(dt, V.t); // torre única: balanço, tremor, clima e desabamento (não durante a abertura)
+  if (FLAGS.risco && !introActive()) riscoFx(dt, V.t, homeOpen()); // torre única: balanço, tremor, clima e desabamento (não durante a abertura)
   tickPip(Math.min(.1, real), introActive() || homeOpen()); // janelinha com a outra ponta da obra
   if (FLAGS.viva) { // som ambiente: canteiro e mar com o térreo à vista, vento nas eras altas (ui/audio.js)
     const sc = city().scene, alt = altOf(Math.max(0, cam.cy) / FH) + (sc.skyAlt || 0);

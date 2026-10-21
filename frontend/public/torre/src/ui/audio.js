@@ -17,16 +17,21 @@ const SAMPLES = {
   brick: [['tijolo-0', 'tijolo-1', 'tijolo-2', 'tijolo-3', 'tijolo-4'], 0.55],
   beam: [['viga-0', 'viga-1', 'viga-2', 'viga-3', 'viga-4'], 0.45],
   glass: [['vidro-0', 'vidro-1', 'vidro-2', 'vidro-3', 'vidro-4'], 0.4],
-  drill: [['furadeira'], 0.55], phase: [['etapa'], 0.35], floor: [['andar'], 0.45], buy: [['compra'], 0.5],
+  drill: [['furadeira'], 0.55], phase: [['etapa'], 0.35], floor: [['andar'], 0.35], floorSoft: [['etapa'], 0.12], buy: [['compra'], 0.5],
   machine: [['motor'], 0.55], elevador: [['elevador'], 0.6], mixer: [['betoneira'], 0.45],
   entrega: [['entrega'], 0.6], multa: [['multa'], 0.6], offer: [['proposta'], 0.5], news: [['aviso'], 0.4],
   jornal: [['jornal'], 0.75], click: [['clique'], 0.3], hammer: [['martelo'], 0.4], truck: [['re-caminhao'], 0.35],
+  // intempéries (Freesound, CC0; ver CREDITOS.txt): sons soltos — sem o arquivo, a síntese toca no lugar
+  trovao: [['clima-trovao'], 0.8], racha: [['clima-racha'], 0.8], onda: [['clima-onda'], 0.9], gelo: [['clima-gelo'], 0.7],
+  apito: [['clima-apito'], 0.6], desabamento: [['clima-desaba-2'], 1], desabamento2: [['clima-desaba-1'], 1],
 };
+// loops das intempéries (o volume segue a ameaça em tickClima)
+const CLIMA = { chuva: 'clima-chuva', terremoto: 'clima-terremoto', granizo: 'clima-granizo', vento: 'clima-furacao', nevasca: 'clima-nevasca', solar: 'clima-solar' };
 const AMB = { canteiro: 'amb-canteiro', mar: 'amb-mar', vento: 'amb-vento' };
 // intervalo mínimo entre dois sons do mesmo tipo (s)
-const GAP = { brick: .11, beam: .2, glass: .2, phase: .35, floor: .5, buy: .08, machine: .7, drill: .25, click: .05, news: .3, hammer: 1.5, truck: 8, mixer: 6 };
+const GAP = { racha: 3, onda: 3, gelo: 3, desabamento2: 5, trovao: 1.2, meteoro: 0.6, apito: 3, desabamento: 5, granizo: 0.03, floorSoft: 1.5, brick: .11, beam: .2, glass: .2, phase: .35, floor: .5, buy: .08, machine: .7, drill: .25, click: .05, news: .3, hammer: 1.5, truck: 8, mixer: 6 };
 const last = {}, buf = {};
-let loading = false;
+let loading = false, prontos = false; // prontos: os arquivos já foram baixados (os loops das intempéries esperam por isso)
 
 export const soundOn = () => on;
 // sons já decodificados e loops de ambiente tocando (para conferir no console: torre.sons())
@@ -64,7 +69,7 @@ if (typeof addEventListener !== 'undefined') {
 // carrega e decodifica todos os arquivos (uma vez, depois do primeiro toque)
 async function loadAll() {
   if (loading) return; loading = true;
-  const names = [...new Set([...Object.values(SAMPLES).flatMap(s => s[0]), ...Object.values(AMB)])];
+  const names = [...new Set([...Object.values(SAMPLES).flatMap(s => s[0]), ...Object.values(AMB), ...Object.values(CLIMA)])];
   await Promise.all(names.map(async n => {
     try {
       const r = await fetch(`assets/sons/${n}.mp3`); if (!r.ok) return;
@@ -72,7 +77,7 @@ async function loadAll() {
       buf[n] = await new Promise((ok, err) => ctx.decodeAudioData(ab, ok, err));
     } catch (e) { /* fica a síntese */ }
   }));
-  startAmbience();
+  startAmbience(); prontos = true;
 }
 
 function play(b, vol, at = 0, rate = 1, dest = master) {
@@ -94,6 +99,68 @@ function noise(dur, vol = .3, at = 0, hp = 900) {
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
   s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + dur + .03);
 }
+// ruído grave com queda lenta (trovão, desabamento) e varredura de ruído (meteoro caindo)
+function rumble(dur, vol, lp, at) {
+  const t = ctx.currentTime + at, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+  s.buffer = noiseLong(); f.type = 'lowpass'; f.frequency.value = lp;
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .08); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  s.connect(f); f.connect(g); g.connect(master); s.start(t, Math.random()); s.stop(t + dur + .05);
+}
+function sweep(dur, f0, f1, vol) {
+  const t = ctx.currentTime, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+  s.buffer = noiseLong(); f.type = 'bandpass'; f.Q.value = 4; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * .7); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + dur + .05);
+}
+let longBuf = null;
+const noiseLong = () => {
+  if (longBuf) return longBuf;
+  longBuf = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
+  const d = longBuf.getChannelData(0); let b = 0;
+  for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; b = 0.97 * b + 0.03 * w; d[i] = w * 0.6 + b * 3; } // ruído com mais grave (rosado)
+  return longBuf;
+};
+
+// ---------- intempéries em loop (modo torre única) ----------
+// chuva (ruído filtrado), vento e furacão (a gravação do vento), tsunami (a do mar, mais grave), terremoto (ruído grave +
+// senoide de 38 Hz) e tempestade solar (zumbido elétrico). tickClima recebe o tipo ativo e ajusta os volumes.
+const clima = {};
+function loopNode(make) { const g = ctx.createGain(); g.gain.value = 0; g.connect(master); const src = make(g); return { g, src }; }
+function startClima() {
+  if (clima.ok || !ctx) return; clima.ok = true;
+  const ruido = (g, tipo, freq, q = 0.7) => { const s = ctx.createBufferSource(); s.buffer = noiseLong(); s.loop = true; const f = ctx.createBiquadFilter(); f.type = tipo; f.frequency.value = freq; f.Q.value = q; s.connect(f); f.connect(g); s.start(); return { s, f }; };
+  const gravado = (nome, rate = 1) => g => { const b = buf[nome]; if (!b) return null; const s = ctx.createBufferSource(); s.buffer = b; s.loop = true; s.playbackRate.value = rate; s.connect(g); s.start(ctx.currentTime, Math.random() * b.duration); return s; };
+  const ou = (nome, reserva) => loopNode(g => gravado(nome)(g) || reserva(g)); // gravação; sem ela, a síntese de antes
+  clima.chuva = ou(CLIMA.chuva, g => { const a = ruido(g, 'highpass', 900); const b = ctx.createBiquadFilter(); b.type = 'lowpass'; b.frequency.value = 7000; a.f.disconnect(); a.f.connect(b); b.connect(g); return a; });
+  clima.terremoto = ou(CLIMA.terremoto, g => { const a = ruido(g, 'lowpass', 140); const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 38; const og = ctx.createGain(); og.gain.value = .6; o.connect(og); og.connect(g); o.start(); return a; });
+  clima.solar = ou(CLIMA.solar, g => { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 55; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 240; f.Q.value = 3; o.connect(f); f.connect(g); o.start(); return o; });
+  clima.vento = ou(CLIMA.vento, g => gravado(AMB.vento)(g) || ruido(g, 'bandpass', 500, 1.2).s);
+  clima.nevasca = ou(CLIMA.nevasca, g => gravado(AMB.vento, 0.8)(g) || ruido(g, 'bandpass', 380, 1.2).s);
+  clima.granizo = loopNode(gravado(CLIMA.granizo)); // sem a gravação, o granizo vira estalos soltos (tickClima)
+  clima.mar = loopNode(gravado(AMB.mar, 0.55));
+}
+let ultimoClima = 0;
+// o: { tipo (ameaça ativa ou clima que continua), forca 0..1, aviso (tipo que vem chegando), dt }
+export function tickClima(o) {
+  if (!on || !ctx || ctx.state !== 'running' || !prontos) return;
+  startClima();
+  const t = ctx.currentTime, tp = o.tipo, f = Math.min(1, o.forca || .5), oculto = document.hidden;
+  const alvo = { chuva: 0, vento: 0, nevasca: 0, granizo: 0, mar: 0, terremoto: 0, solar: 0 };
+  if (!oculto) {
+    if (tp === 'chuva' || tp === 'raios') alvo.chuva = .35 + .35 * f;
+    if (tp === 'granizo') { alvo.chuva = .2; alvo.granizo = .8; if (!(clima.granizo && clima.granizo.src) && Math.random() < o.dt * 30) sfx('granizo'); }
+    if (tp === 'vento') alvo.vento = .55 + .3 * f;
+    if (tp === 'furacao') { alvo.vento = 1; alvo.chuva = .3; }
+    if (tp === 'ventoAlt' || tp === 'nevasca' || tp === 'gelo') alvo.nevasca = tp === 'gelo' ? .35 : .75;
+    if (tp === 'sismo' || tp === 'recalque') alvo.terremoto = .5 + .5 * f;
+    if (tp === 'tsunami') { alvo.mar = 1; alvo.terremoto = .35; }
+    if (tp === 'solar') alvo.solar = .18 + .1 * Math.sin(t * 7);
+    if (!tp && o.aviso) { if (['vento', 'furacao', 'ventoAlt'].includes(o.aviso)) alvo.vento = .15; if (['chuva', 'raios', 'granizo'].includes(o.aviso)) alvo.chuva = .08; }
+  }
+  for (const k in alvo) if (clima[k]) clima[k].g.gain.setTargetAtTime(alvo[k] * (k === 'terremoto' ? .9 : .7), t, .5);
+  if (clima.vento && clima.vento.src && clima.vento.src.playbackRate) clima.vento.src.playbackRate.setTargetAtTime(tp === 'furacao' ? 1.3 : 1, t, .5);
+}
+
 // síntese de reserva (os sons de antes), para quando o arquivo ainda não carregou
 function synth(name, v) {
   switch (name) {
@@ -105,6 +172,12 @@ function synth(name, v) {
     case 'floor': tone(523, .12, 'square', .13); tone(659, .12, 'square', .13, .11); tone(784, .26, 'square', .13, .22); break;
     case 'buy': tone(988, .06, 'square', .12); tone(1319, .14, 'square', .12, .055); break;
     case 'machine': tone(80, .6, 'sawtooth', .1, 0, 2.2); noise(.5, .07, 0, 300); break;
+    // intempéries (modo torre única): sintetizados na hora
+    case 'trovao': noise(.09, .5, 0, 2500); rumble(2.6, .9, 380, .05); rumble(1.8, .5, 160, .35); break;
+    case 'meteoro': sweep(1.1, 2400, 300, .25); rumble(1.2, .6, 220, .9); break;
+    case 'apito': tone(2900, .16, 'sine', .22); tone(2900, .3, 'sine', .22, .24); break;
+    case 'desabamento': rumble(3.5, 1, 260, 0); rumble(2.5, .8, 90, .2); for (let i = 0; i < 14; i++) noise(.05, .25, .3 + Math.random() * 2.8, 1800); tone(55, 2.5, 'sine', .5, 0, .5); break;
+    case 'granizo': noise(.018, .12 + Math.random() * .1, 0, 3000 + Math.random() * 3000); break;
     default: return false;
   }
   return true;

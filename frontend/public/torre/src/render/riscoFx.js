@@ -10,6 +10,7 @@ import { S } from '../sim/state.js';
 import { art } from './assets.js';
 import { eraVis } from './eravis.js';
 import { altOf } from '../data/height.js';
+import { sfx } from '../ui/audio.js';
 
 const g = () => ctxMain;
 const buf = document.createElement('canvas'), bctx = buf.getContext('2d');
@@ -39,18 +40,28 @@ export function towerFx(o) {
   }
   const lean = o.lean || 0, shake = o.shake || 0;
   if (!lean && !shake) return;
-  buf.width = W; buf.height = H; bctx.drawImage(ctx.canvas, 0, 0);
+  if (buf.width !== W || buf.height !== H) { buf.width = W; buf.height = H; } // realocar a cada quadro custava caro (memória da placa de vídeo)
+  bctx.drawImage(ctx.canvas, 0, 0);
   if (shake) {
     const jx = (Math.random() * 2 - 1) * shake, jy = (Math.random() * 2 - 1) * shake * 0.3;
     ctx.fillStyle = '#1b1622'; ctx.fillRect(0, 0, W, H); ctx.drawImage(buf, jx, jy); bctx.drawImage(ctx.canvas, 0, 0);
   }
   // só a faixa da torre entorta: o fundo da faixa é refeito com a coluna de céu ao lado e a torre é desenhada deslocada
   const x0 = Math.max(1, Math.floor(sx(TL - 60))), bw = Math.min(W - x0, Math.ceil(sx(TL + TW + 120)) - x0);
-  if (lean && bw > 0) for (let y = 0; y < Math.min(H, gy); y += 2) {
-    const h = Math.max(0, Math.min(1.3, (gy - y) / span)), dx = Math.round(lean * h * h);
-    if (!dx) continue;
-    ctx.drawImage(buf, x0 - 1, y, 1, 2, x0, y, bw, 2);
-    ctx.drawImage(buf, x0, y, bw, 2, x0 + dx, y, bw, 2);
+  const y0 = Math.max(0, Math.floor(sy((fl + 1.3) * FH))); // acima do topo da torre só há céu: não precisa deslocar
+  // linhas vizinhas com o mesmo deslocamento viram uma cópia só (perto da base o deslocamento muda devagar)
+  const y1 = Math.min(H, Math.ceil(gy)), faixa = (ya, yb, dx) => {
+    if (!dx || yb <= ya) return;
+    ctx.drawImage(buf, x0 - 1, ya, 1, yb - ya, x0, ya, bw, yb - ya);
+    ctx.drawImage(buf, x0, ya, bw, yb - ya, x0 + dx, ya, bw, yb - ya);
+  };
+  if (lean && bw > 0) {
+    let ini = y0, dxIni = null;
+    for (let y = y0; y < y1; y++) {
+      const h = Math.max(0, Math.min(1.3, (gy - y) / span)), dx = Math.round(lean * h * h);
+      if (dx !== dxIni) { if (dxIni !== null) faixa(ini, y, dxIni); ini = y; dxIni = dx; }
+    }
+    if (dxIni !== null) faixa(ini, y1, dxIni);
   }
 }
 
@@ -89,7 +100,7 @@ export function weatherFx(o) {
   }
   if (tipo === 'granizo' && Math.random() < 0.8) for (let i = 0; i < 3; i++) add({ k: 'granizo', v: i % 3, x: Math.random() * W, y: -6, vy: 300, t: 0, vida: 3, chao: gy });
   if (tipo === 'raios') {
-    if (Math.random() < dt * 0.9) { flash = 0.25; add({ k: 'raio', x: sx(-40 + Math.random() * 80), y: topY, t: 0, vida: 0.3 }); }
+    if (Math.random() < dt * 0.9) { flash = 0.25; add({ k: 'raio', x: sx(-40 + Math.random() * 80), y: topY, t: 0, vida: 0.3 }); sfx('trovao', 0.15 + Math.random() * 0.4); }
   }
   if (tipo === 'nevasca' || tipo === 'gelo') {
     ctx.fillStyle = tipo === 'gelo' ? 'rgba(170,215,255,.22)' : 'rgba(230,238,255,.2)'; ctx.fillRect(0, 0, W, H);
@@ -120,7 +131,7 @@ export function weatherFx(o) {
     const x = W + 160 - p * (W + 160 - (tx1 + 60));
     if (im) ctx.drawImage(im, Math.round(x - 160), Math.round(gy - 112)); else { ctx.fillStyle = 'rgba(40,120,170,.8)'; ctx.fillRect(x - 160, gy - 60 * p, 320, 60 * p); }
   }
-  if (tipo === 'meteoros' && Math.random() < dt * 3) add({ k: 'meteoro', x: W + 40, y: -30 + Math.random() * H * 0.4, vx: -260, vy: 130, t: 0, vida: 3 });
+  if (tipo === 'meteoros' && Math.random() < dt * 3) { add({ k: 'meteoro', x: W + 40, y: -30 + Math.random() * H * 0.4, vx: -260, vy: 130, t: 0, vida: 3 }); sfx('meteoro'); }
   if (tipo === 'solar') {
     const im = A('aurora');
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5 + 0.4 * (0.5 + 0.5 * Math.sin(t * 3));

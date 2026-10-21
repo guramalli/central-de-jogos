@@ -19,6 +19,9 @@ export const MAX_TOP_WORKERS = 6; // acima disso, os pedreiros viram uma equipe 
 
 const topY = () => Math.floor(S.floors) * FH;
 let floatGate = 0; // limita textos quando a obra está muito rápida
+// som do andar pronto: o jingle só quando o andar vem sozinho; com andares seguidos (obra rápida), um tique curto e baixo
+let ultimoAndar = -99;
+function somAndar() { const rapido = V.t - ultimoAndar < 5; ultimoAndar = V.t; sfx(rapido ? 'floorSoft' : 'floor'); }
 
 // texto que sobe e some (coordenadas de mundo)
 const RISE = 20, GAP = 34; // os textos sobem RISE px/s; dois textos na mesma faixa ficam a pelo menos GAP px
@@ -55,12 +58,12 @@ function onFloor(e) {
     const first = !FLAGS.viva && S.assigned < e.to && S.lv.corretor < 1 && e.to <= 3;
     const pay = FLAGS.viva ? `+R$ ${fmt(rentSum(e.from, e.n) * VIVA.floorPaySecs)} pela obra` : '';
     if (!mergeFloor(e.n, pay)) float(0, y + 30, '+1 ANDAR', pay || (first ? 'pronto para alugar ou vender' : ''), '#f2b630', 2.2, { floor: true, n: 1 });
-    sfx('floor');
+    somAndar();
   } else if (!mergeFloor(e.n, '') && floatGate <= 0) {
     // obra rápida: um aviso agregado de vez em quando
     floatGate = 1.2;
     float(0, y + FH * 1.2, `+${e.n} ${e.n === 1 ? 'ANDAR' : 'ANDARES'}`, '', '#f2b630', 2.2, { floor: true, n: e.n });
-    sfx('floor');
+    somAndar();
   }
 }
 

@@ -12,10 +12,11 @@ import { FH, TW, TL } from '../data/constants.js';
 import { zoomBy, sy } from '../render/camera.js';
 import { showNews } from './intro.js';
 import { fmt, fmtM, fmtPct } from './format.js';
-import { sfx } from './audio.js';
+import { sfx, tickClima } from './audio.js';
 
 const $ = id => document.getElementById(id);
-let onNext = null, fall = null, ultimoLog = 0, guardar = null;
+let onNext = null, fall = null, ultimoLog = 0, guardar = null, ultimaAtiva = null;
+const SOM_CHEGADA = { sismo: 'racha', recalque: 'racha', tsunami: 'onda', gelo: 'gelo' };
 // nome da defesa que protege de cada ameaça (aparece no aviso e no dano)
 const defesa = t => AMEACAS[t] && UP[AMEACAS[t].def] ? UP[AMEACAS[t].def].n : '';
 const ICON = { vento: '🌬️', furacao: '🌀', chuva: '🌧️', nevasca: '❄️', sismo: '⚠️', recalque: '🧱', fiscal: '🦺', tsunami: '🌊', raios: '⚡', granizo: '🧊', gelo: '🧊', ventoAlt: '🌬️', meteoros: '☄️', solar: '☀️' };
@@ -49,8 +50,8 @@ export function initRisco(o) {
   .rk-premio img,.rk-guardar img{width:36px;height:36px;image-rendering:pixelated}
   .rk-premio b,.rk-guardar b{font:700 15px "Chakra Petch"}
   .rk-premio small,.rk-guardar small{font:13px/1.35 Rubik;color:#c9e9c9}
-  .rk-guardar{min-height:0;width:160px}.rk-guardar small{display:none}
-  @media (max-width:640px){.rk-premio{width:calc(33% - 8px);min-height:140px;padding:8px}.rk-premio b{font-size:12px}.rk-premio small{font-size:11px}.rk-over h2{font-size:30px}}`;
+  .rk-guardar{min-height:0;position:relative}.rk-guardar.sel::after{content:'✓ Guardar este';position:absolute;top:-11px;right:8px;background:#f2b630;color:#1b1622;font:700 11px "Chakra Petch";padding:2px 8px;border-radius:8px}.rk-guardar.sel{background:#2d2a1c}
+  @media (max-width:640px){.rk-premio,.rk-guardar{width:calc(33% - 8px);padding:8px}.rk-premio{min-height:140px}.rk-premio b,.rk-guardar b{font-size:12px}.rk-premio small,.rk-guardar small{font-size:11px}.rk-over h2{font-size:30px}}`;
   document.head.appendChild(css);
   ultimoLog = riscoState().log.length; // golpes de antes de recarregar não voltam como aviso
   const bar = document.createElement('div');
@@ -95,6 +96,7 @@ export function tickRisco(paused, bloqueado) {
   // cada golpe vira aviso (fica até tocar), uma vez
   if (s.log.length > ultimoLog) {
     for (const e of s.log.slice(ultimoLog)) {
+      if (e.tipo === 'fiscal' && e.falta > 0) sfx('apito');
       if (e.tipo === 'seguro') showNews('SEGURO DE OBRA', 'O seguro segurou a torre de pé com 1 de integridade. Ele não vale de novo nesta torre.');
       else if (!AMEACAS[e.tipo]) continue;
       else if (e.tipo === 'fiscal') showNews('MINISTÉRIO DO TRABALHO', e.falta > 0 ? `Obra embargada: a fiscalização exigia Segurança do trabalho ${segExigida()}. Obra parada e multa no caixa.` : 'Fiscalização aprovou a obra: equipamentos de segurança em dia.');
@@ -111,19 +113,20 @@ export function tickRisco(paused, bloqueado) {
     $('rkPremios').innerHTML = (s.oferta || []).map(id => cartao(id, 'rk-premio')).join('');
     an.hidden = false; sfx('entrega');
   } else if (!s.fimAno && !an.hidden) an.hidden = true;
-  if (S.colapso && !fall) { fall = { t: 0, f0: S.colapso.f0, dir: Math.random() < 0.5 ? -1 : 1 }; zoomBy(0.01); sfx('multa'); }
+  if (S.colapso && !fall) { fall = { t: 0, f0: S.colapso.f0, dir: Math.random() < 0.5 ? -1 : 1 }; zoomBy(0.01); sfx('desabamento'); sfx('desabamento2', 0.4); sfx('multa', 3); }
 }
 export const resetRisco = () => { fall = null; ultimoLog = riscoState().log.length; guardar = null; $('rkOver').hidden = true; $('rkAno').hidden = true; };
 
 // efeitos na cena (a cada quadro, depois de render())
 const VENTO = ['vento', 'furacao', 'ventoAlt'], TREME = ['sismo', 'recalque', 'tsunami'], CLIMA = ['chuva', 'nevasca', 'granizo', 'raios', 'gelo', 'meteoros', 'solar'];
-export function riscoFx(dt, t) {
+export function riscoFx(dt, t, mudo = false) {
   const s = riscoState(), a = s.ativa;
   if (fall && !S.colapso) { fall = null; $('rkOver').hidden = true; } // Recomeçar ou outro espaço no meio da queda
+  if (fall && fall.done) return; // a torre já caiu: a tela do desabamento está aberta e a cena fica parada (sem efeitos)
   if (fall) {
     fall.t += dt;
     S.floors = Math.max(0, fall.f0 * (1 - Math.min(1, Math.pow(Math.max(0, fall.t - 0.6) / 2.8, 1.6))));
-    if (Math.random() < .6) { const y = Math.floor(S.floors) * FH; for (let i = 0; i < 4; i++) dust(TL + Math.random() * TW, y, i % 2 ? '#8a7f70' : '#d8cdb8', 4, 2); }
+    if (fall.t < 3.2 && Math.random() < .6) { const y = Math.floor(S.floors) * FH; for (let i = 0; i < 4; i++) dust(TL + Math.random() * TW, y, i % 2 ? '#8a7f70' : '#d8cdb8', 4, 2); }
     towerFx({ lean: fall.dir * 0.8 * Math.min(1, Math.pow(fall.t / 2, 2)) * leanSpan(fall.f0), shake: 8 * Math.max(0, 1 - fall.t / 3), f0: fall.f0 });
     weatherFx({ tipo: 'sismo', forca: 1, t, dt }); // entulho e poeira despencando
     if (fall.t > 3.6 && !fall.done) {
@@ -132,12 +135,13 @@ export function riscoFx(dt, t) {
       const anos = c.anos || 0, lista = premiosDaTentativa();
       $('rkOverTxt').textContent = `${AMEACAS[c.tipo] ? AMEACAS[c.tipo].n : 'A obra'} derrubou a torre com ${fmtM(c.alt)}. Ela aguentou ${anos} ano${anos === 1 ? '' : 's'}. A Reputação fica (${fmtPct(repPct(S.pontosTotal || 0))}).`;
       guardar = lista[0] || null;
-      $('rkGuardaTxt').textContent = lista.length ? 'Escolha 1 prêmio para levar para a próxima torre:' : '';
+      $('rkGuardaTxt').textContent = lista.length ? 'Toque no prêmio que vai com você para a próxima torre (o marcado com ✓):' : '';
       $('rkGuarda').innerHTML = lista.map(id => cartao(id, 'rk-guardar' + (id === guardar ? ' sel' : ''))).join('');
       $('rkOver').hidden = false; save();
     }
     return;
   }
+  if (a && a !== ultimaAtiva) { ultimaAtiva = a; if (SOM_CHEGADA[a.tipo]) sfx(SOM_CHEGADA[a.tipo]); } // som de chegada de cada ameaça
   let lean = 0, shake = 0;
   const forca = a ? Math.min(1, a.forca || 0.4) : 0, fade = a ? Math.min(1, a.left / 1.2) : 0;
   if (a && VENTO.includes(a.tipo)) lean = (6 + 80 * forca) * Math.sin(t * 2 * Math.PI * 0.9) * fade;
@@ -148,6 +152,7 @@ export function riscoFx(dt, t) {
   if (a && CLIMA.includes(a.tipo)) s.clima = a.tipo;
   const tipo = a && a.tipo !== 'fiscal' ? a.tipo : (s.lento > 0 ? s.clima : null);
   weatherFx({ tipo, forca, prog: a ? 1 - a.left / 4 : 1, aviso: !tipo && avisando() ? s.prox.tipo : null, t, dt });
+  tickClima({ tipo: dt > 0 && !mudo ? tipo : null, forca, aviso: !tipo && avisando() ? s.prox.tipo : null, dt }); // som das intempéries (pausado = mudo)
 }
 // altura do tombo em pixels de tela (a torre de antes de desmoronar)
 const leanSpan = f0 => Math.max(40, sy(0) - sy((f0 + 1) * FH));
