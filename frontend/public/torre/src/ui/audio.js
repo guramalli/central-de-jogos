@@ -17,8 +17,10 @@ const SAMPLES = {
   brick: [['tijolo-0', 'tijolo-1', 'tijolo-2', 'tijolo-3', 'tijolo-4'], 0.55],
   beam: [['viga-0', 'viga-1', 'viga-2', 'viga-3', 'viga-4'], 0.45],
   glass: [['vidro-0', 'vidro-1', 'vidro-2', 'vidro-3', 'vidro-4'], 0.4],
-  drill: [['furadeira'], 0.55], phase: [['etapa'], 0.35], floor: [['andar'], 0.35], floorSoft: [['etapa'], 0.12], buy: [['compra'], 0.5],
-  machine: [['motor'], 0.55], elevador: [['elevador'], 0.6], mixer: [['betoneira'], 0.45],
+  // furadeira e motor mais baixos (pedido do usuário, 21/10/2026: a furadeira ficava ~7 dB acima dos tijolos e se repetia
+  // a cada peça de parede; o motor das compras era o som mais alto do jogo)
+  drill: [['furadeira'], 0.22], phase: [['etapa'], 0.35], floor: [['andar'], 0.35], floorSoft: [['etapa'], 0.12], buy: [['compra'], 0.5],
+  machine: [['motor'], 0.3], elevador: [['elevador'], 0.6], mixer: [['betoneira'], 0.45],
   entrega: [['entrega'], 0.6], multa: [['multa'], 0.6], offer: [['proposta'], 0.5], news: [['aviso'], 0.4],
   jornal: [['jornal'], 0.75], click: [['clique'], 0.3], hammer: [['martelo'], 0.4], truck: [['re-caminhao'], 0.35],
   // intempéries (Freesound, CC0; ver CREDITOS.txt): sons soltos — sem o arquivo, a síntese toca no lugar
@@ -29,7 +31,7 @@ const SAMPLES = {
 const CLIMA = { chuva: 'clima-chuva', terremoto: 'clima-terremoto', granizo: 'clima-granizo', vento: 'clima-furacao', nevasca: 'clima-nevasca', solar: 'clima-solar' };
 const AMB = { canteiro: 'amb-canteiro', mar: 'amb-mar', vento: 'amb-vento' };
 // intervalo mínimo entre dois sons do mesmo tipo (s)
-const GAP = { racha: 3, onda: 3, gelo: 3, desabamento2: 5, trovao: 1.2, meteoro: 0.6, apito: 3, desabamento: 5, granizo: 0.03, floorSoft: 1.5, brick: .11, beam: .2, glass: .2, phase: .35, floor: .5, buy: .08, machine: .7, drill: .25, click: .05, news: .3, hammer: 1.5, truck: 8, mixer: 6 };
+const GAP = { racha: 3, onda: 3, gelo: 3, desabamento2: 5, trovao: 1.2, meteoro: 0.6, apito: 3, desabamento: 5, granizo: 0.03, floorSoft: 1.5, brick: .11, beam: .2, glass: .2, phase: .35, floor: .5, buy: .08, machine: .7, drill: .7, click: .05, news: .3, hammer: 1.5, truck: 8, mixer: 6 };
 const last = {}, buf = {};
 let loading = false, prontos = false; // prontos: os arquivos já foram baixados (os loops das intempéries esperam por isso)
 

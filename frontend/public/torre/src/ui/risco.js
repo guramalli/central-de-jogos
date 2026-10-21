@@ -56,6 +56,8 @@ export function initRisco(o) {
   .rk-reforco{width:220px;min-height:170px;background:#221f2e;color:#f4efe6;border:2px solid #4b4560;border-radius:12px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:5px}
   .rk-reforco b{font:700 15px "Chakra Petch"}.rk-reforco small{font:13px/1.35 Rubik;color:#c9e9c9}
   .rk-reforco button{font:700 13px "Chakra Petch";border:0;border-radius:8px;padding:7px 8px;cursor:pointer;background:#f2b630;color:#1b1622}.rk-reforco button.parc{background:#3a3550;color:#f4efe6}
+  .rk-reforco button.principal{background:#f2b630;color:#1b1622;animation:rkPulso .7s infinite alternate}@keyframes rkPulso{to{box-shadow:0 0 0 3px rgba(242,182,48,.45);filter:brightness(1.12)}}
+  .rk-sem{max-width:640px;margin:0;padding:8px 12px;border:2px solid #f2b630;border-radius:10px;background:rgba(60,45,10,.85);color:#ffe7a6;font:600 14px/1.4 Rubik}.rk-sem[hidden]{display:none}
   .rk-reforco button:disabled{opacity:.45;cursor:default}.rk-reforco .rk-btns{margin-top:auto;display:flex;flex-direction:column;gap:5px}.rk-reforco i{font:12px Rubik;color:#ff8a78;font-style:normal}
   .rk-div{display:block;margin-top:2px;font:700 13px "Chakra Petch";color:#ff5a4a;text-align:right;text-shadow:0 1px 2px #000;font-variant-numeric:tabular-nums}
   .rk-acoes{display:flex;gap:10px;justify-content:center;margin-top:4px}
@@ -80,7 +82,7 @@ export function initRisco(o) {
   $('rkGuarda').onclick = e => { const b = e.target.closest('.rk-guardar'); if (!b) return; guardar = b.dataset.premio; for (const c of $('rkGuarda').children) c.classList.toggle('sel', c === b); };
   // obra interditada: laudo da Defesa Civil com 3 jeitos de reforçar (pagos com dinheiro)
   const it = document.createElement('div'); it.className = 'rk-over'; it.id = 'rkInterd'; it.hidden = true;
-  it.innerHTML = '<h2 class="int">OBRA INTERDITADA</h2><p id="rkInterdTxt"></p><div class="rk-cards" id="rkReforcos"></div><p class="rk-nota">Sem dinheiro? Parcele: a obra volta na hora e uma parte do aluguel (de 15% a 35%, conforme a dívida) vai pagando até quitar. Parcelado custa 20% a mais.</p>';
+  it.innerHTML = '<h2 class="int">OBRA INTERDITADA</h2><p id="rkInterdTxt"></p><p class="rk-sem" id="rkSemDinheiro" hidden></p><div class="rk-cards" id="rkReforcos"></div><p class="rk-nota">Sem dinheiro? Parcele: a obra volta na hora e uma parte do aluguel (de 15% a 35%, conforme a dívida) vai pagando até quitar. Parcelado custa 20% a mais.</p>';
   document.body.appendChild(it);
   $('rkReforcos').onclick = e => { const b = e.target.closest('button[data-id]'); if (!b || b.disabled || !cumprirReforco(b.dataset.id, b.dataset.modo === 'parcelar')) return; it.hidden = true; interdVista = null; save(); sfx('buy'); showNews('DEFESA CIVIL', 'Reforço feito: a obra foi liberada e volta a subir.'); };
   // fim do ano sobrevivido: 3 prêmios, tocar escolhe
@@ -137,10 +139,18 @@ export function tickRisco(paused, bloqueado) {
       $('rkInterdTxt').textContent = `Laudo da Defesa Civil: ${AMEACAS[s.interd.tipo] ? AMEACAS[s.interd.tipo].n.toLowerCase() : 'a obra'} comprometeu a estrutura a ${fmtM(S.maxAlt)}. ${nomeDef(s.interd.def)} insuficiente. Interdição ${s.interdAno} neste ano: na ${RISCO.interdMax}ª, a torre é condenada e desaba. Escolha um reforço para liberar a obra:`;
       $('rkReforcos').innerHTML = s.interd.opcoes.map(o => `<div class="rk-reforco" data-id="${o.id}"><b>${o.n}</b><small>${o.d}</small><div class="rk-btns"><button type="button" data-id="${o.id}" data-modo="vista"></button><button type="button" class="parc" data-id="${o.id}" data-modo="parcelar">Parcelar: R$ ${fmt(Math.round(o.custo * (1 + RISCO.parcelaJuros)))}</button><i></i></div></div>`).join('');
     }
+    // sem dinheiro para pagar à vista (o aluguel está parado): o Parcelar vira o botão principal e o aviso explica o caminho
+    // (pedido do usuário, 21/10/2026: ficou preso no dia 365 sem perceber que dava para parcelar)
+    let algumVista = false;
     for (const c of $('rkReforcos').children) {
-      const o = s.interd.opcoes.find(x => x.id === c.dataset.id), falta = o.custo - S.money, bv = c.querySelector('[data-modo="vista"]');
+      const o = s.interd.opcoes.find(x => x.id === c.dataset.id), falta = o.custo - S.money, bv = c.querySelector('[data-modo="vista"]'), bp = c.querySelector('[data-modo="parcelar"]');
       bv.textContent = `À vista: R$ ${fmt(o.custo)}`; bv.disabled = falta > 0; c.querySelector('i').textContent = falta > 0 ? `Faltam R$ ${fmt(falta)} para pagar à vista` : '';
+      if (falta <= 0) algumVista = true;
     }
+    for (const bp of $('rkReforcos').querySelectorAll('[data-modo="parcelar"]')) { bp.classList.toggle('principal', !algumVista); bp.classList.toggle('parc', algumVista); }
+    const fimAno = S.roundLeft <= 0.06;
+    $('rkSemDinheiro').hidden = algumVista;
+    if (!algumVista) $('rkSemDinheiro').textContent = `Sem dinheiro para pagar à vista, e o aluguel está parado enquanto a obra estiver interditada. Toque em Parcelar: a obra volta na hora e uma parte do aluguel vai pagando a dívida.${fimAno ? ' O ano só termina depois do reforço.' : ''}`;
     ti.hidden = false;
   } else if (!ti.hidden) ti.hidden = true;
   // fim do ano: a tela dos prêmios (também depois de recarregar a página)
