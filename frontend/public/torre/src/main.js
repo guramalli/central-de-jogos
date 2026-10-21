@@ -178,10 +178,25 @@ syncSnd();
 addEventListener('beforeunload', save);
 // Aba escondida: salva. Ao voltar, no modo clássico o tempo fora vira progresso (mesmas regras do offline,
 // com resumo) e as animações retomam do estado atual, sem repetir o que passou.
+// Obra Viva: aba minimizada não pausa (pedido do usuário, 21/10/2026). O navegador para a animação com a aba escondida, então
+// ao voltar o jogo simula o tempo que passou, na velocidade escolhida (até 8 h), com tudo valendo (intempéries, interdição,
+// fim do ano). Com o jogo fechado, nada anda.
+let escondidaEm = null;
+function tempoFora(seg) {
+  if (seg < 2 || homeOpen() || introActive() || frozen()) return;
+  const real = Math.min(seg, 8 * 3600), f0 = Math.floor(S.floors), m0 = S.money, a0 = (S.risco && S.risco.ano) || 1;
+  for (let sd = real * speed; sd > 0; sd -= 0.5) sim(Math.min(0.5, sd));
+  S.playTime = (S.playTime || 0) + real * speed;
+  const andares = Math.floor(S.floors) - f0, ganho = S.money - m0, r = S.risco || {};
+  const partes = [`${andares >= 0 ? '+' : ''}${fmt(andares)} andares`, `${ganho >= 0 ? '+' : '−'}R$ ${fmt(Math.abs(ganho))}`];
+  if ((r.ano || 1) > a0) partes.push('o ano terminou');
+  if (r.interd) partes.push('obra interditada: escolha um reforço');
+  welcome('Enquanto você esteve fora: ' + partes.join(' · ')); noticeT = V.t + 12;
+}
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { save(); return; }
-  const msg = FLAGS.viva ? null : runOffline(); // Obra Viva: aba escondida pausa a rodada
-  if (msg) { welcome(msg); noticeT = V.t + 12; }
+  if (document.hidden) { save(); escondidaEm = Date.now(); return; }
+  if (FLAGS.viva) { tempoFora(escondidaEm ? (Date.now() - escondidaEm) / 1000 : 0); escondidaEm = null; }
+  else { const msg = runOffline(); if (msg) { welcome(msg); noticeT = V.t + 12; } }
   syncEvents(); snapCamera();
   last = performance.now();
 });

@@ -30,6 +30,7 @@ export const RISCO = {
   taxaEra: [50, 150, 1000, 10000, 50000, 100000, 150000], // taxa de liberação por andar, pela era de cada andar (~1 min de renda)
   parcelaJuros: 0.2,  // parcelar o reforço custa 20% a mais
   reforcoNiveis: 0.3, // os níveis de defesa que o laudo exige saem a 30% do preço da árvore (a preço cheio o reforço custava 3–14 min de renda)
+  liberacaoK: 1.5, liberacaoMin: 200, // multa para liberar o embargo na hora: renda × segundos que faltam × K (mínimo em R$)
   nuvens: 12000,      // acima disso não chove, não neva nem cai raio no topo: o temporal fica nos andares de baixo (ainda dá dano)
   retencao: [0.15, 0.35], // parte da renda que paga o parcelamento: de 15% (dívida pequena) a 35% (grande) — sempre sobra dinheiro para jogar
   interdMax: 3,       // na 3ª interdição do mesmo ano a torre é condenada (desaba)
@@ -104,7 +105,7 @@ export function riscoTick(dt) {
   const s = st();
   if (S.colapso || s.fimAno) return;
   if (s.interd) { if (s.ativa) { s.ativa.left -= dt; if (s.ativa.left <= 0) s.ativa = null; } return; } // interditada: parada, sem ameaças, sem renda (economy.js) e a dívida espera
-  if (s.divida > 0) { const p = Math.min(s.divida, retencao() * Math.max(0, rates().income) * dt, Math.max(0, S.money)); S.money -= p; s.divida = Math.max(0, s.divida - p); if (s.divida < 1) s.divida = 0; }
+  if (s.divida > 0 && !(s.embargo > 0)) { const p = Math.min(s.divida, retencao() * Math.max(0, rates().income) * dt, Math.max(0, S.money)); S.money -= p; s.divida = Math.max(0, s.divida - p); if (s.divida < 1) s.divida = 0; } // embargada: sem renda, a dívida espera
   S.torreSeg = (S.torreSeg || 0) + dt; // tempo de jogo desta torre (ranking)
   s.integ = Math.min(s.max, s.integ + regenAgora() * dt);
   if (s.embargo > 0) s.embargo = Math.max(0, s.embargo - dt);
@@ -304,6 +305,9 @@ export function sortearPremios(rand = Math.random) {
 // cheque do Patrocínio guardado: a torre nova começa sem renda, então vale pela melhor altura da campanha
 export const chequeGuardado = () => Math.max(500, Math.round(1000 * 40 * Math.pow((S.bestAlt || 0) / 1000, 1.2)));
 
+// embargo: pagar a multa libera na hora (pedido do usuário, 21/10/2026): o que a obra renderia no tempo que falta × K
+export const multaLiberacao = () => { const s = st(); return s.embargo > 0 ? Math.max(RISCO.liberacaoMin, Math.round(Math.max(0, rates().income) * s.embargo * RISCO.liberacaoK)) : 0; };
+export function liberarEmbargo() { const s = st(), m = multaLiberacao(); if (!(s.embargo > 0) || S.money < m) return false; S.money -= m; s.embargo = 0; return true; }
 // obra parada: embargada pela fiscalização ou interditada pela Defesa Civil (ninguém trabalha, nada de barulho de obra)
 export const obraParada = () => FLAGS.risco && !!S.risco && (!!S.risco.interd || S.risco.embargo > 0);
 // fração do assentamento que anda (embargo para a obra; chuva e neve deixam mais lenta)

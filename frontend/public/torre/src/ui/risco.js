@@ -1,7 +1,7 @@
 // Modo com risco: barra de integridade embaixo do dia, aviso da próxima ameaça, efeitos na cena, tela de fim de ano
 // (3 prêmios, escolher 1) e tela do desabamento (escolher 1 prêmio para guardar e começar uma torre nova).
 import { S, save } from '../sim/state.js';
-import { AMEACAS, riscoState, danoDe, avisando, segExigida, escolherPremio, premiosDaTentativa, cumprirReforco, nomeDef, RISCO, retencao, nomeAmeaca } from '../sim/risco.js';
+import { AMEACAS, riscoState, danoDe, avisando, segExigida, escolherPremio, premiosDaTentativa, cumprirReforco, nomeDef, RISCO, retencao, nomeAmeaca, multaLiberacao, liberarEmbargo } from '../sim/risco.js';
 import { PREMIOS } from '../data/premios.js';
 import { UP } from '../data/upgrades.js';
 import { repPct } from '../sim/prestige.js';
@@ -40,8 +40,13 @@ export function initRisco(o) {
     font:600 14px "Chakra Petch";padding:7px 14px;border-radius:8px;pointer-events:none;max-width:92vw;text-align:center;line-height:1.3}
   .rk-warn small{display:block;font:500 12px Rubik;opacity:.9}
   @media (max-width:640px){.rk-warn{top:200px;font-size:13px}}
+  /* árvore aberta no computador (quem joga fica com ela aberta quase o tempo todo): aviso e cartão do ranking no meio da parte livre */
+  @media (min-width:821px){body.sk-open .rk-entrar{left:calc((100vw - min(58vw, 820px)) / 2);max-width:calc(100vw - min(58vw, 820px) - 24px)}
+    body.sk-open .rk-warn{left:calc((180px + 100vw - min(58vw, 820px)) / 2);max-width:calc(100vw - min(58vw, 820px) - 204px);top:12px}} /* entre a placa do andar (~170 px) e a árvore */
   .rk-warn.fatal{border-color:#e8553f;background:rgba(150,30,20,.92);color:#fff;animation:rkp .6s infinite alternate}
   .rk-warn.now{border-color:#e8553f;background:rgba(120,20,20,.94);color:#fff}
+  .rk-warn.embargo{display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:auto;z-index:90} /* acima das notícias (a do embargo vem junto) */
+  .rk-warn #rkLibera{font:700 13px "Chakra Petch";border:0;border-radius:8px;padding:6px 12px;background:#f2b630;color:#1b1622;cursor:pointer}.rk-warn #rkLibera:disabled{background:#5a5468;color:#d8d0c4;cursor:default}
   .rk-warn.now.ok{border-color:#6fd08c;background:rgba(24,96,48,.94);color:#fff}
   @keyframes rkp{to{transform:translateX(-50%) scale(1.04)}}
   .rk-over{position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(10,8,16,.62);text-align:center;padding:16px;color:#f4efe6}
@@ -81,6 +86,7 @@ export function initRisco(o) {
   // e no cabeçalho da árvore de Melhorias, ao lado do dinheiro (no computador, com a árvore aberta a placa do dinheiro some)
   const dv2 = document.createElement('span'); dv2.className = 'rk-div sk-div'; dv2.id = 'skDiv'; dv2.hidden = true; $('skMoney').after(dv2);
   const w = document.createElement('div'); w.className = 'rk-warn'; w.id = 'rkWarn'; w.hidden = true; document.body.appendChild(w);
+  w.addEventListener('click', e => { if (e.target.closest('#rkLibera') && liberarEmbargo()) { save(); sfx('buy'); w.hidden = true; w.innerHTML = ''; } });
   const ov = document.createElement('div'); ov.className = 'rk-over'; ov.id = 'rkOver'; ov.hidden = true;
   ov.innerHTML = '<h2>A TORRE DESABOU</h2><p id="rkOverTxt"></p><p id="rkGuardaTxt"></p><div class="rk-cards" id="rkGuarda"></div><button id="rkNext">Começar uma nova torre</button>';
   document.body.appendChild(ov);
@@ -118,7 +124,14 @@ export function tickRisco(paused, bloqueado) {
   else if (s.ativa) {
     const a = s.ativa; w.hidden = false; w.className = 'rk-warn now' + (a.tipo === 'fiscal' && a.ok ? ' ok' : ''); // fiscalização aprovada: verde
     w.textContent = a.tipo === 'fiscal' ? (a.ok ? '🦺 Fiscalização: obra aprovada' : `🦺 OBRA EMBARGADA · multa R$ ${fmt(a.multa)}`) : `${ICON[a.tipo]} ${nomeAmeaca(a.tipo).toUpperCase()} −${a.dano}`;
-  } else if (s.embargo > 0) { w.hidden = false; w.className = 'rk-warn now'; w.textContent = `🦺 Obra embargada: ${Math.ceil(s.embargo)} s`; }
+  } else if (s.embargo > 0) { // embargo: a obra e o aluguel param; dá para pagar a multa e liberar na hora
+    w.hidden = false; w.className = 'rk-warn now embargo';
+    if (!$('rkLibera')) w.innerHTML = '<span id="rkEmbT"></span><button type="button" id="rkLibera"></button>'; // montado uma vez (o toque não se perde)
+    const m = multaLiberacao();
+    $('rkEmbT').textContent = `🦺 Obra embargada: ${Math.ceil(s.embargo)} s · sem aluguel`;
+    $('rkLibera').textContent = S.money >= m ? `Pagar multa e liberar: R$ ${fmt(m)}` : `Multa para liberar: R$ ${fmt(m)} (faltam R$ ${fmt(m - S.money)})`;
+    $('rkLibera').disabled = S.money < m;
+  }
   else if (avisando()) {
     const t = s.prox.tipo, d = danoDe(t), fatal = t !== 'fiscal' && d >= s.integ;
     w.hidden = false; w.className = 'rk-warn' + (fatal ? ' fatal' : '');

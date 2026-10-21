@@ -96,7 +96,7 @@ function updateHud() {
   $('openUp').classList.toggle('alert', isCapped(rates()) || !!S.roundOver); // obra parada (limite da fundação ou rodada encerrada): o botão pulsa
   updateSkills();
   if (mapOpen()) updateMap();
-  setText($('skSave'), 'Salvo neste navegador · os dias da obra só passam com o jogo aberto.');
+  setText($('skSave'), 'Salvo neste navegador · com a aba minimizada a obra continua; com o jogo fechado, ela para.');
 }
 
 export function updateUI() {

@@ -12,7 +12,7 @@ import { boardMult } from './prestige.js';
 import { tourism } from './tourism.js';
 import { bankInfo, bankTick } from './bank.js';
 import { techMult } from './tech.js';
-import { riscoTick, riscoLay, fimDoAno, perkMult } from './risco.js';
+import { riscoTick, riscoLay, fimDoAno, perkMult, obraParada } from './risco.js';
 
 // ---------- melhorias compradas com dinheiro ----------
 // soft: { at, k } — depois do nível `at`, cada nível multiplica o preço por `k` (Obra Viva: turismo sem virar ralo)
@@ -148,7 +148,7 @@ function simStep(dt) {
   brokerTick();
   // renda e banco
   const paid = bankTick(dt, R.income);
-  const parada = FLAGS.risco && S.risco && S.risco.interd; // obra interditada: o aluguel para (ninguém espera o dinheiro juntar para pagar à vista)
+  const parada = obraParada(); // obra interditada ou embargada: o aluguel para (ninguém espera o dinheiro juntar para pagar à vista)
   if (!parada) S.money += R.income * dt - paid;
   S.stats.tourTotal += R.tour.revenue * dt;
 }
