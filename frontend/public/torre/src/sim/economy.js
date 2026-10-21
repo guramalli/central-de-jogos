@@ -115,12 +115,13 @@ export function sim(dt) {
   if (FLAGS.viva) {
     if (S.roundOver || S.colapso || (FLAGS.risco && S.risco && S.risco.fimAno)) return; // risco: parada na escolha do fim do ano
     S.roundLeft = Math.max(0, S.roundLeft - dt);
+    if (FLAGS.risco && S.risco && S.risco.interd) S.roundLeft = Math.max(S.roundLeft, 0.05); // interditada: o ano não termina até o reforço sair
     ends = S.roundLeft <= 0;
   }
   simStep(dt);
   if (FLAGS.viva) { contractTick(dt); managerTick(dt); }
   if (FLAGS.risco) riscoTick(dt);
-  if (ends) { if (!FLAGS.risco) S.roundOver = true; else if (!S.colapso) fimDoAno(); } // risco: a mesma torre segue, com prêmio
+  if (ends) { if (!FLAGS.risco) S.roundOver = true; else if (S.risco && S.risco.interd) S.roundLeft = 0.05; else if (!S.colapso) fimDoAno(); } // interditada no último passo: o ano espera o reforço // risco: a mesma torre segue, com prêmio
 }
 function simStep(dt) {
   const R = rates(), M = mods();

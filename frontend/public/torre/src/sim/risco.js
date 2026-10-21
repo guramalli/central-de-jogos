@@ -2,12 +2,16 @@
 // A torre tem integridade. De tempos em tempos chega uma ameaça, avisada antes; o dano depende da altura, do ano
 // (cresce sem teto: uma hora a torre cai), do dia do ano e das defesas compradas na árvore. As ameaças mudam com a
 // altura (faixas). Sobreviver aos 365 dias dá Reputação e 1 prêmio à escolha entre 3 (acumulam até a torre cair).
-// Integridade zero = a torre desaba; a próxima torre começa do zero com a Reputação e 1 prêmio guardado.
+// Integridade zero = a obra é INTERDITADA (não cai): o laudo da Defesa Civil oferece 3 jeitos de reforçar, pagos com
+// dinheiro; a obra fica parada até um ser cumprido. Na 3ª interdição do mesmo ano a torre é condenada e desaba; a
+// próxima torre começa do zero com a Reputação e 1 prêmio guardado.
 // O Ministério do Trabalho não derruba: abaixo da Segurança exigida, embarga a obra e multa.
 import { S, fresh, setState, save } from './state.js';
-import { rates } from './economy.js';
+import { rates, cost } from './economy.js';
 import { roundSecs, roundFrac, pointsFor } from './prestige.js';
 import { VIVA } from '../data/viva.js';
+import { floorOf } from '../data/height.js';
+import { MARKS } from '../data/eras.js';
 import { PREMIOS, PREMIO_IDS } from '../data/premios.js';
 
 export const RISCO = {
@@ -15,11 +19,15 @@ export const RISCO = {
   warn: 20,           // segundos de aviso (Previsão do tempo dobra)
   hit: 4,             // duração da ameaça na tela
   regen: 0.06,        // integridade por segundo por nível de Manutenção
-  def: 0.35,          // cada nível de defesa divide o dano por (1 + def × nível)
+  def: 0.35,          // (antigo) cada nível de defesa dividia o dano por (1 + def × nível)
+  defMul: 0.9,        // cada nível de defesa multiplica o dano por defMul: a defesa acompanha o dano que cresce (quem investe certo segue subindo)
   anoK: 1.5,          // dano × anoK^(ano − 1): sem teto
   gapAno: 0.9,        // a cada ano as ameaças vêm mais seguidas (intervalo × gapAno^(ano − 1), no mínimo metade)
   diaK: 0.5,          // +50% do dia 1 ao dia 365
   bonusAno: 1,        // pontos de Reputação por ano sobrevivido (além da altura nova)
+  taxaEra: [50, 150, 1000, 10000, 50000, 100000, 150000], // taxa de liberação por andar, pela era de cada andar (~1 min de renda)
+  parcelaJuros: 0.2,  // parcelar o reforço custa 20% a mais
+  interdMax: 3,       // na 3ª interdição do mesmo ano a torre é condenada (desaba)
   reforco: 0.5,       // na virada do ano, essa fração da integridade que sobrou soma na integridade máxima
   altPow: 0.35,       // peso da altura no dano: (1 + (altura/150 m)^altPow)
 };
@@ -69,7 +77,7 @@ const fator = () => (1 + Math.pow(S.maxAlt / 150, RISCO.altPow)) * Math.pow(RISC
 // dano estimado de uma ameaça agora (o aviso mostra e vai subindo até ela chegar); nivelDef: nível da defesa a usar
 export function danoDe(tipo, nivelDef = lv(AMEACAS[tipo].def)) {
   const a = AMEACAS[tipo]; if (!a.base) return 0;
-  let d = a.base * fator() / (1 + RISCO.def * nivelDef) * premioDef(a.grupo);
+  let d = a.base * fator() * (RISCO.defMul ? Math.pow(RISCO.defMul, nivelDef) : 1 / (1 + RISCO.def * nivelDef)) * premioDef(a.grupo);
   if (a.grupo === 'base') d /= 1 + 0.1 * lv('fundacao');
   if (tipo === 'recalque') { const R = rates(); d *= 1 + 4 * Math.max(0, S.floors / R.capF - 0.85) / 0.15; } // pior com a torre no limite
   return Math.round(d);
@@ -90,6 +98,8 @@ function sortear() {
 export function riscoTick(dt) {
   const s = st();
   if (S.colapso || s.fimAno) return;
+  if (s.divida > 0) { const p = Math.min(s.divida, retencao() * Math.max(0, rates().income) * dt, Math.max(0, S.money)); S.money -= p; s.divida = Math.max(0, s.divida - p); if (s.divida < 1) s.divida = 0; }
+  if (s.interd) { if (s.ativa) { s.ativa.left -= dt; if (s.ativa.left <= 0) s.ativa = null; } return; } // interditada: parada, sem ameaças
   S.torreSeg = (S.torreSeg || 0) + dt; // tempo de jogo desta torre (ranking)
   s.integ = Math.min(s.max, s.integ + regenAgora() * dt);
   if (s.embargo > 0) s.embargo = Math.max(0, s.embargo - dt);
@@ -120,7 +130,60 @@ function golpe() {
   s.ativa = { tipo, left: RISCO.hit, dano, forca: dano / s.max };
   s.log.push({ tipo, dano, t: roundSecs() });
   if (s.integ <= 0 && (s.seguro || 0) > 0) { s.seguro--; s.integ = 1; s.log.push({ tipo: 'seguro', t: roundSecs() }); }
-  if (s.integ <= 0) { s.integ = 0; S.colapso = { f0: S.floors, alt: S.maxAlt, tipo, anos: s.ano - 1 }; }
+  if (s.integ <= 0) {
+    s.integ = 0; s.interdAno = (s.interdAno || 0) + 1;
+    if (s.interdAno >= RISCO.interdMax) S.colapso = { f0: S.floors, alt: S.maxAlt, tipo, anos: s.ano - 1 }; // condenada
+    else interditar(tipo);
+  }
+}
+
+// ---------- obra interditada: laudo com 3 jeitos de reforçar ----------
+const DEFESAS = ['contravento', 'sondagem', 'clima'];
+// preço de subir n níveis de uma defesa a partir do nível atual (a mesma conta das compras da árvore)
+function precoNiveis(k, n) {
+  let c = 0; const l0 = S.lv[k] || 0;
+  try { for (let i = 0; i < n; i++) { c += cost(k); S.lv[k] = l0 + i + 1; } } finally { S.lv[k] = l0; }
+  return c;
+}
+function interditar(tipo) {
+  const s = st(), def = AMEACAS[tipo].def, taxa = taxaLiberacao();
+  const pacote = (id, n, d, niveis, vezes, integ, extraMax = 0) => {
+    const custo = vezes * taxa + Object.entries(niveis).reduce((a, [k, q]) => a + precoNiveis(k, q), 0);
+    return { id, n, d, niveis, custo: Math.round(custo), integ, extraMax };
+  };
+  const outras = Object.fromEntries(DEFESAS.filter(k => k !== def).map(k => [k, 1]));
+  s.interd = { tipo, def, opcoes: [
+    pacote('foco', 'Reforço da defesa que falhou', `${nomeDef(def)} +2 níveis. A obra volta com 60% de integridade.`, { [def]: 2 }, 1, 0.6),
+    pacote('geral', 'Reforço geral', 'Todas as defesas +1 nível. A obra volta com 80% de integridade.', Object.fromEntries(DEFESAS.map(k => [k, 1])), 1.5, 0.8),
+    pacote('completo', 'Reforço completo com engenharia', `${nomeDef(def)} +2 e as outras defesas +1. A obra volta inteira e com +25 de integridade máxima.`, { [def]: 2, ...outras }, 3, 1, 25),
+  ] };
+  s.prox = null; s.lento = 0;
+}
+const NOME_DEF = { contravento: 'Contraventamento', sondagem: 'Sondagem e estacas', clima: 'Proteção climática' };
+export const nomeDef = k => NOME_DEF[k] || k;
+// taxa de liberação: um valor fixo por andar construído, conforme a era de cada andar
+export function taxaLiberacao() {
+  const f = Math.floor(S.floors); let t = 0, ini = 0;
+  for (let e = 0; e < RISCO.taxaEra.length; e++) {
+    const fim = e < MARKS.length ? floorOf(MARKS[e]) : Infinity, n = Math.max(0, Math.min(f, fim) - ini);
+    t += n * RISCO.taxaEra[e]; ini = fim; if (f <= fim) break;
+  }
+  return Math.round(t);
+}
+// parte da renda que vai para a dívida do parcelamento: de 20% (dívida pequena) a 60% (dívida grande perto da renda)
+export const retencao = () => { const d = st().divida || 0; if (d <= 0) return 0; const renda = Math.max(1, rates().income); return Math.min(0.6, 0.2 + 0.4 * d / (d + renda * 600)); };
+// cumpre um dos reforços do laudo: à vista (paga agora) ou parcelado (+20%, uma parte da renda vai pagando);
+// sobe as defesas, devolve a integridade e a obra volta a andar
+export function cumprirReforco(id, parcelar = false) {
+  const s = st(), o = s.interd && s.interd.opcoes.find(x => x.id === id);
+  if (!o) return false;
+  if (parcelar) s.divida = (s.divida || 0) + Math.round(o.custo * (1 + RISCO.parcelaJuros));
+  else if (S.money < o.custo) return false;
+  else { S.money -= o.custo; S.spent = (S.spent || 0) + o.custo; }
+  for (const [k, q] of Object.entries(o.niveis)) S.lv[k] = (S.lv[k] || 0) + q;
+  s.max += o.extraMax; s.integ = Math.round(o.integ * s.max);
+  s.interd = null; s.prox = null;
+  return true;
 }
 
 // ---------- avarias na estrutura ----------
@@ -160,7 +223,7 @@ export function escolherPremio(id) {
   if (!s.fimAno || !s.oferta || !s.oferta.includes(id)) return false;
   s.max += Math.round(RISCO.reforco * Math.max(0, s.integ)); s.reforco = 0; // a integridade que sobrou continua; metade dela vira integridade máxima
   s.premios.push(id); aplicarNaHora(id, false);
-  s.ano++; S.roundLeft = VIVA.round.secs;
+  s.ano++; S.roundLeft = VIVA.round.secs; s.interdAno = 0; // interdições contam por ano
   s.fimAno = false; s.oferta = null;
   return true;
 }
@@ -175,7 +238,7 @@ export function migrarRisco() {
 
 // ---------- desabamento e torre nova ----------
 // o que passa de uma torre para a outra (o resto zera: dinheiro, níveis, altura, prêmios)
-const KEEP_RISCO = ['pontosTotal', 'bestAlt', 'introSeen', 'dicas', 'jornais', 'marcos', 'marcosAlt', 'playTime', 'won', 'winSeen', 'rank', 'altTotal'];
+const KEEP_RISCO = ['pontosTotal', 'bestAlt', 'introSeen', 'dicas', 'jornais', 'marcos', 'marcosAlt', 'playTime', 'won', 'winSeen', 'rank', 'altTotal', 'orbitaSec']; // orbitaSec: tempo de jogo até a 1ª Órbita (ranking)
 // prêmios que a pessoa pode guardar na queda: os desta torre (inclui o que veio guardado), sem repetir
 export const premiosDaTentativa = () => [...new Set(st().premios)];
 // começa uma torre nova: Reputação fica, 1 prêmio guardado (1 vaga; null mantém o que já estava guardado)
@@ -224,6 +287,6 @@ export function sortearPremios(rand = Math.random) {
 export const chequeGuardado = () => Math.max(500, Math.round(1000 * 40 * Math.pow((S.bestAlt || 0) / 1000, 1.2)));
 
 // fração do assentamento que anda (embargo para a obra; chuva e neve deixam mais lenta)
-export const riscoLay = () => { const s = st(); return s.embargo > 0 ? 0 : s.lento > 0 ? 0.6 : 1; };
+export const riscoLay = () => { const s = st(); return s.interd || s.embargo > 0 ? 0 : s.lento > 0 ? 0.6 : 1; };
 export const avisoSegs = () => RISCO.warn * premioMult('warn');
-export const avisando = () => { const s = st(); return !!s.prox && !s.fimAno && s.prox.em <= avisoSegs(); };
+export const avisando = () => { const s = st(); return !!s.prox && !s.fimAno && !s.interd && s.prox.em <= avisoSegs(); };

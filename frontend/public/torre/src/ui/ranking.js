@@ -143,7 +143,7 @@ async function drawRanking() {
   const meu = ++pedido;
   for (const b of document.querySelectorAll('.rk-tab')) b.classList.toggle('on', b.dataset.l === lista);
   const ul = $('rkList'); ul.innerHTML = '<li class="rk-wait">Carregando…</li>'; $('rkMe').textContent = '';
-  const q = FLAGS.risco ? (rk().jogador ? `?jogador=${encodeURIComponent(rk().jogador)}` : '') : `?lista=${lista}` + (rk().jogador ? `&jogador=${encodeURIComponent(rk().jogador)}` : '');
+  const q = FLAGS.risco ? `?lista=${lista === 'orbita' ? 'orbita' : 'altura'}` + (rk().jogador ? `&jogador=${encodeURIComponent(rk().jogador)}` : '') : `?lista=${lista}` + (rk().jogador ? `&jogador=${encodeURIComponent(rk().jogador)}` : '');
   const res = await api(ROTA() + q);
   if (meu !== pedido) return; // trocou de aba antes da resposta chegar
   if (!res.ok) { ul.innerHTML = '<li class="rk-wait">Ranking fora do ar agora. Tente mais tarde.</li>'; return; }
@@ -151,11 +151,15 @@ async function drawRanking() {
   ul.innerHTML = top.length ? '' : '<li class="rk-wait">Ninguém nesta lista ainda. Seja o primeiro!</li>';
   top.forEach((x, k) => { const li = document.createElement('li'); li.innerHTML = `<b>${k + 1}.</b> <span></span> <i>${valorTxt(lista, x.valor)}</i>`; li.querySelector('span').textContent = x.apelido; ul.appendChild(li); });
   const eu = res.data.eu;
-  $('rkMe').textContent = eu ? `Você: Nº ${eu.posicao} de ${res.data.total} · ${valorTxt(lista, eu.valor)}` : FLAGS.risco ? `Para entrar: uma torre acima de ${fmtM(res.data.corte || 0)} — o campo do apelido aparece na hora.` : rk().ativo ? 'Você ainda não tem marca nesta lista.' : 'Entre no ranking no fim de uma obra ou nas Configurações.';
+  $('rkMe').textContent = eu ? `Você: Nº ${eu.posicao} de ${res.data.total} · ${valorTxt(lista, eu.valor)}` : FLAGS.risco ? (lista === 'orbita' ? 'Chegue à Órbita (400 km) para entrar nesta lista: vale o tempo de jogo somado de todas as torres.' : `Para entrar: uma torre acima de ${fmtM(res.data.corte || 0)} — o campo do apelido aparece na hora.`) : rk().ativo ? 'Você ainda não tem marca nesta lista.' : 'Entre no ranking no fim de uma obra ou nas Configurações.';
 }
 export function openRanking() {
   $('ranking').hidden = false; lista = 'obra';
-  if (FLAGS.risco) for (const b of document.querySelectorAll('.rk-tab')) b.hidden = b.dataset.l !== 'obra'; // torre única: só "torre mais alta"
+  if (FLAGS.risco) { // torre única: "Mais rápido até a Órbita" (a principal) e "Torre mais alta"
+    lista = 'orbita';
+    for (const b of document.querySelectorAll('.rk-tab')) { b.hidden = b.dataset.l === 'total'; if (b.dataset.l === 'obra') b.textContent = 'Torre mais alta'; if (b.dataset.l === 'orbita') b.textContent = 'Mais rápido até a Órbita'; }
+    const tabs = document.querySelector('.rk-tabs'), orb = tabs.querySelector('[data-l="orbita"]'); if (tabs.firstElementChild !== orb) tabs.prepend(orb);
+  }
   drawRanking();
 }
 
@@ -196,7 +200,8 @@ export async function enviarUnica() {
   if (!r.fichaU || r.fichaUTorre !== torreAtual()) { await fichaUnica(); if (!r.fichaU || r.fichaUTorre !== torreAtual()) return { offline: true }; }
   U.tEnvio = performance.now();
   const alt = Math.round(S.maxAlt), res = await api('/unica/ranking', { method: 'POST', body: {
-    ficha: r.fichaU, jogador: jogador(), apelido: r.apelido, alt, seg: Math.max(0, Math.round((S.torreSeg || 0) - (r.fichaUSeg || 0))) } });
+    ficha: r.fichaU, jogador: jogador(), apelido: r.apelido, alt, seg: Math.max(0, Math.round((S.torreSeg || 0) - (r.fichaUSeg || 0))),
+    orbita: S.orbitaSec && S.maxAlt >= 400000 ? Math.round(S.orbitaSec) : null } }); // tempo de jogo até a 1ª Órbita (só com esta torre lá em cima)
   if (res.ok && res.data.ok) { U.enviada = alt; r.posicao = res.data.posicao; save(); return { ok: true, posicao: res.data.posicao }; }
   if (res.data && res.data.erro === 'nome') return { erro: 'nome', msg: res.data.error || 'Esse apelido não pode ser usado.' };
   return { offline: !!res.offline, msg: res.data && res.data.error };

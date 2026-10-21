@@ -1,11 +1,11 @@
 // Modo com risco: barra de integridade embaixo do dia, aviso da próxima ameaça, efeitos na cena, tela de fim de ano
 // (3 prêmios, escolher 1) e tela do desabamento (escolher 1 prêmio para guardar e começar uma torre nova).
 import { S, save } from '../sim/state.js';
-import { AMEACAS, riscoState, danoDe, avisando, segExigida, escolherPremio, premiosDaTentativa } from '../sim/risco.js';
+import { AMEACAS, riscoState, danoDe, avisando, segExigida, escolherPremio, premiosDaTentativa, cumprirReforco, nomeDef, RISCO, retencao } from '../sim/risco.js';
 import { PREMIOS } from '../data/premios.js';
 import { UP } from '../data/upgrades.js';
 import { repPct } from '../sim/prestige.js';
-import { towerFx, weatherFx, ARTE_RISCO } from '../render/riscoFx.js';
+import { towerFx, weatherFx, interdFx, ARTE_RISCO } from '../render/riscoFx.js';
 import { art } from '../render/assets.js';
 import { dust } from '../render/particles.js';
 import { FH, TW, TL } from '../data/constants.js';
@@ -15,7 +15,7 @@ import { fmt, fmtM, fmtPct } from './format.js';
 import { sfx, tickClima } from './audio.js';
 
 const $ = id => document.getElementById(id);
-let onNext = null, fall = null, ultimoLog = 0, guardar = null, ultimaAtiva = null;
+let onNext = null, fall = null, ultimoLog = 0, guardar = null, ultimaAtiva = null, interdVista = null;
 const SOM_CHEGADA = { sismo: 'racha', recalque: 'racha', tsunami: 'onda', gelo: 'gelo' };
 // nome da defesa que protege de cada ameaça (aparece no aviso e no dano)
 const defesa = t => AMEACAS[t] && UP[AMEACAS[t].def] ? UP[AMEACAS[t].def].n : '';
@@ -50,20 +50,33 @@ export function initRisco(o) {
   .rk-premio img,.rk-guardar img{width:36px;height:36px;image-rendering:pixelated}
   .rk-premio b,.rk-guardar b{font:700 15px "Chakra Petch"}
   .rk-premio small,.rk-guardar small{font:13px/1.35 Rubik;color:#c9e9c9}
+  .rk-over h2.int{color:#ff6b4a}.rk-nota{font-size:13px!important;color:#d8d0c4}
+  .rk-reforco{width:220px;min-height:170px;background:#221f2e;color:#f4efe6;border:2px solid #4b4560;border-radius:12px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:5px}
+  .rk-reforco b{font:700 15px "Chakra Petch"}.rk-reforco small{font:13px/1.35 Rubik;color:#c9e9c9}
+  .rk-reforco button{font:700 13px "Chakra Petch";border:0;border-radius:8px;padding:7px 8px;cursor:pointer;background:#f2b630;color:#1b1622}.rk-reforco button.parc{background:#3a3550;color:#f4efe6}
+  .rk-reforco button:disabled{opacity:.45;cursor:default}.rk-reforco .rk-btns{margin-top:auto;display:flex;flex-direction:column;gap:5px}.rk-reforco i{font:12px Rubik;color:#ff8a78;font-style:normal}
+  .rk-div{display:block;margin-top:3px;font:600 10px "Chakra Petch";color:#ffcf6b;text-shadow:0 1px 2px #000}
+  @media (max-width:640px){.rk-reforco{width:calc(33% - 8px);padding:8px;min-height:150px}.rk-reforco b{font-size:12px}.rk-reforco small{font-size:11px}.rk-reforco button{font-size:11px;padding:6px 4px}}
   .rk-guardar{min-height:0;position:relative}.rk-guardar.sel::after{content:'✓ Guardar este';position:absolute;top:-11px;right:8px;background:#f2b630;color:#1b1622;font:700 11px "Chakra Petch";padding:2px 8px;border-radius:8px}.rk-guardar.sel{background:#2d2a1c}
   @media (max-width:640px){.rk-premio,.rk-guardar{width:calc(33% - 8px);padding:8px}.rk-premio{min-height:140px}.rk-premio b,.rk-guardar b{font-size:12px}.rk-premio small,.rk-guardar small{font-size:11px}.rk-over h2{font-size:30px}}`;
   document.head.appendChild(css);
   ultimoLog = riscoState().log.length; // golpes de antes de recarregar não voltam como aviso
   const bar = document.createElement('div');
   bar.className = 'day-bar rk-bar'; bar.id = 'rkBar'; bar.innerHTML = '<i id="rkFill"></i><span id="rkTxt">INTEGRIDADE</span>';
-  bar.title = 'Integridade da torre: chegando a zero, ela desaba e a obra é perdida';
+  bar.title = 'Integridade da torre: chegando a zero, a obra é interditada';
   $('hPlateFloor').appendChild(bar);
+  const dv = document.createElement('span'); dv.className = 'rk-div'; dv.id = 'rkDiv'; dv.hidden = true; $('hPlateFloor').appendChild(dv);
   const w = document.createElement('div'); w.className = 'rk-warn'; w.id = 'rkWarn'; w.hidden = true; document.body.appendChild(w);
   const ov = document.createElement('div'); ov.className = 'rk-over'; ov.id = 'rkOver'; ov.hidden = true;
   ov.innerHTML = '<h2>A TORRE DESABOU</h2><p id="rkOverTxt"></p><p id="rkGuardaTxt"></p><div class="rk-cards" id="rkGuarda"></div><button id="rkNext">Começar uma nova torre</button>';
   document.body.appendChild(ov);
   $('rkNext').onclick = () => { ov.hidden = true; fall = null; if (onNext) onNext(guardar); };
   $('rkGuarda').onclick = e => { const b = e.target.closest('.rk-guardar'); if (!b) return; guardar = b.dataset.premio; for (const c of $('rkGuarda').children) c.classList.toggle('sel', c === b); };
+  // obra interditada: laudo da Defesa Civil com 3 jeitos de reforçar (pagos com dinheiro)
+  const it = document.createElement('div'); it.className = 'rk-over'; it.id = 'rkInterd'; it.hidden = true;
+  it.innerHTML = '<h2 class="int">OBRA INTERDITADA</h2><p id="rkInterdTxt"></p><div class="rk-cards" id="rkReforcos"></div><p class="rk-nota">Sem dinheiro? Parcele: a obra volta na hora e uma parte do aluguel (de 20% a 60%, conforme a dívida) vai pagando até quitar. Parcelado custa 20% a mais.</p>';
+  document.body.appendChild(it);
+  $('rkReforcos').onclick = e => { const b = e.target.closest('button[data-id]'); if (!b || b.disabled || !cumprirReforco(b.dataset.id, b.dataset.modo === 'parcelar')) return; it.hidden = true; interdVista = null; save(); sfx('buy'); showNews('DEFESA CIVIL', 'Reforço feito: a obra foi liberada e volta a subir.'); };
   // fim do ano sobrevivido: 3 prêmios, tocar escolhe
   const an = document.createElement('div'); an.className = 'rk-over'; an.id = 'rkAno'; an.hidden = true;
   an.innerHTML = '<h2 class="ok" id="rkAnoT">ANO 1 CONCLUÍDO</h2><p id="rkAnoTxt"></p><div class="rk-cards" id="rkPremios"></div>';
@@ -74,13 +87,15 @@ export function initRisco(o) {
 // interface (a cada 0,2 s): barra, aviso e o que aconteceu
 export function tickRisco(paused, bloqueado) {
   const s = riscoState(), p = s.integ / s.max;
-  if (bloqueado) { $('rkAno').hidden = true; $('rkOver').hidden = true; } // Início ou abertura na frente
+  if (bloqueado) { $('rkAno').hidden = true; $('rkOver').hidden = true; $('rkInterd').hidden = true; } // Início ou abertura na frente
   else if (fall && fall.done && $('rkOver').hidden) $('rkOver').hidden = false;
   $('rkFill').style.width = `${p * 100}%`;
   $('rkBar').className = 'day-bar rk-bar' + (p <= 0.25 ? ' low' : p <= 0.5 ? ' mid' : '');
-  $('rkTxt').textContent = `INTEGRIDADE ${Math.ceil(s.integ)}`;
+  $('rkTxt').textContent = s.interd ? 'INTERDITADA' : `INTEGRIDADE ${Math.ceil(s.integ)}`;
+  $('rkDiv').hidden = !(s.divida > 0); if (s.divida > 0) $('rkDiv').textContent = `Dívida R$ ${fmt(s.divida)} · ${Math.round(100 * retencao())}% da renda`;
   const w = $('rkWarn');
   if (S.colapso || paused || S.roundOver) w.hidden = true;
+  else if (s.interd) { w.hidden = false; w.className = 'rk-warn now'; w.textContent = '🚧 OBRA INTERDITADA · escolha um reforço para liberar'; }
   else if (s.ativa) {
     const a = s.ativa; w.hidden = false; w.className = 'rk-warn now';
     w.textContent = a.tipo === 'fiscal' ? (a.ok ? '🦺 Fiscalização: obra aprovada' : `🦺 OBRA EMBARGADA · multa R$ ${fmt(a.multa)}`) : `${ICON[a.tipo]} ${AMEACAS[a.tipo].n.toUpperCase()} −${a.dano}`;
@@ -104,6 +119,20 @@ export function tickRisco(paused, bloqueado) {
     }
     ultimoLog = s.log.length;
   }
+  // obra interditada: a tela do laudo (preço e o que falta atualizam com o dinheiro)
+  const ti = $('rkInterd');
+  if (s.interd && !S.colapso && !bloqueado) {
+    if (interdVista !== s.interd) {
+      interdVista = s.interd; sfx('multa');
+      $('rkInterdTxt').textContent = `Laudo da Defesa Civil: ${AMEACAS[s.interd.tipo] ? AMEACAS[s.interd.tipo].n.toLowerCase() : 'a obra'} comprometeu a estrutura a ${fmtM(S.maxAlt)}. ${nomeDef(s.interd.def)} insuficiente. Interdição ${s.interdAno} neste ano: na ${RISCO.interdMax}ª, a torre é condenada e desaba. Escolha um reforço para liberar a obra:`;
+      $('rkReforcos').innerHTML = s.interd.opcoes.map(o => `<div class="rk-reforco" data-id="${o.id}"><b>${o.n}</b><small>${o.d}</small><div class="rk-btns"><button type="button" data-id="${o.id}" data-modo="vista"></button><button type="button" class="parc" data-id="${o.id}" data-modo="parcelar">Parcelar: R$ ${fmt(Math.round(o.custo * (1 + RISCO.parcelaJuros)))}</button><i></i></div></div>`).join('');
+    }
+    for (const c of $('rkReforcos').children) {
+      const o = s.interd.opcoes.find(x => x.id === c.dataset.id), falta = o.custo - S.money, bv = c.querySelector('[data-modo="vista"]');
+      bv.textContent = `À vista: R$ ${fmt(o.custo)}`; bv.disabled = falta > 0; c.querySelector('i').textContent = falta > 0 ? `Faltam R$ ${fmt(falta)} para pagar à vista` : '';
+    }
+    ti.hidden = false;
+  } else if (!ti.hidden) ti.hidden = true;
   // fim do ano: a tela dos prêmios (também depois de recarregar a página)
   const an = $('rkAno');
   if (s.fimAno && an.hidden && !S.colapso && !bloqueado) {
@@ -115,7 +144,7 @@ export function tickRisco(paused, bloqueado) {
   } else if (!s.fimAno && !an.hidden) an.hidden = true;
   if (S.colapso && !fall) { fall = { t: 0, f0: S.colapso.f0, dir: Math.random() < 0.5 ? -1 : 1 }; zoomBy(0.01); sfx('desabamento'); sfx('desabamento2', 0.4); sfx('multa', 3); }
 }
-export const resetRisco = () => { fall = null; ultimoLog = riscoState().log.length; guardar = null; $('rkOver').hidden = true; $('rkAno').hidden = true; };
+export const resetRisco = () => { fall = null; ultimoLog = riscoState().log.length; guardar = null; interdVista = null; $('rkOver').hidden = true; $('rkAno').hidden = true; $('rkInterd').hidden = true; };
 
 // efeitos na cena (a cada quadro, depois de render())
 const VENTO = ['vento', 'furacao', 'ventoAlt'], TREME = ['sismo', 'recalque', 'tsunami'], CLIMA = ['chuva', 'nevasca', 'granizo', 'raios', 'gelo', 'meteoros', 'solar'];
@@ -148,6 +177,7 @@ export function riscoFx(dt, t, mudo = false) {
   else if (avisando() && VENTO.includes(s.prox.tipo)) lean = 2 * Math.sin(t * 4);
   if (a && TREME.includes(a.tipo)) shake = (3 + 18 * forca) * fade * (a.tipo === 'tsunami' ? Math.max(0, 1 - a.left / 2) : 1);
   towerFx({ lean, shake, dano: 1 - s.integ / s.max });
+  if (s.interd) interdFx();
   // o clima da ameaça continua enquanto a obra está mais lenta (chuva, nevasca)
   if (a && CLIMA.includes(a.tipo)) s.clima = a.tipo;
   const tipo = a && a.tipo !== 'fiscal' ? a.tipo : (s.lento > 0 ? s.clima : null);

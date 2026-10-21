@@ -5,7 +5,7 @@ import { FLAGS } from './flags.js';
 export const TIPS = {
   andar: { t: 'Esta é a altura da torre. Cada andar que fica pronto é alugado sozinho e passa a render dinheiro.' },
   dinheiro: { t: 'Seu caixa. Ele sobe com o aluguel dos andares e com o pagamento de cada andar entregue.' },
-  relogio: { t: FLAGS.risco ? 'Cada ano da torre tem 365 dias. Embaixo fica a integridade: ventania, chuva, terremoto e outros problemas tiram integridade; se chegar a zero, a torre desaba. Sobreviva ao ano para ganhar Reputação e escolher um prêmio.' : 'Cada obra é um contrato de 365 dias. Quando o prazo vence, a torre entregue aumenta a Reputação da construtora e você começa uma obra nova, mais forte.' },
+  relogio: { t: FLAGS.risco ? 'Cada ano da torre tem 365 dias. Embaixo fica a integridade: ventania, chuva, terremoto e outros problemas tiram integridade; se chegar a zero, a obra é interditada até você pagar um reforço. Sobreviva ao ano para ganhar Reputação e escolher um prêmio.' : 'Cada obra é um contrato de 365 dias. Quando o prazo vence, a torre entregue aumenta a Reputação da construtora e você começa uma obra nova, mais forte.' },
   melhorias: { t: 'Toque em Melhorias para contratar gente e comprar máquinas.', a: true },
   ramos: { t: 'Cada cor é uma etapa da obra: Fornecimento traz o material, Logística sobe, Mão de obra assenta, Engenharia aumenta o limite de altura e Mercado aumenta a renda.' },
   pedreiro: { t: 'Toque no Pedreiro extra para ver o que ele faz.', a: true },
@@ -31,7 +31,7 @@ export const TUTORIAL = FLAGS.risco ? [
   { titulo: 'Leia a obra', texto: 'A obra mostra o que falta: pedreiros dormindo 💤 = falta material lá em cima; material empilhado no térreo = os elevadores não dão conta; fachadas trincadas e quebradas = a integridade está caindo.' },
   { titulo: 'Intempéries', texto: 'Ventania, chuva, terremoto, tsunami, raios e muito mais chegam avisados, com o dano estimado e a defesa que protege. Aviso vermelho com "DERRUBA A TORRE": reforce já. A fiscalização do Ministério do Trabalho embarga a obra se faltar Segurança do trabalho.' },
   { titulo: 'Fim do ano', texto: 'Sobreviveu aos 365 dias? Você ganha Reputação e escolhe 1 de 3 prêmios, que valem até a torre cair e se somam. A integridade que sobrou vira reforço: metade dela soma na integridade máxima do ano seguinte.' },
-  { titulo: 'Se a torre cair', texto: 'Os anos ficam mais difíceis e uma hora a torre cai. Aí você escolhe 1 prêmio para guardar e começa uma torre nova com toda a Reputação. Quanto mais alto você chegar, mais forte volta.' },
+  { titulo: 'Obra interditada', texto: 'Se a integridade zerar, a Defesa Civil interdita a obra: escolha um dos 3 reforços do laudo (pagos com dinheiro) e a obra volta mais forte onde falhou. Na 3ª interdição do mesmo ano a torre é condenada e cai: você guarda 1 prêmio e começa uma torre nova com toda a Reputação.' },
 ] : [
   { titulo: 'A obra sobe sozinha', texto: 'Você é dono da Construtora Vigaluz. Os operários constroem sozinhos; você decide no que investir. Em cima: o andar, o dinheiro e o dia da obra (o contrato vence no dia 365).' },
   { titulo: 'Melhorias', texto: 'Toque em Melhorias para abrir a árvore. Cada cor é uma etapa: Fornecimento traz o material, Logística sobe, Mão de obra assenta, Engenharia aumenta o limite e Mercado aumenta a renda.' },

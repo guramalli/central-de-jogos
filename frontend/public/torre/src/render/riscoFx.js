@@ -65,6 +65,20 @@ export function towerFx(o) {
   }
 }
 
+// ---------- obra interditada: fita zebrada na base e faixa no alto da torre ----------
+export function interdFx() {
+  const ctx = g(), x0 = Math.round(sx(TL - 30)), x1 = Math.round(sx(TL + TW + 30)), yb = Math.round(sy(26));
+  const fita = (y, h) => { for (let x = x0, k = 0; x < x1; x += 12, k++) { ctx.fillStyle = k % 2 ? '#1b1622' : '#f2c230'; ctx.fillRect(x, y, Math.min(12, x1 - x), h); } };
+  if (yb > -10 && yb < H + 10) { fita(yb, 6); fita(yb + 14, 6); }
+  const topo = Math.max(70, Math.round(sy((Math.floor(S.floors) + 0.6) * FH)));
+  if (topo < H - 40) {
+    const w = Math.min(W - 20, Math.max(170, x1 - x0)), cx = Math.round(sx(0)), x = Math.round(cx - w / 2);
+    ctx.fillStyle = 'rgba(160,24,20,.92)'; ctx.fillRect(x, topo, w, 26); fita(topo - 6, 4); fita(topo + 28, 4);
+    ctx.font = '700 15px "Chakra Petch", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
+    ctx.fillText('OBRA INTERDITADA', cx, topo + 13); ctx.textAlign = 'left';
+  }
+}
+
 // ---------- intempéries ----------
 const pats = new Map();
 // textura que emenda (chuva, neve) rolando pela tela inteira

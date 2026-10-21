@@ -10,7 +10,9 @@
 //   POST   /unica/partida ← { jogador }                              → { ficha }  (pedida no começo de cada torre)
 //   POST   /unica/ranking ← { ficha, jogador, apelido, alt, seg }    → { ok, posicao }  (a mesma ficha atualiza enquanto
 //                           a torre cresce; vale a maior altura; ficha mais velha que a última aceita é recusada)
-//   GET    /unica/ranking[?jogador=]                                 → { total, top (20), corte, eu }  (corte: altura do 20º)
+//   GET    /unica/ranking[?lista=altura|orbita][&jogador=]          → { total, top (20), corte, eu }  (corte: altura do 20º)
+//          orbita = tempo de jogo somado (todas as torres) até a primeira torre passar de 400 km; menor é melhor; só a partir de
+//          TORRE.orbitaMinUnica (o robô excelente leva ~7–8 h)
 //   DELETE /unica/ranking ← { jogador }                              → { ok }
 //
 // O servidor não confia em totais vindos do jogo: ele SOMA as obras que recebe. Cada obra vem com uma ficha assinada
@@ -36,7 +38,8 @@ export const TORRE = {
   orbitaAlt: 400_000,        // 400 km
   orbitaMin: 3 * 3600,       // a Órbita só conta depois de 3 h de jogo somado (o robô atento leva ~4h20)
   top: 10,
-  topUnica: 20,             // torre única: as 20 torres mais altas (o 20º é o corte para entrar)
+  topUnica: 20,
+  orbitaMinUnica: 5 * 3600,  // torre única: tempo até a Órbita só conta acima de 5 h de jogo             // torre única: as 20 torres mais altas (o 20º é o corte para entrar)
 };
 const ORDEM = { obra: "obra_max DESC", total: "total DESC", orbita: "orbita ASC" };
 const jogadorOk = (j) => typeof j === "string" && /^[A-Za-z0-9-]{8,40}$/.test(j);
@@ -72,7 +75,7 @@ const valorDe = (l, x) => (l === "obra" ? x.obra_max : l === "total" ? x.total :
 // banco em memória (testes): uma linha por jogador
 export function bancoMemoria() {
   const linhas = new Map(), unica = new Map(); let seq = 0;
-  const uOrdem = (a, b) => b.alt_max - a.alt_max || a.seq - b.seq;
+  const uOrdem = (a, b) => b.alt_max - a.alt_max || a.seq - b.seq, oOrdem = (a, b) => a.orbita - b.orbita || a.oseq - b.oseq;
   const ordem = (l) => (a, b) => (l === "orbita" ? a.orbita - b.orbita : valorDe(l, b) - valorDe(l, a)) || a.seq - b.seq;
   const da = (l) => [...linhas.values()].filter((x) => l !== "orbita" || x.orbita != null);
   return {
@@ -90,10 +93,11 @@ export function bancoMemoria() {
     },
     // torre única: maior altura; empate = quem chegou primeiro
     async uJogador(j) { return unica.get(j) || null; },
-    async uSalvar(j, d) { const a = unica.get(j); unica.set(j, { ...d, jogador: j, seq: a && a.alt_max >= d.alt_max ? a.seq : ++seq }); },
-    async uTop(n) { return [...unica.values()].sort(uOrdem).slice(0, n).map((x) => ({ apelido: x.apelido, valor: x.alt_max })); },
-    async uTotal() { return unica.size; },
-    async uNaFrente(x) { return [...unica.values()].filter((y) => uOrdem(y, x) < 0).length; },
+    async uSalvar(j, d) { const a = unica.get(j); unica.set(j, { ...d, orbita: a && a.orbita != null ? a.orbita : d.orbita ?? null, jogador: j, seq: a && a.alt_max >= d.alt_max ? a.seq : ++seq, oseq: a && a.oseq ? a.oseq : (d.orbita != null ? ++seq : 0) }); },
+    async uTop(n, l) { return l === 'orbita' ? [...unica.values()].filter((x) => x.orbita != null).sort(oOrdem).slice(0, n).map((x) => ({ apelido: x.apelido, valor: x.orbita }))
+      : [...unica.values()].sort(uOrdem).slice(0, n).map((x) => ({ apelido: x.apelido, valor: x.alt_max })); },
+    async uTotal(l) { return l === 'orbita' ? [...unica.values()].filter((x) => x.orbita != null).length : unica.size; },
+    async uNaFrente(x, l) { return l === 'orbita' ? [...unica.values()].filter((y) => y.orbita != null && oOrdem(y, x) < 0).length : [...unica.values()].filter((y) => uOrdem(y, x) < 0).length; },
     async uApagar(j) { unica.delete(j); },
   };
 }
@@ -113,6 +117,8 @@ export function bancoPrisma(carregar) {
       jogador VARCHAR(40) PRIMARY KEY, apelido VARCHAR(24) NOT NULL, ultima_ficha BIGINT NOT NULL DEFAULT 0,
       alt_max DOUBLE PRECISION NOT NULL DEFAULT 0, alcancado TIMESTAMPTZ NOT NULL DEFAULT now(), ip VARCHAR(16))`);
     await prisma.$executeRawUnsafe("CREATE INDEX IF NOT EXISTS torre_unica_alt ON torre_unica (alt_max DESC, alcancado ASC)");
+    await prisma.$executeRawUnsafe("ALTER TABLE torre_unica ADD COLUMN IF NOT EXISTS orbita DOUBLE PRECISION");
+    await prisma.$executeRawUnsafe("ALTER TABLE torre_unica ADD COLUMN IF NOT EXISTS orbita_em TIMESTAMPTZ");
   })().catch((e) => { pronta = null; throw e; }));
   const linha = (x) => x && ({ ...x, ultima_ficha: Number(x.ultima_ficha), obras: Number(x.obras), segs: Number(x.segs), total: Number(x.total),
     obra_max: Number(x.obra_max), orbita: x.orbita == null ? null : Number(x.orbita) });
@@ -148,23 +154,32 @@ export function bancoPrisma(carregar) {
     async apagar(j) { await tabela(); await prisma.$executeRaw`DELETE FROM torre_jogadores WHERE jogador = ${j}`; },
     async uJogador(j) {
       await tabela(); const r = await prisma.$queryRaw`SELECT * FROM torre_unica WHERE jogador = ${j}`;
-      return r[0] ? { ...r[0], ultima_ficha: Number(r[0].ultima_ficha), alt_max: Number(r[0].alt_max) } : null;
+      return r[0] ? { ...r[0], ultima_ficha: Number(r[0].ultima_ficha), alt_max: Number(r[0].alt_max), orbita: r[0].orbita == null ? null : Number(r[0].orbita) } : null;
     },
     async uSalvar(j, d) {
       await tabela();
-      await prisma.$executeRaw`INSERT INTO torre_unica (jogador, apelido, ultima_ficha, alt_max, ip) VALUES (${j}, ${d.apelido}, ${d.ultima_ficha}, ${d.alt_max}, ${d.ip})
+      const orb = d.orbita ?? null;
+      await prisma.$executeRaw`INSERT INTO torre_unica (jogador, apelido, ultima_ficha, alt_max, ip, orbita, orbita_em) VALUES (${j}, ${d.apelido}, ${d.ultima_ficha}, ${d.alt_max}, ${d.ip}, ${orb}, CASE WHEN ${orb}::double precision IS NULL THEN NULL ELSE now() END)
         ON CONFLICT (jogador) DO UPDATE SET apelido = EXCLUDED.apelido, ultima_ficha = EXCLUDED.ultima_ficha, ip = EXCLUDED.ip,
+          orbita = COALESCE(torre_unica.orbita, EXCLUDED.orbita), orbita_em = COALESCE(torre_unica.orbita_em, EXCLUDED.orbita_em),
           alcancado = CASE WHEN EXCLUDED.alt_max > torre_unica.alt_max THEN now() ELSE torre_unica.alcancado END,
           alt_max = GREATEST(torre_unica.alt_max, EXCLUDED.alt_max)`;
     },
-    async uTop(n) {
-      await tabela(); const r = await prisma.$queryRaw`SELECT apelido, alt_max AS v FROM torre_unica ORDER BY alt_max DESC, alcancado ASC LIMIT ${n}`;
+    async uTop(n, l) {
+      await tabela();
+      const r = l === 'orbita' ? await prisma.$queryRaw`SELECT apelido, orbita AS v FROM torre_unica WHERE orbita IS NOT NULL ORDER BY orbita ASC, orbita_em ASC LIMIT ${n}`
+        : await prisma.$queryRaw`SELECT apelido, alt_max AS v FROM torre_unica ORDER BY alt_max DESC, alcancado ASC LIMIT ${n}`;
       return r.map((x) => ({ apelido: x.apelido, valor: Number(x.v) }));
     },
-    async uTotal() { await tabela(); const r = await prisma.$queryRaw`SELECT COUNT(*)::int AS n FROM torre_unica`; return Number(r[0].n); },
-    async uNaFrente(x) {
+    async uTotal(l) {
       await tabela();
-      const r = await prisma.$queryRaw`SELECT COUNT(*)::int AS n FROM torre_unica t WHERE t.alt_max > ${x.alt_max} OR (t.alt_max = ${x.alt_max} AND t.alcancado < (SELECT alcancado FROM torre_unica WHERE jogador = ${x.jogador}))`;
+      const r = l === 'orbita' ? await prisma.$queryRaw`SELECT COUNT(*)::int AS n FROM torre_unica WHERE orbita IS NOT NULL` : await prisma.$queryRaw`SELECT COUNT(*)::int AS n FROM torre_unica`;
+      return Number(r[0].n);
+    },
+    async uNaFrente(x, l) {
+      await tabela();
+      const r = l === 'orbita' ? await prisma.$queryRaw`SELECT COUNT(*)::int AS n FROM torre_unica t WHERE t.orbita IS NOT NULL AND (t.orbita < ${x.orbita} OR (t.orbita = ${x.orbita} AND t.orbita_em < (SELECT orbita_em FROM torre_unica WHERE jogador = ${x.jogador})))`
+        : await prisma.$queryRaw`SELECT COUNT(*)::int AS n FROM torre_unica t WHERE t.alt_max > ${x.alt_max} OR (t.alt_max = ${x.alt_max} AND t.alcancado < (SELECT alcancado FROM torre_unica WHERE jogador = ${x.jogador}))`;
       return Number(r[0].n);
     },
     async uApagar(j) { await tabela(); await prisma.$executeRaw`DELETE FROM torre_unica WHERE jogador = ${j}`; },
@@ -251,10 +266,15 @@ export function criaRotasTorre({ db, segredo, agora = () => Date.now(), limite =
   });
   r.get("/unica/ranking", async (req, res) => {
     try {
-      const [top, total] = await Promise.all([db.uTop(TORRE.topUnica), db.uTotal()]);
-      const corpo = { total, top, corte: top.length >= TORRE.topUnica ? top[TORRE.topUnica - 1].valor : 0, eu: null };
+      const l = req.query.lista === "orbita" ? "orbita" : "altura";
+      const [top, total, topAlt] = await Promise.all([db.uTop(TORRE.topUnica, l), db.uTotal(l), l === "altura" ? null : db.uTop(TORRE.topUnica, "altura")]);
+      const alt = topAlt || top; // o corte (para o campo do apelido aparecer) é sempre pela altura
+      const corpo = { total, top, corte: alt.length >= TORRE.topUnica ? alt[TORRE.topUnica - 1].valor : 0, eu: null };
       const jogador = req.query.jogador;
-      if (jogadorOk(jogador)) { const m = await db.uJogador(jogador); if (m) corpo.eu = { posicao: (await db.uNaFrente(m)) + 1, valor: m.alt_max }; }
+      if (jogadorOk(jogador)) {
+        const m = await db.uJogador(jogador);
+        if (m && (l === "altura" || m.orbita != null)) corpo.eu = { posicao: (await db.uNaFrente(m, l)) + 1, valor: l === "orbita" ? m.orbita : m.alt_max };
+      }
       res.set("Cache-Control", "no-store");
       res.json(corpo);
     } catch (e) { erroBanco(res, e); }
@@ -270,10 +290,16 @@ export function criaRotasTorre({ db, segredo, agora = () => Date.now(), limite =
     if (alt == null || seg == null) return invalido(res, "Dados da torre inválidos.");
     if (real > TORRE.fichaDias * 86400 || seg > TORRE.obraSegMax || real < seg - 5) return invalido(res, "Torre fora do tempo.");
     if (alt > Math.min(TORRE.altMax, Math.max(TORRE.altMinTeto, TORRE.altPorSegundo * seg))) return invalido(res, "Altura inválida.");
+    // tempo até a Órbita (tempo de jogo somado de todas as torres): só com a torre na Órbita e acima do mínimo
+    let orbita = null;
+    if (req.body.orbita != null && alt >= TORRE.orbitaAlt) {
+      orbita = num(req.body.orbita);
+      if (orbita == null || orbita < TORRE.orbitaMinUnica || orbita < seg - 5) return invalido(res, "Tempo até a Órbita inválido.");
+    }
     try {
       const antes = await db.uJogador(jogador);
       if (antes && f.inicio < antes.ultima_ficha) return invalido(res, "Essa torre já foi substituída por uma mais nova.", 409);
-      await db.uSalvar(jogador, { apelido: ap.nome, ultima_ficha: f.inicio, alt_max: Math.max(alt, antes ? antes.alt_max : 0), ip: ipResumo(req) });
+      await db.uSalvar(jogador, { apelido: ap.nome, ultima_ficha: f.inicio, alt_max: Math.max(alt, antes ? antes.alt_max : 0), ip: ipResumo(req), orbita });
       const eu = await db.uJogador(jogador);
       res.set("Cache-Control", "no-store");
       res.json({ ok: true, posicao: (await db.uNaFrente(eu)) + 1 });
