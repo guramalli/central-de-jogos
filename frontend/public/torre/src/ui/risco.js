@@ -5,11 +5,10 @@ import { AMEACAS, riscoState, danoDe, avisando, segExigida, escolherPremio, prem
 import { PREMIOS } from '../data/premios.js';
 import { UP } from '../data/upgrades.js';
 import { repPct } from '../sim/prestige.js';
-import { towerFx, weatherFx, interdFx, ARTE_RISCO } from '../render/riscoFx.js';
+import { towerFx, weatherFx, interdFx, ARTE_RISCO, iniciarQueda, quedaFx, quedaCam, pararQueda } from '../render/riscoFx.js';
 import { art } from '../render/assets.js';
-import { dust } from '../render/particles.js';
 import { FH, TW, TL } from '../data/constants.js';
-import { zoomBy, sy } from '../render/camera.js';
+import { cam, setIntroCam } from '../render/camera.js';
 import { showNews } from './intro.js';
 import { fmt, fmtM, fmtPct } from './format.js';
 import { sfx, tickClima } from './audio.js';
@@ -77,7 +76,7 @@ export function initRisco(o) {
   const ov = document.createElement('div'); ov.className = 'rk-over'; ov.id = 'rkOver'; ov.hidden = true;
   ov.innerHTML = '<h2>A TORRE DESABOU</h2><p id="rkOverTxt"></p><p id="rkGuardaTxt"></p><div class="rk-cards" id="rkGuarda"></div><button id="rkNext">Começar uma nova torre</button>';
   document.body.appendChild(ov);
-  $('rkNext').onclick = () => { ov.hidden = true; fall = null; if (onNext) onNext(guardar); };
+  $('rkNext').onclick = () => { ov.hidden = true; fimQueda(); if (onNext) onNext(guardar); };
   $('rkGuarda').onclick = e => { const b = e.target.closest('.rk-guardar'); if (!b) return; guardar = b.dataset.premio; for (const c of $('rkGuarda').children) c.classList.toggle('sel', c === b); };
   // obra interditada: laudo da Defesa Civil com 3 jeitos de reforçar (pagos com dinheiro)
   const it = document.createElement('div'); it.className = 'rk-over'; it.id = 'rkInterd'; it.hidden = true;
@@ -153,23 +152,27 @@ export function tickRisco(paused, bloqueado) {
     $('rkPremios').innerHTML = (s.oferta || []).map(id => cartao(id, 'rk-premio')).join('');
     $('rkSalvar').textContent = 'Salvar'; an.hidden = false; sfx('entrega');
   } else if (!s.fimAno && !an.hidden) an.hidden = true;
-  if (S.colapso && !fall) { fall = { t: 0, f0: S.colapso.f0, dir: Math.random() < 0.5 ? -1 : 1 }; zoomBy(0.01); sfx('desabamento'); sfx('desabamento2', 0.4); sfx('multa', 3); }
+  if (S.colapso && !fall) { // começa a queda: física de blocos em render/riscoFx.js, câmera enquadrando a torre inteira
+    fall = { t: 0, f0: S.colapso.f0, dir: Math.random() < 0.5 ? -1 : 1 }; iniciarQueda(fall.f0, fall.dir);
+    const c0 = { cx: cam.cx, cy: cam.cy, z: cam.z }; setIntroCam(() => quedaCam(c0));
+    sfx('desabamento'); sfx('multa', 3);
+  }
 }
-export const resetRisco = () => { fall = null; ultimoLog = riscoState().log.length; guardar = null; interdVista = null; $('rkOver').hidden = true; $('rkAno').hidden = true; $('rkInterd').hidden = true; };
+const fimQueda = () => { fall = null; pararQueda(); setIntroCam(null); }; // a câmera volta a seguir a obra
+export const resetRisco = () => { fimQueda(); ultimoLog = riscoState().log.length; guardar = null; interdVista = null; $('rkOver').hidden = true; $('rkAno').hidden = true; $('rkInterd').hidden = true; };
 
 // efeitos na cena (a cada quadro, depois de render())
 const VENTO = ['vento', 'furacao', 'ventoAlt'], TREME = ['sismo', 'recalque', 'tsunami'], CLIMA = ['chuva', 'nevasca', 'granizo', 'raios', 'gelo', 'meteoros', 'solar'];
 export function riscoFx(dt, t, mudo = false) {
   const s = riscoState(), a = s.ativa;
-  if (fall && !S.colapso) { fall = null; $('rkOver').hidden = true; } // Recomeçar ou outro espaço no meio da queda
+  if (fall && !S.colapso) { fimQueda(); $('rkOver').hidden = true; } // Recomeçar ou outro espaço no meio da queda
   if (fall && fall.done) return; // a torre já caiu: a tela do desabamento está aberta e a cena fica parada (sem efeitos)
   if (fall) {
     fall.t += dt;
-    S.floors = Math.max(0, fall.f0 * (1 - Math.min(1, Math.pow(Math.max(0, fall.t - 0.6) / 2.8, 1.6))));
-    if (fall.t < 3.2 && Math.random() < .6) { const y = Math.floor(S.floors) * FH; for (let i = 0; i < 4; i++) dust(TL + Math.random() * TW, y, i % 2 ? '#8a7f70' : '#d8cdb8', 4, 2); }
-    towerFx({ lean: fall.dir * 0.8 * Math.min(1, Math.pow(fall.t / 2, 2)) * leanSpan(fall.f0), shake: 8 * Math.max(0, 1 - fall.t / 3), f0: fall.f0 });
-    weatherFx({ tipo: 'sismo', forca: 1, t, dt }); // entulho e poeira despencando
-    if (fall.t > 3.6 && !fall.done) {
+    const q = quedaFx(dt); // toco desmoronando, parte de cima tombando e se partindo, escombros
+    weatherFx({ tipo: null, t, dt }); // poeira e entulho dos impactos
+    if (q.tremor > 0.3) towerFx({ shake: q.tremor });
+    if (q.fim && !fall.done) {
       fall.done = true;
       const c = S.colapso;
       const anos = c.anos || 0, lista = premiosDaTentativa();
@@ -195,5 +198,3 @@ export function riscoFx(dt, t, mudo = false) {
   weatherFx({ tipo, forca, prog: a ? 1 - a.left / 4 : 1, aviso: !tipo && avisando() ? s.prox.tipo : null, t, dt });
   tickClima({ tipo: dt > 0 && !mudo ? tipo : null, forca, aviso: !tipo && avisando() ? s.prox.tipo : null, dt }); // som das intempéries (pausado = mudo)
 }
-// altura do tombo em pixels de tela (a torre de antes de desmoronar)
-const leanSpan = f0 => Math.max(40, sy(0) - sy((f0 + 1) * FH));

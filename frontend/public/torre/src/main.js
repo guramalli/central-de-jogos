@@ -155,7 +155,7 @@ if (FLAGS.viva) {
   initHome({ onSwitch: () => { onSwitch(); pedirFicha(); }, onHowto: openTutorial, onRanking: openRanking, onRankLeave: sairDoRanking, onRankJoin: definirApelido, onSound: () => syncSnd(), onJornais: drawArquivo,
     onForget: esquecerJogador, // apagar um espaço tira o apelido daquele jogador do ranking
     onNewGame: () => { if (!(TEST || navigator.webdriver)) startIntro(false); }, // nos testes, sem abertura
-    precisaNome: () => nomeInicio && !(S.rank && (S.rank.apelido || S.rank.nao)), ultimoNome: ultimoApelido }); // Novo jogo pede o nome do ranking
+    precisaNome: () => nomeInicio && !(S.rank && (S.rank.apelido || S.rank.nao || S.rank.semNome)), ultimoNome: ultimoApelido }); // pede o nome do ranking (partida nova ou save sem nick)
   $('skHome').onclick = () => { closeGear(); closeSkills(); openHome(); };
   $('gearCfg').onclick = () => { closeGear(); closeSkills(); openHome(); $('hmCfg').click(); };
   if (!(TEST || navigator.webdriver)) openHome();

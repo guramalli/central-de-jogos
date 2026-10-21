@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Laboratório da Árvore</title>
+<link rel="icon" type="image/png" href="assets/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Rubik:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="lab/lab.css">
+<!-- Central de testes da árvore (não é o jogo): mexe numa cópia da árvore e mostra o impacto com o robô jogando.
+     Nada daqui muda o jogo de verdade. No site fica em /torre/arvore-lab.html, sem link e fora das buscas (noindex). -->
+<script>globalThis.TORRE_FLAGS = { viva: true, risco: true };</script>
+<script type="module" src="lab/lab.js"></script>
+</head>
+<body>
+<header class="top">
+  <b class="logo">LABORATÓRIO DA ÁRVORE</b>
+  <label>Robô <select id="cfRobo"><option value="excelente">Excelente</option><option value="bom">Bom</option><option value="novato">Novato</option></select></label>
+  <label>Build <select id="cfBuild"></select></label>
+  <label>Modo <select id="cfModo"><option value="risco">Torre única com intempéries</option><option value="corrida">Corrida sem intempéries</option></select></label>
+  <label>Simular <select id="cfHoras"><option value="2">2 h</option><option value="4">4 h</option><option value="8" selected>8 h</option><option value="12">12 h</option></select></label>
+  <label>Sementes <select id="cfSem"><option value="1">1</option><option value="3" selected>3 (média)</option><option value="5">5 (média)</option></select></label>
+  <label class="chk"><input type="checkbox" id="cfAuto" checked> roda sozinho</label>
+  <span class="grow"></span>
+  <button class="btn" id="btDesfazer" title="Desfaz a última mudança">Desfazer</button>
+  <button class="btn" id="btCen">Cenários</button>
+  <button class="btn" id="btBuilds">Comparar builds</button>
+  <button class="btn" id="btExport">Exportar</button>
+  <label class="btn file">Importar<input type="file" id="btImport" accept=".json,application/json" hidden></label>
+  <button class="btn y" id="btSim">▶ Simular</button>
+</header>
+<div class="chips" id="chips"></div>
+<main class="main">
+  <section class="card" id="arvore">
+    <div class="card-h"><h3>Árvore (valores editáveis)</h3><button class="btn sm y" id="btNova">+ Nova melhoria</button></div>
+    <p class="hint">Toque no nome para ver todos os campos, o preço de cada nível e o impacto só daquela mudança. Campo âmbar = mudado (o original aparece ao parar o mouse em cima).</p>
+    <div id="tabela"></div>
+    <details class="regras" id="regras"><summary>Regras do jogo (intempéries, reforço, prêmios, Reputação…)</summary><div id="regrasBox"></div></details>
+  </section>
+  <section id="res">
+    <div class="card"><div class="card-h"><h3>Resultado do simulado</h3><span class="status" id="status">—</span></div>
+      <div class="big" id="cards"></div>
+      <table class="res" id="marcos"></table>
+      <p class="hint" id="notaRes">Verde = mais rápido que hoje. Os números saem do robô jogando com as regras de verdade do jogo; a mesma semente nos dois lados (mesmas intempéries e prêmios sorteados).</p>
+    </div>
+    <div class="card"><h3>Altura × tempo <small>(semente 1; escala de altura em potências de 10)</small></h3><div id="grafico"></div></div>
+    <div class="grid2">
+      <div class="card"><h3>Onde foi o dinheiro</h3><div class="bars" id="gasto"></div></div>
+      <div class="card"><h3>O que o robô comprou</h3><table class="compras" id="compras"></table></div>
+    </div>
+    <div class="card" id="cmpBox" hidden><div class="card-h"><h3 id="cmpT">Comparação</h3><button class="btn sm" id="cmpFechar">Fechar</button></div><div id="cmp"></div></div>
+  </section>
+</main>
+<aside class="painel" id="detalhe" hidden></aside>
+<dialog id="dlgCen"><div class="dlg">
+  <div class="card-h"><h3>Cenários</h3><button class="btn sm" data-fecha>Fechar</button></div>
+  <p class="hint">Cenários prontos trocam todas as mudanças atuais. Marque vários e toque em "Comparar marcados" para ver lado a lado.</p>
+  <div id="cenLista"></div>
+  <div class="row"><input id="cenNome" placeholder="Nome para salvar as mudanças atuais"><button class="btn" id="cenSalvar">Salvar</button><button class="btn y" id="cenComparar">Comparar marcados</button></div>
+</div></dialog>
+<dialog id="dlgNova"><div class="dlg">
+  <div class="card-h"><h3>Nova melhoria</h3><button class="btn sm" data-fecha>Fechar</button></div>
+  <div class="form" id="novaForm"></div>
+  <div class="row"><span class="grow"></span><button class="btn y" id="novaCriar">Criar e simular</button></div>
+</div></dialog>
+</body>
+</html>

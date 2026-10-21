@@ -171,6 +171,24 @@ export function drawFloors(base) {
   }
 }
 
+// ---------- pedaço da torre (desabamento) ----------
+// andares a..b-1 e os poços colados neles, sem recortar pela tela: quem chama gira o canvas em volta do pedaço
+export function blocoAndares(a, b) {
+  const lvl = floorLOD();
+  if (lvl > 0) for (let i = a; i < b; i++) facade(i, lvl);
+  else for (let k = a; k < b;) { // de longe: faixas por era
+    const e = eraVis(altOf(k)); let j = k + 1;
+    while (j < b && eraVis(altOf(j)) === e) j++;
+    Rv(TL, k * FH, TW, (j - k) * FH, (farFacade(e) || FAR[e]).occ); k = j;
+  }
+  const n = Math.min(S.lv.elevador || 1, 6);
+  for (let p = 0; p < n; p++) { // treliça dos poços que caem junto
+    const x = SHAFT_X(p);
+    Rv(x, a * FH, 3, (b - a) * FH, '#5b6170'); Rv(x + SHAFT_W - 3, a * FH, 3, (b - a) * FH, '#5b6170');
+    if (lvl > 0) for (let i = a; i < b; i++) Rv(x, i * FH, SHAFT_W, 3, '#6b7183');
+  }
+}
+
 // ---------- poços dos elevadores de carga ----------
 // poços ampliados (SHAFT_K): a cabine fica do tamanho dos operários. Cada poço é desenhado no seu desenho de 30 px de
 // largura, num referencial ampliado em volta da base dele (câmera escalada), então trilhos, cabine e carga crescem juntos.

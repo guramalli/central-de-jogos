@@ -62,14 +62,15 @@ function drawCfg() {
   $('cfMsg').textContent = '';
 }
 
-// joga no espaço n: troca (se for outro), fecha o Início; partida nova pede o nome do ranking (com a obra parada, ainda no
-// Início) e abre a história
+// joga no espaço n: troca (se for outro), fecha o Início; partida nova (ou save sem nick) pede o nome do ranking (com a
+// obra parada, ainda no Início); partida nova abre a história
 function play(n) {
   if (n !== activeSlot()) { setSlot(n); hooks.onSwitch?.(); }
   const novo = !slotSummary(n);
-  if (novo && hooks.precisaNome?.()) { show('hmNomeP'); $('hmNome').value = hooks.ultimoNome?.() || ''; $('hmNomeMsg').textContent = ''; $('hmNome').focus({ preventScroll: true }); return; }
+  if (hooks.precisaNome?.()) { pendenteNovo = novo; show('hmNomeP'); $('hmNome').value = hooks.ultimoNome?.() || ''; $('hmNomeMsg').textContent = ''; $('hmNome').focus({ preventScroll: true }); return; }
   entrar(novo);
 }
+let pendenteNovo = false;
 function entrar(novo) {
   S.vazio = false; // começou a jogar neste espaço
   closeHome();
@@ -97,10 +98,10 @@ export function initHome(h = {}) {
   logo.onload = () => { logo.hidden = false; $('hmLogoTxt').hidden = true; };
   logo.src = 'assets/logo.png';
   $('hmContinue').onclick = () => play(activeSlot());
-  const nomeOk = () => { const erro = hooks.onRankJoin?.($('hmNome').value); if (erro) { $('hmNomeMsg').textContent = erro; return; } entrar(true); };
+  const nomeOk = () => { const erro = hooks.onRankJoin?.($('hmNome').value); if (erro) { $('hmNomeMsg').textContent = erro; return; } entrar(pendenteNovo); };
   $('hmNomeOk').onclick = nomeOk;
   $('hmNome').onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') nomeOk(); };
-  $('hmNomeNo').onclick = () => entrar(true); // dá para entrar depois (cartão no pé da tela ou Configurações)
+  $('hmNomeNo').onclick = () => { S.rank = { ...(S.rank || {}), semNome: true }; entrar(pendenteNovo); }; // não pergunta de novo neste save; dá para entrar depois (cartão ou Configurações)
   $('hmSlots').onclick = () => show('hmSlotsP');
   $('hmCfg').onclick = () => show('hmCfgP');
   $('hmJornais').onclick = () => show('hmJornaisP');

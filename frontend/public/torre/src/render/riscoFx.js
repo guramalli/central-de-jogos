@@ -9,7 +9,7 @@ import { sx, sy } from './camera.js';
 import { S } from '../sim/state.js';
 import { art } from './assets.js';
 import { eraVis } from './eravis.js';
-import { SHAFT_X, SHAFT_W } from './tower.js';
+import { SHAFT_X, SHAFT_W, blocoAndares } from './tower.js';
 import { V } from './view.js';
 import { altOf, floorOf } from '../data/height.js';
 import { soEmbaixo, RISCO } from '../sim/risco.js';
@@ -69,6 +69,88 @@ export function towerFx(o) {
     }
     if (dxIni !== null) faixa(ini, y1, dxIni);
   }
+}
+
+// ---------- desabamento: a torre quebra num andar, a parte de cima tomba inteira e se parte em blocos ----------
+// (pedido do usuário, 21/10/2026: a torre entortava como macarrão). Fases: trinca (0,5 s, tremendo) → a parte de cima gira
+// em volta do canto da quebra, cada vez mais rápido → passando de ~30° ela se parte em blocos que voam girando e caem → cada
+// bloco que bate no chão vira poeira, entulho e um monte de escombros; o toco de baixo desmorona andar por andar.
+// O tempo não depende da altura da torre (a câmera enquadra a torre inteira e a gravidade acompanha o tamanho).
+let Q = null;
+const TRINCA = 0.5, GIRO = 3, QUEBRA = 0.5;
+export function iniciarQueda(f0, dir) {
+  const F = Math.max(1, Math.floor(f0) + 1), q = F <= 3 ? 0 : Math.max(1, Math.round(F * (0.26 + 0.14 * Math.random())));
+  const Ht = F * FH, z = Math.min(1.2, 0.74 * H / Ht, 0.4 * W / Ht);
+  Q = { t: 0, f0, F, q, dir, th: 0.015, w: 0, blocos: null, escombros: [], tremor: 0, z0: null,
+    piv: { x: dir > 0 ? TL + TW : TL, y: q * FH }, G: 2 * Ht / (1.3 * 1.3), alvo: { cx: TL + TW / 2 + dir * Ht * 0.28, cy: Ht * 0.42, z } };
+  return Q;
+}
+export const pararQueda = () => { Q = null; };
+// câmera durante a queda: sai de onde estava e enquadra a torre inteira com espaço para o lado da queda
+export function quedaCam(atual) {
+  if (!Q) return atual;
+  if (!Q.z0) Q.z0 = { ...atual };
+  const k = Math.min(1, Q.t / 0.6), e = k * k * (3 - 2 * k), a = Q.alvo, o = Q.z0;
+  return { cx: o.cx + (a.cx - o.cx) * e, cy: o.cy + (a.cy - o.cy) * e, z: Math.exp(Math.log(o.z) + (Math.log(a.z) - Math.log(o.z)) * e) };
+}
+// gira o mundo em volta do ponto c (mundo) pelo ângulo ang (mundo, anti-horário), com o pedaço desenhado no lugar original
+function girado(c0, c, ang, desenha) {
+  const ctx = g(); ctx.save();
+  ctx.translate(sx(c.x), sy(c.y)); ctx.rotate(-ang); ctx.translate(-sx(c0.x), -sy(c0.y));
+  try { desenha(); } finally { ctx.restore(); }
+}
+const rot = (p, c, ang) => { const dx = p.x - c.x, dy = p.y - c.y, co = Math.cos(ang), si = Math.sin(ang); return { x: c.x + dx * co - dy * si, y: c.y + dx * si + dy * co }; };
+function impacto(b) {
+  const x = sx(b.c.x), gy = sy(0), Hb = (b.b - b.a) * FH;
+  Q.tremor = Math.min(14, Q.tremor + 4 + 6 * Math.min(1, Hb * Q.alvo.z / 120));
+  for (let i = 0; i < 10; i++) add({ k: 'poeira', x: x + (Math.random() - 0.5) * 60, y: gy - Math.random() * 10, vx: (Math.random() - 0.5) * 160, t: Math.random() * 0.2, vida: 1.1 + Math.random() * 0.6 });
+  const e = eraVis(altOf(b.a)), lista = ENTULHO[e] || ENTULHO[0];
+  for (let i = 0; i < 8; i++) add({ k: 'entulho', n: lista[Math.floor(Math.random() * lista.length)], x, y: gy - 6, vx: (Math.random() - 0.5) * 240, vy: -120 - Math.random() * 160, t: 0, vida: 1.6, chao: gy });
+  Q.escombros.push({ x: b.c.x, w: Math.max(TW * 0.6, Math.min(TW * 2.5, Hb * 0.5)), h: Math.min(TW * 0.5, Hb * 0.2), cor: (FAR_RUINA[e] || FAR_RUINA[0]) });
+  if (!Q.somImpacto) { Q.somImpacto = true; sfx('desabamento2', 0.6); }
+}
+const FAR_RUINA = ['#8c5a44', '#8d8a84', '#6f7b88', '#9aa3ad', '#a7aeb8', '#b9c0c9', '#c4c9d2'];
+// avança e desenha um quadro da queda; devolve { fim }
+export function quedaFx(dt) {
+  if (!Q) return { fim: true };
+  Q.t += dt;
+  const ctx = g();
+  // toco: depois da trinca vira o pedaço de baixo e desmorona andar por andar
+  if (Q.t >= TRINCA) S.floors = Math.max(0, Q.q * (1 - 0.75 * Math.min(1, Math.pow((Q.t - TRINCA) / 2.6, 1.3))));
+  const topoToco = Math.floor(S.floors) * FH;
+  if (Q.t >= TRINCA && Math.random() < 0.7) { const y = sy(topoToco); add({ k: 'poeira', x: sx(TL + Math.random() * TW), y, vx: (Math.random() - 0.5) * 40, t: 0, vida: 0.9 }); }
+  if (Q.t < TRINCA) { Q.tremor = 3 + 6 * Q.t; return { fim: false, tremor: Q.tremor }; } // trinca: a torre inteira ainda de pé, tremendo
+  const P = Q.piv, cima = { a: Q.q, b: Q.F };
+  if (!Q.blocos) { // a parte de cima gira inteira em volta do canto da quebra
+    Q.w += (GIRO * Math.sin(Q.th) + 0.5) * dt; Q.th += Q.w * dt;
+    const ang = -Q.dir * Q.th, c0 = { x: TL + TW / 2, y: (cima.a + cima.b) / 2 * FH };
+    girado(c0, rot(c0, P, ang), ang, () => blocoAndares(cima.a, cima.b));
+    if (Q.th >= QUEBRA) { // se parte em blocos, cada um com a velocidade que tinha no giro
+      const n = Math.max(1, Math.ceil((cima.b - cima.a) / 6)), wv = -Q.dir * Q.w; Q.blocos = [];
+      for (let a = cima.a; a < cima.b; a += n) {
+        const b = Math.min(cima.b, a + n), c0b = { x: TL + TW / 2, y: (a + b) / 2 * FH }, c = rot(c0b, P, ang);
+        const sep = (Math.random() - 0.5) * 0.25 * Q.G * 0.3;
+        Q.blocos.push({ a, b, c0: c0b, c, ang, vx: -wv * (c.y - P.y) + sep, vy: wv * (c.x - P.x), wa: wv * (0.6 + 0.8 * Math.random()) + (Math.random() - 0.5) * 1.6 });
+      }
+    }
+  } else { // blocos soltos: gravidade, giro e impacto no chão
+    for (let i = Q.blocos.length - 1; i >= 0; i--) {
+      const b = Q.blocos[i];
+      b.vy -= Q.G * dt; b.c.x += b.vx * dt; b.c.y += b.vy * dt; b.ang += b.wa * dt;
+      const hw = TW / 2, hh = (b.b - b.a) * FH / 2, baixo = b.c.y - (Math.abs(hw * Math.sin(b.ang)) + Math.abs(hh * Math.cos(b.ang)));
+      if (baixo <= 0) { impacto(b); Q.blocos.splice(i, 1); continue; }
+      girado(b.c0, b.c, b.ang, () => blocoAndares(b.a, b.b));
+    }
+  }
+  // escombros no chão (montes que crescem a cada bloco que cai)
+  for (const m of Q.escombros) {
+    const x0 = sx(m.x - m.w / 2), x1 = sx(m.x + m.w / 2), y = sy(0), h = Math.max(2, m.h * Q.alvo.z);
+    ctx.fillStyle = m.cor; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo((x0 + x1) / 2, y - h); ctx.lineTo(x1, y); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.moveTo((x0 + x1) / 2, y - h); ctx.lineTo(x1, y); ctx.lineTo((x0 + x1) / 2, y); ctx.closePath(); ctx.fill();
+  }
+  Q.tremor = Math.max(0, Q.tremor - 18 * dt);
+  const fim = Q.blocos && !Q.blocos.length && Q.t > 3.4 && S.floors <= Q.q * 0.26 + 0.01;
+  return { fim: fim || Q.t > 7, tremor: Q.tremor };
 }
 
 // ---------- obra interditada: fita zebrada na base e faixa no alto da torre ----------

@@ -1,0 +1,62 @@
+/* Central de testes da árvore (arvore-lab.html) */
+*{box-sizing:border-box}
+:root{--bg:#0e1119;--card:#141824;--line:#232836;--fg:#e8e2d0;--muted:#9aa0ad;--y:#f2b630;--g:#6fd08c;--r:#ff7a6a}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px Rubik,system-ui,sans-serif}
+button,select,input{font:inherit;color:inherit}
+.top{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;background:#141824;border-bottom:2px solid var(--y)}
+.logo{font:700 18px "Chakra Petch";color:var(--y);letter-spacing:.04em;margin-right:6px}
+.top label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.top select{background:#1b2030;border:1px solid #3b4152;border-radius:6px;padding:6px 8px;font:600 13px "Chakra Petch";color:var(--fg)}
+.top .chk{color:var(--fg)}
+.grow{flex:1}
+.btn{font:600 13px "Chakra Petch";background:#2a3042;color:var(--fg);border:0;padding:8px 12px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#353c52}.btn.y{background:var(--y);color:#1b1622}.btn.y:hover{filter:brightness(1.08)}.btn.sm{padding:5px 9px;font-size:12px}.btn.red{background:#5a2424}
+.btn.file{display:inline-flex;align-items:center}
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 16px;background:#11141d;border-bottom:1px solid var(--line);min-height:38px}
+.chip{background:#2a2410;border:1px solid var(--y);color:#ffd77a;border-radius:14px;padding:3px 10px;font-size:12.5px;display:inline-flex;gap:6px;align-items:center}
+.chip button{background:none;border:0;color:var(--muted);cursor:pointer;padding:0 0 0 4px;font-size:13px}.chip button:hover{color:var(--r)}
+.chips .vazio{color:var(--muted);font-size:12.5px}
+.main{display:grid;grid-template-columns:minmax(520px,46%) 1fr;gap:14px;padding:14px 16px;align-items:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:14px}
+.card-h{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:8px}
+h3{margin:0;font:700 14px "Chakra Petch";color:#9fd0a8;letter-spacing:.06em;text-transform:uppercase}h3 small{color:var(--muted);text-transform:none;letter-spacing:0;font-weight:500}
+.hint{color:var(--muted);font-size:12px;margin:4px 0 10px;line-height:1.4}
+.ramo{font:700 13px "Chakra Petch";margin:14px 0 4px;padding-left:8px;border-left:4px solid var(--c)}
+table{width:100%;border-collapse:collapse}
+td,th{padding:4px 5px;text-align:left;border-bottom:1px solid #1e2330;font-size:13px;vertical-align:middle}
+th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+.arv td:first-child{width:28%}
+.nome{background:none;border:0;padding:0;cursor:pointer;text-align:left;color:var(--fg);font:500 13px Rubik}.nome:hover{color:var(--y);text-decoration:underline}
+.nome.removida{text-decoration:line-through;color:var(--muted)}.nome.nova{color:#ffd77a}
+.in{width:100%;min-width:58px;background:#0e1119;border:1px solid #3b4152;border-radius:4px;padding:3px 6px;font:600 13px "Chakra Petch"}
+.in:focus{outline:none;border-color:var(--y)}.in.mod{border-color:var(--y);color:#ffd77a;background:#2a2410}.in[disabled]{opacity:.45}
+.par{font-size:11px;color:var(--muted)}
+.regras{margin-top:16px}.regras summary{cursor:pointer;font:700 13px "Chakra Petch";color:var(--y)}
+.regras .grupo{margin-top:10px}.regras label{display:grid;grid-template-columns:1fr 130px;gap:8px;align-items:center;font-size:12.5px;padding:3px 0;border-bottom:1px solid #1e2330}
+.regras label small{display:block;color:var(--muted);font-size:11px}
+.status{font:600 12px "Chakra Petch";color:var(--muted)}.status.rodando{color:var(--y)}
+.big{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.k{background:#1b2030;border-radius:8px;padding:10px}.k small{color:var(--muted);font-size:11px;text-transform:uppercase;display:block}
+.k b{display:block;font:700 22px "Chakra Petch";margin:2px 0}.k span{font:600 12.5px "Chakra Petch"}
+.res td{font:600 13.5px "Chakra Petch"}.up{color:var(--g)}.dn{color:var(--r)}.mut{color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid2 .card{margin-bottom:14px}
+.bars>div{display:grid;grid-template-columns:100px 1fr 90px;align-items:center;gap:8px;margin:5px 0;font-size:12.5px}
+.bars i{display:block;height:10px;border-radius:3px;background:var(--c)}.bars em{font-style:normal;color:var(--muted);font-size:11.5px}
+.compras td{font-size:12.5px}
+.painel{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:#11141d;border-left:2px solid var(--y);z-index:10;overflow:auto;padding:16px;box-shadow:-10px 0 30px rgba(0,0,0,.5)}
+.painel h2{margin:0 0 2px;font:700 20px "Chakra Petch";color:var(--y)}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}.form label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.form label.wide{grid-column:1/-1}.form .orig{text-transform:none;letter-spacing:0;color:#767c89;font-size:11px}
+.row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}.row input{flex:1;min-width:160px;background:#0e1119;border:1px solid #3b4152;border-radius:6px;padding:8px}
+dialog{background:#141824;color:var(--fg);border:2px solid var(--y);border-radius:10px;padding:0;width:min(760px,95vw);max-height:90vh}
+dialog::backdrop{background:rgba(5,8,18,.7)}.dlg{padding:16px;overflow:auto;max-height:86vh}
+.cen{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #1e2330}
+.cen b{font:600 14px "Chakra Petch"}.cen small{display:block;color:var(--muted);font-size:12px}
+.cmp td,.cmp th{font-size:12.5px}.cmp td{font-family:"Chakra Petch";font-weight:600}.cmp .best{color:var(--g)}
+.lane{font-size:12px;color:var(--muted)}
+svg text{font-family:Rubik,sans-serif}
+@media (max-width:1100px){.main{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
+@media (max-width:600px){.top{padding:8px 10px}.main{padding:10px}.form{grid-template-columns:1fr}.arv td,.arv th{font-size:12px;padding:3px}.in{min-width:46px}}
+/* celular: o cabeçalho não fica preso (ocupava metade da tela) e as tabelas rolam para o lado */
+#tabela,.cmp-wrap{overflow-x:auto}
+@media (max-width:760px){.top{position:static}.arv{min-width:560px}.cmp{min-width:640px}#cmp{overflow-x:auto}.painel{padding:12px}}

@@ -99,9 +99,10 @@ export function render(antesDosAvisos) {
   });
   const e = eraVis(altOf(base)), s = ERA_STYLE[e], working = !capped && S.top > 0.05;
   const nb = Math.min(S.lv.pedreiro, 4), y0 = topWP;
-  if (capped) drawCapped(y0, nb);
+  if (S.colapso) { /* desabando: o topo da obra foi junto (ui/risco.js + render/riscoFx.js) */ }
+  else if (capped) drawCapped(y0, nb);
   else drawBlocks(y0, p, s, e, Math.min(S.lv.pedreiro, MAX_TOP_WORKERS), working, sg);
-  if (!capped) drawForSale(topWP);
+  if (!capped && !S.colapso) drawForSale(topWP);
   drawGroundFront(R0.prod, sg);
   drawTourGround(R0.tour);
   drawParticles();
