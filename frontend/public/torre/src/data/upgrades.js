@@ -127,6 +127,9 @@ for (const k in ERA_TECH) { const u = ERA_TECH[k]; if (u.st) (TECH_BY_STAGE[u.st
 // Obra Viva: política de imóveis da era (não é compra: alterna Alugar/Vender sem custo; max 0 = a economia nunca "compra")
 if (FLAGS.viva) UP.imoveis = { b: 'merc', n: 'Imóveis da era', d: 'Decida o destino dos andares desta era: alugar (renda contínua) ou vender (dinheiro na hora, cerca de 20 min de aluguel por andar).', base: 0, k: 1, max: 0, icon: 'corretores' };
 // protótipo "Obra Viva com risco": defesas contra as intempéries (sim/risco.js). Não rendem nada na economia.
+// torre única: o Elevador magnético custa ×4 por nível (×8 no jogo de rodadas): no alto ele é a única subida de material que
+// sobra, e a ×8 o jogador ficava minutos parado esperando (robôs de fase, tools/fases-robo.mjs)
+if (FLAGS.risco && UP.maglev) UP.maglev.k = 4;
 if (FLAGS.risco) Object.assign(UP, {
   contravento: { b: 'eng', n: 'Contraventamento', d: 'Treliças em X e amortecedores. Protege de: ventania, furacão e vento de altitude.', base: 120, k: 2.5, icon: 'escoramento' },
   sondagem: { b: 'eng', n: 'Sondagem e estacas', d: 'Estudo do solo, estacas profundas e quebra-mar. Protege de: terremoto, recalque do solo e tsunami (a Fundação também ajuda).', base: 150, k: 2.5, icon: 'estacas' },

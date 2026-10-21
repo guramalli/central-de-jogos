@@ -3,7 +3,7 @@
 // Coordenadas de mundo: (x, y) = centro dos pés. Virado para a direita; flip vira para a esquerda.
 // o: { walk, phase, carry (cor da carga), hammer, drill (furadeira no lugar do martelo), sit (sentado),
 //      boss (mestre de obras: capacete branco e prancheta), flip, skin (0..3), suit, pack }
-import { MPF } from '../data/constants.js';
+import { MPF, FH } from '../data/constants.js';
 import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { eraAt } from '../data/eras.js';
 import { S } from '../sim/state.js';
@@ -13,6 +13,9 @@ import { art } from './assets.js';
 import { blit } from './sprites.js';
 import { drawRig, ANIMS, SKINS, RIG_AX, RIG_AY, walkDistance } from './rig.js';
 import { eraVis, onMoon } from './eravis.js';
+import { FLAGS } from '../data/flags.js';
+import { chovendo } from '../sim/risco.js';
+import { V } from './view.js';
 
 const SIL = { vest: '#ee7a1c', pants: '#30446e', helm: '#f7c824', suit: '#d3d8e0', suitD: '#a9b0bd', visor: '#f7f8fb' };
 
@@ -30,8 +33,10 @@ const PANTS = ['#33456b', '#5a4632', '#2f6a5a', '#d8cfb8', '#4a4f5c'];
 const TSHEET = { walk: ['andar', 8], idle: ['parado', 4] };
 export function tourist(x, y, i, o = {}) {
   if (cam.z < 0.1) return;
+  // traje espacial na Lua e da estratosfera para cima (quem sobe na cabine panorâmica até lá em cima)
+  const traje = onMoon() || eraAt(altOf(Math.max(0, y) / FH)) >= 3;
   if (cam.z >= 0.2) {
-    const sh = TSHEET[o.walk ? 'walk' : 'idle'], img = art(onMoon() ? `espacial/${sh[0]}` : `turista${(i % 3) + 1}/${sh[0]}`); // na Lua, turistas de traje
+    const sh = TSHEET[o.walk ? 'walk' : 'idle'], img = art(traje ? `espacial/${sh[0]}` : `turista${(i % 3) + 1}/${sh[0]}`);
     if (img) {
       const cyc = o.walk ? (o.flip ? -x : x) / 52 : (o.phase ?? 0) / 2 + i * 0.37, m = sh[1];
       blitCell(img, ((Math.floor((cyc % 1 + 1) % 1 * m)) + m) % m, x, y, !!o.flip);
@@ -44,8 +49,8 @@ export function tourist(x, y, i, o = {}) {
   const anim = o.walk ? 'walk' : 'idle', n = ANIMS[anim].frames;
   const cyc = o.walk ? x / walkDistance(false) : (o.phase ?? 0) / 2 + i * 0.37;
   const frame = ((Math.floor((cyc % 1 + 1) % 1 * n)) + n) % n;
-  const q = { skin: i % 4, suit: false, pack: false, boss: false, carry: '', civ };
-  blit(drawRig(`civ|${anim}|${frame}|${i % 60}`, anim, frame, q), x, y, RIG_AX, RIG_AY, !!o.flip);
+  const q = { skin: i % 4, suit: traje, pack: false, boss: false, carry: '', civ: traje ? null : civ };
+  blit(drawRig(`civ|${anim}|${frame}|${i % 60}|${traje ? 1 : 0}`, anim, frame, q), x, y, RIG_AX, RIG_AY, !!o.flip);
 }
 
 // folhas do PixelLab: [arquivo, quadros]; células de 88×88 com os pés no ponto (44, 84)
@@ -56,6 +61,36 @@ function blitCell(img, i, x, y, flip) {
   if (X > ctx.canvas.width || X + w < 0 || Y > ctx.canvas.height || Y + h < 0) return;
   if (flip) { ctx.save(); ctx.translate(X + w, Y); ctx.scale(-1, 1); ctx.drawImage(img, i * CELL, 0, CELL, CELL, 0, 0, w, h); ctx.restore(); }
   else ctx.drawImage(img, i * CELL, 0, CELL, CELL, X, Y, w, h);
+}
+
+// choque elétrico: a folha inteira pintada de quase preto (mesmo contorno, mesma animação) e um esqueleto branco por cima
+const silCache = new Map();
+function silhueta(img) {
+  const k = img.src || img; if (silCache.has(k)) return silCache.get(k);
+  const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#0d0b10'; g.fillRect(0, 0, c.width, c.height);
+  silCache.set(k, c); return c;
+}
+function esqueleto(x, y, deitado = false, flip = false) {
+  const B = '#f4f1e8', s = flip ? -1 : 1, P = (dx, dy, w, h, c = B) => R(x + (s < 0 ? -dx - w : dx), y + dy, w, h, c);
+  if (deitado) { // pedreiro descansando, recostado: crânio atrás, tronco inclinado, pernas esticadas para a frente
+    const osso = (x0, y0, x1, y1) => { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) / 2; for (let i = 0; i <= n; i++) P(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 2, 2); };
+    P(-16, 20, 9, 9); P(-14, 23, 2, 2, '#0d0b10'); P(-11, 23, 2, 2, '#0d0b10');           // crânio
+    osso(-10, 18, 0, 6); for (const k of [0, 1, 2, 3]) osso(-11 + k * 2.5, 15 - k * 2.5, -3 + k * 2.5, 19 - k * 2.5); // coluna e costelas
+    P(-2, 3, 8, 4); osso(5, 4, 30, 2); osso(5, 6, 30, 5); P(30, 1, 4, 6);                 // bacia, pernas e pés
+    osso(-8, 16, 2, 10);                                                                  // braço
+  } else {
+  P(-4, 2, 3, 20); P(1, 2, 3, 20);                     // pernas
+  P(-6, 0, 5, 2); P(1, 0, 5, 2);                       // pés
+  P(-6, 22, 12, 4);                                    // bacia
+  P(-1, 26, 2, 18);                                    // coluna
+  for (const dy of [30, 33, 36, 39]) P(-7, dy, 14, 2); // costelas
+  P(-9, 42, 18, 2);                                    // ombros
+  P(-10, 26, 2, 16); P(8, 26, 2, 16);                  // braços
+  P(-5, 46, 10, 10); P(-4, 44, 8, 2);                  // crânio e queixo
+  P(-3, 50, 2, 3, '#0d0b10'); P(1, 50, 2, 3, '#0d0b10'); P(-1, 47, 2, 1, '#0d0b10'); // olhos e dentes
+  }
+  for (let i = 0; i < 6; i++) { const a = Math.random() * 6.28, r = 12 + Math.random() * 10; P(Math.cos(a) * r, (deitado ? 12 : 30) + Math.sin(a) * r * 1.3, 2, 2, Math.random() < .5 ? '#fff6a0' : '#9fe8ff'); } // faíscas
 }
 
 // troca os pixels magenta (cor marcadora da caixa) pela cor do material, com luz e sombra pela luminosidade
@@ -107,9 +142,12 @@ export function worker(x, y, o = {}) {
     const serv = o.role === 'servente' && !suit && !o.boss && (anim === 'walk' || anim === 'idle');
     const set = serv ? 'servente' : suit ? 'espacial' : o.boss ? 'mestre' : 'boneco'; // nas eras altas o mestre também usa traje (parado, de olho na obra)
     const key = o.boss ? (suit ? 'idle' : anim === 'walk' ? 'walk' : 'boss') : anim === 'walk' && o.carry ? 'carry' : anim;
-    const sh = SHEETS[key], img = sh && (art(set + '/' + sh[0]) || (serv && art('boneco/' + sh[0])));
+    const capa = FLAGS.risco && !suit && chovendo() && SHEETS[key] ? art(set + '-capa/' + SHEETS[key][0]) : null; // chuva forte: capa amarela
+    const sh = SHEETS[key], img = sh && (capa || art(set + '/' + sh[0]) || (serv && art('boneco/' + sh[0])));
     if (img) {
       const m = sh[1], f = ((Math.floor((cyc % 1 + 1) % 1 * m)) + m) % m;
+      // raio (modo com risco): os pedreiros do topo piscam entre o normal e o corpo preto com o esqueleto aparecendo
+      if (FLAGS.risco && V.choque > 0 && !serv && !o.boss && Math.floor(V.choque * 14) % 2) { blitCell(silhueta(img), f, x, y, !!o.flip); esqueleto(x, y, anim === 'sit', !!o.flip); return; }
       // carregar: a caixa magenta do desenho vira a cor do material da era (mesma cor dos blocos da construção)
       blitCell(sh[0] === 'carregar' && o.carry ? tinted(img, o.carry, img.src || set) : img, f, x, y, !!o.flip);
       return;

@@ -157,7 +157,12 @@ export function tickClima(o) {
     if (tp === 'solar') alvo.solar = .18 + .1 * Math.sin(t * 7);
     if (!tp && o.aviso) { if (['vento', 'furacao', 'ventoAlt'].includes(o.aviso)) alvo.vento = .15; if (['chuva', 'raios', 'granizo'].includes(o.aviso)) alvo.chuva = .08; }
   }
-  for (const k in alvo) if (clima[k]) clima[k].g.gain.setTargetAtTime(alvo[k] * (k === 'terremoto' ? .9 : .7), t, .5);
+  const ativoVento = ['vento', 'furacao', 'ventoAlt', 'nevasca', 'gelo'].includes(tp);
+  for (const k in alvo) {
+    if (!clima[k]) continue;
+    if (k === 'vento' || k === 'nevasca') { rajada('clima-' + k, clima[k].g, alvo[k] * .7, ativoVento ? (tp === 'furacao' ? [1.5, 3] : [2.5, 4.5]) : [7, 12]); continue; } // vento em rajadas
+    clima[k].g.gain.setTargetAtTime(alvo[k] * (k === 'terremoto' ? .9 : .7), t, .5);
+  }
   if (clima.vento && clima.vento.src && clima.vento.src.playbackRate) clima.vento.src.playbackRate.setTargetAtTime(tp === 'furacao' ? 1.3 : 1, t, .5);
 }
 
@@ -205,6 +210,20 @@ function startAmbience() {
     amb[k] = { gain: g };
   }
 }
+// rajada de vento: o volume sobe em ~1,2 s, segura um pouco e some em ~2,2 s (entre as rajadas, silêncio)
+const rajadaFim = {}, rajadaProx = {};
+function rajada(nome, g, vol, intervalo) {
+  const t = ctx.currentTime;
+  if (vol <= 0) { if (t > (rajadaFim[nome] || 0)) g.gain.setTargetAtTime(0, t, .4); rajadaProx[nome] = Math.min(rajadaProx[nome] || 0, t + 1.5); return; }
+  if (t < (rajadaProx[nome] || 0)) return;
+  const sobe = 1.2, segura = 1.2 + Math.random() * 1.8, desce = 2.2;
+  g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t);
+  g.gain.linearRampToValueAtTime(vol * (.7 + Math.random() * .3), t + sobe);
+  g.gain.setValueAtTime(vol * (.7 + Math.random() * .3), t + sobe + segura);
+  g.gain.linearRampToValueAtTime(0, t + sobe + segura + desce);
+  rajadaFim[nome] = t + sobe + segura + desce;
+  rajadaProx[nome] = rajadaFim[nome] + intervalo[0] + Math.random() * (intervalo[1] - intervalo[0]);
+}
 let nextTruck = 20, nextHammer = 4;
 // chamada a cada quadro por main.js. o: { ground 0..1 (térreo à vista), sea (cidade com mar), wind 0..1 (eras altas),
 // top (acompanhando o topo com a obra andando), active (jogo correndo: sem pausa, Início nem abertura), dt }
@@ -215,7 +234,7 @@ export function tickAmbience(o) {
   const set = (k, v) => amb[k] && amb[k].gain.gain.setTargetAtTime(v, t, 0.6);
   set('canteiro', 0.55 * o.ground);
   set('mar', o.sea ? 0.45 * o.ground : 0);
-  set('vento', 0.5 * o.wind);
+  if (amb.vento) rajada('ambVento', amb.vento.gain, onAmb ? 0.5 * o.wind : 0, [10, 20]); // vento de fundo em rajadas, não em loop
   if (!onAmb) return;
   // sons soltos de vez em quando: ré do caminhão no térreo, marteladas no topo
   if ((nextTruck -= o.dt) <= 0) { nextTruck = 30 + Math.random() * 40; if (o.ground > 0.5) sfx('truck'); }

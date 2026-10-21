@@ -12,6 +12,7 @@ import { art } from './assets.js';
 import { FLAGS } from '../data/flags.js';
 import { COMPANY } from '../data/story.js';
 import { onMoon } from './eravis.js';
+import { floorOf } from '../data/height.js';
 
 const SHIRTS = ['#e8505b', '#4fb0e8', '#f2d24a', '#7ad37a', '#c58be8', '#ff9f43'];
 
@@ -134,13 +135,15 @@ function curious() {
   for (let i = 2; i >= 0; i--) tourist(TL - 32 - i * 40, 0, 1 + i * 4, { phase: V.t + i });
 }
 
+const HELI_TETO = 6000; // m
 // cabine do elevador panorâmico, helicóptero e cápsula espacial
 export function drawTourAir(topWP) {
   // o helicóptero voa por trás da torre e do elevador panorâmico: é desenhado antes da cabine
-  if (S.lv.heliponto >= 1) {
+  if (S.lv.heliponto >= 1 && !onMoon()) { // na Lua não há ar para o rotor
     // voo próprio: circula em volta dos últimos andares, um pouco abaixo do topo (passa por trás da torre),
-    // e sobe devagar quando a obra cresce (no máximo ~1 andar a cada 2 s), em vez de pular junto com cada andar
-    const target = Math.max(FH * 2, topWP - FH * 0.9), dt = Math.min(0.1, Math.max(0, V.t - (V.heliT ?? V.t)));
+    // e sobe devagar quando a obra cresce (no máximo ~1 andar a cada 2 s), em vez de pular junto com cada andar.
+    // Teto de 6 km (helicóptero de verdade não passa disso): com a torre mais alta, ele circula nessa faixa
+    const target = Math.max(FH * 2, Math.min(topWP - FH * 0.9, floorOf(HELI_TETO) * FH)), dt = Math.min(0.1, Math.max(0, V.t - (V.heliT ?? V.t)));
     V.heliT = V.t;
     if (V.heliY === undefined || Math.abs(target - V.heliY) > FH * 6) V.heliY = target;
     else V.heliY += Math.max(-FH * 0.5 * dt, Math.min(FH * 0.5 * dt, target - V.heliY));

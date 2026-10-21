@@ -20,7 +20,8 @@ export const RISCO = {
   hit: 4,             // duração da ameaça na tela
   regen: 0.06,        // integridade por segundo por nível de Manutenção
   def: 0.35,          // (antigo) cada nível de defesa dividia o dano por (1 + def × nível)
-  defMul: 0.9,        // cada nível de defesa multiplica o dano por defMul: a defesa acompanha o dano que cresce (quem investe certo segue subindo)
+  premioDefMax: 0.6, // prêmios de defesa somam −25% cada, mas no máximo tiram 60% do dano de um grupo (×0,5 multiplicado deixava o jogo fácil)
+  defMul: 0.92,       // cada nível de defesa multiplica o dano por defMul: a defesa acompanha o dano que cresce (quem investe certo segue subindo)
   anoK: 1.5,          // dano × anoK^(ano − 1): sem teto
   gapAno: 0.9,        // a cada ano as ameaças vêm mais seguidas (intervalo × gapAno^(ano − 1), no mínimo metade)
   diaK: 0.5,          // +50% do dia 1 ao dia 365
@@ -263,9 +264,9 @@ export function premioMult(estagio) {
 }
 // multiplicador de dano de um grupo de ameaças (vento, base, clima)
 export function premioDef(grupo) {
-  let m = 1;
-  for (const id of st().premios) { const p = PREMIOS[id]; if (p && p.defGrupo === grupo) m *= p.defMul; }
-  return m;
+  let c = 0;
+  for (const id of st().premios) { const p = PREMIOS[id]; if (p && p.defGrupo === grupo) c += p.defCorte; }
+  return 1 - Math.min(RISCO.premioDefMax, c);
 }
 // 3 prêmios diferentes; o trio nunca repete o anterior; únicos já ativos ficam de fora; raros pesam 1, comuns 3
 export function sortearPremios(rand = Math.random) {
@@ -288,5 +289,8 @@ export const chequeGuardado = () => Math.max(500, Math.round(1000 * 40 * Math.po
 
 // fração do assentamento que anda (embargo para a obra; chuva e neve deixam mais lenta)
 export const riscoLay = () => { const s = st(); return s.interd || s.embargo > 0 ? 0 : s.lento > 0 ? 0.6 : 1; };
+// chovendo forte (chuva, granizo, raios, furacão — e a chuva que continua deixando a obra lenta): os bonecos vestem capa
+const CHUVA = ['chuva', 'granizo', 'raios', 'furacao'];
+export const chovendo = () => { const s = S.risco; if (!s || S.colapso) return false; return !!(s.ativa && CHUVA.includes(s.ativa.tipo)) || (s.lento > 0 && CHUVA.includes(s.clima)); };
 export const avisoSegs = () => RISCO.warn * premioMult('warn');
 export const avisando = () => { const s = st(); return !!s.prox && !s.fimAno && !s.interd && s.prox.em <= avisoSegs(); };

@@ -26,6 +26,8 @@ export function initRisco(o) {
   onNext = o.onNext;
   // arte das intempéries e das fachadas avariadas: baixa logo ao abrir este modo
   ARTE_RISCO.forEach(art); for (let e = 0; e < 7; e++) { art('fachadas/' + e + '-trincada'); art('fachadas/' + e + '-quebrada'); }
+  for (const f of ['andar', 'carregar', 'furar', 'martelar', 'parado', 'sentado']) art('boneco-capa/' + f); // capa de chuva
+  for (const f of ['andar', 'carregar', 'parado']) art('servente-capa/' + f); art('mestre-capa/andar'); art('mestre-capa/prancheta');
   const css = document.createElement('style');
   css.textContent = `
   .rk-bar{margin-top:4px;width:118px}

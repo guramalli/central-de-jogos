@@ -9,6 +9,8 @@ import { sx, sy } from './camera.js';
 import { S } from '../sim/state.js';
 import { art } from './assets.js';
 import { eraVis } from './eravis.js';
+import { SHAFT_X, SHAFT_W } from './tower.js';
+import { V } from './view.js';
 import { altOf } from '../data/height.js';
 import { sfx } from '../ui/audio.js';
 
@@ -47,7 +49,9 @@ export function towerFx(o) {
     ctx.fillStyle = '#1b1622'; ctx.fillRect(0, 0, W, H); ctx.drawImage(buf, jx, jy); bctx.drawImage(ctx.canvas, 0, 0);
   }
   // só a faixa da torre entorta: o fundo da faixa é refeito com a coluna de céu ao lado e a torre é desenhada deslocada
-  const x0 = Math.max(1, Math.floor(sx(TL - 60))), bw = Math.min(W - x0, Math.ceil(sx(TL + TW + 120)) - x0);
+  // a faixa que entorta vai do andaime até o último poço de elevador (e as colunas extras dele): a obra inteira balança junto
+  const nPocos = Math.max(1, Math.min(S.lv.elevador || 1, 6)), dir = SHAFT_X(nPocos - 1) + SHAFT_W + 90;
+  const x0 = Math.max(1, Math.floor(sx(TL - 60))), bw = Math.min(W - x0, Math.ceil(sx(dir)) - x0);
   const y0 = Math.max(0, Math.floor(sy((fl + 1.3) * FH))); // acima do topo da torre só há céu: não precisa deslocar
   // linhas vizinhas com o mesmo deslocamento viram uma cópia só (perto da base o deslocamento muda devagar)
   const y1 = Math.min(H, Math.ceil(gy)), faixa = (ya, yb, dx) => {
@@ -99,7 +103,7 @@ let spawn = 0, flash = 0;
 export function weatherFx(o) {
   const ctx = g(), { t, dt } = o, tipo = o.tipo, f = Math.min(1, o.forca || 0.4);
   const topY = sy((Math.floor(S.floors) + 1) * FH), gy = sy(0), tx0 = sx(TL), tx1 = sx(TL + TW);
-  spawn += dt;
+  spawn += dt; if (V.choque > 0) V.choque = Math.max(0, V.choque - dt);
   // aviso: o céu já mostra o que vem (chuva fraca, rajadas leves)
   if (!tipo && o.aviso) {
     if (['chuva', 'raios', 'granizo'].includes(o.aviso)) { ctx.fillStyle = 'rgba(20,28,45,.18)'; ctx.fillRect(0, 0, W, H); layer('chuva-longe', t, 30, 120, 0.25); }
@@ -114,7 +118,7 @@ export function weatherFx(o) {
   }
   if (tipo === 'granizo' && Math.random() < 0.8) for (let i = 0; i < 3; i++) add({ k: 'granizo', v: i % 3, x: Math.random() * W, y: -6, vy: 300, t: 0, vida: 3, chao: gy });
   if (tipo === 'raios') {
-    if (Math.random() < dt * 0.9) { flash = 0.25; add({ k: 'raio', x: sx(-40 + Math.random() * 80), y: topY, t: 0, vida: 0.3 }); sfx('trovao', 0.15 + Math.random() * 0.4); }
+    if (Math.random() < dt * 0.9) { flash = 0.25; add({ k: 'raio', x: sx(-40 + Math.random() * 80), y: topY, t: 0, vida: 0.3 }); sfx('trovao', 0.15 + Math.random() * 0.4); V.choque = 0.8; } // o raio dá choque nos pedreiros do topo
   }
   if (tipo === 'nevasca' || tipo === 'gelo') {
     ctx.fillStyle = tipo === 'gelo' ? 'rgba(170,215,255,.22)' : 'rgba(230,238,255,.2)'; ctx.fillRect(0, 0, W, H);
