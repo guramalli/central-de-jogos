@@ -13,7 +13,7 @@ import { VIVA } from '../data/viva.js';
 import { FLAGS } from '../data/flags.js';
 import { floorOf, altOf } from '../data/height.js';
 import { MARKS } from '../data/eras.js';
-import { PREMIOS, PREMIO_IDS } from '../data/premios.js';
+import { PREMIOS, PREMIO_IDS, PREMIO_TROCA } from '../data/premios.js';
 
 export const RISCO = {
   gap: [55, 85],      // segundos entre ameaças
@@ -153,6 +153,7 @@ function precoNiveis(k, n) {
 export function interditar(tipo) {
   const s = st(), def = AMEACAS[tipo].def, taxa = taxaLiberacao();
   const pacote = (id, n, d, niveis, vezes, integ, extraMax = 0) => {
+    if (tipo === 'recalque') { niveis = { ...niveis, fundacao: (niveis.fundacao || 0) + 1 }; d += ' Fundação +1 (afasta do limite).'; } // o recalque vem do limite da fundação
     const custo = vezes * taxa + RISCO.reforcoNiveis * Object.entries(niveis).reduce((a, [k, q]) => a + precoNiveis(k, q), 0);
     return { id, n, d, niveis, custo: Math.round(custo), integ, extraMax };
   };
@@ -218,9 +219,10 @@ export function fimDoAno() {
 // aplica o efeito imediato de um prêmio (na escolha ou quando ele vem guardado para a torre nova)
 export function aplicarNaHora(id, guardado) {
   const s = st(), e = PREMIOS[id] && PREMIOS[id].efeito;
-  if (e === 'patrocinio') S.money += guardado ? chequeGuardado() : Math.max(500, 180 * rates().income);
-  else if (e === 'nucleo') { s.max += 50; s.integ = s.max; }
+  if (e === 'patrocinio') S.money += guardado ? chequeGuardado() : Math.max(500, 600 * rates().income); // ~10 min de renda
   else if (e === 'seguro') s.seguro = 1;
+  else if (e === 'fundacao') S.lv.fundacao = (S.lv.fundacao || 0) + 1; // Fundação profunda: +1 nível de Fundação reforçada
+  const extra = PREMIOS[id] && PREMIOS[id].extraMax; if (extra) { s.max += extra; s.integ = Math.min(s.max, s.integ + extra); } // integridade máxima a mais (a integridade sobe junto)
 }
 // a escolha do fim do ano: o prêmio entra, a mesma torre segue para o próximo ano
 export function escolherPremio(id) {
@@ -239,6 +241,9 @@ export function migrarRisco() {
   for (const k of ['offers', 'perks', 'marksDone', 'rushLeft', 'mgr', 'mgrPool', 'mgrAviso', 'torres', 'spent', 'metaOk', 'anos', 'roundPaid', 'board', 'pontos']) delete S[k]; // campos do jogo de rodadas (apagado)
   if (!S.colapso) S.roundOver = false;
   const r = st();
+  const troca = id => PREMIO_TROCA[id] || id; // prêmios retirados viram o substituto
+  r.premios = (r.premios || []).map(troca); if (S.riscoGuardado) S.riscoGuardado = troca(S.riscoGuardado);
+  if (r.oferta) r.oferta = r.oferta.map(troca); if (r.ultimaOferta) r.ultimaOferta = r.ultimaOferta.map(troca);
   if (r.prox && !AMEACAS[r.prox.tipo]) r.prox = null;
 }
 
@@ -264,7 +269,7 @@ export const temPremio = id => st().premios.includes(id);
 // multiplicador de um estágio pelos prêmios ativos; repetidos somam; desconto (cost) até a metade
 export function premioMult(estagio) {
   let up = 0, down = 0;
-  for (const id of st().premios) { const p = PREMIOS[id]; if (!p || p.st !== estagio) continue; if (p.mul > 1) up += p.mul - 1; else down += 1 - p.mul; }
+  for (const id of st().premios) { const p = PREMIOS[id]; if (!p || (p.st !== estagio && !(p.sts && p.sts.includes(estagio)))) continue; if (p.mul > 1) up += p.mul - 1; else down += 1 - p.mul; }
   return (1 + up) * Math.max(0.5, 1 - down);
 }
 // prêmios em cada etapa (economy/realty/tourism); 1 no modo clássico

@@ -42,7 +42,8 @@ export const TORRE = {
   orbitaMinUnica: 5 * 3600,  // torre única: tempo até a Órbita só conta acima de 5 h de jogo (quando unicaLivre for false)
   // torre única em fase de testes (pedido do usuário, 21/10/2026: "preciso saber se existem bugs explorados"): tempo, altura
   // e Órbita fora do normal entram no ranking, mas ficam marcados em torre_unica.suspeita (npm run torre-ranking mostra)
-  unicaLivre: true,             // torre única: as 20 torres mais altas (o 20º é o corte para entrar)
+  unicaLivre: true,
+  velMax: 4,                 // botão de acelerar o tempo do jogo (1×/2×/4×)             // torre única: as 20 torres mais altas (o 20º é o corte para entrar)
 };
 const ORDEM = { obra: "obra_max DESC", total: "total DESC", orbita: "orbita ASC" };
 const jogadorOk = (j) => typeof j === "string" && /^[A-Za-z0-9-]{8,40}$/.test(j);
@@ -296,7 +297,8 @@ export function criaRotasTorre({ db, segredo, agora = () => Date.now(), limite =
     // conferências: na fase liberada (TORRE.unicaLivre) não barram, só marcam a linha como suspeita
     const suspeitas = [];
     const confere = (ok, msg) => { if (!ok) suspeitas.push(msg); return ok || TORRE.unicaLivre; };
-    if (!confere(!(real > TORRE.fichaDias * 86400 || seg > TORRE.obraSegMax || real < seg - 5), `tempo: jogo ${Math.round(seg)} s, real ${Math.round(real)} s`)) return invalido(res, "Torre fora do tempo.");
+    // o jogo tem botão de acelerar (até TORRE.velMax×): o tempo de jogo pode passar o tempo real até esse tanto
+    if (!confere(!(real > TORRE.fichaDias * 86400 || seg > TORRE.obraSegMax || real * TORRE.velMax < seg - 5), `tempo: jogo ${Math.round(seg)} s, real ${Math.round(real)} s`)) return invalido(res, "Torre fora do tempo.");
     if (!confere(alt <= Math.min(TORRE.altMax, Math.max(TORRE.altMinTeto, TORRE.altPorSegundo * seg)), `altura: ${Math.round(alt)} m em ${Math.round(seg)} s`)) return invalido(res, "Altura inválida.");
     // tempo até a Órbita (tempo de jogo somado de todas as torres): só com a torre na Órbita
     let orbita = null;

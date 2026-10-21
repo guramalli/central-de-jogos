@@ -33,7 +33,7 @@ import { initTips, updateTips, setTips, tickTips } from './ui/tips.js';
 import { initMilestones } from './ui/milestones.js';
 import { initRisco, tickRisco, riscoFx, resetRisco } from './ui/risco.js';
 import { preloadArt } from './render/assets.js';
-import { migrarRisco, novaTorre, obraParada } from './sim/risco.js';
+import { migrarRisco, novaTorre, obraParada, avisando } from './sim/risco.js';
 preloadArt();
 
 // ?reset no endereço: apaga o save deste modo e começa do zero (o parâmetro sai do endereço,
@@ -89,7 +89,7 @@ function tick(real) {
   tickTips(); // o quadro da dica acompanha o alvo
   if (FLAGS.viva && !introActive() && !homeOpen() && !fz) S.playTime = (S.playTime || 0) + dt * speed;
   // a interface segue o tempo real, mesmo pausada
-  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); updateTips(); rankTick(homeOpen() || introActive()); checkJornal(homeOpen() || introActive()); if (FLAGS.risco) tickRisco(homeOpen() || introActive() || fz, homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
+  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); updateTips(); if (speed > 1 && speed <= 4 && !podeAcelerar()) setVel(1); rankTick(homeOpen() || introActive()); checkJornal(homeOpen() || introActive()); if (FLAGS.risco) tickRisco(homeOpen() || introActive() || fz, homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -98,6 +98,14 @@ function frame(now) {
   tick(real);
   requestAnimationFrame(frame);
 }
+
+// ---------- acelerar o tempo (1×/2×/4×; pedido do usuário) ----------
+// Volta sozinho para 1× quando vem uma intempérie (aviso ou ameaça), na interdição, no embargo, no fim do ano e no desabamento:
+// as decisões importantes acontecem sempre na velocidade normal. O ranking conta tempo de jogo, então acelerar não dá vantagem.
+const VELS = [1, 2, 4];
+const podeAcelerar = () => { if (!FLAGS.risco) return true; const r = S.risco; return !!r && !S.colapso && !r.interd && !r.fimAno && !(r.embargo > 0) && !r.ativa && !avisando(); };
+function setVel(v) { speed = v; const b = $('speedBtn'); if (!b) return; b.textContent = v + '×'; b.classList.toggle('on', v > 1); b.setAttribute('aria-label', `Velocidade ${v}×`); }
+$('speedBtn').onclick = () => setVel(podeAcelerar() ? VELS[(VELS.indexOf(speed) + 1) % VELS.length] || 1 : 1);
 
 // ---------- controles ----------
 $('devbar').hidden = !DEV;
@@ -204,7 +212,7 @@ function shot(name = 'shot') {
 // acesso pelo console para testes (só no modo desenvolvedor)
 // step(seg, fps): avança o jogo quadro a quadro sem depender do navegador (testes automáticos)
 if (DEV || TEST) window.torre = {
-  get S() { return S; }, V, cam, snap: snapCamera, shot, events: recent, sons: () => soundsLoaded(),
+  get S() { return S; }, get velocidade() { return speed; }, V, cam, snap: snapCamera, shot, events: recent, sons: () => soundsLoaded(),
   dicas: on => setTips(on),
   nomeInicio: on => { nomeInicio = !!on; }, // liga o pedido de nome no Novo jogo nos testes automáticos
   home: on => (on ? openHome() : closeHome()), // abre/fecha a página de Início (desligada por padrão com ?test=1) // liga as dicas nos testes automáticos (desligadas por padrão com ?test=1)

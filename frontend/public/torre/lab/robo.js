@@ -107,7 +107,11 @@ export function simular(cfg = {}, aoProgresso = null) {
         if (o) K.cumprirReforco(o.id); else { K.cumprirReforco('foco', true); out.parcelas++; }
         out.interdicoes++; continue;
       }
-      if (r.fimAno) { K.escolherPremio(melhorPremio(r.oferta)); continue; }
+      if (r.fimAno) { // premio: força sempre o mesmo prêmio (medir a força de cada um); únicos já pegos caem na escolha normal
+        const f = cfg.premio, p = f && PREMIOS[f], aindaForca = !cfg.premioVezes || (out.forcados || 0) < cfg.premioVezes; // premioVezes: só nos N primeiros fins de ano
+        if (p && aindaForca && !(p.unico && r.premios.includes(f))) { if (!r.oferta.includes(f)) r.oferta[0] = f; K.escolherPremio(f); out.forcados = (out.forcados || 0) + 1; } else K.escolherPremio(melhorPremio(r.oferta));
+        continue;
+      }
       sim(1); out.t++; S().playTime = (S().playTime || 0) + 1;
       const alt = altOf(Math.floor(S().floors)); out.melhor = Math.max(out.melhor, S().maxAlt);
       for (const m of MARCOS) if (out.marcos[m] == null && S().maxAlt >= m) { out.marcos[m] = out.t; out.rendaEm[m] = rates().income; out.torreEm[m] = S().riscoTentativa || 1; }

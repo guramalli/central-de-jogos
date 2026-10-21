@@ -17,7 +17,9 @@ const $ = id => document.getElementById(id);
 let onNext = null, onExit = null, fall = null, ultimoLog = 0, guardar = null, ultimaAtiva = null, interdVista = null;
 const SOM_CHEGADA = { sismo: 'racha', recalque: 'racha', tsunami: 'onda', gelo: 'gelo' };
 // nome da defesa que protege de cada ameaça (aparece no aviso e no dano)
-const defesa = t => AMEACAS[t] && UP[AMEACAS[t].def] ? UP[AMEACAS[t].def].n : '';
+// recalque: vem de a torre estar perto do limite da fundação (o dano cresce até 5× no limite); o que resolve é a Fundação
+// (dobra o limite), a Sondagem só ajuda um pouco (pedido do usuário, 21/10/2026: comprou Sondagem e o dano não caiu)
+const defesa = t => t === 'recalque' ? 'Fundação reforçada (afasta do limite; a Sondagem ajuda pouco)' : AMEACAS[t] && UP[AMEACAS[t].def] ? UP[AMEACAS[t].def].n : '';
 const ICON = { vento: '🌬️', furacao: '🌀', chuva: '🌧️', nevasca: '❄️', sismo: '⚠️', recalque: '🧱', fiscal: '🦺', tsunami: '🌊', raios: '⚡', granizo: '🧊', gelo: '🧊', ventoAlt: '🌬️', meteoros: '☄️', solar: '☀️' };
 const cartao = (id, cls) => { const p = PREMIOS[id]; return `<button type="button" class="${cls}" data-premio="${id}"><img src="assets/icones/${p.icon}.png" alt=""><b>${p.n}</b><small>${p.d}</small></button>`; };
 
@@ -63,6 +65,7 @@ export function initRisco(o) {
   .rk-acoes{display:flex;gap:10px;justify-content:center;margin-top:4px}
   .rk-acoes button{font:700 15px "Chakra Petch";border:0;border-radius:8px;padding:9px 22px;background:#3a3550;color:#f4efe6;cursor:pointer;min-width:120px}
   .rk-acoes button:hover{background:#4a4466}
+  .sk-div{display:inline-block;margin-left:10px;font-size:14px;text-align:left;white-space:nowrap}.rk-div[hidden]{display:none}
   .rk-div small{display:block;font:600 10px "Chakra Petch";color:#ff9a8a}
   @media (max-width:640px){.rk-reforco{width:calc(33% - 8px);padding:8px;min-height:150px}.rk-reforco b{font-size:12px}.rk-reforco small{font-size:11px}.rk-reforco button{font-size:11px;padding:6px 4px}}
   .rk-guardar{min-height:0;position:relative}.rk-guardar.sel::after{content:'✓ Guardar este';position:absolute;top:-11px;right:8px;background:#f2b630;color:#1b1622;font:700 11px "Chakra Petch";padding:2px 8px;border-radius:8px}.rk-guardar.sel{background:#2d2a1c}
@@ -74,6 +77,8 @@ export function initRisco(o) {
   bar.title = 'Integridade da torre: chegando a zero, a obra é interditada';
   $('hPlateFloor').appendChild(bar);
   const dv = document.createElement('span'); dv.className = 'rk-div'; dv.id = 'rkDiv'; dv.hidden = true; $('hPlateMoney').appendChild(dv); // dívida em vermelho embaixo do dinheiro, caindo
+  // e no cabeçalho da árvore de Melhorias, ao lado do dinheiro (no computador, com a árvore aberta a placa do dinheiro some)
+  const dv2 = document.createElement('span'); dv2.className = 'rk-div sk-div'; dv2.id = 'skDiv'; dv2.hidden = true; $('skMoney').after(dv2);
   const w = document.createElement('div'); w.className = 'rk-warn'; w.id = 'rkWarn'; w.hidden = true; document.body.appendChild(w);
   const ov = document.createElement('div'); ov.className = 'rk-over'; ov.id = 'rkOver'; ov.hidden = true;
   ov.innerHTML = '<h2>A TORRE DESABOU</h2><p id="rkOverTxt"></p><p id="rkGuardaTxt"></p><div class="rk-cards" id="rkGuarda"></div><button id="rkNext">Começar uma nova torre</button>';
@@ -104,7 +109,8 @@ export function tickRisco(paused, bloqueado) {
   $('rkFill').style.width = `${p * 100}%`;
   $('rkBar').className = 'day-bar rk-bar' + (p <= 0.25 ? ' low' : p <= 0.5 ? ' mid' : '');
   $('rkTxt').textContent = s.interd ? 'INTERDITADA' : `INTEGRIDADE ${Math.ceil(s.integ)}`;
-  $('rkDiv').hidden = !(s.divida > 0); if (s.divida > 0) $('rkDiv').innerHTML = `−R$ ${fmt(s.divida)}<small>dívida · ${Math.round(100 * retencao())}% do aluguel</small>`;
+  $('rkDiv').hidden = $('skDiv').hidden = !(s.divida > 0);
+  if (s.divida > 0) { $('rkDiv').innerHTML = `−R$ ${fmt(s.divida)}<small>dívida · ${Math.round(100 * retencao())}% do aluguel</small>`; $('skDiv').textContent = `−R$ ${fmt(s.divida)} de dívida`; }
   const w = $('rkWarn');
   if (S.colapso || paused || S.roundOver) w.hidden = true;
   else if (s.interd) { w.hidden = false; w.className = 'rk-warn now'; w.textContent = '🚧 OBRA INTERDITADA · escolha um reforço para liberar'; }

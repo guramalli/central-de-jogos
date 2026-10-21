@@ -650,3 +650,6 @@ body.intro .st-btn,body.intro .st-panel{display:none!important}
 .hm-nome input{flex:1;min-width:0;font:inherit;font-size:16px;padding:9px;background:#0e1119;color:var(--fg);border:2px solid #3b4152}
 .hm-nome input:focus{outline:none;border-color:#f2b630}
 .hm-nome-msg{margin:6px 0 10px;font-size:13px;color:#ff9a8a;min-height:1.2em}
+
+/* acelerar o tempo (1×/2×/4×), ao lado da pausa */
+.hud-vel{font:700 13px "Chakra Petch",sans-serif;width:auto;min-width:34px;padding:0 6px}

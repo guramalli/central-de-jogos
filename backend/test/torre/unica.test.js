@@ -91,3 +91,10 @@ test("torre única: lista 'Mais rápido até a Órbita' (menor tempo de jogo; s�
   const a = await (await req("GET", "/unica/ranking?lista=altura")).json();
   assert.equal(a.top[0].apelido, "Rapido");
 });
+
+test("torre única: jogo acelerado (até 4×) não fica marcado como suspeito", async () => {
+  const { ficha, envia, relogio, db } = await servidor();
+  const f = await ficha(J(31)); relogio.t += 100_000;
+  assert.equal((await envia(f, J(31), "Rapidinho", 1000, 380)).status, 200);
+  assert.equal((await db.uJogador(J(31))).suspeita, null, "380 s de jogo em 100 s reais cabe no 4×");
+});
