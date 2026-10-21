@@ -7,6 +7,8 @@ import { fmt } from '../ui/format.js';
 import { eraAt } from '../data/eras.js';
 import { altOf } from '../data/height.js';
 import { sellingNow, saleValueNext } from './realty.js';
+import { FLAGS } from '../data/flags.js';
+import { danoDe, regenAgora, segExigida } from './risco.js';
 
 export const STAGE_NAME = { prod: 'produção', tran: 'transporte', lay: 'assentamento' };
 const STAGE_OF = { obra: 'lay', forn: 'prod', log: 'tran' };
@@ -73,10 +75,20 @@ export function priorityScore(k) {
 // Efeito da melhoria em números, sem mencionar gargalo (modo Obra Viva: o jogador descobre o
 // problema olhando a obra). Só a etapa que a melhoria mexe: "Elevadores: 2,2 → 3,3 de material/s".
 const STAGE_LABEL = { prod: 'Material chegando', tran: 'Material subindo', lay: 'Pedreiros assentando' };
+// modo com risco: o efeito das defesas é o dano (ou a cura, ou a exigência da fiscalização) de agora → depois
+const virg = v => v.toFixed(2).replace('.', ',');
+const DEFESA_EFEITO = {
+  contravento: l => `Dano de ventania: ~${danoDe('vento', l)} → ~${danoDe('vento', l + 1)}`,
+  sondagem: l => `Dano de terremoto: ~${danoDe('sismo', l)} → ~${danoDe('sismo', l + 1)}`,
+  clima: l => `Dano de chuva: ~${danoDe('chuva', l)} → ~${danoDe('chuva', l + 1)}`,
+  manutencao: l => `Recupera integridade: ${virg(regenAgora(l))}/s → ${virg(regenAgora(l + 1))}/s`,
+  seguranca: l => `Fiscalização exige ${segExigida()} · você tem ${l} → ${l + 1}`,
+};
 // Efeito concreto de comprar o próximo nível, só da própria parte da obra: o valor de agora → o valor depois.
 // Mercado mostra a renda em R$/s; as etapas mostram o material por segundo e quantos andares por minuto a obra faz.
 export function upgradeEffect(k) {
   const u = UP[k]; if (!u) return null;
+  if (FLAGS.risco && DEFESA_EFEITO[k]) return DEFESA_EFEITO[k](S.lv[k] || 0);
   const R0 = rates();
   S.lv[k]++;
   let R1;

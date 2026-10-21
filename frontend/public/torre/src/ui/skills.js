@@ -21,6 +21,7 @@ import { VIVA } from '../data/viva.js';
 import { canDeliver, pointsFor, city, nextCity, metaAlt, deliverPoints, earlyBonus, repPct } from '../sim/prestige.js';
 import { managerOn, managerFree, setManager, hasManager, managerArrives } from '../sim/managers.js';
 import { spriteDataURL } from '../render/sprites.js';
+import { FLAGS } from '../data/flags.js';
 
 const COLOR = Object.fromEntries(TBRANCHES.map(b => [b.id, b.color]));
 const ERA_TOP = ERA_ROW0 + 5; // última fileira de tecnologia (era do Espaço)
@@ -279,6 +280,7 @@ function updateBoard() {
   // o botão de entregar mora no painel da engrenagem (ui/gear.js)
   if (!boardBuilt) buildBoard();
   setText($('skRep'), `Reputação ${fmtPct(repPct(S.pontosTotal || 0))}`);
+  if (FLAGS.risco) { $('skBoardRow').hidden = true; setText($('skObra'), `Torre nº ${S.riscoTentativa || 1} · Ano ${(S.risco && S.risco.ano) || 1}`); return; } // sem gerentes neste modo
   setText($('skObra'), `Obra nº ${S.obra || 1} · ${city().n}`);
   for (const c of $('skBoardRow').children) {
     const b = VIVA.board[c.dataset.k], bt = c.querySelector('button'), own = hasManager(b.mgr), on = own && managerOn(b.mgr);

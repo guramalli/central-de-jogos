@@ -85,7 +85,7 @@ export function render() {
   });
   // meta do contrato (Obra Viva): linha verde contínua até a torre passar dela; acima da tela, o aviso fica preso
   // no alto à DIREITA, embaixo do dinheiro (à esquerda ficam a placa do andar, o dia, a engrenagem e a pausa)
-  if (FLAGS.viva && !S.roundOver && S.maxAlt < metaAlt()) {
+  if (FLAGS.viva && !FLAGS.risco && !S.roundOver && S.maxAlt < metaAlt()) { // risco: torre única, sem meta de contrato
     const y = sy(floorOf(metaAlt()) * FH), TOPO = 64;
     if (y < H - 4) {
       const acima = y < TOPO, txt = `${acima ? '▲ ' : ''}META DO CONTRATO · ${fmtM(metaAlt())}`;

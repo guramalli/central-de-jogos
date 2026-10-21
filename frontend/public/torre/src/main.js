@@ -37,6 +37,7 @@ import { initMilestones } from './ui/milestones.js';
 import { initRisco, tickRisco, riscoFx, resetRisco } from './ui/risco.js';
 const cityName = () => city().n;
 import { preloadArt } from './render/assets.js';
+import { migrarRisco, novaTorre } from './sim/risco.js';
 preloadArt();
 
 // ?reset no endereço: apaga o save deste modo e começa do zero (o parâmetro sai do endereço,
@@ -50,6 +51,7 @@ preloadArt();
   }
 }
 migrate(load());
+if (FLAGS.risco) migrarRisco(); // modo com risco: torre única (saves antigos do protótipo também)
 if (FLAGS.viva) { S.debt = 0; S.inDefault = false; } // banco saiu do Obra Viva: dívidas antigas perdoadas
 // resumo do tempo fora: no modo atual vai para a dica do painel; no Obra Viva, numa faixa sobre a cena
 function welcome(msg) {
@@ -91,7 +93,7 @@ function tick(real) {
   tickTips(); // o quadro da dica acompanha o alvo
   if (FLAGS.viva && !introActive() && !homeOpen() && !fz) S.playTime = (S.playTime || 0) + dt * speed;
   // a interface segue o tempo real, mesmo pausada
-  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); if (!homeOpen() && !introActive()) checkManagers(); updateOffers(); updateTips(); rankTick(); checkJornal(homeOpen() || introActive()); if (FLAGS.risco) tickRisco(homeOpen() || introActive() || fz); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
+  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); if (!homeOpen() && !introActive()) checkManagers(); updateOffers(); updateTips(); rankTick(); checkJornal(homeOpen() || introActive()); if (FLAGS.risco) tickRisco(homeOpen() || introActive() || fz, homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -110,7 +112,7 @@ spBtns.forEach(b => b.onclick = () => {
 });
 
 // Recomeçar: dois cliques (o primeiro arma por 3 s). Botão no topo (modo atual) e no rodapé das Melhorias (Obra Viva)
-function doReset() { dropTip(); if (FLAGS.viva) esquecerJogador(); resetState(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); updateUI(); if (FLAGS.viva) { closeSkills(); startIntro(false); } }
+function doReset() { dropTip(); if (FLAGS.viva) esquecerJogador(); resetState(); if (FLAGS.risco) resetRisco(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); updateUI(); if (FLAGS.viva) { closeSkills(); startIntro(false); } }
 for (const rs of [$('reset'), $('skReset')]) {
   const disarm = () => { rs.classList.remove('armed'); rs.textContent = 'Recomeçar'; };
   rs.onclick = () => {
@@ -131,7 +133,11 @@ function startNext() {
   const mg = Object.values(VIVA.board).find(b => b.obra === S.obra); // gerente que chega nesta obra
   showNews('JORNAL DA OBRA', `Construtora J. Santos começa a obra nº ${S.obra} em ${cityName()} (Reputação ${fmtPct(repPct(got))}). Prazo: 365 dias`); // gerente novo: aviso próprio (checkManagers)
 }
-if (FLAGS.risco) initRisco({ onNext: () => { startNext(); resetRisco(); } }); // desabou: a obra é perdida e começa a próxima
+if (FLAGS.risco) initRisco({ onNext: guardar => { // desabou: torre nova com a Reputação e o prêmio guardado
+  novaTorre(guardar); resetRisco();
+  setNotice(null); resetView(); resetMilestones(); syncEvents(); followBuild(); syncCameraButtons(); closeSkills(); updateUI(); clearNews();
+  showNews('JORNAL DA OBRA', `Construtora J. Santos recomeça em Praia Grande: torre nº ${S.riscoTentativa} (Reputação ${fmtPct(repPct(S.pontosTotal || 0))}).`);
+} });
 {
   const dv = $('skDeliver'), disarm = () => dv.classList.remove('armed');
   dv.onclick = () => {
@@ -146,7 +152,7 @@ if (FLAGS.risco) initRisco({ onNext: () => { startNext(); resetRisco(); } }); //
 // gerente liberado (chegou nesta obra; o Encarregado no 5º andar): aviso uma vez por gerente, que só fecha com um toque.
 // Ninguém liga sozinho: quem joga liga no cartão da faixa Construtora, nas Melhorias
 function checkManagers() {
-  if (!FLAGS.viva) return;
+  if (!FLAGS.viva || FLAGS.risco) return; // modo com risco: sem gerentes
   for (const k in VIVA.board) {
     const b = VIVA.board[k];
     if (!b.mgr || (S.mgrAviso || {})[b.mgr] || !managerFree(b.mgr)) continue;
@@ -156,7 +162,7 @@ function checkManagers() {
 }
 // meta do contrato: manchete uma vez por obra quando a torre passa dela
 function checkMeta() {
-  if (!FLAGS.viva || S.metaOk || S.roundOver || S.maxAlt < metaAlt()) return;
+  if (!FLAGS.viva || FLAGS.risco || S.metaOk || S.roundOver || S.maxAlt < metaAlt()) return; // risco: torre única, sem meta
   S.metaOk = true;
   showNews('JORNAL DA OBRA', `Meta do contrato batida no dia ${roundDay()}! Agora a J. Santos pode entregar a torre de ${cityName()} antes do prazo sem multa, e ainda com bônus (na engrenagem ⚙)`);
 }
@@ -193,7 +199,7 @@ if (FLAGS.viva) {
   initOffers();
   initCoach(); initTips({ test: TEST || navigator.webdriver });
   // página de Início: trocar de espaço limpa a cena (como o Recomeçar, sem apagar); partida nova abre a história
-  const onSwitch = () => { dropTip(); clearNews(); resetRoundEnd(); resetOffers(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeSkills(); updateUI(); };
+  const onSwitch = () => { dropTip(); clearNews(); if (FLAGS.risco) { migrarRisco(); resetRisco(); } resetRoundEnd(); resetOffers(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeSkills(); updateUI(); };
   initTutorial({ play: () => document.getElementById('hmContinue').click() }); // "Jogar" = Continuar/Novo jogo
   initRanking(); initJornal(); initGear(); initPip(); initStatus();
   initHome({ onSwitch: () => { onSwitch(); pedirFicha(); }, onHowto: openTutorial, onRanking: openRanking, onRankLeave: sairDoRanking, onRankJoin: definirApelido, onSound: () => syncSnd(), onJornais: drawArquivo,

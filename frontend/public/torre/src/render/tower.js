@@ -15,6 +15,7 @@ import { techShaft, techShaftsExtra, techFacade } from './techvis.js';
 import { scaffoldTile, scaffoldHiTile, shaftHiTile, capsuleSprite, brickTile, eraTile, shaftTile, carSprite, shaftTopSprite, mastTile, jibTile, cabSprite, weightSprite, trolleySprite, hookSprite, hexMix } from './props.js';
 import { eraVis, onMoon } from './eravis.js';
 import { facadeImg, spaceDecor } from './spacedecor.js';
+import { avariaDoAndar } from '../sim/risco.js';
 const hiTech = () => eraVis(altOf(S.floors)) >= 3; // andaime e elevador de era alta
 
 const WIN_X = [12, 72, 132, 192];     // janelas: x relativo à borda esquerda
@@ -67,6 +68,8 @@ function farFacade(e) {
   return (farCache[e] = { off, on, vac: avgColor(fa), occ: mixRGB(avgColor(fa), avgColor(fl), 0.45) });
 }
 
+// janelas que somem na fachada quebrada (viraram painel rasgado): era → índices de FAC_WIN
+const SUMIU = { 3: [1], 5: [1], 6: [1, 2] };
 // Fachada do andar i. lvl: 1 simples, 2 molduras, 3 completo
 export function facade(i, lvl = floorLOD()) {
   const e = eraVis(altOf(i)), s = ERA_STYLE[e], y0 = i * FH;
@@ -81,11 +84,14 @@ export function facade(i, lvl = floorLOD()) {
       return;
     }
   }
-  const fa = lvl >= 2 && art('fachadas/' + e);
+  // modo com risco: andar avariado usa a fachada trincada (1) ou quebrada (2), se a arte já chegou
+  const av = FLAGS.risco && lvl >= 2 ? avariaDoAndar(i) : 0;
+  const fa = lvl >= 2 && ((av && art('fachadas/' + e + (av === 2 ? '-quebrada' : '-trincada'))) || art('fachadas/' + e));
   if (fa) { // arte do PixelLab: parede pronta da era; janelas acesas vêm da versão acesa
     blit(facadeImg(fa, e, i), TL, y0, 0, fa.height);
     const fl = occ && art('fachadas/' + e + '-acesa');
-    if (fl) FAC_WIN[e].forEach(([x, y, w, h], k) => { if (lit(i, k)) subImg(fl, x, y, w, h, TL + x, y0 + FH - y); });
+    // na quebrada, metade das janelas fica apagada e as que viraram painel rasgado nunca acendem
+    if (fl) FAC_WIN[e].forEach(([x, y, w, h], k) => { if (av === 2 && (k % 2 || (SUMIU[e] || []).includes(k))) return; if (lit(i, k)) subImg(fl, x, y, w, h, TL + x, y0 + FH - y); });
     if (e >= 5) spaceDecor(e, i, y0, occ); // espaço: detalhes por andar para a fachada não se repetir
     if (e >= 4 && i % 25 === 0 && Math.floor(V.t * 2) % 2) R(TL + TW - 10, y0 + FH - 10, 6, 4, '#ff3b3b');
     return;

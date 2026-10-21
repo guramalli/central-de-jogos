@@ -2,6 +2,7 @@
 // (S.offers); escolher um aplica o efeito até o fim da rodada (S.perks). O sorteio depende só da obra e do marco, então
 // recarregar não troca os cartões. startNextRound() zera tudo (os campos não estão em KEEP).
 import { CONTRACTS, CONTRACT_IDS, CONTRACT_MARKS } from '../data/contracts.js';
+import { premioMult } from './risco.js';
 import { FLAGS } from '../data/flags.js';
 import { S } from './state.js';
 import { rates } from './economy.js';
@@ -25,6 +26,7 @@ export function perkMult(st) {
   }
   let m = (1 + up) * Math.max(0.5, 1 - down);
   if ((S.rushLeft || 0) > 0 && RUSH_ST.includes(st)) m *= 3;
+  if (FLAGS.risco) m *= premioMult(st); // modo com risco: prêmios de fim de ano
   return m;
 }
 
@@ -43,6 +45,7 @@ export function chooseContract(id) {
 }
 
 export function contractTick(dt) {
+  if (FLAGS.risco) return; // modo com risco: sem contratos de altura (os prêmios de fim de ano ocupam esse papel)
   if (S.rushLeft > 0) S.rushLeft = Math.max(0, S.rushLeft - dt);
   let i = S.marksDone || 0;
   while (i < CONTRACT_MARKS.length && S.maxAlt >= CONTRACT_MARKS[i]) {

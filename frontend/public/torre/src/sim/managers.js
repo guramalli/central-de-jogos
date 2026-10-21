@@ -7,12 +7,13 @@ import { UP, KEYS } from '../data/upgrades.js';
 import { S } from './state.js';
 import { canBuy, buy, cost, rates } from './economy.js';
 import { priorityScore } from './preview.js';
+import { FLAGS } from '../data/flags.js';
 
 const acc = {}; // compras acumuladas por ramo (ritmo VIVA.manager.rate por segundo)
 
 // cada gerente chega numa obra (VIVA.board[k].obra); depois disso fica de uma obra para a outra
 export const managerArrives = b => { const k = Object.keys(VIVA.board).find(x => VIVA.board[x].mgr === b); return k ? VIVA.board[k].obra : Infinity; };
-export const hasManager = b => (S.obra || 1) >= managerArrives(b);
+export const hasManager = b => !FLAGS.risco && (S.obra || 1) >= managerArrives(b); // modo com risco: sem gerentes (por enquanto)
 // liberado: chegou nesta campanha (o Encarregado só depois do 5º andar da 1ª obra)
 export const managerFree = b => hasManager(b) && (b !== 'basico' || (S.obra || 1) > 1 || S.floors >= 5);
 // trabalhando: liberado E ligado por quem joga (decisão do usuário, out/2026: nada liga sozinho; o aviso diz que liberou)

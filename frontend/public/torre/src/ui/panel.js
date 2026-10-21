@@ -81,8 +81,15 @@ function updateHud() {
   setText($('hMoney'), 'R$ ' + fmt(S.money));
   // dia da obra (contrato de 365 dias por cima dos 20 min), com a barrinha do prazo; âmbar no último minuto real (~18 dias)
   const left = Math.ceil(S.roundLeft || 0), dia = roundDay(), dias = roundDays();
-  setText($('hClock'), String(dia)); setText($('hClockOf'), `de ${dias}`);
-  setText($('skClockT'), `Dia ${dia} de ${dias}`); // a árvore tem a sua barrinha no cabeçalho
+  if (FLAGS.risco) { // torre única: o ano da torre na frente do dia (curto, para caber na barrinha)
+    const ano = (S.risco && S.risco.ano) || 1, sp = $('hPlateClock').querySelector('span');
+    if (!$('hAno')) sp.innerHTML = 'Ano <b id="hAno">1</b> · Dia <b id="hClock">1</b><em id="hClockOf"></em>'; // sem "de 365": não cabe; a barra mostra o resto
+    setText($('hAno'), String(ano)); setText($('hClock'), String(dia));
+    setText($('skClockT'), `Ano ${ano} · Dia ${dia}/${dias}`);
+  } else {
+    setText($('hClock'), String(dia)); setText($('hClockOf'), `de ${dias}`);
+    setText($('skClockT'), `Dia ${dia} de ${dias}`); // a árvore tem a sua barrinha no cabeçalho
+  }
   const w = (roundFrac() * 100).toFixed(1) + '%'; // a barrinha enche de verde com o tempo
   for (const id of ['hClockBar', 'skClockBar']) if ($(id).style.width !== w) $(id).style.width = w;
   // 'late' (não 'warn': a classe genérica .warn é a caixa de alerta vermelha e deslocava o texto da barrinha)

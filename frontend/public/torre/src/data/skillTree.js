@@ -39,8 +39,8 @@ SKILL_LAYOUT.merc.porto = ERA_TECH.turismoEsp ? [1.4, ERA_ROW0 + ERA_TECH.turism
 
 // protótipo com risco: as defesas ficam ao lado das compras de Engenharia e Mão de obra
 if (FLAGS.risco) {
-  Object.assign(SKILL_LAYOUT.eng, { contravento: [-0.75, 2, 'fundacao'], sondagem: [0.75, 2, 'fundacao'], clima: [0.75, 3, 'sondagem'] });
-  Object.assign(SKILL_LAYOUT.obra, { seguranca: [0.75, 2, 'pedreiro'], manutencao: [0.75, 3, 'seguranca'] });
+  Object.assign(SKILL_LAYOUT.eng, { contravento: [-0.75, 2, 'fundacao'], sondagem: [0.75, 2, 'fundacao'], clima: [0.75, 3, 'sondagem'], manutencao: [-0.75, 3, 'contravento'] });
+  Object.assign(SKILL_LAYOUT.obra, { seguranca: [0.75, 2, 'pedreiro'] });
 }
 export const upgradePos = (b, k) => { const [c, r] = SKILL_LAYOUT[b][k]; return [colX(b) + c * SUB, r * ROW]; };
 export const BASE_POS = [0, -40];

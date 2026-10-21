@@ -14,7 +14,7 @@ import { perkMult, contractTick } from './contracts.js';
 import { tourism } from './tourism.js';
 import { bankInfo, bankTick } from './bank.js';
 import { techMult } from './tech.js';
-import { riscoTick, riscoLay } from './risco.js';
+import { riscoTick, riscoLay, fimDoAno } from './risco.js';
 
 // ---------- melhorias compradas com dinheiro ----------
 // soft: { at, k } — depois do nível `at`, cada nível multiplica o preço por `k` (Obra Viva: turismo sem virar ralo)
@@ -113,14 +113,14 @@ export function sim(dt) {
   // No fim do ano a obra para esperando a escolha (aditivo ou entregar); as ★ só saem na entrega (endRound).
   let ends = false;
   if (FLAGS.viva) {
-    if (S.roundOver || S.colapso) return;
+    if (S.roundOver || S.colapso || (FLAGS.risco && S.risco && S.risco.fimAno)) return; // risco: parada na escolha do fim do ano
     S.roundLeft = Math.max(0, S.roundLeft - dt);
     ends = S.roundLeft <= 0;
   }
   simStep(dt);
   if (FLAGS.viva) { contractTick(dt); managerTick(dt); }
   if (FLAGS.risco) riscoTick(dt);
-  if (ends) S.roundOver = true;
+  if (ends) { if (!FLAGS.risco) S.roundOver = true; else if (!S.colapso) fimDoAno(); } // risco: a mesma torre segue, com prêmio
 }
 function simStep(dt) {
   const R = rates(), M = mods();

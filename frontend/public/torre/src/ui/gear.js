@@ -45,6 +45,7 @@ export function initGear(h = {}) {
 export function updateGear() {
   if (!FLAGS.viva) return;
   const dv = $('skDeliver');
+  if (FLAGS.risco) { $('gearT').textContent = `Torre nº ${S.riscoTentativa || 1} · Ano ${(S.risco && S.risco.ano) || 1}`; dv.hidden = true; return; } // torre única: não há entrega
   $('gearT').textContent = `Obra nº ${S.obra || 1} · ${city().n}`;
   dv.hidden = S.roundOver && !S.roundPaid; // no fim do ano a escolha fica no placar
   dv.disabled = false;

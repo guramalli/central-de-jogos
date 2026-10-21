@@ -132,6 +132,6 @@ if (FLAGS.risco) Object.assign(UP, {
   sondagem: { b: 'eng', n: 'Sondagem e estacas', d: 'Conhece o solo e crava estacas: cada nível corta o dano de terremoto e de recalque do solo (a Fundação também ajuda).', base: 80, k: 2.3, icon: 'estacas' },
   clima: { b: 'eng', n: 'Proteção climática', d: 'Drenagem, lonas e aquecimento: cada nível corta o dano de chuva forte, nevasca e tempestade de areia.', base: 50, k: 2.1, icon: 'pressurizada' },
   seguranca: { b: 'obra', n: 'Segurança do trabalho', d: 'EPIs, redes e treinamento. O Ministério do Trabalho exige mais a cada altura: abaixo do exigido, a obra é embargada e multada.', base: 40, k: 2.0, icon: 'treino' },
-  manutencao: { b: 'obra', n: 'Equipe de manutenção', d: 'Recupera a integridade da torre aos poucos: +0,15 por segundo a cada nível.', base: 70, k: 2.2, icon: 'mestre' },
+  manutencao: { b: 'eng', n: 'Equipe de manutenção', d: 'Recupera a integridade da torre aos poucos, a cada nível.', base: 70, k: 2.2, icon: 'mestre' },
 });
 export const KEYS = Object.keys(UP);
