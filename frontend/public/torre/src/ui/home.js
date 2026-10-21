@@ -2,7 +2,6 @@
 // Abre sempre ao carregar (menos nos testes automáticos); enquanto aberta, a simulação e o relógio da rodada param
 // (main.js consulta homeOpen()). A cena continua desenhada atrás, desfocada.
 import { S, save, activeSlot, setSlot, slotSummary, deleteSlot, exportSave, importSave } from '../sim/state.js';
-import { cityOf } from '../data/cities.js';
 import { FLAGS } from '../data/flags.js';
 import { cfg, setCfg } from './config.js';
 import { setSound, setVolume } from './audio.js';
@@ -19,11 +18,11 @@ const ago = ms => {
   const m = Math.floor((Date.now() - ms) / 60000);
   return m < 1 ? 'agora há pouco' : m < 60 ? `há ${m} min` : m < 1440 ? `há ${Math.floor(m / 60)} h` : `há ${Math.floor(m / 1440)} dia${m >= 2880 ? 's' : ''}`;
 };
-const resumo = r => `Obra nº ${r.obra} · ${cityOf(r.cidade).n} · recorde ${fmtM(r.bestAlt)}${r.won ? ' · Órbita ✓' : ''}`;
+const resumo = r => `Torre nº ${r.torre} · Ano ${r.ano} · recorde ${fmtM(r.bestAlt)}${r.won ? ' · Órbita ✓' : ''}`;
 
 function show(panel) {
   $('hmMain').hidden = !!panel;
-  for (const id of ['hmSlotsP', 'hmCfgP', 'hmJornaisP']) $(id).hidden = id !== panel;
+  for (const id of ['hmSlotsP', 'hmCfgP', 'hmJornaisP', 'hmNomeP']) $(id).hidden = id !== panel;
   if (panel === 'hmJornaisP') hooks.onJornais?.();
   if (panel === 'hmSlotsP') drawSlots();
   if (panel === 'hmCfgP') drawCfg();
@@ -63,10 +62,15 @@ function drawCfg() {
   $('cfMsg').textContent = '';
 }
 
-// joga no espaço n: troca (se for outro), fecha o Início; partida nova abre a história
+// joga no espaço n: troca (se for outro), fecha o Início; partida nova pede o nome do ranking (com a obra parada, ainda no
+// Início) e abre a história
 function play(n) {
   if (n !== activeSlot()) { setSlot(n); hooks.onSwitch?.(); }
   const novo = !slotSummary(n);
+  if (novo && hooks.precisaNome?.()) { show('hmNomeP'); $('hmNome').value = hooks.ultimoNome?.() || ''; $('hmNomeMsg').textContent = ''; $('hmNome').focus({ preventScroll: true }); return; }
+  entrar(novo);
+}
+function entrar(novo) {
   S.vazio = false; // começou a jogar neste espaço
   closeHome();
   if (novo || !S.introSeen) hooks.onNewGame?.();
@@ -93,6 +97,10 @@ export function initHome(h = {}) {
   logo.onload = () => { logo.hidden = false; $('hmLogoTxt').hidden = true; };
   logo.src = 'assets/logo.png';
   $('hmContinue').onclick = () => play(activeSlot());
+  const nomeOk = () => { const erro = hooks.onRankJoin?.($('hmNome').value); if (erro) { $('hmNomeMsg').textContent = erro; return; } entrar(true); };
+  $('hmNomeOk').onclick = nomeOk;
+  $('hmNome').onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') nomeOk(); };
+  $('hmNomeNo').onclick = () => entrar(true); // dá para entrar depois (cartão no pé da tela ou Configurações)
   $('hmSlots').onclick = () => show('hmSlotsP');
   $('hmCfg').onclick = () => show('hmCfgP');
   $('hmJornais').onclick = () => show('hmJornaisP');
@@ -106,7 +114,7 @@ export function initHome(h = {}) {
   $('cfDicas').onchange = e => setCfg({ dicas: e.target.checked });
   $('cfRever').onclick = () => { setCfg({ dicas: true }); S.dicas = {}; save(); closeHome(); hooks.onReviewTips?.(); };
   $('cfRankSair').onclick = async () => { const ok = await hooks.onRankLeave?.(); drawCfg(); if (ok === false) $('cfMsg').textContent = 'Não deu para falar com o ranking agora; seu apelido sai assim que a conexão voltar.'; };
-  $('cfNickOk').onclick = () => { const erro = hooks.onRankJoin?.($('cfNick').value); drawCfg(); $('cfMsg').textContent = erro || 'Apelido salvo. Seus recordes vão para o ranking no fim das próximas obras.'; };
+  $('cfNickOk').onclick = () => { const erro = hooks.onRankJoin?.($('cfNick').value); drawCfg(); $('cfMsg').textContent = erro || 'Apelido salvo. A altura da torre vai para o ranking ao passar de cada era, no fim do ano e se a torre cair.'; };
   $('cfExport').onclick = () => {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([exportSave()], { type: 'application/json' }));

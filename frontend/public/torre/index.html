@@ -33,7 +33,7 @@
         <canvas id="cv" width="360" height="480" aria-label="Obra da torre em pixel art. Arraste para mover a câmera; roda do mouse ou pinça para zoom."></canvas>
         <!-- modo Obra Viva: só o andar e o dinheiro na tela, e o botão Melhorias -->
         <div class="plate plate-floor" id="hPlateFloor" hidden><small>ANDAR</small><b id="hFloor">1</b><span id="hAlt">0 m</span>
-          <div class="day-bar" id="hPlateClock" hidden title="Dia da obra: o contrato vence no último dia do prazo"><i id="hClockBar"></i><span>Dia <b id="hClock">1</b> <em id="hClockOf">de 365</em></span></div></div>
+          <div class="day-bar" id="hPlateClock" hidden title="Ano da torre: sobreviva aos 365 dias para ganhar Reputação e um prêmio"><i id="hClockBar"></i><span>Ano <b id="hAno">1</b> · Dia <b id="hClock">1</b><em id="hClockOf"></em></span></div></div>
         <div class="hud-btns" id="hudBtns" hidden>
           <button class="hud-btn" id="gearBtn" title="Configurações" aria-label="Configurações"><svg viewBox="0 0 16 16" width="18" height="18" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M7 1h2v2h2V2h1v2h1v1h-1v1h2v2h-2v2h1v1h-1v1h-1v-1h-1v2H9v1H7v-1H5v1H4v-1H3v-1h1V9H2V7h2V5H3V4h1V3h1v1h2zM7 6v1H6v2h1v1h2V9h1V7H9V6z"/></svg></button>
           <button class="hud-btn" id="pauseBtn" title="Pausar" aria-label="Pausar"><svg viewBox="0 0 16 16" width="18" height="18" shape-rendering="crispEdges" aria-hidden="true"><path class="pz-ic" fill="currentColor" d="M4 3h3v10H4zM9 3h3v10H9z"/><path class="pl-ic" fill="currentColor" d="M5 3h2v1h2v1h2v1h2v4h-2v1H9v1H7v1H5z"/></svg></button>
@@ -47,12 +47,6 @@
           <span class="hs-more" id="hsMore"></span>
         </button>
         <button class="upbtn" id="openUp" hidden aria-haspopup="dialog">Melhorias<i class="dot" hidden></i></button>
-        <!-- contratos de altura: 3 cartões no pé da cena (sem pausar); recolhidos, viram o botão Proposta, que pisca -->
-        <button class="offerbtn" id="offerBtn" hidden>Proposta</button>
-        <div class="offer" id="offer" hidden role="group" aria-labelledby="offerT">
-          <b class="offer-t" id="offerT">Proposta</b>
-          <div class="offer-row" id="offerRow"></div>
-        </div>
         <!-- aviso contextual: andares prontos sem destino -->
         <div class="ready" id="ready" hidden>
           <span><b id="readyN">0</b> <span id="readyTxt">andares prontos</span></span>
@@ -241,8 +235,7 @@
   <header class="sk-h">
     <b class="sk-t">Avanços da obra</b>
     <span class="sk-money" id="skMoney">R$ 0</span>
-    <span class="day-bar sk-clock" id="skClock" title="Dia da obra: o contrato vence no último dia do prazo"><i id="skClockBar"></i><span id="skClockT">Dia 1 de 365</span></span>
-    <button class="offerbtn sk-offer" id="skOffer" hidden>Proposta</button>
+    <span class="day-bar sk-clock" id="skClock" title="Ano da torre: sobreviva aos 365 dias para ganhar Reputação e um prêmio"><i id="skClockBar"></i><span id="skClockT">Ano 1 · Dia 1/365</span></span>
     <span class="grow"></span>
     <button class="btn sm ghost" id="skOut" aria-label="Afastar">−</button>
     <button class="btn sm ghost" id="skIn" aria-label="Aproximar">+</button>
@@ -272,8 +265,7 @@
     </aside>
   </div>
   <section class="sk-board" id="skBoard" hidden aria-label="Construtora Vigaluz: Reputação">
-    <header class="skb-h"><b>Construtora Vigaluz</b><span class="skb-rep" id="skRep" title="A fama da construtora: cada torre entregue deixa toda a obra mais forte, para sempre">Reputação +0%</span><span class="skb-obra" id="skObra"></span></header>
-    <div class="skb-row" id="skBoardRow"></div>
+    <header class="skb-h"><b>Construtora Vigaluz</b><span class="skb-rep" id="skRep" title="A fama da construtora: cada ano que a torre sobrevive deixa toda a obra mais forte, para sempre (fica mesmo se a torre cair)">Reputação +0%</span><span class="skb-obra" id="skObra"></span></header>
   </section>
 </div>
 
@@ -281,9 +273,7 @@
 <div class="win gear" id="gear" hidden role="dialog" aria-modal="true" aria-labelledby="gearT">
   <div class="win-box">
     <small>CONFIGURAÇÕES</small>
-    <b id="gearT">Obra nº 1</b>
-    <button class="resetbtn deliver" id="skDeliver">Entregar a obra</button>
-    <div class="dv-confirm" id="dvConfirm" hidden><p id="dvMsg"></p><div class="win-b"><button class="btn" id="dvOk">Confirmar entrega</button><button class="btn ghost" id="dvNo">Cancelar</button></div></div>
+    <b id="gearT">Torre nº 1</b>
     <div class="gear-grid">
       <button class="resetbtn" id="skSnd" aria-pressed="true">Som</button>
       <button class="resetbtn" id="skTips">Dicas</button>
@@ -298,7 +288,7 @@
 </div>
 <!-- pausa (ui/gear.js) -->
 <div class="paused" id="paused" hidden role="dialog" aria-label="Jogo pausado">
-  <div class="pz-box"><small>PAUSA</small><b>Obra parada</b><span>Os dias do contrato não passam enquanto estiver pausado.</span><button class="btn" id="pauseGo">Continuar</button></div>
+  <div class="pz-box"><small>PAUSA</small><b>Obra parada</b><span>Os dias do ano não passam enquanto estiver pausado.</span><button class="btn" id="pauseGo">Continuar</button></div>
 </div>
 
 <!-- Abertura (Obra Viva): história em 4 quadros sobre a cena -->
@@ -342,18 +332,22 @@
     <button class="hm-btn" id="hmSlots">Jogos salvos</button>
     <button class="hm-btn" id="hmHowto">Como jogar</button>
     <button class="hm-btn" id="hmRank">Ranking</button>
-    <button class="hm-btn" id="hmJornais">Portfólio</button>
+    <button class="hm-btn" id="hmJornais">Jornais</button>
     <button class="hm-btn" id="hmCfg">Configurações</button>
   </div>
+  <section class="hm-panel" id="hmNomeP" hidden aria-label="Nome no ranking">
+    <header><b>Nome no ranking</b><button class="hm-back" data-back>Voltar</button></header>
+    <p class="hm-nome-txt">Como a sua construtora vai aparecer no ranking? A altura da torre vai para lá sozinha, sem você precisar fazer nada.</p>
+    <div class="hm-nome"><input id="hmNome" maxlength="12" placeholder="Seu apelido" autocomplete="off" spellcheck="false"><button class="hm-btn hm-primary hm-small" id="hmNomeOk">Começar</button></div>
+    <p class="hm-nome-msg" id="hmNomeMsg" role="status"></p>
+    <button class="hm-btn hm-small" id="hmNomeNo">Jogar sem ranking</button>
+  </section>
   <section class="hm-panel" id="hmSlotsP" hidden aria-label="Jogos salvos">
     <header><b>Jogos salvos</b><button class="hm-back" data-back>Voltar</button></header>
     <div class="hm-slots" id="hmSlotsList"></div>
   </section>
-  <section class="hm-panel" id="hmJornaisP" hidden aria-label="Portfólio da construtora">
-    <header><b>Portfólio da Construtora Vigaluz</b><button class="hm-back" data-back>Voltar</button></header>
-    <h4 class="pf-h">Torres entregues</h4>
-    <ol class="pf-list" id="pfList"></ol>
-    <h4 class="pf-h">Jornais</h4>
+  <section class="hm-panel" id="hmJornaisP" hidden aria-label="Jornais da construtora">
+    <header><b>Jornais da Construtora Vigaluz</b><button class="hm-back" data-back>Voltar</button></header>
     <ol class="rk-list jn-list" id="jnList"></ol>
   </section>
   <section class="hm-panel" id="hmCfgP" hidden aria-label="Configurações">
@@ -392,7 +386,7 @@
 <div class="howto" id="ranking" hidden role="dialog" aria-modal="true" aria-labelledby="rkTitle">
   <div class="ht-box">
     <header><b id="rkTitle">Ranking</b><button class="hm-back" id="rkClose">Fechar</button></header>
-    <div class="rk-tabs"><button class="rk-tab on" data-l="obra">Melhor obra</button><button class="rk-tab" data-l="total">Recorde total</button><button class="rk-tab" data-l="orbita">Tempo até a Órbita</button></div>
+    <div class="rk-tabs"><button class="rk-tab on" data-l="orbita">Mais rápido até a Órbita</button><button class="rk-tab" data-l="altura">Torre mais alta</button></div>
     <ol class="rk-list" id="rkList"></ol>
     <p class="rk-me" id="rkMe"></p>
   </div>
@@ -413,25 +407,6 @@
   <div class="co-veil"></div>
   <div class="co-hole"></div>
   <div class="co-box"><p id="coText"></p><div class="co-b"><button class="btn" id="coOk">Entendi</button><button class="co-skip" id="coSkip">Pular dicas</button></div></div>
-</div>
-
-<div class="win round-end" id="roundEnd" hidden role="dialog" aria-modal="true" aria-labelledby="reTitle">
-  <div class="win-box">
-    <small id="reKind">FIM DO PRAZO</small>
-    <b id="reTitle">Obra nº 1</b>
-    <div class="kv" id="reStats"></div>
-    <div class="re-choice" id="reChoice" hidden>
-      <div class="re-card" id="reMoreCard"><small>ADITIVO</small><p id="reMoreTxt"></p><button class="btn ghost" id="reMore">Continuar aqui</button></div>
-      <div class="re-card new" id="reNewCard"><small id="reNewTitle">PRÓXIMA CIDADE</small><p id="reNewTxt"></p><button class="btn" id="reNew">Aceitar o contrato</button></div>
-      <p class="re-rank-hint" id="reChoiceRank">Ranking: a torre entra no ranking quando for entregue (no aditivo, com a altura final).</p>
-      <div class="re-actions"><button class="btn ghost" id="reSave">Salvar</button><button class="btn ghost" id="reExit">Sair</button></div>
-    </div>
-    <div class="re-rank" id="reRank" hidden>
-      <div id="reRankForm" hidden><label for="reNick">Entrar no ranking? Seu apelido:</label><div class="re-nick"><input id="reNick" maxlength="12" autocomplete="off" spellcheck="false"><button class="btn" id="reNickOk">Entrar</button><button class="hm-back" id="reNickNo">Agora não</button></div></div>
-      <p id="reRankMsg" role="status"></p>
-    </div>
-    <div class="win-b" id="reGoRow" hidden><button class="btn" id="reGo">Começar a próxima obra</button></div>
-  </div>
 </div>
 
 <div class="tmap" id="tmap" hidden role="dialog" aria-modal="true" aria-label="Mapa da árvore de Engenharia">

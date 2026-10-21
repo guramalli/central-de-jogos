@@ -12,7 +12,7 @@
 //                           a torre cresce; vale a maior altura; ficha mais velha que a última aceita é recusada)
 //   GET    /unica/ranking[?lista=altura|orbita][&jogador=]          → { total, top (20), corte, eu }  (corte: altura do 20º)
 //          orbita = tempo de jogo somado (todas as torres) até a primeira torre passar de 400 km; menor é melhor; só a partir de
-//          TORRE.orbitaMinUnica (o robô excelente leva ~7–8 h)
+//          TORRE.orbitaMinUnica (o robô excelente leva ~4h45); em fase de testes (TORRE.unicaLivre) nada é barrado, só marcado
 //   DELETE /unica/ranking ← { jogador }                              → { ok }
 //
 // O servidor não confia em totais vindos do jogo: ele SOMA as obras que recebe. Cada obra vem com uma ficha assinada
@@ -39,7 +39,10 @@ export const TORRE = {
   orbitaMin: 3 * 3600,       // a Órbita só conta depois de 3 h de jogo somado (o robô atento leva ~4h20)
   top: 10,
   topUnica: 20,
-  orbitaMinUnica: 5 * 3600,  // torre única: tempo até a Órbita só conta acima de 5 h de jogo             // torre única: as 20 torres mais altas (o 20º é o corte para entrar)
+  orbitaMinUnica: 5 * 3600,  // torre única: tempo até a Órbita só conta acima de 5 h de jogo (quando unicaLivre for false)
+  // torre única em fase de testes (pedido do usuário, 21/10/2026: "preciso saber se existem bugs explorados"): tempo, altura
+  // e Órbita fora do normal entram no ranking, mas ficam marcados em torre_unica.suspeita (npm run torre-ranking mostra)
+  unicaLivre: true,             // torre única: as 20 torres mais altas (o 20º é o corte para entrar)
 };
 const ORDEM = { obra: "obra_max DESC", total: "total DESC", orbita: "orbita ASC" };
 const jogadorOk = (j) => typeof j === "string" && /^[A-Za-z0-9-]{8,40}$/.test(j);
@@ -93,7 +96,7 @@ export function bancoMemoria() {
     },
     // torre única: maior altura; empate = quem chegou primeiro
     async uJogador(j) { return unica.get(j) || null; },
-    async uSalvar(j, d) { const a = unica.get(j); unica.set(j, { ...d, orbita: a && a.orbita != null ? a.orbita : d.orbita ?? null, jogador: j, seq: a && a.alt_max >= d.alt_max ? a.seq : ++seq, oseq: a && a.oseq ? a.oseq : (d.orbita != null ? ++seq : 0) }); },
+    async uSalvar(j, d) { const a = unica.get(j); unica.set(j, { ...d, suspeita: d.suspeita || (a && a.suspeita) || null, orbita: a && a.orbita != null ? a.orbita : d.orbita ?? null, jogador: j, seq: a && a.alt_max >= d.alt_max ? a.seq : ++seq, oseq: a && a.oseq ? a.oseq : (d.orbita != null ? ++seq : 0) }); },
     async uTop(n, l) { return l === 'orbita' ? [...unica.values()].filter((x) => x.orbita != null).sort(oOrdem).slice(0, n).map((x) => ({ apelido: x.apelido, valor: x.orbita }))
       : [...unica.values()].sort(uOrdem).slice(0, n).map((x) => ({ apelido: x.apelido, valor: x.alt_max })); },
     async uTotal(l) { return l === 'orbita' ? [...unica.values()].filter((x) => x.orbita != null).length : unica.size; },
@@ -119,6 +122,7 @@ export function bancoPrisma(carregar) {
     await prisma.$executeRawUnsafe("CREATE INDEX IF NOT EXISTS torre_unica_alt ON torre_unica (alt_max DESC, alcancado ASC)");
     await prisma.$executeRawUnsafe("ALTER TABLE torre_unica ADD COLUMN IF NOT EXISTS orbita DOUBLE PRECISION");
     await prisma.$executeRawUnsafe("ALTER TABLE torre_unica ADD COLUMN IF NOT EXISTS orbita_em TIMESTAMPTZ");
+    await prisma.$executeRawUnsafe("ALTER TABLE torre_unica ADD COLUMN IF NOT EXISTS suspeita TEXT");
   })().catch((e) => { pronta = null; throw e; }));
   const linha = (x) => x && ({ ...x, ultima_ficha: Number(x.ultima_ficha), obras: Number(x.obras), segs: Number(x.segs), total: Number(x.total),
     obra_max: Number(x.obra_max), orbita: x.orbita == null ? null : Number(x.orbita) });
@@ -159,9 +163,10 @@ export function bancoPrisma(carregar) {
     async uSalvar(j, d) {
       await tabela();
       const orb = d.orbita ?? null;
-      await prisma.$executeRaw`INSERT INTO torre_unica (jogador, apelido, ultima_ficha, alt_max, ip, orbita, orbita_em) VALUES (${j}, ${d.apelido}, ${d.ultima_ficha}, ${d.alt_max}, ${d.ip}, ${orb}, CASE WHEN ${orb}::double precision IS NULL THEN NULL ELSE now() END)
+      await prisma.$executeRaw`INSERT INTO torre_unica (jogador, apelido, ultima_ficha, alt_max, ip, orbita, orbita_em, suspeita) VALUES (${j}, ${d.apelido}, ${d.ultima_ficha}, ${d.alt_max}, ${d.ip}, ${orb}, CASE WHEN ${orb}::double precision IS NULL THEN NULL ELSE now() END, ${d.suspeita ?? null})
         ON CONFLICT (jogador) DO UPDATE SET apelido = EXCLUDED.apelido, ultima_ficha = EXCLUDED.ultima_ficha, ip = EXCLUDED.ip,
           orbita = COALESCE(torre_unica.orbita, EXCLUDED.orbita), orbita_em = COALESCE(torre_unica.orbita_em, EXCLUDED.orbita_em),
+          suspeita = COALESCE(EXCLUDED.suspeita, torre_unica.suspeita),
           alcancado = CASE WHEN EXCLUDED.alt_max > torre_unica.alt_max THEN now() ELSE torre_unica.alcancado END,
           alt_max = GREATEST(torre_unica.alt_max, EXCLUDED.alt_max)`;
     },
@@ -288,18 +293,24 @@ export function criaRotasTorre({ db, segredo, agora = () => Date.now(), limite =
     if (!f) return invalido(res, "Torre inválida para o ranking.");
     const real = (agora() - f.inicio) / 1000, alt = num(req.body.alt), seg = num(req.body.seg);
     if (alt == null || seg == null) return invalido(res, "Dados da torre inválidos.");
-    if (real > TORRE.fichaDias * 86400 || seg > TORRE.obraSegMax || real < seg - 5) return invalido(res, "Torre fora do tempo.");
-    if (alt > Math.min(TORRE.altMax, Math.max(TORRE.altMinTeto, TORRE.altPorSegundo * seg))) return invalido(res, "Altura inválida.");
-    // tempo até a Órbita (tempo de jogo somado de todas as torres): só com a torre na Órbita e acima do mínimo
+    // conferências: na fase liberada (TORRE.unicaLivre) não barram, só marcam a linha como suspeita
+    const suspeitas = [];
+    const confere = (ok, msg) => { if (!ok) suspeitas.push(msg); return ok || TORRE.unicaLivre; };
+    if (!confere(!(real > TORRE.fichaDias * 86400 || seg > TORRE.obraSegMax || real < seg - 5), `tempo: jogo ${Math.round(seg)} s, real ${Math.round(real)} s`)) return invalido(res, "Torre fora do tempo.");
+    if (!confere(alt <= Math.min(TORRE.altMax, Math.max(TORRE.altMinTeto, TORRE.altPorSegundo * seg)), `altura: ${Math.round(alt)} m em ${Math.round(seg)} s`)) return invalido(res, "Altura inválida.");
+    // tempo até a Órbita (tempo de jogo somado de todas as torres): só com a torre na Órbita
     let orbita = null;
     if (req.body.orbita != null && alt >= TORRE.orbitaAlt) {
       orbita = num(req.body.orbita);
-      if (orbita == null || orbita < TORRE.orbitaMinUnica || orbita < seg - 5) return invalido(res, "Tempo até a Órbita inválido.");
+      if (orbita == null) return invalido(res, "Tempo até a Órbita inválido.");
+      if (!confere(!(orbita < TORRE.orbitaMinUnica || orbita < seg - 5), `órbita: ${Math.round(orbita)} s`)) return invalido(res, "Tempo até a Órbita inválido.");
     }
+    const suspeita = suspeitas.length ? suspeitas.join("; ") : null;
+    if (suspeita) console.warn(`[torre/unica] envio suspeito de ${String(apelido).slice(0, 12)} (${jogador}): ${suspeita}`);
     try {
       const antes = await db.uJogador(jogador);
       if (antes && f.inicio < antes.ultima_ficha) return invalido(res, "Essa torre já foi substituída por uma mais nova.", 409);
-      await db.uSalvar(jogador, { apelido: ap.nome, ultima_ficha: f.inicio, alt_max: Math.max(alt, antes ? antes.alt_max : 0), ip: ipResumo(req), orbita });
+      await db.uSalvar(jogador, { apelido: ap.nome, ultima_ficha: f.inicio, alt_max: Math.max(alt, antes ? antes.alt_max : 0), ip: ipResumo(req), orbita, suspeita });
       const eu = await db.uJogador(jogador);
       res.set("Cache-Control", "no-store");
       res.json({ ok: true, posicao: (await db.uNaFrente(eu)) + 1 });

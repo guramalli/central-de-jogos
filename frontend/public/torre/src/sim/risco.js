@@ -10,7 +10,8 @@ import { S, fresh, setState, save } from './state.js';
 import { rates, cost } from './economy.js';
 import { roundSecs, roundFrac, pointsFor } from './prestige.js';
 import { VIVA } from '../data/viva.js';
-import { floorOf } from '../data/height.js';
+import { FLAGS } from '../data/flags.js';
+import { floorOf, altOf } from '../data/height.js';
 import { MARKS } from '../data/eras.js';
 import { PREMIOS, PREMIO_IDS } from '../data/premios.js';
 
@@ -28,6 +29,9 @@ export const RISCO = {
   bonusAno: 1,        // pontos de Reputação por ano sobrevivido (além da altura nova)
   taxaEra: [50, 150, 1000, 10000, 50000, 100000, 150000], // taxa de liberação por andar, pela era de cada andar (~1 min de renda)
   parcelaJuros: 0.2,  // parcelar o reforço custa 20% a mais
+  reforcoNiveis: 0.3, // os níveis de defesa que o laudo exige saem a 30% do preço da árvore (a preço cheio o reforço custava 3–14 min de renda)
+  nuvens: 12000,      // acima disso não chove, não neva nem cai raio no topo: o temporal fica nos andares de baixo (ainda dá dano)
+  retencao: [0.15, 0.35], // parte da renda que paga o parcelamento: de 15% (dívida pequena) a 35% (grande) — sempre sobra dinheiro para jogar
   interdMax: 3,       // na 3ª interdição do mesmo ano a torre é condenada (desaba)
   reforco: 0.5,       // na virada do ano, essa fração da integridade que sobrou soma na integridade máxima
   altPow: 0.35,       // peso da altura no dano: (1 + (altura/150 m)^altPow)
@@ -43,7 +47,7 @@ export const AMEACAS = {
   raios: { n: 'Tempestade de raios', base: 16, def: 'clima', grupo: 'clima' },
   granizo: { n: 'Granizo', base: 12, def: 'clima', grupo: 'clima' },
   nevasca: { n: 'Nevasca', base: 14, def: 'clima', grupo: 'clima', lento: 40 },
-  gelo: { n: 'Gelo na estrutura', base: 14, def: 'clima', grupo: 'clima' },
+  gelo: { n: 'Frio extremo', base: 14, def: 'clima', grupo: 'clima' },
   ventoAlt: { n: 'Vento de altitude', base: 18, def: 'contravento', grupo: 'vento' },
   meteoros: { n: 'Chuva de meteoros', base: 24, def: 'clima', grupo: 'clima' },
   solar: { n: 'Tempestade solar', base: 20, def: 'clima', grupo: 'clima' },
@@ -99,8 +103,8 @@ function sortear() {
 export function riscoTick(dt) {
   const s = st();
   if (S.colapso || s.fimAno) return;
+  if (s.interd) { if (s.ativa) { s.ativa.left -= dt; if (s.ativa.left <= 0) s.ativa = null; } return; } // interditada: parada, sem ameaças, sem renda (economy.js) e a dívida espera
   if (s.divida > 0) { const p = Math.min(s.divida, retencao() * Math.max(0, rates().income) * dt, Math.max(0, S.money)); S.money -= p; s.divida = Math.max(0, s.divida - p); if (s.divida < 1) s.divida = 0; }
-  if (s.interd) { if (s.ativa) { s.ativa.left -= dt; if (s.ativa.left <= 0) s.ativa = null; } return; } // interditada: parada, sem ameaças
   S.torreSeg = (S.torreSeg || 0) + dt; // tempo de jogo desta torre (ranking)
   s.integ = Math.min(s.max, s.integ + regenAgora() * dt);
   if (s.embargo > 0) s.embargo = Math.max(0, s.embargo - dt);
@@ -146,10 +150,10 @@ function precoNiveis(k, n) {
   try { for (let i = 0; i < n; i++) { c += cost(k); S.lv[k] = l0 + i + 1; } } finally { S.lv[k] = l0; }
   return c;
 }
-function interditar(tipo) {
+export function interditar(tipo) {
   const s = st(), def = AMEACAS[tipo].def, taxa = taxaLiberacao();
   const pacote = (id, n, d, niveis, vezes, integ, extraMax = 0) => {
-    const custo = vezes * taxa + Object.entries(niveis).reduce((a, [k, q]) => a + precoNiveis(k, q), 0);
+    const custo = vezes * taxa + RISCO.reforcoNiveis * Object.entries(niveis).reduce((a, [k, q]) => a + precoNiveis(k, q), 0);
     return { id, n, d, niveis, custo: Math.round(custo), integ, extraMax };
   };
   const outras = Object.fromEntries(DEFESAS.filter(k => k !== def).map(k => [k, 1]));
@@ -171,8 +175,8 @@ export function taxaLiberacao() {
   }
   return Math.round(t);
 }
-// parte da renda que vai para a dívida do parcelamento: de 20% (dívida pequena) a 60% (dívida grande perto da renda)
-export const retencao = () => { const d = st().divida || 0; if (d <= 0) return 0; const renda = Math.max(1, rates().income); return Math.min(0.6, 0.2 + 0.4 * d / (d + renda * 600)); };
+// parte da renda que vai para a dívida do parcelamento: de RISCO.retencao[0] (dívida pequena) a [1] (dívida grande perto de 10 min de renda)
+export const retencao = () => { const d = st().divida || 0; if (d <= 0) return 0; const renda = Math.max(1, rates().income), [a, b] = RISCO.retencao; return a + (b - a) * d / (d + renda * 600); };
 // cumpre um dos reforços do laudo: à vista (paga agora) ou parcelado (+20%, uma parte da renda vai pagando);
 // sobe as defesas, devolve a integridade e a obra volta a andar
 export function cumprirReforco(id, parcelar = false) {
@@ -180,7 +184,7 @@ export function cumprirReforco(id, parcelar = false) {
   if (!o) return false;
   if (parcelar) s.divida = (s.divida || 0) + Math.round(o.custo * (1 + RISCO.parcelaJuros));
   else if (S.money < o.custo) return false;
-  else { S.money -= o.custo; S.spent = (S.spent || 0) + o.custo; }
+  else S.money -= o.custo;
   for (const [k, q] of Object.entries(o.niveis)) S.lv[k] = (S.lv[k] || 0) + q;
   s.max += o.extraMax; s.integ = Math.round(o.integ * s.max);
   s.interd = null; s.prox = null;
@@ -231,7 +235,8 @@ export function escolherPremio(id) {
 
 // save do protótipo publicado antes da torre única (uma obra por cidade): vira torre única sem perder a obra
 export function migrarRisco() {
-  Object.assign(S, { cidade: 0, obra: 1, offers: [], perks: [], mgr: {} });
+  Object.assign(S, { cidade: 0, obra: 1 });
+  for (const k of ['offers', 'perks', 'marksDone', 'rushLeft', 'mgr', 'mgrPool', 'mgrAviso', 'torres', 'spent', 'metaOk', 'anos', 'roundPaid', 'board', 'pontos']) delete S[k]; // campos do jogo de rodadas (apagado)
   if (!S.colapso) S.roundOver = false;
   const r = st();
   if (r.prox && !AMEACAS[r.prox.tipo]) r.prox = null;
@@ -262,6 +267,13 @@ export function premioMult(estagio) {
   for (const id of st().premios) { const p = PREMIOS[id]; if (!p || p.st !== estagio) continue; if (p.mul > 1) up += p.mul - 1; else down += 1 - p.mul; }
   return (1 + up) * Math.max(0.5, 1 - down);
 }
+// prêmios em cada etapa (economy/realty/tourism); 1 no modo clássico
+export const perkMult = estagio => FLAGS.risco ? premioMult(estagio) : 1;
+// temporais que só acontecem abaixo das nuvens: com a torre acima de RISCO.nuvens, continuam dando dano, mas nos andares de
+// baixo (a cena não desenha chuva no topo e o aviso diz onde está)
+const DE_BAIXO = ['chuva', 'raios', 'granizo', 'nevasca'];
+export const soEmbaixo = tipo => DE_BAIXO.includes(tipo) && altOf(Math.floor(S.floors)) > RISCO.nuvens;
+export const nomeAmeaca = tipo => AMEACAS[tipo].n + (soEmbaixo(tipo) ? ' nos andares de baixo' : '');
 // multiplicador de dano de um grupo de ameaças (vento, base, clima)
 export function premioDef(grupo) {
   let c = 0;

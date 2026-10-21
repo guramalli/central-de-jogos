@@ -10,8 +10,8 @@ import { floorOf, mpfAt, altOf } from '../data/height.js';
 import { eraAt } from '../data/eras.js';
 import { VIVA } from '../data/viva.js';
 import { techMult } from './tech.js';
-import { boardMult, cityMult } from './prestige.js';
-import { perkMult } from './contracts.js';
+import { boardMult } from './prestige.js';
+import { perkMult } from './risco.js';
 
 const RB = BAL.rent;
 
@@ -27,7 +27,7 @@ export function rentSum(a, n) {
 export const pending = () => Math.max(0, Math.floor(S.floors) - S.assigned);
 export const typeUnlocked = t => S.maxAlt >= FLOOR_TYPES[t].alt;
 export const saleMult = () => (1 + 0.08 * S.lv.corretor) * mods().mult('sale') * techMult('sale');
-export const rentMult = () => (1 + 0.5 * S.lv.aluguel) * techMult('rent') * mods().mult('rent') * boardMult('rent') * cityMult('rent') * perkMult('rent');
+export const rentMult = () => (1 + 0.5 * S.lv.aluguel) * techMult('rent') * mods().mult('rent') * boardMult('rent') * perkMult('rent');
 
 // Obra Viva: o tipo muda sozinho com a altura (só vista e turismo; nada para escolher)
 const AUTO_TYPES = ['apto', 'escr', 'hotel', 'rest', 'obs'];
@@ -100,7 +100,6 @@ export function assign(n, how) {
   S.assigned += n;
   if (how === 'sell') {
     S.sold += n; S.money += got; S.stats.saleTotal += got;
-    if (FLAGS.viva) S.mgrPool = (S.mgrPool || 0) + VIVA.manager.share * got; // a verba dos gerentes também recebe as vendas
   }
   else S.rented += n;
   return got;

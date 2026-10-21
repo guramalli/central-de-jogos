@@ -19,7 +19,7 @@ async function servidor() {
   const req = (m, c, corpo) => fetch(base + c, { method: m, headers: { "Content-Type": "application/json" }, body: corpo ? JSON.stringify(corpo) : undefined });
   const ficha = async (jogador) => { const f = (await (await req("POST", "/unica/partida", { jogador })).json()).ficha; relogio.t += 1000; return f; };
   const envia = (ficha, jogador, apelido, alt, seg) => req("POST", "/unica/ranking", { ficha, jogador, apelido, alt, seg });
-  return { req, ficha, envia, relogio };
+  return { req, ficha, envia, relogio, db };
 }
 after(() => { for (const s of servidores) s.close(); });
 const J = (n) => `jogador-${n}-0000-bbbb`;
@@ -49,11 +49,17 @@ test("torre única: ficha de uma torre anterior é recusada depois de usar a da 
   assert.equal((await envia(f1, J(2), "Bia", 9000, 190)).status, 409);
 });
 
-test("torre única: tempo e altura conferidos; apelido filtrado", async () => {
-  const { ficha, envia, relogio } = await servidor();
+test("torre única liberada (fase de testes): tempo e altura estranhos entram, marcados como suspeitos; apelido filtrado", async () => {
+  const { ficha, envia, relogio, db } = await servidor();
+  assert.equal(TORRE.unicaLivre, true, "fase de testes: nenhuma barreira de tempo ou altura");
   const f = await ficha(J(3)); relogio.t += 100_000;
-  assert.equal((await envia(f, J(3), "Caio", 1000, 500)).status, 400, "tempo de jogo maior que o tempo real");
-  assert.equal((await envia(f, J(3), "Caio", TORRE.altPorSegundo * 100 + TORRE.altMinTeto, 100)).status, 400, "alto demais para o tempo");
+  assert.equal((await envia(f, J(3), "Caio", 1000, 500)).status, 200, "tempo de jogo maior que o tempo real: entra");
+  assert.match((await db.uJogador(J(3))).suspeita, /tempo/);
+  assert.equal((await envia(f, J(3), "Caio", TORRE.altPorSegundo * 100 + TORRE.altMinTeto, 100)).status, 200, "alto demais para o tempo: entra");
+  assert.match((await db.uJogador(J(3))).suspeita, /altura/);
+  const f9 = await ficha(J(9)); relogio.t += 1000 * 1000;
+  assert.equal((await envia(f9, J(9), "Normal", 2000, 900)).status, 200);
+  assert.equal((await db.uJogador(J(9))).suspeita, null, "envio normal não fica marcado");
   const r = await envia(f, J(3), "x", 1000, 90);
   assert.equal(r.status, 400); assert.equal((await r.json()).erro, "nome");
 });
@@ -68,7 +74,7 @@ test("torre única: top 20 em ordem; corte = altura do 20º; sair apaga", async 
   assert.equal((await lista(req)).total, 21);
 });
 
-test("torre única: lista 'Mais rápido até a Órbita' (menor tempo de jogo; só acima do mínimo e com a torre na Órbita)", async () => {
+test("torre única: lista 'Mais rápido até a Órbita' (menor tempo de jogo; só com a torre na Órbita; tempo curto entra marcado)", async () => {
   const { ficha, envia, relogio, req } = await servidor();
   const manda = (f, j, ap, alt, seg, orbita) => req("POST", "/unica/ranking", { ficha: f, jogador: j, apelido: ap, alt, seg, orbita });
   const f1 = await ficha(J(201)); relogio.t += 1000 * 1000;
@@ -76,12 +82,12 @@ test("torre única: lista 'Mais rápido até a Órbita' (menor tempo de jogo; s�
   const f2 = await ficha(J(202)); relogio.t += 1000 * 1000;
   assert.equal((await manda(f2, J(202), "Lento", 410000, 900, TORRE.orbitaMinUnica + 5000)).status, 200);
   const f3 = await ficha(J(203)); relogio.t += 1000 * 1000;
-  assert.equal((await manda(f3, J(203), "Trapaca", 410000, 900, 60)).status, 400, "tempo até a Órbita abaixo do mínimo");
+  assert.equal((await manda(f3, J(203), "Trapaca", 410000, 900, 60)).status, 200, "tempo até a Órbita curto demais: entra, marcado");
   const f4 = await ficha(J(204)); relogio.t += 1000 * 1000;
   assert.equal((await manda(f4, J(204), "Baixo", 5000, 900, TORRE.orbitaMinUnica + 10)).status, 200, "envio vale, mas sem Órbita");
   const l = await (await req("GET", `/unica/ranking?lista=orbita&jogador=${J(202)}`)).json();
-  assert.deepEqual(l.top.map((x) => x.apelido), ["Rapido", "Lento"]);
-  assert.deepEqual(l.eu, { posicao: 2, valor: TORRE.orbitaMinUnica + 5000 });
+  assert.deepEqual(l.top.map((x) => x.apelido), ["Trapaca", "Rapido", "Lento"]);
+  assert.deepEqual(l.eu, { posicao: 3, valor: TORRE.orbitaMinUnica + 5000 });
   const a = await (await req("GET", "/unica/ranking?lista=altura")).json();
   assert.equal(a.top[0].apelido, "Rapido");
 });

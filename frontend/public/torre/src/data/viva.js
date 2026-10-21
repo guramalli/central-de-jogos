@@ -3,9 +3,6 @@
 export const VIVA = {
   startMoney: 100,       // cheque dos investidores na abertura (história): ~3 compras logo de cara, 1º andar em ~20 s
   tourism: { capHeli: 0.6 },
-  // caixa que sobra (vistoria de 20/10/2026: metade do dinheiro sumia na troca de cidade): na entrega, a fração do que
-  // foi ganho na obra e ficou no caixa rende até +k de Reputação (poupar vira escolha, não desperdício)
-  sobra: { k: 0.5 },
   // depois da Órbita (vistoria de 20/10: nada a buscar): marcos reais alcançáveis; na 1ª vez na campanha, capa de jornal
   // e ×(1 + bonus) permanente em tudo. A parede de material acima de 400 km dobra a cada 400 km (floorCost.wallDouble)
   marcosOrbita: [{ m: 540000, n: 'Telescópio Hubble' }, { m: 1000000, n: 'Mil quilômetros' }, { m: 1500000, n: 'Órbita média dos satélites' }, { m: 2000000, n: 'Fim da órbita baixa' }],
@@ -59,29 +56,8 @@ export const VIVA = {
   // robô (tools/ritmo-longo.mjs): 1 km ~0h25 · 12 km ~0h57 · 100 km ~3h45 · Órbita ~13h30; peça nunca abaixo de ~1,2 s no alto
   floorCost: { mult: 5, pow: 0.95, eraMult: 2.4, modulePow: 1, wallDouble: 400000 }, // mult entra aos poucos nos primeiros 40 andares; eraMult/modulePow altos: com o prestígio, uma obra sozinha não vai longe
   floorCostPrefab: { pow: 0.92, eraMult: 2.35 }, // abaixo do normal (0,95 e 2,4): ~20–30% menos material; antes (4,5) encarecia o andar
-  // Rodadas "Nova obra" (decisão do usuário, out/2026): cada rodada de 20 min (ou entrega antecipada) rende pontos
-  // = floor(k × km^pow) (retorno decrescente); os pontos compram o quadro "Construtora" (bônus permanentes, aditivos)
-  manager: { share: 0.5, rate: 2 }, // gerentes: verba comum de metade da renda (nunca mais que metade do caixa); até 2 compras/s por ramo
-  // rodada de 20 min de relógio (só corre com o jogo aberto); o jogador vê um contrato de 365 dias (~3,3 s por dia)
+  // ano da torre: 20 min de relógio (só corre com o jogo aberto), mostrados como 365 dias (~3,3 s por dia)
   round: { secs: 1200, dias: 365 },
-  // torres entregues (decisão do usuário, 20/10/2026): cada uma paga uma taxa de administração fixa, R$ k × km^pow por
-  // segundo, em todas as obras seguintes. Fixa e pequena de propósito: a renda na entrega é 10^5–10^6 vezes a do começo
-  // da obra nova, então uma parte do aluguel acabaria com o começo; assim a taxa ajuda a arrancar e depois some na conta.
-  adm: { k: 2, pow: 0.6 },
-  // meta do contrato: entregar antes do dia 365 só depois de chegar a max(rec × recorde, piso × cresce^(obra−1)), até a
-  // Órbita; o piso por obra impede juntar ★ entregando torres baixas de propósito. Antecipar rende até +bonus de ★
-  // (proporcional aos dias que sobram). No fim do ano a entrega vale sempre.
-  meta: { rec: 0.6, piso: 100, cresce: 1.8, bonus: 0.25 },
   prestige: { k: 12, pow: 0.6, rep: 0.025 }, // pontos = 12 × km^0,6 (mín. 1); rep: Reputação = +2,5% em tudo por ponto ganho no total (já foi 3% e 4%; caiu com o caixa que sobra virando Reputação e a lista de compras sem travar nos empates; robô atento: Órbita na 12ª obra)
-  // Construtora Vigaluz (só Reputação, decisão do usuário 20/10/2026): sem compras com ★; os gerentes chegam um por obra
-  board: {
-    // Encarregado (vistoria de 20/10: cliques demais no começo): desde a 1ª obra compra só o básico, a partir do 5º andar
-    encarregado: { n: 'Encarregado', d: 'Compra sozinho o básico: pedreiros, fornecedores, motores e carrinhos (a partir do 5º andar da 1ª obra).', mgr: 'basico', obra: 1 },
-    gerObra: { n: 'Gerente de obra', d: 'Contrata pedreiros e compra treino, ferramentas e mestres sozinho.', mgr: 'obra', obra: 2 },
-    gerForn: { n: 'Gerente de suprimentos', d: 'Compra fornecedores, caminhões, olaria e pré-molde sozinho.', mgr: 'forn', obra: 3 },
-    gerLog: { n: 'Gerente de logística', d: 'Compra elevadores, motores, caçambas e guindaste sozinho.', mgr: 'log', obra: 4 },
-    gerEng: { n: 'Gerente de engenharia', d: 'Reforça a fundação e compra projetos sozinho.', mgr: 'eng', obra: 5 },
-    gerMerc: { n: 'Gerente comercial', d: 'Compra aluguel, turismo e marketing sozinho.', mgr: 'merc', obra: 6 },
-  },
 
 };

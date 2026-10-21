@@ -18,8 +18,7 @@ import { fmt, fmtM, fmtPct } from './format.js';
 import { iconSprite, badgeSprite, lockSprite } from './icons.js';
 import { iconURL } from '../render/assets.js';
 import { VIVA } from '../data/viva.js';
-import { canDeliver, pointsFor, city, nextCity, metaAlt, deliverPoints, earlyBonus, repPct } from '../sim/prestige.js';
-import { managerOn, managerFree, setManager, hasManager, managerArrives } from '../sim/managers.js';
+import { repPct } from '../sim/prestige.js';
 import { spriteDataURL } from '../render/sprites.js';
 import { FLAGS } from '../data/flags.js';
 
@@ -115,6 +114,10 @@ function build() {
       // linha: do requisito (ou da base do ramo, na 1ª fileira); quem depende só da altura fica sem linha
       const [x, y] = upgradePos(b, k), from = L[k][2], root = !from && L[k][1] === 1, [x0, y0] = from ? upgradePos(b, from) : [colX(b), 60];
       const e = from || root ? mk('path', { d: elbow(x0, y0, x, y), class: 'sk-edge', style: `--c:${c}` }, gEdges) : null;
+      // forquilha: quando a fileira de baixo também é um par, a outra opção de baixo sobe até a mesma barra — qualquer
+      // escolha de baixo segue para qualquer uma de cima (as tecnologias só dependem da altura)
+      const fp = from && UP[from] && UP[from].pair && L[UP[from].pair] ? UP[from].pair : null, [xp, yp] = fp ? upgradePos(b, fp) : [0, 0];
+      const e2 = fp ? mk('path', { d: `M${xp} ${Y(yp)} V ${Y((yp + y) / 2)} H ${x} V ${Y(y)}`, class: 'sk-edge', style: `--c:${c}` }, gEdges) : null;
       // o que falta para liberar: ao lado da linha do requisito, ou embaixo do nome
       const rq = mk('text', from ? { class: 'rq', x: Math.max(x0, x) - x + 12, y: -(y0 + y) / 2 + y + 6 + (x0 === x ? 0 : -14), 'text-anchor': 'start' } : { class: 'rq', y: 76, 'text-anchor': 'middle' }, null);
       const n = mk('g', { class: 'sk-node' + (UP[k].era ? ' tech' : ''), transform: `translate(${x} ${Y(y)})`, style: `--c:${c}`, 'data-up': k }, gNodes);
@@ -126,7 +129,7 @@ function build() {
       const lv = mk('text', { class: 'lvl', x: 26, y: 26, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, n);
       const nm = mk('text', { class: 'nm', y: 54, 'text-anchor': 'middle' }, n); nm.textContent = SHORT[k] || UP[k].n;
       n.appendChild(rq);
-      upEls[k] = { n, lv, e, rq, badge, cls: '', st: '' };
+      upEls[k] = { n, lv, e, e2, fp, from, rq, badge, cls: '', st: '' };
     }
   }
   built = true;
@@ -146,7 +149,8 @@ function updateTree() {
     const cls = 'sk-node ' + st + (UP[k].era ? ' tech' : '') + (UP[k].pair && S.lv[UP[k].pair] > 0 ? ' taken' : '') + (sel === k ? ' sel' : '') + (capped && k === 'fundacao' ? ' need' : '') + (rec.has(k) ? ' rec' : '');
     if (cls !== e.cls) { e.n.setAttribute('class', cls); e.cls = cls; }
     if (st !== e.st) { e.badge.setAttribute('href', spriteDataURL(badgeSprite(COLOR[UP[k].b], st === 'hold' ? (lv > 0 ? 'own' : 'open') : st))); e.st = st; }
-    if (e.e) { e.e.classList.toggle('on', lv > 0); e.e.classList.toggle('open', !lk && lv === 0); }
+    if (e.e) { e.e.classList.toggle('on', lv > 0 && (!e.fp || (S.lv[e.from] || 0) > 0)); e.e.classList.toggle('open', !lk && lv === 0); }
+    if (e.e2) { e.e2.classList.toggle('on', lv > 0 && (S.lv[e.fp] || 0) > 0); e.e2.classList.toggle('open', !lk && lv === 0); }
     setText(e.rq, lk ? reqShort(k) : blk ? 'antes: ' + HOLD_NAME[blk] : '');
   }
 }
@@ -260,35 +264,11 @@ svg.addEventListener('wheel', e => { e.preventDefault(); userMoved = true; const
 new ResizeObserver(() => { if (!overlay.hidden && !userMoved) fit(); }).observe(svg);
 
 // ---------- atualização ----------
-// faixa "Construtora Vigaluz" (só Reputação): Reputação e os gerentes, que chegam um por obra
-let boardBuilt = false;
-function buildBoard() {
-  const row = $('skBoardRow'); row.innerHTML = '';
-  for (const k in VIVA.board) {
-    const b = VIVA.board[k], c = document.createElement('div'); c.className = 'skb-card mgr'; c.dataset.k = k;
-    c.innerHTML = `<b>${b.n}</b><u></u><i>${b.d}</i><button type="button"></button>`;
-    c.querySelector('button').onclick = () => { if (!hasManager(b.mgr)) return; setManager(b.mgr, !managerOn(b.mgr)); save(); updateSkills(); };
-    row.appendChild(c);
-  }
-  // no celular a faixa começa recolhida (a árvore precisa do espaço); tocar no título abre e fecha
-  if (innerWidth <= 820) $('skBoard').classList.add('fold');
-  document.querySelector('.skb-h').onclick = () => $('skBoard').classList.toggle('fold');
-  boardBuilt = true;
-}
+// faixa "Construtora Vigaluz": a Reputação, a torre e o ano
 function updateBoard() {
   $('skBoard').hidden = false;
-  // o botão de entregar mora no painel da engrenagem (ui/gear.js)
-  if (!boardBuilt) buildBoard();
   setText($('skRep'), `Reputação ${fmtPct(repPct(S.pontosTotal || 0))}`);
-  if (FLAGS.risco) { $('skBoardRow').hidden = true; setText($('skObra'), `Torre nº ${S.riscoTentativa || 1} · Ano ${(S.risco && S.risco.ano) || 1}`); return; } // sem gerentes neste modo
-  setText($('skObra'), `Obra nº ${S.obra || 1} · ${city().n}`);
-  for (const c of $('skBoardRow').children) {
-    const b = VIVA.board[c.dataset.k], bt = c.querySelector('button'), own = hasManager(b.mgr), on = own && managerOn(b.mgr);
-    c.classList.toggle('own', own); c.classList.toggle('off', own && !on);
-    setText(c.querySelector('u'), own ? (on ? 'Trabalhando' : managerFree(b.mgr) ? 'Liberado: ligue no botão' : 'Libera no 5º andar') : `Chega na obra ${managerArrives(b.mgr)}`);
-    setText(bt, own ? (on ? 'Ligado' : 'Desligado') : `Obra ${managerArrives(b.mgr)}`);
-    bt.disabled = !own;
-  }
+  setText($('skObra'), `Torre nº ${S.riscoTentativa || 1} · Ano ${(S.risco && S.risco.ano) || 1}`);
 }
 
 export function updateSkills() {

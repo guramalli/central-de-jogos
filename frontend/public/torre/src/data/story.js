@@ -17,17 +17,9 @@ const INTRO_RISCO = [
   { cam: 'rise', dur: 7.5, kicker: 'O DESAFIO', text: 'Cada ano traz ventos mais fortes, tempestades, terremotos e até meteoros. Cada ano de pé deixa a construtora mais respeitada. Até onde a torre aguenta?' },
   { cam: 'fans', dur: 0, kicker: 'ANO 1 · DIA 1', text: 'Os curiosos já apostam quanto tempo ela dura. Com o dinheiro dos sócios, a obra começa hoje.', cheque: true },
 ];
-const INTRO_RODADAS = [
-  { cam: 'descend', dur: 6, kicker: 'SANTA BRISA · 2026', text: 'Um terreno vazio na orla. E uma construtora pequena com um sonho grande.' },
-  { cam: 'ground', dur: 7.5, kicker: `CONSTRUTORA ${COMPANY.toUpperCase()}`,
-    text: `A prefeitura de Santa Brisa deu à ${COMPANY} o primeiro contrato: 365 dias para erguer uma torre de pelo menos 100 metros.`,
-    clips: ['Construtora pequena ganha contrato na orla', 'Prazo: 365 dias. Meta: 100 metros', `Dono da ${COMPANY} promete: "um dia, a Órbita"`] },
-  { cam: 'rise', dur: 7.5, kicker: 'O SONHO', text: 'Cada torre entregue leva a fama da construtora a outra cidade, com uma obra ainda mais alta. Pressão, frio, gravidade… até a Órbita.' },
-  { cam: 'fans', dur: 0, kicker: 'DIA 1 DE 365', text: 'Os curiosos já estão no tapume. Com o adiantamento da prefeitura, a obra começa hoje.', cheque: true },
-];
-export const INTRO = FLAGS.risco ? INTRO_RISCO : INTRO_RODADAS;
+export const INTRO = INTRO_RISCO;
 // quem assina o cheque da abertura
-export const CHEQUE_DE = FLAGS.risco ? ['Sócios da construtora', 'CAPITAL INICIAL'] : ['Prefeitura de Santa Brisa', 'ADIANTAMENTO'];
+export const CHEQUE_DE = ['Sócios da construtora', 'CAPITAL INICIAL'];
 
 // manchete quando a torre entra numa era (a Órbita fecha a história na tela de parabéns)
 // {cidade} vira o nome da cidade da obra atual (headline)
@@ -113,7 +105,7 @@ export function manchete(n, cidade) {
   const t = [
     `${fmtN(n)} andares: a Construtora ${COMPANY} não para de subir`,
     `${fmtN(n)} andares em ${cidade}: cientistas ainda tentam explicar como a torre fica de pé`,
-    `Torre da ${COMPANY} passa de ${fmtN(n)} andares e vizinhos já usam binóculo para ver o topo`,
+    `Torre da ${COMPANY} passa de ${fmtN(n)} andares e vizinhos já usam telescópio para ver o topo`,
     `Marco histórico: ${fmtN(n)} andares na torre da Construtora ${COMPANY}`,
   ];
   return t[(n / 1000) % t.length];

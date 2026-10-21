@@ -42,24 +42,16 @@ export function fresh() {
     winSeen: false,               // a tela de parabéns já foi mostrada
     playTime: 0,                  // segundos de jogo ativo (para a tela de parabéns)
     policy: {},                   // Obra Viva: política de imóveis por era ('sell' = vender; padrão alugar)
-    // prestígio "Nova obra": ficam de uma obra para outra (ver sim/prestige.js)
-    obra: 1, cidade: 0, pontos: 0, pontosTotal: 0, board: {}, bestAlt: 0,
+    obra: 1, cidade: 0, pontosTotal: 0, bestAlt: 0, // Reputação (pontos internos) e recorde da campanha
     marcos: {},                   // marcos dos primeiros minutos já mostrados (ui/milestones.js)
     introSeen: false,             // Obra Viva: a abertura (história) já foi vista
     altTotal: 0,                  // soma das alturas de todas as obras entregues (ranking "recorde total")
     orbitaSec: 0,                 // segundos de jogo até a primeira Órbita (ranking)
     rank: { jogador: '', apelido: '', ativo: false, nao: false, ficha: '', fichaObra: 0, enviado: {} }, // ranking online (ui/ranking.js)
-    // rodada de 20 min (Obra Viva): tempo restante, encerrada, ★ já creditadas; gerentes ligados por ramo
-    roundLeft: FLAGS.viva ? VIVA.round.secs : 0, roundOver: false, roundPaid: false, mgr: {}, mgrPool: 0,
-    offers: [], perks: [], marksDone: 0, rushLeft: 0, // contratos de altura da rodada (sim/contracts.js)
+    roundLeft: FLAGS.viva ? VIVA.round.secs : 0, roundOver: false, // relógio do ano da torre única (sim/prestige.js)
     dicas: {},                    // dicas para quem começa já vistas (ui/tips.js)
     jornais: [],                  // capas de jornal dos marcos de andares já noticiados (ui/jornal.js)
-    torres: [],                   // torres entregues { obra, cidade, alt, dia, taxa }: portfólio e taxa de administração
-    mgrAviso: {},                 // gerentes cujo aviso de "liberado" já apareceu (campanha)
     marcosAlt: [],                // marcos depois da Órbita já alcançados na campanha (VIVA.marcosOrbita)
-    spent: 0,                     // gasto em compras nesta obra (caixa que sobra ÷ ganho vira Reputação na entrega)
-    metaOk: false,                // a torre já passou da meta do contrato nesta obra (manchete uma vez)
-    anos: 1,                      // anos de contrato desta obra (cada aditivo soma 1: mais 365 dias)
   };
 }
 
@@ -87,7 +79,7 @@ export function load() {
     S.lv = Object.assign(fresh().lv, o.lv || {});
     S.broker = Object.assign(fresh().broker, o.broker || {});
     S.stats = Object.assign(fresh().stats, o.stats || {});
-    S.board = {}; S.pontos = 0; S.ver = SAVE_VERSION; // v6: sem compras com ★ (só Reputação)
+    S.ver = SAVE_VERSION;
     return o.ver || 1;
   } catch (e) { return 0; /* save corrompido ou storage bloqueado: começa do zero */ }
 }
@@ -120,7 +112,7 @@ export function slotSummary(n) {
   try {
     const o = JSON.parse(raw);
     if (o.vazio) return null; // espaço apagado (a partida em branco que o jogo salva sozinho não conta)
-    return { obra: o.obra || 1, cidade: o.cidade || 0, bestAlt: Math.max(o.bestAlt || 0, o.maxAlt || 0), pontosTotal: o.pontosTotal || 0, won: !!o.won, last: o.last || 0 };
+    return { torre: o.riscoTentativa || 1, ano: (o.risco && o.risco.ano) || 1, bestAlt: Math.max(o.bestAlt || 0, o.maxAlt || 0), pontosTotal: o.pontosTotal || 0, won: !!o.won, last: o.last || 0 };
   } catch (e) { return null; }
 }
 // apaga o espaço; devolve o jogador do ranking que estava nele (para tirar o apelido do ranking)

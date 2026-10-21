@@ -9,8 +9,8 @@ import { mods } from './mods.js';
 import { typeCount } from './realty.js';
 import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
-import { boardMult, cityMult } from './prestige.js';
-import { perkMult } from './contracts.js';
+import { boardMult } from './prestige.js';
+import { perkMult } from './risco.js';
 
 const T = BAL.tourism;
 
@@ -18,7 +18,7 @@ export function tourism() {
   const L = S.lv, M = mods(), alt = altOf(S.floors);
   const hotels = typeCount('hotel'), obs = typeCount('obs');
   const demand = L.bilheteria < 1 ? 0
-    : T.demand * Math.pow(alt, T.demandPow) * (1 + 0.25 * L.marketing) * (1 + 0.15 * Math.log2(1 + hotels / 10)) * techMult('tour') * M.mult('tourism') * boardMult('tour') * cityMult('tour');
+    : T.demand * Math.pow(alt, T.demandPow) * (1 + 0.25 * L.marketing) * (1 + 0.15 * Math.log2(1 + hotels / 10)) * techMult('tour') * M.mult('tourism') * boardMult('tour');
   // Obra Viva: a capacidade acompanha a altura (cabines maiores e mais rápidas, como aparece na cena), no mesmo
   // ritmo dos interessados, e cada nível SOMA lugares (decisão do usuário, out/2026: com ×1,6 por nível sobravam
   // lugares demais para os turistas, mesmo com Marketing); panorâmico ≈ 0,8 e heliponto ≈ 1,6 da procura sem marketing

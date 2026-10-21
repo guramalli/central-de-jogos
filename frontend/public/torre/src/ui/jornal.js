@@ -15,13 +15,6 @@ const $ = id => document.getElementById(id);
 const fotosKey = () => 'torre-jornais-espaco' + activeSlot();
 const ler = k => { try { return JSON.parse(localStorage.getItem(k) || '{}'); } catch (e) { return {}; } };
 const fotos = () => ler(fotosKey());
-// portfólio: foto de cada torre entregue (por obra), tirada com a câmera mostrando a torre inteira
-const pfKey = () => 'torre-portfolio-espaco' + activeSlot();
-export function guardarFotoTorre(obra) {
-  const f = ler(pfKey()); f[obra] = foto();
-  const ks = Object.keys(f).map(Number).sort((a, b) => a - b); while (ks.length > 40) delete f[ks.shift()]; // guarda as 40 últimas
-  try { localStorage.setItem(pfKey(), JSON.stringify(f)); } catch (e) { }
-}
 let pend = null, fechaT = 0;
 
 function foto() {
@@ -32,7 +25,7 @@ function foto() {
 function mostrar(j, img) {
   sfx('jornal');
   $('jnTitle').textContent = j.titulo; $('jnSub').textContent = j.sub;
-  $('jnDate').textContent = `Obra nº ${j.obra} · ${j.cidade}` + (j.dia ? ` · dia ${j.dia}` : '');
+  $('jnDate').textContent = (j.torre ? `Torre nº ${j.torre} · ${j.cidade} · ano ${j.ano}` : `${j.cidade}`) + (j.dia ? `, dia ${j.dia}` : ''); // capas antigas (sem torre) só com a cidade
   $('jnImg').src = img || ''; $('jnImg').hidden = !img;
   const el = $('jornal'); el.hidden = false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in');
 }
@@ -48,7 +41,7 @@ export function checkJornal(bloqueado) {
   const novoAlt = (S.marcosAlt || []).find(m => !vistosAlt.has(m));
   if (novoAlt && !pend) {
     const mk = VIVA.marcosOrbita.find(x => x.m === novoAlt), cidade = city().n;
-    const jj = { n: Math.floor(S.floors), alt: novoAlt, obra: S.obra || 1, cidade, dia: roundDay(),
+    const jj = { n: Math.floor(S.floors), alt: novoAlt, torre: S.riscoTentativa || 1, ano: (S.risco && S.risco.ano) || 1, cidade, dia: roundDay(),
       titulo: `A torre da Vigaluz passa o marco ${mk.n === 'Mil quilômetros' ? 'dos mil quilômetros' : `"${mk.n}"`}: ${fmtM(novoAlt)} acima de ${cidade}`,
       sub: `Bônus permanente para a construtora: +${Math.round(VIVA.marcosBonus * 100)}% em tudo.` };
     S.jornais = [...(S.jornais || []), jj].sort((a, b) => a.n - b.n); save();
@@ -66,7 +59,7 @@ export function checkJornal(bloqueado) {
   if (V.t < pend.at) return;
   const n = pend.n; pend = null;
   const cidade = city().n;
-  const j = { n, obra: S.obra || 1, cidade, dia: roundDay(), titulo: manchete(n, cidade), sub: `A torre da Construtora Vigaluz já tem ${fmtM(altOf(n))} de altura.` };
+  const j = { n, torre: S.riscoTentativa || 1, ano: (S.risco && S.risco.ano) || 1, cidade, dia: roundDay(), titulo: manchete(n, cidade), sub: `A torre da Construtora Vigaluz já tem ${fmtM(altOf(n))} de altura.` };
   // marcos menores que ficaram para trás nesta passada também contam como noticiados
   const vistos = new Set((S.jornais || []).filter(x => !x.alt).map(x => x.n)), novos = [j];
   for (const m of [100, 500]) if (m < n && !vistos.has(m)) novos.push({ ...j, n: m, titulo: manchete(m, cidade) });
@@ -77,19 +70,8 @@ export function checkJornal(bloqueado) {
   mostrar(j, img); fechaT = Infinity; // só fecha com um toque
 }
 
-// portfólio (página de Início): torres entregues e arquivo de jornais
+// arquivo de jornais (página de Início)
 export function drawArquivo() {
-  const pl = $('pfList'), torres = [...(S.torres || [])].reverse(), pf = ler(pfKey());
-  pl.innerHTML = torres.length ? '' : '<li class="rk-wait">Nenhuma torre entregue ainda.</li>';
-  for (const t of torres) {
-    const li = document.createElement('li'), img = document.createElement('img'), d = document.createElement('div');
-    img.alt = ''; if (pf[t.obra]) img.src = pf[t.obra];
-    const taxa = t.taxa < 10 ? t.taxa.toFixed(1).replace('.', ',') : fmt(t.taxa);
-    d.innerHTML = '<b></b><span></span>';
-    d.querySelector('b').textContent = `Obra nº ${t.obra} · ${t.cidade} · ${fmtM(t.alt)}`;
-    d.querySelector('span').textContent = `Entregue no dia ${t.dia} · paga R$ ${taxa}/s`;
-    li.append(img, d); pl.appendChild(li);
-  }
   const ul = $('jnList'), lista = [...(S.jornais || [])].reverse(), f = fotos();
   ul.innerHTML = lista.length ? '' : '<li class="rk-wait">Nenhuma capa ainda. A primeira sai no andar 100!</li>';
   for (const j of lista) {

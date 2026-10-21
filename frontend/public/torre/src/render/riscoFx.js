@@ -11,7 +11,8 @@ import { art } from './assets.js';
 import { eraVis } from './eravis.js';
 import { SHAFT_X, SHAFT_W } from './tower.js';
 import { V } from './view.js';
-import { altOf } from '../data/height.js';
+import { altOf, floorOf } from '../data/height.js';
+import { soEmbaixo, RISCO } from '../sim/risco.js';
 import { sfx } from '../ui/audio.js';
 
 const g = () => ctxMain;
@@ -49,10 +50,11 @@ export function towerFx(o) {
     ctx.fillStyle = '#1b1622'; ctx.fillRect(0, 0, W, H); ctx.drawImage(buf, jx, jy); bctx.drawImage(ctx.canvas, 0, 0);
   }
   // só a faixa da torre entorta: o fundo da faixa é refeito com a coluna de céu ao lado e a torre é desenhada deslocada
-  // a faixa que entorta vai do andaime até o último poço de elevador (e as colunas extras dele): a obra inteira balança junto
+  // a faixa que entorta vai da lança do guindaste (que passa do andaime para a esquerda) até o último poço de elevador e as
+  // colunas extras dele: a obra inteira balança junto
   const nPocos = Math.max(1, Math.min(S.lv.elevador || 1, 6)), dir = SHAFT_X(nPocos - 1) + SHAFT_W + 90;
-  const x0 = Math.max(1, Math.floor(sx(TL - 60))), bw = Math.min(W - x0, Math.ceil(sx(dir)) - x0);
-  const y0 = Math.max(0, Math.floor(sy((fl + 1.3) * FH))); // acima do topo da torre só há céu: não precisa deslocar
+  const x0 = Math.max(1, Math.floor(sx(TL - 170))), bw = Math.min(W - x0, Math.ceil(sx(dir)) - x0);
+  const y0 = Math.max(0, Math.floor(sy((fl + 3.2) * FH))); // até acima das casas de máquinas, da cabine no alto e do guindaste; mais acima só há céu
   // linhas vizinhas com o mesmo deslocamento viram uma cópia só (perto da base o deslocamento muda devagar)
   const y1 = Math.min(H, Math.ceil(gy)), faixa = (ya, yb, dx) => {
     if (!dx || yb <= ya) return;
@@ -104,6 +106,10 @@ export function weatherFx(o) {
   const ctx = g(), { t, dt } = o, tipo = o.tipo, f = Math.min(1, o.forca || 0.4);
   const topY = sy((Math.floor(S.floors) + 1) * FH), gy = sy(0), tx0 = sx(TL), tx1 = sx(TL + TW);
   spawn += dt; if (V.choque > 0) V.choque = Math.max(0, V.choque - dt);
+  // torre acima das nuvens: temporal (chuva, raios, granizo, neve) só na parte da tela abaixo de RISCO.nuvens; o topo fica limpo
+  const embaixo = soEmbaixo(tipo) || soEmbaixo(o.aviso), yNuv = embaixo ? Math.max(0, Math.round(sy(floorOf(RISCO.nuvens) * FH))) : 0;
+  const topoChuva = embaixo ? Math.max(topY, yNuv) : topY;
+  if (embaixo) { ctx.save(); ctx.beginPath(); ctx.rect(0, yNuv, W, Math.max(0, H - yNuv)); ctx.clip(); }
   // aviso: o céu já mostra o que vem (chuva fraca, rajadas leves)
   if (!tipo && o.aviso) {
     if (['chuva', 'raios', 'granizo'].includes(o.aviso)) { ctx.fillStyle = 'rgba(20,28,45,.18)'; ctx.fillRect(0, 0, W, H); layer('chuva-longe', t, 30, 120, 0.25); }
@@ -114,11 +120,11 @@ export function weatherFx(o) {
     const ok = layer('chuva-longe', t, 30, 120, 0.6);
     layer('chuva-perto', t, 60, 240, 0.8); if (tipo !== 'granizo' || f > 0.5) layer('chuva-perto', t, 60, 240, 0.8, 64, 37);
     if (!ok) { ctx.fillStyle = 'rgba(190,210,255,.5)'; for (let i = 0; i < 160; i++) ctx.fillRect((i * 97 + t * 60) % W, (i * 53 + t * 240) % H, 1, 8); }
-    if (spawn > 0.04) { spawn = 0; add({ k: 'respingo', x: tx0 + Math.random() * (tx1 - tx0), y: topY + 4, t: 0, vida: 0.33 }); add({ k: 'respingo', x: Math.random() * W, y: gy, t: 0, vida: 0.33 }); }
+    if (spawn > 0.04) { spawn = 0; add({ k: 'respingo', x: tx0 + Math.random() * (tx1 - tx0), y: topoChuva + 4, t: 0, vida: 0.33 }); add({ k: 'respingo', x: Math.random() * W, y: gy, t: 0, vida: 0.33 }); }
   }
-  if (tipo === 'granizo' && Math.random() < 0.8) for (let i = 0; i < 3; i++) add({ k: 'granizo', v: i % 3, x: Math.random() * W, y: -6, vy: 300, t: 0, vida: 3, chao: gy });
+  if (tipo === 'granizo' && Math.random() < 0.8) for (let i = 0; i < 3; i++) add({ k: 'granizo', v: i % 3, x: Math.random() * W, y: (embaixo ? yNuv : 0) - 6, vy: 300, t: 0, vida: 3, chao: gy });
   if (tipo === 'raios') {
-    if (Math.random() < dt * 0.9) { flash = 0.25; add({ k: 'raio', x: sx(-40 + Math.random() * 80), y: topY, t: 0, vida: 0.3 }); sfx('trovao', 0.15 + Math.random() * 0.4); V.choque = 0.8; } // o raio dá choque nos pedreiros do topo
+    if (Math.random() < dt * 0.9) { flash = 0.25; add({ k: 'raio', x: sx(-40 + Math.random() * 80), y: topoChuva, t: 0, vida: 0.3 }); sfx('trovao', (embaixo ? 0.4 : 1) * (0.15 + Math.random() * 0.4)); if (!embaixo) V.choque = 0.8; } // o raio dá choque nos pedreiros do topo
   }
   if (tipo === 'nevasca' || tipo === 'gelo') {
     ctx.fillStyle = tipo === 'gelo' ? 'rgba(170,215,255,.22)' : 'rgba(230,238,255,.2)'; ctx.fillRect(0, 0, W, H);
@@ -178,4 +184,5 @@ export function weatherFx(o) {
     else if (p.k !== 'rajada') { ctx.fillStyle = p.k === 'raio' ? '#fff8c0' : p.k === 'granizo' ? '#e8f4ff' : 'rgba(200,190,170,.8)'; ctx.fillRect(Math.round(p.x), Math.round(p.y), p.k === 'raio' ? 3 : 4, p.k === 'raio' ? 120 : 4); }
   }
   if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${0.3 * flash / 0.25})`; ctx.fillRect(0, 0, W, H); flash -= dt; }
+  if (embaixo) ctx.restore();
 }

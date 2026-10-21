@@ -8,13 +8,11 @@ import { mods } from './mods.js';
 import { rentMult, brokerTick, rentAt, rentSum } from './realty.js';
 import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
-import { boardMult, cityMult, admTotal } from './prestige.js';
-import { managerTick } from './managers.js';
-import { perkMult, contractTick } from './contracts.js';
+import { boardMult } from './prestige.js';
 import { tourism } from './tourism.js';
 import { bankInfo, bankTick } from './bank.js';
 import { techMult } from './tech.js';
-import { riscoTick, riscoLay, fimDoAno } from './risco.js';
+import { riscoTick, riscoLay, fimDoAno, perkMult } from './risco.js';
 
 // ---------- melhorias compradas com dinheiro ----------
 // soft: { at, k } — depois do nível `at`, cada nível multiplica o preço por `k` (Obra Viva: turismo sem virar ralo)
@@ -43,7 +41,7 @@ export function stageBlock(k) {
 export function buy(k) {
   if (!canBuy(k)) return false;
   const c = cost(k);
-  S.money -= c; S.spent = (S.spent || 0) + c; // gasto da obra (o caixa que sobra vira Reputação na entrega)
+  S.money -= c;
   S.lv[k]++;
   return true;
 }
@@ -75,7 +73,7 @@ export function floorCost(i, era, M = mods()) {
 export function rates() {
   const L = S.lv, M = mods(), fl = Math.floor(S.floors), h = Math.max(MPF, altOf(fl)), era = eraAt(altOf(S.floors));
   const all = M.mult('all');
-  const prod = 1.5 * L.fornec * eff('caminhao') * eff('olaria') * eff('premold') * techMult('prod') * M.mult('prod') * all * boardMult('prod') * cityMult('prod') * perkMult('prod');
+  const prod = 1.5 * L.fornec * eff('caminhao') * eff('olaria') * eff('premold') * techMult('prod') * M.mult('prod') * all * boardMult('prod') * perkMult('prod');
   let spd = 1.5 * eff('motor') * eff('maglev') * techMult('tran') * M.mult('tranSpd') * all;
   if (M.flag.gravity) spd *= 1 + Math.log10(1 + h / 1000);
   const capc = 8 * eff('cacamba') * M.mult('tranCap') * techMult('cap');
@@ -88,19 +86,18 @@ export function rates() {
   // Obra Viva: a velocidade (Motor, Magnético, tecnologias) multiplica o material subindo inteiro. Sem isso, os 2 s
   // fixos de carga e descarga viravam quase toda a viagem no fim do jogo e o "×2,8" do Magnético rendia +3%.
   const spd0 = 1.5 * M.mult('tranSpd') * all, tripEff = FLAGS.viva ? (2 * hEff / spd0 + 2) / (spd / spd0) : trip;
-  const lay = L.pedreiro * 1.3 * eff('treino') * eff('ferram') * eff('mestre') * (craneLog() ? 1 : eff('guindaste')) * techMult('lay') * M.mult('lay') * all * boardMult('lay') * cityMult('lay') * perkMult('lay');
-  let tran = L.elevador * capc / tripEff * (craneLog() ? eff('guindaste') : 1) * boardMult('tran') * cityMult('tran') * perkMult('tran');
+  const lay = L.pedreiro * 1.3 * eff('treino') * eff('ferram') * eff('mestre') * (craneLog() ? 1 : eff('guindaste')) * techMult('lay') * M.mult('lay') * all * boardMult('lay') * perkMult('lay');
+  let tran = L.elevador * capc / tripEff * (craneLog() ? eff('guindaste') : 1) * boardMult('tran') * perkMult('tran');
   // Mutirão: no Obra Viva no máximo dobra o que os elevadores sobem (sem teto, o excesso de pedreiros virava bola de neve)
   if (M.flag.helpers) tran += FLAGS.viva ? Math.min(0.25 * lay, tran) : 0.25 * lay;
   const fcost = floorCost(fl, era, M);
   const capF = Math.floor(25 * Math.pow(M.flag.floatFound ? 3 : 2, L.fundacao) * M.mult('capF') * techMult('capF'));
   const rent = S.rentBase * rentMult();
   const tour = tourism();
-  const adm = admTotal(); // taxa de administração das torres já entregues
-  const income = rent + tour.revenue + adm;
+  const income = rent + tour.revenue;
   const bank = bankInfo(income);
   const net = income * (1 - bank.share);
-  return { prod, tran, lay, trip, fcost, capF, rent, tour, adm, income, bank, net, spd, capc, era };
+  return { prod, tran, lay, trip, fcost, capF, rent, tour, income, bank, net, spd, capc, era };
 }
 
 export const isCapped = R => S.floors >= R.capF - 1e-9;
@@ -109,8 +106,8 @@ export const offlineMax = () => 8 * 3600 + mods().plus('offline') + boardMult('o
 
 // ---------- passo da simulação ----------
 export function sim(dt) {
-  // Obra Viva: rodada de 20 min (365 dias); encerrada, nada anda. O passo em que o relógio zera ainda conta.
-  // No fim do ano a obra para esperando a escolha (aditivo ou entregar); as ★ só saem na entrega (endRound).
+  // Obra Viva: o ano da torre (365 dias de relógio). O passo em que o relógio zera ainda conta; no fim do ano a obra
+  // para esperando a escolha do prêmio (sim/risco.js).
   let ends = false;
   if (FLAGS.viva) {
     if (S.roundOver || S.colapso || (FLAGS.risco && S.risco && S.risco.fimAno)) return; // risco: parada na escolha do fim do ano
@@ -119,9 +116,8 @@ export function sim(dt) {
     ends = S.roundLeft <= 0;
   }
   simStep(dt);
-  if (FLAGS.viva) { contractTick(dt); managerTick(dt); }
   if (FLAGS.risco) riscoTick(dt);
-  if (ends) { if (!FLAGS.risco) S.roundOver = true; else if (S.risco && S.risco.interd) S.roundLeft = 0.05; else if (!S.colapso) fimDoAno(); } // interditada no último passo: o ano espera o reforço // risco: a mesma torre segue, com prêmio
+  if (ends && FLAGS.risco) { if (S.risco && S.risco.interd) S.roundLeft = 0.05; else if (!S.colapso) fimDoAno(); } // interditada no último passo: o ano espera o reforço // risco: a mesma torre segue, com prêmio
 }
 function simStep(dt) {
   const R = rates(), M = mods();
@@ -138,7 +134,7 @@ function simStep(dt) {
   }
   // Obra Viva: a construtora recebe pelo andar entregue (uma vez por andar; vale também offline)
   const done = Math.floor(S.floors) - before;
-  if (FLAGS.viva && done > 0) { const pay = rentSum(before, done) * VIVA.floorPaySecs * techMult('floorPay'); S.money += pay; S.stats.floorPay = (S.stats.floorPay || 0) + pay; S.mgrPool = (S.mgrPool || 0) + VIVA.manager.share * pay; }
+  if (FLAGS.viva && done > 0) { const pay = rentSum(before, done) * VIVA.floorPaySecs * techMult('floorPay'); S.money += pay; S.stats.floorPay = (S.stats.floorPay || 0) + pay; }
   S.maxAlt = Math.max(S.maxAlt, altOf(Math.floor(S.floors)));
   if (FLAGS.viva && S.maxAlt >= VIVA.marcosOrbita[0].m) for (const mk of VIVA.marcosOrbita) if (S.maxAlt >= mk.m && !(S.marcosAlt || []).includes(mk.m)) S.marcosAlt = [...(S.marcosAlt || []), mk.m];
   S.era = Math.max(S.era, eraAt(altOf(S.floors)));
@@ -152,6 +148,7 @@ function simStep(dt) {
   brokerTick();
   // renda e banco
   const paid = bankTick(dt, R.income);
-  S.money += R.income * dt - paid;
+  const parada = FLAGS.risco && S.risco && S.risco.interd; // obra interditada: o aluguel para (ninguém espera o dinheiro juntar para pagar à vista)
+  if (!parada) S.money += R.income * dt - paid;
   S.stats.tourTotal += R.tour.revenue * dt;
 }

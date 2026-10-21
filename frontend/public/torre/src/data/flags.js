@@ -6,7 +6,7 @@ const inBrowser = typeof location !== 'undefined';
 
 export const FLAGS = {
   viva: globalThis.TORRE_FLAGS?.viva ?? inBrowser,
-  // torre única com intempéries (sim/risco.js): o modo principal no site desde 21/10/2026 (decisão do usuário);
-  // o jogo de rodadas (uma obra por cidade) continua em index.html?rodadas. Em Node o padrão é desligado.
-  risco: globalThis.TORRE_FLAGS?.risco ?? (inBrowser && !new URLSearchParams(location.search).has('rodadas')),
+  // torre única com intempéries (sim/risco.js): o jogo do site (o modo de rodadas foi apagado em 21/10/2026, decisão do
+  // usuário). Sempre junto com o Obra Viva; em Node só o clássico fica sem ele.
+  risco: globalThis.TORRE_FLAGS?.risco ?? globalThis.TORRE_FLAGS?.viva ?? inBrowser,
 };

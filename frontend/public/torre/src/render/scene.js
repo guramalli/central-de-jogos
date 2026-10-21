@@ -4,7 +4,6 @@ import { W, H, FH, SLAB, TW, TL, MPF } from '../data/constants.js';
 import { altOf, floorOf, mpfAt } from '../data/height.js';
 import { ERAS, ERA_STYLE, MARKS, eraAt } from '../data/eras.js';
 import { MARCOS_MUNDO } from '../data/story.js';
-import { metaAlt } from '../sim/prestige.js';
 import { S, save } from '../sim/state.js';
 import { rates, isCapped } from '../sim/economy.js';
 import { fmt, fmtM } from '../ui/format.js';
@@ -60,7 +59,8 @@ export function updateView(dt, speed) {
 }
 export const resetMilestones = () => { msIdx = -1; };
 
-export function render() {
+// antesDosAvisos: desenha por cima da cena e antes das faixas de era/marco e do aviso (torre única: balanço e clima)
+export function render(antesDosAvisos) {
   const R0 = rates(), built = Math.floor(S.floors), p = S.floors - built, capped = isCapped(R0);
   const base = baseFloor(), topWP = base * FH;
   const sg = obraSigns(R0);
@@ -83,21 +83,6 @@ export function render() {
       ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillText(fmtM(m), 4, y - 7);
     }
   });
-  // meta do contrato (Obra Viva): linha verde contínua até a torre passar dela; acima da tela, o aviso fica preso
-  // no alto à DIREITA, embaixo do dinheiro (à esquerda ficam a placa do andar, o dia, a engrenagem e a pausa)
-  if (FLAGS.viva && !FLAGS.risco && !S.roundOver && S.maxAlt < metaAlt()) { // risco: torre única, sem meta de contrato
-    const y = sy(floorOf(metaAlt()) * FH), TOPO = 64;
-    if (y < H - 4) {
-      const acima = y < TOPO, txt = `${acima ? '▲ ' : ''}META DO CONTRATO · ${fmtM(metaAlt())}`;
-      ctx.font = '700 9px "Chakra Petch", sans-serif'; ctx.textBaseline = 'middle';
-      const tx = acima ? W - 8 : 4, ty = acima ? TOPO + 16 : y + 8;
-      ctx.textAlign = acima ? 'right' : 'left';
-      if (!acima) r(0, y, Math.max(0, sx(TL) - 8), 2, 'rgba(111,208,140,.85)');
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,24,38,.55)'; ctx.strokeText(txt, tx, ty);
-      ctx.fillStyle = '#6fd08c'; ctx.fillText(txt, tx, ty);
-      ctx.textAlign = 'left';
-    }
-  }
   // marcos do mundo real (Torre Eiffel, Everest…): só uma marca dourada tracejada na régua, sem notícia;
   // o nome some quando encosta num rótulo de altura ou noutro marco
   let lastW = 1e9;
@@ -123,6 +108,7 @@ export function render() {
   if (V.preview) { drawClouds(true); return; } // prévia: sem textos, faixas nem marcos
   drawFloats();
   drawClouds(true);
+  if (antesDosAvisos) antesDosAvisos();
   drawToast();
   drawMilestone();
 }

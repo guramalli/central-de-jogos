@@ -20,22 +20,18 @@ import { syncEvents, recent } from './render/events.js';
 import { initEffects } from './render/effects.js';
 import { soundOn, setSound, tickAmbience, soundsLoaded } from './ui/audio.js';
 import { initIntro, introActive, startIntro, showNews, clearNews } from './ui/intro.js';
-import { endRound, startNextRound, city, metaAlt, roundDays, roundDay, repPct } from './sim/prestige.js';
-import { initRoundEnd, checkRoundEnd, resetRoundEnd } from './ui/roundEnd.js';
-import { initOffers, updateOffers, resetOffers } from './ui/offers.js';
+import { city, repPct } from './sim/prestige.js';
 import { initCoach, dropTip } from './ui/coach.js';
 import { initHome, openHome, closeHome, homeOpen } from './ui/home.js';
 import { initTutorial, openTutorial } from './ui/tutorial.js';
 import { initJornal, checkJornal, drawArquivo } from './ui/jornal.js';
 import { initPip, tickPip } from './ui/pip.js';
-import { managerFree } from './sim/managers.js';
 import { initStatus, updateStatus } from './ui/status.js';
-import { initGear, closeGear, gearOpen, updateGear, frozen, placeHudButtons, setPaused, deliverMsg } from './ui/gear.js';
-import { initRanking, openRanking, pedirFicha, sairDoRanking, definirApelido, rankTick, esquecerJogador } from './ui/ranking.js';
+import { initGear, closeGear, gearOpen, updateGear, frozen, placeHudButtons, setPaused } from './ui/gear.js';
+import { initRanking, openRanking, pedirFicha, sairDoRanking, definirApelido, rankTick, esquecerJogador, ultimoApelido } from './ui/ranking.js';
 import { initTips, updateTips, setTips, tickTips } from './ui/tips.js';
 import { initMilestones } from './ui/milestones.js';
 import { initRisco, tickRisco, riscoFx, resetRisco } from './ui/risco.js';
-const cityName = () => city().n;
 import { preloadArt } from './render/assets.js';
 import { migrarRisco, novaTorre } from './sim/risco.js';
 preloadArt();
@@ -68,6 +64,7 @@ const DEV = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || new 
 // Modo de teste (?test=1): no máximo 30 quadros/s, sem partículas e sem som (economiza CPU nos testes)
 const TEST = new URLSearchParams(location.search).get('test') === '1';
 let speed = 1;
+let nomeInicio = !(TEST || navigator.webdriver); // Novo jogo pede o nome do ranking (desligado nos testes automáticos)
 
 // ---------- loop ----------
 // A simulação usa o tempo real que passou (até SIM_MAX_DT por quadro): com a janela coberta ou o
@@ -80,20 +77,19 @@ function tick(real) {
   let sd = introActive() || homeOpen() || fz ? 0 : Math.min(SIM_MAX_DT, real) * speed; // a obra começa quando a história acaba
   while (sd > 0) { const st = Math.min(.25, sd); sim(st); sd -= st; }
   updateView(dt, speed);
-  render();
-  if (FLAGS.risco && !introActive()) riscoFx(dt, V.t, homeOpen()); // torre única: balanço, tremor, clima e desabamento (não durante a abertura)
+  render(() => { if (FLAGS.risco && !introActive()) riscoFx(dt, V.t, homeOpen()); }); // torre única: balanço, tremor, clima e desabamento (não durante a abertura), antes das faixas de aviso
   tickPip(Math.min(.1, real), introActive() || homeOpen()); // janelinha com a outra ponta da obra
   if (FLAGS.viva) { // som ambiente: canteiro e mar com o térreo à vista, vento nas eras altas (ui/audio.js)
     const sc = city().scene, alt = altOf(Math.max(0, cam.cy) / FH) + (sc.skyAlt || 0);
     const ground = Math.max(0, Math.min(1, 1 - (worldY(H) - 100) / 600));
     const wind = sc.moon ? 0 : Math.max(0, Math.min(1, (alt - 3000) / 9000)) * Math.max(0, Math.min(1, 1 - (alt - 80000) / 40000));
-    tickAmbience({ ground, sea: !!sc.sea, wind, top: !isFree() && !S.roundOver && S.floors >= 2, active: !fz && !homeOpen() && !introActive(), dt: Math.min(.1, real) });
+    tickAmbience({ ground, sea: !!sc.sea, wind, top: !isFree() && S.floors >= 2, active: !fz && !homeOpen() && !introActive(), dt: Math.min(.1, real) });
   }
   if (skillsOpen()) tickSkills(); // prévia animada da tela de Melhorias
   tickTips(); // o quadro da dica acompanha o alvo
   if (FLAGS.viva && !introActive() && !homeOpen() && !fz) S.playTime = (S.playTime || 0) + dt * speed;
   // a interface segue o tempo real, mesmo pausada
-  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); checkRoundEnd(); checkMeta(); if (!homeOpen() && !introActive()) checkManagers(); updateOffers(); updateTips(); rankTick(homeOpen() || introActive()); checkJornal(homeOpen() || introActive()); if (FLAGS.risco) tickRisco(homeOpen() || introActive() || fz, homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
+  uiT += Math.min(.1, real); if (uiT > .2) { uiT = 0; updateUI(); syncCameraButtons(); checkWin(); updateTips(); rankTick(homeOpen() || introActive()); checkJornal(homeOpen() || introActive()); if (FLAGS.risco) tickRisco(homeOpen() || introActive() || fz, homeOpen() || introActive()); if (gearOpen()) updateGear(); placeHudButtons(); updateStatus(introActive() || homeOpen()); }
   saveT += dt; if (saveT > 5) { saveT = 0; save(); if (V.t > noticeT) setNotice(null); }
 }
 function frame(now) {
@@ -122,51 +118,11 @@ for (const rs of [$('reset'), $('skReset')]) {
   };
 }
 
-// Entrega e próxima obra: a obra entregue (pela carta da próxima cidade no fim do ano, ou antes do prazo depois da
-// meta, com dois cliques) recomeça na cidade seguinte; o aditivo continua na mesma torre (ui/roundEnd.js)
-function startNext() {
-  if (!S.roundOver) return;
-  const got = S.pontosTotal;
-  startNextRound(); pedirFicha(); // ficha do ranking para a obra nova
-  setNotice(null); resetView(); resetMilestones(); syncEvents(); followBuild(); syncCameraButtons(); closeSkills(); updateUI();
-  checkRoundEnd(); clearNews();
-  const mg = Object.values(VIVA.board).find(b => b.obra === S.obra); // gerente que chega nesta obra
-  showNews('JORNAL DA OBRA', `Construtora Vigaluz começa a obra nº ${S.obra} em ${cityName()} (Reputação ${fmtPct(repPct(got))}). Prazo: 365 dias`); // gerente novo: aviso próprio (checkManagers)
-}
-if (FLAGS.risco) initRisco({ onNext: guardar => { // desabou: torre nova com a Reputação e o prêmio guardado
+if (FLAGS.risco) initRisco({ onExit: () => openHome(), onNext: guardar => { // desabou: torre nova com a Reputação e o prêmio guardado
   novaTorre(guardar); resetRisco();
   setNotice(null); resetView(); resetMilestones(); syncEvents(); followBuild(); syncCameraButtons(); closeSkills(); updateUI(); clearNews();
   showNews('JORNAL DA OBRA', `Construtora Vigaluz recomeça em Santa Brisa: torre nº ${S.riscoTentativa} (Reputação ${fmtPct(repPct(S.pontosTotal || 0))}).`);
 } });
-{
-  const dv = $('skDeliver'), disarm = () => dv.classList.remove('armed');
-  dv.onclick = () => {
-    if (S.roundOver) { if (S.roundPaid) { closeGear(); startNext(); } return; }
-    $('dvMsg').innerHTML = deliverMsg(); $('dvConfirm').hidden = false; // antes do prazo: aviso com a multa ou o bônus
-  };
-  $('dvOk').onclick = () => {
-    if (S.roundOver) return;
-    endRound(); closeGear(); closeSkills(); checkRoundEnd(); updateUI(); // entrega antecipada: placar da obra entregue
-  };
-}
-// gerente liberado (chegou nesta obra; o Encarregado no 5º andar): aviso uma vez por gerente, que só fecha com um toque.
-// Ninguém liga sozinho: quem joga liga no cartão da faixa Construtora, nas Melhorias
-function checkManagers() {
-  if (!FLAGS.viva || FLAGS.risco) return; // modo com risco: sem gerentes
-  for (const k in VIVA.board) {
-    const b = VIVA.board[k];
-    if (!b.mgr || (S.mgrAviso || {})[b.mgr] || !managerFree(b.mgr)) continue;
-    S.mgrAviso = { ...(S.mgrAviso || {}), [b.mgr]: true };
-    showNews('CONSTRUTORA VIGALUZ', `${b.n} liberado! Ligue no cartão dele (Melhorias → faixa Construtora) para ele começar: ${b.d.charAt(0).toLowerCase() + b.d.slice(1)}`);
-  }
-}
-// meta do contrato: manchete uma vez por obra quando a torre passa dela
-function checkMeta() {
-  if (!FLAGS.viva || FLAGS.risco || S.metaOk || S.roundOver || S.maxAlt < metaAlt()) return; // risco: torre única, sem meta
-  S.metaOk = true;
-  showNews('JORNAL DA OBRA', `Meta do contrato batida no dia ${roundDay()}! Agora a Vigaluz pode entregar a torre de ${cityName()} antes do prazo sem multa, e ainda com bônus (na engrenagem ⚙)`);
-}
-
 // Fim de jogo (Obra Viva): na primeira vez que a torre chega à Órbita, faixa na cena e tela de parabéns
 function checkWin() {
   if (!FLAGS.viva || !S.won || S.winSeen) return;
@@ -191,20 +147,15 @@ if (FLAGS.viva) {
   // abertura com a história (partida nova); não roda nos testes automáticos (?test=1 ou navegador controlado)
   initIntro({ test: TEST || navigator.webdriver, auto: false });
   initMilestones();
-  initRoundEnd({
-    onNext: startNext,
-    onExit: () => openHome(),
-    onExtend: () => { updateUI(); syncCameraButtons(); showNews('JORNAL DA OBRA', `Aditivo assinado: a Vigaluz fica mais 365 dias em ${cityName()}. Novo prazo: dia ${roundDays()}`); },
-  });
-  initOffers();
   initCoach(); initTips({ test: TEST || navigator.webdriver });
   // página de Início: trocar de espaço limpa a cena (como o Recomeçar, sem apagar); partida nova abre a história
-  const onSwitch = () => { dropTip(); clearNews(); if (FLAGS.risco) { migrarRisco(); resetRisco(); } resetRoundEnd(); resetOffers(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeSkills(); updateUI(); };
+  const onSwitch = () => { dropTip(); clearNews(); if (FLAGS.risco) { migrarRisco(); resetRisco(); } setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeSkills(); updateUI(); };
   initTutorial({ play: () => document.getElementById('hmContinue').click() }); // "Jogar" = Continuar/Novo jogo
   initRanking(); initJornal(); initGear(); initPip(); initStatus();
   initHome({ onSwitch: () => { onSwitch(); pedirFicha(); }, onHowto: openTutorial, onRanking: openRanking, onRankLeave: sairDoRanking, onRankJoin: definirApelido, onSound: () => syncSnd(), onJornais: drawArquivo,
     onForget: esquecerJogador, // apagar um espaço tira o apelido daquele jogador do ranking
-    onNewGame: () => { if (!(TEST || navigator.webdriver)) startIntro(false); } }); // nos testes, sem abertura
+    onNewGame: () => { if (!(TEST || navigator.webdriver)) startIntro(false); }, // nos testes, sem abertura
+    precisaNome: () => nomeInicio && !(S.rank && (S.rank.apelido || S.rank.nao)), ultimoNome: ultimoApelido }); // Novo jogo pede o nome do ranking
   $('skHome').onclick = () => { closeGear(); closeSkills(); openHome(); };
   $('gearCfg').onclick = () => { closeGear(); closeSkills(); openHome(); $('hmCfg').click(); };
   if (!(TEST || navigator.webdriver)) openHome();
@@ -255,6 +206,7 @@ function shot(name = 'shot') {
 if (DEV || TEST) window.torre = {
   get S() { return S; }, V, cam, snap: snapCamera, shot, events: recent, sons: () => soundsLoaded(),
   dicas: on => setTips(on),
+  nomeInicio: on => { nomeInicio = !!on; }, // liga o pedido de nome no Novo jogo nos testes automáticos
   home: on => (on ? openHome() : closeHome()), // abre/fecha a página de Início (desligada por padrão com ?test=1) // liga as dicas nos testes automáticos (desligadas por padrão com ?test=1)
   look: (cx, cy, z = cam.z) => { panBy(0, 0); cam.z = z; cam.cx = cx; cam.cy = cy; }, // câmera livre num ponto (capturas)
   draw: (n = 1) => { for (let i = 0; i < n; i++) { updateView(0.05, 1); render(); } },

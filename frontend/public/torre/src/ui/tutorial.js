@@ -8,7 +8,7 @@ let i = 0, onPlay = null;
 
 function draw() {
   const p = TUTORIAL[i];
-  $('htImg').src = `assets/tutorial/${FLAGS.risco ? '' : 'rodadas/'}${i + 1}.jpg`; // torre única ou jogo de rodadas $('htImg').alt = p.titulo;
+  $('htImg').src = `assets/tutorial/${i + 1}.jpg`; $('htImg').alt = p.titulo;
   $('htTitle').textContent = p.titulo; $('htText').textContent = p.texto;
   $('htDots').innerHTML = TUTORIAL.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('');
   $('htPrev').disabled = i === 0;
