@@ -12,6 +12,7 @@ import { cam, worldY } from './camera.js';
 import { V } from './view.js';
 import { blit } from './sprites.js';
 import { art } from './assets.js';
+import { t } from '../i18n.js';
 
 const lv = k => S.lv[k] || 0;
 // peças do PixelLab (~36×30) em dobro, na escala dos operários
@@ -33,7 +34,7 @@ const YARD = [ // [chave(s), largura, desenho]
   [['reciclagem'], 160, x => { prop('sucata', x - 40, 0); prop('cacamba-entulho', x + 40, 0); }],
   [['agencia'], 104, x => { // ônibus de excursão estacionado
     const c = '#e8a33a'; x -= 48; R(x, 4, 96, 30, c); R(x, 30, 96, 4, '#c47f17'); for (let k = 0; k < 6; k++) R(x + 6 + k * 14, 18, 10, 9, '#9fd0f0');
-    R(x + 10, 0, 14, 6, '#20242f'); R(x + 74, 0, 14, 6, '#20242f'); T('EXCURSÃO', x + 48, 11, 6, '#20242f', 'center');
+    R(x + 10, 0, 14, 6, '#20242f'); R(x + 74, 0, 14, 6, '#20242f'); T(t('EXCURSÃO'), x + 48, 11, 6, '#20242f', 'center');
   }],
   [['asteroides'], 30, x => { // cápsula de carga que desce do céu a cada ~14 s
     const q = (V.t / 14) % 1, cy = q < 0.5 ? 700 * (1 - q / 0.5) : 0;
@@ -47,7 +48,7 @@ export function techYard() {
   for (const [ks, w, draw] of YARD) if (ks.some(lv)) { draw(x + w / 2); x += w; }
   if (lv('imobiliaria') || lv('corretores')) { // placa da imobiliária entre o trilho do panorâmico e a bilheteria
     const px = -250; R(px - 2, 0, 4, 40, '#5a5f6a'); R(px - 30, 22, 60, 20, '#1f5a3a'); R(px - 28, 24, 56, 16, '#f4f1e6');
-    T('VIGALUZ', px, 36, 6, '#20242f', 'center'); T(lv('corretores') ? 'CORRETORES' : 'IMÓVEIS', px, 29, 7, '#1f5a3a', 'center');
+    T('VIGALUZ', px, 36, 6, '#20242f', 'center'); T(lv('corretores') ? t('CORRETORES') : t('IMÓVEIS'), px, 29, 7, '#1f5a3a', 'center');
   }
 }
 
@@ -97,7 +98,7 @@ export function techFoundation(depth) {
 export function techFacade(i, y0, lvl) {
   if (lvl < 2) return;
   if (i === 0 && lv('lojas')) for (const wx of [12, 72, 132, 192]) { const x = TL + wx - 4; for (let s = 0; s < 4; s++) R(x + s * 11, y0 + 72, 11, 7, s % 2 ? '#f4f1e6' : '#c0303a'); R(x, y0 + 71, 44, 1, '#7a1d24'); }
-  if (lv('leilao') && i % 30 === 12) { R(TL + 50, y0 + 77, 140, 15, '#20242f'); R(TL + 52, y0 + 78, 136, 13, '#c9a227'); T('LEILÃO DE COBERTURAS', TL + 120, y0 + 85, 7, '#20242f', 'center'); }
+  if (lv('leilao') && i % 30 === 12) { R(TL + 50, y0 + 77, 140, 15, '#20242f'); R(TL + 52, y0 + 78, 136, 13, '#c9a227'); T(t('LEILÃO DE COBERTURAS'), TL + 120, y0 + 85, 7, '#20242f', 'center'); }
   if ((lv('eventos') || lv('hotelNuvens')) && i % 10 === 7) { // luzes de festa penduradas no andar
     for (let k = 0; k < 12; k++) { const x = TL + 6 + k * 20, sag = Math.sin(k / 11 * Math.PI) * 6; R(x, y0 + FH - 14 - sag, 3, 3, ['#ffd23a', '#ff6a9a', '#5fe0ff'][(k + Math.floor(V.t * 2)) % 3]); }
   }

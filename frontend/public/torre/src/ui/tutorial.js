@@ -2,17 +2,18 @@
 // ← → (ou as setas do teclado) passam as páginas; a última tem "Jogar", que fecha o tutorial e o Início.
 import { TUTORIAL } from '../data/tips.js';
 import { FLAGS } from '../data/flags.js';
+import { t, LANG } from '../i18n.js';
 
 const $ = id => document.getElementById(id);
 let i = 0, onPlay = null;
 
 function draw() {
   const p = TUTORIAL[i];
-  $('htImg').src = `assets/tutorial/${i + 1}.jpg`; $('htImg').alt = p.titulo;
-  $('htTitle').textContent = p.titulo; $('htText').textContent = p.texto;
+  $('htImg').src = `assets/tutorial/${LANG === 'en' ? 'en/' : ''}${i + 1}.jpg`; // capturas em inglês: node tools/tutorial-capturas.mjs en $('htImg').alt = t(p.titulo);
+  $('htTitle').textContent = t(p.titulo); $('htText').textContent = t(p.texto);
   $('htDots').innerHTML = TUTORIAL.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('');
   $('htPrev').disabled = i === 0;
-  $('htNext').textContent = i === TUTORIAL.length - 1 ? 'Jogar' : 'Próximo →';
+  $('htNext').textContent = i === TUTORIAL.length - 1 ? t('Jogar') : t('Próximo →');
 }
 const close = () => { $('howto').hidden = true; };
 

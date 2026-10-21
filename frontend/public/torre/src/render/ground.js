@@ -23,6 +23,7 @@ import { truckSprite, wheelSprite, TRUCK_AX, TRUCK_AY, BED_STEPS, orlaSprite, ca
 import { shade } from './sprites.js';
 import { eraVis, onMoon } from './eravis.js';
 import { moonBack, moonGround } from './moon.js';
+import { t } from '../i18n.js';
 
 const STOCK_X = 168;
 const groundVisible = () => worldY(H) < 420; // o chão (ou algo perto dele) está na tela
@@ -129,7 +130,7 @@ function kiln(x, lv) {
     if (Math.floor(V.t * 6) % 2) R(x + 25, 5, 10, 9, 'rgba(255,190,70,.35)');                 // fogo piscando na boca do forno
     for (let k = 0; k < 3 + Math.min(4, lv); k++) { const q = (V.t * .5 + k / (3 + Math.min(4, lv))) % 1; R(x + 50 + Math.sin(q * 6 + k) * 4, ka.height + q * 70, 8 + q * 10, 6 + q * 6, `rgba(220,220,225,${(.5 * (1 - q)).toFixed(2)})`); }
     kilnStacks(x, lv);
-    T('OLARIA' + (lv > 1 ? ' ' + lv : ''), x + 30, 30, 9, '#f4e6c8', 'center');
+    T(t('OLARIA') + (lv > 1 ? ' ' + lv : ''), x + 30, 30, 9, '#f4e6c8', 'center');
     return;
   }
   blit(kilnSprite(Math.floor(V.t * 5) % 2), x, 0, 1, 101);
@@ -139,7 +140,7 @@ function kiln(x, lv) {
   if (lv >= 6) { const h = 70 + (lv - 6) * 6; R(x + 6, 48, 10, h - 48, '#8a4c32'); for (let y = 48; y < h; y += 6) R(x + 6, y, 10, 1, '#6e3b26'); R(x + 4, h - 2, 14, 4, '#5a3322'); stacks.push([x + 7, h + 2]); }
   for (const [sx, sy] of stacks) for (let k = 0; k < 4; k++) { const q = (V.t * .5 + k / 4) % 1; R(sx + Math.sin(q * 6 + k) * 4, sy + q * 70, 8 + q * 10, 6 + q * 6, `rgba(220,220,225,${(.5 * (1 - q)).toFixed(2)})`); }
   kilnStacks(x, lv);
-  T('OLARIA' + (lv > 1 ? ' ' + lv : ''), x + 35, 30, 9, '#f4e6c8', 'center');
+  T(t('OLARIA') + (lv > 1 ? ' ' + lv : ''), x + 35, 30, 9, '#f4e6c8', 'center');
 }
 
 // tijolos crus secando, entre o caminhão e o forno (uma pilha por nível, até 6)
@@ -167,12 +168,12 @@ function precastYard(lv) {
     for (const lx of [X0 - 4, X1 - 2]) { R(lx, 0, 6, top, c); R(lx, 0, 2, top, shade(c, 0.3)); R(lx - 3, 0, 12, 4, '#3b4152'); }
     R(X0 - 6, top, X1 - X0 + 14, 7, c); R(X0 - 6, top, X1 - X0 + 14, 2, cd);
     for (let x = X0; x < X1; x += 12) R(x, top + 2, 1, 4, cd);
-    const q = (V.t / 9) % 1, go = q < 0.5, t = go ? q * 2 : 2 - q * 2, e = t * t * (3 - 2 * t), tx = X0 + 12 + e * (X1 - X0 - 30);
+    const q = (V.t / 9) % 1, go = q < 0.5, u = go ? q * 2 : 2 - q * 2, e = u * u * (3 - 2 * u), tx = X0 + 12 + e * (X1 - X0 - 30);
     R(tx - 6, top - 6, 18, 7, '#3b4152'); R(tx - 5, top - 5, 16, 2, '#7a8091');
     const hy = 50 + Math.sin(V.t * 1.3) * 2;
     R(tx + 2, hy, 1, top - 6 - hy, '#2a2a33'); R(tx - 1, hy - 3, 8, 3, '#2a2a33');
     if (go) { R(tx - 14, hy - 30, 34, 26, '#b9b9b2'); R(tx - 14, hy - 30, 34, 2, '#dcdcd4'); R(tx - 4, hy - 22, 14, 10, st.glass || '#5a6070'); }
-    if (lv >= 4) { R((X0 + X1) / 2 - 32, top + 10, 64, 12, '#20242f'); T('PRÉ-MOLDADOS', (X0 + X1) / 2, top + 16, 8, '#f4e6c8', 'center'); }
+    if (lv >= 4) { R((X0 + X1) / 2 - 32, top + 10, 64, 12, '#20242f'); T(t('PRÉ-MOLDADOS'), (X0 + X1) / 2, top + 16, 8, '#f4e6c8', 'center'); }
   }
 }
 

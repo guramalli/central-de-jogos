@@ -10,7 +10,8 @@ import { peAvailable, peEarned } from '../sim/talents.js';
 import { clamp } from '../render/canvas.js';
 import { V } from '../render/view.js';
 import { $, setText, setHTML } from './dom.js';
-import { fmt, fmtM } from './format.js';
+import { fmt, fmtM, din } from './format.js';
+import { t, LANG } from '../i18n.js';
 import { updateUpgrades, NECK_BRANCH } from './upgrades.js';
 import { updateBusiness, businessAlert } from './business.js';
 import { updateMap, mapOpen, openMap } from './talentMap.js';
@@ -44,7 +45,7 @@ export function showPage(p) {
 // A etapa mais lenta fica em âmbar (só a cor; nada escrito). Tocar abre os detalhes.
 const sumEl = $('hSum'), sumBoxes = [sumEl, $('skSum')]; // na tela e dentro da árvore de Melhorias
 sumEl.onclick = () => sumEl.setAttribute('aria-expanded', sumEl.getAttribute('aria-expanded') !== 'true');
-const perMin = v => v >= 10 ? fmt(v) : (Math.round(v * 10) / 10).toLocaleString('pt-BR');
+const perMin = v => v >= 10 ? fmt(v) : (Math.round(v * 10) / 10).toLocaleString(LANG === 'en' ? 'en-US' : 'pt-BR');
 // Obra Viva: o resumo saiu da tela (decisão do usuário, out/2026: mostrar a etapa mais lenta tirava a graça de descobrir).
 const SHOW_SUMMARY = false;
 function updateSummary() {
@@ -52,8 +53,8 @@ function updateSummary() {
   if (sumEl.hidden) return;
   const R = rates(), capped = isCapped(R), lo = Math.min(R.prod, R.tran, R.lay), hi = Math.max(R.prod, R.tran, R.lay) || 1;
   for (const box of sumBoxes) {
-    setText(box.querySelector('.hs-incv'), `R$ ${fmt(R.income)}/s`);
-    setText(box.querySelector('.hs-fpm'), capped ? 'parada: limite da fundação' : `${perMin(lo / R.fcost * 60)} andares/min`);
+    setText(box.querySelector('.hs-incv'), din(R.income) + '/s');
+    setText(box.querySelector('.hs-fpm'), capped ? t('parada: limite da fundação') : t('{0} andares/min', perMin(lo / R.fcost * 60)));
     for (const row of box.querySelectorAll('.hs-row')) {
       const v = R[row.dataset.k];
       row.querySelector('u').style.width = (100 * v / hi).toFixed(1) + '%';
@@ -62,12 +63,12 @@ function updateSummary() {
     }
   }
   if (sumEl.getAttribute('aria-expanded') === 'true') {
-    const t = R.tour, lines = [
-      `Aluguel: R$ ${fmt(R.rent)}/s · ${fmt(S.rented)} andares alugados`,
-      S.lv.bilheteria > 0 ? `Turismo: R$ ${fmt(t.revenue)}/s · ${fmt(t.served)} visitantes/s` + (t.queue > 0.05 ? ` (fila ${fmt(t.queue)}/s)` : '') : null,
-      `Material por andar: ${fmt(R.fcost)}`,
-      `Limite da fundação: ${fmt(R.capF)} andares`,
-      `Pátio no térreo: ${fmt(S.ground)} · no topo: ${fmt(S.top)}`,
+    const tr = R.tour, lines = [
+      t('Aluguel: {0}/s · {1} andares alugados', din(R.rent), fmt(S.rented)),
+      S.lv.bilheteria > 0 ? t('Turismo: {0}/s · {1} visitantes/s', din(tr.revenue), fmt(tr.served)) + (tr.queue > 0.05 ? ' ' + t('(fila {0}/s)', fmt(tr.queue)) : '') : null,
+      t('Material por andar: {0}', fmt(R.fcost)),
+      t('Limite da fundação: {0} andares', fmt(R.capF)),
+      t('Pátio no térreo: {0} · no topo: {1}', fmt(S.ground), fmt(S.top)),
     ].filter(Boolean);
     setText($('hsMore'), lines.join('\n'));
   }
@@ -78,14 +79,14 @@ function updateHud() {
   const fl = Math.floor(S.floors);
   setText($('hFloor'), fmt(fl + 1));
   setText($('hAlt'), fmtM(altOf(S.floors)));
-  setText($('hMoney'), 'R$ ' + fmt(S.money));
+  setText($('hMoney'), din(S.money));
   // dia da obra (contrato de 365 dias por cima dos 20 min), com a barrinha do prazo; âmbar no último minuto real (~18 dias)
   const left = Math.ceil(S.roundLeft || 0), dia = roundDay(), dias = roundDays();
   { // o ano da torre na frente do dia (curto, para caber na barrinha)
     const ano = (S.risco && S.risco.ano) || 1, sp = $('hPlateClock').querySelector('span');
-    if (!$('hAno')) sp.innerHTML = 'Ano <b id="hAno">1</b> · Dia <b id="hClock">1</b><em id="hClockOf"></em>'; // sem "de 365": não cabe; a barra mostra o resto
+    if (!$('hAno')) sp.innerHTML = `${t('Ano')} <b id="hAno">1</b> · ${t('Dia')} <b id="hClock">1</b><em id="hClockOf"></em>`; // sem "de 365": não cabe; a barra mostra o resto
     setText($('hAno'), String(ano)); setText($('hClock'), String(dia));
-    setText($('skClockT'), `Ano ${ano} · Dia ${dia}/${dias}`);
+    setText($('skClockT'), t('Ano {0} · Dia {1}/{2}', ano, dia, dias));
   }
   const w = (roundFrac() * 100).toFixed(1) + '%'; // a barrinha enche de verde com o tempo
   for (const id of ['hClockBar', 'skClockBar']) if ($(id).style.width !== w) $(id).style.width = w;
@@ -96,14 +97,14 @@ function updateHud() {
   $('openUp').classList.toggle('alert', isCapped(rates()) || !!S.roundOver); // obra parada (limite da fundação ou rodada encerrada): o botão pulsa
   updateSkills();
   if (mapOpen()) updateMap();
-  setText($('skSave'), 'Salvo neste navegador · com a aba minimizada a obra continua; com o jogo fechado, ela para.');
+  setText($('skSave'), t('Salvo neste navegador · com a aba minimizada a obra continua; com o jogo fechado, ela para.'));
 }
 
 export function updateUI() {
   if (FLAGS.viva) { updateHud(); return; }
   const R = rates(), m = altOf(S.floors), e = eraAt(m), capped = isCapped(R);
   // topo: só o essencial
-  setText($('alt'), fmtM(m)); setText($('eraName'), ERAS[e].n);
+  setText($('alt'), fmtM(m)); setText($('eraName'), t(ERAS[e].n));
   setText($('money'), 'R$ ' + fmt(S.money));
   setText($('rent'), (R.net >= 0 ? '+' : '') + 'R$ ' + fmt(R.net) + '/s' + (R.bank.share > 0 ? ` · ${Math.round(R.bank.share * 100)}% ao banco` : ''));
 
@@ -114,10 +115,10 @@ export function updateUI() {
     // construção: gargalo e progresso do andar
     setText($('modeName'), 'Bloco a bloco');
     setText($('neck'), NECK_NAME[neck]);
-    setText($('neckHint'), notice || (capped ? '' : `Melhore ${BRANCHES.find(b => b.id === NECK_BRANCH[neck]).n} para acelerar.`));
+    setText($('neckHint'), notice || (capped ? '' : t('Melhore {0} para acelerar.', t(BRANCHES.find(b => b.id === NECK_BRANCH[neck]).n))));
     const p = S.floors - Math.floor(S.floors), eff = capped ? 0 : Math.min(R.prod, R.tran, R.lay), fps = eff / R.fcost;
     $('floorFill').style.width = (capped ? 100 : p * 100) + '%';
-    const etapa = ' · ' + phaseAt(p, FLAGS.viva ? VIVA.phases : PHASES).n;
+    const etapa = ' · ' + t(phaseAt(p, FLAGS.viva ? VIVA.phases : PHASES).n);
     setText($('floorPct'), capped ? 'Obra parada' : `${Math.floor(p * 100)}%${etapa}`);
     setText($('floorTime'), !fps ? '' : fps >= 1 ? `${fmt(fps)} andares/s` : `andar ${Math.floor(S.floors) + 1} pronto em ~${fmt((1 - p) / fps)} s`);
     $('capWarn').hidden = !capped;

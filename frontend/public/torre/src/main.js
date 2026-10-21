@@ -9,7 +9,8 @@ import { H, FH, setW } from './data/constants.js';
 import { altOf } from './data/height.js';
 import { ctxMain } from './render/canvas.js';
 import { updateUI, setNotice } from './ui/panel.js';
-import { fmt, fmtPct } from './ui/format.js';
+import { fmt, fmtPct, din } from './ui/format.js';
+import { t } from './i18n.js';
 import { closeMap, initMap } from './ui/talentMap.js';
 import { $ } from './ui/dom.js';
 import { initSkills, tickSkills, skillsOpen, closeSkills } from './ui/skills.js';
@@ -50,10 +51,10 @@ migrate(load());
 if (FLAGS.risco) migrarRisco(); // modo com risco: torre única (saves antigos do protótipo também)
 if (FLAGS.viva) { S.debt = 0; S.inDefault = false; } // banco saiu do Obra Viva: dívidas antigas perdoadas
 // resumo do tempo fora: no modo atual vai para a dica do painel; no Obra Viva, numa faixa sobre a cena
-function welcome(msg) {
+function welcome(msg, corpo) {
   if (!msg) return;
   setNotice(msg);
-  if (FLAGS.viva) V.toast = { a: 'ENQUANTO VOCÊ ESTEVE FORA', b: msg.replace(/^Enquanto você esteve fora: /, '').toUpperCase(), t: 5 };
+  if (FLAGS.viva) V.toast = { a: t('ENQUANTO VOCÊ ESTEVE FORA'), b: (corpo ?? msg.replace(/^Enquanto você esteve fora: /, '')).toUpperCase(), t: 5 };
 }
 welcome(runOffline());
 syncEvents();   // o que aconteceu fora do jogo vira resumo, não animação
@@ -103,7 +104,7 @@ function frame(now) {
 // A velocidade nunca muda sozinha (decisão do usuário, 21/10/2026: o aviso aparece e a escolha é de quem joga). O ranking
 // conta tempo de jogo, então acelerar não dá vantagem.
 const VELS = [1, 2, 4];
-function setVel(v) { speed = v; const b = $('speedBtn'); if (!b) return; b.textContent = v + '×'; b.classList.toggle('on', v > 1); b.setAttribute('aria-label', `Velocidade ${v}×`); }
+function setVel(v) { speed = v; const b = $('speedBtn'); if (!b) return; b.textContent = v + '×'; b.classList.toggle('on', v > 1); b.setAttribute('aria-label', t('Velocidade {0}×', v)); }
 $('speedBtn').onclick = () => setVel(VELS[(VELS.indexOf(speed) + 1) % VELS.length] || 1);
 
 // ---------- controles ----------
@@ -117,10 +118,10 @@ spBtns.forEach(b => b.onclick = () => {
 // Recomeçar: dois cliques (o primeiro arma por 3 s). Botão no topo (modo atual) e no rodapé das Melhorias (Obra Viva)
 function doReset() { dropTip(); if (FLAGS.viva) esquecerJogador(); resetState(); if (FLAGS.risco) resetRisco(); setNotice(null); resetView(); resetMilestones(); syncEvents(); syncCameraButtons(); closeMap(); updateUI(); if (FLAGS.viva) { closeSkills(); startIntro(false); } }
 for (const rs of [$('reset'), $('skReset')]) {
-  const disarm = () => { rs.classList.remove('armed'); rs.textContent = 'Recomeçar'; };
+  const disarm = () => { rs.classList.remove('armed'); rs.textContent = t('Recomeçar'); };
   rs.onclick = () => {
     if (rs.classList.contains('armed')) { disarm(); doReset(); return; }
-    rs.classList.add('armed'); rs.textContent = 'Confirmar: apagar tudo';
+    rs.classList.add('armed'); rs.textContent = t('Confirmar: apagar tudo');
     setTimeout(disarm, 3000);
   };
 }
@@ -128,16 +129,16 @@ for (const rs of [$('reset'), $('skReset')]) {
 if (FLAGS.risco) initRisco({ onExit: () => openHome(), onNext: guardar => { // desabou: torre nova com a Reputação e o prêmio guardado
   novaTorre(guardar); resetRisco();
   setNotice(null); resetView(); resetMilestones(); syncEvents(); followBuild(); syncCameraButtons(); closeSkills(); updateUI(); clearNews();
-  showNews('JORNAL DA OBRA', `Construtora Vigaluz recomeça em Santa Brisa: torre nº ${S.riscoTentativa} (Reputação ${fmtPct(repPct(S.pontosTotal || 0))}).`);
+  showNews(t('JORNAL DA OBRA'), t('Construtora Vigaluz recomeça em Santa Brisa: torre nº {0} (Reputação {1}).', S.riscoTentativa, fmtPct(repPct(S.pontosTotal || 0))));
 } });
 // Fim de jogo (Obra Viva): na primeira vez que a torre chega à Órbita, faixa na cena e tela de parabéns
 function checkWin() {
   if (!FLAGS.viva || !S.won || S.winSeen) return;
   S.winSeen = true; save();
-  V.toast = { a: 'ÓRBITA ALCANÇADA', b: 'TORRE CONCLUÍDA', t: 6 };
+  V.toast = { a: t('ÓRBITA ALCANÇADA'), b: t('TORRE CONCLUÍDA'), t: 6 };
   const h = Math.floor(S.playTime / 3600), m = Math.floor(S.playTime % 3600 / 60);
-  $('winStats').innerHTML = `<span>Tempo de obra</span><b>${h} h ${String(m).padStart(2, '0')} min</b>`
-    + `<span>Peças construídas</span><b>${fmt(Math.floor(S.floors))}</b><span>Andares alugados</span><b>${fmt(S.rented)}</b>`;
+  $('winStats').innerHTML = `<span>${t('Tempo de obra')}</span><b>${t('{0} h {1} min', h, String(m).padStart(2, '0'))}</b>`
+    + `<span>${t('Peças construídas')}</span><b>${fmt(Math.floor(S.floors))}</b><span>${t('Andares alugados')}</span><b>${fmt(S.rented)}</b>`;
   $('win').hidden = false;
 }
 $('winGo').onclick = () => { $('win').hidden = true; };
@@ -149,7 +150,7 @@ initMap(updateUI);
 document.body.classList.toggle('modo-novo', FLAGS.viva);
 if (FLAGS.viva) {
   for (const id of ['hPlateFloor', 'hPlateMoney', 'hPlateClock', 'hudBtns', 'openUp']) $(id).hidden = false; // o resumo (hSum) aparece no 1º andar
-  $('z-all').textContent = '⤢'; $('z-all').setAttribute('aria-label', 'Ver a torre inteira');
+  $('z-all').textContent = '⤢'; $('z-all').setAttribute('aria-label', t('Ver a torre inteira'));
   initSkills();
   // abertura com a história (partida nova); não roda nos testes automáticos (?test=1 ou navegador controlado)
   initIntro({ test: TEST || navigator.webdriver, auto: false });
@@ -171,7 +172,7 @@ if (FLAGS.viva) {
 
 // som da obra: lembrado neste navegador (botão sobre a cena no modo atual; no rodapé das Melhorias no Obra Viva)
 const sndBtns = [$('snd'), $('skSnd')];
-const syncSnd = () => sndBtns.forEach(b => { b.setAttribute('aria-pressed', soundOn()); b.textContent = soundOn() ? 'Som' : 'Mudo'; });
+const syncSnd = () => sndBtns.forEach(b => { b.setAttribute('aria-pressed', soundOn()); b.textContent = soundOn() ? t('Som') : t('Mudo'); });
 sndBtns.forEach(b => b.onclick = () => { setSound(!soundOn()); syncSnd(); });
 syncSnd();
 
@@ -188,10 +189,11 @@ function tempoFora(seg) {
   for (let sd = real * speed; sd > 0; sd -= 0.5) sim(Math.min(0.5, sd));
   S.playTime = (S.playTime || 0) + real * speed;
   const andares = Math.floor(S.floors) - f0, ganho = S.money - m0, r = S.risco || {};
-  const partes = [`${andares >= 0 ? '+' : ''}${fmt(andares)} andares`, `${ganho >= 0 ? '+' : '−'}R$ ${fmt(Math.abs(ganho))}`];
-  if ((r.ano || 1) > a0) partes.push('o ano terminou');
-  if (r.interd) partes.push('obra interditada: escolha um reforço');
-  welcome('Enquanto você esteve fora: ' + partes.join(' · ')); noticeT = V.t + 12;
+  const partes = [(andares >= 0 ? '+' : '') + (andares === 1 ? t('1 andar') : t('{0} andares', fmt(andares))), (ganho >= 0 ? '+' : '−') + din(Math.abs(ganho))];
+  if ((r.ano || 1) > a0) partes.push(t('o ano terminou'));
+  if (r.interd) partes.push(t('obra interditada: escolha um reforço'));
+  const corpo = partes.join(' · ');
+  welcome(t('Enquanto você esteve fora: {0}', corpo), corpo); noticeT = V.t + 12;
 }
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { save(); escondidaEm = Date.now(); return; }

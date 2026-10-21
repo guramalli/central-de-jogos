@@ -2,6 +2,7 @@
 // Só conteúdo (a interface fica em ui/intro.js). Nome da construtora: Vigaluz (fictício; decisão do usuário, 21/10/2026 —
 // antes J. Santos).
 import { FLAGS } from './flags.js';
+import { t, LANG } from '../i18n.js';
 export const COMPANY = 'Vigaluz';
 
 // cam: 'descend' (do céu até o terreno), 'ground' (térreo), 'rise' (sobe pelas eras até a Órbita), 'fans' (curiosos no tapume)
@@ -22,16 +23,16 @@ export const INTRO = INTRO_RISCO;
 export const CHEQUE_DE = ['Sócios da construtora', 'CAPITAL INICIAL'];
 
 // manchete quando a torre entra numa era (a Órbita fecha a história na tela de parabéns)
-// {cidade} vira o nome da cidade da obra atual (headline)
+// {0} vira o nome da cidade da obra atual (headline); o texto passa por t() (a chave é o português)
 export const HEADLINES = {
-  1: `Torre da ${COMPANY} já é o prédio mais alto de {cidade}`,
-  2: 'Passou o Burj Khalifa! Engenheiros do mundo todo visitam a obra em {cidade}',
+  1: `Torre da ${COMPANY} já é o prédio mais alto de {0}`,
+  2: 'Passou o Burj Khalifa! Engenheiros do mundo todo visitam a obra em {0}',
   3: 'Acima dos aviões: operários agora trabalham com trajes pressurizados',
   4: 'Na mesosfera, a torre cruza a camada onde os meteoros queimam',
   5: `A torre chega ao espaço: a ${COMPANY} é a primeira construtora fora da Terra`,
 };
 
-export const headline = (era, cidade) => HEADLINES[era] && HEADLINES[era].replace('{cidade}', cidade);
+export const headline = (era, cidade) => HEADLINES[era] && t(HEADLINES[era], t(cidade));
 
 // frase de descoberta ao comprar o 1º nível de cada tecnologia de era
 export const DISCOVERY = {
@@ -97,18 +98,24 @@ export function proximoJornal(andares, vistos) {
   for (let n = 1000; n <= andares; n += 1000) if (!v.has(n)) melhor = n;
   return melhor;
 }
-const fmtN = n => n.toLocaleString('pt-BR');
+const fmtN = n => n.toLocaleString(LANG === 'en' ? 'en-US' : 'pt-BR');
+// capas dos marcos: 100, 500 e 1.000 têm texto próprio; depois, um destes em rodízio ({0} = andares, {1} = cidade).
+// Os textos são as chaves de t() (src/i18n/en-historia.js).
+export const MANCHETE_100 = 'Construtora Vigaluz chega a 100 andares numa torre que desafia as leis da física';
+export const MANCHETE_500 = '500 andares! Engenheiros do mundo inteiro vêm a {0} ver a torre da Vigaluz';
+export const MANCHETE_1000 = 'Mil andares: a torre da Vigaluz já é a obra mais alta da história';
+export const MANCHETES = [
+  '{0} andares: a Construtora Vigaluz não para de subir',
+  '{0} andares em {1}: cientistas ainda tentam explicar como a torre fica de pé',
+  'Torre da Vigaluz passa de {0} andares e vizinhos já usam telescópio para ver o topo',
+  'Marco histórico: {0} andares na torre da Construtora Vigaluz',
+];
 export function manchete(n, cidade) {
-  if (n === 100) return `Construtora ${COMPANY} chega a 100 andares numa torre que desafia as leis da física`;
-  if (n === 500) return `500 andares! Engenheiros do mundo inteiro vêm a ${cidade} ver a torre da ${COMPANY}`;
-  if (n === 1000) return `Mil andares: a torre da ${COMPANY} já é a obra mais alta da história`;
-  const t = [
-    `${fmtN(n)} andares: a Construtora ${COMPANY} não para de subir`,
-    `${fmtN(n)} andares em ${cidade}: cientistas ainda tentam explicar como a torre fica de pé`,
-    `Torre da ${COMPANY} passa de ${fmtN(n)} andares e vizinhos já usam telescópio para ver o topo`,
-    `Marco histórico: ${fmtN(n)} andares na torre da Construtora ${COMPANY}`,
-  ];
-  return t[(n / 1000) % t.length];
+  const c = t(cidade);
+  if (n === 100) return t(MANCHETE_100);
+  if (n === 500) return t(MANCHETE_500, c);
+  if (n === 1000) return t(MANCHETE_1000);
+  return t(MANCHETES[(n / 1000) % MANCHETES.length], fmtN(n), c);
 }
 // marcos do mundo real: só uma marca na régua de altura da tela (sem jornal)
 export const MARCOS_MUNDO = [

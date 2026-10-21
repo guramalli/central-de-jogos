@@ -8,6 +8,7 @@ import { withTarget } from '../render/canvas.js';
 import { render } from '../render/scene.js';
 import { worldY, goBase, goTop, isOverview, isFree } from '../render/camera.js';
 import { FLAGS } from '../data/flags.js';
+import { t } from '../i18n.js';
 
 const $ = id => document.getElementById(id);
 let acc = 1, mode = '';
@@ -27,7 +28,7 @@ export function tickPip(dt, hidden) {
   acc += dt; if (acc < 0.12) return; acc = 0;
   const vendoChao = isFree() && worldY(H) < 400; // câmera solta perto do chão (acompanhando a obra, mostra o térreo)
   const m = vendoChao ? 'topo' : 'chao';
-  if (m !== mode) { mode = m; $('pipLabel').textContent = m === 'chao' ? 'TÉRREO' : 'TOPO'; el.title = m === 'chao' ? 'Ver o térreo' : 'Ver o topo'; }
+  if (m !== mode) { mode = m; $('pipLabel').textContent = m === 'chao' ? t('TÉRREO') : t('TOPO'); el.title = m === 'chao' ? t('Ver o térreo') : t('Ver o topo'); }
   const c = $('pipCv'), g = c.getContext('2d');
   const cam = m === 'chao' ? { cx: 215, cy: 52, z: 1.1 } : { cx: 10, cy: Math.floor(S.floors) * FH + FH * 0.55, z: 0.66 }; // canvas 264×165
   g.imageSmoothingEnabled = false;

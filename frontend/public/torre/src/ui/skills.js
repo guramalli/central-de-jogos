@@ -14,7 +14,8 @@ import { W } from '../data/constants.js';
 import { setViewInset } from '../render/camera.js';
 import { V } from '../render/view.js';
 import { $, setText, setHTML } from './dom.js';
-import { fmt, fmtM, fmtPct } from './format.js';
+import { fmtM, fmtPct, din } from './format.js';
+import { t } from '../i18n.js';
 import { iconSprite, badgeSprite, lockSprite } from './icons.js';
 import { iconURL } from '../render/assets.js';
 import { VIVA } from '../data/viva.js';
@@ -41,13 +42,13 @@ let sel = null, built = false; // sel = chave da melhoria selecionada
 const lockedUp = k => !unlocked(k);
 // ícone: o do PixelLab; senão o desenhado por código; senão o da tecnologia irmã (par da era)
 const iconHref = k => { const u = UP[k], spr = iconSprite(u.icon || k); return iconURL(k) || iconURL(u.icon) || (spr && spriteDataURL(spr)) || (u.pair && iconURL(u.pair)) || spriteDataURL(iconSprite('motor')); };
-const eraOf = k => UP[k].era ? ERAS[UP[k].era].n : '';
+const eraOf = k => UP[k].era ? t(ERAS[UP[k].era].n) : '';
 const lockText = k => {
   const u = UP[k], parts = [];
-  if (u.pair && S.lv[u.pair] > 0) return `Nesta obra você escolheu ${UP[u.pair].n}. A outra opção volta na próxima obra.`;
-  if (u.req && S.lv[u.req[0]] < u.req[1]) parts.push(`${UP[u.req[0]].n} no nível ${u.req[1]}`);
-  if (u.reqAlt && S.maxAlt < u.reqAlt) parts.push(`a torre chegar a ${fmtM(u.reqAlt)}${u.era ? ` (${eraOf(k)})` : ''}`);
-  return parts.length ? 'Libera quando ' + parts.join(' e ') + '.' : '';
+  if (u.pair && S.lv[u.pair] > 0) return t('Nesta obra você escolheu {0}. A outra opção volta na próxima obra.', t(UP[u.pair].n));
+  if (u.req && S.lv[u.req[0]] < u.req[1]) parts.push(t('{0} no nível {1}', t(UP[u.req[0]].n), u.req[1]));
+  if (u.reqAlt && S.maxAlt < u.reqAlt) parts.push(u.era ? t('a torre chegar a {0} ({1})', fmtM(u.reqAlt), eraOf(k)) : t('a torre chegar a {0}', fmtM(u.reqAlt)));
+  return parts.length > 1 ? t('Libera quando {0} e {1}.', parts[0], parts[1]) : parts.length ? t('Libera quando {0}.', parts[0]) : '';
 };
 
 // etapas andando juntas: quem está segurando e a explicação (só na árvore; a obra continua sem texto)
@@ -57,14 +58,14 @@ const HOLD_WHY = {
   tran: { prod: 'Pátio cheio: os elevadores não levam o que já chega', lay: 'O material não sobe rápido o bastante' },
   lay: { prod: 'Material sobrando no topo: os pedreiros não dão conta', tran: 'Os pedreiros não dão conta do que já sobe' },
 };
-const holdText = (k, blk) => `${HOLD_WHY[blk][STAGE_OF(k)]}. Melhore ${blk === 'lay' ? 'a Mão de obra' : blk === 'prod' ? 'o Fornecimento' : 'a Logística'} antes — numa obra, as etapas andam juntas.`;
+const holdText = (k, blk) => t('{0}. Melhore {1} antes — numa obra, as etapas andam juntas.', t(HOLD_WHY[blk][STAGE_OF(k)]), blk === 'lay' ? t('a Mão de obra') : blk === 'prod' ? t('o Fornecimento') : t('a Logística'));
 
 // o que falta, curto, para escrever na árvore ("Treino nv 3", "torre em 1 km", "abre no Concreto")
 const reqShort = k => {
   const u = UP[k];
-  if (u.pair && S.lv[u.pair] > 0) return 'outra escolhida';
-  if (u.req && S.lv[u.req[0]] < u.req[1]) return `${SHORT[u.req[0]] || UP[u.req[0]].n} nv ${u.req[1]}`;
-  if (u.reqAlt && S.maxAlt < u.reqAlt) return u.era ? 'abre em ' + fmtM(u.reqAlt) : 'torre em ' + fmtM(u.reqAlt);
+  if (u.pair && S.lv[u.pair] > 0) return t('outra escolhida');
+  if (u.req && S.lv[u.req[0]] < u.req[1]) return t('{0} nv {1}', t(SHORT[u.req[0]] || UP[u.req[0]].n), u.req[1]);
+  if (u.reqAlt && S.maxAlt < u.reqAlt) return u.era ? t('abre em {0}', fmtM(u.reqAlt)) : t('torre em {0}', fmtM(u.reqAlt));
   return '';
 };
 
@@ -86,9 +87,9 @@ function build() {
   for (let e = 1; e <= 5; e++) {
     const y = (ERA_ROW0 + e - 0.5) * ROW, g = mk('g', { class: 'sk-ring' }, gBands);
     mk('line', { x1: xL, x2: xR, y1: Y(y), y2: Y(y) }, g);
-    const t = mk('text', { x: xL - 14, y: Y(y) + 6, 'text-anchor': 'end' }, g); t.textContent = ERAS[e].n;
-    const t2 = mk('text', { x: xL - 14, y: Y(y) + 28, 'text-anchor': 'end', class: 'sub' }, g); t2.textContent = 'a partir de ' + fmtM(ERAS[e].m);
-    eraEls.push({ e, g, t });
+    const tx = mk('text', { x: xL - 14, y: Y(y) + 6, 'text-anchor': 'end' }, g); tx.textContent = t(ERAS[e].n);
+    const t2 = mk('text', { x: xL - 14, y: Y(y) + 28, 'text-anchor': 'end', class: 'sub' }, g); t2.textContent = t('a partir de {0}', fmtM(ERAS[e].m));
+    eraEls.push({ e, g, t: tx });
   }
   // tronco e legendas dos ramos
   const [bx, by] = BASE_POS;
@@ -98,14 +99,14 @@ function build() {
     const lab = mk('g', { class: 'sk-blabel', transform: `translate(${x} ${Y(-115)})`, style: `--c:${c}` }, gNodes);
     mk('rect', { x: -BW / 2 + 12, y: -22, width: BW - 24, height: 56 }, lab);
     mk('rect', { x: -BW / 2 + 18, y: -16, width: BW - 36, height: 44, class: 'bev' }, lab);
-    const t1 = mk('text', { y: 2, 'text-anchor': 'middle', class: 'n' }, lab); t1.textContent = BRANCH_INFO[b][0];
-    const t2 = mk('text', { y: 24, 'text-anchor': 'middle', class: 'd' }, lab); t2.textContent = BRANCH_INFO[b][1];
+    const t1 = mk('text', { y: 2, 'text-anchor': 'middle', class: 'n' }, lab); t1.textContent = t(BRANCH_INFO[b][0]);
+    const t2 = mk('text', { y: 24, 'text-anchor': 'middle', class: 'd' }, lab); t2.textContent = t(BRANCH_INFO[b][1]);
   }
   // tronco neutro: do OBRA até a base de todos os ramos (as cores começam onde cada ramo sobe)
   mk('path', { d: `M${bx} ${Y(by)} V ${Y(12)} M${colX(COLS[0])} ${Y(12)} H ${colX(COLS[COLS.length - 1])}`, class: 'sk-trunk0' }, gEdges);
   const base = mk('g', { class: 'sk-base', transform: `translate(${bx} ${Y(by)})` }, gNodes);
   mk('image', { x: -40, y: -40, width: 80, height: 80, class: 'px', href: spriteDataURL(badgeSprite('#f2b630', 'max')) }, base);
-  const bt = mk('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central' }, base); bt.textContent = 'OBRA';
+  const bt = mk('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central' }, base); bt.textContent = t('OBRA');
   // melhorias (compras do dia a dia e tecnologias de era)
   for (const b of COLS) {
     const L = SKILL_LAYOUT[b], c = COLOR[b];
@@ -127,7 +128,7 @@ function build() {
       mk('image', { x: -15, y: -15, width: 30, height: 30, class: 'px lock', href: spriteDataURL(lockSprite()) }, n);
       mk('rect', { x: 13, y: 15, width: 26, height: 20, class: 'lvbox' }, n);
       const lv = mk('text', { class: 'lvl', x: 26, y: 26, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, n);
-      const nm = mk('text', { class: 'nm', y: 54, 'text-anchor': 'middle' }, n); nm.textContent = SHORT[k] || UP[k].n;
+      const nm = mk('text', { class: 'nm', y: 54, 'text-anchor': 'middle' }, n); nm.textContent = t(SHORT[k] || UP[k].n);
       n.appendChild(rq);
       upEls[k] = { n, lv, e, e2, fp, from, rq, badge, cls: '', st: '' };
     }
@@ -151,7 +152,7 @@ function updateTree() {
     if (st !== e.st) { e.badge.setAttribute('href', spriteDataURL(badgeSprite(COLOR[UP[k].b], st === 'hold' ? (lv > 0 ? 'own' : 'open') : st))); e.st = st; }
     if (e.e) { e.e.classList.toggle('on', lv > 0 && (!e.fp || (S.lv[e.from] || 0) > 0)); e.e.classList.toggle('open', !lk && lv === 0); }
     if (e.e2) { e.e2.classList.toggle('on', lv > 0 && (S.lv[e.fp] || 0) > 0); e.e2.classList.toggle('open', !lk && lv === 0); }
-    setText(e.rq, lk ? reqShort(k) : blk ? 'antes: ' + HOLD_NAME[blk] : '');
+    setText(e.rq, lk ? reqShort(k) : blk ? t('antes: {0}', t(HOLD_NAME[blk])) : '');
   }
 }
 
@@ -161,13 +162,13 @@ const policyOf = () => (S.policy && S.policy[S.era]) === 'sell' ? 'sell' : 'rent
 function drawPolicy(d, bt) {
   const sell = policyOf() === 'sell';
   d.style.setProperty('--c', COLOR.merc);
-  setText($('sdKind'), BRANCH_INFO.merc[0] + ' · ' + ERAS[S.era].n);
-  setText($('sdName'), UP.imoveis.n);
-  setHTML($('sdLv'), `<span>Agora: ${sell ? 'vendendo' : 'alugando'} os andares desta era</span>`);
-  setText($('sdDesc'), UP.imoveis.d);
-  setText($('sdFx'), sell ? 'Cada andar pronto vira dinheiro na hora.' : 'Cada andar pronto soma no aluguel por segundo.'); $('sdFx').hidden = false;
-  setText($('sdReq'), 'Vale para os andares que ficarem prontos daqui em diante, nesta era.');
-  bt.hidden = false; bt.disabled = false; setText(bt, sell ? 'Mudar para alugar' : 'Mudar para vender');
+  setText($('sdKind'), t(BRANCH_INFO.merc[0]) + ' · ' + t(ERAS[S.era].n));
+  setText($('sdName'), t(UP.imoveis.n));
+  setHTML($('sdLv'), `<span>${sell ? t('Agora: vendendo os andares desta era') : t('Agora: alugando os andares desta era')}</span>`);
+  setText($('sdDesc'), t(UP.imoveis.d));
+  setText($('sdFx'), sell ? t('Cada andar pronto vira dinheiro na hora.') : t('Cada andar pronto soma no aluguel por segundo.')); $('sdFx').hidden = false;
+  setText($('sdReq'), t('Vale para os andares que ficarem prontos daqui em diante, nesta era.'));
+  bt.hidden = false; bt.disabled = false; setText(bt, sell ? t('Mudar para alugar') : t('Mudar para vender'));
 }
 
 function drawDetail() {
@@ -177,22 +178,22 @@ function drawDetail() {
   if (sel === 'imoveis') { drawPolicy(d, bt); return; }
   const k = sel, u = UP[k], lk = lockedUp(k), mx = maxed(k), can = !lk && canBuy(k);
   d.style.setProperty('--c', COLOR[u.b]);
-  setText($('sdKind'), BRANCH_INFO[u.b][0] + (u.era ? ` · tecnologia da ${eraOf(k)}` : ' · compra com dinheiro'));
-  setText($('sdName'), u.n);
+  setText($('sdKind'), u.era ? t('{0} · tecnologia da {1}', t(BRANCH_INFO[u.b][0]), eraOf(k)) : t('{0} · compra com dinheiro', t(BRANCH_INFO[u.b][0])));
+  setText($('sdName'), t(u.n));
   setHTML($('sdLv'), u.max !== undefined
-    ? Array.from({ length: u.max }, (_, i) => `<i class="${i < S.lv[k] ? 'on' : ''}"></i>`).join('') + `<span>Nv ${S.lv[k]} de ${u.max}</span>`
-    : `<span>Nível ${S.lv[k]}</span>`);
-  setText($('sdDesc'), u.d);
+    ? Array.from({ length: u.max }, (_, i) => `<i class="${i < S.lv[k] ? 'on' : ''}"></i>`).join('') + `<span>${t('Nv {0} de {1}', S.lv[k], u.max)}</span>`
+    : `<span>${t('Nível {0}', S.lv[k])}</span>`);
+  setText($('sdDesc'), t(u.d));
   const fx = lk || mx ? '' : upgradeEffect(k);
   setText($('sdFx'), fx || ''); $('sdFx').hidden = !fx;
   const blk = !lk && !mx ? stageBlock(k) : null;
-  setText($('sdReq'), lk ? lockText(k) : mx ? 'Nível máximo.' : blk ? holdText(k, blk) : '');
+  setText($('sdReq'), lk ? lockText(k) : mx ? t('Nível máximo.') : blk ? holdText(k, blk) : '');
   bt.hidden = lk || mx; bt.disabled = !can;
-  setText(bt, `Comprar · R$ ${fmt(cost(k))}`);
+  setText(bt, t('Comprar · {0}', din(cost(k))));
   // compra em lote (básicos com pelo menos 2 níveis pela frente): até 5 de uma vez
   const b5 = $('sdBuy5'), left = u.max !== undefined ? u.max - S.lv[k] : 5, n5 = Math.min(5, left);
   b5.hidden = lk || mx || !!u.era || n5 < 2;
-  if (!b5.hidden) { const c5 = costN(k, n5); b5.disabled = !can || S.money < c5; setText(b5, `Comprar ×${n5} · R$ ${fmt(c5)}`); }
+  if (!b5.hidden) { const c5 = costN(k, n5); b5.disabled = !can || S.money < c5; setText(b5, t('Comprar ×{0} · {1}', n5, din(c5))); }
 }
 
 function select(k) { sel = k; updateSkills(); }
@@ -267,13 +268,13 @@ new ResizeObserver(() => { if (!overlay.hidden && !userMoved) fit(); }).observe(
 // faixa "Construtora Vigaluz": a Reputação, a torre e o ano
 function updateBoard() {
   $('skBoard').hidden = false;
-  setText($('skRep'), `Reputação ${fmtPct(repPct(S.pontosTotal || 0))}`);
-  setText($('skObra'), `Torre nº ${S.riscoTentativa || 1} · Ano ${(S.risco && S.risco.ano) || 1}`);
+  setText($('skRep'), t('Reputação {0}', fmtPct(repPct(S.pontosTotal || 0))));
+  setText($('skObra'), t('Torre nº {0} · Ano {1}', S.riscoTentativa || 1, (S.risco && S.risco.ano) || 1));
 }
 
 export function updateSkills() {
   if (overlay.hidden) return;
-  setText($('skMoney'), 'R$ ' + fmt(S.money));
+  setText($('skMoney'), din(S.money));
   updateTree();
   drawDetail();
   updateBoard();
@@ -283,9 +284,9 @@ export const selectedKey = () => sel;
 // traz um nó para a área visível da árvore (as dicas apontam para ele)
 export function revealNode(k) {
   const el = svg.querySelector(`[data-up="${k}"]`); if (!el) return;
-  const r = el.getBoundingClientRect(), t = svg.getBoundingClientRect(), m = 24;
-  if (r.left >= t.left + m && r.right <= t.right - m && r.top >= t.top + m && r.bottom <= t.bottom - m) return;
-  view.x += t.left + t.width / 2 - (r.left + r.width / 2); view.y += t.top + t.height / 2 - (r.top + r.height / 2); apply();
+  const r = el.getBoundingClientRect(), b = svg.getBoundingClientRect(), m = 24;
+  if (r.left >= b.left + m && r.right <= b.right - m && r.top >= b.top + m && r.bottom <= b.bottom - m) return;
+  view.x += b.left + b.width / 2 - (r.left + r.width / 2); view.y += b.top + b.height / 2 - (r.top + r.height / 2); apply();
 }
 export const skillsOpen = () => !overlay.hidden;
 

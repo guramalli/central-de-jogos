@@ -10,9 +10,9 @@ import { tourist } from './workers.js';
 import { boothSprite, heliSprite, rocketSprite } from './props.js';
 import { art } from './assets.js';
 import { FLAGS } from '../data/flags.js';
-import { COMPANY } from '../data/story.js';
 import { onMoon } from './eravis.js';
 import { floorOf } from '../data/height.js';
+import { t } from '../i18n.js';
 
 const SHIRTS = ['#e8505b', '#4fb0e8', '#f2d24a', '#7ad37a', '#c58be8', '#ff9f43'];
 
@@ -43,7 +43,7 @@ function panoCabin(x, y, st, tier, seed, people = true) {
   if (tier >= 1) { R(x + w / 2 - 6, y + h - 4, 12, 3, '#fff6c8'); R(x - 2, y + h, w + 4, 3, st.roof); }   // luz no teto
   if (tier >= 2) { // faixa de LED correndo na base e letreiro no teto
     for (let k = 0; k < w - 6; k += 4) R(x + 3 + k, y + 1, 2, 2, (Math.floor(V.t * 6) + k / 4) % 3 < 1 ? '#5fe0ff' : '#1d5a6a');
-    if (!simple) { R(x + 6, y + h + 3, w - 12, 10, '#20242f'); T('PANORÂMICO', x + w / 2, y + h + 8, 7, st.hi, 'center'); }
+    if (!simple) { R(x + 6, y + h + 3, w - 12, 10, '#20242f'); T(t('PANORÂMICO'), x + w / 2, y + h + 8, 7, st.hi, 'center'); }
   }
   // carrinho preso no trilho
   R(x + w, y + 20, 8, h - 40, st.roof); R(x + w, y + 24, 8, 2, st.hi);
@@ -95,14 +95,14 @@ function booth(aberta) {
   if (ba) { // bilheteria do PixelLab, de frente; a placa "TICKETS" do desenho ganha o texto em português por cima
     blit(ba, BOOTH_X, 0, 0, ba.height);
     R(BOOTH_X + 13, ba.height - 13, 41, 12, '#f4f1e6'); R(BOOTH_X + 13, ba.height - 13, 41, 1, '#20242f'); R(BOOTH_X + 13, ba.height - 2, 41, 1, '#20242f');
-    T(aberta ? 'INGRESSOS' : 'EM BREVE', BOOTH_X + 33.5, ba.height - 7, 7, '#20335a', 'center');
+    T(aberta ? t('INGRESSOS') : t('EM BREVE'), BOOTH_X + 33.5, ba.height - 7, 7, '#20335a', 'center');
     if (!aberta) { // janela com a porta de enrolar baixada
       const wx = BOOTH_X + 22, wy = ba.height - 49, ww = 29, wh = 21; // a janela do desenho (pixels 22–51 × 28–49, de cima)
       R(wx, wy, ww, wh, '#8a8f99'); for (let y = wy + 2; y < wy + wh; y += 3) R(wx, y, ww, 1, '#6c727e');
-      R(wx + 1, wy + wh / 2 - 4, ww - 2, 8, '#c0303a'); T('FECHADO', wx + ww / 2, wy + wh / 2, 5, '#f4f1e6', 'center');
+      R(wx + 1, wy + wh / 2 - 4, ww - 2, 8, '#c0303a'); T(t('FECHADO'), wx + ww / 2, wy + wh / 2, 5, '#f4f1e6', 'center');
     }
   }
-  else { blit(boothSprite(), BOOTH_X, 0, 3, 76); T(aberta ? 'INGRESSOS' : 'EM BREVE', BOOTH_X + 17, 75, 8, '#f2b630', 'center'); }
+  else { blit(boothSprite(), BOOTH_X, 0, 3, 76); T(aberta ? t('INGRESSOS') : t('EM BREVE'), BOOTH_X + 17, 75, 8, '#f2b630', 'center'); }
 }
 
 // Lua: módulo pressurizado com cúpula, janela redonda, câmara de ar e a placa (60×48)
@@ -116,7 +116,7 @@ function moonBooth(aberta) {
   R(x + 29, 8, 18, 10, '#7c8597'); R(x + 31, 9, 14, 8, aberta ? '#ffd27a' : '#22407a'); R(x + 32, 10, 4, 3, 'rgba(255,255,255,.5)'); // janela
   R(x + 50, 36, 2, 10, '#9aa0ad'); R(x + 48, 46, 6, 2, aberta ? '#6fd08c' : '#ff5a4a');  // antena com luz
   R(x + 12, 24, 40, 9, '#f4f1e6'); R(x + 12, 24, 40, 1, '#20242f');
-  T(aberta ? 'INGRESSOS' : 'EM BREVE', x + 32, 28.5, 6, '#20335a', 'center');
+  T(aberta ? t('INGRESSOS') : t('EM BREVE'), x + 32, 28.5, 6, '#20335a', 'center');
 }
 
 // Obra Viva, antes do Elevador panorâmico: tapume com a placa da construtora e curiosos tirando foto
@@ -128,9 +128,9 @@ function curious() {
   if (cam.z >= 0.3) {
     R(x0 + 8, 40, 3, 34, '#5b6170'); R(x1 - 11, 40, 3, 34, '#5b6170');
     R(x0 + 2, 60, x1 - x0 - 4, 40, '#20242f'); R(x0 + 4, 62, x1 - x0 - 8, 36, '#f2b630'); R(x0 + 4, 84, x1 - x0 - 8, 14, '#20242f');
-    T('CONSTRUTORA ' + COMPANY.toUpperCase(), (x0 + x1) / 2, 91, 8, '#f2b630', 'center');
-    T('EM BREVE: A TORRE', (x0 + x1) / 2, 77, 8, '#20242f', 'center');
-    T('MAIS ALTA DO MUNDO', (x0 + x1) / 2, 68, 8, '#20242f', 'center');
+    T(t('CONSTRUTORA VIGALUZ'), (x0 + x1) / 2, 91, 8, '#f2b630', 'center');
+    T(t('EM BREVE: A TORRE'), (x0 + x1) / 2, 77, 8, '#20242f', 'center');
+    T(t('MAIS ALTA DO MUNDO'), (x0 + x1) / 2, 68, 8, '#20242f', 'center');
   }
   for (let i = 2; i >= 0; i--) tourist(TL - 32 - i * 40, 0, 1 + i * 4, { phase: V.t + i });
 }
@@ -171,5 +171,5 @@ export function drawForSale(topWP) {
   const x = TL + TW - 112, y = topWP - 30;
   R(x - 3, y - 3, 104, 26, '#b8741a'); R(x, y, 98, 20, '#fff3cc');
   R(x + 20, y - 16, 4, 13, '#5b6170'); R(x + 74, y - 16, 4, 13, '#5b6170');
-  if (!T(Math.floor(V.t / 2) % 2 ? 'VENDE-SE' : 'ALUGA-SE', x + 49, y + 10, 14, '#b3261e', 'center')) R(x + 10, y + 8, 78, 4, '#b3261e');
+  if (!T(Math.floor(V.t / 2) % 2 ? t('VENDE-SE') : t('ALUGA-SE'), x + 49, y + 10, 14, '#b3261e', 'center')) R(x + 10, y + 8, 78, 4, '#b3261e');
 }

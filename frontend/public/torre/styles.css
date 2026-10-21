@@ -522,6 +522,9 @@ body.intro .plate,body.intro .hsum,body.intro .upbtn,body.intro .camctl,body.int
 .hm-cfg{display:flex;flex-direction:column;gap:10px}
 .hm-cfg h4{margin:8px 0 0;font-family:var(--f-display);color:#f2b630;font-size:14px;letter-spacing:.08em;text-transform:uppercase}
 .hm-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.hm-lang{display:flex;gap:6px}.hm-lang .hm-btn.on{background:var(--gold,#f2b630);color:#1b1622}
+.hm-langq{position:absolute;top:14px;right:14px;display:flex;border:2px solid rgba(255,255,255,.25);border-radius:8px;overflow:hidden}
+.hm-langq button{font:700 13px "Chakra Petch";border:0;padding:5px 10px;background:rgba(20,18,30,.75);color:#cfc8e0;cursor:pointer}.hm-langq button.on{background:#f2b630;color:#1b1622}
 .hm-row small{display:block;color:var(--muted);font-size:11px}
 .hm-row input[type=range]{width:min(220px,50vw)}
 .hm-row input[type=checkbox]{width:22px;height:22px}

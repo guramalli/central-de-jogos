@@ -16,6 +16,7 @@ import { scaffoldTile, scaffoldHiTile, shaftHiTile, capsuleSprite, brickTile, er
 import { eraVis, onMoon } from './eravis.js';
 import { facadeImg, spaceDecor } from './spacedecor.js';
 import { avariaDoAndar } from '../sim/risco.js';
+import { t } from '../i18n.js';
 const hiTech = () => eraVis(altOf(S.floors)) >= 3; // andaime e elevador de era alta
 
 const WIN_X = [12, 72, 132, 192];     // janelas: x relativo à borda esquerda
@@ -315,7 +316,7 @@ export function crane(buildTop, trolX, hookY) {
       if (pub >= 2) for (let x = 0; x < bw; x += 6) R(bx + x, by + 2, 3, 1, 'rgba(255,255,255,.25)');
     } else {
       R(bx, by + 1, bw, bh - 1, '#f4f1e6'); R(bx, by + 1, bw, 3, tint);
-      T(bw >= 150 ? 'CONSTRUTORA VIGALUZ' : 'VIGALUZ', bx + bw / 2, by + 7, 8, '#20242f', 'center');
+      T(bw >= 150 ? t('CONSTRUTORA VIGALUZ') : 'VIGALUZ', bx + bw / 2, by + 7, 8, '#20242f', 'center');
     }
     if (mk >= 3 && Math.floor(V.t * 3) % 2) for (let x = 4; x < bw; x += 24) R(bx + x, by + bh, 3, 2, '#ffe27a'); // lâmpadas
   }

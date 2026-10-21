@@ -4,9 +4,10 @@ import { S, save } from '../sim/state.js';
 import { onEvent } from '../render/events.js';
 import { showNews } from './intro.js';
 import { FLAGS } from '../data/flags.js';
+import { t } from '../i18n.js';
 
 const MACHINES = ['elevador', 'motor', 'cacamba', 'guindaste'];
-const MSG = {
+export const MSG = {
   contrato: 'Primeira contratação: a equipe cresceu e a obra anda mais rápido',
   parede: 'A primeira parede de tijolos está de pé',
   andar: 'Primeiro andar pronto e alugado: a renda começou',
@@ -16,7 +17,7 @@ function mark(id) {
   if (!S.marcos) S.marcos = {};
   if (S.marcos[id]) return;
   S.marcos[id] = true; save();
-  showNews('MARCO DA OBRA', MSG[id]);
+  showNews(t('MARCO DA OBRA'), t(MSG[id]));
 }
 export function initMilestones() {
   if (!FLAGS.viva) return;

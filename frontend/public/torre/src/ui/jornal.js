@@ -10,6 +10,7 @@ import { fmtM, fmt } from './format.js';
 import { altOf } from '../data/height.js';
 import { VIVA } from '../data/viva.js';
 import { sfx } from './audio.js';
+import { t, LANG } from '../i18n.js';
 
 const $ = id => document.getElementById(id);
 const fotosKey = () => 'torre-jornais-espaco' + activeSlot();
@@ -22,10 +23,30 @@ function foto() {
   c.width = w; c.height = h; c.getContext('2d').drawImage(cv, 0, 0, w, h);
   try { return c.toDataURL('image/jpeg', 0.72); } catch (e) { return ''; }
 }
+// título e subtítulo da capa: refeitos pelo marco no idioma atual (o save guarda o texto do idioma em que a capa saiu)
+function tituloAlt(alt, cidade) {
+  const mk = VIVA.marcosOrbita.find(x => x.m === alt), c = t(cidade);
+  if (!mk || mk.n === 'Mil quilômetros') return t('A torre da Vigaluz passa o marco dos mil quilômetros: {0} acima de {1}', fmtM(alt), c);
+  return t('A torre da Vigaluz passa o marco "{0}": {1} acima de {2}', t(mk.n), fmtM(alt), c);
+}
+const subAlt = () => t('Bônus permanente para a construtora: +{0}% em tudo.', Math.round(VIVA.marcosBonus * 100));
+const subAndar = n => t('A torre da Construtora Vigaluz já tem {0} de altura.', fmtM(altOf(n)));
+function textos(j) {
+  const cid = j.cidade || city().n;
+  if (j.alt) return { titulo: tituloAlt(j.alt, cid), sub: subAlt() };
+  if (Number.isFinite(j.n)) return { titulo: manchete(j.n, cid), sub: subAndar(j.n) };
+  return { titulo: j.titulo || '', sub: j.sub || '' };
+}
+function dataDe(j) { // capas antigas (sem torre) só com a cidade
+  const c = t(j.cidade || '');
+  if (j.torre) return j.dia ? t('Torre nº {0} · {1} · ano {2}, dia {3}', j.torre, c, j.ano, j.dia) : t('Torre nº {0} · {1} · ano {2}', j.torre, c, j.ano);
+  return j.dia ? t('{0}, dia {1}', c, j.dia) : c;
+}
 function mostrar(j, img) {
   sfx('jornal');
-  $('jnTitle').textContent = j.titulo; $('jnSub').textContent = j.sub;
-  $('jnDate').textContent = (j.torre ? `Torre nº ${j.torre} · ${j.cidade} · ano ${j.ano}` : `${j.cidade}`) + (j.dia ? `, dia ${j.dia}` : ''); // capas antigas (sem torre) só com a cidade
+  const tx = textos(j);
+  $('jnTitle').textContent = tx.titulo; $('jnSub').textContent = tx.sub;
+  $('jnDate').textContent = dataDe(j);
   $('jnImg').src = img || ''; $('jnImg').hidden = !img;
   const el = $('jornal'); el.hidden = false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in');
 }
@@ -40,10 +61,9 @@ export function checkJornal(bloqueado) {
   const vistosAlt = new Set((S.jornais || []).filter(x => x.alt).map(x => x.alt));
   const novoAlt = (S.marcosAlt || []).find(m => !vistosAlt.has(m));
   if (novoAlt && !pend) {
-    const mk = VIVA.marcosOrbita.find(x => x.m === novoAlt), cidade = city().n;
+    const cidade = city().n;
     const jj = { n: Math.floor(S.floors), alt: novoAlt, torre: S.riscoTentativa || 1, ano: (S.risco && S.risco.ano) || 1, cidade, dia: roundDay(),
-      titulo: `A torre da Vigaluz passa o marco ${mk.n === 'Mil quilômetros' ? 'dos mil quilômetros' : `"${mk.n}"`}: ${fmtM(novoAlt)} acima de ${cidade}`,
-      sub: `Bônus permanente para a construtora: +${Math.round(VIVA.marcosBonus * 100)}% em tudo.` };
+      titulo: tituloAlt(novoAlt, cidade), sub: subAlt() };
     S.jornais = [...(S.jornais || []), jj].sort((a, b) => a.n - b.n); save();
     const img = foto(), f = fotos(); f['alt' + novoAlt] = img;
     try { localStorage.setItem(fotosKey(), JSON.stringify(f)); } catch (e) { }
@@ -59,7 +79,7 @@ export function checkJornal(bloqueado) {
   if (V.t < pend.at) return;
   const n = pend.n; pend = null;
   const cidade = city().n;
-  const j = { n, torre: S.riscoTentativa || 1, ano: (S.risco && S.risco.ano) || 1, cidade, dia: roundDay(), titulo: manchete(n, cidade), sub: `A torre da Construtora Vigaluz já tem ${fmtM(altOf(n))} de altura.` };
+  const j = { n, torre: S.riscoTentativa || 1, ano: (S.risco && S.risco.ano) || 1, cidade, dia: roundDay(), titulo: manchete(n, cidade), sub: subAndar(n) };
   // marcos menores que ficaram para trás nesta passada também contam como noticiados
   const vistos = new Set((S.jornais || []).filter(x => !x.alt).map(x => x.n)), novos = [j];
   for (const m of [100, 500]) if (m < n && !vistos.has(m)) novos.push({ ...j, n: m, titulo: manchete(m, cidade) });
@@ -73,11 +93,11 @@ export function checkJornal(bloqueado) {
 // arquivo de jornais (página de Início)
 export function drawArquivo() {
   const ul = $('jnList'), lista = [...(S.jornais || [])].reverse(), f = fotos();
-  ul.innerHTML = lista.length ? '' : '<li class="rk-wait">Nenhuma capa ainda. A primeira sai no andar 100!</li>';
+  ul.innerHTML = lista.length ? '' : `<li class="rk-wait">${t('Nenhuma capa ainda. A primeira sai no andar 100!')}</li>`;
   for (const j of lista) {
     const li = document.createElement('li');
-    li.innerHTML = `<b>${j.alt ? fmtM(j.alt) : j.n.toLocaleString('pt-BR')}</b><span></span>`;
-    li.querySelector('span').textContent = j.titulo;
+    li.innerHTML = `<b>${j.alt ? fmtM(j.alt) : j.n.toLocaleString(LANG === 'en' ? 'en-US' : 'pt-BR')}</b><span></span>`;
+    li.querySelector('span').textContent = textos(j).titulo;
     li.onclick = () => { mostrar(j, f[j.alt ? 'alt' + j.alt : j.n]); fechaT = Infinity; };
     ul.appendChild(li);
   }

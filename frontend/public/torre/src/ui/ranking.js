@@ -6,6 +6,7 @@ import { S, save } from '../sim/state.js';
 import { FLAGS } from '../data/flags.js';
 import { fmtM } from './format.js';
 import { MARKS } from '../data/eras.js';
+import { t } from '../i18n.js';
 
 const $ = id => document.getElementById(id);
 export const API = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) ? 'http://localhost:4000' : 'https://api.educacaogamer.com.br';
@@ -13,13 +14,38 @@ const ROTA = '/unica/ranking';
 let lista = 'orbita';
 
 async function api(path, { method = 'GET', body } = {}) {
-  const ac = new AbortController(), t = setTimeout(() => ac.abort(), 6000);
+  const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 6000);
   try {
     const r = await fetch(API + '/api/torre' + path, { method, signal: ac.signal, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });
     const data = await r.json().catch(() => ({}));
     return { ok: r.ok, status: r.status, data };
   } catch (e) { return { ok: false, offline: true, data: {} }; }
-  finally { clearTimeout(t); }
+  finally { clearTimeout(tm); }
+}
+// mensagens do servidor (português) mostradas ao jogador: as conhecidas passam pelo dicionário; as outras ficam como vieram
+const MOTIVOS = {
+  'use só letras, números e espaço': () => t('use só letras, números e espaço'), 'use pelo menos 2 letras': () => t('use pelo menos 2 letras'),
+  'não coloque contato nem site': () => t('não coloque contato nem site'), 'esse nome é reservado': () => t('esse nome é reservado'),
+  'sem palavrão': () => t('sem palavrão'), 'escolha outro': () => t('escolha outro'),
+};
+const SERVIDOR = {
+  'Escolha um apelido.': () => t('Escolha um apelido.'), 'O apelido precisa ter de 3 a 12 letras.': () => t('O apelido precisa ter de 3 a 12 letras.'),
+  'Esse apelido não pode ser usado.': () => t('Esse apelido não pode ser usado.'),
+  'Muitos pedidos. Espere uns minutos e tente de novo.': () => t('Muitos pedidos. Espere uns minutos e tente de novo.'),
+  'O ranking ainda não foi configurado no servidor.': () => t('O ranking ainda não foi configurado no servidor.'),
+  'O ranking está fora do ar agora.': () => t('O ranking está fora do ar agora.'),
+  'Torre inválida para o ranking.': () => t('Torre inválida para o ranking.'), 'Dados da torre inválidos.': () => t('Dados da torre inválidos.'),
+  'Torre fora do tempo.': () => t('Torre fora do tempo.'), 'Altura inválida.': () => t('Altura inválida.'),
+  'Tempo até a Órbita inválido.': () => t('Tempo até a Órbita inválido.'),
+  'Essa torre já foi substituída por uma mais nova.': () => t('Essa torre já foi substituída por uma mais nova.'),
+  'Jogador inválido.': () => t('Jogador inválido.'),
+};
+export function msgServidor(m) {
+  if (!m) return m;
+  if (SERVIDOR[m]) return SERVIDOR[m]();
+  const x = /^Esse apelido não pode ser usado: (.+)\.$/.exec(m);
+  if (x && MOTIVOS[x[1]]) return t('Esse apelido não pode ser usado: {0}.', MOTIVOS[x[1]]());
+  return m;
 }
 const rk = () => (S.rank ||= { jogador: '', apelido: '', ativo: false, nao: false, enviado: {} });
 function jogador() {
@@ -66,7 +92,7 @@ export const ultimoApelido = () => { try { return localStorage.getItem(ULTIMO) |
 // Novo jogo, Configurações ou o cartão: entrar no ranking ou trocar o apelido (vale a partir do próximo envio)
 export function definirApelido(nome) {
   nome = String(nome || '').trim();
-  if ([...nome].length < 3 || [...nome].length > 12) return 'O apelido precisa ter de 3 a 12 letras.';
+  if ([...nome].length < 3 || [...nome].length > 12) return t('O apelido precisa ter de 3 a 12 letras.');
   Object.assign(rk(), { apelido: nome, ativo: true, nao: false }); save();
   try { localStorage.setItem(ULTIMO, nome); } catch (e) { }
   if (S.maxAlt >= 40) enviarUnica(); // no começo da torre não manda 0 m: a altura vai nos pontos certos (tickUnica)
@@ -74,20 +100,20 @@ export function definirApelido(nome) {
 }
 
 // ---------- tela do ranking ----------
-const valorTxt = (l, v) => l === 'orbita' ? `${Math.floor(v / 3600)} h ${String(Math.floor(v % 3600 / 60)).padStart(2, '0')} min` : fmtM(v);
+const valorTxt = (l, v) => l === 'orbita' ? t('{0} h {1} min', Math.floor(v / 3600), String(Math.floor(v % 3600 / 60)).padStart(2, '0')) : fmtM(v);
 let pedido = 0;
 async function drawRanking() {
   const meu = ++pedido;
   for (const b of document.querySelectorAll('.rk-tab')) b.classList.toggle('on', b.dataset.l === lista);
-  const ul = $('rkList'); ul.innerHTML = '<li class="rk-wait">Carregando…</li>'; $('rkMe').textContent = '';
+  const ul = $('rkList'); ul.innerHTML = `<li class="rk-wait">${t('Carregando…')}</li>`; $('rkMe').textContent = '';
   const res = await api(ROTA + `?lista=${lista}` + (rk().jogador ? `&jogador=${encodeURIComponent(rk().jogador)}` : ''));
   if (meu !== pedido) return; // trocou de aba antes da resposta chegar
-  if (!res.ok) { ul.innerHTML = '<li class="rk-wait">Ranking fora do ar agora. Tente mais tarde.</li>'; return; }
+  if (!res.ok) { ul.innerHTML = `<li class="rk-wait">${t('Ranking fora do ar agora. Tente mais tarde.')}</li>`; return; }
   const top = res.data.top || [];
-  ul.innerHTML = top.length ? '' : '<li class="rk-wait">Ninguém nesta lista ainda. Seja o primeiro!</li>';
+  ul.innerHTML = top.length ? '' : `<li class="rk-wait">${t('Ninguém nesta lista ainda. Seja o primeiro!')}</li>`;
   top.forEach((x, k) => { const li = document.createElement('li'); li.innerHTML = `<b>${k + 1}.</b> <span></span> <i>${valorTxt(lista, x.valor)}</i>`; li.querySelector('span').textContent = x.apelido; ul.appendChild(li); });
   const eu = res.data.eu;
-  $('rkMe').textContent = eu ? `Você: Nº ${eu.posicao} de ${res.data.total} · ${valorTxt(lista, eu.valor)}` : lista === 'orbita' ? 'Chegue à Órbita (400 km) para entrar nesta lista: vale o tempo de jogo somado de todas as torres.' : `Para entrar: uma torre acima de ${fmtM(res.data.corte || 0)} — o campo do apelido aparece na hora.`;
+  $('rkMe').textContent = eu ? t('Você: Nº {0} de {1} · {2}', eu.posicao, res.data.total, valorTxt(lista, eu.valor)) : lista === 'orbita' ? t('Chegue à Órbita (400 km) para entrar nesta lista: vale o tempo de jogo somado de todas as torres.') : t('Para entrar: uma torre acima de {0} — o campo do apelido aparece na hora.', fmtM(res.data.corte || 0));
 }
 export function openRanking() {
   $('ranking').hidden = false; lista = 'orbita';
@@ -130,15 +156,15 @@ export async function enviarUnica() {
     ficha: r.fichaU, jogador: jogador(), apelido: r.apelido, alt, seg: Math.max(0, Math.round((S.torreSeg || 0) - (r.fichaUSeg || 0))),
     orbita: S.orbitaSec && S.maxAlt >= 400000 ? Math.round(S.orbitaSec) : null } }); // tempo de jogo até a 1ª Órbita (só com esta torre lá em cima)
   if (res.ok && res.data.ok) { U.enviada = alt; r.posicao = res.data.posicao; save(); return { ok: true, posicao: res.data.posicao }; }
-  if (res.data && res.data.erro === 'nome') return { erro: 'nome', msg: res.data.error || 'Esse apelido não pode ser usado.' };
-  return { offline: !!res.offline, msg: res.data && res.data.error };
+  if (res.data && res.data.erro === 'nome') return { erro: 'nome', msg: msgServidor(res.data.error) || t('Esse apelido não pode ser usado.') };
+  return { offline: !!res.offline, msg: res.data && msgServidor(res.data.error) };
 }
 const card = () => $('rkEntrar');
 function esconderCartao() { if (card()) card().hidden = true; }
 function initUnica() {
   const c = document.createElement('div'); c.id = 'rkEntrar'; c.className = 'rk-entrar'; c.hidden = true;
-  c.innerHTML = '<b id="rkEntrarT">Sua torre chegou ao nível do ranking!</b><small id="rkEntrarS">Escolha um apelido para entrar no top 20 das torres mais altas.</small>' +
-    '<div class="rk-entrar-f"><input id="rkEntrarNick" maxlength="12" placeholder="Seu apelido" autocomplete="off"><button type="button" id="rkEntrarOk">Entrar</button><button type="button" class="ghost" id="rkEntrarNo">Agora não</button></div><small id="rkEntrarMsg"></small>';
+  c.innerHTML = `<b id="rkEntrarT">${t('Sua torre chegou ao nível do ranking!')}</b><small id="rkEntrarS">${t('Escolha um apelido para entrar no top 20 das torres mais altas.')}</small>` +
+    `<div class="rk-entrar-f"><input id="rkEntrarNick" maxlength="12" placeholder="${t('Seu apelido')}" autocomplete="off"><button type="button" id="rkEntrarOk">${t('Entrar')}</button><button type="button" class="ghost" id="rkEntrarNo">${t('Agora não')}</button></div><small id="rkEntrarMsg"></small>`;
   document.body.appendChild(c);
   const css = document.createElement('style');
   css.textContent = `.rk-entrar{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);z-index:62;width:min(420px,92vw);background:rgba(20,18,30,.95);border:2px solid #f2b630;border-radius:12px;padding:12px 14px;color:#f4efe6;display:flex;flex-direction:column;gap:6px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.5)}
@@ -148,12 +174,12 @@ function initUnica() {
   document.head.appendChild(css);
   const ok = async () => {
     const nome = $('rkEntrarNick').value.trim();
-    if ([...nome].length < 3 || [...nome].length > 12) { $('rkEntrarMsg').textContent = 'O apelido precisa ter de 3 a 12 letras.'; return; }
-    Object.assign(rk(), { apelido: nome, ativo: true, nao: false }); $('rkEntrarMsg').textContent = 'Enviando…';
+    if ([...nome].length < 3 || [...nome].length > 12) { $('rkEntrarMsg').textContent = t('O apelido precisa ter de 3 a 12 letras.'); return; }
+    Object.assign(rk(), { apelido: nome, ativo: true, nao: false }); $('rkEntrarMsg').textContent = t('Enviando…');
     const res = await enviarUnica();
     if (res.erro === 'nome') { rk().ativo = false; save(); $('rkEntrarMsg').textContent = res.msg; return; }
     save();
-    $('rkEntrarMsg').textContent = res.ok ? `Você está no ranking como ${nome}: Nº ${res.posicao}!` : 'Ranking fora do ar agora. Seu apelido ficou guardado; tentamos de novo daqui a pouco.';
+    $('rkEntrarMsg').textContent = res.ok ? t('Você está no ranking como {0}: Nº {1}!', nome, res.posicao) : t('Ranking fora do ar agora. Seu apelido ficou guardado; tentamos de novo daqui a pouco.');
     U.msgAte = performance.now() + 5000;
   };
   $('rkEntrarOk').onclick = ok;

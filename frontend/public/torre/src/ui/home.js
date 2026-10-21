@@ -8,6 +8,7 @@ import { setSound, setVolume } from './audio.js';
 import { fmtM, fmtPct } from './format.js';
 import { repPct } from '../sim/prestige.js';
 import { dropTip } from './coach.js';
+import { LANG, setLang, t } from '../i18n.js';
 
 const $ = id => document.getElementById(id);
 let open = false, hooks = {};
@@ -16,9 +17,9 @@ export const homeOpen = () => open;
 const ago = ms => {
   if (!ms) return '';
   const m = Math.floor((Date.now() - ms) / 60000);
-  return m < 1 ? 'agora há pouco' : m < 60 ? `há ${m} min` : m < 1440 ? `há ${Math.floor(m / 60)} h` : `há ${Math.floor(m / 1440)} dia${m >= 2880 ? 's' : ''}`;
+  return m < 1 ? t('agora há pouco') : m < 60 ? t('há {0} min', m) : m < 1440 ? t('há {0} h', Math.floor(m / 60)) : m < 2880 ? t('há 1 dia') : t('há {0} dias', Math.floor(m / 1440));
 };
-const resumo = r => `Torre nº ${r.torre} · Ano ${r.ano} · recorde ${fmtM(r.bestAlt)}${r.won ? ' · Órbita ✓' : ''}`;
+const resumo = r => t('Torre nº {0} · Ano {1} · recorde {2}', r.torre, r.ano, fmtM(r.bestAlt)) + (r.won ? ' · ' + t('Órbita ✓') : '');
 
 function show(panel) {
   $('hmMain').hidden = !!panel;
@@ -30,8 +31,8 @@ function show(panel) {
 
 function drawMain() {
   const r = slotSummary(activeSlot());
-  $('hmContinue').textContent = r ? 'Continuar' : 'Novo jogo';
-  $('hmContinueSub').textContent = r ? `${resumo(r)} · ${ago(r.last)}` : 'Comece a obra da Construtora Vigaluz';
+  $('hmContinue').textContent = r ? t('Continuar') : t('Novo jogo');
+  $('hmContinueSub').textContent = r ? `${resumo(r)} · ${ago(r.last)}` : t('Comece a obra da Construtora Vigaluz');
 }
 
 function drawSlots() {
@@ -39,12 +40,12 @@ function drawSlots() {
   for (const n of [1, 2, 3]) {
     const r = slotSummary(n), d = document.createElement('div');
     d.className = 'hm-slot' + (n === activeSlot() ? ' on' : ''); d.dataset.n = n;
-    d.innerHTML = `<b>Espaço ${n}</b><span>${r ? `${resumo(r)} · Reputação ${fmtPct(repPct(r.pontosTotal))} · ${ago(r.last)}` : 'Vazio'}</span>
-      <div class="hm-acts"><button class="hm-btn hm-small hm-play">${r ? 'Jogar' : 'Novo jogo'}</button>${r ? '<button class="hm-btn hm-small hm-danger hm-del">Apagar</button>' : ''}</div>`;
+    d.innerHTML = `<b>${t('Espaço {0}', n)}</b><span>${r ? `${resumo(r)} · ${t('Reputação {0}', fmtPct(repPct(r.pontosTotal)))} · ${ago(r.last)}` : t('Vazio')}</span>
+      <div class="hm-acts"><button class="hm-btn hm-small hm-play">${r ? t('Jogar') : t('Novo jogo')}</button>${r ? `<button class="hm-btn hm-small hm-danger hm-del">${t('Apagar')}</button>` : ''}</div>`;
     d.querySelector('.hm-play').onclick = () => play(n);
     const del = d.querySelector('.hm-del');
     if (del) del.onclick = () => {
-      if (!del.classList.contains('armed')) { del.classList.add('armed'); del.textContent = 'Confirmar'; setTimeout(() => { del.classList.remove('armed'); del.textContent = 'Apagar'; }, 3000); return; }
+      if (!del.classList.contains('armed')) { del.classList.add('armed'); del.textContent = t('Confirmar'); setTimeout(() => { del.classList.remove('armed'); del.textContent = t('Apagar'); }, 3000); return; }
       const j = deleteSlot(n); hooks.onForget?.(j); if (n === activeSlot()) hooks.onSwitch?.(); drawSlots(); drawMain();
     };
     box.appendChild(d);
@@ -56,7 +57,7 @@ function drawCfg() {
   $('cfSom').checked = c.som; $('cfAmb').checked = c.ambiente !== false; $('cfVol').value = String(Math.round(c.vol * 100)); $('cfLeve').checked = c.leve; $('cfDicas').checked = c.dicas;
   $('cfSlotN').textContent = activeSlot();
   const rk = S.rank || {};
-  $('cfRankTxt').textContent = rk.ativo && rk.apelido ? `No ranking como “${rk.apelido}”.` : 'Você ainda não está no ranking.';
+  $('cfRankTxt').textContent = rk.ativo && rk.apelido ? t('No ranking como “{0}”.', rk.apelido) : t('Você ainda não está no ranking.');
   $('cfRankSair').hidden = !(rk.ativo && rk.apelido);
   $('cfNick').value = rk.apelido || '';
   $('cfMsg').textContent = '';
@@ -104,6 +105,11 @@ export function initHome(h = {}) {
   $('hmNomeNo').onclick = () => { S.rank = { ...(S.rank || {}), semNome: true }; entrar(pendenteNovo); }; // não pergunta de novo neste save; dá para entrar depois (cartão ou Configurações)
   $('hmSlots').onclick = () => show('hmSlotsP');
   $('hmCfg').onclick = () => show('hmCfgP');
+  // idioma (Início e Configurações): grava o jogo e recarrega a página no idioma escolhido
+  for (const b of document.querySelectorAll('[data-lang]')) {
+    b.classList.toggle('on', b.dataset.lang === LANG);
+    b.onclick = () => { if (b.dataset.lang === LANG) return; if (S.introSeen) try { save(); } catch (e) { } setLang(b.dataset.lang); }; // só grava jogo já começado (não cria save vazio)
+  }
   $('hmJornais').onclick = () => show('hmJornaisP');
   $('hmHowto').onclick = () => hooks.onHowto?.();
   $('hmRank').onclick = () => hooks.onRanking?.();
@@ -114,27 +120,27 @@ export function initHome(h = {}) {
   $('cfAmb').onchange = e => setCfg({ ambiente: e.target.checked });
   $('cfDicas').onchange = e => setCfg({ dicas: e.target.checked });
   $('cfRever').onclick = () => { setCfg({ dicas: true }); S.dicas = {}; save(); closeHome(); hooks.onReviewTips?.(); };
-  $('cfRankSair').onclick = async () => { const ok = await hooks.onRankLeave?.(); drawCfg(); if (ok === false) $('cfMsg').textContent = 'Não deu para falar com o ranking agora; seu apelido sai assim que a conexão voltar.'; };
-  $('cfNickOk').onclick = () => { const erro = hooks.onRankJoin?.($('cfNick').value); drawCfg(); $('cfMsg').textContent = erro || 'Apelido salvo. A altura da torre vai para o ranking ao passar de cada era, no fim do ano e se a torre cair.'; };
+  $('cfRankSair').onclick = async () => { const ok = await hooks.onRankLeave?.(); drawCfg(); if (ok === false) $('cfMsg').textContent = t('Não deu para falar com o ranking agora; seu apelido sai assim que a conexão voltar.'); };
+  $('cfNickOk').onclick = () => { const erro = hooks.onRankJoin?.($('cfNick').value); drawCfg(); $('cfMsg').textContent = erro || t('Apelido salvo. A altura da torre vai para o ranking ao passar de cada era, no fim do ano e se a torre cair.'); };
   $('cfExport').onclick = () => {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([exportSave()], { type: 'application/json' }));
     a.download = `torre-infinita-espaco${activeSlot()}.json`; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    $('cfMsg').textContent = 'Save exportado.';
+    $('cfMsg').textContent = t('Save exportado.');
   };
   $('cfImport').onclick = () => $('cfFile').click();
   $('cfFile').onchange = async e => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
-    if (f.size > 2e6) { e.target.value = ''; $('cfMsg').textContent = 'Arquivo grande demais para ser um save.'; return; }
+    if (f.size > 2e6) { e.target.value = ''; $('cfMsg').textContent = t('Arquivo grande demais para ser um save.'); return; }
     const r = importSave(await f.text(), activeSlot());
     e.target.value = '';
-    if (r.ok) { hooks.onSwitch?.(); $('cfMsg').textContent = 'Save importado neste espaço.'; drawMain(); }
+    if (r.ok) { hooks.onSwitch?.(); $('cfMsg').textContent = t('Save importado neste espaço.'); drawMain(); }
     else $('cfMsg').textContent = r.erro;
   };
   const del = $('cfDel');
   del.onclick = () => {
-    if (!del.classList.contains('armed')) { del.classList.add('armed'); del.textContent = 'Confirmar: apagar tudo deste espaço'; setTimeout(() => { del.classList.remove('armed'); del.textContent = 'Apagar este espaço'; }, 3000); return; }
+    if (!del.classList.contains('armed')) { del.classList.add('armed'); del.textContent = t('Confirmar: apagar tudo deste espaço'); setTimeout(() => { del.classList.remove('armed'); del.textContent = t('Apagar este espaço'); }, 3000); return; }
     const j = deleteSlot(activeSlot()); hooks.onForget?.(j); hooks.onSwitch?.(); show(null); drawMain();
   };
   addEventListener('keydown', e => {

@@ -26,6 +26,7 @@ import { VIVA } from '../data/viva.js';
 import { pollEvents, emit } from './events.js';
 import { updateEffects, MAX_TOP_WORKERS } from './effects.js';
 import { eraVis } from './eravis.js';
+import { t } from '../i18n.js';
 
 const baseFloor = () => Math.floor(S.floors);
 let msIdx = -1; // próximo marco de andares ainda não comemorado
@@ -45,7 +46,7 @@ export function updateView(dt, speed) {
   if (V.lastEra === null) V.lastEra = S.era;
   if (S.era > V.lastEra) {
     V.lastEra = S.era;
-    V.toast = { a: FLAGS.viva ? 'NOVA ERA · NOVAS TECNOLOGIAS NA ÁRVORE' : `NOVA ERA · ANEL ${S.era + 1} DA ÁRVORE ABERTO`, b: ERAS[S.era].n.toUpperCase(), t: 4 };
+    V.toast = { a: FLAGS.viva ? t('NOVA ERA · NOVAS TECNOLOGIAS NA ÁRVORE') : t('NOVA ERA · ANEL {0} DA ÁRVORE ABERTO', S.era + 1), b: t(ERAS[S.era].n).toUpperCase(), t: 4 };
     save();
   }
   if (V.toast) V.toast.t -= dt;
@@ -55,7 +56,7 @@ export function updateView(dt, speed) {
   if (msIdx < MILESTONES.length && fl >= MILESTONES[msIdx]) {
     while (msIdx < MILESTONES.length && fl >= MILESTONES[msIdx]) msIdx++;
     const m = MILESTONES[msIdx - 1];
-    startMilestone(m, `${fmt(m)} ANDARES`, `${fmtM(altOf(m))} · ${ERAS[eraAt(altOf(m))].n}`);
+    startMilestone(m, t('{0} ANDARES', fmt(m)), `${fmtM(altOf(m))} · ${t(ERAS[eraAt(altOf(m))].n)}`);
   }
   updateCamera(dt, baseFloor() * FH, (S.floors + 1) * FH);
 }
@@ -96,8 +97,8 @@ export function render(antesDosAvisos) {
     if (lastW - y < 16 || ys.some(v => Math.abs(v - y) < 12)) return;
     lastW = y;
     ctx.font = '600 9px "Chakra Petch", sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,24,38,.55)'; ctx.strokeText(`${n} · ${fmtM(m)}`, 4, y - 7);
-    ctx.fillStyle = '#f2b630'; ctx.fillText(`${n} · ${fmtM(m)}`, 4, y - 7);
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,24,38,.55)'; const rot = `${t(n)} · ${fmtM(m)}`; ctx.strokeText(rot, 4, y - 7);
+    ctx.fillStyle = '#f2b630'; ctx.fillText(rot, 4, y - 7);
   });
   const e = eraVis(altOf(base)), s = ERA_STYLE[e], working = !capped && S.top > 0.05;
   const nb = Math.min(S.lv.pedreiro, 4), y0 = topWP;
@@ -133,7 +134,7 @@ function drawCapped(y0, nb) {
     return;
   }
   R(-70, y0 + 26, 140, 34, '#2a2d38'); R(-66, y0 + 30, 132, 26, '#f2b630');
-  if (!T('LIMITE DA FUNDAÇÃO', 0, y0 + 43, 11, '#11131a', 'center')) R(-50, y0 + 41, 100, 4, '#11131a');
+  if (!T(t('LIMITE DA FUNDAÇÃO'), 0, y0 + 43, 11, '#11131a', 'center')) R(-50, y0 + 41, 100, 4, '#11131a');
   for (let j = 0; j < nb; j++) worker(TL + 30 + j * 56, y0 + SLAB, { phase: 0, skin: j, flip: j % 2 === 1 });
 }
 
@@ -197,7 +198,7 @@ function drawBlocks(y0, p, s, e, nb, working, sg = {}) {
     else { R(px, py, 16, 20, s.frame); R(px + 2, py + 2, 12, 16, s.glass); R(px + 4, py + 6, 2, 10, 'rgba(255,255,255,.4)'); }
   }
   // acima de MAX_TOP_WORKERS, os pedreiros viram uma equipe com contador (limite visual)
-  if (S.lv.pedreiro > MAX_TOP_WORKERS) { R(-72, y0 + FH + 8, 144, 16, 'rgba(17,19,26,.75)'); T(`EQUIPE DE ${S.lv.pedreiro} PEDREIROS`, 0, y0 + FH + 16, 9, '#ece6d6', 'center'); }
+  if (S.lv.pedreiro > MAX_TOP_WORKERS) { R(-72, y0 + FH + 8, 144, 16, 'rgba(17,19,26,.75)'); T(t('EQUIPE DE {0} PEDREIROS', S.lv.pedreiro), 0, y0 + FH + 16, 9, '#ece6d6', 'center'); }
   if (S.lv.pedreiro >= 2) { // o carregador para onde estava
     const q = (V.tObra * .16 * pace) % 1, go = q < .5, x = lerp(TL + TW - 30, TL + 40, go ? q * 2 : 2 - q * 2);
     worker(x, fy, parada ? { phase: 0, carry: go ? (pid === 'janelas' ? s.glass : s.brick) : null, flip: go, skin: 3 } : { walk: true, phase: V.t * 3, carry: go ? (pid === 'janelas' ? s.glass : s.brick) : null, flip: go, skin: 3 });
@@ -303,7 +304,7 @@ function drawMilestone() {
   const c = cinematic(); if (!c) return;
   const a = clamp(Math.min(c.t - .8, 5.2 - c.t) * 2, 0, 1);
   if (a <= 0) return;
-  banner('MARCO DA OBRA', c.title, a, 24);
+  banner(t('MARCO DA OBRA'), c.title, a, 24);
   ctx.globalAlpha = a; r(W / 2 - 110, 66, 220, 18, 'rgba(17,19,26,.75)');
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ece6d6'; ctx.font = '600 10px "Chakra Petch", sans-serif';
   ctx.fillText(c.sub, W / 2, 75); ctx.textAlign = 'left'; ctx.globalAlpha = 1;

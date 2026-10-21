@@ -12,8 +12,9 @@ import { sfx } from '../ui/audio.js';
 import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
 import { rentSum } from '../sim/realty.js';
-import { fmt } from '../ui/format.js';
+import { fmt, din } from '../ui/format.js';
 import { eraVis, onMoon } from './eravis.js';
+import { t } from '../i18n.js';
 
 export const MAX_TOP_WORKERS = 6; // acima disso, os pedreiros viram uma equipe com contador
 
@@ -45,7 +46,7 @@ export function updateEffects(dt) {
 function mergeFloor(n, pay) {
   const last = V.floats.find(f => f.floor && f.t < 1.4);
   if (!last) return false;
-  last.n = (last.n || 1) + n; last.a = `+${last.n} ANDARES`; if (pay) last.b = pay; last.t = Math.min(last.t, 0.25);
+  last.n = (last.n || 1) + n; last.a = t('+{0} ANDARES', last.n); if (pay) last.b = pay; last.t = Math.min(last.t, 0.25);
   return true;
 }
 function onFloor(e) {
@@ -56,13 +57,13 @@ function onFloor(e) {
     for (let k = 0; k < 6; k++) dust(TL + 20 + k * 40, y + 2, k % 2 ? '#ffe27a' : '#d8cdb8', 3, 1.2);
     // protótipo Obra Viva: a recompensa do andar entregue aparece junto; no modo atual, o lembrete de decidir o destino
     const first = !FLAGS.viva && S.assigned < e.to && S.lv.corretor < 1 && e.to <= 3;
-    const pay = FLAGS.viva ? `+R$ ${fmt(rentSum(e.from, e.n) * VIVA.floorPaySecs)} pela obra` : '';
-    if (!mergeFloor(e.n, pay)) float(0, y + 30, '+1 ANDAR', pay || (first ? 'pronto para alugar ou vender' : ''), '#f2b630', 2.2, { floor: true, n: 1 });
+    const pay = FLAGS.viva ? t('+{0} pela obra', din(rentSum(e.from, e.n) * VIVA.floorPaySecs)) : '';
+    if (!mergeFloor(e.n, pay)) float(0, y + 30, t('+1 ANDAR'), pay || (first ? t('pronto para alugar ou vender') : ''), '#f2b630', 2.2, { floor: true, n: 1 });
     somAndar();
   } else if (!mergeFloor(e.n, '') && floatGate <= 0) {
     // obra rápida: um aviso agregado de vez em quando
     floatGate = 1.2;
-    float(0, y + FH * 1.2, `+${e.n} ${e.n === 1 ? 'ANDAR' : 'ANDARES'}`, '', '#f2b630', 2.2, { floor: true, n: e.n });
+    float(0, y + FH * 1.2, e.n === 1 ? t('+1 ANDAR') : t('+{0} ANDARES', e.n), '', '#f2b630', 2.2, { floor: true, n: e.n });
     somAndar();
   }
 }
@@ -84,11 +85,11 @@ const LABEL = {
 
 function onBuy(e) {
   const { k, lv } = e, [x, y] = spot(k);
-  const label = LABEL[k] || UP[k].n.toUpperCase();
+  const label = LABEL[k] ? t(LABEL[k]) : t(UP[k].n).toUpperCase();
   // compras em sequência viram um texto só ("+3 MELHORIAS"), que se renova a cada compra
   const last = V.floats.find(f => f.buy && f.t < 1.6);
-  if (last) { last.n = (last.n || 1) + 1; last.a = `+${last.n} MELHORIAS`; last.b = label + (lv > 1 ? ' · nível ' + lv : ''); last.t = Math.min(last.t, 0.25); }
-  else float(x, y, label, lv > 1 ? 'nível ' + lv : '', '#6fd08c', 2.2, { buy: true });
+  if (last) { last.n = (last.n || 1) + 1; last.a = t('+{0} MELHORIAS', last.n); last.b = label + (lv > 1 ? ' · ' + t('nível {0}', lv) : ''); last.t = Math.min(last.t, 0.25); }
+  else float(x, y, label, lv > 1 ? t('nível {0}', lv) : '', '#6fd08c', 2.2, { buy: true });
   if (k === 'pedreiro') {
     // o novo pedreiro entra pela direita, vindo do elevador
     const j = Math.min(lv, MAX_TOP_WORKERS) - 1;

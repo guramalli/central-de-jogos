@@ -14,6 +14,7 @@ import { FLAGS } from '../data/flags.js';
 import { floorOf, altOf } from '../data/height.js';
 import { MARKS } from '../data/eras.js';
 import { PREMIOS, PREMIO_IDS, PREMIO_TROCA } from '../data/premios.js';
+import { t } from '../i18n.js';
 
 export const RISCO = {
   gap: [55, 85],      // segundos entre ameaças
@@ -63,7 +64,7 @@ const FAIXAS = [
 ];
 export function pesosDe(alt) {
   const ativas = FAIXAS.filter(f => alt >= f.de), out = { fiscal: 2 };
-  ativas.forEach((f, i) => { const k = i === ativas.length - 1 ? 1 : 0.4; for (const t in f.pesos) out[t] = f.pesos[t] * k; });
+  ativas.forEach((f, i) => { const k = i === ativas.length - 1 ? 1 : 0.4; for (const tp in f.pesos) out[tp] = f.pesos[tp] * k; });
   return out;
 }
 export const faixaDe = alt => Object.keys(pesosDe(alt));
@@ -144,6 +145,13 @@ function golpe() {
 }
 
 // ---------- obra interditada: laudo com 3 jeitos de reforçar ----------
+// textos de cada reforço (em português, guardados no save em o.n/o.d; a tela traduz pelo id com t() e {0} = nome da defesa)
+export const REFORCO_TXT = {
+  foco: { n: 'Reforço da defesa que falhou', d: '{0} +2 níveis. A obra volta com 60% de integridade.' },
+  geral: { n: 'Reforço geral', d: 'Todas as defesas +1 nível. A obra volta com 80% de integridade.' },
+  completo: { n: 'Reforço completo com engenharia', d: '{0} +2 e as outras defesas +1. A obra volta inteira e com +25 de integridade máxima.' },
+};
+export const REFORCO_RECALQUE = 'Fundação +1 (afasta do limite).'; // somado à descrição quando a interdição veio do recalque
 const DEFESAS = ['contravento', 'sondagem', 'clima'];
 // preço de subir n níveis de uma defesa a partir do nível atual (a mesma conta das compras da árvore)
 function precoNiveis(k, n) {
@@ -154,20 +162,25 @@ function precoNiveis(k, n) {
 export function interditar(tipo) {
   const s = st(), def = AMEACAS[tipo].def, taxa = taxaLiberacao();
   const pacote = (id, n, d, niveis, vezes, integ, extraMax = 0) => {
-    if (tipo === 'recalque') { niveis = { ...niveis, fundacao: (niveis.fundacao || 0) + 1 }; d += ' Fundação +1 (afasta do limite).'; } // o recalque vem do limite da fundação
+    if (tipo === 'recalque') { niveis = { ...niveis, fundacao: (niveis.fundacao || 0) + 1 }; d += ' ' + REFORCO_RECALQUE; } // o recalque vem do limite da fundação
     const custo = vezes * taxa + RISCO.reforcoNiveis * Object.entries(niveis).reduce((a, [k, q]) => a + precoNiveis(k, q), 0);
     return { id, n, d, niveis, custo: Math.round(custo), integ, extraMax };
   };
   const outras = Object.fromEntries(DEFESAS.filter(k => k !== def).map(k => [k, 1]));
   s.interd = { tipo, def, opcoes: [
-    pacote('foco', 'Reforço da defesa que falhou', `${nomeDef(def)} +2 níveis. A obra volta com 60% de integridade.`, { [def]: 2 }, 1, 0.6),
-    pacote('geral', 'Reforço geral', 'Todas as defesas +1 nível. A obra volta com 80% de integridade.', Object.fromEntries(DEFESAS.map(k => [k, 1])), 1.5, 0.8),
-    pacote('completo', 'Reforço completo com engenharia', `${nomeDef(def)} +2 e as outras defesas +1. A obra volta inteira e com +25 de integridade máxima.`, { [def]: 2, ...outras }, 3, 1, 25),
+    pacote('foco', REFORCO_TXT.foco.n, REFORCO_TXT.foco.d.replace('{0}', NOME_DEF[def] || def), { [def]: 2 }, 1, 0.6),
+    pacote('geral', REFORCO_TXT.geral.n, REFORCO_TXT.geral.d, Object.fromEntries(DEFESAS.map(k => [k, 1])), 1.5, 0.8),
+    pacote('completo', REFORCO_TXT.completo.n, REFORCO_TXT.completo.d.replace('{0}', NOME_DEF[def] || def), { [def]: 2, ...outras }, 3, 1, 25),
   ] };
   s.prox = null; s.lento = 0;
 }
-const NOME_DEF = { contravento: 'Contraventamento', sondagem: 'Sondagem e estacas', clima: 'Proteção climática' };
-export const nomeDef = k => NOME_DEF[k] || k;
+export const NOME_DEF = { contravento: 'Contraventamento', sondagem: 'Sondagem e estacas', clima: 'Proteção climática' };
+export const nomeDef = k => NOME_DEF[k] ? t(NOME_DEF[k]) : k; // no idioma atual
+// texto de um reforço do laudo no idioma atual (o save guarda o português)
+export function textoReforco(o, interd) {
+  const tx = REFORCO_TXT[o.id]; if (!tx) return { n: o.n, d: o.d };
+  return { n: t(tx.n), d: t(tx.d, nomeDef(interd.def)) + (interd.tipo === 'recalque' ? ' ' + t(REFORCO_RECALQUE) : '') };
+}
 // taxa de liberação: um valor fixo por andar construído, conforme a era de cada andar
 export function taxaLiberacao() {
   const f = Math.floor(S.floors); let t = 0, ini = 0;
@@ -293,7 +306,7 @@ export const perkMult = estagio => FLAGS.risco ? premioMult(estagio) : 1;
 // baixo (a cena não desenha chuva no topo e o aviso diz onde está)
 const DE_BAIXO = ['chuva', 'raios', 'granizo', 'nevasca'];
 export const soEmbaixo = tipo => DE_BAIXO.includes(tipo) && altOf(Math.floor(S.floors)) > RISCO.nuvens;
-export const nomeAmeaca = tipo => AMEACAS[tipo].n + (soEmbaixo(tipo) ? ' nos andares de baixo' : '');
+export const nomeAmeaca = tipo => soEmbaixo(tipo) ? t('{0} nos andares de baixo', t(AMEACAS[tipo].n)) : t(AMEACAS[tipo].n); // no idioma atual
 // multiplicador de dano de um grupo de ameaças (vento, base, clima)
 export function premioDef(grupo) {
   let c = 0;

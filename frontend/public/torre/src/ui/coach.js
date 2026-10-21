@@ -4,6 +4,7 @@
 import { S, save } from '../sim/state.js';
 import { TIPS } from '../data/tips.js';
 import { sx, sy, cam } from '../render/camera.js';
+import { t } from '../i18n.js';
 
 const $ = id => document.getElementById(id);
 const PAD = 6, GAP = 12;
@@ -28,7 +29,7 @@ export function showTip(id, target, opts = {}) {
   cur = { id, target, action: !!opts.action, onDone: opts.onDone };
   const c = $('coach');
   c.dataset.tip = id; c.classList.toggle('act', cur.action);
-  $('coText').textContent = TIPS[id].t;
+  $('coText').textContent = t(TIPS[id].t);
   $('coOk').hidden = cur.action;
   c.hidden = false; missing = 0;
   updateCoach();

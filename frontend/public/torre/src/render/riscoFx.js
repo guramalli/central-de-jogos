@@ -14,6 +14,7 @@ import { V } from './view.js';
 import { altOf, floorOf } from '../data/height.js';
 import { soEmbaixo, RISCO } from '../sim/risco.js';
 import { sfx } from '../ui/audio.js';
+import { t } from '../i18n.js';
 
 const g = () => ctxMain;
 const buf = document.createElement('canvas'), bctx = buf.getContext('2d');
@@ -163,7 +164,7 @@ export function interdFx() {
     const w = Math.min(W - 20, Math.max(170, x1 - x0)), cx = Math.round(sx(0)), x = Math.round(cx - w / 2);
     ctx.fillStyle = 'rgba(160,24,20,.92)'; ctx.fillRect(x, topo, w, 26); fita(topo - 6, 4); fita(topo + 28, 4);
     ctx.font = '700 15px "Chakra Petch", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
-    ctx.fillText('OBRA INTERDITADA', cx, topo + 13); ctx.textAlign = 'left';
+    ctx.fillText(t('OBRA INTERDITADA'), cx, topo + 13); ctx.textAlign = 'left';
   }
 }
 

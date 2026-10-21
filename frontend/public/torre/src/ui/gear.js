@@ -4,6 +4,7 @@
 // - ⏸ pausa a obra (dias, material, renda e animações) com um aviso por cima; Continuar (ou tocar no aviso) volta.
 import { S } from '../sim/state.js';
 import { FLAGS } from '../data/flags.js';
+import { t } from '../i18n.js';
 
 const $ = id => document.getElementById(id);
 let paused = false, hooks = {};
@@ -18,7 +19,7 @@ export function setPaused(on) {
   paused = !!on;
   $('paused').hidden = !paused;
   $('pauseBtn').classList.toggle('on', paused);
-  $('pauseBtn').setAttribute('aria-label', paused ? 'Continuar' : 'Pausar'); $('pauseBtn').title = paused ? 'Continuar' : 'Pausar';
+  $('pauseBtn').setAttribute('aria-label', paused ? t('Continuar') : t('Pausar')); $('pauseBtn').title = paused ? t('Continuar') : t('Pausar');
 }
 
 // hooks: onOpen (fecha a árvore no celular para o painel caber)
@@ -40,7 +41,7 @@ export function initGear(h = {}) {
 // título do painel: a torre e o ano
 export function updateGear() {
   if (!FLAGS.viva) return;
-  $('gearT').textContent = `Torre nº ${S.riscoTentativa || 1} · Ano ${(S.risco && S.risco.ano) || 1}`;
+  $('gearT').textContent = t('Torre nº {0} · Ano {1}', S.riscoTentativa || 1, (S.risco && S.risco.ano) || 1);
 }
 
 // os botões ficam logo abaixo da placa do andar (a altura da placa muda com a fonte e o tamanho da tela)

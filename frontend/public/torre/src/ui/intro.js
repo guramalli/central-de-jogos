@@ -5,12 +5,13 @@ import { altOf, floorOf } from '../data/height.js';
 import { ERAS, eraAt } from '../data/eras.js';
 import { VIVA } from '../data/viva.js';
 import { UP } from '../data/upgrades.js';
-import { INTRO, HEADLINES, DISCOVERY, COMPANY, CHEQUE_DE, headline } from '../data/story.js';
+import { INTRO, HEADLINES, DISCOVERY, CHEQUE_DE, headline } from '../data/story.js';
 import { city } from '../sim/prestige.js';
 import { S, save } from '../sim/state.js';
 import { setIntroCam } from '../render/camera.js';
 import { onEvent } from '../render/events.js';
-import { fmt, fmtM } from './format.js';
+import { din, fmtM } from './format.js';
+import { t, LANG } from '../i18n.js';
 import { $ } from './dom.js';
 import { sfx } from './audio.js';
 
@@ -35,10 +36,11 @@ function camAt(card, s) {
 function show(i) {
   idx = i; t0 = performance.now();
   const c = INTRO[i];
-  $('inK').textContent = c.kicker; $('inT').textContent = c.text;
+  $('inK').textContent = t(c.kicker); $('inT').textContent = t(c.text);
   $('inDots').innerHTML = INTRO.map((_, j) => `<i class="${j === i ? 'on' : j < i ? 'done' : ''}"></i>`).join('');
-  $('inNext').textContent = i === INTRO.length - 1 ? 'Começar a obra' : 'Próximo';
-  $('inClips').innerHTML = (c.clips || []).map((h, j) => `<div class="clip c${j}" style="animation-delay:${0.6 + j * 0.9}s"><small>JORNAL DA ORLA</small><b>${h}</b></div>`).join('');
+  $('inNext').textContent = i === INTRO.length - 1 ? t('Começar a obra') : t('Próximo');
+  const jornal = t('JORNAL DA ORLA');
+  $('inClips').innerHTML = (c.clips || []).map((h, j) => `<div class="clip c${j}" style="animation-delay:${0.6 + j * 0.9}s"><small>${jornal}</small><b>${t(h)}</b></div>`).join('');
   $('inCheque').hidden = !c.cheque;
   $('inEra').hidden = c.cam !== 'rise'; $('inEra').textContent = '';
   // reinicia as animações CSS do quadro
@@ -52,7 +54,7 @@ function tickEra() {
   if (!on) return;
   if (INTRO[idx].cam === 'rise') {
     const p = camAt(INTRO[idx], (performance.now() - t0) / 1000), alt = altOf(p.cy / FH);
-    $('inEra').innerHTML = `<b>${fmtM(alt)}</b><span>${ERAS[eraAt(alt)].n}</span>`;
+    $('inEra').innerHTML = `<b>${fmtM(alt)}</b><span>${t(ERAS[eraAt(alt)].n)}</span>`;
   }
   requestAnimationFrame(tickEra);
 }
@@ -102,11 +104,11 @@ export function initIntro({ test = false, auto = true } = {}) {
   $('inSkip').onclick = finish;
   $('news').onclick = () => { clearTimeout($('news')._t); nextNews(); };
   addEventListener('keydown', e => { if (!on) return; if (e.key === 'Escape') finish(); });
-  $('inChequeVal').textContent = `R$ ${fmt(VIVA.startMoney)},00`;
-  $('inChequeTo').textContent = `Construtora ${COMPANY}`; $('inChequeDe').textContent = CHEQUE_DE[0]; $('inChequeSelo').textContent = CHEQUE_DE[1];
+  $('inChequeVal').textContent = din(VIVA.startMoney) + (LANG === 'en' ? '.00' : ',00');
+  $('inChequeTo').textContent = t('Construtora Vigaluz'); $('inChequeDe').textContent = t(CHEQUE_DE[0]); $('inChequeSelo').textContent = t(CHEQUE_DE[1]);
   onEvent(e => {
-    if (e.type === 'era_unlocked' && HEADLINES[e.era]) showNews('JORNAL DA ORLA', headline(e.era, city().n));
-    else if (e.type === 'upgrade_purchased' && e.from === 0 && DISCOVERY[e.k]) showNews(`DESCOBERTA · ${UP[e.k].n.toUpperCase()}`, DISCOVERY[e.k]);
+    if (e.type === 'era_unlocked' && HEADLINES[e.era]) showNews(t('JORNAL DA ORLA'), headline(e.era, city().n));
+    else if (e.type === 'upgrade_purchased' && e.from === 0 && DISCOVERY[e.k]) showNews(t('DESCOBERTA · {0}', t(UP[e.k].n).toUpperCase()), t(DISCOVERY[e.k]));
   });
   // partida nova: abertura; save antigo (já construindo) não vê
   if (!S.introSeen && S.floors >= 1) { S.introSeen = true; return; }

@@ -9,7 +9,8 @@ import { FLAGS } from '../data/flags.js';
 import { VIVA } from '../data/viva.js';
 import { V } from '../render/view.js';
 import { $, setText } from './dom.js';
-import { fmt, fmtM } from './format.js';
+import { fmtM, din } from './format.js';
+import { t } from '../i18n.js';
 
 const BANK_AT = 60; // m: a melhoria do banco só aparece junto com o painel do banco
 const shown = k => k !== 'banco' || S.maxAlt >= BANK_AT || S.debt > 0;
@@ -32,8 +33,8 @@ function soon() {
     const u = UP[k];
     if (unlocked(k) || maxed(k)) continue;
     if (u.req && !unlocked(u.req[0])) continue; // ainda dois passos longe
-    if (u.req && S.lv[u.req[0]] < u.req[1]) out.push(`${u.n} (${UP[u.req[0]].n} nível ${u.req[1]})`);
-    else if (u.reqAlt) out.push(`${u.n} (torre com ${fmtM(u.reqAlt)})`);
+    if (u.req && S.lv[u.req[0]] < u.req[1]) out.push(t('{0} ({1} nível {2})', t(u.n), t(UP[u.req[0]].n), u.req[1]));
+    else if (u.reqAlt) out.push(t('{0} (torre com {1})', t(u.n), fmtM(u.reqAlt)));
   }
   return out.slice(0, 3);
 }
@@ -42,14 +43,14 @@ let lastNeck = 'tran';
 const row = (k, hot) => {
   const el = document.createElement('div');
   el.className = 'up' + (hot ? ' hot' : ''); el.id = 'up-' + k;
-  el.innerHTML = `<span class="nm">${UP[k].n}<small></small></span><span class="ds">${UP[k].d}</span><span class="fx"></span><button class="btn sm buy"></button>`;
+  el.innerHTML = `<span class="nm">${t(UP[k].n)}<small></small></span><span class="ds">${t(UP[k].d)}</span><span class="fx"></span><button class="btn sm buy"></button>`;
   el.querySelector('.buy').onclick = () => onBuy(k);
   return el;
 };
 const catHead = (b, hot) => {
   const h = document.createElement('div');
   h.className = 'upcat' + (hot ? ' hot' : '');
-  h.innerHTML = BRANCHES.find(x => x.id === b).n + (hot ? '<span class="chip">gargalo</span>' : '');
+  h.innerHTML = t(BRANCHES.find(x => x.id === b).n) + (hot ? '<span class="chip">' + t('gargalo') + '</span>' : '');
   return h;
 };
 
@@ -81,13 +82,13 @@ export function updateUpgrades(neck) {
     listEl.innerHTML = '';
     let into = listEl;
     if (top.length) {
-      const h = document.createElement('div'); h.className = 'upcat'; h.textContent = 'Melhor compra agora';
+      const h = document.createElement('div'); h.className = 'upcat'; h.textContent = t('Melhor compra agora');
       listEl.appendChild(h);
       top.forEach(k => listEl.appendChild(row(k, false)));
       const n = vis.reduce((a, [, ks]) => a + ks.length, 0);
       if (n) {
         const d = document.createElement('details'); d.className = 'upmore'; d.open = wasOpen;
-        d.innerHTML = `<summary>Mais melhorias (${n})</summary>`;
+        d.innerHTML = `<summary>${t('Mais melhorias ({0})', n)}</summary>`;
         listEl.appendChild(d); into = d;
       }
     }
@@ -97,7 +98,7 @@ export function updateUpgrades(neck) {
     });
     if (sn.length) {
       const d = document.createElement('div');
-      d.className = 'upsoon'; d.textContent = 'Em breve: ' + sn.join(' · ');
+      d.className = 'upsoon'; d.textContent = t('Em breve: {0}', sn.join(' · '));
       into.appendChild(d);
     }
   }
@@ -105,11 +106,11 @@ export function updateUpgrades(neck) {
   [...top, ...vis.flatMap(([, ks]) => ks)].forEach(k => {
     const el = $('up-' + k); if (!el) return;
     const can = canBuy(k); any ||= can;
-    setText(el.querySelector('small'), 'Nv ' + S.lv[k]);
+    setText(el.querySelector('small'), t('Nv {0}', S.lv[k]));
     const bt = el.querySelector('.buy');
-    setText(bt, 'R$ ' + fmt(cost(k)));
+    setText(bt, din(cost(k)));
     bt.disabled = !can;
-    bt.setAttribute('aria-label', `${UP[k].n}, R$ ${fmt(cost(k))}`);
+    bt.setAttribute('aria-label', `${t(UP[k].n)}, ${din(cost(k))}`);
     // antes → depois com as fórmulas reais; avisa quando o gargalo impede o ganho
     const im = upgradeImpact(k), fx = el.querySelector('.fx');
     setText(fx, im ? im.text : '');
