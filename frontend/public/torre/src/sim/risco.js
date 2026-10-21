@@ -179,18 +179,30 @@ export function taxaLiberacao() {
 }
 // parte da renda que vai para a dívida do parcelamento: de RISCO.retencao[0] (dívida pequena) a [1] (dívida grande perto de 10 min de renda)
 export const retencao = () => { const d = st().divida || 0; if (d <= 0) return 0; const renda = Math.max(1, rates().income), [a, b] = RISCO.retencao; return a + (b - a) * d / (d + renda * 600); };
-// cumpre um dos reforços do laudo: à vista (paga agora) ou parcelado (+20%, uma parte da renda vai pagando);
+// cumpre um dos reforços do laudo: à vista (paga agora), parcelado (+20%, uma parte da renda vai pagando) ou
+// 'entrada' (paga agora o dinheiro que tem e parcela só o resto, com os 20% só no resto; pedido do usuário, 21/10/2026);
 // sobe as defesas, devolve a integridade e a obra volta a andar
 export function cumprirReforco(id, parcelar = false) {
   const s = st(), o = s.interd && s.interd.opcoes.find(x => x.id === id);
   if (!o) return false;
-  if (parcelar) s.divida = (s.divida || 0) + Math.round(o.custo * (1 + RISCO.parcelaJuros));
+  if (parcelar) {
+    const ent = parcelar === 'entrada' ? Math.max(0, Math.min(S.money, o.custo)) : 0;
+    S.money -= ent; s.divida = (s.divida || 0) + Math.round((o.custo - ent) * (1 + RISCO.parcelaJuros));
+  }
   else if (S.money < o.custo) return false;
   else S.money -= o.custo;
   for (const [k, q] of Object.entries(o.niveis)) S.lv[k] = (S.lv[k] || 0) + q;
   s.max += o.extraMax; s.integ = Math.round(o.integ * s.max);
   s.interd = null; s.prox = null;
   return true;
+}
+
+// paga a dívida do parcelamento com o dinheiro juntado: tudo, se der, senão abate o que tiver (pedido do usuário, 21/10/2026)
+export function quitarDivida() {
+  const s = st(), p = Math.max(0, Math.min(s.divida || 0, S.money));
+  if (p <= 0) return 0;
+  S.money -= p; s.divida -= p; if (s.divida < 1) s.divida = 0;
+  return p;
 }
 
 // ---------- avarias na estrutura ----------
@@ -253,6 +265,8 @@ export function migrarRisco() {
 const KEEP_RISCO = ['pontosTotal', 'bestAlt', 'introSeen', 'dicas', 'jornais', 'marcos', 'marcosAlt', 'playTime', 'won', 'winSeen', 'rank', 'altTotal', 'orbitaSec']; // orbitaSec: tempo de jogo até a 1ª Órbita (ranking)
 // prêmios que a pessoa pode guardar na queda: os desta torre (inclui o que veio guardado), sem repetir
 export const premiosDaTentativa = () => [...new Set(st().premios)];
+// prêmios desta torre com quantas vezes cada um saiu, na ordem em que apareceram: [[id, vezes], …]
+export const premiosAcumulados = () => { const m = new Map(); for (const id of st().premios) m.set(id, (m.get(id) || 0) + 1); return [...m]; };
 // começa uma torre nova: Reputação fica, 1 prêmio guardado (1 vaga; null mantém o que já estava guardado)
 export function novaTorre(guardar) {
   const keep = {}; for (const k of KEEP_RISCO) keep[k] = S[k];

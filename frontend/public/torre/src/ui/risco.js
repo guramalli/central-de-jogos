@@ -1,7 +1,7 @@
 // Modo com risco: barra de integridade embaixo do dia, aviso da próxima ameaça, efeitos na cena, tela de fim de ano
 // (3 prêmios, escolher 1) e tela do desabamento (escolher 1 prêmio para guardar e começar uma torre nova).
 import { S, save } from '../sim/state.js';
-import { AMEACAS, riscoState, danoDe, avisando, segExigida, escolherPremio, premiosDaTentativa, cumprirReforco, nomeDef, RISCO, retencao, nomeAmeaca, multaLiberacao, liberarEmbargo } from '../sim/risco.js';
+import { AMEACAS, riscoState, danoDe, avisando, segExigida, escolherPremio, premiosDaTentativa, premiosAcumulados, cumprirReforco, quitarDivida, nomeDef, RISCO, retencao, nomeAmeaca, multaLiberacao, liberarEmbargo } from '../sim/risco.js';
 import { PREMIOS } from '../data/premios.js';
 import { UP } from '../data/upgrades.js';
 import { repPct } from '../sim/prestige.js';
@@ -73,6 +73,15 @@ export function initRisco(o) {
   .rk-acoes button:hover{background:#4a4466}
   .sk-div{display:inline-block;margin-left:10px;font-size:14px;text-align:left;white-space:nowrap}.rk-div[hidden]{display:none}
   .rk-div small{display:block;font:600 10px "Chakra Petch";color:#ff9a8a}
+  .rk-quitar{display:block;margin:3px 0 0 auto;font:700 11px "Chakra Petch";border:0;border-radius:6px;padding:3px 8px;background:#3d8f4a;color:#fff;cursor:pointer;pointer-events:auto}.rk-quitar:hover{background:#4aa858}.rk-quitar[hidden]{display:none}
+  .sk-div b{font:inherit}.sk-div .rk-quitar{display:inline-block;margin:0 0 0 8px;vertical-align:middle}
+  #rkAno{overflow-y:auto;justify-content:safe center}
+  .rk-acum{max-width:760px;display:flex;flex-direction:column;align-items:center;gap:6px}.rk-acum[hidden]{display:none}
+  .rk-acum-t{font:700 13px "Chakra Petch";color:#c9c2dc;letter-spacing:.04em;text-transform:uppercase}
+  .rk-acum-l{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .rk-mini{width:150px;background:rgba(34,31,46,.92);border:1px solid #4b4560;border-radius:10px;padding:7px 8px;text-align:left;display:flex;flex-direction:column;gap:3px}
+  .rk-mini img{width:24px;height:24px;image-rendering:pixelated}.rk-mini b{font:700 12px "Chakra Petch";color:#f4efe6}.rk-mini small{font:11px/1.3 Rubik;color:#b9d8b9}
+  @media (max-width:640px){.rk-mini{width:calc(50% - 6px)}}
   @media (max-width:640px){.rk-reforco{width:calc(33% - 8px);padding:8px;min-height:150px}.rk-reforco b{font-size:12px}.rk-reforco small{font-size:11px}.rk-reforco button{font-size:11px;padding:6px 4px}}
   .rk-guardar{min-height:0;position:relative}.rk-guardar.sel::after{content:'✓ Guardar este';position:absolute;top:-11px;right:8px;background:#f2b630;color:#1b1622;font:700 11px "Chakra Petch";padding:2px 8px;border-radius:8px}.rk-guardar.sel{background:#2d2a1c}
   @media (max-width:640px){.rk-premio,.rk-guardar{width:calc(33% - 8px);padding:8px}.rk-premio{min-height:140px}.rk-premio b,.rk-guardar b{font-size:12px}.rk-premio small,.rk-guardar small{font-size:11px}.rk-over h2{font-size:30px}}`;
@@ -83,8 +92,12 @@ export function initRisco(o) {
   bar.title = 'Integridade da torre: chegando a zero, a obra é interditada';
   $('hPlateFloor').appendChild(bar);
   const dv = document.createElement('span'); dv.className = 'rk-div'; dv.id = 'rkDiv'; dv.hidden = true; $('hPlateMoney').appendChild(dv); // dívida em vermelho embaixo do dinheiro, caindo
+  dv.innerHTML = '<b></b><small></small><button type="button" class="rk-quitar" id="rkQuitar" hidden></button>';
   // e no cabeçalho da árvore de Melhorias, ao lado do dinheiro (no computador, com a árvore aberta a placa do dinheiro some)
   const dv2 = document.createElement('span'); dv2.className = 'rk-div sk-div'; dv2.id = 'skDiv'; dv2.hidden = true; $('skMoney').after(dv2);
+  dv2.innerHTML = '<b></b><button type="button" class="rk-quitar" id="skQuitar" hidden></button>';
+  // com dinheiro juntado, o botão quita a dívida (ou abate o que tiver; pedido do usuário, 21/10/2026)
+  for (const b of [$('rkQuitar'), $('skQuitar')]) b.onclick = e => { e.stopPropagation(); if (quitarDivida() > 0) { save(); sfx('buy'); tickDivida(); } };
   const w = document.createElement('div'); w.className = 'rk-warn'; w.id = 'rkWarn'; w.hidden = true; document.body.appendChild(w);
   w.addEventListener('click', e => { if (e.target.closest('#rkLibera') && liberarEmbargo()) { save(); sfx('buy'); w.hidden = true; w.innerHTML = ''; } });
   const ov = document.createElement('div'); ov.className = 'rk-over'; ov.id = 'rkOver'; ov.hidden = true;
@@ -94,12 +107,12 @@ export function initRisco(o) {
   $('rkGuarda').onclick = e => { const b = e.target.closest('.rk-guardar'); if (!b) return; guardar = b.dataset.premio; for (const c of $('rkGuarda').children) c.classList.toggle('sel', c === b); };
   // obra interditada: laudo da Defesa Civil com 3 jeitos de reforçar (pagos com dinheiro)
   const it = document.createElement('div'); it.className = 'rk-over'; it.id = 'rkInterd'; it.hidden = true;
-  it.innerHTML = '<h2 class="int">OBRA INTERDITADA</h2><p id="rkInterdTxt"></p><p class="rk-sem" id="rkSemDinheiro" hidden></p><div class="rk-cards" id="rkReforcos"></div><p class="rk-nota">Sem dinheiro? Parcele: a obra volta na hora e uma parte do aluguel (de 15% a 35%, conforme a dívida) vai pagando até quitar. Parcelado custa 20% a mais.</p>';
+  it.innerHTML = '<h2 class="int">OBRA INTERDITADA</h2><p id="rkInterdTxt"></p><p class="rk-sem" id="rkSemDinheiro" hidden></p><div class="rk-cards" id="rkReforcos"></div><p class="rk-nota">Sem dinheiro? Parcele: a obra volta na hora e uma parte do aluguel (de 15% a 35%, conforme a dívida) vai pagando até quitar. Parcelado custa 20% a mais (com entrada, só o resto).</p>';
   document.body.appendChild(it);
-  $('rkReforcos').onclick = e => { const b = e.target.closest('button[data-id]'); if (!b || b.disabled || !cumprirReforco(b.dataset.id, b.dataset.modo === 'parcelar')) return; it.hidden = true; interdVista = null; save(); sfx('buy'); showNews('DEFESA CIVIL', 'Reforço feito: a obra foi liberada e volta a subir.'); };
+  $('rkReforcos').onclick = e => { const b = e.target.closest('button[data-id]'); if (!b || b.disabled || !cumprirReforco(b.dataset.id, b.dataset.modo === 'parcelar' || (b.dataset.modo === 'entrada' && 'entrada'))) return; it.hidden = true; interdVista = null; save(); sfx('buy'); showNews('DEFESA CIVIL', 'Reforço feito: a obra foi liberada e volta a subir.'); };
   // fim do ano sobrevivido: 3 prêmios, tocar escolhe
   const an = document.createElement('div'); an.className = 'rk-over'; an.id = 'rkAno'; an.hidden = true;
-  an.innerHTML = '<h2 class="ok" id="rkAnoT">ANO 1 CONCLUÍDO</h2><p id="rkAnoTxt"></p><div class="rk-cards" id="rkPremios"></div>'
+  an.innerHTML = '<h2 class="ok" id="rkAnoT">ANO 1 CONCLUÍDO</h2><p id="rkAnoTxt"></p><div class="rk-cards" id="rkPremios"></div><div class="rk-acum" id="rkAcum" hidden></div>'
     + '<div class="rk-acoes"><button type="button" id="rkSalvar">Salvar</button><button type="button" id="rkSair">Sair</button></div>';
   document.body.appendChild(an);
   // entre os anos (pedido do usuário): Salvar grava e confirma; Sair grava e vai para o Início (a escolha do prêmio espera)
@@ -116,8 +129,7 @@ export function tickRisco(paused, bloqueado) {
   $('rkFill').style.width = `${p * 100}%`;
   $('rkBar').className = 'day-bar rk-bar' + (p <= 0.25 ? ' low' : p <= 0.5 ? ' mid' : '');
   $('rkTxt').textContent = s.interd ? 'INTERDITADA' : `INTEGRIDADE ${Math.ceil(s.integ)}`;
-  $('rkDiv').hidden = $('skDiv').hidden = !(s.divida > 0);
-  if (s.divida > 0) { $('rkDiv').innerHTML = `−R$ ${fmt(s.divida)}<small>dívida · ${Math.round(100 * retencao())}% do aluguel</small>`; $('skDiv').textContent = `−R$ ${fmt(s.divida)} de dívida`; }
+  tickDivida();
   const w = $('rkWarn');
   if (S.colapso || paused || S.roundOver) w.hidden = true;
   else if (s.interd) { w.hidden = false; w.className = 'rk-warn now'; w.textContent = '🚧 OBRA INTERDITADA · escolha um reforço para liberar'; }
@@ -158,7 +170,7 @@ export function tickRisco(paused, bloqueado) {
     if (interdVista !== s.interd) {
       interdVista = s.interd; sfx('multa');
       $('rkInterdTxt').textContent = `Laudo da Defesa Civil: ${AMEACAS[s.interd.tipo] ? AMEACAS[s.interd.tipo].n.toLowerCase() : 'a obra'} comprometeu a estrutura a ${fmtM(S.maxAlt)}. ${nomeDef(s.interd.def)} insuficiente. Interdição ${s.interdAno} neste ano: na ${RISCO.interdMax}ª, a torre é condenada e desaba. Escolha um reforço para liberar a obra:`;
-      $('rkReforcos').innerHTML = s.interd.opcoes.map(o => `<div class="rk-reforco" data-id="${o.id}"><b>${o.n}</b><small>${o.d}</small><div class="rk-btns"><button type="button" data-id="${o.id}" data-modo="vista"></button><button type="button" class="parc" data-id="${o.id}" data-modo="parcelar">Parcelar: R$ ${fmt(Math.round(o.custo * (1 + RISCO.parcelaJuros)))}</button><i></i></div></div>`).join('');
+      $('rkReforcos').innerHTML = s.interd.opcoes.map(o => `<div class="rk-reforco" data-id="${o.id}"><b>${o.n}</b><small>${o.d}</small><div class="rk-btns"><button type="button" data-id="${o.id}" data-modo="vista"></button><button type="button" class="parc" data-id="${o.id}" data-modo="parcelar">Parcelar: R$ ${fmt(Math.round(o.custo * (1 + RISCO.parcelaJuros)))}</button><button type="button" class="parc" data-id="${o.id}" data-modo="entrada" hidden></button><i></i></div></div>`).join('');
     }
     // sem dinheiro para pagar à vista (o aluguel está parado): o Parcelar vira o botão principal e o aviso explica o caminho
     // (pedido do usuário, 21/10/2026: ficou preso no dia 365 sem perceber que dava para parcelar)
@@ -166,12 +178,16 @@ export function tickRisco(paused, bloqueado) {
     for (const c of $('rkReforcos').children) {
       const o = s.interd.opcoes.find(x => x.id === c.dataset.id), falta = o.custo - S.money, bv = c.querySelector('[data-modo="vista"]'), bp = c.querySelector('[data-modo="parcelar"]');
       bv.textContent = `À vista: R$ ${fmt(o.custo)}`; bv.disabled = falta > 0; c.querySelector('i').textContent = falta > 0 ? `Faltam R$ ${fmt(falta)} para pagar à vista` : '';
+      // entrada com o dinheiro que tem e o resto parcelado (os 20% só no resto)
+      const be = c.querySelector('[data-modo="entrada"]'), ent = Math.floor(S.money);
+      be.hidden = !(ent >= 1 && falta > 0);
+      if (!be.hidden) be.textContent = `Entrada R$ ${fmt(ent)} + parcelar R$ ${fmt(Math.round((o.custo - ent) * (1 + RISCO.parcelaJuros)))}`;
       if (falta <= 0) algumVista = true;
     }
     for (const bp of $('rkReforcos').querySelectorAll('[data-modo="parcelar"]')) { bp.classList.toggle('principal', !algumVista); bp.classList.toggle('parc', algumVista); }
     const fimAno = S.roundLeft <= 0.06;
     $('rkSemDinheiro').hidden = algumVista;
-    if (!algumVista) $('rkSemDinheiro').textContent = `Sem dinheiro para pagar à vista, e o aluguel está parado enquanto a obra estiver interditada. Toque em Parcelar: a obra volta na hora e uma parte do aluguel vai pagando a dívida.${fimAno ? ' O ano só termina depois do reforço.' : ''}`;
+    if (!algumVista) $('rkSemDinheiro').textContent = `${S.money >= 1 ? 'O dinheiro não dá' : 'Sem dinheiro'} para pagar à vista, e o aluguel está parado enquanto a obra estiver interditada. Toque em Parcelar: a obra volta na hora e uma parte do aluguel vai pagando a dívida.${S.money >= 1 ? ' Ou dê o dinheiro que tem de entrada e parcele só o resto.' : ''}${fimAno ? ' O ano só termina depois do reforço.' : ''}`;
     ti.hidden = false;
   } else if (!ti.hidden) ti.hidden = true;
   // fim do ano: a tela dos prêmios (também depois de recarregar a página)
@@ -181,6 +197,11 @@ export function tickRisco(paused, bloqueado) {
     $('rkAnoT').textContent = `ANO ${s.ano} CONCLUÍDO`;
     $('rkAnoTxt').textContent = `A torre aguentou mais um ano com ${fmtM(S.maxAlt)}. Reputação ${fmtPct(repPct(g))} (total ${fmtPct(repPct(S.pontosTotal || 0))}). A integridade que sobrou (${Math.ceil(s.integ)}) vira reforço: integridade máxima +${s.reforco || 0} no próximo ano. Escolha um prêmio: ele vale até a torre cair.`;
     $('rkPremios').innerHTML = (s.oferta || []).map(id => cartao(id, 'rk-premio')).join('');
+    // os prêmios que a torre já tem, em cartões menores com a explicação (pedidos do usuário, 21/10/2026), com ×N nos repetidos
+    const acum = premiosAcumulados().filter(([id]) => PREMIOS[id]);
+    $('rkAcum').hidden = !acum.length;
+    $('rkAcum').innerHTML = '<b class="rk-acum-t">Prêmios que esta torre já tem</b><div class="rk-acum-l">'
+      + acum.map(([id, n]) => `<div class="rk-mini"><img src="assets/icones/${PREMIOS[id].icon}.png" alt=""><b>${PREMIOS[id].n}${n > 1 ? ` ×${n}` : ''}</b><small>${PREMIOS[id].d}</small></div>`).join('') + '</div>';
     $('rkSalvar').textContent = 'Salvar'; an.hidden = false; sfx('entrega');
   } else if (!s.fimAno && !an.hidden) an.hidden = true;
   if (S.colapso && !fall) { // começa a queda: física de blocos em render/riscoFx.js, câmera enquadrando a torre inteira
@@ -188,6 +209,16 @@ export function tickRisco(paused, bloqueado) {
     const c0 = { cx: cam.cx, cy: cam.cy, z: cam.z }; setIntroCam(() => quedaCam(c0));
     sfx('desabamento'); sfx('multa', 3);
   }
+}
+// dívida do parcelamento: valor caindo em vermelho e o botão de quitar (tudo) ou abater (o que tiver)
+function tickDivida() {
+  const d = riscoState().divida || 0;
+  $('rkDiv').hidden = $('skDiv').hidden = !(d > 0);
+  if (!(d > 0)) return;
+  $('rkDiv').querySelector('b').textContent = `−R$ ${fmt(d)}`; $('rkDiv').querySelector('small').textContent = `dívida · ${Math.round(100 * retencao())}% do aluguel`;
+  $('skDiv').querySelector('b').textContent = `−R$ ${fmt(d)} de dívida`;
+  const txt = S.money >= d ? `Quitar R$ ${fmt(d)}` : S.money >= 1 ? `Abater R$ ${fmt(Math.floor(S.money))}` : '';
+  for (const b of [$('rkQuitar'), $('skQuitar')]) { b.hidden = !txt; if (txt && b.textContent !== txt) b.textContent = txt; }
 }
 const fimQueda = () => { fall = null; pararQueda(); setIntroCam(null); }; // a câmera volta a seguir a obra
 export const resetRisco = () => { fimQueda(); ultimoLog = riscoState().log.length; guardar = null; interdVista = null; $('rkOver').hidden = true; $('rkAno').hidden = true; $('rkInterd').hidden = true; };
