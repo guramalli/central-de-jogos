@@ -7,6 +7,7 @@
     { "source": "/jocelino", "destination": "/jocelino/", "permanent": false },
     { "source": "/grau-grinders", "destination": "/grau-grinders/", "permanent": false },
     { "source": "/jogorpg", "destination": "/jogorpg/", "permanent": false },
+    { "source": "/ghotin2", "destination": "/ghotin2/", "permanent": false },
     { "source": "/thelastdance", "destination": "/thelastdance/", "permanent": false },
     { "source": "/torre", "destination": "/torre/", "permanent": false },
     { "source": "/thelastdance/:pasta(reference|docs|tools|tests)/:resto*", "destination": "/thelastdance/", "permanent": false }
@@ -19,6 +20,7 @@
     { "source": "/jocelino/", "destination": "/jocelino/index.html" },
     { "source": "/grau-grinders/", "destination": "/grau-grinders/index.html" },
     { "source": "/jogorpg/", "destination": "/jogorpg/index.html" },
+    { "source": "/ghotin2/", "destination": "/ghotin2/index.html" },
     { "source": "/thelastdance/", "destination": "/thelastdance/index.html" },
     { "source": "/torre/", "destination": "/torre/index.html" },
     { "source": "/v2", "destination": "/v2/index.html" },

@@ -1,0 +1,13 @@
+{
+  "pxPorMetro": 84,
+  "andar": 0.6060606,
+  "correr": 2.476191,
+  "animacoes": {
+    "parado": { "quadros": 40, "fps": 20, "laco": true, "acerto": -1, "w": 144, "h": 102, "px": 72, "py": 74 },
+    "andando": { "quadros": 16, "fps": 20, "laco": true, "acerto": -1, "w": 144, "h": 108, "px": 72, "py": 75 },
+    "correndo": { "quadros": 12, "fps": 24, "laco": true, "acerto": -1, "w": 140, "h": 110, "px": 70, "py": 75 },
+    "atacar": { "quadros": 16, "fps": 20, "laco": false, "acerto": 8, "w": 220, "h": 154, "px": 110, "py": 113 },
+    "dano": { "quadros": 8, "fps": 20, "laco": false, "acerto": -1, "w": 142, "h": 105, "px": 71, "py": 77 },
+    "morte": { "quadros": 20, "fps": 20, "laco": false, "acerto": -1, "w": 142, "h": 113, "px": 71, "py": 73 }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "carga": {
+    "quadros": 12,
+    "fps": 26.667,
+    "laco": false,
+    "w": 128,
+    "h": 137,
+    "px": 64,
+    "py": 99
+  },
+  "explosao": {
+    "quadros": 12,
+    "fps": 15,
+    "laco": false,
+    "w": 294,
+    "h": 336,
+    "px": 148,
+    "py": 261
+  },
+  "aura": {
+    "quadros": 12,
+    "fps": 12,
+    "laco": true,
+    "w": 125,
+    "h": 149,
+    "px": 66,
+    "py": 107
+  },
+  "vortice": {
+    "quadros": 12,
+    "fps": 16,
+    "laco": true,
+    "w": 229,
+    "h": 235,
+    "px": 107,
+    "py": 169,
+    "frenteAlfa": 0.35
+  }
+}
