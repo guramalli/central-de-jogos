@@ -1,0 +1,79 @@
+{
+ "chuva_loop": {
+  "trechos": [
+   [
+    0.5,
+    20.0
+   ]
+  ],
+  "vel": 1.0,
+  "vol": 0.8,
+  "loop": true
+ },
+ "vento_loop": {
+  "trechos": [
+   [
+    21.55,
+    7.5236
+   ]
+  ],
+  "vel": 1.0,
+  "vol": 0.6,
+  "loop": true
+ },
+ "campo_loop": {
+  "trechos": [
+   [
+    30.1236,
+    20.0
+   ]
+  ],
+  "vel": 1.0,
+  "vol": 0.7,
+  "loop": true
+ },
+ "floresta_loop": {
+  "trechos": [
+   [
+    51.1736,
+    20.0
+   ]
+  ],
+  "vel": 1.0,
+  "vol": 0.7,
+  "loop": true
+ },
+ "noite_loop": {
+  "trechos": [
+   [
+    72.2236,
+    20.0
+   ]
+  ],
+  "vel": 1.0,
+  "vol": 0.6,
+  "loop": true
+ },
+ "vila_loop": {
+  "trechos": [
+   [
+    93.2736,
+    20.0
+   ]
+  ],
+  "vel": 1.0,
+  "vol": 0.5,
+  "loop": true
+ },
+ "fogueira_loop": {
+  "trechos": [
+   [
+    114.3236,
+    12.3503
+   ]
+  ],
+  "vel": 1.0,
+  "vol": 0.7,
+  "loop": true
+ }
+}

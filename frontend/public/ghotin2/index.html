@@ -306,6 +306,7 @@
       <button id="cViking" aria-pressed="true">Viking</button>
       <button id="cArqueiro" aria-pressed="false">Arqueiro</button>
       <button id="cFeiticeiro" aria-pressed="false">Feiticeiro</button>
+      <button id="cGuerreiro" aria-pressed="false" title="Guerreiro do machado">Guerreiro</button>
       <button id="cNinja" aria-pressed="false" title="Ninja (provisório: usa o desenho do viking escurecido até chegar o modelo dele)">Ninja</button>
     </div>
   </div>
@@ -336,8 +337,7 @@
     <div class="eq peca-eq" data-peca="elmo" style="left: 8px; top: 8px"><span>elmo</span></div>
     <div class="eq alto arma-eq" id="eqArma" style="left: 8px; top: 46px" title="Arma: clique direito tira e põe na bolsa"><span>arma</span></div>
     <div class="eq peca-eq" data-peca="botas" style="left: 8px; top: 116px"><span>botas</span></div>
-    <div class="eq alto peca-eq" data-peca="armadura" style="left: 50%; top: 8px; transform: translateX(-50%)"><span>armad.</span></div>
-    <div class="eq peca-eq" data-peca="calcas" style="left: 50%; top: 80px; transform: translateX(-50%)"><span>calças</span></div>
+    <div class="eq alto peca-eq" data-peca="armadura" style="left: 50%; top: 30px; transform: translateX(-50%)"><span>roupa</span></div>
     <div class="eq" style="right: 8px; top: 8px" title="Brincos (em breve)"><span>brinco</span></div>
     <div class="eq alto peca-eq" data-peca="escudo" style="right: 8px; top: 46px"><span>escudo</span></div>
     <div class="eq" style="right: 8px; top: 116px" title="Colar (em breve)"><span>colar</span></div>
@@ -392,7 +392,7 @@
       <h2>Controles</h2>
       <dl class="teclas">
         <dt>WASD · setas</dt><dd>andar (8 direções)</dd>
-        <dt>Shift</dt><dd>correr</dd>
+        <dt>Movimento</dt><dd>todos correm sempre; a velocidade sobe com os itens de velocidade, a Fúria e os Passos Leves</dd>
         <dt>clique · toque</dt><dd>andar até o ponto, desviando do que estiver no caminho (longe, ele corre); num boneco, ir lá e bater; num lobo ou esqueleto, marcar o alvo (anel vermelho), ir atrás e golpear sozinho até ele cair</dd>
         <dt>J</dt><dd>atacar: com a espada nas costas, saca já golpeando; depois os 5 golpes em sequência</dd>
         <dt>F1 – F10 · 1 – 0 · I</dt><dd>barra de atalhos em duas fileiras (F1–F10 em cima, com as poções; 1–0 embaixo, com as skills) e a bolsa (I): quatro abas de 5 × 9 espaços como no Metin2; arraste um item para a barra para criar um atalho, clique direito usa. Barra: arraste uma skill para outro espaço para trocar de lugar (cada personagem guarda a sua ordem). Ataques e skills de ataque só saem com um alvo marcado (Espaço, clique ou o botão Alvo); os buffs saem sempre. No viking: Fúria, Vórtice, Lâmina Espiritual (também F, V, L), Corte Triplo (três cortes rápidos e fortes na frente) e Investida (dispara com a espada à frente e tromba no primeiro inimigo do caminho: ele voa para trás e o viking para ali). Uma skill corta o ataque básico; depois que a skill sai, andar já corta o fim dela. Os golpes do combo emendam um no outro, como no Metin2</dd>
@@ -540,6 +540,44 @@
 <div id="carregando"><div><p>Afiando a espada…</p><div class="trilho"><i id="barra"></i></div><span id="carregandoTxt">0 / 0</span></div></div>
 
 <script>
+// ---------------------------------------------------------------- modo leve (celular)
+// Abertas, as folhas de sprite dariam ~6 GB na memória (cada animação × 8 direções, em tamanho cheio): o navegador do
+// celular fecha a página. No modo leve (telas de toque pequenas, ou ?leve=1), o corte das direções (createImageBitmap)
+// não decodifica nada: devolve um marcador, e cada direção só vira imagem (em meia resolução) na primeira vez que é
+// desenhada. O drawImage entende o marcador e corrige o recorte para a meia resolução. Assim só ocupa memória o que
+// aparece na tela.
+(function () {
+  const q = new URLSearchParams(location.search);
+  const LEVE = q.has("leve") || (!q.has("pesado") && matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 900);
+  window.MODO_LEVE = LEVE;
+  if (!LEVE) return;
+  const ESC = 0.5, desenhar = CanvasRenderingContext2D.prototype.drawImage, cortar = window.createImageBitmap.bind(window);
+  window.createImageBitmap = function (im, sx, sy, sw, sh) {
+    if (!(im instanceof HTMLImageElement) || arguments.length < 5) return cortar.apply(null, arguments);
+    return Promise.resolve({ leve: { im, sx, sy, sw, sh }, width: sw, height: sh, c: null, close() {} });
+  };
+  function abrir(o) {
+    if (!o.c) {
+      const c = document.createElement("canvas"), L = o.leve;
+      c.width = Math.max(1, Math.round(o.width * ESC)); c.height = Math.max(1, Math.round(o.height * ESC));
+      const g = c.getContext("2d"); g.imageSmoothingQuality = "high";
+      desenhar.call(g, L.im, L.sx, L.sy, L.sw, L.sh, 0, 0, c.width, c.height);
+      o.c = c; o.leve = null;
+    }
+    return o.c;
+  }
+  CanvasRenderingContext2D.prototype.drawImage = function (img, ...a) {
+    if (img && (img.leve || img.c) && img.close) {
+      const c = abrir(img);
+      if (a.length === 8) return desenhar.call(this, c, a[0] * ESC, a[1] * ESC, a[2] * ESC, a[3] * ESC, a[4], a[5], a[6], a[7]);
+      if (a.length === 4) return desenhar.call(this, c, a[0], a[1], a[2], a[3]);
+      return desenhar.call(this, c, a[0], a[1], img.width, img.height);
+    }
+    return desenhar.call(this, img, ...a);
+  };
+})();
+</script>
+<script>
 "use strict";
 // ---------------------------------------------------------------- utilidades
 const $ = s => document.querySelector(s);
@@ -559,7 +597,8 @@ const TINTA = "#1c120c";                  // a linha de nanquim dos sprites
 
 let M = null, SPR = {}, PX = 84;          // manifest, imagens por animação e direção, pixels por metro
 // o personagem jogável: o viking (manifest.json) ou o arqueiro (arqueiro.json); M e SPR apontam para o da vez
-let MV = null, SPRV = {}, MA = null, SPRA = {}, MF = null, SPRF = {}, MN = null, SPRN = {}, classe = "viking";
+const ICONES_SKILL = {}; const ICONES_ITEM = {};
+let MV = null, SPRV = {}, MA = null, SPRA = {}, MF = null, SPRF = {}, MN = null, SPRN = {}, MG = null, SPRG = {}, classe = "viking";
 let FX = null, FXI = {};                  // fogo da Fúria: fx.json e as tiras
 let zoom = 1, dpr = 1, W = 0, H = 0;
 
@@ -783,13 +822,15 @@ function som(nome, onde = null, forca = 1) {
 }
 
 // ---------------------------------------------------------------- carregar
+// criaturas opcionais: sem o json ou com uma folha faltando, a página segue sem elas (os orcs do vale viram goblins)
+const OPCIONAIS = ["javali", "rato", "orc", "orc_bravo", "orc_feiticeiro"];
 async function carregar() {
   M = await (await fetch("manifest.json")).json();
   TIPOS.lobo.M = await (await fetch("lobo.json")).json();
   TIPOS.esqueleto.M = await (await fetch("esqueleto.json")).json();
   TIPOS.aranha.M = await (await fetch("aranha.json")).json();
   TIPOS.goblin.M = await (await fetch("goblin.json")).json();
-  for (const t of ["javali", "rato"]) {
+  for (const t of OPCIONAIS) {
     try { const r = await fetch(t + ".json"); if (!r.ok) throw 0; TIPOS[t].M = await r.json(); } catch (e) { delete TIPOS[t]; }
   }
   FX = await (await fetch("fx.json")).json();
@@ -797,10 +838,11 @@ async function carregar() {
   MA = await (await fetch("arqueiro.json")).json();
   MF = await (await fetch("feiticeiro.json")).json();
   try { const r = await fetch("ninja.json"); if (r.ok) MN = await r.json(); } catch (e) { MN = null; }
+  try { const r = await fetch("guerreiro.json"); if (r.ok) MG = await r.json(); } catch (e) { MG = null; }
   MV = M; SPRV = SPR;
   PX = M.pxPorMetro;
   const nomes = Object.keys(M.animacoes);
-  const total = (nomes.length + Object.keys(MA.animacoes).length + Object.keys(MF.animacoes).length + (MN ? Object.keys(MN.animacoes).length : 0) + Object.values(TIPOS).reduce((n, c) => n + Object.keys(c.M.animacoes).length, 0)) * 8 + Object.keys(FX).length + Object.keys(TEX).length + 1;
+  const total = (nomes.length + Object.keys(MA.animacoes).length + Object.keys(MF.animacoes).length + (MN ? Object.keys(MN.animacoes).length : 0) + (MG ? Object.keys(MG.animacoes).length : 0) + Object.values(TIPOS).reduce((n, c) => n + Object.keys(c.M.animacoes).length, 0)) * 8 + Object.keys(FX).length + Object.keys(TEX).length + 1;
   let feitos = 0;
   const um = (nome, d) => new Promise((ok, erro) => {
     const im = new Image();
@@ -825,6 +867,7 @@ async function carregar() {
     // as variantes sem arma ("_sem") são opcionais: sem a folha, a animação some do manifesto e o jogo usa a com arma
     ...nomes.map(async n => { try { SPR[n] = await folha(n); } catch (e) { if (n.endsWith("_sem")) delete M.animacoes[n]; else throw e; } }),
     ...Object.keys(MA.animacoes).map(async n => { try { SPRA[n] = await folha("arqueiro_" + n); } catch (e) { if (n.endsWith("_sem")) delete MA.animacoes[n]; else throw e; } }),
+    ...(MG ? Object.keys(MG.animacoes) : []).map(async n => { try { SPRG[n] = await folha("guerreiro_" + n); } catch (e) { if (n.endsWith("_sem")) { if (MG) delete MG.animacoes[n]; } else MG = null; } }),
     ...(MN ? Object.keys(MN.animacoes) : []).map(async n => { try { SPRN[n] = await folha("ninja_" + n); } catch (e) { if (n.endsWith("_sem")) { if (MN) delete MN.animacoes[n]; } else MN = null; } }),
     ...Object.keys(MF.animacoes).map(async n => { try { SPRF[n] = await folha("feiticeiro_" + n); } catch (e) { if (n.endsWith("_sem")) delete MF.animacoes[n]; else throw e; } }),
     // decorações pintadas (sem elas, árvores, pedras e arbustos voltam a ser desenhados só por código)
@@ -832,7 +875,7 @@ async function carregar() {
       try {
         const d = await (await fetch("deco.json")).json();
         await Promise.all(Object.values(d).flat().map(v => new Promise(ok => {
-          const im = new Image(); im.onload = () => { DECO_IMG[v.arq] = im; (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(ok); }; im.onerror = ok; im.src = "deco/" + v.arq;
+          const im = new Image(); im.onerror = ok; im.onload = () => { DECO_IMG[v.arq] = im; Promise.race([im.decode ? im.decode().catch(() => {}) : 0, new Promise(r => setTimeout(r, 1500))]).then(ok); }; im.src = "deco/" + v.arq;   // (o decode() pode não voltar numa aba escondida: no máximo 1,5 s)
         })));
         DECO = d;
       } catch (e) {}
@@ -853,12 +896,28 @@ async function carregar() {
     // javali e rato são opcionais: se uma folha deles não carregar, a página segue sem eles
     ...Object.entries(TIPOS).flatMap(([tipo, c]) => Object.keys(c.M.animacoes).map(async n => {
       try { c.spr[n] = await folha(tipo + "_" + n); }
-      catch (e) { if (tipo === "javali" || tipo === "rato") faltou.add(tipo); else throw e; }
+      catch (e) { if (OPCIONAIS.includes(tipo)) faltou.add(tipo); else throw e; }
     })),
   ]);
   for (const t of faltou) delete TIPOS[t];
+  // ícones pintados das skills (icones.json: nome → imagem); a skill sem ícone pintado continua com o desenhado por código
+  try {
+    const mapa = await (await fetch("icones.json")).json();
+    await Promise.all(Object.entries(mapa).map(([nome, arq]) => new Promise(ok => {
+      const im = new Image(); im.onload = () => { ICONES_SKILL[nome] = im; ok(); }; im.onerror = ok; im.src = arq;
+    })));
+  } catch (e) {}
+  // ícones pintados dos itens (itens.json: desenho ou peca:<slot>:<tier> → imagem); o item sem pintura fica no desenho por código
+  try {
+    const mapa = await (await fetch("itens.json")).json();
+    await Promise.all(Object.entries(mapa).map(([chave, arq]) => new Promise(ok => {
+      const im = new Image(); im.onload = () => { ICONES_ITEM[chave] = im; ok(); }; im.onerror = ok; im.src = arq;
+    })));
+  } catch (e) {}
   // o ninja usa os nomes do combate do viking: as poses "armadas" são as dele mesmo (ele está sempre com as adagas)
-  if (MN) for (const [de, para] of [["parado_armado", "parado"], ["andando_armado", "andando"], ["correndo_armado", "correndo"]]) { MN.animacoes[de] = MN.animacoes[para]; SPRN[de] = SPRN[para]; }
+  if (MN) for (const [de, para] of [["parado_armado", "parado"], ["andando_armado", "andando"], ["correndo_armado", "correndo"]]) if (MN.animacoes[para]) { MN.animacoes[de] = MN.animacoes[para]; SPRN[de] = SPRN[para]; }
+  // o guerreiro também: sempre com o machado na mão
+  if (MG) for (const [de, para] of [["parado_armado", "parado"], ["andando_armado", "andando"], ["correndo_armado", "correndo"], ["furia_armado", "furia"]]) if (MG.animacoes[para]) { MG.animacoes[de] = MG.animacoes[para]; SPRG[de] = SPRG[para]; }
 }
 
 // ---------------------------------------------------------------- mapa (feito por código)
@@ -897,6 +956,7 @@ for (const e of ESTRADAS) for (let k = 1; k < e.length; k++) e[k] = noMapa(e[k])
 // a vila (o centrinho): ao norte da praça, com uma trilha até ela
 const VILA = { x: 2, y: 9, r: 17 };
 ESTRADAS.push([[PRACA.x, PRACA.y], [1.4, -1.5], [2, 4.2]]);
+ESTRADAS.push([[64, -12.2], [76, -9], [88, -6], [100, -4]]);                       // a estrada do leste até o Vale dos Orcs
 [LAGO.x, LAGO.y] = noMapa([LAGO.x, LAGO.y]); LAGO.r *= 1.25;
 const PONTE_LEV = { x0: -1.7, x1: 1.7, y0: -1.0, y1: 4.2 };
 const PORTAO = { x0: -1.8, x1: 1.8 };
@@ -937,7 +997,13 @@ function retArred(x, y, r) {
 const dentroRet = (x, y, r, folga = 0) => x > r.x0 - folga && x < r.x1 + folga && y > r.y0 - folga && y < r.y1 + folga;
 
 const desvioCosta = a => Math.sin(a * 5) * 1.8 + Math.sin(a * 11) * 0.8 + Math.sin(a * 3 + 1) * 1.3;
-function borda(x, y) { return Math.hypot(x, y) + desvioCosta(Math.atan2(y, x)); }
+// o Vale dos Orcs: a costa avança VALE_E m a leste, num arco de ±VALE_W rad (uma península larga, de terra vermelha,
+// ligada à ilha pela estrada do leste). A ilha continua "estrelada" a partir do centro: a costa é um raio por ângulo
+const VALE_E = 50, VALE_W = 0.65, VALE_X = 70;
+const extraCosta = a => { const d = Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) / VALE_W; return d < 1 ? VALE_E * Math.cos(d * Math.PI / 2) ** 2 : 0; };
+function borda(x, y) { const a = Math.atan2(y, x); return Math.hypot(x, y) + desvioCosta(a) - extraCosta(a); }
+// quanto este ponto é vale (0 na ilha, 1 dentro da península)
+const pesoVale = (x, y) => liso((x - VALE_X) / 8);
 function praca(x, y) { return Math.hypot(x - PRACA.x, y - PRACA.y) < PRACA.r; }
 function estrada(x, y) { for (const e of ESTRADAS) if (distLinha(x, y, e) < 0.8 + (ruido2(x * 0.7, y * 0.7) - 0.5) * 0.35) return true; return false; }
 const trilha = estrada;
@@ -951,6 +1017,7 @@ function noCastelo(x, y, folga = 0) { return COM_CASTELO && dentroRet(x, y, CAST
 // a mata (fbm alto), menos perto da praça e nas clareiras dos bandos: lá dentro é campo aberto e a mata volta aos poucos
 // na beirada (o limiar sobe perto da clareira)
 function floresta(x, y) {
+  if (x > VALE_X - 4) return false;                                     // o vale é aberto
   const c = distClareira(x, y);
   if (c < 0) return false;
   return fbm(x * 0.07 + 3, y * 0.07 - 2) > 0.55 + 0.2 * Math.max(0, 1 - c / 5) && Math.hypot(x - PRACA.x, y - PRACA.y) > 10 && (!COM_CASTELO || retArred(x, y, FOSSO) > 4);
@@ -960,9 +1027,9 @@ function floresta(x, y) {
 const CLAREIRA_R = 9;
 let clareiras = null;
 function distClareira(x, y) {
-  if (!clareiras) clareiras = GRUPOS.map(([, gx, gy]) => noMapa([gx, gy]));
+  if (!clareiras) clareiras = GRUPOS.map(([, gx, gy, , e]) => [...noMapa([gx, gy]), e ? e + 3 : 0]);
   let m = Math.hypot(x - VILA.x, y - (VILA.y + 4)) - VILA.r;          // a vila também é campo aberto
-  for (const [cx0, cy0] of clareiras) m = Math.min(m, Math.hypot(x - cx0, y - cy0) - CLAREIRA_R);
+  for (const [cx0, cy0, extra] of clareiras) m = Math.min(m, Math.hypot(x - cx0, y - cy0) - CLAREIRA_R - extra);
   return m;
 }
 
@@ -1004,7 +1071,7 @@ function pesoMusgo(x, y) {
   const f = fbm(x * 0.07 + 3, y * 0.07 - 2), dp = Math.hypot(x - PRACA.x, y - PRACA.y);
   const mata = liso((f - 0.5) / 0.08) * liso((dp - 9) / 2);
   const manchas = fbm(x * 0.22 + 31, y * 0.22 - 17);
-  return Math.max(mata, 0.7 * liso((manchas - 0.6) / 0.08));
+  return Math.max(mata, 0.7 * liso((manchas - 0.6) / 0.08)) * (1 - pesoVale(x, y));
 }
 function pesoTerra(x, y) {
   let w = 0;
@@ -1013,10 +1080,14 @@ function pesoTerra(x, y) {
   w = Math.max(w, 0.85 * liso((borda(x, y) - (RAIO - 5)) / 1.6));
   w = Math.max(w, liso((PRACA.r + 1.7 - Math.hypot(x - PRACA.x, y - PRACA.y)) / 1.3));
   w = Math.max(w, 0.85 * liso((fbm(x * 0.12 - 40, y * 0.12 + 9) - 0.66) / 0.06));
+  const vale = pesoVale(x, y);                                        // o vale: terra, com tufos de capim seco
+  if (vale > 0) w = Math.max(w, vale * (0.72 + 0.28 * liso((0.55 - fbm(x * 0.09 + 7, y * 0.09 - 3)) / 0.1)));
   return w;
 }
 // luz e sombra em manchas grandes: escurece para um verde fundo, clareia para um amarelo quente
 function tomChao(x, y) {
+  const vale = pesoVale(x, y);
+  if (vale > 0.05) return [150, 58, 26, 0.3 * vale];                   // a terra vermelha do vale
   const l = fbm(x * 0.05 + 50, y * 0.05 - 30);
   return l < 0.5 ? [12, 32, 10, (0.5 - l) * 0.55] : [255, 232, 150, (l - 0.5) * 0.32];
 }
@@ -1079,7 +1150,7 @@ const pedacos = new Map(), poolChao = [];
 let costa = null, costaRasa = null;
 function pontosCosta(desloc = 0) {
   const p = [];
-  for (let k = 0; k <= 280; k++) { const a = k / 280 * Math.PI * 2, r = RAIO - desvioCosta(a) + desloc; p.push([Math.cos(a) * r, Math.sin(a) * r]); }
+  for (let k = 0; k <= 400; k++) { const a = k / 400 * Math.PI * 2, r = RAIO - desvioCosta(a) + extraCosta(a) + desloc; p.push([Math.cos(a) * r, Math.sin(a) * r]); }
   return p;
 }
 function contornoLago(folga) {
@@ -1262,7 +1333,7 @@ function desenharChao() {
   const j0 = Math.floor((cam.y - alt / 2) / PEDACO) - 1, j1 = Math.floor((cam.y + alt / 2) / PEDACO) + 1;
   for (let j = j1; j >= j0; j--) for (let i = i0; i <= i1; i++) {
     const x0 = i * PEDACO, y1 = (j + 1) * PEDACO;
-    if (Math.hypot(x0 + PEDACO / 2, y1 - PEDACO / 2) > RAIO + PEDACO + 3) continue;   // pedaço só de mar
+    if (borda(x0 + PEDACO / 2, y1 - PEDACO / 2) > RAIO + PEDACO + 3) continue;   // pedaço só de mar
     let c = pedacos.get(faixa + ":" + i + "," + j);
     if (!c && novos < PEDACOS_POR_QUADRO) { c = pedaco(i, j, faixa); novos++; }
     if (!c) {                                                           // ainda não pintado nesta faixa: o da faixa mais perto
@@ -1283,7 +1354,7 @@ function desenharChao() {
     for (let j = j1 + 1; j >= j0 - 1; j--) for (let i = i0 - 1; i <= i1 + 1; i++) {
       if (i > i0 && i < i1 && j > j0 && j < j1) continue;
       const x0 = i * PEDACO, y1 = (j + 1) * PEDACO;
-      if (Math.hypot(x0 + PEDACO / 2, y1 - PEDACO / 2) > RAIO + PEDACO + 3 || pedacos.has(faixa + ":" + i + "," + j)) continue;
+      if (borda(x0 + PEDACO / 2, y1 - PEDACO / 2) > RAIO + PEDACO + 3 || pedacos.has(faixa + ":" + i + "," + j)) continue;
       pedaco(i, j, faixa); return;
     }
   }
@@ -1699,6 +1770,7 @@ function montarCenario() {
     const r = hash(i, j, 83), f = floresta(x, y), aberto = distClareira(x, y) < 0;
     if (aberto && r > 0.012) continue;                                 // na clareira: uma árvore solta, rara
     if (f ? r < 0.32 : r < 0.03) {
+      if (hash(i, j, 86) < 0.2) continue;                               // 20% menos árvores (o mapa ficava carregado)
       const pinho = fbm(x * 0.1 + 11, y * 0.1 + 5) > 0.47;
       por(pinho ? { tipo: "pinheiro", x, y, r: 0.35, esc: entre(0.85, 1.4), tom: entre(-6, 6) }
                 : { tipo: "arvore", x, y, r: 0.4, esc: entre(0.9, 1.35), tom: entre(-8, 8) });
@@ -1715,6 +1787,7 @@ function montarCenario() {
     }
   }
   montarVila(por);
+  montarValeOrcs(por);
   // pedras pelos campos e na praia
   for (let k = 0; k < 1500 && objetos.filter(o => o.tipo === "pedra").length < 150; k++) {
     const a = entre(0, Math.PI * 2), r = entre(6, RAIO - 0.5), x = Math.cos(a) * r, y = Math.sin(a) * r;
@@ -2381,7 +2454,7 @@ function atacar(estilo) {
   if (viking.acao && (viking.acao.startsWith("sacar") || viking.acao.includes("golpe") || viking.acao === "giro")) { viking.fila = "golpe" + n; if (!estilo) viking.combo++; return; }
   if (viking.acao) return;
   mirarBoneco();
-  if (classe === "ninja") viking.espada = "armada";                      // o ninja está sempre com as adagas na mão
+  if (classe === "ninja" || classe === "guerreiro") viking.espada = "armada";   // o ninja (adagas) e o guerreiro (machado) estão sempre armados
   // com a espada nas costas, o primeiro golpe já sai do saque (sacar_golpe: tira por cima do ombro e desce cortando)
   if (viking.espada === "costas") { if (n === 1) tocar("sacar_golpe", true); else { tocar("sacar", true); viking.fila = "golpe" + n; } }
   else tocar("golpe" + n, true);
@@ -2389,7 +2462,7 @@ function atacar(estilo) {
 }
 
 function girar() {
-  if (viking.caido || classe !== "viking") return;
+  if (viking.caido || (classe !== "viking" && classe !== "guerreiro")) return;
   if (viking.acao && (viking.acao.startsWith("sacar") || viking.acao.includes("golpe"))) { viking.fila = "giro"; return; }
   if (viking.acao) return;
   if (viking.espada === "costas") { tocar("sacar", true); viking.fila = "giro"; } else tocar("giro", true);
@@ -2675,6 +2748,7 @@ const SKILLS_NINJA = [
   { nome: "Veneno de Serpente", tecla: "4", cor: "#8ae05a", usar: () => usarVenenoSerpente(), estado: () => [NINJA.veneno.recarga, VENENO_N_RECARGA, 0], icone: iconeSerpente },
   { nome: "Esconder", tecla: "5", cor: "#b08aff", usar: () => usarEsconder(), estado: () => [NINJA.esconder.recarga, ESCONDER_RECARGA, NINJA.esconder.buff], icone: iconeEsconder },
 ];
+const SKILLS_GUERREIRO = SKILLS_VIKING;            // o guerreiro do machado usa as skills do viking
 let SKILLS = SKILLS_VIKING;
 function iconeTriplo(g) {
   iconeFundo(g, "#5a4a1a", "#141005");
@@ -2771,7 +2845,8 @@ function montarBarraSkills() {
     if (sk) { const nm = sk.rotulo || sk.nome; b.title = `${nm} (${tecla})${sk.mana ? ` · ${sk.mana} de mana` : ""}: arraste para trocar de lugar${sk.item ? " ou para fora para tirar" : ""}`; b.setAttribute("aria-label", `${nm}, tecla ${tecla}`); b.style.setProperty("--brilho", sk.cor); }
     else { b.title = "Espaço livre: arraste uma skill para cá"; b.setAttribute("aria-label", `Espaço livre, tecla ${tecla}`); }
     const c = document.createElement("canvas"); c.width = c.height = 56; b.appendChild(c);
-    if (sk) sk.icone(c.getContext("2d")); else { const g = c.getContext("2d"); g.fillStyle = "#1d1712"; g.fillRect(0, 0, 56, 56); }
+    if (sk && ICONES_SKILL[sk.nome]) { const g = c.getContext("2d"); g.imageSmoothingQuality = "high"; g.drawImage(ICONES_SKILL[sk.nome], 0, 0, 56, 56); }
+    else if (sk) sk.icone(c.getContext("2d")); else { const g = c.getContext("2d"); g.fillStyle = "#1d1712"; g.fillRect(0, 0, 56, 56); }
     const t = document.createElement("span"); t.className = "tecla"; t.textContent = tecla; b.appendChild(t);
     if (sk && !sk.item) { const nv = document.createElement("span"); nv.className = "nivel-slot"; nv.textContent = rotuloNivelSkill(nivelSkill(sk.nome)); b.appendChild(nv); }
     if (sk && sk.item) {
@@ -2928,13 +3003,22 @@ const TIPOS = {
 let criaturasAtacam = true, feridas = 0;
 // javali (campos e matas) e rato (Caverna dos Ratos): só entram se os sprites deles existirem (javali.json, rato.json)
 TIPOS.javali = { nome: "Javali", altura: 50, material: "carne", vida: 95, visao: 6.5, perto: 1.4, alcance: 1.9, ataque: "atacar", galope: 3.2, chega: 1.4, passeio: 0.8, renasce: 20, sombra: 0.5, barra: 92, anel: 0.6, M: null, spr: {} };
+// orc (Vale dos Orcs): grande, pesado e lento para chegar, mas bate forte. As variantes (negro, elite, gigante, chefe)
+// usam os mesmos sprites (montarCaverna)
+TIPOS.orc = { nome: "Orc Negro", altura: 104, material: "carne", vida: 420, visao: 8, perto: 1.6, alcance: 2.2, ataque: "golpe", galope: 0, chega: 1.9, passeio: 0.8, renasce: 15, sombra: 0.6, barra: 190, anel: 0.75, raio: 0.45, M: null, spr: {} };
+TIPOS.orc_bravo = { ...TIPOS.orc, nome: "Orc Negro Bravo", altura: 110, barra: 200, chega: 2.2, spr: {} };
+// o orc feiticeiro fica longe (perto = de onde lança) e atira uma bola de fogo verde (magiasCriatura)
+TIPOS.orc_feiticeiro = { ...TIPOS.orc, nome: "Orc Feiticeiro", barra: 205, perto: 5.5, alcance: 7, magia: true, spr: {} };
 TIPOS.rato = { nome: "Rato", altura: 22, material: "carne", vida: 32, visao: 6, perto: 0.95, alcance: 1.25, ataque: "atacar", galope: 2.8, chega: 1.6, passeio: 1.1, renasce: 14, sombra: 0.24, barra: 54, anel: 0.32, M: null, spr: {} };
 const criaturas = [];
 // nível e força de cada criatura: a exp vem do nível; o golpe delas tira essa vida, antes da defesa do personagem
 Object.assign(TIPOS.lobo, { nivel: 3, dano: 16 }); Object.assign(TIPOS.goblin, { nivel: 5, dano: 22 });
 Object.assign(TIPOS.esqueleto, { nivel: 7, dano: 30 }); Object.assign(TIPOS.aranha, { nivel: 12, dano: 52 });
-Object.assign(TIPOS.javali, { nivel: 4, dano: 20 }); Object.assign(TIPOS.rato, { nivel: 2, dano: 8 });
-const NOME_CLASSE = { viking: "Viking", arqueiro: "Arqueiro", feiticeiro: "Feiticeiro", ninja: "Ninja" };
+Object.assign(TIPOS.javali, { nivel: 4, dano: 20 }); Object.assign(TIPOS.rato, { nivel: 2, dano: 8 }); // o vale é caça para o nível 30+
+Object.assign(TIPOS.orc, { nivel: 30, dano: 70, vida: 650 });
+Object.assign(TIPOS.orc_bravo, { nivel: 33, dano: 85, vida: 850 });
+Object.assign(TIPOS.orc_feiticeiro, { nivel: 38, dano: 120, vida: 1100 });
+const NOME_CLASSE = { viking: "Viking", arqueiro: "Arqueiro", feiticeiro: "Feiticeiro", ninja: "Ninja", guerreiro: "Guerreiro" };
 function desenharPlacaJogador(X, Y, z) {
   if (!prog || viking.caido) return;
   const topo = { viking: 168, arqueiro: 152, feiticeiro: 196 }[classe] || 160, y = Y - topo * z - 4;
@@ -2954,8 +3038,8 @@ const EXP_NIVEL = [0, 300, 800, 1500, 2500, 4300, 7200, 11000, 17000, 24000, 330
   219000, 283000, 365000, 472000, 610000, 705000, 813000, 937000, 1077000, 1237000, 1418000, 1624000, 1857000, 2122000];
 const NIVEL_MAX = EXP_NIVEL.length - 1, PONTOS_POR_NIVEL = 3, ATRIB_MAX = 90;
 // os iniciais das classes do Metin2: guerreiro (viking), ninja (arqueiro) e shaman (feiticeiro)
-const ATRIB_INICIAL = { viking: { vit: 4, int: 3, for: 6, dex: 3 }, arqueiro: { vit: 3, int: 3, for: 4, dex: 6 }, feiticeiro: { vit: 4, int: 6, for: 3, dex: 3 }, ninja: { vit: 3, int: 3, for: 4, dex: 6 } };
-const ATRIB_PRINCIPAL = { viking: "for", arqueiro: "dex", feiticeiro: "int", ninja: "dex" };
+const ATRIB_INICIAL = { viking: { vit: 4, int: 3, for: 6, dex: 3 }, arqueiro: { vit: 3, int: 3, for: 4, dex: 6 }, feiticeiro: { vit: 4, int: 6, for: 3, dex: 3 }, ninja: { vit: 3, int: 3, for: 4, dex: 6 }, guerreiro: { vit: 5, int: 2, for: 6, dex: 3 } };
+const ATRIB_PRINCIPAL = { viking: "for", arqueiro: "dex", feiticeiro: "int", ninja: "dex", guerreiro: "for" };
 const ORDEM_ATRIB = ["vit", "int", "for", "dex"];
 const NOME_ATRIB = { vit: "VIT · Vitalidade", int: "INT · Inteligência", for: "FOR · Força", dex: "DEX · Destreza" };
 // Skills como no Metin2: cada nível do personagem dá 1 ponto de skill. Com pontos a skill vai de 1 a 16; do 17 ao 19,
@@ -3015,12 +3099,32 @@ function expDe(l) {
   return base * (l.cfg.chefe ? 5 : 1) * (l.cfg.estatico ? 6 : 1) * (l.horda ? 0.6 : 1) * fatorDifNivel(n - prog.nivel);
 }
 function progressoNovo(c) {
-  return { nivel: 1, exp: 0, pontos: 0, atrib: { ...ATRIB_INICIAL[c] }, skills: {}, yang: 0, leituraAte: 0, nome: "", pontosSkill: 0, leitura: {}, arma: { ref: 0 }, equip: { elmo: null, armadura: null, calcas: null, botas: null, escudo: null },
+  return { nivel: 1, exp: 0, pontos: 0, atrib: { ...ATRIB_INICIAL[c] }, skills: {}, yang: 0, leituraAte: 0, nome: "", pontosSkill: 0, leitura: {}, arma: { ref: 0 }, equip: { elmo: null, armadura: null, botas: null, escudo: null },
            inv: [{ chave: "pocao", qtd: 3, aba: 0, x: 0, y: 0 }, { chave: "pocaoMana", qtd: 3, aba: 0, x: 1, y: 0 }] };
 }
 // skills que mudaram de nome (os níveis, livros, esperas, a barra e o armazém salvos com o nome antigo vêm junto)
 const RENOMES = { "Tiro Certeiro": "Flecha de Fogo", "Pés Leves": "Passos Leves" };
-function renomearItens(lista) { for (const it of lista || []) if (it.chave && it.chave.startsWith("livro:") && RENOMES[it.chave.slice(6)]) it.chave = "livro:" + RENOMES[it.chave.slice(6)]; }
+// as calças deixaram de existir (viram yang: 150 por modelo e nível) e a armadura antiga vira a roupa desta classe
+function migrarRoupas(p) {
+  const roupa = ROUPA_DA_CLASSE[classe] || "armadura_guerreiro";
+  let yang = 0;
+  if (p.equip && p.equip.calcas) { yang += 150 * (p.equip.calcas.tier + 1) * (1 + (p.equip.calcas.ref || 0)); delete p.equip.calcas; }
+  if (p.equip && p.equip.armadura && !p.equip.armadura.peca) p.equip.armadura.peca = roupa;
+  for (let i = (p.inv || []).length - 1; i >= 0; i--) {
+    const it = p.inv[i];
+    if (it.chave.startsWith("peca:calcas:")) { yang += 150 * (+it.chave.split(":")[2] + 1) * (1 + (it.ref || 0)); p.inv.splice(i, 1); }
+    else if (it.chave.startsWith("peca:armadura:")) it.chave = `peca:${roupa}:${it.chave.split(":")[2]}`;
+  }
+  if (yang) { p.yang = (p.yang || 0) + yang; setTimeout(() => avisar(`As calças saíram do jogo: você recebeu ${yang} Yang por elas`), 1500); }
+}
+function renomearItens(lista) {
+  for (let i = (lista || []).length - 1; i >= 0; i--) {
+    const it = lista[i];
+    if (it.chave && it.chave.startsWith("livro:") && RENOMES[it.chave.slice(6)]) it.chave = "livro:" + RENOMES[it.chave.slice(6)];
+    if (it.chave && it.chave.startsWith("peca:calcas:")) lista.splice(i, 1);                          // (no armazém)
+    else if (it.chave && it.chave.startsWith("peca:armadura:")) it.chave = "peca:armadura_guerreiro:" + it.chave.split(":")[2];
+  }
+}
 function renomearProgresso(p) {
   for (const [velho, novo] of Object.entries(RENOMES)) {
     for (const k of ["skills", "leitura"]) if (p[k] && p[k][velho] !== undefined) { p[k][novo] = p[k][velho]; delete p[k][velho]; }
@@ -3043,7 +3147,8 @@ function carregarProgresso() {
     prog.pontosSkill = (prog.nivel - 1) * PONTOS_SKILL_NIVEL; prog.leitura = {};
   }
   if (prog.arma === undefined) prog.arma = { ref: 0 };                 // todo personagem começa com a arma +0 na mão
-  if (!prog.equip) prog.equip = { elmo: null, armadura: null, calcas: null, botas: null, escudo: null };
+  if (!prog.equip) prog.equip = { elmo: null, armadura: null, botas: null, escudo: null };
+  migrarRoupas(prog);
   recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
 }
 function salvarProgresso() { try { if (prog) localStorage.setItem("progresso_" + classe, JSON.stringify(prog)); } catch (e) {} }
@@ -3183,6 +3288,7 @@ const METINS = [
   { tipo: "metin1", nome: "Metin da Tristeza", nivel: 5, vida: 900, cor: "#ff5a3a", horda: "lobo", regioes: [[24, -18], [-28, 6], [28, 16], [-26, 22]].map(noMapa) },
   { tipo: "metin2", nome: "Metin da Batalha", nivel: 8, vida: 1600, cor: "#c86bff", horda: "goblin", regioes: [[-9, -19], [33, -3], [26, 20]].map(noMapa) },
   { tipo: "metin3", nome: "Metin da Ganância", nivel: 12, vida: 2600, cor: "#5ad2ff", horda: "esqueleto", regioes: [[8, -28], [-16, -27], [-31, -12]].map(noMapa) },
+  { tipo: "metin4", nome: "Metin da Sombra", nivel: 40, vida: 7000, cor: "#8a4dff", horda: "orc_negro", regioes: [[84, 4], [96, -12], [104, 12], [112, 2], [94, 6]] },
 ];
 const LIMIARES_HORDA = [0.8, 0.6, 0.4, 0.2], HORDA_MAX = 14;
 function spriteMetin(cor) {
@@ -3240,7 +3346,8 @@ function chamarHorda(l, n, cacando) {
   if (criaturas.filter(c => c.horda && !c.morto).length >= HORDA_MAX) return;
   for (let k = 0; k < n; k++) {
     const a = Math.random() * 7, x = l.x + Math.cos(a) * 1.9, y = l.y + Math.sin(a) * 1.9;
-    const c = novaCriatura(l.cfg.horda, livre(x, y) ? x : l.x + 1, livre(x, y) ? y : l.y);
+    const cfgH = TIPOS[l.cfg.horda];
+    const c = novaCriatura(cfgH.base || l.cfg.horda, livre(x, y) ? x : l.x + 1, livre(x, y) ? y : l.y, cfgH);
     c.horda = true; c.cacando = cacando && criaturasAtacam; c.toca = { x: l.x, y: l.y };
     criaturas.push(c);
     for (let q = 0; q < 6; q++) brasas.push({ x: c.x, y: c.y, z: 0.05, vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2, vz: 0.5 + Math.random(), vida: 0.6, max: 0.6, tam: 0.09, poeira: true });
@@ -3323,10 +3430,11 @@ function pintarBase(x0, y0, x1, y1, cor) {
 }
 function baseIlha() {
   const R = RAIO + 6;
-  const b = pintarBase(-R, -R, R, R, (x, y) => {
+  const b = pintarBase(-R, -R, R + VALE_E, R, (x, y) => {
     const bd = borda(x, y);
     if (bd > RAIO) return [38, 84, 110];
     if (bd > RAIO - 2.8) return [205, 182, 130];
+    if (pesoVale(x, y) > 0.5 && !estrada(x, y)) return [150, 104, 70];
     if (lago(x, y)) return [47, 109, 133];
     if (praca(x, y)) return [150, 140, 122];
     if (estrada(x, y)) return [176, 150, 104];
@@ -3379,7 +3487,7 @@ function desenharMinimapa(agora) {
   g.fillStyle = "#ffe066"; g.strokeStyle = "#1a1208"; g.lineWidth = 1.5;
   g.beginPath(); g.moveTo(7, 0); g.lineTo(-5, -5); g.lineTo(-2, 0); g.lineTo(-5, 5); g.closePath(); g.fill(); g.stroke();
   g.restore();
-  $("#miniLugar").textContent = cav ? dun.nome : "Vale do Viking";
+  $("#miniLugar").textContent = cav ? dun.nome : viking.x > VALE_X ? "Vale dos Orcs" : "Vale do Viking";
   $("#miniCoord").textContent = `${Math.round(viking.x - (cav ? dun.x : 0))}, ${Math.round(viking.y)}`;
 }
 function montarMinimapa() {
@@ -3524,8 +3632,8 @@ function pecasDoFerreiro() {
   if (!prog) return [];
   const l = [];
   if (prog.arma) l.push({ id: "arma", rotulo: `Arma +${prog.arma.ref}`, ref: prog.arma.ref, arma: true, nome: r => nomeArma(r), icone: (g, r) => iconeArma(g, ARMAS[classe].desenho, 40, 120, r), mudar: r => { prog.arma = r === null ? null : { ...prog.arma, ref: r }; } });
-  for (const slot of ORDEM_PECAS) { const e = prog.equip && prog.equip[slot]; if (!e) continue;
-    l.push({ id: "eq:" + slot, rotulo: `${PECAS[slot].nome} +${e.ref}`, ref: e.ref, slot, tier: e.tier, nome: r => nomePeca(slot, e.tier, r), icone: g => iconePeca(g, slot, e.tier, 40, PECAS[slot].h * 40), mudar: r => { prog.equip[slot] = r === null ? null : { ...e, ref: r }; } }); }
+  for (const slot of ORDEM_PECAS) { const e = prog.equip && prog.equip[slot], pc = pecaEquipada(slot); if (!e) continue;
+    l.push({ id: "eq:" + slot, rotulo: `${PECAS[pc].nome} +${e.ref}`, ref: e.ref, slot: pc, tier: e.tier, nome: r => nomePeca(pc, e.tier, r), icone: g => iconePeca(g, pc, e.tier, 40, PECAS[pc].h * 40), mudar: r => { prog.equip[slot] = r === null ? null : { ...e, ref: r }; } }); }
   for (const it of prog.inv) { const t = tipoItem(it.chave); if (!t.arma && !t.peca) continue;
     l.push({ id: it, rotulo: `Bolsa: ${t.peca ? PECAS[t.peca].nome : "arma"} +${it.ref || 0}`, ref: it.ref || 0, arma: t.arma, slot: t.peca, tier: t.tier,
              nome: r => t.arma ? nomeArma(r) : nomePeca(t.peca, t.tier, r), icone: (g, r) => t.arma ? iconeArma(g, ARMAS[classe].desenho, 40, 120, r) : iconePeca(g, t.peca, t.tier, 40, PECAS[t.peca].h * 40),
@@ -3630,6 +3738,33 @@ function montarVila(por) {
   for (const dx of [7, 10, 13]) pôe("cerca", dx, -7.6);
   pôe("cerca_poste", -4.6, -7.6); pôe("cerca_poste", 4.6, -7.6); pôe("cerca_canto", -15, -7.6); pôe("cerca_canto", 15, -7.6);
 }
+// o Vale dos Orcs: um acampamento (fogueira e caixotes do saque) em cada bando, pedras grandes, tocos e troncos caídos
+// pela terra vermelha; nada de mata
+function montarValeOrcs(por) {
+  const pôe = (tipo, x, y, extra = {}) => {
+    if (!livre(x, y) || estrada(x, y) || borda(x, y) > RAIO - 4) return;
+    const o = DECO ? completarDecoracao({ tipo, x, y, ...extra }) : { tipo, x, y, r: 0.5, ...extra };
+    if (temColisao(o)) por(o); else objetos.push(o);
+  };
+  // o monumento: a pedra gigante, quatro pedras rúnicas em volta e braseiros acesos entre elas
+  const M0 = MONUMENTO;
+  por({ tipo: "pedra", x: M0.x, y: M0.y, r: 2.3, esc: 5.2, var: 3, forma: [1, 0.95, 1.05, 1, 0.9, 1.08, 1], monumento: true });
+  [[0, 3.6], [3.4, 0.4], [0, -3.4], [-3.4, 0.4]].forEach(([dx, dy], q) => por({ tipo: "runa", x: M0.x + dx, y: M0.y + dy, r: 0.35, fase: q, alt: 1.6, esc: 0.95 }));
+  [[2.6, 2.8], [-2.6, 2.8], [2.6, -2.6], [-2.6, -2.6]].forEach(([dx, dy]) => por({ tipo: "braseiro", x: M0.x + dx, y: M0.y + dy, r: 0.4 }));
+  VALE_BANDOS.forEach(([tipo, x, y], k) => {
+    if (tipo === "orc_chefe" || Math.hypot(x - M0.x, y - M0.y) < 12) return;          // a roda do monumento não tem fogueira
+    pôe("fogueira", x + 0.4, y + 2.6, { var: k % 2 });
+    if (DECO && DECO.caixotes) pôe("caixotes", x + 3.2, y + 3, {});
+  });
+  for (let k = 0; k < 900 && objetos.filter(o => o.vale).length < 70; k++) {
+    const x = VALE_X + 4 + Math.random() * (VALE_E + 2), y = (Math.random() - 0.5) * 70;
+    if (borda(x, y) > RAIO - 3 || !vazio(x, y, 2.2) || estrada(x, y) || Math.hypot(x - MONUMENTO.x, y - MONUMENTO.y) < 15 || VALE_BANDOS.some(([, bx, by, , e]) => Math.hypot(x - bx, y - by) < (e || 2) + 3)) continue;
+    const r = Math.random();
+    if (r < 0.6) por({ tipo: "pedra", x, y, r: 0.4, esc: entre(0.7, 1.6), forma: Array.from({ length: 7 }, () => entre(0.75, 1.1)), vale: true });
+    else if (r < 0.8) por({ tipo: "toco", x, y, r: 0.3, vale: true });
+    else por({ tipo: "tronco", x, y, r: 0.45, vale: true });
+  }
+}
 // ruínas antigas em volta da entrada da Cripta e o píer no lago (muralha e torres ficam só no editor)
 function montarMarcos() {
   if (!DECO || !DECO.ruina_arco) return;
@@ -3722,12 +3857,12 @@ const NPCS = [
     loja: [["pocao", 50], ["pocaoMana", 60], ["bencao", 4000], ["encantar", 3000], ["mudar", 1500]] },
   { nome: "Armeiro Bjorn", dx: -6.5, dy: -3.1, cores: { roupa: "#6a6f78", calca: "#3a2a1c", pele: "#d9a882", cabelo: "#8a4a22", barba: "#8a4a22" },
     falas: ["Couro para quem está começando, ferro para quem já sangrou nas cavernas.", "O escudo bloqueia um golpe de vez em quando. Não confie a vida a ele.", "O ferreiro refina o que eu vendo. Eu só vendo."],
-    loja: [["peca:elmo:0", 150], ["peca:botas:0", 150], ["peca:escudo:0", 250], ["peca:calcas:0", 250], ["peca:armadura:0", 400],
-           ["peca:elmo:1", 1400], ["peca:botas:1", 1400], ["peca:escudo:1", 2200], ["peca:calcas:1", 2200], ["peca:armadura:1", 3600]] },
+    loja: [["peca:elmo:0", 150], ["peca:botas:0", 150], ["peca:escudo:0", 250], ["peca:armadura_guerreiro:0", 400], ["peca:armadura_leve:0", 400], ["peca:armadura_mago:0", 400],
+           ["peca:elmo:1", 1400], ["peca:botas:1", 1400], ["peca:escudo:1", 2200], ["peca:armadura_guerreiro:1", 3600], ["peca:armadura_leve:1", 3600], ["peca:armadura_mago:1", 3600]] },
   { nome: "Feirante Hilda", dx: -6.5, dy: 0.9, cores: { roupa: "#b8553a", calca: "#5a3a22", pele: "#f0c8a8", cabelo: "#e0b040", lenco: "#e8e0c8" },
     falas: ["Maçãs, cenouras, couves! Tudo da horta do vale.", "Os ratos andam roubando os sacos de grão. Vêm de um buraco ao norte!", "Meu marido foi caçar javalis no leste e voltou mancando."] },
-  { nome: "Ancião Ulf", dx: 0, dy: 6.6, cores: { roupa: "#4a4f8a", calca: "#2a2a40", pele: "#e0b896", cabelo: "#e8e8e8", barba: "#f0f0f0" }, cajado: true,
-    falas: ["Quatro buracos levam às profundezas: dos ratos, das aranhas, a cripta e a mina dos goblins.", "As pedras Metin caem do céu e chamam bandos. Quebre-as e leia os livros que soltarem.", "No fundo de cada caverna mora um chefe. Vá preparado."] },
+  { nome: "Guarda Real", dx: 0, dy: 6.6, cores: { roupa: "#2c3e78", calca: "#2a2a40", pele: "#e0b896", cabelo: "#5a3a22", elmo: "#b8bec8" }, lanca: true,
+    falas: ["Quatro buracos levam às profundezas. E a estrada do leste leva ao Vale dos Orcs: só vá depois do nível 30.", "As pedras Metin caem do céu e chamam bandos. Quebre-as e leia os livros que soltarem.", "No fundo de cada caverna mora um chefe. Vá preparado."] },
   { nome: "Senhor do Armazém", dx: -11, dy: 3.4, cores: { roupa: "#6b5a3a", calca: "#3a2a1c", pele: "#e0b896", cabelo: "#9a9a9a", barba: "#b0b0b0" }, armazem: true,
     falas: ["Guardo o que não cabe na sua bolsa. E o que eu guardo, todos os seus heróis podem buscar."] },
   { nome: "Guarda Sigrid", dx: -3.6, dy: -8.6, cores: { roupa: "#7a2a22", calca: "#3a2a1c", pele: "#e8c0a0", cabelo: "#d0a040", elmo: "#9aa0aa" }, lanca: true,
@@ -3870,7 +4005,8 @@ function botaoItem(it) {
 const INV_COLS = 5, INV_LINS = 9, INV_ABAS = 4, PILHA_MAX = 200, CEL = 40;
 let abaBolsa = 0;
 function tipoItem(chave) {
-  if (chave.startsWith("peca:")) { const [, slot, t] = chave.split(":"), m = PECAS[slot].modelos[+t]; return { nome: m[0], desc: "", h: PECAS[slot].h, peca: slot, tier: +t, usar: it => equiparPeca(it) }; }
+  if (chave.startsWith("peca:")) { const [, slot, t] = chave.split(":"), P = PECAS[slot] || PECAS.elmo, m = P.modelos[+t] || P.modelos[0];
+    return { nome: m[0] + (P.classes ? ` (${P.classes.map(c => NOME_CLASSE[c]).join("/")})` : ""), desc: "", h: P.h, peca: PECAS[slot] ? slot : "elmo", tier: +t, usar: it => equiparPeca(it) }; }
   if (chave.startsWith("arma:")) { const a = ARMAS[chave.slice(5)] || ARMAS.viking; return { nome: a.nome, desc: "Arma. Clique direito para equipar; o Ferreiro da praça melhora até +9.", h: 3, arma: true, desenho: a.desenho, usar: it => equiparArma(it) }; }
   if (chave.startsWith("livro:")) { const n = chave.slice(6), c = classeDaSkill(n);
     return { nome: "Livro: " + n, desc: `Skill ${c ? "do " + NOME_CLASSE[c] : ""}. Do M1 ao M10: cada leitura pode falhar, custa um pouco de EXP e a mesma skill só lê de novo depois de 12 h.`, h: 1, usar: () => lerLivro(n), desenho: "livro" }; }
@@ -3884,11 +4020,23 @@ function tipoItem(chave) {
     bencao: { nome: "Pergaminho da Bênção", desc: "No Ferreiro: se o refino falhar, a arma perde só um nível em vez de quebrar.", h: 1, desenho: "bencao" },
   }[chave] || { nome: chave, desc: "", h: 1, desenho: "pedra" };
 }
+// o ícone pintado (se houver) cabe inteiro no espaço, centrado; com o brilho do refino em volta, quando houver
+function pintarItem(g, chave, w, h, b) {
+  const im = ICONES_ITEM[chave]; if (!im) return false;
+  g.clearRect(0, 0, w, h);
+  const e = Math.min((w - 4) / im.width, (h - 4) / im.height), iw = im.width * e, ih = im.height * e, x = (w - iw) / 2, y = (h - ih) / 2;
+  g.save();
+  if (b) { g.shadowColor = b.forte; g.shadowBlur = Math.max(6, Math.min(w, h) * 0.3); g.drawImage(im, x, y, iw, ih); }
+  g.drawImage(im, x, y, iw, ih);
+  g.restore();
+  return true;
+}
 function iconeItem(g, desenho, w = 40, h = 40) {
+  if (pintarItem(g, desenho, w, h)) return;
   g.clearRect(0, 0, w, h);
   const X = w / 2, Y = h / 2 + 2, u = Math.min(w, h) / 40;
   g.lineWidth = 1.6; g.strokeStyle = "#140c06";
-  if (desenho === "espada" || desenho === "arco" || desenho === "cajado" || desenho === "adagas") { iconeArma(g, desenho, w, h); return; }
+  if (desenho === "espada" || desenho === "arco" || desenho === "cajado" || desenho === "adagas" || desenho === "machado") { iconeArma(g, desenho, w, h); return; }
   if (desenho === "encantar" || desenho === "mudar") {
     g.fillStyle = desenho === "encantar" ? "#cfe8ff" : "#ffe0b0"; g.fillRect(X - 9 * u, Y - 12 * u, 18 * u, 22 * u); g.strokeRect(X - 9 * u, Y - 12 * u, 18 * u, 22 * u);
     g.fillStyle = desenho === "encantar" ? "#3a7ad8" : "#d87a2a"; g.beginPath(); g.moveTo(X, Y - 8 * u); g.lineTo(X + 5 * u, Y); g.lineTo(X, Y + 7 * u); g.lineTo(X - 5 * u, Y); g.closePath(); g.fill(); g.stroke();
@@ -3934,12 +4082,27 @@ function todasAsSkills() { return [...SKILLS_VIKING, ...SKILLS_ARQUEIRO, ...SKIL
 function classeDaSkill(nome) { for (const [c, l] of [["viking", SKILLS_VIKING], ["arqueiro", SKILLS_ARQUEIRO], ["feiticeiro", SKILLS_FEITICEIRO], ["ninja", SKILLS_NINJA]]) if (l.some(s => s.nome === nome)) return c; return null; }
 function livroQualquer() { const l = todasAsSkills(); return { tipo: "livro", nome: l[Math.floor(Math.random() * l.length)] }; }
 // as armas (uma por classe), desenhadas em pé num espaço de 1 × 3
-const ARMAS = { viking: { nome: "Espada Viking", desenho: "espada" }, arqueiro: { nome: "Arco Longo", desenho: "arco" }, feiticeiro: { nome: "Cajado Arcano", desenho: "cajado" }, ninja: { nome: "Adagas Gêmeas", desenho: "adagas" } };
+const ARMAS = { viking: { nome: "Espada Viking", desenho: "espada" }, arqueiro: { nome: "Arco Longo", desenho: "arco" }, feiticeiro: { nome: "Cajado Arcano", desenho: "cajado" }, ninja: { nome: "Adagas Gêmeas", desenho: "adagas" }, guerreiro: { nome: "Machado de Guerra", desenho: "machado" } };
 function iconeArma(g, desenho, w, h, ref) {
   const X = w / 2, u = w / 40, top = 6 * u, bot = h - 6 * u, b = BRILHO_REF[ref];
+  if (pintarItem(g, desenho, w, h, b)) return;
   g.save();
   if (b) { g.shadowColor = b.forte; g.shadowBlur = 9 * u; }
   g.lineWidth = 1.6; g.strokeStyle = "#140c06"; g.lineJoin = "round";
+  if (desenho === "machado") {                                           // machado de guerra: cabo na diagonal, lâmina em meia-lua
+    const u = Math.min(w, h * 0.45) / 40, X = w / 2, Y = h / 2;
+    g.save(); g.translate(X, Y); g.rotate(-0.55);
+    g.fillStyle = "#6a4426"; g.strokeStyle = "#1e1208"; g.lineWidth = 1.4 * u;
+    g.fillRect(-2 * u, -h * 0.42, 4 * u, h * 0.84); g.strokeRect(-2 * u, -h * 0.42, 4 * u, h * 0.84);
+    g.fillStyle = "#8a2a1a"; for (let k = 0; k < 3; k++) g.fillRect(-2.4 * u, h * 0.05 + k * 6 * u, 4.8 * u, 2.4 * u);
+    const by = -h * 0.3;
+    g.fillStyle = "#c8ccd4"; g.beginPath(); g.moveTo(-2 * u, by - 6 * u); g.quadraticCurveTo(-20 * u, by - 14 * u, -18 * u, by + 2 * u);
+    g.quadraticCurveTo(-20 * u, by + 16 * u, -2 * u, by + 9 * u); g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = "#e0b040"; g.lineWidth = 1.2 * u; g.beginPath(); g.moveTo(-6 * u, by - 4 * u); g.quadraticCurveTo(-14 * u, by + 2 * u, -6 * u, by + 7 * u); g.stroke();
+    g.fillStyle = "#9aa0aa"; g.beginPath(); g.moveTo(2 * u, by - 2 * u); g.lineTo(10 * u, by + 1 * u); g.lineTo(2 * u, by + 4 * u); g.closePath(); g.fill();
+    g.restore(); g.restore();                                             // (fecha também o save do brilho do refino)
+    return;
+  }
   if (desenho === "adagas") {                                            // duas adagas cruzadas
     for (const lado of [-1, 1]) {
       g.save(); g.translate(X, h / 2); g.rotate(lado * 0.32);
@@ -3969,16 +4132,26 @@ function iconeArma(g, desenho, w, h, ref) {
 }
 // ---------- peças de equipamento (só atributos: a aparência do personagem não muda) ----------
 // Cada parte tem três modelos, por nível (como no Metin2: o de couro no nível 1, o de ferro no 8, o de guerra no 14). Todas
-// dão defesa; a armadura e as calças dão vida, o elmo dá mana, as botas velocidade e o escudo chance de bloquear um golpe.
+// dão defesa. A ROUPA (o espaço da armadura) é de cada tipo de classe: o guerreiro (viking) usa armadura pesada, que dá
+// mais defesa e vida; o ninja e o arqueiro usam o traje leve; o feiticeiro, o manto, que dá mana. Elmo, botas e escudo são
+// os mesmos para todos (o elmo dá mana, as botas velocidade e o escudo chance de bloquear). Não há mais calças.
 // O Ferreiro refina as peças como as armas (+0 a +9): cada nível soma 12% da defesa base (pelo menos 1)
 const PECAS = {
-  armadura: { nome: "Armadura", h: 2, extra: "vida", modelos: [["Armadura de Couro", 1, 12, 30], ["Cota de Malha", 8, 24, 60], ["Armadura de Placas", 14, 40, 100]] },
+  armadura_guerreiro: { nome: "Armadura", slot: "armadura", classes: ["viking", "guerreiro"], h: 2, extra: "vida", cor: null,
+    modelos: [["Peitoral de Couro Batido", 1, 14, 40], ["Cota de Malha Nórdica", 8, 28, 80], ["Armadura de Placas do Jarl", 14, 46, 130]] },
+  armadura_leve: { nome: "Traje", slot: "armadura", classes: ["arqueiro", "ninja"], h: 2, extra: "vida", cor: [["#4a5a3a", "#2a3420"], ["#3a3a46", "#1e1e28"], ["#2a2230", "#120c18"]],
+    modelos: [["Gibão de Couro", 1, 10, 30], ["Traje de Caçador", 8, 20, 60], ["Traje das Sombras", 14, 34, 100]] },
+  armadura_mago: { nome: "Manto", slot: "armadura", classes: ["feiticeiro"], h: 2, extra: "mana", cor: [["#8a6a4a", "#5a4430"], ["#5a3a8a", "#2a1a4a"], ["#a02020", "#4a0a0a"]],
+    modelos: [["Túnica de Linho", 1, 6, 30], ["Manto de Seda", 8, 13, 60], ["Manto Arcano", 14, 22, 100]] },
   elmo: { nome: "Elmo", h: 1, extra: "mana", modelos: [["Capuz de Couro", 1, 4, 15], ["Elmo de Ferro", 8, 9, 30], ["Elmo de Guerra", 14, 15, 50]] },
-  calcas: { nome: "Calças", h: 2, extra: "vida", modelos: [["Calças de Couro", 1, 6, 15], ["Calças de Malha", 8, 12, 30], ["Calças de Placas", 14, 20, 50]] },
   botas: { nome: "Botas", h: 1, extra: "vel", modelos: [["Botas de Couro", 1, 3, 3], ["Botas de Ferro", 8, 7, 5], ["Botas de Guerra", 14, 12, 7]] },
   escudo: { nome: "Escudo", h: 2, extra: "bloqueio", modelos: [["Escudo de Madeira", 1, 5, 4], ["Escudo de Ferro", 8, 10, 7], ["Escudo da Batalha", 14, 17, 10]] },
 };
-const ORDEM_PECAS = ["elmo", "armadura", "calcas", "botas", "escudo"];
+const ORDEM_PECAS = ["elmo", "armadura", "botas", "escudo"];                // os espaços do equipamento
+const ROUPA_DA_CLASSE = { viking: "armadura_guerreiro", arqueiro: "armadura_leve", ninja: "armadura_leve", feiticeiro: "armadura_mago", guerreiro: "armadura_guerreiro" };
+function slotDa(peca) { return (PECAS[peca] && PECAS[peca].slot) || peca; }
+function pecaEquipada(slot) { const e = prog && prog.equip && prog.equip[slot]; return e ? (e.peca || (slot === "armadura" ? ROUPA_DA_CLASSE[classe] : slot)) : null; }
+function pecaServe(peca) { const c = PECAS[peca] && PECAS[peca].classes; return !c || c.includes(classe); }
 const NOME_EXTRA = { vida: n => `+${n} de vida`, mana: n => `+${n} de mana`, vel: n => `+${n}% de velocidade`, bloqueio: n => `${n}% de bloquear um golpe` };
 // o que uma peça dá: { defesa, extra, nivel }
 function atribPeca(slot, tier, ref = 0) {
@@ -3993,13 +4166,14 @@ function descPeca(slot, tier, ref) {
 // ícone de cada parte, na cor do material (couro, ferro, guerra)
 const COR_TIER = [["#8a5a32", "#5e3a1e"], ["#a9b0b8", "#5d646c"], ["#d8dde4", "#8a7a4a"]];
 function iconePeca(g, slot, tier, w, h) {
+  if (pintarItem(g, `peca:${slot}:${tier}`, w, h)) return;
   g.clearRect(0, 0, w, h);
-  const [c1, c2] = COR_TIER[tier] || COR_TIER[0], X = w / 2, u = w / 40, gr = g.createLinearGradient(0, 0, w, 0);
+  const corP = PECAS[slot] && PECAS[slot].cor, [c1, c2] = (corP && corP[tier]) || COR_TIER[tier] || COR_TIER[0], X = w / 2, u = w / 40, gr = g.createLinearGradient(0, 0, w, 0);
   gr.addColorStop(0, c2); gr.addColorStop(0.5, c1); gr.addColorStop(1, c2);
   g.fillStyle = gr; g.strokeStyle = "#140c06"; g.lineWidth = 1.6; g.lineJoin = "round";
   const pol = pts => { g.beginPath(); pts.forEach(([x, y], k) => k ? g.lineTo(x * u, y * u) : g.moveTo(x * u, y * u)); g.closePath(); g.fill(); g.stroke(); };
-  if (slot === "armadura") { pol([[8, 10], [16, 6], [24, 6], [32, 10], [34, 30], [28, 32], [28, 70], [12, 70], [12, 32], [6, 30]]); g.strokeStyle = "rgba(0,0,0,0.35)"; g.beginPath(); g.moveTo(X, 10 * u); g.lineTo(X, 68 * u); g.stroke(); }
-  else if (slot === "calcas") { pol([[10, 8], [30, 8], [32, 70], [22, 70], [20, 30], [18, 70], [8, 70]]); }
+  if (slot === "armadura_mago") { pol([[14, 6], [26, 6], [30, 14], [34, 70], [6, 70], [10, 14]]); g.strokeStyle = "rgba(255,220,140,0.6)"; g.beginPath(); g.moveTo(X, 12 * u); g.lineTo(X, 68 * u); g.stroke(); }
+  else if (slot.startsWith("armadura")) { pol([[8, 10], [16, 6], [24, 6], [32, 10], [34, 30], [28, 32], [28, 70], [12, 70], [12, 32], [6, 30]]); g.strokeStyle = "rgba(0,0,0,0.35)"; g.beginPath(); g.moveTo(X, 10 * u); g.lineTo(X, 68 * u); g.stroke(); }
   else if (slot === "elmo") { g.beginPath(); g.arc(X, 22 * u, 13 * u, Math.PI, 0); g.lineTo(X + 13 * u, 32 * u); g.lineTo(X - 13 * u, 32 * u); g.closePath(); g.fill(); g.stroke(); if (tier) { g.fillStyle = "#140c06"; g.fillRect(X - 9 * u, 22 * u, 18 * u, 3 * u); } }
   else if (slot === "botas") { pol([[13, 6], [24, 6], [24, 24], [34, 28], [34, 34], [11, 34], [12, 22]]); }
   else if (slot === "escudo") { g.beginPath(); g.moveTo(X, 6 * u); g.lineTo(X + 15 * u, 12 * u); g.quadraticCurveTo(X + 15 * u, 56 * u, X, 74 * u); g.quadraticCurveTo(X - 15 * u, 56 * u, X - 15 * u, 12 * u); g.closePath(); g.fill(); g.stroke();
@@ -4008,33 +4182,37 @@ function iconePeca(g, slot, tier, w, h) {
 // veste uma peça da bolsa (a que estava no lugar volta para a bolsa)
 function equiparPeca(it) {
   if (!prog) return;
-  const [, slot, t] = it.chave.split(":"), tier = +t, req = PECAS[slot].modelos[tier][1];
-  if (prog.nivel < req) { avisar(`${PECAS[slot].modelos[tier][0]}: precisa do nível ${req}`); return; }
+  const [, peca, t] = it.chave.split(":"), tier = +t, req = PECAS[peca].modelos[tier][1], slot = slotDa(peca);
+  if (!pecaServe(peca)) { avisar(`${PECAS[peca].modelos[tier][0]} é roupa de ${PECAS[peca].classes.map(c => NOME_CLASSE[c]).join(" e ")}`); return; }
+  if (prog.nivel < req) { avisar(`${PECAS[peca].modelos[tier][0]}: precisa do nível ${req}`); return; }
   const i = prog.inv.indexOf(it); if (i < 0) return;
   prog.inv.splice(i, 1);
-  const velha = prog.equip[slot];
-  if (velha) prog.inv.push({ chave: `peca:${slot}:${velha.tier}`, qtd: 1, ref: velha.ref, bon: velha.bon || [], aba: it.aba, x: it.x, y: it.y });
-  if (velha && PECAS[slot].h !== tipoItem(it.chave).h) { const l = lugarLivre(PECAS[slot].h); const v = prog.inv[prog.inv.length - 1]; if (l) Object.assign(v, l); }
-  prog.equip[slot] = { tier, ref: it.ref || 0, bon: it.bon || [] };
-  depoisDaArma(`Vestiu: ${nomePeca(slot, tier, it.ref)}`);
+  const velha = prog.equip[slot], pv = pecaEquipada(slot);
+  if (velha) prog.inv.push({ chave: `peca:${pv}:${velha.tier}`, qtd: 1, ref: velha.ref, bon: velha.bon || [], aba: it.aba, x: it.x, y: it.y });
+  if (velha && PECAS[pv].h !== tipoItem(it.chave).h) { const l = lugarLivre(PECAS[pv].h); const v = prog.inv[prog.inv.length - 1]; if (l) Object.assign(v, l); }
+  prog.equip[slot] = { peca, tier, ref: it.ref || 0, bon: it.bon || [] };
+  depoisDaArma(`Vestiu: ${nomePeca(peca, tier, it.ref)}`);
 }
 function tirarPeca(slot) {
   const e = prog && prog.equip[slot]; if (!e) return;
-  const l = lugarLivre(PECAS[slot].h); if (!l) { avisar("A bolsa está cheia"); return; }
-  prog.inv.push({ chave: `peca:${slot}:${e.tier}`, qtd: 1, ref: e.ref, bon: e.bon || [], ...l });
+  const peca = pecaEquipada(slot), l = lugarLivre(PECAS[peca].h); if (!l) { avisar("A bolsa está cheia"); return; }
+  prog.inv.push({ chave: `peca:${peca}:${e.tier}`, qtd: 1, ref: e.ref, bon: e.bon || [], ...l });
   prog.equip[slot] = null;
-  depoisDaArma(`${PECAS[slot].nome} guardada na bolsa`);
+  depoisDaArma(`${PECAS[peca].nome} guardada na bolsa`);
 }
 // soma do que está vestido
 function somaEquip() {
   const r = { defesa: 0, vida: 0, mana: 0, vel: 0, bloqueio: 0 };
   if (!prog || !prog.equip) return r;
-  for (const slot of ORDEM_PECAS) { const e = prog.equip[slot]; if (!e) continue; const a = atribPeca(slot, e.tier, e.ref); r.defesa += a.defesa; r[PECAS[slot].extra] += a.extra; }
+  for (const slot of ORDEM_PECAS) { const e = prog.equip[slot], pc = pecaEquipada(slot); if (!e || !pecaServe(pc)) continue; const a = atribPeca(pc, e.tier, e.ref); r.defesa += a.defesa; r[PECAS[pc].extra] += a.extra; }
   return r;
 }
 // uma peça que cai: o modelo do nível de quem a soltou (o melhor que o nível alcança)
 function pecaDoNivel(nivel) {
-  const slot = ORDEM_PECAS[Math.floor(Math.random() * ORDEM_PECAS.length)];
+  // a roupa que cai é, na maioria das vezes, a da classe de quem está jogando (às vezes a de outra, para o armazém)
+  const roupas = ["armadura_guerreiro", "armadura_leve", "armadura_mago"];
+  let slot = ORDEM_PECAS[Math.floor(Math.random() * ORDEM_PECAS.length)];
+  if (slot === "armadura") slot = Math.random() < 0.7 ? ROUPA_DA_CLASSE[classe] : roupas[Math.floor(Math.random() * 3)];
   let tier = 0; PECAS[slot].modelos.forEach(([, n], k) => { if (nivel >= n) tier = k; });
   return { tipo: "peca", chave: `peca:${slot}:${tier}`, ref: 0, bon: bonusDeDrop(slot, tier) };
 }
@@ -4052,8 +4230,8 @@ const BONUS = {
   bloqueio: { nome: v => `Chance de bloquear +${v}%`, faixa: [1, 8] }, velocidade: { nome: v => `Velocidade de movimento +${v}%`, faixa: [1, 8] },
 };
 const BONUS_DA_PARTE = {
-  arma: ["ataque", "critico", "monstros", "for", "dex", "int", "vida"], armadura: ["vida", "mana", "defesa", "vit", "int"],
-  calcas: ["vida", "defesa", "vit", "dex"], elmo: ["mana", "critico", "int", "vida"], botas: ["velocidade", "vida", "dex"], escudo: ["bloqueio", "defesa", "vida", "for"],
+  arma: ["ataque", "critico", "monstros", "for", "dex", "int", "vida"], armadura_guerreiro: ["vida", "defesa", "vit", "for"],
+  armadura_leve: ["vida", "defesa", "dex", "critico", "velocidade"], armadura_mago: ["mana", "int", "vida", "defesa"], elmo: ["mana", "critico", "int", "vida"], botas: ["velocidade", "vida", "dex"], escudo: ["bloqueio", "defesa", "vida", "for"],
 };
 const BONUS_MAX = 5;
 // um bônus novo para a parte (sem repetir os que o item já tem)
@@ -4201,13 +4379,13 @@ function desenharBolsa() {
     eq.title = `${nomeArma(prog.arma.ref)} (ataque +${Math.round((bonusArma(prog.arma.ref) - 1) * 100)}%)${(prog.arma.bon || []).length ? "\n" + textoBonus(prog.arma.bon).join("\n") : ""}\nClique direito guarda na bolsa`;
   } else eq.title = "Sem arma: clique direito numa arma da bolsa para equipar";
   for (const el of document.querySelectorAll(".peca-eq")) {
-    const slot = el.dataset.peca, e = prog.equip && prog.equip[slot];
-    el.innerHTML = e ? "" : `<span>${{ armadura: "armad.", calcas: "calças" }[slot] || slot}</span>`;
+    const slot = el.dataset.peca, e = prog.equip && prog.equip[slot], pc = pecaEquipada(slot) || (slot === "armadura" ? ROUPA_DA_CLASSE[classe] : slot);
+    el.innerHTML = e ? "" : `<span>${{ armadura: "roupa" }[slot] || slot}</span>`;
     if (e) {
-      const c = document.createElement("canvas"); c.width = 40; c.height = PECAS[slot].h * 40; iconePeca(c.getContext("2d"), slot, e.tier, 40, PECAS[slot].h * 40); el.appendChild(c);
+      const c = document.createElement("canvas"); c.width = 40; c.height = PECAS[pc].h * 40; iconePeca(c.getContext("2d"), pc, e.tier, 40, PECAS[pc].h * 40); el.appendChild(c);
       const r = document.createElement("span"); r.className = "ref-eq"; r.textContent = "+" + e.ref; el.appendChild(r);
-      el.title = `${nomePeca(slot, e.tier, e.ref)}: ${descPeca(slot, e.tier, e.ref)}${(e.bon || []).length ? "\n" + textoBonus(e.bon).join("\n") : ""}\nClique direito guarda na bolsa`;
-    } else el.title = `${PECAS[slot].nome}: clique direito numa peça da bolsa para vestir`;
+      el.title = `${nomePeca(pc, e.tier, e.ref)}: ${descPeca(pc, e.tier, e.ref)}${(e.bon || []).length ? "\n" + textoBonus(e.bon).join("\n") : ""}\nClique direito guarda na bolsa`;
+    } else el.title = `${PECAS[pc].nome}: clique direito numa peça da bolsa para vestir`;
   }
 }
 function usarItem(it) { const t = tipoItem(it.chave); if (t.usar) t.usar(it); else avisar(`${t.nome}: ainda não tem uso`); }
@@ -4453,19 +4631,44 @@ function montarFicha() {
   setInterval(() => { if (prog && !$("#ficha").hidden) atualizarFicha(); }, 30000);
 }
 
+// tempo para renascer (s): toda criatura comum volta em RENASCE_COMUM (os ratos, mais rápidos); chefes e pedras Metin
+// têm o tempo deles (cfg.renasce)
+const RENASCE_COMUM = 15, RENASCE_LONGE = 7;
+function tempoRenascer(l) {
+  const c = l.cfg;
+  if (c.chefe || c.chefeCaverna || c.estatico) return c.renasce;
+  return l.tipo === "rato" ? 10 : RENASCE_COMUM;
+}
 function novaCriatura(tipo, x, y, cfg = TIPOS[tipo]) {
   return { tipo, cfg, x, y, toca: { x, y }, dir: 4, anim: "parado", t: Math.random() * 2, ritmo: 1, acao: null, vida: cfg.vida, vidaVista: cfg.vida, morto: false,
            renascer: 0, destino: null, espera: 1 + Math.random() * 2, recarga: 0, acertou: false, manual: null, piscar: 0, cacando: false };
 }
-// os bandos (tipo, x, y na escala antiga do mapa, quantos): cada um no meio de uma clareira de campo aberto
+// os bandos (tipo, x, y na escala antiga do mapa, quantos, espalhados em quantos m): cada um no meio de uma clareira de
+// campo aberto. O Campo dos Lobos, logo na saída leste da vila, é a caça dos primeiros níveis: uma alcateia grande num
+// campo largo
 const GRUPOS = [["javali", -20, 18, 3], ["javali", 14, 30, 3], ["javali", -30, -3, 3], ["javali", 3, 34, 3],
-  ["lobo", 24, -18, 2], ["lobo", -28, 6, 2], ["lobo", 28, 16, 2], ["lobo", -26, 22, 3], ["lobo", -36, 13, 3],
+  ["lobo", 21, 6, 9, 5.5], ["lobo", 24, -18, 2], ["lobo", -28, 6, 2], ["lobo", -26, 22, 3], ["lobo", -36, 13, 3],
   ["esqueleto", 8, -28, 3], ["esqueleto", -16, -27, 3], ["esqueleto", -31, -12, 3], ["esqueleto", -3, -35, 3], ["aranha", 20, -29, 1],
   ["goblin", -9, -19, 3], ["goblin", 33, -3, 3], ["goblin", 26, 20, 3], ["goblin", 35, 8, 3]];
+// o Vale dos Orcs (x, y já na escala nova, quantos, espalhados em quantos m): caça para o nível 30+, com o Chefe Orc
+// no meio do vale
+// no centro, o monumento orc (uma pedra gigante) com uma roda de bandos em volta e o Chefe Orc na frente dele
+const MONUMENTO = { x: 98, y: -2 };
+const VALE_BANDOS = [
+  ["orc_gigante", 107.5, -2, 2, 1.8], ["orc_negro", 102.8, 6.2, 5, 3], ["orc_elite", 93.2, 6.2, 4, 2.6], ["orc_mago", 88.5, -2, 3, 2.2],
+  ["orc_negro", 93.2, -10.2, 5, 3], ["orc_elite", 102.8, -10.2, 4, 2.6], ["orc_chefe", 98, -6.2, 1],
+  ["orc_negro", 80, -6, 6, 4], ["orc_negro", 86, 15, 5, 3.5], ["orc_elite", 90, -21, 4, 3], ["orc_mago", 110, 13, 2, 2],
+  ["orc_gigante", 113, -15, 2, 2], ["orc_negro", 104, 18, 4, 3]];
 function montarCriaturas() {
-  const grupos = GRUPOS.filter(([t]) => TIPOS[t]).map(([t, x, y, n]) => [t, ...noMapa([x, y]), n]);   // na escala nova do mapa
+  criarOrcs();
+  const grupos = [...GRUPOS.filter(([t]) => TIPOS[t]).map(([t, x, y, n, e]) => [t, ...noMapa([x, y]), n, e || 1.6]),   // na escala nova do mapa
+                  ...VALE_BANDOS.filter(([t]) => TIPOS[t]).map(([t, x, y, n, e]) => [t, x, y, n, e || 1.6])];
   const lugares = [];
-  for (const [tipo, gx, gy, n] of grupos) for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2 + gx; lugares.push(n === 1 ? [tipo, gx, gy] : [tipo, gx + Math.cos(a) * 1.6, gy + Math.sin(a) * 1.6]); }
+  // um bando pequeno fica numa roda; um grande se espalha em espiral pelo campo (cada um com espaço para lutar)
+  for (const [tipo, gx, gy, n, e] of grupos) for (let k = 0; k < n; k++) {
+    const a = k * 2.4 + gx, r = n > 4 ? e * Math.sqrt((k + 0.5) / n) : e;
+    lugares.push(n === 1 ? [tipo, gx, gy] : [tipo, gx + Math.cos(a) * r, gy + Math.sin(a) * r]);
+  }
   for (let [tipo, x, y] of lugares) {
     for (let k = 0; k < 20 && !livre(x, y); k++) { x -= Math.sign(x) * 0.5; y -= Math.sign(y) * 0.3; }
     criaturas.push(novaCriatura(tipo, x, y));
@@ -4512,11 +4715,13 @@ function passoCriatura(l, dt) {
   if (l.atordoado > 0 && !l.morto) { l.atordoado -= dt; if (!l.acao) criaturaAnim(l, "parado"); l.ritmo = 1; return; }
   if (l.morto) {
     l.renascer -= dt;
+    // renasce na toca, mas não na cara do jogador: com ele a menos de RENASCE_LONGE da toca, espera mais um pouco
+    if (l.renascer <= 0 && !cfg.estatico && !l.horda && Math.hypot(viking.x - l.toca.x, viking.y - l.toca.y) < RENASCE_LONGE) l.renascer = 1.5;
     if (l.renascer <= 0) {
       if (cfg.levanta) {
-        // o esqueleto se levanta onde caiu: a morte tocada ao contrário
-        const { x, y, toca, dir } = l;
-        Object.assign(l, novaCriatura(l.tipo, x, y, l.cfg), { toca, dir, vidaVista: 0 });
+        // o esqueleto se levanta na toca dele: a morte tocada ao contrário
+        const { toca, dir } = l;
+        Object.assign(l, novaCriatura(l.tipo, toca.x, toca.y, l.cfg), { toca, dir, vidaVista: 0 });
         criaturaAcao(l, "levantar"); l.anim = "morte"; l.t = a.morte.quadros / a.morte.fps - 1e-3; som("chocalho", l);
       } else { const t = l.toca; Object.assign(l, novaCriatura(l.tipo, t.x, t.y, l.cfg)); }
     }
@@ -4526,7 +4731,7 @@ function passoCriatura(l, dt) {
     if (l.voltando > 0) l.voltando -= dt;
     const escondido = NINJA.esconder.buff > 0 && classe === "ninja" && d > 1.2;
     l.cacando = criaturasAtacam && !viking.caido && !escondido && !(l.voltando > 0) && (d < cfg.visao || (l.cacando && d < cfg.visao + 4));
-    if (l.cacando && !antes) som(["lobo", "goblin", "javali", "rato"].includes(l.tipo) ? "rosnado" : l.tipo === "aranha" ? "aranha" : "chocalho", l, l.tipo === "goblin" ? 0.7 : 1);
+    if (l.cacando && !antes) som(["lobo", "goblin", "javali", "rato"].includes(l.tipo) || l.tipo.startsWith("orc") ? "rosnado" : l.tipo === "aranha" ? "aranha" : "chocalho", l, l.tipo === "goblin" ? 0.7 : 1);
     if (l.cacando && !antes && cfg.ameaca) { l.dir = dirDe(dx, dy); criaturaAcao(l, "ameaca"); l.recarga = 0.6; som("aranha_ameaca", l); }
     else if (l.cacando) {
       l.destino = null;
@@ -4631,7 +4836,12 @@ function passoCriatura(l, dt) {
 
 function ataqueCriatura(l) {
   const ang = -l.dir * Math.PI / 4, dx = viking.x - l.x, dy = viking.y - l.y, d = Math.hypot(dx, dy);
+  if (l.cfg.magia) { if (!viking.caido && d < l.cfg.alcance + 1) lancarMagiaCriatura(l); return; }
   if (viking.caido || d > l.cfg.alcance || (dx * Math.cos(ang) + dy * Math.sin(ang)) / Math.max(d, 1e-3) < 0.3) return;
+  feridoPor(l);
+}
+// o personagem leva o golpe (ou a magia) da criatura l
+function feridoPor(l) {
   feridas++; tremor = 0.22; viking.ferido = 0.3; congela = Math.max(congela, 0.06);
   som(l.tipo === "lobo" || l.tipo === "rato" ? "mordida" : l.tipo === "goblin" ? "palha" : "carne", viking); som("grunhido", viking, 0.8);
   impacto(viking, 64, "golpeViking", 0);
@@ -4786,7 +4996,7 @@ function ferir(l, dano, dx, dy, empurra, semReacao = false) {
   const nx = l.x + dx / d * empurra, ny = l.y + dy / d * empurra;
   if (!semReacao && livre(nx, ny)) { l.x = nx; l.y = ny; }
   if (!semReacao) l.dir = dirDe(-dx, -dy);
-  if (l.vida <= 0) { criaturaAcao(l, "morte"); l.morto = true; l.renascer = l.cfg.renasce; l.cacando = false; morreuCriatura(l); som(l.tipo === "lobo" ? "gemido" : l.tipo === "aranha" ? "aranha_morte" : ["goblin", "javali", "rato"].includes(l.tipo) ? "gemido" : "desmorona", l); }
+  if (l.vida <= 0) { criaturaAcao(l, "morte"); l.morto = true; l.renascer = tempoRenascer(l); l.cacando = false; morreuCriatura(l); som(l.tipo === "lobo" ? "gemido" : l.tipo === "aranha" ? "aranha_morte" : ["goblin", "javali", "rato"].includes(l.tipo) ? "gemido" : "desmorona", l); }
   else {
     if (l.cfg.estatico) { metinApanhou(l); som("osso", l, 0.5); return; }
     l.cacando = criaturasAtacam;
@@ -4794,7 +5004,7 @@ function ferir(l, dano, dx, dy, empurra, semReacao = false) {
     // isso o combo do viking (um golpe a cada meio segundo) o deixava preso na animação de dano, sem nunca atacar
     if (semReacao || (l.firme || 0) > 0 || l.acao === l.cfg.ataque || (l.cfg.chefe && (l.acao || Math.random() < 0.65))) { som("carne", l, 0.6); return; }
     l.firme = 1.5;
-    criaturaAcao(l, "dano"); l.recarga = Math.max(l.recarga, 0.7); som(l.tipo === "lobo" ? "ganido" : l.tipo === "aranha" ? "aranha" : ["goblin", "javali", "rato"].includes(l.tipo) ? "grunhido" : "chocalho", l, 0.8);
+    criaturaAcao(l, "dano"); l.recarga = Math.max(l.recarga, 0.7); som(l.tipo === "lobo" ? "ganido" : l.tipo === "aranha" ? "aranha" : ["goblin", "javali", "rato"].includes(l.tipo) || l.tipo.startsWith("orc") ? "grunhido" : "chocalho", l, 0.8);
   }
 }
 
@@ -4809,7 +5019,8 @@ const RITMO_CAST = { atirar: RITMO_TIRO, chuva: 2.4, certeiro: 1.8, bola: 2, rai
 const CORTA_ANDANDO = new Set(["atirar", "chuva", "certeiro", "bola", "raio", "terra", "lamina_espiritual", "furia", "furia_armado"]);
 const flechas = [];
 function atirar() {
-  if (viking.acao && viking.acao !== "dano") return;                 // levar um golpe não atrasa o próximo tiro
+  if (viking.acao && viking.acao !== "dano") return;
+  if (viking.recargaTiro > 0) return;              // o intervalo entre tiros vale para todo jeito de atirar (clique, alvo, automático)
   mirarBoneco();
   tocar("atirar", true);
   som("flecha_saca", viking, 0.8); som("arco_puxa", viking, 0.5);
@@ -4833,10 +5044,44 @@ function soltarFlecha() {
   som("arco", v);
   if (esp === "rajada") for (let k = 1; k < CONCENTRADO_FLECHAS; k++) setTimeout(() => som("arco", v, 0.7), k * 90);
 }
+// magias dos orcs feiticeiros: uma bola de fogo verde que sai da mão e voa reto até onde o personagem estava (dá para
+// sair da frente correndo); pega quem estiver a menos de 0,55 m
+const magiasCriatura = [], MAGIA_VEL = 8;
+function lancarMagiaCriatura(l) {
+  const dx = viking.x - l.x, dy = viking.y - l.y, d = Math.max(0.01, Math.hypot(dx, dy));
+  magiasCriatura.push({ x: l.x + dx / d * 0.6, y: l.y + dy / d * 0.6, vx: dx / d * MAGIA_VEL, vy: dy / d * MAGIA_VEL, vida: (d + 2) / MAGIA_VEL, de: l, rastro: [] });
+  som("vento", l, 0.6);
+}
+function passoMagiasCriatura(dt) {
+  for (let i = magiasCriatura.length - 1; i >= 0; i--) {
+    const m = magiasCriatura[i];
+    m.vida -= dt; m.x += m.vx * dt; m.y += m.vy * dt;
+    m.rastro.unshift([m.x, m.y]); if (m.rastro.length > 7) m.rastro.pop();
+    if (!viking.caido && Math.hypot(viking.x - m.x, viking.y - m.y) < 0.55) {
+      feridoPor(m.de);
+      for (let q = 0; q < 10; q++) brasas.push({ x: m.x, y: m.y, z: 1, vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 3, vz: Math.random() * 2, vida: 0.5, max: 0.5, tam: 0.08 });
+      magiasCriatura.splice(i, 1);
+    } else if (m.vida <= 0 || !livre(m.x, m.y)) magiasCriatura.splice(i, 1);
+  }
+}
+function desenharMagiasCriatura() {
+  const s = PX * zoom, alt = 1.1 * s * ALTURA;
+  cx.save(); cx.globalCompositeOperation = "lighter";
+  for (const m of magiasCriatura) {
+    m.rastro.forEach(([x, y], k) => {
+      const [X, Y] = noMundo(x, y), r = s * (0.2 - k * 0.022);
+      if (r <= 0) return;
+      const g = cx.createRadialGradient(X, Y - alt, 0, X, Y - alt, r);
+      g.addColorStop(0, `rgba(190, 255, 120, ${0.9 - k * 0.11})`); g.addColorStop(0.5, `rgba(60, 220, 60, ${0.5 - k * 0.06})`); g.addColorStop(1, "rgba(0, 120, 0, 0)");
+      cx.fillStyle = g; cx.beginPath(); cx.arc(X, Y - alt, r, 0, 7); cx.fill();
+    });
+  }
+  cx.restore();
+}
 function passoFlechas(dt) {
   for (const f of flechas) {
     if (f.atraso > 0) { f.atraso -= dt; continue; }
-    if (f.presa) { f.vida -= dt; continue; }
+    if (f.presa) { f.vida -= dt; if (f.rastro && f.rastro.length) f.rastro.shift(); continue; }   // cravada: o rastro se apaga
     const a = f.alvo, vel = f.fogo ? FLECHA_VEL * 1.9 : f.chuva ? FLECHA_VEL * 0.9 : FLECHA_VEL;
     if (a && (a.morto || a.acao === "levantar")) f.alvo = null;
     if (f.alvo) {
@@ -4845,6 +5090,7 @@ function passoFlechas(dt) {
       f.dx = ex / d; f.dy = ey / d; f.dz = ez / d;
     } else if (!f.sobe && !f.chuva) f.dz -= 0.9 * dt;              // sem alvo: a ponta vai caindo
     f.x += f.dx * vel * dt; f.y += f.dy * vel * dt; f.z += f.dz * vel * dt;
+    if (!f.chuva) { (f.rastro || (f.rastro = [])).push([f.x, f.y, f.z]); if (f.rastro.length > 16) f.rastro.shift(); }
     f.vida -= dt;
     if (f.fogo) for (let k = 0; k < 3; k++) brasas.push({ x: f.x - f.dx * Math.random() * 0.6, y: f.y - f.dy * Math.random() * 0.6, z: f.z, vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8, vz: 0.3 + Math.random() * 0.8, vida: 0.35, max: 0.35, tam: 0.05 + Math.random() * 0.04 });
     if (f.chuva && f.z <= 0.05) { f.z = 0.05; f.presa = true; f.vida = 2.2; quedaDeChuva(f); continue; }
@@ -4886,21 +5132,43 @@ function desenharFlechas() {
       g.addColorStop(0, "rgba(255, 230, 150, 0.9)"); g.addColorStop(0.4, "rgba(255, 120, 30, 0.55)"); g.addColorStop(1, "rgba(255, 50, 10, 0)");
       cx.fillStyle = g; cx.beginPath(); cx.arc(gx, gy, r, 0, 7); cx.fill(); cx.restore();
     }
-    const [hx, hy] = noMundo(f.x, f.y, f.z), [tx, ty] = noMundo(f.x - f.dx * 0.75, f.y - f.dy * 0.75, f.z - f.dz * 0.75);
-    const [sx, sy] = noMundo(f.x - f.dx * 0.35, f.y - f.dy * 0.35, 0);
-    cx.fillStyle = "rgba(20, 14, 10, 0.22)"; cx.beginPath(); cx.ellipse(sx, sy, s * 0.3, s * 0.05, 0, 0, 7); cx.fill();
-    cx.lineCap = "round";
-    cx.strokeStyle = TINTA; cx.lineWidth = Math.max(2.5, s * 0.045); cx.beginPath(); cx.moveTo(tx, ty); cx.lineTo(hx, hy); cx.stroke();
-    cx.strokeStyle = "#c08a55"; cx.lineWidth = Math.max(1.2, s * 0.022); cx.beginPath(); cx.moveTo(tx, ty); cx.lineTo(hx, hy); cx.stroke();
-    // ponta de ferro e penas
-    const ux = (hx - tx), uy = (hy - ty), L = Math.max(1e-3, Math.hypot(ux, uy)), nx = -uy / L, ny = ux / L, e = s * 0.05;
-    cx.fillStyle = "#cfd3d8"; cx.strokeStyle = TINTA; cx.lineWidth = 1;
-    cx.beginPath(); cx.moveTo(hx + ux / L * e * 1.6, hy + uy / L * e * 1.6); cx.lineTo(hx + nx * e * 0.7, hy + ny * e * 0.7); cx.lineTo(hx - nx * e * 0.7, hy - ny * e * 0.7); cx.closePath(); cx.fill(); cx.stroke();
-    cx.strokeStyle = "#e8e2d2"; cx.lineWidth = Math.max(1, s * 0.016);
-    for (const k of [0, 0.12]) {
-      const px = tx + ux * k, py = ty + uy * k;
-      cx.beginPath(); cx.moveTo(px, py); cx.lineTo(px - ux / L * e * 1.4 + nx * e, py - uy / L * e * 1.4 + ny * e); cx.moveTo(px, py); cx.lineTo(px - ux / L * e * 1.4 - nx * e, py - uy / L * e * 1.4 - ny * e); cx.stroke();
+    // o rastro: uma faixa de luz que afina e some, do arco até a flecha (dourada; verde na venenosa; laranja na de fogo)
+    if (f.rastro && f.rastro.length > 1) {
+      const cor = f.veneno ? "150, 255, 110" : f.fogo ? "255, 150, 60" : "255, 236, 170", pts = f.rastro.map(([x, y, z]) => noMundo(x, y, z)), n = pts.length;
+      cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round";
+      for (let k = 1; k < n; k++) {
+        const a = k / n;
+        cx.strokeStyle = `rgba(${cor}, ${0.8 * a})`; cx.lineWidth = Math.max(1.5, s * 0.1 * a);
+        cx.beginPath(); cx.moveTo(pts[k - 1][0], pts[k - 1][1]); cx.lineTo(pts[k][0], pts[k][1]); cx.stroke();
+      }
+      cx.strokeStyle = `rgba(255, 255, 255, 0.6)`; cx.lineWidth = Math.max(1, s * 0.025);
+      cx.beginPath(); pts.forEach(([x, y], k) => k ? cx.lineTo(x, y) : cx.moveTo(x, y)); cx.stroke();
+      cx.restore();
     }
+    const [hx, hy] = noMundo(f.x, f.y, f.z), [tx, ty] = noMundo(f.x - f.dx * 0.82, f.y - f.dy * 0.82, f.z - f.dz * 0.82);
+    const [sx, sy] = noMundo(f.x - f.dx * 0.4, f.y - f.dy * 0.4, 0);
+    cx.fillStyle = "rgba(20, 14, 10, 0.22)"; cx.beginPath(); cx.ellipse(sx, sy, s * 0.32, s * 0.05, 0, 0, 7); cx.fill();
+    const ux = (hx - tx), uy = (hy - ty), L = Math.max(1e-3, Math.hypot(ux, uy)), ex = ux / L, ey = uy / L, nx = -ey, ny = ex, e = s * 0.055;
+    cx.lineCap = "round";
+    // haste: contorno, madeira clara e um veio escuro
+    cx.strokeStyle = TINTA; cx.lineWidth = Math.max(2.8, s * 0.05); cx.beginPath(); cx.moveTo(tx, ty); cx.lineTo(hx, hy); cx.stroke();
+    cx.strokeStyle = "#c9945e"; cx.lineWidth = Math.max(1.4, s * 0.026); cx.beginPath(); cx.moveTo(tx, ty); cx.lineTo(hx, hy); cx.stroke();
+    cx.strokeStyle = "rgba(110, 66, 30, 0.7)"; cx.lineWidth = Math.max(0.6, s * 0.008); cx.beginPath(); cx.moveTo(tx + nx * 0.6, ty + ny * 0.6); cx.lineTo(hx + nx * 0.6, hy + ny * 0.6); cx.stroke();
+    // ponta larga de ferro, com a aresta clara
+    const bx = hx - ex * e * 0.4, by = hy - ey * e * 0.4;
+    cx.fillStyle = "#9aa2ac"; cx.strokeStyle = TINTA; cx.lineWidth = 1.2;
+    cx.beginPath(); cx.moveTo(hx + ex * e * 2.2, hy + ey * e * 2.2); cx.lineTo(bx + nx * e * 0.95, by + ny * e * 0.95); cx.lineTo(bx - ex * e * 0.5, by - ey * e * 0.5); cx.lineTo(bx - nx * e * 0.95, by - ny * e * 0.95); cx.closePath(); cx.fill(); cx.stroke();
+    cx.strokeStyle = "rgba(240, 246, 252, 0.9)"; cx.lineWidth = Math.max(0.8, s * 0.01);
+    cx.beginPath(); cx.moveTo(hx + ex * e * 2.0, hy + ey * e * 2.0); cx.lineTo(bx + nx * e * 0.7, by + ny * e * 0.7); cx.stroke();
+    // penas: três, vermelhas e brancas, e o encaixe da corda
+    const pena = (k, lado, cor) => {
+      const px = tx + ex * e * (0.6 + k), py = ty + ey * e * (0.6 + k);
+      cx.fillStyle = cor; cx.strokeStyle = TINTA; cx.lineWidth = 0.9;
+      cx.beginPath(); cx.moveTo(px + ex * e * 2.2, py + ey * e * 2.2); cx.quadraticCurveTo(px + ex * e * 0.8 + nx * lado * e * 1.4, py + ey * e * 0.8 + ny * lado * e * 1.4, px - ex * e * 0.2 + nx * lado * e * 1.1, py - ey * e * 0.2 + ny * lado * e * 1.1);
+      cx.lineTo(px, py); cx.closePath(); cx.fill(); cx.stroke();
+    };
+    pena(0, 1, f.veneno ? "#6fcf4a" : "#b8332a"); pena(0, -1, f.veneno ? "#6fcf4a" : "#b8332a"); pena(0.3, 0.35, "#f2ece0");
+    cx.fillStyle = TINTA; cx.beginPath(); cx.arc(tx, ty, Math.max(1.2, s * 0.02), 0, 7); cx.fill();
   }
 }
 
@@ -5291,7 +5559,7 @@ const suaveM = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u
 const acaso2 = k => { const x = Math.sin(k * 12.9898) * 43758.5453; return x - Math.floor(x); };   // sorteio fixo por número
 
 // quem luta de longe (o arqueiro e o feiticeiro) e até onde
-const lutaPerto = () => classe === "viking" || classe === "ninja";
+const lutaPerto = () => classe === "viking" || classe === "ninja" || classe === "guerreiro";
 const distante = () => !lutaPerto();
 function alcanceDist() { return classe === "feiticeiro" ? ALCANCE_MAGIA : ALCANCE_ARCO; }
 
@@ -5367,7 +5635,8 @@ function brilhoCajado(im, q, info, X, Y, z, t) {
 }
 
 function conjurar() {
-  if (viking.acao && viking.acao !== "dano") return;                 // levar um golpe não atrasa o próximo ataque
+  if (viking.acao && viking.acao !== "dano") return;
+  if (viking.recargaTiro > 0) return;
   mirarBoneco();
   tocar("bola", true);
   som("arcano_carga", viking, 0.6);
@@ -5847,21 +6116,22 @@ function trocarClasse(nova) {
   if (!MA || !MF || nova === classe) return;
   salvarProgresso();
   classe = nova;
-  M = { viking: MV, arqueiro: MA, feiticeiro: MF, ninja: MN || MV }[classe]; SPR = { viking: SPRV, arqueiro: SPRA, feiticeiro: SPRF, ninja: MN ? SPRN : SPRV }[classe];   // sem o ninja.json, o viking escurecido
+  M = { viking: MV, arqueiro: MA, feiticeiro: MF, ninja: MN || MV, guerreiro: MG || MV }[classe]; SPR = { viking: SPRV, arqueiro: SPRA, feiticeiro: SPRF, ninja: MN ? SPRN : SPRV, guerreiro: MG ? SPRG : SPRV }[classe];   // sem o ninja.json, o viking escurecido
   const v = viking;
-  Object.assign(v, { anim: classe === "ninja" ? "parado_armado" : "parado", t: 0, acao: null, espada: classe === "ninja" ? "armada" : "costas", ociosoArmado: 0, combo: 0, fila: null, acertou: false, caido: false, noLugar: null, esperaParar: null, ferido: 0 });
+  const sempreArmado = classe === "ninja" || classe === "guerreiro";
+  Object.assign(v, { anim: sempreArmado ? "parado_armado" : "parado", t: 0, acao: null, espada: sempreArmado ? "armada" : "costas", ociosoArmado: 0, combo: 0, fila: null, acertou: false, caido: false, noLugar: null, esperaParar: null, ferido: 0 });
   furia.buff = 0; furia.desde = -1; vortice.ativo = false; vortice.restam = 0; espiritual.buff = 0; espiritual.desde = -1;
   flechas.length = 0; selecao = null;
-  for (const [id, c] of [["#cViking", "viking"], ["#cArqueiro", "arqueiro"], ["#cFeiticeiro", "feiticeiro"], ["#cNinja", "ninja"]]) $(id).setAttribute("aria-pressed", classe === c);
-  $("#titulo").textContent = "Campo de Treino do " + { viking: "Viking", arqueiro: "Arqueiro", feiticeiro: "Feiticeiro", ninja: "Ninja" }[classe];
-  SKILLS = { viking: SKILLS_VIKING, arqueiro: SKILLS_ARQUEIRO, feiticeiro: SKILLS_FEITICEIRO, ninja: SKILLS_NINJA }[classe];
+  for (const [id, c] of [["#cViking", "viking"], ["#cArqueiro", "arqueiro"], ["#cFeiticeiro", "feiticeiro"], ["#cNinja", "ninja"], ["#cGuerreiro", "guerreiro"]]) $(id).setAttribute("aria-pressed", classe === c);
+  $("#titulo").textContent = "Campo de Treino do " + NOME_CLASSE[classe];
+  SKILLS = { viking: SKILLS_VIKING, arqueiro: SKILLS_ARQUEIRO, feiticeiro: SKILLS_FEITICEIRO, ninja: SKILLS_NINJA, guerreiro: SKILLS_GUERREIRO }[classe];
   montarBarraSkills();
   chuva.recarga = 0; chuva.marca = 0; certeiro.recarga = 0; brasas.length = 0; queimando.clear();
   pes.buff = 0; pes.recarga = 0; pes.desde = -1; pes.vultos.length = 0; pes.riscos.length = 0;
   limparMagias(); mira = null;
   carregarProgresso(); montarBarraSkills(); atualizarFicha(); desenharBolsa(); desenharFerreiro();
   $("#bEspada").hidden = classe !== "viking";
-  $("#bAtacar").textContent = { viking: "Atacar", arqueiro: "Atirar", feiticeiro: "Conjurar", ninja: "Atacar" }[classe];
+  $("#bAtacar").textContent = { viking: "Atacar", arqueiro: "Atirar", feiticeiro: "Conjurar", ninja: "Atacar", guerreiro: "Atacar" }[classe];
   montarBotoesAnim();
 }
 
@@ -5959,7 +6229,7 @@ addEventListener("keydown", e => {
   }
   if (k === "m" && !e.repeat) somAlternar();
   if (k === "n" && !e.repeat) { somIniciar(); musicaAlternar(); }
-  if (k === "t" && !e.repeat) trocarClasse({ viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "viking" }[classe]);
+  if (k === "t" && !e.repeat) trocarClasse({ viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "guerreiro", guerreiro: "viking" }[classe]);
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
   if (e.repeat && !["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"].includes(k)) return;
   teclas.add(k);
@@ -6031,7 +6301,7 @@ cv.addEventListener("wheel", e => { e.preventDefault(); zoom = Math.max(0.35, Ma
 // ---------------------------------------------------------------- editor de mapa (O)
 // Escolhe, move, põe, duplica e apaga decorações, e muda o círculo de colisão de cada tipo. Tudo fica salvo neste
 // navegador (localStorage) e "Copiar mapa" gera o texto com as decorações e as colisões, para virar o mapa fixo.
-const MAPA_CHAVE = "mapaEditado3";             // 2: o mapa cresceu e ganhou clareiras (o salvo antes não serve)
+const MAPA_CHAVE = "mapaEditado6";             // 6: o Vale dos Orcs, a península do leste (o mapa salvo antes não serve)
 const MAPA_FIXO = null;                    // o mapa aprovado entra aqui (o texto do "Copiar mapa")
 const editor = { ativo: false, sel: null, pondo: null, arrasto: null, foco: { x: 0, y: 0 }, teclas: new Set(), mouse: null };
 let mapaOriginal = null;
@@ -6316,11 +6586,25 @@ function pisoCaverna(x, y) {
 function variante(base, v) {
   const b = TIPOS[base], e = v.esc || 1;
   return { ...b, ...v, esc: e, base, altura: b.altura * e, barra: b.barra * e, sombra: b.sombra * e, anel: b.anel * e, raio: (b.raio || 0) * e,
-           perto: b.perto * Math.sqrt(e), alcance: b.alcance * Math.sqrt(e), chefe: !!v.chefe };
+           perto: v.perto || b.perto * Math.sqrt(e), alcance: v.alcance || b.alcance * Math.sqrt(e), chefe: !!v.chefe };
 }
 function montarCaverna() {
   if (TIPOS.aranha && TIPOS.aranha.M) TIPOS.aranhinha = variante("aranha", { nome: "Aranha", esc: 0.42, vida: 150, nivel: 9, dano: 30, renasce: 25, galope: 2.6, chega: 2.2, visao: 7 });
   for (const d of DUNGEONS) montarDungeon(d);
+}
+// os orcs do vale (sem o orc.json, o goblin 1,7× maior faz o papel)
+function criarOrcs() {
+  if (TIPOS.orc_negro) return;
+  const bo = TIPOS.orc && TIPOS.orc.M ? "orc" : "goblin", eo = bo === "orc" ? 1 : 1.7;
+  const orc = (v, b = bo, e = eo) => variante(b, { visao: 8, chega: 1.9, galope: 0, passeio: 0.8, ...v, esc: v.esc * e });
+  const proprio = t => TIPOS[t] && TIPOS[t].M;                   // o modelo dele chegou? (orc_bravo.json, orc_feiticeiro.json)
+  // caça do nível 30+: negro < bravo < gigante < feiticeiro (o mais forte dos comuns, de longe)
+  TIPOS.orc_negro = orc({ nome: "Orc Negro", esc: 1, vida: 650, nivel: 30, dano: 70 });
+  TIPOS.orc_elite = orc({ nome: "Orc Negro Bravo", esc: proprio("orc_bravo") ? 1 : 1.12, vida: 850, nivel: 33, dano: 85, chega: 2.2 }, ...(proprio("orc_bravo") ? ["orc_bravo", 1] : []));
+  TIPOS.orc_gigante = orc({ nome: "Orc Gigante Negro", esc: 1.35, vida: 1300, nivel: 36, dano: 105, chega: 1.6 });
+  TIPOS.orc_mago = orc({ nome: "Orc Feiticeiro", esc: proprio("orc_feiticeiro") ? 1 : 0.95, vida: 1100, nivel: 38, dano: 120, perto: 5.5, alcance: 7, magia: true, visao: 9 },
+                       ...(proprio("orc_feiticeiro") ? ["orc_feiticeiro", 1] : []));
+  TIPOS.orc_chefe = orc({ nome: "Chefe Orc", esc: 1.6, vida: 9000, nivel: 45, dano: 190, renasce: 150, chefe: true, chefeCaverna: true });
 }
 function montarDungeon(d) {
   // o buraco: um lugar livre do mapa (perto do ponto da dungeon)
@@ -6387,11 +6671,11 @@ function montarDungeon(d) {
   };
   for (const [k, tipo, n] of d.bandos) {
     const t = TIPOS[tipo] ? tipo : TIPOS.rato ? "rato" : "lobo";
-    povoar(TIPOS[t], t === "aranhinha" ? "aranha" : t, d.salas[k], n, d.salas[k].r - 1.5);
+    povoar(TIPOS[t], TIPOS[t].base || t, d.salas[k], n, d.salas[k].r - 1.5);       // uma variante usa os sprites da base
   }
-  const ch = d.chefe, base = TIPOS[ch.base] && TIPOS[ch.base].M ? ch.base : "lobo";
+  const ch = d.chefe, base = TIPOS[ch.base] && TIPOS[ch.base].M ? ch.base : ch.reserva && TIPOS[ch.reserva] && TIPOS[ch.reserva].M ? ch.reserva : "lobo";
   if (TIPOS[base].M) {
-    d.cfgChefe = variante(base, { nome: ch.nome, esc: ch.esc, vida: ch.vida, nivel: ch.nivel, dano: ch.dano, renasce: ch.renasce, chefe: true, chefeCaverna: true, visao: 8 });
+    d.cfgChefe = variante(base, { nome: ch.nome, esc: ch.esc * (base === ch.base ? 1 : 1.7), vida: ch.vida, nivel: ch.nivel, dano: ch.dano, renasce: ch.renasce, chefe: true, chefeCaverna: true, visao: 8 });
     povoar(d.cfgChefe, base, d.salas[ch.sala], 1, 1.5);
   }
 }
@@ -6804,7 +7088,8 @@ function passo(dt) {
   if (porAlvo) [mx, my] = contornar(v, v.x, v.y, mx, my);
   // anda a 1,9 m/s com a animação acelerada na mesma proporção (até 2,2x; o pé escorrega um pouco acima disso);
   // Shift (ou o botão Correr, ou um clique longe) corre
-  const corre = teclas.has("shift") || correrFixo || !!(v.alvo && v.alvo.correr);
+  // todos só correm (não há mais o andar): a velocidade sobe com a velocidade de movimento dos itens, a Fúria e os Passos Leves
+  const corre = true;
   const vel = (corre ? Math.min(CORRIDA, M.correr * CORRIDA_MAX) : VELOCIDADE) * (furia.buff > 0 ? 1.25 : 1) * velPes() * (status.velEquip || 1);   // fúria: 25% mais rápido; pés leves: 45%
   if (len > 0 && cortaAndando(v, mx, my, porTeclas)) { v.acao = null; v.fila = null; }   // já soltou: andar corta o fim
   const andando = len > 0 && !v.acao && !v.caido;
@@ -6835,8 +7120,8 @@ function passo(dt) {
   const golpeia = v.anim.startsWith("golpe") || v.anim === "sacar_golpe" || v.anim === "giro" || v.anim === "sacar" || v.anim === "investida";
   // o andar, o arrancar e o parar tocam no ritmo da passada (parando, o mesmo de quando andava)
   const rAndar = Math.min((andando ? vel : VELOCIDADE * (furia.buff > 0 ? 1.25 : 1) * velPes()) / M.andar, CADENCIA_MAX * (pes.buff > 0 ? 1.3 : 1));
-  const ritmo = /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? 1.3 : golpeia && classe === "ninja" ? 1.3 : 1) * (vortice.ativo ? 1.35 : 1)
-              : v.anim.startsWith("correndo") ? Math.min(vel / M.correr, CORRIDA_MAX * (pes.buff > 0 ? 1.3 : 1)) : 1;
+  const ritmo = /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? 1.3 : golpeia && classe === "ninja" ? 1.3 : golpeia && classe === "guerreiro" ? 0.92 : 1) * (vortice.ativo ? 1.35 : 1)
+              : v.anim.startsWith("correndo") ? Math.min(vel / M.correr, CORRIDA_MAX * (pes.buff > 0 ? 1.3 : 1) * (status.velEquip || 1)) : 1;
   v.t += dt * ritmo;
   const dur = info.quadros / info.fps;
   const q = Math.floor(v.t * info.fps);
@@ -6876,7 +7161,7 @@ function passo(dt) {
     else { golpeAcerta(v.anim); explosaoEncanto(); }
   }
   passoFuria(dt);
-  passoFlechas(dt);
+  passoFlechas(dt); passoMagiasCriatura(dt);
   passoInvestida(dt);
   passoNinja(dt);
   // golpe andando: no meio do combo, com o alvo um pouco longe (o golpe anterior o empurrou) ou segurando a tecla para a
@@ -7269,7 +7554,8 @@ function desenhar(t) {
   const dtT = Math.min(0.1, Math.max(0, t - tTransp)); tTransp = t;
   const objeto = o => {
     const [sx, sy] = tela(o.x - cam.x, o.y - cam.y), caixa = caixaObjeto(o, W / 2 + sx, H / 2 + sy, s);
-    const alvo = caixa && cobreAlguem(caixa, o.y, quemSome) ? 0.38 : 1;
+    // o monumento do vale só some pelo jogador (com os orcs sempre em volta, ficaria translúcido o tempo todo)
+    const alvo = caixa && cobreAlguem(caixa, o.y, o.monumento ? quemSome.slice(0, 1) : quemSome) ? 0.38 : 1;
     o.alfa = (o.alfa ?? 1) + (alvo - (o.alfa ?? 1)) * Math.min(1, dtT * 9);
     if (o.alfa > 0.99 || !caixa) desenharObjeto(o, t);
     else translucido(o.alfa, caixa, () => desenharObjeto(o, t));
@@ -7280,7 +7566,7 @@ function desenhar(t) {
   lista.sort((a, b) => b.y - a.y).forEach(o => o.f());
   for (const f of placas) f();
   placas.length = 0;
-  desenharFlechas();
+  desenharFlechas(); desenharMagiasCriatura();
   desenharSkillsArq(t);
   desenharPesFrente();
   desenharFaiscasForja(1 / 60);
@@ -7508,6 +7794,145 @@ function animVisivel(n) {
   const base = SEM_TROCA[n] || n;
   return M.animacoes[base + "_sem"] && SPR[base + "_sem"] ? base + "_sem" : n;
 }
+// ---------------------------------------------------------------- teste: os personagens em 3D (?3d=1)
+// Em vez dos sprites, os modelos 3D (3d/<classe>.glb, gravados do Unity com os mesmos movimentos dos sprites: as mesmas
+// animações, com os mesmos nomes e quadros) desenhados pelo three.js num canvas à parte, com a mesma câmera dos sprites
+// (ortográfica, 37° de cima: 1 m de altura sobe 0,8; o chão achata 0,6), e postos na tela no lugar do sprite, na mesma
+// ordem de desenho. O tempo da animação é o viking.t, então o golpe acerta no mesmo instante do sprite. Toon de três
+// faixas e um contorno escuro (casca por trás, empurrada pela normal), como o estilo Desenho. Sem o glb da classe, fica
+// o sprite. O mago3d.glb (o primeiro teste, só parado e correndo, cajado posto na mão aqui) vale enquanto não houver o
+// 3d/feiticeiro.glb.
+const P3D = { ligado: new URLSearchParams(location.search).has("3d"), modelos: {}, L: 4.2, A: 4.4, B: 1.2 };
+P3D.pronto = c => P3D.ligado && !!P3D.modelos[c];
+function carregarScript(src) {
+  return new Promise((ok, erro) => { const e = document.createElement("script"); e.src = src; e.onload = ok; e.onerror = () => erro(new Error(src)); document.head.appendChild(e); });
+}
+async function carregarP3d() {
+  if (!P3D.ligado) return;
+  try {
+    await carregarScript("https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js");
+    await carregarScript("https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js");
+  } catch (e) { console.error("3d:", e); avisar("Teste 3D: não deu para carregar o three.js"); return; }
+  const p = P3D;
+  p.render = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  p.render.setClearColor(0x000000, 0); p.render.outputEncoding = THREE.sRGBEncoding;
+  p.cena = new THREE.Scene();
+  // luz generosa: o estilo Desenho dos sprites clareia as cores (o glb traz a textura crua)
+  p.cena.add(new THREE.AmbientLight(0xffffff, 0.95));
+  const sol = new THREE.DirectionalLight(0xffffff, 0.75); sol.position.set(-1.2, 2.4, 1.6); p.cena.add(sol);
+  const k = 37 * Math.PI / 180;
+  p.cam = new THREE.OrthographicCamera(-p.L / 2, p.L / 2, p.A - p.B, -p.B, 0.1, 50);
+  p.cam.position.set(0, Math.sin(k) * 10, Math.cos(k) * 10); p.cam.lookAt(0, 0, 0);
+  p.faixas = new THREE.DataTexture(new Uint8Array([150, 150, 150, 255, 205, 205, 205, 255, 255, 255, 255, 255]), 3, 1);
+  p.faixas.minFilter = p.faixas.magFilter = THREE.NearestFilter; p.faixas.needsUpdate = true;
+  const loader = new THREE.GLTFLoader(), abrir = url => new Promise((ok, erro) => loader.load(url, ok, undefined, erro));
+  // onde o .glb não é servido (a página publicada), o mesmo modelo vem como glTF em texto (3d/<classe>.json, com os dados
+  // em base64): baixa, decodifica e remonta o GLB na memória, sem o carregador buscar um endereço data:
+  const abrirJson = async c => {
+    const r = await fetch("3d/" + c + ".json"); if (!r.ok) throw new Error(c + ".json " + r.status);
+    const j = await r.json(), uri = j.buffers[0].uri; delete j.buffers[0].uri;
+    const b64 = atob(uri.slice(uri.indexOf(",") + 1)), bin = new Uint8Array(b64.length);
+    for (let i = 0; i < b64.length; i++) bin[i] = b64.charCodeAt(i);
+    const txt = new TextEncoder().encode(JSON.stringify(j)), jl = (txt.length + 3) & ~3, bl = (bin.length + 3) & ~3;
+    const glb = new ArrayBuffer(28 + jl + bl), dv = new DataView(glb), u8 = new Uint8Array(glb);
+    dv.setUint32(0, 0x46546C67, true); dv.setUint32(4, 2, true); dv.setUint32(8, glb.byteLength, true);
+    dv.setUint32(12, jl, true); dv.setUint32(16, 0x4E4F534A, true); u8.set(txt, 20); u8.fill(0x20, 20 + txt.length, 20 + jl);
+    dv.setUint32(20 + jl, bl, true); dv.setUint32(24 + jl, 0x004E4942, true); u8.set(bin, 28 + jl);
+    return new Promise((ok, erro) => loader.parse(glb, "", ok, erro));
+  };
+  const feitos = await Promise.all(["viking", "arqueiro", "feiticeiro", "ninja", "guerreiro"].map(async c => {
+    let gltf = null, legado = false;
+    try { gltf = await abrir("3d/" + c + ".glb"); }
+    catch (e) { try { gltf = await abrirJson(c); } catch (e2) {} }
+    if (!gltf && c === "feiticeiro") try { gltf = await abrir("mago3d.glb"); legado = true; } catch (e2) {}
+    if (!gltf) return null;
+    try { p.modelos[c] = montarModelo3d(gltf, legado); } catch (e) { console.error("3d " + c + ":", e); (p.erros = p.erros || []).push(c + ": " + e.message); return null; }
+    return c;
+  }));
+  const ok = feitos.filter(Boolean);
+  avisar(ok.length ? `Teste 3D: ${ok.join(", ")} em 3D` : "Teste 3D: nenhum modelo 3D encontrado");
+}
+// a aparência escolhida na vitrine 3D: cor viva (saturação) 1,35, brilho 0,95 e sem contorno (CONTORNO_3D = false)
+const COR_3D = { sat: 1.35, brilho: 0.95 }, CONTORNO_3D = false;
+const GLSL_COR_3D = `
+  { vec3 c = diffuseColor.rgb; float l = dot(c, vec3(0.2126, 0.7152, 0.0722)), r = max(c.r, 1e-4);
+    float pele = step(c.g, c.r) * step(c.b, c.g) * smoothstep(0.25, 0.4, c.g / r) * (1.0 - smoothstep(0.8, 0.9, c.g / r)) * smoothstep(0.08, 0.18, c.b / r);
+    float s = mix(SAT, 1.0 + (SAT - 1.0) * 0.2, pele);
+    diffuseColor.rgb = clamp(mix(vec3(l), c, s) * BRILHO, 0.0, 1.0); }`;
+function toon3d(map, cor, side) {
+  const m = new THREE.MeshToonMaterial({ map, color: cor, gradientMap: P3D.faixas, side });
+  m.onBeforeCompile = sh => {
+    sh.fragmentShader = sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>" +
+      // a cor viva puxa menos os tons de pele (laranja-rosado), senão rosto e mãos ficam alaranjados
+      `${GLSL_COR_3D.replace(/SAT/g, COR_3D.sat.toFixed(2)).replace(/BRILHO/g, COR_3D.brilho.toFixed(2))}`);
+  };
+  return m;
+}
+// o contorno: uma casca por trás, empurrada pela normal (no corpo, depois da pele; nas peças duras, na malha)
+function casca3d(pele) {
+  const t = new THREE.MeshBasicMaterial({ color: 0x1a1014, side: THREE.BackSide });
+  t.onBeforeCompile = sh => {
+    sh.vertexShader = pele ? sh.vertexShader.replace("#include <skinning_vertex>", "#include <skinning_vertex>\n  transformed += normalize(objectNormal) * 0.016;")
+                           : sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  transformed += normalize(normal) * 0.016;");
+  };
+  return t;
+}
+function montarModelo3d(gltf, legado) {
+  const p = P3D, m = { raiz: gltf.scene, legado, frente: legado ? -1 : 1, ang: 0, atual: null, mats: [] };
+  p.cena.add(m.raiz);
+  const malhas = [];
+  m.raiz.traverse(o => { if (o.isMesh) malhas.push(o); });
+  for (const o of malhas) {
+    // cor sem textura (a capa do viking): o Unity grava a cor como se vê na tela, o glTF a lê como linear; e as peças de
+    // pano finas (doubleSided) aparecem dos dois lados
+    const cor = o.material.map ? new THREE.Color(0xffffff) : o.material.color.clone().convertSRGBToLinear();
+    const mat = toon3d(o.material.map, cor, o.material.side);
+    o.material = mat; m.mats.push(mat);
+    o.frustumCulled = false;
+    if (!CONTORNO_3D) continue;
+    const c = o.isSkinnedMesh ? new THREE.SkinnedMesh(o.geometry, casca3d(true)) : new THREE.Mesh(o.geometry, casca3d(false));
+    c.frustumCulled = o.frustumCulled = false;
+    // a do corpo fica ao lado dele, presa ao mesmo esqueleto; a das peças duras vai junto delas
+    if (o.isSkinnedMesh) { c.bind(o.skeleton, o.bindMatrix); c.position.copy(o.position); c.quaternion.copy(o.quaternion); c.scale.copy(o.scale); o.parent.add(c); }
+    else o.add(c);
+  }
+  m.mixer = new THREE.AnimationMixer(m.raiz);
+  m.acoes = Object.fromEntries(gltf.animations.map(a => [a.name, m.mixer.clipAction(a)]));
+  if (legado) { m.cajado = m.raiz.getObjectByName("Cajado"); p.cena.attach(m.cajado); m.mao = m.raiz.getObjectByName("Right_Hand"); }
+  m.raiz.visible = false;
+  return m;
+}
+function desenharP3d(X, Y, z, nomeAnim) {
+  const p = P3D, m = p.modelos[classe], v = viking, agora = performance.now() / 1000;
+  const dt = Math.min(0.1, agora - (p.ultimo || agora)); p.ultimo = agora;
+  for (const [c, o] of Object.entries(p.modelos)) { o.raiz.visible = c === classe; if (o.cajado) o.cajado.visible = c === classe; }
+  // vira para a direção (8 no jogo), girando sem saltos
+  const hx = Math.cos(-v.dir * Math.PI / 4), hy = Math.sin(-v.dir * Math.PI / 4);
+  const alvo = m.frente > 0 ? Math.atan2(hx, -hy) : Math.atan2(-hx, hy);
+  let d = alvo - m.ang; d = Math.atan2(Math.sin(d), Math.cos(d)); m.ang += d * Math.min(1, dt * 16);
+  // a animação de mesmo nome da do sprite, no mesmo tempo; no modelo de teste antigo, só parado e correndo
+  let a = m.acoes[nomeAnim], t = v.t;
+  const info = M.animacoes[nomeAnim], propria = !!a;
+  if (!a) { a = (/correndo|andando|investida|avanco/.test(nomeAnim) && m.acoes.correndo) || m.acoes.parado || Object.values(m.acoes)[0]; t = agora * 1.35; }
+  if (a !== m.atual) { if (m.atual) m.atual.stop(); a.play(); m.atual = a; }
+  const dur = a.getClip().duration, periodo = propria && info ? info.quadros / info.fps : dur;
+  a.time = !propria || !info || info.laco ? Math.min(dur, ((t % periodo) + periodo) % periodo) : Math.min(t, dur);
+  m.mixer.update(0);
+  m.raiz.rotation.y = m.ang; m.raiz.updateMatrixWorld(true);
+  if (m.legado) {
+    const corre = /correndo|andando/.test(nomeAnim), incl = corre ? -0.35 : -0.12;
+    m.mao.getWorldPosition(m.cajado.position);
+    m.cajado.rotation.set(incl, m.ang, 0, "YXZ");
+    m.cajado.position.y = Math.max(m.cajado.position.y, 1.3 * Math.cos(incl) + 0.02);   // o pé do cajado nunca entra no chão
+  }
+  // ferido pisca vermelho; na fúria, o corpo avermelha (o que no sprite é a silhueta por cima)
+  const nf = nivelFuria(agora), fer = v.ferido > 0 ? v.ferido / 0.3 : 0;
+  for (const mat of m.mats) mat.emissive.setRGB(0.55 * fer + 0.25 * nf, 0.06 * nf, 0);
+  const s = PX * z, w = Math.round(p.L * s * dpr), h = Math.round(p.A * s * dpr);
+  if (w !== p.w || h !== p.h) { p.render.setSize(w, h, false); p.w = w; p.h = h; }
+  p.render.render(p.cena, p.cam);
+  cx.drawImage(p.render.domElement, X - p.L / 2 * s, Y - (p.A - p.B) * s, p.L * s, p.A * s);
+}
 function desenharViking() {
   const v = viking, nomeAnim = animVisivel(v.anim), info = M.animacoes[nomeAnim];
   let q = Math.floor(v.t * info.fps);
@@ -7515,12 +7940,12 @@ function desenharViking() {
   const [sx, sy] = tela(v.x - cam.x, v.y - cam.y);
   const X = W / 2 + sx, Y = H / 2 + sy, z = zoom;
   sombra(X, Y, PX * z * 0.36);
-  const im = SPR[nomeAnim][v.dir];
+  const im = SPR[nomeAnim][v.dir], em3d = P3D.pronto(classe);
   cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
   const agora = performance.now() / 1000, nf = nivelFuria(agora);
   desenharFuria(X, Y, z, agora, false);
   desenharVortice(X, Y, z, agora, false);
-  if (nf > 0) {
+  if (nf > 0 && !em3d) {
     // aura: a silhueta em vermelho, borrada e somada por trás do sprite
     const sil = silhueta(im, q, info, "#ff3a1e");
     cx.save(); cx.globalCompositeOperation = "lighter"; cx.globalAlpha = Math.min(1, 0.6 * nf);
@@ -7533,7 +7958,7 @@ function desenharViking() {
   const l = laminaAtual(), atras = l && l[4] === 1;
   desenharPesAtras(X, Y, z, agora);
   desenharBuffsMago(X, Y, z, agora);
-  for (const r of investida.rastro) {
+  for (const r of em3d ? [] : investida.rastro) {
     const [rx, ry] = tela(r.x - cam.x, r.y - cam.y), ri = M.animacoes[r.anim];
     if (!ri || !SPR[r.anim]) continue;
     cx.save(); cx.globalAlpha = 0.7 * r.vida / r.max; cx.globalCompositeOperation = "lighter";
@@ -7542,28 +7967,28 @@ function desenharViking() {
   }
   const escondido = classe === "ninja" && NINJA.esconder.buff > 0;
   if (escondido) { cx.save(); cx.globalAlpha = 0.22 + 0.06 * Math.sin(agora * 6); }
-  cx.drawImage(im, q * info.w, 0, info.w, info.h, X - info.px * z, Y - info.py * z, info.w * z, info.h * z);
-  if (classe === "ninja" && !MN) {                                        // roupa escura do ninja (até o modelo dele chegar)
-    cx.save(); cx.globalAlpha = 0.62 * (escondido ? 0.4 : 1);
-    cx.drawImage(silhueta(im, q, info, "#1c1430"), X - info.px * z, Y - info.py * z, info.w * z, info.h * z);
+  if (em3d) desenharP3d(X, Y, z, nomeAnim);
+  else cx.drawImage(im, q * info.w, 0, info.w, info.h, X - info.px * z, Y - info.py * z, info.w * z, info.h * z);
+  if ((classe === "ninja" && !MN) || (classe === "guerreiro" && !MG)) {   // roupa provisória (até o modelo da classe chegar)
+    cx.save(); cx.globalAlpha = (classe === "ninja" ? 0.62 : 0.35) * (escondido ? 0.4 : 1);
+    cx.drawImage(silhueta(im, q, info, classe === "ninja" ? "#1c1430" : "#5a1a10"), X - info.px * z, Y - info.py * z, info.w * z, info.h * z);
     cx.restore();
   }
   if (escondido) cx.restore();
-  if (nf > 0) {
+  if (nf > 0 && !em3d) {
     // corpo avermelhado pela fúria
     cx.save(); cx.globalAlpha = 0.2 * nf;
     cx.drawImage(silhueta(im, q, info, "#ff4a20"), X - info.px * z, Y - info.py * z, info.w * z, info.h * z);
     cx.restore();
   }
-  if (v.ferido > 0) {
+  if (v.ferido > 0 && !em3d) {
     cx.save(); cx.globalAlpha = 0.65 * v.ferido / 0.3;
     cx.drawImage(silhueta(im, q, info, "#ff2a1a"), X - info.px * z, Y - info.py * z, info.w * z, info.h * z);
     cx.restore();
   }
   placas.push(() => desenharPlacaJogador(X, Y, z));
-  brilhoLamina(im, q, info, X, Y, z, agora);
-  brilhoArco(im, q, info, X, Y, z, agora);
-  brilhoCajado(im, q, info, X, Y, z, agora);
+  if (!em3d) { brilhoLamina(im, q, info, X, Y, z, agora); brilhoArco(im, q, info, X, Y, z, agora); }
+  if (!em3d) brilhoCajado(im, q, info, X, Y, z, agora);
   desenharBuffsMagoFrente(X, Y, z, agora);
   if (l && !atras) desenharEncanto(X, Y, z, l, agora);
   desenharFuria(X, Y, z, agora, true);
@@ -7596,6 +8021,7 @@ function montarPainel() {
   $("#cArqueiro").onclick = () => trocarClasse("arqueiro");
   $("#cFeiticeiro").onclick = () => trocarClasse("feiticeiro");
   $("#cNinja").onclick = () => trocarClasse("ninja");
+  $("#cGuerreiro").onclick = () => trocarClasse("guerreiro");
   montarPainelResto();
 }
 function montarBotoesAnim() {
@@ -7645,6 +8071,7 @@ function montarPainelResto() {
   };
   if (!Som.musicaLigada) { const b = $("#bMusica"); b.setAttribute("aria-pressed", false); b.textContent = "música desligada"; }
   $("#bCorrer").onclick = e => { correrFixo = !correrFixo; e.target.setAttribute("aria-pressed", correrFixo); };
+  $("#bCorrer").hidden = true;                                       // sempre correndo: o botão não serve mais
   // botões de animação: tocam no lobo / esqueleto mais perto, parado no lugar
   for (const [tipo, grade] of [["lobo", "#botoesLobo"], ["esqueleto", "#botoesEsqueleto"], ["goblin", "#botoesGoblin"], ["aranha", "#botoesAranha"]]) {
     const maisPerto = () => criaturas.filter(l => l.tipo === tipo)
@@ -7690,11 +8117,12 @@ function laco(agora) {
 ajustar();
 carregar().then(() => {
   montarCenario(); carregarMapa(); montarCriaturas(); montarPainel(); montarEditor();
+  carregarP3d();
   prepararMana(); carregarProgresso(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarArmazem(); montarTempo(); montarFicha(); montarBolsa(); montarBarraSkills(); montarMinimapa(); montarJanelas();
   $("#carregando").hidden = true;
   window.jogoPronto = true;
   requestAnimationFrame(laco);
-}).catch(e => { $("#carregando p").textContent = "Não deu para carregar os sprites"; $("#carregandoTxt").textContent = e.message; });
+}).catch(e => { console.error("carregar:", e); $("#carregando p").textContent = "Não deu para carregar os sprites"; $("#carregandoTxt").textContent = (e && e.message) || String(e); });
 </script>
 
 </body>

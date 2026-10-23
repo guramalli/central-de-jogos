@@ -1,0 +1,7 @@
+{
+  "pxPorMetro": 84,
+  "animacoes": {
+    "parado": { "quadros": 32, "fps": 8, "laco": true, "acerto": -1, "w": 208, "h": 154, "px": 104, "py": 95, "mascara": false },
+    "atendendo": { "quadros": 24, "fps": 20, "laco": false, "acerto": 8, "w": 208, "h": 154, "px": 104, "py": 95, "mascara": false }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "pxPorMetro": 84,
+  "animacoes": {
+    "parado": { "quadros": 30, "fps": 20, "laco": true, "acerto": -1, "w": 98, "h": 153, "px": 49, "py": 129, "mascara": false },
+    "martelando": { "quadros": 24, "fps": 20, "laco": true, "acerto": 8, "w": 128, "h": 196, "px": 64, "py": 166, "mascara": false, "acertos": [8,20], "faisca": [[53.8,-55.2],[35,-33],[-4.2,-25.3],[-41,-36.6],[-53.8,-60.2],[-35,-82.4],[4.2,-90],[41,-78.8]] },
+    "sucesso": { "quadros": 20, "fps": 20, "laco": false, "acerto": 9, "w": 114, "h": 212, "px": 57, "py": 188, "mascara": false },
+    "falha": { "quadros": 20, "fps": 20, "laco": false, "acerto": -1, "w": 120, "h": 154, "px": 60, "py": 130, "mascara": false }
+  }
+}
