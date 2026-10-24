@@ -834,6 +834,9 @@ const ZOOM_MIN_2D = 0.6;                   // o mais afastado que o zoom vai no 
 // o estilo pintado à mão (piloto): as peças de deco_pintado.json (pasta deco_pintado/) trocam as do mesmo tipo e o chão
 // vem de chao_pintado/ (o que faltar fica o de sempre); ?pintado=1 / ?pintado=0, ou guardado no navegador
 const ESTILO_PINTADO = (() => { const q = new URLSearchParams(location.search); if (q.has("pintado")) return q.get("pintado") !== "0"; try { return localStorage.getItem("estilo") === "pintado"; } catch (e) { return false; } })();
+// o "Mundo de Tinta" (protótipo, sumi-e: nanquim e aguada sobre papel de arroz; ver TINTA): ?tinta=1 / ?tinta=0, ou
+// "estilo" = "tinta" guardado no navegador. Combina com ?pintado=1 (a arte pintada por baixo do filtro)
+const ESTILO_TINTA = (() => { const q = new URLSearchParams(location.search); if (q.has("tinta")) return q.get("tinta") !== "0"; try { return localStorage.getItem("estilo") === "tinta"; } catch (e) { return false; } })();
 
 // ---------------------------------------------------------------- som (sintetizado com Web Audio, sem arquivos)
 // Cada som é montado na hora com osciladores e ruído filtrado. Sons com lugar no mapa ficam mais baixos longe da câmera
@@ -1278,11 +1281,14 @@ async function carregar() {
     (async () => {
       try {
         const d = await (await fetch("deco.json")).json();
-        if (ESTILO_PINTADO) try { for (const [k, vs] of Object.entries(await (await fetch("deco_pintado.json")).json())) d[k] = vs.map(v => ({ ...v, pasta: "deco_pintado/" })); } catch (e) {}
-        await Promise.all(Object.values(d).flat().map(v => new Promise(ok => {
+        // (com o giro de 45° o pintado fica só no chão: as peças pintadas são de frente; ver DECO_DIAG)
+        if (ESTILO_PINTADO && !GIRO_DIAG) try { for (const [k, vs] of Object.entries(await (await fetch("deco_pintado.json")).json())) d[k] = vs.map(v => ({ ...v, pasta: "deco_pintado/" })); } catch (e) {}
+        let dg = null;
+        if (GIRO_DIAG) try { dg = await (await fetch("deco_diag.json")).json(); for (const vs of Object.values(dg)) for (const v of vs) v.pasta = "deco_diag/"; } catch (e) { dg = null; }
+        await Promise.all([...Object.values(d).flat(), ...(dg ? Object.values(dg).flat() : [])].map(v => new Promise(ok => {
           const im = new Image(); im.onerror = ok; im.onload = () => { DECO_IMG[v.arq] = im; Promise.race([im.decode ? im.decode().catch(() => {}) : 0, new Promise(r => setTimeout(r, 1500))]).then(ok); }; im.src = (v.pasta || "deco/") + v.arq;   // (o decode() pode não voltar numa aba escondida: no máximo 1,5 s)
         })));
-        DECO = d;
+        DECO = d; DECO_DIAG = dg;
       } catch (e) {}
       feitos++;
     })(),
@@ -1449,7 +1455,35 @@ function distClareira(x, y) {
   return m;
 }
 
-const tela = (x, y) => window.M3D && M3D.ativo ? M3D.tela(x, y) : [x * PX * zoom, -y * PX * zoom * ACHATA];   // (no mundo 3D, pela câmera livre)
+// ---------- o giro da vista (isométrico na diagonal) ----------
+// ISO_GIRO (graus): 45 = o isométrico clássico na diagonal (como Diablo 2 / Metin2: a câmera olha para o nordeste e as
+// casas aparecem pela quina); 0 = a vista antiga, de sul para norte. ?giro=0 / ?giro=45. Fica 0 no mundo 3D (?mundo3d=1,
+// a câmera livre dele) e no Mundo de Tinta (a máscara de exploração dele ainda não gira). A projeção continua linear: o
+// mapa gira pela vista (u para a direita da tela, v para o fundo) e o chão achata v por ACHATA.
+const ISO_GIRO = (() => { const q = new URLSearchParams(location.search); if (q.has("giro")) return +q.get("giro") || 0; return q.get("mundo3d") === "1" || ESTILO_TINTA ? 0 : 45; })();
+const GIRO = ISO_GIRO * Math.PI / 180, GIRO_C = Math.cos(GIRO), GIRO_S = Math.sin(GIRO);
+const GIRO_PASSO = ((Math.round(ISO_GIRO / 45) % 8) + 8) % 8;            // o giro em direções dos sprites (de 45 em 45°)
+const naVista = (x, y) => [x * GIRO_C - y * GIRO_S, x * GIRO_S + y * GIRO_C];   // do mapa para a vista: [direita, fundo]
+const daVista = (u, v) => [u * GIRO_C + v * GIRO_S, -u * GIRO_S + v * GIRO_C];  // da vista para o mapa
+const profV = (x, y) => x * GIRO_S + y * GIRO_C;                         // a profundidade (maior = mais ao fundo da tela)
+const CAM_ACIMA = daVista(0, 0.4);
+const GIRO_DIAG = ISO_GIRO === 45;                                         // as peças renderizadas na diagonal (deco_diag.json) valem                                         // a câmera mira 0,4 m acima do herói na tela
+// a direção do sprite (e das pontas, lâminas e esferas tiradas dele) para quem olha para a direção d do mapa
+const dirTela = d => GIRO_PASSO && !(window.M3D && M3D.ativo) ? (d + 8 - GIRO_PASSO) % 8 : d;
+// uma direção do mapa na tela (sem o zoom): [x, y] com y para baixo
+const dirNaTela = (dx, dy) => [dx * GIRO_C - dy * GIRO_S, -(dx * GIRO_S + dy * GIRO_C) * ACHATA];
+const tela = (x, y) => window.M3D && M3D.ativo ? M3D.tela(x, y) : [(x * GIRO_C - y * GIRO_S) * PX * zoom, -(x * GIRO_S + y * GIRO_C) * PX * zoom * ACHATA];   // (no mundo 3D, pela câmera livre)
+// o ponto do mapa sob um ponto da tela (px, py em px CSS do canvas)
+function doPonteiro(px, py) {
+  const s = PX * zoom, [dx, dy] = daVista((px - W / 2) / s, -(py - H / 2) / (s * ACHATA));
+  return { x: cam.x + dx, y: cam.y + dy };
+}
+// a caixa do mapa (alinhada a x e y) que a tela mostra, com folga em m: [x0, x1, y0, y1]
+function caixaVista(folgaU = 0, folgaV = folgaU) {
+  const s = PX * zoom, hu = W / 2 / s + folgaU, hv = H / 2 / (s * ACHATA) + folgaV;
+  const ex = Math.abs(GIRO_C) * hu + Math.abs(GIRO_S) * hv, ey = Math.abs(GIRO_S) * hu + Math.abs(GIRO_C) * hv;
+  return [cam.x - ex, cam.x + ex, cam.y - ey, cam.y + ey];
+}
 // os pedaços do chão são pintados numa resolução só (88 px/m) e esticados até o zoom exato: o zoom nunca repinta nada
 // (trocar de resolução no meio do zoom era o que travava: repintar e o navegador tirar e recolocar os pedaços na
 // memória de vídeo); só os pedaços que ainda não existem são pintados, poucos por quadro
@@ -1527,7 +1561,8 @@ function mascarasDe(i, j) {
     const g = c.getContext("2d"), d = g.createImageData(n, n);
     let algum = false;
     for (let k = 0; k < n; k++) for (let a = 0; a < n; a++) {
-      const [r, gg, b, w] = f(x0 + (a - 0.5) * MASC_C, y1 - (k - 0.5) * MASC_C), q = (k * n + a) * 4;
+      const [mx, my] = daVista(x0 + (a - 0.5) * MASC_C, y1 - (k - 0.5) * MASC_C);   // (o pedaço é da vista: x0/y1 em u/v)
+      const [r, gg, b, w] = f(mx, my), q = (k * n + a) * 4;
       d.data[q] = r; d.data[q + 1] = gg; d.data[q + 2] = b; d.data[q + 3] = Math.round(Math.max(0, Math.min(1, w)) * 255);
       if (w > 0.01) algum = true;
     }
@@ -1603,9 +1638,15 @@ function pedaco(i, j, esc) {
   else { c = document.createElement("canvas"); c.width = cw; c.height = ch; }
   const g = c.getContext("2d");
   g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "source-over"; g.globalAlpha = 1; g.clearRect(0, 0, cw, ch);
+  // (o pedaço é um quadrado da vista: x0/y1 são u/v do canto de cima à esquerda; com o giro, P gira o mapa para ela)
   const x0 = i * PEDACO, y1 = (j + 1) * PEDACO;
-  const P = (x, y) => [(x - x0) * esc, (y1 - y) * esc * ACHATA];
-  const caminho = (pts, fechar) => { g.beginPath(); pts.forEach((p, k) => { const [a, b] = P(p[0], p[1]); k ? g.lineTo(a, b) : g.moveTo(a, b); }); if (fechar) g.closePath(); };
+  const PV = (u, v) => [(u - x0) * esc, (y1 - v) * esc * ACHATA];
+  const P = GIRO ? (x, y) => { const [u, v] = naVista(x, y); return PV(u, v); } : PV;
+  const caminhoCom = (f, pts, fechar) => { g.beginPath(); pts.forEach((p, k) => { const [a, b] = f(p[0], p[1]); k ? g.lineTo(a, b) : g.moveTo(a, b); }); if (fechar) g.closePath(); };
+  const caminho = (pts, fechar) => caminhoCom(P, pts, fechar);
+  // a caixa do mapa que o pedaço cobre (para os detalhes do chão)
+  const cantos = [daVista(x0, y1), daVista(x0 + PEDACO, y1), daVista(x0, y1 - PEDACO), daVista(x0 + PEDACO, y1 - PEDACO)];
+  const mx0 = Math.min(...cantos.map(p => p[0])), mx1 = Math.max(...cantos.map(p => p[0])), my0 = Math.min(...cantos.map(p => p[1])), my1 = Math.max(...cantos.map(p => p[1]));
   // praia: a ilha inteira em areia (contorno liso), o gramado em ladrilhos por cima
   caminho(costa, true); g.fillStyle = "#d9c08a"; g.fill();
   g.strokeStyle = "#bfa36d"; g.lineWidth = 0.9 * esc; g.stroke();
@@ -1615,13 +1656,15 @@ function pedaco(i, j, esc) {
   const uMin = Math.floor((x0 + y1 - PEDACO) / d / 2) - 2, uMax = Math.ceil((x0 + PEDACO + y1) / d / 2) + 2;
   const vMin = Math.floor((y1 - PEDACO - x0 - PEDACO) / d / 2) - 2, vMax = Math.ceil((y1 - x0) / d / 2) + 2;
   for (let u = uMin; u <= uMax; u++) for (let v = vMin; v <= vMax; v++) {
-    const x = (u - v) * d, y = (u + v) * d;
-    if (x < x0 - d || x > x0 + PEDACO + d || y < y1 - PEDACO - d || y > y1 + d) continue;
+    // (os losangos são da vista: com o giro de 45° viram ladrilhos quadrados no mapa, que na tela continuam losangos)
+    const tu = (u - v) * d, tv = (u + v) * d;
+    if (tu < x0 - d || tu > x0 + PEDACO + d || tv < y1 - PEDACO - d || tv > y1 + d) continue;
+    const [x, y] = daVista(tu, tv);
     if (borda(x, y) > RAIO - 2.8) continue;                                 // praia lisa
     if (pintado && !praca(x, y)) continue;
     const l = hash(u, v, 7) * 2 - 1;
-    const pts = [[x, y + d], [x + d, y], [x, y - d], [x - d, y]];
-    caminho(pts, true);
+    const pts = [[tu, tv + d], [tu + d, tv], [tu, tv - d], [tu - d, tv]];
+    caminhoCom(PV, pts, true);
     if (TEX.calcamento) { g.fillStyle = padraoChao(g, TEX.calcamento, x0, y1, esc); g.fill(); continue; }   // (as lajes pintadas, emendadas)
     g.fillStyle = corChao(x, y, l); g.fill();
     g.strokeStyle = "rgba(28,18,12,0.12)"; g.lineWidth = 1; g.stroke();
@@ -1654,10 +1697,11 @@ function pedaco(i, j, esc) {
   }
   // detalhes do chão: um ponto por célula de 0,8 m (os vizinhos também, para nada cortar na emenda)
   const C = 0.8;
-  for (let ci = Math.floor((x0 - 1) / C); ci <= Math.ceil((x0 + PEDACO + 1) / C); ci++)
-    for (let cj = Math.floor((y1 - PEDACO - 1) / C); cj <= Math.ceil((y1 + 1) / C); cj++) {
+  for (let ci = Math.floor((mx0 - 1) / C); ci <= Math.ceil((mx1 + 1) / C); ci++)
+    for (let cj = Math.floor((my0 - 1) / C); cj <= Math.ceil((my1 + 1) / C); cj++) {
       const x = (ci + hash(ci, cj, 1)) * C, y = (cj + hash(ci, cj, 2)) * C;
       const [X, Y] = P(x, y);
+      if (X < -esc || X > cw + esc || Y < -esc || Y > ch + esc) continue;      // (fora do pedaço, com a folga de 1 m)
       detalheChao(g, x, y, X, Y, esc, hash(ci, cj, 3), hash(ci, cj, 4));
     }
   pedacos.set(chave, c);
@@ -1757,11 +1801,13 @@ const PEDACOS_POR_QUADRO = 1, FAIXAS = [88 / PX];
 function desenharChao() {
   const s = PX * zoom, larg = W / s, alt = H / (s * ACHATA), faixa = escFaixa(faixaZoom(zoom));
   let novos = pedacos.size ? 0 : -1e9;                                  // no começo pinta tudo de uma vez
-  const i0 = Math.floor((cam.x - larg / 2) / PEDACO) - 1, i1 = Math.floor((cam.x + larg / 2) / PEDACO) + 1;
-  const j0 = Math.floor((cam.y - alt / 2) / PEDACO) - 1, j1 = Math.floor((cam.y + alt / 2) / PEDACO) + 1;
+  // (os pedaços são quadrados da vista, de u/v: com o giro eles continuam retângulos da tela, emendados como antes)
+  const [cu, cv0] = naVista(cam.x, cam.y), meio = (i, j) => daVista((i + 0.5) * PEDACO, (j + 0.5) * PEDACO);
+  const i0 = Math.floor((cu - larg / 2) / PEDACO) - 1, i1 = Math.floor((cu + larg / 2) / PEDACO) + 1;
+  const j0 = Math.floor((cv0 - alt / 2) / PEDACO) - 1, j1 = Math.floor((cv0 + alt / 2) / PEDACO) + 1;
   for (let j = j1; j >= j0; j--) for (let i = i0; i <= i1; i++) {
-    const x0 = i * PEDACO, y1 = (j + 1) * PEDACO;
-    if (borda(x0 + PEDACO / 2, y1 - PEDACO / 2) > RAIO + PEDACO + 3) continue;   // pedaço só de mar
+    const x0 = i * PEDACO, y1 = (j + 1) * PEDACO, [mx, my] = meio(i, j);
+    if (borda(mx, my) > RAIO + PEDACO + 3) continue;                    // pedaço só de mar
     let c = pedacos.get(faixa + ":" + i + "," + j);
     if (!c && novos < PEDACOS_POR_QUADRO) { c = pedaco(i, j, faixa); novos++; }
     if (!c) {                                                           // ainda não pintado nesta faixa: o da faixa mais perto
@@ -1769,20 +1815,19 @@ function desenharChao() {
       for (const f of perto) { c = pedacos.get(f + ":" + i + "," + j); if (c) break; }
       if (!c) {
         // nunca pintado: no meio da ilha, um verde liso por uns quadros (sem travar); na beira do mar, pinta já
-        const dentro = Math.hypot(Math.abs(x0 + PEDACO / 2) + PEDACO / 2, Math.abs(y1 - PEDACO / 2) + PEDACO / 2) < RAIO - 6;
-        if (dentro) { const [sx, sy] = tela(x0 - cam.x, y1 - cam.y); cx.fillStyle = "#5a8236"; cx.fillRect(W / 2 + sx, H / 2 + sy, PEDACO * s + 0.6, PEDACO * s * ACHATA + 0.6); continue; }
+        const dentro = Math.hypot(Math.abs(mx) + PEDACO * 0.71, Math.abs(my) + PEDACO * 0.71) < RAIO - 6;
+        if (dentro) { cx.fillStyle = "#5a8236"; cx.fillRect(W / 2 + (x0 - cu) * s, H / 2 - (y1 - cv0) * s * ACHATA, PEDACO * s + 0.6, PEDACO * s * ACHATA + 0.6); continue; }
         c = pedaco(i, j, faixa); novos++;
       }
     } else { const k = faixa + ":" + i + "," + j; pedacos.delete(k); pedacos.set(k, c); }
-    const [sx, sy] = tela(x0 - cam.x, y1 - cam.y);
-    cx.drawImage(c, W / 2 + sx, H / 2 + sy, PEDACO * s + 0.6, PEDACO * s * ACHATA + 0.6);
+    cx.drawImage(c, W / 2 + (x0 - cu) * s, H / 2 - (y1 - cv0) * s * ACHATA, PEDACO * s + 0.6, PEDACO * s * ACHATA + 0.6);
   }
   // a cada 4 quadros sem pedaço novo: pinta um vizinho de fora da tela (andando, ele já está pronto quando aparecer)
   if (novos === 0 && ++quadrosLivres % 4 === 0) {
     for (let j = j1 + 1; j >= j0 - 1; j--) for (let i = i0 - 1; i <= i1 + 1; i++) {
       if (i > i0 && i < i1 && j > j0 && j < j1) continue;
-      const x0 = i * PEDACO, y1 = (j + 1) * PEDACO;
-      if (borda(x0 + PEDACO / 2, y1 - PEDACO / 2) > RAIO + PEDACO + 3 || pedacos.has(faixa + ":" + i + "," + j)) continue;
+      const [mx, my] = meio(i, j);
+      if (borda(mx, my) > RAIO + PEDACO + 3 || pedacos.has(faixa + ":" + i + "," + j)) continue;
       pedaco(i, j, faixa); return;
     }
   }
@@ -1793,10 +1838,10 @@ function desenharMar(t) {
   const s = PX * zoom;
   cx.fillStyle = "#215f78"; cx.fillRect(0, 0, W, H);
   // marolas: marquinhas numa grade fixa no mundo, que aparecem e somem
-  const larg = W / s / 2 + 3, alt = H / (s * ACHATA) / 2 + 3;
+  const [mx0, mx1, my0, my1] = caixaVista(3);
   cx.strokeStyle = "rgba(190, 230, 240, 0.35)"; cx.lineWidth = Math.max(1, s * 0.02); cx.lineCap = "round";
-  for (let i = Math.floor((cam.x - larg) / 2.4); i <= Math.ceil((cam.x + larg) / 2.4); i++)
-    for (let j = Math.floor((cam.y - alt) / 2.4); j <= Math.ceil((cam.y + alt) / 2.4); j++) {
+  for (let i = Math.floor(mx0 / 2.4); i <= Math.ceil(mx1 / 2.4); i++)
+    for (let j = Math.floor(my0 / 2.4); j <= Math.ceil(my1 / 2.4); j++) {
       const x = (i + hash(i, j, 21)) * 2.4, y = (j + hash(i, j, 22)) * 2.4;
       if (borda(x, y) < RAIO + 1.2) continue;
       const k = Math.sin(t * 1.3 + hash(i, j, 23) * 9);
@@ -1966,9 +2011,11 @@ function desenharLuzDoDia(t) {
     if (o.tipo === "fogueira" || o.tipo === "braseiro") { const [X, Y] = noMundo(o.x, o.y, 0.6); furo(X, Y, (o.var === 1 ? 6 : 4.2) * s * (1 + 0.04 * Math.sin(t * 11 + o.x)), 0.95); }
     else if (o.tipo === "tocha") { const [X, Y] = noMundo(o.x, o.y, 1.5); furo(X, Y, 3 * s, 0.85); }
     else if (ESTRUT[o.tipo] && (ESTRUT[o.tipo].luzes || ESTRUT[o.tipo].forja)) {
-      const v = varDeco(o); if (!v) continue;
-      const [X, Y] = noMundo(o.x, o.y), k = s / v.ppm * escDeco(o), x0 = X - v.px * k, y0 = Y - v.py * k, w = v.w * k, hh = v.h * k, c = ESTRUT[o.tipo];
-      for (const [fx, fy] of [...((c.luzes && c.luzes[(o.var || 0) % c.luzes.length]) || []), ...(c.forja ? [c.forja] : [])]) furo(x0 + fx * w, y0 + fy * hh, 1.6 * s, 0.8);
+      const v0 = varDeco(o); if (!v0) continue;
+      const v = visDeco(o, v0), dg = v !== v0;                            // (a peça na diagonal traz as janelas dela)
+      const [X, Y] = noMundo(o.x, o.y), k = kDeco(o, v0, v, s), x0 = X - v.px * k, y0 = Y - v.py * k, w = v.w * k, hh = v.h * k, c = ESTRUT[o.tipo];
+      const luzes = dg ? [...(v.luzes || []), ...(v.forja ? [v.forja] : [])] : [...((c.luzes && c.luzes[(o.var || 0) % c.luzes.length]) || []), ...(c.forja ? [c.forja] : [])];
+      for (const [fx, fy] of luzes) furo(x0 + fx * w, y0 + fy * hh, 1.6 * s, 0.8);
     }
   }
   for (const m of magias) { const [X, Y] = noMundo(m.x, m.y, m.z); furo(X, Y, 1.8 * s, 0.8); }
@@ -2121,18 +2168,18 @@ function temColisao(o) { return o.r > 0 || o.ret || (ESTRUT[o.tipo] && !PLANO.ha
 // efeitos das casas e da ferraria: fumaça subindo da chaminé, janelas acesas tremulando, o fogo da forja pulsando
 function efeitosEstrutura(o, v, x0, y0, w, h, t) {
   const c = ESTRUT[o.tipo]; if (!c) return;
-  const vi = o.var || 0, s = PX * zoom;
-  const fum = c.fumaca && c.fumaca[vi % c.fumaca.length];
+  const vi = o.var || 0, s = PX * zoom, dg = v.modelo !== undefined;         // (dg: a peça na diagonal traz os pontos dela)
+  const fum = dg ? v.fumaca : c.fumaca && c.fumaca[vi % c.fumaca.length];
   if (fum) for (let k = 0; k < 4; k++) {
     const u = ((t * 0.28 + k / 4 + o.x * 0.13) % 1 + 1) % 1, fx = x0 + fum[0] * w + Math.sin(u * 5 + k + t * 0.7) * s * 0.18 + u * s * 0.5, fy = y0 + fum[1] * h - u * s * 2.2;
     cx.fillStyle = `rgba(150, 146, 140, ${0.32 * (1 - u) * Math.min(1, u * 5)})`; cx.beginPath(); cx.arc(fx, fy, s * (0.16 + u * 0.38), 0, 7); cx.fill();
   }
-  const luzes = (c.luzes && c.luzes[vi % c.luzes.length]) || [];
-  const fogo = c.forja ? [c.forja] : [];
+  const luzes = (dg ? v.luzes : c.luzes && c.luzes[vi % c.luzes.length]) || [];
+  const fogo = dg ? (v.forja ? [v.forja] : []) : c.forja ? [c.forja] : [];
   if (!luzes.length && !fogo.length) return;
   cx.save(); cx.globalCompositeOperation = "lighter";
   for (const [fx0, fy0] of [...luzes, ...fogo]) {
-    const forte = fogo.length && fx0 === c.forja[0], pisca = 0.75 + 0.25 * Math.sin(t * (forte ? 9 : 3) + fx0 * 17) * Math.sin(t * (forte ? 5.3 : 1.7) + o.x);
+    const forte = fogo.length && fx0 === fogo[0][0], pisca = 0.75 + 0.25 * Math.sin(t * (forte ? 9 : 3) + fx0 * 17) * Math.sin(t * (forte ? 5.3 : 1.7) + o.x);
     const X = x0 + fx0 * w, Y = y0 + fy0 * h, R = s * (forte ? 1.6 : 0.7);
     const g = cx.createRadialGradient(X, Y, 0, X, Y, R);
     g.addColorStop(0, `rgba(255, ${forte ? 150 : 190}, 70, ${(forte ? 0.4 : 0.28) * pisca})`); g.addColorStop(1, "rgba(255, 140, 50, 0)");
@@ -2268,14 +2315,16 @@ function desenharVegetacao(t) {
   const est = estacaoAtual(); if (est === 3) return;                          // inverno: o capim some debaixo da neve
   const s = PX * zoom;
   if (s < 38 || !TEX.grama) return;                                       // longe demais: nem se vê
-  const meiaL = W / 2 / s + 1, meiaA = H / 2 / (s * ACHATA) + 1;
-  const i0 = Math.floor((cam.x - meiaL) / VEG_C), i1 = Math.ceil((cam.x + meiaL) / VEG_C);
-  const j0 = Math.floor((cam.y - meiaA) / VEG_C), j1 = Math.ceil((cam.y + meiaA + 0.5) / VEG_C);
+  const [mx0, mx1, my0, my1] = caixaVista(1, 1.5);                       // (a caixa do mapa que a tela mostra, com o giro)
+  const i0 = Math.floor(mx0 / VEG_C), i1 = Math.ceil(mx1 / VEG_C);
+  const j0 = Math.floor(my0 / VEG_C), j1 = Math.ceil(my1 / VEG_C);
   const fundo = new Path2D(), claro = new Path2D(), fundoMata = new Path2D(), claroMata = new Path2D(), caules = new Path2D();
   const flores = COR_FLOR.map(() => new Path2D()), miolos = new Path2D();
   for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
     const v = vegDa(i, j); if (!v) continue;
-    const [X, Y] = noMundo(v.x, v.y), w = vento(v.x, v.y, t), alto = v.alto * s * ALTURA;
+    const [X, Y] = noMundo(v.x, v.y);
+    if (X < -s || X > W + s || Y < -s || Y > H + s) continue;                // (com o giro a caixa do mapa passa da tela)
+    const w = vento(v.x, v.y, t), alto = v.alto * s * ALTURA;
     if (v.tipo === "tufo") {
       const a = v.mata ? fundoMata : fundo, b = v.mata ? claroMata : claro;
       for (let k = 0; k < v.n; k++) {
@@ -2312,8 +2361,8 @@ function desenharVegetacao(t) {
 // fica translúcido (vai e volta suave) para ninguém sumir atrás dele.
 // caixa do objeto na tela [x0, y0, x1, y1] (de X, Y = o pé dele); null = baixo demais para esconder alguém
 function caixaObjeto(o, X, Y, s) {
-  const v = varDeco(o);
-  if (v) { const k = s / v.ppm * escDeco(o); return [X - v.px * k, Y - v.py * k, X + (v.w - v.px) * k, Y + (v.h - v.py) * k]; }
+  const v0 = varDeco(o);
+  if (v0) { const v = visDeco(o, v0), k = kDeco(o, v0, v, s); return [X - v.px * k, Y - v.py * k, X + (v.w - v.px) * k, Y + (v.h - v.py) * k]; }
   switch (o.tipo) {
     case "pinheiro": { const e = s * o.esc; return [X - e * 0.66, Y - e * 2.36, X + e * 0.66, Y]; }
     case "arvore": { const e = s * o.esc; return [X - e * 0.82, Y - e * 2.17, X + e * 0.82, Y]; }
@@ -2332,15 +2381,22 @@ function caixaObjeto(o, X, Y, s) {
 // quem pode ficar escondido, cada um com a caixa do corpo na tela e o y do pé no mapa
 function quemPodeSumir() {
   const s = PX * zoom, l = [];
-  { const [X, Y] = noMundo(viking.x, viking.y); l.push({ y: viking.y, c: [X - s * 0.32, Y - s * 1.45, X + s * 0.32, Y] }); }
+  { const [X, Y] = noMundo(viking.x, viking.y); l.push({ y: profV(viking.x, viking.y), c: [X - s * 0.32, Y - s * 1.45, X + s * 0.32, Y] }); }
   for (const c of criaturas) {
     if (c.morto) continue;
     const [X, Y] = noMundo(c.x, c.y), m = s * (c.cfg.anel || 0.5) * 0.8;
-    l.push({ y: c.y, c: [X - m, Y - c.cfg.barra * zoom * 0.85, X + m, Y] });
+    l.push({ y: profV(c.x, c.y), c: [X - m, Y - c.cfg.barra * zoom * 0.85, X + m, Y] });
   }
   return l;
 }
-// o objeto (com o pé em ySul no mapa e a caixa cx0..y1 na tela) cobre alguém que está atrás dele?
+// a profundidade de um objeto na ordem de desenho (profV): a do pé; nas construções com o giro (o retângulo vai do pé
+// para o fundo), o meio entre os cantos de trás das duas faces que aparecem (a da frente e a do lado): quem passa na
+// frente de qualquer uma das duas fica na frente, quem vai para trás do telhado fica atrás
+function profObj(o) {
+  if (!GIRO || !o.ret) return profV(o.x, o.y);
+  return (profV(GIRO_S > 0 ? o.x1 : o.x0, o.y0) + profV(GIRO_S > 0 ? o.x0 : o.x1, o.y1)) / 2;
+}
+// o objeto (com o pé em ySul, a profundidade dele, e a caixa cx0..y1 na tela) cobre alguém que está atrás dele?
 function cobreAlguem(caixa, ySul, quem) {
   for (const p of quem) {
     if (ySul >= p.y - 0.05) continue;                                   // ele está na frente do objeto, não atrás
@@ -2372,7 +2428,7 @@ function poligono(g, pts) { g.beginPath(); pts.forEach((p, k) => k ? g.lineTo(p[
 // Árvores, pinheiros, arbustos, pedras, troncos e tocos vêm das folhas pintadas (Tools/viking/deco): cada objeto usa uma
 // variação (a escolhida no editor, ou sorteada pelo lugar; as pedras pelo tamanho), às vezes espelhada. Árvores e arbustos
 // balançam com o mesmo vento do capim, envergando a partir do pé.
-let DECO = null;
+let DECO = null, DECO_DIAG = null;
 const DECO_IMG = {};
 const ESC_REF = { arvore: 1.12, pinheiro: 1.12, arbusto: 0.9, pedra: 1, tronco: 1, toco: 1 };
 function listaDeco(o) {
@@ -2394,6 +2450,23 @@ function varDeco(o) {
   const v = l[indiceDeco(o, l)];
   return DECO_IMG[v.arq] ? v : null;
 }
+// a peça vista na diagonal (giro de 45°, deco_diag.json): a do mesmo modelo que o mundo 3D usaria (M3D.DECO_3D) e,
+// nas que giram à toa lá (natureza), uma das voltas renderizadas; a colisão, a base e o retângulo continuam os da
+// variação de sempre (v). Sem a peça diagonal, fica a de sempre
+function visDeco(o, v) {
+  const l = DECO_DIAG && v && DECO_DIAG[o.tipo];
+  if (!l) return v;
+  if (o._vd && o._vdDe === v) return o._vd;
+  let mods = window.M3D && M3D.DECO_3D && M3D.DECO_3D[o.tipo], c = null;
+  if (typeof mods === "function") mods = mods(o);
+  for (const m of mods || []) { const e = l.filter(x => x.modelo === m && DECO_IMG[x.arq]); if (e.length) { c = e; break; } }
+  if (!c) c = l.filter(x => DECO_IMG[x.arq]);
+  const d = c.length ? c[Math.floor(hash(Math.round(o.x * 10), Math.round(o.y * 10), 57) * c.length) % c.length] : v;
+  o._vd = d; o._vdDe = v;
+  return d;
+}
+// px da tela por px do desenho: a peça diagonal foi renderizada com a base porBase (as medidas pela largura do desenho)
+function kDeco(o, v0, v, s) { return s / v.ppm * escDeco(o) * (v.porBase ? v0.base / v.porBase : 1); }
 // o tamanho em relação ao desenho original (o "Tamanho" do editor muda esc)
 function escDeco(o) {
   if (o.tipo === "pedra" && o.var === undefined) return (o.esc || 1) / ((o.esc || 1) < 0.75 ? 0.62 : (o.esc || 1) < 1.05 ? 0.9 : 1.17);
@@ -2426,11 +2499,12 @@ function desenharChama(o, v, X, Y, s, t, k) {
   const q = Math.floor(t * 11 + o.x * 3.7 + o.y * 1.3) % f.quadros, h = s * alt * (0.96 + 0.08 * Math.sin(t * 9 + o.x)), kk = h / f.h, w = f.w * kk;
   cx.drawImage(im, q * f.w, 0, f.w, f.h, X - f.px * kk, fy - f.py * kk, w, h);
 }
-function desenharDecoSprite(o, v, X, Y, s, t) {
-  const im = o.caverna ? imagemEscura(v.arq) : imagemEstacao(v.arq, o.tipo, o.neve ? 3 : 0), k = s / v.ppm * escDeco(o), w = v.w * k, h = v.h * k;
-  sombra(X, Y, Math.max(0.3, v.base * 0.42) * s * escDeco(o));
+function desenharDecoSprite(o, v0, X, Y, s, t) {
+  const v = visDeco(o, v0), diag = v !== v0;                              // (diag: a peça renderizada na diagonal, já com a sombra dela)
+  const im = o.caverna ? imagemEscura(v.arq) : imagemEstacao(v.arq, o.tipo, o.neve ? 3 : 0), k = kDeco(o, v0, v, s), w = v.w * k, h = v.h * k;
+  if (!diag || !v.sombra) sombra(X, Y, Math.max(0.3, v0.base * 0.42) * s * escDeco(o));
   const balanca = o.tipo === "arvore" || o.tipo === "pinheiro" ? 0.05 : o.tipo === "arbusto" ? 0.09 : 0;
-  const espelho = o.esp !== undefined ? o.esp : !SEM_ESPELHO.has(o.tipo) && hash(Math.round(o.x * 10), Math.round(o.y * 10), 32) < 0.5;
+  const espelho = !diag && (o.esp !== undefined ? o.esp : !SEM_ESPELHO.has(o.tipo) && hash(Math.round(o.x * 10), Math.round(o.y * 10), 32) < 0.5);   // (na diagonal, espelhar trocaria o lado)
   cx.save();
   if (balanca) { const sh = vento(o.x, o.y, t) * balanca; cx.transform(1, 0, -sh, 1, sh * Y, 0); }   // enverga a partir do pé
   if (o.tipo === "boneco") { cx.translate(X, Y); cx.rotate((o.inc || 0) * 0.017); cx.translate(-X, -Y); }   // o boneco tomba e volta quando apanha
@@ -2848,8 +2922,20 @@ function desenharMobilia(o, X, Y, s, lw, t) {
 
 function sombra(X, Y, r) {
   if (window.M3D && M3D.ativo) return;                    // no mundo 3D a sombra é a do sol
+  if (ESTILO_TINTA) { sombraTinta(X, Y, r); return; }     // no Mundo de Tinta, uma mancha de nanquim
   cx.fillStyle = "rgba(20, 14, 10, 0.32)";
   cx.beginPath(); cx.ellipse(X, Y, r, r * ACHATA * 0.55, 0, 0, 7); cx.fill();
+}
+// a sombra em tinta: uma mancha de nanquim aguado de borda irregular (gotas em volta da elipse), que muda com o traço
+function sombraTinta(X, Y, r) {
+  const b = P3D.boil || 0, ry = r * ACHATA * 0.55;
+  cx.fillStyle = "rgba(14, 12, 11, 0.55)";
+  cx.beginPath(); cx.ellipse(X, Y, r * 0.92, ry * 0.9, 0, 0, 7); cx.fill();
+  cx.fillStyle = "rgba(14, 12, 11, 0.32)";
+  for (let k = 0; k < 6; k++) {
+    const a = k * 1.047 + b * 0.7 + ((k * 37 + b * 11) % 7) * 0.12, f = 0.45 + 0.1 * ((k * 5 + b * 3) % 6);
+    cx.beginPath(); cx.ellipse(X + Math.cos(a) * r * 0.78, Y + Math.sin(a) * ry * 0.8, r * 0.36 * f, ry * 0.5 * f, 0, 0, 7); cx.fill();
+  }
 }
 
 // ---------------------------------------------------------------- o viking
@@ -2941,7 +3027,7 @@ function usarAvancoAgil() {
   let dx, dy;
   const kx = (teclas.has("d") || teclas.has("arrowright") ? 1 : 0) - (teclas.has("a") || teclas.has("arrowleft") ? 1 : 0), ky = (teclas.has("w") || teclas.has("arrowup") ? 1 : 0) - (teclas.has("s") || teclas.has("arrowdown") ? 1 : 0);
   if ((kx || ky) && window.M3D && M3D.ativo) [dx, dy] = M3D.relativo(kx, ky);
-  else if (kx || ky) { dx = kx; dy = ky; }
+  else if (kx || ky) [dx, dy] = daVista(kx, ky);
   if (kx || ky) a.alvo = null;                                             // segurando uma direção: foge para lá
   else if (o) { dx = o.x - v.x; dy = o.y - v.y; a.alvo = o; }
   else { const ang = -v.dir * Math.PI / 4; dx = Math.cos(ang); dy = Math.sin(ang); a.alvo = null; }
@@ -3973,6 +4059,13 @@ function desenharMinimapa(agora) {
   if (dun && !miniCavernas[dun.id]) miniCavernas[dun.id] = baseCaverna(dun);
   const b = cav ? miniCavernas[dun.id] : miniBase, c = $("#miniCanvas"), g = c.getContext("2d"), W0 = c.width, R = MINI_RAIOS[miniRaio];
   const esc = W0 / 2 / R, ponto = (x, y) => [W0 / 2 + (x - viking.x) * esc, W0 / 2 - (y - viking.y) * esc];
+  // com o giro da vista o minimapa gira junto (o cima dele é o cima da tela, para onde o W anda) e o N vai para a borda,
+  // apontando o norte do mapa (como no mundo 3D, em atualizarMinimapa)
+  if (GIRO && !(window.M3D && M3D.ativo) && c.dataset.giro !== String(ISO_GIRO)) {
+    c.dataset.giro = ISO_GIRO; c.style.transform = `rotate(${-GIRO}rad)`;
+    const n = document.querySelector("#minimapa .norte");
+    if (n) { n.style.left = (86 + 84 * Math.sin(-GIRO)) + "px"; n.style.top = (86 - 84 * Math.cos(-GIRO)) + "px"; n.style.transform = "translate(-50%, -50%)"; }
+  }
   g.save();
   g.fillStyle = cav ? "#161210" : "#26546e"; g.fillRect(0, 0, W0, W0);
   g.imageSmoothingEnabled = true;
@@ -6286,7 +6379,7 @@ function desenharPesAtras(X, Y, z, t) {
     const ri = M.animacoes[r.anim]; if (!ri || !SPR[r.anim]) continue;
     const [rx, ry] = tela(r.x - cam.x, r.y - cam.y), k = r.vida / r.max;
     cx.save(); cx.globalAlpha = 0.62 * k; cx.globalCompositeOperation = "lighter";
-    cx.drawImage(silhueta(SPR[r.anim][r.dir], r.q, ri, "#3fd884"), W / 2 + rx - ri.px * z, H / 2 + ry - ri.py * z, ri.w * z, ri.h * z);
+    cx.drawImage(silhueta(SPR[r.anim][dirTela(r.dir)], r.q, ri, "#3fd884"), W / 2 + rx - ri.px * z, H / 2 + ry - ri.py * z, ri.w * z, ri.h * z);
     cx.restore();
   }
   if (pes.buff > 0) {
@@ -6362,7 +6455,7 @@ function cargaCerteiro() {
 }
 // a ponta da flecha no quadro atual (px do sprite a partir dos pés → mundo, na altura dela)
 function pontaNoMundo() {
-  const pts = M.pontas && M.pontas[viking.anim], q = quadroAtual(), p = pts && pts[viking.dir] && pts[viking.dir][q];
+  const pts = M.pontas && M.pontas[viking.anim], q = quadroAtual(), p = pts && pts[dirTela(viking.dir)] && pts[dirTela(viking.dir)][q];
   if (!Array.isArray(p)) return null;
   return { tela: p };
 }
@@ -6380,7 +6473,7 @@ function desenharSkillsArq(t) {
   // brilho na ponta da flecha enquanto carrega
   const v = viking;
   if (v.anim === "certeiro" && !v.acertou) {
-    const pts = M.pontas && M.pontas.certeiro, q = quadroAtual(), p = pts && pts[v.dir] && pts[v.dir][q];
+    const pts = M.pontas && M.pontas.certeiro, q = quadroAtual(), p = pts && pts[dirTela(v.dir)] && pts[dirTela(v.dir)][q];
     if (Array.isArray(p)) {
       const [sx, sy] = tela(v.x - cam.x, v.y - cam.y), X = W / 2 + sx + p[0] * z, Y = H / 2 + sy + p[1] * z, k = cargaCerteiro();
       const pul = 1 + 0.12 * Math.sin(t * 22), r = (6 + 16 * k) * z * pul;
@@ -6458,7 +6551,7 @@ function limparMagias() {
 // a esfera do cajado no quadro atual, em px do sprite a partir dos pés (null fora do feiticeiro)
 function esferaAtual() {
   if (classe !== "feiticeiro" || (prog && !prog.arma)) return null;           // sem o cajado, sem a esfera
-  const e = M.animacoes[viking.anim].esfera, p = e && e[viking.dir] && e[viking.dir][quadroAtual()];
+  const e = M.animacoes[viking.anim].esfera, p = e && e[dirTela(viking.dir)] && e[dirTela(viking.dir)][quadroAtual()];
   return Array.isArray(p) ? p : null;
 }
 // o mesmo ponto no mapa: o deslocamento na tela vira lado (x) e altura, na linha dos pés
@@ -6506,7 +6599,7 @@ function brilhoCajado(im, q, info, X, Y, z, t) {
   const br = brilhoRef(), f = forcaMagia(), h = br ? br.hue : corEsfera(t), pulso = (0.7 + 0.3 * Math.sin(t * 5.5)) * (1 + 0.8 * f) * (br ? 1.35 : 1);
   const x = X - info.px * z, y = Y - info.py * z, w = info.w * z, hh = info.h * z;
   cx.save(); cx.globalCompositeOperation = "lighter";
-  const p = info.esfera && info.esfera[viking.dir] && info.esfera[viking.dir][q];
+  const p = info.esfera && info.esfera[dirTela(viking.dir)] && info.esfera[dirTela(viking.dir)][q];
   if (Array.isArray(p)) {
     const gx = X + p[0] * z, gy = Y + p[1] * z, r = (12 + 5 * Math.sin(t * 5.5) + 16 * f) * z;
     const g = cx.createRadialGradient(gx, gy, 0, gx, gy, r);
@@ -7086,7 +7179,7 @@ function desenharCriatura(l) {
   cx.save();
   cx.globalAlpha = l.morto && !cfg.levanta ? Math.min(1, l.renascer / 1.5) : 1;   // o lobo some aos poucos antes de voltar à toca
   sombra(X, Y, PX * zoom * cfg.sombra);
-  const im = cfg.spr[l.anim] && cfg.spr[l.anim][l.dir];
+  const im = cfg.spr[l.anim] && cfg.spr[l.anim][dirTela(l.dir)];
   cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
   if (desenharInst3d(l, X, Y, z)) {}                                         // em 3D (o golpe pisca vermelho no modelo)
   else if (!im) { cx.fillStyle = "rgba(40, 30, 24, 0.6)"; cx.beginPath(); cx.ellipse(X, Y - 0.5 * PX * z, 0.3 * PX * z, 0.5 * PX * z, 0, 0, 7); cx.fill(); }   // (só glb, ainda carregando)
@@ -7158,13 +7251,13 @@ cv.addEventListener("contextmenu", e => e.preventDefault());
 cv.addEventListener("pointermove", e => {
   const r = cv.getBoundingClientRect();
   if (window.M3D && M3D.ativo) { if (mira) { const p = M3D.pegar(e.clientX - r.left, e.clientY - r.top); ponteiro = { x: p.x, y: p.y }; } return; }   // (o chão sob o raio da câmera)
-  ponteiro = { x: cam.x + (e.clientX - r.left - W / 2) / (PX * zoom), y: cam.y - (e.clientY - r.top - H / 2) / (PX * zoom * ACHATA) };
+  ponteiro = doPonteiro(e.clientX - r.left, e.clientY - r.top);
 });
 cv.addEventListener("pointerdown", e => {
   if (!M || viking.caido || editor.ativo) return;
   if (mira) {                                                       // mirando uma skill de área: o clique escolhe o lugar
     const r = cv.getBoundingClientRect();
-    ponteiro = { x: cam.x + (e.clientX - r.left - W / 2) / (PX * zoom), y: cam.y - (e.clientY - r.top - H / 2) / (PX * zoom * ACHATA) };
+    ponteiro = doPonteiro(e.clientX - r.left, e.clientY - r.top);
     if (window.M3D && M3D.ativo) { const p = M3D.pegar(e.clientX - r.left, e.clientY - r.top); ponteiro = { x: p.x, y: p.y }; }
     if (e.button === 2) { mira = null; return; }
     lancarMira();
@@ -7179,11 +7272,13 @@ cv.addEventListener("pointerdown", e => {
   // no mundo 3D: o raio da câmera (bonecos e chão com relevo)
   const pk = window.M3D && M3D.ativo ? (e.button === 1 ? null : M3D.pegar(e.clientX - r.left, e.clientY - r.top)) : undefined;
   if (pk === null) return;
-  const x = pk ? pk.x : cam.x + (e.clientX - r.left - W / 2) / (PX * zoom), y = pk ? pk.y : cam.y - (e.clientY - r.top - H / 2) / (PX * zoom * ACHATA);
+  const pm = pk || doPonteiro(e.clientX - r.left, e.clientY - r.top), x = pm.x, y = pm.y;
   const criatura = pk ? pk.criatura : criaturaNoClique(e.clientX - r.left, e.clientY - r.top);
-  const npc = !criatura && (pk ? pk.npc : objetos.find(o => o.npc && Math.abs(o.x - x) < 0.6 && y - o.y > -0.4 && y - o.y < 2.4));
-  if (npc) { viking.alvo = { x: npc.x - 0.3, y: npc.y - 1.1, npc }; viking.rota = null; viking.alvo.correr = Math.hypot(viking.alvo.x - viking.x, viking.alvo.y - viking.y) > 4; return; }
-  const boneco = !criatura && (pk ? pk.boneco : objetos.find(o => o.tipo === "boneco" && Math.hypot(o.x - x, o.y - (y - 0.6)) < 0.6));
+  // (o clique no corpo do NPC e do boneco: a caixa na tela, medida na vista; o lugar de falar fica na frente dele na tela)
+  const naV = o => naVista(x - o.x, y - o.y);
+  const npc = !criatura && (pk ? pk.npc : objetos.find(o => { if (!o.npc) return false; const [du, dv] = naV(o); return Math.abs(du) < 0.6 && dv > -0.4 && dv < 2.4; }));
+  if (npc) { const [fx, fy] = daVista(-0.3, -1.1); viking.alvo = { x: npc.x + fx, y: npc.y + fy, npc }; viking.rota = null; viking.alvo.correr = Math.hypot(viking.alvo.x - viking.x, viking.alvo.y - viking.y) > 4; return; }
+  const boneco = !criatura && (pk ? pk.boneco : objetos.find(o => { if (o.tipo !== "boneco") return false; const [du, dv] = naV(o); return Math.hypot(du, dv - 0.6) < 0.6; }));
   viking.alvo = criatura ? { x: criatura.x, y: criatura.y, criatura } : boneco ? { x: boneco.x, y: boneco.y, boneco } : { x, y };
   viking.rota = null;
   if (criatura) selecao = criatura;
@@ -7334,7 +7429,7 @@ function fecharMapaOriginal() {
 
 function editorAbrir(sim) {
   editor.ativo = sim; editor.sel = null; editor.pondo = null; editor.arrasto = null; editor.teclas.clear();
-  editor.foco = { x: cam.x, y: cam.y - 0.4 };
+  editor.foco = { x: cam.x - CAM_ACIMA[0], y: cam.y - CAM_ACIMA[1] };
   $("#editor").hidden = !sim; $("#bEditor").setAttribute("aria-pressed", sim);
   if (sim) $("#ficha").hidden = true;
   teclas.clear(); viking.alvo = null; viking.rota = null;
@@ -7350,13 +7445,13 @@ function decoracaoNoPonto(px, py) {
     const [X, Y] = noMundo(o.x, o.y), c = circuloDe(o);
     const cx0 = caixaObjeto(o, X, Y, s) || [X - Math.max(0.4, c.r) * s, Y - s * 0.9, X + Math.max(0.4, c.r) * s, Y];
     if (px < cx0[0] || px > cx0[2] || py < cx0[1] || py > cx0[3] + c.r * s * ACHATA) continue;
-    if (!melhor || o.y < melhor.y) melhor = o;                       // a de y menor é desenhada por cima
+    if (!melhor || profV(o.x, o.y) < profV(melhor.x, melhor.y)) melhor = o;   // a mais na frente é desenhada por cima
   }
   return melhor;
 }
 function pontoNoMapa(e) {
   const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
-  return { px, py, x: cam.x + (px - W / 2) / (PX * zoom), y: cam.y - (py - H / 2) / (PX * zoom * ACHATA) };
+  return { px, py, ...doPonteiro(px, py) };
 }
 function editorEscolher(o) { editor.sel = o; editorPainel(); }
 function editorPainel() {
@@ -7436,7 +7531,7 @@ function montarEditor() {
     if (!editor.ativo) return;
     const p = pontoNoMapa(e); editor.mouse = p;
     const a = editor.arrasto; if (!a) return;
-    if (a.tipo === "camera") { editor.foco.x = a.fx - (p.px - a.px) / (PX * zoom); editor.foco.y = a.fy + (p.py - a.py) / (PX * zoom * ACHATA); }
+    if (a.tipo === "camera") { const [dx, dy] = daVista((p.px - a.px) / (PX * zoom), -(p.py - a.py) / (PX * zoom * ACHATA)); editor.foco.x = a.fx - dx; editor.foco.y = a.fy - dy; }
     else if (a.tipo === "mover") { a.o.x = p.x + a.dx; a.o.y = p.y + a.dy; a.mudou = true; editorPainel(); }
     else if (a.tipo === "raio") {
       const c = COLISAO[a.o.tipo], e2 = escColisao(a.o);
@@ -7449,10 +7544,9 @@ function montarEditor() {
 // câmera do editor: WASD e setas andam com ela (o jogo fica parado)
 function passoEditor(dt) {
   const k = editor.teclas, v = 9 * dt / Math.max(0.5, zoom);
-  if (k.has("a") || k.has("arrowleft")) editor.foco.x -= v;
-  if (k.has("d") || k.has("arrowright")) editor.foco.x += v;
-  if (k.has("w") || k.has("arrowup")) editor.foco.y += v;
-  if (k.has("s") || k.has("arrowdown")) editor.foco.y -= v;
+  const kx = (k.has("d") || k.has("arrowright") ? 1 : 0) - (k.has("a") || k.has("arrowleft") ? 1 : 0), ky = (k.has("w") || k.has("arrowup") ? 1 : 0) - (k.has("s") || k.has("arrowdown") ? 1 : 0);
+  const [dx, dy] = daVista(kx * v, ky * v);                               // (nas direções da tela, com o giro)
+  editor.foco.x += dx; editor.foco.y += dy;
 }
 // por cima de tudo: o círculo de cada decoração na tela, a escolhida em dourado com a folga do corpo, e a fantasma do que vai pôr
 function desenharEditor() {
@@ -7670,7 +7764,7 @@ function passoPassagens(dt) {
   if (v.passou > 0) return;
   for (const p of passagens) {
     if (Math.hypot(v.x - p.x, v.y - p.y) > 0.7) continue;
-    v.x = p.para.x; v.y = p.para.y; cam.x = v.x; cam.y = v.y + 0.4;
+    v.x = p.para.x; v.y = p.para.y; cam.x = v.x + CAM_ACIMA[0]; cam.y = v.y + CAM_ACIMA[1];
     v.alvo = null; v.rota = null; selecao = null; mira = null; v.passou = 1.5; escurece = 1;
     teclas.clear();
     som(p.tipo === "buraco" ? "terra" : "vento", null, 0.6);
@@ -7721,7 +7815,9 @@ function desenharCaverna() {
   if (!d.piso) { for (const o of DUNGEONS) o.piso = null; d.piso = pisoDaCaverna(d); }
   const [x0, y0] = noMundo(d.x + d.x0, d.y + d.y1);
   cx.save(); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
-  cx.drawImage(d.piso, x0, y0, (d.x1 - d.x0) * s, (d.y1 - d.y0) * s * ACHATA);
+  if (GIRO) {                                                             // com o giro: a imagem (do mapa, achatada) girada junto
+    const k = s / PISO_PPM; cx.transform(GIRO_C * k, -GIRO_S * k * ACHATA, GIRO_S * k / ACHATA, GIRO_C * k, x0, y0); cx.drawImage(d.piso, 0, 0);
+  } else cx.drawImage(d.piso, x0, y0, (d.x1 - d.x0) * s, (d.y1 - d.y0) * s * ACHATA);
   cx.restore();
   // teias no chão: raios e voltas finas, quase brancas
   if (d.teias && d.teias.length) {
@@ -7920,10 +8016,10 @@ function desenharColisao() {
   const s = PX * zoom, vistos = new Set();
   cx.save();
   // células bloqueadas na área da tela
-  const meiaL = W / 2 / s + 1, meiaA = H / 2 / (s * ACHATA) + 1, G = PASSO_GRADE;
+  const [mx0, mx1, my0, my1] = caixaVista(1), G = PASSO_GRADE;
   cx.fillStyle = "rgba(255, 40, 40, 0.16)";
-  for (let x = Math.floor((cam.x - meiaL) / G) * G; x < cam.x + meiaL; x += G)
-    for (let y = Math.floor((cam.y - meiaA) / G) * G; y < cam.y + meiaA; y += G) {
+  for (let x = Math.floor(mx0 / G) * G; x < mx1; x += G)
+    for (let y = Math.floor(my0 / G) * G; y < my1; y += G) {
       if (livre(x, y)) continue;
       const a = noMundo(x - G / 2, y - G / 2), b = noMundo(x + G / 2, y - G / 2), c = noMundo(x + G / 2, y + G / 2), d = noMundo(x - G / 2, y + G / 2);
       cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b[0], b[1]); cx.lineTo(c[0], c[1]); cx.lineTo(d[0], d[1]); cx.closePath(); cx.fill();
@@ -8026,6 +8122,7 @@ function passo(dt) {
   if (teclas.has("w") || teclas.has("arrowup")) my += 1;
   if (teclas.has("s") || teclas.has("arrowdown")) my -= 1;
   if ((mx || my) && window.M3D && M3D.ativo) [mx, my] = M3D.relativo(mx, my);   // no mundo 3D: relativo à câmera
+  else if ((mx || my) && GIRO) [mx, my] = daVista(mx, my);                      // com o giro: cima é o cima da tela
   const porTeclas = !!(mx || my);
   if (mx || my) { v.alvo = null; v.noLugar = null; }            // andar com as teclas para de perseguir, mas o alvo marcado fica
   if (selecao && (selecao.morto || Math.hypot(selecao.x - v.x, selecao.y - v.y) > ALVO_LONGE)) selecao = null;
@@ -8213,7 +8310,7 @@ let clarao = null, pontaAntes = null, quadroAntes = -1;
 
 function laminaAtual() {
   if (prog && !prog.arma) return null;                                     // sem arma, nada de lâmina
-  const info = M.animacoes[viking.anim], e = info.espada && info.espada[viking.dir];
+  const info = M.animacoes[viking.anim], e = info.espada && info.espada[dirTela(viking.dir)];
   const l = e && e[quadroAtual()];
   return Array.isArray(l) ? l : null;
 }
@@ -8221,7 +8318,7 @@ function laminaAtual() {
 // arco do arqueiro no quadro atual: [x, y da ponta de baixo, x, y da de cima] (px do sprite a partir dos pés)
 function arcoAtual() {
   if (classe !== "arqueiro" || (prog && !prog.arma)) return null;
-  const a = M.animacoes[viking.anim].arco, l = a && a[viking.dir] && a[viking.dir][quadroAtual()];
+  const a = M.animacoes[viking.anim].arco, l = a && a[dirTela(viking.dir)] && a[dirTela(viking.dir)][quadroAtual()];
   return Array.isArray(l) ? l : null;
 }
 // o quanto o arco está aceso: pulsa parado e cresce enquanto ele puxa a corda (até a soltura)
@@ -8278,8 +8375,9 @@ let congela = 0, ultimaPausa = -1;
 // a queda inteira. E entre duas pausas, pelo menos PAUSA_INTERVALO s
 const SEM_PAUSA = new Set(["Chuva de Flechas", "Chuva de Meteoros", "Erupção Arcana"]), PAUSA_INTERVALO = 0.3;
 function impacto(alvo, altura, material, dano) {
+  if (ESTILO_TINTA) respingarTinta(alvo, altura, material);   // (Mundo de Tinta: respingos de nanquim e sangue vermelho)
   const dx = alvo.x - viking.x, dy = alvo.y - viking.y, d = Math.max(1e-3, Math.hypot(dx, dy));
-  const sx = dx / d, sy = -dy / d * ACHATA;                        // direção do golpe na tela
+  const [sx, sy] = dirNaTela(dx / d, dy / d);                     // direção do golpe na tela (com o giro)
   const forte = furia.buff > 0, agora = performance.now() / 1000;
   if (material !== "golpeViking" && !SEM_PAUSA.has(fonteDano) && agora - ultimaPausa > PAUSA_INTERVALO) { congela = Math.max(congela, forte ? 0.1 : classe === "ninja" && !fonteDano ? 0.03 : 0.07); ultimaPausa = agora; }   // (os cortes rápidos do ninja: pausa curta, senão o combo engasga)
   impactos.push({ wx: alvo.x, wy: alvo.y, y: -altura, vida: 0.14, max: 0.14, ang: Math.atan2(sy, sx) + (Math.random() - 0.5) * 0.8,
@@ -8489,8 +8587,12 @@ function desenharFaiscas() {
     cx.fillStyle = g; cx.beginPath(); cx.arc(x, y, r, 0, 7); cx.fill();
   }
   cx.restore();
-  // números do dano subindo: contorno grosso, um "pop" ao nascer (cresce e assenta), o crítico maior e dourado e os
-  // textos de estado (Envenenado, Atordoado, Queimando) na cor de cada um; cada número sai um pouco para o lado
+  if (!ESTILO_TINTA) desenharNumeros();                // (no Mundo de Tinta, depois do filtro: são interface)
+}
+// números do dano subindo: contorno grosso, um "pop" ao nascer (cresce e assenta), o crítico maior e dourado e os
+// textos de estado (Envenenado, Atordoado, Queimando) na cor de cada um; cada número sai um pouco para o lado
+function desenharNumeros() {
+  const z = zoom, ponto = (wx, wy, x, y) => { const [sx, sy] = tela(wx - cam.x, wy - cam.y); return [W / 2 + sx + x * z, H / 2 + sy + y * z]; };
   cx.save(); cx.textAlign = "center"; cx.lineJoin = "round";
   for (const n of numeros) {
     if (n.v0 === undefined) { n.v0 = n.vida; n.dx = n.status ? 0 : (Math.random() - 0.5) * 2; }
@@ -8520,7 +8622,7 @@ function desenhar(t) {
   cx.setTransform(dpr, 0, 0, dpr, 0, 0);
   // câmera segue o viking
   const foco = editor.ativo ? editor.foco : viking;
-  cam.x += (foco.x - cam.x) * 0.12; cam.y += (foco.y + 0.4 - cam.y) * 0.12;
+  cam.x += (foco.x + CAM_ACIMA[0] - cam.x) * 0.12; cam.y += (foco.y + CAM_ACIMA[1] - cam.y) * 0.12;   // (0,4 m acima na tela)
   const tx = tremor > 0 ? Math.sin(t * 90) * tremor * 14 : 0;
   cx.save(); cx.translate(tx, 0);
   const s = PX * zoom;
@@ -8542,6 +8644,7 @@ function desenhar(t) {
   desenharMagiasChao(t);
   desenharMira(t);
   desenharItens(t);
+  if (ESTILO_TINTA) respingosTinta(t, false);       // (Mundo de Tinta: as manchas de tinta e sangue já caídas no chão)
   prepararP3d(t);                                   // os bonecos em 3D vão para o atlas antes (cada um no seu lugar da ordem)
   // tudo por profundidade (quem está mais ao norte fica atrás)
   // só o que aparece na tela (objetos altos ou compridos usam a caixa inteira: muros, telhados, torres)
@@ -8549,7 +8652,9 @@ function desenhar(t) {
     const m = Math.max(1, o.r, ESTRUT[o.tipo] || COLISAO_PADRAO[o.tipo] && DECO && DECO[o.tipo] && DECO[o.tipo][0].w / DECO[o.tipo][0].ppm > 3 ? 7 : 0);
     const x0 = o.p ? o.p.x0 : o.ret ? Math.min(o.x0, o.x - m) : o.x - m, x1 = o.p ? o.p.x1 : o.ret ? Math.max(o.x1, o.x + m) : o.x + m;
     const y0 = o.p ? o.p.y0 : o.ret ? o.y0 : o.y - m, y1 = o.p ? o.p.y1 : o.ret ? Math.max(o.y1, o.y + m) : o.y + m;
-    const [a0, b0] = tela(x0 - cam.x, y0 - cam.y), [a1, b1] = tela(x1 - cam.x, y1 - cam.y), alto = 11 * s;
+    // (com o giro, a caixa da tela sai dos quatro cantos)
+    const [pa, pb] = tela(x0 - cam.x, y0 - cam.y), [qa, qb] = tela(x1 - cam.x, y1 - cam.y), [ra, rb] = tela(x1 - cam.x, y0 - cam.y), [ta, tb] = tela(x0 - cam.x, y1 - cam.y), alto = 11 * s;
+    const a0 = Math.min(pa, qa, ra, ta), a1 = Math.max(pa, qa, ra, ta), b0 = Math.max(pb, qb, rb, tb), b1 = Math.min(pb, qb, rb, tb);
     return a1 > -W / 2 - s && a0 < W / 2 + s && b0 > -H / 2 - s && b1 - alto < H / 2 + s;
   };
   // quem está atrás de cada objeto: o objeto vai ficando translúcido (e volta quando a pessoa sai)
@@ -8558,17 +8663,19 @@ function desenhar(t) {
   const objeto = o => {
     const [sx, sy] = tela(o.x - cam.x, o.y - cam.y), caixa = caixaObjeto(o, W / 2 + sx, H / 2 + sy, s);
     // o monumento do vale só some pelo jogador (com os orcs sempre em volta, ficaria translúcido o tempo todo)
-    const alvo = caixa && cobreAlguem(caixa, o.y, o.monumento ? quemSome.slice(0, 1) : quemSome) ? 0.38 : 1;
+    const alvo = caixa && cobreAlguem(caixa, profObj(o), o.monumento ? quemSome.slice(0, 1) : quemSome) ? 0.38 : 1;
     o.alfa = (o.alfa ?? 1) + (alvo - (o.alfa ?? 1)) * Math.min(1, dtT * 9);
     if (o.alfa > 0.99 || !caixa) desenharObjeto(o, t);
     else translucido(o.alfa, caixa, () => desenharObjeto(o, t));
   };
-  const lista = objetos.filter(o => !PLANO.has(o.tipo) && naTela(o)).map(o => ({ y: o.y, f: () => objeto(o) }));
-  lista.push({ y: viking.y, f: desenharViking });
-  for (const l of criaturas) lista.push({ y: l.y, f: () => desenharCriatura(l) });
+  // (a ordem pela profundidade da vista: com o giro, o fundo é o nordeste; ver profObj)
+  const lista = objetos.filter(o => !PLANO.has(o.tipo) && naTela(o)).map(o => ({ y: profObj(o), f: () => objeto(o) }));
+  lista.push({ y: profV(viking.x, viking.y), f: desenharViking });
+  for (const l of criaturas) lista.push({ y: profV(l.x, l.y), f: () => desenharCriatura(l) });
   lista.sort((a, b) => b.y - a.y).forEach(o => o.f());
   // (com os efeitos 3D, as placas e barras vão depois deles e do escuro da noite: ficam por cima, como no mundo 3D)
-  if (!(fx3() && FX3.iso)) { for (const f of placas) f(); placas.length = 0; }
+  if (!(fx3() && FX3.iso) && !ESTILO_TINTA) { for (const f of placas) f(); placas.length = 0; }   // (na tinta, depois do filtro)
+  if (ESTILO_TINTA) respingosTinta(t, true);        // (os respingos ainda no ar)
   desenharFlechas(); desenharMagiasCriatura();
   desenharSkillsArq(t);
   desenharPesFrente();
@@ -8580,11 +8687,14 @@ function desenhar(t) {
   desenharFaiscas();
   if (noEscuro) luzDaCaverna(t); else { desenharAmbiente(t); desenharClima(t, Math.min(0.05, t - (desenhar.tAnt || t))); desenharLuzDoDia(t); }
   if (window.FX3) FX3.desenhar2d(t);                // os efeitos 3D (FX3) por cima do mundo, depois do escuro da noite (brilham)
+  if (ESTILO_TINTA) filtroTinta(t);                  // o Mundo de Tinta: o mundo inteiro (e os efeitos) vira nanquim e aguada
   for (const f of placas) f();
   placas.length = 0;
+  if (ESTILO_TINTA) desenharNumeros();               // (os números do dano por cima, fora do filtro)
   desenhar.tAnt = t;
   cx.restore();
   if (escurece > 0) { cx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, escurece)})`; cx.fillRect(0, 0, W, H); }
+  if (ESTILO_TINTA && SUMIE.ok) { desenharChefe(); return; }   // (no papel, sem o escurecido das bordas)
   // escurecido leve nas bordas da tela
   const vg = cx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.78);
   vg.addColorStop(0, "rgba(20,18,16,0)"); vg.addColorStop(1, "rgba(20,18,16,0.38)");
@@ -8854,14 +8964,16 @@ async function carregarP3d() {
   p.cena = new THREE.Scene();
   // luz generosa: o estilo Desenho dos sprites clareia as cores (o glb traz a textura crua)
   // (no estilo pintado, a luz da pintura: sol quente do alto à esquerda e sombra fria, azulada)
-  p.cena.add(new THREE.AmbientLight(ESTILO_PINTADO ? 0xdfe4ff : 0xffffff, ESTILO_PINTADO ? 0.8 : 0.95));
-  const sol = new THREE.DirectionalLight(ESTILO_PINTADO ? 0xffe0b0 : 0xffffff, ESTILO_PINTADO ? 1.0 : 0.75); sol.position.set(-1.2, 2.4, 1.6); p.cena.add(sol);
+  // (no Mundo de Tinta, menos luz ambiente e mais sol: o lado da luz e o da sombra viram aguadas diferentes)
+  p.cena.add(new THREE.AmbientLight(ESTILO_PINTADO ? 0xdfe4ff : 0xffffff, ESTILO_TINTA ? 0.38 : ESTILO_PINTADO ? 0.8 : 0.95));
+  const sol = new THREE.DirectionalLight(ESTILO_PINTADO ? 0xffe0b0 : 0xffffff, ESTILO_TINTA ? 1.5 : ESTILO_PINTADO ? 1.0 : 0.75); sol.position.set(-1.2, 2.4, 1.6); p.cena.add(sol);
   // as matrizes de cada boneco são atualizadas só quando ele é renderizado (a cena tem todos, escondidos)
   p.cena.updateMatrixWorld(true); p.cena.matrixWorldAutoUpdate = false;
   const k = 37 * Math.PI / 180;
   p.cam = new THREE.OrthographicCamera(-2, 2, 3, -1, 0.1, 60);
   p.cam.position.set(0, Math.sin(k) * 20, Math.cos(k) * 20); p.cam.lookAt(0, 0, 0);
-  p.faixas = new THREE.DataTexture(new Uint8Array([150, 150, 150, 255, 205, 205, 205, 255, 255, 255, 255, 255]), 3, 1);
+  // (no Mundo de Tinta a faixa da sombra é bem mais escura: o lado da sombra vira outra aguada)
+  p.faixas = new THREE.DataTexture(new Uint8Array(ESTILO_TINTA ? [30, 30, 30, 255, 120, 120, 120, 255, 255, 255, 255, 255] : [150, 150, 150, 255, 205, 205, 205, 255, 255, 255, 255, 255]), 3, 1);
   p.faixas.minFilter = p.faixas.magFilter = THREE.NearestFilter; p.faixas.needsUpdate = true;
   p.loader = new THREE.GLTFLoader();
   p.matOculto = new THREE.MeshBasicMaterial({ colorWrite: false });      // a máscara da arma: o corpo só tapa
@@ -8871,9 +8983,10 @@ async function carregarP3d() {
   p.fbTex = new THREE.FramebufferTexture(p.maxCel, p.maxCel, THREE.RGBAFormat);
   p.matTraco = new THREE.ShaderMaterial({
     uniforms: { tex: { value: p.fbTex }, uv0: { value: new THREE.Vector2() }, uv1: { value: new THREE.Vector2() }, px: { value: new THREE.Vector2() },
-                raio: { value: 1.5 }, cor: { value: new THREE.Vector3(TRACO_3D.cor[0] / 255, TRACO_3D.cor[1] / 255, TRACO_3D.cor[2] / 255) } },
+                raio: { value: 1.5 }, cor: { value: new THREE.Vector3(TRACO_3D.cor[0] / 255, TRACO_3D.cor[1] / 255, TRACO_3D.cor[2] / 255) },
+                semente: { value: 0 }, forca: { value: 1 } },
     vertexShader: "varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
-    fragmentShader: `uniform sampler2D tex; uniform vec2 uv0, uv1, px; uniform float raio; uniform vec3 cor; varying vec2 vUv;
+    fragmentShader: ESTILO_TINTA ? GLSL_TRACO_TINTA : `uniform sampler2D tex; uniform vec2 uv0, uv1, px; uniform float raio; uniform vec3 cor; varying vec2 vUv;
       float alfa(vec2 d) { return texture2D(tex, clamp(uv0 + vUv * (uv1 - uv0) + d * px, uv0 + px * 0.5, uv1 - px * 0.5)).a; }
       void main() {
         vec4 c = texture2D(tex, clamp(uv0 + vUv * (uv1 - uv0), uv0 + px * 0.5, uv1 - px * 0.5));
@@ -8964,6 +9077,66 @@ const COR_3D = { sat: 1.35, brilho: 0.95 }, CONTORNO_3D = false;
 const TRACO_3D = { cor: [20, 12, 6], px: 0.75, alfa: 0.85 };   // (1,4 ficava grosso demais: o usuário pediu mais fino)
 // no estilo pintado: cor menos estourada e traço mais leve, marrom (o cenário pintado não tem nanquim preto)
 if (ESTILO_PINTADO) { COR_3D.sat = 1.15; COR_3D.brilho = 0.97; TRACO_3D.cor = [48, 30, 18]; TRACO_3D.alfa = 0.6; TRACO_3D.px = 0.7; }
+// no Mundo de Tinta: traço de pincel em nanquim, mais grosso (o filtro do mundo, TINTA, ainda passa por cima dele)
+if (ESTILO_TINTA) { TRACO_3D.cor = [14, 12, 11]; TRACO_3D.alfa = 1; TRACO_3D.px = 1.9; }
+// O boneco em tinta (no lugar do traço comum, o mesmo passe por cima do pedaço do atlas): o corpo vira 3 tons de aguada
+// pela luz (papel, aguada clara, aguada escura; tons já na escala que o filtro do mundo transforma em aguada), com o
+// pigmento juntando na borda de cada mancha e grão; o contorno é de pincel: mais grosso no lado da sombra (baixo e
+// direita: a luz vem do alto à esquerda), largura variando ao longo da linha e falhas de pincel seco, e um pouco por
+// dentro da silhueta; linhas finas onde a luz muda de repente. O vermelho (capa, faixa, olhos, o clarão do golpe) e o
+// azul de magia ficam. semente muda ~12 vezes por segundo (o traço "ferve" como animação à mão); forca: herói > criatura
+const GLSL_TRACO_TINTA = `uniform sampler2D tex; uniform vec2 uv0, uv1, px; uniform float raio, semente, forca; uniform vec3 cor; varying vec2 vUv;
+  vec4 pega(vec2 d) { return texture2D(tex, clamp(uv0 + vUv * (uv1 - uv0) + d * px, uv0 + px * 0.5, uv1 - px * 0.5)); }
+  float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+  float vn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
+  float lum(vec4 c) { return c.a > 0.01 ? dot(c.rgb / c.a, vec3(0.299, 0.587, 0.114)) : 0.0; }
+  float aguada(float l, float n) { return 0.42 * (1.0 - smoothstep(0.3 + n, 0.36 + n, l)) + 0.36 * (1.0 - smoothstep(0.14 + n, 0.19 + n, l)); }
+  void main() {
+    vec2 pc = vUv * (uv1 - uv0) / px;
+    float e = max(raio, 1.0), sm = semente * 13.7;
+    vec4 c = pega(vec2(0.0));
+    vec2 L = normalize(vec2(-0.75, 0.66));
+    float grosso = (0.7 + 0.6 * vn(pc / (7.0 * e) + sm)) * forca;
+    float a = 0.0, aMin = 1.0;
+    for (int k = 0; k < 12; k++) {
+      vec2 d = vec2(cos(float(k) * 0.5236), sin(float(k) * 0.5236));
+      float r = e * grosso * (0.8 + 1.2 * max(0.0, dot(d, L)));
+      a = max(a, max(pega(d * r).a, pega(d * r * 0.5).a));
+      if (k - (k / 2) * 2 == 0) aMin = min(aMin, pega(d * e * 0.9 * forca).a);
+    }
+    float seco = smoothstep(0.16, 0.42, vn(pc / (4.0 * e) + sm * 1.9)) * (0.75 + 0.25 * h21(floor(pc) + sm));
+    float o = smoothstep(0.06, 0.45, a) * seco;
+    if (c.a < 0.02) { gl_FragColor = vec4(cor * o, o); return; }
+    vec3 col = c.rgb / c.a;
+    // a luz média do boneco (16 pontos do pedaço): os tons são relativos a ela, então todo modelo (claro ou escuro)
+    // tem o lado da luz em papel, o meio em aguada clara e a sombra em aguada escura
+    float ls = 0.0, ln = 0.0;
+    for (int k = 0; k < 16; k++) { vec2 u = (vec2(float(k - (k / 4) * 4), float(k / 4)) + 0.5) / 4.0; vec4 q = texture2D(tex, uv0 + (uv1 - uv0) * u);
+      if (q.a > 0.5) { ls += dot(q.rgb / q.a, vec3(0.299, 0.587, 0.114)); ln += 1.0; } }
+    float kl = clamp(0.25 / max(0.06, ln > 0.5 ? ls / ln : 0.25), 0.8, 1.8);
+    // (contraste dobrado em volta da média: a luz e a sombra se separam mesmo nos modelos de textura uniforme)
+    float l = 0.25 + (dot(col, vec3(0.299, 0.587, 0.114)) * kl - 0.25) * 1.5, n = (vn(pc / (5.0 * e) + sm * 0.37) - 0.5) * 0.08 + (forca - 1.0) * 0.2 + (forca > 1.05 && forca < 1.3 ? 0.08 : 0.0);
+    float d = aguada(l, n), dv = d;
+    for (int k = 0; k < 4; k++) { vec2 o = vec2(cos(float(k) * 1.5708 + 0.4), sin(float(k) * 1.5708 + 0.4)) * e * 1.4; vec4 q = pega(o); if (q.a > 0.5) dv = min(dv, aguada(0.25 + (lum(q) * kl - 0.25) * 1.5, n)); }
+    // (metade posterizada, metade contínua: o detalhe da textura — pelo, tiras, couro — aparece como pincelada)
+    d = mix(d, clamp(1.05 - (l - n) / 0.34, 0.0, 1.0), 0.45);
+    d = clamp(d + 0.5 * (d - dv), 0.0, 1.0) * (0.85 + 0.3 * vn(pc / (1.2 * e) + sm * 0.21));
+    float gx = lum(pega(vec2(e, 0.0))) - lum(pega(vec2(-e, 0.0))), gy = lum(pega(vec2(0.0, e))) - lum(pega(vec2(0.0, -e)));
+    float fina = smoothstep(0.2, 0.42, length(vec2(gx, gy))) * seco * 0.75;
+    // os tons que o filtro do mundo lê (papel, aguada média, escura, nanquim: ver aguada() em GLSL_SUMIE_F)
+    vec3 cc = vec3(mix(0.72, 0.17, pow(d, 0.55)));   // (o corpo até a aguada escura; o preto fica para o traço)
+    float mx = max(col.r, max(col.g, col.b)), mn = min(col.r, min(col.g, col.b)), sat = (mx - mn) / max(mx, 1e-3);
+    float verm = smoothstep(0.42, 0.6, sat) * smoothstep(0.62, 0.45, max(col.g, col.b) / max(col.r, 1e-3)) * smoothstep(0.18, 0.32, col.r);
+    // nas criaturas, só o vermelho forte (olhos, o clarão do golpe): poucos vermelhos na tela
+    if (forca < 1.3) verm *= smoothstep(0.8, 0.92, sat) * smoothstep(0.7, 0.88, col.r);
+    float azul = smoothstep(0.4, 0.6, sat) * smoothstep(0.85, 0.65, max(col.r, col.g) / max(col.b, 1e-3)) * smoothstep(0.3, 0.5, col.b);
+    cc = mix(cc, mix(vec3(0.82, 0.12, 0.08), vec3(0.45, 0.04, 0.03), d), verm);
+    cc = mix(cc, mix(vec3(0.3, 0.6, 1.0), vec3(0.1, 0.25, 0.6), d), azul);
+    cc = mix(cc, cor, clamp(max((1.0 - aMin) * seco * 0.95, fina), 0.0, 1.0));
+    // (na borda suavizada do corpo o traço continua por baixo: sem fresta de papel entre o corpo e a linha)
+    gl_FragColor = vec4(cc * c.a + cor * o * (1.0 - c.a), c.a + o * (1.0 - c.a));
+  }`;
 const GLSL_COR_3D = `
   { vec3 c = diffuseColor.rgb; float l = dot(c, vec3(0.2126, 0.7152, 0.0722)), r = max(c.r, 1e-4);
     float pele = step(c.g, c.r) * step(c.b, c.g) * smoothstep(0.25, 0.4, c.g / r) * (1.0 - smoothstep(0.8, 0.9, c.g / r)) * smoothstep(0.08, 0.18, c.b / r);
@@ -9004,13 +9177,49 @@ async function montarModelo3d(m, gltf) {
       let map = o.material.map || null;
       if (map) { if (!texs.has(map)) texs.set(map, NOME_CLASSE[m.nome] ? map : texturaLeve3d(map)); map = texs.get(map); }   // (os heróis com a textura inteira)
       mat = toon3d(map, cor, o.material.side);
+      if (ESTILO_TINTA && /capa|manto|faixa/i.test(o.material.name || "")) mat.color.setRGB(1.7, 0.22, 0.15);   // (Mundo de Tinta: a capa vermelha, a cor de destaque)
       mat.userData.cor = mat.color.clone();
       feitos.set(o.material, mat); m.mats.push(mat);
     }
     o.material = mat; o.frustumCulled = false;
   });
   for (const t of texs.values()) limitarMip3d(t);
+  if (ESTILO_TINTA && !NOME_CLASSE[m.nome] && m.nome !== "ferreiro" && !Object.values(NPC_3D).includes(m.nome)) try { olhos3d(m); } catch (e) { console.error("olhos", m.nome, e); }
   m.caixa = await caixa3d(m);
+}
+// Mundo de Tinta: as criaturas com olhos vermelhos (para se destacarem do papel): duas bolinhas presas ao osso da cabeça,
+// na frente do rosto. A frente sai da malha que segue a cabeça (na pose de origem o modelo olha para +Z): na altura dos
+// olhos, o ponto mais à frente. Sem osso da cabeça (a aranha), um ponto na frente e no alto do corpo todo
+function olhos3d(m) {
+  let malha = null, idx = -1;
+  m.base.updateMatrixWorld(true);
+  m.base.traverse(o => { if (o.isSkinnedMesh && idx < 0) { const k = o.skeleton.bones.findIndex(b => /(^|[:_])head$/i.test(b.name)); if (k >= 0) { malha = o; idx = k; } } });
+  if (!malha) m.base.traverse(o => { if (o.isSkinnedMesh && !malha) malha = o; });
+  if (!malha) return;
+  const g = malha.geometry, pos = g.attributes.position, si = g.attributes.skinIndex, sw = g.attributes.skinWeight, v = new THREE.Vector3(), pts = [];
+  for (let n = 0; n < pos.count; n++) {
+    let w = idx < 0 ? 1 : 0;
+    if (idx >= 0) for (let j = 0; j < 4; j++) if (si.array[n * si.itemSize + j] === idx) w += sw.array[n * sw.itemSize + j] / (!sw.normalized ? 1 : sw.array instanceof Uint16Array ? 65535 : 255);
+    if (w >= 0.5) pts.push(v.fromBufferAttribute(pos, n).applyMatrix4(malha.bindMatrix).clone());
+  }
+  if (pts.length < 8) return;
+  const cx0 = new THREE.Box3().setFromPoints(pts), tam = cx0.getSize(new THREE.Vector3()), meio = cx0.getCenter(new THREE.Vector3());
+  // sem a cabeça: o terço da frente e de cima do corpo
+  const yo = idx < 0 ? cx0.min.y + tam.y * 0.75 : cx0.min.y + tam.y * 0.58, larg = Math.max(0.04, tam.x * (idx < 0 ? 0.12 : 0.2));
+  const r = Math.max(0.045, Math.min(0.08, Math.max(tam.x, tam.y) * 0.13));
+  const osso = idx >= 0 ? malha.skeleton.bones[idx] : null, inv = osso ? malha.skeleton.boneInverses[idx] : null;
+  const esc = osso ? new THREE.Vector3().setFromMatrixScale(new THREE.Matrix4().copy(inv).invert()).x || 1 : 1;
+  const mat = new THREE.MeshBasicMaterial({ color: 0xff0000, toneMapped: false });   // (vermelho puro: o filtro guarda)
+  for (const lado of [-1, 1]) {
+    const x = meio.x + lado * larg;
+    let z = -Infinity;
+    for (const p of pts) if (Math.abs(p.y - yo) < tam.y * 0.14 && Math.abs(p.x - x) < tam.x * 0.14) z = Math.max(z, p.z);
+    if (z === -Infinity) z = cx0.max.z;
+    const p = new THREE.Vector3(x, yo, z + r * 0.3), olho = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), mat);
+    olho.frustumCulled = false;
+    if (osso) { olho.position.copy(p.applyMatrix4(inv)); olho.scale.setScalar(1 / esc); osso.add(olho); }
+    else { olho.position.copy(p); m.base.add(olho); }
+  }
 }
 // A textura do Tripo é um mosaico de pedacinhos de cores bem diferentes lado a lado (pele, pano vermelho, pelo branco).
 // Nos níveis pequenos do mipmap eles se misturam num marrom acinzentado, e o boneco de longe (zoom afastado) ficava sem
@@ -9176,10 +9385,13 @@ function querMascara3d() {
   return classe === "feiticeiro" || !!brilhoRef() || ((classe === "viking" || classe === "guerreiro") && (azul() || viking.anim === "lamina_espiritual")) || (classe === "arqueiro" && viking.anim === "certeiro");
 }
 const TINTAS_3D = {};
+// Mundo de Tinta: o tempo da pose em quadros de 1/12 s (só o desenho; o golpe acerta no mesmo instante)
+const quadroTinta = t => ESTILO_TINTA ? Math.floor(t * 12 + 1e-4) / 12 : t;
 function prepararP3d(t) {
   const p = P3D;
   if (!p.ligado || !p.render || p.perdido) return;
   p.quadro++;
+  if (ESTILO_TINTA) p.boil = Math.floor(performance.now() / 1000 * 12) % 3;   // a variação do traço (3, em laço, a 12/s)
   const agora = performance.now() / 1000, dt = Math.min(0.1, agora - (p.ultimo || agora)); p.ultimo = agora;
   // px do pedaço por px da tela: a densidade da tela (no máximo 2); no celular, só o herói e quem está perto (os outros, 1)
   const leve = !!window.MODO_LEVE, prCheio = Math.min(dpr, 2), prDe = i => !leve || i.d.heroi || i.d.perto ? prCheio : 1;
@@ -9230,8 +9442,9 @@ function prepararP3d(t) {
     const d = i.d;
     if (i.ang === null) i.ang = d.ang;
     else { let x = d.ang - i.ang; x = Math.atan2(Math.sin(x), Math.cos(x)); i.ang += x * Math.min(1, dt * (d.heroi ? 16 : 12)); }
-    const clip = i.m.clips[i.anim], tempo = tempo3d(clip, d, d.info || i.m.info[i.anim]);
-    const chave = i.anim + "|" + Math.round(tempo * (d.heroi || d.perto ? 120 : leve ? 20 : 40)) + "|" + Math.round(i.ang * 60) + "|" + d.emis.map(e => Math.round(e * 20)).join() + "|" + (d.tinta || "") + (i.mascara ? "|m" : "");
+    // (no Mundo de Tinta a pose anda a 12 quadros por segundo, como animação à mão, e o traço muda a cada quadro: p.boil)
+    const clip = i.m.clips[i.anim], tempo = quadroTinta(tempo3d(clip, d, d.info || i.m.info[i.anim]));
+    const chave = i.anim + "|" + Math.round(tempo * (d.heroi || d.perto ? 120 : leve ? 20 : 40)) + "|" + Math.round(i.ang * 60) + "|" + d.emis.map(e => Math.round(e * 20)).join() + "|" + (d.tinta || "") + (i.mascara ? "|m" : "") + (ESTILO_TINTA && (!leve || d.heroi) ? "|" + p.boil : "");   // (no celular só o herói "ferve")
     if (i.valido && chave === i.chave) continue;
     const hTela = (i.m.caixa.cima + i.m.caixa.baixo) * PX * zoom * d.esc;
     const passo = d.heroi || d.perto ? 1 : (d.morto ? 4 : hTela >= 260 ? 1 : hTela >= 140 ? 2 : 3) + (leve ? 1 : 0);
@@ -9265,16 +9478,21 @@ function renderInst3d(i, clip, tempo) {
   const a = i.acoes[i.anim] || (i.acoes[i.anim] = i.mixer.clipAction(clip));
   if (a !== i.atual) { if (i.atual) i.atual.stop(); a.play(); i.atual = a; }
   a.time = tempo; i.mixer.update(0);
-  i.raiz.rotation.y = i.ang; i.raiz.updateMatrixWorld(true);
+  i.raiz.rotation.y = i.ang + GIRO; i.raiz.updateMatrixWorld(true);       // (+ o giro da vista: a câmera do atlas fica, o boneco gira)
   // os materiais são do modelo (todos os clones os dividem): a cor de cada um vai antes da vez dele
   const tinta = d.tinta ? (TINTAS_3D[d.tinta] || (TINTAS_3D[d.tinta] = new THREE.Color(d.tinta))) : null;
+  // (na tinta o herói só cora, senão vira uma mancha vermelha; a criatura não acende: o golpe nela são os respingos e a
+  // estrela de nanquim dos efeitos — o clarão a deixaria branca como o papel)
+  const ke = !ESTILO_TINTA ? 1 : d.heroi ? 0.3 : 0;
   for (const mat of m.mats) {
-    mat.emissive.setRGB(d.emis[0], d.emis[1], d.emis[2]);
+    mat.emissive.setRGB(d.emis[0] * ke, d.emis[1] * ke, d.emis[2] * ke);
     mat.color.copy(mat.userData.cor); if (tinta) mat.color.multiply(tinta);
   }
   const c = m.caixa;
   p.cam.left = -c.esq; p.cam.right = c.dir; p.cam.top = c.cima; p.cam.bottom = -c.baixo; p.cam.updateProjectionMatrix();
-  pintarCel3d(i.cel, i.raiz, contornoLigado ? Math.max(0.6, TRACO_3D.px * i.cel.w / ((c.esq + c.dir) * PX)) : 0);
+  // (no Mundo de Tinta o passe do traço pinta o corpo todo: sempre ligado; o traço "ferve" e o herói tem mais força)
+  if (ESTILO_TINTA) { const u = p.matTraco.uniforms; u.semente.value = p.boil || 0; u.forca.value = d.heroi ? 1.35 : "morto" in d ? 1.12 : 0.9; }
+  pintarCel3d(i.cel, i.raiz, contornoLigado || ESTILO_TINTA ?Math.max(0.6, TRACO_3D.px * i.cel.w / ((c.esq + c.dir) * PX)) : 0);
   i.valido = true; i.feito = p.quadro;
   if (i.mascara && i.celM) {
     // a máscara do brilho: só a parte da arma que aparece (o corpo tapa sem pintar), em branco
@@ -9314,7 +9532,7 @@ function mascaraHeroi3d() {
   g.clearRect(0, 0, w, 2 * h);
   g.drawImage(p.render.domElement, i.celM.x, i.celM.y, i.celM.w, i.celM.h, 0, h, w, h);
   const esfera = [];
-  esfera[viking.dir] = [i.esfera || 0];
+  esfera[dirTela(viking.dir)] = [i.esfera || 0];
   return { im: cv2, info: { w, h, px: c.esq * PX, py: c.cima * PX, mascara: true, esfera } };
 }
 function desenharViking() {
@@ -9324,7 +9542,7 @@ function desenharViking() {
   const [sx, sy] = tela(v.x - cam.x, v.y - cam.y);
   const X = W / 2 + sx, Y = H / 2 + sy, z = zoom;
   sombra(X, Y, PX * z * 0.36);
-  const im = SPR[nomeAnim][v.dir], em3d = !!P3D.vale(v);
+  const im = SPR[nomeAnim][dirTela(v.dir)], em3d = !!P3D.vale(v);
   cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
   const agora = performance.now() / 1000, nf = nivelFuria(agora);
   desenharFuria(X, Y, z, agora, false);
@@ -9348,7 +9566,7 @@ function desenharViking() {
     const [rx, ry] = tela(r.x - cam.x, r.y - cam.y), ri = M.animacoes[r.anim];
     if (!ri || !SPR[r.anim]) continue;
     cx.save(); cx.globalAlpha = 0.7 * r.vida / r.max; cx.globalCompositeOperation = "lighter";
-    cx.drawImage(silhueta(SPR[r.anim][r.dir], r.q, ri, "#ff6a2a"), W / 2 + rx - ri.px * z, H / 2 + ry - ri.py * z, ri.w * z, ri.h * z);
+    cx.drawImage(silhueta(SPR[r.anim][dirTela(r.dir)], r.q, ri, "#ff6a2a"), W / 2 + rx - ri.px * z, H / 2 + ry - ri.py * z, ri.w * z, ri.h * z);
     cx.restore();
   }
   const escondido = classe === "ninja" && NINJA.esconder.buff > 0;
@@ -9488,6 +9706,240 @@ function montarPainelResto() {
   $("#livro").addEventListener("toggle", () => { try { localStorage.setItem("livroFechado", $("#livro").open ? "0" : "1"); } catch (e) {} som($("#livro").open ? "ui_abrir" : "ui_fechar", null, 0.7); });
   if (innerWidth < 640) $("#livro").open = false;
 }
+
+// ---------------------------------------------------------------- Mundo de Tinta (protótipo; só com ESTILO_TINTA)
+// O mundo 2D inteiro (chão, deco, bonecos 3D já em tinta, respingos, efeitos), depois de desenhado no canvas e antes das
+// placas, barras, números e da interface, passa por um filtro na GPU (filtroTinta, WebGL2 próprio): a luz vira aguada de
+// nanquim sobre papel de arroz (4 tons com a borda molhada irregular e o pigmento juntando na borda de cada mancha, grão
+// assentando nas fibras), as bordas fortes viram traço de pincel com falhas de pincel seco, o vermelho (lanternas,
+// capas, fogo, sangue) e o azul de magia ficam, a água vira aguada azul-acinzentada. O papel (fibras, grão, manchas) é
+// preso ao mundo, não à tela. O que o herói ainda não viu é papel em branco: a máscara de exploração (1 m por célula,
+// guardada no navegador) se espalha em volta dele (SUMIE.raio) com borda de pinceladas; longe dele a pintura clareia.
+// Os efeitos 3D (FX3) entram no mesmo filtro como pinceladas escuras com a borda na cor deles. ?explorar=0: tudo pintado.
+// No celular (LEVE) o filtro roda em 70% da resolução, sem o borrão da luz média e sem a borda do pigmento.
+const SUMIE = { ok: false, falhou: false, fx: null, fps: 0, n: 0, t0: 0, tAnt: 0, raio: 13, respingos: [],
+  explorar: new URLSearchParams(location.search).get("explorar") !== "0",
+  mapa: { x0: -80, y0: -80, nx: 256, ny: 160, v: new Uint8Array(256 * 160), sujo: true, mudou: false, salvo: 0, chave: "tintaMapa1" } };
+if (ESTILO_TINTA) try {
+  const s = localStorage.getItem(SUMIE.mapa.chave), v = SUMIE.mapa.v;
+  if (s) { const b = atob(s); if (b.length === v.length) for (let i = 0; i < b.length; i++) v[i] = b.charCodeAt(i); }
+} catch (e) {}
+// a máscara cresce em volta do herói (mais rápido perto dele: a pintura se espalha do centro para a borda)
+function explorarTinta(dt, agora) {
+  const m = SUMIE.mapa, R = SUMIE.raio, hx = viking.x, hy = viking.y;
+  if (naCaverna(hx) || editor.ativo) return;
+  const i0 = Math.max(0, Math.floor(hx - R - 2 - m.x0)), i1 = Math.min(m.nx - 1, Math.ceil(hx + R + 2 - m.x0));
+  const j0 = Math.max(0, Math.floor(hy - R - 2 - m.y0)), j1 = Math.min(m.ny - 1, Math.ceil(hy + R + 2 - m.y0));
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const d = Math.hypot(i + 0.5 + m.x0 - hx, j + 0.5 + m.y0 - hy), alvo = Math.round(255 * Math.max(0, Math.min(1, (R + 1 - d) / 4))), k = j * m.nx + i;
+    if (m.v[k] < alvo) { m.v[k] = Math.min(alvo, m.v[k] + Math.max(1, Math.round(dt * 420 * (1.15 - d / (R + 2))))); m.sujo = m.mudou = true; }
+  }
+  if (m.mudou && agora - m.salvo > 4) {
+    m.salvo = agora; m.mudou = false;
+    try { let s = ""; for (let i = 0; i < m.v.length; i += 8192) s += String.fromCharCode.apply(null, m.v.subarray(i, i + 8192)); localStorage.setItem(m.chave, btoa(s)); } catch (e) {}
+  }
+}
+// respingos no acerto: gotas que voam do alvo para o lado do golpe e caem como manchas (sangue vermelho na carne e no
+// herói; nanquim na palha, no osso e na pedra)
+function respingarTinta(alvo, altura, material) {
+  const l = SUMIE.respingos, dx = alvo.x - viking.x, dy = alvo.y - viking.y, d = Math.hypot(dx, dy) || 1;
+  const sangue = material === "golpeViking" || !/osso|palha|pedra|metal|madeira|metin/.test(String(material || ""));
+  const ux = alvo === viking ? (Math.random() - 0.5) : dx / d, uy = alvo === viking ? (Math.random() - 0.5) : dy / d, h0 = Math.max(0.3, (altura || 60) / PX * 0.75);
+  for (let k = 0; k < 8 && l.length < 200; k++) {
+    const v = 1.2 + Math.random() * 2.6, a = (Math.random() - 0.5) * 1.3, c = Math.cos(a), s = Math.sin(a);
+    l.push({ x: alvo.x, y: alvo.y, h: h0 * (0.7 + 0.4 * Math.random()), vx: (ux * c - uy * s) * v, vy: (ux * s + uy * c) * v, vh: 0.5 + Math.random() * 2.2,
+             r: 0.022 + Math.random() * 0.04, sangue: sangue && k % 4 !== 3, chao: false, vida: 2.2 + Math.random() });
+  }
+}
+function respingosTinta(t, voando) {
+  const l = SUMIE.respingos, s = PX * zoom;
+  if (!voando) {
+    const dt = Math.min(0.05, Math.max(0, t - (SUMIE.tR || t))); SUMIE.tR = t;
+    for (let i = l.length - 1; i >= 0; i--) {
+      const p = l[i];
+      if (!p.chao) { p.x += p.vx * dt; p.y += p.vy * dt; p.h += p.vh * dt; p.vh -= 9.8 * dt; if (p.h <= 0) { p.h = 0; p.chao = true; p.r *= 1.5; } }
+      else if ((p.vida -= dt) <= 0) l.splice(i, 1);
+    }
+  }
+  cx.save();
+  for (const p of l) {
+    if (p.chao === voando) continue;
+    const [X, Y] = noMundo(p.x, p.y, p.h), r = p.r * s, a = p.chao ? Math.min(1, p.vida / 0.8) : 1;
+    cx.fillStyle = p.sangue ? `rgba(196, 22, 14, ${0.9 * a})` : `rgba(10, 9, 8, ${0.85 * a})`;
+    cx.beginPath(); cx.ellipse(X, Y, r, p.chao ? r * ACHATA : r * 1.2, 0, 0, 7); cx.fill();
+    if (p.chao) { cx.beginPath(); cx.ellipse(X + r * 1.3, Y - r * 0.3, r * 0.35, r * 0.25, 0, 0, 7); cx.ellipse(X - r * 1.1, Y + r * 0.4, r * 0.25, r * 0.18, 0, 0, 7); cx.fill(); }
+  }
+  cx.restore();
+}
+const GLSL_SUMIE_V = `#version 300 es
+in vec2 pos; out vec2 vUv; void main() { vUv = pos * 0.5 + 0.5; gl_Position = vec4(pos, 0.0, 1.0); }`;
+const GLSL_SUMIE_F = `
+precision highp float;
+uniform sampler2D uM, uF, uX;
+uniform vec2 uWH, uPx; uniform vec3 uCam, uHeroi; uniform vec4 uMapa, uInv, uFwd;
+uniform float uTx, uExpo, uNoite, uFx, uBoil;
+in vec2 vUv; out vec4 saida;
+const vec3 PAPEL = vec3(0.925, 0.893, 0.815), NANQUIM = vec3(0.075, 0.068, 0.066), VERM = vec3(0.78, 0.14, 0.1), AZUL = vec3(0.22, 0.5, 0.96), AGUA = vec3(0.44, 0.52, 0.58);
+float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
+float fbm(vec2 p) { return vn(p) * 0.5 + vn(p * 2.07 + 5.3) * 0.3 + vn(p * 4.3 + 1.7) * 0.2; }
+float lum(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
+float Lum(vec2 o, float lod) { return lum(textureLod(uM, vUv + o * uPx * uTx, lod).rgb) * uExpo; }
+// 4 tons de aguada pela luz (0 = papel); n mexe nos limiares (a borda molhada irregular)
+float aguada(float l, float n) {
+  return 0.14 * (1.0 - smoothstep(0.52 + n, 0.6 + n, l)) + 0.28 * (1.0 - smoothstep(0.31 + n, 0.37 + n, l))
+       + 0.24 * (1.0 - smoothstep(0.22 + n, 0.27 + n, l)) + 0.22 * (1.0 - smoothstep(0.08 + n, 0.12 + n, l));
+}
+// a cor da tinta: aguada fraca puxa para o sépia (o chão quente do papel), a forte é nanquim
+vec3 tinta(float d) { return mix(vec3(0.46, 0.39, 0.31), NANQUIM, smoothstep(0.12, 0.6, d)); }
+void main() {
+  vec2 sc = vec2(vUv.x, 1.0 - vUv.y) * uWH;
+  // o ponto do chão (m) embaixo do pixel, pela inversa da projeção do jogo (tela(), que pode girar), e o papel preso a
+  // ele (q: px da tela no zoom 1, a partir da origem do mundo)
+  vec2 o = sc - uWH * 0.5, w = uCam.xy + vec2(dot(uInv.xy, o), dot(uInv.zw, o));
+  vec2 q = w.x * uFwd.xy + w.y * uFwd.zw, qr = mat2(0.906, 0.423, -0.423, 0.906) * q;
+  vec3 c = texture(uM, vUv).rgb * uExpo;
+  float lc = lum(c);
+#ifdef LEVE
+  float lm = lc;
+#else
+  float lm = lum(textureLod(uM, vUv, 3.5).rgb) * uExpo;
+#endif
+  // (onde a luz quase não muda, ela vem da média em volta: o chão vira uma aguada lisa, sem chuvisco)
+  float km = 0.75 * (1.0 - smoothstep(0.15, 0.38, abs(lc - lm))), l = mix(lc, lm, km), n = (fbm(q / 46.0) - 0.5) * 0.1;
+  l -= 0.06 * smoothstep(0.04, 0.2, c.g - max(c.r, c.b)) * (1.0 - smoothstep(0.25, 0.4, lc));   // (a folhagem escura pede mais tinta)
+  l += 0.07 * km * smoothstep(0.24, 0.34, lm);                       // (o chão liso e claro clareia: mais papel, como no conceito)
+  float d = aguada(l, n);
+#ifndef LEVE
+  float dv = d;
+  for (int k = 0; k < 4; k++) { float a = float(k) * 1.5708 + 0.6; dv = min(dv, aguada(mix(Lum(vec2(cos(a), sin(a)) * 3.0, 0.0), lm, km), n)); }
+  d += 0.5 * (d - dv);
+#endif
+  float grao = vn(q / 1.7) * 0.45 + vn(q / 5.5) * 0.55;
+  d = clamp(d, 0.0, 1.0) * (0.8 + 0.4 * grao);
+  float e = 1.8;
+  float gx = Lum(vec2(e, 0.0), 1.2) - Lum(vec2(-e, 0.0), 1.2), gy = Lum(vec2(0.0, e), 1.2) - Lum(vec2(0.0, -e), 1.2);
+  float seco = smoothstep(0.22, 0.5, vn(q / 4.5 + uBoil * 7.31));
+  float linha = smoothstep(0.16, 0.33, length(vec2(gx, gy))) * (0.5 + 0.5 * seco);
+  // o papel: grão, fibras compridas e manchas largas de tom
+  float fib = smoothstep(0.8, 0.97, vn(qr * vec2(0.02, 0.45))) * 0.6 + smoothstep(0.86, 0.98, vn(qr * vec2(0.035, 0.8) + 9.0)) * 0.4;
+  vec3 papel = PAPEL * (0.955 + 0.045 * grao + 0.03 * fbm(q / 260.0)) + vec3(0.03) * fib - vec3(0.035, 0.04, 0.045) * smoothstep(0.9, 0.99, vn(qr * vec2(0.012, 0.3) + 3.0));
+  float dl = clamp(max(d, linha * 0.92), 0.0, 1.0);
+  vec3 cor = mix(papel, tinta(dl), dl);
+  // o que tem cor: vermelho (e o fogo forte), azul de magia (claro e saturado) e a água (azul mais apagado)
+  float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b)), sat = (mx - mn) / max(mx, 1e-3);
+  float verm = smoothstep(0.5, 0.68, sat) * smoothstep(0.6, 0.42, max(c.g, c.b) / max(c.r, 1e-3)) * smoothstep(0.25, 0.4, c.r);
+  verm = max(verm, 0.85 * smoothstep(0.6, 0.8, sat) * smoothstep(0.8, 0.95, mx) * step(c.b * 2.0, c.g) * step(c.g, c.r));
+  float azulH = smoothstep(0.12, 0.25, c.b - c.r) * smoothstep(0.02, 0.08, c.b - c.g);   // (azul de verdade: o pinheiro verde-azulado fica nanquim)
+  float magia = azulH * smoothstep(0.4, 0.6, sat) * smoothstep(0.66, 0.86, mx), agua = azulH * smoothstep(0.25, 0.45, sat) * (1.0 - magia);
+  cor = mix(cor, mix(papel, AGUA, clamp(0.3 + d * 0.9, 0.0, 1.0)), agua * (1.0 - linha));
+  cor = mix(cor, mix(VERM, VERM * 0.42, clamp(d - linha * 0.5, 0.0, 1.0)), verm * (1.0 - linha * 0.6));
+  cor = mix(cor, mix(AZUL, vec3(0.86, 0.95, 1.0), smoothstep(0.9, 1.0, mx)), magia * (1.0 - linha * 0.5));
+  // longe do herói a pintura clareia um pouco
+  float dist = length(w - uHeroi.xy);
+  cor = mix(cor, papel, 0.28 * smoothstep(12.0, 22.0, dist));
+  // a exploração: o que ainda não foi visto é papel; a borda são pinceladas soltas e respingos
+  if (uHeroi.z > 0.5) {
+    float m = texture(uX, (w - uMapa.xy) / uMapa.zw).r;
+    float b = m + (fbm(q / 70.0) - 0.5) * 0.5 + (vn(qr * vec2(1.0 / 120.0, 1.0 / 9.0)) - 0.5) * 0.45;
+    float vis = smoothstep(0.46, 0.53, b) * smoothstep(0.0, 0.08, m), z = smoothstep(0.2, 0.46, b) * (1.0 - vis) * smoothstep(0.0, 0.3, m);
+    float traco = smoothstep(0.62, 0.86, vn(qr * vec2(1.0 / 80.0, 1.0 / 4.0) + 2.0)) * z;
+    vec3 fora = mix(papel, mix(papel, NANQUIM, 0.2 + 0.25 * fbm(q / 12.0)), traco * 0.7);
+    fora = mix(fora, NANQUIM, step(0.988, h21(floor(q / 5.0))) * smoothstep(0.28, 0.42, b));
+    cor = mix(fora, cor, vis);
+  }
+  // os efeitos 3D: o miolo vira nanquim, a borda fica na cor do efeito (azul, vermelho; o resto, cinza)
+  if (uFx > 0.5) {
+    vec4 f = texture(uF, vUv);
+    float i = max(f.r, max(f.g, f.b));
+    if (i > 0.02) {
+      vec3 hh = f.rgb / i;
+      float az = smoothstep(0.05, 0.3, hh.b - hh.r), vm = smoothstep(0.1, 0.4, hh.r - hh.b) * (1.0 - az);
+      vec3 cf = mix(mix(NANQUIM * 3.0, VERM, vm), AZUL, az);
+      float sf = 0.55 + 0.45 * smoothstep(0.2, 0.6, vn(q / 3.0 + uBoil * 5.0));
+      cor = mix(cor, cf, smoothstep(0.08, 0.4, i) * sf * (0.6 + 0.3 * az));   // (o vermelho mais contido: poucos vermelhos)
+      cor = mix(cor, NANQUIM, smoothstep(0.55, 0.95, i) * sf * (0.85 - 0.25 * az));
+    }
+  }
+  // a noite: o papel e a tinta azulados
+  cor *= mix(vec3(1.0), vec3(0.66, 0.7, 0.82), uNoite * 0.7);
+  saida = vec4(cor, 1.0);
+}`;
+function iniciarTinta() {
+  const c = document.createElement("canvas"), gl = c.getContext("webgl2", { alpha: false, antialias: false, depth: false, stencil: false, premultipliedAlpha: false });
+  if (!gl) throw new Error("sem webgl2");
+  const sh = (tipo, src) => { const s = gl.createShader(tipo); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+  const p = gl.createProgram();
+  gl.attachShader(p, sh(gl.VERTEX_SHADER, GLSL_SUMIE_V));
+  gl.attachShader(p, sh(gl.FRAGMENT_SHADER, "#version 300 es\n" + (window.MODO_LEVE ? "#define LEVE\n" : "") + GLSL_SUMIE_F));
+  gl.bindAttribLocation(p, 0, "pos"); gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  gl.useProgram(p);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const tex = (unid, filtro) => { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unid); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filtro); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
+  SUMIE.tM = tex(0, window.MODO_LEVE ? gl.LINEAR : gl.LINEAR_MIPMAP_LINEAR); SUMIE.tF = tex(1, gl.LINEAR); SUMIE.tX = tex(2, gl.LINEAR);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));   // (sem efeitos ainda)
+  SUMIE.u = {};
+  for (const n of ["uM", "uF", "uX", "uWH", "uPx", "uCam", "uHeroi", "uMapa", "uInv", "uFwd", "uTx", "uExpo", "uNoite", "uFx", "uBoil"]) SUMIE.u[n] = gl.getUniformLocation(p, n);
+  gl.uniform1i(SUMIE.u.uM, 0); gl.uniform1i(SUMIE.u.uF, 1); gl.uniform1i(SUMIE.u.uX, 2);
+  SUMIE.gl = gl;
+}
+function filtroTinta(t) {
+  const S_ = SUMIE;
+  if (S_.falhou || (window.M3D && M3D.ativo) || editor.ativo) { S_.fx = null; S_.ok = false; return; }
+  if (!S_.gl) { try { iniciarTinta(); } catch (e) { console.error("tinta:", e); S_.falhou = true; return; } }
+  const dt = Math.min(0.1, Math.max(0, t - (S_.tAnt || t))); S_.tAnt = t;
+  if (S_.explorar) explorarTinta(dt, t);
+  const gl = S_.gl, c = gl.canvas, esc = window.MODO_LEVE ? 0.6 : 1, w = Math.max(1, Math.round(cv.width * esc)), h = Math.max(1, Math.round(cv.height * esc));
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  gl.viewport(0, 0, w, h);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, S_.tM);
+  // (no celular o mundo vai antes para um canvas menor: a cópia de um canvas para o WebGL custa pelo tamanho)
+  let fonte = cv;
+  if (window.MODO_LEVE) {
+    const pq = S_.pq || (S_.pq = document.createElement("canvas"));
+    if (pq.width !== w || pq.height !== h) { pq.width = w; pq.height = h; }
+    pq.getContext("2d").drawImage(cv, 0, 0, w, h); fonte = pq;
+  }
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fonte);
+  if (!window.MODO_LEVE) gl.generateMipmap(gl.TEXTURE_2D);
+  if (S_.fx) {
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, S_.tF);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, S_.fx);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  }
+  const m = S_.mapa, expl = S_.explorar && !naCaverna(cam.x);
+  if (m.sujo) {
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, S_.tX);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, m.nx, m.ny, 0, gl.RED, gl.UNSIGNED_BYTE, m.v);
+    m.sujo = false;
+  }
+  const u = S_.u, noite = Math.min(1, luzDoDia(horaDoDia()).esc / 0.62);
+  gl.uniform2f(u.uWH, W, H); gl.uniform2f(u.uPx, 1 / cv.width, 1 / cv.height); gl.uniform1f(u.uTx, dpr);
+  // a projeção do mundo na tela (linear em x, y: a mesma de tela(), com giro ou não) e a inversa dela
+  const [ax, ay] = tela(1, 0), [bx, by] = tela(0, 1), det = ax * by - bx * ay || 1, kq = 84 / (PX * zoom);
+  gl.uniform4f(u.uInv, by / det, -bx / det, -ay / det, ax / det); gl.uniform4f(u.uFwd, ax * kq, ay * kq, bx * kq, by * kq);
+  gl.uniform3f(u.uCam, cam.x, cam.y, PX * zoom); gl.uniform3f(u.uHeroi, viking.x, viking.y, expl ? 1 : 0);
+  gl.uniform4f(u.uMapa, m.x0, m.y0, m.nx, m.ny);
+  gl.uniform1f(u.uExpo, naCaverna(cam.x) ? 1.6 : 1 / (1 - 0.62 * noite * 0.8)); gl.uniform1f(u.uNoite, noite);
+  gl.uniform1f(u.uFx, S_.fx ? 1 : 0); gl.uniform1f(u.uBoil, P3D.boil || 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  cx.save(); cx.setTransform(1, 0, 0, 1, 0, 0); cx.globalCompositeOperation = "copy"; cx.imageSmoothingEnabled = true;
+  cx.drawImage(c, 0, 0, cv.width, cv.height);
+  cx.restore();
+  S_.fx = null; S_.ok = true;
+  S_.n++; const ag = performance.now();
+  if (!S_.t0) S_.t0 = ag;
+  if (ag - S_.t0 > 2000) { S_.fps = +(S_.n * 1000 / (ag - S_.t0)).toFixed(1); S_.n = 0; S_.t0 = ag; }
+}
+window.SUMIE = SUMIE;
 
 // ---------------------------------------------------------------- laço
 function ajustar() {
@@ -13218,8 +13670,10 @@ function passoArma(dt) {
   const golpe = GOLPE.test(viking.anim) && !viking.caido, [c1, c2] = corGolpe(), meio = classe === "ninja" ? 0.5 : classe === "feiticeiro" ? 0.7 : 0.3;
   const br = brilhoRef(), luzArma = azul() ? rgb(0.35, 0.7, 1) : br ? new THREE.Color(br.forte) : null;
   const ox = iso ? viking.x : 0, oz = iso ? -viking.y : 0;                // (no isométrico o corpo do atlas fica na origem)
+  // (no isométrico com o giro da vista, o corpo do atlas está girado GIRO a mais: as peças voltam para o giro do mapa)
+  const rg = iso && GIRO ? passoArma.rg || (passoArma.rg = new THREE.Matrix4().makeRotationY(-GIRO)) : null, mg = passoArma.mg || (passoArma.mg = new THREE.Matrix4());
   for (const r of a.l) {
-    const W = r.m.matrixWorld, ok = r.m.visible && Math.abs(W.determinant()) > 1e-9;
+    const W = rg ? mg.multiplyMatrices(rg, r.m.matrixWorld) : r.m.matrixWorld, ok = r.m.visible && Math.abs(W.determinant()) > 1e-9;
     const ponta = _a2.copy(r.base).lerp(r.ponta, 1.06).applyMatrix4(W), dentro = _b2.copy(r.base).lerp(r.ponta, meio).applyMatrix4(W);
     ponta.x += ox; ponta.z += oz; dentro.x += ox; dentro.z += oz;
     const vel = r.antes ? ponta.distanceTo(r.antes) / Math.max(dt, 1e-3) : 0;
@@ -13590,7 +14044,8 @@ let tIso = 0, nIso = 0, t0Iso = 0, _tamIso = null;
 function cameraIso() {
   const c = S.camera, s = PX * zoom, D = 120;
   c.left = -W / (2 * s); c.right = W / (2 * s); c.top = H / (2 * s); c.bottom = -H / (2 * s); c.near = 1; c.far = 600; c.updateProjectionMatrix();
-  c.position.set(cam.x, 0.6 * D, -cam.y + 0.8 * D); c.lookAt(cam.x, 0, -cam.y); c.updateMatrixWorld();
+  // (com o giro, a câmera fica do lado oposto ao fundo da vista: no sudoeste para o giro de 45°)
+  c.position.set(cam.x - GIRO_S * 0.8 * D, 0.6 * D, -cam.y + GIRO_C * 0.8 * D); c.lookAt(cam.x, 0, -cam.y); c.updateMatrixWorld();
 }
 // skeleton.frame: o renderer só refaz os ossos uma vez por quadro dele, e os dois renderers (atlas e efeitos) contam
 // quadros diferentes: -1 obriga a refazer (aqui, com o corpo no mundo, e de volta no atlas, com ele na origem)
@@ -13614,7 +14069,7 @@ function corposEntram() {
   for (const [, i] of C.l) {
     if (!C.sup[C.n]) { C.sup[C.n] = new THREE.Group(); C.cena.add(C.sup[C.n]); }
     const g = C.sup[C.n];
-    g.position.set(i.dono.x, 0, -i.dono.y); g.scale.setScalar((i.d && i.d.esc) || 1);
+    g.position.set(i.dono.x, 0, -i.dono.y); g.scale.setScalar((i.d && i.d.esc) || 1); g.rotation.y = -GIRO;   // (desfaz o giro do atlas)
     g.add(i.raiz); i.raiz.visible = true; esqueletos(i);
     C.n++;
   }
@@ -13648,9 +14103,10 @@ function desenhar2d(t) {
       r.autoClear = false; r.render(S.cena, S.camera); r.autoClear = true;
       bloom();
     } finally { corposSaem(); }
-    cx.drawImage(S.canvas, 0, 0, W, H);
+    if (ESTILO_TINTA) SUMIE.fx = S.canvas;               // (no Mundo de Tinta os efeitos entram no filtro, como pinceladas)
+    else cx.drawImage(S.canvas, 0, 0, W, H);
   }
-  vazamento(t);
+  if (!ESTILO_TINTA) vazamento(t);                         // (no papel, sem a luz do sol vazando)
   nIso++; const ag = performance.now();
   if (!t0Iso) t0Iso = ag;
   if (ag - t0Iso > 2000) { S.stats = { fps: +(nIso * 1000 / (ag - t0Iso)).toFixed(1) }; nIso = 0; t0Iso = ag; }
