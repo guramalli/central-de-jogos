@@ -1189,17 +1189,29 @@ function passoSonsAmbiente(dt) {
 // entra e sai devagar; com ela forte, de vez em quando um trovão longe (e um clarão). ?chuva=1 na URL faz chover já
 const clima = { chuva: 0, alvo: 0, prox: 150 + Math.random() * 200, trovao: 15, clarao: 0 };
 if (new URLSearchParams(location.search).has("chuva")) { clima.alvo = 1; clima.prox = 1e9; }
+// para testar: ?clima=tempestade | chuva | neve | seco (ou climaForcar("...") no console; raioCai(true) faz cair um raio já).
+// A chuva forte (acima de 0,8) é a tempestade, com raios; neve fixa o inverno
+let ESTACAO_FORCADA = null;
+function climaForcar(nome) {
+  ESTACAO_FORCADA = nome === "neve" ? 3 : null;
+  const k = { tempestade: 1, chuva: 0.65 }[nome] || 0;
+  clima.alvo = k; clima.prox = 1e9;
+  if (k) { clima.chuva = k; clima.trovao = 4; } else if (nome === "neve") clima.chuva = 0;
+}
+if (new URLSearchParams(location.search).get("clima")) climaForcar(new URLSearchParams(location.search).get("clima"));
 function passoClima(dt) {
   if (MODO_TESTE) return;
   clima.clarao = Math.max(0, clima.clarao - dt);
   if ((clima.prox -= dt) <= 0) {
     if (clima.alvo > 0) { clima.alvo = 0; clima.prox = 240 + Math.random() * 360; }
-    else { clima.alvo = estacaoAtual() === 3 ? 0 : 0.55 + Math.random() * 0.45; clima.prox = 90 + Math.random() * 150; }
+    else { clima.alvo = estacaoAtual() === 3 ? 0 : Math.random() < 0.3 ? 0.88 + Math.random() * 0.12 : 0.5 + Math.random() * 0.28; clima.prox = 90 + Math.random() * 150; }   // (3 em 10: tempestade)
   }
   clima.chuva += Math.max(-dt / 12, Math.min(dt / 12, clima.alvo - clima.chuva));
   if (clima.chuva > 0.55 && !naCaverna(viking.x) && (clima.trovao -= dt) <= 0) {
-    clima.trovao = 25 + Math.random() * 55;                              // raro: um a cada meio minuto ou mais
-    if (Math.random() < clima.chuva) { som("trovao", null, 0.45 + Math.random() * 0.35); if (Math.random() < 0.6) clima.clarao = 0.18; }
+    const forte = clima.chuva > 0.8;                                     // tempestade: um raio a cada 15 a 40 s
+    clima.trovao = forte ? 15 + Math.random() * 25 : 25 + Math.random() * 55;   // chuva comum: raro, só um trovão longe
+    if (forte) raioCai();
+    else if (Math.random() < clima.chuva) { som("trovao", null, 0.45 + Math.random() * 0.35); if (Math.random() < 0.6) clima.clarao = 0.18; }
   }
 }
 const pingos = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.9 + Math.random() * 0.5, c: 0.6 + Math.random() * 0.6 }));
@@ -1217,7 +1229,271 @@ function desenharChuva(dt) {
     cx.moveTo(X, Y); cx.lineTo(X - L * 0.16, Y + L);
   }
   cx.stroke();
-  if (clima.clarao > 0) { cx.fillStyle = `rgba(230, 240, 255, ${0.35 * clima.clarao / 0.18})`; cx.fillRect(0, 0, w, h); }
+  if (clima.clarao > 0 && window.M3D && M3D.ativo) { cx.fillStyle = `rgba(230, 240, 255, ${0.35 * clima.clarao / 0.18})`; cx.fillRect(0, 0, w, h); }   // (no isométrico, o clarão é o de desenharRaios)
+  cx.restore();
+}
+
+// ---------------------------------------------------------------- o chão com o clima: pegadas, poças e raios
+// Pegadas: na neve (a Montanha Gelada e o chão todo no inverno) e, mais leves, na areia da praia, o herói e as criaturas
+// marcam o chão no ritmo dos passos (o mesmo do som "passo"), alternando os pés e viradas para onde andam: bota
+// (humanoide), patas (lobo, urso, tigre, javali, rato) ou as pontas das pernas (aranha, escorpião). Cada uma é um
+// afundado (sombra azulada e a borda clara) que some em ~25 s (nevando ou chovendo, mais rápido), com um pouco de neve
+// espirrando no passo. Poças: enquanto chove, em pontos fixos do mapa (hash por célula: mais na terra e nas estradas e nas
+// partes baixas; nunca na água, na praia, na neve, sob casas ou árvores) elas aparecem e crescem devagar, com o céu
+// refletido e os anéis dos pingos; parada a chuva, secam em uns 2,5 min; quem pisa nelas espirra e faz uma onda. Raios: na
+// chuva forte (tempestade), a cada 15 a 40 s um raio ramificado cai perto da tela (às vezes longe: só o clarão), com 2 ou 3
+// piscadas, uma marca chamuscada no chão e o trovão atrasado pela distância. Tudo no chão é desenhado em metros do mapa
+// (a matriz sai de tela(), com o giro da vista) e cortado pela caixaVista; nada disso na caverna nem no ?test=1
+const CC = { t: 0, pegadas: [], gotas: [], aneis: [], marcas: [], raio: null, trovoes: [], molhado: 0, celulas: new Map() };
+const PEGADA_VIDA = 25, POCA_C = 2.6;
+const TIPO_PE = { lobo: "q", lobo_alfa: "q", urso_negro: "q", tigre: "q", javali: "q", rato: "q", aranha: "a", escorpiao: "a", fantasma: null };
+const DEDOS = [[0.052, -0.04], [0.07, -0.014], [0.07, 0.014], [0.052, 0.04]];
+const vivos = (a, f) => { let n = 0; for (const p of a) if (f(p)) a[n++] = p; a.length = n; };
+// o que este chão marca: "neve", "areia" ou nada
+function chaoMarca(x, y) {
+  if (naCaverna(x) || agua(x, y)) return null;
+  const b = borda(x, y);
+  if (b > RAIO - 0.7) return null;                                        // (o mar)
+  if (estacaoAtual() === 3) return "neve";
+  if (pesoMonte(x, y) > 0.5 && neveMonte(x, y) * (1 - 0.7 * liso((1.6 - distLinha(x, y, ESTRADA_MONTE)) / 1.2)) > 0.45) return "neve";
+  if (b > RAIO - 2.8 && pesoMonte(x, y) + pesoVale(x, y) < 0.4) return "areia";
+  return null;
+}
+// a poça (fixa) de uma célula do mapa, ou null
+function pocaCel(i, j) {
+  const ch = i * 100003 + j;
+  let p = CC.celulas.get(ch);
+  if (p !== undefined) return p;
+  p = null;
+  const x = (i + 0.2 + 0.6 * hash(i, j, 901)) * POCA_C, y = (j + 0.2 + 0.6 * hash(i, j, 902)) * POCA_C;
+  if (!naCaverna(x) && borda(x, y) < RAIO - 4 && !lago(x, y, 1.8) && !fosso(x, y, 1.2) && pesoMonte(x, y) < 0.4) {
+    const terra = pesoTerra(x, y), cova = liso((0.62 - fbm(x * 0.3 + 11, y * 0.3 - 5)) / 0.2);   // (cova: as partes baixas)
+    const chance = (0.04 + 0.75 * terra + (praca(x, y) ? 0.1 : 0)) * (0.4 + 0.6 * cova) * (1 - 0.5 * pesoVale(x, y));
+    if (hash(i, j, 903) < chance) {
+      const R = 0.3 + 0.45 * hash(i, j, 904) + 0.35 * terra;
+      let ok = livre(x, y);
+      for (let k = 0; ok && k < 6; k++) ok = livre(x + Math.cos(k * 1.05) * (R + 0.35), y + Math.sin(k * 1.05) * (R + 0.35));
+      if (ok) {
+        const g = hash(i, j, 906) * 6.28, g2 = g + 1.6 + hash(i, j, 907) * 1.4, g3 = g2 + 1.8 + hash(i, j, 908) * 1.2;
+        p = { x, y, R, lim: 0.05 + 0.6 * hash(i, j, 905), b: [[0, 0, 1, 0.62, g], [Math.cos(g2) * 0.48, Math.sin(g2) * 0.48, 0.58, 0.38, g2 + 0.5], [Math.cos(g3) * 0.4, Math.sin(g3) * 0.4, 0.5, 0.34, g3 - 0.4]] };
+      }
+    }
+  }
+  CC.celulas.set(ch, p);
+  return p;
+}
+const tamPoca = p => liso((CC.molhado - p.lim) / 0.3);
+function pocaEm(x, y) {
+  const i0 = Math.floor(x / POCA_C), j0 = Math.floor(y / POCA_C);
+  for (let i = i0 - 1; i <= i0 + 1; i++) for (let j = j0 - 1; j <= j0 + 1; j++) {
+    const p = pocaCel(i, j); if (!p) continue;
+    const r = p.R * tamPoca(p);
+    if (r > 0.1 && Math.hypot(x - p.x, y - p.y) < r * 1.05) return p;
+  }
+  return null;
+}
+// um pé no chão: tipo "h" (humanoide), "q" (quatro patas) ou "a" (aranha/escorpião); k = o tamanho do pé
+const ultPe = new WeakMap();
+function pisar(l, tipo, k, correndo) {
+  if (MODO_TESTE || !tipo) return;
+  let u = ultPe.get(l);
+  if (!u) { ultPe.set(l, u = { x: l.x, y: l.y, lado: 1, a: -(l.dir || 0) * Math.PI / 4 }); return; }
+  const dx = l.x - u.x, dy = l.y - u.y, d2 = dx * dx + dy * dy;
+  u.x = l.x; u.y = l.y; u.lado = -u.lado;
+  if (d2 < 0.006 || Math.abs(l.x - cam.x) + Math.abs(l.y - cam.y) > 45) return;   // parado (empacado) ou longe da vista
+  u.a = Math.atan2(dy, dx);
+  const a = u.a, fx = Math.cos(a), fy = Math.sin(a), ld = u.lado, chao = chaoMarca(l.x, l.y), leve = window.MODO_LEVE;
+  if (chao) {
+    const areia = chao === "areia", marca = (f, la, aa, lado, t) => CC.pegadas.push({ x: l.x + fx * f - fy * la, y: l.y + fy * f + fx * la, a: aa, lado, tipo: t, k, areia, v: 1 });
+    if (tipo === "h") marca(0, ld * 0.11 * k, a + ld * 0.12, ld, "h");
+    else if (tipo === "q") { marca(0.3 * k, ld * 0.08 * k, a, ld, "q"); marca(-0.3 * k, -ld * 0.08 * k, a, -ld, "q"); }
+    else for (let i = 0; i < 4; i++) marca((i - 1.5) * 0.38 * k, ld * (0.85 - Math.abs(i - 1.5) * 0.12) * k, a + ld * (0.9 - i * 0.35), ld, "a");
+    const max = leve ? 150 : 300;
+    if (CC.pegadas.length > max) CC.pegadas.splice(0, CC.pegadas.length - max);
+    if (!areia) for (let i = 0, n = (leve ? 2 : 4) + (correndo ? 2 : 0); i < n; i++)            // a neve espirrando
+      CC.gotas.push({ x: l.x - fy * ld * 0.1 * k, y: l.y + fx * ld * 0.1 * k, z: 0.03, vx: fx * (0.4 + Math.random() * 0.6) + (Math.random() - 0.5) * 0.6, vy: fy * (0.4 + Math.random() * 0.6) + (Math.random() - 0.5) * 0.6, vz: 0.7 + Math.random() * 0.8, v: 1 });
+  }
+  if (CC.molhado > 0.05 && pocaEm(l.x, l.y)) {                                   // pisou na poça: espirra e faz uma onda
+    CC.aneis.push({ x: l.x, y: l.y, R: 0.45 * Math.min(1.6, k), v: 1, onda: true });
+    for (let i = 0, n = leve ? 3 : 6; i < n; i++) { const an = Math.random() * 6.28, vel = 0.5 + Math.random() * 0.8; CC.gotas.push({ x: l.x, y: l.y, z: 0.02, vx: Math.cos(an) * vel, vy: Math.sin(an) * vel, vz: 1 + Math.random(), v: 1, agua: true }); }
+  }
+}
+// os passos das criaturas (chamado nos quadros em que o pé toca o chão: os mesmos do som)
+function pisarCriatura(l, qc, meio) {
+  const pe = TIPO_PE[l.tipo] === undefined ? "h" : TIPO_PE[l.tipo];
+  if (!pe || (l.cfg && l.cfg.flutua) || (pe === "a" ? qc % 3 !== 0 : qc !== 0 && qc !== meio)) return;
+  const s = (l.cfg && l.cfg.sombra) || 0.4;
+  pisar(l, pe, Math.max(0.45, Math.min(1.8, pe === "h" ? s / 0.42 : pe === "q" ? s / 0.5 : s / 1.2)), l.anim === "correndo");
+}
+// o raio: cai num ponto da tela (longe do herói) ou fora dela (só o clarão); o trovão chega depois, pela distância
+function galhoRaio(x0, y0, x1, y1, desvio, prof, pts) {
+  if (!prof) { pts.push([x1, y1]); return; }
+  const mx = (x0 + x1) / 2 + (Math.random() - 0.5) * desvio, my = (y0 + y1) / 2 + (Math.random() - 0.5) * desvio * 0.25;
+  galhoRaio(x0, y0, mx, my, desvio * 0.55, prof - 1, pts); galhoRaio(mx, my, x1, y1, desvio * 0.55, prof - 1, pts);
+}
+function raioCai(forcaDentro) {
+  const v = viking;
+  if (MODO_TESTE || naCaverna(v.x)) return;
+  const n3 = Math.random() < 0.5, piscas = [[0, 0.07, 1], [0.12 + Math.random() * 0.06, 0.05, 0.55], ...(n3 ? [[0.27 + Math.random() * 0.08, 0.09, 0.85]] : [])];
+  if (window.M3D && M3D.ativo) { clima.clarao = 0.18; som("trovao", null, 0.7); return; }
+  let dentro = forcaDentro || Math.random() < 0.7, x, y;
+  for (let k = 0; k < 30; k++) {
+    if (k === 29) dentro = false;                                          // (nenhum lugar bom na tela: cai longe)
+    if (dentro) ({ x, y } = doPonteiro(W * (0.1 + 0.8 * Math.random()), H * (0.22 + 0.56 * Math.random())));   // (longe da barra de baixo)
+    else { const an = Math.random() * 6.28, d = 30 + Math.random() * 30; x = v.x + Math.cos(an) * d; y = v.y + Math.sin(an) * d; }
+    if (Math.hypot(x - v.x, y - v.y) > 4 && !naCaverna(x + 4) && (!dentro || livre(x, y))) break;   // (longe do herói e não em cima de casa)
+  }
+  const galhos = [];
+  if (dentro) {
+    const sx = (Math.random() - 0.5) * 0.5, tronco = [[sx, 1]];
+    galhoRaio(sx, 1, 0, 0, 0.24, window.MODO_LEVE ? 5 : 6, tronco); galhos.push(tronco);
+    for (let b = 0, nb = 2 + Math.floor(Math.random() * 3); b < nb; b++) {
+      const q = tronco[Math.floor(tronco.length * (0.12 + 0.5 * Math.random()))], lado = Math.random() < 0.5 ? -1 : 1;
+      const g = [q]; galhoRaio(q[0], q[1], q[0] + lado * (0.06 + 0.16 * Math.random()), q[1] - (0.08 + 0.22 * Math.random()), 0.08, 4, g); galhos.push(g);
+    }
+    if (!agua(x, y) && borda(x, y) < RAIO - 0.8) { CC.marcas.push({ x, y, v: 1, g: Math.random() * 6.28 }); if (CC.marcas.length > 4) CC.marcas.shift(); }
+  }
+  CC.raio = { x, y, t: 0, piscas, dentro, galhos, forca: dentro ? 1 : 0.55, fim: piscas[piscas.length - 1][0] + piscas[piscas.length - 1][1] + 0.1 };
+  const d = Math.hypot(x - v.x, y - v.y);
+  CC.trovoes.push({ t: Math.min(4, 0.15 + d / 30), vol: Math.max(0.4, 1 - d / 80) });
+}
+// quanto clarão agora (0 a 1): as piscadas do raio e o trovão longe da chuva comum
+function claraoAgora() {
+  let I = clima.clarao > 0 ? 0.6 * clima.clarao / 0.18 : 0;
+  const r = CC.raio;
+  if (r) for (const [s, d, k] of r.piscas) { const u = r.t - s; if (u >= 0 && u < d + 0.12) I = Math.max(I, r.forca * k * (u < d ? 1 : 1 - (u - d) / 0.12)); }
+  return I;
+}
+function passoChaoClima(dt) {
+  if (MODO_TESTE) return;
+  CC.t += dt;
+  CC.molhado = clima.chuva > 0.15 ? Math.min(1, CC.molhado + dt * clima.chuva / 80) : Math.max(0, CC.molhado - dt / 150);
+  const nevando = estacaoAtual() === 3, chovendo = clima.chuva > 0.2;
+  const fNeve = (nevando ? 1.7 : chovendo ? 1.5 : 1) / PEGADA_VIDA, fAreia = (chovendo ? 2.5 : 1) / PEGADA_VIDA;
+  vivos(CC.pegadas, p => (p.v -= dt * (p.areia ? fAreia : fNeve)) > 0);
+  vivos(CC.gotas, p => { p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.vz -= 5 * dt; return (p.v -= dt / 0.5) > 0 && p.z > -0.02; });
+  vivos(CC.aneis, r => (r.v -= dt / (r.onda ? 1.1 : 0.8)) > 0);
+  vivos(CC.marcas, m => (m.v -= dt / 25) > 0);
+  vivos(CC.trovoes, s => { if ((s.t -= dt) > 0) return true; som("trovao", null, s.vol); return false; });
+  if (CC.raio && (CC.raio.t += dt) > 1.5) CC.raio = null;
+}
+// o chão: o molhado, as poças (com os anéis), as marcas dos raios e as pegadas (com a neve espirrando)
+function desenharChaoClima(t) {
+  if (MODO_TESTE) return;
+  const dt = Math.min(0.05, Math.max(0, t - (desenharChaoClima.tAnt ?? t))); desenharChaoClima.tAnt = t;
+  if (CC.molhado <= 0.02 && !CC.pegadas.length && !CC.marcas.length && !CC.gotas.length && !CC.aneis.length) return;
+  const leve = window.MODO_LEVE, s = PX * zoom, [vx0, vx1, vy0, vy1] = caixaVista(1.5);
+  cx.save();
+  if (CC.molhado > 0.02 && !leve) { cx.fillStyle = `rgba(20, 26, 36, ${0.1 * CC.molhado})`; cx.fillRect(-20, -20, W + 40, H + 40); }   // o chão molhado, um pouco mais escuro (no celular, não)
+  const [ax, ay] = tela(1, 0), [bx, by] = tela(0, 1), [ox, oy] = tela(-cam.x, -cam.y);
+  cx.transform(ax, ay, bx, by, W / 2 + ox, H / 2 + oy);                     // daqui em diante, em metros do mapa
+  const [cbx, cby] = daVista(0, -1), [ccx, ccy] = daVista(0, 1);              // para baixo e para cima na tela
+  const el = (x, y, rx, ry, rot) => { cx.moveTo(x + rx * Math.cos(rot), y + rx * Math.sin(rot)); cx.ellipse(x, y, rx, ry, rot, 0, 6.2832); };
+  // poças
+  if (CC.molhado > 0.02) {
+    const vis = [];
+    let calc = leve ? 20 : 60;                                             // células novas calculadas por quadro (o resto, no próximo)
+    for (let i = Math.floor(vx0 / POCA_C) - 1, i1 = Math.floor(vx1 / POCA_C) + 1; i <= i1; i++)
+      for (let j = Math.floor(vy0 / POCA_C) - 1, j1 = Math.floor(vy1 / POCA_C) + 1; j <= j1; j++) {
+        if (!CC.celulas.has(i * 100003 + j) && calc-- <= 0) continue;
+        const p = pocaCel(i, j); if (!p) continue;
+        const r = p.R * tamPoca(p); if (r > 0.04) vis.push([p, r]);
+      }
+    if (vis.length) {
+      const blob = (esc, dx, dy, so) => { for (const [p, r] of vis) for (const [bx2, by2, rx, ry, g] of so ? p.b.slice(0, 1) : p.b) el(p.x + (bx2 + dx) * r, p.y + (by2 + dy) * r, rx * r * esc, ry * r * esc, g); };
+      cx.fillStyle = "rgba(30, 24, 18, 0.28)"; cx.beginPath(); blob(1.22, 0, 0); cx.fill();                       // a borda escura molhada
+      cx.fillStyle = "rgba(92, 112, 138, 0.62)"; cx.beginPath(); blob(1, 0, 0); cx.fill();                        // a água (o céu fechado refletido)
+      cx.fillStyle = "rgba(186, 204, 226, 0.4)"; cx.beginPath(); blob(0.62, ccx * 0.2, ccy * 0.2, true); cx.fill();   // o brilho do céu
+      if (clima.chuva > 0.1) {                                             // os pingos caindo nelas
+        const max = leve ? 30 : 90;
+        for (const [p, r] of vis) {
+          let n = dt * 2.4 * r * r * 3.14 * clima.chuva;
+          while (n > 0 && CC.aneis.length < max) { if (Math.random() < n) { const an = Math.random() * 6.28, rr = Math.sqrt(Math.random()) * r * 0.62; CC.aneis.push({ x: p.x + Math.cos(an) * rr, y: p.y + Math.sin(an) * rr, R: 0.12 + Math.random() * 0.1, v: 1 }); } n -= 1; }
+        }
+      }
+    }
+  }
+  if (CC.aneis.length) {
+    cx.strokeStyle = "rgb(232, 242, 255)";
+    for (const onda of [false, true]) for (let tom = 1; tom <= 4; tom++) {   // (um traço por tom de apagado)
+      let algum = false;
+      cx.globalAlpha = (onda ? 0.75 : 0.6) * tom / 4; cx.lineWidth = onda ? 0.032 : 0.022; cx.beginPath();
+      for (const r of CC.aneis) {
+        if (!!r.onda !== onda || Math.ceil(r.v * 4) !== tom || r.x < vx0 || r.x > vx1 || r.y < vy0 || r.y > vy1) continue;
+        const rr = 0.02 + r.R * (1 - r.v); cx.moveTo(r.x + rr, r.y); cx.ellipse(r.x, r.y, rr, rr, 0, 0, 6.2832); algum = true;
+        if (onda && r.v < 0.75) { const r2 = rr * 0.55; cx.moveTo(r.x + r2, r.y); cx.ellipse(r.x, r.y, r2, r2, 0, 0, 6.2832); }
+      }
+      if (algum) cx.stroke();
+    }
+    cx.globalAlpha = 1;
+  }
+  // as marcas chamuscadas dos raios (com a brasa no começo)
+  for (const m of CC.marcas) {
+    if (m.x < vx0 || m.x > vx1 || m.y < vy0 || m.y > vy1) continue;
+    const g = cx.createRadialGradient(m.x, m.y, 0, m.x, m.y, 1);
+    g.addColorStop(0, `rgba(12, 8, 5, ${0.85 * m.v})`); g.addColorStop(0.35, `rgba(22, 15, 9, ${0.65 * m.v})`); g.addColorStop(0.7, `rgba(34, 24, 14, ${0.25 * m.v})`); g.addColorStop(1, "rgba(34, 24, 14, 0)");
+    cx.fillStyle = g; cx.beginPath(); el(m.x, m.y, 1, 1, 0); cx.fill();
+    cx.strokeStyle = `rgba(14, 9, 5, ${0.5 * m.v})`; cx.lineWidth = 0.028; cx.beginPath();
+    for (let k = 0; k < 9; k++) { const an = m.g + k * 0.7 + hash(k, 3) * 0.4, l = 0.45 + 0.4 * hash(k, Math.round(m.g * 100)); cx.moveTo(m.x + Math.cos(an) * 0.3, m.y + Math.sin(an) * 0.3); cx.lineTo(m.x + Math.cos(an + 0.2) * l * 0.75, m.y + Math.sin(an + 0.2) * l * 0.75); cx.lineTo(m.x + Math.cos(an - 0.1) * l, m.y + Math.sin(an - 0.1) * l); }
+    cx.stroke();
+    const brasa = 1 - (1 - m.v) * 25 / 3;                                   // (os 3 primeiros segundos)
+    if (brasa > 0) { cx.fillStyle = `rgba(255, 140, 50, ${0.65 * brasa})`; cx.beginPath(); el(m.x, m.y, 0.22, 0.22, 0); cx.fill(); }
+  }
+  // as pegadas: em poucos tons de apagado (um caminho por tom), primeiro a borda clara (um tico para baixo), depois o fundo
+  if (CC.pegadas.length) {
+    const forma = (p, o) => {
+      const k = p.k, c = Math.cos(p.a), sn = Math.sin(p.a), X = p.x + cbx * o * k, Y = p.y + cby * o * k;
+      const pe = (f, l, rx, ry, rot) => el(X + c * f - sn * l, Y + sn * f + c * l, rx, ry, rot);
+      if (p.tipo === "h") { pe(0.065 * k, 0, 0.11 * k, 0.06 * k, p.a); pe(-0.115 * k, 0, 0.062 * k, 0.052 * k, p.a); }
+      else if (p.tipo === "q") { pe(0, 0, 0.045 * k, 0.05 * k, p.a); for (const [f, l] of DEDOS) pe(f * 1.3 * k, l * 1.3 * k, 0.021 * k, 0.018 * k, p.a); }
+      else pe(0, 0, 0.075 * k, 0.026 * k, p.a);
+    };
+    const TONS = 5;
+    for (const areia of [false, true]) for (let tom = 1; tom <= TONS; tom++) {
+      const lista = CC.pegadas.filter(p => p.areia === areia && Math.ceil(p.v * TONS) === tom && p.x > vx0 && p.x < vx1 && p.y > vy0 && p.y < vy1);
+      if (!lista.length) continue;
+      const a = tom / TONS;
+      cx.fillStyle = areia ? `rgba(255, 244, 214, ${0.35 * a})` : `rgba(255, 255, 255, ${0.8 * a})`;
+      cx.beginPath(); for (const p of lista) forma(p, 0.028); cx.fill();
+      cx.fillStyle = areia ? `rgba(112, 84, 50, ${0.34 * a})` : `rgba(74, 100, 156, ${0.58 * a})`;
+      cx.beginPath(); for (const p of lista) forma(p, 0); cx.fill();
+    }
+  }
+  cx.restore();
+  if (CC.gotas.length) {                                                    // a neve (e a água) espirrando no passo
+    cx.save();
+    for (const agua2 of [false, true]) {
+      cx.fillStyle = agua2 ? "rgba(200, 220, 240, 0.75)" : "rgba(255, 255, 255, 0.85)"; cx.beginPath();
+      for (const p of CC.gotas) { if (!!p.agua !== agua2) continue; const [X, Y] = noMundo(p.x, p.y, Math.max(0, p.z)), r = Math.max(0.8, s * 0.022 * (0.5 + 0.5 * p.v)); cx.moveTo(X + r, Y); cx.arc(X, Y, r, 0, 6.2832); }
+      cx.fill();
+    }
+    cx.restore();
+  }
+}
+// o raio e o clarão (depois do escuro da noite: o clarão clareia a noite, mas menos que o dia)
+function desenharRaios(t) {
+  if (MODO_TESTE) return;
+  const I = claraoAgora(), r = CC.raio;
+  if (I <= 0.01 && !(r && r.dentro && r.t < r.fim)) return;
+  cx.save();
+  if (r && r.dentro && r.t < r.fim) {
+    let Ip = 0; for (const [s0, d, k] of r.piscas) { const u = r.t - s0; if (u >= 0 && u < d + 0.12) Ip = Math.max(Ip, k * (u < d ? 1 : 1 - (u - d) / 0.12)); }
+    const [Xg, Yg] = noMundo(r.x, r.y), Hb = Math.max(Yg + 60, 160), s = PX * zoom, a = Math.max(0.25, Ip);
+    const linhas = r.galhos.map(g => g.map(q => [Xg + q[0] * Hb * 0.55, Yg - q[1] * Hb]));
+    cx.lineCap = cx.lineJoin = "round"; cx.globalCompositeOperation = "lighter";
+    for (const [cor, larg] of [[`rgba(110, 140, 255, ${0.22 * a})`, 16], [`rgba(170, 196, 255, ${0.45 * a})`, 6], [`rgba(255, 255, 255, ${a})`, 2.4]]) {
+      cx.strokeStyle = cor;
+      linhas.forEach((g, i) => { cx.lineWidth = Math.max(0.8, larg * Math.min(1.4, zoom) * (i ? 0.45 : 1)); cx.beginPath(); g.forEach(([X, Y], k) => k ? cx.lineTo(X, Y) : cx.moveTo(X, Y)); cx.stroke(); });
+    }
+    cx.globalCompositeOperation = "source-over";
+    const g = cx.createRadialGradient(Xg, Yg, 0, Xg, Yg, 2.4 * s);
+    g.addColorStop(0, `rgba(255, 255, 255, ${0.8 * a})`); g.addColorStop(0.3, `rgba(170, 200, 255, ${0.35 * a})`); g.addColorStop(1, "rgba(150, 180, 255, 0)");
+    cx.fillStyle = g; cx.beginPath(); cx.ellipse(Xg, Yg, 2.4 * s, 2.4 * s * ACHATA, 0, 0, 6.2832); cx.fill();
+  }
+  if (I > 0.01) {
+    const noite = luzDoDia(horaDoDia()).esc / 0.62;
+    cx.setTransform(1, 0, 0, 1, 0, 0); cx.fillStyle = `rgba(228, 236, 255, ${I * (0.5 - 0.2 * noite)})`; cx.fillRect(0, 0, cv.width, cv.height);
+  }
   cx.restore();
 }
 
@@ -1931,7 +2207,7 @@ function passoTempo(dtReal) {
   if ((tempoSalvo += dtReal) > 10) { tempoSalvo = 0; try { localStorage.setItem(TEMPO_CHAVE, JSON.stringify(tempo)); } catch (e) {} }
 }
 function horaDoDia() { return (tempo.dia % 1) * 24; }
-function estacaoAtual() { return Math.floor(tempo.dia / DIAS_ESTACAO) % 4; }
+function estacaoAtual() { return ESTACAO_FORCADA ?? Math.floor(tempo.dia / DIAS_ESTACAO) % 4; }   // (?clima=neve: o inverno)
 function nomeFase(h) { return h >= 5 && h < 12 ? "manhã" : h >= 12 && h < 17.5 ? "tarde" : h >= 17.5 && h < 20 ? "anoitecer" : "noite"; }
 // quanto escuro (0 a 0,62) e a cor da luz por cima, pela hora
 function luzDoDia(h) {
@@ -2002,7 +2278,7 @@ function desenharLuzDoDia(t) {
   if (escuroNoite.width !== cv.width || escuroNoite.height !== cv.height) { escuroNoite.width = cv.width; escuroNoite.height = cv.height; }
   const g = escuroNoite.getContext("2d"), s = PX * zoom;
   g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "source-over"; g.clearRect(0, 0, escuroNoite.width, escuroNoite.height);
-  g.fillStyle = `rgba(8, 14, 42, ${esc})`; g.fillRect(0, 0, escuroNoite.width, escuroNoite.height);
+  g.fillStyle = `rgba(8, 14, 42, ${esc * (1 - 0.6 * claraoAgora())})`; g.fillRect(0, 0, escuroNoite.width, escuroNoite.height);   // (o raio clareia a noite)
   g.setTransform(cx.getTransform()); g.globalCompositeOperation = "destination-out";
   const furo = (X, Y, r, a) => { if (X < -r || X > W + r || Y < -r || Y > H + r) return; const gr = g.createRadialGradient(X, Y, r * 0.1, X, Y, r); gr.addColorStop(0, `rgba(0, 0, 0, ${a})`); gr.addColorStop(1, "rgba(0, 0, 0, 0)"); g.fillStyle = gr; g.beginPath(); g.ellipse(X, Y, r, r * 0.8, 0, 0, 7); g.fill(); };
   { const [X, Y] = noMundo(viking.x, viking.y, 0.8); furo(X, Y, 4.5 * s, 0.85); }
@@ -5697,6 +5973,7 @@ function passoCriatura(l, dt) {
   const qc = Math.floor(l.t * info.fps) % info.quadros;
   if (qc !== l.qAnt) {
     const meio = Math.round(info.quadros / 2);
+    if ((l.anim === "andando" || l.anim === "correndo") && !l.manual && !l.morto) pisarCriatura(l, qc, meio);   // as pegadas
     if (l.anim === "andando" && l.tipo === "goblin" && (qc === 0 || qc === meio)) som("passo", l, 0.3);
     if (l.anim === "andando" && l.tipo === "esqueleto") {
       if (qc === 0 || qc === meio) som("passo", l, 0.35);
@@ -8226,8 +8503,10 @@ function passo(dt) {
   }
   if (!emendou && golpeQualquer && !v.somCorte && q >= info.acerto - 2) { v.somCorte = true; som(classe === "guerreiro" ? "machado" : classe === "ninja" ? "adaga" : "corte", v, furia.buff > 0 ? 1.1 : 0.9); }
   const qp = ((q % info.quadros) + info.quadros) % info.quadros;
-  if (qp !== v.qPasso && (v.anim.startsWith("andando") || v.anim.startsWith("correndo")) && (qp === 0 || qp === Math.round(info.quadros / 2)))
+  if (qp !== v.qPasso && (v.anim.startsWith("andando") || v.anim.startsWith("correndo")) && (qp === 0 || qp === Math.round(info.quadros / 2))) {
     som("passo", v, v.anim.startsWith("correndo") ? 0.75 : 0.45);
+    pisar(v, "h", 1, v.anim.startsWith("correndo"));               // a pegada na neve/areia (e o espirro na poça)
+  }
   v.qPasso = qp;
   if (v.ferido > 0) v.ferido = Math.max(0, v.ferido - dt);
   // fogueira estalando quando ele está perto (sintetizada só sem o laço gravado do ambiente: ver passoSonsAmbiente)
@@ -8634,6 +8913,7 @@ function desenhar(t) {
     tintaEstacaoChao();
     desenharCosta(t);
     desenharAguaViva(t);
+    desenharChaoClima(t);                             // poças, pegadas e marcas dos raios (por baixo de tudo que fica em pé)
     desenharVegetacao(t);
     desenharNuvens(t);
   }
@@ -8685,7 +8965,7 @@ function desenhar(t) {
   desenharColisao();
   desenharEditor();
   desenharFaiscas();
-  if (noEscuro) luzDaCaverna(t); else { desenharAmbiente(t); desenharClima(t, Math.min(0.05, t - (desenhar.tAnt || t))); desenharLuzDoDia(t); }
+  if (noEscuro) luzDaCaverna(t); else { desenharAmbiente(t); desenharClima(t, Math.min(0.05, t - (desenhar.tAnt || t))); desenharLuzDoDia(t); desenharRaios(t); }
   if (window.FX3) FX3.desenhar2d(t);                // os efeitos 3D (FX3) por cima do mundo, depois do escuro da noite (brilham)
   if (ESTILO_TINTA) filtroTinta(t);                  // o Mundo de Tinta: o mundo inteiro (e os efeitos) vira nanquim e aguada
   for (const f of placas) f();
@@ -9957,7 +10237,7 @@ function laco(agora) {
   if (MODO_TESTE && agora - antes < 33) { requestAnimationFrame(laco); return; }   // 30 quadros por segundo
   const dt = Math.min(0.05, (agora - antes) / 1000); antes = agora;
   const t = agora / 1000;
-  passoTempo(dt); passoClima(dt); passoSonsAmbiente(dt);
+  passoTempo(dt); passoClima(dt); passoChaoClima(dt); passoSonsAmbiente(dt);
   if (congela > 0) congela -= dt;                                 // hit-stop: o mundo para um instante no acerto
   else if (editor.ativo) passoEditor(dt);                           // editando: o jogo fica parado
   else if (!pausado) passo(dt * veloc);
