@@ -9846,7 +9846,7 @@ void main() {
     float vis = smoothstep(0.46, 0.53, b) * smoothstep(0.0, 0.08, m), z = smoothstep(0.2, 0.46, b) * (1.0 - vis) * smoothstep(0.0, 0.3, m);
     float traco = smoothstep(0.62, 0.86, vn(qr * vec2(1.0 / 80.0, 1.0 / 4.0) + 2.0)) * z;
     vec3 fora = mix(papel, mix(papel, NANQUIM, 0.2 + 0.25 * fbm(q / 12.0)), traco * 0.7);
-    fora = mix(fora, NANQUIM, step(0.988, h21(floor(q / 5.0))) * smoothstep(0.28, 0.42, b));
+    fora = mix(fora, NANQUIM, step(0.988, h21(floor(q / 5.0))) * smoothstep(0.28, 0.42, b) * smoothstep(0.05, 0.3, m));
     cor = mix(fora, cor, vis);
   }
   // os efeitos 3D: o miolo vira nanquim, a borda fica na cor do efeito (azul, vermelho; o resto, cinza)
