@@ -3,7 +3,7 @@
   "trechos": [
    [
     0.5,
-    20.0
+    30.0
    ]
   ],
   "vel": 1.0,
@@ -13,67 +13,67 @@
  "vento_loop": {
   "trechos": [
    [
-    21.55,
+    31.55,
     7.5236
    ]
   ],
   "vel": 1.0,
-  "vol": 0.6,
+  "vol": 0.45,
   "loop": true
  },
  "campo_loop": {
   "trechos": [
    [
-    30.1236,
-    20.0
+    40.1236,
+    30.0
    ]
   ],
   "vel": 1.0,
-  "vol": 0.7,
+  "vol": 0.4,
   "loop": true
  },
  "floresta_loop": {
   "trechos": [
    [
-    51.1736,
-    20.0
+    71.1736,
+    30.0
    ]
   ],
   "vel": 1.0,
-  "vol": 0.7,
+  "vol": 0.55,
   "loop": true
  },
  "noite_loop": {
   "trechos": [
    [
-    72.2236,
-    20.0
+    102.2236,
+    30.0
    ]
   ],
   "vel": 1.0,
-  "vol": 0.6,
+  "vol": 0.45,
   "loop": true
  },
  "vila_loop": {
   "trechos": [
    [
-    93.2736,
+    133.2736,
     20.0
    ]
   ],
   "vel": 1.0,
-  "vol": 0.5,
+  "vol": 0.4,
   "loop": true
  },
  "fogueira_loop": {
   "trechos": [
    [
-    114.3236,
-    12.3503
+    154.3236,
+    8.5
    ]
   ],
   "vel": 1.0,
-  "vol": 0.7,
+  "vol": 1.0,
   "loop": true
  }
 }

@@ -841,7 +841,7 @@ const ESTILO_PINTADO = (() => { const q = new URLSearchParams(location.search); 
 const Som = { ctx: null, saida: null, ruido: null, ligado: true, volume: 0.7, arq: null, buf: {}, musica: null, musicaLigada: true };
 Som.volMusica = 0.6;
 try { Som.ligado = localStorage.getItem("som") !== "0"; Som.musicaLigada = localStorage.getItem("musica") !== "0"; const v = parseFloat(localStorage.getItem("volMusica")); if (v >= 0 && v <= 1) Som.volMusica = v; } catch (e) {}
-// sons gravados (pacotes grátis CC0 da Kenney e do OpenGameArt; ver Tools/sons/CREDITOS.md): todas as variações de todos
+// sons gravados (pacotes grátis de RPG: TomMusic e Leohpaz, mais Kenney e criaturas CC0; ver Tools/sons/CREDITOS.md): todas as variações de todos
 // os eventos ficam num MP3 só (sons/efeitos.mp3); o sons.json diz onde começa cada trecho, a velocidade (tom) e o volume.
 // Decodificado depois do primeiro toque (o navegador só libera o áudio aí); até lá, e para os efeitos de magia, vale o
 // som sintetizado
@@ -860,7 +860,11 @@ function tocarGravado(nome, onde, forca, atraso = 0) {
   if (!lista || !(Som.efeitos instanceof AudioBuffer)) return false;
   const d = somSaida(forca * c.vol, onde);
   if (!d) return true;
-  const [inicio, dur] = lista[Math.floor(Math.random() * lista.length)];
+  const uv = Som.ultimaVar || (Som.ultimaVar = {});
+  let k = Math.floor(Math.random() * lista.length);
+  if (lista.length > 1 && k === uv[nome]) k = (k + 1 + Math.floor(Math.random() * (lista.length - 1))) % lista.length;   // nunca a mesma duas vezes seguidas
+  uv[nome] = k;
+  const [inicio, dur] = lista[k];
   const f = Som.ctx.createBufferSource();
   f.buffer = Som.efeitos;
   f.playbackRate.value = c.vel * (0.93 + Math.random() * 0.14);       // cada vez um pouco diferente
@@ -1048,6 +1052,9 @@ const SOM_INTERVALO = {
   veneno: [600, 250], golpe_especial: [0, 400], giro: [0, 350], metin_golpe: [0, 110], metin_quebra: [0, 1500], osso_golpe: [0, 70],
   flecha_acerta: [0, 60], moeda: [0, 120], drop: [0, 150], drop_raro: [0, 600], equipar: [0, 150], bau: [0, 500], missao: [0, 1500],
   trovao: [0, 6000], ui_abrir: [0, 90], ui_fechar: [0, 90], ui_clique: [0, 70], ui_aceitar: [0, 200], ui_negar: [0, 250],
+  nivel: [0, 1500], pocao: [0, 300], morte_jogador: [0, 3000], refino_falha: [0, 500], magia_buff: [0, 400], arcano: [0, 60],
+  arcano_carga: [0, 200], furia_carga: [0, 300], vento: [0, 150], grunhido: [700, 250], gemido: [1500, 300], rosnado: [2500, 400],
+  uivo: [8000, 3000], aranha: [1500, 400], carne: [0, 50], corte: [0, 60], estalo: [0, 80], gelo: [0, 150], gelo_quebra: [0, 400],
 };
 const somPorFonte = new WeakMap();
 let somQualquer = -1e9;                       // quando tocou o último som de interface (o clique de botão não soma em cima)
@@ -1063,10 +1070,10 @@ function som(nome, onde = null, forca = 1) {
   }
   somUltimo[nome] = agora;
   if (!onde) somQualquer = agora;              // só os sem lugar (janelas, loja, bolsa): os passos dos bichos não contam
-  if (Som.buf[nome] && Som.efeitos instanceof AudioBuffer && nome !== "arco") {
+  if (Som.buf[nome] && Som.efeitos instanceof AudioBuffer) {
     tocarGravado(nome, onde, forca);
     if (nome === "desmorona") { tocarGravado(nome, onde, forca * 0.8, 0.18); tocarGravado(nome, onde, forca * 0.6, 0.4); }   // os ossos caindo aos poucos
-    if (nome !== "arco" && nome !== "furia_explosao") return;          // o arco e a fúria somam o gravado com o sintetizado
+    if (nome !== "furia_explosao") return;                              // a fúria soma o gravado com o sintetizado
   }
   const sint = SONS[nome] || SONS[SOM_RESERVA[nome]];
   const d = sint && somSaida(forca, onde);
@@ -1077,6 +1084,7 @@ function som(nome, onde = null, forca = 1) {
 const SOM_RESERVA = {
   machado: "corte", adaga: "corte", metal: "osso", golpe_especial: "cortePesado", giro: "vento", flecha_acerta: "estalo", osso_golpe: "osso",
   orc_rosnado: "rosnado", orc_golpe_voz: "grunhido", orc_morte: "gemido", rugido_chefe: "rosnado", goblin_voz: "grunhido", javali: "grunhido",
+  pocao: "arcano", morte_jogador: "gemido", refino_falha: "osso",
   rato: "mordida", esqueleto_grito: "chocalho", passo_gigante: "passo", magia_fogo: "arcano", magia_raio: "trovao", meteoro_queda: "vento",
   meteoro: "furia_explosao", erupcao: "terra", veneno: "arcano", metin_golpe: "osso", metin_quebra: "desmorona", moeda: "estalo", drop: "estalo",
 };
@@ -3582,7 +3590,7 @@ function usarPocaoMana() {
   if (!prog || !contarItem("pocaoMana") || viking.caido || viking.mana >= status.manaMax) return;
   removerItem("pocaoMana"); viking.mana = Math.min(status.manaMax, viking.mana + status.manaMax * 0.4);
   for (let k = 0; k < 14; k++) brasas.push({ x: viking.x + (Math.random() - 0.5) * 0.6, y: viking.y + (Math.random() - 0.5) * 0.4, z: Math.random(), vx: 0, vy: 0, vz: 1 + Math.random(), vida: 0.7, max: 0.7, tam: 0.05, cor: 215 });
-  som("arcano", viking, 0.5); salvarProgresso(); atualizarFicha(); desenharBolsa(); atualizarItensBarra();
+  som("pocao", viking, 0.7); salvarProgresso(); atualizarFicha(); desenharBolsa(); atualizarItensBarra();
 }
 let fonteDano = null;                                // a skill que está ferindo agora (o nível dela aumenta o dano)
 function comFonte(nome, f) { const a = fonteDano; fonteDano = nome; try { return f(); } finally { fonteDano = a; } }
@@ -3740,7 +3748,7 @@ function usarPocao() {
   if (!prog || !contarItem("pocao") || viking.caido || viking.vida >= status.vidaMax) return;
   removerItem("pocao"); viking.vida = Math.min(status.vidaMax, viking.vida + status.vidaMax * 0.4);
   for (let k = 0; k < 14; k++) brasas.push({ x: viking.x + (Math.random() - 0.5) * 0.6, y: viking.y + (Math.random() - 0.5) * 0.4, z: Math.random(), vx: 0, vy: 0, vz: 1 + Math.random(), vida: 0.7, max: 0.7, tam: 0.05, cor: 355 });
-  som("arcano", viking, 0.5); salvarProgresso(); atualizarFicha(); desenharBolsa(); atualizarItensBarra();
+  som("pocao", viking, 0.7); salvarProgresso(); atualizarFicha(); desenharBolsa(); atualizarItensBarra();
 }
 // o golpe de uma criatura no personagem: a força dela, menos a defesa
 function golpeNoPersonagem(l) {
@@ -3756,7 +3764,7 @@ function golpeNoPersonagem(l) {
 }
 function morrerJogador() {
   viking.vida = 0; viking.caido = true; viking.fila = null; viking.alvo = null; selecao = null; mira = null;
-  tocar("morte", true); viking.reviver = 4;
+  tocar("morte", true); viking.reviver = 4; som("morte_jogador", viking, 1);
   const perda = Math.round(EXP_NIVEL[prog.nivel] * 0.02); prog.exp = Math.max(0, prog.exp - perda); salvarProgresso();
   avisar(`Você caiu! Perdeu ${perda} de exp; volta na praça em 4 s`);
 }
@@ -4206,7 +4214,7 @@ function refinar() {
   res.textContent = deu ? `Sucesso! ${a.nome(novo)}` : novo === null ? `Falhou... ${nomeAntes} quebrou.` : `Falhou, mas a bênção salvou: voltou para +${novo}.`;
   $("#ferFala").textContent = deu ? `"Ficou uma beleza. ${novo >= 7 ? "Poucos têm uma peça assim!" : "Volte quando quiser mais."}"` : novo === null ? `"Que azar... o metal não aguentou."` : `"Por pouco! A bênção segurou o metal."`;
   ferreiroMartela(deu); som("moeda", null, 0.6);
-  setTimeout(() => som(deu ? "ui_aceitar" : "ui_negar", null, 1), 450);   // o resultado, depois das marteladas
+  setTimeout(() => som(deu ? "ui_aceitar" : "refino_falha", null, 1), 450);   // o resultado, depois das marteladas
   depoisDaArma();
 }
 function comprarArma() {
