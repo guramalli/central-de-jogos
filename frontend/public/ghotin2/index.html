@@ -3011,8 +3011,10 @@ function passoNinja(dt) {
     }
   }
 }
+// (com os efeitos 3D ligados, FX3.ativo, o 2D deixa de desenhar o que eles trocaram)
+const fx3 = () => !!(window.FX3 && FX3.ativo);
 function desenharNuvensToxicas(t) {
-  if (!nuvensToxicas.length) return;
+  if (!nuvensToxicas.length || fx3()) return;
   const s = PX * zoom;
   cx.save();
   for (const n of nuvensToxicas) {
@@ -5788,7 +5790,7 @@ function baqueInvestida(alvo, fx, fy) {
 }
 // riscos de vento e o anel do baque (por cima de tudo)
 function desenharInvestidaFrente() {
-  if (!investida.riscos.length && !investida.baques.length) return;
+  if ((!investida.riscos.length && !investida.baques.length) || fx3()) return;
   const s = PX * zoom;
   cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round";
   for (const r of investida.riscos) {
@@ -5919,6 +5921,7 @@ function desenharMagiasCriatura() {
   cx.save(); cx.globalCompositeOperation = "lighter";
   for (const m of magiasCriatura) {
     if (m.proj === "flecha") { desenharFlechaCriatura(m, s, alt); continue; }
+    if (fx3()) continue;
     const [c0, c1, c2] = m.proj === "sombra" ? ["210, 160, 255", "120, 40, 200", "40, 0, 70"] : ["190, 255, 120", "60, 220, 60", "0, 120, 0"];
     m.rastro.forEach(([x, y], k) => {
       const [X, Y] = noMundo(x, y), r = s * (0.2 - k * 0.022);
@@ -5981,15 +5984,15 @@ function acertoFlecha(f) {
   tremor = Math.max(tremor, 0.1);
 }
 function desenharFlechas() {
-  const z = zoom, s = PX * z;
+  const z = zoom, s = PX * z, so3d = fx3();                          // (com os efeitos 3D: o brilho e o rastro são deles)
   for (const f of flechas) {
     if (f.atraso > 0) continue;
-    if (f.veneno && !f.presa) {                                      // a venenosa: um brilho verde em volta da haste
+    if (f.veneno && !f.presa && !so3d) {                             // a venenosa: um brilho verde em volta da haste
       const [px, py] = noMundo(f.x, f.y, f.z), g = cx.createRadialGradient(px, py, 0, px, py, s * 0.3);
       g.addColorStop(0, "rgba(160, 255, 110, 0.55)"); g.addColorStop(1, "rgba(60, 200, 40, 0)");
       cx.save(); cx.globalCompositeOperation = "lighter"; cx.fillStyle = g; cx.beginPath(); cx.arc(px, py, s * 0.3, 0, 7); cx.fill(); cx.restore();
     }
-    if (f.fogo) {                                                    // a flecha pegando fogo: um clarão em volta da haste
+    if (f.fogo && !so3d) {                                           // a flecha pegando fogo: um clarão em volta da haste
       const [gx, gy] = noMundo(f.x - f.dx * 0.3, f.y - f.dy * 0.3, f.z), r = s * 0.55;
       cx.save(); cx.globalCompositeOperation = "lighter";
       const g = cx.createRadialGradient(gx, gy, 0, gx, gy, r);
@@ -5997,7 +6000,7 @@ function desenharFlechas() {
       cx.fillStyle = g; cx.beginPath(); cx.arc(gx, gy, r, 0, 7); cx.fill(); cx.restore();
     }
     // o rastro: uma faixa de luz que afina e some, do arco até a flecha (dourada; verde na venenosa; laranja na de fogo)
-    if (f.rastro && f.rastro.length > 1) {
+    if (f.rastro && f.rastro.length > 1 && !so3d) {
       const cor = f.veneno ? "150, 255, 110" : f.fogo ? "255, 150, 60" : "255, 236, 170", pts = f.rastro.map(([x, y, z]) => noMundo(x, y, z)), n = pts.length;
       cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round";
       for (let k = 1; k < n; k++) {
@@ -6072,13 +6075,14 @@ function usarConcentrado() {
 function atordoar(l, seg) {
   if (l.morto || l.cfg.estatico) return;
   l.atordoado = Math.max(l.atordoado || 0, l.cfg.chefe ? 0.5 : seg); l.acao = null; l.destino = null;
-  numeros.push({ wx: l.x, wy: l.y, y: -l.cfg.altura - 30, vida: 0.9, txt: "Atordoado!", forte: false });
+  numeros.push({ wx: l.x, wy: l.y, y: -l.cfg.altura - 34, vida: 1.1, txt: "Atordoado!", forte: false, status: "atordoado" });
 }
 function passoVeneno(dt) {
   venenosa.recarga = Math.max(0, venenosa.recarga - dt); concentrado.recarga = Math.max(0, concentrado.recarga - dt);
   for (const [l, q] of envenenados) {
     q.t -= dt; q.tique -= dt;
     if (l.morto || q.t <= 0) { envenenados.delete(l); continue; }
+    if (!q.avisou) { q.avisou = true; numeros.push({ wx: l.x, wy: l.y, y: -l.cfg.altura - 34, vida: 1.1, txt: "Envenenado", status: "veneno" }); }
     if (q.tique <= 0) { q.tique = 1; const d = q.dano; l.vida -= d; l.piscar = 0.1; numeros.push({ wx: l.x, wy: l.y, y: -l.cfg.altura - 16, vida: 0.7, txt: "−" + d, forte: false, veneno: true }); if (l.vida <= 0) ferir(l, 0, 0.01, 0, 0, true); }
     if (Math.random() < dt * 10) brasas.push({ x: l.x + (Math.random() - 0.5) * 0.4, y: l.y + (Math.random() - 0.5) * 0.3, z: 0.2 + Math.random() * l.cfg.altura / 90, vx: 0, vy: 0, vz: 0.5 + Math.random() * 0.5, vida: 0.6, max: 0.6, tam: 0.05, cor: 110 });
   }
@@ -6318,6 +6322,7 @@ function passoSkillsArq(dt) {
   for (const [l, q] of queimando) {
     q.t -= dt; q.tique -= dt;
     if (l.morto || q.t <= 0) { queimando.delete(l); continue; }
+    if (!q.avisou) { q.avisou = true; numeros.push({ wx: l.x, wy: l.y, y: -l.cfg.altura - 34, vida: 1.1, txt: "Queimando", status: "queimando" }); }
     if (q.tique <= 0) { q.tique = 0.75; l.vida -= 4; l.piscar = 0.1; numeros.push({ wx: l.x, wy: l.y, y: -l.cfg.altura - 16, vida: 0.7, txt: "−4", forte: false }); if (l.vida <= 0) ferir(l, 0, 0.01, 0, 0, true); }
     if (Math.random() < dt * 25) brasas.push({ x: l.x + (Math.random() - 0.5) * 0.4, y: l.y + (Math.random() - 0.5) * 0.3, z: 0.2 + Math.random() * l.cfg.altura / 90, vx: 0, vy: 0, vz: 0.8 + Math.random(), vida: 0.5, max: 0.5, tam: 0.06 });
   }
@@ -6346,7 +6351,7 @@ function pontaNoMundo() {
 function desenharSkillsArq(t) {
   const z = zoom, s = PX * z;
   // marca da chuva no chão
-  if (chuva.marca > 0 && chuva.centro) {
+  if (chuva.marca > 0 && chuva.centro && !fx3()) {
     const c = chuva.alvo && !chuva.alvo.morto ? chuva.alvo : chuva.centro;
     const [X, Y] = noMundo(c.x, c.y, 0), r = CHUVA_RAIO * s, a = Math.min(1, chuva.marca / 0.5);
     cx.save(); cx.globalAlpha = 0.55 * a;
@@ -6564,7 +6569,7 @@ function seloMagico(X, Y, r, giro, cor, a) {
   cx.restore();
 }
 function desenharBuffsMagoFrente(X, Y, z, t) {
-  if (classe !== "feiticeiro") return;
+  if (classe !== "feiticeiro" || fx3()) return;
   const s = PX * z;
   cx.save(); cx.globalCompositeOperation = "lighter";
   for (const b of [olho, poder]) {
@@ -6598,7 +6603,7 @@ function desenharBuffsMagoFrente(X, Y, z, t) {
   cx.restore();
 }
 function desenharBuffsMago(X, Y, z, t) {
-  if (classe !== "feiticeiro") return;
+  if (classe !== "feiticeiro" || fx3()) return;
   const s = PX * z;
   [olho, poder].filter(b => b.buff > 0).forEach((b, i) => {
     const r = s * (0.5 + 0.12 * i), a = Math.min(1, b.buff / 1.5);
@@ -6800,7 +6805,7 @@ function passoMagias(dt) {
 // no chão, por baixo de todos: a área marcada dos meteoros, o chão queimado, a onda e as rachaduras da erupção
 function desenharMagiasChao(t) {
   const s = PX * zoom;
-  if (meteoros.marca > 0 && meteoros.centro) {
+  if (meteoros.marca > 0 && meteoros.centro && !fx3()) {
     const c = meteoros.alvo && !meteoros.alvo.morto ? meteoros.alvo : meteoros.centro;
     const [X, Y] = noMundo(c.x, c.y, 0), r = METEORO_RAIO * s, a = Math.min(1, meteoros.marca / 0.5);
     cx.save(); cx.globalAlpha = 0.6 * a;
@@ -6813,7 +6818,7 @@ function desenharMagiasChao(t) {
     cx.fillStyle = `rgba(28, 18, 22, ${0.35 * k})`; cx.beginPath(); cx.ellipse(X, Y, r, r * ACHATA, 0, 0, 7); cx.fill();
   }
   cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round"; cx.lineJoin = "round";
-  for (const o of ondas) {
+  for (const o of fx3() ? [] : ondas) {
     const [X, Y] = noMundo(o.x, o.y, 0), dur = o.fogo ? 0.25 : 0.35, u = Math.min(1, o.t / dur), r = o.raio * s * (0.15 + 0.85 * suaveM(u));
     if (o.runas) { circuloDeRunas(o, X, Y, s, t); continue; }
     const a = Math.max(0, 1 - o.t / (o.fogo ? 0.45 : 0.9));
@@ -6884,6 +6889,7 @@ function circuloDeRunas(o, X, Y, s, t) {
 
 // no ar, por cima: bolas, meteoros, as colunas de luz da erupção e os raios
 function desenharMagias(t) {
+  if (fx3()) return;                                                   // (bolas, meteoros, cristais e raios em 3D)
   const s = PX * zoom;
   for (const m of magias) {
     if (m.atraso > 0) continue;
@@ -7773,8 +7779,12 @@ let COLISAO = JSON.parse(JSON.stringify(COLISAO_PADRAO));
 // o círculo de colisão de um objeto no mapa (null para o que não é decoração: muros, torres)
 function circuloDe(o) {
   const c = COLISAO[o.tipo]; if (!c) return null;
-  const e = escColisao(o);
-  return { x: o.x + c.dx * e, y: o.y + c.dy * e, r: c.r * e };
+  // (guardado no objeto enquanto nada dele muda: o caminho das criaturas pergunta milhares de vezes por segundo)
+  const m = o._circ;
+  if (m && m.c === c && m.x0 === o.x && m.y0 === o.y && m.esc === o.esc && m.var === o.var && m.dx === c.dx && m.dy === c.dy && m.r0 === c.r) return m.v;
+  const e = escColisao(o), v = { x: o.x + c.dx * e, y: o.y + c.dy * e, r: c.r * e };
+  o._circ = { c, x0: o.x, y0: o.y, esc: o.esc, var: o.var, dx: c.dx, dy: c.dy, r0: c.r, v };
+  return v;
 }
 
 function livre(x, y) {
@@ -8243,6 +8253,7 @@ function soltar(x, y, vx, vy, tipo, ancora = viking) {
 // do contato, faíscas para longe do viking, e lascas conforme o alvo (osso e metal no esqueleto, pelo no lobo, palha no
 // boneco), e o número do dano sobe do alvo.
 const impactos = [], numeros = [];
+const COR_STATUS = { veneno: "#8cff5a", atordoado: "#ffe066", lento: "#7cc8ff", queimando: "#ff9a3a" };   // os textos de estado
 let congela = 0, ultimaPausa = -1;
 // skills de área acertam muitos de uma vez (cada flecha da chuva, cada meteoro): sem hit-stop, senão o mundo fica parado
 // a queda inteira. E entre duas pausas, pelo menos PAUSA_INTERVALO s
@@ -8392,7 +8403,8 @@ function desenharFaiscas() {
     }
   }
   cx.globalCompositeOperation = "lighter";
-  for (let i = 1; i < rastro.length; i++) {
+  const so3d = fx3();                                       // (com os efeitos 3D: rastro, faíscas do acerto e clarões são deles)
+  for (let i = 1; i < (so3d ? 0 : rastro.length); i++) {
     const a = rastro[i - 1], b = rastro[i], k = Math.max(0, b.vida / 0.2);
     // só a parte de fora da lâmina deixa rastro (do meio até a ponta)
     const m = (r, u) => ponto(r.wx, r.wy, r.l[0] + (r.l[2] - r.l[0]) * u, r.l[1] + (r.l[3] - r.l[1]) * u);
@@ -8404,7 +8416,7 @@ function desenharFaiscas() {
   }
   cx.lineCap = "round";
   for (const f of faiscas) {
-    if (f.tipo === "lasca" || f.tipo === "pelo" || f.tipo === "poeira") continue;
+    if (f.tipo === "lasca" || f.tipo === "pelo" || f.tipo === "poeira" || (so3d && (f.tipo === "faisca" || f.tipo === "azul"))) continue;
     const k = f.vida / f.max, [x, y] = ponto(f.wx, f.wy, f.x, f.y);
     if (f.tipo === "espirito") {
       const r = f.tam * z * (0.8 + 0.6 * (1 - k));
@@ -8435,7 +8447,7 @@ function desenharFaiscas() {
     }
   }
   // clarão do acerto: estrela de quatro pontas e um risco atravessado no sentido do golpe
-  for (const i of impactos) {
+  for (const i of so3d ? [] : impactos) {
     const [x, y] = ponto(i.wx, i.wy, 0, i.y), k = i.vida / i.max, r = (16 + 26 * (1 - k)) * z * i.tam;
     const g = cx.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, `rgba(255, 255, 255, ${0.95 * k})`); g.addColorStop(0.35, `rgba(${i.cor}, ${0.7 * k})`); g.addColorStop(1, `rgba(${i.cor}, 0)`);
@@ -8450,7 +8462,7 @@ function desenharFaiscas() {
     cx.strokeStyle = `rgba(255, 240, 220, ${k})`; cx.lineWidth = 2.4 * z * k; cx.lineCap = "round";
     cx.beginPath(); cx.moveTo(x - Math.cos(i.ang + 0.6) * r * 1.6, y - Math.sin(i.ang + 0.6) * r * 1.6); cx.lineTo(x + Math.cos(i.ang + 0.6) * r * 1.6, y + Math.sin(i.ang + 0.6) * r * 1.6); cx.stroke();
   }
-  if (clarao) {
+  if (clarao && !so3d) {
     const [x, y] = ponto(clarao.wx, clarao.wy, clarao.x, clarao.y), k = clarao.vida / 0.16, r = (20 + 40 * (1 - k)) * z;
     const g = cx.createRadialGradient(x, y, 0, x, y, r);
     if (clarao.azul) { g.addColorStop(0, `rgba(225, 245, 255, ${0.95 * k})`); g.addColorStop(0.4, `rgba(40, 140, 255, ${0.55 * k})`); g.addColorStop(1, "rgba(0, 60, 255, 0)"); }
@@ -8458,14 +8470,20 @@ function desenharFaiscas() {
     cx.fillStyle = g; cx.beginPath(); cx.arc(x, y, r, 0, 7); cx.fill();
   }
   cx.restore();
-  // números do dano subindo
+  // números do dano subindo: contorno grosso, um "pop" ao nascer (cresce e assenta), o crítico maior e dourado e os
+  // textos de estado (Envenenado, Atordoado, Queimando) na cor de cada um; cada número sai um pouco para o lado
   cx.save(); cx.textAlign = "center"; cx.lineJoin = "round";
   for (const n of numeros) {
-    const [x, y] = ponto(n.wx, n.wy, 0, n.y), k = Math.min(1, n.vida / 0.35), cresce = 1 + 0.35 * Math.max(0, (n.vida - 0.75) / 0.15);
+    if (n.v0 === undefined) { n.v0 = n.vida; n.dx = n.status ? 0 : (Math.random() - 0.5) * 2; }
+    const idade = n.v0 - n.vida, pop = idade < 0.1 ? 1 + 0.7 * (1 - idade / 0.1) : idade < 0.22 ? 1 - 0.1 * Math.sin((idade - 0.1) / 0.12 * Math.PI) : 1;
+    const [x0, y] = ponto(n.wx, n.wy, 0, n.y), x = x0 + n.dx * idade * 22 * z, k = Math.min(1, n.vida / 0.35);
+    const est = n.status ? COR_STATUS[n.status] : null, tam = n.critico ? 30 : est ? 15 : n.forte ? 20 : n.exp ? 13 : 16;
     cx.globalAlpha = k;
-    cx.font = `700 ${Math.round((n.critico ? 24 : n.forte ? 19 : n.exp ? 13 : 15) * z * cresce)}px "Germania One", Georgia, serif`;
-    cx.lineWidth = 3.5 * z; cx.strokeStyle = TINTA; cx.strokeText(n.txt, x, y);
-    cx.fillStyle = n.critico ? "#ffe24a" : n.exp ? "#a9e6ff" : n.contra ? "#ff6b55" : n.forte ? "#ffb347" : "#fff1d6"; cx.fillText(n.txt, x, y);
+    cx.font = `${est ? "italic " : ""}700 ${Math.round(tam * z * pop)}px "Germania One", Georgia, serif`;
+    cx.lineWidth = (n.critico ? 6 : 4.5) * z; cx.strokeStyle = TINTA; cx.strokeText(n.txt, x, y);
+    if (n.critico) { const g = cx.createLinearGradient(0, y - tam * z * pop, 0, y); g.addColorStop(0, "#fff7c0"); g.addColorStop(1, "#ffa818"); cx.fillStyle = g; }
+    else cx.fillStyle = est || (n.veneno ? "#9cff6a" : n.exp ? "#a9e6ff" : n.contra ? "#ff6b55" : n.forte ? "#ffb347" : "#fff1d6");
+    cx.fillText(n.txt, x, y);
   }
   cx.restore();
 }
@@ -8695,7 +8713,7 @@ function quadrosFogo() {
 }
 
 function desenharFuria(X, Y, z, t, frente) {
-  if (!FX) return;
+  if (!FX || fx3()) return;
   const n = nivelFuria(t);
   if (!frente && n > 0) {
     // brilho no chão embaixo do fogo
@@ -8716,6 +8734,7 @@ function desenharFuria(X, Y, z, t, frente) {
 // redemoinho do vórtice: arcos de vento em alturas diferentes (mais abertos em cima, como um tornado) girando rápido,
 // um risco vermelho da lâmina encantada e o anel no chão; frente = só os pedaços que ficam na frente do corpo
 function desenharVortice(X, Y, z, t, frente) {
+  if (fx3()) return;
   const f = vortice.forca;
   if (f <= 0) return;
   // redemoinho azul pintado (gerado por IA, como o fogo da Fúria): tira em laço, atrás e na frente do corpo
@@ -9645,7 +9664,7 @@ function pesosChao(x, y, out, k) {
 }
 // alturas já calculadas por pedaço (passo de 0,5 m): o boneco em cima de um pedaço pronto não recalcula nada
 const PED = 16, FINO = 0.5, NF = PED / FINO;
-const finos = new Map();
+const finos = new Map(), faltas = new Map();
 function dadosFinos(i, j) {
   const k = i + "," + j;
   let d = finos.get(k);
@@ -9658,8 +9677,15 @@ function dadosFinos(i, j) {
 }
 // a altura do chão para pôr alguém ou alguma coisa em cima (com o pedaço fino, interpola; senão calcula na hora)
 function alturaEm(x, y) {
-  const i = Math.floor(x / PED), j = Math.floor(y / PED), d = finos.get(i + "," + j);
-  if (!d) return alturaBruta(x, y);
+  const i = Math.floor(x / PED), j = Math.floor(y / PED), k = i + "," + j;
+  let d = finos.get(k);
+  if (!d) {
+    // pedido muitas vezes num pedaço sem as alturas prontas (criaturas longe, efeitos, grama): monta o pedaço fino uma
+    // vez (1089 contas) em vez de refazer a conta inteira a cada pedido
+    const n = (faltas.get(k) || 0) + 1; faltas.set(k, n);
+    if (n < 150) return alturaBruta(x, y);
+    faltas.delete(k); d = dadosFinos(i, j);
+  }
   const u = (x - i * PED) / FINO, v = (y - j * PED) / FINO, a = Math.min(NF - 1, Math.floor(u)), b = Math.min(NF - 1, Math.floor(v)), fu = u - a, fv = v - b, n = NF + 1;
   const h00 = d[b * n + a], h10 = d[b * n + a + 1], h01 = d[(b + 1) * n + a], h11 = d[(b + 1) * n + a + 1];
   return h00 + (h10 - h00) * fu + (h01 - h00) * fv + (h00 - h10 - h01 + h11) * fu * fv;
@@ -10064,6 +10090,7 @@ function atualizarPedacos(cx0, cy0, orcamentoMs) {
     p.mesh.castShadow = d < CFG.raioSombra + PED;
   }
   if (finos.size > 600) for (const k of [...finos.keys()].slice(0, 200)) finos.delete(k);
+  if (faltas.size > 400) faltas.clear();
 }
 // as alturas que a água usa para saber a fundura (textura de 1 px por metro, preenchida pelos pedaços)
 const AG = { x0: -84, y0: -92, w: 272, h: 184 };
@@ -11047,6 +11074,7 @@ function cascasDe(c, malhas, cor, soma) {
     const pele = !!o.isSkinnedMesh, mat = materialCasca(pele, c, cor, soma);
     const k = pele ? new THREE.SkinnedMesh(o.geometry, mat) : new THREE.Mesh(o.geometry, mat);
     k.frustumCulled = false; k.castShadow = false; k.renderOrder = soma ? 9 : 0;
+    if (soma) k.layers.enable(1);                                  // (o brilho do refino e a aura entram no bloom)
     // a pele segue os ossos; a peça dura (a arma) é animada pelo próprio nó: a casca vai como filha dela, senão ficava
     // parada na pose inicial, uma cópia cinza da arma fora do lugar
     if (pele) { k.bind(o.skeleton, o.bindMatrix); k.position.copy(o.position); k.quaternion.copy(o.quaternion); k.scale.copy(o.scale); o.parent.add(k); }
@@ -11185,7 +11213,7 @@ function atualizarBrilhoHeroi(c, agora) {
   // a aura da Fúria: o corpo todo numa casca vermelha somada, pulsando
   const nf = nivelFuria(agora);
   if (nf > 0 && !c.aura) { c.uAura = { value: 0.002 }; c.aura = cascasDe(c, c.malhas, 0xff3a1e, { esp: c.uAura }); }
-  if (c.aura) for (const k of c.aura) { k.visible = nf > 0; k.material.opacity = 0.45 * nf * (0.8 + 0.2 * Math.sin(agora * 9)); }
+  if (c.aura) for (const k of c.aura) { k.visible = nf > 0; k.material.opacity = (window.FX3 && FX3.ativo ? 0.22 : 0.45) * nf * (0.8 + 0.2 * Math.sin(agora * 9)); }   // (com os efeitos 3D as chamas são deles)
   if (c.uAura) c.uAura.value = 0.0028 + 0.0012 * Math.sin(agora * 6);
 }
 
@@ -11679,7 +11707,7 @@ function atualizarLuzes(t) {
   let n = 0;
   const pega = () => {
     let s = S.janelas[n];
-    if (!s) { s = new THREE.Sprite(new THREE.SpriteMaterial({ map: S.texBrilho, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, transparent: true })); s.renderOrder = 9; S.cena.add(s); S.janelas.push(s); }
+    if (!s) { s = new THREE.Sprite(new THREE.SpriteMaterial({ map: S.texBrilho, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, transparent: true })); s.renderOrder = 9; s.layers.enable(1); S.cena.add(s); S.janelas.push(s); }
     n++; s.visible = true; s.material.color.setHex(0xffffff); return s;
   };
   const dir = S.uCartao.uDir.value, cima = S.uCartao.uCima.value, kk = S.uCartao.uK.value, paraCam = _v1.copy(S.camera.position);
@@ -11723,7 +11751,8 @@ const GLSL_PART_V = `#include <common>
     vCor = aCor; vUv = uv; vForma = aTam.z;
     vec4 mvPosition = viewMatrix * vec4(aPos, 1.0);
     float c = cos(aTam.y), s = sin(aTam.y);
-    vec2 q = vec2(c * position.x - s * position.y, s * position.x + c * position.y) * aTam.x;
+    vec2 p0 = aTam.z > 2.5 && aTam.z < 3.5 ? position.xy * vec2(3.4, 0.42) : position.xy;   // (3: faísca esticada no sentido do giro)
+    vec2 q = vec2(c * p0.x - s * p0.y, s * p0.x + c * p0.y) * aTam.x;
     if (aTam.z > 0.5 && aTam.z < 1.5) q.y *= 0.55;                // pétala e folha: achatadas
     mvPosition.xy += q;
     gl_Position = projectionMatrix * mvPosition;
@@ -11734,7 +11763,10 @@ const GLSL_PART_F = `#include <common>
   varying vec4 vCor; varying vec2 vUv; varying float vForma;
   void main() {
     vec2 d = vUv - 0.5; float r = length(d) * 2.0;
-    float a = vForma < 0.5 ? (1.0 - smoothstep(0.0, 1.0, r)) : vForma < 1.5 ? 1.0 - smoothstep(0.75, 1.0, r) : (1.0 - smoothstep(0.2, 1.0, r)) * (0.75 + 0.25 * sin(d.x * 19.0 + d.y * 13.0));
+    // 0 ponto de luz, 1 pétala/folha, 2 fumaça, 3 faísca esticada (miolo forte), 4 bolha (anel com reflexo)
+    float a = vForma > 3.5 ? smoothstep(0.5, 0.8, r) * (1.0 - smoothstep(0.84, 1.0, r)) + 0.45 * (1.0 - smoothstep(0.0, 0.3, length(d - vec2(-0.16, 0.16)) * 2.0))
+            : vForma > 2.5 ? pow(1.0 - smoothstep(0.0, 1.0, r), 1.6)
+            : vForma < 0.5 ? (1.0 - smoothstep(0.0, 1.0, r)) : vForma < 1.5 ? 1.0 - smoothstep(0.75, 1.0, r) : (1.0 - smoothstep(0.2, 1.0, r)) * (0.75 + 0.25 * sin(d.x * 19.0 + d.y * 13.0));
     a *= vCor.a; if (a < 0.01) discard;
     gl_FragColor = vec4(vCor.rgb, a);
     #include <encodings_fragment>
@@ -11807,7 +11839,7 @@ function passoDecalques(d, dt) {
   d.aIdade.needsUpdate = true;
 }
 function montarVivo() {
-  S.pSoma = criarParticulas(Math.round(CFG.particulas * 0.45), true);
+  S.pSoma = criarParticulas(Math.round(CFG.particulas * 0.45), true); S.pSoma.mesh.layers.enable(1);   // (brasas e vaga-lumes no bloom)
   S.pNormal = criarParticulas(CFG.particulas, false);
   S.pegadas = criarDecalques(LEVE ? 60 : 160, g => {            // a marca da bota: sola e salto
     g.fillStyle = "rgba(0,0,0,0.9)"; g.beginPath(); g.ellipse(32, 22, 12, 17, 0, 0, 7); g.fill(); g.beginPath(); g.ellipse(32, 50, 10, 10, 0, 0, 7); g.fill();
@@ -12235,9 +12267,11 @@ function desenhar3(t) {
   atualizarAneis(t);
   passoVivo(dt, t);
   vigiarQualidade(agora);
+  if (window.FX3) FX3.passo(dt, t);                              // os efeitos 3D (skills, rastros, acertos...)
   if (CFG.reflexo) renderReflexo(r);
   r.setRenderTarget(null);
   r.render(S.cena, S.camera);
+  if (window.FX3) FX3.bloom();                                   // o brilho (bloom) por cima
   desenharSobre(t, dt);
   atualizarMinimapa(true);
   // estatística e a resolução que se ajusta (mira 50 fps no desktop, 28 no celular)
@@ -12333,15 +12367,868 @@ function iniciar() {
 // o Mapa do Mundo mudou o terreno (altura extra ou chão pintado): as alturas finas e a grama são refeitas, e os pedaços
 // do chão também (cada um fica até o novo dele ficar pronto); com soGrama, só a grama (a decoração mudou)
 function refazerChao(soGrama) {
-  if (!soGrama) { finos.clear(); for (const p of pedacos3.values()) p.passo = -1; }
+  if (!soGrama) { finos.clear(); faltas.clear(); for (const p of pedacos3.values()) p.passo = -1; }
   if (S.tufos) { for (const m of S.tufos.values()) if (m) { S.grupoGrama.remove(m); m.geometry.dispose(); } S.tufos.clear(); }
   S.decoSuja = true;
 }
 return {
   get ligado() { return S.ligado; }, get ativo() { return S.ativo; }, get pronto() { return S.pronto; }, S, CFG, DECO_3D, MEDIDA_3D, TRACO_MUNDO, CAMADAS,
   quer, desenhar: desenhar3, tela: tela3, noMundo: noMundo3, acima, relativo, pegar, corpo, temCorpo, alturaEm, alturaBruta, voltarClassico, refazerChao,
+  criarParticulas, particula: soltar, passoParticulas, projetar,                              // (para os efeitos 3D, FX3)
   get stats() { return S.stats; },
 };
+})();
+</script>
+<script>
+// ================================================================ EFEITOS 3D (no estilo do Call of Dragons)
+// Por cima do mundo 3D (M3D), com formas desenhadas, cores limpas e saturadas e duração curta:
+//   bloom ...... o que é muito claro na tela (fogo, lanternas, clarões) e o que está na camada 1 (os efeitos daqui, o
+//                brilho do refino, as brasas) ganha um halo: limiar e três níveis de desfoque (dual filter)
+//   rastros .... uma fita que segue a ponta da arma nos golpes, na cor de cada classe (com a borda mais clara), e as
+//                faixas de luz atrás de flechas, magias e meteoros
+//   skills ..... as dos 5 heróis, as magias das criaturas e o golpe no chão dos chefes
+//   acerto ..... clarão em estrela, estilhaços de luz e tremor nos golpes fortes (os números são do 2D: contorno e "pop")
+//   mundo ...... level up (coluna dourada), feixe dos itens raros no chão, pulso e rachaduras da Metin, refino subindo
+// Os efeitos acompanham o estado do jogo (magias, flechas, raios, ondas, nuvens...) a cada quadro; os acontecimentos
+// (acerto, level up, explosões) chegam por funções do jogo embrulhadas. Ligado (FX3.ativo), o 2D deixa de desenhar o
+// que foi trocado. No modo 2D (?2d=1), na caverna e no editor nada daqui roda; ?fx=0 desliga tudo, ?bloom=0 só o brilho.
+var FX3 = (() => {
+"use strict";
+const LEVE = !!window.MODO_LEVE, QS = new URLSearchParams(location.search);
+let S = null, pronto = false, ligado = false, grupo = null, PS = null, tAgora = 0, quadro = 0;
+let texBrilho, texEstrela, geoColuna, geoChama, geoBolha, _v, _v2, _a, _b, _a2, _b2;
+const vivos = [];                                   // os efeitos rodando: { passo(dt) → false quando acabou, fim() }
+const seguidos = new Map();                         // objeto do jogo (magia, flecha, raio, onda...) → o efeito que o segue
+const ativo = () => pronto && ligado;
+const alt = (x, y) => M3D.alturaEm(x, y);
+const P3 = (x, y, z) => new THREE.Vector3(x, alt(x, y) + z, -y);           // ponto do jogo (altura acima do chão) na cena
+const hsl = (h, s = 1, l = 0.6) => new THREE.Color().setHSL((((h % 360) + 360) % 360) / 360, s, l);
+const rgb = (r, g, b) => new THREE.Color(r, g, b);
+const BRANCO = () => rgb(1, 1, 1);
+const acaso = (a, b) => a + Math.random() * (b - a);
+function adicionar(fx) { vivos.push(fx); return fx; }
+function noGrupo(o, ordem = 12) { o.renderOrder = ordem; o.layers.enable(1); o.frustumCulled = false; grupo.add(o); return o; }
+// os materiais voltam para uma reserva em vez de serem jogados fora: jogar fora o último material de um shader apaga o
+// programa na GPU, e o próximo efeito igual recompilava tudo (era o maior gasto no celular em combate)
+const reserva = {};
+function pegarMat(tipo, criar) { const l = reserva[tipo]; return (l && l.pop()) || criar(); }
+function devolverMat(tipo, m) { (reserva[tipo] || (reserva[tipo] = [])).push(m); }
+const cor0 = () => ({ value: new THREE.Color() }), num0 = () => ({ value: 0 });
+function texCanvas(n, pintar) { const c = document.createElement("canvas"); c.width = c.height = n; pintar(c.getContext("2d"), n); return new THREE.CanvasTexture(c); }
+
+// ---- clarões (sprites somados): um halo na cor e um miolo branco; no acerto, uma estrela de quatro pontas
+function sprite(tex, cor, tam) {
+  const mt = pegarMat("sprite", () => new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false }));
+  mt.map = tex; mt.color.copy(cor); mt.opacity = 1; mt.rotation = 0;
+  const s = new THREE.Sprite(mt);
+  s.scale.setScalar(tam); return noGrupo(s, 14);
+}
+function clarao(p, tam, cor, dur = 0.18, o = {}) {
+  const halo = sprite(texBrilho, cor, tam), nuc = sprite(o.estrela ? texEstrela : texBrilho, o.miolo || BRANCO(), tam * 0.5);
+  if (o.estrela) nuc.material.rotation = o.giro ?? Math.random() * Math.PI;
+  // um pouco para a frente (para a câmera), para não entrar no corpo de quem levou o golpe
+  _v.copy(S.camera.position).sub(p).normalize().multiplyScalar(o.frente ?? 0.35);
+  halo.position.copy(p).add(_v); nuc.position.copy(halo.position);
+  let t = 0;
+  return adicionar({ passo(dt) {
+      t += dt; const u = t / dur; if (u >= 1) return false;
+      const k = 1 - u;
+      halo.scale.setScalar(tam * (0.55 + 0.7 * Math.sqrt(u))); halo.material.opacity = k * k * 0.7 * (o.forca ?? 1);
+      nuc.scale.setScalar(tam * (o.estrela ? 1.1 - 0.45 * u : 0.45 * k)); nuc.material.opacity = Math.min(1, k * 1.2) * (o.forca ?? 1);
+      return true; },
+    fim() { for (const s of [halo, nuc]) { grupo.remove(s); devolverMat("sprite", s.material); } } });
+}
+
+// ---- faíscas e estilhaços de luz: as partículas do M3D, num sistema só dos efeitos (somado e na camada 1). Forma 3 é a
+// faísca esticada (o giro é o sentido do voo na tela), 4 a bolha, 0 o ponto de luz
+function faisca(p, v, cor, tam = 0.07, vida = 0.32, o = {}) {
+  _v2.copy(v).transformDirection(S.camera.matrixWorldInverse);
+  const forma = o.forma ?? 3;
+  return M3D.particula(PS, { x: p.x, y: p.y, z: p.z, vx: v.x, vy: v.y, vz: v.z, vida, t0: tam, t1: tam * (o.fim ?? 0.25), cor: [cor.r, cor.g, cor.b, o.a ?? 1],
+    grav: o.grav ?? 8, arrasto: o.arrasto ?? 2.4, forma, giro: forma === 3 ? Math.atan2(_v2.y, _v2.x) : Math.random() * 6,
+    pisca: o.pisca, fase: Math.random() * 6, flutua: o.flutua, balanca: o.balanca, vg: o.vg });
+}
+// um estouro: n faíscas para todo lado (ou num cone em volta de o.dir), entre a cor e o branco
+function estouro(p, n, cor, vel = 5, o = {}) {
+  if (LEVE) n = Math.ceil(n * 0.5);
+  for (let k = 0; k < n; k++) {
+    const d = new THREE.Vector3(acaso(-1, 1), acaso(-1, 1) + (o.sobe || 0), acaso(-1, 1)).normalize();
+    if (o.dir) d.multiplyScalar(o.abre ?? 0.6).add(o.dir).normalize();
+    const c = cor.clone().lerp(BRANCO(), Math.random() * (o.branco ?? 0.5));
+    faisca(p, d.multiplyScalar(vel * acaso(0.35, 1)), c, (o.tam ?? 0.07) * acaso(0.6, 1.3), (o.vida ?? 0.35) * acaso(0.6, 1.3), o);
+  }
+}
+// pontos de luz subindo devagar (refino, buffs, level up)
+function subir(p, cor, n = 1, o = {}) {
+  for (let k = 0; k < n; k++) M3D.particula(PS, { x: p.x + acaso(-1, 1) * (o.r ?? 0.3), y: p.y + acaso(0, o.h ?? 0.2), z: p.z + acaso(-1, 1) * (o.r ?? 0.3),
+    vx: acaso(-0.2, 0.2), vy: acaso(0.6, 1.6) * (o.vel ?? 1), vz: acaso(-0.2, 0.2), vida: acaso(0.5, 1) * (o.vida ?? 1), t0: o.tam ?? 0.06, t1: (o.tam ?? 0.06) * 0.3,
+    cor: [cor.r, cor.g, cor.b, o.a ?? 0.95], forma: o.forma ?? 0, pisca: o.pisca ?? 9, fase: Math.random() * 6, balanca: o.balanca ?? 0.3, grav: o.grav ?? 0 });
+}
+// fumaça (mistura normal, não somada) no sistema de fumaça do M3D
+function fumaca(p, cor, n = 1, o = {}) {
+  if (LEVE) n = Math.ceil(n * 0.6);
+  for (let k = 0; k < n; k++) M3D.particula(S.pNormal, { x: p.x + acaso(-1, 1) * (o.r ?? 0.3), y: p.y + acaso(0, o.h ?? 0.4), z: p.z + acaso(-1, 1) * (o.r ?? 0.3),
+    vx: acaso(-0.4, 0.4) * (o.abre ?? 1), vy: acaso(0.2, 0.8) * (o.vel ?? 1), vz: acaso(-0.4, 0.4) * (o.abre ?? 1), vida: acaso(0.6, 1.1) * (o.vida ?? 1),
+    t0: o.tam ?? 0.35, t1: (o.tam ?? 0.35) * 2.4, cor: [cor.r, cor.g, cor.b, o.a ?? 0.55], forma: o.forma ?? 2, giro: Math.random() * 6, vg: acaso(-1, 1), arrasto: 1.2, flutua: 0.4 });
+}
+
+// ---- luz de verdade: empresta as últimas luzes pontuais do M3D (o número fixo de luzes não recompila nada)
+const luzes = [];
+function luz(p, cor, i, alc, dur) { luzes.push({ p: p.clone(), cor: cor.clone(), i, alc, dur, t: 0 }); if (luzes.length > 2) luzes.shift(); }
+function passoLuzes(dt) {
+  for (let k = luzes.length - 1; k >= 0; k--) { luzes[k].t += dt; if (luzes[k].t > luzes[k].dur) luzes.splice(k, 1); }
+  const pts = S.pontos || [];
+  luzes.forEach((l, k) => {
+    const pl = pts[pts.length - 1 - k]; if (!pl) return;
+    const f = 1 - l.t / l.dur; pl.position.copy(l.p); pl.color.copy(l.cor); pl.intensity = l.i * f * f; pl.distance = l.alc;
+  });
+}
+
+// ---- no chão: onda de choque (0), selo de runas girando (1), disco de vento ou veneno (2), rachaduras acesas (3). A malha
+// acompanha o relevo (uma grade com a altura de cada ponto)
+const GLSL_CHAO_V = `attribute vec2 aP; varying vec2 vP; void main() { vP = aP; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const GLSL_CHAO_F = `uniform float uT, uDur, uTipo, uAlfa, uGiro, uSem; uniform vec3 uCor, uCor2; varying vec2 vP;
+  float h1(float n) { return fract(sin(n) * 43758.5453); }
+  void main() {
+    float r = length(vP), a = atan(vP.y, vP.x), u = uDur > 0.0 ? clamp(uT / uDur, 0.0, 1.0) : 0.5, al = 0.0, br = 0.0;
+    if (r > 1.0) discard;
+    if (uTipo < 0.5) {                                  // onda: um anel que abre rápido e some, com o miolo claro
+      float R = 0.12 + 0.88 * (1.0 - pow(1.0 - u, 3.0)), w = 0.05 + 0.12 * (1.0 - u);
+      float anel = exp(-pow((r - R) / w, 2.0));
+      al = (anel + (1.0 - smoothstep(0.0, R, r)) * 0.22 * (1.0 - u)) * pow(1.0 - u, 1.3);
+      br = anel * (1.0 - u) * 0.7;
+    } else if (uTipo < 1.5) {                           // selo: dois anéis, traços e runas girando ao contrário, estrela
+      float e = uDur > 0.0 ? smoothstep(0.0, 0.12, u) * (1.0 - smoothstep(0.72, 1.0, u)) : 1.0;
+      float esc = uDur > 0.0 ? 0.55 + 0.45 * smoothstep(0.0, 0.2, u) : 1.0, rr = r / esc;
+      if (rr > 1.0) discard;
+      float l1 = 1.0 - smoothstep(0.0, 0.02, abs(rr - 0.95)), l2 = 1.0 - smoothstep(0.0, 0.013, abs(rr - 0.8)), l3 = 1.0 - smoothstep(0.0, 0.011, abs(rr - 0.42));
+      float tr = step(0.55, fract(a / 6.2832 * 28.0 + uGiro)) * step(0.83, rr) * step(rr, 0.92);
+      float ca = floor(a / 6.2832 * 48.0 - uGiro * 2.8);
+      float ru = step(0.45, fract(a / 6.2832 * 48.0 - uGiro * 2.8)) * step(0.52, rr) * step(rr, 0.72) * step(0.35, h1(ca + uSem)) * step(abs(rr - 0.62), 0.05 + 0.05 * h1(ca * 3.1 + uSem));
+      float g1 = mod(a + uGiro * 0.8, 1.0472) - 0.5236, g2 = mod(a - uGiro * 0.8 + 0.5236, 1.0472) - 0.5236;
+      float estr = max(1.0 - smoothstep(0.0, 0.013, abs(rr * cos(g1) - 0.6)), 1.0 - smoothstep(0.0, 0.013, abs(rr * cos(g2) - 0.6))) * step(rr, 0.7);
+      al = (l1 + l2 * 0.8 + l3 * 0.6 + tr * 0.7 + ru * 0.6 + estr * 0.8 + (1.0 - smoothstep(0.0, 1.0, rr)) * 0.2) * e;
+      br = (l1 + estr) * 0.5 * e;
+    } else if (uTipo < 2.5) {                           // disco que gira (vento verde, veneno)
+      float sw = 0.5 + 0.5 * sin(a * 3.0 + r * 9.0 - uT * 3.0), e = uDur > 0.0 ? smoothstep(0.0, 0.1, u) * (1.0 - smoothstep(0.65, 1.0, u)) : 1.0;
+      al = (1.0 - smoothstep(0.25, 1.0, r)) * (0.2 + 0.5 * sw) * e; br = sw * 0.2 * e;
+    } else {                                            // rachaduras acesas, saindo do centro
+      float g = fract(a / 6.2832 * 9.0 + 0.12 * sin(r * 17.0 + uSem) + 0.05 * sin(r * 41.0 + uSem * 3.0));
+      float rach = (1.0 - smoothstep(0.0, 0.05 + 0.04 * (1.0 - r), abs(g - 0.5))) * smoothstep(0.12, 0.3, r) * (1.0 - smoothstep(0.7, 1.0, r));
+      float g2 = fract(r * 4.0 + 0.2 * sin(a * 5.0 + uSem));
+      rach = max(rach, (1.0 - smoothstep(0.0, 0.03, abs(g2 - 0.5))) * step(0.6, h1(floor(a * 3.0) + floor(r * 4.0) * 7.0 + uSem)) * smoothstep(0.2, 0.35, r) * (1.0 - smoothstep(0.75, 1.0, r)));
+      float e = uDur > 0.0 ? smoothstep(0.0, 0.08, u) * (1.0 - smoothstep(0.6, 1.0, u)) : 1.0;
+      al = (rach + (1.0 - smoothstep(0.0, 0.6, r)) * 0.22) * e; br = rach * 0.45 * e;
+    }
+    al *= uAlfa; if (al < 0.004) discard;
+    gl_FragColor = vec4(mix(uCor, uCor2, clamp(br, 0.0, 1.0)), clamp(al, 0.0, 1.0));
+  }`;
+function geoChao(x, y, R, n) {
+  const h0 = alt(x, y), pos = [], aP = [], idx = [];
+  for (let j = 0; j <= n; j++) for (let i = 0; i <= n; i++) {
+    const u = i / n * 2 - 1, v = j / n * 2 - 1;
+    pos.push(u * R, alt(x + u * R, y + v * R) - h0 + 0.06, -v * R); aP.push(u, v);
+  }
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const a = j * (n + 1) + i, b = a + 1, c = a + n + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("aP", new THREE.Float32BufferAttribute(aP, 2)); g.setIndex(idx);
+  return g;
+}
+function chao(x, y, R, tipo, cor, cor2, dur, o = {}) {
+  const mat = pegarMat("chao", () => new THREE.ShaderMaterial({ uniforms: { uT: num0(), uDur: num0(), uTipo: num0(), uAlfa: num0(), uGiro: num0(), uSem: num0(), uCor: cor0(), uCor2: cor0() },
+    vertexShader: GLSL_CHAO_V, fragmentShader: GLSL_CHAO_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, side: THREE.DoubleSide }));
+  const u = mat.uniforms;
+  u.uT.value = 0; u.uDur.value = dur; u.uTipo.value = tipo; u.uAlfa.value = o.alfa ?? 1; u.uGiro.value = Math.random() * 4; u.uSem.value = Math.random() * 100;
+  u.uCor.value.copy(cor); u.uCor2.value.copy(cor2 || BRANCO());
+  const n = R > 2.2 ? 20 : 12, m = noGrupo(new THREE.Mesh(geoChao(x, y, R, n), mat), 7);
+  m.position.set(x, alt(x, y), -y);
+  let t = 0;
+  return adicionar({ m, u, x, y, morto: false,
+    passo(dt) { t += dt; u.uT.value = t; u.uGiro.value += (o.giro ?? 0.4) * dt; if (o.passo && o.passo(this, dt, t) === false) return false; return dur <= 0 || t < dur; },
+    mover(nx, ny) {                                     // (o que segue o herói: refaz a grade quando ele anda)
+      if (Math.hypot(nx - this.x, ny - this.y) < 0.12) return;
+      this.x = nx; this.y = ny; m.geometry.dispose(); m.geometry = geoChao(nx, ny, R, n); m.position.set(nx, alt(nx, ny), -ny);
+    },
+    fim() { grupo.remove(m); m.geometry.dispose(); devolverMat("chao", mat); } });
+}
+
+// ---- colunas de luz (level up, feixe dos itens, cristais da erupção, feixe do céu): um cilindro aberto, claro no pé e
+// no miolo (de frente para a câmera), sumindo no alto, com faixas subindo
+const GLSL_COL_V = `varying float vY, vA; varying vec3 vN, vV;
+  void main() { vY = uv.y; vA = uv.x; vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`;
+const GLSL_COL_F = `uniform vec3 uCor; uniform float uAlfa, uT, uMiolo; varying float vY, vA; varying vec3 vN, vV;
+  void main() { float f = abs(dot(vN, vV)), m = pow(f, 2.0);
+    float faixa = 0.7 + 0.3 * sin(vA * 31.4159 + vY * 9.0 - uT * 7.0);
+    float al = m * pow(1.0 - vY, 1.5) * faixa * uAlfa * smoothstep(0.0, 0.04, vY);
+    if (al < 0.003) discard;
+    gl_FragColor = vec4(mix(uCor, vec3(1.0), m * m * uMiolo * (1.0 - vY)), clamp(al, 0.0, 1.0)); }`;
+function coluna(x, y, r, h, cor, dur, o = {}) {
+  const mat = pegarMat("coluna", () => new THREE.ShaderMaterial({ uniforms: { uCor: cor0(), uAlfa: num0(), uT: num0(), uMiolo: num0() }, vertexShader: GLSL_COL_V, fragmentShader: GLSL_COL_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  const u = mat.uniforms; u.uCor.value.copy(cor); u.uAlfa.value = 0; u.uT.value = 0; u.uMiolo.value = o.miolo ?? 0.8;
+  const m = noGrupo(new THREE.Mesh(geoColuna, mat), 13);
+  m.position.set(x, alt(x, y) + (o.z ?? 0), -y); m.scale.set(r, 0.01, r);
+  let t = 0;
+  return adicionar({ m, u, morto: false,
+    passo(dt) {
+      t += dt; u.uT.value = t;
+      const nasce = Math.min(1, t / (o.sobe ?? 0.15)), some = dur > 0 ? Math.max(0, 1 - Math.max(0, t - dur * 0.55) / (dur * 0.45)) : 1, rr = r * (o.afina ? 0.4 + 0.6 * some : 1);
+      m.scale.set(rr, h * (1 - Math.pow(1 - nasce, 3)), rr);
+      u.uAlfa.value = (o.alfa ?? 1) * Math.min(1, nasce * 2) * some * (o.pulso ? 0.75 + 0.25 * Math.sin(t * o.pulso) : 1);
+      if (o.passo && o.passo(this, dt, t) === false) return false;
+      return dur <= 0 || t < dur; },
+    fim() { grupo.remove(m); devolverMat("coluna", mat); } });
+}
+// ---- meia-lua: o corte largo e curvo (Corte Triplo, Punhalada, Lâmina Espiritual, as lâminas do Vórtice, o golpe dos
+// chefes). Varre de um lado ao outro em uRev s com a borda de fora clara, mais grossa no meio, e some até uDur
+const GLSL_LUA_V = `attribute vec2 aD; varying vec2 vD; void main() { vD = aD; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const GLSL_LUA_F = `uniform float uT, uDur, uRev, uAlfa; uniform vec3 uCor, uCor2; varying vec2 vD;
+  void main() { float u = vD.x, v = vD.y;
+    float h = uRev > 0.0 ? 1.0 - pow(1.0 - clamp(uT / uRev, 0.0, 1.0), 2.0) : 1.0;
+    if (u > h) discard;
+    float rabo = uRev > 0.0 ? smoothstep(h - 0.85, h, u) : 1.0, th = pow(sin(u * 3.14159), 0.6);
+    float corpo = smoothstep(1.0 - th, 1.0 - th * 0.55, v);
+    float aresta = smoothstep(0.8, 0.95, v) * (1.0 - smoothstep(0.97, 1.0, v) * 0.7) * th;
+    float sai = uDur > 0.0 ? 1.0 - smoothstep(uRev * 0.8, uDur, uT) : 1.0;
+    float al = (corpo * 0.45 + aresta * 1.3) * rabo * sai * uAlfa;
+    if (al < 0.003) discard;
+    gl_FragColor = vec4(mix(uCor, uCor2, clamp(aresta * 1.2, 0.0, 1.0)), clamp(al, 0.0, 1.0)); }`;
+// F e R: os eixos do plano do corte (o meio do arco aponta para F; ele varre de -R para +R); o centro é a origem
+function geoLua(F, R, r0, r1, span, n = 28) {
+  const pos = [], aD = [], idx = [];
+  for (let i = 0; i <= n; i++) {
+    const u = i / n, a = (u - 0.5) * span, d = F.clone().multiplyScalar(Math.cos(a)).addScaledVector(R, Math.sin(a));
+    pos.push(d.x * r0, d.y * r0, d.z * r0, d.x * r1, d.y * r1, d.z * r1); aD.push(u, 0, u, 1);
+    if (i < n) { const b = i * 2; idx.push(b, b + 1, b + 2, b + 1, b + 3, b + 2); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("aD", new THREE.Float32BufferAttribute(aD, 2)); g.setIndex(idx);
+  return g;
+}
+function meiaLua(C, F, R, r0, r1, span, cor, cor2, dur, rev, o = {}) {
+  const mat = pegarMat("lua", () => new THREE.ShaderMaterial({ uniforms: { uT: num0(), uDur: num0(), uRev: num0(), uAlfa: num0(), uCor: cor0(), uCor2: cor0() }, vertexShader: GLSL_LUA_V, fragmentShader: GLSL_LUA_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  const u = mat.uniforms; u.uT.value = 0; u.uDur.value = dur; u.uRev.value = rev; u.uAlfa.value = o.alfa ?? 1; u.uCor.value.copy(cor); u.uCor2.value.copy(cor2 || BRANCO());
+  const m = new THREE.Mesh(geoLua(F, R, r0, r1, span), mat);
+  m.position.copy(C); m.renderOrder = 12; m.layers.enable(1); m.frustumCulled = false;
+  (o.pai || grupo).add(m);
+  let t = 0;
+  return adicionar({ m, u, morto: false,
+    passo(dt) { t += dt; u.uT.value = t; if (o.passo && o.passo(this, dt, t) === false) return false; return dur <= 0 || t < dur; },
+    fim() { m.parent && m.parent.remove(m); m.geometry.dispose(); devolverMat("lua", mat); } });
+}
+// a frente e o lado do herói na cena (a direção das 8 do jogo, ou a do passo de verdade do corpo 3D)
+function frenteHeroi() {
+  const c = M3D.corpo(viking);
+  if (c && c.raiz && c.ang !== null && c.ang !== undefined) return new THREE.Vector3(Math.sin(c.ang), 0, Math.cos(c.ang));
+  const a = -viking.dir * Math.PI / 4; return new THREE.Vector3(Math.cos(a), 0, -Math.sin(a));
+}
+
+// ---- fita: o rastro da arma ("lamina": do meio da arma até a ponta, com Catmull-Rom entre as amostras) e o rastro das
+// flechas, magias e meteoros ("linha": de frente para a câmera, com o miolo claro e afinando para trás)
+const GLSL_FITA_V = `attribute vec3 aD; varying vec3 vD; void main() { vD = aD; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const GLSL_FITA_F = `uniform vec3 uCor, uCor2; uniform float uForca, uModo; varying vec3 vD;
+  void main() { float idade = clamp(vD.x, 0.0, 1.0), u = vD.y, v = vD.z, al; vec3 c;
+    if (uModo < 0.5) {
+      float aresta = smoothstep(0.72, 0.95, u) * (1.0 - smoothstep(0.975, 1.0, u) * 0.5), corpo = smoothstep(0.0, 0.85, u);
+      al = (corpo * 0.42 + aresta) * pow(1.0 - idade, 1.5) * smoothstep(0.0, 0.3, v);
+      c = mix(uCor, uCor2, smoothstep(0.8, 1.0, u));
+    } else {
+      float x = abs(u - 0.5) * 2.0, miolo = 1.0 - smoothstep(0.0, 0.3, x), halo = 1.0 - smoothstep(0.15, 1.0, x);
+      al = (halo * 0.5 + miolo * 0.85) * pow(v, 1.2) * (1.0 - idade);
+      c = mix(uCor, uCor2, miolo);
+    }
+    al *= uForca; if (al < 0.003) discard;
+    gl_FragColor = vec4(c, clamp(al, 0.0, 1.0)); }`;
+function cr(p0, p1, p2, p3, t, out) {
+  const t2 = t * t, t3 = t2 * t, f = (a, b, c, d) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
+  return out.set(f(p0.x, p1.x, p2.x, p3.x), f(p0.y, p1.y, p2.y, p3.y), f(p0.z, p1.z, p2.z, p3.z));
+}
+class Fita {
+  constructor(cap, cor, cor2, modo, o = {}) {
+    this.cap = cap; this.modo = modo; this.dur = o.dur ?? 0.22; this.pts = []; this.semCauda = !!o.semCauda;
+    const g = new THREE.BufferGeometry(), idx = [];
+    this.pos = new THREE.BufferAttribute(new Float32Array(cap * 6), 3); this.aD = new THREE.BufferAttribute(new Float32Array(cap * 6), 3);
+    this.pos.setUsage(THREE.DynamicDrawUsage); this.aD.setUsage(THREE.DynamicDrawUsage);
+    for (let i = 0; i < cap - 1; i++) { const b = i * 2; idx.push(b, b + 1, b + 2, b + 1, b + 3, b + 2); }
+    g.setAttribute("position", this.pos); g.setAttribute("aD", this.aD); g.setIndex(idx); g.setDrawRange(0, 0);
+    this.mat = pegarMat("fita", () => new THREE.ShaderMaterial({ uniforms: { uCor: cor0(), uCor2: cor0(), uForca: num0(), uModo: num0() }, vertexShader: GLSL_FITA_V, fragmentShader: GLSL_FITA_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+    this.u = this.mat.uniforms; this.u.uCor.value.copy(cor); this.u.uCor2.value.copy(cor2); this.u.uForca.value = o.forca ?? 1; this.u.uModo.value = modo === "linha" ? 1 : 0;
+    this.g = g; this.m = noGrupo(new THREE.Mesh(g, this.mat), 12);
+  }
+  lamina(a, b) { this.pts.push({ a: a.clone(), b: b.clone(), t: tAgora }); }
+  ponto(p, w) { this.pts.push({ p: p.clone(), w, t: tAgora }); if (this.pts.length > this.cap) this.pts.shift(); }
+  atualizar() {
+    while (this.pts.length && tAgora - this.pts[0].t > this.dur) this.pts.shift();
+    const n = this.pts.length, P = this.pos.array, D = this.aD.array;
+    let k = 0;
+    if (n >= 2 && this.modo === "lamina") {
+      const sub = 4, tot = (n - 1) * sub + 1;
+      for (let i = 0; i < n - 1; i++) for (let s = 0; s < (i === n - 2 ? sub + 1 : sub) && k < this.cap; s++) {
+        const f = s / sub, p0 = this.pts[Math.max(0, i - 1)], p1 = this.pts[i], p2 = this.pts[i + 1], p3 = this.pts[Math.min(n - 1, i + 2)];
+        cr(p0.a, p1.a, p2.a, p3.a, f, _a); cr(p0.b, p1.b, p2.b, p3.b, f, _b);
+        const idade = (tAgora - (p1.t + (p2.t - p1.t) * f)) / this.dur, v = k / Math.max(1, tot - 1);
+        P[k * 6] = _a.x; P[k * 6 + 1] = _a.y; P[k * 6 + 2] = _a.z; P[k * 6 + 3] = _b.x; P[k * 6 + 4] = _b.y; P[k * 6 + 5] = _b.z;
+        D[k * 6] = idade; D[k * 6 + 1] = 0; D[k * 6 + 2] = v; D[k * 6 + 3] = idade; D[k * 6 + 4] = 1; D[k * 6 + 5] = v; k++;
+      }
+    } else if (n >= 2) {
+      const cp = S.camera.position;
+      for (let i = 0; i < n && k < this.cap; i++) {
+        const p = this.pts[i], pa = this.pts[Math.max(0, i - 1)].p, pb = this.pts[Math.min(n - 1, i + 1)].p;
+        _a.subVectors(pb, pa); _b.subVectors(cp, p.p); _a.cross(_b);
+        const L = _a.length(); if (L < 1e-6) _a.set(0, p.w * 0.5, 0); else _a.multiplyScalar(p.w * 0.5 / L);
+        const idade = this.semCauda ? 0 : (tAgora - p.t) / this.dur, v = this.semCauda ? 1 : i / (n - 1);
+        P[k * 6] = p.p.x - _a.x; P[k * 6 + 1] = p.p.y - _a.y; P[k * 6 + 2] = p.p.z - _a.z; P[k * 6 + 3] = p.p.x + _a.x; P[k * 6 + 4] = p.p.y + _a.y; P[k * 6 + 5] = p.p.z + _a.z;
+        D[k * 6] = idade; D[k * 6 + 1] = 0; D[k * 6 + 2] = v; D[k * 6 + 3] = idade; D[k * 6 + 4] = 1; D[k * 6 + 5] = v; k++;
+      }
+    }
+    this.g.setDrawRange(0, Math.max(0, k - 1) * 6); this.pos.needsUpdate = this.aD.needsUpdate = true;
+    return n;
+  }
+  // deixa o que sobrou do rastro apagar sozinho
+  soltar() { adicionar({ passo: () => this.atualizar() > 1, fim: () => this.fim() }); }
+  fim() { grupo.remove(this.m); this.g.dispose(); devolverMat("fita", this.mat); }
+}
+
+// ---- orbe mágico (a bola do feiticeiro, a sombra do lich, o fogo verde do orc): miolo branco, halo na cor, uma bolha de
+// energia em volta (borda acesa) e o rastro; ao bater, a bolha estoura
+const GLSL_BOLHA_F = `uniform vec3 uCor; uniform float uAlfa, uT; varying float vY, vA; varying vec3 vN, vV;
+  void main() { float f = 1.0 - abs(dot(vN, vV)), aro = pow(f, 2.2), veio = 0.7 + 0.3 * sin(vA * 25.0 + vY * 14.0 + uT * 6.0);
+    float al = (aro * veio + 0.05) * uAlfa; if (al < 0.003) discard;
+    gl_FragColor = vec4(mix(uCor, vec3(1.0), aro * aro * 0.6), clamp(al, 0.0, 1.0)); }`;
+function bolha(cor, tam) {
+  const mat = pegarMat("bolha", () => new THREE.ShaderMaterial({ uniforms: { uCor: cor0(), uAlfa: num0(), uT: num0() }, vertexShader: GLSL_COL_V, fragmentShader: GLSL_BOLHA_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  const u = mat.uniforms; u.uCor.value.copy(cor); u.uAlfa.value = 0.9; u.uT.value = 0;
+  const m = noGrupo(new THREE.Mesh(geoBolha, mat), 13); m.scale.setScalar(tam); m.userData.u = u;
+  return m;
+}
+function orbe(cor, tam, o = {}) {
+  const e = { cor, tam, halo: sprite(texBrilho, cor, tam * 3.2), miolo: sprite(texBrilho, BRANCO(), tam * 1.1), b: o.semBolha ? null : bolha(cor, tam * 1.25),
+              fita: new Fita(20, cor, cor.clone().lerp(BRANCO(), 0.6), "linha", { dur: 0.22 }), p: null, t: 0 };
+  e.mover = (p, dt) => {
+    e.t += dt; e.p = p.clone();
+    const pul = 1 + 0.12 * Math.sin(e.t * 30);
+    e.halo.position.copy(p); e.miolo.position.copy(p); e.halo.scale.setScalar(tam * 3.2 * pul);
+    if (e.b) { e.b.position.copy(p); e.b.userData.u.uT.value = e.t; e.b.rotation.y += dt * 3; }
+    e.fita.ponto(p, tam * 1.5); e.fita.atualizar();
+    if (Math.random() < dt * (LEVE ? 25 : 60)) faisca(p.clone().add(new THREE.Vector3(acaso(-1, 1), acaso(-1, 1), acaso(-1, 1)).multiplyScalar(tam)), new THREE.Vector3(acaso(-1, 1), acaso(-0.5, 1.2), acaso(-1, 1)).multiplyScalar(0.6), cor.clone().lerp(BRANCO(), 0.3), tam * 0.25, 0.4, { forma: 0, grav: 0, arrasto: 1 });
+  };
+  e.estourar = () => {
+    if (!e.p) return;
+    clarao(e.p, tam * 6, cor, 0.2, { estrela: true }); estouro(e.p, 16, cor, 4.5, { tam: 0.06, branco: 0.6 });
+    if (e.b) {                                           // a bolha abre e some
+      const m = bolha(cor, tam * 1.25); m.position.copy(e.p); let t = 0;
+      adicionar({ passo(dt) { t += dt; const u = t / 0.22; m.scale.setScalar(tam * (1.25 + 3.5 * u)); m.userData.u.uAlfa.value = 1.2 * (1 - u); return u < 1; }, fim() { grupo.remove(m); devolverMat("bolha", m.material); } });
+    }
+    luz(e.p, cor, 2.5, 5, 0.25);
+  };
+  e.fim = () => { for (const s of [e.halo, e.miolo]) { grupo.remove(s); devolverMat("sprite", s.material); } if (e.b) { grupo.remove(e.b); devolverMat("bolha", e.b.material); } e.fita.soltar(); };
+  return e;
+}
+
+// ---- chamas em volta do corpo (Fúria, Poder Arcano): um cone aberto com ruído subindo, mais forte na silhueta
+const GLSL_FOGO_F = `uniform vec3 uCor, uCor2; uniform float uAlfa, uT; uniform sampler2D uRuido; varying float vY, vA; varying vec3 vN, vV;
+  void main() { float n = texture2D(uRuido, vec2(vA * 2.0, vY * 0.7 - uT * 0.8)).r * 0.6 + texture2D(uRuido, vec2(vA * 5.0 + 0.37, vY * 1.6 - uT * 1.9)).r * 0.4;
+    float chama = smoothstep(0.3, 0.72, n + 0.48 - vY * 1.05), borda = 1.0 - abs(dot(vN, vV));
+    float al = chama * (0.06 + 0.94 * pow(borda, 1.8)) * uAlfa * 0.7 * smoothstep(0.0, 0.08, vY);   // (mais na silhueta: o corpo aparece)
+    if (al < 0.003) discard;
+    gl_FragColor = vec4(mix(uCor, uCor2, smoothstep(0.45, 0.95, chama) * (1.0 - vY * 0.7)), clamp(al, 0.0, 1.0)); }`;
+function chamas(cor, cor2) {
+  const mat = pegarMat("chamas", () => new THREE.ShaderMaterial({ uniforms: { uCor: cor0(), uCor2: cor0(), uAlfa: num0(), uT: num0(), uRuido: { value: S.ruido } }, vertexShader: GLSL_COL_V, fragmentShader: GLSL_FOGO_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  const u = mat.uniforms; u.uCor.value.copy(cor); u.uCor2.value.copy(cor2); u.uAlfa.value = 0; u.uT.value = 0;
+  const m = noGrupo(new THREE.Mesh(geoChama, mat), 13); m.userData.u = u;
+  return m;
+}
+// ================================================================ os acontecimentos
+// as cores de cada classe: [corpo do rastro, borda] (o refino pinta a borda; a Lâmina Espiritual e a Fúria mandam)
+const COR_CLASSE = { viking: [[1, 0.94, 0.72], [1, 0.72, 0.2]], guerreiro: [[1, 0.5, 0.12], [1, 0.88, 0.45]], ninja: [[0.3, 0.9, 1], [0.85, 1, 1]],
+                     arqueiro: [[0.4, 1, 0.4], [0.9, 1, 0.75]], feiticeiro: [[0.62, 0.36, 1], [0.55, 0.78, 1]] };
+function corGolpe() {
+  if (azul()) return [rgb(0.25, 0.55, 1), rgb(0.8, 0.95, 1)];
+  if (furia.buff > 0 && lutaPerto()) return [rgb(1, 0.35, 0.08), rgb(1, 0.85, 0.35)];
+  const c = COR_CLASSE[classe] || COR_CLASSE.viking, br = brilhoRef();
+  return [rgb(...c[0]), br ? new THREE.Color(br.forte) : rgb(...c[1])];
+}
+const peito = o => P3(o.x, o.y, typeof alturaAlvo === "function" && o !== viking ? alturaAlvo(o) : 1.1);
+// o acerto: estrela de luz e estilhaços no sentido do golpe; o herói apanhando: um clarão vermelho curto
+function acerto(alvo, material) {
+  if (alvo === viking) { clarao(peito(viking), 1, rgb(1, 0.22, 0.12), 0.14); estouro(peito(viking), 6, rgb(1, 0.3, 0.15), 4, { tam: 0.05 }); return; }
+  const p = peito(alvo), [c1, c2] = corGolpe(), dx = alvo.x - viking.x, dy = alvo.y - viking.y, d = Math.hypot(dx, dy) || 1;
+  const dir = new THREE.Vector3(dx / d, 0.35, -dy / d).normalize();
+  clarao(p, 1.0, c2, 0.15, { estrela: true, forca: 0.85 });
+  estouro(p, 12, c1, 6.5, { dir, abre: 0.9, tam: 0.06, vida: 0.3, branco: 0.6 });
+  if (material === "osso") estouro(p, 5, rgb(0.85, 0.9, 1), 4, { forma: 0, tam: 0.05, grav: 12, vida: 0.5 });
+}
+// o crítico: clarão dourado grande, mais estilhaços, um anel no chão e tremor
+function critico(alvo) {
+  const p = peito(alvo);
+  clarao(p, 2.3, rgb(1, 0.78, 0.2), 0.26, { estrela: true }); estouro(p, 22, rgb(1, 0.8, 0.25), 8, { tam: 0.08, branco: 0.7 });
+  chao(alvo.x, alvo.y, 1.6, 0, rgb(1, 0.72, 0.2), null, 0.4); luz(p, rgb(1, 0.8, 0.4), 3, 6, 0.22);
+  tremor = Math.max(tremor, 0.22);
+}
+// explosão (flecha de fogo, meteoro): clarão, anel de fogo no chão, faíscas, brasas subindo, fumaça e luz
+function explosao(x, y, z, raio, cor = rgb(1, 0.45, 0.08)) {
+  const p = P3(x, y, z);
+  clarao(p, raio * 2.4, cor, 0.3, { estrela: true, miolo: rgb(1, 0.95, 0.7) });
+  chao(x, y, raio * 1.25, 0, cor, rgb(1, 0.9, 0.5), 0.5); chao(x, y, raio * 0.9, 3, cor, rgb(1, 0.85, 0.4), 1.4, { alfa: 0.8 });
+  estouro(p, 30, cor, 9, { sobe: 0.6, tam: 0.09, vida: 0.45, branco: 0.6 });
+  estouro(P3(x, y, 0.2), 14, rgb(1, 0.55, 0.15), 3, { forma: 0, sobe: 1.6, tam: 0.07, grav: -1, vida: 0.9, arrasto: 1.4 });
+  fumaca(P3(x, y, 0.2), rgb(0.22, 0.18, 0.16), 6, { r: raio * 0.4, tam: 0.45, vel: 1.4, a: 0.5 });
+  luz(p, cor.clone().lerp(BRANCO(), 0.3), 4, 9, 0.35);
+}
+// level up: coluna dourada, selo e onda no chão, partículas subindo por mais de um segundo e luz
+function subiuNivel3() {
+  const x = viking.x, y = viking.y, ouro = rgb(1, 0.78, 0.25);
+  coluna(x, y, 0.9, 9, ouro, 1.8, { miolo: 0.35, alfa: 0.28 }); coluna(x, y, 0.3, 9, rgb(1, 0.95, 0.75), 1.4, { miolo: 0.4, alfa: 0.26 });
+  chao(x, y, 2.3, 1, ouro, rgb(1, 0.95, 0.7), 1.9, { giro: 1.2 }); chao(x, y, 3.2, 0, ouro, null, 0.7);
+  clarao(P3(x, y, 1.2), 2.4, ouro, 0.35, { forca: 0.6 }); luz(P3(x, y, 1.5), ouro, 5, 10, 1.4);
+  let t = 0;
+  adicionar({ passo(dt) { t += dt; if (Math.random() < dt * (LEVE ? 40 : 90)) subir(P3(viking.x, viking.y, 0.1), ouro.clone().lerp(BRANCO(), Math.random() * 0.5), 1, { r: 0.8, vel: 2.6, vida: 1.2, tam: 0.07 }); return t < 1.3; }, fim() {} });
+}
+// a erupção, o buff e a Fúria abrem um selo; a onda no chão do golpe dos chefes
+function golpeChefe(l) {
+  const a = -l.dir * Math.PI / 4, fx = Math.cos(a), fy = Math.sin(a), cor = rgb(1, 0.3, 0.12);
+  chao(l.x + fx * 1.2, l.y + fy * 1.2, 2.6, 0, cor, rgb(1, 0.8, 0.5), 0.5); chao(l.x + fx * 1.2, l.y + fy * 1.2, 1.8, 3, cor, rgb(1, 0.7, 0.4), 1.1, { alfa: 0.8 });
+  const F = new THREE.Vector3(fx, 0, -fy), R = new THREE.Vector3(fy, 0, fx);
+  meiaLua(P3(l.x, l.y, 1.2), F, R.clone().multiplyScalar(-1).applyAxisAngle(F, 0.5), 0.6, 2.6, 2.4, cor, rgb(1, 0.85, 0.5), 0.3, 0.09);
+  fumaca(P3(l.x + fx * 1.2, l.y + fy * 1.2, 0.1), rgb(0.4, 0.33, 0.26), 6, { r: 1, tam: 0.5, vel: 0.8, a: 0.45 });
+}
+// o corte grande na frente do herói (Corte Triplo, Punhalada, Lâmina Espiritual): inclinado, varrendo rápido
+function corte(incl, r0, r1, span, c1, c2, dur = 0.3, alto = 1.05, lado = 1) {
+  const F = frenteHeroi(), up = new THREE.Vector3(0, 1, 0), R = new THREE.Vector3().crossVectors(up, F).normalize().multiplyScalar(lado).applyAxisAngle(F, incl);
+  const C = P3(viking.x, viking.y, alto);
+  meiaLua(C, F, R, r0, r1, span, c1, c2, dur, dur * 0.3);
+  // estilhaços ao longo do arco
+  for (let k = 0; k < (LEVE ? 6 : 14); k++) {
+    const a = acaso(-0.5, 0.5) * span, d = F.clone().multiplyScalar(Math.cos(a)).addScaledVector(R, Math.sin(a)), p = C.clone().addScaledVector(d, r1 * acaso(0.85, 1.05));
+    faisca(p, d.clone().multiplyScalar(acaso(2, 5)), c2.clone().lerp(BRANCO(), 0.4), 0.06, 0.3);
+  }
+}
+
+// ================================================================ o que segue o estado do jogo
+// seguir(obj, criar): o efeito daquele objeto (criado na primeira vez); o que não foi visto no quadro acaba (acabou())
+function seguir(obj, criar) {
+  let e = seguidos.get(obj);
+  if (!e) { e = criar(obj); if (!e) return null; seguidos.set(obj, e); }
+  e.visto = quadro; return e;
+}
+// ---- o rastro da arma: a ponta e o meio da peça da arma (do glb) no mundo, a cada quadro do golpe
+const PECAS = { viking: ["peca_espada"], guerreiro: ["peca_machado"], ninja: ["peca_adaga_d", "peca_adaga_e"], feiticeiro: ["peca_cajado"], arqueiro: [] };
+const GOLPE = /^(golpe\d|sacar_golpe|giro|punhalada|acrobacia|veneno|bola|raio|terra|lamina_espiritual|furia)/;
+let arma = null;
+function pecasArma() {
+  const c = M3D.corpo(viking); if (!c || !c.malhas) return null;
+  if (arma && arma.c === c && arma.classe === classe) return arma;
+  if (arma) for (const r of arma.l) r.fita.fim();
+  const l = [];
+  for (const nome of PECAS[classe] || []) {
+    const m = c.malhas.find(o => o.name === nome) || c.malhas.find(o => o.parent && o.parent.name === nome); if (!m) continue;
+    m.geometry.computeBoundingBox();
+    const b = m.geometry.boundingBox, s = b.getSize(new THREE.Vector3()), k = s.x > s.y ? (s.x > s.z ? "x" : "z") : (s.y > s.z ? "y" : "z");
+    const e0 = b.getCenter(new THREE.Vector3()), e1 = e0.clone(); e0[k] = b.min[k]; e1[k] = b.max[k];
+    const ponta = e0.length() > e1.length() ? e0 : e1, base = ponta === e0 ? e1 : e0;
+    l.push({ m, base, ponta, fita: new Fita(LEVE ? 40 : 72, rgb(1, 1, 1), rgb(1, 1, 1), "lamina", { dur: classe === "ninja" ? 0.16 : 0.24 }), antes: null });
+  }
+  arma = { c, classe, l }; return arma;
+}
+function passoArma(dt) {
+  const a = pecasArma(); if (!a) return;
+  const golpe = GOLPE.test(viking.anim) && !viking.caido, [c1, c2] = corGolpe(), meio = classe === "ninja" ? 0.5 : classe === "feiticeiro" ? 0.7 : 0.3;
+  const br = brilhoRef(), luzArma = azul() ? rgb(0.35, 0.7, 1) : br ? new THREE.Color(br.forte) : null;
+  for (const r of a.l) {
+    const W = r.m.matrixWorld, ok = r.m.visible && Math.abs(W.determinant()) > 1e-9;
+    const ponta = _a2.copy(r.base).lerp(r.ponta, 1.06).applyMatrix4(W), dentro = _b2.copy(r.base).lerp(r.ponta, meio).applyMatrix4(W);
+    const vel = r.antes ? ponta.distanceTo(r.antes) / Math.max(dt, 1e-3) : 0;
+    r.antes = (r.antes || new THREE.Vector3()).copy(ponta);
+    if (ok && golpe && vel > 2.2) r.fita.lamina(dentro, ponta);
+    r.fita.u.uCor.value.copy(c1); r.fita.u.uCor2.value.copy(c2); r.fita.u.uForca.value = triplo.restam > 0 || vortice.ativo ? 1.35 : 1;
+    r.fita.atualizar();
+    // refino +7/+8/+9 (ou a lâmina azul): pontos de luz subindo da arma
+    if (ok && luzArma && Math.random() < dt * (LEVE ? 8 : 18)) subir(_b.copy(r.base).lerp(r.ponta, acaso(0.3, 1)).applyMatrix4(W), luzArma.clone().lerp(BRANCO(), 0.25), 1, { r: 0.05, h: 0, vel: 0.6, vida: 0.8, tam: 0.05 });
+  }
+}
+// ---- flechas: o rastro verde (dourado na chuva, laranja e grosso na de fogo, verde-limão com bolhas na venenosa)
+function passoFlechas3(dt) {
+  for (const f of flechas) {
+    if (f.atraso > 0) continue;
+    const e = seguir(f, () => {
+      const cor = f.fogo ? [rgb(1, 0.42, 0.06), rgb(1, 0.92, 0.6)] : f.veneno ? [rgb(0.5, 1, 0.15), rgb(0.92, 1, 0.6)] : f.chuva || f.sobe ? [rgb(1, 0.82, 0.4), rgb(1, 1, 0.9)] : [rgb(0.3, 1, 0.42), rgb(0.88, 1, 0.85)];
+      const e = { cor, fita: new Fita(26, cor[0], cor[1], "linha", { dur: f.fogo ? 0.32 : 0.2 }), cab: sprite(texBrilho, cor[0], f.fogo ? 1.1 : 0.45) };
+      e.fim = () => { grupo.remove(e.cab); devolverMat("sprite", e.cab.material); e.fita.soltar(); };
+      return e;
+    });
+    const p = P3(f.x, f.y, f.z);
+    if (!f.presa) {
+      e.fita.ponto(p, f.fogo ? 0.4 : f.chuva ? 0.16 : 0.15); e.cab.position.copy(p); e.cab.visible = true;
+      if (f.fogo && Math.random() < dt * 70) faisca(p, new THREE.Vector3(acaso(-1, 1), acaso(0.5, 2), acaso(-1, 1)), rgb(1, acaso(0.4, 0.8), 0.15), 0.08, 0.4, { forma: 0, grav: -2, arrasto: 2 });
+      if (f.veneno && Math.random() < dt * 30) faisca(p, new THREE.Vector3(acaso(-0.4, 0.4), acaso(0.2, 0.8), acaso(-0.4, 0.4)), rgb(0.55, 1, 0.3), 0.07, 0.6, { forma: 4, grav: -0.5, arrasto: 1 });
+    } else {
+      e.cab.visible = false;
+      if (f.chuva && !e.pousou) { e.pousou = true; clarao(p, 0.6, e.cor[0], 0.14); estouro(p, 5, e.cor[0], 2.5, { sobe: 1, tam: 0.05 }); }
+    }
+    e.fita.atualizar();
+  }
+}
+// ---- magias do feiticeiro voando: a bola (orbe com bolha, na cor da esfera) e os meteoros (bola de fogo com rastro)
+function passoMagias3(dt) {
+  for (const m of magias) {
+    if (m.atraso > 0) continue;
+    const e = seguir(m, () => {
+      if (m.tipo === "bola") { const o = orbe(hsl(m.cor, 1, 0.62), 0.22); o.acabou = () => o.estourar(); return o; }
+      const o = orbe(rgb(1, 0.45, 0.08), 0.42, { semBolha: true });
+      o.fita.dur = 0.4; o.fita.u.uCor2.value.set(1, 0.92, 0.55);
+      o.acabou = () => explosao(m.alvoX, m.alvoY, 0.2, 1.6);
+      return o;
+    });
+    const p = P3(m.x, m.y, m.z);
+    e.mover(p, dt);
+    if (m.tipo === "meteoro" && Math.random() < dt * 60) faisca(p, new THREE.Vector3(acaso(-1, 1), acaso(0.5, 1.5), acaso(-1, 1)), rgb(1, acaso(0.35, 0.75), 0.1), 0.12, 0.5, { forma: 0, grav: -1, arrasto: 1.5 });
+  }
+}
+// ---- relâmpagos: um raio ramificado de verdade (pontos no meio deslocados, com galhos), que muda de forma 20 vezes por
+// segundo, com clarão nas pontas e luz
+function caminhoRaio(a, b, desvio, nivel, out) {
+  if (nivel === 0) { out.push(b.clone()); return; }
+  const m = a.clone().lerp(b, acaso(0.4, 0.6)), d = b.clone().sub(a), L = d.length();
+  const lado = new THREE.Vector3(acaso(-1, 1), acaso(-1, 1), acaso(-1, 1)).cross(d).normalize();
+  m.addScaledVector(lado, acaso(-1, 1) * desvio * L);
+  caminhoRaio(a, m, desvio * 0.7, nivel - 1, out); caminhoRaio(m, b, desvio * 0.7, nivel - 1, out);
+}
+function passoRaios(dt) {
+  for (const r of relampagos) {
+    const e = seguir(r, () => {
+      const A = P3(r.a.x, r.a.y, r.a.z), B = P3(r.b.x, r.b.y, r.b.z), cor = rgb(0.55, 0.65, 1), e = { A, B, fitas: [], t: 1 };
+      for (let k = 0; k < (LEVE ? 2 : 4); k++) e.fitas.push(new Fita(40, cor, rgb(0.95, 0.97, 1), "linha", { semCauda: true, dur: 9 }));
+      clarao(B, 1.5, cor, 0.22, { estrela: true, forca: 0.7 }); clarao(A, 0.9, cor, 0.16, { forca: 0.7 });
+      estouro(B, 18, cor, 6, { tam: 0.06, branco: 0.8 }); chao(r.b.x, r.b.y, 1.4, 0, cor, null, 0.35);
+      luz(B, rgb(0.7, 0.8, 1), 6, 10, Math.max(0.2, r.max)); tremor = Math.max(tremor, 0.08);
+      e.fim = () => e.fitas.forEach(f => f.fim());
+      return e;
+    });
+    e.t += dt;
+    if (e.t > 0.05) {                                    // nova forma
+      e.t = 0;
+      const tronco = [e.A.clone()]; caminhoRaio(e.A, e.B, 0.18, LEVE ? 4 : 5, tronco);
+      const f0 = e.fitas[0]; f0.pts = tronco.map(p => ({ p, w: 0.16, t: tAgora }));
+      for (let k = 1; k < e.fitas.length; k++) {         // galhos: saem de um ponto do tronco para o lado
+        const i = Math.floor(acaso(0.15, 0.75) * tronco.length), o = tronco[i], fim = o.clone().add(e.B.clone().sub(e.A).multiplyScalar(acaso(0.15, 0.3))).add(new THREE.Vector3(acaso(-1, 1), acaso(-0.6, 0.6), acaso(-1, 1)).multiplyScalar(0.8));
+        const g = [o.clone()]; caminhoRaio(o, fim, 0.25, 3, g); e.fitas[k].pts = g.map(p => ({ p, w: 0.08, t: tAgora }));
+      }
+    }
+    const k = Math.max(0, r.vida / r.max);
+    for (const f of e.fitas) { f.u.uForca.value = 0.4 + 1.2 * k * (0.75 + 0.25 * Math.random()); f.atualizar(); }
+  }
+}
+// ---- ondas do feiticeiro: a erupção (selo de runas, rachaduras e os cristais de luz subindo) e as ondas de fogo
+function passoOndas() {
+  for (const o of ondas) {
+    const e = seguir(o, () => {
+      const cor = hsl(o.cor, 1, 0.6);
+      if (o.runas) {
+        chao(o.x, o.y, o.raio * 1.1, 1, cor, rgb(1, 0.95, 0.8), 1.9, { giro: 0.9 }); chao(o.x, o.y, o.raio, 3, rgb(1, 0.72, 0.25), rgb(1, 0.95, 0.7), 1.8);
+        clarao(P3(o.x, o.y, 0.6), 2.6, cor, 0.3, { forca: 0.6 }); luz(P3(o.x, o.y, 1), cor, 4, 9, 1);
+        return { feitos: new Set(), fim() {} };
+      }
+      if (o.fogo && o.pilares.length === 0 && o.raio < 1.7) chao(o.x, o.y, o.raio * 1.5, 0, cor, rgb(1, 0.95, 0.7), 0.5);
+      return { feitos: new Set(), fim() {} };
+    });
+    for (const p of o.pilares) if (!e.feitos.has(p) && o.t >= p.atraso) {
+      e.feitos.add(p);
+      const x = o.x + Math.cos(p.a) * p.d, y = o.y + Math.sin(p.a) * p.d, c = p.cor ? hsl(p.cor, 1, 0.62) : rgb(0.95, 0.95, 1);
+      coluna(x, y, p.larg * 1.2, p.alt * 1.2, c, 1.1, { miolo: 0.45, afina: true, sobe: 0.1, alfa: 0.38 });
+      estouro(P3(x, y, 0.1), 6, c, 3, { sobe: 1.5, tam: 0.05, grav: 2 });
+    }
+  }
+}
+// ---- nuvem de veneno (ninja): disco verde girando no chão, bolhas subindo e estourando, fumaça verde e folhas
+function passoNuvens(dt) {
+  for (const n of nuvensToxicas) {
+    const e = seguir(n, () => ({ d: chao(n.x, n.y, n.r * 1.15, 2, rgb(0.35, 1, 0.2), rgb(0.85, 1, 0.5), -1, { giro: 0.6 }), fim() { this.d.morto = true; } }));
+    const k = Math.min(1, n.t / 0.3) * Math.min(1, (n.dura - n.t) / 0.6);
+    e.d.u.uAlfa.value = 0.9 * k;
+    if (Math.random() < dt * (LEVE ? 14 : 30) * k) { const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * n.r; faisca(P3(n.x + Math.cos(a) * r, n.y + Math.sin(a) * r, 0.1), new THREE.Vector3(acaso(-0.2, 0.2), acaso(0.4, 1.1), acaso(-0.2, 0.2)), rgb(0.5, 1, 0.25), acaso(0.08, 0.16), acaso(0.6, 1.1), { forma: 4, grav: -0.3, arrasto: 0.8, balanca: 0.4, fim: 1.3 }); }
+    if (Math.random() < dt * 5 * k) fumaca(P3(n.x, n.y, 0.1), rgb(0.3, 0.55, 0.18), 1, { r: n.r * 0.6, tam: 0.6, vel: 0.4, a: 0.35 });
+  }
+}
+// ---- magias das criaturas: o fogo verde do orc feiticeiro e o orbe roxo do lich (com a bolha); a flecha fica no 2D
+function passoCriaturas3(dt) {
+  for (const m of magiasCriatura) {
+    if (m.proj === "flecha") continue;
+    const e = seguir(m, () => { const o = m.proj === "sombra" ? orbe(rgb(0.72, 0.3, 1), 0.26) : orbe(rgb(0.35, 1, 0.25), 0.24, { semBolha: true }); o.acabou = () => o.estourar(); return o; });
+    e.mover(P3(m.x, m.y, 1.1), dt);
+  }
+}
+// ---- os estados que duram: Fúria, Vórtice, Investida, Avanço Ágil, Esconder, Passos Leves, buffs do feiticeiro, as
+// marcas da chuva e dos meteoros no chão
+const estado = {};
+function manter(nome, liga, criar) {                     // liga/desliga um efeito contínuo
+  let e = estado[nome];
+  if (liga && !e) e = estado[nome] = criar();
+  if (!liga && e) { e.fim(); estado[nome] = null; return null; }
+  return e;
+}
+function passoEstados(dt, t) {
+  const v = viking, hx = v.x, hy = v.y;
+  // Fúria: chamas subindo em volta do corpo, selo de fogo no chão e brasas
+  const nf = lutaPerto() ? nivelFuria(t) : 0;
+  const fu = manter("furia", nf > 0.03, () => ({ c1: chamas(rgb(1, 0.28, 0.04), rgb(1, 0.85, 0.35)), c2: chamas(rgb(1, 0.15, 0.02), rgb(1, 0.6, 0.15)),
+    selo: chao(hx, hy, 1.15, 1, rgb(1, 0.4, 0.08), rgb(1, 0.85, 0.4), -1, { giro: 1.4 }), fim() { for (const c of [this.c1, this.c2]) { grupo.remove(c); devolverMat("chamas", c.material); } this.selo.morto = true; } }));
+  if (fu) {
+    const p = P3(hx, hy, 0);
+    fu.c1.position.copy(p); fu.c1.scale.set(0.62, 2.1, 0.62); fu.c2.position.copy(p); fu.c2.scale.set(0.45, 1.5, 0.45); fu.c2.rotation.y = 1.3;
+    for (const c of [fu.c1, fu.c2]) { c.userData.u.uT.value = t; c.userData.u.uAlfa.value = Math.min(0.8, nf * 1.5); }
+    fu.selo.mover(hx, hy); fu.selo.u.uAlfa.value = Math.min(1, nf * 1.6);
+    if (Math.random() < dt * 40 * nf) subir(P3(hx, hy, 0.2), rgb(1, acaso(0.35, 0.75), 0.1), 1, { r: 0.5, vel: 1.8, vida: 0.8, tam: 0.06, pisca: 14 });
+  }
+  // Vórtice: três lâminas de luz girando em volta, em alturas e inclinações diferentes, com vento
+  const vo = manter("vortice", vortice.forca > 0.02, () => {
+    const pai = new THREE.Group(); grupo.add(pai); const l = [], [c1, c2] = corGolpe();
+    [[0.6, 0.15], [1.05, -0.2], [1.45, 0.3]].forEach(([h, inc], k) => {
+      const F = new THREE.Vector3(Math.cos(k * 2.1), 0, Math.sin(k * 2.1)), R = new THREE.Vector3(-F.z, 0, F.x).applyAxisAngle(F, inc);
+      l.push(meiaLua(new THREE.Vector3(0, h, 0), F, R, 1.55 + k * 0.2, 2.15 + k * 0.25, 1.9, c1, c2, -1, 0, { pai }));
+    });
+    return { pai, l, fim() { this.l.forEach(m => m.morto = true); grupo.remove(this.pai); } };
+  });
+  if (vo) {
+    vo.pai.position.copy(P3(hx, hy, 0)); vo.pai.rotation.y -= dt * 15;
+    vo.l.forEach(m => m.u.uAlfa.value = 0.5 * vortice.forca);
+    if (Math.random() < dt * 50 * vortice.forca) { const a = Math.random() * 6.28, r = acaso(1.2, 2.4); faisca(P3(hx + Math.cos(a) * r, hy + Math.sin(a) * r, acaso(0.3, 1.6)), new THREE.Vector3(-Math.sin(a), 0.2, -Math.cos(a)).multiplyScalar(-6), corGolpe()[1], 0.07, 0.25); }
+  }
+  // Investida e Avanço Ágil: um rastro largo no peito, riscos de vento para trás
+  const corre = (investida.ativa && !investida.bateu) || NINJA.avanco.ativo;
+  const iv = manter("investida", corre, () => { const nin = classe === "ninja"; return { fita: new Fita(40, nin ? rgb(0.3, 0.85, 1) : rgb(1, 0.45, 0.1), nin ? rgb(0.85, 1, 1) : rgb(1, 0.92, 0.6), "linha", { dur: 0.32 }), fim() { this.fita.soltar(); } }; });
+  if (iv) {
+    iv.fita.ponto(P3(hx, hy, 1.0), 1.1); iv.fita.atualizar();
+    if (Math.random() < dt * 40) { const F = frenteHeroi(); faisca(P3(hx, hy, acaso(0.3, 1.6)).addScaledVector(F, acaso(-0.3, 0.3)), F.clone().multiplyScalar(-acaso(5, 9)), iv.fita.u.uCor2.value, 0.09, 0.2, { grav: 0, arrasto: 1 }); }
+  }
+  // Acrobacia: espirais de luz ciano em volta (as duas adagas já deixam o rastro)
+  if (NINJA.acrobacia.ativa && Math.random() < dt * 40) { const a = t * 18, p = P3(hx + Math.cos(a) * 0.7, hy + Math.sin(a) * 0.7, acaso(0.4, 1.5)); subir(p, rgb(0.4, 0.9, 1), 1, { r: 0.05, vel: 0.5, vida: 0.4, tam: 0.06 }); }
+  // Esconder: fiapos roxos subindo enquanto dura
+  if (classe === "ninja" && NINJA.esconder.buff > 0 && Math.random() < dt * 8) fumaca(P3(hx, hy, 0.2), rgb(0.42, 0.2, 0.6), 1, { r: 0.35, tam: 0.3, vel: 0.8, a: 0.3 });
+  // Passos Leves: vento verde nos pés e folhas soltas enquanto ele anda
+  if (classe === "arqueiro" && pes.buff > 0) {
+    const anda = estado.pesAntes && Math.hypot(hx - estado.pesAntes[0], hy - estado.pesAntes[1]) > 0.5 * dt;
+    if (anda && Math.random() < dt * 30) faisca(P3(hx, hy, acaso(0.05, 0.4)), frenteHeroi().multiplyScalar(-acaso(2, 4)).add(new THREE.Vector3(0, 0.3, 0)), rgb(0.5, 1, 0.55), 0.08, 0.35, { grav: 0, arrasto: 2 });
+    if (anda && Math.random() < dt * 6) folhas(hx, hy, 1);
+  }
+  estado.pesAntes = [hx, hy];
+  // buffs do feiticeiro: um selo pequeno girando nos pés; o Olho sobe em espiral dourada, o Poder em chamas vermelhas
+  for (const b of [olho, poder]) {
+    const on = classe === "feiticeiro" && b.buff > 0 && b.desde > 1.0;
+    const sb = manter("buff" + b.nome, on, () => ({ s: chao(hx, hy, 0.85, 1, hsl(b.cor, 1, 0.6), rgb(1, 1, 0.9), -1, { giro: b === olho ? 1.5 : -1.2, alfa: 0.6 }), fim() { this.s.morto = true; } }));
+    if (sb) {
+      sb.s.mover(hx, hy);
+      if (Math.random() < dt * 14) {
+        if (b === olho) { const a = t * 4 + Math.random(), p = P3(hx + Math.cos(a) * 0.45, hy + Math.sin(a) * 0.45, acaso(0, 0.5)); subir(p, rgb(1, 0.82, 0.3), 1, { r: 0.03, vel: 1.2, vida: 0.9, balanca: 0.6, tam: 0.05 }); }
+        else subir(P3(hx, hy, 0.1), rgb(1, acaso(0.2, 0.45), 0.08), 1, { r: 0.45, vel: 1.3, vida: 0.7, tam: 0.07, pisca: 12 });
+      }
+    }
+  }
+  // a área marcada da chuva de flechas e dos meteoros: um selo girando no chão
+  const ch = chuva.marca > 0 && chuva.centro ? chuva.centro : null;
+  const mc = manter("marcaChuva", !!ch, () => ({ s: chao(ch.x, ch.y, CHUVA_RAIO, 1, rgb(0.45, 1, 0.4), rgb(0.95, 1, 0.8), -1, { giro: 1 }), fim() { this.s.morto = true; } }));
+  if (mc) { mc.s.mover(ch.x, ch.y); mc.s.u.uAlfa.value = Math.min(1, chuva.marca / 0.5) * 0.85; }
+  const me = meteoros.marca > 0 && meteoros.centro ? meteoros.centro : null;
+  const mm = manter("marcaMeteoros", !!me, () => ({ s: chao(me.x, me.y, METEORO_RAIO, 1, rgb(1, 0.45, 0.1), rgb(1, 0.9, 0.6), -1, { giro: -0.8 }), fim() { this.s.morto = true; } }));
+  if (mm) { mm.s.mover(me.x, me.y); mm.s.u.uAlfa.value = Math.min(1, meteoros.marca / 0.5) * 0.85; }
+}
+// folhas e pétalas voando (magia de natureza: Passos Leves, veneno)
+function folhas(x, y, n) {
+  for (let k = 0; k < n; k++) {
+    const c = Math.random() < 0.3 ? [1, 0.7, 0.82] : [acaso(0.3, 0.5), acaso(0.6, 0.85), 0.2];
+    M3D.particula(S.pNormal, { x: x + acaso(-0.4, 0.4), y: alt(x, y) + acaso(0.1, 0.5), z: -y + acaso(-0.4, 0.4), vx: acaso(-1.5, 1.5), vy: acaso(0.8, 2.2), vz: acaso(-1.5, 1.5),
+      vida: acaso(0.9, 1.5), t0: 0.11, t1: 0.09, cor: [...c, 0.95], forma: 1, giro: Math.random() * 6, vg: acaso(-6, 6), grav: 1.8, arrasto: 1.5, balanca: 0.8, fase: Math.random() * 6 });
+  }
+}
+// ---- o mundo: feixe de luz nos itens raros no chão; pulso e rachaduras na pedra Metin
+const COR_ITEM = { livro: [1, 0.8, 0.28], alma: [0.75, 0.4, 1], bencao: [0.6, 0.85, 1] };
+function corItem(d) { if (COR_ITEM[d.tipo]) return rgb(...COR_ITEM[d.tipo]); const r = d.ref || 0; return r >= 9 ? rgb(1, 0.3, 0.2) : r >= 8 ? rgb(0.75, 0.4, 1) : r >= 7 ? rgb(1, 0.75, 0.25) : rgb(0.4, 0.75, 1); }
+function passoMundo(dt, t) {
+  for (const d of drops) {
+    if (!dropRaro(d) || Math.hypot(d.x - cam.x, d.y - cam.y) > 45) continue;
+    const e = seguir(d, () => { const c = corItem(d); return { c, col: coluna(d.x, d.y, 0.16, 3.2, c, -1, { miolo: 1, pulso: 3 }), fim() { this.col.morto = true; } }; });
+    if (Math.random() < dt * 4) subir(P3(d.x, d.y, 0.1), e.c.clone().lerp(BRANCO(), 0.4), 1, { r: 0.15, vel: 0.9, vida: 1.2, tam: 0.05 });
+  }
+  for (const l of criaturas) {
+    if (!l.cfg.estatico || l.morto || Math.hypot(l.x - cam.x, l.y - cam.y) > 32) continue;
+    const e = seguir(l, () => { const c = rgb(0.85, 0.3, 1); return { c, prox: 0, r: chao(l.x, l.y, 2.4, 3, c, rgb(1, 0.75, 1), -1, { alfa: 0.7 }), fim() { this.r.morto = true; } }; });
+    e.r.u.uAlfa.value = 0.3 + 0.2 * Math.sin(t * 2.4);
+    if ((e.prox -= dt) <= 0) { e.prox = 2.2; chao(l.x, l.y, 3.4, 0, e.c, null, 0.9, { alfa: 0.45 }); }
+  }
+}
+function pulsoMetin(l) {
+  const c = rgb(0.85, 0.3, 1), p = P3(l.x, l.y, 1.2);
+  chao(l.x, l.y, 2.6, 0, c, null, 0.45); estouro(p, 10, c, 5, { tam: 0.06 }); clarao(p, 1.6, c, 0.15);
+}
+
+// ================================================================ bloom
+// O que passa do limiar na tela (só no desktop, mais à noite) e a camada 1 (os efeitos) vão para um alvo a 1/4 da
+// tela; descem 3 níveis com desfoque (cada um metade), sobem somando e voltam somados na tela
+const B = { ok: false, ligado: !QS.has("bloom") || QS.get("bloom") !== "0", rt: [], w: 0, h: 0, vigia: 0 };
+function montarBloom() {
+  const vs = "varying vec2 vUv; void main() { vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }";
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3));
+  B.quad = new THREE.Mesh(g); B.quad.frustumCulled = false; B.cena = new THREE.Scene(); B.cena.add(B.quad); B.cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const mk = (frag, u, soma) => new THREE.ShaderMaterial({ uniforms: u, vertexShader: vs, fragmentShader: frag, depthTest: false, depthWrite: false, transparent: !!soma, blending: soma ? THREE.AdditiveBlending : THREE.NoBlending });
+  B.mPre = mk(`uniform sampler2D tTela; uniform vec2 uPx; uniform float uLimiar, uForca; varying vec2 vUv;
+    vec3 pega(vec2 o) { vec3 c = texture2D(tTela, vUv + o * uPx).rgb; float l = max(c.r, max(c.g, c.b)); return c * smoothstep(uLimiar, uLimiar + 0.1, l); }
+    void main() { gl_FragColor = vec4((pega(vec2(-1.0)) + pega(vec2(1.0, -1.0)) + pega(vec2(-1.0, 1.0)) + pega(vec2(1.0))) * 0.25 * uForca, 1.0); }`,
+    { tTela: { value: null }, uPx: { value: new THREE.Vector2() }, uLimiar: { value: 0.86 }, uForca: { value: 1 } });
+  B.mDesce = mk(`uniform sampler2D tF; uniform vec2 uPx; varying vec2 vUv;
+    void main() { vec3 c = texture2D(tF, vUv).rgb * 4.0 + texture2D(tF, vUv + vec2(-1.0, -1.0) * uPx).rgb + texture2D(tF, vUv + vec2(1.0, -1.0) * uPx).rgb + texture2D(tF, vUv + vec2(-1.0, 1.0) * uPx).rgb + texture2D(tF, vUv + vec2(1.0, 1.0) * uPx).rgb;
+      gl_FragColor = vec4(c / 8.0, 1.0); }`, { tF: { value: null }, uPx: { value: new THREE.Vector2() } });
+  B.mSobe = mk(`uniform sampler2D tF; uniform vec2 uPx; varying vec2 vUv;
+    void main() { vec3 c = texture2D(tF, vUv + vec2(-2.0, 0.0) * uPx).rgb + texture2D(tF, vUv + vec2(2.0, 0.0) * uPx).rgb + texture2D(tF, vUv + vec2(0.0, -2.0) * uPx).rgb + texture2D(tF, vUv + vec2(0.0, 2.0) * uPx).rgb;
+      c += (texture2D(tF, vUv + vec2(-1.0, -1.0) * uPx).rgb + texture2D(tF, vUv + vec2(1.0, -1.0) * uPx).rgb + texture2D(tF, vUv + vec2(-1.0, 1.0) * uPx).rgb + texture2D(tF, vUv + vec2(1.0, 1.0) * uPx).rgb) * 2.0;
+      gl_FragColor = vec4(c / 12.0, 1.0); }`, { tF: { value: null }, uPx: { value: new THREE.Vector2() } }, true);
+  B.mFim = mk(`uniform sampler2D tF; uniform float uForca; varying vec2 vUv;
+    void main() { vec3 c = texture2D(tF, vUv).rgb * uForca; gl_FragColor = vec4(c / (1.0 + c * 0.7), 1.0); }`, { tF: { value: null }, uForca: { value: 1 } }, true);
+  B.tela = !LEVE; B.niveis = LEVE ? 3 : 4; B.ok = true;
+}
+function tamanhosBloom(w, h) {
+  if (w === B.w && h === B.h) return;
+  B.w = w; B.h = h;
+  for (const r of B.rt) r.dispose();
+  if (B.fbt) B.fbt.dispose();
+  B.rt = [];
+  const tipo = LEVE ? THREE.UnsignedByteType : THREE.HalfFloatType;
+  for (let k = 0; k < B.niveis; k++) {
+    const d = 4 << k;
+    B.rt.push(new THREE.WebGLRenderTarget(Math.max(4, Math.round(w / d)), Math.max(4, Math.round(h / d)), { type: tipo, depthBuffer: k === 0, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter }));
+  }
+  if (B.tela) { B.fbt = new THREE.FramebufferTexture(w, h, THREE.RGBAFormat); B.fbt.minFilter = B.fbt.magFilter = THREE.LinearFilter; }
+}
+function passada(mat, alvo) { B.quad.material = mat; S.render.setRenderTarget(alvo); S.render.render(B.cena, B.cam); }
+function bloom() {
+  if (!ativo() || !B.ok || !B.ligado) return;
+  if (!B.tam) { B.tam = new THREE.Vector2(); B.cc = new THREE.Color(); B.zero = new THREE.Vector2(0, 0); }
+  const r = S.render, tam = r.getDrawingBufferSize(B.tam);
+  tamanhosBloom(tam.x, tam.y);
+  const au = r.autoClear, cc = r.getClearColor(B.cc), ca = r.getClearAlpha(), sm = r.shadowMap.autoUpdate;
+  const info = { calls: r.info.render.calls, triangles: r.info.render.triangles };        // (a estatística é a da cena)
+  r.autoClear = false; r.setClearColor(0x000000, 1);
+  if (B.tela) { r.setRenderTarget(null); r.copyFramebufferToTexture(B.zero, B.fbt); }
+  r.setRenderTarget(B.rt[0]); r.clear(true, true, false);
+  if (B.tela) {
+    const u = B.mPre.uniforms; u.tTela.value = B.fbt; u.uPx.value.set(1 / tam.x, 1 / tam.y); u.uForca.value = 0.35 + 0.65 * (S.noite || 0);
+    passada(B.mPre, B.rt[0]);
+  }
+  // a camada 1 (efeitos, refino, brasas, lanternas) somada por cima, sem refazer a sombra
+  const cam = S.camera; r.shadowMap.autoUpdate = false; cam.layers.set(1);
+  r.setRenderTarget(B.rt[0]); r.render(S.cena, cam);
+  cam.layers.set(0); r.shadowMap.autoUpdate = sm;
+  for (let k = 1; k < B.rt.length; k++) { const u = B.mDesce.uniforms; u.tF.value = B.rt[k - 1].texture; u.uPx.value.set(1 / B.rt[k - 1].width, 1 / B.rt[k - 1].height); passada(B.mDesce, B.rt[k]); }
+  for (let k = B.rt.length - 1; k > 0; k--) { const u = B.mSobe.uniforms; u.tF.value = B.rt[k].texture; u.uPx.value.set(1 / B.rt[k].width, 1 / B.rt[k].height); passada(B.mSobe, B.rt[k - 1]); }
+  B.mFim.uniforms.tF.value = B.rt[0].texture; B.mFim.uniforms.uForca.value = LEVE ? 0.5 : 0.55;
+  passada(B.mFim, null);
+  r.setRenderTarget(null); r.autoClear = au; r.setClearColor(cc, ca);
+  r.info.render.calls = info.calls; r.info.render.triangles = info.triangles;
+  // no celular, se ficar abaixo de 25 quadros por segundo, o brilho desliga
+  // (depois de 15 s, para não contar o carregamento; duas medidas seguidas abaixo de 25)
+  if (LEVE && (B.vigia += 1) > 450 && B.vigia % 150 === 0 && M3D.stats && M3D.stats.fps) {
+    B.ruins = M3D.stats.fps < 25 ? (B.ruins || 0) + 1 : 0;
+    if (B.ruins >= 2) { B.ligado = false; console.log("fx3: bloom desligado (FPS " + M3D.stats.fps + ")"); }
+  }
+}
+
+// ================================================================ começo, passo e os ganchos no jogo
+function iniciar() {
+  S = M3D.S;
+  _v = new THREE.Vector3(); _v2 = new THREE.Vector3(); _a = new THREE.Vector3(); _b = new THREE.Vector3(); _a2 = new THREE.Vector3(); _b2 = new THREE.Vector3();
+  grupo = new THREE.Group(); S.cena.add(grupo);
+  S.render.debug.checkShaderErrors = false;           // (ler o log de cada programa compilado trava o quadro)
+  texBrilho = texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.22, "rgba(255,255,255,0.7)"); r.addColorStop(0.55, "rgba(255,255,255,0.16)"); r.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = r; g.fillRect(0, 0, n, n); });
+  texEstrela = texCanvas(128, (g, n) => {
+    const c = n / 2, r = g.createRadialGradient(c, c, 0, c, c, c * 0.35); r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = r; g.fillRect(0, 0, n, n);
+    g.fillStyle = "#fff";
+    for (const [l, e] of [[c * 0.98, n * 0.035], [c * 0.55, n * 0.025]]) {
+      for (let k = 0; k < 2; k++) { g.save(); g.translate(c, c); g.rotate(k * Math.PI / 2 + (l < c * 0.9 ? Math.PI / 4 : 0)); g.beginPath(); g.moveTo(-l, 0); g.lineTo(0, -e); g.lineTo(l, 0); g.lineTo(0, e); g.closePath(); g.fill(); g.restore(); }
+    }
+  });
+  geoColuna = new THREE.CylinderGeometry(1, 1, 1, 24, 1, true).translate(0, 0.5, 0);
+  geoChama = new THREE.CylinderGeometry(0.55, 1, 1, 24, 4, true).translate(0, 0.5, 0);
+  geoBolha = new THREE.SphereGeometry(1, 20, 14);
+  PS = M3D.criarParticulas(LEVE ? 700 : 1800, true); PS.mesh.layers.enable(1); PS.mesh.renderOrder = 13;
+  montarBloom();
+  pronto = true;
+}
+function passo(dt, t) {
+  if (QS.get("fx") === "0") return;
+  if (!pronto) { try { iniciar(); } catch (e) { console.error("fx3:", e); QS.set("fx", "0"); return; } }
+  ligado = !!(M3D.ativo);
+  if (!ligado) return;
+  tAgora = t; quadro++;
+  const etapas = [passoArma, passoFlechas3, passoMagias3, passoRaios, passoOndas, passoNuvens, passoCriaturas3, passoEstados, passoMundo];
+  for (const f of etapas) { try { f(dt, t); } catch (e) { if (!f.erro) { f.erro = true; console.error("fx3 " + f.name + ":", e); } } }
+  for (const [o, e] of seguidos) if (e.visto !== quadro) { seguidos.delete(o); try { if (e.acabou) e.acabou(); } catch (er) { console.error("fx3:", er); } e.fim(); }
+  for (let i = vivos.length - 1; i >= 0; i--) {
+    const e = vivos[i]; let segue;
+    try { segue = !e.morto && e.passo(dt); } catch (er) { console.error("fx3:", er); segue = false; }
+    if (!segue) { e.fim(); vivos.splice(i, 1); }
+  }
+  M3D.passoParticulas(PS, dt, t);
+  passoLuzes(dt);
+  grupo.updateMatrixWorld(true);                           // (a cena do M3D não atualiza as matrizes sozinha)
+}
+// os ganchos: chamam a função do jogo e, com os efeitos ligados, o efeito do acontecimento
+function embrulhar(nome, depois) {
+  const f = window[nome]; if (typeof f !== "function") { console.warn("fx3: sem " + nome); return; }
+  window[nome] = function (...a) {
+    const antes = { n: numeros.length, restam: typeof triplo !== "undefined" ? triplo.restam : 0, vortice: typeof vortice !== "undefined" && vortice.ativo };
+    const r = f.apply(this, a);
+    if (ativo()) try { depois(a, r, antes); } catch (e) { console.error("fx3 " + nome + ":", e); }
+    return r;
+  };
+}
+embrulhar("impacto", ([alvo, , material]) => acerto(alvo, material));
+embrulhar("ferir", ([l], r, antes) => { const n = numeros[numeros.length - 1]; if (numeros.length > antes.n && n && n.critico) critico(l); });
+embrulhar("subiuNivel", () => subiuNivel3());
+embrulhar("explosaoFuria", () => {
+  const x = viking.x, y = viking.y, fogo = rgb(1, 0.38, 0.06);
+  chao(x, y, 3, 0, fogo, rgb(1, 0.9, 0.5), 0.55); chao(x, y, 1.8, 3, fogo, rgb(1, 0.85, 0.4), 1.3); coluna(x, y, 0.9, 3.6, fogo, 0.55, { miolo: 0.6, alfa: 0.5 });
+  clarao(P3(x, y, 1.1), 2.2, fogo, 0.22, { forca: 0.7 }); estouro(P3(x, y, 1), 28, fogo, 9, { sobe: 0.8, tam: 0.08, branco: 0.4 }); luz(P3(x, y, 1.2), rgb(1, 0.55, 0.2), 5, 9, 0.5);
+});
+embrulhar("acenderLamina", () => {
+  const azulC = rgb(0.25, 0.55, 1), F = frenteHeroi(), C = P3(viking.x, viking.y, 1.1).addScaledVector(F, 0.3);
+  meiaLua(C, new THREE.Vector3(0, 1, 0), new THREE.Vector3(-F.z, 0, F.x), 0.4, 2.4, 2.8, azulC, rgb(0.85, 0.97, 1), 0.45, 0.12);
+  clarao(C.clone().add(new THREE.Vector3(0, 1, 0)), 2, azulC, 0.28, { estrela: true, forca: 0.7 }); estouro(C, 26, azulC, 7, { sobe: 0.5, tam: 0.07, branco: 0.5 });
+  coluna(viking.x, viking.y, 0.5, 4, azulC, 0.6, { alfa: 0.55 }); luz(C, rgb(0.5, 0.75, 1), 4, 8, 0.5);
+});
+embrulhar("baqueInvestida", ([alvo]) => {
+  const p = peito(alvo), cor = rgb(1, 0.5, 0.15);
+  chao(alvo.x, alvo.y, 2.6, 0, cor, rgb(1, 0.92, 0.6), 0.45); clarao(p, 2.2, cor, 0.22, { estrela: true }); estouro(p, 24, cor, 8, { tam: 0.08, branco: 0.6 });
+  fumaca(P3(alvo.x, alvo.y, 0.1), rgb(0.45, 0.38, 0.3), 8, { r: 0.8, tam: 0.45, vel: 1.2, abre: 2.5, a: 0.5 }); luz(p, rgb(1, 0.7, 0.4), 3, 7, 0.25);
+});
+embrulhar("acertaCriaturas", ([giro], algum, antes) => {
+  if (giro || antes.restam <= 0) return;
+  const [c1, c2] = corGolpe(), k = antes.restam;           // os três cortes do Corte Triplo: inclinados para um lado, para o outro e o grande
+  if (k >= 3) corte(0.55, 0.5, 2.3, 2.5, c1, c2, 0.3, 1.1, 1);
+  else if (k === 2) corte(-0.55, 0.5, 2.3, 2.5, c1, c2, 0.3, 1.1, -1);
+  else corte(0.05, 0.6, 2.9, 3.0, c1, c2, 0.36, 0.95, 1);
+});
+embrulhar("acertoNinja", ([g]) => {
+  if (g === "punhalada") { corte(0.3, 0.3, 1.9, 1.7, rgb(0.3, 0.9, 1), rgb(0.9, 1, 1), 0.22, 1.0, 1); clarao(P3(viking.x, viking.y, 1).addScaledVector(frenteHeroi(), 1.2), 1.4, rgb(0.4, 0.9, 1), 0.15, { estrela: true }); }
+});
+embrulhar("usarEsconder", () => {
+  if (classe !== "ninja" || NINJA.esconder.buff <= 0) return;
+  const x = viking.x, y = viking.y, roxo = rgb(0.55, 0.25, 0.85);
+  fumaca(P3(x, y, 0.1), rgb(0.35, 0.16, 0.5), 16, { r: 0.6, tam: 0.5, vel: 1.2, abre: 1.8, a: 0.6, vida: 1.2 });
+  chao(x, y, 1.8, 0, roxo, rgb(0.9, 0.7, 1), 0.5); estouro(P3(x, y, 1), 16, roxo, 3, { forma: 0, tam: 0.06, grav: -1, vida: 0.7 });
+});
+embrulhar("usarPesLeves", () => {
+  if (pes.desde !== 0) return;
+  const x = viking.x, y = viking.y, verde = rgb(0.4, 1, 0.45);
+  chao(x, y, 2.2, 2, verde, rgb(0.9, 1, 0.7), 0.9); chao(x, y, 2.6, 0, verde, null, 0.5); folhas(x, y, LEVE ? 10 : 22);
+  estouro(P3(x, y, 0.3), 18, verde, 4, { forma: 0, sobe: 1, tam: 0.06, grav: 0, vida: 0.7 });
+});
+embrulhar("acertoFogo", ([f]) => explosao(f.x, f.y, Math.max(0.3, f.z), 1.4));
+embrulhar("aplicarBuffMago", ([b]) => {
+  const x = viking.x, y = viking.y, c = hsl(b.cor, 1, 0.6);
+  coluna(x, y, 0.55, 8, c, 1.3, { miolo: 1 }); chao(x, y, 1.9, 1, c, rgb(1, 1, 0.9), 1.5, { giro: 1.4 }); chao(x, y, 2.4, 0, c, null, 0.5);
+  clarao(P3(x, y, 1.2), 2.6, c, 0.3); estouro(P3(x, y, 0.4), 24, c, 4, { forma: 0, sobe: 1.4, tam: 0.06, grav: 0, vida: 0.9 }); luz(P3(x, y, 1.5), c, 4, 8, 0.8);
+});
+embrulhar("metinApanhou", ([l]) => pulsoMetin(l));
+embrulhar("ataqueCriatura", ([l]) => { if (l.cfg.chefe && !l.cfg.magia && Math.hypot(l.x - viking.x, l.y - viking.y) < 30) golpeChefe(l); });
+return { get ativo() { return ativo(); }, passo, bloom, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; },
+         get stats() { return { vivos: vivos.length, seguidos: seguidos.size, particulas: PS ? PS.l.length : 0 }; } };
 })();
 </script>
 
