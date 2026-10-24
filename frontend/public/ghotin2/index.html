@@ -514,6 +514,7 @@
     <span class="chip chip-lamina" id="eLaminaChip" hidden>lâmina <b id="eLamina">0</b>s</span>
     <span class="chip" id="eTempo" title="Hora do dia e estação (o dia do jogo dura 24 min)">—</span>
     <button class="chip" id="bJanelas" title="Escolher e arrumar as janelas (J)">janelas</button>
+    <button class="chip chip-som" id="bContorno" aria-pressed="true" title="Contorno dos personagens e criaturas (Y)">contorno ligado</button>
     <button class="chip chip-som" id="bSom" aria-pressed="true" title="Som (M)">som ligado</button>
     <button class="chip chip-som" id="bMusica" aria-pressed="true" title="Música (N)">música ligada</button>
     <label class="chip chip-vol" title="Volume da música">volume <input type="range" id="volMusica" min="0" max="1" step="0.05" value="0.6" aria-label="Volume da música"></label>
@@ -829,6 +830,10 @@ const ICONES_SKILL = {}; const ICONES_ITEM = {};
 let MV = null, SPRV = {}, MA = null, SPRA = {}, MF = null, SPRF = {}, MN = null, SPRN = {}, MG = null, SPRG = {}, classe = "viking";
 let FX = null, FXI = {};                  // fogo da Fúria: fx.json e as tiras
 let zoom = 1, dpr = 1, W = 0, H = 0;
+const ZOOM_MIN_2D = 0.6;                   // o mais afastado que o zoom vai no isométrico (mais longe os bonecos ficam miúdos)
+// o estilo pintado à mão (piloto): as peças de deco_pintado.json (pasta deco_pintado/) trocam as do mesmo tipo e o chão
+// vem de chao_pintado/ (o que faltar fica o de sempre); ?pintado=1 / ?pintado=0, ou guardado no navegador
+const ESTILO_PINTADO = (() => { const q = new URLSearchParams(location.search); if (q.has("pintado")) return q.get("pintado") !== "0"; try { return localStorage.getItem("estilo") === "pintado"; } catch (e) { return false; } })();
 
 // ---------------------------------------------------------------- som (sintetizado com Web Audio, sem arquivos)
 // Cada som é montado na hora com osciladores e ruído filtrado. Sons com lugar no mapa ficam mais baixos longe da câmera
@@ -1136,7 +1141,7 @@ function alvosAmbiente(dt) {
   const dv = Math.hypot(v.x - VILA.x, v.y - VILA.y), vila = NPCS.length ? Math.max(0, Math.min(1, 1 - (dv - 9) / 14)) : 0;
   a.vila_loop = vila * (0.35 + 0.65 * dia) * (1 - 0.5 * chuva);
   a.floresta_loop = dia * mata * seco;
-  a.campo_loop = dia * (1 - mata) * (1 - 0.7 * vila) * seco;
+  a.campo_loop = 0;                                                 // (o zumbido de insetos do campo incomodava: desligado)
   a.noite_loop = noite * seco * (1 - 0.4 * vila);
   a.chuva_loop = chuva;
   a.vento_loop = Math.min(1, 0.32 * noite + 0.75 * chuva);
@@ -1265,8 +1270,9 @@ async function carregar() {
     (async () => {
       try {
         const d = await (await fetch("deco.json")).json();
+        if (ESTILO_PINTADO) try { for (const [k, vs] of Object.entries(await (await fetch("deco_pintado.json")).json())) d[k] = vs.map(v => ({ ...v, pasta: "deco_pintado/" })); } catch (e) {}
         await Promise.all(Object.values(d).flat().map(v => new Promise(ok => {
-          const im = new Image(); im.onerror = ok; im.onload = () => { DECO_IMG[v.arq] = im; Promise.race([im.decode ? im.decode().catch(() => {}) : 0, new Promise(r => setTimeout(r, 1500))]).then(ok); }; im.src = "deco/" + v.arq;   // (o decode() pode não voltar numa aba escondida: no máximo 1,5 s)
+          const im = new Image(); im.onerror = ok; im.onload = () => { DECO_IMG[v.arq] = im; Promise.race([im.decode ? im.decode().catch(() => {}) : 0, new Promise(r => setTimeout(r, 1500))]).then(ok); }; im.src = (v.pasta || "deco/") + v.arq;   // (o decode() pode não voltar numa aba escondida: no máximo 1,5 s)
         })));
         DECO = d;
       } catch (e) {}
@@ -1275,8 +1281,9 @@ async function carregar() {
     // texturas do chão (sem elas, o chão volta a ser pintado só por código)
     ...Object.keys(TEX).map(n => new Promise(ok => {
       const im = new Image(), fim = () => { feitos++; $("#barra").style.width = (100 * feitos / total) + "%"; ok(); };
-      im.onload = () => { TEX[n] = im; fim(); }; im.onerror = fim;
-      im.src = "chao/" + n + ".webp";
+      im.onload = () => { TEX[n] = im; fim(); };
+      im.onerror = () => { if (im.src.includes("chao_pintado/")) im.src = "chao/" + n + ".webp"; else fim(); };   // (sem a pintada, a de sempre)
+      im.src = (ESTILO_PINTADO ? "chao_pintado/" : "chao/") + n + ".webp";
     })),
     ...Object.keys(FX).map(n => new Promise((ok, erro) => {
       const im = new Image();
@@ -1463,7 +1470,7 @@ function corChao(x, y, l) {
 // funções do mapa; e um tom de luz e sombra em escala grande, para a repetição das texturas não aparecer. As máscaras
 // (uma célula a cada 0,25 m, com uma de folga em volta para emendar com o pedaço vizinho) ficam guardadas: no zoom só a
 // pintura é refeita.
-const TEX = { grama: null, musgo: null, terra: null };
+const TEX = { grama: null, musgo: null, terra: null, ...(ESTILO_PINTADO ? { calcamento: null } : {}) };   // (o calçamento pintado da praça só no estilo pintado)
 const TEX_M = 4.5;                          // metros que cada textura cobre antes de repetir
 const MASC_C = 0.25, mascaras = new Map();
 let contornoGrama = null;
@@ -1606,7 +1613,9 @@ function pedaco(i, j, esc) {
     if (pintado && !praca(x, y)) continue;
     const l = hash(u, v, 7) * 2 - 1;
     const pts = [[x, y + d], [x + d, y], [x, y - d], [x - d, y]];
-    caminho(pts, true); g.fillStyle = corChao(x, y, l); g.fill();
+    caminho(pts, true);
+    if (TEX.calcamento) { g.fillStyle = padraoChao(g, TEX.calcamento, x0, y1, esc); g.fill(); continue; }   // (as lajes pintadas, emendadas)
+    g.fillStyle = corChao(x, y, l); g.fill();
     g.strokeStyle = "rgba(28,18,12,0.12)"; g.lineWidth = 1; g.stroke();
   }
   // lago: barranco, água, beira clara
@@ -2279,9 +2288,10 @@ function desenharVegetacao(t) {
     }
   }
   cx.save(); cx.lineCap = "round"; cx.lineJoin = "round";
-  cx.strokeStyle = "rgba(34, 66, 22, 0.85)"; cx.lineWidth = Math.max(1.3, s * 0.03); cx.stroke(fundo);
-  cx.strokeStyle = "#93c452"; cx.lineWidth = Math.max(0.8, s * 0.013); cx.stroke(claro);
-  cx.strokeStyle = "rgba(14, 34, 16, 0.9)"; cx.lineWidth = Math.max(1.3, s * 0.032); cx.stroke(fundoMata);
+  // (no estilo pintado o capim é pincelada, sem o contorno escuro de nanquim)
+  cx.strokeStyle = ESTILO_PINTADO ? "rgba(70, 112, 34, 0.6)" : "rgba(34, 66, 22, 0.85)"; cx.lineWidth = Math.max(1.3, s * (ESTILO_PINTADO ? 0.022 : 0.03)); cx.stroke(fundo);
+  cx.strokeStyle = ESTILO_PINTADO ? "#b4d865" : "#93c452"; cx.lineWidth = Math.max(0.8, s * 0.013); cx.stroke(claro);
+  cx.strokeStyle = ESTILO_PINTADO ? "rgba(36, 66, 28, 0.6)" : "rgba(14, 34, 16, 0.9)"; cx.lineWidth = Math.max(1.3, s * (ESTILO_PINTADO ? 0.024 : 0.032)); cx.stroke(fundoMata);
   cx.strokeStyle = "#4f8a3c"; cx.lineWidth = Math.max(0.8, s * 0.014); cx.stroke(claroMata);
   cx.strokeStyle = "#3c6a28"; cx.lineWidth = Math.max(0.9, s * 0.012); cx.stroke(caules);
   if (est !== 2) flores.forEach((f, k) => { cx.fillStyle = COR_FLOR[k]; cx.fill(f); });
@@ -7109,6 +7119,7 @@ addEventListener("keydown", e => {
     return;
   }
   if (k === "m" && !e.repeat) somAlternar();
+  if (k === "y" && !e.repeat) contornoAlternar();
   if (k === "n" && !e.repeat) { somIniciar(); musicaAlternar(); }
   if (k === "t" && !e.repeat) trocarClasse({ viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "guerreiro", guerreiro: "viking" }[classe]);
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
@@ -7183,7 +7194,7 @@ function criaturaNoClique(px, py) {
   }
   return melhor;
 }
-cv.addEventListener("wheel", e => { e.preventDefault(); zoom = Math.max(0.35, Math.min(2.2, zoom * (e.deltaY > 0 ? 0.9 : 1.1))); }, { passive: false });
+cv.addEventListener("wheel", e => { e.preventDefault(); zoom = Math.max(ZOOM_MIN_2D, Math.min(2.2, zoom * (e.deltaY > 0 ? 0.9 : 1.1))); }, { passive: false });
 
 // ---------------------------------------------------------------- editor de mapa (O)
 // Escolhe, move, põe, duplica e apaga decorações, e muda o círculo de colisão de cada tipo. Tudo fica salvo neste
@@ -8548,8 +8559,8 @@ function desenhar(t) {
   lista.push({ y: viking.y, f: desenharViking });
   for (const l of criaturas) lista.push({ y: l.y, f: () => desenharCriatura(l) });
   lista.sort((a, b) => b.y - a.y).forEach(o => o.f());
-  for (const f of placas) f();
-  placas.length = 0;
+  // (com os efeitos 3D, as placas e barras vão depois deles e do escuro da noite: ficam por cima, como no mundo 3D)
+  if (!(fx3() && FX3.iso)) { for (const f of placas) f(); placas.length = 0; }
   desenharFlechas(); desenharMagiasCriatura();
   desenharSkillsArq(t);
   desenharPesFrente();
@@ -8560,6 +8571,9 @@ function desenhar(t) {
   desenharEditor();
   desenharFaiscas();
   if (noEscuro) luzDaCaverna(t); else { desenharAmbiente(t); desenharClima(t, Math.min(0.05, t - (desenhar.tAnt || t))); desenharLuzDoDia(t); }
+  if (window.FX3) FX3.desenhar2d(t);                // os efeitos 3D (FX3) por cima do mundo, depois do escuro da noite (brilham)
+  for (const f of placas) f();
+  placas.length = 0;
   desenhar.tAnt = t;
   cx.restore();
   if (escurece > 0) { cx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, escurece)})`; cx.fillRect(0, 0, W, H); }
@@ -8831,8 +8845,9 @@ async function carregarP3d() {
   tela3d.addEventListener("webglcontextrestored", () => { p.perdido = false; zerarAtlas3d(); });
   p.cena = new THREE.Scene();
   // luz generosa: o estilo Desenho dos sprites clareia as cores (o glb traz a textura crua)
-  p.cena.add(new THREE.AmbientLight(0xffffff, 0.95));
-  const sol = new THREE.DirectionalLight(0xffffff, 0.75); sol.position.set(-1.2, 2.4, 1.6); p.cena.add(sol);
+  // (no estilo pintado, a luz da pintura: sol quente do alto à esquerda e sombra fria, azulada)
+  p.cena.add(new THREE.AmbientLight(ESTILO_PINTADO ? 0xdfe4ff : 0xffffff, ESTILO_PINTADO ? 0.8 : 0.95));
+  const sol = new THREE.DirectionalLight(ESTILO_PINTADO ? 0xffe0b0 : 0xffffff, ESTILO_PINTADO ? 1.0 : 0.75); sol.position.set(-1.2, 2.4, 1.6); p.cena.add(sol);
   // as matrizes de cada boneco são atualizadas só quando ele é renderizado (a cena tem todos, escondidos)
   p.cena.updateMatrixWorld(true); p.cena.matrixWorldAutoUpdate = false;
   const k = 37 * Math.PI / 180;
@@ -8938,7 +8953,9 @@ async function abrirModelo3d(m) {
 // a aparência escolhida na vitrine 3D: cor viva (saturação) 1,35, brilho 0,95 e sem contorno (CONTORNO_3D = false)
 const COR_3D = { sat: 1.35, brilho: 0.95 }, CONTORNO_3D = false;
 // o traço em volta do boneco 3D: a cor do nanquim dos sprites e a largura em px do sprite (cresce com o zoom como a deles)
-const TRACO_3D = { cor: [20, 12, 6], px: 1.4, alfa: 0.92 };
+const TRACO_3D = { cor: [20, 12, 6], px: 0.75, alfa: 0.85 };   // (1,4 ficava grosso demais: o usuário pediu mais fino)
+// no estilo pintado: cor menos estourada e traço mais leve, marrom (o cenário pintado não tem nanquim preto)
+if (ESTILO_PINTADO) { COR_3D.sat = 1.15; COR_3D.brilho = 0.97; TRACO_3D.cor = [48, 30, 18]; TRACO_3D.alfa = 0.6; TRACO_3D.px = 0.7; }
 const GLSL_COR_3D = `
   { vec3 c = diffuseColor.rgb; float l = dot(c, vec3(0.2126, 0.7152, 0.0722)), r = max(c.r, 1e-4);
     float pele = step(c.g, c.r) * step(c.b, c.g) * smoothstep(0.25, 0.4, c.g / r) * (1.0 - smoothstep(0.8, 0.9, c.g / r)) * smoothstep(0.08, 0.18, c.b / r);
@@ -9043,6 +9060,15 @@ function clip3d(m, n) {
 // reduzindo ou ampliando) lê um pouco além do retângulo pedido, e sem a margem vinham traços retos dos vizinhos ou de
 // restos de pedaços antigos (os "quadrados" em volta dos bonecos). Ao arrumar tudo de novo, o atlas inteiro é limpo.
 const MARGEM_3D = 4;
+// o traço escuro em volta dos personagens e criaturas 3D: liga e desliga num botão (Y), e fica guardado
+let contornoLigado = (() => { try { return localStorage.getItem("contorno") !== "0"; } catch (e) { return true; } })();
+function mostrarContorno() { const b = $("#bContorno"); b.setAttribute("aria-pressed", contornoLigado); b.textContent = contornoLigado ? "contorno ligado" : "contorno desligado"; }
+function contornoAlternar() {
+  contornoLigado = !contornoLigado;
+  try { localStorage.setItem("contorno", contornoLigado ? "1" : "0"); } catch (e) {}
+  mostrarContorno(); zerarAtlas3d();                                   // (os bonecos do atlas são repintados sem o traço)
+  avisar(contornoLigado ? "Contorno ligado" : "Contorno desligado");
+}
 function zerarAtlas3d() {
   const p = P3D; p.prateleiras = []; p.yLivre = 0;
   for (const i of p.inst.values()) { i.cel = null; i.celM = null; i.valido = false; }
@@ -9240,7 +9266,7 @@ function renderInst3d(i, clip, tempo) {
   }
   const c = m.caixa;
   p.cam.left = -c.esq; p.cam.right = c.dir; p.cam.top = c.cima; p.cam.bottom = -c.baixo; p.cam.updateProjectionMatrix();
-  pintarCel3d(i.cel, i.raiz, Math.max(1, TRACO_3D.px * i.cel.w / ((c.esq + c.dir) * PX)));
+  pintarCel3d(i.cel, i.raiz, contornoLigado ? Math.max(0.6, TRACO_3D.px * i.cel.w / ((c.esq + c.dir) * PX)) : 0);
   i.valido = true; i.feito = p.quadro;
   if (i.mascara && i.celM) {
     // a máscara do brilho: só a parte da arma que aparece (o corpo tapa sem pintar), em branco
@@ -9310,7 +9336,7 @@ function desenharViking() {
   desenharPesAtras(X, Y, z, agora);
   desenharBuffsMago(X, Y, z, agora);
   for (const r of investida.rastro) {                                   // (no 3D também: o rastro é a silhueta borrada)
-    if (mundo3d) break;
+    if (mundo3d || fx3()) break;                                       // (com os efeitos 3D o rastro é a fita deles)
     const [rx, ry] = tela(r.x - cam.x, r.y - cam.y), ri = M.animacoes[r.anim];
     if (!ri || !SPR[r.anim]) continue;
     cx.save(); cx.globalAlpha = 0.7 * r.vida / r.max; cx.globalCompositeOperation = "lighter";
@@ -9417,6 +9443,8 @@ function montarPainelResto() {
 
   montarBarraSkills();
   $("#bSom").onclick = () => { somIniciar(); somAlternar(); };
+  $("#bContorno").onclick = () => contornoAlternar();
+  mostrarContorno();
   // o clique dos botões (menos a barra de skills e os itens da bolsa, que já têm o seu); o botão que fez outro som agora
   // mesmo (abrir uma janela, comprar) não soma o clique em cima
   document.addEventListener("click", e => {
@@ -9490,7 +9518,7 @@ carregar().then(() => {
 </script>
 <script>
 // ================================================================ MUNDO 3D (o mundo inteiro em three.js, câmera livre)
-// É o modo padrão. ?2d=1 volta aos sprites e ?mundo3d=0 ao 2D com os bonecos 3D; sem WebGL2 a página cai sozinha no
+// Só com ?mundo3d=1: o padrão voltou a ser o isométrico 2D com os bonecos 3D (?2d=1: os sprites); sem WebGL2 a página cai sozinha no
 // modo antigo (o canvas 2D isométrico), que também é usado na caverna e no editor de mapa. A lógica do jogo não muda:
 // tudo continua em metros (x para o leste, y para o norte); a cena usa X = x, Y = altura, Z = -y. As alturas do chão são
 // só visuais (nada de colisão nova): quem anda fica sempre na altura do chão onde está.
@@ -9513,7 +9541,7 @@ const Q = new URLSearchParams(location.search);
 const LEVE = !!window.MODO_LEVE;
 const GRAU = Math.PI / 180;
 const S = {
-  ligado: Q.get("mundo3d") !== "0" && !Q.has("2d") && !MODO_TESTE && P3D.ligado, pronto: false,     // o padrão (?2d=1: os sprites; ?mundo3d=0: o 2D com os bonecos 3D) iniciando: false, falhou: null, ativo: false,
+  ligado: Q.get("mundo3d") === "1" && !Q.has("2d") && !MODO_TESTE && P3D.ligado, pronto: false,     // só com ?mundo3d=1 (o padrão é o isométrico 2D com os bonecos 3D) iniciando: false, falhou: null, ativo: false,
   yaw: 0, yawAlvo: 0, pitch: 37 * GRAU, pitchAlvo: 37 * GRAU, fov: 32, dist: 18, alvoY: 0, quadro: 0, stats: {},
 };
 // quanto o modo leve (celular) economiza
@@ -9539,6 +9567,7 @@ const DECO_3D = {
   ferraria: ["ferraria"], poco: ["poco"], carroca: ["carroca", "@carroca"], caixotes: ["caixotes", "@caixotes"],
   arvore: o => o.modelo ? [o.modelo, "arvore_larga"] : perto3(o, VILA, VILA.r + 14) ? ["cerejeira", "arvore_larga"] : lago(o.x, o.y, 9) || sorte3(o, 56) < 0.12 ? ["bambu", "arvore_larga"] : ["arvore_larga", "cerejeira"],
   // (o pinheiro_alto não saiu no Tripo: "pinheiro_vermelho~alto" é o vermelho mais alto e estreito, com cartões de pinho)
+  // (árvores procedurais prontas, mas desligadas: para usar, envolver as duas listas em arvV(o, [...]) — ver ARV_PROC)
   pinheiro: o => o.neve || o.monte ? ["pinheiro_neve", "pinheiro_vermelho~alto"] : sorte3(o, 55) < 0.35 ? ["pinheiro_vermelho", "pinheiro_alto"] : ["pinheiro_alto", "pinheiro_vermelho~alto", "pinheiro_vermelho"],
   arbusto: o => o.flor ? ["arbusto_flor", "arbusto"] : ["arbusto", "arbusto_flor"],
   pedra: o => o.monumento || (o.esc || 1) >= 1.05 ? ["pedra_grande", "pedras"] : ["pedras", "pedra_grande"],
@@ -10232,7 +10261,7 @@ function materialAgua(nivel, lago) {
         if (uTemReflexo > 0.5) { vec4 q = vRefl; q.xy += vec2(n.x, -n.z) * 0.06 * q.w; refl = mix(texture2DProj(uReflexo, q).rgb, refl, smoothstep(30.0, 90.0, distance(cameraPosition, vMundo))); }   // (longe, o céu de verdade: o reflexo em meia resolução virava manchas no horizonte)
         vec3 agua = mix(uRaso, uFundo, max(smoothstep(0.25, 4.0, prof), kL * 0.8)) * uLuzAmb;
         vec3 c = mix(agua, refl, clamp(fres * 0.95 + 0.04, 0.0, 1.0));
-        c += uSolCor * pow(max(dot(R, uSolDir), 0.0), 240.0) * 3.0 * calmo;
+        c += uSolCor * pow(max(dot(R, uSolDir), 0.0), 320.0) * 1.3 * calmo;      // (3,0 estourava no bloom: a água cegava)
         float nE = texture2D(uRuido, p * 0.55 + uT * vec2(0.03, -0.02)).r;
         float onda = sin(prof * 6.5 - uT * 1.6 + nE * 5.0) * 0.5 + 0.5;
         float esp = (1.0 - smoothstep(0.0, mix(0.1, 0.22, uOnda), prof)) * mix(0.5, 0.85, uOnda) + smoothstep(0.8, 1.0, onda) * (1.0 - smoothstep(0.15, 1.2, prof)) * 0.8 * uOnda;
@@ -10455,6 +10484,7 @@ function escolherModelo(o) {
 function modeloPronto(arq) {
   arq = arq.split("~")[0];                                   // (a variação usa o glb da base)
   let m = decoModelos.get(arq);
+  if (!m && arq.includes("#")) { m = arvoreProc(arq); decoModelos.set(arq, m); }          // (a árvore procedural: pronta na hora)
   if (!m) {
     m = { ok: false, erro: false, niveis: [] }; decoModelos.set(arq, m);
     carregar3d("deco/" + arq, gltf => {
@@ -10515,7 +10545,7 @@ const texFolhagem = {};
 function texFolha(nome) {
   let t = texFolhagem[nome];
   if (!t) {
-    t = texFolhagem[nome] = new THREE.TextureLoader().load("folhagem/" + nome + ".png", () => { for (const m of decoModelos.values()) if (m.copa) m.impostor = undefined; S.decoSuja = true; });
+    t = texFolhagem[nome] = new THREE.TextureLoader().load("folhagem/" + nome + ".png", () => { for (const m of decoModelos.values()) if (m.copa || m.proc) m.impostor = undefined; S.decoSuja = true; });
     t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
   }
   return t;
@@ -10616,6 +10646,309 @@ function cartasCopa(m, arq, bases, nv) {
     return { mesh, alfa, arv };
   }).filter(Boolean);
 }
+// ---- as árvores procedurais (estilo SpeedTree): o tronco e os galhos são tubos que afinam, com curva, forquilhas,
+// raízes na base e a casca emendável (folhagem/casca_*.png, de Tools/deco3d/casca/casca.py); as folhas são cartões
+// (folhagem/*.png com alfa) nas pontas dos galhos, com a cor variando, as de dentro da copa mais escuras, a luz do sol
+// atravessando quando se olha contra ele e o vento (o tronco quase nada, os galhos mais, as folhas tremem). Cada espécie
+// tem ARV_VARIACOES formas ("arvore_larga#2"), feitas na hora pela semente, cada uma com 3 níveis (o _lod1 e o _lod2 com
+// menos lados, sem os galhos finos e com metade e um quarto das folhas, maiores) e o impostor de sempre bem longe
+const ARV_VARIACOES = 4;
+const ARV_PROC = {
+  arvore_larga: { casca: "carvalho", folhas: ["folhas"], forma: "carvalho" },
+  cerejeira: { casca: "cerejeira", folhas: ["flores", "folhas"], pesos: [0.9, 1], forma: "cerejeira" },
+  pinheiro_vermelho: { casca: "vermelho", folhas: ["pinho"], forma: "vermelho", pinho: true },
+  pinheiro_alto: { casca: "abeto", folhas: ["pinho"], forma: "abeto", pinho: true },
+  pinheiro_neve: { casca: "abeto", folhas: ["pinho"], forma: "abeto", pinho: true, neve: true, largo: 1.15 },
+};
+// os nomes da lista do DECO_3D que têm árvore procedural ganham na frente a variação (pela posição do objeto)
+const arvV = (o, l) => l.flatMap(a => { const b = a === "pinheiro_vermelho~alto" ? "pinheiro_alto" : a; return ARV_PROC[b] ? [b + "#" + Math.floor(sorte3(o, 59) * ARV_VARIACOES), a] : [a]; });
+function aleatorioArv(s) { return () => { s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+// a estrutura: galhos (nós com posição, raio e direção) e os pontos das folhas
+function estruturaArvore(forma, semente, largo) {
+  const R = aleatorioArv(semente * 7919 + 13), ent = (a, b) => a + (b - a) * R(), V = THREE.Vector3;
+  const galhos = [], folhas = [], CIMA = new V(0, 1, 0);
+  const perp = d => { const a = Math.abs(d.y) < 0.9 ? CIMA : new V(1, 0, 0); return new V().crossVectors(d, a).normalize(); };
+  // a direção do filho: inclinada "ang" do pai, girada "az" em volta dele
+  const dirFilho = (d, ang, az) => { const p = perp(d).applyAxisAngle(d, az); return d.clone().applyAxisAngle(p, ang).normalize(); };
+  // um galho: anda em passos, a direção muda com o ruído (curva), o tropismo (para cima ou caindo) e a forma (fn)
+  function galho(o) {
+    const n = Math.max(2, Math.ceil(o.comp / (o.passo || 0.22))), d = o.d.clone().normalize(), p = o.p.clone(), nos = [], tmp = new V();
+    let l = 0;
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      let r = o.r0 + (o.r1 - o.r0) * Math.pow(t, o.afina || 0.85);
+      nos.push({ p: p.clone(), r, d: d.clone(), t, l });
+      if (i === n) break;
+      tmp.set(R() - 0.5, (R() - 0.5) * 0.6, R() - 0.5).multiplyScalar(o.curva || 0.3);
+      d.add(tmp);
+      if (o.tropismo) d.addScaledVector(o.tropismo, 0.22 * (o.tropT ? o.tropT(t) : 1));
+      if (o.fn) o.fn(d, t);
+      d.normalize();
+      const passo = o.comp / n; p.addScaledVector(d, passo); l += passo;
+    }
+    const g = { nos, nivel: o.nivel, raiz: !!o.raiz, fase: o.fase ?? R(), flex0: o.flex0 || 0, flex1: o.flex1 || 0, flare: o.flare || 0, lobos: o.lobos || 0, faseL: R() * 6.28, comp: o.comp };
+    galhos.push(g);
+    return g;
+  }
+  const no = (g, t) => { const k = Math.min(g.nos.length - 2, Math.floor(t * (g.nos.length - 1))), f = t * (g.nos.length - 1) - k, a = g.nos[k], b = g.nos[k + 1];
+    return { p: a.p.clone().lerp(b.p, f), r: a.r + (b.r - a.r) * f, d: a.d.clone().lerp(b.d, f).normalize(), flex: g.flex0 + (g.flex1 - g.flex0) * t }; };
+  const folha = (p, d, flex, fase, tam, extra) => folhas.push(Object.assign({ p: p.clone(), d: d.clone(), flex, fase, tam }, extra || {}));
+  const raizes = (tronco, n, r0, comp) => {
+    for (let k = 0; k < n; k++) {
+      const az = (k + ent(-0.3, 0.3)) / n * Math.PI * 2, dir = new V(Math.cos(az), ent(-0.35, -0.15), Math.sin(az)).normalize();
+      galho({ p: new V(0, ent(0.25, 0.45), 0).addScaledVector(dir, r0 * 0.4), d: dir, comp: comp * ent(0.7, 1.2), r0: r0 * ent(0.3, 0.42), r1: 0.012, nivel: 1, raiz: true, curva: 0.35,
+        tropismo: new V(0, -0.5, 0), passo: 0.16, afina: 0.6 });
+    }
+  };
+  // galhos finos com folhas: "n" galhinhos ao longo de g, cada um com folhas no meio e na ponta
+  const galhinhos = (g, n, comp, folhasPor, tamF, ang = [0.6, 1.1], t0 = 0.3, cair = 0) => {
+    for (let k = 0; k < n; k++) {
+      const t = t0 + (1 - t0) * (k + R() * 0.8) / n, b = no(g, t), d = dirFilho(b.d, ent(ang[0], ang[1]), k * 2.4 + R());
+      if (cair) d.y -= cair * R();
+      const f = galho({ p: b.p, d, comp: comp * ent(0.7, 1.2), r0: Math.max(0.008, b.r * 0.55), r1: 0.004, nivel: 3, curva: 0.5, tropismo: new V(0, 0.4, 0), passo: 0.6, fase: g.fase + R() * 0.2, flex0: b.flex, flex1: Math.min(1, b.flex + 0.3) });
+      for (let j = 0; j < folhasPor; j++) { const q = no(f, j === folhasPor - 1 ? 1 : 0.35 + 0.5 * R()); folha(q.p, q.d, q.flex, f.fase + R() * 0.3, tamF * ent(0.8, 1.15)); }
+    }
+  };
+  if (forma === "carvalho" || forma === "cerejeira") {
+    const cer = forma === "cerejeira";
+    const lean = new V(ent(-1, 1), 0, ent(-1, 1)).normalize().multiplyScalar(cer ? ent(0.15, 0.35) : ent(0.03, 0.12));
+    const tronco = galho({ p: new V(0, -0.15, 0), d: new V(lean.x, 1, lean.z), comp: cer ? ent(1.3, 1.7) : ent(1.6, 2.1), r0: cer ? 0.27 : 0.33, r1: cer ? 0.2 : 0.24, nivel: 0, curva: cer ? 0.35 : 0.2,
+      passo: 0.2, flare: 0.55, lobos: 5 + Math.floor(R() * 3), fn: cer ? (d, t) => d.addScaledVector(lean, -0.12) : null });
+    raizes(tronco, 5 + Math.floor(R() * 3), tronco.nos[0].r, cer ? 0.8 : 1);
+    const nL = 4 + Math.floor(R() * 2), nB0 = 1 + Math.floor(R() * 2), az0 = R() * 6.28;
+    const membros = [];
+    for (let k = 0; k < nL + nB0; k++) {
+      const baixo = k >= nL, t = baixo ? ent(0.55, 0.75) : ent(0.86, 1), b = no(tronco, t);
+      const ang = baixo ? ent(0.95, 1.15) : (cer ? ent(0.6, 0.95) : ent(0.3, 0.65)), az = baixo ? az0 + Math.PI / nL * (2 * (k - nL) + 1) + ent(-0.4, 0.4) : az0 + k / nL * 6.28 + ent(-0.25, 0.25);
+      const d = dirFilho(new V(0, 1, 0), ang, az);
+      membros.push(galho({ p: b.p, d, comp: (baixo ? ent(1.9, 2.3) : ent(2.4, 2.8)) * (cer ? 1.2 : 1) * (largo || 1), r0: b.r * (baixo ? 0.5 : 0.68), r1: 0.03, nivel: 1, curva: 0.4,
+        tropismo: new V(0, cer ? 0.12 : 0.3, 0), tropT: cer ? t => 1 - 1.8 * t : null, passo: 0.22, fase: R(), flex0: 0.05, flex1: 0.35 }));
+    }
+    for (const m of membros) {
+      const nB = 6 + Math.floor(R() * 3);
+      for (let k = 0; k < nB; k++) {
+        const t = 0.18 + 0.82 * (k + R() * 0.7) / nB, b = no(m, t), d = dirFilho(b.d, ent(0.55, 1.05), k * 2.39 + R());
+        if (cer) d.y = d.y * 0.6 - 0.05;
+        const br = galho({ p: b.p, d, comp: ent(0.9, 1.4) * (1 - 0.3 * t), r0: b.r * 0.6, r1: 0.01, nivel: 2, curva: 0.55, tropismo: new V(0, cer ? -0.08 : 0.18, 0), passo: 0.26,
+          fase: m.fase + R() * 0.15, flex0: b.flex, flex1: b.flex + 0.35 });
+        galhinhos(br, cer ? 3 : 4, cer ? 0.45 : 0.5, cer ? 1 + (R() < 0.5) : 2, cer ? 0.8 : 0.82, [0.6, 1.1], 0.25, cer ? 0.3 : 0);
+        const q = no(br, 1); folha(q.p, q.d, q.flex, br.fase, cer ? 0.85 : 0.9);
+      }
+      const q = no(m, 1); folha(q.p, q.d, q.flex, m.fase, 0.95);
+    }
+  } else if (forma === "vermelho") {
+    // o pinheiro oriental: tronco em S, galhos quase na horizontal, cada um terminando numa almofada chata de agulhas
+    const az0 = R() * 6.28, sx = Math.cos(az0), sz = Math.sin(az0), amp = ent(0.45, 0.7), fr = ent(1.4, 1.9);
+    const tronco = galho({ p: new V(0, -0.15, 0), d: new V(sx * 0.3, 1, sz * 0.3), comp: ent(5.2, 5.8), r0: 0.27, r1: 0.05, nivel: 0, curva: 0.12, passo: 0.2, flare: 0.6, lobos: 6,
+      afina: 1.1, fn: (d, t) => { const s = Math.cos(t * Math.PI * fr) * amp; d.x += sx * s * 0.25; d.z += sz * s * 0.25; d.y = Math.max(d.y, 0.3); const h = Math.hypot(d.x, d.z) / d.y; if (h > 0.6) { d.x *= 0.6 / h; d.z *= 0.6 / h; } } });
+    raizes(tronco, 6, 0.27, 1.05);
+    const nB = 7 + Math.floor(R() * 3);
+    const almofada = (g, tam) => {
+      const b = no(g, 1), nT = 11 + Math.floor(R() * 4), h = new V(b.d.x, 0, b.d.z).normalize(), padC = no(g, 0.8).p, padR = 0.4 + tam * 0.35;
+      for (let k = 0; k < nT; k++) {
+        const t = 0.45 + 0.55 * R(), c = no(g, t), d = h.clone().applyAxisAngle(CIMA, ent(-1.3, 1.3)); d.y = ent(0.05, 0.3);
+        const tw = galho({ p: c.p, d, comp: tam * ent(0.35, 0.6), r0: Math.max(0.012, c.r * 0.6), r1: 0.006, nivel: 3, curva: 0.4, passo: 0.6, fase: g.fase + R() * 0.2, flex0: c.flex, flex1: c.flex + 0.25 });
+        for (let j = 0; j < 4; j++) { const q = no(tw, j === 3 ? 1 : 0.2 + 0.6 * R()); folha(q.p, q.d, q.flex, tw.fase, ent(0.45, 0.62) * Math.min(1.2, 0.7 + tam * 0.25), { almofada: true, padC, padR }); }
+      }
+    };
+    for (let k = 0; k < nB; k++) {
+      const t = 0.3 + 0.62 * (k + R() * 0.6) / nB, b = no(tronco, t), az = az0 + k * 2.4 + ent(-0.3, 0.3);
+      const d = dirFilho(new V(0, 1, 0), ent(1.25, 1.6), az), comp = (0.9 + (1 - t) * 2.2) * ent(0.8, 1.15);
+      const g = galho({ p: b.p, d, comp, r0: b.r * 0.42, r1: 0.025, nivel: 1, curva: 0.55, tropismo: new V(0, 0.12, 0), tropT: t => t * 2 - 0.8, passo: 0.2, fase: R(), flex0: 0.1, flex1: 0.5 });
+      almofada(g, comp);
+    }
+    // a copa do topo
+    const pt = no(tronco, 1);
+    for (let k = 0; k < 4; k++) { const g = galho({ p: pt.p, d: dirFilho(pt.d, ent(0.7, 1.3), k * 1.57 + R()), comp: ent(0.6, 1.0), r0: 0.04, r1: 0.015, nivel: 2, curva: 0.4, passo: 0.18, fase: R(), flex0: 0.3, flex1: 0.6 }); almofada(g, 0.9); }
+  } else if (forma === "abeto") {
+    // o abeto alto (e o com neve): tronco reto, galhos em verticilos caindo um pouco, curtos em cima, cartões de agulhas ao longo deles
+    const H = ent(6.6, 7.2), lg = largo || 1;
+    const tronco = galho({ p: new V(0, -0.15, 0), d: new V(ent(-0.03, 0.03), 1, ent(-0.03, 0.03)), comp: H, r0: 0.25, r1: 0.02, nivel: 0, curva: 0.04, passo: 0.25, flare: 0.5, lobos: 5, afina: 1 });
+    raizes(tronco, 5, 0.25, 0.7);
+    let y = ent(1.1, 1.4), az = R() * 6.28;
+    while (y < H - 0.35) {
+      const t = y / H, n = 5 + Math.floor(R() * 2), rel = (H - y) / (H - 1.2);
+      for (let k = 0; k < n; k++) {
+        const b = no(tronco, t), a = az + k / n * 6.28 + ent(-0.25, 0.25), ang = 1.15 + 0.75 * rel * ent(0.8, 1.1);
+        const d = new V(Math.cos(a) * Math.sin(ang), Math.cos(ang), Math.sin(a) * Math.sin(ang));
+        const comp = (0.35 + 2.0 * Math.pow(rel, 0.95)) * ent(0.85, 1.12) * lg;
+        const g = galho({ p: b.p, d, comp, r0: Math.max(0.02, b.r * 0.32), r1: 0.008, nivel: 2, curva: 0.18, tropismo: new V(0, -0.45, 0), tropT: t => t - 0.25, passo: 0.25, fase: R(), flex0: 0.15, flex1: 0.75 });
+        // as agulhas: pares de cartões dos lados e um na ponta
+        const m = Math.max(1, Math.round(comp / 0.2));
+        for (let j = 0; j < m; j++) { const q = no(g, Math.min(1, 0.15 + (j + 0.5) / m * 0.85)); folha(q.p, q.d, q.flex, g.fase + R() * 0.2, ent(0.42, 0.58) * (0.75 + 0.35 * Math.min(1, comp / 1.5)), { lado: j % 2 ? 1 : -1 }); }
+        const q = no(g, 1); folha(q.p, q.d, q.flex, g.fase, ent(0.45, 0.55) * (0.7 + 0.3 * Math.min(1, comp)), { ponta: true });
+      }
+      y += ent(0.36, 0.5) * (0.75 + 0.3 * rel); az += 0.6;
+    }
+    const q = no(tronco, 1); for (let k = 0; k < 3; k++) folha(q.p.clone().add(new V(0, -0.15 * k, 0)), new V(0, 1, 0), 0.6, R(), 0.55, { ponta: true, topo: k });
+  }
+  return { galhos, folhas, R };
+}
+// a malha de um nível (nv 0, 1, 2): { casca: geometria, folhas: [geometria por textura] }
+const LADOS_ARV = [[12, 7, 4, 3], [8, 5, 3, 0], [6, 4, 0, 0]], RAIZ_ARV = [6, 4, 0];
+function malhaArvore(nome, k, nv, est) {
+  const cfg = ARV_PROC[nome], conif = cfg.forma === "abeto", V = THREE.Vector3;
+  const { galhos, folhas } = est;
+  // ---- a casca
+  const P = [], N = [], U = [], C = [], W = [], I = [];
+  const t1 = new V(), t2 = new V(), nn = new V();
+  for (const g of galhos) {
+    const lados = g.raiz ? RAIZ_ARV[nv] : LADOS_ARV[nv][g.nivel];
+    if (!lados) continue;
+    const pulo = nv === 0 ? 1 : nv === 1 ? 2 : 3, nos = g.nos.filter((_, i) => i % pulo === 0 || i === g.nos.length - 1);
+    const repU = Math.max(1, Math.round(2 * Math.PI * g.nos[0].r / 0.5)), base = P.length / 3;
+    let ref = new V().crossVectors(nos[0].d, Math.abs(nos[0].d.y) < 0.9 ? new V(0, 1, 0) : new V(1, 0, 0)).normalize();
+    nos.forEach((o, i) => {
+      ref.addScaledVector(o.d, -ref.dot(o.d)).normalize();
+      const bi = t1.crossVectors(o.d, ref).normalize();
+      const y = o.p.y, fl = g.flare ? 1 + g.flare * Math.exp(-Math.max(0, y) / 0.35) : 1;
+      for (let j = 0; j <= lados; j++) {
+        const a = j / lados * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+        nn.copy(ref).multiplyScalar(ca).addScaledVector(bi, sa);
+        let r = o.r * fl;
+        if (g.lobos) r *= 1 + 0.45 * Math.exp(-Math.max(0, y) / 0.5) * Math.pow(Math.max(0, Math.cos(g.lobos * a / 2 + g.faseL)), 8) * (lados >= 8 ? 1 : 0.4);
+        P.push(o.p.x + nn.x * r, o.p.y + nn.y * r, o.p.z + nn.z * r); N.push(nn.x, nn.y, nn.z);
+        U.push(j / lados * repU, o.l / 1.0 + g.faseL);
+        const ao = g.nivel === 0 || g.raiz ? 0.62 + 0.38 * Math.min(1, Math.max(0, y + 0.1) / 1.6) : 0.9;
+        C.push(ao, ao, ao);
+        const flex = g.raiz ? 0 : g.flex0 + (g.flex1 - g.flex0) * o.t;
+        W.push(flex, g.fase, 0);
+      }
+      if (i) { const a0 = base + (i - 1) * (lados + 1), a1 = base + i * (lados + 1); for (let j = 0; j < lados; j++) I.push(a0 + j, a0 + j + 1, a1 + j, a0 + j + 1, a1 + j + 1, a1 + j); }
+    });
+  }
+  const geo = (P, N, U, C, W, I) => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(N, 3));
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2)); g.setAttribute("color", new THREE.Float32BufferAttribute(C, 3)); g.setAttribute("aVento", new THREE.Float32BufferAttribute(W, 3));
+    g.setIndex(I); g.computeBoundingSphere(); return g;
+  };
+  const casca = geo(P, N, U, C, W, I);
+  // ---- as folhas: o centro e o raio da copa (para o normal macio e a sombra de dentro)
+  const cx = new THREE.Box3(); for (const f of folhas) cx.expandByPoint(f.p);
+  const centro = cx.getCenter(new V()), tam = cx.getSize(new V()), rx = Math.max(0.5, Math.max(tam.x, tam.z) / 2), ry = Math.max(0.5, tam.y / 2);
+  const R = aleatorioArv(k * 131 + 7), porTex = cfg.folhas.map(() => ({ P: [], N: [], U: [], C: [], W: [], I: [] }));
+  const passo = [1, 2, 4][nv], tamK = [1, 1.38, 1.85][nv];
+  const ordem = folhas.map((f, i) => [hash(i, k, 171), f]).sort((a, b) => a[0] - b[0]).map(a => a[1]);
+  const q = new THREE.Quaternion(), dn = new V(), ux = new V(), uy = new V(), nc = new V(), cant = new V();
+  ordem.forEach((f, i) => {
+    if (i % passo) return;
+    const sorteio = R(), ti = cfg.pesos ? cfg.pesos.findIndex(p => sorteio < p) : 0, A = porTex[ti], s = f.tam * tamK * (ti ? 0.75 : 1);
+    // a "saída" da copa naquele ponto (a copa como elipsoide; nos abetos, o cone em volta do tronco)
+    let prof;
+    if (f.padC) { dn.subVectors(f.p, f.padC).divideScalar(f.padR); dn.y = dn.y * 2.2 + 0.25; prof = Math.min(1, 0.35 + 0.65 * dn.length()); dn.y += 0.6; }
+    else if (conif) { dn.set(f.p.x, 0.45, f.p.z); prof = Math.min(1, Math.hypot(f.p.x, f.p.z) / Math.max(0.3, 2.2 * Math.pow(Math.max(0, 1 - f.p.y / 7.2), 0.95) + 0.35)); }
+    else { dn.set((f.p.x - centro.x) / rx, (f.p.y - centro.y) / ry, (f.p.z - centro.z) / rx); prof = Math.min(1, dn.length()); }
+    if (cfg.forma === "cerejeira") prof = 0.45 + 0.55 * prof;
+    dn.normalize();
+    let ancora = 0.5;                                   // (0,5: o cartão centrado no ponto; 0: o pé do cartão no ponto, como o raminho de pinho)
+    if (cfg.pinho) {
+      // o raminho deitado ao longo do galho, a ponta para fora (de lado nos pares), virado para cima com um giro
+      uy.copy(f.d); if (f.lado) uy.applyAxisAngle(new V(0, 1, 0), f.lado * (0.5 + 0.3 * R()));
+      if (f.almofada) { uy.y = uy.y * 0.4 + 0.1 + 0.25 * R(); }
+      if (f.topo !== undefined) uy.set((R() - 0.5) * 0.5, 1, (R() - 0.5) * 0.5);
+      uy.normalize();
+      ux.crossVectors(uy, new V(0, 1, 0)); if (ux.lengthSq() < 0.01) ux.set(1, 0, 0); ux.normalize();
+      ux.applyAxisAngle(uy, (R() - 0.5) * (f.almofada ? 2.2 : 1.2) + (f.lado && R() < 0.35 ? 1.2 : 0));
+      ancora = 0.08;
+    } else {
+      // o aglomerado de folhas virado para fora da copa (e um pouco ao acaso), girado em volta de si
+      nc.copy(dn).multiplyScalar(0.8).add(new V(R() - 0.5, R() - 0.3, R() - 0.5).multiplyScalar(1.3)).normalize();
+      ux.crossVectors(nc, Math.abs(nc.y) < 0.95 ? new V(0, 1, 0) : new V(1, 0, 0)).normalize().applyAxisAngle(nc, R() * 6.28);
+      uy.crossVectors(nc, ux).normalize();
+    }
+    // a cor: a de dentro e a de baixo mais escuras, um pouco de variação de tom de cartão para cartão
+    const ao = (0.42 + 0.58 * Math.pow(Math.max(0, (prof - 0.25) / 0.75), 1.2)) * (0.82 + 0.18 * Math.max(0, Math.min(1, conif ? f.p.y / 3 : (f.p.y - centro.y) / ry + 0.8)));
+    const br = 0.86 + 0.26 * R(), am = R() < 0.25 ? 0.1 * R() : 0;
+    let cr = ao * br * (1 + am), cg = ao * br * (1 + am * 0.6), cb = ao * br * (1 - am * 1.5);
+    if (cfg.forma === "cerejeira" && !ti) { const k2 = 1.12 + 0.12 * R(); cr *= k2 * 1.05; cg *= k2 * 0.97; cb *= k2; }
+    // o normal: o da copa, com um pouco do cartão (a luz fica macia, sem cada cartão acender sozinho)
+    nc.crossVectors(ux, uy).normalize(); if (nc.dot(dn) < 0) nc.negate();
+    const nx = dn.x * 0.75 + nc.x * 0.25, ny = dn.y * 0.75 + nc.y * 0.25 + 0.12, nz = dn.z * 0.75 + nc.z * 0.25, nl = Math.hypot(nx, ny, nz);
+    const b0 = A.P.length / 3, fase = f.fase + R() * 0.15;
+    for (const [u, v] of [[0, 0], [1, 0], [1, 1], [0, 1]]) {
+      cant.copy(f.p).addScaledVector(ux, (u - 0.5) * s).addScaledVector(uy, (v - ancora) * s);
+      A.P.push(cant.x, cant.y, cant.z); A.N.push(nx / nl, ny / nl, nz / nl); A.U.push(u, v); A.C.push(cr, cg, cb);
+      A.W.push(f.flex, fase, ancora < 0.5 ? 0.25 + 0.75 * v : 1);
+    }
+    A.I.push(b0, b0 + 1, b0 + 2, b0, b0 + 2, b0 + 3);
+  });
+  return { casca, folhas: porTex.map((A, i) => A.I.length ? { tex: cfg.folhas[i], geo: geo(A.P, A.N, A.U, A.C, A.W, A.I) } : null) };
+}
+// as texturas da casca (com repetição) e o relevo
+const texCascas = {};
+function texCasca(nome) {
+  let t = texCascas[nome];
+  if (!t) {
+    t = texCascas[nome] = new THREE.TextureLoader().load("folhagem/casca_" + nome + ".png", () => { for (const m of decoModelos.values()) if (m.proc) m.impostor = undefined; S.decoSuja = true; });
+    if (!nome.endsWith("_n")) t.encoding = THREE.sRGBEncoding;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
+  }
+  return t;
+}
+// o material da casca ou das folhas: o vento (aVento: x = o quanto o galho balança, y = a fase dele, z = o tremor da
+// folha), o pontilhado do "furo" e, nas folhas, o cartão que some de lado, a neve, o outono e a luz atravessando
+const matsArv = {};
+function materialArvore(tex, folha, cfg) {
+  const chave = tex + (folha ? ":f" : ":c") + (cfg.neve ? ":n" : "") + (cfg.pinho ? ":p" : "");
+  if (matsArv[chave]) return matsArv[chave];
+  const map = folha ? texFolha(tex) : texCasca(tex);
+  const op = folha ? { map, vertexColors: true, side: THREE.DoubleSide, alphaTest: LEVE ? 0.5 : 0.42 } : { map, vertexColors: true };
+  const mat = LEVE ? new THREE.MeshLambertMaterial(op)
+                   : new THREE.MeshStandardMaterial(Object.assign(op, folha ? { roughness: 0.78, alphaToCoverage: true } : { roughness: 0.93, normalMap: texCasca(tex + "_n"), normalScale: new THREE.Vector2(1.4, 1.4) }));
+  const uNeve = { value: cfg.neve ? 1 : 0 };
+  mat.userData.uNeve = uNeve; mat.userData.pinho = !!cfg.pinho; mat.userData.neve = !!cfg.neve; mat.userData.folhaLarga = folha && tex === "folhas";
+  mat.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, { uT: S.uT, uFuro: S.uFuro, uNeveF: uNeve, uOutono: S.uOutono, uSolDirA: S.uCeu.uSolDir, uSolCorA: S.uCeu.uSolCor, uVentoK: { value: cfg.vento || 0.04 } });
+    sh.vertexShader = `attribute vec3 aVento; attribute float aAlfa; varying float vAlfaM; varying vec3 vMundoA; varying float vNeveA; uniform float uT, uVentoK;\n${GLSL_VENTO}\n` + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
+      vAlfaM = aAlfa; vNeveA = normal.y;
+      #ifdef USE_INSTANCING
+      {
+        vec3 ip = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+        vec3 dirV = normalize(inverse(mat3(instanceMatrix)) * vec3(1.0, 0.0, 0.25));
+        float w = vento3(ip, uT), h = max(0.0, position.y), ph = aVento.y * 6.2832 + ip.x * 0.37 + ip.z * 0.21;
+        transformed += dirV * (w * uVentoK * h * h * 0.16);                                                     // o tronco inteiro verga
+        transformed += (dirV * (0.045 * sin(uT * 1.7 + ph) + 0.09 * w) + vec3(0.0, 0.025 * sin(uT * 2.3 + ph * 1.3), 0.0)) * aVento.x * aVento.x;   // os galhos
+        transformed += vec3(sin(uT * 6.3 + ph * 5.0), 0.7 * sin(uT * 7.1 + ph * 3.0), sin(uT * 5.7 + ph * 4.0)) * aVento.z * aVento.x * (0.022 + 0.05 * w);   // as folhas tremem
+      }
+      vMundoA = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;
+      #else
+      vMundoA = (modelMatrix * vec4(transformed, 1.0)).xyz;
+      #endif`);
+    sh.fragmentShader = `uniform float uNeveF, uOutono; uniform vec3 uSolDirA, uSolCorA; varying float vAlfaM; varying vec3 vMundoA; varying float vNeveA;\n${GLSL_PONTILHADO}\n${GLSL_FURO}\n` + sh.fragmentShader
+      .replace("#include <color_fragment>", `#include <color_fragment>
+        ${folha ? `{ vec3 fn = normalize(cross(dFdx(vMundoA), dFdy(vMundoA)));             // o cartão visto de lado some (nada de risco)
+          diffuseColor.a *= smoothstep(${cfg.pinho ? "0.04, 0.24" : "0.1, 0.42"}, abs(dot(fn, normalize(cameraPosition - vMundoA)))); }
+          { float lumN = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.8, 0.84, 0.9), uNeveF * smoothstep(0.2, 0.75, vNeveA) * smoothstep(0.03, 0.15, lumN) * 0.88); }
+          ${tex === "folhas" ? "diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.65, 0.88, 0.32), uOutono);" : ""}`
+        : `diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.78, 0.8, 0.84), uNeveF * smoothstep(0.55, 0.9, vNeveA) * 0.75);`}`)
+      .replace("#include <alphatest_fragment>", "#include <alphatest_fragment>\n if (vAlfaM < 0.999 && pontilhado() > furo(vAlfaM)) discard;")
+      .replace("#include <output_fragment>", folha ? `outgoingLight += diffuseColor.rgb * uSolCorA * 0.55 * pow(max(0.0, dot(normalize(vMundoA - cameraPosition), uSolDirA)), 3.0);   // contra o sol, a luz atravessa as folhas
+        #include <output_fragment>` : "#include <output_fragment>");
+    if (folha) sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "float faceDirection = 1.0; vec3 normal = normalize(vNormal); vec3 geometryNormal = normal;");
+  };
+  mat.customProgramCacheKey = () => "arv" + chave;
+  matsArv[chave] = mat;
+  if (folha) matsFolha["arv:" + chave] = mat;              // (a neve do inverno nos pinheiros vale para estas também)
+  return mat;
+}
+// o "modelo" de uma árvore procedural, no formato dos de 3d/deco (caixa, níveis com as partes), pronto na hora
+function arvoreProc(arq) {
+  const [nome, kv] = arq.split("#"), k = +kv || 0, cfg = ARV_PROC[nome], med = MEDIDA_3D[nome] || {};
+  const est = estruturaArvore(cfg.forma, k + 1 + nome.length * 17, cfg.largo);
+  const m = { ok: true, erro: false, proc: true, copa: null, niveis: [], altK: 0.9 + 0.2 * aleatorioArv(k * 31 + 5)() };
+  const ident = new THREE.Matrix4();
+  for (let nv = 0; nv < 3; nv++) {
+    const { casca, folhas } = malhaArvore(nome, k, nv, est), partes = [{ geo: casca, mat: materialArvore(cfg.casca, false, { neve: cfg.neve, vento: med.vento }), matriz: ident }];
+    for (const f of folhas) if (f) partes.push({ geo: f.geo, mat: materialArvore(f.tex, true, { neve: cfg.neve, pinho: cfg.pinho, vento: med.vento }), matriz: ident });
+    m.niveis[nv] = partes;
+    if (!nv) { m.caixa = new THREE.Box3(); for (const p of partes) { p.geo.computeBoundingBox(); m.caixa.union(p.geo.boundingBox); } m.caixa.min.y = Math.max(m.caixa.min.y, -0.05);
+      // (a caixa centrada no tronco: a peça fica em pé no lugar do objeto mesmo com a copa torta)
+      const lx = Math.max(-m.caixa.min.x, m.caixa.max.x), lz = Math.max(-m.caixa.min.z, m.caixa.max.z); m.caixa.min.x = -lx; m.caixa.max.x = lx; m.caixa.min.z = -lz; m.caixa.max.z = lz; }
+  }
+  return m;
+}
 // o impostor: o próprio modelo renderizado de frente numa textura, para um cartão em pé bem longe
 function impostorDe(m, arq) {
   if (m.impostor !== undefined) return m.impostor;
@@ -10649,7 +10982,7 @@ function impostorDe(m, arq) {
 const VARIACOES = { alto: { medida: "pinheiro_alto", xz: 0.74 } };
 function instanciarModelo(arq, lista) {
   const [base0, varNome] = arq.split("~"), vari = VARIACOES[varNome] || null;
-  const m = decoModelos.get(base0), med = MEDIDA_3D[vari ? vari.medida : base0] || { alt: 2 }, tam = m.caixa.getSize(new THREE.Vector3()), centro = m.caixa.getCenter(new THREE.Vector3()), exz = vari ? vari.xz : 1;
+  const m = decoModelos.get(base0), med = MEDIDA_3D[vari ? vari.medida : base0.split("#")[0]] || { alt: 2 }, tam = m.caixa.getSize(new THREE.Vector3()), centro = m.caixa.getCenter(new THREE.Vector3()), exz = vari ? vari.xz : 1;
   arq = base0;
   const celulas = new Map();
   for (const o of lista) { const k = Math.floor(o.x / 24) + "," + Math.floor(o.y / 24); if (!celulas.has(k)) celulas.set(k, []); celulas.get(k).push(o); }
@@ -10663,7 +10996,7 @@ function instanciarModelo(arq, lista) {
     const mats = l.map((o, k) => {
       const v = varDeco(o), e = v ? escDeco(o) : (o.esc || 1), vert = o.tipo.endsWith("_v") || o.tipo === "ruina_muro_lado";
       let esc;
-      if (med.alt) esc = med.alt * e / Math.max(0.01, tam.y);
+      if (med.alt) esc = med.alt * e / Math.max(0.01, tam.y) * (m.altK || 1);
       else if (med.comp) esc = (o.tipo === "muralha_v" ? 3.6 * e : o.tipo === "ponte_v" ? 7.6 * e : v ? v.base * e : 4) / Math.max(0.01, Math.max(tam.x, tam.z));
       else esc = (v ? v.base * e : 2) * med.larg / Math.max(0.01, tam.x);
       const giro = (vert ? Math.PI / 2 : 0) + (natureza && o.giro === undefined ? hash(Math.round(o.x * 10), Math.round(o.y * 10), 57) * Math.PI * 2 : ((o.giro || 0) + (med.giro || 0)) * GRAU);
@@ -11187,7 +11520,7 @@ function atualizarCorpos(agora, dt) {
     c.uAlfa.value = d.alfa;
     const sombra = Math.hypot(d.x - viking.x, d.y - viking.y) < CFG.raioSombra;
     for (const o of c.malhas) o.castShadow = sombra;
-    const traco = dist < CFG.raioTraco || d.heroi;
+    const traco = contornoLigado && (dist < CFG.raioTraco || d.heroi);
     for (const k of c.cascas) k.visible = traco;
     if (d.heroi) atualizarBrilhoHeroi(c, agora);
   }
@@ -11286,6 +11619,7 @@ function temCorpo(dono) { return !S.pintandoCartao; }
 // perto do herói e levanta o olhar (aparece o horizonte e o céu), como nos MMOs. A distância sai do zoom do jogo (a mesma
 // escala de px por metro no herói que o 2D tinha). Se um morro fica entre a câmera e o herói, ela sobe um pouco.
 const PITCH_MIN = 15 * GRAU, PITCH_MAX = 80 * GRAU, PITCH_CLASSICO = 37 * GRAU;
+const ZOOM_MIN_3D = 0.9;                                        // o mais afastado que o zoom vai no mundo 3D (~14 m do herói com a câmera baixa)
 const angDif = a => Math.atan2(Math.sin(a), Math.cos(a));
 function atualizarCamera(dt) {
   const k = Math.min(1, dt * 9);
@@ -11293,6 +11627,7 @@ function atualizarCamera(dt) {
   S.pitchAlvo = Math.max(PITCH_MIN, Math.min(PITCH_MAX, S.pitchAlvo));
   S.pitch += (S.pitchAlvo - S.pitch) * k;
   // (abaixo de 35°, a câmera se aproxima: aos 15° fica a 60% da distância)
+  zoom = Math.max(zoom, ZOOM_MIN_3D);
   const distAlvo = (H / 2) / (Math.tan(S.fov / 2 * GRAU) * PX * zoom) * (0.6 + 0.4 * liso3((S.pitch - PITCH_MIN) / (35 * GRAU - PITCH_MIN)));
   S.dist += (distAlvo - S.dist) * Math.min(1, dt * 10);
   const kf = 1 - Math.pow(0.88, dt * 60);                       // o mesmo 0,12 por quadro do 2D
@@ -11602,10 +11937,13 @@ function montarGrama() {
         // mais densa perto do herói (cada tufo tem a sua sorte em aCorG.a): longe só fica uma parte, e some suave
         // (a distância é a do herói, no chão: medida da câmera, com o zoom aberto ou a qualidade baixa, a grama sumia toda)
         float dc = distance(ip.xz, uCentroG.xz);
-        if (aCorG.a > mix(1.0, 0.32, smoothstep(5.0, uRaioG * 0.75, dc))) transformed *= 0.0;
+        if (aCorG.a > mix(1.0, 0.32, smoothstep(min(5.0, uRaioG * 0.4), uRaioG * 0.75, dc))) transformed *= 0.0;   // (min: as bordas nunca se invertem com o raio pequeno)
         float alto = position.y / 0.5;
         vec3 off = vec3(vento3(ip, uT) * 0.35 * alto, 0.0, 0.0);
         for (int i = 0; i < 8; i++) {                        // abre para o lado de quem passa
+          // (vaga vazia: w = 0. Sem este pulo, o smoothstep(0.2, w) com w < 0.2 fica invertido e cada vaga vazia deitava
+          // TODA a grama para dentro do chão: longe das criaturas a grama sumia, e voltava perto delas)
+          if (uEmpurra[i].w < 0.3) continue;
           vec3 d = ip - uEmpurra[i].xyz; d.y = 0.0; float l = length(d);
           float f = (1.0 - smoothstep(0.2, uEmpurra[i].w, l)) * alto;
           off += normalize(d + vec3(1e-4, 0.0, 0.0)) * f * 0.35; off.y -= f * 0.18;
@@ -11671,7 +12009,7 @@ function atualizarGrama() {
     .sort((a, b) => Math.hypot(a.x - cam.x, a.y - cam.y) - Math.hypot(b.x - cam.x, b.y - cam.y)).slice(0, 7);
   e[0].set(viking.x, alturaEm(viking.x, viking.y), -viking.y, 0.9);
   S.uGrama.uCentroG.value.set(cam.x, 0, -cam.y);
-  for (let k = 1; k < 8; k++) { const c = perto[k - 1]; if (c) e[k].set(c.x, 0, -c.y, 0.6 + (c.cfg.anel || 0.5) * 0.9); else e[k].set(0, 0, 9999, 0.1); }
+  for (let k = 1; k < 8; k++) { const c = perto[k - 1]; if (c) e[k].set(c.x, 0, -c.y, 0.6 + (c.cfg.anel || 0.5) * 0.9); else e[k].set(0, -999, 0, 0); }   // (vaga vazia: w = 0, o shader pula)
 }
 
 // ---------------------------------------------------------------- luzes da noite (fogueiras, braseiros, forja, lanternas, janelas)
@@ -12066,7 +12404,7 @@ function montarRaios() {
       void main() {
         float a = pow(1.0 - abs(vUv.x - 0.5) * 2.0, 1.6) * smoothstep(0.0, 0.18, vUv.y) * (1.0 - smoothstep(0.45, 1.0, vUv.y));
         a *= 0.7 + 0.3 * sin(uT * 0.7 + vI * 40.0 + vUv.y * 3.0);
-        gl_FragColor = vec4(uCor * a * uI * 0.22, 1.0);
+        gl_FragColor = vec4(uCor * a * uI * 0.13, 1.0);
         #include <encodings_fragment>
       }`,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
@@ -12193,8 +12531,12 @@ function baixarQualidade(motivo) {
 function vigiarQualidade(agora) {
   if (S.qualidadeBaixa || S.vigia === "pronto") return;
   if (!S.vigia) { S.vigia = { t0: agora, n: 0 }; if (LEVE && (navigator.hardwareConcurrency || 8) <= 4 && (navigator.deviceMemory || 8) <= 3) baixarQualidade("aparelho fraco"); return; }
-  const v = S.vigia, dt = agora - v.t0;
+  const v = S.vigia, dt = agora - v.t0, pulo = agora - (v.ult || agora); v.ult = agora;
   if (dt < 6000 || S.decoSuja) return;                              // (os primeiros segundos carregam e montam tudo)
+  // a aba no fundo (o quadro para) ou um engasgo de carga no meio da medida: recomeça a medida (senão saía "FPS 1" e a
+  // grama, a sombra e a resolução baixavam de vez)
+  if (document.visibilityState !== "visible") { v.n = 0; return; }
+  if (pulo > 600 && (v.recomecos || 0) < 5) { v.n = 0; v.recomecos = (v.recomecos || 0) + 1; return; }
   v.n++;
   if (v.n === 1) v.t1 = agora;
   if (agora - v.t1 >= 4000) { const fps = (v.n - 1) / ((agora - v.t1) / 1000); S.fpsInicial = +fps.toFixed(1); if (fps < 22) baixarQualidade("FPS " + fps.toFixed(0)); S.vigia = "pronto"; }
@@ -12271,7 +12613,7 @@ function desenhar3(t) {
   if (CFG.reflexo) renderReflexo(r);
   r.setRenderTarget(null);
   r.render(S.cena, S.camera);
-  if (window.FX3) FX3.bloom();                                   // o brilho (bloom) por cima
+  if (window.FX3) { FX3.bloom(); FX3.flare(); }                 // o brilho (bloom) e o feixe do sol por cima
   desenharSobre(t, dt);
   atualizarMinimapa(true);
   // estatística e a resolução que se ajusta (mira 50 fps no desktop, 28 no celular)
@@ -12364,6 +12706,28 @@ function iniciar() {
   botaoClassico();
   S.pronto = true;
 }
+// Só os efeitos (o isométrico 2D, sem ?mundo3d=1): um WebGLRenderer fora da página, transparente, com uma cena só para os
+// efeitos 3D (FX3) e as partículas deles; nada do chão, água, céu, grama ou decoração é montado. O FX3 põe a câmera
+// (ortográfica, a mesma projeção do 2D), renderiza e copia o quadro para o canvas 2D. Sem WebGL2: erro (fica o 2D antigo).
+function iniciarFx() {
+  if (S.soFx) return S;
+  if (S.pronto || S.ligado) return null;
+  temporarios();
+  const cvs = document.createElement("canvas");
+  const r = new THREE.WebGLRenderer({ canvas: cvs, alpha: true, premultipliedAlpha: true, antialias: !LEVE, powerPreference: "high-performance", stencil: false });
+  if (!r.capabilities.isWebGL2) { r.dispose(); throw new Error("sem WebGL2"); }
+  cvs.addEventListener("webglcontextlost", e => { e.preventDefault(); S.perdido = true; });
+  cvs.addEventListener("webglcontextrestored", () => { S.perdido = false; });
+  r.setClearColor(0x000000, 0); r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05;
+  r.setPixelRatio(1); r.setSize(Math.max(1, W), Math.max(1, H), false);
+  S.render = r; S.canvas = cvs;
+  S.cena = new THREE.Scene(); S.cena.matrixWorldAutoUpdate = false;
+  S.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 500);
+  S.uT = { value: 0 }; S.ruido = texturaRuido(); S.pontos = []; S.noite = 0;
+  S.pNormal = criarParticulas(LEVE ? 300 : 800, false);          // (fumaça e folhas dos efeitos)
+  S.soFx = true;
+  return S;
+}
 // o Mapa do Mundo mudou o terreno (altura extra ou chão pintado): as alturas finas e a grama são refeitas, e os pedaços
 // do chão também (cada um fica até o novo dele ficar pronto); com soGrama, só a grama (a decoração mudou)
 function refazerChao(soGrama) {
@@ -12374,7 +12738,7 @@ function refazerChao(soGrama) {
 return {
   get ligado() { return S.ligado; }, get ativo() { return S.ativo; }, get pronto() { return S.pronto; }, S, CFG, DECO_3D, MEDIDA_3D, TRACO_MUNDO, CAMADAS,
   quer, desenhar: desenhar3, tela: tela3, noMundo: noMundo3, acima, relativo, pegar, corpo, temCorpo, alturaEm, alturaBruta, voltarClassico, refazerChao,
-  criarParticulas, particula: soltar, passoParticulas, projetar,                              // (para os efeitos 3D, FX3)
+  criarParticulas, particula: soltar, passoParticulas, projetar, iniciarFx,                   // (para os efeitos 3D, FX3)
   get stats() { return S.stats; },
 };
 })();
@@ -12391,16 +12755,19 @@ return {
 //   mundo ...... level up (coluna dourada), feixe dos itens raros no chão, pulso e rachaduras da Metin, refino subindo
 // Os efeitos acompanham o estado do jogo (magias, flechas, raios, ondas, nuvens...) a cada quadro; os acontecimentos
 // (acerto, level up, explosões) chegam por funções do jogo embrulhadas. Ligado (FX3.ativo), o 2D deixa de desenhar o
-// que foi trocado. No modo 2D (?2d=1), na caverna e no editor nada daqui roda; ?fx=0 desliga tudo, ?bloom=0 só o brilho.
+// que foi trocado. No isométrico 2D (o padrão, sem ?mundo3d=1) os mesmos efeitos rodam numa cena só deles (M3D.iniciarFx:
+// sem chão, céu nem decoração), com a câmera na projeção do 2D, e o quadro é copiado para o canvas 2D (desenhar2d); os
+// corpos 3D do atlas (P3D) entram só como profundidade, para o que fica atrás do boneco sumir atrás dele. Com ?2d=1 e no
+// editor nada daqui roda; ?fx=0 desliga tudo, ?bloom=0 só o brilho, ?flare=0 a luz do sol na tela.
 var FX3 = (() => {
 "use strict";
 const LEVE = !!window.MODO_LEVE, QS = new URLSearchParams(location.search);
-let S = null, pronto = false, ligado = false, grupo = null, PS = null, tAgora = 0, quadro = 0;
+let S = null, pronto = false, ligado = false, grupo = null, PS = null, tAgora = 0, quadro = 0, iso = false;
 let texBrilho, texEstrela, geoColuna, geoChama, geoBolha, _v, _v2, _a, _b, _a2, _b2;
 const vivos = [];                                   // os efeitos rodando: { passo(dt) → false quando acabou, fim() }
 const seguidos = new Map();                         // objeto do jogo (magia, flecha, raio, onda...) → o efeito que o segue
 const ativo = () => pronto && ligado;
-const alt = (x, y) => M3D.alturaEm(x, y);
+const alt = (x, y) => iso ? 0 : M3D.alturaEm(x, y);                     // (no isométrico o chão é plano)
 const P3 = (x, y, z) => new THREE.Vector3(x, alt(x, y) + z, -y);           // ponto do jogo (altura acima do chão) na cena
 const hsl = (h, s = 1, l = 0.6) => new THREE.Color().setHSL((((h % 360) + 360) % 360) / 360, s, l);
 const rgb = (r, g, b) => new THREE.Color(r, g, b);
@@ -12615,9 +12982,18 @@ function meiaLua(C, F, R, r0, r1, span, cor, cor2, dur, rev, o = {}) {
     passo(dt) { t += dt; u.uT.value = t; if (o.passo && o.passo(this, dt, t) === false) return false; return dur <= 0 || t < dur; },
     fim() { m.parent && m.parent.remove(m); m.geometry.dispose(); devolverMat("lua", mat); } });
 }
+// o corpo 3D do herói: no mundo 3D, o da cena (M3D); no isométrico, a instância dele no atlas (P3D), posada neste quadro
+// com os pés na origem (as peças vão para o mundo somando a posição dele)
+function corpoHeroi() {
+  if (!iso) return M3D.corpo(viking);
+  const i = P3D.vale(viking); if (!i || !i.raiz) return null;
+  if (!i.fx) { const malhas = []; i.raiz.traverse(o => { if (o.isMesh) malhas.push(o); }); i.fx = { raiz: i.raiz, malhas }; }
+  i.fx.ang = i.ang;
+  return i.fx;
+}
 // a frente e o lado do herói na cena (a direção das 8 do jogo, ou a do passo de verdade do corpo 3D)
 function frenteHeroi() {
-  const c = M3D.corpo(viking);
+  const c = corpoHeroi();
   if (c && c.raiz && c.ang !== null && c.ang !== undefined) return new THREE.Vector3(Math.sin(c.ang), 0, Math.cos(c.ang));
   const a = -viking.dir * Math.PI / 4; return new THREE.Vector3(Math.cos(a), 0, -Math.sin(a));
 }
@@ -12815,7 +13191,7 @@ const PECAS = { viking: ["peca_espada"], guerreiro: ["peca_machado"], ninja: ["p
 const GOLPE = /^(golpe\d|sacar_golpe|giro|punhalada|acrobacia|veneno|bola|raio|terra|lamina_espiritual|furia)/;
 let arma = null;
 function pecasArma() {
-  const c = M3D.corpo(viking); if (!c || !c.malhas) return null;
+  const c = corpoHeroi(); if (!c || !c.malhas) return null;
   if (arma && arma.c === c && arma.classe === classe) return arma;
   if (arma) for (const r of arma.l) r.fita.fim();
   const l = [];
@@ -12833,16 +13209,18 @@ function passoArma(dt) {
   const a = pecasArma(); if (!a) return;
   const golpe = GOLPE.test(viking.anim) && !viking.caido, [c1, c2] = corGolpe(), meio = classe === "ninja" ? 0.5 : classe === "feiticeiro" ? 0.7 : 0.3;
   const br = brilhoRef(), luzArma = azul() ? rgb(0.35, 0.7, 1) : br ? new THREE.Color(br.forte) : null;
+  const ox = iso ? viking.x : 0, oz = iso ? -viking.y : 0;                // (no isométrico o corpo do atlas fica na origem)
   for (const r of a.l) {
     const W = r.m.matrixWorld, ok = r.m.visible && Math.abs(W.determinant()) > 1e-9;
     const ponta = _a2.copy(r.base).lerp(r.ponta, 1.06).applyMatrix4(W), dentro = _b2.copy(r.base).lerp(r.ponta, meio).applyMatrix4(W);
+    ponta.x += ox; ponta.z += oz; dentro.x += ox; dentro.z += oz;
     const vel = r.antes ? ponta.distanceTo(r.antes) / Math.max(dt, 1e-3) : 0;
     r.antes = (r.antes || new THREE.Vector3()).copy(ponta);
     if (ok && golpe && vel > 2.2) r.fita.lamina(dentro, ponta);
     r.fita.u.uCor.value.copy(c1); r.fita.u.uCor2.value.copy(c2); r.fita.u.uForca.value = triplo.restam > 0 || vortice.ativo ? 1.35 : 1;
     r.fita.atualizar();
     // refino +7/+8/+9 (ou a lâmina azul): pontos de luz subindo da arma
-    if (ok && luzArma && Math.random() < dt * (LEVE ? 8 : 18)) subir(_b.copy(r.base).lerp(r.ponta, acaso(0.3, 1)).applyMatrix4(W), luzArma.clone().lerp(BRANCO(), 0.25), 1, { r: 0.05, h: 0, vel: 0.6, vida: 0.8, tam: 0.05 });
+    if (ok && luzArma && Math.random() < dt * (LEVE ? 8 : 18)) subir(_b.copy(r.base).lerp(r.ponta, acaso(0.3, 1)).applyMatrix4(W).add(_v.set(ox, 0, oz)),luzArma.clone().lerp(BRANCO(), 0.25), 1, { r: 0.05, h: 0, vel: 0.6, vida: 0.8, tam: 0.05 });
   }
 }
 // ---- flechas: o rastro verde (dourado na chuva, laranja e grosso na de fogo, verde-limão com bolhas na venenosa)
@@ -13081,7 +13459,9 @@ function montarBloom() {
       gl_FragColor = vec4(c / 12.0, 1.0); }`, { tF: { value: null }, uPx: { value: new THREE.Vector2() } }, true);
   B.mFim = mk(`uniform sampler2D tF; uniform float uForca; varying vec2 vUv;
     void main() { vec3 c = texture2D(tF, vUv).rgb * uForca; gl_FragColor = vec4(c / (1.0 + c * 0.7), 1.0); }`, { tF: { value: null }, uForca: { value: 1 } }, true);
-  B.tela = !LEVE; B.niveis = LEVE ? 3 : 4; B.ok = true;
+  B.tela = !LEVE && !iso; B.niveis = LEVE ? 3 : 4; B.ok = true;
+  // no isométrico o fundo é transparente (o 2D fica embaixo): o brilho só soma a cor, sem mexer no alfa
+  if (iso) Object.assign(B.mFim, { blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor });
 }
 function tamanhosBloom(w, h) {
   if (w === B.w && h === B.h) return;
@@ -13112,12 +13492,14 @@ function bloom() {
     passada(B.mPre, B.rt[0]);
   }
   // a camada 1 (efeitos, refino, brasas, lanternas) somada por cima, sem refazer a sombra
-  const cam = S.camera; r.shadowMap.autoUpdate = false; cam.layers.set(1);
+  const cam = S.camera; r.shadowMap.autoUpdate = false;
+  if (iso && corposIso.n) r.render(corposIso.cena, cam);                      // (os corpos tapam o brilho do que fica atrás deles)
+  cam.layers.set(1);
   r.setRenderTarget(B.rt[0]); r.render(S.cena, cam);
   cam.layers.set(0); r.shadowMap.autoUpdate = sm;
   for (let k = 1; k < B.rt.length; k++) { const u = B.mDesce.uniforms; u.tF.value = B.rt[k - 1].texture; u.uPx.value.set(1 / B.rt[k - 1].width, 1 / B.rt[k - 1].height); passada(B.mDesce, B.rt[k]); }
   for (let k = B.rt.length - 1; k > 0; k--) { const u = B.mSobe.uniforms; u.tF.value = B.rt[k].texture; u.uPx.value.set(1 / B.rt[k].width, 1 / B.rt[k].height); passada(B.mSobe, B.rt[k - 1]); }
-  B.mFim.uniforms.tF.value = B.rt[0].texture; B.mFim.uniforms.uForca.value = LEVE ? 0.5 : 0.55;
+  B.mFim.uniforms.tF.value = B.rt[0].texture; B.mFim.uniforms.uForca.value = iso ? (LEVE ? 0.6 : 0.65) : LEVE ? 0.5 : 0.55;
   passada(B.mFim, null);
   r.setRenderTarget(null); r.autoClear = au; r.setClearColor(cc, ca);
   r.info.render.calls = info.calls; r.info.render.triangles = info.triangles;
@@ -13129,9 +13511,171 @@ function bloom() {
   }
 }
 
+// ================================================================ feixe do sol na tela (lens flare)
+// Com a câmera virada para o sol (de dia, o sol baixo é o mais forte), a luz entra pela tela como numa lente: um halo
+// no sol, um risco horizontal, um feixe largo que atravessa a tela em direção ao centro e reflexos coloridos da lente
+// na reta sol → centro. O sol quase sempre fica acima da borda de cima (a câmera olha o herói): o feixe e os reflexos
+// entram por ela e deslizam pela tela quando a câmera gira. Por cima de tudo, somado; ?flare=0 desliga.
+const FL = { ligado: !QS.has("flare") || QS.get("flare") !== "0", i: 0 };
+function montarFlare() {
+  const vs = "varying vec2 vUv; void main() { vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }";
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3));
+  FL.mat = new THREE.ShaderMaterial({
+    uniforms: { uSol: { value: new THREE.Vector2() }, uAsp: { value: 1 }, uI: { value: 0 }, uT: S.uT, uCor: { value: new THREE.Color(1, 0.82, 0.55) } },
+    vertexShader: vs,
+    fragmentShader: `uniform vec2 uSol; uniform float uAsp, uI, uT; uniform vec3 uCor; varying vec2 vUv;
+      float disco(vec2 p, vec2 c, float r) { float d = length((p - c) * vec2(uAsp, 1.0)); return smoothstep(r, r * 0.55, d); }
+      float anel(vec2 p, vec2 c, float r) { float d = length((p - c) * vec2(uAsp, 1.0)); return exp(-pow((d - r) / (r * 0.08), 2.0)); }
+      void main() {
+        vec2 d = (vUv - uSol) * vec2(uAsp, 1.0); float r = length(d);
+        vec3 c = uCor * (exp(-r * 4.0) * 0.45 + exp(-r * 14.0) * 0.6);                     // o halo do sol
+        c += vec3(1.0, 0.88, 0.7) * exp(-abs(d.y) * 70.0) * exp(-abs(d.x) * 1.4) * 0.3;     // o risco horizontal da lente
+        vec2 ctr = vec2(0.5) - uSol, eixo = normalize(ctr * vec2(uAsp, 1.0) + 1e-4);
+        float ao = dot(d, eixo), lat = abs(d.x * eixo.y - d.y * eixo.x);
+        float feixe = smoothstep(0.0, 0.25, ao) * exp(-ao * 0.7) * exp(-lat * lat / (0.004 + 0.05 * ao * ao));
+        c += uCor * feixe * 0.22 * (0.85 + 0.15 * sin(uT * 0.5 + ao * 5.0));                // o feixe atravessando a tela
+        // os reflexos da lente: discos e um anel em cores diferentes, ao longo da reta sol → centro (e além dele)
+        c += vec3(0.55, 1.0, 0.65) * disco(vUv, uSol + ctr * 0.55, 0.035) * 0.07;
+        c += vec3(0.7, 0.55, 1.0) * disco(vUv, uSol + ctr * 0.85, 0.06) * 0.06;
+        c += vec3(1.0, 0.7, 0.4) * disco(vUv, uSol + ctr * 1.3, 0.025) * 0.1;
+        c += vec3(0.5, 0.75, 1.0) * disco(vUv, uSol + ctr * 1.65, 0.11) * 0.045;
+        c += vec3(1.0, 0.85, 0.6) * anel(vUv, uSol + ctr * 2.0, 0.2) * 0.05;
+        gl_FragColor = vec4(c * uI, 1.0);
+      }`,
+    depthTest: false, depthWrite: false, transparent: true, blending: THREE.AdditiveBlending,
+  });
+  FL.cena = new THREE.Scene(); const q = new THREE.Mesh(g, FL.mat); q.frustumCulled = false; FL.cena.add(q);
+  FL.cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); FL.p = new THREE.Vector3(); FL.f = new THREE.Vector3();
+}
+function flare() {
+  const liso3 = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+  if (!ativo() || !FL.ligado || !S.camera || iso) return;
+  if (!FL.mat) montarFlare();
+  const sol = S.uCeu.uSolDir.value, cam = S.camera, noite = S.noite || 0;
+  cam.getWorldDirection(FL.f);
+  // só de dia, com o sol acima do horizonte e à frente da câmera (de lado ou atrás não entra luz na lente)
+  const frente = sol.x * FL.f.x + sol.z * FL.f.z, hor = Math.hypot(FL.f.x, FL.f.z) * Math.hypot(sol.x, sol.z) || 1;
+  let alvo = (1 - Math.min(1, noite * 1.6)) * liso3((sol.y + 0.02) / 0.1) * liso3((frente / hor - 0.2) / 0.6);
+  if (alvo > 0.01) {
+    FL.p.copy(cam.position).addScaledVector(sol, 300).project(cam);              // o sol na tela (fora dela, perto da borda)
+    const sx = FL.p.x * 0.5 + 0.5, sy = FL.p.y * 0.5 + 0.5, fora = Math.max(0, Math.abs(sx - 0.5) - 0.5, Math.abs(sy - 0.5) - 0.5);
+    if (FL.p.z > 1 || !isFinite(sx)) alvo = 0;
+    else { alvo *= 1 - liso3(fora / 1.1); FL.mat.uniforms.uSol.value.set(Math.max(-1.5, Math.min(2.5, sx)), Math.max(-1.5, Math.min(2.5, sy))); }
+    alvo *= 0.55 + 0.45 * (1 - liso3((sol.y - 0.15) / 0.5));                    // (mais forte com o sol baixo)
+  }
+  FL.i += (alvo * (LEVE ? 0.7 : 1) - FL.i) * 0.08;                                    // (entra e sai suave ao girar)
+  if (FL.i < 0.01) return;
+  const r = S.render, tam = r.getDrawingBufferSize(FL.tam || (FL.tam = new THREE.Vector2()));
+  FL.mat.uniforms.uI.value = FL.i; FL.mat.uniforms.uAsp.value = tam.x / tam.y;
+  const au = r.autoClear; r.autoClear = false; r.setRenderTarget(null); r.render(FL.cena, FL.cam); r.autoClear = au;
+}
+
+// ================================================================ no isométrico 2D (o padrão): os efeitos por cima do canvas
+// A câmera é ortográfica com a projeção do 2D: 1 m = PX·zoom px, o chão achata 0,6 e a altura sobe 0,8 (36,87° de cima:
+// cos = 0,8, sen = 0,6), centrada em cam.x/cam.y. Os corpos 3D do herói e das criaturas perto (as instâncias do atlas P3D,
+// na pose deste quadro) entram antes só como profundidade: o que fica atrás deles (o anel no chão, as lâminas do Vórtice,
+// as chamas da Fúria) some atrás do boneco que o 2D já desenhou; casas e árvores do 2D não tapam nada. O quadro vai para
+// o canvas 2D por cima do mundo, depois do escuro da noite (os efeitos brilham) e antes do HUD.
+const corposIso = { cena: null, n: 0, l: [], sup: [] };
+const CORPOS_MAX = LEVE ? 4 : 10, CORPOS_RAIO = LEVE ? 10 : 16;
+let tIso = 0, nIso = 0, t0Iso = 0, _tamIso = null;
+function cameraIso() {
+  const c = S.camera, s = PX * zoom, D = 120;
+  c.left = -W / (2 * s); c.right = W / (2 * s); c.top = H / (2 * s); c.bottom = -H / (2 * s); c.near = 1; c.far = 600; c.updateProjectionMatrix();
+  c.position.set(cam.x, 0.6 * D, -cam.y + 0.8 * D); c.lookAt(cam.x, 0, -cam.y); c.updateMatrixWorld();
+}
+// skeleton.frame: o renderer só refaz os ossos uma vez por quadro dele, e os dois renderers (atlas e efeitos) contam
+// quadros diferentes: -1 obriga a refazer (aqui, com o corpo no mundo, e de volta no atlas, com ele na origem)
+function esqueletos(i) {
+  if (!i.fxEsq) { i.fxEsq = []; i.raiz.traverse(o => { if (o.isSkinnedMesh && !i.fxEsq.includes(o.skeleton)) i.fxEsq.push(o.skeleton); }); }
+  for (const s of i.fxEsq) s.frame = -1;
+}
+function corposEntram() {
+  const C = corposIso, p = P3D;
+  C.n = 0; C.l.length = 0;
+  if (!p || !p.inst || !p.cena) return;
+  if (!C.cena) { C.cena = new THREE.Scene(); C.cena.overrideMaterial = new THREE.MeshBasicMaterial({ colorWrite: false }); }
+  for (const i of p.inst.values()) {
+    const o = i.dono;
+    if (!o || !i.raiz || !i.valido || i.pedido !== p.quadro) continue;
+    const d = Math.hypot(o.x - cam.x, o.y - cam.y);
+    if (d < CORPOS_RAIO) C.l.push([o === viking ? -1 : d, i]);
+  }
+  C.l.sort((a, b) => a[0] - b[0]);
+  if (C.l.length > CORPOS_MAX) C.l.length = CORPOS_MAX;
+  for (const [, i] of C.l) {
+    if (!C.sup[C.n]) { C.sup[C.n] = new THREE.Group(); C.cena.add(C.sup[C.n]); }
+    const g = C.sup[C.n];
+    g.position.set(i.dono.x, 0, -i.dono.y); g.scale.setScalar((i.d && i.d.esc) || 1);
+    g.add(i.raiz); i.raiz.visible = true; esqueletos(i);
+    C.n++;
+  }
+}
+function corposSaem() {
+  const C = corposIso;
+  for (let k = 0; k < C.n; k++) { const i = C.l[k][1]; P3D.cena.add(i.raiz); i.raiz.visible = false; i.raiz.updateMatrixWorld(true); esqueletos(i); }
+  C.n = 0;
+}
+const temAlgo = () => vivos.length || seguidos.size || PS.l.length || S.pNormal.l.length || (arma && arma.l.some(r => r.fita.pts.length > 1));
+function desenhar2d(t) {
+  if (QS.get("fx") === "0" || (window.M3D && M3D.ligado)) return;
+  const dt = Math.min(0.1, Math.max(0.001, t - (tIso || t))); tIso = t;
+  if (!pronto) {
+    if (!(window.THREE && P3D.render && !P3D.perdido)) { vazamento(t); return; }
+    iso = true;
+    try { iniciar(); } catch (e) { console.error("fx3:", e); QS.set("fx", "0"); vazamento(t); return; }
+  }
+  const r = S.render, pr = LEVE ? Math.min(dpr, 1) : Math.min(dpr, 1.5);
+  if (r.getPixelRatio() !== pr) r.setPixelRatio(pr);
+  const tam = r.getSize(_tamIso || (_tamIso = new THREE.Vector2()));
+  if (tam.x !== W || tam.y !== H) r.setSize(W, H, false);
+  S.uT.value = t % 3600; S.noite = luzDoDia(horaDoDia()).esc / 0.62;
+  cameraIso();
+  passo(dt, t);
+  if (ativo() && temAlgo()) {
+    corposEntram();
+    try {
+      r.setRenderTarget(null); r.setClearColor(0x000000, 0); r.autoClear = true;
+      if (corposIso.n) r.render(corposIso.cena, S.camera); else r.clear(true, true, false);
+      r.autoClear = false; r.render(S.cena, S.camera); r.autoClear = true;
+      bloom();
+    } finally { corposSaem(); }
+    cx.drawImage(S.canvas, 0, 0, W, H);
+  }
+  vazamento(t);
+  nIso++; const ag = performance.now();
+  if (!t0Iso) t0Iso = ag;
+  if (ag - t0Iso > 2000) { S.stats = { fps: +(nIso * 1000 / (ag - t0Iso)).toFixed(1) }; nIso = 0; t0Iso = ag; }
+}
+// a luz do sol vazando pela borda de cima (no isométrico, no lugar do feixe da lente do 3D): mais forte com o sol baixo
+// (manhã cedo e fim de tarde), fraca ao meio-dia, nada à noite e na caverna; vem da direita de manhã (o sol nasce a leste)
+// e da esquerda à tarde. Discreta: um halo quente largo e três faixas de luz bem fracas que mexem devagar. ?flare=0 desliga
+function vazamento(t) {
+  if (!FL.ligado || naCaverna(cam.x)) { FL.i = 0; return; }
+  const h = horaDoDia(), liso = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+  const dia = liso((h - 5.4) / 1.2) * (1 - liso((h - 17.6) / 1.4)), u = Math.max(0, Math.min(1, (h - 6) / 12));
+  FL.i += (dia * (0.3 + 0.7 * (1 - Math.sin(u * Math.PI))) - FL.i) * 0.05;
+  if (FL.i < 0.01) return;
+  const k = FL.i * (LEVE ? 0.85 : 1), sx = W * (0.94 - 0.88 * u), sy = -H * 0.2, R = Math.hypot(W, H) * 0.75, cor = h > 12 ? "255, 196, 120" : "255, 206, 170";
+  cx.save(); cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.globalCompositeOperation = "lighter";
+  const g = cx.createRadialGradient(sx, sy, 0, sx, sy, R);
+  g.addColorStop(0, `rgba(${cor}, ${0.27 * k})`); g.addColorStop(0.35, `rgba(${cor}, ${0.09 * k})`); g.addColorStop(1, `rgba(${cor}, 0)`);
+  cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+  const base = Math.atan2(H * 0.9 - sy, W * 0.5 - sx), L = R * 1.15;
+  for (let j = 0; j < 3; j++) {
+    const a = base + (j - 1) * 0.17 + 0.035 * Math.sin(t * 0.21 + j * 2.1), w = 0.035 + 0.02 * j;
+    cx.save(); cx.translate(sx, sy); cx.rotate(a);
+    const gl = cx.createLinearGradient(0, 0, L, 0); gl.addColorStop(0, `rgba(${cor}, ${0.1 * k})`); gl.addColorStop(1, `rgba(${cor}, 0)`);
+    cx.fillStyle = gl; cx.beginPath(); cx.moveTo(0, 0); cx.lineTo(L, -L * w); cx.lineTo(L, L * w); cx.closePath(); cx.fill();
+    cx.restore();
+  }
+  cx.restore();
+}
+
 // ================================================================ começo, passo e os ganchos no jogo
 function iniciar() {
-  S = M3D.S;
+  S = iso ? M3D.iniciarFx() : M3D.S;
+  if (!S) throw new Error("sem a cena dos efeitos");
   _v = new THREE.Vector3(); _v2 = new THREE.Vector3(); _a = new THREE.Vector3(); _b = new THREE.Vector3(); _a2 = new THREE.Vector3(); _b2 = new THREE.Vector3();
   grupo = new THREE.Group(); S.cena.add(grupo);
   S.render.debug.checkShaderErrors = false;           // (ler o log de cada programa compilado trava o quadro)
@@ -13153,9 +13697,10 @@ function iniciar() {
 function passo(dt, t) {
   if (QS.get("fx") === "0") return;
   if (!pronto) { try { iniciar(); } catch (e) { console.error("fx3:", e); QS.set("fx", "0"); return; } }
-  ligado = !!(M3D.ativo);
+  ligado = iso ? !editor.ativo && !S.perdido : !!(M3D.ativo);
   if (!ligado) return;
   tAgora = t; quadro++;
+  if (iso) M3D.passoParticulas(S.pNormal, dt, t);         // (no mundo 3D quem anda a fumaça é o M3D)
   const etapas = [passoArma, passoFlechas3, passoMagias3, passoRaios, passoOndas, passoNuvens, passoCriaturas3, passoEstados, passoMundo];
   for (const f of etapas) { try { f(dt, t); } catch (e) { if (!f.erro) { f.erro = true; console.error("fx3 " + f.name + ":", e); } } }
   for (const [o, e] of seguidos) if (e.visto !== quadro) { seguidos.delete(o); try { if (e.acabou) e.acabou(); } catch (er) { console.error("fx3:", er); } e.fim(); }
@@ -13227,7 +13772,7 @@ embrulhar("aplicarBuffMago", ([b]) => {
 });
 embrulhar("metinApanhou", ([l]) => pulsoMetin(l));
 embrulhar("ataqueCriatura", ([l]) => { if (l.cfg.chefe && !l.cfg.magia && Math.hypot(l.x - viking.x, l.y - viking.y) < 30) golpeChefe(l); });
-return { get ativo() { return ativo(); }, passo, bloom, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; },
+return { get ativo() { return ativo(); }, get iso() { return iso; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; },
          get stats() { return { vivos: vivos.length, seguidos: seguidos.size, particulas: PS ? PS.l.length : 0 }; } };
 })();
 </script>

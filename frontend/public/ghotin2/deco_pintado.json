@@ -1,0 +1,540 @@
+{
+ "casa": [
+  {
+   "arq": "casa_0.webp",
+   "w": 900,
+   "h": 655,
+   "px": 468.6,
+   "py": 628.8,
+   "ppm": 150.0,
+   "base": 5.51,
+   "fator": 0.73
+  },
+  {
+   "arq": "casa_1.webp",
+   "w": 1200,
+   "h": 833,
+   "px": 602.1,
+   "py": 799.7,
+   "ppm": 150.0,
+   "base": 7.58,
+   "fator": 1.0
+  },
+  {
+   "arq": "casa_2.webp",
+   "w": 1136,
+   "h": 1005,
+   "px": 561.3,
+   "py": 964.8,
+   "ppm": 94.67,
+   "base": 11.69,
+   "fator": 1.54
+  }
+ ],
+ "ferraria": [
+  {
+   "arq": "ferraria_0.webp",
+   "w": 1200,
+   "h": 830,
+   "px": 589.2,
+   "py": 796.8,
+   "ppm": 150.0,
+   "base": 7.75,
+   "fator": 1.0
+  }
+ ],
+ "arvore": [
+  {
+   "arq": "arvore_0.webp",
+   "w": 581,
+   "h": 660,
+   "px": 298.3,
+   "py": 627.0,
+   "ppm": 150.0,
+   "base": 2.08,
+   "fator": 1.17
+  },
+  {
+   "arq": "arvore_1.webp",
+   "w": 525,
+   "h": 650,
+   "px": 261.5,
+   "py": 617.5,
+   "ppm": 147.73,
+   "base": 1.76,
+   "fator": 0.99
+  },
+  {
+   "arq": "arvore_2.webp",
+   "w": 504,
+   "h": 624,
+   "px": 236.6,
+   "py": 592.8,
+   "ppm": 141.82,
+   "base": 1.81,
+   "fator": 1.01
+  },
+  {
+   "arq": "arvore_3.webp",
+   "w": 539,
+   "h": 660,
+   "px": 264.8,
+   "py": 627.0,
+   "ppm": 150.0,
+   "base": 1.72,
+   "fator": 0.96
+  }
+ ],
+ "pinheiro": [
+  {
+   "arq": "pinheiro_0.webp",
+   "w": 449,
+   "h": 691,
+   "px": 234.8,
+   "py": 670.3,
+   "ppm": 138.2,
+   "base": 1.51,
+   "fator": 0.83
+  },
+  {
+   "arq": "pinheiro_1.webp",
+   "w": 606,
+   "h": 663,
+   "px": 306.7,
+   "py": 643.1,
+   "ppm": 132.6,
+   "base": 1.75,
+   "fator": 0.96
+  },
+  {
+   "arq": "pinheiro_2.webp",
+   "w": 454,
+   "h": 667,
+   "px": 238.1,
+   "py": 647.0,
+   "ppm": 133.4,
+   "base": 2.32,
+   "fator": 1.28
+  },
+  {
+   "arq": "pinheiro_3.webp",
+   "w": 627,
+   "h": 694,
+   "px": 345.5,
+   "py": 673.2,
+   "ppm": 138.8,
+   "base": 1.88,
+   "fator": 1.04
+  }
+ ],
+ "arbusto": [
+  {
+   "arq": "arbusto_0.webp",
+   "w": 225,
+   "h": 213,
+   "px": 118.9,
+   "py": 183.2,
+   "ppm": 150.0,
+   "base": 1.34,
+   "fator": 1.05
+  },
+  {
+   "arq": "arbusto_1.webp",
+   "w": 225,
+   "h": 229,
+   "px": 114.1,
+   "py": 196.9,
+   "ppm": 150.0,
+   "base": 1.34,
+   "fator": 1.05
+  },
+  {
+   "arq": "arbusto_2.webp",
+   "w": 210,
+   "h": 189,
+   "px": 101.9,
+   "py": 162.5,
+   "ppm": 150.0,
+   "base": 1.21,
+   "fator": 0.95
+  },
+  {
+   "arq": "arbusto_3.webp",
+   "w": 195,
+   "h": 122,
+   "px": 101.3,
+   "py": 107.4,
+   "ppm": 150.0,
+   "base": 1.16,
+   "fator": 0.91
+  }
+ ],
+ "arbusto_flor": [
+  {
+   "arq": "arbusto_flor_0.webp",
+   "w": 225,
+   "h": 210,
+   "px": 111.3,
+   "py": 180.6,
+   "ppm": 150.0,
+   "base": 1.5,
+   "fator": 1.07
+  },
+  {
+   "arq": "arbusto_flor_1.webp",
+   "w": 225,
+   "h": 203,
+   "px": 114.3,
+   "py": 174.6,
+   "ppm": 150.0,
+   "base": 1.3,
+   "fator": 0.93
+  }
+ ],
+ "pedra": [
+  {
+   "arq": "pedra_0.webp",
+   "w": 165,
+   "h": 121,
+   "px": 76.0,
+   "py": 101.6,
+   "ppm": 150.0,
+   "base": 1.1,
+   "fator": 0.79
+  },
+  {
+   "arq": "pedra_1.webp",
+   "w": 165,
+   "h": 103,
+   "px": 82.4,
+   "py": 86.5,
+   "ppm": 150.0,
+   "base": 1.1,
+   "fator": 0.79
+  },
+  {
+   "arq": "pedra_2.webp",
+   "w": 195,
+   "h": 141,
+   "px": 91.6,
+   "py": 118.4,
+   "ppm": 150.0,
+   "base": 1.28,
+   "fator": 0.92
+  },
+  {
+   "arq": "pedra_3.webp",
+   "w": 225,
+   "h": 217,
+   "px": 110.3,
+   "py": 186.6,
+   "ppm": 150.0,
+   "base": 1.5,
+   "fator": 1.08
+  },
+  {
+   "arq": "pedra_4.webp",
+   "w": 285,
+   "h": 246,
+   "px": 140.8,
+   "py": 211.6,
+   "ppm": 150.0,
+   "base": 1.9,
+   "fator": 1.37
+  },
+  {
+   "arq": "pedra_5.webp",
+   "w": 255,
+   "h": 253,
+   "px": 129.4,
+   "py": 202.4,
+   "ppm": 150.0,
+   "base": 1.7,
+   "fator": 1.22
+  }
+ ],
+ "runa": [
+  {
+   "arq": "runa_0.webp",
+   "w": 164,
+   "h": 315,
+   "px": 81.9,
+   "py": 299.2,
+   "ppm": 150.0,
+   "base": 1.01,
+   "fator": 0.87
+  },
+  {
+   "arq": "runa_1.webp",
+   "w": 183,
+   "h": 315,
+   "px": 95.0,
+   "py": 299.2,
+   "ppm": 150.0,
+   "base": 1.18,
+   "fator": 1.02
+  },
+  {
+   "arq": "runa_2.webp",
+   "w": 172,
+   "h": 315,
+   "px": 86.5,
+   "py": 299.2,
+   "ppm": 150.0,
+   "base": 1.14,
+   "fator": 0.98
+  },
+  {
+   "arq": "runa_3.webp",
+   "w": 205,
+   "h": 315,
+   "px": 98.2,
+   "py": 299.2,
+   "ppm": 150.0,
+   "base": 1.33,
+   "fator": 1.15
+  }
+ ],
+ "boneco": [
+  {
+   "arq": "boneco_0.webp",
+   "w": 188,
+   "h": 270,
+   "px": 98.9,
+   "py": 253.8,
+   "ppm": 150.0,
+   "base": 0.74,
+   "fator": 1.0
+  },
+  {
+   "arq": "boneco_1.webp",
+   "w": 179,
+   "h": 270,
+   "px": 88.9,
+   "py": 253.8,
+   "ppm": 150.0,
+   "base": 0.74,
+   "fator": 1.0
+  },
+  {
+   "arq": "boneco_2.webp",
+   "w": 182,
+   "h": 270,
+   "px": 97.8,
+   "py": 253.8,
+   "ppm": 150.0,
+   "base": 0.75,
+   "fator": 1.01
+  }
+ ],
+ "fogueira": [
+  {
+   "arq": "fogueira_0.webp",
+   "w": 225,
+   "h": 170,
+   "px": 112.7,
+   "py": 98.6,
+   "ppm": 150.0,
+   "base": 1.49,
+   "fator": 0.79
+  },
+  {
+   "arq": "fogueira_1.webp",
+   "w": 345,
+   "h": 249,
+   "px": 171.8,
+   "py": 144.4,
+   "ppm": 150.0,
+   "base": 2.3,
+   "fator": 1.21
+  }
+ ],
+ "braseiro": [
+  {
+   "arq": "braseiro_0.webp",
+   "w": 165,
+   "h": 139,
+   "px": 76.3,
+   "py": 97.3,
+   "ppm": 150.0,
+   "base": 0.87,
+   "fator": 1.0
+  }
+ ],
+ "poco": [
+  {
+   "arq": "poco_0.webp",
+   "w": 388,
+   "h": 457,
+   "px": 204.3,
+   "py": 429.6,
+   "ppm": 150.0,
+   "base": 2.31,
+   "fator": 1.0
+  }
+ ],
+ "barraca": [
+  {
+   "arq": "barraca_0.webp",
+   "w": 450,
+   "h": 421,
+   "px": 250.9,
+   "py": 395.7,
+   "ppm": 150.0,
+   "base": 2.77,
+   "fator": 1.0
+  },
+  {
+   "arq": "barraca_1.webp",
+   "w": 443,
+   "h": 441,
+   "px": 273.0,
+   "py": 414.5,
+   "ppm": 150.0,
+   "base": 2.78,
+   "fator": 1.0
+  },
+  {
+   "arq": "barraca_2.webp",
+   "w": 465,
+   "h": 423,
+   "px": 222.7,
+   "py": 397.6,
+   "ppm": 150.0,
+   "base": 2.93,
+   "fator": 1.05
+  }
+ ],
+ "carroca": [
+  {
+   "arq": "carroca_0.webp",
+   "w": 401,
+   "h": 382,
+   "px": 203.6,
+   "py": 336.2,
+   "ppm": 150.0,
+   "base": 1.95,
+   "fator": 1.0
+  }
+ ],
+ "caixotes": [
+  {
+   "arq": "caixotes_0.webp",
+   "w": 448,
+   "h": 292,
+   "px": 215.2,
+   "py": 268.6,
+   "ppm": 150.0,
+   "base": 2.97,
+   "fator": 1.0
+  }
+ ],
+ "cerca": [
+  {
+   "arq": "cerca_0.webp",
+   "w": 398,
+   "h": 174,
+   "px": 198.6,
+   "py": 160.1,
+   "ppm": 132.67,
+   "base": 2.95,
+   "fator": 1.0
+  }
+ ],
+ "cerca_v": [
+  {
+   "arq": "cerca_v_0.webp",
+   "w": 204,
+   "h": 356,
+   "px": 168.6,
+   "py": 338.2,
+   "ppm": 132.67,
+   "base": 0.51,
+   "fator": 1.0
+  }
+ ],
+ "cerca_canto": [
+  {
+   "arq": "cerca_canto_0.webp",
+   "w": 236,
+   "h": 218,
+   "px": 116.6,
+   "py": 200.6,
+   "ppm": 132.67,
+   "base": 0.57,
+   "fator": 1.0
+  }
+ ],
+ "cerca_poste": [
+  {
+   "arq": "cerca_poste_0.webp",
+   "w": 105,
+   "h": 283,
+   "px": 47.6,
+   "py": 266.0,
+   "ppm": 132.67,
+   "base": 0.75,
+   "fator": 1.0
+  }
+ ],
+ "cerca_portao": [
+  {
+   "arq": "cerca_portao_0.webp",
+   "w": 224,
+   "h": 319,
+   "px": 148.3,
+   "py": 299.9,
+   "ppm": 132.67,
+   "base": 1.3,
+   "fator": 1.0
+  }
+ ],
+ "muralha": [
+  {
+   "arq": "muralha_0.webp",
+   "w": 452,
+   "h": 319,
+   "px": 224.2,
+   "py": 306.2,
+   "ppm": 113.0,
+   "base": 3.9,
+   "fator": 1.0
+  }
+ ],
+ "muralha_v": [
+  {
+   "arq": "muralha_v_0.webp",
+   "w": 246,
+   "h": 525,
+   "px": 188.9,
+   "py": 509.2,
+   "ppm": 113.0,
+   "base": 0.86,
+   "fator": 1.0
+  }
+ ],
+ "torre_pedra": [
+  {
+   "arq": "torre_pedra_0.webp",
+   "w": 256,
+   "h": 525,
+   "px": 128.7,
+   "py": 493.5,
+   "ppm": 113.0,
+   "base": 2.06,
+   "fator": 1.0
+  }
+ ],
+ "muralha_portao": [
+  {
+   "arq": "muralha_portao_0.webp",
+   "w": 538,
+   "h": 444,
+   "px": 266.4,
+   "py": 426.2,
+   "ppm": 113.0,
+   "base": 4.5,
+   "fator": 1.0
+  }
+ ]
+}
