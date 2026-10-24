@@ -8826,8 +8826,23 @@ async function montarModelo3d(m, gltf) {
     }
     o.material = mat; o.frustumCulled = false;
   });
+  for (const t of texs.values()) limitarMip3d(t);
   m.caixa = await caixa3d(m);
 }
+// A textura do Tripo é um mosaico de pedacinhos de cores bem diferentes lado a lado (pele, pano vermelho, pelo branco).
+// Nos níveis pequenos do mipmap eles se misturam num marrom acinzentado, e o boneco de longe (zoom afastado) ficava sem
+// cor. O mipmap vai só até ~360 px (TEXTURE_MAX_LOD); o resto da redução é na tela, com o pedaço renderizado em
+// tamanho maior (MIN_PX_3D) e reduzido no drawImage, como os sprites (que saem grandes do Unity e são reduzidos).
+function limitarMip3d(t) {
+  const p = P3D, r = p.render, gl = r && r.getContext(), im = t.image, w = im && (im.width || im.naturalWidth);
+  if (!gl || !w || typeof WebGL2RenderingContext === "undefined" || !(gl instanceof WebGL2RenderingContext)) return;
+  r.initTexture(t);
+  const wt = r.properties.get(t).__webglTexture;
+  if (!wt) return;
+  r.state.bindTexture(gl.TEXTURE_2D, wt);
+  gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAX_LOD, Math.max(0, Math.log2(w / 360)));
+}
+const MIN_PX_3D = 0.9;                            // px do pedaço por px do sprite, no mínimo (antes da qualidade do atlas)
 // no celular, as texturas no máximo em 512 px
 function texturaLeve3d(t) {
   const im = t.image, w = im && (im.width || im.naturalWidth), h = im && (im.height || im.naturalHeight);
@@ -8986,7 +9001,7 @@ function prepararP3d(t) {
   }
   // o tamanho do pedaço de cada um: o do boneco na tela (vezes a qualidade), em múltiplos de 8 px, no máximo meio atlas
   const tam = (i, q) => {
-    const c = i.m.caixa, s = PX * zoom * i.d.esc * prDe(i) * q;
+    const c = i.m.caixa, s = Math.max(PX * zoom * i.d.esc * prDe(i), PX * MIN_PX_3D * (leve ? 0.8 : 1)) * q;   // pequeno: maior e reduzido na tela
     let w = (c.esq + c.dir) * s, h = (c.cima + c.baixo) * s;
     const k = Math.min(1, p.maxCel / Math.max(w, h));
     return [Math.min(p.maxCel, Math.max(16, Math.ceil(w * k / 8) * 8)), Math.min(p.maxCel, Math.max(16, Math.ceil(h * k / 8) * 8))];
@@ -9088,8 +9103,11 @@ function renderInst3d(i, clip, tempo) {
 function desenharInst3d(dono, X, Y, z) {
   const p = P3D, i = p.vale(dono);
   if (!i) return false;
-  const c = i.m.caixa, s = PX * z, cel = i.cel;
+  const c = i.m.caixa, s = PX * z, cel = i.cel, q0 = cx.imageSmoothingQuality;
+  // "low" (bilinear): com "medium"/"high" o Chrome monta mipmaps do atlas INTEIRO a cada cópia reduzida (0,7 fps)
+  cx.imageSmoothingQuality = "low";
   cx.drawImage(p.render.domElement, cel.x, cel.y, cel.w, cel.h, X - c.esq * s, Y - c.cima * s, (c.esq + c.dir) * s, (c.cima + c.baixo) * s);
+  cx.imageSmoothingQuality = q0;
   return true;
 }
 // a máscara da arma do herói como a fileira de baixo de uma tira de sprite (para brilhoLamina, brilhoArco e brilhoCajado)
