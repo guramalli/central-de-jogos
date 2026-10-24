@@ -601,6 +601,7 @@
         <dt>1 · 2 · 3 (feiticeiro)</dt><dd>Relâmpago: um raio da esfera até o alvo, que salta para mais duas criaturas por perto (recarga de 5 s). Chuva de Meteoros: mire no chão e clique onde ela deve cair; bolas de fogo caem do céu num círculo de 3,4 m (12 s). Erupção Arcana: bate o cajado no chão, um círculo de runas se abre em volta dele e colunas de luz coloridas sobem da terra, ferindo tudo até 3,6 m (9 s). Buffs (60 s): Olho Arcano, +25% de chance de crítico (o crítico dobra o dano e sai em amarelo); Poder Arcano, +35% de dano das magias</dd>
         <dt>P · Q · X</dt><dd>ficha do personagem (nome, nível, experiência, atributos, skills e bolsa) · Poção Vermelha (+40% de vida) · Poção Azul (+40% de mana). Cada skill gasta mana (a INT aumenta a mana; ela volta 2% por segundo). Cada criatura dá exp pelo nível dela, como no Metin2; cada nível dá 3 pontos para VIT (vida e defesa), INT (magia), FOR (força) e DEX (destreza e crítico), como no Metin2. As pedras Metin (Tristeza Nv 5, Batalha Nv 8, Ganância Nv 12) aparecem pelo mapa com defensores, chamam hordas quando apanham e, quebradas, soltam livros de skill da sua classe, poções e yang: o livro sobe a skill (1 a 10, depois M1 a M10), com chance de falhar</dd>
         <dt>Cavernas</dt><dd>como no Tibia: há um buraco com escada ao norte, na beira da mata. Pisando nele você desce para a Caverna dos Ratos (escura, com tochas; os ratos vivem em bandos grandes). A escada perto da entrada leva de volta</dd>
+        <dt>U</dt><dd>Mapa do Mundo (também no menu do canto): o mapa inteiro visto de cima, com cada grupo de mobs na cor do nível (verde, baixo, até vermelho e roxo), chefes, pedras Metin, dungeons e você; rodinha ou pinça para o zoom, arrastar para mover, "Exportar imagem" grava um PNG. Com "Editar": a aba Mobs move, cria, muda e apaga grupos; a aba Mapa põe, move, gira e apaga decoração, pinta árvores, pedras e grama com o pincel e pinta o chão e o relevo do mundo 3D. Fica salvo neste navegador; ao fechar, o jogo é remontado</dd>
         <dt>O</dt><dd>editor de mapa: mover, pôr e apagar árvores, pedras e o resto das decorações, e ajustar o círculo de colisão de cada tipo. Fica salvo neste navegador; "Copiar mapa" gera o texto para mandar e virar o mapa fixo do jogo</dd>
         <dt>T</dt><dd>trocar entre o viking, o arqueiro e o feiticeiro (botões no topo). O arqueiro atira de longe (até 9 m): tira a flecha da aljava, puxa a corda e solta; a flecha voa até o alvo marcado</dd>
       </dl>
@@ -736,6 +737,7 @@
     <button type="button" data-menu="ficha" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4" fill="currentColor"/><path d="M4 21c0-4.6 3.6-8 8-8s8 3.4 8 8z" fill="currentColor"/></svg><span>Atributos</span><kbd>P</kbd></button>
     <button type="button" data-menu="skills" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 6.4 6.9.5-5.3 4.4 1.7 6.7L12 16.4 6.1 20l1.7-6.7L2.5 8.9l6.9-.5z" fill="currentColor"/></svg><span>Skills</span><kbd>P</kbd></button>
     <button type="button" data-menu="mapa" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z" fill="currentColor"/><path d="M9 4v13.5M15 6.5V20" stroke="#2a1b10" stroke-width="1.6"/></svg><span>Minimapa</span></button>
+    <button type="button" data-menu="mundo" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M5 9.5c3 .8 4.2-1.8 6.5-1.2 1.6.4 1.2 2.6 3 2.9 1.6.3 2.4-1.4 4-.9M7 16.5c1.8-.9 3.6.3 5.2-.6 1.4-.8 2.6-2.4 4.8-1.6" fill="none" stroke="#2a1b10" stroke-width="1.6" stroke-linecap="round"/><circle cx="15.5" cy="6.5" r="1.4" fill="#2a1b10"/></svg><span>Mapa do Mundo</span><kbd>U</kbd></button>
     <button type="button" data-menu="janelas" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="6" r="2.4" fill="currentColor"/><circle cx="15" cy="12" r="2.4" fill="currentColor"/><circle cx="7" cy="18" r="2.4" fill="currentColor"/></svg><span>Opções de janelas</span><kbd>J</kbd></button>
     <button type="button" data-menu="admin" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18.5h18l-1.6-11-5 4.2L12 4.5l-2.4 7.2-5-4.2z" fill="currentColor"/><rect x="3" y="19.5" width="18" height="2" fill="currentColor"/></svg><span>Admin: criar item</span><kbd>G</kbd></button>
   </div>
@@ -1486,7 +1488,7 @@ function pesoTerra(x, y) {
   if (vale > 0) w = Math.max(w, vale * (0.72 + 0.28 * liso((0.55 - fbm(x * 0.09 + 7, y * 0.09 - 3)) / 0.1)));
   const monte = pesoMonte(x, y);                                      // a montanha: chão de pedra (a terra, acinzentada pelo tom)
   if (monte > 0) w = Math.max(w, monte);
-  return w;
+  return AJUSTE.chao.size ? ajusteTerra2d(x, y, w) : w;               // (o pincel de terreno do Mapa do Mundo)
 }
 // luz e sombra em manchas grandes: escurece para um verde fundo, clareia para um amarelo quente
 function tomChao(x, y) {
@@ -2134,6 +2136,7 @@ function desenharPlanos(t) {
 }
 // tira árvores, arbustos, troncos e pedras de uma área (para uma construção caber)
 function abrirEspaco(x0, y0, x1, y1) {
+  if (espacosAbertos) espacosAbertos.push([x0, y0, x1, y1]);           // (depois do mapa carregado: para o "original" saber)
   for (let i = objetos.length - 1; i >= 0; i--) {
     const o = objetos[i];
     if (o.caverna || !["arvore", "pinheiro", "arbusto", "tronco", "toco", "pedra"].includes(o.tipo)) continue;
@@ -5373,21 +5376,64 @@ function nomeRegiao(x, y) {
   if (Math.hypot(x - RUINAS.x, y - RUINAS.y) < RUINAS.r) return "Ruínas da Cripta";
   return "Vale do Viking";
 }
+// ---- os spawns numa lista só (SPAWNS), que o Mapa do Mundo (U) edita: { tipo, x, y (escala nova), n (quantos),
+// r (espalhados em quantos m) }. Saem de GRUPOS, VALE_BANDOS e NOVOS_BANDOS; as hordas das Metins, os chefes e os
+// bandos das dungeons continuam por conta deles (criarMetins, montarDungeon). Sem edição, o resultado é o mesmo de antes.
+// A lista editada fica salva neste navegador (MOBS_CHAVE); MOBS_FIXO é a aprovada (o texto do "Copiar" do editor).
+const MOBS_CHAVE = "mobsEditados1";
+const MOBS_FIXO = null;
+let SPAWNS = null, SPAWNS_ORIGINAL = null;
+function spawnsOriginais() {
+  return [...GRUPOS.map(([t, x, y, n, e]) => { const [X, Y] = noMapa([x, y]); return { tipo: t, x: X, y: Y, n, r: e || 1.6 }; }),   // na escala nova do mapa
+          ...VALE_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 })),
+          ...NOVOS_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 }))];
+}
+// uma lista de spawns do texto (ou do localStorage): só os campos conhecidos, com números válidos
+function spawnsValidos(m) {
+  if (!m || m.versao !== 1 || !Array.isArray(m.spawns)) return null;
+  return m.spawns.filter(s => s && typeof s.tipo === "string" && isFinite(s.x) && isFinite(s.y))
+    .map(s => ({ tipo: s.tipo, x: +s.x, y: +s.y, n: Math.max(1, Math.min(40, Math.round(+s.n || 1))), r: Math.max(0.3, Math.min(15, +s.r || 1.6)) }));
+}
+function spawnsTexto() { const r2 = v => Math.round(v * 100) / 100; return { versao: 1, spawns: SPAWNS.map(s => ({ tipo: s.tipo, x: r2(s.x), y: r2(s.y), n: s.n, r: r2(s.r) })) }; }
+function carregarSpawns() {
+  SPAWNS_ORIGINAL = spawnsOriginais();
+  SPAWNS = (MOBS_FIXO && spawnsValidos(MOBS_FIXO)) || SPAWNS_ORIGINAL.map(s => ({ ...s }));
+  try { const m = spawnsValidos(JSON.parse(localStorage.getItem(MOBS_CHAVE))); if (m) SPAWNS = m; } catch (e) {}
+}
+function salvarSpawns() { try { localStorage.setItem(MOBS_CHAVE, JSON.stringify(spawnsTexto())); } catch (e) {} }
+// os lugares de cada criatura de um spawn: um bando pequeno fica numa roda; um grande se espalha em espiral pelo campo
+// (cada um com espaço para lutar)
+function lugaresSpawn(s) {
+  const l = [], { x: gx, y: gy, n, r: e } = s;
+  for (let k = 0; k < n; k++) {
+    const a = k * 2.4 + gx, r = n > 4 ? e * Math.sqrt((k + 0.5) / n) : e;
+    l.push(n === 1 ? [gx, gy] : [gx + Math.cos(a) * r, gy + Math.sin(a) * r]);
+  }
+  return l;
+}
+function porSpawns() {
+  for (const s of SPAWNS) {
+    if (!TIPOS[s.tipo]) continue;
+    for (let [x, y] of lugaresSpawn(s)) {
+      for (let k = 0; k < 20 && !livre(x, y); k++) { x -= Math.sign(x) * 0.5; y -= Math.sign(y) * 0.3; }
+      const c = novaCriatura(s.tipo, x, y); c.spawn = true;
+      criaturas.push(c);
+    }
+  }
+}
 function montarCriaturas() {
   criarOrcs();
-  const grupos = [...GRUPOS.filter(([t]) => TIPOS[t]).map(([t, x, y, n, e]) => [t, ...noMapa([x, y]), n, e || 1.6]),   // na escala nova do mapa
-                  ...VALE_BANDOS.filter(([t]) => TIPOS[t]).map(([t, x, y, n, e]) => [t, x, y, n, e || 1.6]),
-                  ...NOVOS_BANDOS.filter(([t]) => TIPOS[t]).map(([t, x, y, n, e]) => [t, x, y, n, e || 1.6])];
-  const lugares = [];
-  // um bando pequeno fica numa roda; um grande se espalha em espiral pelo campo (cada um com espaço para lutar)
-  for (const [tipo, gx, gy, n, e] of grupos) for (let k = 0; k < n; k++) {
-    const a = k * 2.4 + gx, r = n > 4 ? e * Math.sqrt((k + 0.5) / n) : e;
-    lugares.push(n === 1 ? [tipo, gx, gy] : [tipo, gx + Math.cos(a) * r, gy + Math.sin(a) * r]);
-  }
-  for (let [tipo, x, y] of lugares) {
-    for (let k = 0; k < 20 && !livre(x, y); k++) { x -= Math.sign(x) * 0.5; y -= Math.sign(y) * 0.3; }
-    criaturas.push(novaCriatura(tipo, x, y));
-  }
+  if (!SPAWNS) carregarSpawns();
+  porSpawns();
+}
+// troca as criaturas dos spawns pelas da lista atual (o editor de mobs, ao fechar): as hordas que elas conjuraram vão junto
+function remontarSpawns() {
+  const sai = new Set(criaturas.filter(c => c.spawn));
+  for (const c of criaturas) if (c.conjuradoPor && sai.has(c.conjuradoPor)) sai.add(c);
+  for (let i = criaturas.length - 1; i >= 0; i--) if (sai.has(criaturas[i])) criaturas.splice(i, 1);
+  if (sai.has(selecao)) selecao = null;
+  if (viking.alvo && sai.has(viking.alvo.criatura)) viking.alvo = null;
+  porSpawns();
 }
 function criaturaAnim(l, nome) { if (l.anim !== nome) { l.anim = nome; l.t = 0; } }
 function criaturaAcao(l, nome) { l.anim = nome; l.t = 0; l.acao = nome; l.acertou = false; l.especial = false; }
@@ -7136,21 +7182,81 @@ cv.addEventListener("wheel", e => { e.preventDefault(); zoom = Math.max(0.35, Ma
 // ---------------------------------------------------------------- editor de mapa (O)
 // Escolhe, move, põe, duplica e apaga decorações, e muda o círculo de colisão de cada tipo. Tudo fica salvo neste
 // navegador (localStorage) e "Copiar mapa" gera o texto com as decorações e as colisões, para virar o mapa fixo.
-const MAPA_CHAVE = "mapaEditado7";             // 7: a Montanha Gelada depois do vale, o acampamento dos bandidos e as ruínas (o mapa salvo antes não serve)
+// 8: versao 2, com as lanternas e os bambus da vila como decoração, o giro, o modelo (cerejeira, bambu...) e o terreno
+// (as camadas de ajuste do Mapa do Mundo); o mapa salvo na 7 continua valendo (é lido se não houver um na 8)
+const MAPA_CHAVE = "mapaEditado8", MAPA_CHAVE_ANTIGA = "mapaEditado7";
 const MAPA_FIXO = null;                    // o mapa aprovado entra aqui (o texto do "Copiar mapa")
 const editor = { ativo: false, sel: null, pondo: null, arrasto: null, foco: { x: 0, y: 0 }, teclas: new Set(), mouse: null };
 let mapaOriginal = null;
+// os tipos que o mapa da versao 1 não tinha (um mapa antigo aplicado não os apaga)
+const DECO_V2 = ["lanterna", "bambu"];
 
-function mapaAtual() {
+function decoracaoTexto(lista) {
   const r2 = v => Math.round(v * 100) / 100;
-  return {
-    versao: 1, colisao: COLISAO,
-    objetos: objetos.filter(o => DECORACAO.includes(o.tipo) && !o.caverna).map(o => {
-      const c = { tipo: o.tipo, x: r2(o.x), y: r2(o.y) };
-      for (const k of ["esc", "tom", "flor", "alt", "fase", "forma", "cor", "var", "esp", "neve"]) if (o[k] !== undefined) c[k] = Array.isArray(o[k]) ? o[k].map(r2) : typeof o[k] === "number" ? r2(o[k]) : o[k];
-      return c;
-    }),
-  };
+  return lista.filter(o => DECORACAO.includes(o.tipo) && !o.caverna).map(o => {
+    const c = { tipo: o.tipo, x: r2(o.x), y: r2(o.y) };
+    for (const k of ["esc", "tom", "flor", "alt", "fase", "forma", "cor", "var", "esp", "neve", "giro", "modelo", "monumento"]) if (o[k] !== undefined) c[k] = Array.isArray(o[k]) ? o[k].map(r2) : typeof o[k] === "number" ? r2(o[k]) : o[k];
+    return c;
+  });
+}
+function mapaAtual() { return { versao: 2, colisao: COLISAO, objetos: decoracaoTexto(objetos), terreno: terrenoTexto() }; }
+// ---- as camadas de ajuste do terreno (pincel de terreno do Mapa do Mundo): uma grade de 1 m com a altura extra (m)
+// e a máscara do chão (a camada pintada e o peso dela). O mundo 3D soma a altura no relevo (alturaBruta) e mistura a
+// máscara nos pesos das texturas (pesosChao: a grama some onde se pinta terra, calçamento...); o 2D, na terra.
+// Camadas: as do mundo 3D (CAMADAS sem a grama) e "grama" (8), que tira as outras
+const AJUSTE = { alt: new Map(), chao: new Map(), versao: 0 };
+const AJ_CAMADAS = ["musgo", "terra", "areia", "calcamento", "terra_vermelha", "neve", "rocha", "seco", "grama"];
+const ajChave = (i, j) => (i + 2048) * 4096 + (j + 2048);
+function ajusteAltura(x, y) {
+  if (!AJUSTE.alt.size) return 0;
+  const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, A = AJUSTE.alt;
+  const h00 = A.get(ajChave(i, j)) || 0, h10 = A.get(ajChave(i + 1, j)) || 0, h01 = A.get(ajChave(i, j + 1)) || 0, h11 = A.get(ajChave(i + 1, j + 1)) || 0;
+  return h00 + (h10 - h00) * fx + (h01 - h00) * fy + (h00 - h10 - h01 + h11) * fx * fy;
+}
+// quanto de cada camada pintada há aqui (acumula em ac[0..8]; devolve o peso total, 0 a 1)
+const _ajAc = new Float32Array(9);
+function ajusteChaoEm(x, y, ac = _ajAc) {
+  ac.fill(0);
+  if (!AJUSTE.chao.size) return 0;
+  const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, C = AJUSTE.chao;
+  let tot = 0;
+  for (const [a, b, p] of [[0, 0, (1 - fx) * (1 - fy)], [1, 0, fx * (1 - fy)], [0, 1, (1 - fx) * fy], [1, 1, fx * fy]]) {
+    const c = C.get(ajChave(i + a, j + b)); if (!c) continue;
+    ac[c[0]] += c[1] * p; tot += c[1] * p;
+  }
+  return tot;
+}
+// no mundo 3D: os 8 pesos (musgo, terra, areia, calçamento, terra do vale, neve, rocha, capim seco) com a máscara por cima
+function ajustarPesosChao(x, y, out, k) {
+  const w = ajusteChaoEm(x, y); if (w <= 0) return;
+  for (let l = 0; l < 8; l++) out[k + l] = out[k + l] * (1 - w) + _ajAc[l];
+}
+// no 2D: a terra pintada (terra, areia, calçamento, terra do vale, rocha) sobe a terra; a grama e o musgo a tiram
+function ajusteTerra2d(x, y, w0) {
+  const w = ajusteChaoEm(x, y); if (w <= 0) return w0;
+  const t = _ajAc[1] + _ajAc[2] + _ajAc[3] + _ajAc[4] + _ajAc[6];
+  return w0 * (1 - w) + t;
+}
+function terrenoTexto() {
+  const r2 = v => Math.round(v * 100) / 100, des = k => [Math.floor(k / 4096) - 2048, (k % 4096) - 2048];
+  return { cel: 1, alt: [...AJUSTE.alt].filter(([, v]) => Math.abs(v) > 0.005).map(([k, v]) => [...des(k), r2(v)]),
+           chao: [...AJUSTE.chao].filter(([, c]) => c[1] > 0.005).map(([k, c]) => [...des(k), c[0], r2(c[1])]) };
+}
+function aplicarTerreno(t) {
+  AJUSTE.alt.clear(); AJUSTE.chao.clear(); AJUSTE.versao++;
+  if (!t) return;
+  for (const [i, j, v] of Array.isArray(t.alt) ? t.alt : []) if (isFinite(i) && isFinite(j) && isFinite(v)) AJUSTE.alt.set(ajChave(i | 0, j | 0), Math.max(-12, Math.min(12, +v)));
+  for (const [i, j, m, w] of Array.isArray(t.chao) ? t.chao : []) if (isFinite(i) && isFinite(j) && m >= 0 && m < AJ_CAMADAS.length && w > 0) AJUSTE.chao.set(ajChave(i | 0, j | 0), [m | 0, Math.min(1, +w)]);
+}
+// os enfeites da vila (lanternas de pedra e bambus): antes só existiam no mundo 3D; agora são decoração do mapa
+// (sem colisão, como antes), para o editor poder mover e apagar
+function porEnfeitesVila() {
+  const V = VILA, l = [];
+  for (const [dx, dy] of [[-3.6, -6.8], [3.6, -6.8], [-2.3, 2.6], [2.3, 2.6], [-3.4, 7.2], [3.4, 7.2], [-8.4, 4.0], [8.9, 4.0]]) l.push({ tipo: "lanterna", x: V.x + dx, y: V.y + dy });
+  for (const [x, y] of [[-0.6, -4.2], [3.2, -1.2], [2.9, 2.0]]) l.push({ tipo: "lanterna", x, y });
+  for (const [dx, dy, e] of [[-17, 1, 1], [-16, 9.5, 1.1], [17.5, 0, 1], [16.8, 10.5, 1.15], [-6.5, 14.5, 1], [7.5, 15, 1.05], [-18.5, -4, 0.9], [18.6, -5, 0.95]])
+    if (vazio(V.x + dx, V.y + dy, 1.2)) l.push({ tipo: "bambu", x: V.x + dx, y: V.y + dy, esc: e });
+  for (const c of l) objetos.push(completarDecoracao(c));
 }
 // uma decoração do texto do mapa (ou nova) com tudo o que o desenho dela precisa
 function completarDecoracao(c) {
@@ -7167,22 +7273,38 @@ function completarDecoracao(c) {
 }
 function refazerGrade() { grade.clear(); for (const o of objetos) if (temColisao(o)) porNaGrade(o); }
 function aplicarMapa(m) {
-  if (!m || m.versao !== 1) return false;
+  if (!m || (m.versao !== 1 && m.versao !== 2)) return false;
   COLISAO = JSON.parse(JSON.stringify(COLISAO_PADRAO));
   for (const [t, c] of Object.entries(m.colisao || {})) if (COLISAO[t]) COLISAO[t] = { r: +c.r || COLISAO[t].r, dx: +c.dx || 0, dy: +c.dy || 0 };
   if (Array.isArray(m.objetos)) {
-    for (let i = objetos.length - 1; i >= 0; i--) if (DECORACAO.includes(objetos[i].tipo) && !objetos[i].caverna) objetos.splice(i, 1);
+    const fica = t => m.versao === 1 && DECO_V2.includes(t);          // (o mapa antigo não sabia das lanternas e dos bambus)
+    for (let i = objetos.length - 1; i >= 0; i--) if (DECORACAO.includes(objetos[i].tipo) && !objetos[i].caverna && !fica(objetos[i].tipo)) objetos.splice(i, 1);
     for (const c of m.objetos) if (DECORACAO.includes(c.tipo) && isFinite(c.x) && isFinite(c.y)) objetos.push(completarDecoracao(c));
   }
+  aplicarTerreno(m.versao === 2 ? m.terreno : null);
   refazerGrade();
   return true;
 }
 function salvarMapa() { try { localStorage.setItem(MAPA_CHAVE, JSON.stringify(mapaAtual())); } catch (e) {} }
 // na abertura: guarda o mapa gerado (para "Voltar ao original") e aplica o fixo e depois o editado neste navegador
+// (o da chave nova; sem ele, o da antiga)
+let espacosAbertos = null, decoDoCarregar = null, mapaSalvoAplicado = null;
 function carregarMapa() {
+  porEnfeitesVila();
   mapaOriginal = mapaAtual(); mapaOriginal.colisao = JSON.parse(JSON.stringify(COLISAO_PADRAO));
-  if (MAPA_FIXO) aplicarMapa(MAPA_FIXO);
-  try { const m = JSON.parse(localStorage.getItem(MAPA_CHAVE)); if (m) aplicarMapa(m); } catch (e) {}
+  if (MAPA_FIXO && aplicarMapa(MAPA_FIXO)) mapaSalvoAplicado = MAPA_FIXO;
+  try { const m = JSON.parse(localStorage.getItem(MAPA_CHAVE) || localStorage.getItem(MAPA_CHAVE_ANTIGA)); if (m && aplicarMapa(m)) mapaSalvoAplicado = m; } catch (e) {}
+  espacosAbertos = []; decoDoCarregar = new Set(objetos);
+}
+// no fim da abertura: o que veio depois do mapa (as ruínas, a ferraria, o píer, e as árvores tiradas para eles) entra no
+// "original"; e o mapa salvo é aplicado de novo, para valer exatamente como foi salvo (sem as ruínas e a ferraria em dobro)
+function fecharMapaOriginal() {
+  if (!decoDoCarregar) return;
+  const abertos = ["arvore", "pinheiro", "arbusto", "tronco", "toco", "pedra"], E = espacosAbertos;
+  const fora = c => abertos.includes(c.tipo) && E.some(([x0, y0, x1, y1]) => c.x > x0 && c.x < x1 && c.y > y0 && c.y < y1);
+  mapaOriginal.objetos = [...mapaOriginal.objetos.filter(c => !fora(c)), ...decoracaoTexto(objetos.filter(o => !decoDoCarregar.has(o)))];
+  espacosAbertos = decoDoCarregar = null;
+  if (mapaSalvoAplicado) aplicarMapa(mapaSalvoAplicado);
 }
 
 function editorAbrir(sim) {
@@ -7637,6 +7759,7 @@ const COLISAO_PADRAO = {
   muralha: { r: 0, dx: 0, dy: 0 }, muralha_v: { r: 0, dx: 0, dy: 0 }, torre_pedra: { r: 1.15, dx: 0, dy: 0.4 }, muralha_portao: { r: 0, dx: 0, dy: 0 },
   ruina_arco: { r: 0, dx: 0, dy: 0 }, ruina_muro: { r: 0, dx: 0, dy: 0 }, ruina_muro_lado: { r: 0, dx: 0, dy: 0 }, ruina_pilar: { r: 0.55, dx: 0, dy: 0.2 },
   ruina_caido: { r: 0, dx: 0, dy: 0 }, estatua: { r: 0.6, dx: 0, dy: 0.2 }, ponte: { r: 0, dx: 0, dy: 0 }, ponte_v: { r: 0, dx: 0, dy: 0 }, pier: { r: 0, dx: 0, dy: 0 },
+  lanterna: { r: 0, dx: 0, dy: 0 }, bambu: { r: 0, dx: 0, dy: 0 },                    // (os enfeites da vila: só no mundo 3D, sem colisão)
 };
 const NOME_TIPO = { arvore: "árvore", pinheiro: "pinheiro", arbusto: "arbusto", pedra: "pedra", tronco: "tronco", toco: "toco", runa: "pedra rúnica",
                     fogueira: "fogueira", boneco: "boneco", barril: "barril", caixote: "caixote", tocha: "tocha", bandeira: "bandeira", braseiro: "braseiro",
@@ -7644,7 +7767,7 @@ const NOME_TIPO = { arvore: "árvore", pinheiro: "pinheiro", arbusto: "arbusto",
                     cerca_v: "cerca (fundo)", cerca_canto: "canto de cerca", cerca_poste: "poste", cerca_portao: "portão de cerca", muralha: "muralha",
                     muralha_v: "muralha (fundo)", torre_pedra: "torre", muralha_portao: "portão da muralha", ruina_arco: "arco em ruína",
                     ruina_muro: "muro em ruína", ruina_muro_lado: "muro em ruína (fundo)", ruina_pilar: "pilar", ruina_caido: "pilar caído",
-                    estatua: "estátua", ponte: "ponte", ponte_v: "ponte (fundo)", pier: "píer" };
+                    estatua: "estátua", ponte: "ponte", ponte_v: "ponte (fundo)", pier: "píer", lanterna: "lanterna de pedra", bambu: "bambu" };
 const DECORACAO = Object.keys(COLISAO_PADRAO);
 let COLISAO = JSON.parse(JSON.stringify(COLISAO_PADRAO));
 // o círculo de colisão de um objeto no mapa (null para o que não é decoração: muros, torres)
@@ -9331,7 +9454,7 @@ function laco(agora) {
   if (congela > 0) congela -= dt;                                 // hit-stop: o mundo para um instante no acerto
   else if (editor.ativo) passoEditor(dt);                           // editando: o jogo fica parado
   else if (!pausado) passo(dt * veloc);
-  desenhar(t);
+  if (!(window.MM && MM.cobre)) desenhar(t);                        // (com o Mapa do Mundo aberto por cima, o jogo não é desenhado)
   requestAnimationFrame(laco);
 }
 
@@ -9340,6 +9463,7 @@ carregar().then(() => {
   montarCenario(); carregarMapa(); montarCriaturas(); montarPainel(); montarEditor();
   carregarP3d();
   prepararMana(); carregarProgresso(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarArmazem(); montarTempo(); montarFicha(); montarBolsa(); montarBarraSkills(); montarMinimapa(); montarMenu(); montarAdmin(); montarJanelas();
+  fecharMapaOriginal();
   $("#carregando").hidden = true;
   window.jogoPronto = true;
   requestAnimationFrame(laco);
@@ -9394,7 +9518,7 @@ const DECO_3D = {
   casa: o => [["armazem", "casa_p"], ["casa_m"], ["casa_g"]][(o.var || 0) % 3],        // o armazém atrás do Senhor do Armazém
   barraca: o => (o.var || 0) !== 1 && Math.hypot(o.x - VILA.x, o.y - VILA.y) < 30 ? ["loja", "barraca"] : ["barraca"],   // a loja na feira (a barraca da Feirante) e outra na rua (a da Alquimista); no acampamento, barraca
   ferraria: ["ferraria"], poco: ["poco"], carroca: ["carroca", "@carroca"], caixotes: ["caixotes", "@caixotes"],
-  arvore: o => perto3(o, VILA, VILA.r + 14) ? ["cerejeira", "arvore_larga"] : lago(o.x, o.y, 9) || sorte3(o, 56) < 0.12 ? ["bambu", "arvore_larga"] : ["arvore_larga", "cerejeira"],
+  arvore: o => o.modelo ? [o.modelo, "arvore_larga"] : perto3(o, VILA, VILA.r + 14) ? ["cerejeira", "arvore_larga"] : lago(o.x, o.y, 9) || sorte3(o, 56) < 0.12 ? ["bambu", "arvore_larga"] : ["arvore_larga", "cerejeira"],
   // (o pinheiro_alto não saiu no Tripo: "pinheiro_vermelho~alto" é o vermelho mais alto e estreito, com cartões de pinho)
   pinheiro: o => o.neve || o.monte ? ["pinheiro_neve", "pinheiro_vermelho~alto"] : sorte3(o, 55) < 0.35 ? ["pinheiro_vermelho", "pinheiro_alto"] : ["pinheiro_alto", "pinheiro_vermelho~alto", "pinheiro_vermelho"],
   arbusto: o => o.flor ? ["arbusto_flor", "arbusto"] : ["arbusto", "arbusto_flor"],
@@ -9480,7 +9604,7 @@ function alturaBruta(x, y) {
     h = mix(h, L + 0.32, liso3((7 - dL) / 5));
     if (dL < 0.8) h = L + 0.32 - 0.75 * liso3((0.8 - dL) / 1.1) - Math.min(1.5, Math.max(0, -dL - 0.4) * 0.55);
   }
-  return h;
+  return h + ajusteAltura(x, y);                                     // (a altura extra pintada no Mapa do Mundo)
 }
 // os pesos das texturas: [musgo, terra, areia, calçamento, terra do vale, neve, rocha, capim seco]
 // a terra só nas estradas (com a borda gasta, em ruído de várias escalas), no meio das clareiras, na beira do lago e em
@@ -9517,6 +9641,7 @@ function pesosChao(x, y, out, k) {
   musgo *= 1 - terra * 0.8;
   out[k] = musgo * (1 - areia); out[k + 1] = terra * (1 - areia); out[k + 2] = areia; out[k + 3] = calc;
   out[k + 4] = vale * (1 - areia); out[k + 5] = neve; out[k + 6] = rocha; out[k + 7] = seco;
+  if (AJUSTE.chao.size) ajustarPesosChao(x, y, out, k);              // (o chão pintado no Mapa do Mundo)
 }
 // alturas já calculadas por pedaço (passo de 0,5 m): o boneco em cima de um pedaço pronto não recalcula nada
 const PED = 16, FINO = 0.5, NF = PED / FINO;
@@ -10069,14 +10194,16 @@ function materialAgua(nivel, lago) {
         vec2 g1 = texture2D(uRuido, p * 0.031 + uT * vec2(0.009, 0.005)).gb - 0.5;
         vec2 g2 = texture2D(uRuido, p * 0.097 - uT * vec2(0.007, -0.012)).gb - 0.5;
         vec2 g3 = texture2D(uRuido, p * 0.33 + uT * vec2(0.022, 0.017)).gb - 0.5;
-        vec2 g = (g1 * 0.9 + g2 * 0.65 + g3 * 0.4) * calmo;
+        // longe (câmera baixa, olhando o horizonte): ondas mais calmas e a água opaca e funda, sem manchas do fundo
+        float kL = smoothstep(25.0, 140.0, distance(cameraPosition, vMundo));
+        vec2 g = (g1 * 0.9 + g2 * 0.65 + g3 * 0.4) * calmo * (1.0 - 0.7 * kL);
         vec3 n = normalize(vec3(-g.x * 1.3, 1.0, g.y * 1.3));
         vec3 V = normalize(cameraPosition - vMundo);
         float fres = 0.02 + 0.98 * pow(1.0 - max(dot(n, V), 0.0), 5.0);
         vec3 R = reflect(-V, n); R.y = abs(R.y);
         vec3 refl = ceu(R);
-        if (uTemReflexo > 0.5) { vec4 q = vRefl; q.xy += vec2(n.x, -n.z) * 0.06 * q.w; refl = texture2DProj(uReflexo, q).rgb; }
-        vec3 agua = mix(uRaso, uFundo, smoothstep(0.25, 4.0, prof)) * uLuzAmb;
+        if (uTemReflexo > 0.5) { vec4 q = vRefl; q.xy += vec2(n.x, -n.z) * 0.06 * q.w; refl = mix(texture2DProj(uReflexo, q).rgb, refl, smoothstep(30.0, 90.0, distance(cameraPosition, vMundo))); }   // (longe, o céu de verdade: o reflexo em meia resolução virava manchas no horizonte)
+        vec3 agua = mix(uRaso, uFundo, max(smoothstep(0.25, 4.0, prof), kL * 0.8)) * uLuzAmb;
         vec3 c = mix(agua, refl, clamp(fres * 0.95 + 0.04, 0.0, 1.0));
         c += uSolCor * pow(max(dot(R, uSolDir), 0.0), 240.0) * 3.0 * calmo;
         float nE = texture2D(uRuido, p * 0.55 + uT * vec2(0.03, -0.02)).r;
@@ -10085,7 +10212,7 @@ function materialAgua(nivel, lago) {
         esp *= smoothstep(0.3, 0.62, nE + 0.18) * (1.0 - uGelo);
         c = mix(c, vec3(0.9, 0.93, 0.94) * max(uLuzAmb, 0.22), clamp(esp, 0.0, 1.0));
         float a = clamp(smoothstep(0.0, 2.6, prof) * 0.62 + 0.18, 0.0, 1.0);          // (no raso dá para ver o fundo e os peixes)
-        a = max(max(a, esp), fres);
+        a = max(max(max(a, esp), fres), kL);
         if (uGelo > 0.5) { c = mix(vec3(0.72, 0.82, 0.9) * max(uLuzAmb, 0.3), refl, 0.25); a = 0.96; }
         gl_FragColor = vec4(c, a);
         #include <tonemapping_fragment>
@@ -10512,7 +10639,7 @@ function instanciarModelo(arq, lista) {
       if (med.alt) esc = med.alt * e / Math.max(0.01, tam.y);
       else if (med.comp) esc = (o.tipo === "muralha_v" ? 3.6 * e : o.tipo === "ponte_v" ? 7.6 * e : v ? v.base * e : 4) / Math.max(0.01, Math.max(tam.x, tam.z));
       else esc = (v ? v.base * e : 2) * med.larg / Math.max(0.01, tam.x);
-      const giro = (vert ? Math.PI / 2 : 0) + (natureza ? hash(Math.round(o.x * 10), Math.round(o.y * 10), 57) * Math.PI * 2 : ((o.giro || 0) + (med.giro || 0)) * GRAU);
+      const giro = (vert ? Math.PI / 2 : 0) + (natureza && o.giro === undefined ? hash(Math.round(o.x * 10), Math.round(o.y * 10), 57) * Math.PI * 2 : ((o.giro || 0) + (med.giro || 0)) * GRAU);
       // a frente do desenho é o pé: as construções vão do pé para o norte (como o retângulo de colisão); o resto, centrado
       const fundo = ESTRUT[o.tipo] && !vert ? tam.z * esc / 2 - 0.15 : (med.norte || 0) * tam.z * esc;   // (o píer avança para dentro do lago)
       const h = alturaEm(o.x, o.y);
@@ -10572,13 +10699,10 @@ function atualizarCelulas() {
   }
   S.trisDeco = tris;
 }
-// os enfeites da vila (lanternas de pedra e bambus) e as entradas das cavernas: só existem com o modelo
+// as entradas das cavernas: só existem com o modelo (as lanternas de pedra e os bambus da vila agora são decoração do
+// mapa, em objetos: porEnfeitesVila, e o editor move e apaga)
 function extras3() {
-  const l = [], V = VILA;
-  for (const [dx, dy] of [[-3.6, -6.8], [3.6, -6.8], [-2.3, 2.6], [2.3, 2.6], [-3.4, 7.2], [3.4, 7.2], [-8.4, 4.0], [8.9, 4.0]]) l.push({ tipo: "lanterna", x: V.x + dx, y: V.y + dy });
-  for (const [x, y] of [[-0.6, -4.2], [3.2, -1.2], [2.9, 2.0]]) l.push({ tipo: "lanterna", x, y });
-  for (const [dx, dy, e] of [[-17, 1, 1], [-16, 9.5, 1.1], [17.5, 0, 1], [16.8, 10.5, 1.15], [-6.5, 14.5, 1], [7.5, 15, 1.05], [-18.5, -4, 0.9], [18.6, -5, 0.95]])
-    if (vazio(V.x + dx, V.y + dy, 1.2)) l.push({ tipo: "bambu", x: V.x + dx, y: V.y + dy, esc: e });
+  const l = [];
   for (const p of passagens) if (p.tipo === "buraco") l.push({ tipo: "entrada", x: p.x, y: p.y, var: DUNGEONS.indexOf(p.dungeon) });
   return l;
 }
@@ -10900,13 +11024,18 @@ function toonMundo(base, c) {
 }
 // a casca: empurrada pela normal na proporção da distância (o traço fica com ~1,5 px em qualquer zoom)
 function materialCasca(pele, c, cor, soma) {
-  const m = new THREE.MeshBasicMaterial({ color: cor, side: THREE.BackSide, toneMapped: false, fog: false,
+  // (a cor vem em sRGB: sem converter, o traço #1a120c saía cinza-claro depois da codificação da tela)
+  const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(cor).convertSRGBToLinear(), side: THREE.BackSide, toneMapped: false, fog: false,
     transparent: !!soma, blending: soma ? THREE.AdditiveBlending : THREE.NormalBlending, depthWrite: !soma });
   m.onBeforeCompile = sh => {
     sh.uniforms.uAlfa = c.uAlfa; sh.uniforms.uEsp = soma ? soma.esp : S.uEsp;
     sh.vertexShader = "uniform float uEsp;\n" + (pele
       ? sh.vertexShader.replace("#include <skinning_vertex>", "#include <skinning_vertex>\n { vec4 q = modelViewMatrix * vec4(transformed, 1.0); transformed += normalize(objectNormal) * uEsp * max(1.0, -q.z); }")
-      : sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n { vec4 q = modelViewMatrix * vec4(transformed, 1.0); transformed += normalize(normal) * uEsp * max(1.0, -q.z); }"));
+      : sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n { vec4 q = modelViewMatrix * vec4(transformed, 1.0); transformed += normalize(normal) * uEsp * max(1.0, -q.z); }"))
+      // a casca vai um pouco para trás (longe da câmera): nas peças finas de dois lados (a lâmina do machado) ela
+      // ficava na frente da malha e tapava a arma; assim só aparece por fora da silhueta
+      // (o brilho somado vai bem menos para trás: o bastante para não tingir a arma; mais, sumia atrás da capa)
+      .replace("#include <project_vertex>", "#include <project_vertex>\n gl_Position = projectionMatrix * (mvPosition - vec4(0.0, 0.0, uEsp * max(1.0, -mvPosition.z) * " + (soma ? "1.2 + 0.002" : "4.0 + 0.005") + ", 0.0));");
     sh.fragmentShader = GLSL_ALFA.replace("uK;", "uKx;") + sh.fragmentShader.replace("#include <alphatest_fragment>", "#include <alphatest_fragment>\n if (uAlfa < 0.999 && pontilhado() > uAlfa) discard;");
   };
   m.customProgramCacheKey = () => (pele ? "cp" : "cr") + (soma ? "s" : "");
@@ -10917,10 +11046,12 @@ function cascasDe(c, malhas, cor, soma) {
   for (const o of malhas) {
     const pele = !!o.isSkinnedMesh, mat = materialCasca(pele, c, cor, soma);
     const k = pele ? new THREE.SkinnedMesh(o.geometry, mat) : new THREE.Mesh(o.geometry, mat);
-    if (pele) k.bind(o.skeleton, o.bindMatrix);
-    k.position.copy(o.position); k.quaternion.copy(o.quaternion); k.scale.copy(o.scale);
     k.frustumCulled = false; k.castShadow = false; k.renderOrder = soma ? 9 : 0;
-    o.parent.add(k); l.push(k);
+    // a pele segue os ossos; a peça dura (a arma) é animada pelo próprio nó: a casca vai como filha dela, senão ficava
+    // parada na pose inicial, uma cópia cinza da arma fora do lugar
+    if (pele) { k.bind(o.skeleton, o.bindMatrix); k.position.copy(o.position); k.quaternion.copy(o.quaternion); k.scale.copy(o.scale); o.parent.add(k); }
+    else o.add(k);
+    l.push(k);
   }
   return l;
 }
@@ -11047,9 +11178,9 @@ function atualizarBrilhoHeroi(c, agora) {
     const n = c.brilho.length / 2;
     c.brilho.forEach((k, i) => {
       k.visible = !!b;
-      if (b) { k.material.color.setHex(i < n ? b.cor : b.claro); k.material.opacity = (i < n ? 0.55 : 0.5) * b.f; }
+      if (b) { k.material.color.setHex(i < n ? b.cor : b.claro).convertSRGBToLinear(); k.material.opacity = (i < n ? 1.0 : 0.7) * b.f; }
     });
-    if (b) { c.uBrE.value = 0.0016 * (0.85 + 0.3 * b.f); c.uBrI.value = 0.0007; }
+    if (b) { c.uBrE.value = 0.0032 * (0.85 + 0.3 * b.f); c.uBrI.value = 0.0012; }   // (o halo: largo por fora, claro rente à arma)
   }
   // a aura da Fúria: o corpo todo numa casca vermelha somada, pulsando
   const nf = nivelFuria(agora);
@@ -11123,16 +11254,18 @@ function temCorpo(dono) { return !S.pintandoCartao; }
 
 // ---------------------------------------------------------------- câmera livre
 // yaw: para onde a câmera olha (0 = o clássico, de sul para norte; positivo gira no sentido do relógio visto de cima);
-// pitch: a inclinação acima do horizonte (25° a 70°; 37° é a dos sprites). A distância sai do zoom do jogo (a mesma
+// pitch: a inclinação acima do horizonte (15° a 80°; 37° é a dos sprites). Baixa (perto do chão), a câmera chega mais
+// perto do herói e levanta o olhar (aparece o horizonte e o céu), como nos MMOs. A distância sai do zoom do jogo (a mesma
 // escala de px por metro no herói que o 2D tinha). Se um morro fica entre a câmera e o herói, ela sobe um pouco.
-const PITCH_MIN = 25 * GRAU, PITCH_MAX = 70 * GRAU, PITCH_CLASSICO = 37 * GRAU;
+const PITCH_MIN = 15 * GRAU, PITCH_MAX = 80 * GRAU, PITCH_CLASSICO = 37 * GRAU;
 const angDif = a => Math.atan2(Math.sin(a), Math.cos(a));
 function atualizarCamera(dt) {
   const k = Math.min(1, dt * 9);
   S.yaw += angDif(S.yawAlvo - S.yaw) * k;
   S.pitchAlvo = Math.max(PITCH_MIN, Math.min(PITCH_MAX, S.pitchAlvo));
   S.pitch += (S.pitchAlvo - S.pitch) * k;
-  const distAlvo = (H / 2) / (Math.tan(S.fov / 2 * GRAU) * PX * zoom);
+  // (abaixo de 35°, a câmera se aproxima: aos 15° fica a 60% da distância)
+  const distAlvo = (H / 2) / (Math.tan(S.fov / 2 * GRAU) * PX * zoom) * (0.6 + 0.4 * liso3((S.pitch - PITCH_MIN) / (35 * GRAU - PITCH_MIN)));
   S.dist += (distAlvo - S.dist) * Math.min(1, dt * 10);
   const kf = 1 - Math.pow(0.88, dt * 60);                       // o mesmo 0,12 por quadro do 2D
   cam.x += (viking.x - cam.x) * kf; cam.y += (viking.y - cam.y) * kf;
@@ -11151,7 +11284,10 @@ function atualizarCamera(dt) {
   const tr = tremor > 0 ? Math.sin(performance.now() / 1000 * 90) * tremor * 0.18 : 0;
   const ax = cam.x + Math.cos(S.yaw) * tr, ay = cam.y - Math.sin(S.yaw) * tr;
   c.position.set(ax + ox * S.dist * Math.cos(pe), S.alvoY + S.dist * Math.sin(pe), -(ay + oy * S.dist * Math.cos(pe)));
-  c.up.set(0, 1, 0); c.lookAt(ax, S.alvoY, -ay);
+  // baixa, o olhar sobe: aos 15° ele olha só 6° para baixo (o herói desce na tela e aparecem o horizonte e o céu)
+  const olhar = pe - (1 - liso3((pe - PITCH_MIN) / (35 * GRAU - PITCH_MIN))) * 9 * GRAU;
+  const yOlhar = S.alvoY + S.dist * Math.sin(pe) - S.dist * Math.cos(pe) * Math.tan(olhar);
+  c.up.set(0, 1, 0); c.lookAt(ax, yOlhar, -ay);
   c.aspect = W / H; c.fov = S.fov; c.near = 0.3; c.far = CFG.longe + S.dist * 1.5;
   c.updateProjectionMatrix(); c.updateMatrixWorld(true);
   _mvp.multiplyMatrices(c.projectionMatrix, c.matrixWorldInverse); S.vp = _mvp.elements.slice();
@@ -11259,8 +11395,9 @@ function ligarEntrada() {
     }
     if (arrasto && e.pointerId === arrasto.id) {
       const dx = e.clientX - arrasto.x, dy = e.clientY - arrasto.y; arrasto.x = e.clientX; arrasto.y = e.clientY; arrasto.mexeu += Math.abs(dx) + Math.abs(dy);
-      if (arrasto.shift || e.shiftKey) S.pitchAlvo = S.pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, S.pitch + dy * 0.005));
-      else S.yawAlvo = S.yaw = S.yaw + dx * 0.006;
+      // como nos MMOs: para os lados gira, para cima e para baixo inclina (ao mesmo tempo, sem Shift)
+      S.yawAlvo = S.yaw = S.yaw + dx * 0.006;
+      S.pitchAlvo = S.pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, S.pitch + dy * 0.005));
     }
   }, true);
   const soltar = e => {
@@ -11280,6 +11417,8 @@ function ligarEntrada() {
     const k = e.key.toLowerCase();
     if (k === TECLAS_GIRO[0] || k === TECLAS_GIRO[1]) { if (!e.repeat) girar(k === TECLAS_GIRO[0] ? -1 : 1); e.preventDefault(); e.stopImmediatePropagation(); }
     else if (k === "home") { voltarClassico(); e.preventDefault(); e.stopImmediatePropagation(); }
+    // PageUp / PageDown inclinam em passos de 8° (R e F já são do jogo: levantar e a Fúria)
+    else if (k === "pageup" || k === "pagedown") { S.pitchAlvo = Math.max(PITCH_MIN, Math.min(PITCH_MAX, S.pitchAlvo + (k === "pageup" ? 8 : -8) * GRAU)); e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
   addEventListener("resize", () => { if (S.render) S.render.setSize(W, H, false); });
 }
@@ -11400,7 +11539,7 @@ function botaoClassico() {
   };
   fazer("bGiroE", "⟲ " + TECLAS_GIRO[0].toUpperCase(), `Girar a câmera para a esquerda (${TECLAS_GIRO[0].toUpperCase()})`, () => girar(-1));
   fazer("bGiroD", "⟳ " + TECLAS_GIRO[1].toUpperCase(), `Girar a câmera para a direita (${TECLAS_GIRO[1].toUpperCase()})`, () => girar(1));
-  fazer("bCam37", "37°", "Câmera clássica, 37° (Home); arraste com o botão direito para girar e com Shift para inclinar", voltarClassico);
+  fazer("bCam37", "37°", "Câmera clássica, 37° (Home). Arraste com o botão direito (ou o do meio): para os lados gira, para cima e para baixo inclina. PageUp/PageDown inclinam, Z/B giram 45°, a rodinha dá zoom. No celular: dois dedos giram, sobem e descem (inclina) e a pinça dá zoom", voltarClassico);
 }
 
 // ---------------------------------------------------------------- grama em volta da câmera
@@ -11425,15 +11564,16 @@ function montarGrama() {
   geo.setIndex(idx);
   S.geoTufo = geo;
   const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide, alphaToCoverage: !LEVE });
-  S.uGrama = { uEmpurra: { value: Array.from({ length: 8 }, () => new THREE.Vector4(0, -999, 0, 0)) }, uRaioG: { value: CFG.raioGrama } };
+  S.uGrama = { uEmpurra: { value: Array.from({ length: 8 }, () => new THREE.Vector4(0, -999, 0, 0)) }, uRaioG: { value: CFG.raioGrama }, uCentroG: { value: new THREE.Vector3() } };
   mat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, S.uGrama, { uT: S.uT });
-    sh.vertexShader = `uniform float uT, uRaioG; uniform vec4 uEmpurra[8]; attribute vec4 aCorG; varying vec3 vCorG; varying float vLonge;
+    sh.vertexShader = `uniform float uT, uRaioG; uniform vec3 uCentroG; uniform vec4 uEmpurra[8]; attribute vec4 aCorG; varying vec3 vCorG; varying float vLonge;
       ${GLSL_VENTO}\n` + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
         vCorG = aCorG.rgb;
         vec3 ip = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
         // mais densa perto do herói (cada tufo tem a sua sorte em aCorG.a): longe só fica uma parte, e some suave
-        float dc = distance(ip, cameraPosition) - 10.0;
+        // (a distância é a do herói, no chão: medida da câmera, com o zoom aberto ou a qualidade baixa, a grama sumia toda)
+        float dc = distance(ip.xz, uCentroG.xz);
         if (aCorG.a > mix(1.0, 0.32, smoothstep(5.0, uRaioG * 0.75, dc))) transformed *= 0.0;
         float alto = position.y / 0.5;
         vec3 off = vec3(vento3(ip, uT) * 0.35 * alto, 0.0, 0.0);
@@ -11443,7 +11583,7 @@ function montarGrama() {
           off += normalize(d + vec3(1e-4, 0.0, 0.0)) * f * 0.35; off.y -= f * 0.18;
         }
         transformed += inverse(mat3(instanceMatrix)) * off;
-        vLonge = smoothstep(uRaioG * 0.7, uRaioG, distance(ip, cameraPosition) - 10.0);`);
+        vLonge = smoothstep(uRaioG * 0.75, uRaioG, dc);`);
     sh.fragmentShader = `varying vec3 vCorG; varying float vLonge;\n${GLSL_PONTILHADO}\n` + sh.fragmentShader
       .replace("#include <map_fragment>", "#include <map_fragment>\n diffuseColor.rgb *= vCorG * vec3(0.84, 0.9, 0.8) * mix(0.55, 1.0, smoothstep(0.0, 0.6, vUv.y));")
       .replace("#include <alphatest_fragment>", "#include <alphatest_fragment>\n if (pontilhado() < vLonge) discard;")
@@ -11502,6 +11642,7 @@ function atualizarGrama() {
   const e = S.uGrama.uEmpurra.value, perto = criaturas.filter(c => !c.morto && Math.abs(c.x - cam.x) < R && Math.abs(c.y - cam.y) < R)
     .sort((a, b) => Math.hypot(a.x - cam.x, a.y - cam.y) - Math.hypot(b.x - cam.x, b.y - cam.y)).slice(0, 7);
   e[0].set(viking.x, alturaEm(viking.x, viking.y), -viking.y, 0.9);
+  S.uGrama.uCentroG.value.set(cam.x, 0, -cam.y);
   for (let k = 1; k < 8; k++) { const c = perto[k - 1]; if (c) e[k].set(c.x, 0, -c.y, 0.6 + (c.cfg.anel || 0.5) * 0.9); else e[k].set(0, 0, 9999, 0.1); }
 }
 
@@ -12189,10 +12330,1070 @@ function iniciar() {
   botaoClassico();
   S.pronto = true;
 }
+// o Mapa do Mundo mudou o terreno (altura extra ou chão pintado): as alturas finas e a grama são refeitas, e os pedaços
+// do chão também (cada um fica até o novo dele ficar pronto); com soGrama, só a grama (a decoração mudou)
+function refazerChao(soGrama) {
+  if (!soGrama) { finos.clear(); for (const p of pedacos3.values()) p.passo = -1; }
+  if (S.tufos) { for (const m of S.tufos.values()) if (m) { S.grupoGrama.remove(m); m.geometry.dispose(); } S.tufos.clear(); }
+  S.decoSuja = true;
+}
 return {
   get ligado() { return S.ligado; }, get ativo() { return S.ativo; }, get pronto() { return S.pronto; }, S, CFG, DECO_3D, MEDIDA_3D, TRACO_MUNDO, CAMADAS,
-  quer, desenhar: desenhar3, tela: tela3, noMundo: noMundo3, acima, relativo, pegar, corpo, temCorpo, alturaEm, alturaBruta, voltarClassico,
+  quer, desenhar: desenhar3, tela: tela3, noMundo: noMundo3, acima, relativo, pegar, corpo, temCorpo, alturaEm, alturaBruta, voltarClassico, refazerChao,
   get stats() { return S.stats; },
+};
+})();
+</script>
+
+<!-- ================================================================ MAPA DO MUNDO (tecla U ou o botão no menu do canto)
+     Tela cheia com o mapa inteiro visto de cima (2D): terreno com as cores das regiões, mar, lago, estradas, vila e a
+     decoração principal; todos os spawns de mobs (círculos pela cor do nível, com nome, nível e quantidade), chefes,
+     Metins e dungeons; legenda, nomes das regiões e o herói. Zoom com a rodinha (ou pinça) e arrastar para mover.
+     Com "Editar": o editor de mobs (aba Mobs, sobre a lista SPAWNS) e o editor de mapa (aba Mapa: decoração, pincel
+     e pincel de terreno, guardado nas camadas de ajuste AJUSTE). Ao fechar, as criaturas e o mundo 3D são remontados. -->
+<style>
+  .mm { position: fixed; inset: 0; z-index: 30; display: grid; grid-template-rows: auto 1fr; background: #0d1a22; color: var(--texto); font-family: var(--corpo); }
+  .mm-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: calc(env(safe-area-inset-top, 0px) + 8px) max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+             background: linear-gradient(var(--jan-titulo1, #4b331e), var(--jan-titulo2, #22160d)); border-bottom: 2px solid var(--jan-ouro, #b8893e); }
+  .mm-topo h2 { margin: 0 6px 0 0; font-family: var(--display); font-weight: 400; font-size: 20px; color: var(--jan-ouro-claro, #f2d68e); text-shadow: 0 1px 0 #000; }
+  .mm-esp { flex: 1; }
+  .mm button, .mm select, .mm input[type="number"] { font: inherit; font-size: 13px; color: var(--texto); background: linear-gradient(#4a3420, #2a1b0e); border: 1px solid #6b4a1c; border-radius: 5px; padding: 5px 10px; cursor: pointer; }
+  .mm select { padding: 4px 6px; max-width: 100%; }
+  .mm button:hover, .mm button:focus-visible { border-color: var(--jan-ouro-claro, #f2d68e); outline: none; }
+  .mm button[aria-pressed="true"], .mm button[aria-selected="true"] { border-color: var(--jan-ouro, #b8893e); background: linear-gradient(#6a4a26, #3a2611); color: var(--jan-ouro-claro, #f2d68e); }
+  .mm button.perigo { background: linear-gradient(#6a2a1e, #3a140c); border-color: #9a3a26; }
+  .mm-abas { display: flex; gap: 4px; }
+  .mm-corpo { position: relative; min-height: 0; overflow: hidden; }
+  .mm-corpo canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+  .mm-corpo canvas.mm-pintar { cursor: crosshair; }
+  .mm-painel { position: absolute; top: 10px; right: max(10px, env(safe-area-inset-right, 0px)); bottom: 10px; width: 290px; overflow: auto; padding: 10px 12px 12px;
+               background: rgba(24, 17, 10, 0.93); border: 1px solid #6b4a1c; border-radius: 8px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5); }
+  .mm-painel h3 { margin: 10px 0 6px; font-family: var(--display); font-weight: 400; font-size: 16px; color: var(--jan-ouro-claro, #f2d68e); }
+  .mm-painel label { display: grid; grid-template-columns: 82px 1fr 44px; align-items: center; gap: 6px; margin: 6px 0; font-size: 13px; }
+  .mm-painel label.larga { grid-template-columns: 82px minmax(0, 1fr); }
+  .mm-painel label select { width: 100%; min-width: 0; }
+  .mm-painel { overflow-x: hidden; box-sizing: border-box; }
+  .mm-painel output { font-family: var(--dados); font-size: 12px; color: var(--apagado); text-align: right; }
+  .mm-painel input[type="range"] { width: 100%; accent-color: var(--ouro); }
+  .mm-linha { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; align-items: center; }
+  .mm-linha select { flex: 1; min-width: 0; }
+  .mm-dica { margin: 4px 0; font-size: 12px; color: var(--apagado); line-height: 1.35; }
+  .mm-aviso { min-height: 1.2em; margin: 8px 0 0; font-size: 12px; color: var(--ouro); }
+  .mm-rodape { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #4d3619; }
+  .mm-painel textarea { width: 100%; box-sizing: border-box; height: 90px; margin-top: 8px; font-family: var(--dados); font-size: 11px; background: #0e0905; color: var(--texto); border: 1px solid #4d3619; border-radius: 4px; }
+  .mm-painel details { margin-top: 10px; }
+  .mm-painel summary { cursor: pointer; font-size: 13px; color: var(--jan-ouro-claro, #f2d68e); }
+  .mm-tabela { font-size: 12px; line-height: 1.4; }
+  .mm-tabela h4 { margin: 8px 0 2px; font-size: 12px; color: var(--ouro); }
+  .mm-tabela div { display: flex; gap: 6px; }
+  .mm-tabela i { width: 9px; height: 9px; border-radius: 50%; margin-top: 4px; flex: none; }
+  .mm-tabela span { flex: 1; }
+  .mm-tabela b { font-family: var(--dados); font-weight: 400; color: var(--apagado); }
+  .mm-ferr { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .mm-ferr button { padding: 5px 2px; }
+  .mm-info { position: absolute; z-index: 2; pointer-events: none; max-width: 240px; padding: 6px 9px; border-radius: 5px; background: rgba(12, 9, 6, 0.94); border: 1px solid #8a6a34; font-size: 12px; line-height: 1.35; }
+  .mm-info b { color: var(--jan-ouro-claro, #f2d68e); }
+  .mm-carregando { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); padding: 4px 12px; border-radius: 12px; background: rgba(0, 0, 0, 0.6); font-size: 12px; pointer-events: none; }
+  @media (max-width: 720px) {
+    .mm-topo h2 { font-size: 17px; }
+    .mm-topo { gap: 6px; }
+    .mm button { padding: 5px 8px; }
+    .mm-painel { top: auto; left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); width: auto; max-height: 46%; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
+  }
+</style>
+<section class="mm" id="mapaMundo" hidden role="dialog" aria-modal="true" aria-label="Mapa do Mundo">
+  <header class="mm-topo">
+    <h2>Mapa do Mundo</h2>
+    <div class="mm-abas" role="tablist" aria-label="Editor">
+      <button type="button" role="tab" data-aba="mobs" aria-selected="true">Mobs</button>
+      <button type="button" role="tab" data-aba="mapa" aria-selected="false">Mapa</button>
+    </div>
+    <span class="mm-esp"></span>
+    <button type="button" id="mmEditar" aria-pressed="false" title="Mostrar o editor">Editar</button>
+    <button type="button" id="mmVerTudo" title="Ver o mapa inteiro">Ver tudo</button>
+    <button type="button" id="mmExportar" title="Gravar o mapa como imagem PNG">Exportar imagem</button>
+    <button type="button" id="mmFechar" title="Fechar (U ou Esc)">Fechar</button>
+  </header>
+  <div class="mm-corpo">
+    <canvas id="mmTela" aria-label="O mapa inteiro visto de cima, com os mobs por nível"></canvas>
+    <div class="mm-carregando" id="mmCarregando" hidden>Desenhando o mapa…</div>
+    <div class="mm-info" id="mmInfo" hidden></div>
+    <aside class="mm-painel" id="mmPainel" hidden aria-label="Editor do mapa">
+      <div data-painel="mobs">
+        <p class="mm-dica">Clique num grupo para escolher; arraste para mover. Arrastar o chão (ou o botão direito) move o mapa; a rodinha dá zoom.</p>
+        <div class="mm-linha"><select id="mmNovoTipo" aria-label="Tipo do grupo novo"></select><button type="button" id="mmNovoGrupo" aria-pressed="false">+ Grupo</button></div>
+        <div id="mmSelMob" hidden>
+          <h3 id="mmSelNome">Grupo</h3>
+          <label class="larga">Tipo <select id="mmTipo"></select></label>
+          <label>Quantidade <input type="range" id="mmN" min="1" max="20" step="1"><output id="mmNV"></output></label>
+          <label>Raio <input type="range" id="mmR" min="0.5" max="10" step="0.1"><output id="mmRV"></output></label>
+          <div class="mm-linha"><button type="button" id="mmDuplicarMob">Duplicar</button><button type="button" id="mmApagarMob" class="perigo">Apagar (Del)</button></div>
+        </div>
+        <p class="mm-dica">Metins, hordas, chefes e bandos das dungeons aparecem no mapa, mas ficam como estão.</p>
+        <details id="mmResumo"><summary>Distribuição por região</summary><div class="mm-tabela" id="mmTabela"></div></details>
+        <div class="mm-rodape">
+          <button type="button" id="mmCopiarMobs">Copiar</button><button type="button" id="mmColarMobs">Colar</button><button type="button" id="mmOriginalMobs">Voltar ao original</button>
+        </div>
+      </div>
+      <div data-painel="mapa" hidden>
+        <div class="mm-ferr" role="radiogroup" aria-label="Ferramenta">
+          <button type="button" data-ferr="escolher" aria-pressed="true">Escolher</button>
+          <button type="button" data-ferr="por" aria-pressed="false">Pôr</button>
+          <button type="button" data-ferr="pincel" aria-pressed="false">Pincel</button>
+          <button type="button" data-ferr="terreno" aria-pressed="false">Terreno</button>
+        </div>
+        <p class="mm-dica" id="mmDicaFerr"></p>
+        <label class="larga" id="mmPecaL">Peça <select id="mmPeca"></select></label>
+        <label class="larga" id="mmCamadaL" hidden>Pincel <select id="mmCamada"></select></label>
+        <div id="mmPincelOpc" hidden>
+          <label>Raio <input type="range" id="mmPR" min="1" max="14" step="0.5" value="4"><output id="mmPRV"></output></label>
+          <label id="mmDensL">Densidade <input type="range" id="mmPD" min="1" max="10" step="1" value="4"><output id="mmPDV"></output></label>
+          <label id="mmForcaL" hidden>Força <input type="range" id="mmPF" min="1" max="10" step="1" value="5"><output id="mmPFV"></output></label>
+        </div>
+        <div id="mmSelDeco" hidden>
+          <h3 id="mmSelDecoNome">Peça</h3>
+          <label>Girar <input type="range" id="mmGiro" min="-180" max="180" step="5"><output id="mmGiroV"></output></label>
+          <label>Tamanho <input type="range" id="mmEsc" min="0.3" max="3" step="0.05"><output id="mmEscV"></output></label>
+          <div class="mm-linha"><button type="button" id="mmDuplicarDeco">Duplicar</button><button type="button" id="mmApagarDeco" class="perigo">Apagar (Del)</button></div>
+        </div>
+        <div class="mm-rodape">
+          <button type="button" id="mmCopiarMapa">Copiar</button><button type="button" id="mmColarMapa">Colar</button><button type="button" id="mmOriginalMapa">Voltar ao original</button>
+        </div>
+      </div>
+      <textarea id="mmTexto" hidden aria-label="Texto para copiar ou colar"></textarea>
+      <div class="mm-linha"><button type="button" id="mmAplicar" hidden>Aplicar</button></div>
+      <p class="mm-aviso" id="mmAviso" aria-live="polite"></p>
+    </aside>
+  </div>
+</section>
+<script>
+// ================================================================ MAPA DO MUNDO (o bloco da tela; ver o comentário acima)
+// A vista: (cx, cy) é o ponto do mundo no meio da tela e esc os px por metro. O chão vem de uma imagem pintada uma vez
+// (2 px por m: as cores das regiões, a máscara do pincel de terreno e o sombreado do relevo do mundo 3D) e o resto é
+// desenhado por cima a cada mudança (estradas, decoração, spawns, ícones e nomes), sempre nítido.
+var MM = (() => {
+"use strict";
+const $m = id => document.getElementById(id);
+const el = $m("mapaMundo"), cvM = $m("mmTela"), g = cvM.getContext("2d"), corpoM = cvM.parentNode;
+// o retângulo do mundo (a ilha, o vale e a montanha, com um pouco de mar em volta)
+const LIM = { x0: -RAIO - 10, x1: RAIO + VALE_E + MONTE_E + 10, y0: -RAIO - 10, y1: RAIO + 10 };
+const V = { cx: 40, cy: 0, esc: 5, w: 0, h: 0, dpr: 1 };
+const est = { aberto: false, aba: "mobs", editando: false, sel: null, selDeco: null, ferr: "escolher", pondoGrupo: false, arrasto: null, mouse: null,
+              mudouMobs: false, mudouDeco: false, mudouTerreno: false, pausadoAntes: false, sujo: true };
+let base = null;                                   // a imagem do chão (raster)
+const liso = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+const mixv = (a, b, k) => a + (b - a) * k;
+
+// ---------------------------------------------------------------- cores dos níveis (verde baixo → vermelho → roxo)
+const ESCALA = [[1, [70, 196, 84]], [8, [156, 208, 62]], [15, [240, 204, 48]], [22, [246, 144, 42]], [30, [226, 64, 48]], [38, [204, 42, 112]], [46, [146, 64, 216]]];
+function corNivel(n) {
+  if (n <= ESCALA[0][0]) return ESCALA[0][1];
+  for (let k = 1; k < ESCALA.length; k++) if (n <= ESCALA[k][0]) {
+    const [a, ca] = ESCALA[k - 1], [b, cb] = ESCALA[k], f = (n - a) / (b - a);
+    return ca.map((v, q) => Math.round(v + (cb[q] - v) * f));
+  }
+  return ESCALA[ESCALA.length - 1][1];
+}
+const rgb = (c, a = 1) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
+const cfgDe = t => TIPOS[t] || null;
+const nivelDe = t => (cfgDe(t) && cfgDe(t).nivel) || 1;
+const nomeDe = t => (cfgDe(t) && cfgDe(t).nome) || t;
+const chefeDe = t => !!(cfgDe(t) && cfgDe(t).chefe);
+
+// ---------------------------------------------------------------- o chão pintado (raster)
+// as cores das camadas pintadas pelo pincel de terreno (na ordem de AJ_CAMADAS)
+const COR_AJ = [[56, 92, 42], [152, 120, 82], [218, 198, 146], [156, 152, 144], [170, 92, 58], [238, 242, 248], [130, 130, 136], [176, 168, 100], [98, 150, 64]];
+function corBase(x, y) {
+  const bd = borda(x, y);
+  if (bd > RAIO) { const d = Math.min(1, (bd - RAIO) / 18); return [mixv(76, 18, d), mixv(158, 56, d), mixv(184, 94, d), 1]; }
+  if (lago(x, y)) { const d = lago(x, y, -1.2) ? 1 : 0.4; return [mixv(84, 44, d), mixv(156, 112, d), mixv(178, 150, d), 1]; }
+  const pm = pesoMonte(x, y), pv = pesoVale(x, y), pi = Math.max(0, 1 - pm - pv);
+  let c = [0, 0, 0];
+  const somar = (cor, k) => { if (k > 0) for (let q = 0; q < 3; q++) c[q] += cor[q] * k; };
+  if (bd > RAIO - 2.8) c = pm + pv > 0.4 ? [116, 104, 96] : [224, 204, 152];      // praia (no vale e na montanha, o paredão)
+  else {
+    if (pi > 0) {                                                       // a ilha: mata, clareiras e campos
+      let ci;
+      if (floresta(x, y)) { const n = fbm(x * 0.2 + 1, y * 0.2 - 3); ci = [36 + n * 18, 78 + n * 24, 38 + n * 12]; }
+      else {
+        const m = fbm(x * 0.15 - 7, y * 0.15 + 4);
+        ci = [84 + m * 30, 138 + m * 26, 56 + m * 14];
+        if (bd > RAIO - 4.6) ci = ci.map((v, q) => mixv(v, [176, 172, 102][q], 0.55));
+        if (distClareira(x, y) < 0) ci = ci.map((v, q) => mixv(v, [128, 168, 78][q], 0.35));
+      }
+      somar(ci, pi);
+    }
+    if (pv > 0) { const n = fbm(x * 0.09 + 7, y * 0.09 - 3); somar([mixv(150, 190, n), mixv(80, 108, n), mixv(50, 66, n)], pv); }
+    if (pm > 0) { const n = liso((neveMonte(x, y) - 0.35) / 0.3); somar([mixv(140, 238, n), mixv(144, 242, n), mixv(154, 248, n)], pm); }
+  }
+  const w = ajusteChaoEm(x, y);
+  if (w > 0) { const s = [0, 0, 0]; for (let l = 0; l < 9; l++) if (_ajAc[l] > 0) for (let q = 0; q < 3; q++) s[q] += COR_AJ[l][q] * _ajAc[l]; c = c.map((v, q) => v * (1 - w) + s[q]); }
+  return [c[0], c[1], c[2], 0];
+}
+function novoRaster(ppm) {
+  const w = Math.ceil((LIM.x1 - LIM.x0) * ppm), h = Math.ceil((LIM.y1 - LIM.y0) * ppm), c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  return { c, g: c.getContext("2d"), ppm, w, h, alt: new Float32Array(w * h), cor: new Float32Array(w * h * 3), agua: new Uint8Array(w * h), linhas: 0, pronto: false };
+}
+const xDe = (R, i) => LIM.x0 + (i + 0.5) / R.ppm, yDe = (R, j) => LIM.y1 - (j + 0.5) / R.ppm;
+const altura = (x, y) => window.M3D && M3D.alturaBruta ? M3D.alturaBruta(x, y) : 0;
+function amostrar(R, i0, i1, j0, j1) {
+  for (let j = j0; j <= j1; j++) {
+    const y = yDe(R, j);
+    for (let i = i0; i <= i1; i++) {
+      const x = xDe(R, i), k = j * R.w + i, c = corBase(x, y);
+      R.cor[k * 3] = c[0]; R.cor[k * 3 + 1] = c[1]; R.cor[k * 3 + 2] = c[2]; R.agua[k] = c[3];
+      R.alt[k] = c[3] ? 0 : altura(x, y);
+    }
+  }
+}
+// o relevo: luz do noroeste, um pouco de cima (o morro fica claro de um lado e escuro do outro)
+const LUZ = (() => { const l = [-0.55, 0.62, 0.56], n = Math.hypot(...l); return l.map(v => v / n); })();
+function sombrear(R, i0, i1, j0, j1) {
+  i0 = Math.max(0, i0); j0 = Math.max(0, j0); i1 = Math.min(R.w - 1, i1); j1 = Math.min(R.h - 1, j1);
+  if (i1 < i0 || j1 < j0) return;
+  const w = i1 - i0 + 1, h = j1 - j0 + 1, im = R.g.createImageData(w, h), d = im.data, p2 = 2 / R.ppm, A = R.alt;
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const k = j * R.w + i, q = ((j - j0) * w + (i - i0)) * 4;
+    let f = 1;
+    if (!R.agua[k]) {
+      const hl = A[j * R.w + Math.max(0, i - 1)], hr = A[j * R.w + Math.min(R.w - 1, i + 1)], hn = A[Math.max(0, j - 1) * R.w + i], hs = A[Math.min(R.h - 1, j + 1) * R.w + i];
+      const dx = (hr - hl) / p2, dy = (hn - hs) / p2, n = Math.hypot(dx, dy, 1);
+      const luz = (-dx * LUZ[0] - dy * LUZ[1] + LUZ[2]) / n;
+      f = Math.max(0.5, Math.min(1.45, 1 + 1.15 * (luz - LUZ[2])));
+      f *= 0.94 + Math.min(0.12, Math.max(0, A[k]) * 0.006);                  // o alto um pouco mais claro
+    } else {                                                                 // a água: a espuma perto da praia
+      const ii = Math.min(R.w - 1, i + 1), costa = !R.agua[j * R.w + Math.max(0, i - 1)] || !R.agua[j * R.w + ii] || !R.agua[Math.max(0, j - 1) * R.w + i] || !R.agua[Math.min(R.h - 1, j + 1) * R.w + i];
+      if (costa) f = 1.25;
+    }
+    d[q] = R.cor[k * 3] * f; d[q + 1] = R.cor[k * 3 + 1] * f; d[q + 2] = R.cor[k * 3 + 2] * f; d[q + 3] = 255;
+  }
+  R.g.putImageData(im, i0, j0);
+}
+// pinta tudo aos poucos (poucos ms por quadro, para a tela não travar); devolve a promessa de quando terminar
+function construirRaster(R, aoAndar) {
+  return new Promise(ok => {
+    const passo = () => {
+      const t0 = performance.now();
+      const antes = R.linhas;
+      while (R.linhas < R.h && performance.now() - t0 < 14) { amostrar(R, 0, R.w - 1, R.linhas, R.linhas); R.linhas++; }
+      sombrear(R, 0, R.w - 1, Math.max(0, antes - 1), R.linhas === R.h ? R.h - 1 : R.linhas - 2);
+      if (aoAndar) aoAndar(R.linhas / R.h);
+      if (R.linhas < R.h) requestAnimationFrame(passo); else { R.pronto = true; ok(R); }
+    };
+    passo();
+  });
+}
+// um pedaço do chão mudou (o pincel de terreno): repinta só ele
+function repintarArea(R, x0, y0, x1, y1) {
+  if (!R) return;
+  const i0 = Math.max(0, Math.floor((x0 - LIM.x0) * R.ppm) - 1), i1 = Math.min(R.w - 1, Math.ceil((x1 - LIM.x0) * R.ppm) + 1);
+  const j0 = Math.max(0, Math.floor((LIM.y1 - y1) * R.ppm) - 1), j1 = Math.min(R.h - 1, Math.ceil((LIM.y1 - y0) * R.ppm) + 1);
+  if (i1 < i0 || j1 < j0) return;
+  amostrar(R, i0, i1, j0, Math.min(j1, R.linhas - 1));
+  sombrear(R, i0 - 1, i1 + 1, j0 - 1, Math.min(j1, R.linhas - 1) + 1);
+}
+function garantirBase() {
+  if (base) return;
+  base = novoRaster(4);
+  $m("mmCarregando").hidden = false;
+  construirRaster(base, f => { $m("mmCarregando").textContent = `Desenhando o mapa… ${Math.round(f * 100)}%`; est.sujo = true; })
+    .then(() => { $m("mmCarregando").hidden = true; est.sujo = true; });
+}
+
+// ---------------------------------------------------------------- o que vai no mapa
+// os nomes das regiões: [nome, x, y, tamanho (1 região grande, 2 lugar, 3 marco)]
+function rotulos() {
+  const lobos = noMapa([21, 6]);
+  return [["Vale do Viking", -14, 50, 1], ["Vila", VILA.x, VILA.y + 15, 2], ["Campo de Treino", PRACA.x, PRACA.y - 7.5, 3], ["Lago", LAGO.x, LAGO.y + LAGO.r + 3.2, 3],
+          ["Campo dos Lobos", lobos[0], lobos[1] + 9.5, 3], ["Acampamento dos Bandidos", ACAMP.x, ACAMP.y - 12.5, 2], ["Ruínas da Cripta", RUINAS.x - 2, RUINAS.y - 15, 2],
+          ["Vale dos Orcs", VALE_X + 24, 34, 1], ["Monumento Orc", MONUMENTO.x, MONUMENTO.y + 9, 3], ["Montanha Gelada", MONTE_X + 24, 27, 1]];
+}
+// a região de um ponto (a do minimapa; o Vale do Viking dividido em norte, sul, leste e oeste, a partir da praça)
+function regiaoDe(x, y) {
+  const r = nomeRegiao(x, y);
+  if (r !== "Vale do Viking") return r;
+  if (Math.hypot(x - VILA.x, y - (VILA.y + 4)) < VILA.r + 4) return "Vale do Viking: vila";
+  const a = Math.atan2(y - PRACA.y, x - PRACA.x) * 180 / Math.PI;
+  return "Vale do Viking: " + (a > 45 && a <= 135 ? "norte" : a > -45 && a <= 45 ? "leste" : a > -135 && a <= -45 ? "sul" : "oeste");
+}
+const ORDEM_REG = ["Vale do Viking: vila", "Vale do Viking: norte", "Vale do Viking: leste", "Vale do Viking: sul", "Vale do Viking: oeste", "Acampamento dos Bandidos", "Ruínas da Cripta", "Vale dos Orcs", "Montanha Gelada"];
+// a distribuição: por região, cada tipo com o nível e quantos (e quantos grupos)
+function tabela() {
+  const reg = new Map();
+  for (const s of SPAWNS) {
+    if (!cfgDe(s.tipo)) continue;
+    const r = regiaoDe(s.x, s.y);
+    if (!reg.has(r)) reg.set(r, new Map());
+    const m = reg.get(r), t = m.get(s.tipo) || { tipo: s.tipo, nome: nomeDe(s.tipo), nivel: nivelDe(s.tipo), chefe: chefeDe(s.tipo), n: 0, grupos: 0 };
+    t.n += s.n; t.grupos++; m.set(s.tipo, t);
+  }
+  const lista = [...reg].sort((a, b) => (ORDEM_REG.indexOf(a[0]) + 99) % 99 - (ORDEM_REG.indexOf(b[0]) + 99) % 99)
+    .map(([nome, m]) => ({ nome, mobs: [...m.values()].sort((a, b) => a.nivel - b.nivel || a.nome.localeCompare(b.nome)) }));
+  const metins = METINS.map(m => ({ nome: m.nome, nivel: m.nivel, horda: nomeDe(m.horda), hordaNivel: nivelDe(m.horda), regioes: m.regioes.length }));
+  const dungeons = DUNGEONS.map(d => {
+    const por = new Map();
+    for (const [, t, n] of d.bandos) { const b = por.get(t) || { nome: nomeDe(t), nivel: nivelDe(t), n: 0 }; b.n += n; por.set(t, b); }
+    return { nome: d.nome, bandos: [...por.values()], chefe: { nome: d.chefe.nome, nivel: d.chefe.nivel } };
+  });
+  return { regioes: lista, metins, dungeons };
+}
+function tabelaTexto() {
+  const t = tabela(), l = [];
+  const faixa = ms => { const n = ms.map(m => m.nivel); return Math.min(...n) === Math.max(...n) ? `Nv ${n[0]}` : `Nv ${Math.min(...n)}–${Math.max(...n)}`; };
+  for (const r of t.regioes) {
+    l.push(`${r.nome} (${faixa(r.mobs)}, ${r.mobs.reduce((s, m) => s + m.n, 0)} mobs)`);
+    for (const m of r.mobs) l.push(`  Nv ${String(m.nivel).padStart(2)}  ${m.nome}${m.chefe ? " (chefe)" : ""}: ${m.n} em ${m.grupos} grupo${m.grupos > 1 ? "s" : ""}`);
+  }
+  l.push("Pedras Metin (aparecem em uma das regiões, com defensores e hordas)");
+  for (const m of t.metins) l.push(`  Nv ${String(m.nivel).padStart(2)}  ${m.nome}: ${m.regioes} regiões, hordas de ${m.horda} (Nv ${m.hordaNivel})`);
+  l.push("Dungeons (pelos buracos no mapa)");
+  for (const d of t.dungeons) l.push(`  ${d.nome}: ${d.bandos.map(b => `${b.n} ${b.nome} (Nv ${b.nivel})`).join(", ")}; chefe ${d.chefe.nome} (Nv ${d.chefe.nivel})`);
+  return l.join("\n");
+}
+function atualizarTabela() {
+  const t = tabela(), h = [];
+  for (const r of t.regioes) {
+    h.push(`<h4>${r.nome}</h4>`);
+    for (const m of r.mobs) h.push(`<div><i style="background:${rgb(corNivel(m.nivel))}"></i><span>${m.nome}${m.chefe ? " ♛" : ""}</span><b>Nv ${m.nivel} ×${m.n}</b></div>`);
+  }
+  h.push(`<h4>Pedras Metin</h4>`);
+  for (const m of t.metins) h.push(`<div><i style="background:${rgb(corNivel(m.nivel))}"></i><span>${m.nome}</span><b>Nv ${m.nivel}</b></div>`);
+  h.push(`<h4>Dungeons</h4>`);
+  for (const d of t.dungeons) h.push(`<div><i style="background:${rgb(corNivel(d.chefe.nivel))}"></i><span>${d.nome}</span><b>Nv ${Math.min(...d.bandos.map(b => b.nivel))}–${d.chefe.nivel}</b></div>`);
+  $m("mmTabela").innerHTML = h.join("");
+}
+
+// ---------------------------------------------------------------- desenho
+const paraTela = (x, y, v = V) => [v.w / 2 + (x - v.cx) * v.esc, v.h / 2 - (y - v.cy) * v.esc];
+const doMundo = (px, py, v = V) => [v.cx + (px - v.w / 2) / v.esc, v.cy - (py - v.h / 2) / v.esc];
+// o estilo de cada peça da decoração no mapa: [cor, raio em m (vezes o tamanho), forma ("c" círculo, "r" retângulo)]
+function estiloDeco(o) {
+  const e = o.esc || 1;
+  switch (o.tipo) {
+    case "arvore": return o.modelo === "cerejeira" || (!o.modelo && Math.hypot(o.x - VILA.x, o.y - VILA.y) < VILA.r + 14) ? ["#e79bb8", 1.05 * e] : o.modelo === "bambu" ? ["#9ccf62", 0.7 * e] : ["#3f7d34", 1.1 * e];
+    case "pinheiro": return [o.neve || o.monte ? "#cfe0dc" : "#25583a", 0.85 * e];
+    case "arbusto": return [o.flor ? "#c98aa8" : "#5b9a46", 0.55 * e];
+    case "bambu": return ["#9ccf62", 0.6 * e];
+    case "pedra": return ["#9a978e", o.monumento ? 2.4 : 0.48 * e];
+    case "tronco": case "toco": return ["#7a5434", 0.4];
+    case "fogueira": case "braseiro": case "tocha": return ["#ff9a3a", 0.45];
+    case "runa": case "estatua": case "ruina_pilar": case "torre_pedra": return ["#9aa6c4", 0.5 * e];
+    case "poco": return ["#7aa0b8", 0.8];
+    case "lanterna": return ["#f0dca0", 0.32];
+    case "barril": case "caixote": case "caixotes": return ["#a07a4a", 0.45];
+    case "boneco": return ["#d8b878", 0.35];
+    case "bandeira": return [o.cor || "#9e2a22", 0.25];
+  }
+  return null;
+}
+const COR_EST = { casa: "#b0503a", ferraria: "#6a5a54", barraca: "#d2b47a", carroca: "#8a6034", cerca: "#8a6034", cerca_v: "#8a6034", cerca_portao: "#8a6034",
+                  muralha: "#8a8a88", muralha_v: "#8a8a88", muralha_portao: "#8a8a88", ruina_arco: "#a49c8c", ruina_muro: "#a49c8c", ruina_muro_lado: "#a49c8c", ruina_caido: "#a49c8c",
+                  ponte: "#9a6a3a", ponte_v: "#9a6a3a", pier: "#9a6a3a", cerca_canto: "#8a6034", cerca_poste: "#8a6034" };
+function desenharDecoracao(c, v) {
+  const caminhos = new Map(), s = v.esc, margem = 4;
+  const add = (cor, f) => { if (!caminhos.has(cor)) caminhos.set(cor, new Path2D()); f(caminhos.get(cor)); };
+  const est2 = [];
+  for (const o of objetos) {
+    if (o.caverna || naCaverna(o.x) || o.npc) continue;
+    const [X, Y] = paraTela(o.x, o.y, v);
+    if (X < -margem * s || X > v.w + margem * s || Y < -margem * s || Y > v.h + margem * s) continue;
+    if (o.ret || COR_EST[o.tipo]) { est2.push(o); continue; }
+    const st = estiloDeco(o); if (!st) continue;
+    const r = Math.max(0.9, st[1] * s);
+    add(st[0], p => { p.moveTo(X + r, Y); p.arc(X, Y, r, 0, 7); });
+  }
+  // construções: o retângulo da colisão (as sem retângulo, um quadrado no pé)
+  for (const o of est2) {
+    const cor = COR_EST[o.tipo] || "#8a7a6a";
+    let x0, x1, y0, y1;
+    if (o.ret) ({ x0, x1, y0, y1 } = o); else { const e = (o.esc || 1) * 0.6; x0 = o.x - e; x1 = o.x + e; y0 = o.y - e * 0.3; y1 = o.y + e * 1.2; }
+    const [a, b] = paraTela(x0, y1, v), [a2, b2] = paraTela(x1, y0, v);
+    add(cor, p => p.rect(a, b, Math.max(1, a2 - a), Math.max(1, b2 - b)));
+  }
+  c.save();
+  const contorno = s > 5;
+  for (const [cor, p] of caminhos) { c.fillStyle = cor; c.fill(p); if (contorno) { c.lineWidth = Math.max(0.6, s * 0.06); c.strokeStyle = "rgba(10, 16, 8, 0.45)"; c.stroke(p); } }
+  // os telhados das casas: a cumeeira
+  if (s > 4) for (const o of est2) if (o.tipo === "casa" && o.ret) {
+    const [a, b] = paraTela(o.x0, (o.y0 + o.y1) / 2, v), [a2] = paraTela(o.x1, 0, v);
+    c.strokeStyle = "rgba(60, 20, 12, 0.7)"; c.lineWidth = Math.max(1, s * 0.12); c.beginPath(); c.moveTo(a, b); c.lineTo(a2, b); c.stroke();
+  }
+  c.restore();
+}
+function linhaMundo(c, v, pts, fechar) {
+  c.beginPath();
+  pts.forEach((p, k) => { const [X, Y] = paraTela(p[0], p[1], v); k ? c.lineTo(X, Y) : c.moveTo(X, Y); });
+  if (fechar) c.closePath();
+}
+function desenharEstradas(c, v) {
+  c.save(); c.lineCap = "round"; c.lineJoin = "round";
+  for (const [cor, larg] of [["rgba(84, 60, 34, 0.75)", 2.3], ["#c8a670", 1.6]]) {
+    c.strokeStyle = cor; c.lineWidth = Math.max(1.5, larg * v.esc);
+    for (const e of ESTRADAS) { linhaMundo(c, v, e); c.stroke(); }
+  }
+  // a praça do campo de treino
+  const [X, Y] = paraTela(PRACA.x, PRACA.y, v);
+  c.fillStyle = "#a89c88"; c.strokeStyle = "rgba(60, 50, 40, 0.8)"; c.lineWidth = Math.max(1, v.esc * 0.2);
+  c.beginPath(); c.arc(X, Y, PRACA.r * v.esc, 0, 7); c.fill(); c.stroke();
+  c.restore();
+}
+// os ícones: coroa (chefe), losango (Metin), porta (dungeon)
+function coroa(c, X, Y, t, cor) {
+  c.save(); c.translate(X, Y); c.scale(t / 20, t / 20);
+  c.beginPath(); c.moveTo(-10, 6); c.lineTo(-12, -6); c.lineTo(-5, 0); c.lineTo(0, -9); c.lineTo(5, 0); c.lineTo(12, -6); c.lineTo(10, 6); c.closePath();
+  c.fillStyle = cor; c.fill(); c.lineWidth = 2.4; c.strokeStyle = "#1a0f06"; c.stroke();
+  c.fillStyle = "#fff6c8"; for (const x of [-12, 0, 12]) { c.beginPath(); c.arc(x, x ? -6 : -9, 2.2, 0, 7); c.fill(); }
+  c.restore();
+}
+function losango(c, X, Y, t, cor) {
+  c.save(); c.beginPath(); c.moveTo(X, Y - t); c.lineTo(X + t * 0.62, Y); c.lineTo(X, Y + t); c.lineTo(X - t * 0.62, Y); c.closePath();
+  c.fillStyle = cor; c.shadowColor = cor; c.shadowBlur = t * 0.8; c.fill(); c.shadowBlur = 0; c.lineWidth = Math.max(1.2, t * 0.14); c.strokeStyle = "#140c18"; c.stroke(); c.restore();
+}
+function porta(c, X, Y, t) {
+  c.save(); c.fillStyle = "#120c08"; c.strokeStyle = "#e8d6a0"; c.lineWidth = Math.max(1.4, t * 0.16);
+  c.beginPath(); c.moveTo(X - t, Y + t * 0.8); c.lineTo(X - t, Y - t * 0.1); c.arc(X, Y - t * 0.1, t, Math.PI, 0); c.lineTo(X + t, Y + t * 0.8); c.closePath(); c.fill(); c.stroke();
+  c.strokeStyle = "rgba(232, 214, 160, 0.8)"; c.lineWidth = Math.max(1, t * 0.1);
+  for (let k = 0; k < 3; k++) { const y = Y + t * (0.55 - k * 0.35), w = t * (0.7 - k * 0.15); c.beginPath(); c.moveTo(X - w, y); c.lineTo(X + w, y); c.stroke(); }
+  c.restore();
+}
+// um texto com contorno escuro (legível em qualquer chão)
+function texto(c, txt, X, Y, tam, cor, opc = {}) {
+  c.save();
+  c.font = `${opc.peso || 600} ${tam}px ${opc.fonte || "'Alegreya Sans', 'Segoe UI', system-ui, sans-serif"}`;
+  c.textAlign = opc.alinhar || "center"; c.textBaseline = "middle";
+  c.lineJoin = "round"; c.lineWidth = Math.max(2, tam * 0.28); c.strokeStyle = opc.borda || "rgba(8, 6, 4, 0.85)"; c.strokeText(txt, X, Y);
+  c.fillStyle = cor; c.fillText(txt, X, Y);
+  const w = c.measureText(txt).width;
+  c.restore();
+  return w;
+}
+const raioVisto = s => (s.n > 1 ? s.r : 0) + 2.5;            // a área do spawn no mapa: o raio do bando mais o passeio
+// os nomes não se cobrem: cada um guarda a caixa dele (opc.ocupado) e o que não cabe fica de fora (menos os importantes)
+function cabeTexto(opc, x0, y0, x1, y1, forca) {
+  const l = opc.ocupado || (opc.ocupado = []);
+  if (!forca && l.some(r => x0 < r[2] && x1 > r[0] && y0 < r[3] && y1 > r[1])) return false;
+  l.push([x0, y0, x1, y1]); return true;
+}
+function larguraTexto(c, txt, tam, peso = 700) { c.save(); c.font = `${peso} ${tam}px 'Alegreya Sans', 'Segoe UI', sans-serif`; const w = c.measureText(txt).width; c.restore(); return w; }
+function desenharSpawns(c, v, opc) {
+  const s0 = v.esc;
+  const cabe = (x0, y0, x1, y1, forca) => cabeTexto(opc, x0, y0, x1, y1, forca);
+  const lista = SPAWNS.filter(s => cfgDe(s.tipo)).sort((a, b) => chefeDe(a.tipo) - chefeDe(b.tipo) || nivelDe(a.tipo) - nivelDe(b.tipo));
+  // os círculos
+  for (const s of lista) {
+    const [X, Y] = paraTela(s.x, s.y, v), R = raioVisto(s) * s0, cor = corNivel(nivelDe(s.tipo)), chefe = chefeDe(s.tipo), sel = !opc.limpo && s === est.sel;
+    if (X < -R - 80 || X > v.w + R + 80 || Y < -R - 60 || Y > v.h + R + 60) continue;
+    c.save();
+    c.fillStyle = rgb(cor, chefe ? 0.34 : 0.26); c.beginPath(); c.arc(X, Y, R, 0, 7); c.fill();
+    c.lineWidth = Math.max(1.4, s0 * (chefe ? 0.42 : 0.28)); c.strokeStyle = chefe ? "rgba(190, 120, 255, 0.95)" : rgb(cor, 0.95); c.stroke();
+    if (sel) { c.setLineDash([6, 4]); c.lineWidth = 2.5; c.strokeStyle = "#fff"; c.beginPath(); c.arc(X, Y, R + 4, 0, 7); c.stroke(); c.setLineDash([]); }
+    // cada criatura: um pontinho no lugar dela
+    const rp = Math.max(1.6, Math.min(5, s0 * 0.42));
+    c.fillStyle = rgb(cor); c.strokeStyle = "rgba(10, 6, 4, 0.9)"; c.lineWidth = Math.max(0.8, rp * 0.4);
+    for (const [x, y] of lugaresSpawn(s)) { const [a, b] = paraTela(x, y, v); c.beginPath(); c.arc(a, b, rp, 0, 7); c.fill(); c.stroke(); }
+    if (chefe) coroa(c, X, Y - Math.max(R, 10) - 2, Math.max(14, Math.min(30, s0 * 3.4)), "#ffcf4a");
+    c.restore();
+  }
+  // os nomes (um por grupo; o que não cabe sem cobrir outro fica de fora, menos os chefes)
+  if (s0 < 2.6 && !opc.limpo) return;
+  const tam = Math.max(10, Math.min(15 * (opc.k || 1), s0 * 1.25 + 4));         // (opc.k: letras maiores na imagem exportada)
+  for (const s of [...lista].reverse()) {
+    const [X, Y] = paraTela(s.x, s.y, v), R = raioVisto(s) * s0, chefe = chefeDe(s.tipo);
+    if (X < -80 || X > v.w + 80 || Y < -40 || Y > v.h + 40) continue;
+    const nome = nomeDe(s.tipo), linha2 = `Nv ${nivelDe(s.tipo)} · ×${s.n}`;
+    c.save(); c.font = `700 ${tam}px 'Alegreya Sans', 'Segoe UI', sans-serif`; const w = Math.max(c.measureText(nome).width, c.measureText(linha2).width * 0.9); c.restore();
+    const y0 = Y + R + 3, caixa = [X - w / 2 - 2, y0, X + w / 2 + 2, y0 + tam * 2.1];
+    if (!cabe(...caixa, chefe)) continue;
+    texto(c, nome, X, y0 + tam * 0.55, tam, chefe ? "#f6d8ff" : "#fff8e8", { peso: 700 });
+    texto(c, linha2, X, y0 + tam * 1.55, tam * 0.88, rgb(corNivel(nivelDe(s.tipo))), { peso: 700 });
+  }
+}
+function desenharMarcos(c, v, opc) {
+  const s0 = v.esc, t = Math.max(8, Math.min(16 * (opc.k || 1), s0 * 1.6));
+  // as pedras Metin: as regiões onde aparecem (pontilhado) e a pedra agora (o losango)
+  for (const m of METINS) {
+    const cor = m.cor;
+    for (const [x, y] of m.regioes) {
+      const [X, Y] = paraTela(x, y, v);
+      c.save(); c.setLineDash([4, 5]); c.lineWidth = Math.max(1, s0 * 0.16); c.strokeStyle = cor; c.globalAlpha = 0.6;
+      c.beginPath(); c.arc(X, Y, 7 * s0, 0, 7); c.stroke(); c.restore();
+    }
+  }
+  const tt = Math.max(10, t * 0.85), rotulo = (txt, X, Y, cor) => {
+    const w = larguraTexto(c, txt, tt, 600);
+    if (cabeTexto(opc, X - w / 2 - 2, Y - tt * 0.6, X + w / 2 + 2, Y + tt * 0.6)) texto(c, txt, X, Y, tt, cor);
+  };
+  const metins = criaturas.filter(l => l.cfg.estatico && !naCaverna(l.x));
+  for (const l of metins) { const [X, Y] = paraTela(l.x, l.y, v); losango(c, X, Y, t, l.cfg.cor || "#c86bff"); cabeTexto(opc, X - t * 0.6, Y - t, X + t * 0.6, Y + t, true); }
+  // as entradas das dungeons
+  const buracos = passagens.filter(p => p.tipo === "buraco" && p.dungeon);
+  for (const p of buracos) { const [X, Y] = paraTela(p.x, p.y, v); porta(c, X, Y, t * 0.85); cabeTexto(opc, X - t, Y - t, X + t, Y + t, true); }
+  if (s0 > 2.6 || opc.limpo) {
+    for (const p of buracos) {
+      const d = p.dungeon, [X, Y] = paraTela(p.x, p.y, v), niv = [...d.bandos.map(([, tp]) => nivelDe(tp)), d.chefe.nivel];
+      rotulo(`${d.nome} · Nv ${Math.min(...niv)}–${Math.max(...niv)}`, X, Y + t * 1.6, "#ffe7b0");
+    }
+    for (const l of metins) { const [X, Y] = paraTela(l.x, l.y, v); rotulo(`${l.cfg.nome} · Nv ${l.cfg.nivel}`, X, Y - t - 9, "#f0e0ff"); }
+  }
+}
+function desenharRotulos(c, v, opc) {
+  for (const [nome, x, y, tam] of rotulos()) {
+    const [X, Y] = paraTela(x, y, v);
+    const px = tam === 1 ? Math.max(15, Math.min(34, v.esc * 3.4)) : tam === 2 ? Math.max(12, Math.min(22, v.esc * 2.2)) : Math.max(10, Math.min(16, v.esc * 1.5));
+    if (tam === 3 && v.esc < 2.4) continue;
+    const w = texto(c, nome, X, Y, px, tam === 1 ? "rgba(255, 244, 214, 0.95)" : "#ffe9b8", { fonte: "'Germania One', 'Palatino Linotype', Georgia, serif", peso: 400, borda: "rgba(20, 12, 4, 0.8)" });
+    cabeTexto(opc, X - w / 2, Y - px * 0.55, X + w / 2, Y + px * 0.55, true);
+  }
+}
+function desenharHeroi(c, v, opc, soReservar) {
+  let x = viking.x, y = viking.y, dentro = true;
+  if (naCaverna(x)) { const d = cavDe(x); if (!d || !d.saida) return; x = d.saida.x; y = d.saida.y; dentro = false; }
+  const [X, Y] = paraTela(x, y, v), t = Math.max(9, Math.min(16, v.esc * 1.4)), a = dentro ? -viking.dir * Math.PI / 4 : -Math.PI / 2;
+  if (soReservar) { cabeTexto(opc, X - t * 3, Y - t * 2.9, X + t * 3, Y + t * 1.3, true); return; }
+  c.save();
+  c.fillStyle = "rgba(255, 220, 90, 0.25)"; c.beginPath(); c.arc(X, Y, t * 1.9, 0, 7); c.fill();
+  c.translate(X, Y); c.rotate(-a);
+  c.beginPath(); c.moveTo(t * 1.2, 0); c.lineTo(-t * 0.8, t * 0.75); c.lineTo(-t * 0.35, 0); c.lineTo(-t * 0.8, -t * 0.75); c.closePath();
+  c.fillStyle = "#ffd84a"; c.fill(); c.lineWidth = 2; c.strokeStyle = "#2a1a04"; c.stroke();
+  c.restore();
+  texto(c, dentro ? "Você" : "Você (na dungeon)", X, Y - t * 2.3, Math.max(11, t), "#ffe27a", { peso: 800 });
+}
+// a legenda: a escala dos níveis e os ícones (no canto de baixo à esquerda)
+function desenharLegenda(c, v, k = 1) {
+  const W0 = 250 * k, H0 = 112 * k, x0 = 12 * k, y0 = v.h - H0 - 12 * k;
+  c.save();
+  c.fillStyle = "rgba(14, 10, 6, 0.86)"; c.strokeStyle = "#8a6a34"; c.lineWidth = 1.5 * k;
+  c.beginPath(); c.roundRect ? c.roundRect(x0, y0, W0, H0, 8 * k) : c.rect(x0, y0, W0, H0); c.fill(); c.stroke();
+  texto(c, "Nível dos mobs", x0 + 12 * k, y0 + 14 * k, 13 * k, "#f2d68e", { alinhar: "left", peso: 700 });
+  const bx = x0 + 14 * k, bw = W0 - 28 * k, by = y0 + 28 * k, bh = 12 * k, gr = c.createLinearGradient(bx, 0, bx + bw, 0), max = 48;
+  for (const [n, cor] of ESCALA) gr.addColorStop((n - 1) / (max - 1), rgb(cor));
+  gr.addColorStop(1, rgb(ESCALA[ESCALA.length - 1][1]));
+  c.fillStyle = gr; c.fillRect(bx, by, bw, bh); c.strokeStyle = "rgba(0, 0, 0, 0.6)"; c.lineWidth = 1; c.strokeRect(bx, by, bw, bh);
+  for (const n of [1, 10, 20, 30, 40, 48]) texto(c, n === 48 ? "46+" : String(n), bx + (n - 1) / (max - 1) * bw, by + bh + 9 * k, 10.5 * k, "#eadfc8", { peso: 600 });
+  const ly = y0 + 74 * k;
+  coroa(c, x0 + 22 * k, ly, 15 * k, "#ffcf4a"); texto(c, "chefe", x0 + 34 * k, ly, 11.5 * k, "#eadfc8", { alinhar: "left" });
+  losango(c, x0 + 88 * k, ly, 8 * k, "#c86bff"); texto(c, "Metin", x0 + 98 * k, ly, 11.5 * k, "#eadfc8", { alinhar: "left" });
+  porta(c, x0 + 150 * k, ly, 7 * k); texto(c, "dungeon", x0 + 161 * k, ly, 11.5 * k, "#eadfc8", { alinhar: "left" });
+  c.fillStyle = "#ffd84a"; c.beginPath(); c.moveTo(x0 + 220 * k, ly); c.lineTo(x0 + 210 * k, ly + 6 * k); c.lineTo(x0 + 212 * k, ly); c.lineTo(x0 + 210 * k, ly - 6 * k); c.closePath(); c.fill();
+  texto(c, "você", x0 + 232 * k, ly, 11.5 * k, "#eadfc8", { alinhar: "center" });
+  texto(c, "Círculo: área do grupo · pontos: cada mob", x0 + 12 * k, ly + 22 * k, 10.5 * k, "#a99b82", { alinhar: "left", peso: 500 });
+  c.restore();
+}
+// a escala (quantos metros) no canto de baixo à direita
+function desenharEscala(c, v, k = 1, direita = 12) {
+  const alvo = 110 * k / v.esc, passos = [5, 10, 20, 25, 50, 100], m = passos.find(p => p >= alvo * 0.6) || 100, w = m * v.esc;
+  const x1 = v.w - direita * k, x0 = x1 - w, y = v.h - 18 * k;
+  c.save(); c.strokeStyle = "#fff"; c.lineWidth = 2 * k; c.beginPath(); c.moveTo(x0, y - 5 * k); c.lineTo(x0, y); c.lineTo(x1, y); c.lineTo(x1, y - 5 * k); c.stroke(); c.restore();
+  texto(c, `${m} m`, (x0 + x1) / 2, y - 10 * k, 11 * k, "#fff");
+}
+// o mapa inteiro numa vista (a tela ou a imagem exportada)
+function desenharMapa(c, v, opc = {}) {
+  opc.ocupado = [];
+  c.fillStyle = "rgb(18, 56, 94)"; c.fillRect(0, 0, v.w, v.h);
+  const R = opc.raster || base;
+  if (R) {
+    const [X, Y] = paraTela(LIM.x0, LIM.y1, v);
+    c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+    c.drawImage(R.c, X, Y, R.w / R.ppm * v.esc, R.h / R.ppm * v.esc); c.restore();
+  }
+  // a linha da costa e a do lago, finas e nítidas
+  c.save(); c.lineWidth = Math.max(1, v.esc * 0.18); c.strokeStyle = "rgba(255, 250, 230, 0.55)";
+  if (costa) { linhaMundo(c, v, costa, true); c.stroke(); }
+  linhaMundo(c, v, contornoLago(0), true); c.strokeStyle = "rgba(220, 240, 255, 0.5)"; c.stroke();
+  c.restore();
+  desenharEstradas(c, v);
+  desenharDecoracao(c, v);
+  desenharRotulos(c, v, opc);
+  desenharHeroi(c, v, opc, true);                                      // (o lugar do nome dele fica guardado)
+  desenharMarcos(c, v, opc);
+  desenharSpawns(c, v, opc);
+  desenharHeroi(c, v, opc);
+}
+function desenharTela() {
+  const c = g;
+  c.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
+  desenharMapa(c, V);
+  // o que o editor mostra por cima: a peça escolhida, o pincel e o grupo novo
+  if (est.editando && est.aba === "mapa") {
+    const o = est.selDeco;
+    if (o && objetos.includes(o)) {
+      const [X, Y] = paraTela(o.x, o.y, V), st = estiloDeco(o), r = Math.max(7, (st ? st[1] : 1) * V.esc + 4);
+      c.save(); c.setLineDash([5, 3]); c.strokeStyle = "#fff"; c.lineWidth = 2; c.beginPath(); c.arc(X, Y, r, 0, 7); c.stroke(); c.restore();
+    }
+    if ((est.ferr === "pincel" || est.ferr === "terreno") && est.mouse) {
+      const [X, Y] = paraTela(est.mouse.x, est.mouse.y, V), r = +$m("mmPR").value * V.esc;
+      c.save(); c.strokeStyle = "rgba(140, 220, 255, 0.95)"; c.lineWidth = 2; c.beginPath(); c.arc(X, Y, r, 0, 7); c.stroke();
+      c.globalAlpha = 0.45; c.beginPath(); c.arc(X, Y, r * 0.5, 0, 7); c.stroke(); c.restore();
+    }
+  }
+  if (est.editando && est.aba === "mobs" && est.pondoGrupo && est.mouse) {
+    const [X, Y] = paraTela(est.mouse.x, est.mouse.y, V);
+    c.save(); c.strokeStyle = rgb(corNivel(nivelDe($m("mmNovoTipo").value))); c.lineWidth = 2; c.setLineDash([6, 4]); c.beginPath(); c.arc(X, Y, 4.5 * V.esc, 0, 7); c.stroke(); c.restore();
+  }
+  desenharLegenda(c, V, V.w < 520 ? 0.78 : 1);
+  desenharEscala(c, V, 1, est.editando && V.w > 720 ? 316 : 12);
+}
+function quadro() {
+  if (!est.aberto) return;
+  if (est.sujo) { est.sujo = false; desenharTela(); }
+  requestAnimationFrame(quadro);
+}
+function ajustarTela() {
+  const r = corpoM.getBoundingClientRect();
+  V.dpr = Math.min(devicePixelRatio || 1, 2); V.w = r.width; V.h = r.height;
+  cvM.width = Math.round(V.w * V.dpr); cvM.height = Math.round(V.h * V.dpr);
+  est.sujo = true;
+}
+function verTudo() {
+  const ew = V.w - (est.editando && V.w > 720 ? 300 : 0), eh = V.h - (est.editando && V.w <= 720 ? V.h * 0.46 : 0);
+  V.esc = Math.min(ew / (LIM.x1 - LIM.x0 - 14), eh / (LIM.y1 - LIM.y0 - 14));
+  V.cx = (LIM.x0 + LIM.x1) / 2 + (est.editando && V.w > 720 ? 150 / V.esc : 0); V.cy = (LIM.y0 + LIM.y1) / 2 - (est.editando && V.w <= 720 ? V.h * 0.23 / V.esc : 0);
+  est.sujo = true;
+}
+function zoomEm(px, py, f) {
+  const [x, y] = doMundo(px, py);
+  V.esc = Math.max(1.2, Math.min(60, V.esc * f));
+  V.cx = x - (px - V.w / 2) / V.esc; V.cy = y + (py - V.h / 2) / V.esc;
+  est.sujo = true;
+}
+
+// ---------------------------------------------------------------- imagem (PNG)
+// o mapa inteiro numa imagem grande (ppm px por metro), com o título, a legenda e a escala
+let baseGrande = null, versaoGrande = -1;                // o chão da imagem exportada (5 px por m), refeito se o terreno mudou
+async function imagem(ppm = 9) {
+  if (!baseGrande || versaoGrande !== AJUSTE.versao) { versaoGrande = AJUSTE.versao; baseGrande = await construirRaster(novoRaster(5)); }
+  const R = baseGrande;
+  const v = { w: Math.round((LIM.x1 - LIM.x0 - 12) * ppm), h: Math.round((LIM.y1 - LIM.y0 - 12) * ppm) + 0, esc: ppm, cx: (LIM.x0 + LIM.x1) / 2, cy: (LIM.y0 + LIM.y1) / 2 };
+  const c = document.createElement("canvas"); c.width = v.w; c.height = v.h;
+  const cc = c.getContext("2d");
+  desenharMapa(cc, v, { raster: R, limpo: true, k: Math.max(1, ppm / 9) });
+  const k = Math.max(1, ppm / 5);
+  texto(cc, "Mapa do Mundo · mobs por nível", 18 * k, 24 * k, 22 * k, "#ffe9b8", { alinhar: "left", fonte: "'Germania One', 'Palatino Linotype', Georgia, serif", peso: 400 });
+  desenharLegenda(cc, v, k);
+  desenharEscala(cc, v, k);
+  return c;
+}
+async function exportar() {
+  aviso("Gerando a imagem…");
+  try {
+    const c = await imagem(9);
+    c.toBlob(b => {
+      if (!b) { aviso("Não deu para gerar a imagem neste navegador."); return; }
+      const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "mapa_do_mundo.png";
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      aviso(`Imagem pronta (${c.width} × ${c.height}): mapa_do_mundo.png`);
+    }, "image/png");
+  } catch (e) { aviso("Não deu para gerar a imagem: " + (e && e.message)); }
+}
+
+// ---------------------------------------------------------------- abrir e fechar
+function abrir(sim = !est.aberto) {
+  if (sim === est.aberto) return;
+  if (sim) {
+    if (typeof editor !== "undefined" && editor.ativo) editorAbrir(false);
+    est.aberto = true; el.hidden = false;
+    est.pausadoAntes = pausado; pausado = true; teclas.clear(); viking.alvo = null; viking.rota = null;
+    montarListas();
+    if (!est.editando && innerWidth > 720) editar(true, false);
+    ajustarTela(); verTudo(); garantirBase(); atualizarTabela();
+    est.sujo = true; requestAnimationFrame(quadro);
+    try { som("ui_abrir", null, 0.7); } catch (e) {}
+    $m("mmFechar").focus({ preventScroll: true });
+  } else {
+    est.aberto = false; el.hidden = true; $m("mmInfo").hidden = true;
+    pausado = est.pausadoAntes;
+    aplicarNoJogo();
+    try { som("ui_fechar", null, 0.7); } catch (e) {}
+  }
+}
+// o que mudou vai para o jogo: as criaturas dos spawns, a decoração e o chão do mundo 3D, o minimapa
+function aplicarNoJogo() {
+  if (est.mudouMobs) { remontarSpawns(); avisar("Mobs do mapa remontados"); }
+  if (est.mudouDeco || est.mudouTerreno) {
+    refazerGrade();
+    if (window.M3D && M3D.S) { M3D.S.decoSuja = true; if (M3D.refazerChao) M3D.refazerChao(!est.mudouTerreno); }
+    miniBase = null;
+    if (est.mudouTerreno) { mascaras.clear(); pedacos.clear(); }
+  }
+  est.mudouMobs = est.mudouDeco = est.mudouTerreno = false;
+}
+function editar(sim = !est.editando, recentrar = true) {
+  est.editando = sim; $m("mmPainel").hidden = !sim; $m("mmEditar").setAttribute("aria-pressed", sim);
+  if (!sim) { est.pondoGrupo = false; $m("mmNovoGrupo").setAttribute("aria-pressed", false); }
+  ferramentaCursor(); est.sujo = true;
+  if (recentrar && est.aberto && V.w) { /* (mantém a vista) */ }
+}
+function trocarAba(a) {
+  est.aba = a;
+  for (const b of el.querySelectorAll("[data-aba]")) b.setAttribute("aria-selected", b.dataset.aba === a);
+  for (const p of el.querySelectorAll("[data-painel]")) p.hidden = p.dataset.painel !== a;
+  if (!est.editando) editar(true);
+  est.sel = null; est.selDeco = null; painelMob(); painelDeco(); ferramentaCursor(); est.sujo = true;
+}
+function aviso(t) { $m("mmAviso").textContent = t; }
+
+// ---------------------------------------------------------------- editor de mobs
+// os tipos que podem ser postos (todos os de TIPOS com sprites ou modelo, menos as pedras Metin), pelo nível
+function tiposMob() {
+  return Object.keys(TIPOS).filter(t => TIPOS[t] && TIPOS[t].M && !TIPOS[t].estatico).sort((a, b) => nivelDe(a) - nivelDe(b) || nomeDe(a).localeCompare(nomeDe(b)));
+}
+function opcoesTipos(sel) {
+  sel.innerHTML = tiposMob().map(t => `<option value="${t}">Nv ${nivelDe(t)} · ${nomeDe(t)}${chefeDe(t) ? " (chefe)" : ""} — ${t}</option>`).join("");
+}
+function montarListas() {
+  if (!$m("mmNovoTipo").options.length) { opcoesTipos($m("mmNovoTipo")); opcoesTipos($m("mmTipo")); $m("mmNovoTipo").value = "lobo"; }
+  if (!$m("mmPeca").options.length) {
+    $m("mmPeca").innerHTML = PECAS.map((p, k) => `<option value="${k}">${p.nome}</option>`).join("");
+    $m("mmCamada").innerHTML = PINCEIS_TERRENO.map((p, k) => `<option value="${k}">${p.nome}</option>`).join("");
+  }
+}
+function painelMob() {
+  const s = est.sel;
+  $m("mmSelMob").hidden = !s;
+  if (!s) return;
+  $m("mmSelNome").textContent = `${nomeDe(s.tipo)} · Nv ${nivelDe(s.tipo)} (${regiaoDe(s.x, s.y)})`;
+  $m("mmTipo").value = s.tipo;
+  $m("mmN").value = s.n; $m("mmNV").textContent = s.n;
+  $m("mmR").value = s.r; $m("mmRV").textContent = s.r.toFixed(1) + " m";
+}
+function mobsMudou(salvar = true) { est.mudouMobs = true; if (salvar) salvarSpawns(); painelMob(); atualizarTabela(); est.sujo = true; }
+function spawnNoPonto(x, y) {
+  let melhor = null, dm = Infinity;
+  for (const s of SPAWNS) {
+    if (!cfgDe(s.tipo)) continue;
+    const d = Math.hypot(s.x - x, s.y - y), r = Math.max(raioVisto(s), 10 / V.esc);
+    if (d < r && d / r < dm) { dm = d / r; melhor = s; }
+  }
+  return melhor;
+}
+function novoGrupo(x, y) {
+  const tipo = $m("mmNovoTipo").value, s = { tipo, x, y, n: chefeDe(tipo) ? 1 : 3, r: 2 };
+  SPAWNS.push(s); est.sel = s; mobsMudou(); aviso(`Grupo novo: ${nomeDe(tipo)} (Nv ${nivelDe(tipo)})`);
+  return s;
+}
+function apagarMob() {
+  const s = est.sel; if (!s) return;
+  const i = SPAWNS.indexOf(s); if (i >= 0) SPAWNS.splice(i, 1);
+  est.sel = null; mobsMudou(); aviso(`Apagado: ${nomeDe(s.tipo)} ×${s.n}`);
+}
+
+// ---------------------------------------------------------------- editor de mapa
+// o que dá para pôr (e pintar com o pincel): o tipo e o que ele tem de especial
+const PECAS = [
+  { nome: "Árvore", tipo: "arvore", pincel: true, longe: 1.7, sorte: () => ({ esc: entre(0.9, 1.35), tom: entre(-8, 8) }) },
+  { nome: "Árvore larga", tipo: "arvore", modelo: "arvore_larga", pincel: true, longe: 1.8, sorte: () => ({ esc: entre(0.9, 1.3), tom: entre(-8, 8) }) },
+  { nome: "Cerejeira", tipo: "arvore", modelo: "cerejeira", pincel: true, longe: 1.7, sorte: () => ({ esc: entre(0.9, 1.25), tom: entre(-8, 8) }) },
+  { nome: "Bambu", tipo: "bambu", pincel: true, longe: 1.1, sorte: () => ({ esc: entre(0.85, 1.15) }) },
+  { nome: "Pinheiro", tipo: "pinheiro", pincel: true, longe: 1.5, sorte: () => ({ esc: entre(0.85, 1.4), tom: entre(-6, 6) }) },
+  { nome: "Pinheiro com neve", tipo: "pinheiro", neve: true, pincel: true, longe: 1.6, sorte: () => ({ esc: entre(1, 1.5), tom: entre(-6, 6) }) },
+  { nome: "Arbusto", tipo: "arbusto", pincel: true, longe: 1.0, sorte: () => ({ esc: entre(0.7, 1.1), tom: entre(-8, 8), flor: Math.random() < 0.3 }) },
+  { nome: "Pedra", tipo: "pedra", pincel: true, longe: 1.1, sorte: () => ({ esc: entre(0.5, 1.3) }) },
+  { nome: "Pedra grande", tipo: "pedra", pincel: true, longe: 2.2, sorte: () => ({ esc: entre(1.3, 2.2) }) },
+  { nome: "Mata (árvores, pinheiros e arbustos)", mata: true, pincel: true },
+  { nome: "Grama (tufos, pinta o chão)", grama: true, pincel: true },
+  { nome: "Tronco caído", tipo: "tronco", pincel: true, longe: 1.4 }, { nome: "Toco", tipo: "toco", pincel: true, longe: 1 },
+  { nome: "Casa pequena", tipo: "casa", var: 0 }, { nome: "Casa média", tipo: "casa", var: 1 }, { nome: "Casa grande", tipo: "casa", var: 2 },
+  { nome: "Ferraria", tipo: "ferraria" }, { nome: "Loja / barraca", tipo: "barraca", var: 0 }, { nome: "Barraca", tipo: "barraca", var: 1 },
+  { nome: "Carroça", tipo: "carroca" }, { nome: "Caixotes", tipo: "caixotes" }, { nome: "Barril", tipo: "barril" }, { nome: "Caixote", tipo: "caixote" }, { nome: "Poço", tipo: "poco" },
+  { nome: "Lanterna de pedra", tipo: "lanterna" }, { nome: "Fogueira", tipo: "fogueira", var: 0 }, { nome: "Braseiro", tipo: "braseiro" }, { nome: "Tocha", tipo: "tocha" },
+  { nome: "Cerca", tipo: "cerca" }, { nome: "Cerca (norte–sul)", tipo: "cerca_v" }, { nome: "Canto de cerca", tipo: "cerca_canto" }, { nome: "Poste de cerca", tipo: "cerca_poste" }, { nome: "Portão de cerca", tipo: "cerca_portao" },
+  { nome: "Muralha", tipo: "muralha" }, { nome: "Muralha (norte–sul)", tipo: "muralha_v" }, { nome: "Portão da muralha", tipo: "muralha_portao" }, { nome: "Torre", tipo: "torre_pedra" },
+  { nome: "Pedra rúnica", tipo: "runa" }, { nome: "Estátua", tipo: "estatua" }, { nome: "Arco em ruína", tipo: "ruina_arco" }, { nome: "Muro em ruína", tipo: "ruina_muro" },
+  { nome: "Pilar", tipo: "ruina_pilar" }, { nome: "Pilar caído", tipo: "ruina_caido" }, { nome: "Ponte", tipo: "ponte" }, { nome: "Ponte (norte–sul)", tipo: "ponte_v" }, { nome: "Píer", tipo: "pier" },
+  { nome: "Boneco de treino", tipo: "boneco" }, { nome: "Bandeira", tipo: "bandeira" },
+].filter(p => p.mata || p.grama || COLISAO_PADRAO[p.tipo]);
+const PINCEIS_TERRENO = [
+  { nome: "Subir o relevo", alt: 1 }, { nome: "Baixar o relevo", alt: -1 }, { nome: "Nivelar (aplainar)", nivelar: true },
+  { nome: "Terra / estrada", camada: 1 }, { nome: "Calçamento de pedra", camada: 3 }, { nome: "Grama", camada: 8 }, { nome: "Musgo da mata", camada: 0 },
+  { nome: "Areia", camada: 2 }, { nome: "Terra vermelha", camada: 4 }, { nome: "Rocha", camada: 6 }, { nome: "Neve", camada: 5 }, { nome: "Capim seco", camada: 7 },
+  { nome: "Apagar o ajuste", limpar: true },
+];
+const NOMES_FERR = {
+  escolher: "Clique numa peça para escolher; arraste para mover. Arrastar o chão (ou o botão direito) move o mapa.",
+  por: "Clique no chão para pôr a peça escolhida.",
+  pincel: "Arraste para pintar várias de uma vez (Shift + arrastar apaga as do tipo). Botão direito move o mapa.",
+  terreno: "Arraste para pintar o chão ou mudar o relevo (Shift: o contrário / apaga). O mundo 3D é refeito ao fechar.",
+};
+function ferramentaCursor() {
+  const pinta = est.editando && est.aba === "mapa" && (est.ferr === "pincel" || est.ferr === "terreno" || est.ferr === "por");
+  cvM.classList.toggle("mm-pintar", pinta || (est.editando && est.aba === "mobs" && est.pondoGrupo));
+  for (const b of el.querySelectorAll("[data-ferr]")) b.setAttribute("aria-pressed", b.dataset.ferr === est.ferr);
+  $m("mmDicaFerr").textContent = NOMES_FERR[est.ferr];
+  $m("mmPecaL").hidden = !(est.ferr === "por" || est.ferr === "pincel");
+  $m("mmCamadaL").hidden = est.ferr !== "terreno";
+  $m("mmPincelOpc").hidden = !(est.ferr === "pincel" || est.ferr === "terreno");
+  $m("mmDensL").hidden = est.ferr !== "pincel"; $m("mmForcaL").hidden = est.ferr !== "terreno";
+  for (const [id, f] of [["mmPR", v => v + " m"], ["mmPD", v => v], ["mmPF", v => v]]) $m(id + "V").textContent = f($m(id).value);
+}
+function painelDeco() {
+  const o = est.selDeco;
+  $m("mmSelDeco").hidden = !o;
+  if (!o) return;
+  $m("mmSelDecoNome").textContent = `${o.modelo ? { cerejeira: "cerejeira", arvore_larga: "árvore larga", bambu: "bambu" }[o.modelo] || o.modelo : NOME_TIPO[o.tipo]} em ${o.x.toFixed(1)}, ${o.y.toFixed(1)}`;
+  $m("mmGiro").value = o.giro || 0; $m("mmGiroV").textContent = (o.giro || 0) + "°";
+  $m("mmEsc").value = o.esc || 1; $m("mmEscV").textContent = (o.esc || 1).toFixed(2);
+}
+function decoMudou() { est.mudouDeco = true; salvarMapa(); painelDeco(); est.sujo = true; }
+function decoNoPonto(x, y) {
+  let melhor = null, dm = Infinity;
+  for (const o of objetos) {
+    if (!DECORACAO.includes(o.tipo) || o.caverna || naCaverna(o.x)) continue;
+    if (o.ret && x > o.x0 && x < o.x1 && y > o.y0 && y < o.y1) { const d = 0.5; if (d < dm) { dm = d; melhor = o; } continue; }
+    const st = estiloDeco(o), r = Math.max(0.7, st ? st[1] : 0.8, 7 / V.esc), d = Math.hypot(o.x - x, o.y - y);
+    if (d < r && d < dm) { dm = d; melhor = o; }
+  }
+  return melhor;
+}
+function novaPeca(p, x, y, extra = {}) {
+  const c = { tipo: p.tipo, x, y, ...(p.sorte ? p.sorte() : {}), ...extra };
+  if (p.var !== undefined) c.var = p.var;
+  if (p.modelo) c.modelo = p.modelo;
+  if (p.neve) c.neve = true;
+  const o = completarDecoracao(c);
+  objetos.push(o);
+  if (temColisao(o)) porNaGrade(o);
+  return o;
+}
+// o pincel de decoração: espalha peças no círculo, longe umas das outras, fora da água, da praia e das estradas
+function pincelDeco(x, y, apagar) {
+  const p = PECAS[+$m("mmPeca").value], r = +$m("mmPR").value, dens = +$m("mmPD").value;
+  if (p.grama) { pincelChao(x, y, r, { camada: 8 }, dens / 10, apagar); return; }
+  const tipos = p.mata ? ["arvore", "pinheiro", "arbusto"] : [p.tipo];
+  const perto = objetos.filter(o => !o.caverna && Math.abs(o.x - x) < r + 3 && Math.abs(o.y - y) < r + 3);
+  if (apagar) {
+    let n = 0;
+    for (const o of perto) if (tipos.includes(o.tipo) && Math.hypot(o.x - x, o.y - y) < r && (!p.modelo || o.modelo === p.modelo)) { objetos.splice(objetos.indexOf(o), 1); n++; }
+    if (n) { est.mudouDeco = true; est.sujo = true; }
+    return;
+  }
+  const quer = Math.max(1, Math.round(dens * Math.PI * r * r / 60));
+  let postos = 0;
+  for (let t = 0; t < quer * 8 && postos < quer; t++) {
+    const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * r, px = x + Math.cos(a) * d, py = y + Math.sin(a) * d;
+    const q = p.mata ? PECAS.find(k => k.tipo === (Math.random() < 0.45 ? "arvore" : Math.random() < 0.6 ? "pinheiro" : "arbusto") && !k.modelo && !k.neve) : p;
+    const longe = (q.longe || 1.2) * (1.6 - dens * 0.07);
+    if (borda(px, py) > RAIO - 3.2 || agua(px, py) || lago(px, py, 0.8) || estrada(px, py) || praca(px, py)) continue;
+    if (perto.some(o => Math.hypot(o.x - px, o.y - py) < (o.ret ? 0 : longe) || (o.ret && px > o.x0 - 0.5 && px < o.x1 + 0.5 && py > o.y0 - 0.5 && py < o.y1 + 0.5))) continue;
+    perto.push(novaPeca(q, px, py)); postos++;
+  }
+  if (postos) { est.mudouDeco = true; est.sujo = true; }
+}
+// o pincel de terreno (e o da grama): muda as camadas de ajuste na grade de 1 m em volta de (x, y)
+function pincelChao(x, y, r, modo, forca, inverso) {
+  const A = AJUSTE.alt, C = AJUSTE.chao, alvo = modo.nivelar ? altura(x, y) : 0;
+  for (let i = Math.floor(x - r); i <= Math.ceil(x + r); i++) for (let j = Math.floor(y - r); j <= Math.ceil(y + r); j++) {
+    const d = Math.hypot(i - x, j - y); if (d > r) continue;
+    const f = (1 - (d / r) ** 2) ** 2, k = ajChave(i, j);
+    if (modo.alt || modo.nivelar || modo.limpar) {
+      let v = A.get(k) || 0;
+      if (modo.alt) v += (inverso ? -modo.alt : modo.alt) * forca * 0.32 * f;
+      else if (modo.nivelar) v += (alvo - altura(i, j)) * Math.min(1, forca * 0.12) * f;
+      else v *= 1 - Math.min(1, forca * 0.25) * f;
+      v = Math.max(-12, Math.min(12, v));
+      if (Math.abs(v) < 0.005) A.delete(k); else A.set(k, v);
+    }
+    if (modo.camada !== undefined || modo.limpar) {
+      const c = C.get(k), w = Math.min(1, forca * 0.35) * f;
+      if (modo.limpar || inverso) { if (c) { c[1] -= w; if (c[1] <= 0.005) C.delete(k); } }
+      else if (!c) C.set(k, [modo.camada, w]);
+      else if (c[0] === modo.camada) c[1] = Math.min(1, c[1] + w);
+      else { c[1] -= w; if (c[1] <= 0) C.set(k, [modo.camada, Math.min(1, -c[1] + w * 0.5)]); }
+    }
+  }
+  AJUSTE.versao++;
+  est.mudouTerreno = true;
+  repintarArea(base, x - r - 1, y - r - 1, x + r + 1, y + r + 1);
+  est.sujo = true;
+}
+function pincelTerreno(x, y, inverso) {
+  const p = PINCEIS_TERRENO[+$m("mmCamada").value];
+  pincelChao(x, y, +$m("mmPR").value, p, +$m("mmPF").value / 5, inverso);
+}
+
+// ---------------------------------------------------------------- copiar, colar e voltar ao original
+let colando = null;                                     // "mobs" ou "mapa": o que o Aplicar aplica
+async function copiar(txt, nome) {
+  try { await navigator.clipboard.writeText(txt); aviso(`${nome} copiado (${(txt.length / 1024).toFixed(0)} KB): cole na conversa.`); }
+  catch (e) { const t = $m("mmTexto"); t.hidden = false; t.value = txt; t.focus(); t.select(); aviso("Não deu para copiar sozinho: o texto está selecionado na caixa, copie com Ctrl+C."); }
+}
+function pedirColar(qual) { colando = qual; const t = $m("mmTexto"); t.hidden = false; t.value = ""; t.focus(); $m("mmAplicar").hidden = false; aviso("Cole o texto na caixa e clique em Aplicar."); }
+function aplicarColado() {
+  const t = $m("mmTexto");
+  try {
+    const m = JSON.parse(t.value);
+    if (colando === "mobs") { const l = spawnsValidos(m); if (!l) throw 0; SPAWNS = l; est.sel = null; mobsMudou(); aviso(`Mobs aplicados: ${l.length} grupos.`); }
+    else { if (!aplicarMapa(m)) throw 0; est.selDeco = null; salvarMapa(); est.mudouDeco = est.mudouTerreno = true; repintarTudo(); aviso("Mapa aplicado."); }
+    t.hidden = true; $m("mmAplicar").hidden = true;
+  } catch (e) { aviso("Esse texto não é válido."); }
+}
+function repintarTudo() { if (base) { base = null; garantirBase(); } est.sujo = true; }
+// voltar ao original pede um segundo clique (sem janela de confirmação)
+function duploClique(id, fazer) {
+  let t0 = 0; const b = $m(id), txt = b.textContent;
+  b.onclick = () => {
+    if (performance.now() - t0 > 3000) { t0 = performance.now(); b.textContent = "Clique de novo"; aviso("Isso desfaz tudo o que foi editado aqui."); setTimeout(() => { b.textContent = txt; }, 3000); return; }
+    t0 = 0; b.textContent = txt; fazer();
+  };
+}
+function originalMobs() {
+  SPAWNS = ((MOBS_FIXO && spawnsValidos(MOBS_FIXO)) || SPAWNS_ORIGINAL).map(s => ({ ...s }));
+  try { localStorage.removeItem(MOBS_CHAVE); } catch (e) {}
+  est.sel = null; mobsMudou(false); aviso("Mobs originais de volta.");
+}
+function originalMapa() {
+  aplicarMapa(MAPA_FIXO || mapaOriginal); est.selDeco = null;
+  try { localStorage.removeItem(MAPA_CHAVE); localStorage.removeItem(MAPA_CHAVE_ANTIGA); } catch (e) {}
+  if (MAPA_FIXO) salvarMapa();
+  est.mudouDeco = est.mudouTerreno = true; painelDeco(); repintarTudo(); aviso("Mapa original de volta.");
+}
+
+// ---------------------------------------------------------------- ponteiro: arrastar, pinça, rodinha
+const toques = new Map();
+let pinca = null, ultimoPincel = null;
+function ponto(e) { const r = cvM.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, [x, y] = doMundo(px, py); return { px, py, x, y }; }
+function info(p) {
+  const box = $m("mmInfo");
+  const s = p && spawnNoPonto(p.x, p.y);
+  if (!s) { box.hidden = true; return; }
+  const c = cfgDe(s.tipo);
+  box.innerHTML = `<b>${c.nome}</b>${c.chefe ? " · chefe" : ""}<br>Nv ${c.nivel || 1} · ${s.n} ${s.n > 1 ? "mobs" : "mob"} · raio ${s.r.toFixed(1)} m<br>Vida ${c.vida} · dano ${c.dano || "?"}<br>${regiaoDe(s.x, s.y)}`;
+  box.hidden = false;
+  box.style.left = Math.min(V.w - 250, p.px + 14) + "px"; box.style.top = Math.min(V.h - 90, p.py + 14) + "px";
+}
+cvM.addEventListener("contextmenu", e => e.preventDefault());
+cvM.addEventListener("pointerdown", e => {
+  if (e.pointerType === "touch") {
+    toques.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (toques.size === 2) {                                                // dois dedos: pinça (zoom e mover); larga o que o primeiro fazia
+      const [a, b] = [...toques.values()]; pinca = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+      est.arrasto = null; return;
+    }
+    if (toques.size > 2) return;
+  }
+  try { cvM.setPointerCapture(e.pointerId); } catch (er) {}
+  const p = ponto(e); est.mouse = p;
+  const mover = () => { est.arrasto = { tipo: "mapa", px: p.px, py: p.py, cx: V.cx, cy: V.cy, id: e.pointerId, mexeu: 0, p0: p }; };
+  if (e.button === 1 || e.button === 2) { mover(); return; }
+  if (!est.editando) { mover(); return; }
+  if (est.aba === "mobs") {
+    if (est.pondoGrupo) { novoGrupo(p.x, p.y); est.pondoGrupo = false; $m("mmNovoGrupo").setAttribute("aria-pressed", false); ferramentaCursor(); return; }
+    const s = spawnNoPonto(p.x, p.y);
+    est.sel = s; painelMob(); est.sujo = true;
+    if (s) est.arrasto = { tipo: "mob", s, dx: s.x - p.x, dy: s.y - p.y, id: e.pointerId };
+    else mover();
+    return;
+  }
+  // aba Mapa
+  if (est.ferr === "por") { const pc = PECAS[+$m("mmPeca").value]; if (pc.mata || pc.grama) { pincelDeco(p.x, p.y, false); return; } est.selDeco = novaPeca(pc, p.x, p.y); decoMudou(); aviso(`Posto: ${pc.nome}`); return; }
+  if (est.ferr === "pincel") { ultimoPincel = p; pincelDeco(p.x, p.y, e.shiftKey); est.arrasto = { tipo: "pincel", id: e.pointerId, apagar: e.shiftKey }; return; }
+  if (est.ferr === "terreno") { ultimoPincel = p; pincelTerreno(p.x, p.y, e.shiftKey); est.arrasto = { tipo: "terreno", id: e.pointerId, inverso: e.shiftKey }; return; }
+  const o = decoNoPonto(p.x, p.y);
+  est.selDeco = o; painelDeco(); est.sujo = true;
+  if (o) est.arrasto = { tipo: "deco", o, dx: o.x - p.x, dy: o.y - p.y, id: e.pointerId };
+  else mover();
+});
+cvM.addEventListener("pointermove", e => {
+  if (e.pointerType === "touch" && toques.has(e.pointerId)) {
+    toques.get(e.pointerId).x = e.clientX; toques.get(e.pointerId).y = e.clientY;
+    if (pinca && toques.size >= 2) {
+      const [a, b] = [...toques.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, r = cvM.getBoundingClientRect();
+      V.cx -= (mx - pinca.mx) / V.esc; V.cy += (my - pinca.my) / V.esc;
+      zoomEm(mx - r.left, my - r.top, d / Math.max(10, pinca.d));
+      pinca = { d, mx, my }; return;
+    }
+  }
+  const p = ponto(e); est.mouse = p;
+  const a = est.arrasto;
+  if (!a) {
+    if (e.pointerType !== "touch") info(p);
+    if (est.editando && (est.ferr === "pincel" || est.ferr === "terreno" || est.pondoGrupo)) est.sujo = true;
+    return;
+  }
+  if (a.id !== undefined && a.id !== e.pointerId) return;
+  if (a.tipo === "mapa") { V.cx = a.cx - (p.px - a.px) / V.esc; V.cy = a.cy + (p.py - a.py) / V.esc; a.mexeu = Math.max(a.mexeu, Math.hypot(p.px - a.px, p.py - a.py)); est.sujo = true; $m("mmInfo").hidden = true; }
+  else if (a.tipo === "mob") { a.s.x = p.x + a.dx; a.s.y = p.y + a.dy; a.mudou = true; painelMob(); est.sujo = true; info(null); }
+  else if (a.tipo === "deco") { a.o.x = p.x + a.dx; a.o.y = p.y + a.dy; if (a.o.ret) delete a.o.ret; a.mudou = true; painelDeco(); est.sujo = true; }
+  else if (a.tipo === "pincel" || a.tipo === "terreno") {
+    const r = +$m("mmPR").value;
+    if (Math.hypot(p.x - ultimoPincel.x, p.y - ultimoPincel.y) > r * (a.tipo === "terreno" ? 0.3 : 0.6)) {
+      ultimoPincel = p;
+      if (a.tipo === "pincel") pincelDeco(p.x, p.y, a.apagar); else pincelTerreno(p.x, p.y, a.inverso);
+    }
+  }
+});
+const soltar = e => {
+  if (e.pointerType === "touch") { toques.delete(e.pointerId); if (toques.size < 2) pinca = null; }
+  const a = est.arrasto; if (!a || (a.id !== undefined && a.id !== e.pointerId)) return;
+  est.arrasto = null;
+  if (a.tipo === "mob" && a.mudou) { mobsMudou(); aviso(`Movido: ${nomeDe(a.s.tipo)} para ${a.s.x.toFixed(1)}, ${a.s.y.toFixed(1)} (${regiaoDe(a.s.x, a.s.y)})`); }
+  if (a.tipo === "deco" && a.mudou) { refazerGrade(); decoMudou(); }
+  if (a.tipo === "pincel" || a.tipo === "terreno") { refazerGrade(); salvarMapa(); }
+  if (a.tipo === "mapa" && a.mexeu < 6 && e.pointerType === "touch") info(a.p0);  // um toque sem arrastar: o que é aquele grupo
+};
+cvM.addEventListener("pointerup", soltar); cvM.addEventListener("pointercancel", soltar);
+cvM.addEventListener("pointerleave", () => { $m("mmInfo").hidden = true; est.mouse = null; est.sujo = true; });
+cvM.addEventListener("wheel", e => { e.preventDefault(); const r = cvM.getBoundingClientRect(); zoomEm(e.clientX - r.left, e.clientY - r.top, e.deltaY > 0 ? 1 / 1.15 : 1.15); }, { passive: false });
+
+// ---------------------------------------------------------------- botões e teclas
+function ligar() {
+  $m("mmFechar").onclick = () => abrir(false);
+  $m("mmEditar").onclick = () => editar();
+  $m("mmVerTudo").onclick = () => verTudo();
+  $m("mmExportar").onclick = exportar;
+  for (const b of el.querySelectorAll("[data-aba]")) b.onclick = () => trocarAba(b.dataset.aba);
+  for (const b of el.querySelectorAll("[data-ferr]")) b.onclick = () => { est.ferr = b.dataset.ferr; if (est.ferr !== "escolher") { est.selDeco = null; painelDeco(); } ferramentaCursor(); est.sujo = true; };
+  $m("mmNovoGrupo").onclick = () => { est.pondoGrupo = !est.pondoGrupo; $m("mmNovoGrupo").setAttribute("aria-pressed", est.pondoGrupo); ferramentaCursor(); aviso(est.pondoGrupo ? "Clique no mapa onde o grupo novo fica." : ""); };
+  $m("mmTipo").onchange = e => { if (!est.sel) return; est.sel.tipo = e.target.value; if (chefeDe(est.sel.tipo)) est.sel.n = 1; mobsMudou(); };
+  $m("mmN").oninput = e => { if (!est.sel) return; est.sel.n = +e.target.value; mobsMudou(); };
+  $m("mmR").oninput = e => { if (!est.sel) return; est.sel.r = +e.target.value; mobsMudou(); };
+  $m("mmApagarMob").onclick = apagarMob;
+  $m("mmDuplicarMob").onclick = () => { const s = est.sel; if (!s) return; const n = { ...s, x: s.x + raioVisto(s) * 2 + 1, y: s.y }; SPAWNS.push(n); est.sel = n; mobsMudou(); };
+  $m("mmCopiarMobs").onclick = () => copiar(JSON.stringify(spawnsTexto()), "Mobs");
+  $m("mmColarMobs").onclick = () => pedirColar("mobs");
+  $m("mmCopiarMapa").onclick = () => copiar(JSON.stringify(mapaAtual()), "Mapa");
+  $m("mmColarMapa").onclick = () => pedirColar("mapa");
+  $m("mmAplicar").onclick = aplicarColado;
+  duploClique("mmOriginalMobs", originalMobs);
+  duploClique("mmOriginalMapa", originalMapa);
+  $m("mmGiro").oninput = e => { const o = est.selDeco; if (!o) return; o.giro = +e.target.value; decoMudou(); };
+  $m("mmEsc").oninput = e => { const o = est.selDeco; if (!o) return; o.esc = +e.target.value; if (o.ret) delete o.ret; refazerGrade(); decoMudou(); };
+  $m("mmApagarDeco").onclick = apagarDeco;
+  $m("mmDuplicarDeco").onclick = () => { const o = est.selDeco; if (!o) return; const { x, y, ret, x0, x1, y0, y1, ...resto } = o; const n = completarDecoracao({ ...resto, x: x + 1.5, y: y - 0.5 }); objetos.push(n); refazerGrade(); est.selDeco = n; decoMudou(); };
+  for (const id of ["mmPR", "mmPD", "mmPF"]) $m(id).oninput = () => { ferramentaCursor(); est.sujo = true; };
+  // o botão no menu do canto
+  if (typeof MENU_ACOES === "object") MENU_ACOES.mundo = () => abrir(true);
+  addEventListener("resize", () => { if (est.aberto) ajustarTela(); });
+  // U abre e fecha; com a tela aberta, o teclado é só dela (o jogo não anda nem usa skill por baixo)
+  addEventListener("keydown", e => {
+    const campo = ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName), k = e.key.toLowerCase();
+    if (!est.aberto) {
+      if (k === "u" && !campo && !e.repeat && !(typeof editor !== "undefined" && editor.ativo)) { e.preventDefault(); e.stopImmediatePropagation(); abrir(true); }
+      return;
+    }
+    e.stopImmediatePropagation();
+    if (k === "escape") { e.preventDefault(); if (campo) e.target.blur(); else if (est.pondoGrupo) { est.pondoGrupo = false; $m("mmNovoGrupo").setAttribute("aria-pressed", false); ferramentaCursor(); } else abrir(false); return; }
+    if (campo) return;
+    if (k === "u" && !e.repeat) { e.preventDefault(); abrir(false); return; }
+    if (k === "delete" || k === "backspace") { e.preventDefault(); if (est.aba === "mobs") apagarMob(); else apagarDeco(); return; }
+    const passo = 40 / V.esc;
+    if (["arrowleft", "a"].includes(k)) { V.cx -= passo; est.sujo = true; } else if (["arrowright", "d"].includes(k)) { V.cx += passo; est.sujo = true; }
+    else if (["arrowup", "w"].includes(k)) { V.cy += passo; est.sujo = true; } else if (["arrowdown", "s"].includes(k)) { V.cy -= passo; est.sujo = true; }
+    else if (k === "+" || k === "=") zoomEm(V.w / 2, V.h / 2, 1.25); else if (k === "-") zoomEm(V.w / 2, V.h / 2, 0.8);
+    if (k.startsWith("arrow") || k === " ") e.preventDefault();
+  }, true);
+}
+function apagarDeco() {
+  const o = est.selDeco; if (!o) return;
+  const i = objetos.indexOf(o); if (i >= 0) objetos.splice(i, 1);
+  est.selDeco = null; refazerGrade(); decoMudou(); aviso(`Apagado: ${NOME_TIPO[o.tipo]}`);
+}
+ligar();
+ferramentaCursor();
+
+return {
+  abrir, editar, trocarAba, verTudo, imagem, tabela, tabelaTexto, corNivel, paraTela: (x, y) => paraTela(x, y), doMundo: (px, py) => doMundo(px, py),
+  get aberto() { return est.aberto; }, get cobre() { return est.aberto; }, get pronto() { return !!(base && base.pronto); }, est, V,
 };
 })();
 </script>
