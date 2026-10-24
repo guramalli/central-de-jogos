@@ -6450,7 +6450,7 @@ function passoSkillsArq(dt) {
 // quanto o tiro certeiro já carregou (0 com a flecha chegando na corda, 1 na soltura)
 function cargaCerteiro() {
   const i = M.animacoes.certeiro; if (!i) return 0;
-  const t0 = 0.56, t1 = (i.acerto + 1) / i.fps;
+  const t0 = 0.41, t1 = (i.acerto + 1) / i.fps;   // (0,41 s: a puxada cheia do certeiro novo da rodada 6)
   return Math.max(0, Math.min(1, (viking.t - t0) / (t1 - t0)));
 }
 // a ponta da flecha no quadro atual (px do sprite a partir dos pés → mundo, na altura dela)
