@@ -2857,12 +2857,20 @@ function tocar(nome, acao) {
 // começam da pose final do anterior); o seguinte entra assim que o anterior termina o corte (CANCELA). Parado mais que
 // COMBO_PAUSA, o combo recomeça do 1º (que sai da guarda). O 5º, com salto, fecha o combo e volta à guarda
 const CANCELA = { golpe1: 9, golpe2: 9, golpe3: 9, golpe4: 9, sacar_golpe: 12 }, COMBO_PAUSA = 0.45;
+// ninja: cortes curtos e rápidos, mais fracos, que valem pelo combo. Cada golpe emenda no fim do seguimento (quadro 7, o
+// NinjaAnimador.ChaveCombo) e o 5º, que volta à guarda, emenda de novo no 1º. Janela curta: o próximo precisa ser pedido
+// antes do quadro da emenda (+1); depois disso, ou parado, o combo recomeça do 1º (que sai da guarda, sem salto de pose)
+const CANCELA_NINJA = { golpe1: 7, golpe2: 7, golpe3: 7, golpe4: 7, golpe5: 10 }, DANO_NINJA = 0.75, DANO_NINJA_5 = 1.3, EMPURRA_NINJA = 0.06;
+const corteCombo = a => (classe === "ninja" ? CANCELA_NINJA : CANCELA)[a];
+const fatorNinja = () => classe !== "ninja" || triplo.restam > 0 || vortice.ativo ? 1 : DANO_NINJA * (viking.acao === "golpe5" ? DANO_NINJA_5 : 1);
 function atacar(estilo) {
   if (viking.caido) return;
   if (!estilo && !exigeAlvo()) return;
   if (classe === "arqueiro") { atirar(); return; }
   if (classe === "feiticeiro") { conjurar(); return; }
-  if (!viking.acao && (viking.semGolpe || 0) > COMBO_PAUSA && !estilo) viking.combo = 0;
+  if (!viking.acao && (classe === "ninja" || (viking.semGolpe || 0) > COMBO_PAUSA) && !estilo) viking.combo = 0;
+  // ninja pedindo tarde (já passou da emenda): termina este e recomeça do 1º
+  if (classe === "ninja" && !estilo && /^golpe[1-4]$/.test(viking.acao || "") && Math.floor(viking.t * M.animacoes[viking.acao].fps) > CANCELA_NINJA[viking.acao] + 1) { viking.fila = "golpe1"; viking.combo = 1; return; }
   const n = estilo || (viking.combo % 5) + 1;
   if (viking.acao && (viking.acao.startsWith("sacar") || viking.acao.includes("golpe") || viking.acao === "giro")) { viking.fila = "golpe" + n; if (!estilo) viking.combo++; return; }
   if (viking.acao) return;
@@ -3445,42 +3453,42 @@ Object.assign(TIPOS.orc_feiticeiro, { nivel: 38, dano: 120, vida: 1100 });
 // mas os sprites, o tamanho e as animações da base, pintados com filtro2d (no 3D, o modelo da base com a tinta)
 const NOVAS = {
   urso_negro: { nome: "Urso Negro", nivel: 14, vida: 300, dano: 42, material: "carne", altura: 60, barra: 118, sombra: 0.85, anel: 0.95, raio: 0.5,
-    visao: 7, perto: 1.8, alcance: 2.3, ataque: "atacar", galope: 3.0, chega: 1.5, passeio: 0.6, renasce: 20, vAndar: 0.9, vCorrer: 3.2, alvoZ: 0.7, somAcerto: "mordida",
+    visao: 7, perto: 1.8, alcance: 2.3, ataque: "atacar", galope: 3.0, chega: 1.5, passeio: 0.6, renasce: 20, vAndar: 0.615, vCorrer: 3.17, alvoZ: 0.7, somAcerto: "mordida",
     reserva: { base: ["javali", "lobo"], esc: 1.5, filtro2d: "brightness(0.42) saturate(0.5)", tinta: "#55555f" } },
   tigre: { nome: "Tigre", nivel: 16, vida: 280, dano: 48, material: "carne", altura: 52, barra: 110, sombra: 0.75, anel: 0.9, raio: 0.45,
-    visao: 8, perto: 1.7, alcance: 2.2, ataque: "atacar", galope: 3.9, chega: 1.9, passeio: 0.8, renasce: 20, vAndar: 1.0, vCorrer: 4.0, alvoZ: 0.6, somAcerto: "mordida",
+    visao: 8, perto: 1.7, alcance: 2.2, ataque: "atacar", galope: 3.9, chega: 1.9, passeio: 0.8, renasce: 20, vAndar: 0.702, vCorrer: 3.95, alvoZ: 0.6, somAcerto: "mordida",
     reserva: { base: ["lobo"], esc: 1.3, filtro2d: "sepia(1) saturate(3.2) hue-rotate(-14deg) brightness(1.05)", tinta: "#ffb070" } },
   lobo_alfa: { nome: "Lobo Alfa", nivel: 20, vida: 2600, dano: 70, material: "carne", altura: 58, barra: 128, sombra: 0.85, anel: 1.1, raio: 0.5,
     visao: 8.5, perto: 1.8, alcance: 2.3, ataque: "morder", galope: 3.8, chega: 1.8, passeio: 0.7, renasce: 120, uiva: true, chefe: true, chefeCaverna: true,
-    vAndar: 0.8, vCorrer: 4.4, alvoZ: 0.6, somAcerto: "mordida",
+    vAndar: 0.673, vCorrer: 4.35, alvoZ: 0.6, somAcerto: "mordida",
     reserva: { base: ["lobo"], esc: 1.5, filtro2d: "brightness(0.55) saturate(0.5)", tinta: "#6a6a78" } },
   bandido: { nome: "Bandido", nivel: 18, vida: 330, dano: 50, material: "carne", altura: 92, barra: 172, sombra: 0.42, anel: 0.5, raio: 0.3,
-    visao: 7.5, perto: 1.5, alcance: 2.0, ataque: "golpe", galope: 0, chega: 2.0, passeio: 0.8, vAndar: 1.1, alvoZ: 1.1, somAcerto: "corte",
+    visao: 7.5, perto: 1.5, alcance: 2.0, ataque: "golpe", galope: 0, chega: 2.0, passeio: 0.8, vAndar: 1.363, alvoZ: 1.1, somAcerto: "corte",
     reserva: { base: ["orc", "goblin"], esc: 0.85, filtro2d: "sepia(0.6) hue-rotate(-30deg) saturate(1.4) brightness(1.1)", tinta: "#e0a090" } },
   bandido_arqueiro: { nome: "Bandido Arqueiro", nivel: 19, vida: 260, dano: 46, material: "carne", altura: 92, barra: 172, sombra: 0.42, anel: 0.5, raio: 0.3,
-    visao: 9, perto: 6, alcance: 8, ataque: "tiro", magia: true, projetil: "flecha", galope: 0, chega: 1.9, passeio: 0.8, vAndar: 1.1, alvoZ: 1.1, somAcerto: "flecha_acerta",
+    visao: 9, perto: 6, alcance: 8, ataque: "tiro", magia: true, projetil: "flecha", galope: 0, chega: 1.9, passeio: 0.8, vAndar: 1.382, alvoZ: 1.1, somAcerto: "flecha_acerta",
     reserva: { base: ["orc_feiticeiro", "orc", "goblin"], esc: 0.85, filtro2d: "sepia(0.7) hue-rotate(30deg) saturate(1.2) brightness(1.05)", tinta: "#c8d8a0" } },
   chefe_bandido: { nome: "Chefe dos Bandidos", nivel: 25, vida: 4200, dano: 105, material: "carne", altura: 104, barra: 190, sombra: 0.55, anel: 0.7, raio: 0.38,
-    visao: 8, perto: 1.6, alcance: 2.3, ataque: "golpe", galope: 0, chega: 2.0, passeio: 0.6, renasce: 120, chefe: true, chefeCaverna: true, vAndar: 1.0, alvoZ: 1.2, somAcerto: "cortePesado",
+    visao: 8, perto: 1.6, alcance: 2.3, ataque: "golpe", galope: 0, chega: 2.0, passeio: 0.6, renasce: 120, chefe: true, chefeCaverna: true, vAndar: 1.426, alvoZ: 1.2, somAcerto: "cortePesado",
     reserva: { base: ["orc", "goblin"], esc: 1.0, filtro2d: "sepia(0.5) hue-rotate(-20deg) saturate(1.3)", tinta: "#d89080" } },
   zumbi: { nome: "Zumbi", nivel: 22, vida: 420, dano: 55, material: "carne", altura: 88, barra: 166, sombra: 0.4, anel: 0.5, raio: 0.3,
-    visao: 6, perto: 1.4, alcance: 1.9, ataque: "golpe", galope: 0, chega: 0.75, passeio: 0.4, levanta: true, vAndar: 0.6, alvoZ: 1.05, somAcerto: "carne",
+    visao: 6, perto: 1.4, alcance: 1.9, ataque: "golpe", galope: 0, chega: 0.75, passeio: 0.4, levanta: true, vAndar: 0.43, alvoZ: 1.05, somAcerto: "carne",
     reserva: { base: ["esqueleto"], esc: 1.1, filtro2d: "sepia(0.6) hue-rotate(50deg) saturate(1.6) brightness(0.85)", tinta: "#a0c890" } },
   fantasma: { nome: "Fantasma", nivel: 26, vida: 380, dano: 64, material: "osso", altura: 110, barra: 196, sombra: 0.35, anel: 0.5, raio: 0.3,
-    visao: 8, perto: 1.5, alcance: 2.1, ataque: "golpe", galope: 0, chega: 1.5, passeio: 0.6, levanta: false, flutua: true, vAndar: 0.9, alvoZ: 1.3, somAcerto: "gelo",
+    visao: 8, perto: 1.5, alcance: 2.1, ataque: "golpe", galope: 0, chega: 1.5, passeio: 0.6, levanta: false, flutua: true, vAndar: 0.701, alvoZ: 1.3, somAcerto: "gelo",
     reserva: { base: ["esqueleto"], esc: 1.1, filtro2d: "hue-rotate(180deg) saturate(2.5) brightness(1.5)", alfa2d: 0.62, flutua2d: 0.3, tinta: "#a8d8ff" } },
   lich: { nome: "Lich", nivel: 30, vida: 6000, dano: 130, material: "osso", altura: 110, barra: 206, sombra: 0.5, anel: 0.75, raio: 0.38,
     visao: 9, perto: 5.5, alcance: 7.5, ataque: "magia", magia: true, projetil: "sombra", conjura: 10, galope: 0, chega: 1.6, passeio: 0.5, renasce: 150,
-    chefe: true, chefeCaverna: true, vAndar: 0.85, alvoZ: 1.3, somAcerto: "magia_raio",
+    chefe: true, chefeCaverna: true, vAndar: 0.969, alvoZ: 1.3, somAcerto: "magia_raio",
     reserva: { base: ["orc_feiticeiro", "orc", "goblin"], esc: 1.05, filtro2d: "hue-rotate(200deg) saturate(1.2) brightness(0.75)", tinta: "#b090d0" } },
   golem: { nome: "Golem de Pedra", nivel: 42, vida: 2200, dano: 150, material: "osso", altura: 140, barra: 258, sombra: 0.95, anel: 1.05, raio: 0.6,
-    visao: 7, perto: 2.0, alcance: 2.6, ataque: "golpe", galope: 0, chega: 1.1, passeio: 0.4, vAndar: 0.8, alvoZ: 1.6, somAcerto: "osso_golpe",
+    visao: 7, perto: 2.0, alcance: 2.6, ataque: "golpe", galope: 0, chega: 1.1, passeio: 0.4, vAndar: 1.821, alvoZ: 1.6, somAcerto: "osso_golpe",
     reserva: { base: ["orc", "goblin"], esc: 1.45, filtro2d: "grayscale(1) brightness(1.15) contrast(1.1)", tinta: "#a8a8a8" } },
   escorpiao: { nome: "Escorpião Gigante", nivel: 44, vida: 1900, dano: 160, material: "carne", altura: 70, barra: 140, sombra: 1.2, anel: 1.4, raio: 0.9,
-    visao: 8, perto: 2.4, alcance: 3.0, ataque: "atacar", ameaca: true, galope: 0, chega: 1.6, passeio: 0.6, vAndar: 1.4, alvoZ: 0.6, somAcerto: "veneno",
+    visao: 8, perto: 2.4, alcance: 3.0, ataque: "atacar", ameaca: true, galope: 0, chega: 1.6, passeio: 0.6, vAndar: 1.136, alvoZ: 0.6, somAcerto: "veneno",
     reserva: { base: ["aranha"], esc: 0.75, filtro2d: "sepia(1) saturate(3) hue-rotate(-25deg) brightness(0.9)", tinta: "#ff9a60" } },
   yeti: { nome: "Yeti", nivel: 46, vida: 2500, dano: 175, material: "carne", altura: 130, barra: 244, sombra: 0.85, anel: 0.95, raio: 0.55,
-    visao: 7.5, perto: 1.9, alcance: 2.5, ataque: "golpe", galope: 0, chega: 1.5, passeio: 0.6, vAndar: 1.0, alvoZ: 1.5, somAcerto: "carne",
+    visao: 7.5, perto: 1.9, alcance: 2.5, ataque: "golpe", galope: 0, chega: 1.5, passeio: 0.6, vAndar: 1.914, alvoZ: 1.5, somAcerto: "carne",
     reserva: { base: ["orc", "goblin"], esc: 1.35, filtro2d: "grayscale(1) brightness(2.1)", tinta: "#f0f4ff" } },
 };
 for (const [t, c] of Object.entries(NOVAS)) TIPOS[t] = { ...c, so3d: true, M: null, spr: {} };
@@ -4292,6 +4300,10 @@ function montarMarcos() {
     pôe("ruina_arco", c.x, c.y + 3.6); pôe("ruina_muro", c.x - 5, c.y + 1.2); pôe("ruina_muro_lado", c.x + 5, c.y + 0.4);
     pôe("ruina_pilar", c.x - 3.4, c.y - 2.6); pôe("ruina_caido", c.x + 3.6, c.y - 3.2); pôe("estatua", c.x + 6.4, c.y + 3.4);
   }
+  // os mortos-vivos das ruínas (lich, zumbis e fantasmas): campo aberto em volta de cada bando, com restos de ruína
+  for (const [t, x, y, , e] of NOVOS_BANDOS) if (["lich", "zumbi", "fantasma"].includes(t)) abrirEspaco(x - (e || 1) - 4.5, y - (e || 1) - 6, x + (e || 1) + 4.5, y + (e || 1) + 4);
+  const lich = NOVOS_BANDOS.find(([t]) => t === "lich");
+  if (lich) { pôe("ruina_pilar", lich[1] - 3.2, lich[2] + 2.4); pôe("ruina_caido", lich[1] + 3.4, lich[2] + 1.8); pôe("ruina_muro_lado", lich[1] + 0.5, lich[2] + 4.6); }
   // o píer na beira sul do lago
   pôe("pier", LAGO.x + 1.2, LAGO.y - LAGO.r * 0.95);
   refazerGrade();
@@ -5749,7 +5761,7 @@ function acertaCriaturas(giro) {
     if (d - (l.cfg.raio || 0) > (giro ? (vortice.ativo ? VORTICE_RAIO : 2.4) : ALCANCE + maisLonge + (selecionado ? 0.3 : 0))) continue;
     if (!giro && !selecionado && (dx * Math.cos(ang) + dy * Math.sin(ang)) / Math.max(d, 1e-3) < ARCO) continue;
     algum = true; acertos++;
-    comFonte(vortice.ativo ? "Vórtice" : triplo.restam > 0 ? "Corte Triplo" : null, () => ferir(l, Math.round(((9 + Math.floor(Math.random() * 5)) * (furia.buff > 0 ? 2 : 1) + (azul() ? 6 : 0)) * forte), dx, dy, 0.45));
+    comFonte(vortice.ativo ? "Vórtice" : triplo.restam > 0 ? "Corte Triplo" : null, () => ferir(l, Math.round(((9 + Math.floor(Math.random() * 5)) * (furia.buff > 0 ? 2 : 1) + (azul() ? 6 : 0)) * forte * fatorNinja()), dx, dy, fatorNinja() < 1 ? EMPURRA_NINJA : 0.45));
   }
   return algum;
 }
@@ -7852,7 +7864,7 @@ function passo(dt) {
   // (o arqueiro e o feiticeiro atiram por cima da animação de dano: antes cada golpe recebido entre dois tiros atrasava
   // o próximo em até meio segundo, e o ritmo dos ataques variava conforme apanhavam)
   const podeAuto = distante() ? (!v.acao || v.acao === "dano") && v.recargaTiro <= 0 && !(v.alvo && v.alvo.boneco)
-                              : !v.alvo && (!v.acao || (CANCELA[v.acao] !== undefined && !v.fila && !(mx || my)));   // (com um destino de clique, o viking obedece o clique)
+                              : !v.alvo && (!v.acao || (corteCombo(v.acao) !== undefined && !v.fila && !(mx || my)));   // (com um destino de clique, o viking obedece o clique)
   if (selecao && !v.caido && podeAuto) {
     const dx = selecao.x - v.x, dy = selecao.y - v.y, d = Math.hypot(dx, dy);
     const alcance = distante() ? alcanceDist() : 1.6 + (selecao.cfg.raio || 0);
@@ -7872,9 +7884,9 @@ function passo(dt) {
   if (!mx && !my && v.alvo && v.alvo.criatura) {
     // clicou numa criatura: vai até ela e golpeia até ela cair (um golpe por vez; WASD ou outro clique cancela)
     const dx = v.alvo.x - v.x, dy = v.alvo.y - v.y, d = Math.hypot(dx, dy);
-    const emCombo = lutaPerto() && CANCELA[v.acao] !== undefined;   // no meio do combo o passo do golpe alcança mais
+    const emCombo = lutaPerto() && corteCombo(v.acao) !== undefined;   // no meio do combo o passo do golpe alcança mais
     if (d > (distante() ? alcanceDist() : 1.6 + (emCombo ? 1.2 : 0) + (v.alvo.criatura.cfg.raio || 0))) [mx, my] = rumo(v, v.alvo.x, v.alvo.y, dt);
-    else if (!v.caido && (!v.acao || (lutaPerto() && CANCELA[v.acao] !== undefined && !v.fila))) { if (!v.acao) v.dir = dirDe(dx, dy); atacar(); }
+    else if (!v.caido && (!v.acao || (lutaPerto() && corteCombo(v.acao) !== undefined && !v.fila))) { if (!v.acao) v.dir = dirDe(dx, dy); atacar(); }
   } else if (!mx && !my && v.alvo && v.alvo.npc && Math.hypot(v.alvo.npc.x - v.x, v.alvo.npc.y - v.y) < 2.2) {
     const npc = v.alvo.npc; v.dir = dirDe(npc.x - v.x, npc.y - v.y); v.alvo = null;   // chegou: conversa (ou o ferreiro)
     if (npc.tipo === "ferreiro") { abrirNpc(null); abrirFerreiro(true); } else abrirNpc(npc);
@@ -7936,9 +7948,11 @@ function passo(dt) {
   if (triplo.restam > 0 && v.acao && v.acao.startsWith("golpe") && !v.fila && triplo.restam > 1) v.fila = "golpe" + ((+(v.acao.match(/\d/) || [1])[0]) + 1);
   if (triplo.restam > 0 && !v.acao) triplo.restam = 0;
   let emendou = false;                                            // trocou de golpe neste passo: o resto vale para o novo
-  const corta = CANCELA[v.acao];
-  if (corta !== undefined && v.acertou && q >= corta && v.fila && v.fila === "golpe" + ((+(v.acao.match(/\d/) || [1])[0]) + 1)) {
-    const f = v.fila; v.fila = null; mirarBoneco(); tocar(f, true); emendou = true;
+  const corta = corteCombo(v.acao);
+  if (corta !== undefined && v.acertou && q >= corta && v.fila && v.fila === "golpe" + ((+(v.acao.match(/\d/) || [1])[0]) % 5 + 1)) {
+    const f = v.fila, sobra = classe === "ninja" ? Math.max(0, Math.min(v.t - corta / info.fps, 0.05)) : 0;
+    v.fila = null; mirarBoneco(); tocar(f, true); emendou = true;
+    if (sobra) v.t = sobra;                                       // o ninja leva a sobra do passo: o combo não repete quadro na emenda
     if (triplo.restam > 0) triplo.restam--;
   }
   if (!emendou && golpeQualquer && !v.somCorte && q >= info.acerto - 2) { v.somCorte = true; som(classe === "guerreiro" ? "machado" : classe === "ninja" ? "adaga" : "corte", v, furia.buff > 0 ? 1.1 : 0.9); }
@@ -8094,7 +8108,7 @@ function impacto(alvo, altura, material, dano) {
   const dx = alvo.x - viking.x, dy = alvo.y - viking.y, d = Math.max(1e-3, Math.hypot(dx, dy));
   const sx = dx / d, sy = -dy / d * ACHATA;                        // direção do golpe na tela
   const forte = furia.buff > 0, agora = performance.now() / 1000;
-  if (material !== "golpeViking" && !SEM_PAUSA.has(fonteDano) && agora - ultimaPausa > PAUSA_INTERVALO) { congela = Math.max(congela, forte ? 0.1 : 0.07); ultimaPausa = agora; }
+  if (material !== "golpeViking" && !SEM_PAUSA.has(fonteDano) && agora - ultimaPausa > PAUSA_INTERVALO) { congela = Math.max(congela, forte ? 0.1 : classe === "ninja" && !fonteDano ? 0.03 : 0.07); ultimaPausa = agora; }   // (os cortes rápidos do ninja: pausa curta, senão o combo engasga)
   impactos.push({ wx: alvo.x, wy: alvo.y, y: -altura, vida: 0.14, max: 0.14, ang: Math.atan2(sy, sx) + (Math.random() - 0.5) * 0.8,
                   cor: azul() && material !== "golpeViking" ? "140, 205, 255" : material === "osso" ? "200, 225, 255" : material === "golpeViking" ? "255, 70, 50" : "255, 210, 140", tam: forte ? 1.4 : 1 });
   const n = material === "golpeViking" ? 8 : forte ? 22 : 15;
@@ -8645,8 +8659,8 @@ async function carregarP3d() {
     p.render = new THREE.WebGLRenderer({ alpha: true, antialias: !window.MODO_LEVE, preserveDrawingBuffer: true, powerPreference: "high-performance" });
   } catch (e) { console.error("3d:", e); p.ligado = false; avisar("3D: sem WebGL (ficam os sprites)"); return; }
   p.render.setClearColor(0x000000, 0); p.render.outputEncoding = THREE.sRGBEncoding; p.render.autoClear = false;
-  // o atlas: no celular menor (e o 3D sai com 1 px por px da tela, sem a densidade da tela)
-  p.lado = window.MODO_LEVE ? 1024 : 2048;
+  // o atlas (no celular o 3D sai com 1 px por px da tela, sem a densidade da tela) e o maior pedaço de um boneco
+  p.lado = window.MODO_LEVE ? 2048 : 4096; p.maxCel = window.MODO_LEVE ? 384 : 640;
   p.render.setPixelRatio(1); p.render.setSize(p.lado, p.lado, false);
   const tela3d = p.render.domElement;
   tela3d.addEventListener("webglcontextlost", e => { e.preventDefault(); p.perdido = true; });
@@ -8665,7 +8679,28 @@ async function carregarP3d() {
   p.loader = new THREE.GLTFLoader();
   p.matOculto = new THREE.MeshBasicMaterial({ colorWrite: false });      // a máscara da arma: o corpo só tapa
   p.matMascara = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  pedirModelo3d(classe, -1);                                             // o herói primeiro
+  // o traço escuro em volta da silhueta (como o dos sprites): depois de renderizar o boneco, o pedaço vai para uma
+  // textura e um quadro inteiro passa por cima, pondo o traço por fora de onde há boneco (por baixo das bordas dele)
+  p.fbTex = new THREE.FramebufferTexture(p.maxCel, p.maxCel, THREE.RGBAFormat);
+  p.matTraco = new THREE.ShaderMaterial({
+    uniforms: { tex: { value: p.fbTex }, uv0: { value: new THREE.Vector2() }, uv1: { value: new THREE.Vector2() }, px: { value: new THREE.Vector2() },
+                raio: { value: 1.5 }, cor: { value: new THREE.Vector3(TRACO_3D.cor[0] / 255, TRACO_3D.cor[1] / 255, TRACO_3D.cor[2] / 255) } },
+    vertexShader: "varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
+    fragmentShader: `uniform sampler2D tex; uniform vec2 uv0, uv1, px; uniform float raio; uniform vec3 cor; varying vec2 vUv;
+      float alfa(vec2 d) { return texture2D(tex, clamp(uv0 + vUv * (uv1 - uv0) + d * px, uv0 + px * 0.5, uv1 - px * 0.5)).a; }
+      void main() {
+        vec4 c = texture2D(tex, clamp(uv0 + vUv * (uv1 - uv0), uv0 + px * 0.5, uv1 - px * 0.5));
+        float a = 0.0;
+        for (int k = 0; k < 12; k++) { vec2 d = vec2(cos(float(k) * 0.5236), sin(float(k) * 0.5236)); a = max(a, max(alfa(d * raio), alfa(d * raio * 0.5))); }
+        float o = smoothstep(0.08, 0.55, a) * (1.0 - c.a) * ${TRACO_3D.alfa.toFixed(2)};
+        gl_FragColor = vec4(c.rgb + cor * o, c.a + o);
+      }`,
+    depthTest: false, depthWrite: false, blending: THREE.NoBlending, transparent: false,
+  });
+  p.cenaTraco = new THREE.Scene(); p.camTraco = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), p.matTraco); quad.frustumCulled = false; p.cenaTraco.add(quad);
+  zerarAtlas3d();
+  pedirModelo3d(classe, -1);                                           // o herói primeiro
   for (const l of criaturas) if (Math.hypot(l.x - viking.x, l.y - viking.y) < 30) pedirModelo3d(modeloCriatura3d(l), Math.hypot(l.x - viking.x, l.y - viking.y));
 }
 // onde o .glb não é servido (a página publicada), o mesmo modelo vem como glTF em texto (3d/<modelo>.json, com os dados
@@ -8733,6 +8768,8 @@ async function abrirModelo3d(m) {
 }
 // a aparência escolhida na vitrine 3D: cor viva (saturação) 1,35, brilho 0,95 e sem contorno (CONTORNO_3D = false)
 const COR_3D = { sat: 1.35, brilho: 0.95 }, CONTORNO_3D = false;
+// o traço em volta do boneco 3D: a cor do nanquim dos sprites e a largura em px do sprite (cresce com o zoom como a deles)
+const TRACO_3D = { cor: [20, 12, 6], px: 1.4, alfa: 0.92 };
 const GLSL_COR_3D = `
   { vec3 c = diffuseColor.rgb; float l = dot(c, vec3(0.2126, 0.7152, 0.0722)), r = max(c.r, 1e-4);
     float pele = step(c.g, c.r) * step(c.b, c.g) * smoothstep(0.25, 0.4, c.g / r) * (1.0 - smoothstep(0.8, 0.9, c.g / r)) * smoothstep(0.08, 0.18, c.b / r);
@@ -8818,16 +8855,21 @@ function clip3d(m, n) {
   return m.clips[b] ? b : null;
 }
 // ---- o atlas: prateleiras (cada pedaço fica de um quadro para o outro; quando enche, arruma tudo de novo)
+// Cada pedaço tem uma margem (MARGEM_3D px) que é limpa junto com ele a cada render: a cópia com suavização (drawImage
+// reduzindo ou ampliando) lê um pouco além do retângulo pedido, e sem a margem vinham traços retos dos vizinhos ou de
+// restos de pedaços antigos (os "quadrados" em volta dos bonecos). Ao arrumar tudo de novo, o atlas inteiro é limpo.
+const MARGEM_3D = 4;
 function zerarAtlas3d() {
   const p = P3D; p.prateleiras = []; p.yLivre = 0;
   for (const i of p.inst.values()) { i.cel = null; i.celM = null; i.valido = false; }
+  if (p.render) { p.render.setScissorTest(false); p.render.setViewport(0, 0, p.lado, p.lado); p.render.clear(true, true, false); }
 }
 function alocar3d(w, h) {
-  const p = P3D, L = p.lado;
-  for (const s of p.prateleiras) if (h <= s.h && h >= s.h * 0.75 && s.x + w <= L) { const c = { x: s.x, y: s.y, w, h }; s.x += w + 2; return c; }
-  if (w > L || p.yLivre + h > L) return null;
-  p.prateleiras.push({ y: p.yLivre, h, x: w + 2 });
-  const c = { x: 0, y: p.yLivre, w, h }; p.yLivre += h + 2;
+  const p = P3D, L = p.lado, m = MARGEM_3D, W2 = w + 2 * m, H2 = h + 2 * m;
+  for (const s of p.prateleiras) if (H2 <= s.h && H2 >= s.h * 0.75 && s.x + W2 <= L) { const c = { x: s.x + m, y: s.y + m, w, h }; s.x += W2; return c; }
+  if (W2 > L || p.yLivre + H2 > L) return null;
+  p.prateleiras.push({ y: p.yLivre, h: H2, x: W2 });
+  const c = { x: m, y: p.yLivre + m, w, h }; p.yLivre += H2;
   return c;
 }
 function instancia3d(dono, m) {
@@ -8890,7 +8932,8 @@ function pedidos3d(agora) {
     const esc = c.cfg.esc || 1;
     if (!naTela(c.x, c.y, m, esc)) continue;
     const k = c.piscar > 0 ? Math.min(1, c.piscar / 0.15) : 0;
-    l.push({ dono: c, m, anim: c.anim, t: c.t, info: c.cfg.M && c.cfg.M.animacoes[c.anim], ang: angDir3d(c.dir), esc, emis: [0.75 * k, 0.12 * k, 0.06 * k], tinta: c.cfg.tinta, morto: c.morto });
+    l.push({ dono: c, m, anim: c.anim, t: c.t, info: c.cfg.M && c.cfg.M.animacoes[c.anim], ang: angDir3d(c.dir), esc, emis: [0.75 * k, 0.12 * k, 0.06 * k], tinta: c.cfg.tinta, morto: c.morto,
+             perto: !c.morto && (c.cacando || !!c.acao) && longe(c.x, c.y) < 9 });   // lutando perto: anima em todo quadro
   }
   // os NPCs com modelo (o ferreiro e os moradores de NPC_3D)
   if (!p.npcs || p.quadro % 120 === 1) p.npcs = objetos.filter(o => o.npc && (o.tipo === "ferreiro" || (o.tipo === "pessoa" && NPC_3D[o.nome])));
@@ -8899,7 +8942,7 @@ function pedidos3d(agora) {
     if (!m || !m.ok) { const d = longe(o.x, o.y); if (d < 30) pedirModelo3d(nome, d); continue; }
     if (!naTela(o.x, o.y, m, 1)) continue;
     const [anim, t, ang] = animNpc3d(o, nome, m, agora);
-    l.push({ dono: o, m, anim, t, info: m.info[anim], ang, esc: 1, emis: [0, 0, 0] });
+    l.push({ dono: o, m, anim, t, info: m.info[anim], ang, esc: 1, emis: [0, 0, 0], perto: longe(o.x, o.y) < 6 });
   }
   return l;
 }
@@ -8933,8 +8976,8 @@ function prepararP3d(t) {
   const tam = (i, q) => {
     const c = i.m.caixa, s = PX * zoom * i.d.esc * pr * q;
     let w = (c.esq + c.dir) * s, h = (c.cima + c.baixo) * s;
-    const k = Math.min(1, p.lado / 2 / Math.max(w, h));
-    return [Math.max(16, Math.ceil(w * k / 8) * 8), Math.max(16, Math.ceil(h * k / 8) * 8)];
+    const k = Math.min(1, p.maxCel / Math.max(w, h));
+    return [Math.min(p.maxCel, Math.max(16, Math.ceil(w * k / 8) * 8)), Math.min(p.maxCel, Math.max(16, Math.ceil(h * k / 8) * 8))];
   };
   let cheio = p.qual < 1 && p.quadro % 180 === 0;                         // de vez em quando tenta voltar à qualidade cheia
   for (const i of usar) {
@@ -8960,8 +9003,8 @@ function prepararP3d(t) {
   }
   // renderiza: quem não tem a pose no atlas, sempre; o resto, quando a pose muda, cada um no seu ritmo (o herói a cada
   // quadro; os grandes na tela também; os pequenos ou longe a cada 2 a 3 quadros; os mortos a cada 4; no celular, um a mais)
-  usar.sort((a, b) => (b.d.heroi ? 1 : 0) - (a.d.heroi ? 1 : 0) || (a.valido ? 1 : 0) - (b.valido ? 1 : 0) || a.feito - b.feito);
-  const orcamento = leve ? 5 : 48;
+  usar.sort((a, b) => (b.d.heroi ? 1 : 0) - (a.d.heroi ? 1 : 0) || (a.valido ? 1 : 0) - (b.valido ? 1 : 0) || (b.d.perto ? 1 : 0) - (a.d.perto ? 1 : 0) || a.feito - b.feito);
+  const orcamento = leve ? 8 : 40;
   let renders = 0;
   for (const i of usar) {
     if (!i.cel) continue;
@@ -8969,10 +9012,10 @@ function prepararP3d(t) {
     if (i.ang === null) i.ang = d.ang;
     else { let x = d.ang - i.ang; x = Math.atan2(Math.sin(x), Math.cos(x)); i.ang += x * Math.min(1, dt * (d.heroi ? 16 : 12)); }
     const clip = i.m.clips[i.anim], tempo = tempo3d(clip, d, d.info || i.m.info[i.anim]);
-    const chave = i.anim + "|" + Math.round(tempo * (!leve ? 60 : d.heroi ? 30 : 15)) + "|" + Math.round(i.ang * 60) + "|" + d.emis.map(e => Math.round(e * 20)).join() + "|" + (d.tinta || "") + (i.mascara ? "|m" : "");
+    const chave = i.anim + "|" + Math.round(tempo * (d.heroi || d.perto ? 120 : leve ? 20 : 40)) + "|" + Math.round(i.ang * 60) + "|" + d.emis.map(e => Math.round(e * 20)).join() + "|" + (d.tinta || "") + (i.mascara ? "|m" : "");
     if (i.valido && chave === i.chave) continue;
     const hTela = (i.m.caixa.cima + i.m.caixa.baixo) * PX * zoom * d.esc;
-    const passo = d.heroi ? 1 : (d.morto ? 4 : hTela >= 130 ? 1 : hTela >= 75 ? 2 : 3) + (leve ? 2 : 0);
+    const passo = d.heroi || d.perto ? 1 : (d.morto ? 4 : hTela >= 260 ? 1 : hTela >= 140 ? 2 : 3) + (leve ? 1 : 0);
     if (i.valido && (p.quadro - i.feito < passo || renders >= orcamento)) continue;
     renderInst3d(i, clip, tempo);
     i.chave = chave; renders++;
@@ -8982,11 +9025,21 @@ function prepararP3d(t) {
   // quem sumiu da tela faz tempo sai da cena
   if (p.quadro % 300 === 0) for (const i of [...p.inst.values()]) if (p.quadro - i.pedido > 900) apagarInst3d(i);
 }
-function pintarCel3d(cel, raiz) {
-  const p = P3D, r = p.render, y = p.lado - cel.y - cel.h;
-  r.setViewport(cel.x, y, cel.w, cel.h); r.setScissor(cel.x, y, cel.w, cel.h); r.setScissorTest(true);
-  r.clear(true, true, false);
+// raio: a largura do traço em px do pedaço (0: sem traço, na máscara da arma)
+function pintarCel3d(cel, raiz, raio) {
+  const p = P3D, r = p.render, y = p.lado - cel.y - cel.h, m = MARGEM_3D;
+  r.setScissorTest(true);
+  r.setViewport(cel.x - m, y - m, cel.w + 2 * m, cel.h + 2 * m); r.setScissor(cel.x - m, y - m, cel.w + 2 * m, cel.h + 2 * m);
+  r.clear(true, true, false);                                              // o pedaço e a margem dele
+  r.setViewport(cel.x, y, cel.w, cel.h); r.setScissor(cel.x, y, cel.w, cel.h);
   raiz.visible = true; r.render(p.cena, p.cam); raiz.visible = false;
+  if (!raio || !p.matTraco) return;
+  // o traço: o pedaço vai para a textura (a posição de cópia não pode passar da borda do atlas) e volta com o traço
+  const T = p.maxCel, gx = Math.min(cel.x, p.lado - T), gy = Math.min(y, p.lado - T), u = p.matTraco.uniforms;
+  r.copyFramebufferToTexture(new THREE.Vector2(gx, gy), p.fbTex);
+  u.uv0.value.set((cel.x - gx) / T, (y - gy) / T); u.uv1.value.set((cel.x - gx + cel.w) / T, (y - gy + cel.h) / T);
+  u.px.value.set(1 / T, 1 / T); u.raio.value = raio;
+  r.render(p.cenaTraco, p.camTraco);
 }
 function renderInst3d(i, clip, tempo) {
   const p = P3D, m = i.m, d = i.d;
@@ -9002,12 +9055,12 @@ function renderInst3d(i, clip, tempo) {
   }
   const c = m.caixa;
   p.cam.left = -c.esq; p.cam.right = c.dir; p.cam.top = c.cima; p.cam.bottom = -c.baixo; p.cam.updateProjectionMatrix();
-  pintarCel3d(i.cel, i.raiz);
+  pintarCel3d(i.cel, i.raiz, Math.max(1, TRACO_3D.px * i.cel.w / ((c.esq + c.dir) * PX)));
   i.valido = true; i.feito = p.quadro;
   if (i.mascara && i.celM) {
     // a máscara do brilho: só a parte da arma que aparece (o corpo tapa sem pintar), em branco
     for (const s of i.malhas) s.o.material = s.alvo ? p.matMascara : p.matOculto;
-    pintarCel3d(i.celM, i.raiz);
+    pintarCel3d(i.celM, i.raiz, 0);
     for (const s of i.malhas) s.o.material = s.mat;
     // o centro da esfera do cajado na tela, em px dos sprites a partir dos pés (como o "esfera" do feiticeiro.json)
     i.esfera = null;
