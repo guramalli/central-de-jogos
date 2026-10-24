@@ -1,0 +1,1108 @@
+{
+ "arvore": [
+  {
+   "arq": "arvore_arvores_0.webp",
+   "w": 547,
+   "h": 660,
+   "px": 245.4,
+   "py": 633.6,
+   "ppm": 150.0,
+   "base": 2.09,
+   "modelo": "arvore_larga",
+   "livre": true,
+   "fator": 1.13
+  },
+  {
+   "arq": "arvore_arvores_1.webp",
+   "w": 560,
+   "h": 660,
+   "px": 269.1,
+   "py": 633.6,
+   "ppm": 150.0,
+   "base": 1.69,
+   "modelo": "cerejeira",
+   "livre": true,
+   "fator": 0.91
+  },
+  {
+   "arq": "arvore_arvores_2.webp",
+   "w": 460,
+   "h": 635,
+   "px": 239.4,
+   "py": 609.6,
+   "ppm": 144.32,
+   "base": 1.85,
+   "modelo": "arvore_larga",
+   "livre": true,
+   "fator": 1.0
+  },
+  {
+   "arq": "arvore_arvores_3.webp",
+   "w": 505,
+   "h": 660,
+   "px": 268.4,
+   "py": 633.6,
+   "ppm": 150.0,
+   "base": 1.86,
+   "modelo": "arvore_larga",
+   "livre": true,
+   "fator": 1.0
+  }
+ ],
+ "pinheiro": [
+  {
+   "arq": "pinheiro_pinheiros_0.webp",
+   "w": 471,
+   "h": 739,
+   "px": 210.0,
+   "py": 716.8,
+   "ppm": 142.12,
+   "base": 1.98,
+   "modelo": "pinheiro_alto",
+   "livre": true,
+   "fator": 1.02
+  },
+  {
+   "arq": "pinheiro_pinheiros_1.webp",
+   "w": 391,
+   "h": 750,
+   "px": 198.6,
+   "py": 727.5,
+   "ppm": 144.23,
+   "base": 2.09,
+   "modelo": "pinheiro_alto",
+   "livre": true,
+   "fator": 1.08
+  },
+  {
+   "arq": "pinheiro_pinheiros_2.webp",
+   "w": 409,
+   "h": 747,
+   "px": 227.8,
+   "py": 724.6,
+   "ppm": 143.65,
+   "base": 1.9,
+   "modelo": "pinheiro_vermelho",
+   "livre": true,
+   "fator": 0.98
+  },
+  {
+   "arq": "pinheiro_pinheiros_3.webp",
+   "w": 331,
+   "h": 750,
+   "px": 166.3,
+   "py": 727.5,
+   "ppm": 144.23,
+   "base": 1.61,
+   "modelo": "pinheiro_vermelho",
+   "livre": true,
+   "fator": 0.83
+  },
+  {
+   "arq": "pinheiro_natureza2_0.webp",
+   "w": 438,
+   "h": 780,
+   "px": 207.5,
+   "py": 756.6,
+   "ppm": 150.0,
+   "base": 2.08,
+   "modelo": "pinheiro_neve",
+   "livre": true,
+   "fator": 1.07
+  },
+  {
+   "arq": "pinheiro_natureza2_1.webp",
+   "w": 321,
+   "h": 780,
+   "px": 170.7,
+   "py": 756.6,
+   "ppm": 150.0,
+   "base": 1.33,
+   "modelo": "pinheiro_neve",
+   "livre": true,
+   "fator": 0.69
+  }
+ ],
+ "bambu": [
+  {
+   "arq": "bambu_natureza2_0.webp",
+   "w": 370,
+   "h": 750,
+   "px": 189.9,
+   "py": 727.5,
+   "ppm": 150.0,
+   "base": 1.69,
+   "livre": true,
+   "fator": 0.97
+  },
+  {
+   "arq": "bambu_natureza2_1.webp",
+   "w": 415,
+   "h": 750,
+   "px": 203.9,
+   "py": 727.5,
+   "ppm": 150.0,
+   "base": 1.78,
+   "livre": true,
+   "fator": 1.03
+  }
+ ],
+ "arbusto": [
+  {
+   "arq": "arbusto_arbustos_0.webp",
+   "w": 225,
+   "h": 164,
+   "px": 121.6,
+   "py": 141.0,
+   "ppm": 150.0,
+   "base": 1.32,
+   "modelo": "arbusto",
+   "livre": true,
+   "fator": 1.04
+  },
+  {
+   "arq": "arbusto_arbustos_1.webp",
+   "w": 225,
+   "h": 153,
+   "px": 95.9,
+   "py": 131.2,
+   "ppm": 150.0,
+   "base": 1.22,
+   "modelo": "arbusto",
+   "livre": true,
+   "fator": 0.96
+  },
+  {
+   "arq": "arbusto_arbustos_2.webp",
+   "w": 210,
+   "h": 163,
+   "px": 109.9,
+   "py": 139.9,
+   "ppm": 150.0,
+   "base": 1.31,
+   "modelo": "arbusto",
+   "livre": true,
+   "fator": 1.04
+  },
+  {
+   "arq": "arbusto_arbustos_3.webp",
+   "w": 195,
+   "h": 168,
+   "px": 93.4,
+   "py": 147.5,
+   "ppm": 150.0,
+   "base": 1.11,
+   "modelo": "arbusto",
+   "livre": true,
+   "fator": 0.88
+  }
+ ],
+ "arbusto_flor": [
+  {
+   "arq": "arbusto_flor_arbustos_0.webp",
+   "w": 225,
+   "h": 164,
+   "px": 112.2,
+   "py": 140.7,
+   "ppm": 150.0,
+   "base": 1.43,
+   "livre": true,
+   "fator": 1.0
+  },
+  {
+   "arq": "arbusto_flor_arbustos_1.webp",
+   "w": 225,
+   "h": 158,
+   "px": 115.3,
+   "py": 135.7,
+   "ppm": 150.0,
+   "base": 1.42,
+   "livre": true,
+   "fator": 1.0
+  }
+ ],
+ "pedra": [
+  {
+   "arq": "pedra_pedras_0.webp",
+   "w": 165,
+   "h": 133,
+   "px": 76.3,
+   "py": 112.1,
+   "ppm": 150.0,
+   "base": 0.97,
+   "modelo": "pedras",
+   "livre": true,
+   "fator": 0.61
+  },
+  {
+   "arq": "pedra_pedras_1.webp",
+   "w": 165,
+   "h": 116,
+   "px": 74.7,
+   "py": 97.2,
+   "ppm": 150.0,
+   "base": 0.99,
+   "modelo": "pedras",
+   "livre": true,
+   "fator": 0.63
+  },
+  {
+   "arq": "pedra_pedras_2.webp",
+   "w": 195,
+   "h": 151,
+   "px": 92.7,
+   "py": 126.9,
+   "ppm": 150.0,
+   "base": 1.15,
+   "modelo": "pedras",
+   "livre": true,
+   "fator": 0.73
+  },
+  {
+   "arq": "pedra_pedras_3.webp",
+   "w": 225,
+   "h": 158,
+   "px": 113.4,
+   "py": 135.7,
+   "ppm": 150.0,
+   "base": 1.33,
+   "modelo": "pedra_grande",
+   "livre": true,
+   "fator": 0.84
+  },
+  {
+   "arq": "pedra_pedras_4.webp",
+   "w": 285,
+   "h": 272,
+   "px": 134.2,
+   "py": 234.3,
+   "ppm": 150.0,
+   "base": 1.86,
+   "modelo": "pedra_grande",
+   "livre": true,
+   "fator": 1.18
+  },
+  {
+   "arq": "pedra_pedras_5.webp",
+   "w": 255,
+   "h": 179,
+   "px": 97.3,
+   "py": 143.3,
+   "ppm": 150.0,
+   "base": 1.51,
+   "modelo": "pedras",
+   "livre": true,
+   "fator": 0.96
+  },
+  {
+   "arq": "pedra_rochas_caverna_0.webp",
+   "w": 285,
+   "h": 309,
+   "px": 153.1,
+   "py": 272.0,
+   "ppm": 150.0,
+   "base": 1.82,
+   "modelo": "caverna",
+   "livre": true,
+   "fator": 1.15
+  },
+  {
+   "arq": "pedra_rochas_caverna_1.webp",
+   "w": 285,
+   "h": 298,
+   "px": 174.3,
+   "py": 261.8,
+   "ppm": 150.0,
+   "base": 1.81,
+   "modelo": "caverna",
+   "livre": true,
+   "fator": 1.15
+  },
+  {
+   "arq": "pedra_rochas_caverna_2.webp",
+   "w": 285,
+   "h": 311,
+   "px": 187.8,
+   "py": 273.4,
+   "ppm": 150.0,
+   "base": 1.79,
+   "modelo": "caverna",
+   "livre": true,
+   "fator": 1.13
+  },
+  {
+   "arq": "pedra_rochas_caverna_3.webp",
+   "w": 285,
+   "h": 283,
+   "px": 188.2,
+   "py": 248.8,
+   "ppm": 150.0,
+   "base": 1.65,
+   "modelo": "caverna",
+   "livre": true,
+   "fator": 1.04
+  }
+ ],
+ "tronco": [
+  {
+   "arq": "tronco_troncos_0.webp",
+   "w": 510,
+   "h": 373,
+   "px": 199.2,
+   "py": 252.4,
+   "ppm": 150.0,
+   "base": 2.66,
+   "livre": true,
+   "fator": 1.07
+  },
+  {
+   "arq": "tronco_troncos_1.webp",
+   "w": 480,
+   "h": 376,
+   "px": 173.8,
+   "py": 271.3,
+   "ppm": 150.0,
+   "base": 2.32,
+   "livre": true,
+   "fator": 0.93
+  }
+ ],
+ "toco": [
+  {
+   "arq": "toco_troncos_0.webp",
+   "w": 195,
+   "h": 120,
+   "px": 107.0,
+   "py": 100.6,
+   "ppm": 150.0,
+   "base": 0.98,
+   "livre": true,
+   "fator": 0.95
+  },
+  {
+   "arq": "toco_troncos_1.webp",
+   "w": 195,
+   "h": 115,
+   "px": 115.3,
+   "py": 96.7,
+   "ppm": 150.0,
+   "base": 1.09,
+   "livre": true,
+   "fator": 1.05
+  }
+ ],
+ "runa": [
+  {
+   "arq": "runa_totens_0.webp",
+   "w": 174,
+   "h": 315,
+   "px": 77.7,
+   "py": 299.2,
+   "ppm": 150.0,
+   "base": 1.08,
+   "fator": 0.99
+  },
+  {
+   "arq": "runa_totens_1.webp",
+   "w": 195,
+   "h": 315,
+   "px": 100.8,
+   "py": 299.2,
+   "ppm": 150.0,
+   "base": 1.11,
+   "fator": 1.01
+  },
+  {
+   "arq": "runa_totens_2.webp",
+   "w": 203,
+   "h": 315,
+   "px": 100.5,
+   "py": 299.3,
+   "ppm": 150.0,
+   "base": 1.14,
+   "fator": 1.04
+  },
+  {
+   "arq": "runa_totens_3.webp",
+   "w": 155,
+   "h": 315,
+   "px": 79.7,
+   "py": 299.2,
+   "ppm": 150.0,
+   "base": 1.01,
+   "fator": 0.92
+  }
+ ],
+ "boneco": [
+  {
+   "arq": "boneco_bonecos_0.webp",
+   "w": 204,
+   "h": 270,
+   "px": 110.8,
+   "py": 253.8,
+   "ppm": 150.0,
+   "base": 0.23,
+   "fator": 1.0
+  },
+  {
+   "arq": "boneco_bonecos_1.webp",
+   "w": 198,
+   "h": 270,
+   "px": 100.3,
+   "py": 253.8,
+   "ppm": 150.0,
+   "base": 0.23,
+   "fator": 1.0
+  },
+  {
+   "arq": "boneco_bonecos_2.webp",
+   "w": 197,
+   "h": 270,
+   "px": 97.6,
+   "py": 253.8,
+   "ppm": 150.0,
+   "base": 0.24,
+   "fator": 1.04
+  }
+ ],
+ "metin": [
+  {
+   "arq": "metin_metins_0.webp",
+   "w": 280,
+   "h": 390,
+   "px": 135.6,
+   "py": 366.6,
+   "ppm": 150.0,
+   "base": 1.72,
+   "fator": 1.0
+  },
+  {
+   "arq": "metin_metins_1.webp",
+   "w": 298,
+   "h": 390,
+   "px": 152.0,
+   "py": 366.6,
+   "ppm": 150.0,
+   "base": 1.59,
+   "fator": 0.92
+  },
+  {
+   "arq": "metin_metins_2.webp",
+   "w": 293,
+   "h": 390,
+   "px": 147.3,
+   "py": 366.6,
+   "ppm": 150.0,
+   "base": 1.87,
+   "fator": 1.09
+  }
+ ],
+ "fogueira": [
+  {
+   "arq": "fogueira_fogueiras_0.webp",
+   "w": 225,
+   "h": 163,
+   "px": 116.3,
+   "py": 103.0,
+   "ppm": 150.0,
+   "base": 1.33,
+   "fator": 0.75
+  },
+  {
+   "arq": "fogueira_fogueiras_1.webp",
+   "w": 345,
+   "h": 275,
+   "px": 173.4,
+   "py": 173.9,
+   "ppm": 150.0,
+   "base": 2.24,
+   "fator": 1.25
+  }
+ ],
+ "braseiro": [
+  {
+   "arq": "braseiro_fogueiras_0.webp",
+   "w": 165,
+   "h": 151,
+   "px": 105.4,
+   "py": 144.9,
+   "ppm": 150.0,
+   "base": 0.16,
+   "chama": [
+    0.47,
+    0.42
+   ],
+   "fator": 1.0
+  }
+ ],
+ "lanterna": [
+  {
+   "arq": "lanterna_luzes_0.webp",
+   "w": 155,
+   "h": 255,
+   "px": 75.3,
+   "py": 244.8,
+   "ppm": 150.0,
+   "base": 0.64,
+   "fator": 1.0
+  }
+ ],
+ "tocha": [
+  {
+   "arq": "tocha_luzes_0.webp",
+   "w": 106,
+   "h": 300,
+   "px": 53.3,
+   "py": 291.0,
+   "ppm": 150.0,
+   "base": 0.43,
+   "chama": [
+    0.53,
+    0.17
+   ],
+   "fator": 1.0
+  }
+ ],
+ "entrada": [
+  {
+   "arq": "entrada_entradas_0.webp",
+   "w": 420,
+   "h": 404,
+   "px": 222.6,
+   "py": 246.4,
+   "ppm": 150.0,
+   "base": 2.74,
+   "fator": 0.99
+  },
+  {
+   "arq": "entrada_entradas_1.webp",
+   "w": 420,
+   "h": 387,
+   "px": 231.0,
+   "py": 216.8,
+   "ppm": 150.0,
+   "base": 2.59,
+   "fator": 0.93
+  },
+  {
+   "arq": "entrada_entradas_2.webp",
+   "w": 450,
+   "h": 432,
+   "px": 270.0,
+   "py": 267.6,
+   "ppm": 150.0,
+   "base": 2.81,
+   "fator": 1.01
+  },
+  {
+   "arq": "entrada_entradas_3.webp",
+   "w": 465,
+   "h": 488,
+   "px": 269.7,
+   "py": 253.8,
+   "ppm": 150.0,
+   "base": 2.99,
+   "fator": 1.08
+  }
+ ],
+ "escada": [
+  {
+   "arq": "escada_escada_0.webp",
+   "w": 508,
+   "h": 510,
+   "px": 121.9,
+   "py": 433.5,
+   "ppm": 150.0,
+   "base": 1.99,
+   "fator": 1.0
+  }
+ ],
+ "casa": [
+  {
+   "arq": "casa_armazem_0.webp",
+   "w": 1247,
+   "h": 844,
+   "px": 734.1,
+   "py": 716.0,
+   "ppm": 150.0,
+   "base": 7.01,
+   "modelo": "armazem",
+   "luzes": [
+    [
+     0.06,
+     0.6
+    ],
+    [
+     0.35,
+     0.75
+    ],
+    [
+     0.58,
+     0.63
+    ],
+    [
+     0.94,
+     0.43
+    ]
+   ],
+   "fator": 0.88
+  },
+  {
+   "arq": "casa_casa_p_0.webp",
+   "w": 1147,
+   "h": 1040,
+   "px": 808.4,
+   "py": 918.3,
+   "ppm": 150.0,
+   "base": 7.01,
+   "modelo": "casa_p",
+   "luzes": [
+    [
+     0.25,
+     0.6
+    ],
+    [
+     0.43,
+     0.68
+    ],
+    [
+     0.8,
+     0.62
+    ]
+   ],
+   "fumaca": [
+    0.79,
+    0.19
+   ],
+   "fator": 0.88
+  },
+  {
+   "arq": "casa_casa_m_0.webp",
+   "w": 1530,
+   "h": 1020,
+   "px": 1002.0,
+   "py": 866.0,
+   "ppm": 149.99,
+   "base": 8.99,
+   "modelo": "casa_m",
+   "luzes": [
+    [
+     0.4,
+     0.67
+    ],
+    [
+     0.96,
+     0.4
+    ]
+   ],
+   "fator": 1.12
+  },
+  {
+   "arq": "casa_casa_g_0.webp",
+   "w": 1269,
+   "h": 1236,
+   "px": 973.8,
+   "py": 1121.5,
+   "ppm": 113.5,
+   "base": 11.17,
+   "modelo": "casa_g",
+   "luzes": [
+    [
+     0.15,
+     0.27
+    ],
+    [
+     0.86,
+     0.34
+    ],
+    [
+     0.08,
+     0.5
+    ],
+    [
+     0.55,
+     0.42
+    ],
+    [
+     0.56,
+     0.69
+    ],
+    [
+     0.93,
+     0.56
+    ]
+   ],
+   "fator": 1.4
+  }
+ ],
+ "ferraria": [
+  {
+   "arq": "ferraria_ferraria_0.webp",
+   "w": 1417,
+   "h": 946,
+   "px": 1003.5,
+   "py": 816.1,
+   "ppm": 150.0,
+   "base": 8.7,
+   "modelo": "ferraria",
+   "luzes": [
+    [
+     0.06,
+     0.51
+    ],
+    [
+     0.74,
+     0.52
+    ],
+    [
+     0.94,
+     0.42
+    ]
+   ],
+   "fumaca": [
+    0.23,
+    0.03
+   ],
+   "forja": [
+    0.236,
+    0.63
+   ],
+   "fator": 1.0
+  }
+ ],
+ "barraca": [
+  {
+   "arq": "barraca_loja_0.webp",
+   "w": 466,
+   "h": 311,
+   "px": 307.9,
+   "py": 265.4,
+   "ppm": 150.0,
+   "base": 2.94,
+   "modelo": "loja",
+   "fator": 1.0
+  },
+  {
+   "arq": "barraca_mercado_0.webp",
+   "w": 474,
+   "h": 443,
+   "px": 307.9,
+   "py": 387.5,
+   "ppm": 150.0,
+   "base": 2.94,
+   "modelo": "barraca",
+   "fator": 1.0
+  }
+ ],
+ "carroca": [
+  {
+   "arq": "carroca_mercado_0.webp",
+   "w": 394,
+   "h": 415,
+   "px": 220.8,
+   "py": 351.7,
+   "ppm": 150.0,
+   "base": 2.52,
+   "modelo": "carroca",
+   "fator": 1.0
+  }
+ ],
+ "poco": [
+  {
+   "arq": "poco_mercado_0.webp",
+   "w": 285,
+   "h": 391,
+   "px": 151.0,
+   "py": 313.2,
+   "ppm": 150.0,
+   "base": 1.72,
+   "modelo": "poco",
+   "fator": 1.0
+  }
+ ],
+ "caixotes": [
+  {
+   "arq": "caixotes_mercado_0.webp",
+   "w": 285,
+   "h": 196,
+   "px": 138.3,
+   "py": 176.3,
+   "ppm": 150.0,
+   "base": 1.63,
+   "modelo": "caixotes",
+   "fator": 1.0
+  }
+ ],
+ "barril": [
+  {
+   "arq": "barril_mercado_0.webp",
+   "w": 108,
+   "h": 150,
+   "px": 53.8,
+   "py": 141.0,
+   "ppm": 150.0,
+   "base": 0.57,
+   "fator": 1.0
+  }
+ ],
+ "caixote": [
+  {
+   "arq": "caixote_mercado_0.webp",
+   "w": 135,
+   "h": 139,
+   "px": 62.2,
+   "py": 128.0,
+   "ppm": 150.0,
+   "base": 0.54,
+   "fator": 1.0
+  }
+ ],
+ "ruina_arco": [
+  {
+   "arq": "ruina_arco_ruinas_0.webp",
+   "w": 514,
+   "h": 542,
+   "px": 256.5,
+   "py": 387.1,
+   "ppm": 142.78,
+   "base": 3.59,
+   "modelo": "ruina_arco",
+   "fator": 1.0
+  }
+ ],
+ "ruina_muro": [
+  {
+   "arq": "ruina_muro_ruinas_0.webp",
+   "w": 608,
+   "h": 386,
+   "px": 273.0,
+   "py": 327.0,
+   "ppm": 121.61,
+   "base": 3.33,
+   "modelo": "ruina_muro",
+   "fator": 1.0
+  }
+ ],
+ "ruina_muro_lado": [
+  {
+   "arq": "ruina_muro_lado_ruinas_0.webp",
+   "w": 608,
+   "h": 386,
+   "px": 536.5,
+   "py": 360.0,
+   "ppm": 143.19,
+   "base": 2.83,
+   "fator": 1.0
+  }
+ ],
+ "ruina_pilar": [
+  {
+   "arq": "ruina_pilar_ruinas_0.webp",
+   "w": 322,
+   "h": 510,
+   "px": 170.3,
+   "py": 484.5,
+   "ppm": 150.0,
+   "base": 1.98,
+   "fator": 1.0
+  }
+ ],
+ "ruina_caido": [
+  {
+   "arq": "ruina_caido_ruinas_0.webp",
+   "w": 622,
+   "h": 403,
+   "px": 300.0,
+   "py": 340.5,
+   "ppm": 137.73,
+   "base": 3.25,
+   "fator": 1.0
+  }
+ ],
+ "estatua": [
+  {
+   "arq": "estatua_ruinas_0.webp",
+   "w": 434,
+   "h": 450,
+   "px": 182.2,
+   "py": 427.5,
+   "ppm": 150.0,
+   "base": 1.65,
+   "modelo": "estatua",
+   "fator": 1.0
+  }
+ ],
+ "ponte": [
+  {
+   "arq": "ponte_ponte_0.webp",
+   "w": 1125,
+   "h": 737,
+   "px": 562.1,
+   "py": 507.2,
+   "ppm": 150.0,
+   "base": 7.5,
+   "modelo": "ponte",
+   "sombra": true,
+   "fator": 1.0
+  }
+ ],
+ "ponte_v": [
+  {
+   "arq": "ponte_v_ponte_0.webp",
+   "w": 1125,
+   "h": 737,
+   "px": 562.1,
+   "py": 507.2,
+   "ppm": 150.0,
+   "base": 7.5,
+   "sombra": true,
+   "fator": 1.0
+  }
+ ],
+ "pier": [
+  {
+   "arq": "pier_pier_0.webp",
+   "w": 1065,
+   "h": 743,
+   "px": 958.5,
+   "py": 653.6,
+   "ppm": 150.0,
+   "base": 7.1,
+   "modelo": "pier",
+   "sombra": true,
+   "fator": 1.0
+  }
+ ],
+ "cerca": [
+  {
+   "arq": "cerca_cercas_0.webp",
+   "w": 551,
+   "h": 406,
+   "px": 197.6,
+   "py": 344.3,
+   "ppm": 150.0,
+   "base": 2.25,
+   "fator": 1.0
+  }
+ ],
+ "cerca_v": [
+  {
+   "arq": "cerca_v_cercas_0.webp",
+   "w": 529,
+   "h": 389,
+   "px": 500.3,
+   "py": 374.1,
+   "ppm": 150.0,
+   "base": 2.16,
+   "fator": 1.0
+  }
+ ],
+ "cerca_canto": [
+  {
+   "arq": "cerca_canto_cercas_0.webp",
+   "w": 173,
+   "h": 188,
+   "px": 89.3,
+   "py": 176.2,
+   "ppm": 150.0,
+   "base": 0.54,
+   "fator": 1.0
+  }
+ ],
+ "cerca_poste": [
+  {
+   "arq": "cerca_poste_cercas_0.webp",
+   "w": 74,
+   "h": 188,
+   "px": 37.0,
+   "py": 176.2,
+   "ppm": 150.0,
+   "base": 0.5,
+   "fator": 1.06
+  },
+  {
+   "arq": "cerca_poste_cercas_1.webp",
+   "w": 68,
+   "h": 188,
+   "px": 32.6,
+   "py": 176.2,
+   "ppm": 150.0,
+   "base": 0.44,
+   "fator": 0.94
+  }
+ ],
+ "cerca_portao": [
+  {
+   "arq": "cerca_portao_cercas_0.webp",
+   "w": 292,
+   "h": 239,
+   "px": 229.0,
+   "py": 224.4,
+   "ppm": 150.0,
+   "base": 1.5,
+   "fator": 1.0
+  }
+ ],
+ "muralha": [
+  {
+   "arq": "muralha_muralha_0.webp",
+   "w": 1012,
+   "h": 630,
+   "px": 335.7,
+   "py": 534.8,
+   "ppm": 150.0,
+   "base": 3.75,
+   "modelo": "muro",
+   "fator": 1.0
+  }
+ ],
+ "muralha_v": [
+  {
+   "arq": "muralha_v_muralha_0.webp",
+   "w": 1012,
+   "h": 630,
+   "px": 957.3,
+   "py": 601.7,
+   "ppm": 150.0,
+   "base": 3.75,
+   "modelo": "muro",
+   "fator": 1.0
+  }
+ ],
+ "muralha_portao": [
+  {
+   "arq": "muralha_portao_muralha_portao_0.webp",
+   "w": 1043,
+   "h": 690,
+   "px": 442.3,
+   "py": 585.7,
+   "ppm": 150.0,
+   "base": 5.08,
+   "modelo": "portao",
+   "fator": 1.0
+  }
+ ],
+ "torre_pedra": [
+  {
+   "arq": "torre_pedra_torre_0.webp",
+   "w": 679,
+   "h": 1050,
+   "px": 337.8,
+   "py": 893.9,
+   "ppm": 150.0,
+   "base": 3.45,
+   "modelo": "torre",
+   "fator": 1.0
+  }
+ ],
+ "fogo": [
+  {
+   "arq": "fogo.webp",
+   "quadros": 8,
+   "w": 146,
+   "h": 260,
+   "px": 73.0,
+   "py": 259
+  }
+ ]
+}

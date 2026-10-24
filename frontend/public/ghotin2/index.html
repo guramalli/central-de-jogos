@@ -485,6 +485,20 @@
     .editor { right: 12px; } .editor.ficha { left: 12px; right: auto; }
     details.livro { bottom: calc(env(safe-area-inset-bottom, 0px) + 186px); }
   }
+  /* estilo B (minhwa, Tools/deco3d/estilo/BIBLIA_B.md): a interface na paleta fechada (papel, nanquim, ocre, cinabre,
+     ardósia), sem mudar o layout. ?b=0 põe a classe semB e volta às cores antigas */
+  :root:not(.semB) {
+    --chao: #1E1B18; --painel: rgba(30, 27, 24, 0.9); --linha: rgba(239, 228, 204, 0.16); --texto: #EFE4CC; --apagado: #b3a688;
+    --ouro: #C9963E; --sangue: #B8322A;
+    --jan-madeira: #2a2521; --jan-madeira2: #1E1B18; --jan-titulo1: #3B4250; --jan-titulo2: #262a33;
+    --jan-ouro: #C9963E; --jan-ouro-claro: #EFE4CC; --jan-ouro-escuro: #6b5226; --jan-preto: #120f0c;
+    --jan-campo: #16130f; --jan-poco: rgba(18, 15, 12, 0.6); --jan-poco-borda: #4a3b2a;
+  }
+  :root:not(.semB) .barra-skills { background: rgba(30, 27, 24, 0.88); border-color: #C9963E; }
+  :root:not(.semB) .slot { border-color: #8a6a36; background: #2a2521; }
+  :root:not(.semB) .slot.ativo, :root:not(.semB) .slot.sobre { border-color: #EFE4CC; }
+  :root:not(.semB) .grade-inv { background-color: #1E1B18; }
+  :root:not(.semB) :is(.yang-bolsa b, .dica-item strong, .ref-item .nomes strong, .loja .preco, .adm-nome) { color: #E3B567; }
 </style>
 
 <canvas id="campo" aria-label="Campo de treino: o viking e os bonecos"></canvas>
@@ -837,6 +851,11 @@ const ESTILO_PINTADO = (() => { const q = new URLSearchParams(location.search); 
 // o "Mundo de Tinta" (protótipo, sumi-e: nanquim e aguada sobre papel de arroz; ver TINTA): ?tinta=1 / ?tinta=0, ou
 // "estilo" = "tinta" guardado no navegador. Combina com ?pintado=1 (a arte pintada por baixo do filtro)
 const ESTILO_TINTA = (() => { const q = new URLSearchParams(location.search); if (q.has("tinta")) return q.get("tinta") !== "0"; try { return localStorage.getItem("estilo") === "tinta"; } catch (e) { return false; } })();
+// o estilo B (minhwa: Tools/deco3d/estilo/BIBLIA_B.md), o padrão: decoração de deco_b/ (na vista diagonal), chão de
+// chao_b/, ícones de itens_b/ e icones_b/ (o que faltar fica o de antes). ?b=0 volta ao estilo anterior
+const ESTILO_B = new URLSearchParams(location.search).get("b") !== "0" && !ESTILO_TINTA;
+if (!ESTILO_B) document.documentElement.classList.add("semB");             // (as cores antigas da interface)
+const B_DIRETO = new Set(["entrada", "metin", "fogo", "escada", "lanterna", "bambu", "tocha", "barril", "caixote"]);
 
 // ---------------------------------------------------------------- som (sintetizado com Web Audio, sem arquivos)
 // Cada som é montado na hora com osciladores e ruído filtrado. Sons com lugar no mapa ficam mais baixos longe da câmera
@@ -1561,6 +1580,13 @@ async function carregar() {
         if (ESTILO_PINTADO && !GIRO_DIAG) try { for (const [k, vs] of Object.entries(await (await fetch("deco_pintado.json")).json())) d[k] = vs.map(v => ({ ...v, pasta: "deco_pintado/" })); } catch (e) {}
         let dg = null;
         if (GIRO_DIAG) try { dg = await (await fetch("deco_diag.json")).json(); for (const vs of Object.values(dg)) for (const v of vs) v.pasta = "deco_diag/"; } catch (e) { dg = null; }
+        // o estilo B (minhwa, Tools/viking/deco_b): na diagonal, as peças dele valem no lugar das de deco_diag (a colisão
+        // continua a de deco.json); as que a página lê direto de DECO (entradas, Metin, a chama, a escada) e os tipos que
+        // não tinham desenho (lanterna, bambu, tocha, barril, caixote) entram em DECO. O que faltar fica o de antes
+        if (GIRO_DIAG && ESTILO_B) try {
+          const b = await (await fetch("deco_b.json")).json(); dg = dg || {};
+          for (const [k, vs] of Object.entries(b)) { for (const v of vs) v.pasta = "deco_b/"; if (d[k] && !B_DIRETO.has(k)) dg[k] = vs; else d[k] = vs; }
+        } catch (e) {}
         await Promise.all([...Object.values(d).flat(), ...(dg ? Object.values(dg).flat() : [])].map(v => new Promise(ok => {
           const im = new Image(); im.onerror = ok; im.onload = () => { DECO_IMG[v.arq] = im; Promise.race([im.decode ? im.decode().catch(() => {}) : 0, new Promise(r => setTimeout(r, 1500))]).then(ok); }; im.src = (v.pasta || "deco/") + v.arq;   // (o decode() pode não voltar numa aba escondida: no máximo 1,5 s)
         })));
@@ -1572,8 +1598,8 @@ async function carregar() {
     ...Object.keys(TEX).map(n => new Promise(ok => {
       const im = new Image(), fim = () => { feitos++; $("#barra").style.width = (100 * feitos / total) + "%"; ok(); };
       im.onload = () => { TEX[n] = im; fim(); };
-      im.onerror = () => { if (im.src.includes("chao_pintado/")) im.src = "chao/" + n + ".webp"; else fim(); };   // (sem a pintada, a de sempre)
-      im.src = (ESTILO_PINTADO ? "chao_pintado/" : "chao/") + n + ".webp";
+      im.onerror = () => { if (im.src.includes("chao_pintado/") || im.src.includes("chao_b/")) im.src = "chao/" + n + ".webp"; else fim(); };   // (sem a pintada, a de sempre)
+      im.src = (ESTILO_B ? "chao_b/" : ESTILO_PINTADO ? "chao_pintado/" : "chao/") + n + ".webp";
     })),
     ...Object.keys(FX).map(n => new Promise((ok, erro) => {
       const im = new Image();
@@ -1591,6 +1617,7 @@ async function carregar() {
   // ícones pintados das skills (icones.json: nome → imagem); a skill sem ícone pintado continua com o desenhado por código
   try {
     const mapa = await (await fetch("icones.json")).json();
+    if (ESTILO_B) try { Object.assign(mapa, await (await fetch("icones_b.json")).json()); } catch (e) {}   // (os do estilo B por cima: icones_b/)
     await Promise.all(Object.entries(mapa).map(([nome, arq]) => new Promise(ok => {
       const im = new Image(); im.onload = () => { ICONES_SKILL[nome] = im; ok(); }; im.onerror = ok; im.src = arq;
     })));
@@ -1598,6 +1625,7 @@ async function carregar() {
   // ícones pintados dos itens (itens.json: desenho ou peca:<slot>:<tier> → imagem); o item sem pintura fica no desenho por código
   try {
     const mapa = await (await fetch("itens.json")).json();
+    if (ESTILO_B) try { Object.assign(mapa, await (await fetch("itens_b.json")).json()); } catch (e) {}   // (os do estilo B por cima: itens_b/)
     await Promise.all(Object.entries(mapa).map(([chave, arq]) => new Promise(ok => {
       const im = new Image(); im.onload = () => { ICONES_ITEM[chave] = im; ok(); }; im.onerror = ok; im.src = arq;
     })));
@@ -1701,7 +1729,7 @@ function borda(x, y) { const a = Math.atan2(y, x); return Math.hypot(x, y) + des
 // quanto este ponto é montanha (0 até o fim do vale, 1 na Montanha Gelada) e quanto é vale (0 na ilha, 1 na península)
 const pesoMonte = (x, y) => liso((x - MONTE_X + 4) / 10);
 const pesoVale = (x, y) => liso((x - VALE_X) / 8) * (1 - pesoMonte(x, y));
-function praca(x, y) { return Math.hypot(x - PRACA.x, y - PRACA.y) < PRACA.r; }
+function praca(x, y) { return Math.hypot(x - PRACA.x, y - PRACA.y) < PRACA.r || ruaCidade(x, y); }   // (com ?cidade=1, as ruas de pedra também)
 function estrada(x, y) { for (const e of ESTRADAS) if (distLinha(x, y, e) < 0.8 + (ruido2(x * 0.7, y * 0.7) - 0.5) * 0.35) return true; return false; }
 const trilha = estrada;
 const raioLago = a => LAGO.r + Math.sin(a * 3) * 0.5 + Math.sin(a * 7) * 0.25;
@@ -1788,7 +1816,7 @@ function corChao(x, y, l) {
 // funções do mapa; e um tom de luz e sombra em escala grande, para a repetição das texturas não aparecer. As máscaras
 // (uma célula a cada 0,25 m, com uma de folga em volta para emendar com o pedaço vizinho) ficam guardadas: no zoom só a
 // pintura é refeita.
-const TEX = { grama: null, musgo: null, terra: null, ...(ESTILO_PINTADO ? { calcamento: null } : {}) };   // (o calçamento pintado da praça só no estilo pintado)
+const TEX = { grama: null, musgo: null, terra: null, ...(ESTILO_PINTADO || ESTILO_B ? { calcamento: null } : {}), ...(ESTILO_B ? { areia: null, caverna: null } : {}) };   // (estilo B: chao_b/, com areia da praia e o chão das cavernas)   // (o calçamento pintado da praça só no estilo pintado)
 const TEX_M = 4.5;                          // metros que cada textura cobre antes de repetir
 const MASC_C = 0.25, mascaras = new Map();
 let contornoGrama = null;
@@ -1924,7 +1952,7 @@ function pedaco(i, j, esc) {
   const cantos = [daVista(x0, y1), daVista(x0 + PEDACO, y1), daVista(x0, y1 - PEDACO), daVista(x0 + PEDACO, y1 - PEDACO)];
   const mx0 = Math.min(...cantos.map(p => p[0])), mx1 = Math.max(...cantos.map(p => p[0])), my0 = Math.min(...cantos.map(p => p[1])), my1 = Math.max(...cantos.map(p => p[1]));
   // praia: a ilha inteira em areia (contorno liso), o gramado em ladrilhos por cima
-  caminho(costa, true); g.fillStyle = "#d9c08a"; g.fill();
+  caminho(costa, true); g.fillStyle = TEX.areia ? padraoChao(g, TEX.areia, x0, y1, esc) : "#d9c08a"; g.fill();
   g.strokeStyle = "#bfa36d"; g.lineWidth = 0.9 * esc; g.stroke();
   const pintado = !!TEX.grama;                                            // com as texturas: grama pintada, ladrilhos só na praça
   if (pintado) pintarChaoTextura(g, i, j, esc, c.width, c.height, caminho);
@@ -1947,8 +1975,8 @@ function pedaco(i, j, esc) {
   }
   // lago: barranco, água, beira clara
   caminho(contornoLago(0.55), true); g.fillStyle = "#6f5a3c"; g.fill();
-  caminho(contornoLago(0), true); g.fillStyle = "#2f6d85"; g.fill();
-  caminho(contornoLago(-0.5), true); g.strokeStyle = "rgba(120, 190, 205, 0.5)"; g.lineWidth = 0.6 * esc; g.stroke();
+  caminho(contornoLago(0), true); g.fillStyle = ESTILO_B ? "#2D5570" : "#2f6d85"; g.fill();
+  caminho(contornoLago(-0.5), true); g.strokeStyle = ESTILO_B ? "rgba(62, 122, 92, 0.8)" : "rgba(120, 190, 205, 0.5)"; g.lineWidth = 0.6 * esc; g.stroke();
   caminho(contornoLago(0), true); g.strokeStyle = TINTA; g.lineWidth = Math.max(1, 0.025 * esc); g.stroke();
   // fosso do castelo: margem de pedra por dentro, água, beira clara
   if (COM_CASTELO) {
@@ -2112,10 +2140,10 @@ function desenharChao() {
 // ---------- mar, espuma, água viva ----------
 function desenharMar(t) {
   const s = PX * zoom;
-  cx.fillStyle = "#215f78"; cx.fillRect(0, 0, W, H);
+  cx.fillStyle = ESTILO_B ? "#2D4A6B" : "#215f78"; cx.fillRect(0, 0, W, H);   // (estilo B: o índigo da paleta)
   // marolas: marquinhas numa grade fixa no mundo, que aparecem e somem
   const [mx0, mx1, my0, my1] = caixaVista(3);
-  cx.strokeStyle = "rgba(190, 230, 240, 0.35)"; cx.lineWidth = Math.max(1, s * 0.02); cx.lineCap = "round";
+  cx.strokeStyle = ESTILO_B ? "rgba(239, 228, 204, 0.45)" : "rgba(190, 230, 240, 0.35)"; cx.lineWidth = Math.max(1, s * (ESTILO_B ? 0.03 : 0.02)); cx.lineCap = "round";
   for (let i = Math.floor(mx0 / 2.4); i <= Math.ceil(mx1 / 2.4); i++)
     for (let j = Math.floor(my0 / 2.4); j <= Math.ceil(my1 / 2.4); j++) {
       const x = (i + hash(i, j, 21)) * 2.4, y = (j + hash(i, j, 22)) * 2.4;
@@ -2135,17 +2163,17 @@ function linhaMundo(pts) {
 function desenharCosta(t) {
   const s = PX * zoom;
   cx.save(); cx.lineJoin = "round";
-  linhaMundo(costaRasa); cx.strokeStyle = "rgba(95, 175, 190, 0.55)"; cx.lineWidth = 2.6 * s; cx.stroke();
+  linhaMundo(costaRasa); cx.strokeStyle = ESTILO_B ? "rgba(62, 122, 92, 0.75)" : "rgba(95, 175, 190, 0.55)"; cx.lineWidth = 2.6 * s; cx.stroke();   // (B: o raso em jade)
   for (let k = 0; k < 2; k++) {
     const vai = 0.5 + 0.5 * Math.sin(t * 1.1 + k * Math.PI);
-    linhaMundo(pontosCosta(0.25 + 0.55 * vai)); cx.strokeStyle = `rgba(245, 250, 250, ${0.25 + 0.4 * (1 - vai)})`; cx.lineWidth = Math.max(1, s * (0.06 + 0.05 * (1 - vai))); cx.stroke();
+    linhaMundo(pontosCosta(0.25 + 0.55 * vai)); cx.strokeStyle = ESTILO_B ? `rgba(239, 228, 204, ${0.35 + 0.45 * (1 - vai)})` : `rgba(245, 250, 250, ${0.25 + 0.4 * (1 - vai)})`; cx.lineWidth = Math.max(1, s * (0.06 + 0.05 * (1 - vai))); cx.stroke();
   }
-  linhaMundo(costa); cx.strokeStyle = "rgba(255, 255, 255, 0.55)"; cx.lineWidth = Math.max(1, s * 0.05); cx.stroke();
+  linhaMundo(costa); cx.strokeStyle = ESTILO_B ? "rgba(30, 27, 24, 0.75)" : "rgba(255, 255, 255, 0.55)"; cx.lineWidth = Math.max(1, s * (ESTILO_B ? 0.035 : 0.05)); cx.stroke();   // (B: a beira em nanquim)
   cx.restore();
 }
 function desenharAguaViva(t) {
   const s = PX * zoom;
-  cx.save(); cx.strokeStyle = "rgba(220, 240, 255, 0.45)"; cx.lineWidth = Math.max(1, s * 0.015);
+  cx.save(); cx.strokeStyle = ESTILO_B ? "rgba(239, 228, 204, 0.5)" : "rgba(220, 240, 255, 0.45)"; cx.lineWidth = Math.max(1, s * 0.015);
   for (let k = 0; k < 8; k++) {                                              // reflexos no lago
     const a = t * 0.3 + k * 0.8, r = (0.25 + (k % 4) * 0.17) * LAGO.r;
     const [px, py] = tela(LAGO.x + Math.cos(a * 0.7 + k) * r * 0.6 - cam.x, LAGO.y + Math.sin(a + k) * r * 0.4 - cam.y);
@@ -2232,7 +2260,7 @@ const DECO_ESTACAO = {};
 const FILTRO_ESTACAO = { 1: "saturate(1.15) brightness(1.04)", 2: "hue-rotate(-38deg) saturate(1.25) brightness(1.02)", 3: "saturate(0.3) brightness(1.18)" };
 const MUDA_NA_ESTACAO = new Set(["arvore", "arbusto", "arbusto_flor", "pinheiro"]);
 function imagemEstacao(arq, tipo, forca) {                             // forca: a estação fixa (3: os pinheiros da montanha, com neve)
-  const e = forca || estacaoAtual(); if (!e || !MUDA_NA_ESTACAO.has(tipo) || (e === 2 && tipo === "pinheiro")) return DECO_IMG[arq];
+  const e = forca || estacaoAtual(); if (!e || (!MUDA_NA_ESTACAO.has(tipo) && !(forca === 3 && tipo === "pedra")) || (e === 2 && tipo === "pinheiro")) return DECO_IMG[arq];   // (as pedras da montanha também com neve)
   const k = arq + ":" + e; if (DECO_ESTACAO[k]) return DECO_ESTACAO[k];
   const im = DECO_IMG[arq], c = document.createElement("canvas"); c.width = im.width; c.height = im.height;
   const g = c.getContext("2d"); g.filter = FILTRO_ESTACAO[e]; g.drawImage(im, 0, 0); g.filter = "none";
@@ -2256,14 +2284,14 @@ function desenharClima(t, dt) {
     const p = flocos[k];
     if (e === 1) {                                                        // vaga-lumes piscando
       const X = (p.x * W + Math.sin(t * 0.4 + p.f) * 30) % W, Y = (p.y * H + Math.cos(t * 0.3 + p.f) * 20) % H, a = Math.max(0, Math.sin(t * 2 + p.f * 3));
-      cx.fillStyle = `rgba(220, 255, 120, ${0.8 * a})`; cx.beginPath(); cx.arc(X, Y, 2.2, 0, 7); cx.fill(); continue;
+      cx.fillStyle = ESTILO_B ? `rgba(233, 205, 120, ${0.85 * a})` : `rgba(220, 255, 120, ${0.8 * a})`; cx.beginPath(); cx.arc(X, Y, 2.2, 0, 7); cx.fill(); continue;
     }
     p.y += dt * p.v * (e === 3 ? 0.08 : 0.06); p.x += dt * (e === 3 ? 0.01 : 0.025) * Math.sin(t * 0.8 + p.f);
     if (p.y > 1.02) { p.y = -0.02; p.x = Math.random(); }
     const X = ((p.x % 1) + 1) % 1 * W, Y = p.y * H;
-    if (e === 3) { cx.fillStyle = "rgba(255, 255, 255, 0.85)"; cx.beginPath(); cx.arc(X, Y, 1.2 + p.r * 1.3, 0, 7); cx.fill(); }
+    if (e === 3) { cx.fillStyle = ESTILO_B ? "rgba(239, 228, 204, 0.9)" : "rgba(255, 255, 255, 0.85)"; cx.beginPath(); cx.arc(X, Y, 1.2 + p.r * 1.3, 0, 7); cx.fill(); }
     else {
-      cx.save(); cx.translate(X, Y); cx.rotate(t * 2 + p.f); cx.fillStyle = e === 2 ? ["#c8641e", "#e09a2a", "#a8401a"][k % 3] : ["#f6c8dc", "#ffffff", "#f0a8c8"][k % 3];
+      cx.save(); cx.translate(X, Y); cx.rotate(t * 2 + p.f); cx.fillStyle = ESTILO_B ? (e === 2 ? ["#B8322A", "#C9963E", "#A47630"][k % 3] : ["#EFE4CC", "#E7B9AE", "#B8322A"][k % 3]) : e === 2 ? ["#c8641e", "#e09a2a", "#a8401a"][k % 3] : ["#f6c8dc", "#ffffff", "#f0a8c8"][k % 3];   // (B: cinabre, ocre e papel)
       cx.beginPath(); cx.ellipse(0, 0, 4 * p.r, 2 * p.r, 0, 0, 7); cx.fill(); cx.restore();
     }
   }
@@ -2295,6 +2323,7 @@ function desenharLuzDoDia(t) {
     }
   }
   for (const m of magias) { const [X, Y] = noMundo(m.x, m.y, m.z); furo(X, Y, 1.8 * s, 0.8); }
+  predLuz(furo);
   cx.save(); cx.setTransform(1, 0, 0, 1, 0, 0); cx.drawImage(escuroNoite, 0, 0); cx.restore();
 }
 function montarTempo() {
@@ -2448,7 +2477,7 @@ function efeitosEstrutura(o, v, x0, y0, w, h, t) {
   const fum = dg ? v.fumaca : c.fumaca && c.fumaca[vi % c.fumaca.length];
   if (fum) for (let k = 0; k < 4; k++) {
     const u = ((t * 0.28 + k / 4 + o.x * 0.13) % 1 + 1) % 1, fx = x0 + fum[0] * w + Math.sin(u * 5 + k + t * 0.7) * s * 0.18 + u * s * 0.5, fy = y0 + fum[1] * h - u * s * 2.2;
-    cx.fillStyle = `rgba(150, 146, 140, ${0.32 * (1 - u) * Math.min(1, u * 5)})`; cx.beginPath(); cx.arc(fx, fy, s * (0.16 + u * 0.38), 0, 7); cx.fill();
+    cx.fillStyle = `rgba(140, 138, 128, ${0.32 * (1 - u) * Math.min(1, u * 5)})`;   // (o cinza pedra da paleta B) cx.beginPath(); cx.arc(fx, fy, s * (0.16 + u * 0.38), 0, 7); cx.fill();
   }
   const luzes = (dg ? v.luzes : c.luzes && c.luzes[vi % c.luzes.length]) || [];
   const fogo = dg ? (v.forja ? [v.forja] : []) : c.forja ? [c.forja] : [];
@@ -2557,27 +2586,64 @@ function linha(g, w) { g.strokeStyle = TINTA; g.lineWidth = w; g.lineJoin = "rou
 function noMundo(x, y, z = 0) { if (window.M3D && M3D.ativo) return M3D.noMundo(x, y, z); const [a, b] = tela(x - cam.x, y - cam.y); return [W / 2 + a, H / 2 + b - z * PX * zoom * ALTURA]; }
 // o viking está atrás deste retângulo da tela (então o que fica na frente dele fica translúcido)
 function cobreViking(x0, y0, x1, y1, ySul) { return cobreAlguem([x0, y0, x1, y1], ySul, quemSome); }
-// ---------------------------------------------------------------- vegetação que balança
-// Tufos de capim e flores em grupinhos por cima do chão, desenhados a cada quadro com as pontas levadas pelo vento: uma
-// onda que corre pelo campo, um tremor miúdo e rajadas de vez em quando. Cada célula de 0,9 m sorteia o que tem uma vez
-// só (guardado). Na mata, capim mais alto e escuro; nos campos, capim claro e flores.
-const VEG_C = 0.9, vegCache = new Map();
-const COR_FLOR = ["#f2d75e", "#f6f2e4", "#cf94d6", "#ef7e64", "#8cbcf2"];
+// ---------------------------------------------------------------- vegetação que balança (estilo B)
+// Capim, mato alto, flores silvestres e folhagem da mata por cima do chão, na paleta do estilo B (pinho, folha, jade;
+// flores cinabre, ocre, papel e índigo; traço de pincel discreto só nas folhas maiores). Cada touceira é um desenho
+// pronto num atlas (vegAtlas: lâminas afinando, espigas, 6 formas de flor, samambaias, folhas largas; um atlas por
+// estação: primavera/verão, outono dourado, inverno seco com neve nas pontas), desenhado a cada quadro com drawImage
+// (o mesmo atlas: o navegador junta tudo) e uma inclinação (skew) a partir do pé: o vento e o empurrão envergam a
+// touceira inteira, o empurrão também a deita (achata).
+// Cada célula de VEG_C m sorteia o que tem uma vez só (vegCache): capim curto, mato alto (0,35 a 0,9 m) nas bordas da
+// mata, beiras de estrada e manchas pelos campos, grupos de flores, samambaias e folhas largas na mata. Nada nasce sobre
+// calçamento (praça, ruas da cidade), estrada, água, castelo ou dentro das construções do kit (predInst).
+// Empurrão: o herói e as criaturas mais perto dele (até 8; modo leve 4) abrem o mato para os lados e o deitam; cada
+// célula tocada vira uma mola amortecida (vegAtivas) que volta devagar; correr afasta mais que andar; passando por
+// flores e mato alto, às vezes soltam pétalas e folhinhas (vegParticulas). O mato alto perto de quem anda entra na lista
+// da profundidade (vegLista), em lotes por faixa: fica na frente das pernas de quem está atrás dele; o resto vai no chão.
+// Modo leve (celular): ~45% das células e o atlas em resolução menor.
+const VEG_C = 0.6, vegCache = new Map(), vegAtivas = new Set(), vegParticulas = [];
+const VEG_LEVE = !!window.MODO_LEVE, VEG_PPM = VEG_LEVE ? 72 : 120;
+// as cores (primavera/verão, outono, inverno): lâmina escura, clara, jade; espiga; caule; folha e folha clara
+const VEG_COR = [
+  { esc: "#2F5D3A", cla: "#6E9A4A", jad: "#3E7A5C", esp: "#C9963E", cau: "#2F5D3A", fol: "#3E7A5C", folC: "#6E9A4A" },
+  { esc: "#7A5A26", cla: "#C9963E", jad: "#A47630", esp: "#B8322A", cau: "#7A5A26", fol: "#A47630", folC: "#C9963E" },
+  { esc: "#5E5040", cla: "#A49577", jad: "#7A6E5A", esp: "#EFE4CC", cau: "#5E5040", fol: "#6E6B64", folC: "#A49577" },
+];
+const VEG_FLOR = ["#EFE4CC", "#B8322A", "#2D4A6B", "#C9963E", "#EFE4CC", "#B8322A"];   // (a cor de cada forma de flor)
+const VEG_FLOR2 = ["#C9963E", "#1E1B18", "#EFE4CC", "#A47630", "#C9963E", "#2D4A6B"];  // (o miolo / a segunda cor)
+const COR_FLOR = VEG_FLOR;                                                             // (o nome antigo)
+// quantos desenhos de cada tipo o atlas tem
+const VEG_N = { grama: 8, capim: 10, flor: 12, samambaia: 4, folhas: 3 };
+function vegNaConstrucao(x, y) { return typeof predInst !== "undefined" && predInst.some(p => x > p.base[0] - 0.3 && x < p.base[1] + 0.3 && y > p.base[2] - 1.4 && y < p.base[3] + 0.3); }
 function vegDa(ci, cj) {
   const k = ci + "," + cj;
   let v = vegCache.get(k);
   if (v !== undefined) return v;
   v = null;
-  const x = (ci + hash(ci, cj, 21)) * VEG_C, y = (cj + hash(ci, cj, 22)) * VEG_C, h = hash(ci, cj, 23), h2 = hash(ci, cj, 24);
-  if (borda(x, y) < RAIO - 3.4 && !agua(x, y) && !lago(x, y, 1.1) && !praca(x, y) && !estrada(x, y) && !noCastelo(x, y, 0.3) && x < MONTE_X - 2) {
-    if (floresta(x, y)) { if (h < 0.3) v = { x, y, tipo: "tufo", mata: true, alto: 0.3 + h2 * 0.2, n: 6 + Math.floor(h2 * 3) }; }
-    else {
-      const campo = fbm(x * 0.15 - 7, y * 0.15 + 4);
-      if (h < 0.3) v = { x, y, tipo: "tufo", alto: 0.18 + h2 * 0.14, n: 5 + Math.floor(h2 * 3) };
-      else if (h < 0.3 + 0.18 * campo) v = { x, y, tipo: "flor", alto: 0.2 + h2 * 0.12, cor: Math.floor(hash(Math.floor(x / 3), Math.floor(y / 3), 9) * 5), n: 3 + Math.floor(h2 * 3) };
+  const x = (ci + 0.15 + hash(ci, cj, 21) * 0.7) * VEG_C, y = (cj + 0.15 + hash(ci, cj, 22) * 0.7) * VEG_C, h = hash(ci, cj, 23), r = hash(ci, cj, 24), r2 = hash(ci, cj, 25);
+  if ((!VEG_LEVE || hash(ci, cj, 77) < 0.42) && borda(x, y) < RAIO - 3.4 && !agua(x, y) && !lago(x, y, 1.1) && !praca(x, y) && !estrada(x, y) && !noCastelo(x, y, 0.3) && x < MONTE_X - 2 && !vegNaConstrucao(x, y)) {
+    // o quanto o lugar puxa mato alto: a borda da mata, a beira da estrada e manchas pelos campos
+    const c = distClareira(x, y), mg = x > VALE_X - 4 || c < 0 ? -1 : fbm(x * 0.07 + 3, y * 0.07 - 2) - (0.55 + 0.2 * Math.max(0, 1 - c / 5));
+    const mata = mg > 0 && Math.hypot(x - PRACA.x, y - PRACA.y) > 10 && (!COM_CASTELO || retArred(x, y, FOSSO) > 4);
+    let dE = 99; for (const e of ESTRADAS) dE = Math.min(dE, distLinha(x, y, e));
+    const alta = Math.max(mata ? 0 : Math.max(0, 1 - Math.abs(mg) / 0.09), dE < 3.4 ? 1 - Math.max(0, dE - 1.0) / 2.4 : 0,
+                          Math.max(0, Math.min(1, (fbm(x * 0.11 + 11, y * 0.11 - 4) - 0.58) / 0.12)));
+    const cel = (tipo, q, esc) => ({ x, y, tipo, q, esc, esp: r2 < 0.5 });
+    if (mata) {
+      if (h < 0.42) v = cel("capim", Math.floor(r * 5), 0.85 + 0.3 * r2);                     // (o capim da mata: os desenhos mais baixos)
+      else if (h < 0.6) v = cel("samambaia", Math.floor(r * VEG_N.samambaia), 0.85 + 0.35 * r2);
+      else if (h < 0.7) v = cel("folhas", Math.floor(r * VEG_N.folhas), 0.9 + 0.3 * r2);
+      else if (h < 0.85) v = cel("grama", Math.floor(r * VEG_N.grama), 1);
+    } else if (h < alta * 0.8) {
+      v = cel("capim", Math.min(VEG_N.capim - 1, Math.floor(alta * 6 + r * 4)), 0.85 + 0.3 * r2);
+    } else {
+      const campo = fbm(x * 0.15 - 7, y * 0.15 + 4), pf = 0.1 + 0.3 * campo;
+      if (h < 0.82 - pf) { if (!VEG_LEVE || hash(ci, cj, 78) < 0.55) v = cel("grama", Math.floor(r * VEG_N.grama), 0.85 + 0.3 * r2); }   // (no leve, menos capim curto)
+      else if (h < 0.82) v = cel("flor", Math.floor(hash(Math.floor(x / 2.5), Math.floor(y / 2.5), 9) * 6) * 2 + (r < 0.5 ? 0 : 1), 0.9 + 0.25 * r2);
     }
+    if (v) { v.pl = 0; v.vl = 0; v.pf = 0; v.vf = 0; v.tl = 0; v.tf = 0; v.ci = ci; v.cj = cj; v.alto = v.tipo === "capim" || v.tipo === "samambaia"; }
   }
-  if (vegCache.size > 30000) vegCache.clear();
+  if (vegCache.size > 40000) { vegCache.clear(); vegAtivas.clear(); }
   vegCache.set(k, v);
   return v;
 }
@@ -2586,50 +2652,200 @@ function vento(x, y, t) {
   const rajada = Math.pow(Math.max(0, Math.sin(t * 0.45 + x * 0.06 - y * 0.03)), 4);
   return 0.16 * Math.sin(t * 1.7 + x * 0.45 + y * 0.28) + 0.06 * Math.sin(t * 3.4 + x * 1.3 - y * 0.7) + 0.38 * rajada;
 }
-function desenharVegetacao(t) {
-  if (MODO_TESTE) return;
-  const est = estacaoAtual(); if (est === 3) return;                          // inverno: o capim some debaixo da neve
-  const s = PX * zoom;
-  if (s < 38 || !TEX.grama) return;                                       // longe demais: nem se vê
-  const [mx0, mx1, my0, my1] = caixaVista(1, 1.5);                       // (a caixa do mapa que a tela mostra, com o giro)
-  const i0 = Math.floor(mx0 / VEG_C), i1 = Math.ceil(mx1 / VEG_C);
-  const j0 = Math.floor(my0 / VEG_C), j1 = Math.ceil(my1 / VEG_C);
-  const fundo = new Path2D(), claro = new Path2D(), fundoMata = new Path2D(), claroMata = new Path2D(), caules = new Path2D();
-  const flores = COR_FLOR.map(() => new Path2D()), miolos = new Path2D();
-  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
-    const v = vegDa(i, j); if (!v) continue;
-    const [X, Y] = noMundo(v.x, v.y);
-    if (X < -s || X > W + s || Y < -s || Y > H + s) continue;                // (com o giro a caixa do mapa passa da tela)
-    const w = vento(v.x, v.y, t), alto = v.alto * s * ALTURA;
-    if (v.tipo === "tufo") {
-      const a = v.mata ? fundoMata : fundo, b = v.mata ? claroMata : claro;
-      for (let k = 0; k < v.n; k++) {
-        const u = k / (v.n - 1) - 0.5, hk = alto * (0.65 + 0.35 * hash(k, i, j)), bx = X + u * s * 0.14;
-        const tx = bx + u * s * 0.16 + w * hk * 0.9, ty = Y - hk * (1 - Math.abs(w) * 0.15);
-        const qx = bx + u * s * 0.05 + w * hk * 0.3, qy = Y - hk * 0.55;
-        for (const pth of [a, b]) { pth.moveTo(bx, Y); pth.quadraticCurveTo(qx, qy, tx, ty); }
+// ---- o atlas: cada touceira desenhada uma vez (pé no meio da borda de baixo), por estação
+const vegAtlas = {};
+function vegAtlasDe(pal) {
+  if (vegAtlas[pal]) return vegAtlas[pal];
+  const C = VEG_COR[pal], P = VEG_PPM, inverno = pal === 2, R = (a, b) => hash(a * 31 + pal, b * 17, 401);
+  const quadros = { grama: [], capim: [], flor: [], samambaia: [], folhas: [] };
+  const lista = [];
+  for (const [tipo, n] of Object.entries(VEG_N)) for (let q = 0; q < n; q++) {
+    // o tamanho do quadro (m) de cada desenho
+    const alt = tipo === "capim" ? 0.4 + 0.55 * q / (n - 1) : tipo === "grama" ? 0.24 : tipo === "flor" ? 0.42 : tipo === "samambaia" ? 0.6 : 0.3;
+    const larg = tipo === "capim" ? 0.75 + 0.25 * q / (n - 1) : tipo === "samambaia" ? 1.1 : tipo === "folhas" ? 0.75 : 0.62;
+    lista.push({ tipo, q, w: Math.ceil(larg * P) + 4, h: Math.ceil((alt + 0.08) * P) + 4, alt });
+  }
+  // empacota em fileiras
+  const LARG = 1024; let x = 0, y = 0, lh = 0;
+  for (const d of lista) { if (x + d.w > LARG) { x = 0; y += lh; lh = 0; } d.sx = x; d.sy = y; x += d.w; lh = Math.max(lh, d.h); }
+  const cv = document.createElement("canvas"); cv.width = LARG; cv.height = y + lh;
+  const g = cv.getContext("2d"); g.lineCap = "round"; g.lineJoin = "round";
+  const lam = (bx, by, hgt, w, abre, cor) => {          // uma lâmina afinando (de pé, sem vento)
+    const tx = bx + abre * P, ty = by - hgt * P, qx = bx + abre * P * 0.3, qy = by - hgt * P * 0.55, bw = Math.max(0.7, w * P * 0.5);
+    g.fillStyle = cor; g.beginPath(); g.moveTo(bx - bw, by); g.quadraticCurveTo(qx - bw * 0.3, qy, tx, ty); g.quadraticCurveTo(qx + bw * 0.3, qy, bx + bw, by); g.fill();
+    return [tx, ty];
+  };
+  const ponto = (px, py, r, cor) => { g.fillStyle = cor; g.beginPath(); g.arc(px, py, r, 0, 6.29); g.fill(); };
+  for (const d of lista) {
+    const bx = d.sx + d.w / 2, by = d.sy + d.h - 2, q = d.q;
+    if (d.tipo === "grama" || d.tipo === "capim") {
+      const alto = d.tipo === "capim", n = alto ? 11 + (q % 4) : 9 + (q % 3), larg = (d.w - 6) / P * 0.62;
+      // as de trás (escuras) primeiro, as da frente (claras) por cima
+      const ls = Array.from({ length: n }, (_, k) => { const u = (k + R(q, k)) / n - 0.5; return { u, hgt: d.alt * (0.45 + 0.55 * R(q + 50, k)), w: (alto ? 0.05 : 0.034) * (0.7 + 0.6 * R(q + 90, k)), c: R(q + 130, k) }; });
+      ls.sort((a, b) => a.c - b.c);
+      for (const l of ls) {
+        if (inverno && !alto) continue;
+        const [tx, ty] = lam(bx + l.u * larg * P, by - (1 - Math.abs(l.u)) * 0.03 * P, l.hgt, l.w, l.u * 0.32 + (R(q + 170, l.c * 99) - 0.5) * 0.12, l.c < 0.35 ? C.esc : l.c < 0.72 ? C.jad : C.cla);
+        if (alto && R(q + 210, l.c * 77) < 0.3) { g.fillStyle = C.esp; g.beginPath(); g.ellipse(tx, ty + P * 0.02, P * 0.018, P * 0.05, l.u * 0.6, 0, 6.29); g.fill(); }
+        if (inverno && alto) ponto(tx, ty, P * 0.028, "#EFE4CC");
       }
-    } else {
-      for (let k = 0; k < v.n; k++) {
-        const ox = (hash(k, i, j + 7) - 0.5) * s * 0.3, oy = (hash(k, j, i + 3) - 0.5) * s * 0.1, hk = alto * (0.7 + 0.3 * hash(k, i + 5, j));
-        const bx = X + ox, by = Y + oy, tx = bx + w * hk * 0.8, ty = by - hk;
-        caules.moveTo(bx, by); caules.quadraticCurveTo(bx + w * hk * 0.25, by - hk * 0.5, tx, ty);
-        const r = Math.max(1.4, s * 0.034);
-        flores[v.cor].moveTo(tx + r, ty); flores[v.cor].arc(tx, ty, r, 0, 7);
-        miolos.moveTo(tx + r * 0.4, ty); miolos.arc(tx, ty, r * 0.4, 0, 7);
+    } else if (d.tipo === "flor") {
+      if (inverno) continue;
+      const forma = Math.floor(q / 2), n = 4 + (q % 2) * 2, r = P * 0.034;
+      for (let k = 0; k < 5; k++) lam(bx + (R(q, k) - 0.5) * 0.4 * P, by, 0.06 + 0.08 * R(q + 3, k), 0.03, (R(q + 6, k) - 0.5) * 0.1, C.cla);
+      for (let k = 0; k < n; k++) {
+        const fx = bx + (k / (n - 1) - 0.5) * 0.4 * P + (R(q + 9, k) - 0.5) * 0.06 * P, fy = by - (R(q + 12, k) - 0.5) * 0.06 * P, hgt = 0.16 + 0.18 * R(q + 15, k);
+        const tx = fx + (R(q + 18, k) - 0.5) * 0.08 * P, ty = fy - hgt * P;
+        g.strokeStyle = C.cau; g.lineWidth = Math.max(0.8, P * 0.009); g.beginPath(); g.moveTo(fx, fy); g.quadraticCurveTo(fx, fy - hgt * P * 0.5, tx, ty); g.stroke();
+        g.fillStyle = VEG_FLOR[forma]; g.beginPath();
+        switch (forma) {
+          case 0: for (let p = 0; p < 5; p++) { const a = p * 1.2566 + k, px = tx + Math.cos(a) * r, py = ty + Math.sin(a) * r * 0.75; g.moveTo(px + r * 0.62, py); g.arc(px, py, r * 0.62, 0, 6.29); } g.fill(); ponto(tx, ty, r * 0.5, VEG_FLOR2[0]); break;          // margarida
+          case 1: g.moveTo(tx - r * 1.15, ty - r * 0.4); g.quadraticCurveTo(tx, ty + r * 1.7, tx + r * 1.15, ty - r * 0.4); g.quadraticCurveTo(tx, ty - r, tx - r * 1.15, ty - r * 0.4); g.fill(); ponto(tx, ty - r * 0.25, r * 0.35, VEG_FLOR2[1]); break;   // papoula
+          case 2: g.moveTo(tx, ty); g.quadraticCurveTo(tx + r * 1.3, ty + r * 0.6, tx + r * 0.75, ty + r * 1.9); g.lineTo(tx - r * 0.55, ty + r * 1.55); g.closePath(); g.fill(); break;   // sino
+          case 3: for (let p = 0; p < 4; p++) { const py = ty + p * r * 0.95, rr = r * (0.78 - p * 0.1); g.moveTo(tx + rr, py); g.ellipse(tx, py, rr, rr * 0.8, 0, 0, 6.29); } g.fill(); break;   // espiga
+          case 4: for (let p = 0; p < 10; p++) { const a = p * 0.6283 - 1.5708, rr = p % 2 ? r * 0.5 : r * 1.4, px = tx + Math.cos(a) * rr, py = ty + Math.sin(a) * rr * 0.85; p ? g.lineTo(px, py) : g.moveTo(px, py); }
+                  g.closePath(); g.fill(); ponto(tx, ty, r * 0.36, VEG_FLOR2[4]); break;                                                                                              // estrela
+          default: for (let p = 0; p < 3; p++) { const px = tx + (p - 1) * r * 0.95, py = ty + (p === 1 ? -r * 0.75 : 0); g.moveTo(px + r * 0.72, py); g.arc(px, py, r * 0.72, 0, 6.29); } g.fill(); ponto(tx, ty - r * 0.75, r * 0.3, VEG_FLOR2[5]);   // cacho
+        }
+      }
+    } else if (d.tipo === "samambaia") {
+      const n = 5 + (q % 3);
+      for (let k = 0; k < n; k++) {
+        const a = (k / (n - 1) - 0.5) * 2.5 + (R(q, k) - 0.5) * 0.3, len = (0.34 + 0.2 * R(q + 4, k)) * P;
+        const tx = bx + Math.sin(a) * len, ty = by - Math.cos(a) * len * 0.8, mx = bx + Math.sin(a) * len * 0.5 - Math.cos(a) * len * 0.1, my = by - Math.cos(a) * len * 0.5;
+        g.fillStyle = k % 2 ? C.fol : C.folC; g.strokeStyle = "rgba(30, 27, 24, 0.42)"; g.lineWidth = Math.max(0.8, P * 0.011);
+        g.beginPath(); g.moveTo(bx, by); g.quadraticCurveTo(mx - len * 0.24, my - len * 0.06, tx, ty); g.quadraticCurveTo(mx + len * 0.24, my + len * 0.06, bx, by); g.fill(); g.stroke();
+        // os folíolos (riscos de cada lado da nervura)
+        g.strokeStyle = C.esc; g.lineWidth = Math.max(0.6, P * 0.006); g.beginPath();
+        for (let f = 1; f < 6; f++) { const u = f / 6, px = bx + (tx - bx) * u, py = by + (ty - by) * u, nx = -Math.cos(a) * len * 0.1 * (1 - u), ny = -Math.sin(a) * len * 0.1 * (1 - u); g.moveTo(px - nx, py - ny); g.lineTo(px + nx, py + ny); }
+        g.moveTo(bx, by); g.quadraticCurveTo(mx, my, tx, ty); g.stroke();
+        if (inverno) ponto(tx, ty, P * 0.03, "#EFE4CC");
+      }
+    } else if (d.tipo === "folhas") {
+      if (inverno) continue;
+      const n = 3 + (q % 2);
+      for (let k = 0; k < n; k++) {
+        const a = k / n * 6.28 + q, len = (0.2 + 0.1 * R(q, k)) * P, tx = bx + Math.cos(a) * len, ty = by - 0.1 * P + Math.sin(a) * len * 0.6, wd = len * 0.45;
+        const nx = -Math.sin(a) * wd, ny = Math.cos(a) * wd * 0.6, mx = (bx + tx) / 2, my = (by - 0.1 * P + ty) / 2;
+        g.fillStyle = k % 2 ? C.folC : C.fol; g.strokeStyle = "rgba(30, 27, 24, 0.42)"; g.lineWidth = Math.max(0.8, P * 0.011);
+        g.beginPath(); g.moveTo(bx, by - 0.1 * P); g.quadraticCurveTo(mx + nx, my + ny, tx, ty); g.quadraticCurveTo(mx - nx, my - ny, bx, by - 0.1 * P); g.fill(); g.stroke();
+        g.strokeStyle = C.esc; g.lineWidth = Math.max(0.6, P * 0.006); g.beginPath(); g.moveTo(bx, by - 0.1 * P); g.lineTo(tx, ty); g.stroke();
       }
     }
+    quadros[d.tipo][d.q] = { sx: d.sx, sy: d.sy, w: d.w, h: d.h, px: d.w / 2, py: d.h - 2 };
   }
-  cx.save(); cx.lineCap = "round"; cx.lineJoin = "round";
-  // (no estilo pintado o capim é pincelada, sem o contorno escuro de nanquim)
-  cx.strokeStyle = ESTILO_PINTADO ? "rgba(70, 112, 34, 0.6)" : "rgba(34, 66, 22, 0.85)"; cx.lineWidth = Math.max(1.3, s * (ESTILO_PINTADO ? 0.022 : 0.03)); cx.stroke(fundo);
-  cx.strokeStyle = ESTILO_PINTADO ? "#b4d865" : "#93c452"; cx.lineWidth = Math.max(0.8, s * 0.013); cx.stroke(claro);
-  cx.strokeStyle = ESTILO_PINTADO ? "rgba(36, 66, 28, 0.6)" : "rgba(14, 34, 16, 0.9)"; cx.lineWidth = Math.max(1.3, s * (ESTILO_PINTADO ? 0.024 : 0.032)); cx.stroke(fundoMata);
-  cx.strokeStyle = "#4f8a3c"; cx.lineWidth = Math.max(0.8, s * 0.014); cx.stroke(claroMata);
-  cx.strokeStyle = "#3c6a28"; cx.lineWidth = Math.max(0.9, s * 0.012); cx.stroke(caules);
-  if (est !== 2) flores.forEach((f, k) => { cx.fillStyle = COR_FLOR[k]; cx.fill(f); });
-  cx.fillStyle = "rgba(120, 80, 20, 0.8)"; cx.fill(miolos);
-  cx.restore();
+  return (vegAtlas[pal] = { cv, quadros });
+}
+// o empurrão: quem anda perto (o herói e as criaturas mais perto dele) abre o mato; as células tocadas viram molas
+let vegFontes = [], vegT = 0;
+function vegEmpurrar(t) {
+  const dt = Math.min(0.05, Math.max(0, t - vegT)); vegT = t;
+  const max = VEG_LEVE ? 4 : 8, l = [];
+  const fonte = (e, r) => {
+    const vx = e._vgX === undefined ? 0 : (e.x - e._vgX) / Math.max(dt, 1e-3), vy = e._vgY === undefined ? 0 : (e.y - e._vgY) / Math.max(dt, 1e-3);
+    e._vgX = e.x; e._vgY = e.y;
+    const vel = Math.min(9, Math.hypot(vx, vy));
+    l.push({ x: e.x, y: e.y, r, f: 0.55 + Math.min(1.1, vel / 4.5), vel, d: Math.hypot(e.x - viking.x, e.y - viking.y) });
+  };
+  fonte(viking, 0.7);
+  for (const c of criaturas) if (!c.morto && Math.abs(c.x - viking.x) < 18 && Math.abs(c.y - viking.y) < 18) fonte(c, Math.max(0.45, (c.cfg.anel || 0.5) * 1.25));
+  l.sort((a, b) => a.d - b.d); vegFontes = l.slice(0, max);
+  // as molas: o alvo zerado, somado de cada fonte nas células em volta, depois a integração (amortecida, volta devagar)
+  for (const v of vegAtivas) { v.tl = 0; v.tf = 0; }
+  const est = estacaoAtual();
+  for (const f of vegFontes) {
+    const R = f.r + 0.55, [fu] = naVista(f.x, f.y);
+    for (let i = Math.floor((f.x - R) / VEG_C); i <= Math.floor((f.x + R) / VEG_C); i++)
+      for (let j = Math.floor((f.y - R) / VEG_C); j <= Math.floor((f.y + R) / VEG_C); j++) {
+        const v = vegDa(i, j); if (!v) continue;
+        const d = Math.hypot(v.x - f.x, v.y - f.y); if (d > R) continue;
+        const k = (1 - d / R) * f.f, du = naVista(v.x, v.y)[0] - fu, lado = Math.abs(du) > 0.08 ? Math.sign(du) : (hash(i, j, 5) < 0.5 ? -1 : 1);
+        v.tl += lado * k * 1.3; v.tf = Math.min(1, v.tf + k * 0.8);
+        vegAtivas.add(v);
+        // às vezes uma pétala ou folhinha solta (andando por flores e mato alto)
+        if (f.vel > 1.2 && est !== 3 && (v.tipo === "flor" || v.tipo === "capim") && vegParticulas.length < (VEG_LEVE ? 12 : 32) && Math.random() < dt * 1.2 * k) {
+          const cor = v.tipo === "flor" ? VEG_FLOR[v.q >> 1] : VEG_COR[est === 2 ? 1 : 0].cla;
+          vegParticulas.push({ x: v.x, y: v.y, z: 0.25 + Math.random() * 0.3, vx: (Math.random() - 0.5) * 0.8 + lado * 0.5, vy: (Math.random() - 0.5) * 0.6, vz: 0.6 + Math.random() * 0.5, vida: 0, max: 1.1 + Math.random() * 0.6, cor, gira: Math.random() * 6 });
+        }
+      }
+  }
+  for (const v of vegAtivas) {
+    v.vl += (26 * (v.tl - v.pl) - 4.2 * v.vl) * dt; v.pl += v.vl * dt;
+    v.vf += (30 * (v.tf - v.pf) - 6 * v.vf) * dt; v.pf += v.vf * dt; v.pf = Math.max(0, Math.min(1, v.pf));
+    if (!v.tl && !v.tf && Math.abs(v.pl) < 0.004 && Math.abs(v.vl) < 0.004 && v.pf < 0.004 && Math.abs(v.vf) < 0.004) { v.pl = v.vl = v.pf = v.vf = 0; vegAtivas.delete(v); }
+  }
+  for (let i = vegParticulas.length - 1; i >= 0; i--) {
+    const p = vegParticulas[i]; p.vida += dt;
+    if (p.vida > p.max) { vegParticulas.splice(i, 1); continue; }
+    p.vz -= 1.6 * dt; p.vz = Math.max(p.vz, -0.45); p.z = Math.max(0, p.z + p.vz * dt);
+    p.x += (p.vx + vento(p.x, p.y, t) * 0.8) * dt; p.y += p.vy * dt; p.gira += dt * 5;
+  }
+}
+// o mato alto perto de quem anda: fica na ordem da profundidade (vegLista), não no chão
+function vegPerto(v) {
+  if (!v.alto) return false;
+  for (const f of vegFontes) if (Math.abs(v.x - f.x) < 1.6 && Math.abs(v.y - f.y) < 1.6) return true;
+  return false;
+}
+// desenha uma lista de células (do fundo para a frente): cada touceira do atlas, envergada (vento + empurrão) e deitada
+function vegPintar(cels, t, s) {
+  const est = estacaoAtual(), A = vegAtlasDe(est === 2 ? 1 : est === 3 ? 2 : 0), m = cx.getTransform(), k0 = s / VEG_PPM;
+  for (const v of cels) {
+    if (est === 2 && v.tipo === "flor" && (v.ci + v.cj) % 3) continue;           // (no outono, poucas flores)
+    const qd = A.quadros[v.tipo][v.q]; if (!qd) continue;
+    const [X, Y] = noMundo(v.x, v.y), w = vento(v.x, v.y, t) * (v.tipo === "folhas" ? 0.25 : v.tipo === "grama" ? 0.7 : 1);
+    const L = w * 0.85 + v.pl + (v.tipo === "flor" ? Math.sin(t * 2.6 + v.x * 3) * 0.05 : 0), k = k0 * v.esc, fy = 1 - v.pf * 0.6 - Math.min(0.25, Math.abs(L) * 0.1);
+    // (o skew a partir do pé: a ponta de altura h vai L·h para o lado)
+    cx.setTransform(m.a * k * (v.esp ? -1 : 1), 0, -m.a * L * k, m.d * k * fy, m.a * X + m.e, m.d * Y + m.f);
+    cx.drawImage(A.cv, qd.sx, qd.sy, qd.w, qd.h, -qd.px, -qd.py, qd.w, qd.h);
+  }
+  cx.setTransform(m);
+}
+function desenharVegetacao(t) {
+  if (MODO_TESTE) return;
+  const s = PX * zoom;
+  if (s < 38 || !TEX.grama) return;                                       // longe demais: nem se vê
+  vegEmpurrar(t);
+  const est = estacaoAtual();
+  const [mx0, mx1, my0, my1] = caixaVista(1, 1.5);                       // (a caixa do mapa que a tela mostra, com o giro)
+  const i0 = Math.floor(mx0 / VEG_C), i1 = Math.ceil(mx1 / VEG_C), j0 = Math.floor(my0 / VEG_C), j1 = Math.ceil(my1 / VEG_C);
+  const cels = [];
+  for (let j = j1; j >= j0; j--) for (let i = i0; i <= i1; i++) {
+    const v = vegDa(i, j); if (!v) continue;
+    if (est === 3 && !v.alto) continue;                                   // inverno: só o mato alto (seco, com neve) aparece
+    const [X, Y] = noMundo(v.x, v.y);
+    if (X < -s || X > W + s || Y < -s * 0.2 || Y > H + s * 1.2) continue;  // (com o giro a caixa do mapa passa da tela)
+    if (vegPerto(v)) continue;                                             // (vai na ordem da profundidade: vegLista)
+    cels.push(v);
+  }
+  cels.sort((a, b) => profV(b.x, b.y) - profV(a.x, a.y));                // (do fundo para a frente)
+  vegPintar(cels, t, s);
+  // as pétalas e folhinhas soltas
+  if (vegParticulas.length) {
+    cx.save();
+    for (const p of vegParticulas) {
+      const [X, Y] = noMundo(p.x, p.y, p.z), r = Math.max(1.2, s * 0.03), a = 1 - Math.max(0, (p.vida - p.max * 0.7) / (p.max * 0.3));
+      cx.globalAlpha = a; cx.fillStyle = p.cor; cx.beginPath(); cx.ellipse(X, Y, r, r * 0.45 * (0.4 + 0.6 * Math.abs(Math.sin(p.gira))), p.gira, 0, 6.29); cx.fill();
+    }
+    cx.restore();
+  }
+}
+// o mato alto perto do herói e das criaturas, em lotes por faixa de profundidade (0,25 m), na lista da ordem de desenho
+function vegLista(lista, t) {
+  if (MODO_TESTE || !vegFontes.length || (window.M3D && M3D.ativo)) return;
+  const s = PX * zoom; if (s < 38 || !TEX.grama) return;
+  const est = estacaoAtual(), lotes = new Map();
+  for (const f of vegFontes) {
+    for (let i = Math.floor((f.x - 1.6) / VEG_C); i <= Math.floor((f.x + 1.6) / VEG_C); i++)
+      for (let j = Math.floor((f.y - 1.6) / VEG_C); j <= Math.floor((f.y + 1.6) / VEG_C); j++) {
+        const v = vegDa(i, j); if (!v || !vegPerto(v) || v._vgQ === t) continue;
+        v._vgQ = t;
+        const y = profV(v.x, v.y), k = Math.floor(y / 0.25);
+        let l = lotes.get(k); if (!l) lotes.set(k, l = { y: (k + 0.5) * 0.25, c: [] });
+        l.c.push(v);
+      }
+  }
+  for (const l of lotes.values()) { l.c.sort((a, b) => profV(b.x, b.y) - profV(a.x, a.y)); lista.push({ y: l.y, f: () => vegPintar(l.c, t, s) }); }
 }
 
 // ---------------------------------------------------------------- transparência
@@ -2700,6 +2916,227 @@ function translucido(alfa, caixa, desenho) {
 let quemSome = [], tTransp = 0;
 function poligono(g, pts) { g.beginPath(); pts.forEach((p, k) => k ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); }
 
+// ---------- construções em camadas: o kit modular 3D (Tools/deco3d/interior: kit.py, predios.py, render_kit.py) ----------
+// Cada construção vem renderizada em camadas no mesmo quadro (predios.json + predios/<id>__<camada>.webp; no modo leve,
+// predios/meio/ na metade): a = base, piso, paredes do fundo e o que fica encostado nelas; b = paredes da frente (as duas
+// faces voltadas para a câmera); b2 = as mesmas cortadas baixo; c = andares de cima e telhado; m_<nome> = cada móvel
+// solto; f = a construção inteira (as fechadas). Na ordem de desenho, a construção entra em fatias verticais de 0,5 m da
+// tela, cada uma com a profundidade da parede da frente (b, b2, c) ou do fundo (a) naquela coluna: quem está dentro fica
+// entre a e b, quem passa atrás fica atrás, quem passa na frente fica na frente; os móveis com a profundidade deles.
+// Longe de todo mundo, a construção vai inteira numa entrada só. Com o herói dentro da planta, o telhado some (~0,3 s),
+// as paredes da frente viram as cortadas e o interior fica mais quente e escuro; à noite a lanterna de dentro acende.
+// Com o herói atrás, a construção inteira fica translúcida. Colisão: as paredes (com a porta aberta) e os móveis, na
+// grade de sempre (livre/acharCaminho: o clique para andar passa pela porta; criaturas e NPCs também entram).
+// Liga com ?predios=1 (a casa do Senhor do Armazém vira a casa modular, com ele dentro). Só na vista diagonal (giro 45°).
+// Lugares: PRED_LUGARES ({ id, x, y, esp: espelhada (porta para o oeste), npc: nome do NPC que fica dentro, em [lx, ly] }).
+const PRED_Q = new URLSearchParams(location.search);
+const PREDIOS_LIGADO = GIRO_DIAG && !PRED_Q.has("mundo3d") && (PRED_Q.get("predios") === "1" || PRED_Q.get("cidade") === "1" || PRED_Q.get("prancha") === "1");
+// a prancha de estilos (?prancha=1): numa fileira ao norte da vila, a casa modular 3D "em B" (A, a mesma em que se
+// entra), a casa pintada no ChatGPT (B, Tools/deco3d/estilo/B: estilo.json) e a low-poly (C, casa_C), com a árvore e a pedra B
+const PRANCHA = PREDIOS_LIGADO && PRED_Q.get("prancha") === "1";
+let KIT_PREDIOS = null;
+const PRED_IMG = {}, predInst = [], PRED_FAIXA = 0.5;
+const PRED_CARREGANDO = carregarPredios();
+const PRED_LUGARES = [
+  { id: "casa", x: VILA.x - 11, y: VILA.y + 7.6, npc: ["Senhor do Armazém", 0.9, 0.9] },
+];
+// ---- o centro da cidade (?cidade=1): a vila vira o miolo (a praça do poço, os NPCs, o salão) e em volta dela crescem
+// quarteirões separados por ruas de pedra (praca() passa a valer nelas: o calçamento do chão, sem capim nem pedras, e o
+// minimapa), com o templo e o pagode, a loja, a casa de chá, a estalagem, o mercado coberto, o salão do governo, casas,
+// as torres do sino e de vigia, o portão na entrada sul (onde a estrada da praça de treino chega), muros baixos e
+// lanternas nas ruas. Coordenadas em relação à VILA; esp = espelhada (a porta para o oeste)
+var CIDADE_RUAS = null;                 // [x0, x1, y0, y1] ou [x, y, r] no mapa (var: praca() pode perguntar antes)
+const CIDADE_LIGADA = PREDIOS_LIGADO && PRED_Q.get("cidade") === "1";
+if (PRANCHA) {
+  const V = VILA, L = (id, dx, dy, extra = {}) => PRED_LUGARES.push({ id, x: V.x + dx, y: V.y + dy, ...extra });
+  L("casa", -16, 29); L("B_casa", -8, 25.5); L("casa_C", 0, 29); L("B_arvore", -22.5, 25.5); L("B_pedra", 5.2, 25.6);
+}
+if (CIDADE_LIGADA) {
+  const V = VILA, R = (x0, x1, y0, y1) => [V.x + x0, V.x + x1, V.y + y0, V.y + y1];
+  // (a leste e ao norte ficam os bandos de lobos, ursos e javalis: a cidade não entra nas clareiras deles)
+  CIDADE_RUAS = [
+    [V.x, V.y + 1, 6.8],                                   // a praça do poço
+    R(-30, 20.8, 17.8, 20.8), R(-30, 18, 31.5, 34.5),      // as ruas leste-oeste
+    R(-1.5, 1.5, 15.4, 34.5), R(-7.6, -5.0, 2.5, 17.8),   // a avenida (atrás do salão até o palácio) e a rua da casa
+    R(-21.6, -18.8, 3, 46), R(18, 20.8, -4, 31.5),         // as ruas de fora (oeste e leste)
+    R(-6, 6, 34.5, 36.0), R(-1.6, 1.6, -9.2, -3),          // o adro do palácio e a entrada sul
+  ];
+  const L = (id, dx, dy, extra = {}) => PRED_LUGARES.push({ id, x: V.x + dx, y: V.y + dy, ...extra });
+  L("casa_cha", -15.3, 14.5, { esp: true }); L("estalagem", -26, 9); L("loja", -13.2, 25.5); L("torre_vigia", -24, 29);
+  L("pagode", -5.5, 27); L("templo", 8.5, 27.5); L("torre_sino", 14.8, 14.2);
+  L("palacio", 0, 40.2); L("mercado", -13, 40); L("casa_L", 11, 40); L("casa_2a", -26, 40, { esp: true }); L("portao", 0, -7.6);
+  for (const y of [25, 29]) { L("muro", 2.9, y, { esp: true }); L("muro_ocre", 14.2, y, { esp: true }); }
+  for (const [x, y, k] of [[-20, 17.3, 0], [-9.5, 17.3, 1], [-2.2, 17.3, 0], [2.2, 17.3, 0], [17.5, 17.3, 1], [-17.5, 21.3, 1], [-2.2, 21.3, 1], [2.2, 21.3, 1], [17.5, 21.3, 0],
+                           [-2.2, 31, 0], [2.2, 31, 0], [-17.5, 31, 1], [16.5, 31, 1], [-6.6, 35, 1], [6.6, 35, 1], [-17.5, 35, 0], [-22.4, 35, 0], [-2.2, 6.2, 1]])
+    L(k ? "lanterna_pedra" : "lanterna_rua", x, y);
+}
+function ruaCidade(x, y) {
+  if (!CIDADE_RUAS) return false;
+  for (const r of CIDADE_RUAS) if (r.length === 3 ? Math.hypot(x - r[0], y - r[1]) < r[2] : x > r[0] && x < r[1] && y > r[2] && y < r[3]) return true;
+  return false;
+}
+async function carregarPredios() {
+  if (!PREDIOS_LIGADO) return;
+  try { KIT_PREDIOS = await (await fetch("predios.json")).json(); } catch (e) { KIT_PREDIOS = null; }
+  if (PRANCHA && KIT_PREDIOS) try {                // (as peças B prontas viram construções de uma camada só, pivô no pé)
+    const e = await (await fetch("estilo.json")).json(), PL = { casa: [0.5, 5.0, 0.5, 5.0], arvore: [-0.35, 0.35, -0.35, 0.35], pedra: [-0.8, 0.8, -0.5, 0.6] };
+    for (const [n, v] of Object.entries(e)) KIT_PREDIOS["B_" + n] = { ppm: v.ppm, camadas: { f: v }, planta: PL[n], base: PL[n], paredes: [PL[n]], luzes: [], rets: [], moveis: {} };
+  } catch (er) {}
+}
+function predImg(arq) {
+  let im = PRED_IMG[arq];
+  if (!im) { im = PRED_IMG[arq] = new Image(); im.decoding = "async"; im.src = (window.MODO_LEVE ? "predios/meio/" : "predios/") + arq; }
+  return im.complete && im.naturalWidth ? im : null;
+}
+// o interior mais quente e escuro (uma cópia tingida da camada a, feita uma vez)
+function predQuente(arq) {
+  const k = arq + "#q";
+  if (PRED_IMG[k]) return PRED_IMG[k];
+  const im = predImg(arq); if (!im) return null;
+  const c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const g = c.getContext("2d"); g.drawImage(im, 0, 0);
+  g.globalCompositeOperation = "source-atop"; g.fillStyle = "rgba(92, 52, 18, 0.32)"; g.fillRect(0, 0, c.width, c.height);
+  return (PRED_IMG[k] = c);
+}
+// põe as construções no mapa (depois do mapa salvo): tira o que estava no lugar, monta a colisão e leva o NPC para dentro
+function montarPredios() {
+  if (!KIT_PREDIOS) return;
+  predInst.length = 0; vegCache.clear(); vegAtivas.clear();      // (a vegetação não nasce dentro delas)
+  for (const l of PRED_LUGARES) {
+    const d = KIT_PREDIOS[l.id]; if (!d) continue;
+    const M = (lx, ly) => l.esp ? [l.x + ly, l.y + lx] : [l.x + lx, l.y + ly];
+    const R = r => { const [a, b] = M(r[0], r[2]), [c, e] = M(r[1], r[3]); return [Math.min(a, c), Math.max(a, c), Math.min(b, e), Math.max(b, e)]; };
+    const rets = [...(d.paredes || []), ...(d.rets || []), ...Object.values(d.moveis || {}).map(m => m.ret)];
+    const p = { ...l, d, M, planta: R(d.planta), base: R(d.base), dentro: d.dentro ? R(d.dentro) : null, k: 0, alfa: 1,
+      paredes: rets.map(r => { const [x0, x1, y0, y1] = R(r); return { tipo: "parede_predio", x: (x0 + x1) / 2, y: (y0 + y1) / 2, x0, x1, y0, y1, r: 0, ret: true, predio: true }; }),
+      moveis: Object.entries(d.moveis || {}).map(([n, m]) => ({ cam: "m_" + n, pos: M(m.x, m.y) })) };
+    predInst.push(p);
+    for (const c of Object.values(d.camadas)) predImg(c.arq);
+    if (l.npc) { const n = objetos.find(o => o.tipo === "pessoa" && o.nome === l.npc[0]); if (n) { [n.x, n.y] = M(l.npc[1], l.npc[2]); n.dentroPredio = true; } }
+  }
+  // os NPCs que ficaram dentro de uma parede (o portão, uma casa nova) vão para o lugar livre mais perto
+  const preso = (x, y) => predInst.some(p => p.paredes.some(o => x > o.x0 - 0.45 && x < o.x1 + 0.45 && y > o.y0 - 0.45 && y < o.y1 + 0.45));
+  for (const n of objetos) if (n.npc && !n.dentroPredio && preso(n.x, n.y))
+    for (let r = 0.5, ok = false; r < 8 && !ok; r += 0.5) for (let a = 0; a < 16 && !ok; a++) {
+      const x = n.x + Math.cos(a / 16 * 6.283) * r, y = n.y + Math.sin(a / 16 * 6.283) * r;
+      if (!preso(x, y) && !agua(x, y)) { n.x = x; n.y = y; ok = true; }
+    }
+  refazerGrade();
+}
+// (chamadas pelo refazerGrade: tira do lugar das construções o que o mapa põe lá e põe as paredes e móveis na grade)
+function predLimpar() {
+  if (!predInst.length) return;
+  for (let i = objetos.length - 1; i >= 0; i--) {
+    const o = objetos[i];
+    if (!DECORACAO.includes(o.tipo) || o.caverna) continue;
+    if (predInst.some(p => o.x > p.base[0] - 0.8 && o.x < p.base[1] + 0.8 && o.y > p.base[2] - 1.6 && o.y < p.base[3] + 0.8)) objetos.splice(i, 1);
+    else if (CIDADE_RUAS && ["arvore", "pinheiro", "arbusto", "pedra", "tronco", "toco"].includes(o.tipo) && ruaCidade(o.x, o.y)) objetos.splice(i, 1);
+  }
+}
+function predGrade() { for (const p of predInst) for (const o of p.paredes) porNaGrade(o); }
+// a profundidade da frente e do fundo da planta na coluna u da tela (u = naVista(x, y)[0]); fora da planta, a da ponta
+function predCol(p, u) {
+  const [x0, x1, y0, y1] = p.planta, dd = Math.max(x0 - y1, Math.min(x1 - y0, u / GIRO_C));
+  const lo = Math.max(x0, y0 + dd), hi = Math.min(x1, y1 + dd);
+  return [profV(lo, lo - dd), profV(hi, hi - dd)];
+}
+// uma fatia [ua, ub] (m da tela, em relação ao pivô) de uma camada: os cortes caem em px inteiros (sem frestas); esp =
+// a construção espelhada (a imagem virada)
+function predFatia(im, c, X, Y, s, pp, ua, ub, esp, alfa) {
+  const k = s / pp, d0 = Math.round((X + ua * s) * dpr) / dpr, d1 = Math.round((X + ub * s) * dpr) / dpr;
+  if (d1 - d0 < 0.01 || d1 < -50 || d0 > W + 50) return;
+  const a = esp ? c.px - (d1 - X) / k : c.px + (d0 - X) / k, b = esp ? c.px - (d0 - X) / k : c.px + (d1 - X) / k;
+  const a2 = Math.max(0, a), b2 = Math.min(c.w, b); if (b2 - a2 < 0.01) return;
+  const w = (b2 - a2) * k, x0 = esp ? X - (b2 - c.px) * k : X + (a2 - c.px) * k, y0 = Y - c.py * k;
+  cx.globalAlpha = alfa;
+  if (esp) { cx.save(); cx.translate(2 * x0 + w, 0); cx.scale(-1, 1); cx.drawImage(im, a2, 0, b2 - a2, c.h, x0, y0, w, c.h * k); cx.restore(); }
+  else cx.drawImage(im, a2, 0, b2 - a2, c.h, x0, y0, w, c.h * k);
+  cx.globalAlpha = 1;
+}
+// as entradas das construções na lista da ordem de desenho
+function predLista(lista, t) {
+  if (!predInst.length || (window.M3D && M3D.ativo)) return;
+  const s = PX * zoom, leve = !!window.MODO_LEVE, dtP = Math.min(0.1, Math.max(0, t - (predLista.t || t))); predLista.t = t;
+  const noite = luzDoDia(horaDoDia()).esc;
+  for (const p of predInst) {
+    const d = p.d, pp = d.ppm / (leve ? 2 : 1), [X, Y] = noMundo(p.x, p.y), u0 = naVista(p.x, p.y)[0];
+    const cs = d.camadas, cam = n => { const c = cs[n]; if (!c) return null; const im = predImg(c.arq); return im ? { im, c: leve ? { ...c, px: c.px / 2, py: c.py / 2, w: im.naturalWidth, h: im.naturalHeight } : c } : null; };
+    // a caixa na tela (a maior camada) para saber se aparece e se cobre alguém
+    const big = cs.c || cs.f || cs.a; if (!big) continue;
+    const kk = s / d.ppm, bx0 = X - (p.esp ? big.w - big.px : big.px) * kk, by0 = Y - big.py * kk, caixa = [bx0, by0, bx0 + big.w * kk, by0 + big.h * kk];
+    if (caixa[2] < -50 || caixa[0] > W + 50 || caixa[3] < -50 || caixa[1] > H + 50) continue;
+    // dentro? (o herói na planta de dentro): o telhado some, as paredes cortam
+    const dn = p.dentro && viking.x > p.dentro[0] - 0.05 && viking.x < p.dentro[1] + 0.05 && viking.y > p.dentro[2] - 0.05 && viking.y < p.dentro[3] + 0.05;
+    p.k += ((dn ? 1 : 0) - p.k) * Math.min(1, dtP / 0.3 * 2.2);
+    if (p.k < 0.004) p.k = 0; if (p.k > 0.996) p.k = 1;
+    // o herói atrás da construção e coberto por ela: a construção inteira fica translúcida
+    let atras = false;
+    if (!dn && quemSome.length) {
+      const q = quemSome[0], uq = u0 + ((q.c[0] + q.c[2]) / 2 - X) / s;
+      if (q.y > predCol(p, uq)[1] - 0.05) {
+        const lx = Math.min(caixa[2], q.c[2]) - Math.max(caixa[0], q.c[0]), ly = Math.min(caixa[3], q.c[3]) - Math.max(caixa[1], q.c[1]);
+        atras = lx > (q.c[2] - q.c[0]) * 0.3 && ly > (q.c[3] - q.c[1]) * 0.3;
+      }
+    }
+    p.alfa += ((atras ? 0.42 : 1) - p.alfa) * Math.min(1, dtP * 9);
+    const camadas = d.entra ? ["a", ...p.moveis.map(m => m.cam), "b", "b2", "c"] : ["f"];
+    const alfaDe = n => n === "c" ? 1 - p.k : n === "b" ? 1 - p.k : n === "b2" ? p.k : 1;
+    const tudo = () => { for (const n of camadas) { const q = cam(n); if (!q) continue; const a = alfaDe(n); if (a > 0.01) predFatia(q.im, q.c, X, Y, s, pp, -1e3, 1e3, p.esp, a); if (n === "a") predDentro(p, X, Y, s, pp, -1e3, 1e3, noite, t); } predNoite(p, noite, t); };
+    // ninguém perto (nem o herói, nem criaturas, nem NPCs): uma entrada só, com a frente mais perto
+    const B = p.base, perto = (x, y) => x > B[0] - 2.5 && x < B[1] + 2.5 && y > B[2] - 2.5 && y < B[3] + 2.5;
+    const alguem = perto(viking.x, viking.y) || criaturas.some(c => !c.morto && perto(c.x, c.y)) || (p.npcs || (p.npcs = objetos.filter(o => o.npc && perto(o.x, o.y)))).length;
+    const frenteMin = profV(B[0], B[2]);
+    if (p.alfa < 0.99) { lista.push({ y: frenteMin - 0.01, f: () => translucido(p.alfa, caixa, tudo) }); continue; }
+    if (!alguem) { lista.push({ y: frenteMin - 0.01, f: tudo }); continue; }
+    // em fatias: cada camada com a profundidade da sua parede naquela coluna
+    for (const n of camadas) {
+      const q = cam(n); if (!q) continue;
+      const a = alfaDe(n); if (a < 0.01) continue;
+      if (n.startsWith("m_")) { const m = p.moveis.find(m => m.cam === n); lista.push({ y: profV(m.pos[0], m.pos[1]), f: () => predFatia(q.im, q.c, X, Y, s, pp, -1e3, 1e3, p.esp, a) }); continue; }
+      const ua = (p.esp ? -(q.c.w - q.c.px) : -q.c.px) / pp, ub = (p.esp ? q.c.px : q.c.w - q.c.px) / pp;
+      // (as fatias numa grade só para todas as camadas: na mesma coluna, a camada a, depois b, depois c)
+      for (let u = Math.floor(ua / PRED_FAIXA) * PRED_FAIXA; u < ub; u += PRED_FAIXA) {
+        const u1 = u + PRED_FAIXA, [fr, fu] = predCol(p, u0 + u + PRED_FAIXA / 2);
+        const y = n === "a" ? fu : n === "c" ? fr - 0.002 : fr;
+        lista.push({ y, f: () => { predFatia(q.im, q.c, X, Y, s, pp, u, u1, p.esp, a); if (n === "a") predDentro(p, X, Y, s, pp, u, u1, noite, t); } });
+      }
+    }
+    lista.push({ y: frenteMin - 0.02, f: () => predNoite(p, noite, t) });   // (as luzes depois de tudo da construção)
+  }
+}
+// o interior com o herói dentro: a cópia quente por cima da camada a e, à noite, a luz da lanterna
+function predDentro(p, X, Y, s, pp, ua, ub, noite, t) {
+  if (p.k <= 0.01) return;
+  const c0 = p.d.camadas.a, q = predQuente(c0.arq); if (!q) return;
+  const c = window.MODO_LEVE ? { ...c0, px: c0.px / 2, py: c0.py / 2, w: q.width, h: q.height } : c0;
+  predFatia(q, c, X, Y, s, pp, ua, ub, p.esp, p.k * (0.75 - 0.35 * noite));
+}
+// a luz: as janelas e a lanterna de fora acesas à noite; dentro, a lanterna (depois de tudo da construção)
+function predNoite(p, noite, t) {
+  if (noite < 0.05) return;
+  const s = PX * zoom, d = p.d, pisca = 0.85 + 0.15 * Math.sin(t * 3.1 + p.x) * Math.sin(t * 1.7 + p.y);
+  cx.save(); cx.globalCompositeOperation = "lighter";
+  const luz = (lx, ly, lz, r, a, cor) => {
+    const [mx, my] = p.M(lx, ly), [Xl, Yl] = noMundo(mx, my, lz), g = cx.createRadialGradient(Xl, Yl, 0, Xl, Yl, r * s);
+    g.addColorStop(0, `rgba(${cor}, ${a * pisca * noite})`); g.addColorStop(1, `rgba(${cor}, 0)`);
+    cx.fillStyle = g; cx.beginPath(); cx.arc(Xl, Yl, r * s, 0, 7); cx.fill();
+  };
+  for (const [lx, ly, lz] of d.luzes || []) luz(lx, ly, lz, 0.75, 0.32 * (1 - p.k), "255, 190, 90");
+  if (d.lanternaFora) luz(...d.lanternaFora, 1.1, 0.4 * (1 - p.k * 0.5), "255, 120, 60");
+  if (d.lanterna && p.k > 0.01) { luz(...d.lanterna, 2.6, 0.5 * p.k, "255, 170, 80"); luz(...d.lanterna, 0.5, 0.6 * p.k, "255, 230, 170"); }
+  cx.restore();
+}
+// os furos no escuro da noite (desenharLuzDoDia)
+function predLuz(furo) {
+  const s = PX * zoom;
+  for (const p of predInst) {
+    const d = p.d, ponto = (lx, ly, lz) => { const [mx, my] = p.M(lx, ly); return noMundo(mx, my, lz); };
+    for (const [lx, ly, lz] of d.luzes || []) { if (p.k > 0.5) break; const [X, Y] = ponto(lx, ly, lz); furo(X, Y, 1.5 * s, 0.75); }
+    if (d.lanternaFora) { const [X, Y] = ponto(...d.lanternaFora); furo(X, Y, 1.8 * s, 0.7); }
+    if (d.lanterna && p.k > 0.05) { const [X, Y] = ponto(...d.lanterna); furo(X, Y, 3.4 * s * p.k, 0.9); }
+  }
+}
+
 // ---------- decorações pintadas ----------
 // Árvores, pinheiros, arbustos, pedras, troncos e tocos vêm das folhas pintadas (Tools/viking/deco): cada objeto usa uma
 // variação (a escolhida no editor, ou sorteada pelo lugar; as pedras pelo tamanho), às vezes espelhada. Árvores e arbustos
@@ -2735,6 +3172,7 @@ function visDeco(o, v) {
   if (o._vd && o._vdDe === v) return o._vd;
   let mods = window.M3D && M3D.DECO_3D && M3D.DECO_3D[o.tipo], c = null;
   if (typeof mods === "function") mods = mods(o);
+  if (o.caverna) mods = ["caverna", ...(mods || [])];                       // (as paredes das cavernas: as rochas escuras do estilo B)
   for (const m of mods || []) { const e = l.filter(x => x.modelo === m && DECO_IMG[x.arq]); if (e.length) { c = e; break; } }
   if (!c) c = l.filter(x => DECO_IMG[x.arq]);
   const d = c.length ? c[Math.floor(hash(Math.round(o.x * 10), Math.round(o.y * 10), 57) * c.length) % c.length] : v;
@@ -2761,11 +3199,12 @@ function imagemEscura(arq) {
 // a chama: os 8 quadros pintados (deco/fogo.webp) a ~11 por segundo, cada fogo começando num quadro, levemente mais
 // alta ou mais baixa a cada quadro; em volta, a luz quente no chão. A altura dela depende da base (acampamento, praça,
 // braseiro)
-const CHAMA = { fogueira: [1.15, 1.9], braseiro: [0.9] };
+const CHAMA = { fogueira: [1.15, 1.9], braseiro: [0.9], tocha: [0.62] };
 function desenharChama(o, v, X, Y, s, t, k) {
   const f = DECO && DECO.fogo && DECO.fogo[0], im = f && DECO_IMG[f.arq];
   const alt = (CHAMA[o.tipo][o.var || 0] || CHAMA[o.tipo][0]) * (o.esc || 1), pisca = 0.85 + 0.15 * Math.sin(t * 13 + o.x) * Math.sin(t * 7.3 + o.y);
-  const fy = Y - (o.tipo === "braseiro" ? v.h * k * 0.62 : s * 0.12);      // o meio das brasas (no braseiro, a boca da bacia)
+  let fy = Y - (o.tipo === "braseiro" ? v.h * k * 0.62 : s * 0.12);        // o meio das brasas (no braseiro, a boca da bacia)
+  if (v.chama) { X = X - v.px * k + v.chama[0] * v.w * k; fy = Y - v.py * k + v.chama[1] * v.h * k; }   // (as peças do estilo B dizem onde fica a boca do fogo)
   cx.save(); cx.globalCompositeOperation = "lighter";
   const R = s * alt * 2.4, luz = cx.createRadialGradient(X, fy, 0, X, fy, R);
   luz.addColorStop(0, `rgba(255, 160, 60, ${0.3 * pisca})`); luz.addColorStop(1, "rgba(255, 120, 40, 0)");
@@ -2777,10 +3216,10 @@ function desenharChama(o, v, X, Y, s, t, k) {
 }
 function desenharDecoSprite(o, v0, X, Y, s, t) {
   const v = visDeco(o, v0), diag = v !== v0;                              // (diag: a peça renderizada na diagonal, já com a sombra dela)
-  const im = o.caverna ? imagemEscura(v.arq) : imagemEstacao(v.arq, o.tipo, o.neve ? 3 : 0), k = kDeco(o, v0, v, s), w = v.w * k, h = v.h * k;
+  const im = o.caverna && v.pasta !== "deco_b/" ? imagemEscura(v.arq) : imagemEstacao(v.arq, o.tipo, o.neve || (o.monte && o.tipo === "pedra") ? 3 : 0), k = kDeco(o, v0, v, s), w = v.w * k, h = v.h * k;
   if (!diag || !v.sombra) sombra(X, Y, Math.max(0.3, v0.base * 0.42) * s * escDeco(o));
   const balanca = o.tipo === "arvore" || o.tipo === "pinheiro" ? 0.05 : o.tipo === "arbusto" ? 0.09 : 0;
-  const espelho = !diag && (o.esp !== undefined ? o.esp : !SEM_ESPELHO.has(o.tipo) && hash(Math.round(o.x * 10), Math.round(o.y * 10), 32) < 0.5);   // (na diagonal, espelhar trocaria o lado)
+  const espelho = (!diag || v.livre) && (o.esp !== undefined ? o.esp : !SEM_ESPELHO.has(o.tipo) && hash(Math.round(o.x * 10), Math.round(o.y * 10), 32) < 0.5);   // (na diagonal, espelhar trocaria o lado)
   cx.save();
   if (balanca) { const sh = vento(o.x, o.y, t) * balanca; cx.transform(1, 0, -sh, 1, sh * Y, 0); }   // enverga a partir do pé
   if (o.tipo === "boneco") { cx.translate(X, Y); cx.rotate((o.inc || 0) * 0.017); cx.translate(-X, -Y); }   // o boneco tomba e volta quando apanha
@@ -2796,7 +3235,7 @@ function desenharDecoSprite(o, v0, X, Y, s, t) {
     cx.fillStyle = g; cx.beginPath(); cx.ellipse(X, cy, w * 0.9, h * 0.55, 0, 0, 7); cx.fill();
     cx.restore();
   }
-  if (o.tipo === "fogueira" || o.tipo === "braseiro") desenharChama(o, v, X, Y, s, t, k);
+  if (o.tipo === "fogueira" || o.tipo === "braseiro" || (o.tipo === "tocha" && v.chama)) desenharChama(o, v, X, Y, s, t, k);
   if (o.tipo === "boneco" && o.palha) {                               // a palha que voa quando ele apanha
     cx.fillStyle = "#e7c875";
     for (const pp of o.palha) { const [qx, qy] = tela(pp.x - cam.x, pp.y - cam.y); cx.fillRect(W / 2 + qx, H / 2 + qy - pp.z * s, Math.max(2, s * 0.04), Math.max(1, s * 0.015)); }
@@ -7668,7 +8107,7 @@ function completarDecoracao(c) {
   if (SEM_ESPELHO.has(o.tipo) && o.esp === undefined) o.esp = false;
   return o;
 }
-function refazerGrade() { grade.clear(); for (const o of objetos) if (temColisao(o)) porNaGrade(o); }
+function refazerGrade() { predLimpar(); grade.clear(); for (const o of objetos) if (temColisao(o)) porNaGrade(o); predGrade(); }
 function aplicarMapa(m) {
   if (!m || (m.versao !== 1 && m.versao !== 2)) return false;
   COLISAO = JSON.parse(JSON.stringify(COLISAO_PADRAO));
@@ -8069,6 +8508,18 @@ function desenharPassagens(t) {
       cx.beginPath(); cx.moveTo(X - s * 0.18, Y + s * 0.12); cx.lineTo(X - s * 0.14, Y - s * 0.45); cx.moveTo(X + s * 0.18, Y + s * 0.12); cx.lineTo(X + s * 0.14, Y - s * 0.45); cx.stroke();
       cx.lineWidth = Math.max(1.5, s * 0.035);
       for (let k = 0; k < 3; k++) { const yy = Y - s * (0.32 - k * 0.16); cx.beginPath(); cx.moveTo(X - s * 0.16, yy); cx.lineTo(X + s * 0.16, yy); cx.stroke(); }
+    } else if (DECO && DECO.escada && DECO_IMG[DECO.escada[0].arq]) {
+      // a escada de volta (estilo B): os degraus de pedra subindo para a luz, com a luz de cima e uma marca no pé dela
+      const e = DECO.escada[0], k = s / e.ppm, pul = 0.5 + 0.5 * Math.sin(t * 3);
+      const g = cx.createRadialGradient(X, Y - s * 2.2, 0, X, Y - s * 2.2, s * 2.2); g.addColorStop(0, "rgba(255, 236, 190, 0.32)"); g.addColorStop(1, "rgba(255, 236, 190, 0)");
+      cx.fillStyle = g; cx.beginPath(); cx.arc(X, Y - s * 2.2, s * 2.2, 0, 7); cx.fill();
+      cx.drawImage(DECO_IMG[e.arq], X - e.px * k, Y - e.py * k, e.w * k, e.h * k);
+      cx.strokeStyle = `rgba(239, 228, 204, ${0.35 + 0.4 * pul})`; cx.lineWidth = Math.max(1.5, s * 0.035);
+      cx.beginPath(); cx.ellipse(X, Y, s * (0.55 + 0.08 * pul), s * (0.55 + 0.08 * pul) * ACHATA, 0, 0, 7); cx.stroke();
+      if (Math.hypot(viking.x - p.x, viking.y - p.y) < 5) {
+        cx.font = `600 ${Math.max(12, Math.round(s * 0.2))}px Georgia, serif`; cx.textAlign = "center"; cx.lineWidth = 3; cx.strokeStyle = "#1E1B18"; cx.fillStyle = "#EFE4CC";
+        const ty = Y + s * 0.62; cx.strokeText("▲ Subir à superfície", X, ty); cx.fillText("▲ Subir à superfície", X, ty);
+      }
     } else {
       // a escada de volta: encostada na parede, subindo para a luz
       const g = cx.createRadialGradient(X, Y - s * 1.6, 0, X, Y - s * 1.6, s * 1.4); g.addColorStop(0, "rgba(255, 236, 190, 0.35)"); g.addColorStop(1, "rgba(255, 236, 190, 0)");
@@ -8114,10 +8565,10 @@ const PISO_PPM = 64;
 function pisoDaCaverna(d) {
   const P = PISO_PPM, w = Math.ceil((d.x1 - d.x0) * P), h = Math.ceil((d.y1 - d.y0) * P * ACHATA);
   const c = document.createElement("canvas"); c.width = w; c.height = h;
-  const g = c.getContext("2d"), k = TEX_M * P / TEX.terra.width, p = g.createPattern(TEX.terra, "repeat");
+  const tx = TEX.caverna || TEX.terra, g = c.getContext("2d"), k = TEX_M * P / tx.width, p = g.createPattern(tx, "repeat");   // (o chão de pedra do estilo B, se houver)
   p.setTransform(new DOMMatrix([k, 0, 0, k * ACHATA, -(d.x + d.x0) * P, (d.y + d.y1) * P * ACHATA]));   // a textura presa ao mundo, como antes
   g.fillStyle = p; g.fillRect(0, 0, w, h);
-  g.globalCompositeOperation = "source-atop"; g.fillStyle = d.tema.piso; g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = "source-atop"; g.fillStyle = d.tema.piso; if (TEX.caverna) g.globalAlpha = 0.45; g.fillRect(0, 0, w, h); g.globalAlpha = 1;   // (o chão B já é escuro: o tom do tema mais leve)
   g.globalCompositeOperation = "destination-in"; g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
   g.drawImage(d.mascara, 0, 0, w, h);
   return c;
@@ -8951,6 +9402,8 @@ function desenhar(t) {
   // (a ordem pela profundidade da vista: com o giro, o fundo é o nordeste; ver profObj)
   const lista = objetos.filter(o => !PLANO.has(o.tipo) && naTela(o)).map(o => ({ y: profObj(o), f: () => objeto(o) }));
   lista.push({ y: profV(viking.x, viking.y), f: desenharViking });
+  predLista(lista, t);                              // as construções em camadas (o kit modular: entra-se nelas)
+  vegLista(lista, t);                               // o mato alto perto de quem anda (na frente das pernas)
   for (const l of criaturas) lista.push({ y: profV(l.x, l.y), f: () => desenharCriatura(l) });
   lista.sort((a, b) => b.y - a.y).forEach(o => o.f());
   // (com os efeitos 3D, as placas e barras vão depois deles e do escuro da noite: ficam por cima, como no mundo 3D)
@@ -10251,6 +10704,7 @@ carregar().then(() => {
   carregarP3d();
   prepararMana(); carregarProgresso(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarArmazem(); montarTempo(); montarFicha(); montarBolsa(); montarBarraSkills(); montarMinimapa(); montarMenu(); montarAdmin(); montarJanelas();
   fecharMapaOriginal();
+  PRED_CARREGANDO.then(montarPredios);              // (as construções em camadas, com ?predios=1)
   $("#carregando").hidden = true;
   window.jogoPronto = true;
   requestAnimationFrame(laco);
