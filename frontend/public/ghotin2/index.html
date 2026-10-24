@@ -4072,13 +4072,18 @@ function janelaAbriu(id, sim) {
   if (sim !== (i >= 0) && performance.now() - somQualquer > 80) som(id === "armazem" ? (sim ? "bau" : "ui_fechar") : sim ? "ui_abrir" : "ui_fechar", null, id === "armazem" && sim ? 0.6 : 0.8);
 }
 function fecharUltimaJanela() {
+  // o armazém abre junto a bolsa: o Esc fecha os dois de uma vez
+  if (typeof armazemAberto === "function" && armazemAberto()) { abrirArmazem(false); abrirBolsa(false); return true; }
   while (pilhaJanelas.length) {
     const id = pilhaJanelas.pop(), el = document.getElementById(id);
     if (!el || el.hidden) continue;
     ({ bolsa: () => abrirBolsa(false), ficha: () => abrirFicha(false), ferreiro: () => abrirFerreiro(false), npcJan: () => abrirNpc(null),
-       janelas: () => abrirJanelas(false), armazem: () => typeof abrirArmazem === "function" && abrirArmazem(false) }[id] || (() => { el.hidden = true; }))();
+       janelas: () => abrirJanelas(false), armazem: () => typeof abrirArmazem === "function" && abrirArmazem(false), admin: () => abrirAdmin(false) }[id] || (() => { el.hidden = true; }))();
     return true;
   }
+  // sem janela na pilha: o Livro de teste aberto também fecha com Esc
+  const livro = document.getElementById("livro");
+  if (livro && livro.open) { livro.open = false; som("ui_fechar", null, 0.8); return true; }
   return false;
 }
 function montarJanelas() {
@@ -7034,6 +7039,8 @@ let veloc = 1, pausado = false, mostrarCaixa = false, tremor = 0;
 addEventListener("pointerdown", somIniciar, true);
 addEventListener("keydown", e => {
   somIniciar();
+  // Esc fecha a janela mesmo com o cursor num campo dela (quantidade, bônus, nome...)
+  if (e.key === "Escape" && ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) { e.target.blur(); fecharUltimaJanela(); return; }
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
   const k = e.key.toLowerCase();
   const iSlot = TECLAS_BARRA.indexOf(k);
