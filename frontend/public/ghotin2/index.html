@@ -8464,8 +8464,9 @@ function mascaraLamina(im, q, info, cor) {
 // brilho da espada encantada: a forma exata da lâmina, borrada em vermelho em duas larguras e com o miolo quente; onde
 // o corpo cobre a lâmina não há brilho (a máscara já vem recortada)
 function brilhoLamina(im, q, info, X, Y, z, t) {
-  if (!info.mascara || (classe !== "viking" && classe !== "ninja")) return;
+  if (!info.mascara || (classe !== "viking" && classe !== "ninja" && classe !== "guerreiro")) return;   // (o guerreiro: só no 3D, a máscara do machado)
   if (classe === "ninja" && !brilhoRef()) return;
+  if (classe === "guerreiro" && !brilhoRef() && !azul() && viking.anim !== "lamina_espiritual") return;
   const pulso = 0.82 + 0.13 * Math.sin(t * 7) + 0.07 * Math.sin(t * 19);
   const x = X - info.px * z, y = Y - info.py * z, w = info.w * z, h = info.h * z;
   // na erguida da Lâmina Espiritual o azul vai crescendo até acender
@@ -8637,7 +8638,7 @@ const MODELOS_3D = {
 // os moradores da vila que têm modelo (os outros continuam desenhados por código)
 const NPC_3D = { "Guarda Real": "guarda_real", "Guarda Sigrid": "guarda", "Senhor do Armazém": "armazem" };
 // a parte da arma que brilha com o refino (a máscara do brilho, como a fileira de baixo das tiras dos sprites)
-const MASCARA_3D = { viking: ["peca_espada"], ninja: ["peca_adaga_d", "peca_adaga_e"], arqueiro: ["peca_arco"], feiticeiro: ["peca_esfera"] };
+const MASCARA_3D = { viking: ["peca_espada"], ninja: ["peca_adaga_d", "peca_adaga_e"], guerreiro: ["peca_machado"], arqueiro: ["peca_arco"], feiticeiro: ["peca_esfera"] };
 const P3D = { ligado: (() => { const q = new URLSearchParams(location.search); return !q.has("2d") && (q.has("3d") || !MODO_TESTE); })(),
               modelos: {}, inst: new Map(), fila: [], ativos: 0, quadro: 0, qual: 1, prateleiras: [], yLivre: 0, stats: {} };
 window.R3D = P3D;
@@ -8660,7 +8661,7 @@ async function carregarP3d() {
   } catch (e) { console.error("3d:", e); p.ligado = false; avisar("3D: sem WebGL (ficam os sprites)"); return; }
   p.render.setClearColor(0x000000, 0); p.render.outputEncoding = THREE.sRGBEncoding; p.render.autoClear = false;
   // o atlas (no celular o 3D sai com 1 px por px da tela, sem a densidade da tela) e o maior pedaço de um boneco
-  p.lado = window.MODO_LEVE ? 2048 : 4096; p.maxCel = window.MODO_LEVE ? 384 : 640;
+  p.lado = window.MODO_LEVE ? 2048 : 4096; p.maxCel = 640;
   p.render.setPixelRatio(1); p.render.setSize(p.lado, p.lado, false);
   const tela3d = p.render.domElement;
   tela3d.addEventListener("webglcontextlost", e => { e.preventDefault(); p.perdido = true; });
@@ -8808,7 +8809,7 @@ async function montarModelo3d(m, gltf) {
       // de pano finas (doubleSided) aparecem dos dois lados
       const cor = o.material.map ? new THREE.Color(0xffffff) : o.material.color.clone().convertSRGBToLinear();
       let map = o.material.map || null;
-      if (map) { if (!texs.has(map)) texs.set(map, texturaLeve3d(map)); map = texs.get(map); }
+      if (map) { if (!texs.has(map)) texs.set(map, NOME_CLASSE[m.nome] ? map : texturaLeve3d(map)); map = texs.get(map); }   // (os heróis com a textura inteira)
       mat = toon3d(map, cor, o.material.side);
       mat.userData.cor = mat.color.clone();
       feitos.set(o.material, mat); m.mats.push(mat);
@@ -8955,7 +8956,7 @@ function tempo3d(clip, d, info) {
 // o brilho da arma precisa da máscara dela neste quadro?
 function querMascara3d() {
   if (!MASCARA_3D[classe] || !prog || !prog.arma) return false;
-  return classe === "feiticeiro" || !!brilhoRef() || (classe === "viking" && azul()) || (classe === "arqueiro" && viking.anim === "certeiro");
+  return classe === "feiticeiro" || !!brilhoRef() || ((classe === "viking" || classe === "guerreiro") && (azul() || viking.anim === "lamina_espiritual")) || (classe === "arqueiro" && viking.anim === "certeiro");
 }
 const TINTAS_3D = {};
 function prepararP3d(t) {
@@ -8963,7 +8964,8 @@ function prepararP3d(t) {
   if (!p.ligado || !p.render || p.perdido) return;
   p.quadro++;
   const agora = performance.now() / 1000, dt = Math.min(0.1, agora - (p.ultimo || agora)); p.ultimo = agora;
-  const leve = !!window.MODO_LEVE, pr = leve ? 1 : Math.min(dpr, 2);
+  // px do pedaço por px da tela: a densidade da tela (no máximo 2); no celular, só o herói e quem está perto (os outros, 1)
+  const leve = !!window.MODO_LEVE, prCheio = Math.min(dpr, 2), prDe = i => !leve || i.d.heroi || i.d.perto ? prCheio : 1;
   const usar = [];
   for (const d of pedidos3d(agora)) {
     const anim = clip3d(d.m, d.anim);
@@ -8974,7 +8976,7 @@ function prepararP3d(t) {
   }
   // o tamanho do pedaço de cada um: o do boneco na tela (vezes a qualidade), em múltiplos de 8 px, no máximo meio atlas
   const tam = (i, q) => {
-    const c = i.m.caixa, s = PX * zoom * i.d.esc * pr * q;
+    const c = i.m.caixa, s = PX * zoom * i.d.esc * prDe(i) * q;
     let w = (c.esq + c.dir) * s, h = (c.cima + c.baixo) * s;
     const k = Math.min(1, p.maxCel / Math.max(w, h));
     return [Math.min(p.maxCel, Math.max(16, Math.ceil(w * k / 8) * 8)), Math.min(p.maxCel, Math.max(16, Math.ceil(h * k / 8) * 8))];
