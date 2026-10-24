@@ -4544,7 +4544,7 @@ let abaBolsa = 0;
 function tipoItem(chave) {
   if (chave.startsWith("peca:")) { const [, slot, t] = chave.split(":"), P = PECAS[slot] || PECAS.elmo, m = P.modelos[+t] || P.modelos[0];
     return { nome: m[0] + (P.classes ? ` (${P.classes.map(c => NOME_CLASSE[c]).join("/")})` : ""), desc: "", h: P.h, peca: PECAS[slot] ? slot : "elmo", tier: +t, usar: it => equiparPeca(it) }; }
-  if (chave.startsWith("arma:")) { const a = ARMAS[chave.slice(5)] || ARMAS.viking; return { nome: a.nome, desc: "Arma. Clique direito para equipar; o Ferreiro da praça melhora até +9.", h: 3, arma: true, desenho: a.desenho, usar: it => equiparArma(it) }; }
+  if (chave.startsWith("arma:")) { const c = ARMAS[chave.slice(5)] ? chave.slice(5) : "viking", a = ARMAS[c]; return { nome: a.nome, desc: `Arma só para ${NOME_CLASSE[c]}. Clique direito para equipar; o Ferreiro da praça melhora até +9.`, h: 3, arma: true, desenho: a.desenho, usar: it => equiparArma(it) }; }
   if (chave.startsWith("livro:")) { const n = chave.slice(6), c = classeDaSkill(n);
     return { nome: "Livro: " + n, desc: `Skill ${c ? "do " + NOME_CLASSE[c] : ""}. Do M1 ao M10: cada leitura pode falhar, custa um pouco de EXP e a mesma skill só lê de novo depois de 12 h.`, h: 1, usar: () => lerLivro(n), desenho: "livro" }; }
   return {
@@ -4819,6 +4819,9 @@ function nomeItem(it) { const t = tipoItem(it.chave); return t.arma || t.peca ? 
 // equipa uma arma da bolsa (a que estava na mão vai para o lugar dela)
 function equiparArma(it) {
   if (!prog) return;
+  // como no Metin2: cada classe só empunha a própria arma
+  const dona = it.chave.slice(5);
+  if (ARMAS[dona] && dona !== classe) { avisar(`${ARMAS[dona].nome} é arma de ${NOME_CLASSE[dona]}`); som("ui_negar"); return; }
   const i = prog.inv.indexOf(it); if (i < 0) return;
   prog.inv.splice(i, 1);
   if (prog.arma) prog.inv.push({ chave: "arma:" + classe, qtd: 1, ref: prog.arma.ref, bon: prog.arma.bon || [], aba: it.aba, x: it.x, y: it.y });
