@@ -29,6 +29,11 @@
   html, body { height: 100%; }
   body { margin: 0; overflow: hidden; background: var(--chao); color: var(--texto); font-family: var(--corpo); font-size: 14px; }
   canvas#campo { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+  /* bordas da tela embaçadas (prévia: ?borda=leve, ?borda=medio ou ?borda=tilt): só o mundo, por baixo da interface */
+  .borda-emb { position: fixed; inset: 0; pointer-events: none; -webkit-backdrop-filter: blur(var(--emb, 2px)); backdrop-filter: blur(var(--emb, 2px));
+    -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, transparent var(--emb-ini, 62%), #000 100%); mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, transparent var(--emb-ini, 62%), #000 100%);
+    background: radial-gradient(ellipse 72% 72% at 50% 50%, transparent 60%, rgba(20, 14, 10, var(--emb-esc, 0)) 100%); }
+  .borda-emb.tilt { -webkit-mask-image: linear-gradient(#000, transparent 30%, transparent 70%, #000); mask-image: linear-gradient(#000, transparent 30%, transparent 70%, #000); background: none; }
 
   .barra {
     position: fixed; top: 0; left: 0; right: 0; z-index: 2; pointer-events: none;
@@ -526,6 +531,7 @@
 </style>
 
 <canvas id="campo" aria-label="Campo de treino: o viking e os bonecos"></canvas>
+<div class="borda-emb" id="bordaEmb" hidden aria-hidden="true"></div>
 
 <div class="barra">
   <div id="janTitulo">
@@ -6433,8 +6439,16 @@ function montarOpcoes() {
   $("#opcoesPadrao").onclick = () => { Som.vol = { ...VOL_PADRAO }; aplicarVolumes(); salvarVolumes(); mostrarOpcoes(); };
   $("#opcoesFechar").onclick = () => abrirOpcoes(false);
 }
+// as bordas embaçadas (prévia pela URL): leve, médio (com um pouco de sombra nas bordas) ou tilt-shift (só em cima e embaixo)
+function montarBordaEmb() {
+  const tipo = new URLSearchParams(location.search).get("borda"), el = $("#bordaEmb");
+  const cfg = { leve: ["2px", "62%", 0], medio: ["4px", "52%", 0.28], tilt: ["5px", "0%", 0] }[tipo];
+  if (!cfg || MODO_TESTE) return;
+  el.hidden = false; el.classList.toggle("tilt", tipo === "tilt");
+  el.style.setProperty("--emb", cfg[0]); el.style.setProperty("--emb-ini", cfg[1]); el.style.setProperty("--emb-esc", cfg[2]);
+}
 function montarMenu() {
-  montarOpcoes();
+  montarOpcoes(); montarBordaEmb();
   $("#menuBotao").onclick = () => abrirMenu();
   $("#menuLeque").onclick = e => { const b = e.target.closest("[data-menu]"); if (!b) return; abrirMenu(false); MENU_ACOES[b.dataset.menu](); };
   addEventListener("pointerdown", e => { if (menuAberto() && !e.target.closest("#menuJogo")) abrirMenu(false); }, true);
