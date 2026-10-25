@@ -1,100 +1,884 @@
 {
- "pocao": "itens_b/pocao.webp",
- "pocaoMana": "itens_b/pocaoMana.webp",
- "pedra": "itens_b/pedra.webp",
- "encantar": "itens_b/encantar.webp",
- "mudar": "itens_b/mudar.webp",
- "alma": "itens_b/alma.webp",
- "bencao": "itens_b/bencao.webp",
- "yang": "itens_b/yang.webp",
- "espada": "itens_b/espada.webp",
- "machado": "itens_b/machado.webp",
- "arco": "itens_b/arco.webp",
- "cajado": "itens_b/cajado.webp",
- "adagas": "itens_b/adagas.webp",
- "livro": "itens_b/livro.webp",
- "peca:armadura_guerreiro:0": "itens_b/peca_armadura_guerreiro_0.webp",
- "peca:armadura_guerreiro:1": "itens_b/peca_armadura_guerreiro_1.webp",
- "peca:armadura_guerreiro:2": "itens_b/peca_armadura_guerreiro_2.webp",
- "peca:armadura_leve:0": "itens_b/peca_armadura_leve_0.webp",
- "peca:armadura_leve:1": "itens_b/peca_armadura_leve_1.webp",
- "peca:armadura_leve:2": "itens_b/peca_armadura_leve_2.webp",
- "peca:armadura_mago:0": "itens_b/peca_armadura_mago_0.webp",
- "peca:armadura_mago:1": "itens_b/peca_armadura_mago_1.webp",
- "peca:armadura_mago:2": "itens_b/peca_armadura_mago_2.webp",
- "peca:elmo:0": "itens_b/peca_elmo_0.webp",
- "peca:elmo:1": "itens_b/peca_elmo_1.webp",
- "peca:elmo:2": "itens_b/peca_elmo_2.webp",
- "peca:botas:0": "itens_b/peca_botas_0.webp",
- "peca:botas:1": "itens_b/peca_botas_1.webp",
- "peca:botas:2": "itens_b/peca_botas_2.webp",
- "peca:escudo:0": "itens_b/peca_escudo_0.webp",
- "peca:escudo:1": "itens_b/peca_escudo_1.webp",
- "peca:escudo:2": "itens_b/peca_escudo_2.webp",
- "peca:armadura_guerreiro:3": "itens_b/peca_armadura_guerreiro_3.webp",
- "peca:armadura_guerreiro:4": "itens_b/peca_armadura_guerreiro_4.webp",
- "peca:armadura_guerreiro:5": "itens_b/peca_armadura_guerreiro_5.webp",
- "peca:armadura_guerreiro:6": "itens_b/peca_armadura_guerreiro_6.webp",
- "peca:armadura_guerreiro:7": "itens_b/peca_armadura_guerreiro_7.webp",
- "peca:armadura_guerreiro:8": "itens_b/peca_armadura_guerreiro_8.webp",
- "peca:armadura_leve:3": "itens_b/peca_armadura_leve_3.webp",
- "peca:armadura_leve:4": "itens_b/peca_armadura_leve_4.webp",
- "peca:armadura_leve:5": "itens_b/peca_armadura_leve_5.webp",
- "peca:armadura_leve:6": "itens_b/peca_armadura_leve_6.webp",
- "peca:armadura_leve:7": "itens_b/peca_armadura_leve_7.webp",
- "peca:armadura_leve:8": "itens_b/peca_armadura_leve_8.webp",
- "peca:armadura_mago:3": "itens_b/peca_armadura_mago_3.webp",
- "peca:armadura_mago:4": "itens_b/peca_armadura_mago_4.webp",
- "peca:armadura_mago:5": "itens_b/peca_armadura_mago_5.webp",
- "peca:armadura_mago:6": "itens_b/peca_armadura_mago_6.webp",
- "peca:armadura_mago:7": "itens_b/peca_armadura_mago_7.webp",
- "peca:armadura_mago:8": "itens_b/peca_armadura_mago_8.webp",
- "peca:elmo:3": "itens_b/peca_elmo_3.webp",
- "peca:elmo:4": "itens_b/peca_elmo_4.webp",
- "peca:elmo:5": "itens_b/peca_elmo_5.webp",
- "peca:elmo:6": "itens_b/peca_elmo_6.webp",
- "peca:elmo:7": "itens_b/peca_elmo_7.webp",
- "peca:elmo:8": "itens_b/peca_elmo_8.webp",
- "peca:botas:3": "itens_b/peca_botas_3.webp",
- "peca:botas:4": "itens_b/peca_botas_4.webp",
- "peca:botas:5": "itens_b/peca_botas_5.webp",
- "peca:botas:6": "itens_b/peca_botas_6.webp",
- "peca:botas:7": "itens_b/peca_botas_7.webp",
- "peca:botas:8": "itens_b/peca_botas_8.webp",
- "peca:escudo:3": "itens_b/peca_escudo_3.webp",
- "peca:escudo:4": "itens_b/peca_escudo_4.webp",
- "peca:escudo:5": "itens_b/peca_escudo_5.webp",
- "peca:escudo:6": "itens_b/peca_escudo_6.webp",
- "peca:escudo:7": "itens_b/peca_escudo_7.webp",
- "peca:escudo:8": "itens_b/peca_escudo_8.webp",
- "espada:1": "itens_b/espada_1.webp",
- "espada:2": "itens_b/espada_2.webp",
- "espada:3": "itens_b/espada_3.webp",
- "espada:4": "itens_b/espada_4.webp",
- "espada:5": "itens_b/espada_5.webp",
- "espada:6": "itens_b/espada_6.webp",
- "machado:1": "itens_b/machado_1.webp",
- "machado:2": "itens_b/machado_2.webp",
- "machado:3": "itens_b/machado_3.webp",
- "machado:4": "itens_b/machado_4.webp",
- "machado:5": "itens_b/machado_5.webp",
- "machado:6": "itens_b/machado_6.webp",
- "arco:1": "itens_b/arco_1.webp",
- "arco:2": "itens_b/arco_2.webp",
- "arco:3": "itens_b/arco_3.webp",
- "arco:4": "itens_b/arco_4.webp",
- "arco:5": "itens_b/arco_5.webp",
- "arco:6": "itens_b/arco_6.webp",
- "cajado:1": "itens_b/cajado_1.webp",
- "cajado:2": "itens_b/cajado_2.webp",
- "cajado:3": "itens_b/cajado_3.webp",
- "cajado:4": "itens_b/cajado_4.webp",
- "cajado:5": "itens_b/cajado_5.webp",
- "cajado:6": "itens_b/cajado_6.webp",
- "adagas:1": "itens_b/adagas_1.webp",
- "adagas:2": "itens_b/adagas_2.webp",
- "adagas:3": "itens_b/adagas_3.webp",
- "adagas:4": "itens_b/adagas_4.webp",
- "adagas:5": "itens_b/adagas_5.webp",
- "adagas:6": "itens_b/adagas_6.webp"
+ "pocao": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   0,
+   0,
+   146,
+   192
+  ]
+ },
+ "pocaoMana": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   148,
+   0,
+   143,
+   192
+  ]
+ },
+ "pedra": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   293,
+   0,
+   109,
+   192
+  ]
+ },
+ "encantar": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   404,
+   0,
+   153,
+   192
+  ]
+ },
+ "mudar": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   559,
+   0,
+   156,
+   192
+  ]
+ },
+ "alma": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   717,
+   0,
+   130,
+   192
+  ]
+ },
+ "bencao": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   849,
+   0,
+   162,
+   192
+  ]
+ },
+ "yang": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   194,
+   1357,
+   192,
+   173
+  ]
+ },
+ "espada": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1013,
+   0,
+   60,
+   192
+  ]
+ },
+ "machado": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1075,
+   0,
+   89,
+   192
+  ]
+ },
+ "arco": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1166,
+   0,
+   27,
+   192
+  ]
+ },
+ "cajado": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1195,
+   0,
+   43,
+   192
+  ]
+ },
+ "adagas": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1240,
+   0,
+   182,
+   192
+  ]
+ },
+ "livro": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1424,
+   0,
+   185,
+   192
+  ]
+ },
+ "peca:armadura_guerreiro:0": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   388,
+   1357,
+   192,
+   171
+  ]
+ },
+ "peca:armadura_guerreiro:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1746,
+   1164,
+   192,
+   175
+  ]
+ },
+ "peca:armadura_guerreiro:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   582,
+   1357,
+   192,
+   167
+  ]
+ },
+ "peca:armadura_leve:0": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   388,
+   1164,
+   192,
+   188
+  ]
+ },
+ "peca:armadura_leve:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   776,
+   1164,
+   192,
+   185
+  ]
+ },
+ "peca:armadura_leve:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   970,
+   1164,
+   192,
+   183
+  ]
+ },
+ "peca:armadura_mago:0": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1611,
+   0,
+   166,
+   192
+  ]
+ },
+ "peca:armadura_mago:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1779,
+   0,
+   168,
+   192
+  ]
+ },
+ "peca:armadura_mago:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   0,
+   194,
+   170,
+   192
+  ]
+ },
+ "peca:elmo:0": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   172,
+   194,
+   186,
+   192
+  ]
+ },
+ "peca:elmo:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   360,
+   194,
+   162,
+   192
+  ]
+ },
+ "peca:elmo:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   524,
+   194,
+   158,
+   192
+  ]
+ },
+ "peca:botas:0": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   194,
+   1164,
+   192,
+   190
+  ]
+ },
+ "peca:botas:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   684,
+   194,
+   187,
+   192
+  ]
+ },
+ "peca:botas:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1334,
+   970,
+   192,
+   191
+  ]
+ },
+ "peca:escudo:0": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   873,
+   194,
+   188,
+   192
+  ]
+ },
+ "peca:escudo:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1063,
+   194,
+   187,
+   192
+  ]
+ },
+ "peca:escudo:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1528,
+   970,
+   192,
+   191
+  ]
+ },
+ "peca:armadura_guerreiro:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1252,
+   194,
+   188,
+   192
+  ]
+ },
+ "peca:armadura_guerreiro:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1442,
+   194,
+   192,
+   192
+  ]
+ },
+ "peca:armadura_guerreiro:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1636,
+   194,
+   190,
+   192
+  ]
+ },
+ "peca:armadura_guerreiro:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1828,
+   194,
+   187,
+   192
+  ]
+ },
+ "peca:armadura_guerreiro:7": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   0,
+   388,
+   182,
+   192
+  ]
+ },
+ "peca:armadura_guerreiro:8": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   184,
+   388,
+   190,
+   192
+  ]
+ },
+ "peca:armadura_leve:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1722,
+   970,
+   192,
+   191
+  ]
+ },
+ "peca:armadura_leve:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1164,
+   1164,
+   192,
+   182
+  ]
+ },
+ "peca:armadura_leve:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   582,
+   1164,
+   192,
+   188
+  ]
+ },
+ "peca:armadura_leve:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   376,
+   388,
+   187,
+   192
+  ]
+ },
+ "peca:armadura_leve:7": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   565,
+   388,
+   189,
+   192
+  ]
+ },
+ "peca:armadura_leve:8": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   756,
+   388,
+   190,
+   192
+  ]
+ },
+ "peca:armadura_mago:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   948,
+   388,
+   187,
+   192
+  ]
+ },
+ "peca:armadura_mago:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1137,
+   388,
+   190,
+   192
+  ]
+ },
+ "peca:armadura_mago:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1329,
+   388,
+   185,
+   192
+  ]
+ },
+ "peca:armadura_mago:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1516,
+   388,
+   176,
+   192
+  ]
+ },
+ "peca:armadura_mago:7": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1694,
+   388,
+   169,
+   192
+  ]
+ },
+ "peca:armadura_mago:8": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1865,
+   388,
+   176,
+   192
+  ]
+ },
+ "peca:elmo:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   0,
+   582,
+   169,
+   192
+  ]
+ },
+ "peca:elmo:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1552,
+   1164,
+   192,
+   177
+  ]
+ },
+ "peca:elmo:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   171,
+   582,
+   171,
+   192
+  ]
+ },
+ "peca:elmo:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   344,
+   582,
+   169,
+   192
+  ]
+ },
+ "peca:elmo:7": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   515,
+   582,
+   177,
+   192
+  ]
+ },
+ "peca:elmo:8": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   694,
+   582,
+   187,
+   192
+  ]
+ },
+ "peca:botas:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   883,
+   582,
+   178,
+   192
+  ]
+ },
+ "peca:botas:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1063,
+   582,
+   180,
+   192
+  ]
+ },
+ "peca:botas:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1245,
+   582,
+   183,
+   192
+  ]
+ },
+ "peca:botas:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1430,
+   582,
+   181,
+   192
+  ]
+ },
+ "peca:botas:7": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1613,
+   582,
+   176,
+   192
+  ]
+ },
+ "peca:botas:8": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1791,
+   582,
+   183,
+   192
+  ]
+ },
+ "peca:escudo:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   0,
+   776,
+   190,
+   192
+  ]
+ },
+ "peca:escudo:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   192,
+   776,
+   192,
+   192
+  ]
+ },
+ "peca:escudo:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   386,
+   776,
+   143,
+   192
+  ]
+ },
+ "peca:escudo:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   531,
+   776,
+   189,
+   192
+  ]
+ },
+ "peca:escudo:7": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   722,
+   776,
+   189,
+   192
+  ]
+ },
+ "peca:escudo:8": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   913,
+   776,
+   165,
+   192
+  ]
+ },
+ "espada:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1080,
+   776,
+   60,
+   192
+  ]
+ },
+ "espada:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1142,
+   776,
+   57,
+   192
+  ]
+ },
+ "espada:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1201,
+   776,
+   69,
+   192
+  ]
+ },
+ "espada:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1272,
+   776,
+   56,
+   192
+  ]
+ },
+ "espada:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1330,
+   776,
+   64,
+   192
+  ]
+ },
+ "espada:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1396,
+   776,
+   113,
+   192
+  ]
+ },
+ "machado:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1511,
+   776,
+   65,
+   192
+  ]
+ },
+ "machado:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1578,
+   776,
+   89,
+   192
+  ]
+ },
+ "machado:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1669,
+   776,
+   100,
+   192
+  ]
+ },
+ "machado:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1771,
+   776,
+   93,
+   192
+  ]
+ },
+ "machado:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1866,
+   776,
+   93,
+   192
+  ]
+ },
+ "machado:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   0,
+   970,
+   100,
+   192
+  ]
+ },
+ "arco:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   102,
+   970,
+   31,
+   192
+  ]
+ },
+ "arco:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   135,
+   970,
+   37,
+   192
+  ]
+ },
+ "arco:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   174,
+   970,
+   42,
+   192
+  ]
+ },
+ "arco:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   218,
+   970,
+   50,
+   192
+  ]
+ },
+ "arco:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   270,
+   970,
+   40,
+   192
+  ]
+ },
+ "arco:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   312,
+   970,
+   51,
+   192
+  ]
+ },
+ "cajado:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   365,
+   970,
+   71,
+   192
+  ]
+ },
+ "cajado:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   438,
+   970,
+   76,
+   192
+  ]
+ },
+ "cajado:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   516,
+   970,
+   79,
+   192
+  ]
+ },
+ "cajado:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   597,
+   970,
+   58,
+   192
+  ]
+ },
+ "cajado:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   657,
+   970,
+   61,
+   192
+  ]
+ },
+ "cajado:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   720,
+   970,
+   73,
+   192
+  ]
+ },
+ "adagas:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   795,
+   970,
+   162,
+   192
+  ]
+ },
+ "adagas:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   959,
+   970,
+   181,
+   192
+  ]
+ },
+ "adagas:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   0,
+   1164,
+   192,
+   191
+  ]
+ },
+ "adagas:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   0,
+   1357,
+   192,
+   175
+  ]
+ },
+ "adagas:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1142,
+   970,
+   190,
+   192
+  ]
+ },
+ "adagas:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1358,
+   1164,
+   192,
+   179
+  ]
+ }
 }

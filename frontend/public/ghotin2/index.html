@@ -2007,9 +2007,17 @@ async function carregar() {
   try {
     const mapa = await (await fetch("itens.json")).json();
     if (ESTILO_B) try { Object.assign(mapa, await (await fetch("itens_b.json")).json()); } catch (e) {}   // (os do estilo B por cima: itens_b/)
-    await Promise.all(Object.entries(mapa).map(([chave, arq]) => new Promise(ok => {
-      const im = new Image(); im.onload = () => { ICONES_ITEM[chave] = im; ok(); }; im.onerror = ok; im.src = arq;
-    })));
+    // (o estilo B vem num atlas só, { a: "itens_b/atlas.webp", r: [x, y, l, a] }: cada ícone sai recortado num canvas)
+    const folhas = {};
+    for (const v of Object.values(mapa)) if (v && v.a && !folhas[v.a]) folhas[v.a] = new Promise(ok => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = v.a; });
+    await Promise.all(Object.entries(mapa).map(async ([chave, arq]) => {
+      if (arq && arq.a) {
+        const f = await folhas[arq.a]; if (!f) return;
+        const [x, y, l, a] = arq.r, c = document.createElement("canvas"); c.width = l; c.height = a;
+        c.getContext("2d").drawImage(f, x, y, l, a, 0, 0, l, a); ICONES_ITEM[chave] = c; return;
+      }
+      await new Promise(ok => { const im = new Image(); im.onload = () => { ICONES_ITEM[chave] = im; ok(); }; im.onerror = ok; im.src = arq; });
+    }));
   } catch (e) {}
   // o ninja usa os nomes do combate do viking: as poses "armadas" são as dele mesmo (ele está sempre com as adagas)
   if (MN) for (const [de, para] of [["parado_armado", "parado"], ["andando_armado", "andando"], ["correndo_armado", "correndo"]]) if (MN.animacoes[para]) { MN.animacoes[de] = MN.animacoes[para]; SPRN[de] = SPRN[para]; }
@@ -7427,7 +7435,7 @@ function nomeDrop(d) {
 function iconeDrop(d) {
   const k = d.tipo === "peca" ? d.chave : d.tipo === "arma" ? (ARMAS[(d.chave || "").slice(5)] || ARMAS.viking).desenho : d.tipo;
   const im = ICONES_ITEM[k];
-  return im && im.complete && im.naturalWidth ? im : null;
+  return im && (im instanceof HTMLCanvasElement || (im.complete && im.naturalWidth)) ? im : null;
 }
 function desenharItens(t) {
   const u = Math.max(0.75, zoom);
