@@ -897,6 +897,9 @@ const ESTILO_TINTA = (() => { const q = new URLSearchParams(location.search); if
 // o estilo B (minhwa: Tools/deco3d/estilo/BIBLIA_B.md), o padrão: decoração de deco_b/ (na vista diagonal), chão de
 // chao_b/, ícones de itens_b/ e icones_b/ (o que faltar fica o de antes). ?b=0 volta ao estilo anterior
 const ESTILO_B = new URLSearchParams(location.search).get("b") !== "0" && !ESTILO_TINTA;
+// piloto da grama minhwa (?grama=b): o chão em aguadas chapadas com marcas de pincel (chao_b2/, de
+// Tools/viking/deco_b/chao_minhwa.py) e as touceiras com menos lâminas, mais largas e com contorno de nanquim
+const GRAMA_B = ESTILO_B && new URLSearchParams(location.search).get("grama") === "b";
 if (!ESTILO_B) document.documentElement.classList.add("semB");             // (as cores antigas da interface)
 const B_DIRETO = new Set(["entrada", "metin", "fogo", "escada", "lanterna", "bambu", "tocha", "barril", "caixote"]);
 
@@ -1682,8 +1685,8 @@ async function carregar() {
     ...Object.keys(TEX).map(n => new Promise(ok => {
       const im = new Image(), fim = () => { feitos++; $("#barra").style.width = (100 * feitos / total) + "%"; ok(); };
       im.onload = () => { TEX[n] = im; fim(); };
-      im.onerror = () => { if (im.src.includes("chao_pintado/") || im.src.includes("chao_b/")) im.src = "chao/" + n + ".webp"; else fim(); };   // (sem a pintada, a de sempre)
-      im.src = (ESTILO_B ? "chao_b/" : ESTILO_PINTADO ? "chao_pintado/" : "chao/") + n + ".webp";
+      im.onerror = () => { if (im.src.includes("chao_b2/")) im.src = "chao_b/" + n + ".webp"; else if (im.src.includes("chao_pintado/") || im.src.includes("chao_b/")) im.src = "chao/" + n + ".webp"; else fim(); };   // (sem a pintada, a de sempre)
+      im.src = (GRAMA_B && ["grama", "musgo", "terra"].includes(n) ? "chao_b2/" : ESTILO_B ? "chao_b/" : ESTILO_PINTADO ? "chao_pintado/" : "chao/") + n + ".webp";
     })),
     ...Object.keys(FX).map(n => new Promise((ok, erro) => {
       const im = new Image();
@@ -2883,15 +2886,16 @@ function vegAtlasDe(pal) {
   const lam = (bx, by, hgt, w, abre, cor) => {          // uma lâmina afinando (de pé, sem vento)
     const tx = bx + abre * P, ty = by - hgt * P, qx = bx + abre * P * 0.3, qy = by - hgt * P * 0.55, bw = Math.max(0.7, w * P * 0.5);
     g.fillStyle = cor; g.beginPath(); g.moveTo(bx - bw, by); g.quadraticCurveTo(qx - bw * 0.3, qy, tx, ty); g.quadraticCurveTo(qx + bw * 0.3, qy, bx + bw, by); g.fill();
+    if (GRAMA_B) { g.strokeStyle = "rgba(30, 27, 24, 0.85)"; g.lineWidth = Math.max(0.8, P * 0.007); g.stroke(); }   // (piloto minhwa: o contorno de nanquim)
     return [tx, ty];
   };
   const ponto = (px, py, r, cor) => { g.fillStyle = cor; g.beginPath(); g.arc(px, py, r, 0, 6.29); g.fill(); };
   for (const d of lista) {
     const bx = d.sx + d.w / 2, by = d.sy + d.h - 2, q = d.q;
     if (d.tipo === "grama" || d.tipo === "capim") {
-      const alto = d.tipo === "capim", n = alto ? 11 + (q % 4) : 9 + (q % 3), larg = (d.w - 6) / P * 0.62;
+      const alto = d.tipo === "capim", n = GRAMA_B ? (alto ? 6 + (q % 3) : 4 + (q % 2)) : alto ? 11 + (q % 4) : 9 + (q % 3), larg = (d.w - 6) / P * 0.62;
       // as de trás (escuras) primeiro, as da frente (claras) por cima
-      const ls = Array.from({ length: n }, (_, k) => { const u = (k + R(q, k)) / n - 0.5; return { u, hgt: d.alt * (0.45 + 0.55 * R(q + 50, k)), w: (alto ? 0.05 : 0.034) * (0.7 + 0.6 * R(q + 90, k)), c: R(q + 130, k) }; });
+      const ls = Array.from({ length: n }, (_, k) => { const u = (k + R(q, k)) / n - 0.5; return { u, hgt: d.alt * (0.45 + 0.55 * R(q + 50, k)), w: (alto ? 0.05 : 0.034) * (GRAMA_B ? 1.9 : 1) * (0.7 + 0.6 * R(q + 90, k)), c: R(q + 130, k) }; });
       ls.sort((a, b) => a.c - b.c);
       for (const l of ls) {
         if (inverno && !alto) continue;
@@ -2908,14 +2912,15 @@ function vegAtlasDe(pal) {
         const tx = fx + (R(q + 18, k) - 0.5) * 0.08 * P, ty = fy - hgt * P;
         g.strokeStyle = C.cau; g.lineWidth = Math.max(0.8, P * 0.009); g.beginPath(); g.moveTo(fx, fy); g.quadraticCurveTo(fx, fy - hgt * P * 0.5, tx, ty); g.stroke();
         g.fillStyle = VEG_FLOR[forma]; g.beginPath();
+        if (GRAMA_B) { g.strokeStyle = "rgba(30, 27, 24, 0.9)"; g.lineWidth = Math.max(0.8, P * 0.006); }
         switch (forma) {
-          case 0: for (let p = 0; p < 5; p++) { const a = p * 1.2566 + k, px = tx + Math.cos(a) * r, py = ty + Math.sin(a) * r * 0.75; g.moveTo(px + r * 0.62, py); g.arc(px, py, r * 0.62, 0, 6.29); } g.fill(); ponto(tx, ty, r * 0.5, VEG_FLOR2[0]); break;          // margarida
-          case 1: g.moveTo(tx - r * 1.15, ty - r * 0.4); g.quadraticCurveTo(tx, ty + r * 1.7, tx + r * 1.15, ty - r * 0.4); g.quadraticCurveTo(tx, ty - r, tx - r * 1.15, ty - r * 0.4); g.fill(); ponto(tx, ty - r * 0.25, r * 0.35, VEG_FLOR2[1]); break;   // papoula
-          case 2: g.moveTo(tx, ty); g.quadraticCurveTo(tx + r * 1.3, ty + r * 0.6, tx + r * 0.75, ty + r * 1.9); g.lineTo(tx - r * 0.55, ty + r * 1.55); g.closePath(); g.fill(); break;   // sino
-          case 3: for (let p = 0; p < 4; p++) { const py = ty + p * r * 0.95, rr = r * (0.78 - p * 0.1); g.moveTo(tx + rr, py); g.ellipse(tx, py, rr, rr * 0.8, 0, 0, 6.29); } g.fill(); break;   // espiga
+          case 0: for (let p = 0; p < 5; p++) { const a = p * 1.2566 + k, px = tx + Math.cos(a) * r, py = ty + Math.sin(a) * r * 0.75; g.moveTo(px + r * 0.62, py); g.arc(px, py, r * 0.62, 0, 6.29); } g.fill(); if (GRAMA_B) g.stroke(); ponto(tx, ty, r * 0.5, VEG_FLOR2[0]); break;          // margarida
+          case 1: g.moveTo(tx - r * 1.15, ty - r * 0.4); g.quadraticCurveTo(tx, ty + r * 1.7, tx + r * 1.15, ty - r * 0.4); g.quadraticCurveTo(tx, ty - r, tx - r * 1.15, ty - r * 0.4); g.fill(); if (GRAMA_B) g.stroke(); ponto(tx, ty - r * 0.25, r * 0.35, VEG_FLOR2[1]); break;   // papoula
+          case 2: g.moveTo(tx, ty); g.quadraticCurveTo(tx + r * 1.3, ty + r * 0.6, tx + r * 0.75, ty + r * 1.9); g.lineTo(tx - r * 0.55, ty + r * 1.55); g.closePath(); g.fill(); if (GRAMA_B) g.stroke(); break;   // sino
+          case 3: for (let p = 0; p < 4; p++) { const py = ty + p * r * 0.95, rr = r * (0.78 - p * 0.1); g.moveTo(tx + rr, py); g.ellipse(tx, py, rr, rr * 0.8, 0, 0, 6.29); } g.fill(); if (GRAMA_B) g.stroke(); break;   // espiga
           case 4: for (let p = 0; p < 10; p++) { const a = p * 0.6283 - 1.5708, rr = p % 2 ? r * 0.5 : r * 1.4, px = tx + Math.cos(a) * rr, py = ty + Math.sin(a) * rr * 0.85; p ? g.lineTo(px, py) : g.moveTo(px, py); }
-                  g.closePath(); g.fill(); ponto(tx, ty, r * 0.36, VEG_FLOR2[4]); break;                                                                                              // estrela
-          default: for (let p = 0; p < 3; p++) { const px = tx + (p - 1) * r * 0.95, py = ty + (p === 1 ? -r * 0.75 : 0); g.moveTo(px + r * 0.72, py); g.arc(px, py, r * 0.72, 0, 6.29); } g.fill(); ponto(tx, ty - r * 0.75, r * 0.3, VEG_FLOR2[5]);   // cacho
+                  g.closePath(); g.fill(); if (GRAMA_B) g.stroke(); ponto(tx, ty, r * 0.36, VEG_FLOR2[4]); break;                                                                                              // estrela
+          default: for (let p = 0; p < 3; p++) { const px = tx + (p - 1) * r * 0.95, py = ty + (p === 1 ? -r * 0.75 : 0); g.moveTo(px + r * 0.72, py); g.arc(px, py, r * 0.72, 0, 6.29); } g.fill(); if (GRAMA_B) g.stroke(); ponto(tx, ty - r * 0.75, r * 0.3, VEG_FLOR2[5]);   // cacho
         }
       }
     } else if (d.tipo === "samambaia") {
