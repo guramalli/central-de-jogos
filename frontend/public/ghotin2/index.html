@@ -4425,7 +4425,7 @@ function limparPendentes(v) { v.golpeCorrida = null; v.skillCorrida = null; v.de
 const PENDENTES_OK = new Set(["golpe1_da_corrida", "golpe1_da_corrida_7", "correr_para_guarda", "correr_para_guarda_7"]);
 function tocar(nome, acao) {
   if (!PENDENTES_OK.has(nome)) limparPendentes(viking);            // outra ação (dano, morte, skill): o pendente da corrida cai
-  viking.anim = nome; viking.t = 0; viking.acertou = false; viking.somCorte = false;
+  viking.anim = nome; viking.t = 0; viking.acertou = false; viking.somCorte = false; viking.somPuxa = false;
   viking.acao = acao ? nome : null;
   if (acao) viking.noLugar = null;
   if (nome === "sacar" || nome === "sacar_golpe") som("sacar", viking, 0.8);
@@ -7783,7 +7783,7 @@ function atirar() {
   somPuxada();
 }
 // a flecha chega à corda em ~0,24 s e a corda estica até 0,41 s: a puxada toca aí, forte; a flecha saindo da aljava, baixa
-function somPuxada() { som("flecha_saca", viking, 0.35); setTimeout(() => { if (viking.acao === "atirar") som("arco_puxa", viking, 1.2); }, 200); }
+function somPuxada() { som("flecha_saca", viking, 0.35); }          // (a puxada toca pelo quadro da animação: ver passo do herói)
 function alvoDaFlecha() {
   const v = viking, ang = -v.dir * Math.PI / 4, fx = Math.cos(ang), fy = Math.sin(ang);
   const sel = (v.alvo && (v.alvo.criatura || v.alvo.boneco)) || selecao;
@@ -8092,7 +8092,7 @@ function usarCerteiro() {
   if (alvo) v.dir = dirDe(alvo.x - v.x, alvo.y - v.y);
   certeiro.recarga = CERTEIRO_RECARGA;
   tocar("certeiro", true);
-  som("flecha_saca", v, 0.35); setTimeout(() => { if (v.acao === "certeiro") som("arco_puxa", v, 1.2); }, 200);
+  som("flecha_saca", v, 0.35);
 }
 function soltarCerteiro() {
   const v = viking, ang = -v.dir * Math.PI / 4, fx = Math.cos(ang), fy = Math.sin(ang);
@@ -10147,6 +10147,9 @@ function passo(dt) {
     if (sobra) v.t = sobra;                                       // o ninja leva a sobra do passo: o combo não repete quadro na emenda
     if (triplo.restam > 0) triplo.restam--;
   }
+  // a puxada do arco (Freesound 2) no quadro em que a flecha encaixa e a corda estica (~0,2 s), presa à animação: com o
+  // setTimeout ela podia sair depois do disparo (a ordem trocava e o tiro soava diferente do aprovado)
+  if ((v.anim === "atirar" || v.anim === "certeiro") && !v.somPuxa && q >= Math.round(0.2 * info.fps)) { v.somPuxa = true; som("arco_puxa", v, 1.2); }
   if (!emendou && golpeQualquer && !v.somCorte && q >= info.acerto - 2) { v.somCorte = true; som(classe === "guerreiro" ? "machado" : classe === "ninja" ? "adaga" : "corte", v, furia.buff > 0 ? 1.1 : 0.9); }
   const qp = ((q % info.quadros) + info.quadros) % info.quadros;
   if (qp !== v.qPasso && (v.anim.startsWith("andando") || v.anim.startsWith("correndo")) && (qp === 0 || qp === Math.round(info.quadros / 2))) {
