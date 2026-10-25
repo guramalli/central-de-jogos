@@ -6319,6 +6319,20 @@ function pegarItem(d) {
   salvarProgresso(); atualizarFicha(); desenharBolsa(); atualizarItensBarra();
   return true;
 }
+// o nome do item no chão, como no Metin2: "Gold" para o dinheiro, "Livro de Habilidade", e a peça ou a arma com o refino
+// (ex.: "Cota de Malha Nórdica +3"); o raro (livro, alma, bênção, +5 ou mais) em dourado
+function nomeDrop(d) {
+  if (d.tipo === "yang") return "Gold";
+  if (d.tipo === "livro") return "Livro de Habilidade";
+  const base = d.tipo === "peca" || d.tipo === "arma" ? tipoItem(d.chave).nome.replace(/ \(.*\)$/, "") : (NOME_ITEM[d.tipo] || tipoItem(d.tipo).nome);
+  return base + (d.ref ? " +" + d.ref : "") + ((d.qtd || 1) > 1 && d.tipo !== "peca" && d.tipo !== "arma" ? " (" + d.qtd + ")" : "");
+}
+// o ícone pintado que serve de sprite no chão (o mesmo da bolsa), quando existe
+function iconeDrop(d) {
+  const k = d.tipo === "peca" ? d.chave : d.tipo === "arma" ? (ARMAS[(d.chave || "").slice(5)] || ARMAS.viking).desenho : d.tipo;
+  const im = ICONES_ITEM[k];
+  return im && im.complete && im.naturalWidth ? im : null;
+}
 function desenharItens(t) {
   const u = Math.max(0.75, zoom);
   for (const d of drops) {
@@ -6329,7 +6343,16 @@ function desenharItens(t) {
     const g = cx.createRadialGradient(X, Y0, 0, X, Y0, 22 * u); g.addColorStop(0, `rgba(${cor}, 0.45)`); g.addColorStop(1, `rgba(${cor}, 0)`);
     cx.fillStyle = g; cx.beginPath(); cx.ellipse(X, Y0, 22 * u, 22 * u * ACHATA, 0, 0, 7); cx.fill();
     cx.globalCompositeOperation = "source-over"; cx.lineWidth = 1.5; cx.strokeStyle = TINTA;
-    if (d.tipo === "livro") {
+    const ic = iconeDrop(d);
+    // o nome em cima (desenhado com as outras placas, por cima de tudo)
+    const nome = nomeDrop(d), raro = dropRaro(d), Yn = Y - 18 * u;
+    placas.push(() => { cx.save(); cx.globalAlpha = k; cx.font = FONTE_PLACA; cx.textAlign = "center"; cx.lineJoin = "round"; cx.lineWidth = 3; cx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+      cx.strokeText(nome, X, Yn); cx.fillStyle = d.tipo === "yang" ? "#f2c84a" : raro ? "#ffd25a" : "#f2ead8"; cx.fillText(nome, X, Yn); cx.restore(); });
+    if (ic) {                                                               // o ícone pintado, deitado um pouco e com sombra
+      const h = 26 * u, w = h * ic.naturalWidth / ic.naturalHeight;
+      cx.fillStyle = "rgba(20, 14, 10, 0.3)"; cx.beginPath(); cx.ellipse(X, Y0, w * 0.45, w * 0.45 * ACHATA * 0.5, 0, 0, 7); cx.fill();
+      cx.drawImage(ic, X - w / 2, Y - h * 0.6, w, h);
+    } else if (d.tipo === "livro") {
       cx.fillStyle = "#7a3a1e"; cx.fillRect(X - 9 * u, Y - 12 * u, 18 * u, 22 * u); cx.strokeRect(X - 9 * u, Y - 12 * u, 18 * u, 22 * u);
       cx.fillStyle = "#f1e2bd"; cx.fillRect(X + 6 * u, Y - 10 * u, 3 * u, 18 * u);
       cx.fillStyle = "#ffd25a"; cx.fillRect(X - 6 * u, Y - 6 * u, 9 * u, 3 * u); cx.fillRect(X - 6 * u, Y, 9 * u, 2 * u);
