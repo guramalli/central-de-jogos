@@ -5776,6 +5776,8 @@ const CHEFES_MAPA = {
                falas: ["O Chefe Orc chama os guerreiros!", "O Chefe Orc se enfurece!"] },
   nove_caudas: { regiao: "na Montanha Gelada", raio: 8, min: 16, max: 20, mecs: ["chuva", "pisao", "horda"], horda: [["yeti", 1], ["golem", 1]], raioPisao: 3.5, cor: 200, cada: 5.5,
                  animPisao: "leque",                                // (no glb: o leque das nove caudas; sem ele, a pose e o golpe comuns)
+                 limpo: 4.2,                                        // (nasce em chão aberto: sem árvore nem pedra a menos de 4,2 m, nada na frente dele)
+                 semVeu: true,                                      // (perto dele, a luz do sol vazando na tela fica fraca: o branco e o azul não lavam)
                  falas: ["O Nove Caudas abre as nove caudas!", "O Nove Caudas se enfurece e chama a montanha!"] },
   // os chefes das dungeons (montarDungeon: chaveChefe "dg_<id>"; a área é a sala do fundo)
   dg_ratos: { regiao: "na Caverna dos Ratos", min: 8, max: 10, mecs: ["pisao", "horda"], horda: [["rato", 3]], raioPisao: 2.6, cor: 32 },
@@ -5787,13 +5789,29 @@ const ataquesChefe = [];         // os avisos no chão: { tipo: "circulo" (x, y,
 const avisosChefe = [];          // os que acabaram de nascer: { l, ate } (o anel pulsando no minimapa)
 let relogioChefes = 0;           // (s de jogo: anda com o passo, também nos testes)
 function defChefe(l) { return l && l.cfg && l.cfg.chefe ? CHEFES_MAPA[l.cfg.chaveChefe || l.tipo] || null : null; }
+// a luz vazando na tela (vazamento) perto de um chefe "semVeu" vivo (o Nove Caudas, branco e azul): 0,3 dela a até 12 m
+// da câmera, voltando ao normal até 18 m (conta a cada 0,5 s)
+let veuChefe = { t: -1, k: 1 };
+function luzVeuChefe(t) {
+  if (t - veuChefe.t < 0.5 && t >= veuChefe.t) return veuChefe.k;
+  let d = 1e9;
+  for (const c of criaturas) if (!c.morto && c.cfg.chefe) { const dc = defChefe(c); if (dc && dc.semVeu) d = Math.min(d, Math.hypot(c.x - cam.x, c.y - cam.y)); }
+  veuChefe = { t, k: 0.3 + 0.7 * Math.max(0, Math.min(1, (d - 12) / 6)) };
+  return veuChefe.k;
+}
 function areaChefe(l) { return l.area || (l.area = { x: l.toca.x, y: l.toca.y, r: (defChefe(l) || {}).raio || 6 }); }
 // um ponto livre da área (fora d'água e da praça; na dungeon, no chão da caverna)
 function lugarChefe(l) {
-  const ar = areaChefe(l), cav = naCaverna(ar.x);
-  for (let k = 0; k < 80; k++) {
+  const ar = areaChefe(l), cav = naCaverna(ar.x), limpo = (defChefe(l) || {}).limpo || 0;
+  for (let k = 0; k < (limpo ? 200 : 80); k++) {
     const a = Math.random() * 7, r = ar.r * Math.sqrt(Math.random()), x = ar.x + Math.cos(a) * r, y = ar.y + Math.sin(a) * r;
     if (!livre(x, y) || !livre(x + 0.8, y) || !livre(x - 0.8, y) || !livre(x, y + 0.8) || !livre(x, y - 0.8)) continue;
+    if (limpo && k < 160 && !vazio(x, y, limpo)) continue;           // (o chefe grande: longe de árvores e pedras, que ficariam translúcidas na frente dele)
+    if (limpo && k < 160 && objetos.some(o => {                      // (e nenhuma na frente dele na tela: a copa alta o cobriria)
+      if (o.ret || !(o.r > 0)) return false;
+      const dx = o.x - x, dy = o.y - y, u = dx * GIRO_C - dy * GIRO_S, v = -(dx * GIRO_S + dy * GIRO_C);
+      return v > 0 && v < (o.tipo === "pinheiro" || o.tipo === "arvore" ? 8 : 4) && Math.abs(u) < 3.5;
+    })) continue;
     if (cav ? pisoCaverna(x, y) : !agua(x, y) && !praca(x, y) && borda(x, y) < RAIO - 4) return { x, y };
   }
   return { x: ar.x, y: ar.y };
@@ -5861,8 +5879,10 @@ function empurrarJogador(dx, dy, dist) {
 // a pose de "carregar" a mecânica (pref, se o modelo tiver; senão a ameaça, o rugido, o uivo, a conjuração), sem o golpe sair
 function posarChefe(l, pref) {
   const a = l.cfg.M.animacoes, n = [pref, "ameaca", "rugido", "uivar", "conjurar"].find(k => k && a[k]);
-  l.destino = null;
+  l.destino = null; l.dir = dirDe(viking.x - l.x, viking.y - l.y);   // (vira para o herói ao carregar)
   if (n) { criaturaAcao(l, n); l.acertou = true; } else criaturaAnim(l, "parado");
+  // o instante do acerto da pose (s), para o efeito no chão sair junto (0 sem a pose ou sem o acerto no glb)
+  return n && a[n].acerto > 0 ? a[n].acerto / a[n].fps : 0;
 }
 // a cada quadro, o chefe vivo (passoCriatura): as fases pela vida e, caçando, as mecânicas na vez delas
 function passoChefe(l, dt) {
@@ -5912,18 +5932,21 @@ function chamarLacaios(l, dc) {
 }
 // pisão: o chefe para, o círculo em volta dele enche e explode (onda, rachaduras, tremor) e empurra quem estiver dentro
 function pisaoChefe(l, dc) {
-  const dur = 1.1;
+  // (com a pose própria no glb, o círculo explode no quadro do acerto dela: o leque do Nove Caudas bate no q16 = 0,8 s)
+  const tAcerto = posarChefe(l, dc.animPisao), dur = dc.animPisao && tAcerto > 0.4 ? tAcerto : 1.1;
   ataquesChefe.push({ tipo: "circulo", x: l.x, y: l.y, r: dc.raioPisao || 3, t: 0, dur, cor: dc.cor, mult: 1.8, de: l, empurra: 1.6, golpe: true });
-  l.canal = dur; posarChefe(l, dc.animPisao); som("rugido_chefe", l, 0.6);
+  l.canal = dur; som("rugido_chefe", l, 0.6);
 }
 // chuva: marcas no chão (uma embaixo do jogador, as outras em volta), cada uma explode na sua vez
 function chuvaChefe(l, dc) {
   const n = 3 + l.fase + (l.furiaChefe ? 1 : 0);
+  // a pose de carregar (o rugido do Nove Caudas): as marcas aparecem no chão no grito dela (o acerto do glb), não antes
+  const tGrito = l.cfg.M.animacoes.rugido ? posarChefe(l) : (posarChefe(l), 0);
   for (let k = 0; k < n; k++) {
     const a = Math.random() * 7, dd = k === 0 ? 0 : 1.2 + Math.random() * 2.6;
-    ataquesChefe.push({ tipo: "circulo", x: viking.x + Math.cos(a) * dd, y: viking.y + Math.sin(a) * dd, r: 1.3, t: 0, dur: 1.4 + k * 0.12, cor: dc.cor, mult: 1.2, de: l });
+    ataquesChefe.push({ tipo: "circulo", x: viking.x + Math.cos(a) * dd, y: viking.y + Math.sin(a) * dd, r: 1.3, t: -tGrito, dur: 1.4 + k * 0.12, cor: dc.cor, mult: 1.2, de: l });
   }
-  l.canal = 0.7; posarChefe(l); som(dc.cor > 180 && dc.cor < 300 ? "magia_raio" : "magia_fogo", l, 0.7);
+  l.canal = Math.max(0.7, tGrito); som(dc.cor > 180 && dc.cor < 300 ? "magia_raio" : "magia_fogo", l, 0.7);
 }
 // investida: risca a faixa até um pouco atrás do jogador (até onde o chão é livre) e, no fim do aviso, corre por ela
 function investidaChefe(l, dc) {
@@ -5985,6 +6008,7 @@ function desenharAtaquesChefe(t) {
   const s = PX * zoom, pisca = 0.7 + 0.3 * Math.sin(t * 18);
   cx.save();
   for (const a of ataquesChefe) {
+    if (a.t < 0) continue;                                           // (a marca ainda não apareceu: espera o grito do chefe)
     const u = Math.min(1, a.t / a.dur), cor = k => `hsla(${a.cor}, 95%, 52%, ${k})`, borda = k => `hsla(${a.cor}, 100%, 78%, ${k})`;
     if (a.tipo === "circulo") {
       const [X, Y] = noMundo(a.x, a.y, 0), r = a.r * s;
@@ -12256,15 +12280,55 @@ function alocar3d(w, h) {
   const c = { x: m, y: p.yLivre + m, w, h }; p.yLivre += H2;
   return c;
 }
-function instancia3d(dono, m) {
+// ---- as armas de cada modelo (1 a 6): o herói segura a do modelo equipado. 3d/armas/<desenho>_<n>.glb (do Tripo, já no
+// espaço da peça original: Tools/armas3d/padronizar.py) traz uma malha com o nome de cada peça que ela troca; a peça do
+// herói fica (o nó, com a animação dele) e só ganha a malha e o material novos, então a máscara do brilho, o contorno e o
+// rastro do golpe valem para a arma nova. Vem sob demanda; até chegar, fica a original. O ninja leva a mesma adaga
+// (peca_adaga) nas duas mãos; a corda e a flecha do arco continuam as do herói.
+const ARMAS_3D = {};
+// a arma do herói neste quadro ("<desenho>_<n>", ou "" para a original)
+function arma3dDoHeroi() {
+  const a = prog && prog.arma, d = ARMAS[classe] && ARMAS[classe].desenho;
+  if (!a || !(a.tier >= 1) || !d || !P3D.loader) return "";
+  const k = d + "_" + a.tier, m = ARMAS_3D[k] || pedirArma3d(k);
+  return m.ok ? k : "";
+}
+function pedirArma3d(k) {
+  const m = ARMAS_3D[k] = { ok: false, pecas: {} };
+  carregar3d("armas/" + k, gltf => {
+    gltf.scene.traverse(o => {
+      if (!o.isMesh) return;
+      const mat = toon3d(o.material.map || null, new THREE.Color(0xffffff), o.material.side);
+      mat.userData.cor = mat.color.clone();
+      if (mat.map) limitarMip3d(mat.map);
+      m.pecas[o.name] = { geo: o.geometry, mat };
+    });
+    m.ok = true;
+  }, e => { m.erro = String(e); console.error("arma 3d " + k + ":", e); });
+  return m;
+}
+// troca as peças da arma num clone do herói, antes de juntar as malhas dele (mats: a lista de materiais que recebem a cor
+// e o clarão do golpe a cada render)
+function vestirArma3d(raiz, k, mats) {
+  const m = k && ARMAS_3D[k];
+  if (!m || !m.ok) return;
+  raiz.traverse(o => {
+    const p = o.isMesh && m.pecas[/^peca_adaga_[de]$/.test(o.name) ? "peca_adaga" : o.name];
+    if (!p) return;
+    o.geometry = p.geo; o.material = p.mat;
+    if (mats && !mats.includes(p.mat)) mats.push(p.mat);
+  });
+}
+function instancia3d(dono, m, arma = "") {
   const p = P3D;
   let i = p.inst.get(dono);
-  if (i && i.m === m) return i;
+  if (i && i.m === m && i.arma === arma) return i;
   if (i) apagarInst3d(i);
   const raiz = THREE.SkeletonUtils.clone(m.base);
+  vestirArma3d(raiz, arma, m.mats);                                     // (o herói com uma arma de modelo 1 a 6)
   raiz.visible = false; p.cena.add(raiz);
   i = { dono, m, nome: m.nome, raiz, mixer: new THREE.AnimationMixer(raiz), acoes: {}, atual: null, ang: null, cel: null, celM: null,
-        valido: false, feito: -1e9, pedido: 0, chave: "" };
+        valido: false, feito: -1e9, pedido: 0, chave: "", arma };
   const masc = MASCARA_3D[m.nome];
   if (masc) {
     i.malhas = [];
@@ -12306,7 +12370,7 @@ function pedidos3d(agora) {
   if (mh && mh.ok) {
     const n = animVisivel(v.anim), nf = nivelFuria(agora), fer = v.ferido > 0 ? v.ferido / 0.3 : 0;
     // ferido pisca vermelho; na fúria, o corpo avermelha (o que no sprite é a silhueta por cima)
-    l.push({ dono: v, m: mh, anim: n, t: v.t, info: M.animacoes[n], ang: angDir3d(v.dir), esc: 1, emis: [0.55 * fer + 0.25 * nf, 0.06 * nf, 0], heroi: true });
+    l.push({ dono: v, m: mh, anim: n, t: v.t, info: M.animacoes[n], ang: angDir3d(v.dir), esc: 1, emis: [0.55 * fer + 0.25 * nf, 0.06 * nf, 0], heroi: true, arma: arma3dDoHeroi() });
   } else pedirModelo3d(classe, -1);
   // as criaturas (as pedras Metin ficam como estão)
   for (const c of criaturas) {
@@ -12356,7 +12420,7 @@ function prepararP3d(t) {
   for (const d of pedidos3d(agora)) {
     const anim = clip3d(d.m, d.anim);
     if (!anim) continue;                                                   // sem essa animação no glb: fica o sprite
-    const i = instancia3d(d.dono, d.m);
+    const i = instancia3d(d.dono, d.m, d.arma || "");
     i.pedido = p.quadro; i.d = d; i.anim = anim; i.mascara = !!(d.heroi && querMascara3d());
     usar.push(i);
   }
@@ -14888,10 +14952,11 @@ function cascasDe(c, malhas, cor, soma) {
   }
   return l;
 }
-function criarCorpo(dono, m) {
+function criarCorpo(dono, m, arma = "") {
   const raiz = THREE.SkeletonUtils.clone(m.base);
+  vestirArma3d(raiz, arma);                                       // (o herói com uma arma de modelo 1 a 6)
   const c = { dono, m, raiz, mixer: new THREE.AnimationMixer(raiz), acoes: {}, atual: null, mats: [], malhas: [], ang: null, feito: -99, visto: S.quadro,
-              uAlfa: { value: 1 }, heroi: dono === viking };
+              uAlfa: { value: 1 }, heroi: dono === viking, chaveArma: arma };
   raiz.traverse(o => { if (o.isMesh) c.malhas.push(o); });
   const feitos = new Map();
   for (const o of c.malhas) {
@@ -14915,7 +14980,7 @@ function listaCorpos(agora) {
   const mh = p.modelos[classe], v = viking;
   if (mh && mh.ok) {
     const n = animVisivel(v.anim), nf = nivelFuria(agora), fer = v.ferido > 0 ? v.ferido / 0.3 : 0;
-    l.push({ dono: v, m: mh, anim: n, t: v.t, info: M.animacoes[n], dir: v.dir, esc: 1, emis: [0.55 * fer + 0.25 * nf, 0.06 * nf, 0], heroi: true, x: v.x, y: v.y,
+    l.push({ dono: v, m: mh, anim: n, t: v.t, info: M.animacoes[n], dir: v.dir, esc: 1, emis: [0.55 * fer + 0.25 * nf, 0.06 * nf, 0], heroi: true, x: v.x, y: v.y, arma: arma3dDoHeroi(),
              alfa: classe === "ninja" && NINJA.esconder.buff > 0 ? 0.25 + 0.06 * Math.sin(agora * 6) : 1 });
   } else pedirModelo3d(classe, -1);
   for (const c of criaturas) {
@@ -14958,8 +15023,8 @@ function atualizarCorpos(agora, dt) {
     const anim = clip3d(d.m, d.anim) || clip3d(d.m, "parado");
     if (!anim) continue;
     let c = corpos.get(d.dono);
-    if (c && c.m !== d.m) { apagarCorpo(c); c = null; }
-    if (!c) c = criarCorpo(d.dono, d.m);
+    if (c && (c.m !== d.m || c.chaveArma !== (d.arma || ""))) { apagarCorpo(c); c = null; }   // (trocou a arma: refaz o corpo com a nova)
+    if (!c) c = criarCorpo(d.dono, d.m, d.arma || "");
     usados.add(d.dono); c.visto = S.quadro; c.d = d;
     const hy = alturaEm(d.x, d.y) + (d.flutua || 0);
     _esf.center.set(d.x, hy + 0.9 * d.esc, -d.y); _esf.radius = 1.8 * d.esc;
@@ -17130,7 +17195,7 @@ function vazamento(t) {
   if (!FL.ligado || naCaverna(cam.x)) { FL.i = 0; return; }
   const h = horaDoDia(), liso = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
   const dia = liso((h - 5.4) / 1.2) * (1 - liso((h - 17.6) / 1.4)), u = Math.max(0, Math.min(1, (h - 6) / 12));
-  FL.i += (dia * (0.3 + 0.7 * (1 - Math.sin(u * Math.PI))) - FL.i) * 0.05;
+  FL.i += (dia * (0.3 + 0.7 * (1 - Math.sin(u * Math.PI))) * luzVeuChefe(t) - FL.i) * 0.05;   // (perto do Nove Caudas, fraca)
   if (FL.i < 0.01) return;
   const k = FL.i * (LEVE ? 0.85 : 1), sx = W * (0.94 - 0.88 * u), sy = -H * 0.2, R = Math.hypot(W, H) * 0.75, cor = h > 12 ? "255, 196, 120" : "255, 206, 170";
   cx.save(); cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.globalCompositeOperation = "lighter";
