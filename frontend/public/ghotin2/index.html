@@ -1461,6 +1461,7 @@ function desenharChaoClima(t) {
   if (CC.molhado <= 0.02 && !CC.pegadas.length && !CC.marcas.length && !CC.gotas.length && !CC.aneis.length) return;
   const leve = window.MODO_LEVE, s = PX * zoom, [vx0, vx1, vy0, vy1] = caixaVista(1.5);
   cx.save();
+  const base = cx.getTransform();                                          // (a da tela: para o reflexo do herói)
   if (CC.molhado > 0.02 && !leve) { cx.fillStyle = `rgba(20, 26, 36, ${0.1 * CC.molhado})`; cx.fillRect(-20, -20, W + 40, H + 40); }   // o chão molhado, um pouco mais escuro (no celular, não)
   const [ax, ay] = tela(1, 0), [bx, by] = tela(0, 1), [ox, oy] = tela(-cam.x, -cam.y);
   cx.transform(ax, ay, bx, by, W / 2 + ox, H / 2 + oy);                     // daqui em diante, em metros do mapa
@@ -1481,6 +1482,25 @@ function desenharChaoClima(t) {
       cx.fillStyle = "rgba(30, 24, 18, 0.28)"; cx.beginPath(); blob(1.22, 0, 0); cx.fill();                       // a borda escura molhada
       cx.fillStyle = "rgba(92, 112, 138, 0.62)"; cx.beginPath(); blob(1, 0, 0); cx.fill();                        // a água (o céu fechado refletido)
       cx.fillStyle = "rgba(186, 204, 226, 0.4)"; cx.beginPath(); blob(0.62, ccx * 0.2, ccy * 0.2, true); cx.fill();   // o brilho do céu
+      // o reflexo do herói nas poças perto dele: a pose de cabeça para baixo a partir dos pés, cortada pela água, azulada
+      // e balançando um pouco com os pingos
+      const v = viking, perto = vis.filter(([p, r]) => Math.hypot(p.x - v.x, p.y - v.y) < r * 1.7 + 2.4);
+      const pose = perto.length && !v.caido ? poseHeroi(zoom, true) : null;
+      if (pose) {
+        cx.save();
+        cx.beginPath();
+        for (const [p, r] of perto) for (const [bx2, by2, rx, ry, g] of p.b) el(p.x + bx2 * r, p.y + by2 * r, rx * r * 0.96, ry * r * 0.96, g);
+        cx.clip();
+        cx.setTransform(base);
+        const [hx, hy] = tela(v.x - cam.x, v.y - cam.y), X = W / 2 + hx, Y = H / 2 + hy;
+        const onda = clima.chuva > 0.1 ? Math.sin(t * 7) * 0.012 : 0;
+        cx.globalAlpha = 0.7 * Math.min(1, CC.molhado * 1.5);
+        cx.translate(X, Y + 2 * zoom); cx.transform(1, 0, onda, -0.82, 0, 0);
+        cx.drawImage(pose.src, pose.sx, pose.sy, pose.sw, pose.sh, -pose.esq, -pose.cima, pose.w, pose.h);
+        cx.setTransform(base); cx.globalAlpha = 1;
+        cx.fillStyle = "rgba(92, 112, 138, 0.32)"; cx.fillRect(-20, -20, W + 40, H + 40);   // (a cor da água por cima: o reflexo fica azulado)
+        cx.restore();
+      }
       if (clima.chuva > 0.1) {                                             // os pingos caindo nelas
         const max = leve ? 30 : 90;
         for (const [p, r] of vis) {
@@ -2196,8 +2216,128 @@ function desenharChao() {
   }
 }
 
+// ---------- o mar no estilo B (minhwa) ----------
+// Pintado como nas pinturas coreanas: faixas chapadas do raso (jade) ao fundo (índigo), linhas de corrente em nanquim
+// paralelas à costa que respiram devagar, cristas de onda em escama com a ponta de espuma que nascem e somem no mar
+// aberto, brilhos do sol de dia e, na praia, ondas que sobem na areia, deixam a areia molhada e voltam (no paredão de
+// pedra do vale e da montanha, a espuma bate e não sobe)
+const MAR_N = 2400;
+let marCosta = null;
+function costaMar() {
+  if (marCosta) return marCosta;
+  const r = new Float32Array(MAR_N + 1), rocha = new Float32Array(MAR_N + 1), cos = new Float32Array(MAR_N + 1), sin = new Float32Array(MAR_N + 1);
+  for (let k = 0; k <= MAR_N; k++) {
+    const a = k / MAR_N * Math.PI * 2;
+    r[k] = RAIO - desvioCosta(a) + extraCosta(a); cos[k] = Math.cos(a); sin[k] = Math.sin(a);
+    const x = cos[k] * r[k], y = sin[k] * r[k];
+    rocha[k] = Math.min(1, Math.max(0, (pesoMonte(x, y) + pesoVale(x, y) - 0.25) / 0.3));
+  }
+  return (marCosta = { r, rocha, cos, sin });
+}
+// um caminho pela costa, a "d(k)" m dela (positivo = no mar), só nos trechos dentro da vista (passo = de quantos em quantos pontos)
+function caminhoMar(d, caixa, passo = 1) {
+  const C = costaMar(), [x0, x1, y0, y1] = caixa;
+  cx.beginPath();
+  let dentro = false, dAnt = 0;
+  for (let k = 0; k <= MAR_N; k += passo) {
+    const dk = d(k), r = C.r[k] + dk, x = C.cos[k] * r, y = C.sin[k] * r, salto = Math.abs(dk - dAnt) > 0.8;   // (a onda que recomeça: não liga um trecho ao outro)
+    dAnt = dk;
+    if (x < x0 || x > x1 || y < y0 || y > y1) { dentro = false; continue; }
+    const [px, py] = tela(x - cam.x, y - cam.y);
+    if (dentro && !salto) cx.lineTo(W / 2 + px, H / 2 + py); else { cx.moveTo(W / 2 + px, H / 2 + py); dentro = true; }
+  }
+}
+// por baixo do chão: o fundo, as faixas de profundidade, as correntes, as cristas e os brilhos
+function desenharMarB(t) {
+  const s = PX * zoom, leve = !!window.MODO_LEVE, caixa = caixaVista(12);
+  cx.fillStyle = "#2D4A6B"; cx.fillRect(0, 0, W, H);
+  cx.save(); cx.lineJoin = "round"; cx.lineCap = "round";
+  // faixas chapadas, do fundo para o raso (a parte delas que cai na terra o chão cobre)
+  for (const [d, larg, cor] of [[9, 12, "#30506f"], [5.5, 7, "#335a72"], [3.2, 4.2, "#356472"], [1.6, 2.4, "#3a6e6c"]]) {
+    caminhoMar(() => d, caixa, 2); cx.strokeStyle = cor; cx.lineWidth = larg * s; cx.stroke();
+  }
+  // correntes em nanquim paralelas à costa, ondulando e respirando (uma linha escura e o brilho dela logo ao lado)
+  for (const [d0, fase] of [[3.6, 0], [6.4, 2.1], [10.2, 4.3]]) {
+    const resp = Math.sin(t * 0.45 + fase) * 0.35;
+    const d = k => d0 + resp + Math.sin(k * 0.09 + t * 0.5 + fase) * 0.28 + Math.sin(k * 0.023 + fase) * 0.5;
+    caminhoMar(d, caixa, 2); cx.strokeStyle = "rgba(24, 36, 54, 0.38)"; cx.lineWidth = Math.max(1, s * 0.035); cx.stroke();
+    caminhoMar(k => d(k) - 0.12, caixa, 2); cx.strokeStyle = "rgba(239, 228, 204, 0.16)"; cx.lineWidth = Math.max(1, s * 0.025); cx.stroke();
+  }
+  // cristas em escama no mar aberto: três arcos (índigo claro) e a ponta de espuma (papel), nascendo e sumindo
+  const [mx0, mx1, my0, my1] = caixaVista(3), passo = leve ? 3.8 : 3, deriva = t * 0.18;
+  for (let i = Math.floor((mx0 - deriva) / passo); i <= Math.ceil((mx1 - deriva) / passo); i++)
+    for (let j = Math.floor(my0 / passo); j <= Math.ceil(my1 / passo); j++) {
+      const x = (i + hash(i, j, 61)) * passo + deriva, y = (j + hash(i, j, 62)) * passo;
+      if (borda(x, y) < RAIO + 4.5) continue;
+      const k = Math.sin(t * (0.55 + hash(i, j, 63) * 0.35) + hash(i, j, 64) * 9);
+      if (k < 0.05) continue;
+      const a = Math.min(1, (k - 0.05) / 0.5), [px, py] = tela(x - cam.x, y - cam.y), X = W / 2 + px, Y = H / 2 + py;
+      const r = s * (0.55 + 0.3 * hash(i, j, 65)) * (0.75 + 0.25 * k);
+      cx.strokeStyle = `rgba(92, 128, 160, ${0.55 * a})`; cx.lineWidth = Math.max(1, s * 0.03);
+      for (const f of [1, 0.68, 0.38]) { cx.beginPath(); cx.ellipse(X, Y + r * (1 - f) * 0.35, r * f, r * f * 0.62, 0, Math.PI * 1.08, Math.PI * 1.92); cx.stroke(); }
+      cx.strokeStyle = `rgba(239, 228, 204, ${0.75 * a})`; cx.lineWidth = Math.max(1.2, s * 0.045);
+      cx.beginPath(); cx.ellipse(X, Y, r, r * 0.62, 0, Math.PI * 1.3, Math.PI * 1.78); cx.stroke();
+      // o caracol da ponta
+      const cxp = X + Math.cos(Math.PI * 1.78) * r, cyp = Y + Math.sin(Math.PI * 1.78) * r * 0.62;
+      cx.beginPath(); cx.arc(cxp - r * 0.12, cyp + r * 0.02, r * 0.14, Math.PI * 1.6, Math.PI * 0.7); cx.stroke();
+    }
+  // brilhos do sol (de dia), piscando um de cada vez
+  const h = horaDoDia(), sol = h > 6.5 && h < 18.5 ? Math.min(1, (h - 6.5) / 1.5, (18.5 - h) / 1.5) : 0;
+  if (sol > 0) {
+    const pb = leve ? 2.6 : 1.8;
+    cx.strokeStyle = "#fbf4e2"; cx.lineWidth = Math.max(1, s * 0.022);
+    for (let i = Math.floor(mx0 / pb); i <= Math.ceil(mx1 / pb); i++)
+      for (let j = Math.floor(my0 / pb); j <= Math.ceil(my1 / pb); j++) {
+        const x = (i + hash(i, j, 71)) * pb, y = (j + hash(i, j, 72)) * pb;
+        if (borda(x, y) < RAIO + 1.5) continue;
+        const k = Math.sin(t * (1.6 + hash(i, j, 73)) + hash(i, j, 74) * 40);
+        if (k < 0.94) continue;
+        const a = (k - 0.94) / 0.06, [px, py] = tela(x - cam.x, y - cam.y), X = W / 2 + px, Y = H / 2 + py, l = s * 0.11 * a;
+        cx.globalAlpha = sol * a * 0.9;
+        cx.beginPath(); cx.moveTo(X - l, Y); cx.lineTo(X + l, Y); cx.moveTo(X, Y - l * 0.6); cx.lineTo(X, Y + l * 0.6); cx.stroke();
+      }
+    cx.globalAlpha = 1;
+  }
+  cx.restore();
+}
+// por cima do chão: o raso em jade, as ondas que sobem na areia (areia molhada atrás) e a beira em nanquim
+const ONDA_P = 5.2;                                                         // segundos de cada onda
+function desenharCostaB(t) {
+  const s = PX * zoom, caixa = caixaVista(4), C = costaMar(), leve = !!window.MODO_LEVE;
+  cx.save(); cx.lineJoin = "round"; cx.lineCap = "round";
+  caminhoMar(() => 1.45, caixa); cx.strokeStyle = "rgba(62, 122, 92, 0.7)"; cx.lineWidth = 2.7 * s; cx.stroke();
+  caminhoMar(() => 0.55, caixa); cx.strokeStyle = "rgba(110, 160, 140, 0.55)"; cx.lineWidth = 1.0 * s; cx.stroke();
+  // duas ondas por vez, defasadas; cada trecho da costa recebe a onda num tempo um pouco diferente
+  const subida = (u) => u < 0.55 ? 2.4 - 3.0 * (1 - (1 - u / 0.55) ** 2) : -0.6 + 1.1 * ((u - 0.55) / 0.45) ** 1.5;
+  for (let w = 0; w < 2; w++) {
+    const fase = k => ((t / ONDA_P + w * 0.5 + Math.sin(k * 0.011 + w * 2.3) * 0.12 + Math.sin(k * 0.047) * 0.04) % 1 + 1) % 1;
+    const d = k => { const v = subida(fase(k)); return C.rocha[k] > 0.5 ? Math.max(0.15, v) : v; };
+    // areia molhada: onde a onda chegou e está voltando
+    caminhoMar(k => { const u = fase(k); return u > 0.55 && C.rocha[k] < 0.5 ? -0.35 : 99; }, caixa, 2);
+    cx.strokeStyle = "rgba(96, 70, 38, 0.16)"; cx.lineWidth = 0.75 * s; cx.stroke();
+    // a frente de espuma: grossa subindo, fina e sumindo ao voltar
+    caminhoMar(d, caixa);
+    const u0 = (t / ONDA_P + w * 0.5) % 1, forte = u0 < 0.55 ? 0.55 + 0.4 * (u0 / 0.55) : 0.95 * (1 - (u0 - 0.55) / 0.45);
+    cx.strokeStyle = `rgba(239, 228, 204, ${0.25 + 0.55 * forte})`; cx.lineWidth = Math.max(1.2, s * (0.05 + 0.07 * forte)); cx.stroke();
+    // a renda da espuma: bolinhas logo atrás da frente (do lado do mar)
+    if (!leve) {
+      cx.fillStyle = `rgba(239, 228, 204, ${0.45 * forte})`;
+      const [x0, x1, y0, y1] = caixa;
+      for (let k = (w * 3) % 7; k <= MAR_N; k += 7) {
+        const r = C.r[k] + d(k) + 0.18 + hash(k, w, 81) * 0.35, x = C.cos[k] * r, y = C.sin[k] * r;
+        if (x < x0 || x > x1 || y < y0 || y > y1) continue;
+        const [px, py] = tela(x - cam.x, y - cam.y);
+        cx.beginPath(); cx.ellipse(W / 2 + px, H / 2 + py, s * 0.06, s * 0.035, 0, 0, Math.PI * 2); cx.fill();
+      }
+    }
+  }
+  caminhoMar(() => 0, caixa); cx.strokeStyle = "rgba(30, 27, 24, 0.7)"; cx.lineWidth = Math.max(1, s * 0.035); cx.stroke();   // a beira em nanquim
+  cx.restore();
+}
+
 // ---------- mar, espuma, água viva ----------
 function desenharMar(t) {
+  if (ESTILO_B) return desenharMarB(t);
   const s = PX * zoom;
   cx.fillStyle = ESTILO_B ? "#2D4A6B" : "#215f78"; cx.fillRect(0, 0, W, H);   // (estilo B: o índigo da paleta)
   // marolas: marquinhas numa grade fixa no mundo, que aparecem e somem
@@ -2220,6 +2360,7 @@ function linhaMundo(pts) {
   pts.forEach((p, k) => { const [a, b] = tela(p[0] - cam.x, p[1] - cam.y); k ? cx.lineTo(W / 2 + a, H / 2 + b) : cx.moveTo(W / 2 + a, H / 2 + b); });
 }
 function desenharCosta(t) {
+  if (ESTILO_B) return desenharCostaB(t);
   const s = PX * zoom;
   cx.save(); cx.lineJoin = "round";
   linhaMundo(costaRasa); cx.strokeStyle = ESTILO_B ? "rgba(62, 122, 92, 0.75)" : "rgba(95, 175, 190, 0.55)"; cx.lineWidth = 2.6 * s; cx.stroke();   // (B: o raso em jade)
@@ -5662,10 +5803,12 @@ function botaoItem(it) {
 // de lá, se couber); arrastando para a barra, vira atalho; clique direito (ou dois cliques) usa.
 const INV_COLS = 5, INV_LINS = 9, INV_ABAS = 4, PILHA_MAX = 200, CEL = 40;
 let abaBolsa = 0;
+// h = quantos espaços o item ocupa na bolsa, em pé: arco, espada, machado e cajado 2; adagas 1; armadura 2; escudo,
+// elmo e botas 1; o resto 1
 function tipoItem(chave) {
   if (chave.startsWith("peca:")) { const [, slot, t] = chave.split(":"), P = PECAS[slot] || PECAS.elmo, m = P.modelos[+t] || P.modelos[0];
     return { nome: m[0] + (P.classes ? ` (${P.classes.map(c => NOME_CLASSE[c]).join("/")})` : ""), desc: "", h: P.h, peca: PECAS[slot] ? slot : "elmo", tier: +t, usar: it => equiparPeca(it) }; }
-  if (chave.startsWith("arma:")) { const c = ARMAS[chave.slice(5)] ? chave.slice(5) : "viking", a = ARMAS[c]; return { nome: a.nome, desc: `Arma só para ${NOME_CLASSE[c]}. Clique direito para equipar; o Ferreiro da praça melhora até +9.`, h: 3, arma: true, desenho: a.desenho, usar: it => equiparArma(it) }; }
+  if (chave.startsWith("arma:")) { const c = ARMAS[chave.slice(5)] ? chave.slice(5) : "viking", a = ARMAS[c]; return { nome: a.nome, desc: `Arma só para ${NOME_CLASSE[c]}. Clique direito para equipar; o Ferreiro da praça melhora até +9.`, h: a.desenho === "adagas" ? 1 : 2, arma: true, desenho: a.desenho, usar: it => equiparArma(it) }; }
   if (chave.startsWith("livro:")) { const n = chave.slice(6), c = classeDaSkill(n);
     return { nome: "Livro: " + n, desc: `Skill ${c ? "do " + NOME_CLASSE[c] : ""}. Do M1 ao M10: cada leitura pode falhar, custa um pouco de EXP e a mesma skill só lê de novo depois de 12 h.`, h: 1, usar: () => lerLivro(n), desenho: "livro" }; }
   return {
@@ -5803,7 +5946,7 @@ const PECAS = {
     modelos: [["Túnica de Linho", 1, 6, 30], ["Manto de Seda", 8, 13, 60], ["Manto Arcano", 14, 22, 100]] },
   elmo: { nome: "Elmo", h: 1, extra: "mana", modelos: [["Capuz de Couro", 1, 4, 15], ["Elmo de Ferro", 8, 9, 30], ["Elmo de Guerra", 14, 15, 50]] },
   botas: { nome: "Botas", h: 1, extra: "vel", modelos: [["Botas de Couro", 1, 3, 3], ["Botas de Ferro", 8, 7, 5], ["Botas de Guerra", 14, 12, 7]] },
-  escudo: { nome: "Escudo", h: 2, extra: "bloqueio", modelos: [["Escudo de Madeira", 1, 5, 4], ["Escudo de Ferro", 8, 10, 7], ["Escudo da Batalha", 14, 17, 10]] },
+  escudo: { nome: "Escudo", h: 1, extra: "bloqueio", modelos: [["Escudo de Madeira", 1, 5, 4], ["Escudo de Ferro", 8, 10, 7], ["Escudo da Batalha", 14, 17, 10]] },
 };
 const ORDEM_PECAS = ["elmo", "armadura", "botas", "escudo"];                // os espaços do equipamento
 const ROUPA_DA_CLASSE = { viking: "armadura_guerreiro", arqueiro: "armadura_leve", ninja: "armadura_leve", feiticeiro: "armadura_mago", guerreiro: "armadura_guerreiro" };
@@ -10391,12 +10534,12 @@ function animNpc3d(o, nome, m, agora) {
     return ["martelando", agora, angDir3d(0)];
   }
   // a guarda e o guarda real batem continência quando alguém chega perto; o do armazém atende quando abre o armazém;
-  // todos viram para quem está perto
+  // os outros viram para quem está perto (o do armazém não: o baú faz parte do modelo dele e girava junto)
   const perto = d < 3.2 && !v.caido, aberto = nome === "armazem" && armazemAberto();
   if (perto && !o.perto3d && m.clips.saudando) o.a3d = { nome: "saudando", t0: agora };
   if (aberto && !o.aberto3d && m.clips.atendendo) o.a3d = { nome: "atendendo", t0: agora };
   o.perto3d = perto; o.aberto3d = aberto;
-  const ang = d < 5 && d > 0.01 ? Math.atan2(dx, -dy) : angDir3d(2);
+  const ang = d < 5 && d > 0.01 && nome !== "armazem" ? Math.atan2(dx, -dy) : angDir3d(2);
   if (vale(o.a3d)) return [o.a3d.nome, agora - o.a3d.t0, ang];
   return ["parado", agora + (o.fase || 0), ang];
 }
@@ -10601,13 +10744,68 @@ function mascaraHeroi3d() {
   esfera[dirTela(viking.dir)] = [i.esfera || 0];
   return { im: cv2, info: { w, h, px: c.esq * PX, py: c.cima * PX, mascara: true, esfera } };
 }
+// ---------------------------------------------------------------- a imagem do herói: sombra projetada e reflexo nas poças
+// A pose deste quadro (o pedaço do atlas 3D ou o quadro do sprite) com o lugar dos pés: "esq" e "cima" em px da tela a
+// partir dos pés, no zoom z. atrasado = aceita o pedaço do atlas do quadro anterior (as poças são desenhadas antes do atlas)
+function poseHeroi(z, atrasado = false) {
+  const v = viking, nomeAnim = animVisivel(v.anim), info = M.animacoes[nomeAnim];
+  if (!info) return null;
+  const i = atrasado ? (P3D.ligado && !P3D.perdido && P3D.inst.get(v)) : P3D.vale(v);
+  if (i && i.valido && i.cel && !(window.M3D && M3D.ativo)) {
+    const c = i.m.caixa, s = PX * z;
+    return { src: P3D.render.domElement, sx: i.cel.x, sy: i.cel.y, sw: i.cel.w, sh: i.cel.h, esq: c.esq * s, cima: c.cima * s, w: (c.esq + c.dir) * s, h: (c.cima + c.baixo) * s };
+  }
+  let q = Math.floor(v.t * info.fps);
+  q = info.laco ? ((q % info.quadros) + info.quadros) % info.quadros : Math.min(info.quadros - 1, Math.max(0, q));
+  const im = SPR[nomeAnim] && SPR[nomeAnim][dirTela(v.dir)];
+  if (!im) return null;
+  return { src: im, sx: q * info.w, sy: 0, sw: info.w, sh: info.h, esq: info.px * z, cima: info.py * z, w: info.w * z, h: info.h * z };
+}
+// a silhueta da pose numa cor só (um canvas reaproveitado, no tamanho da tela)
+const silHeroi = { cv: null };
+function silhuetaPose(pose, cor) {
+  const cv2 = silHeroi.cv || (silHeroi.cv = document.createElement("canvas")), w = Math.max(1, Math.ceil(pose.w)), h = Math.max(1, Math.ceil(pose.h));
+  if (cv2.width < w || cv2.height < h) { cv2.width = Math.max(cv2.width, w); cv2.height = Math.max(cv2.height, h); }
+  const g = cv2.getContext("2d");
+  g.globalCompositeOperation = "source-over"; g.clearRect(0, 0, cv2.width, cv2.height);
+  g.imageSmoothingQuality = "low";
+  g.drawImage(pose.src, pose.sx, pose.sy, pose.sw, pose.sh, 0, 0, pose.w, pose.h);
+  g.globalCompositeOperation = "source-in"; g.fillStyle = cor; g.fillRect(0, 0, w, h);
+  return cv2;
+}
+// A sombra do herói: a silhueta deitada no chão para o lado contrário do sol (de manhã para a esquerda, ao meio-dia
+// curta e para baixo, à tarde para a direita), mais fraca com chuva e só a mancha dos pés à noite, na caverna e dentro
+// das casas. Por baixo, a mancha escura dos pés (o contato com o chão)
+function sombraHeroi(X, Y, z) {
+  if (window.M3D && M3D.ativo) return;
+  if (ESTILO_TINTA) { sombraTinta(X, Y, PX * z * 0.36); return; }
+  const r = PX * z * 0.3;
+  cx.fillStyle = "rgba(20, 14, 10, 0.38)";
+  cx.beginPath(); cx.ellipse(X, Y, r, r * ACHATA * 0.5, 0, 0, 7); cx.fill();
+  const h = horaDoDia(), dia = h > 6 && h < 18.5 ? Math.min(1, (h - 6) / 1, (18.5 - h) / 1) : 0;
+  const forca = dia * (1 - 0.75 * Math.min(1, clima.chuva || 0)) * (naCaverna(viking.x) || predDentroDe(viking) ? 0 : 1);
+  if (forca < 0.05) return;
+  const pose = poseHeroi(z);
+  if (!pose) return;
+  const th = Math.PI * (1 - Math.min(1, Math.max(0, (h - 6) / 12.5))), L = 0.32 + 0.7 * Math.abs(Math.cos(th));
+  const Dx = Math.cos(th) * L, Dy = Math.max(0.12, Math.sin(th)) * 0.42 * L;
+  const sil = silhuetaPose(pose, "rgb(24, 18, 12)");
+  cx.save();
+  cx.globalAlpha = 0.42 * forca;
+  if (!window.MODO_LEVE) cx.filter = `blur(${Math.max(0.5, 0.9 * z).toFixed(1)}px)`;
+  cx.translate(X, Y); cx.transform(1, 0, -Dx, -Dy, 0, 0);
+  cx.drawImage(sil, 0, 0, Math.ceil(pose.w), Math.ceil(pose.h), -pose.esq, -pose.cima, Math.ceil(pose.w), Math.ceil(pose.h));
+  cx.restore();
+}
+function predDentroDe(o) { return typeof predInst !== "undefined" && predInst.some(p => p.dentro && o.x > p.dentro[0] && o.x < p.dentro[1] && o.y > p.dentro[2] && o.y < p.dentro[3]); }
+
 function desenharViking() {
   const v = viking, nomeAnim = animVisivel(v.anim), info = M.animacoes[nomeAnim];
   let q = Math.floor(v.t * info.fps);
   q = info.laco ? ((q % info.quadros) + info.quadros) % info.quadros : Math.min(info.quadros - 1, Math.max(0, q));
   const [sx, sy] = tela(v.x - cam.x, v.y - cam.y);
   const X = W / 2 + sx, Y = H / 2 + sy, z = zoom;
-  sombra(X, Y, PX * z * 0.36);
+  sombraHeroi(X, Y, z);
   const im = SPR[nomeAnim][dirTela(v.dir)], em3d = !!P3D.vale(v);
   cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
   const agora = performance.now() / 1000, nf = nivelFuria(agora);
