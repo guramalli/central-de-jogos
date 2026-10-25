@@ -930,11 +930,15 @@ function aplicarVolumes() {
 // os eventos ficam num MP3 só (sons/efeitos.mp3); o sons.json diz onde começa cada trecho, a velocidade (tom) e o volume.
 // Decodificado depois do primeiro toque (o navegador só libera o áudio aí); até lá, e para os efeitos de magia, vale o
 // som sintetizado
+// o site guarda os MP3 em cache por até um dia, mas o json dos trechos vem sempre novo: com um MP3 velho, cada som
+// tocava o trecho errado (a puxada do arco nova saía como um som antigo). O MP3 vai com a versão tirada do próprio json
+// (muda sempre que o MP3 é refeito), então o navegador baixa o novo assim que ele muda
+function versaoTexto(txt) { let h = 5381; for (let i = 0; i < txt.length; i++) h = (h * 33 + txt.charCodeAt(i)) >>> 0; return h.toString(36); }
 async function carregarSons() {
   if (!Som.arq || !Som.ctx || Som.efeitos) return;
   Som.efeitos = "carregando";
   try {
-    const r = await fetch("sons/efeitos.mp3");
+    const r = await fetch("sons/efeitos.mp3?v=" + Som.versao);
     const buf = await Som.ctx.decodeAudioData(await r.arrayBuffer());
     for (const [ev, c] of Object.entries(Som.arq)) Som.buf[ev] = c.trechos;
     Som.efeitos = buf;
@@ -1190,8 +1194,9 @@ async function carregarAmbiente() {
   if (!Som.ctx || Amb.buf || MODO_TESTE) return;
   Amb.buf = "carregando";
   try {
-    Amb.arq = await (await fetch("sons/ambiente.json")).json();
-    const buf = await Som.ctx.decodeAudioData(await (await fetch("sons/ambiente.mp3")).arrayBuffer());
+    const txt = await (await fetch("sons/ambiente.json", { cache: "no-store" })).text();
+    Amb.arq = JSON.parse(txt);
+    const buf = await Som.ctx.decodeAudioData(await (await fetch("sons/ambiente.mp3?v=" + versaoTexto(txt))).arrayBuffer());
     Amb.saida = Som.ctx.createGain(); Amb.saida.gain.value = AMB_VOL * Som.vol.ambiente; Amb.saida.connect(Som.saida);
     Amb.buf = buf;
   } catch (e) { Amb.buf = "falhou"; }
@@ -1368,7 +1373,9 @@ function pocaCel(i, j) {
   CC.celulas.set(ch, p);
   return p;
 }
-const tamPoca = p => liso((CC.molhado - p.lim) / 0.3);
+// o tamanho da poça (0 a 1) acompanha a água no chão o tempo todo: cresce com a chuva e, depois dela, vai diminuindo
+// devagar até sumir (antes ficava cheia até quase o fim e sumia de uma vez, e parecia eterna)
+const tamPoca = p => Math.pow(Math.min(1, Math.max(0, (CC.molhado - p.lim) / Math.max(0.25, 0.95 - p.lim))), 0.6);
 function pocaEm(x, y) {
   const i0 = Math.floor(x / POCA_C), j0 = Math.floor(y / POCA_C);
   for (let i = i0 - 1; i <= i0 + 1; i++) for (let j = j0 - 1; j <= j0 + 1; j++) {
@@ -1623,7 +1630,7 @@ async function carregar() {
     }
   }
   FX = await (await fetch("fx.json")).json();
-  try { Som.arq = await (await fetch("sons/sons.json")).json(); carregarSons(); } catch (e) {}
+  try { const txt = await (await fetch("sons/sons.json", { cache: "no-store" })).text(); Som.arq = JSON.parse(txt); Som.versao = versaoTexto(txt); carregarSons(); } catch (e) {}
   MA = await (await fetch("arqueiro.json")).json();
   MF = await (await fetch("feiticeiro.json")).json();
   try { const r = await fetch("ninja.json"); if (r.ok) MN = await r.json(); } catch (e) { MN = null; }
