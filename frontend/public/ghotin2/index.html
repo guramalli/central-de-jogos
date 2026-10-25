@@ -9,7 +9,8 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Germania+One&family=Alegreya+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Germania+One&family=Alegreya+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&text=%E5%8D%B0&display=swap">
 <style>
   /* Layout: o campo ocupa a tela inteira; o painel de teste flutua num canto, como um livro de bordo aberto sobre a mesa. */
   :root {
@@ -219,6 +220,8 @@
   .minimapa .norte { position: absolute; top: -2px; left: 50%; transform: translateX(-50%); font-family: var(--display); font-size: 13px; color: var(--ouro); text-shadow: 0 1px 2px #000; }
   .minimapa .lugar { padding: 2px 10px; border-radius: 4px; background: rgba(12, 9, 6, 0.8); border: 1px solid #5a4424; font-size: 12px; text-align: center; }
   .minimapa .lugar b { font-family: var(--dados); font-weight: 400; color: var(--apagado); margin-left: 6px; }
+  .minimapa .missao { width: 100%; box-sizing: border-box; padding: 3px 8px; color: #ffd23c; font-size: 11.5px; line-height: 1.3; text-align: left; }   /* o objetivo da missão */
+  .minimapa .missao[hidden] { display: none !important; }
   /* janelas: escolher quais ficam abertas e arrastar cada uma para onde quiser */
   .janelas {
     position: fixed; z-index: 6; top: calc(env(safe-area-inset-top, 0px) + 70px); left: 50%; transform: translateX(-50%); width: min(300px, calc(100% - 32px));
@@ -505,6 +508,7 @@
     .minimapa .zoom-mapa button { width: 20px; height: 20px; font-size: 12px; }
     .minimapa .lugar { padding: 1px 6px; font-size: 10px; line-height: 1.3; max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .minimapa .lugar b { display: none; }
+    .minimapa .missao { white-space: normal; max-width: 108px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
     .acoes { grid-template-columns: 48px; gap: 5px; bottom: calc(env(safe-area-inset-bottom, 0px) + 208px); }
     .acoes button { width: 48px; height: 48px; font-size: 10px; }
     .acoes button.grande { grid-column: auto; width: 48px; height: 48px; border-radius: 50%; font-size: 12px; }
@@ -528,6 +532,202 @@
   :root:not(.semB) .slot.ativo, :root:not(.semB) .slot.sobre { border-color: #EFE4CC; }
   :root:not(.semB) .grade-inv { background-color: #1E1B18; }
   :root:not(.semB) :is(.yang-bolsa b, .dica-item strong, .ref-item .nomes strong, .loja .preco, .adm-nome) { color: #E3B567; }
+
+  /* ================================================================ janelas no estilo B: papel hanji e nanquim
+     Papel claro com fibras, moldura dupla (borda grossa de nanquim + filete ocre-escuro por dentro), títulos num serifado
+     de pincel com o selo de cinabre (印), botões de papel com contorno de nanquim, o que está ativo em jade. Só aparência:
+     nada de layout de função muda. ?b=0 (classe semB) volta às janelas de madeira. */
+  :root:not(.semB) {
+    --b-nanquim: #1E1B18; --b-papel: #EFE4CC; --b-papel2: #E8DCC0; --b-papel3: #DDCFAE; --b-filete: #8C6A3A;
+    --b-cinabre: #B8322A; --b-jade: #3E7A5C; --b-indigo: #2D4A6B; --b-ocre: #C9963E; --b-pinho: #2F5D3A; --b-pedra: #8C8A80;
+    --pincel: "Song Myung", "Nanum Myeongjo", "Palatino Linotype", Georgia, serif;
+    --selo: "Yuji Syuku", "Song Myung", serif;
+    --b-fibra: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.011 .42' numOctaves='3' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .36 0 0 0 0 .22 1 0 0 0 -.5'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23f)'/%3E%3C/svg%3E");
+    --b-moldura: inset 0 0 0 3px var(--b-papel), inset 0 0 0 4px var(--b-filete);
+  }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin, details.livro, .menu-leque) {
+    --texto: #1E1B18; --apagado: #66594a; --ouro: #3E7A5C; --linha: rgba(30, 27, 24, 0.24); --sangue: #B8322A;
+    color-scheme: light; color: var(--b-nanquim); border: 3px solid var(--b-nanquim); border-radius: 3px;
+    background: var(--b-fibra), radial-gradient(120% 80% at 50% 0%, #F3EAD6, transparent 70%), linear-gradient(var(--b-papel), var(--b-papel2));
+    box-shadow: var(--b-moldura), 0 0 0 1px rgba(239, 228, 204, 0.3), 0 12px 26px rgba(12, 10, 8, 0.5);
+    scrollbar-color: var(--b-filete) var(--b-papel2);
+  }
+  /* barra de título: papel, filete por dentro, linha de nanquim embaixo; selo vermelho no canto e o título a pincel */
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin) > header {
+    justify-content: flex-start; gap: 9px; padding: 9px 12px 8px; border-radius: 0; min-height: 26px;
+    background: linear-gradient(#F2E9D5, #E6D8B8); border-bottom: 2px solid var(--b-nanquim);
+    box-shadow: var(--b-moldura), 0 2px 0 rgba(140, 106, 58, 0.35);
+  }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin) > header::before, :root:not(.semB) details.livro > summary::before {
+    content: "印"; flex: none; display: grid; place-items: center; width: 23px; height: 23px; border-radius: 3px; transform: rotate(-5deg);
+    background: var(--b-cinabre); color: var(--b-papel); font: 400 17px/1 var(--selo);
+    box-shadow: inset 0 0 0 1.5px rgba(239, 228, 204, 0.55), 0 1px 0 rgba(30, 27, 24, 0.35);
+  }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin) > header h2, :root:not(.semB) details.livro > summary {
+    flex: 1; min-width: 0; font-family: var(--pincel); font-size: 21px; letter-spacing: 0.01em; color: var(--b-nanquim); text-shadow: none;
+  }
+  :root:not(.semB) details.livro > summary {
+    gap: 9px; justify-content: flex-start; padding: 9px 12px 8px; border-radius: 0; background: linear-gradient(#F2E9D5, #E6D8B8); box-shadow: var(--b-moldura);
+  }
+  :root:not(.semB) details.livro[open] > summary { border-bottom: 2px solid var(--b-nanquim); box-shadow: var(--b-moldura), 0 2px 0 rgba(140, 106, 58, 0.35); }
+  :root:not(.semB) details.livro > summary::after { margin: 0 0 0 auto; color: var(--b-nanquim); }
+  /* o X: um quadrado de nanquim fino; passando o mouse, vira cinabre */
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin) > header > button:last-child {
+    width: 24px; height: 24px; border-radius: 3px; background: var(--b-papel); border: 2px solid var(--b-nanquim); box-shadow: 0 1px 0 rgba(30, 27, 24, 0.4);
+  }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin) > header > button:last-child::before,
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin) > header > button:last-child::after { width: 13px; height: 2.2px; background: var(--b-nanquim); box-shadow: none; }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin) > header > button:last-child:hover { background: var(--b-cinabre); border-color: var(--b-nanquim); }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin) > header > button:last-child:hover::before,
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin) > header > button:last-child:hover::after { background: var(--b-papel); }
+  /* botões: papel com contorno de nanquim; o ativo (aba, escolha) em jade com o texto em papel */
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin, details.livro) button:not(.item-inv) {
+    background: linear-gradient(#F4ECDA, #DFD1B0); border: 1.5px solid var(--b-nanquim); border-radius: 3px; color: var(--b-nanquim);
+    box-shadow: 0 1px 0 rgba(30, 27, 24, 0.45); text-shadow: none;
+  }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin, details.livro) button:not(.item-inv):hover { background: linear-gradient(#FAF4E6, #E8DCC0); border-color: var(--b-jade); }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin, details.livro) button:not(.item-inv):active { transform: translateY(1px); box-shadow: inset 0 1px 3px rgba(30, 27, 24, 0.35); }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin, details.livro) button[aria-pressed="true"]:not(.item-inv) {
+    background: var(--b-jade); color: var(--b-papel); border-color: var(--b-nanquim); box-shadow: inset 0 0 0 1px rgba(239, 228, 204, 0.35), 0 1px 0 rgba(30, 27, 24, 0.45);
+  }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin, details.livro) button:disabled { opacity: 0.42; }
+  :root:not(.semB) :is(.ferreiro, .admin) .grande {
+    min-height: 38px; font-family: var(--pincel); font-size: 19px; color: var(--b-papel); background: var(--b-jade); border: 2px solid var(--b-nanquim);
+    box-shadow: inset 0 0 0 1.5px rgba(239, 228, 204, 0.35), 0 2px 0 rgba(30, 27, 24, 0.5);
+  }
+  :root:not(.semB) :is(.ferreiro, .admin) .grande:hover:not(:disabled) { background: #46876a; border-color: var(--b-nanquim); }
+  :root:not(.semB) .abas-bolsa button:not(.item-inv), :root:not(.semB) .abas-ficha button { font-family: var(--pincel); font-size: 16px; border-radius: 5px 5px 1px 1px; padding: 3px 0 1px; }
+  /* campos: papel mais claro, afundado de leve */
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin, details.livro) :is(input:not([type=range]):not([type=checkbox]), select, textarea) {
+    background: #F8F2E4; color: var(--b-nanquim); border: 1.5px solid var(--b-nanquim); border-radius: 2px; box-shadow: inset 0 1px 3px rgba(30, 27, 24, 0.22);
+  }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin, details.livro) :is(input, select, textarea):focus-visible { outline: 2px solid var(--b-jade); outline-offset: 0; }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin, details.livro) :is(input[type=range], input[type=checkbox]) { accent-color: var(--b-jade); }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin, details.livro, .menu-leque) kbd {
+    font: 600 10.5px var(--dados); color: var(--b-nanquim); padding: 0 4px; border: 1px solid var(--b-nanquim); border-radius: 2px; background: var(--b-papel3);
+  }
+  /* as caixas de dentro: papel um tom mais escuro, contorno fino de nanquim */
+  :root:not(.semB) :is(.ref-item, .yang-bolsa, .pontos-livres, .ficha-skills .sk, .loja .item-loja, .ed-sel, .ficha-topo) {
+    background: rgba(214, 199, 162, 0.42); border: 1px solid rgba(30, 27, 24, 0.55); border-radius: 2px; box-shadow: inset 0 1px 0 rgba(255, 250, 236, 0.5);
+  }
+  :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin, details.livro) :is(.nota, .fala) { color: var(--apagado); }
+  :root:not(.semB) .ferreiro .fala { color: #3a332b; }
+  /* subtítulos: pincel em nanquim com um traço que some para a direita */
+  :root:not(.semB) :is(.ficha, .admin, .opcoes) h3 { font-family: var(--pincel); font-size: 17px; color: var(--b-nanquim); text-shadow: none; }
+  :root:not(.semB) :is(.ficha, .admin) h3::after { height: 2px; background: linear-gradient(90deg, var(--b-nanquim), rgba(30, 27, 24, 0)); opacity: 0.7; }
+  :root:not(.semB) .ficha h3 small { color: var(--apagado); }
+  :root:not(.semB) .miolo h2 { color: var(--b-cinabre); opacity: 1; border-bottom-color: rgba(30, 27, 24, 0.3); }
+  :root:not(.semB) details.livro .chip { background: var(--b-papel3); color: var(--b-nanquim); border-color: rgba(30, 27, 24, 0.5); }
+
+  /* ---- inventário: o corpo em nanquim com os espaços em cima, as abas I–IV, a grade 5 × 9 e o Yang */
+  :root:not(.semB) .equip { height: 214px; padding: 0; border: 1px solid rgba(30, 27, 24, 0.55); border-radius: 2px; background: rgba(239, 228, 204, 0.6); box-shadow: inset 0 0 0 2px rgba(239, 228, 204, 0.8), inset 0 0 18px rgba(140, 106, 58, 0.16); }
+  :root:not(.semB) .equip .silhueta { position: absolute; inset: 0; left: 0; top: 0; width: 100%; height: 100%; transform: none; opacity: 1; background: none; pointer-events: none; }
+  :root:not(.semB) .equip.destaque { animation: destaque-equip-b 1.4s ease-out; }
+  @keyframes destaque-equip-b { 0%, 40% { box-shadow: 0 0 0 2px var(--b-jade), 0 0 12px rgba(62, 122, 92, 0.55), inset 0 0 0 2px rgba(239, 228, 204, 0.8); } }
+  :root:not(.semB) .eq { border: 1.5px solid var(--b-nanquim); border-radius: 2px; background: rgba(221, 207, 174, 0.92); box-shadow: inset 0 0 0 1px rgba(255, 250, 236, 0.45), 0 1px 0 rgba(30, 27, 24, 0.3); }
+  :root:not(.semB) .eq span { color: #6f6251; font-family: var(--corpo); font-size: 9.5px; }
+  :root:not(.semB) :is(.eq.arma-eq, .eq.peca-eq):hover { border-color: var(--b-jade); box-shadow: 0 0 0 1.5px var(--b-jade); }
+  :root:not(.semB) :is(.eq, .item-inv) .ref-eq, :root:not(.semB) .item-inv b { color: var(--b-nanquim); font-weight: 600; text-shadow: 0 0 2px var(--b-papel), 0 0 2px var(--b-papel), 0 0 3px var(--b-papel); }
+  :root:not(.semB) .eq .ref-eq { color: var(--b-cinabre); inset: auto 2px 0 auto; display: block; font-size: 10.5px; }
+  html:root:not(.semB) .yang-bolsa.yang-bolsa b { color: var(--b-nanquim); }
+  :root:not(.semB) .barra-skills .slot.sobre { border-color: var(--b-jade); box-shadow: 0 0 0 2px var(--b-jade), 0 0 10px rgba(62, 122, 92, 0.6); }
+  html:root:not(.semB) .dica-item.dica-item strong { color: var(--b-cinabre); }
+  html:root:not(.semB) .loja .preco.preco { color: var(--b-indigo); }
+  :root:not(.semB) .grade-inv {
+    border: 1.5px solid var(--b-nanquim); box-shadow: 0 0 0 2px rgba(239, 228, 204, 0.7), 0 0 0 3px rgba(140, 106, 58, 0.6);
+    background-color: var(--b-papel3);
+    background-image: linear-gradient(rgba(30, 27, 24, 0.42) 1px, transparent 1px), linear-gradient(90deg, rgba(30, 27, 24, 0.42) 1px, transparent 1px),
+                      linear-gradient(rgba(255, 250, 236, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 250, 236, 0.45) 1px, transparent 1px);
+    background-size: 40px 40px; background-position: -1px -1px, -1px -1px, 0 0, 0 0;
+  }
+  :root:not(.semB) .item-inv:hover { outline: 2px solid var(--b-jade); outline-offset: -2px; background: rgba(62, 122, 92, 0.16); }
+  :root:not(.semB) .yang-bolsa b { color: var(--b-nanquim); text-shadow: none; font-weight: 600; }
+  :root:not(.semB) .yang-bolsa span { display: inline-flex; align-items: center; gap: 6px; font-family: var(--pincel); font-size: 15px; }
+  :root:not(.semB) .yang-bolsa span::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--b-ocre); border: 1.5px solid var(--b-nanquim); box-shadow: inset 0 0 0 2.5px var(--b-ocre), inset 0 0 0 3.5px var(--b-nanquim); }
+  :root:not(.semB) .linha-yang input { font-family: var(--dados); }
+  /* a dica do item: um bilhete de papel */
+  :root:not(.semB) .dica-item { background: var(--b-fibra), linear-gradient(var(--b-papel), var(--b-papel2)); color: var(--b-nanquim); border: 2px solid var(--b-nanquim); border-radius: 2px; box-shadow: var(--b-moldura), 0 6px 14px rgba(12, 10, 8, 0.45); padding: 7px 10px; }
+  :root:not(.semB) .dica-item strong { color: var(--b-cinabre); font-family: var(--pincel); font-size: 15px; }
+  :root:not(.semB) .dica-item span[style] { color: var(--b-pinho) !important; font-weight: 600; }
+
+  /* ---- ficha: abas Atributos | Skills */
+  :root:not(.semB) .editor.ficha { width: min(318px, calc(100vw - 24px)); box-sizing: border-box; }
+  .abas-ficha { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .ficha-pag { display: grid; gap: 9px; }
+  .ficha-topo { display: grid; gap: 6px; padding: 8px 10px; }
+  .ficha-vm { display: grid; grid-template-columns: auto 1fr; gap: 5px 8px; align-items: center; font-size: 12px; color: var(--apagado); }
+  .ficha .ficha-vm .medidor { height: 15px; }
+  .ficha .ficha-vm .medidor span { line-height: 15px; }
+  :root:not(.semB) :is(.ficha, .admin) .medidor { background: var(--b-papel3); border: 1px solid var(--b-nanquim); border-radius: 2px; }
+  :root:not(.semB) .ficha .medidor.vida i { background: linear-gradient(#c94a3e, var(--b-cinabre)); }
+  :root:not(.semB) .ficha .medidor.mana i { background: linear-gradient(#3f6a94, var(--b-indigo)); }
+  :root:not(.semB) .ficha .medidor.exp i { background: linear-gradient(#dcae5c, var(--b-ocre)); }
+  :root:not(.semB) .ficha .medidor span { color: var(--b-nanquim); font-weight: 600; text-shadow: 0 0 2px var(--b-papel), 0 0 2px var(--b-papel), 0 0 3px var(--b-papel); }
+  :root:not(.semB) .ficha-nivel b { font-family: var(--pincel); font-size: 19px; font-weight: 400; }
+  :root:not(.semB) .ficha-nivel span { font-family: var(--dados); font-size: 11px; color: var(--apagado); }
+  :root:not(.semB) .pontos-livres b { color: var(--b-nanquim); }
+  :root:not(.semB) .pontos-livres.tem { border-color: var(--b-jade); color: var(--b-jade); background: rgba(62, 122, 92, 0.13); box-shadow: inset 0 0 0 1px rgba(62, 122, 92, 0.35); }
+  :root:not(.semB) .pontos-livres.tem b { color: var(--b-jade); }
+  :root:not(.semB) #fAtrib { gap: 0 10px; }
+  :root:not(.semB) #fAtrib > * { padding: 5px 0; border-bottom: 1px dashed rgba(30, 27, 24, 0.28); }
+  :root:not(.semB) #fAtrib > span { font-weight: 500; }
+  :root:not(.semB) #fAtrib > b { font-size: 15px; min-width: 2ch; text-align: right; }
+  :root:not(.semB) #fAtrib > button { justify-self: center; align-self: center; padding: 0; width: 24px; height: 22px; min-width: 0; font: 700 15px/1 var(--dados); }
+  :root:not(.semB) #fAtrib > button:not(:disabled) { background: var(--b-jade); color: var(--b-papel); }
+  :root:not(.semB) .ficha-grade.derivados > * { padding: 3px 0; border-bottom: 1px dotted rgba(30, 27, 24, 0.2); }
+  :root:not(.semB) .ficha-grade.derivados b { text-align: right; font-size: 12px; }
+  /* skills: ícone (arrasta para a barra), nome e o grau num selo, tecla, ação (ponto, livro, Pedra da Alma) */
+  .ficha-skills .sk { grid-template-columns: 44px 1fr auto; grid-template-areas: "ic nome acao" "ic linha acao" "info info info"; gap: 2px 8px; }
+  .ficha-skills .sk-icone { grid-area: ic; width: 44px; height: 44px; border-radius: 3px; cursor: grab; touch-action: none; align-self: start; }
+  :root:not(.semB) .ficha-skills .sk-icone { border: 1.5px solid var(--b-nanquim); box-shadow: 0 1px 0 rgba(30, 27, 24, 0.4); }
+  .ficha-skills .sk-icone:hover { outline: 2px solid var(--ouro); outline-offset: 1px; }
+  .ficha-skills .sk-nome { grid-area: nome; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+  .ficha-skills .sk > button { grid-area: acao; align-self: center; white-space: nowrap; font-size: 12px; padding: 4px 8px; }
+  .ficha-skills .sk-linha { grid-area: linha; font-size: 11.5px; color: var(--apagado); }
+  .ficha-skills .sk small { grid-area: info; }
+  .sk-grau { font: 600 11px/16px var(--dados); font-style: normal; padding: 0 5px; border-radius: 2px; border: 1px solid currentColor; color: var(--apagado); }
+  :root:not(.semB) .sk-grau { color: var(--b-nanquim); background: var(--b-papel); border-color: var(--b-nanquim); }
+  :root:not(.semB) .sk-grau:is(.grau-m, .grau-g, .grau-p) { color: var(--b-papel); }
+  :root:not(.semB) .sk-grau.grau-m { background: var(--b-jade); }
+  :root:not(.semB) .sk-grau.grau-g { background: var(--b-indigo); }
+  :root:not(.semB) .sk-grau.grau-p { background: var(--b-cinabre); }
+
+  /* ---- ferreiro, conversa, loja, armazém, admin, opções, janelas */
+  :root:not(.semB) .ref-item canvas, :root:not(.semB) .adm-previa { background: var(--b-papel3); border: 1.5px solid var(--b-nanquim); box-shadow: inset 0 0 10px rgba(140, 106, 58, 0.25); }
+  :root:not(.semB) :is(.ref-item .nomes strong, .adm-nome) { color: var(--b-cinabre); font-family: var(--pincel); font-weight: 400; font-size: 17px; }
+  :root:not(.semB) .adm-nome small { font-family: var(--corpo); }
+  :root:not(.semB) .adm-previa b { color: var(--b-cinabre); text-shadow: 0 0 2px var(--b-papel), 0 0 3px var(--b-papel); }
+  :root:not(.semB) .ref-custo .falta { color: var(--b-cinabre); }
+  :root:not(.semB) .ref-custo .ok { color: var(--b-pinho); }
+  :root:not(.semB) .ref-resultado.sucesso { background: rgba(62, 122, 92, 0.16); color: var(--b-pinho); border: 1px solid rgba(47, 93, 58, 0.5); }
+  :root:not(.semB) .ref-resultado.falhou { background: rgba(184, 50, 42, 0.12); color: var(--b-cinabre); border: 1px solid rgba(184, 50, 42, 0.5); }
+  :root:not(.semB) .loja .preco { color: var(--b-indigo); font-weight: 600; }
+  :root:not(.semB) .admin .adm-refs button[data-ref="7"]:not([aria-pressed="true"]) { color: #8a6420; border-color: #8a6420; }
+  :root:not(.semB) .admin .adm-refs button[data-ref="8"]:not([aria-pressed="true"]) { color: var(--b-indigo); border-color: var(--b-indigo); }
+  :root:not(.semB) .admin .adm-refs button[data-ref="9"]:not([aria-pressed="true"]) { color: var(--b-cinabre); border-color: var(--b-cinabre); }
+  :root:not(.semB) .opcoes .vol output { color: var(--b-nanquim); }
+  :root:not(.semB) .janelas label { color: var(--b-nanquim); }
+  :root:not(.semB) .alca-janela { border-color: var(--b-jade); background: rgba(62, 122, 92, 0.12); }
+  :root:not(.semB) .alca-janela span { background: var(--b-papel); border: 1.5px solid var(--b-nanquim); color: var(--b-nanquim); font-family: var(--pincel); font-size: 12px; }
+
+  /* ---- menu do canto: o botão redondo vira um disco de papel com aro de nanquim; o leque, uma folha */
+  :root:not(.semB) .menu-botao {
+    color: var(--b-cinabre); background: radial-gradient(circle at 50% 38%, #F6EEDC, var(--b-papel2) 70%); border: 3px solid var(--b-nanquim);
+    box-shadow: inset 0 0 0 3px var(--b-papel), inset 0 0 0 4px var(--b-filete), 0 0 0 1px rgba(239, 228, 204, 0.4), 0 8px 16px rgba(12, 10, 8, 0.5);
+  }
+  :root:not(.semB) .menu-botao svg { filter: none; }
+  :root:not(.semB) .menu-botao:hover, :root:not(.semB) .menu-botao[aria-expanded="true"] { border-color: var(--b-nanquim); background: radial-gradient(circle at 50% 38%, #FFF8EA, #E2D3B2 70%); }
+  :root:not(.semB) .menu-botao .selo-pontos, :root:not(.semB) .vitais .selo-pontos { background: var(--b-cinabre); color: var(--b-papel); box-shadow: 0 0 0 1.5px var(--b-papel); animation: none; }
+  :root:not(.semB) .menu-leque { padding: 10px 8px 8px; }
+  :root:not(.semB) .menu-leque::after { background: var(--b-papel2); border-color: var(--b-nanquim); border-width: 3px; }
+  :root:not(.semB) .menu-leque h2 { display: flex; align-items: center; justify-content: center; gap: 7px; font-family: var(--pincel); font-size: 18px; color: var(--b-nanquim); text-shadow: none; }
+  :root:not(.semB) .menu-leque h2::before { content: "印"; display: grid; place-items: center; width: 19px; height: 19px; border-radius: 2px; transform: rotate(-5deg); background: var(--b-cinabre); color: var(--b-papel); font: 400 14px/1 var(--selo); }
+  :root:not(.semB) .menu-leque button { color: var(--b-nanquim); background: linear-gradient(#F4ECDA, #E2D5B6); border: 1.5px solid var(--b-nanquim); border-radius: 3px; box-shadow: 0 1px 0 rgba(30, 27, 24, 0.4); }
+  :root:not(.semB) .menu-leque button:hover, :root:not(.semB) .menu-leque button:focus-visible { border-color: var(--b-jade); background: linear-gradient(#FAF4E6, #E8DCC0); }
+  :root:not(.semB) .menu-leque button[aria-pressed="true"] { background: var(--b-jade); color: var(--b-papel); border-color: var(--b-nanquim); }
+  :root:not(.semB) .menu-leque button svg { color: var(--b-jade); filter: none; }
+  :root:not(.semB) .menu-leque button[aria-pressed="true"] svg { color: var(--b-papel); }
+  @media (max-width: 1180px) { :root:not(.semB) .menu-leque::after { border: 0; border-top: 3px solid var(--b-nanquim); border-right: 3px solid var(--b-nanquim); } }
 </style>
 
 <canvas id="campo" aria-label="Campo de treino: o viking e os bonecos"></canvas>
@@ -568,15 +768,41 @@
 <aside class="bolsa" id="bolsa" hidden aria-label="Inventário">
   <header><h2>Inventário</h2><button id="bolsaFechar" aria-label="Fechar o inventário">Fechar</button></header>
   <div class="equip" aria-label="Equipamento (clique direito tira e põe na bolsa)">
-    <div class="silhueta"></div>
-    <div class="eq peca-eq" data-peca="elmo" style="left: 8px; top: 8px"><span>elmo</span></div>
-    <div class="eq alto arma-eq" id="eqArma" style="left: 8px; top: 46px" title="Arma: clique direito tira e põe na bolsa"><span>arma</span></div>
-    <div class="eq peca-eq" data-peca="botas" style="left: 8px; top: 116px"><span>botas</span></div>
-    <div class="eq alto peca-eq" data-peca="armadura" style="left: 50%; top: 30px; transform: translateX(-50%)"><span>roupa</span></div>
-    <div class="eq" style="right: 8px; top: 8px" title="Brincos (em breve)"><span>brinco</span></div>
-    <div class="eq alto peca-eq" data-peca="escudo" style="right: 8px; top: 46px"><span>escudo</span></div>
-    <div class="eq" style="right: 8px; top: 116px" title="Colar (em breve)"><span>colar</span></div>
-    <div class="eq" style="left: 50%; top: 116px; transform: translateX(-50%)" title="Bracelete (em breve)"><span>pulso</span></div>
+    <!-- estilo B: o corpo pintado em nanquim (um sol de ocre atrás) e cada espaço sobre a parte do corpo, como no Metin2 -->
+    <svg class="silhueta" viewBox="0 0 228 214" aria-hidden="true">
+      <defs><filter id="pincelEquip" x="-6%" y="-6%" width="112%" height="112%"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="3.2"/></filter></defs>
+      <circle cx="114" cy="96" r="78" fill="#C9963E" opacity="0.17"/>
+      <g fill="none" stroke="#8C8A80" stroke-width="1.7" stroke-linecap="round" opacity="0.6">
+        <path d="M10 46q8-10 18-4t2 12q-7 3-9-3M28 42q10-8 22-2M176 24q8-9 17-3t2 11q-6 3-8-2M193 21q9-6 22 0"/>
+        <path d="M8 186q10-8 20-2M200 178q8-6 18 1"/>
+      </g>
+      <g filter="url(#pincelEquip)" stroke="#1E1B18" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M50 207q30-7 64-6t66 6" fill="none" stroke-width="3.4" opacity="0.55"/>
+        <path d="M95 146q-2 14-3 26h19l2-25zM133 146q2 14 3 26h-19l-2-25z" fill="#1E1B18" fill-opacity="0.32" stroke-width="2"/>
+        <path d="M92 166h19M117 166h19" fill="none" stroke="#2D4A6B" stroke-width="3"/>
+        <path d="M91 172h20q4 6 4 12H88q-1-7 3-12zM117 172h20q4 5 3 12h-27q0-6 4-12z" fill="#1E1B18" stroke-width="1.2"/>
+        <path d="M106 42q-10 2-18 8l-4 10q-4 46-9 90q39 9 78 0q-5-44-9-90l-4-10q-8-6-18-8z" fill="#1E1B18" fill-opacity="0.12" stroke-width="2.6"/>
+        <path d="M120 45q-3 26-12 47M114 98q1 26-1 50" fill="none" stroke-width="1.3" opacity="0.7"/>
+        <path d="M80 90q34 7 68 0l1 7q-35 8-70 0z" fill="#1E1B18" stroke-width="1"/>
+        <path d="M128 98q5 13 1 27M134 98q7 11 6 24" fill="none" stroke="#B8322A" stroke-width="2.6"/>
+        <path d="M105 43l9 20 10-20" fill="#EFE4CC" stroke-width="2"/>
+        <path d="M88 50q-22 8-38 56l12 9q8-14 13-22q4-10 10-17zM140 50q22 8 38 56l-12 9q-8-14-13-22q-4-10-10-17z" fill="#1E1B18" fill-opacity="0.24" stroke-width="2.4"/>
+        <path d="M50 106l12 9M178 106l-12 9" fill="none" stroke="#2D4A6B" stroke-width="4"/>
+        <circle cx="55" cy="120" r="5.5" fill="#EFE4CC" stroke-width="1.8"/><circle cx="173" cy="120" r="5.5" fill="#EFE4CC" stroke-width="1.8"/>
+        <path d="M109 34h10v10h-10z" fill="#EFE4CC" stroke-width="1.6"/>
+        <ellipse cx="114" cy="23" rx="12.5" ry="14" fill="#EFE4CC" stroke-width="2.4"/>
+        <path d="M101 21q1-12 13-12t13 12q-5-5-13-5t-13 5z" fill="#1E1B18" stroke-width="1"/>
+        <circle cx="114" cy="5" r="4.5" fill="#1E1B18" stroke-width="1"/><path d="M106 5h16" fill="none" stroke="#C9963E" stroke-width="1.6"/>
+      </g>
+    </svg>
+    <div class="eq peca-eq" data-peca="elmo" style="left: 98px; top: 6px"><span>elmo</span></div>
+    <div class="eq" style="left: 142px; top: 8px" title="Brincos (em breve)"><span>brinco</span></div>
+    <div class="eq" style="left: 142px; top: 46px" title="Colar (em breve)"><span>colar</span></div>
+    <div class="eq alto peca-eq" data-peca="armadura" style="left: 98px; top: 46px"><span>roupa</span></div>
+    <div class="eq alto arma-eq" id="eqArma" style="left: 18px; top: 64px" title="Arma: clique direito tira e põe na bolsa"><span>arma</span></div>
+    <div class="eq alto peca-eq" data-peca="escudo" style="left: 178px; top: 64px"><span>escudo</span></div>
+    <div class="eq" style="left: 58px; top: 100px" title="Bracelete (em breve)"><span>pulso</span></div>
+    <div class="eq peca-eq" data-peca="botas" style="left: 98px; top: 174px"><span>botas</span></div>
   </div>
   <div class="abas-bolsa" role="tablist" aria-label="Abas da bolsa" id="abasBolsa"></div>
   <div class="grade-inv" id="gradeInv" aria-label="Espaços da bolsa"></div>
@@ -587,18 +813,34 @@
 
 <aside class="editor ficha" id="ficha" hidden aria-label="Personagem">
   <header><h2 id="fTitulo">Personagem</h2><button id="fFechar" aria-label="Fechar a ficha">Fechar</button></header>
-  <label class="ficha-nome">Nome <input id="fNome" maxlength="16" autocomplete="off" spellcheck="false"></label>
-  <div class="ficha-nivel"><b id="fNivel"></b><span id="fExp"></span></div>
-  <div class="medidor exp"><i id="fExpBarra"></i></div>
-  <h3>Atributos</h3>
-  <div class="pontos-livres" id="fPontosCaixa"><span id="fPontos">Pontos para distribuir</span><b id="fPontosN">0</b></div>
-  <div class="ficha-grade" id="fAtrib"></div>
-  <div class="ficha-grade derivados" id="fDerivados"></div>
-  <h3>Skills <small id="fPontosSkill"></small></h3>
-  <div class="ficha-skills" id="fSkills"></div>
-  <h3>Bolsa <small>(I)</small></h3>
-  <p class="nota" id="fBolsa"></p>
-  <button id="fRecomecar">Recomeçar este personagem</button>
+  <div class="abas-ficha" role="tablist" aria-label="Páginas da ficha" id="fAbas">
+    <button type="button" role="tab" data-pag="atrib" aria-selected="true" aria-pressed="true">Atributos</button>
+    <button type="button" role="tab" data-pag="skills" aria-selected="false" aria-pressed="false">Skills</button>
+  </div>
+  <section class="ficha-pag" data-pag="atrib" aria-label="Atributos">
+    <div class="ficha-topo">
+      <label class="ficha-nome">Nome <input id="fNome" maxlength="16" autocomplete="off" spellcheck="false"></label>
+      <div class="ficha-nivel"><b id="fNivel"></b><span id="fExp"></span></div>
+      <div class="medidor exp"><i id="fExpBarra"></i></div>
+      <div class="ficha-vm">
+        <span>Vida</span><div class="medidor vida"><i id="fVida"></i><span id="fVidaTxt"></span></div>
+        <span>Mana</span><div class="medidor mana"><i id="fMana"></i><span id="fManaTxt"></span></div>
+      </div>
+    </div>
+    <h3>Atributos</h3>
+    <div class="pontos-livres" id="fPontosCaixa"><span id="fPontos">Pontos para distribuir</span><b id="fPontosN">0</b></div>
+    <div class="ficha-grade" id="fAtrib"></div>
+    <h3>Combate</h3>
+    <div class="ficha-grade derivados" id="fDerivados"></div>
+    <h3>Bolsa <small>(I)</small></h3>
+    <p class="nota" id="fBolsa"></p>
+    <button id="fRecomecar">Recomeçar este personagem</button>
+  </section>
+  <section class="ficha-pag" data-pag="skills" aria-label="Skills" hidden>
+    <h3>Skills <small id="fPontosSkill"></small></h3>
+    <div class="ficha-skills" id="fSkills"></div>
+    <p class="nota">Arraste o ícone de uma skill até a barra de atalhos para pô-la naquela tecla. Livros e Pedras da Alma sobem a skill depois do M1.</p>
+  </section>
 </aside>
 
 <aside class="editor" id="editor" hidden aria-label="Editor de mapa">
@@ -724,6 +966,7 @@
     <div class="zoom-mapa"><button id="miniMais" aria-label="Aproximar o minimapa">+</button><button id="miniMenos" aria-label="Afastar o minimapa">−</button></div>
   </div>
   <div class="lugar"><span id="miniLugar">Vale do Viking</span><b id="miniCoord">0, 0</b></div>
+  <div class="lugar missao" id="missaoAtual" role="status" hidden></div>
 </aside>
 
 <aside class="ferreiro" id="ferreiro" hidden aria-label="Ferreiro">
@@ -774,6 +1017,11 @@
   <label><input type="checkbox" id="oContorno"> Contorno dos personagens e criaturas <kbd>Y</kbd></label>
   <div class="linha"><button id="opcoesPadrao">Volumes padrão</button></div>
   <p class="nota">Esc abre e fecha este menu. Tudo fica salvo neste navegador.</p>
+  <details class="nota creditos-musica"><summary>Créditos das músicas</summary>
+    <p>"Shenyang", "Ripples" e "Mountain Emperor" — Kevin MacLeod (incompetech.com), licença Creative Commons: By Attribution 4.0 (creativecommons.org/licenses/by/4.0/).</p>
+    <p>"Views From Atop the Jade Kings Throne" e "RPG - Misty Mountains" — Hitctrl (opengameart.org), licença CC BY 3.0 (creativecommons.org/licenses/by/3.0/).</p>
+    <p>"Dark Myst Mystery Asian Oriental Sad Mood" — szegvari (freesound.org), CC0.</p>
+  </details>
 </aside>
 
 <div class="acoes" id="janAcoes" aria-label="Ações">
@@ -924,7 +1172,7 @@ function aplicarVolumes() {
   if (Som.efG) Som.efG.gain.value = Som.vol.efeitos;
   if (Som.uiG) Som.uiG.gain.value = Som.vol.interface;
   if (typeof Amb !== "undefined" && Amb.saida) Amb.saida.gain.value = AMB_VOL * Som.vol.ambiente;
-  if (Som.musica) Som.musica.volume = Math.min(1, 0.55 * Som.vol.musica * Som.vol.geral);
+  // (a música: o volume de cada faixa é posto a cada quadro no passoMusica)
 }
 // sons gravados (pacotes grátis de RPG: TomMusic e Leohpaz, mais Kenney e criaturas CC0; ver Tools/sons/CREDITOS.md): todas as variações de todos
 // os eventos ficam num MP3 só (sons/efeitos.mp3); o sons.json diz onde começa cada trecho, a velocidade (tom) e o volume.
@@ -960,10 +1208,48 @@ function tocarGravado(nome, onde, forca, atraso = 0) {
   f.connect(d); f.start(Som.ctx.currentTime + 0.005 + atraso, inicio, dur);
   return true;
 }
-function musica() {
+// ---- música de cada região (escolhidas pelo usuário; créditos em Tools/sons/CREDITOS.md e nas Opções): Vila 1, Vila 2,
+// campos e florestas, caverna, montanha gelada e combate com chefe. Cada uma é um MP3 já em laço sem emenda
+// (Tools/sons/musicas.py); a troca de região espera 1,5 s de região estável e cruza as duas em 2,5 s. Um <audio> por
+// faixa (vai sendo baixado aos poucos, sem decodificar a música inteira na memória — importa no celular)
+const MUSICAS = { vila1: "sons/musicas/vila1.mp3", vila2: "sons/musicas/vila2.mp3", campo: "sons/musicas/campo.mp3",
+  caverna: "sons/musicas/caverna.mp3", montanha: "sons/musicas/montanha.mp3", combate: "sons/musicas/combate.mp3" };
+const Mus = { faixas: {}, atual: null, quer: null, desde: 0, nivel: {} };
+function regiaoMusica() {
+  const v = viking;
+  if (criaturas.some(c => (c.cfg.chefe || c.cfg.chefeCaverna) && !c.morto && c.cacando && Math.hypot(c.x - v.x, c.y - v.y) < 16)) return "combate";
+  if (naCaverna(v.x)) return "caverna";
+  if (pesoMonte(v.x, v.y) > 0.5) return "montanha";
+  const c = CIDADE && CIDADE.caixa;
+  if (c && v.x > c[0] - 4 && v.x < c[1] + 4 && v.y > c[2] - 4 && v.y < c[3] + 4) return "vila1";
+  return "campo";
+}
+function faixaMusica(nome) {
+  let a = Mus.faixas[nome];
+  if (!a) { a = Mus.faixas[nome] = new Audio(MUSICAS[nome]); a.loop = true; a.preload = "auto"; a.volume = 0; Mus.nivel[nome] = 0; }
+  return a;
+}
+function musica() {                                   // (liga/desliga: o passoMusica faz o resto)
   if (MODO_TESTE) return;
-  if (!Som.musica) { Som.musica = new Audio("sons/musica.mp3"); Som.musica.loop = true; aplicarVolumes(); }
-  if (Som.musicaLigada && Som.ligado) Som.musica.play().catch(() => {}); else Som.musica.pause();
+  if (!(Som.musicaLigada && Som.ligado)) for (const a of Object.values(Mus.faixas)) a.pause();
+  else if (Mus.atual) faixaMusica(Mus.atual).play().catch(() => {});
+}
+function passoMusica(dt, agora) {
+  if (MODO_TESTE || !Som.ctx || typeof viking === "undefined") return;
+  const r = regiaoMusica();
+  if (r !== Mus.quer) { Mus.quer = r; Mus.desde = agora; }
+  if (Mus.atual !== Mus.quer && (agora - Mus.desde > 1.5 || !Mus.atual)) {
+    Mus.atual = Mus.quer;
+    const a = faixaMusica(Mus.atual);
+    if (Som.musicaLigada && Som.ligado) { if (a.paused) { try { a.currentTime = 0; } catch (e) {} } a.play().catch(() => {}); }
+  }
+  const alvo = Som.musicaLigada && Som.ligado ? Math.min(1, 0.55 * Som.vol.musica * Som.vol.geral) : 0;
+  for (const [n, a] of Object.entries(Mus.faixas)) {
+    const quer = n === Mus.atual ? 1 : 0;
+    Mus.nivel[n] += Math.max(-dt / 2.5, Math.min(dt / 2.5, quer - Mus.nivel[n]));
+    a.volume = Math.max(0, Math.min(1, alvo * Mus.nivel[n]));
+    if (Mus.nivel[n] <= 0 && !a.paused) a.pause();                  // a que saiu, depois de sumir, para de tocar
+  }
 }
 function musicaAlternar() {
   Som.musicaLigada = !Som.musicaLigada;
@@ -3095,7 +3381,7 @@ function caixaObjeto(o, X, Y, s) {
 // quem pode ficar escondido, cada um com a caixa do corpo na tela e o y do pé no mapa
 function quemPodeSumir() {
   const s = PX * zoom, l = [];
-  { const [X, Y] = noMundo(viking.x, viking.y); l.push({ y: profV(viking.x, viking.y), c: [X - s * 0.32, Y - s * 1.45, X + s * 0.32, Y] }); }
+  { const [X, Y] = noMundo(viking.x, viking.y, zPiso(viking.x, viking.y)); l.push({ y: profV(viking.x, viking.y), c: [X - s * 0.32, Y - s * 1.45, X + s * 0.32, Y] }); }
   for (const c of criaturas) {
     if (c.morto) continue;
     const [X, Y] = noMundo(c.x, c.y), m = s * (c.cfg.anel || 0.5) * 0.8;
@@ -3272,6 +3558,9 @@ function montarCidade() {
   if (c.treino) {                                  // (os bonecos, as runas e a fogueira do treino: para o lado, longe do eixo)
     const { de, para, r } = c.treino, dx = para[0] - de[0], dy = para[1] - de[1];
     for (const o of objetos) if (["boneco", "runa", "fogueira"].includes(o.tipo) && !o.caverna && Math.hypot(o.x - de[0], o.y - de[1]) < r) { o.x += dx; o.y += dy; o.cidade = true; delete o._circ; }
+    // (a fumaça e o estalo da fogueira do treino vão com ela: antes ficavam no lugar antigo, no vão do portão sul,
+    // uma fumaça branca saindo do nada por cima de tudo)
+    if (Math.hypot(FOGO.x - de[0], FOGO.y - de[1]) < r) { FOGO.x += dx; FOGO.y += dy; fumaca.length = 0; }
     abrirEspaco(para[0] - 7, para[1] - 6, para[0] + 7, para[1] + 6);
   }
   // os NPCs das barracas com modelo 3D como os outros (antes eram bonecos desenhados por código)
@@ -3279,6 +3568,8 @@ function montarCidade() {
   // (a roupa tingida para uma cor da paleta, em linear: jade, índigo, ocre)
   // (o Armeiro e a Feirante sem tingir: a barba ruiva e o couro deles caem na faixa da roupa e não saem limpos)
   Object.assign(NPC_TINTA, { "Alquimista Runa": [0.048, 0.195, 0.107], "Armeiro Bjorn": null, "Feirante Hilda": null });
+  // o Sumo-Sacerdote do Templo do Céu: o modelo do feiticeiro, a túnica tingida de ocre (o dourado do telhado do templo)
+  NPC_3D["Sumo-Sacerdote Haneul"] = "feiticeiro"; NPC_TINTA["Sumo-Sacerdote Haneul"] = [0.584, 0.305, 0.048];
   for (const o of c.objetos || []) objetos.push(Object.assign(completarDecoracao(o), { cidade: true }));
   // os bandos a menos de 9 m (+ o espalhamento) da cidade vão para fora, para longe do centro dela
   if (typeof SPAWNS !== "undefined" && SPAWNS) {
@@ -3355,8 +3646,21 @@ function montarPredios() {
       const x = n.x + Math.cos(a / 16 * 6.283) * r, y = n.y + Math.sin(a / 16 * 6.283) * r;
       if (!preso(x, y) && !agua(x, y)) { n.x = x; n.y = y; ok = true; }
     }
+  PRED_ALTOS = predInst.filter(p => p.d.escada && p.d.piso);
   refazerGrade();
   montarCidade();
+}
+// a altura do piso das construções de piso alto (o palácio do Templo do Céu: 1,2 m): na plataforma e dentro, o piso; na
+// escadaria (d.escada, no mapa local: o pé no y menor), a rampa do chão ao piso. O herói e os NPCs sobem por ela: o
+// desenho deles sobe essa altura (desenharViking, desenharObjeto) e o clique no NPC também (o corpo dele está mais alto)
+let PRED_ALTOS = [];
+function zPiso(x, y) {
+  for (const p of PRED_ALTOS) {
+    const lx = p.esp ? y - p.y : x - p.x, ly = p.esp ? x - p.x : y - p.y, B = p.d.base, e = p.d.escada;
+    if (lx > B[0] && lx < B[1] && ly > B[2] && ly < B[3]) return p.d.piso;
+    if (lx > e[0] && lx < e[1] && ly > e[2] && ly < e[3]) return p.d.piso * (ly - e[2]) / (e[3] - e[2]);
+  }
+  return 0;
 }
 // (chamadas pelo refazerGrade: tira do lugar das construções o que o mapa põe lá e põe as paredes e móveis na grade)
 function predLimpar() {
@@ -3423,17 +3727,27 @@ function predLista(lista, t) {
     p.alfa += ((atras ? 0.22 : 1) - p.alfa) * Math.min(1, dtP * 9);
     const camadas = d.entra ? ["a", ...p.moveis.map(m => m.cam), "b", "b2", "c"] : ["f"];
     const alfaDe = n => n === "c" ? 1 - p.k : n === "b" ? 1 - p.k : n === "b2" ? p.k : 1;
-    const tudo = () => { for (const n of camadas) { const q = cam(n); if (!q) continue; const a = alfaDe(n); if (a > 0.01) predFatia(q.im, q.c, X, Y, s, pp, -1e3, 1e3, p.esp, a); if (n === "a") predDentro(p, X, Y, s, pp, -1e3, 1e3, noite, t); } predNoite(p, noite, t); };
-    // ninguém perto (nem o herói, nem criaturas, nem NPCs): uma entrada só, com a frente mais perto
-    const B = p.base, perto = (x, y) => x > B[0] - 2.5 && x < B[1] + 2.5 && y > B[2] - 2.5 && y < B[3] + 2.5;
-    const alguem = perto(viking.x, viking.y) || criaturas.some(c => !c.morto && perto(c.x, c.y)) || (predLista.npcs || (predLista.npcs = objetos.filter(o => o.npc))).some(o => perto(o.x, o.y));   // (os NPCs: a lista guardada, a posição de agora)
-    const frenteMin = profV(B[0], B[2]);
-    if (p.alfa < 0.99) { lista.push({ y: frenteMin - 0.01, f: () => translucido(p.alfa, caixa, tudo) }); continue; }
-    if (!alguem) { lista.push({ y: frenteMin - 0.01, f: tudo }); continue; }
-    // (no meio do desvanecer, o telhado e as paredes da frente vão juntos num passe translúcido só: os riscos somem com
-    // o preenchimento)
+    // Sempre em fatias (colunas de PRED_FAIXA m da tela), mesmo sem ninguém perto: uma entrada só, com a frente mais
+    // perto da planta inteira, erra a ordem contra as construções compridas ao lado (o muro da muralha sul, fatiado
+    // porque o herói está perto, tem na coluna do mercado uma frente mais ao fundo que a ponta do mercado: a casa saía
+    // por cima do muro). Coluna a coluna, cada uma com a frente dela, a ordem entre plantas que não se cruzam é exata.
+    const B = p.base, frenteMin = profV(B[0], B[2]);
+    let uA = 1e9, uB = -1e9;
+    for (const c of Object.values(cs)) { uA = Math.min(uA, (p.esp ? -(c.w - c.px) : -c.px) / d.ppm); uB = Math.max(uB, (p.esp ? c.px : c.w - c.px) / d.ppm); }
+    const colunas = f => { for (let u = Math.floor(uA / PRED_FAIXA) * PRED_FAIXA; u < uB; u += PRED_FAIXA) f(u, u + PRED_FAIXA, predCol(p, u0 + u + PRED_FAIXA / 2)[0]); };
+    const caixaCol = (u, u1) => [X + u * s, caixa[1], X + u1 * s, caixa[3]];
+    // o herói atrás: a construção inteira translúcida, também coluna a coluna (cada coluna num passe translúcido)
+    if (p.alfa < 0.99) {
+      colunas((u, u1, fr) => lista.push({ y: fr - 0.001, f: () => translucido(p.alfa, caixaCol(u, u1), () => {
+        for (const n of camadas) { const q = cam(n); if (!q) continue; const a = alfaDe(n); if (a > 0.01) predFatia(q.im, q.c, X, Y, s, pp, u, u1, p.esp, a); if (n === "a") predDentro(p, X, Y, s, pp, u, u1, noite, t); }
+      }) }));
+      if (noite >= 0.05) lista.push({ y: frenteMin - 0.02, f: () => translucido(p.alfa, caixa, () => predNoite(p, noite, t)) });
+      continue;
+    }
+    // (no meio do desvanecer, o telhado e as paredes da frente vão juntos num passe translúcido só por coluna: os riscos
+    // somem com o preenchimento)
     const some = p.k > 0.001 && p.k < 0.999 && cs.c;
-    if (some) lista.push({ y: frenteMin - 0.003, f: () => translucido(1 - p.k, caixa, () => { for (const n of ["b", "c"]) { const q = cam(n); if (q) predFatia(q.im, q.c, X, Y, s, pp, -1e3, 1e3, p.esp, 1); } }) });
+    if (some) colunas((u, u1, fr) => lista.push({ y: fr - 0.003, f: () => translucido(1 - p.k, caixaCol(u, u1), () => { for (const n of ["b", "c"]) { const q = cam(n); if (q) predFatia(q.im, q.c, X, Y, s, pp, u, u1, p.esp, 1); } }) }));
     // em fatias: cada camada com a profundidade da sua parede naquela coluna
     for (const n of camadas) {
       const q = cam(n); if (!q) continue;
@@ -3759,7 +4073,7 @@ function desenharObjeto(o, t) {
     g.stroke(); g.shadowBlur = 0;
   } else if (o.tipo === "forja") { desenharForja(o, X, Y, s, lw, t);
   } else if (o.tipo === "ferreiro") { desenharFerreiroNpc(o, X, Y, s, lw, t);
-  } else if (o.tipo === "pessoa") { desenharPessoa(o, X, Y, s, lw, t);
+  } else if (o.tipo === "pessoa") { desenharPessoa(o, X, Y - zPiso(o.x, o.y) * PX * zoom * ALTURA, s, lw, t);
   } else if (o.tipo === "fogueira") {
     const e = s;
     const luz = g.createRadialGradient(X, Y - e * 0.2, 0, X, Y - e * 0.2, e * 3.2);
@@ -4938,9 +5252,9 @@ function recalcularStatus() {
   viking.vidaMax = status.vidaMax;
   if (viking.vida === undefined || viking.vida > status.vidaMax) viking.vida = status.vidaMax;
 }
-function ganharExp(qtd, de) {
+function ganharExp(qtd, de, semTeto) {          // (semTeto: a recompensa de missão, sem o teto de 20% do nível)
   if (!prog || prog.nivel >= NIVEL_MAX) return;
-  qtd = Math.max(1, Math.min(Math.round(qtd), Math.round(EXP_NIVEL[prog.nivel] * 0.2)));
+  qtd = Math.max(1, semTeto ? Math.round(qtd) : Math.min(Math.round(qtd), Math.round(EXP_NIVEL[prog.nivel] * 0.2)));
   prog.exp += qtd;
   if (de) numeros.push({ wx: de.x, wy: de.y, y: -(de.cfg ? de.cfg.barra : 100) - 10, vida: 1.3, txt: "+" + qtd + " exp", exp: true });
   while (prog.nivel < NIVEL_MAX && prog.exp >= EXP_NIVEL[prog.nivel]) { prog.exp -= EXP_NIVEL[prog.nivel]; prog.nivel++; prog.pontos += PONTOS_POR_NIVEL; subiuNivel(); }
@@ -5049,12 +5363,15 @@ function morreuCriatura(l) {
   else if (Math.random() < (l.horda ? 0.12 : 0.06)) soltarItens(l, [{ tipo: Math.random() < 0.5 ? "pocao" : "pocaoMana", qtd: 1 }]);
   else if (Math.random() < 0.3) soltarItens(l, [{ tipo: "yang", qtd: Math.round((l.cfg.nivel || 1) * (6 + Math.random() * 6)) }]);
   if (l.horda) { l.renascer = 999; l.sumir = 0; }
+  missaoMorte(l);                                    // (a etapa "derrote N ..." da missão; por último: o aviso dela fica na tela)
 }
 
 // ---------------------------------------------------------------- pedras Metin
 // Como no Metin2: pedras que aparecem pelo mapa, cada uma com o nível das criaturas da região. Nascem com um bando de
 // defensores; apanhando, chamam hordas (a cada 20% de vida que perdem). Quebradas, dão muita exp e soltam livros de
-// skill (da sua classe), poções, yang e às vezes uma Pedra Espiritual. Voltam 60 s depois em outro lugar da região.
+// skill (da sua classe), poções, yang e às vezes uma Pedra Espiritual. Não têm lugar fixo: cada uma tem algumas ÁREAS
+// grandes (círculos de METIN_AREA m em volta dos pontos de "regioes"); quebrada, volta depois de 40 a 120 s CAINDO DO
+// CÉU num ponto qualquer de uma dessas áreas (o rastro desce, a pedra bate no chão com poeira, onda e tremor).
 const METINS = [
   { tipo: "metin1", nome: "Metin da Tristeza", nivel: 5, vida: 900, cor: "#ff5a3a", horda: "lobo", regioes: [[24, -18], [-28, 6], [28, 16], [-26, 22]].map(noMapa) },
   { tipo: "metin2", nome: "Metin da Batalha", nivel: 8, vida: 1600, cor: "#c86bff", horda: "goblin", regioes: [[-9, -19], [33, -3], [26, 20]].map(noMapa) },
@@ -5105,9 +5422,10 @@ function criarMetins() {
     criaturas.push(novaCriatura(m.tipo, x, y));
   }
 }
+const METIN_AREA = 12, METIN_QUEDA = 1.1;           // raio das áreas (m) e quanto a queda dura (s)
 function lugarMetin(cfg) {
   for (let k = 0; k < 60; k++) {
-    const [cx0, cy0] = cfg.regioes[Math.floor(Math.random() * cfg.regioes.length)], a = Math.random() * 7, r = 3 + Math.random() * 4;
+    const [cx0, cy0] = cfg.regioes[Math.floor(Math.random() * cfg.regioes.length)], a = Math.random() * 7, r = METIN_AREA * Math.sqrt(Math.random());   // (sqrt: espalhado por igual na área inteira)
     const x = cx0 + Math.cos(a) * r, y = cy0 + Math.sin(a) * r;
     if (livre(x, y) && livre(x + 0.8, y) && livre(x - 0.8, y) && !agua(x, y) && !praca(x, y) && borda(x, y) < RAIO - 4) return [x, y];
   }
@@ -5261,6 +5579,7 @@ function desenharMinimapa(agora) {
     else { g.fillStyle = l.cacando ? "#ff5a3c" : "#d8463a"; g.beginPath(); g.arc(X, Y, l.cfg.chefe ? 3.5 : 2.4, 0, 7); g.fill(); }
     if (l === selecao) { g.strokeStyle = "#fff"; g.lineWidth = 1.2; g.beginPath(); g.arc(X, Y, 5.5, 0, 7); g.stroke(); }
   }
+  if (!cav) missaoNoMinimapa(g, ponto, W0);          // a estrela do objetivo da missão
   // o personagem: seta amarela para onde ele olha
   const a = -viking.dir * Math.PI / 4;
   g.translate(W0 / 2, W0 / 2); g.rotate(-a);
@@ -5702,14 +6021,24 @@ const NPCS = [
     falas: ["Guardo o que não cabe na sua bolsa. E o que eu guardo, todos os seus heróis podem buscar."] },
   { nome: "Guarda Sigrid", dx: -3.6, dy: -8.6, cores: { roupa: "#7a2a22", calca: "#3a2a1c", pele: "#e8c0a0", cabelo: "#d0a040", elmo: "#9aa0aa" }, lanca: true,
     falas: ["Bem-vindo à vila. Armas na bainha perto do poço!", "Os goblins da mina leste andam ousados. Fique atento na estrada.", "A torre do posto de guarda vê até o lago."] },
+  // o Sumo-Sacerdote do Templo do Céu (o palácio no fim do eixo da cidade): fica no salão, diante do estrado, e dá a
+  // missão principal (MISSOES.chama). Só na cidade (?cidade, o padrão da vista diagonal); modelo do feiticeiro tingido
+  { nome: "Sumo-Sacerdote Haneul", dx: 0, dy: 20.95, soCidade: true, cajado: true, missao: "chama",
+    cores: { roupa: "#c9963e", calca: "#8e2721", pele: "#e8c4a0", cabelo: "#e8e4dc", barba: "#e8e4dc" },
+    falas: ["(a fala da missão: missaoNaConversa põe no lugar desta)", "O Templo do Céu guarda a chama que protege a cidade. Quando ela arde, nenhum bicho do vale ousa chegar à muralha.",
+            "O sol e a lua do biombo velam o trono vazio. O rei partiu há muitos invernos; o templo ficou e espera.",
+            "Pise devagar no tapete: ele leva da porta ao estrado, como a avenida leva do portão sul ao templo."] },
 ];
 let npcAberto = null;
 function montarNpcs() {
   if (!DECO || !DECO.casa) return;
   for (const n of NPCS) {
+    if (n.soCidade && !CIDADE_LIGADA) continue;                      // (o Sumo-Sacerdote: só com o templo da cidade)
     const o = { tipo: "pessoa", x: VILA.x + n.dx, y: VILA.y + n.dy, r: 0.3, npc: true, dados: n, nome: n.nome, fase: Math.random() * 7, fala: 0 };
+    if (n.soCidade) o.dentroPredio = true;
     objetos.push(o); porNaGrade(o);
   }
+  setInterval(atualizarMissao, 700);                                 // (o objetivo embaixo do minimapa)
   $("#npcFechar").onclick = () => abrirNpc(null);
   $("#npcMais").onclick = () => { if (!npcAberto) return; npcAberto.fala = (npcAberto.fala + 1) % npcAberto.dados.falas.length; desenharNpc(); };
   $("#npcLoja").onclick = e => {
@@ -5745,6 +6074,7 @@ function desenharNpc() {
     linha.append(c, nome, pr, b); loja.appendChild(linha);
   }
   $("#npcMais").hidden = n.falas.length < 2;
+  missaoNaConversa(o);                              // (a missão: a fala dela e o quadro com o objetivo e o botão)
 }
 // um morador desenhado: botas, calça, túnica, braços, cabeça com cabelo (barba, lenço, capuz ou elmo), respirando;
 // o ancião com cajado, a guarda com lança
@@ -5776,7 +6106,171 @@ function desenharPessoa(o, X, Y, s, lw, t) {
 // placa de NPC: só o nome, em azul-claro (como os NPCs do Metin2), com contorno
 function placaNpc(X, y, nome) {
   cx.save(); cx.font = FONTE_PLACA; cx.textAlign = "center"; cx.lineJoin = "round"; cx.lineWidth = 3; cx.strokeStyle = "rgba(0, 0, 0, 0.9)";
-  cx.strokeText(nome, X, y); cx.fillStyle = "#9fd8ff"; cx.fillText(nome, X, y); cx.restore();
+  cx.strokeText(nome, X, y); cx.fillStyle = "#9fd8ff"; cx.fillText(nome, X, y);
+  const mk = marcaMissao(nome);                     // (! tem missão para dar; ? a missão espera por ele)
+  if (mk) { cx.font = '700 24px Georgia, serif'; cx.lineWidth = 4; const yy = y - 18 - 2 * Math.sin(performance.now() / 260); cx.strokeText(mk, X, yy); cx.fillStyle = "#ffd23c"; cx.fillText(mk, X, yy); }
+  cx.restore();
+}
+
+// ---------------------------------------------------------------- missões
+// A missão principal da cidade, "A Chama do Céu": o Sumo-Sacerdote Haneul, no salão do Templo do Céu (o palácio no fim
+// do eixo), pede ao herói que reacenda a chama do templo, apagada quando as pedras Metin caíram. Em cadeia, cada etapa
+// leva a um canto do mapa: os lobos do leste, a Guarda Sigrid perto do portão sul, a Metin da Tristeza a sudeste, a
+// Aranha Gigante perto da Toca das Aranhas e a volta ao templo. O estado fica no progresso do personagem
+// (prog.missoes.<id> = { etapa, n }: etapa -1 = não aceitou; = etapas.length, concluída). O objetivo de agora fica embaixo
+// do minimapa (#missaoAtual), com uma estrela no minimapa (o lugar ou, fora do círculo, a borda na direção dele) e a
+// marca na placa do NPC; cada etapa cumprida avisa, toca a fanfarra e paga na hora (exp sem o teto, Yang e itens; com a
+// bolsa cheia, os itens caem no chão aos pés do herói). Os prêmios seguem a economia da vila: poções a 50/60 Yang, o
+// elmo de ferro a 1.400 e o Pergaminho da Bênção a 4.000 na loja; a exp de cada etapa ~1/3 do nível em que se chega nela.
+const MISSOES = {
+  chama: {
+    nome: "A Chama do Céu", npc: "Sumo-Sacerdote Haneul", aceitar: "Aceitar a missão",
+    oferta: "Viajante, a Chama do Céu se apagou na noite em que as pedras Metin caíram. Desde então os bichos do vale perderam o medo da muralha. Sozinho não posso reacendê-la: preciso de alguém que ande pelo vale e traga de volta as brasas que as pedras espalharam. Aceita?",
+    fim: "A chama arde de novo e o vale respira. Enquanto ela queimar, o Templo do Céu terá sempre uma almofada e uma tigela de chá para você, herói.",
+    etapas: [
+      { matar: "Lobo", qtd: 6, onde: [43, 14], alvo: "Derrote 6 Lobos no leste do vale (saia pelo portão leste)",
+        fala: "Os lobos do leste uivam para o templo apagado todas as noites. Silencie seis deles: quando o vale se cala, a brasa escondida no capim volta a brilhar.",
+        premio: { exp: 500, yang: 300, itens: [["pocao", 3]] } },
+      { falar: "Guarda Sigrid", alvo: "Fale com a Guarda Sigrid, na avenida perto do portão sul",
+        fala: "A Guarda Sigrid vigia o portão sul desde a noite das pedras. Ela viu para onde elas rolaram: pergunte a ela.",
+        resposta: "O Sumo-Sacerdote mandou você? Então escute: naquela noite uma pedra caiu a sudeste, depois da estrada, e não parou de chorar. Onde ela chora, a grama seca. Quebre-a, e o que sobrar dela leve ao templo.",
+        premio: { exp: 300 } },
+      { matar: "Metin da Tristeza", qtd: 1, onde: [38, -21], alvo: "Quebre a Metin da Tristeza, a sudeste da cidade",
+        fala: "A pedra que chora fica a sudeste. Cuidado: apanhando, ela chama um bando. Os cacos dela guardam a segunda brasa.",
+        premio: { exp: 1500, yang: 600, itens: [["pocaoMana", 3]] } },
+      { matar: "Aranha Gigante", qtd: 1, onde: [32, -41], alvo: "Derrote a Aranha Gigante (nível 12), ao sul, perto da Toca das Aranhas",
+        fala: "A última brasa foi parar no ninho da Aranha Gigante, ao sul, na boca da Toca das Aranhas. Ela é forte: leve poções e não lute sozinho contra o bando inteiro.",
+        premio: { exp: 4000, yang: 1000, itens: [["pocao", 5]] } },
+      { falar: "Sumo-Sacerdote Haneul", entregar: "Entregar as brasas", alvo: "Volte ao Sumo-Sacerdote Haneul, no Templo do Céu",
+        fala: "Sinto o calor delas daqui! Ponha as brasas no braseiro, diante do estrado, e vamos ver se o céu ainda nos ouve.",
+        premio: { exp: 9000, yang: 2500, itens: [["bencao", 1], ["peca:elmo:1", 1]] } },
+    ],
+  },
+};
+function estadoMissao(id) { const m = prog.missoes || (prog.missoes = {}); return m[id] || (m[id] = { etapa: -1, n: 0 }); }
+function etapaAtual(id) { const s = estadoMissao(id), M = MISSOES[id]; return s.etapa >= 0 && s.etapa < M.etapas.length ? M.etapas[s.etapa] : null; }
+// (as missões só existem na cidade: o Sumo-Sacerdote mora no templo dela)
+let npcMissaoOk = false;
+const missoesAtivas = () => !!prog && CIDADE_LIGADA && (npcMissaoOk || (npcMissaoOk = objetos.some(o => o.npc && o.dados && o.dados.missao)));
+function avisarLongo(txt, ms = 4500) {
+  const el = $("#avisoTela"); el.textContent = txt; el.hidden = false; avisoAte = performance.now() + ms;
+  setTimeout(() => { if (performance.now() >= avisoAte) el.hidden = true; }, ms + 50);
+}
+// paga um prêmio: devolve o que ganhou, em texto
+function pagarMissao(p) {
+  const ganhos = [], chao = [];
+  if (p.exp) { ganharExp(p.exp, null, true); ganhos.push(`+${p.exp.toLocaleString("pt-BR")} exp`); }
+  if (p.yang) { prog.yang += p.yang; ganhos.push(`+${p.yang.toLocaleString("pt-BR")} Yang`); }
+  for (const [chave, qtd] of p.itens || []) {
+    const t = tipoItem(chave), peca = !!(t.peca || t.arma), sobra = adicionarItem(chave, qtd, peca ? { ref: 0 } : {});
+    ganhos.push(qtd > 1 ? `${qtd} × ${t.nome}` : t.nome);
+    if (sobra > 0) chao.push(peca ? { tipo: chave.split(":")[0], chave, ref: 0 } : { tipo: chave, qtd: sobra });
+  }
+  if (chao.length) { soltarItens(viking, chao); ganhos.push("(bolsa cheia: no chão)"); }
+  salvarProgresso(); desenharBolsa(); atualizarFicha(); atualizarItensBarra();
+  return ganhos;
+}
+function cumprirEtapa(id) {
+  const M = MISSOES[id], s = estadoMissao(id), e = M.etapas[s.etapa]; if (!e) return;
+  const ganhos = pagarMissao(e.premio || {});
+  s.etapa++; s.n = 0; salvarProgresso();
+  const prox = etapaAtual(id);
+  som("missao", null, 0.9);
+  numeros.push({ wx: viking.x, wy: viking.y, y: -170, vida: 2.2, txt: prox ? "Etapa cumprida!" : "Missão concluída!", critico: true });
+  avisarLongo(`${M.nome}: ${prox ? "etapa cumprida" : "missão concluída"}! ${ganhos.join(", ")}${prox ? `. Agora: ${prox.alvo}` : ""}`);
+  atualizarMissao(); if (npcAberto) desenharNpc();
+}
+// uma criatura caiu: conta para a etapa "derrote N ..." (pelo nome dela: "Lobo" não conta o Lobo Alfa)
+function missaoMorte(l) {
+  if (!missoesAtivas()) return;
+  for (const id in MISSOES) {
+    const e = etapaAtual(id); if (!e || !e.matar || l.cfg.nome !== e.matar) continue;
+    const s = estadoMissao(id); s.n = Math.min(e.qtd, s.n + 1);
+    if (s.n >= e.qtd) cumprirEtapa(id); else { avisar(`${MISSOES[id].nome}: ${e.matar} ${s.n}/${e.qtd}`); salvarProgresso(); atualizarMissao(); }
+  }
+}
+// a marca na placa do NPC: "!" (tem missão para dar) ou "?" (a missão em andamento espera por ele)
+function marcaMissao(nome) {
+  if (!missoesAtivas()) return "";
+  for (const id in MISSOES) {
+    const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
+    if (s.etapa < 0 && nome === M.npc) return "!";
+    if (e && e.falar === nome) return "?";
+  }
+  return "";
+}
+// o texto do objetivo de agora (embaixo do minimapa)
+function textoMissao() {
+  if (!missoesAtivas()) return "";
+  for (const id in MISSOES) {
+    const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
+    if (e) return `◆ ${M.nome}: ${e.alvo}${e.matar && e.qtd > 1 ? ` (${s.n}/${e.qtd})` : ""}`;
+    if (s.etapa < 0) return `◆ ${M.nome}: fale com o ${M.npc}, no Templo do Céu (fim da avenida)`;
+  }
+  return "";
+}
+function atualizarMissao() {
+  const el = $("#missaoAtual"); if (!el) return;
+  const t = textoMissao(); if (el.textContent !== t) el.textContent = t;
+  el.hidden = !t;
+}
+// onde fica o objetivo de agora: a criatura viva mais perto com o nome da etapa (ou o lugar dela), o NPC com quem falar
+function ondeMissao() {
+  if (!missoesAtivas()) return null;
+  for (const id in MISSOES) {
+    const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
+    if (e && e.matar) {
+      let m = null, dm = 1e9;
+      for (const c of criaturas) if (!c.morto && c.cfg.nome === e.matar) { const d = Math.hypot(c.x - viking.x, c.y - viking.y); if (d < dm) { dm = d; m = c; } }
+      return m ? [m.x, m.y] : e.onde;
+    }
+    const quem = e ? e.falar : s.etapa < 0 ? M.npc : null;
+    const o = quem && objetos.find(o => o.npc && o.nome === quem);
+    if (o) return [o.x, o.y];
+  }
+  return null;
+}
+// a estrela do objetivo no minimapa (fora do círculo: na borda, na direção dele)
+function missaoNoMinimapa(g, ponto, W0) {
+  const q = ondeMissao(); if (!q) return;
+  let [X, Y] = ponto(q[0], q[1]);
+  const dx = X - W0 / 2, dy = Y - W0 / 2, d = Math.hypot(dx, dy), max = W0 / 2 - 8;
+  if (d > max) { X = W0 / 2 + dx / d * max; Y = W0 / 2 + dy / d * max; }
+  g.save(); g.fillStyle = "#ffd23c"; g.strokeStyle = "#1a1208"; g.lineWidth = 1.5; g.beginPath();
+  for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 2.6 : 6.2; g.lineTo(X + Math.cos(a) * r, Y + Math.sin(a) * r); }
+  g.closePath(); g.fill(); g.stroke(); g.restore();
+}
+// na conversa: a fala da missão no lugar da fala comum e um quadro com o objetivo (e o botão de aceitar ou entregar)
+function missaoNaConversa(o) {
+  if (!missoesAtivas() || !o) return;
+  for (const id in MISSOES) {
+    const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
+    let fala = null, botao = null;
+    if (o.nome === M.npc) {
+      if (s.etapa < 0) { fala = M.oferta; botao = [M.aceitar, () => {
+        s.etapa = 0; s.n = 0; salvarProgresso(); som("missao", null, 0.7);
+        avisarLongo(`Nova missão: ${M.nome}. ${M.etapas[0].alvo}`); atualizarMissao(); desenharNpc();
+      }]; }
+      else if (!e) fala = M.fim;
+      else { fala = e.fala; if (e.falar === o.nome) botao = [e.entregar || "Conversar", () => cumprirEtapa(id)]; }
+      if (o.fala) fala = null;                      // ("Conversar mais": as falas comuns dele; a da missão volta no começo)
+    } else if (e && e.falar === o.nome) {
+      // (quem a etapa manda procurar: conta a parte dela e a etapa se cumpre na hora)
+      o.respostaMissao = e.resposta; o.respostaFala = o.fala; cumprirEtapa(id); return;
+    } else if (o.respostaMissao && o.respostaFala === o.fala) fala = o.respostaMissao;
+    else continue;
+    if (fala) $("#npcFala").textContent = `"${fala}"`;
+    if (o.nome !== M.npc) return;
+    const quadro = document.createElement("div"); quadro.className = "item-loja";
+    const sp = document.createElement("span"); sp.textContent = "◆"; sp.style.cssText = "color:#ffd23c;font-size:20px;text-align:center";
+    const tx = document.createElement("span"); tx.innerHTML = `<b></b><small></small>`;
+    tx.firstChild.textContent = M.nome;
+    tx.lastChild.textContent = s.etapa < 0 ? "Missão principal da cidade" : e ? e.alvo + (e.matar && e.qtd > 1 ? ` (${s.n}/${e.qtd})` : "") : "Concluída";
+    quadro.append(sp, tx);
+    if (botao) { const b = document.createElement("button"); b.textContent = botao[0]; b.onclick = botao[1]; quadro.append(b); }
+    $("#npcLoja").appendChild(quadro);
+    return;
+  }
 }
 
 // ---------------------------------------------------------------- armazém (como o do Metin2)
@@ -6424,6 +6918,10 @@ function atualizarVitais() {
   $("#vPocoesMana").textContent = contarItem("pocaoMana");
   $("#vMana").style.width = (100 * Math.max(0, viking.mana || 0) / status.manaMax) + "%";
   $("#vManaTxt").textContent = `${Math.round(viking.mana || 0)} / ${status.manaMax}`;
+  if (!$("#ficha").hidden) {                                              // (a vida e a mana da ficha andam junto)
+    $("#fVida").style.width = $("#vVida").style.width; $("#fVidaTxt").textContent = $("#vVidaTxt").textContent;
+    $("#fMana").style.width = $("#vMana").style.width; $("#fManaTxt").textContent = $("#vManaTxt").textContent;
+  }
   $("#vPontos").hidden = !prog.pontos; $("#vPontos").textContent = "+" + prog.pontos;
   $("#bFicha").title = prog.pontos ? `Personagem (P): ${prog.pontos} pontos para distribuir` : "Personagem (P)";
 }
@@ -6434,8 +6932,8 @@ function atualizarVitais() {
 const MENU_ACOES = {
   bolsa: () => abrirBolsa(),
   equip: () => abrirEquipamento(),
-  ficha: () => abrirFicha(),
-  skills: () => abrirSkills(),
+  ficha: () => abrirFichaPag("atrib"),
+  skills: () => abrirFichaPag("skills"),
   mapa: () => { const el = $("#minimapa"), sim = el.hidden; el.hidden = !sim; janelasSalvas.minimapa = { ...(janelasSalvas.minimapa || {}), aberta: sim }; salvarJanelas(); },
   janelas: () => abrirJanelas(),
   opcoes: () => abrirOpcoes(),
@@ -6448,7 +6946,7 @@ function abrirMenu(sim = !menuAberto()) {
 }
 function marcarMenu() {
   const aberto = id => { const el = document.getElementById(id); return !!el && !el.hidden; };
-  const est = { bolsa: aberto("bolsa"), equip: aberto("bolsa"), ficha: aberto("ficha"), skills: aberto("ficha"), mapa: aberto("minimapa"), janelas: aberto("janelas"), opcoes: aberto("opcoes"), admin: aberto("admin") };
+  const est = { bolsa: aberto("bolsa"), equip: aberto("bolsa"), ficha: aberto("ficha") && fichaPag === "atrib", skills: aberto("ficha") && fichaPag === "skills", mapa: aberto("minimapa"), janelas: aberto("janelas"), opcoes: aberto("opcoes"), admin: aberto("admin") };
   for (const b of document.querySelectorAll("#menuLeque [data-menu]")) b.setAttribute("aria-pressed", !!est[b.dataset.menu]);
 }
 // o equipamento fica no alto da bolsa (como no Metin2): abre a bolsa já mostrando ele, com um brilho na moldura
@@ -6458,12 +6956,20 @@ function abrirEquipamento(sim = true) {
   const b = $("#bolsa"), eq = b.querySelector(".equip"); b.scrollTop = 0;
   eq.classList.remove("destaque"); void eq.offsetWidth; eq.classList.add("destaque");
 }
-// as skills ficam na ficha: abre a ficha já rolada até elas
-function abrirSkills() {
-  abrirFicha(true);
-  const f = $("#ficha"), h = $("#fSkills").previousElementSibling || $("#fSkills");
-  f.scrollTop = Math.max(0, h.offsetTop - 50);
+// a ficha tem duas páginas (abas, como a janela do personagem do Metin2): Atributos e Skills
+let fichaPag = "atrib";
+function fichaAba(pag) {
+  fichaPag = pag === "skills" ? "skills" : "atrib";
+  for (const b of document.querySelectorAll("#fAbas [data-pag]")) { const s = b.dataset.pag === fichaPag; b.setAttribute("aria-selected", s); b.setAttribute("aria-pressed", s); }
+  for (const s of document.querySelectorAll("#ficha .ficha-pag")) s.hidden = s.dataset.pag !== fichaPag;
+  $("#ficha").scrollTop = 0;
 }
+// pelo menu: abre a ficha naquela página; se ela já está aberta nela, fecha
+function abrirFichaPag(pag) {
+  if (!$("#ficha").hidden && fichaPag === pag) { abrirFicha(false); return; }
+  fichaAba(pag); abrirFicha(true);
+}
+function abrirSkills() { fichaAba("skills"); abrirFicha(true); }
 // ---------------------------------------------------------------- opções (Esc ou o menu do canto)
 // Som ligado, música, volume geral e de cada tipo de som, contorno. Os mesmos botões do painel de informações (M, N, Y)
 const VOL_NOMES = [["geral", "Volume geral"], ["musica", "Música"], ["efeitos", "Efeitos (golpes, magias, criaturas)"], ["ambiente", "Ambiente (natureza, chuva, fogo)"], ["interface", "Interface (janelas e cliques)"]];
@@ -6655,9 +7161,17 @@ function atualizarFicha() {
       acao = `<button data-alma="${sk.nome}" ${almas && !espera ? "" : "disabled"}>Pedra da Alma (${almas})</button>`;
       info = `pedra: ${Math.round(chanceLivro(n) * 100)}% · custa ${custoLeitura(n)} EXP`;
     } else { acao = ""; info = "Perfeito: no máximo"; }
-    return `<div class="sk"><span><b>${sk.nome}</b> · ${rotuloNivelSkill(n)}${sk.mana ? ` · ${sk.mana} mana` : ""}</span>${acao}` +
+    // o ícone (arrasta para a barra), o grau num selo (normal, M jade, G índigo, P cinabre) e a tecla onde ela está
+    const grau = n >= N_PERFEITO ? "p" : n >= N_GRAO ? "g" : n >= N_MESTRE ? "m" : "n", i = ordemBarra.indexOf(sk.nome);
+    return `<div class="sk"><canvas class="sk-icone" width="56" height="56" data-sk="${sk.nome}" title="Arraste até a barra de atalhos" aria-label="${sk.nome}: arraste até a barra"></canvas>` +
+      `<span class="sk-nome"><b>${sk.nome}</b><i class="sk-grau grau-${grau}">${rotuloNivelSkill(n)}</i></span>${acao}` +
+      `<span class="sk-linha">${sk.mana ? `${sk.mana} mana` : "sem mana"}${i >= 0 ? ` · tecla <kbd>${ROTULO_TECLA(TECLAS_BARRA[i])}</kbd>` : " · fora da barra"}</span>` +
       `<small>efeito +${Math.round((multSkill(sk.nome) - 1) * 100)}% · ${info}${espera && n >= N_MESTRE ? ` · ler de novo em ${textoEspera(espera)}` : ""}</small></div>`;
   }).join("");
+  for (const c of $("#fSkills").querySelectorAll(".sk-icone")) {
+    const sk = SKILLS.find(s => s.nome === c.dataset.sk), g = c.getContext("2d"); if (!sk) continue;
+    if (ICONES_SKILL[sk.nome]) { g.imageSmoothingQuality = "high"; g.drawImage(ICONES_SKILL[sk.nome], 0, 0, 56, 56); } else if (sk.icone) sk.icone(g);
+  }
   $("#fBolsa").textContent = `${contarItem("pocao")} poções vermelhas (Q) · ${contarItem("pocaoMana")} poções azuis (X) · ${prog.yang.toLocaleString("pt-BR")} yang · ${contarItem("pedra")} pedras espirituais`;
 }
 function montarFicha() {
@@ -6675,6 +7189,35 @@ function montarFicha() {
     const b = e.target.closest("[data-livro], [data-ponto], [data-alma]"); if (!b) return;
     if (b.dataset.ponto) porPontoSkill(b.dataset.ponto); else if (b.dataset.alma) usarPedraAlma(b.dataset.alma); else lerLivro(b.dataset.livro);
   };
+  $("#fAbas").onclick = e => { const b = e.target.closest("[data-pag]"); if (b) { fichaAba(b.dataset.pag); som("ui_clique", null, 0.6); } };
+  // arrastar o ícone de uma skill até a barra: ela vai para aquela tecla (o que estava lá troca com o lugar antigo dela)
+  let arrastoSk = null;
+  const fimSk = () => { if (arrastoSk && arrastoSk.fantasma) arrastoSk.fantasma.remove(); arrastoSk = null; $("#barraSkills").querySelectorAll(".sobre").forEach(b => b.classList.remove("sobre")); };
+  const slotSob = (x, y) => { const el = document.elementFromPoint(x, y), b = el && el.closest && el.closest("#barraSkills .slot"); return b || null; };
+  $("#fSkills").addEventListener("pointerdown", e => {
+    const c = e.target.closest(".sk-icone"); if (!c || e.button > 0) return;
+    e.preventDefault(); c.setPointerCapture(e.pointerId);
+    arrastoSk = { nome: c.dataset.sk, c, x: e.clientX, y: e.clientY, fantasma: null };
+  });
+  $("#fSkills").addEventListener("pointermove", e => {
+    const a = arrastoSk; if (!a) return;
+    if (!a.fantasma && Math.hypot(e.clientX - a.x, e.clientY - a.y) > 5) {
+      const f = document.createElement("canvas"); f.width = f.height = 56; f.className = "slot-fantasma"; f.getContext("2d").drawImage(a.c, 0, 0); document.body.appendChild(f); a.fantasma = f;
+    }
+    if (!a.fantasma) return;
+    a.fantasma.style.left = (e.clientX - 27) + "px"; a.fantasma.style.top = (e.clientY - 27) + "px";
+    const sob = slotSob(e.clientX, e.clientY); $("#barraSkills").querySelectorAll(".slot").forEach(b => b.classList.toggle("sobre", b === sob));
+  });
+  $("#fSkills").addEventListener("pointerup", e => {
+    const a = arrastoSk; if (!a) return;
+    const para = a.fantasma ? slotSob(e.clientX, e.clientY) : null; fimSk();
+    if (!para) return;
+    const k = +para.dataset.slot, de = ordemBarra.indexOf(a.nome);
+    if (de === k) return;
+    if (de >= 0) ordemBarra[de] = ordemBarra[k]; ordemBarra[k] = a.nome;
+    salvarOrdem(); montarBarraSkills(); atualizarFicha(); som("ui_aceitar", null, 0.6);
+  });
+  $("#fSkills").addEventListener("pointercancel", fimSk);
   let confirma = 0;
   $("#fRecomecar").onclick = e => {
     if (performance.now() - confirma > 3000) { confirma = performance.now(); e.target.textContent = "Clique de novo para apagar o progresso"; return; }
@@ -6689,7 +7232,8 @@ function montarFicha() {
 const RENASCE_COMUM = 15, RENASCE_LONGE = 7;
 function tempoRenascer(l) {
   const c = l.cfg;
-  if (c.chefe || c.chefeCaverna || c.estatico) return c.renasce;
+  if (c.estatico) return 40 + Math.random() * 80;                     // (a pedra Metin: sem tempo fixo)
+  if (c.chefe || c.chefeCaverna) return c.renasce;
   return l.tipo === "rato" ? 10 : RENASCE_COMUM;
 }
 function novaCriatura(tipo, x, y, cfg = TIPOS[tipo]) {
@@ -6835,8 +7379,16 @@ function passoCriatura(l, dt) {
     l.renascer -= dt;
     // renasce na toca, mas não na cara do jogador: com ele a menos de RENASCE_LONGE da toca, espera mais um pouco
     if (l.renascer <= 0 && !cfg.estatico && !l.horda && Math.hypot(viking.x - l.toca.x, viking.y - l.toca.y) < RENASCE_LONGE) l.renascer = 1.5;
+    // a pedra Metin cai do céu antes de voltar: METIN_QUEDA s de queda (desenhada em desenharCriatura) e o baque
+    if (l.renascer <= 0 && cfg.estatico && !(l.caindo > 0)) { l.caindo = METIN_QUEDA; l.renascer = METIN_QUEDA; som("meteoro_queda", l.toca, 0.7); }
     if (l.renascer <= 0) {
-      if (cfg.levanta) {
+      if (cfg.estatico) {
+        const t = l.toca; Object.assign(l, novaCriatura(l.tipo, t.x, t.y, l.cfg), { caindo: 0 });
+        ondas.push({ x: t.x, y: t.y, t: 0, raio: 2.4, cor: 270, fogo: false, pilares: [], rachas: [] });
+        for (let k = 0; k < 26; k++) { const a = Math.random() * 7, v = 1.2 + Math.random() * 2.5; brasas.push({ x: t.x, y: t.y, z: 0.05, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 0.6 + Math.random() * 1.4, vida: 0.9, max: 0.9, tam: 0.12, poeira: true }); }
+        if (Math.hypot(viking.x - t.x, viking.y - t.y) < 18) tremor = Math.max(tremor, 0.35);
+        som("passo_gigante", t, 1); som("metin_golpe", t, 0.6);
+      } else if (cfg.levanta) {
         // o esqueleto se levanta na toca dele: a morte tocada ao contrário
         const { toca, dir } = l;
         Object.assign(l, novaCriatura(l.tipo, toca.x, toca.y, l.cfg), { toca, dir, vidaVista: 0 });
@@ -8403,7 +8955,22 @@ function barraVida(l, X, Ytopo) {
 function desenharCriatura(l) {
   const cfg = l.cfg, info = cfg.M.animacoes[l.anim];
   if (cfg.estatico) {
-    if (l.morto) { desenharFumacaMetin(l, false); desenharFumacaMetin(l, true); return; }
+    if (l.morto) {
+      desenharFumacaMetin(l, false); desenharFumacaMetin(l, true);
+      if (l.caindo > 0) {
+        // caindo do céu: um rastro da cor da pedra descendo em diagonal até o ponto, com a cabeça acesa
+        const u = 1 - Math.max(0, l.renascer) / METIN_QUEDA, [px, py] = tela(l.toca.x - cam.x, l.toca.y - cam.y), s = PX * zoom;
+        const X = W / 2 + px, Y = H / 2 + py, alto = (1 - u * u) * s * 14, Xc = X + alto * 0.35, Yc = Y - alto;
+        cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round";
+        const g = cx.createLinearGradient(Xc + s * 2.2, Yc - s * 6, Xc, Yc);
+        g.addColorStop(0, cfg.cor + "00"); g.addColorStop(1, cfg.cor + "cc");
+        cx.strokeStyle = g; cx.lineWidth = s * 0.45; cx.beginPath(); cx.moveTo(Xc + s * 2.2, Yc - s * 6); cx.lineTo(Xc, Yc); cx.stroke();
+        cx.fillStyle = "#fff6e0"; cx.beginPath(); cx.arc(Xc, Yc, s * 0.32, 0, 7); cx.fill();
+        cx.globalAlpha = 0.4 * u; cx.fillStyle = cfg.cor; cx.beginPath(); cx.ellipse(X, Y, s * 1.2 * u, s * 1.2 * u * ACHATA, 0, 0, 7); cx.fill();   // a sombra crescendo no chão
+        cx.restore();
+      }
+      return;
+    }
     desenharFumacaMetin(l, false);
     const [sx, sy] = tela(l.x - cam.x, l.y - cam.y), X = W / 2 + sx, Y = H / 2 + sy, s = PX * zoom, t = performance.now() / 1000;
     cx.save(); cx.globalCompositeOperation = "lighter";
@@ -8526,7 +9093,7 @@ cv.addEventListener("pointerdown", e => {
   const criatura = pk ? pk.criatura : criaturaNoClique(e.clientX - r.left, e.clientY - r.top);
   // (o clique no corpo do NPC e do boneco: a caixa na tela, medida na vista; o lugar de falar fica na frente dele na tela)
   const naV = o => naVista(x - o.x, y - o.y);
-  const npc = !criatura && (pk ? pk.npc : objetos.find(o => { if (!o.npc) return false; const [du, dv] = naV(o); return Math.abs(du) < 0.6 && dv > -0.4 && dv < 2.4; }));
+  const npc = !criatura && (pk ? pk.npc : objetos.find(o => { if (!o.npc) return false; const [du, dv0] = naV(o), dv = dv0 - zPiso(o.x, o.y) * ALTURA / ACHATA; return Math.abs(du) < 0.6 && dv > -0.4 && dv < 2.4; }));   // (no piso alto, o corpo mais acima)
   if (npc) { const [fx, fy] = daVista(-0.3, -1.1); viking.alvo = { x: npc.x + fx, y: npc.y + fy, npc }; viking.rota = null; viking.alvo.correr = Math.hypot(viking.alvo.x - viking.x, viking.alvo.y - viking.y) > 4; return; }
   const boneco = !criatura && (pk ? pk.boneco : objetos.find(o => { if (o.tipo !== "boneco") return false; const [du, dv] = naV(o); return Math.hypot(du, dv - 0.6) < 0.6; }));
   viking.alvo = criatura ? { x: criatura.x, y: criatura.y, criatura } : boneco ? { x: boneco.x, y: boneco.y, boneco } : { x, y };
@@ -9986,7 +10553,9 @@ function desenhar(t) {
   cx.setTransform(dpr, 0, 0, dpr, 0, 0);
   // câmera segue o viking
   const foco = editor.ativo ? editor.foco : viking;
-  cam.x += (foco.x + CAM_ACIMA[0] - cam.x) * 0.12; cam.y += (foco.y + CAM_ACIMA[1] - cam.y) * 0.12;   // (0,4 m acima na tela)
+  // (no piso alto do palácio, a câmera sobe junto com o herói)
+  const zFoco = editor.ativo ? 0 : zPiso(foco.x, foco.y), [zcx, zcy] = zFoco ? daVista(0, zFoco * ALTURA / ACHATA) : [0, 0];
+  cam.x += (foco.x + CAM_ACIMA[0] + zcx - cam.x) * 0.12; cam.y += (foco.y + CAM_ACIMA[1] + zcy - cam.y) * 0.12;   // (0,4 m acima na tela)
   const tx = tremor > 0 ? Math.sin(t * 90) * tremor * 14 : 0;
   cx.save(); cx.translate(tx, 0);
   const s = PX * zoom;
@@ -10979,7 +11548,7 @@ function desenharViking() {
   let q = Math.floor(v.t * info.fps);
   q = info.laco ? ((q % info.quadros) + info.quadros) % info.quadros : Math.min(info.quadros - 1, Math.max(0, q));
   const [sx, sy] = tela(v.x - cam.x, v.y - cam.y);
-  const X = W / 2 + sx, Y = H / 2 + sy, z = zoom;
+  const X = W / 2 + sx, Y = H / 2 + sy - zPiso(v.x, v.y) * PX * zoom * ALTURA, z = zoom;   // (no piso alto do palácio, mais alto)
   sombraHeroi(X, Y, z);
   const im = SPR[nomeAnim][dirTela(v.dir)], em3d = !!P3D.vale(v);
   cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
@@ -11392,7 +11961,7 @@ function laco(agora) {
   if (MODO_TESTE && agora - antes < 33) { requestAnimationFrame(laco); return; }   // 30 quadros por segundo
   const dt = Math.min(0.05, (agora - antes) / 1000); antes = agora;
   const t = agora / 1000;
-  passoTempo(dt); passoClima(dt); passoChaoClima(dt); passoSonsAmbiente(dt);
+  passoTempo(dt); passoClima(dt); passoChaoClima(dt); passoSonsAmbiente(dt); passoMusica(dt, performance.now() / 1000);
   if (congela > 0) congela -= dt;                                 // hit-stop: o mundo para um instante no acerto
   else if (editor.ativo) passoEditor(dt);                           // editando: o jogo fica parado
   else if (!pausado) passo(dt * veloc);
