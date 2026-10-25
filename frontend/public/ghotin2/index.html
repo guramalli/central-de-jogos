@@ -485,6 +485,24 @@
     .editor { right: 12px; } .editor.ficha { left: 12px; right: auto; }
     details.livro { bottom: calc(env(safe-area-inset-bottom, 0px) + 186px); }
   }
+  /* celular em retrato: minimapa menor (~30% da largura) e mais acima, o nome do lugar compacto, e Atacar/Alvo/Soltar/
+     Espada/Correr numa coluna à direita, acima da barra de atalhos (nada por cima dela); o menu sobe junto */
+  @media (max-width: 640px) {
+    .minimapa { top: calc(env(safe-area-inset-top, 0px) + 96px); width: 108px; gap: 2px; }
+    .minimapa .aro { width: 100px; height: 100px; padding: 3px; }
+    .minimapa canvas { width: 94px; height: 94px; }
+    .minimapa .zoom-mapa button { width: 20px; height: 20px; font-size: 12px; }
+    .minimapa .lugar { padding: 1px 6px; font-size: 10px; line-height: 1.3; max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .minimapa .lugar b { display: none; }
+    .acoes { grid-template-columns: 48px; gap: 5px; bottom: calc(env(safe-area-inset-bottom, 0px) + 208px); }
+    .acoes button { width: 48px; height: 48px; font-size: 10px; }
+    .acoes button.grande { grid-column: auto; width: 48px; height: 48px; border-radius: 50%; font-size: 12px; }
+    .acoes button.largo { grid-column: auto; width: 48px; height: 30px; border-radius: 15px; font-size: 10px; }
+    .menu-jogo, .menu-jogo.sem-acoes { right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 208px + 242px + 5px); }
+    .menu-jogo .menu-botao { width: 48px; height: 48px; }
+    .rodape { right: max(16px, env(safe-area-inset-right, 0px)); width: auto; }
+    .vitais { flex-wrap: wrap; row-gap: 4px; }
+  }
   /* estilo B (minhwa, Tools/deco3d/estilo/BIBLIA_B.md): a interface na paleta fechada (papel, nanquim, ocre, cinabre,
      ardósia), sem mudar o layout. ?b=0 põe a classe semB e volta às cores antigas */
   :root:not(.semB) {
@@ -1729,7 +1747,7 @@ function borda(x, y) { const a = Math.atan2(y, x); return Math.hypot(x, y) + des
 // quanto este ponto é montanha (0 até o fim do vale, 1 na Montanha Gelada) e quanto é vale (0 na ilha, 1 na península)
 const pesoMonte = (x, y) => liso((x - MONTE_X + 4) / 10);
 const pesoVale = (x, y) => liso((x - VALE_X) / 8) * (1 - pesoMonte(x, y));
-function praca(x, y) { return Math.hypot(x - PRACA.x, y - PRACA.y) < PRACA.r || ruaCidade(x, y); }   // (com ?cidade=1, as ruas de pedra também)
+function praca(x, y) { return (!(CIDADE && CIDADE.treino) && Math.hypot(x - PRACA.x, y - PRACA.y) < PRACA.r) || ruaCidade(x, y); }   // (com ?cidade=1, as vias da cidade; o treino vai para o lado)   // (com ?cidade=1, as ruas de pedra também)
 function estrada(x, y) { for (const e of ESTRADAS) if (distLinha(x, y, e) < 0.8 + (ruido2(x * 0.7, y * 0.7) - 0.5) * 0.35) return true; return false; }
 const trilha = estrada;
 const raioLago = a => LAGO.r + Math.sin(a * 3) * 0.5 + Math.sin(a * 7) * 0.25;
@@ -1999,6 +2017,7 @@ function pedaco(i, j, esc) {
     for (const x of [p.x0, p.x1]) { const a = P(x, p.y0), b = P(x, p.y1); g.strokeStyle = "#4a2f18"; g.lineWidth = 0.14 * esc; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); }
   }
   }
+  pisoCidade(g, P, esc);                                              // (o chão calçado da cidade, com ?cidade=1)
   // detalhes do chão: um ponto por célula de 0,8 m (os vizinhos também, para nada cortar na emenda)
   const C = 0.8;
   for (let ci = Math.floor((mx0 - 1) / C); ci <= Math.ceil((mx1 + 1) / C); ci++)
@@ -2056,7 +2075,7 @@ function tufo(g, X, Y, e, cor, alt = 0.14) {
 }
 function detalheChao(g, x, y, X, Y, e, r, r2) {
   const b = borda(x, y);
-  if (b > RAIO + 0.2 || noCastelo(x, y, 0.3)) return;
+  if (b > RAIO + 0.2 || noCastelo(x, y, 0.3) || foraCidade(x, y)) return;
   if (agua(x, y)) {
     if (lago(x, y) && !lago(x, y, -0.8) && r < 0.35) {                    // vitórias-régias na beira do lago
       g.fillStyle = r2 < 0.5 ? "#4f8a3a" : "#5f9a44"; g.beginPath(); g.ellipse(X, Y, e * 0.18, e * 0.11, 0, 0.3, Math.PI * 2 - 0.3); g.lineTo(X, Y); g.fill();
@@ -2309,7 +2328,11 @@ function desenharLuzDoDia(t) {
   g.fillStyle = `rgba(8, 14, 42, ${esc * (1 - 0.6 * claraoAgora())})`; g.fillRect(0, 0, escuroNoite.width, escuroNoite.height);   // (o raio clareia a noite)
   g.setTransform(cx.getTransform()); g.globalCompositeOperation = "destination-out";
   const furo = (X, Y, r, a) => { if (X < -r || X > W + r || Y < -r || Y > H + r) return; const gr = g.createRadialGradient(X, Y, r * 0.1, X, Y, r); gr.addColorStop(0, `rgba(0, 0, 0, ${a})`); gr.addColorStop(1, "rgba(0, 0, 0, 0)"); g.fillStyle = gr; g.beginPath(); g.ellipse(X, Y, r, r * 0.8, 0, 0, 7); g.fill(); };
-  { const [X, Y] = noMundo(viking.x, viking.y, 0.8); furo(X, Y, 4.5 * s, 0.85); }
+  if (CIDADE) {                                  // (na cidade: a luz do herói é uma poça deitada no chão, não sobe nos telhados)
+    const [X, Y] = noMundo(viking.x, viking.y, 0.3), r = 3.6 * s;
+    const gr = g.createRadialGradient(X, Y / ACHATA, r * 0.1, X, Y / ACHATA, r); gr.addColorStop(0, "rgba(0, 0, 0, 0.85)"); gr.addColorStop(1, "rgba(0, 0, 0, 0)");
+    g.save(); g.scale(1, ACHATA); g.fillStyle = gr; g.beginPath(); g.arc(X, Y / ACHATA, r, 0, 7); g.fill(); g.restore();
+  } else { const [X, Y] = noMundo(viking.x, viking.y, 0.8); furo(X, Y, 4.5 * s, 0.85); }
   for (const o of objetos) {
     if (o.caverna) continue;
     if (o.tipo === "fogueira" || o.tipo === "braseiro") { const [X, Y] = noMundo(o.x, o.y, 0.6); furo(X, Y, (o.var === 1 ? 6 : 4.2) * s * (1 + 0.04 * Math.sin(t * 11 + o.x)), 0.95); }
@@ -2621,7 +2644,7 @@ function vegDa(ci, cj) {
   if (v !== undefined) return v;
   v = null;
   const x = (ci + 0.15 + hash(ci, cj, 21) * 0.7) * VEG_C, y = (cj + 0.15 + hash(ci, cj, 22) * 0.7) * VEG_C, h = hash(ci, cj, 23), r = hash(ci, cj, 24), r2 = hash(ci, cj, 25);
-  if ((!VEG_LEVE || hash(ci, cj, 77) < 0.42) && borda(x, y) < RAIO - 3.4 && !agua(x, y) && !lago(x, y, 1.1) && !praca(x, y) && !estrada(x, y) && !noCastelo(x, y, 0.3) && x < MONTE_X - 2 && !vegNaConstrucao(x, y)) {
+  if ((!VEG_LEVE || hash(ci, cj, 77) < 0.42) && borda(x, y) < RAIO - 3.4 && !agua(x, y) && !lago(x, y, 1.1) && !praca(x, y) && !foraCidade(x, y) && !estrada(x, y) && !noCastelo(x, y, 0.3) && x < MONTE_X - 2 && !vegNaConstrucao(x, y)) {
     // o quanto o lugar puxa mato alto: a borda da mata, a beira da estrada e manchas pelos campos
     const c = distClareira(x, y), mg = x > VALE_X - 4 || c < 0 ? -1 : fbm(x * 0.07 + 3, y * 0.07 - 2) - (0.55 + 0.2 * Math.max(0, 1 - c / 5));
     const mata = mg > 0 && Math.hypot(x - PRACA.x, y - PRACA.y) > 10 && (!COM_CASTELO || retArred(x, y, FOSSO) > 4);
@@ -2930,54 +2953,153 @@ function poligono(g, pts) { g.beginPath(); pts.forEach((p, k) => k ? g.lineTo(p[
 // Liga com ?predios=1 (a casa do Senhor do Armazém vira a casa modular, com ele dentro). Só na vista diagonal (giro 45°).
 // Lugares: PRED_LUGARES ({ id, x, y, esp: espelhada (porta para o oeste), npc: nome do NPC que fica dentro, em [lx, ly] }).
 const PRED_Q = new URLSearchParams(location.search);
-const PREDIOS_LIGADO = GIRO_DIAG && !PRED_Q.has("mundo3d") && (PRED_Q.get("predios") === "1" || PRED_Q.get("cidade") === "1" || PRED_Q.get("prancha") === "1");
+const PREDIOS_LIGADO = GIRO_DIAG && !PRED_Q.has("mundo3d") && (PRED_Q.get("predios") === "1" || PRED_Q.get("cidade") !== "0" || PRED_Q.get("prancha") === "1");
+// a cidade (o centro planejado) é o padrão da vista diagonal; ?cidade=0 volta ao vilarejo antigo
+const CIDADE_PADRAO = PRED_Q.get("cidade") !== "0" && PRED_Q.get("predios") !== "1" && PRED_Q.get("prancha") !== "1";
 // a prancha de estilos (?prancha=1): numa fileira ao norte da vila, a casa modular 3D "em B" (A, a mesma em que se
 // entra), a casa pintada no ChatGPT (B, Tools/deco3d/estilo/B: estilo.json) e a low-poly (C, casa_C), com a árvore e a pedra B
 const PRANCHA = PREDIOS_LIGADO && PRED_Q.get("prancha") === "1";
 let KIT_PREDIOS = null;
 const PRED_IMG = {}, predInst = [], PRED_FAIXA = 0.5;
 const PRED_CARREGANDO = carregarPredios();
-const PRED_LUGARES = [
+const PRED_LUGARES = CIDADE_PADRAO ? [] : [
   { id: "casa", x: VILA.x - 11, y: VILA.y + 7.6, npc: ["Senhor do Armazém", 0.9, 0.9] },
 ];
-// ---- o centro da cidade (?cidade=1): a vila vira o miolo (a praça do poço, os NPCs, o salão) e em volta dela crescem
-// quarteirões separados por ruas de pedra (praca() passa a valer nelas: o calçamento do chão, sem capim nem pedras, e o
-// minimapa), com o templo e o pagode, a loja, a casa de chá, a estalagem, o mercado coberto, o salão do governo, casas,
-// as torres do sino e de vigia, o portão na entrada sul (onde a estrada da praça de treino chega), muros baixos e
-// lanternas nas ruas. Coordenadas em relação à VILA; esp = espelhada (a porta para o oeste)
-var CIDADE_RUAS = null;                 // [x0, x1, y0, y1] ou [x, y, r] no mapa (var: praca() pode perguntar antes)
-const CIDADE_LIGADA = PREDIOS_LIGADO && PRED_Q.get("cidade") === "1";
+// ---- o centro da cidade (?cidade=1), v1 pela referência 梦幻西游 Chang'an (Tools/deco3d/referencias/cidade): a planta vem
+// de Tools/deco3d/interior/cidade_planta.py (cidade.json): muralha de pedra com o portão sul no eixo e portões oeste e
+// leste; eixo portão → avenida (faixa-guia cinabre) → praça (o poço) → portão do palácio → escadaria → palácio; bairros
+// murados de uma função (palácio, moradia, templo, feira, serviços); pisos por tipo (avenida, rua, beco, praça, pátios)
+// pintados no chão (pisoCidade) e grama só nos quintais e jardins (CIDADE.grama); os NPCs na borda da praça e da
+// avenida; os bandos de bichos empurrados para fora (zona segura). Todas as peças vêm do kit já na orientação delas
+// (nada espelhado). ruaCidade(x, y): chão calçado da cidade (praca() também responde por ele)
+var CIDADE = null;                       // (var: praca() pode perguntar antes do carregamento)
+const CIDADE_LIGADA = PREDIOS_LIGADO && CIDADE_PADRAO;
 if (PRANCHA) {
   const V = VILA, L = (id, dx, dy, extra = {}) => PRED_LUGARES.push({ id, x: V.x + dx, y: V.y + dy, ...extra });
   L("casa", -16, 29); L("B_casa", -8, 25.5); L("casa_C", 0, 29); L("B_arvore", -22.5, 25.5); L("B_pedra", 5.2, 25.6);
 }
-if (CIDADE_LIGADA) {
-  const V = VILA, R = (x0, x1, y0, y1) => [V.x + x0, V.x + x1, V.y + y0, V.y + y1];
-  // (a leste e ao norte ficam os bandos de lobos, ursos e javalis: a cidade não entra nas clareiras deles)
-  CIDADE_RUAS = [
-    [V.x, V.y + 1, 6.8],                                   // a praça do poço
-    R(-30, 20.8, 17.8, 20.8), R(-30, 18, 31.5, 34.5),      // as ruas leste-oeste
-    R(-1.5, 1.5, 15.4, 34.5), R(-7.6, -5.0, 2.5, 17.8),   // a avenida (atrás do salão até o palácio) e a rua da casa
-    R(-21.6, -18.8, 3, 46), R(18, 20.8, -4, 31.5),         // as ruas de fora (oeste e leste)
-    R(-6, 6, 34.5, 36.0), R(-1.6, 1.6, -9.2, -3),          // o adro do palácio e a entrada sul
-  ];
-  const L = (id, dx, dy, extra = {}) => PRED_LUGARES.push({ id, x: V.x + dx, y: V.y + dy, ...extra });
-  L("casa_cha", -15.3, 14.5, { esp: true }); L("estalagem", -26, 9); L("loja", -13.2, 25.5); L("torre_vigia", -24, 29);
-  L("pagode", -5.5, 27); L("templo", 8.5, 27.5); L("torre_sino", 14.8, 14.2);
-  L("palacio", 0, 40.2); L("mercado", -13, 40); L("casa_L", 11, 40); L("casa_2a", -26, 40, { esp: true }); L("portao", 0, -7.6);
-  for (const y of [25, 29]) { L("muro", 2.9, y, { esp: true }); L("muro_ocre", 14.2, y, { esp: true }); }
-  for (const [x, y, k] of [[-20, 17.3, 0], [-9.5, 17.3, 1], [-2.2, 17.3, 0], [2.2, 17.3, 0], [17.5, 17.3, 1], [-17.5, 21.3, 1], [-2.2, 21.3, 1], [2.2, 21.3, 1], [17.5, 21.3, 0],
-                           [-2.2, 31, 0], [2.2, 31, 0], [-17.5, 31, 1], [16.5, 31, 1], [-6.6, 35, 1], [6.6, 35, 1], [-17.5, 35, 0], [-22.4, 35, 0], [-2.2, 6.2, 1]])
-    L(k ? "lanterna_pedra" : "lanterna_rua", x, y);
+function foraCidade(x, y) {                     // (a estrada e o treino de fora da muralha: chão limpo)
+  const c = CIDADE; if (!c || !c.fora) return false;
+  for (const r of c.fora) if (x > r[0] && x < r[1] && y > r[2] && y < r[3]) return true;
+  return false;
 }
 function ruaCidade(x, y) {
-  if (!CIDADE_RUAS) return false;
-  for (const r of CIDADE_RUAS) if (r.length === 3 ? Math.hypot(x - r[0], y - r[1]) < r[2] : x > r[0] && x < r[1] && y > r[2] && y < r[3]) return true;
-  return false;
+  const c = CIDADE; if (!c) return false;
+  const d = c.dentro; if (x < d[0] || x > d[1] || y < d[2] || y > d[3]) return false;
+  for (const g of c.grama) if (x > g[0] && x < g[1] && y > g[2] && y < g[3]) return false;
+  return true;
+}
+// o chão da cidade em cada pedaço (chamado no fim da pintura do pedaço): a base de terra clara (com os quintais de grama
+// vazados), as vias por cima com as juntas das lajes, a faixa-guia do eixo e o medalhão da praça em volta do poço
+const PISO_COR = { estrada: "#B89A6E", treino: "#C4AC80", base: "#D8C9A6", rua: "#ABA595", avenida: "#CFC6AE", praca: "#D6CDB6", patio_palacio: "#D3CAB2", patio: "#C6BA9E",
+                   beco: "#B89A6E", feira: "#C4AC80", faixa: "#B8322A", faixa_templo: "#C9963E" };
+const PISO_JUNTA = { rua: [0.625, true], avenida: [1.25, false], praca: [1.25, false], patio_palacio: [1.25, false], patio: [0.9, true] };
+function pisoCidade(g, P, esc) {
+  const c = CIDADE; if (!c) return;
+  const ret = (r, novo = true) => { if (novo) g.beginPath(); const p = [P(r[0], r[2]), P(r[1], r[2]), P(r[1], r[3]), P(r[0], r[3])]; g.moveTo(p[0][0], p[0][1]); for (let k = 1; k < 4; k++) g.lineTo(p[k][0], p[k][1]); g.closePath(); };
+  g.save();
+  // a base com os quintais vazados
+  g.beginPath(); ret(c.dentro, false); for (const r of c.grama) ret(r, false);
+  g.fillStyle = PISO_COR.base; g.fill("evenodd");
+  for (const p of c.pisos) {
+    if (p.t === "base") continue;
+    const r = p.r;
+    ret(r); g.fillStyle = PISO_COR[p.t] || "#C8BCA0"; g.fill();
+    const j = PISO_JUNTA[p.t];
+    if (j) {                                      // as juntas (lajes; na rua, fiadas desencontradas)
+      g.save(); ret(r); g.clip();
+      g.strokeStyle = "rgba(30, 27, 24, 0.16)"; g.lineWidth = Math.max(0.6, 0.025 * esc); g.beginPath();
+      const L = j[0];
+      for (let y = Math.ceil(r[2] / L) * L; y < r[3]; y += L) { const a = P(r[0], y), b = P(r[1], y); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); }
+      for (let y = Math.floor(r[2] / L) * L, f = 0; y < r[3]; y += L, f++)
+        for (let x = Math.floor(r[0] / L) * L + (j[1] && f % 2 ? L / 2 : 0); x < r[1]; x += j[1] ? L : L) {
+          const a = P(x, Math.max(r[2], y)), b = P(x, Math.min(r[3], y + L)); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
+        }
+      g.stroke(); g.restore();
+    }
+    if (p.t === "faixa" || p.t === "faixa_templo") {   // a faixa-guia: borda ocre e losangos a cada 2,5 m
+      ret([r[0] + 0.1, r[1] - 0.1, r[2], r[3]]); g.strokeStyle = p.t === "faixa" ? "#C9963E" : "#B8322A"; g.lineWidth = Math.max(1, 0.06 * esc); g.stroke();
+      const mx = (r[0] + r[1]) / 2;
+      g.fillStyle = p.t === "faixa" ? "#C9963E" : "#B8322A";
+      for (let y = Math.ceil(r[2] / 2.5) * 2.5; y < r[3]; y += 2.5) {
+        const q = [P(mx, y - 0.4), P(mx + 0.32, y), P(mx, y + 0.4), P(mx - 0.32, y)];
+        g.beginPath(); g.moveTo(q[0][0], q[0][1]); for (const z of q.slice(1)) g.lineTo(z[0], z[1]); g.closePath(); g.fill();
+      }
+    } else { ret(r); g.strokeStyle = "rgba(30, 27, 24, 0.32)"; g.lineWidth = Math.max(0.8, 0.035 * esc); g.stroke(); }
+  }
+  // o medalhão da praça: dois anéis em volta do poço
+  const pc = c.lugares.find(l => l.id.startsWith("poco"));
+  if (pc) for (const [rr, cor, w] of [[2.9, "#B8322A", 0.22], [2.45, "#C9963E", 0.1]]) {
+    g.beginPath();
+    for (let k = 0; k <= 48; k++) { const a = k / 48 * 6.2832, q = P(pc.x + Math.cos(a) * rr, pc.y + Math.sin(a) * rr); k ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }
+    g.strokeStyle = cor; g.lineWidth = Math.max(1, w * esc); g.stroke();
+  }
+  g.restore();
+}
+// as cores da cidade no minimapa (muralha, muros, portões, prédios, vias e quintais)
+function miniCidade(x, y) {
+  const c = CIDADE; if (!c) return null;
+  const k = c.caixa; if (x < k[0] || x > k[1] || y < k[2] || y > k[3]) return null;
+  for (const p of predInst) {
+    const b = p.base; if (x < b[0] || x > b[1] || y < b[2] || y > b[3]) continue;
+    if (/^muro_pedra|^pilar_pedra|^portao_cidade/.test(p.id)) return [70, 68, 64];
+    if (/^muro_cinabre|^pilar_cinabre|^portao_palacio/.test(p.id)) return [184, 50, 42];
+    if (/^muro_|^pilar_|^portao/.test(p.id)) return [239, 228, 204];
+    if (/^palacio/.test(p.id)) return [201, 150, 62];
+    if (/^templo/.test(p.id)) return [62, 122, 92];
+    if (/^lanterna|^barraca|^poco/.test(p.id)) continue;
+    return [59, 66, 80];
+  }
+  for (const g of c.grama) if (x > g[0] && x < g[1] && y > g[2] && y < g[3]) return [96, 140, 60];
+  for (let i = c.pisos.length - 1; i >= 0; i--) {
+    const r = c.pisos[i].r; if (x < r[0] || x > r[1] || y < r[2] || y > r[3]) continue;
+    const h = PISO_COR[c.pisos[i].t]; return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  }
+  return null;
+}
+// depois de montar as construções da cidade: os NPCs nos lugares deles, as árvores dos jardins, a ferraria do kit no
+// lugar da pintada, os bandos para fora (zona segura), o chão e o minimapa refeitos
+function montarCidade() {
+  const c = CIDADE; if (!c) return;
+  for (const [nome, [x, y]] of Object.entries(c.npcsExtra || {})) {   // (os pares: um segundo guarda do outro lado)
+    const base = objetos.find(o => o.tipo === "pessoa" && o.nome === c.npcsExtra[nome][2]);
+    if (base && !objetos.some(o => o.extraDe === nome)) { const o = { ...base, x, y, extraDe: nome, fala: 0 }; objetos.push(o); }
+  }
+  for (const [nome, [x, y]] of Object.entries(c.npcs || {})) {
+    const n = nome === "Ferreiro" ? ferreiroNpc : objetos.find(o => o.tipo === "pessoa" && o.nome === nome);
+    if (n) { n.x = x; n.y = y; n.dentroPredio = true; if (n.casa) n.casa = { x, y }; }
+  }
+  for (let i = objetos.length - 1; i >= 0; i--) if (objetos[i].tipo === "ferraria" || objetos[i].tipo === "forja") objetos.splice(i, 1);
+  if (c.treino) {                                  // (os bonecos, as runas e a fogueira do treino: para o lado, longe do eixo)
+    const { de, para, r } = c.treino, dx = para[0] - de[0], dy = para[1] - de[1];
+    for (const o of objetos) if (["boneco", "runa", "fogueira"].includes(o.tipo) && !o.caverna && Math.hypot(o.x - de[0], o.y - de[1]) < r) { o.x += dx; o.y += dy; o.cidade = true; delete o._circ; }
+    abrirEspaco(para[0] - 7, para[1] - 6, para[0] + 7, para[1] + 6);
+  }
+  // os NPCs das barracas com modelo 3D como os outros (antes eram bonecos desenhados por código)
+  Object.assign(NPC_3D, { "Alquimista Runa": "ninja", "Armeiro Bjorn": "guerreiro", "Feirante Hilda": "arqueiro" });
+  // (a roupa tingida para uma cor da paleta, em linear: jade, índigo, ocre)
+  // (o Armeiro e a Feirante sem tingir: a barba ruiva e o couro deles caem na faixa da roupa e não saem limpos)
+  Object.assign(NPC_TINTA, { "Alquimista Runa": [0.048, 0.195, 0.107], "Armeiro Bjorn": null, "Feirante Hilda": null });
+  for (const o of c.objetos || []) objetos.push(Object.assign(completarDecoracao(o), { cidade: true }));
+  // os bandos a menos de 9 m (+ o espalhamento) da cidade vão para fora, para longe do centro dela
+  if (typeof SPAWNS !== "undefined" && SPAWNS) {
+    const [a, b, e, f] = c.caixa, mx = (a + b) / 2, my = (e + f) / 2, dist = (x, y) => Math.hypot(Math.max(a - x, 0, x - b), Math.max(e - y, 0, y - f));
+    let mudou = false;
+    for (const s of SPAWNS) {
+      const m = (s.n === 1 || /alfa|chefe/.test(s.tipo) ? 16 : 10) + (s.r || 0); if (dist(s.x, s.y) >= m) continue;
+      let vx = s.x - mx, vy = s.y - my; const L = Math.hypot(vx, vy) || 1; vx /= L; vy /= L;
+      for (let k = 0; k < 200 && dist(s.x, s.y) < m; k++) { s.x += vx * 0.5; s.y += vy * 0.5; }
+      mudou = true;
+    }
+    if (mudou) remontarSpawns();
+  }
+  refazerGrade();
+  pedacos.clear(); miniBase = null;
 }
 async function carregarPredios() {
   if (!PREDIOS_LIGADO) return;
   try { KIT_PREDIOS = await (await fetch("predios.json")).json(); } catch (e) { KIT_PREDIOS = null; }
+  if (CIDADE_LIGADA && KIT_PREDIOS) try { CIDADE = await (await fetch("cidade.json")).json(); for (const l of CIDADE.lugares) PRED_LUGARES.push({ id: l.id, x: l.x, y: l.y }); } catch (e) { CIDADE = null; }
   if (PRANCHA && KIT_PREDIOS) try {                // (as peças B prontas viram construções de uma camada só, pivô no pé)
     const e = await (await fetch("estilo.json")).json(), PL = { casa: [0.5, 5.0, 0.5, 5.0], arvore: [-0.35, 0.35, -0.35, 0.35], pedra: [-0.8, 0.8, -0.5, 0.6] };
     for (const [n, v] of Object.entries(e)) KIT_PREDIOS["B_" + n] = { ppm: v.ppm, camadas: { f: v }, planta: PL[n], base: PL[n], paredes: [PL[n]], luzes: [], rets: [], moveis: {} };
@@ -2988,6 +3110,19 @@ function predImg(arq) {
   if (!im) { im = PRED_IMG[arq] = new Image(); im.decoding = "async"; im.src = (window.MODO_LEVE ? "predios/meio/" : "predios/") + arq; }
   return im.complete && im.naturalWidth ? im : null;
 }
+// a máscara de opacidade de uma camada (1/8 da resolução), para saber se ela cobre alguém de verdade
+const PRED_MASC = {};
+function predMascara(im, arq) {
+  if (PRED_MASC[arq] !== undefined) return PRED_MASC[arq];
+  try {
+    const w = Math.max(1, Math.ceil(im.naturalWidth / 8)), h = Math.max(1, Math.ceil(im.naturalHeight / 8)), c = document.createElement("canvas");
+    c.width = w; c.height = h; const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(im, 0, 0, w, h);
+    const d = g.getImageData(0, 0, w, h).data, m = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) m[i] = d[i * 4 + 3] > 140 ? 1 : 0;
+    return (PRED_MASC[arq] = { w, h, m, k: w / im.naturalWidth });
+  } catch (e) { return (PRED_MASC[arq] = null); }
+}
+function predOpaco(mk, ix, iy) { const x = Math.floor(ix * mk.k), y = Math.floor(iy * mk.k); return x >= 0 && y >= 0 && x < mk.w && y < mk.h && mk.m[y * mk.w + x] === 1; }
 // o interior mais quente e escuro (uma cópia tingida da camada a, feita uma vez)
 function predQuente(arq) {
   const k = arq + "#q";
@@ -3022,15 +3157,18 @@ function montarPredios() {
       if (!preso(x, y) && !agua(x, y)) { n.x = x; n.y = y; ok = true; }
     }
   refazerGrade();
+  montarCidade();
 }
 // (chamadas pelo refazerGrade: tira do lugar das construções o que o mapa põe lá e põe as paredes e móveis na grade)
 function predLimpar() {
   if (!predInst.length) return;
   for (let i = objetos.length - 1; i >= 0; i--) {
     const o = objetos[i];
-    if (!DECORACAO.includes(o.tipo) || o.caverna) continue;
+    if (!DECORACAO.includes(o.tipo) || o.caverna || o.cidade) continue;
+    if (CIDADE && CIDADE.treino && ["boneco", "runa", "fogueira"].includes(o.tipo) && Math.hypot(o.x - CIDADE.treino.de[0], o.y - CIDADE.treino.de[1]) < CIDADE.treino.r) continue;   // (o treino muda de lugar: montarCidade)
     if (predInst.some(p => o.x > p.base[0] - 0.8 && o.x < p.base[1] + 0.8 && o.y > p.base[2] - 1.6 && o.y < p.base[3] + 0.8)) objetos.splice(i, 1);
-    else if (CIDADE_RUAS && ["arvore", "pinheiro", "arbusto", "pedra", "tronco", "toco"].includes(o.tipo) && ruaCidade(o.x, o.y)) objetos.splice(i, 1);
+    else if (CIDADE && !o.cidade && ["arvore", "pinheiro", "arbusto", "pedra", "tronco", "toco"].includes(o.tipo) && (foraCidade(o.x, o.y) || foraCidade(o.x + 1, o.y) || foraCidade(o.x - 1, o.y))) objetos.splice(i, 1);
+    else if (CIDADE && !o.cidade && o.x > CIDADE.caixa[0] - 2.5 && o.x < CIDADE.caixa[1] + 2.5 && o.y > CIDADE.caixa[2] - 2.5 && o.y < CIDADE.caixa[3] + 2.5) objetos.splice(i, 1);   // (a cidade: só o que ela põe)
   }
 }
 function predGrade() { for (const p of predInst) for (const o of p.paredes) porNaGrade(o); }
@@ -3067,30 +3205,40 @@ function predLista(lista, t) {
     if (caixa[2] < -50 || caixa[0] > W + 50 || caixa[3] < -50 || caixa[1] > H + 50) continue;
     // dentro? (o herói na planta de dentro): o telhado some, as paredes cortam
     const dn = p.dentro && viking.x > p.dentro[0] - 0.05 && viking.x < p.dentro[1] + 0.05 && viking.y > p.dentro[2] - 0.05 && viking.y < p.dentro[3] + 0.05;
-    p.k += ((dn ? 1 : 0) - p.k) * Math.min(1, dtP / 0.3 * 2.2);
+    p.k = dn ? Math.min(1, p.k + dtP / 0.2) : Math.max(0, p.k - dtP / 0.2);
     if (p.k < 0.004) p.k = 0; if (p.k > 0.996) p.k = 1;
     // o herói atrás da construção e coberto por ela: a construção inteira fica translúcida
     let atras = false;
     if (!dn && quemSome.length) {
       const q = quemSome[0], uq = u0 + ((q.c[0] + q.c[2]) / 2 - X) / s;
+      // (coberto de verdade: os pixels opacos das camadas em cima do corpo dele, não só a caixa do desenho)
       if (q.y > predCol(p, uq)[1] - 0.05) {
-        const lx = Math.min(caixa[2], q.c[2]) - Math.max(caixa[0], q.c[0]), ly = Math.min(caixa[3], q.c[3]) - Math.max(caixa[1], q.c[1]);
-        atras = lx > (q.c[2] - q.c[0]) * 0.3 && ly > (q.c[3] - q.c[1]) * 0.3;
+        const xm = (q.c[0] + q.c[2]) / 2, pts = [0.3, 0.55, 0.8].map(f => q.c[3] - (q.c[3] - q.c[1]) * f);
+        for (const n of d.entra ? ["b", "c"] : ["f"]) {
+          const qq = cam(n); if (!qq) continue;
+          const kk = s / pp, mk = predMascara(qq.im, qq.c.arq);
+          if (mk && pts.filter(yy => predOpaco(mk, (p.esp ? -1 : 1) * (xm - X) / kk + qq.c.px, (yy - Y) / kk + qq.c.py)).length >= 2) { atras = true; break; }
+        }
       }
     }
-    p.alfa += ((atras ? 0.42 : 1) - p.alfa) * Math.min(1, dtP * 9);
+    p.alfa += ((atras ? 0.22 : 1) - p.alfa) * Math.min(1, dtP * 9);
     const camadas = d.entra ? ["a", ...p.moveis.map(m => m.cam), "b", "b2", "c"] : ["f"];
     const alfaDe = n => n === "c" ? 1 - p.k : n === "b" ? 1 - p.k : n === "b2" ? p.k : 1;
     const tudo = () => { for (const n of camadas) { const q = cam(n); if (!q) continue; const a = alfaDe(n); if (a > 0.01) predFatia(q.im, q.c, X, Y, s, pp, -1e3, 1e3, p.esp, a); if (n === "a") predDentro(p, X, Y, s, pp, -1e3, 1e3, noite, t); } predNoite(p, noite, t); };
     // ninguém perto (nem o herói, nem criaturas, nem NPCs): uma entrada só, com a frente mais perto
     const B = p.base, perto = (x, y) => x > B[0] - 2.5 && x < B[1] + 2.5 && y > B[2] - 2.5 && y < B[3] + 2.5;
-    const alguem = perto(viking.x, viking.y) || criaturas.some(c => !c.morto && perto(c.x, c.y)) || (p.npcs || (p.npcs = objetos.filter(o => o.npc && perto(o.x, o.y)))).length;
+    const alguem = perto(viking.x, viking.y) || criaturas.some(c => !c.morto && perto(c.x, c.y)) || (predLista.npcs || (predLista.npcs = objetos.filter(o => o.npc))).some(o => perto(o.x, o.y));   // (os NPCs: a lista guardada, a posição de agora)
     const frenteMin = profV(B[0], B[2]);
     if (p.alfa < 0.99) { lista.push({ y: frenteMin - 0.01, f: () => translucido(p.alfa, caixa, tudo) }); continue; }
     if (!alguem) { lista.push({ y: frenteMin - 0.01, f: tudo }); continue; }
+    // (no meio do desvanecer, o telhado e as paredes da frente vão juntos num passe translúcido só: os riscos somem com
+    // o preenchimento)
+    const some = p.k > 0.001 && p.k < 0.999 && cs.c;
+    if (some) lista.push({ y: frenteMin - 0.003, f: () => translucido(1 - p.k, caixa, () => { for (const n of ["b", "c"]) { const q = cam(n); if (q) predFatia(q.im, q.c, X, Y, s, pp, -1e3, 1e3, p.esp, 1); } }) });
     // em fatias: cada camada com a profundidade da sua parede naquela coluna
     for (const n of camadas) {
       const q = cam(n); if (!q) continue;
+      if (some && (n === "b" || n === "c")) continue;
       const a = alfaDe(n); if (a < 0.01) continue;
       if (n.startsWith("m_")) { const m = p.moveis.find(m => m.cam === n); lista.push({ y: profV(m.pos[0], m.pos[1]), f: () => predFatia(q.im, q.c, X, Y, s, pp, -1e3, 1e3, p.esp, a) }); continue; }
       const ua = (p.esp ? -(q.c.w - q.c.px) : -q.c.px) / pp, ub = (p.esp ? q.c.px : q.c.w - q.c.px) / pp;
@@ -3106,10 +3254,83 @@ function predLista(lista, t) {
 }
 // o interior com o herói dentro: a cópia quente por cima da camada a e, à noite, a luz da lanterna
 function predDentro(p, X, Y, s, pp, ua, ub, noite, t) {
-  if (p.k <= 0.01) return;
-  const c0 = p.d.camadas.a, q = predQuente(c0.arq); if (!q) return;
-  const c = window.MODO_LEVE ? { ...c0, px: c0.px / 2, py: c0.py / 2, w: q.width, h: q.height } : c0;
-  predFatia(q, c, X, Y, s, pp, ua, ub, p.esp, p.k * (0.75 - 0.35 * noite));
+  const c0 = p.d.camadas.a, leve = window.MODO_LEVE;
+  if (p.k > 0.01) {
+    const q = predQuente(c0.arq);
+    if (q) predFatia(q, leve ? { ...c0, px: c0.px / 2, py: c0.py / 2, w: q.width, h: q.height } : c0, X, Y, s, pp, ua, ub, p.esp, p.k * (0.75 - 0.35 * noite));
+  }
+  const ac = (p.d.forja ? 1 : p.k) * noite;
+  if (ac > 0.02 && (p.d.forja || p.d.lanterna)) {
+    const q = predAceso(p);
+    if (q) predFatia(q, leve ? { ...c0, px: c0.px / 2, py: c0.py / 2, w: q.width, h: q.height } : c0, X, Y, s, pp, ua, ub, p.esp, ac * (0.85 + 0.15 * Math.sin(t * 6 + p.x)));
+  }
+}
+// a máscara de luz de uma camada (meia resolução, feita uma vez): em volta de cada janela, só o papel (a janela e a parede
+// clara em volta, nunca o telhado); em volta de cada lanterna de fora, a própria lanterna e o papel perto. A cor quente
+// com a força no alfa: serve para o brilho ("lighter") e para abrir o escuro ("destination-out")
+const PRED_LUZM = {};
+function predPonto(c0, ppm, e, pt) {
+  const u = (pt[0] - pt[1]) * Math.SQRT1_2, v = (pt[0] + pt[1]) * Math.SQRT1_2 * ACHATA + pt[2] * ALTURA;
+  return [(c0.px + u * ppm) * e, (c0.py - v * ppm) * e];
+}
+function predLuzMasc(p, n) {
+  const c0 = p.d.camadas[n], k = c0.arq + "#m";
+  if (PRED_LUZM[k] !== undefined) return PRED_LUZM[k];
+  const d = p.d, jan = n === "c" ? [] : (d.luzes || []), lan = [...(d.lanternasFora || (d.lanternaFora ? [d.lanternaFora] : []))];
+  if (!jan.length && !lan.length) return (PRED_LUZM[k] = null);
+  const im = predImg(c0.arq); if (!im) return null;
+  try {
+    const e = 0.5 * c0.w / im.naturalWidth * (im.naturalWidth / c0.w), E = 0.5, w = Math.ceil(c0.w * E), h = Math.ceil(c0.h * E), cv = document.createElement("canvas");
+    cv.width = w; cv.height = h; const g = cv.getContext("2d", { willReadFrequently: true }); g.drawImage(im, 0, 0, w, h);
+    const id = g.getImageData(0, 0, w, h), px = id.data, ppm = d.ppm;
+    const pj = jan.map(q => predPonto(c0, ppm, E, q)), pl = lan.map(q => predPonto(c0, ppm, E, q));
+    const rJ = 0.95 * ppm * E, rL = 0.32 * ppm * E, rLp = 0.8 * ppm * E;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4; if (px[i + 3] < 40) { px[i + 3] = 0; continue; }
+      const r = px[i], gg = px[i + 1], b = px[i + 2], papel = r > 190 && gg > 170 && b > 130 && r - b < 70;
+      let f = 0;
+      if (papel) for (const [qx, qy] of pj) { const dd = Math.hypot(x - qx, (y - qy) * 1.3); if (dd < rJ) f = Math.max(f, Math.pow(1 - dd / rJ, 1.2)); }
+      // (a lanterna: só os pixels dela, o papel vermelho ou claro; o telhado na frente dela fica de fora)
+      const verm = r > 120 && gg < 95 && b < 90 && r - gg > 60;
+      for (const [qx, qy] of pl) { const dd = Math.hypot(x - qx, y - qy); if (dd < rL && (verm || papel)) f = Math.max(f, Math.pow(1 - dd / rL, 0.6)); else if (papel && dd < rLp) f = Math.max(f, 0.6 * (1 - dd / rLp)); }
+      px[i] = 255; px[i + 1] = 180; px[i + 2] = 90; px[i + 3] = Math.round(255 * Math.min(1, f));
+    }
+    g.putImageData(id, 0, 0);
+    return (PRED_LUZM[k] = cv);
+  } catch (er) { return (PRED_LUZM[k] = null); }
+}
+// a silhueta de uma camada (o escuro que volta por cima dela), a 1/3 da resolução
+function predSilhueta(p, n) {
+  const c0 = p.d.camadas[n], k = c0.arq + "#s";
+  if (PRED_LUZM[k] !== undefined) return PRED_LUZM[k];
+  const im = predImg(c0.arq); if (!im) return null;
+  const w = Math.ceil(c0.w / 3), h = Math.ceil(c0.h / 3), cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const g = cv.getContext("2d"); g.drawImage(im, 0, 0, w, h); g.globalCompositeOperation = "source-in"; g.fillStyle = "rgb(8, 14, 42)"; g.fillRect(0, 0, w, h);
+  return (PRED_LUZM[k] = cv);
+}
+// desenha uma máscara (do tamanho proporcional da camada n) no lugar da camada, num contexto (o do jogo ou o do escuro)
+function predMascLuz(p, n, mk, g) {
+  const c = p.d.camadas[n], [X, Y] = noMundo(p.x, p.y), k = PX * zoom / p.d.ppm;
+  g.drawImage(mk, X - c.px * k, Y - c.py * k, c.w * k, c.h * k);
+}
+// a camada a com a luz da lanterna de dentro e do fogo da forja pintada por cima, só onde ela tem pixels (uma vez)
+function predAceso(p) {
+  const c0 = p.d.camadas.a, k = c0.arq + "#l";
+  if (PRED_IMG[k]) return PRED_IMG[k];
+  const im = predImg(c0.arq); if (!im) return null;
+  const c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const g = c.getContext("2d"); g.drawImage(im, 0, 0);
+  const e = c.width / c0.w, ppm = p.d.ppm * e;
+  g.globalCompositeOperation = "source-atop";
+  for (const [pt, r, cor] of [[p.d.lanterna, 2.4, "255, 176, 90"], [p.d.forja, 2.0, "255, 130, 50"]]) {
+    if (!pt) continue;
+    // (o ponto do mapa local na imagem da camada: a mesma projeção da tela, com o pivô dela)
+    const u = (pt[0] - pt[1]) * Math.SQRT1_2, v = (pt[0] + pt[1]) * Math.SQRT1_2 * ACHATA + pt[2] * ALTURA;
+    const ix = c0.px * e + u * ppm, iy = c0.py * e - v * ppm, R = r * ppm;
+    const gr = g.createRadialGradient(ix, iy, 0, ix, iy, R); gr.addColorStop(0, `rgba(${cor}, 0.75)`); gr.addColorStop(0.5, `rgba(${cor}, 0.3)`); gr.addColorStop(1, `rgba(${cor}, 0)`);
+    g.fillStyle = gr; g.fillRect(ix - R, iy - R, 2 * R, 2 * R);
+  }
+  return (PRED_IMG[k] = c);
 }
 // a luz: as janelas e a lanterna de fora acesas à noite; dentro, a lanterna (depois de tudo da construção)
 function predNoite(p, noite, t) {
@@ -3121,19 +3342,39 @@ function predNoite(p, noite, t) {
     g.addColorStop(0, `rgba(${cor}, ${a * pisca * noite})`); g.addColorStop(1, `rgba(${cor}, 0)`);
     cx.fillStyle = g; cx.beginPath(); cx.arc(Xl, Yl, r * s, 0, 7); cx.fill();
   };
-  for (const [lx, ly, lz] of d.luzes || []) luz(lx, ly, lz, 0.75, 0.32 * (1 - p.k), "255, 190, 90");
-  if (d.lanternaFora) luz(...d.lanternaFora, 1.1, 0.4 * (1 - p.k * 0.5), "255, 120, 60");
-  if (d.lanterna && p.k > 0.01) { luz(...d.lanterna, 2.6, 0.5 * p.k, "255, 170, 80"); luz(...d.lanterna, 0.5, 0.6 * p.k, "255, 230, 170"); }
+  // (o brilho quente pintado só nos pixels que a luz alcança: o papel da janela e da parede em volta, a lanterna)
+  cx.restore();
+  for (const n of Object.keys(d.camadas)) {
+    if (n.startsWith("m_") || n === "b2") continue;
+    const a = n === "a" ? 0 : (n === "b" || n === "c") ? 1 - p.k : 1; if (a < 0.02) continue;
+    const mk = predLuzMasc(p, n); if (!mk) continue;
+    cx.save(); cx.globalCompositeOperation = "lighter"; cx.globalAlpha = 0.5 * noite * pisca * a;
+    predMascLuz(p, n, mk, cx); cx.restore();
+  }
+  cx.save();
   cx.restore();
 }
 // os furos no escuro da noite (desenharLuzDoDia)
 function predLuz(furo) {
-  const s = PX * zoom;
+  const s = PX * zoom, g = escuroNoite.getContext("2d"), esc = luzDoDia(horaDoDia()).esc * (1 - 0.6 * claraoAgora());
   for (const p of predInst) {
     const d = p.d, ponto = (lx, ly, lz) => { const [mx, my] = p.M(lx, ly); return noMundo(mx, my, lz); };
-    for (const [lx, ly, lz] of d.luzes || []) { if (p.k > 0.5) break; const [X, Y] = ponto(lx, ly, lz); furo(X, Y, 1.5 * s, 0.75); }
-    if (d.lanternaFora) { const [X, Y] = ponto(...d.lanternaFora); furo(X, Y, 1.8 * s, 0.7); }
-    if (d.lanterna && p.k > 0.05) { const [X, Y] = ponto(...d.lanterna); furo(X, Y, 3.4 * s * p.k, 0.9); }
+    const [Xp, Yp] = noMundo(p.x, p.y);
+    if (Xp < -12 * s || Xp > W + 12 * s || Yp < -6 * s || Yp > H + 14 * s) continue;
+    // o escuro volta por cima dos telhados (camada c; nas fechadas, a peça inteira) perto do herói: a luz dele fica no chão
+    if (Math.hypot(p.x - viking.x, p.y - viking.y) < 9 + Math.max(p.base[1] - p.base[0], p.base[3] - p.base[2]) / 2) {
+      const n = d.camadas.c ? "c" : null, a = 1 - p.k;                // (só os telhados que são uma camada à parte)
+      if (n && a > 0.02) { const sil = predSilhueta(p, n); if (sil) { g.save(); g.globalCompositeOperation = "source-over"; g.globalAlpha = esc * a; predMascLuz(p, n, sil, g); g.restore(); } }
+    }
+    // as janelas e as lanternas abrem o escuro só nos pixels delas
+    for (const n of Object.keys(d.camadas)) {
+      if (n.startsWith("m_") || n === "b2" || n === "a") continue;
+      const a = (n === "b" || n === "c") ? 1 - p.k : 1; if (a < 0.02) continue;
+      const mk = predLuzMasc(p, n); if (!mk) continue;
+      g.save(); g.globalCompositeOperation = "destination-out"; g.globalAlpha = 0.85 * a; predMascLuz(p, n, mk, g); g.restore();
+    }
+    if (d.forja) { const [X, Y] = ponto(...d.forja); furo(X, Y, 1.6 * s, 0.8); }
+    if (d.lanterna && p.k > 0.05) { const [X, Y] = ponto(...d.lanterna); furo(X, Y, 2.0 * s * p.k, 0.85); }
   }
 }
 
@@ -4747,6 +4988,7 @@ function baseIlha() {
     if (pesoMonte(x, y) > 0.5 && !estrada(x, y)) return neveMonte(x, y) > 0.5 ? [226, 232, 240] : [140, 146, 156];
     if (pesoVale(x, y) > 0.5 && !estrada(x, y)) return [150, 104, 70];
     if (lago(x, y)) return [47, 109, 133];
+    { const mc = miniCidade(x, y); if (mc) return mc; }
     if (praca(x, y)) return [150, 140, 122];
     if (estrada(x, y)) return [176, 150, 104];
     if (floresta(x, y)) return [52, 92, 40];
@@ -5289,7 +5531,7 @@ function desenharNpc() {
 function desenharPessoa(o, X, Y, s, lw, t) {
   const g = cx, e = s, c = o.dados.cores, resp = Math.sin(t * 2 + o.fase) * e * 0.012;
   sombra(X, Y, e * 0.3);
-  if (desenharInst3d(o, X, Y, zoom)) { placas.push(() => { placaNpc(X, Y - e * (o.dados.lanca ? 2.45 : 1.95), o.nome); }); return; }   // o modelo 3D dele (NPC_3D)
+  if (desenharInst3d(o, X, Y, zoom)) { placas.push(() => { placaNpc(X, Y - e * (o.dados.lanca ? 2.05 : 1.95), o.nome); }); return; }   // (o nome logo acima da cabeça do modelo)   // o modelo 3D dele (NPC_3D)
   const bota = "#3a2618";
   g.fillStyle = c.calca; g.fillRect(X - e * 0.14, Y - e * 0.62, e * 0.11, e * 0.5); g.fillRect(X + e * 0.03, Y - e * 0.62, e * 0.11, e * 0.5);
   g.strokeStyle = TINTA; g.lineWidth = lw * 0.8; g.strokeRect(X - e * 0.14, Y - e * 0.62, e * 0.11, e * 0.5); g.strokeRect(X + e * 0.03, Y - e * 0.62, e * 0.11, e * 0.5);
@@ -5890,7 +6132,7 @@ function passoProgresso(dt) {
   if (v.caido && v.reviver > 0) {
     v.reviver -= dt;
     if (v.reviver <= 0) {
-      v.caido = false; v.x = PRACA.x; v.y = PRACA.y - 2; v.vida = Math.round(status.vidaMax * 0.5);
+      v.caido = false; [v.x, v.y] = CIDADE && CIDADE.renascer ? CIDADE.renascer : [PRACA.x, PRACA.y - 2]; v.vida = Math.round(status.vidaMax * 0.5);
       tocar(lutaPerto() && v.espada !== "costas" ? "parado_armado" : "parado", false);
       criaturas.forEach(c => { if (!c.cfg.estatico) c.cacando = false; });
     }
@@ -9665,6 +9907,7 @@ const MODELOS_3D = {
 };
 // os moradores da vila que têm modelo (os outros continuam desenhados por código)
 const NPC_3D = { "Guarda Real": "guarda_real", "Guarda Sigrid": "guarda", "Senhor do Armazém": "armazem" };
+const NPC_TINTA = {};                          // (os NPCs com o modelo de uma classe: o giro de cor da roupa deles, e sem a arma)
 // a parte da arma que brilha com o refino (a máscara do brilho, como a fileira de baixo das tiras dos sprites)
 const MASCARA_3D = { viking: ["peca_espada"], ninja: ["peca_adaga_d", "peca_adaga_e"], guerreiro: ["peca_machado"], arqueiro: ["peca_arco"], feiticeiro: ["peca_esfera"] };
 const P3D = { ligado: (() => { const q = new URLSearchParams(location.search); return !q.has("2d") && (q.has("3d") || !MODO_TESTE); })(),
@@ -9877,13 +10120,24 @@ const GLSL_COR_3D = `
     diffuseColor.rgb = clamp(mix(vec3(l), c, s) * BRILHO, 0.0, 1.0); }`;
 function toon3d(map, cor, side) {
   const m = new THREE.MeshToonMaterial({ map, color: cor, gradientMap: P3D.faixas, side });
+  m.userData.uMatiz = { value: 0 }; m.userData.uRoupa = { value: new THREE.Vector3(1, 1, 1) };
   m.onBeforeCompile = sh => {
-    sh.fragmentShader = sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>" +
+    sh.uniforms.uMatiz = m.userData.uMatiz; sh.uniforms.uRoupa = m.userData.uRoupa;
+    sh.fragmentShader = "uniform float uMatiz; uniform vec3 uRoupa;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>" +
       // a cor viva puxa menos os tons de pele (laranja-rosado), senão rosto e mãos ficam alaranjados
-      `${GLSL_COR_3D.replace(/SAT/g, COR_3D.sat.toFixed(2)).replace(/BRILHO/g, COR_3D.brilho.toFixed(2))}`);
+      `${GLSL_COR_3D.replace(/SAT/g, COR_3D.sat.toFixed(2)).replace(/BRILHO/g, COR_3D.brilho.toFixed(2))}` + GLSL_MATIZ_ROUPA);
   };
   return m;
 }
+// a roupa de outra cor (os NPCs com o modelo de uma classe): gira o matiz dos tons saturados que não são pele
+const GLSL_MATIZ_ROUPA = `
+  if (uMatiz > 0.001) { vec3 c = diffuseColor.rgb; float r = max(c.r, 1e-4), mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
+    float pele = step(c.g, c.r) * step(c.b, c.g) * smoothstep(0.2, 0.35, c.g / r) * (1.0 - smoothstep(0.85, 0.95, c.g / r)) * smoothstep(0.05, 0.15, c.b / r);
+    float l = dot(c, vec3(0.299, 0.587, 0.114));
+    // (só a roupa: tons saturados, nem escuros (cabelo, barba, couro) nem claros, e nada de pele)
+    float k = (1.0 - pele) * smoothstep(0.3, 0.45, (mx - mn) / max(mx, 1e-3)) * smoothstep(0.035, 0.06, l) * (1.0 - smoothstep(0.4, 0.55, l));
+    vec3 alvo = uRoupa * (l / max(dot(uRoupa, vec3(0.299, 0.587, 0.114)), 1e-3));
+    diffuseColor.rgb = mix(c, clamp(alvo, 0.0, 1.0), k * uMatiz); }`;
 // o contorno: uma casca por trás, empurrada pela normal (no corpo, depois da pele; nas peças duras, na malha)
 function casca3d(pele) {
   const t = new THREE.MeshBasicMaterial({ color: 0x1a1014, side: THREE.BackSide });
@@ -10102,7 +10356,7 @@ function pedidos3d(agora) {
     if (!m || !m.ok) { const d = longe(o.x, o.y); if (d < 30) pedirModelo3d(nome, d); continue; }
     if (!naTela(o.x, o.y, m, 1)) continue;
     const [anim, t, ang] = animNpc3d(o, nome, m, agora);
-    l.push({ dono: o, m, anim, t, info: m.info[anim], ang, esc: 1, emis: [0, 0, 0], perto: longe(o.x, o.y) < 6 });
+    l.push({ dono: o, m, anim, t, info: m.info[anim], ang, esc: 1, emis: [0, 0, 0], perto: longe(o.x, o.y) < 6, roupa: NPC_TINTA[o.nome], semArma: o.nome in NPC_TINTA });
   }
   return l;
 }
@@ -10220,12 +10474,15 @@ function renderInst3d(i, clip, tempo) {
   for (const mat of m.mats) {
     mat.emissive.setRGB(d.emis[0] * ke, d.emis[1] * ke, d.emis[2] * ke);
     mat.color.copy(mat.userData.cor); if (tinta) mat.color.multiply(tinta);
+    if (mat.userData.uMatiz) { mat.userData.uMatiz.value = d.roupa ? 0.85 : 0; if (d.roupa) mat.userData.uRoupa.value.set(d.roupa[0], d.roupa[1], d.roupa[2]); }
   }
   const c = m.caixa;
   p.cam.left = -c.esq; p.cam.right = c.dir; p.cam.top = c.cima; p.cam.bottom = -c.baixo; p.cam.updateProjectionMatrix();
   // (no Mundo de Tinta o passe do traço pinta o corpo todo: sempre ligado; o traço "ferve" e o herói tem mais força)
   if (ESTILO_TINTA) { const u = p.matTraco.uniforms; u.semente.value = p.boil || 0; u.forca.value = d.heroi ? 1.35 : "morto" in d ? 1.12 : 0.9; }
+  if (d.semArma) for (const s of i.malhas) if (s.alvo) s.o.visible = false;   // (o NPC com o modelo de uma classe: sem a arma)
   pintarCel3d(i.cel, i.raiz, contornoLigado || ESTILO_TINTA ?Math.max(0.6, TRACO_3D.px * i.cel.w / ((c.esq + c.dir) * PX)) : 0);
+  if (d.semArma) for (const s of i.malhas) if (s.alvo) s.o.visible = true;
   i.valido = true; i.feito = p.quadro;
   if (i.mascara && i.celM) {
     // a máscara do brilho: só a parte da arma que aparece (o corpo tapa sem pintar), em branco
@@ -15156,6 +15413,7 @@ function corBase(x, y) {
     if (pv > 0) { const n = fbm(x * 0.09 + 7, y * 0.09 - 3); somar([mixv(150, 190, n), mixv(80, 108, n), mixv(50, 66, n)], pv); }
     if (pm > 0) { const n = liso((neveMonte(x, y) - 0.35) / 0.3); somar([mixv(140, 238, n), mixv(144, 242, n), mixv(154, 248, n)], pm); }
   }
+  { const mc = typeof miniCidade === "function" && miniCidade(x, y); if (mc) return [mc[0], mc[1], mc[2], 0]; }   // (a cidade, como no minimapa)
   const w = ajusteChaoEm(x, y);
   if (w > 0) { const s = [0, 0, 0]; for (let l = 0; l < 9; l++) if (_ajAc[l] > 0) for (let q = 0; q < 3; q++) s[q] += COR_AJ[l][q] * _ajAc[l]; c = c.map((v, q) => v * (1 - w) + s[q]); }
   return [c[0], c[1], c[2], 0];
