@@ -5039,7 +5039,7 @@ TIPOS.rato = { nome: "Rato", altura: 22, material: "carne", vida: 32, visao: 6, 
 const criaturas = [];
 // nível e força de cada criatura: a exp vem do nível; o golpe delas tira essa vida, antes da defesa do personagem
 Object.assign(TIPOS.lobo, { nivel: 3, dano: 16 }); Object.assign(TIPOS.goblin, { nivel: 5, dano: 22 });
-Object.assign(TIPOS.esqueleto, { nivel: 7, dano: 30 }); Object.assign(TIPOS.aranha, { nivel: 12, dano: 52 });
+Object.assign(TIPOS.esqueleto, { nivel: 7, dano: 30 }); Object.assign(TIPOS.aranha, { nivel: 14, dano: 90, vida: 8500 });   // (a Aranha Gigante é chefe: CHEFES_MAPA)
 Object.assign(TIPOS.javali, { nivel: 4, dano: 20 }); Object.assign(TIPOS.rato, { nivel: 2, dano: 8 }); // o vale é caça para o nível 30+
 Object.assign(TIPOS.orc, { nivel: 30, dano: 70, vida: 650 });
 Object.assign(TIPOS.orc_bravo, { nivel: 33, dano: 85, vida: 850 });
@@ -5060,7 +5060,7 @@ const NOVAS = {
   tigre: { nome: "Tigre", nivel: 16, vida: 280, dano: 48, material: "carne", altura: 52, barra: 110, sombra: 0.75, anel: 0.9, raio: 0.45,
     visao: 8, perto: 1.7, alcance: 2.2, ataque: "atacar", galope: 3.9, chega: 1.9, passeio: 0.8, renasce: 20, vAndar: 0.702, vCorrer: 3.95, alvoZ: 0.6, somAcerto: "mordida",
     reserva: { base: ["lobo"], esc: 1.3, filtro2d: "sepia(1) saturate(3.2) hue-rotate(-14deg) brightness(1.05)", tinta: "#ffb070" } },
-  lobo_alfa: { nome: "Lobo Alfa", nivel: 20, vida: 2600, dano: 70, material: "carne", altura: 58, barra: 128, sombra: 0.85, anel: 1.1, raio: 0.5,
+  lobo_alfa: { nome: "Lobo Alfa", nivel: 20, vida: 13000, dano: 120, material: "carne", altura: 58, barra: 128, sombra: 0.85, anel: 1.1, raio: 0.5,
     visao: 8.5, perto: 1.8, alcance: 2.3, ataque: "morder", galope: 3.8, chega: 1.8, passeio: 0.7, renasce: 120, uiva: true, chefe: true, chefeCaverna: true,
     vAndar: 0.673, vCorrer: 4.35, alvoZ: 0.6, somAcerto: "mordida",
     reserva: { base: ["lobo"], esc: 1.5, filtro2d: "brightness(0.55) saturate(0.5)", tinta: "#6a6a78" } },
@@ -5070,7 +5070,7 @@ const NOVAS = {
   bandido_arqueiro: { nome: "Bandido Arqueiro", nivel: 19, vida: 260, dano: 46, material: "carne", altura: 92, barra: 172, sombra: 0.42, anel: 0.5, raio: 0.3,
     visao: 9, perto: 6, alcance: 8, ataque: "tiro", magia: true, projetil: "flecha", galope: 0, chega: 1.9, passeio: 0.8, vAndar: 1.382, alvoZ: 1.1, somAcerto: "flecha_acerta",
     reserva: { base: ["orc_feiticeiro", "orc", "goblin"], esc: 0.85, filtro2d: "sepia(0.7) hue-rotate(30deg) saturate(1.2) brightness(1.05)", tinta: "#c8d8a0" } },
-  chefe_bandido: { nome: "Chefe dos Bandidos", nivel: 25, vida: 4200, dano: 105, material: "carne", altura: 104, barra: 190, sombra: 0.55, anel: 0.7, raio: 0.38,
+  chefe_bandido: { nome: "Chefe dos Bandidos", nivel: 25, vida: 17000, dano: 150, material: "carne", altura: 104, barra: 190, sombra: 0.55, anel: 0.7, raio: 0.38,
     visao: 8, perto: 1.6, alcance: 2.3, ataque: "golpe", galope: 0, chega: 2.0, passeio: 0.6, renasce: 120, chefe: true, chefeCaverna: true, vAndar: 1.426, alvoZ: 1.2, somAcerto: "cortePesado",
     reserva: { base: ["orc", "goblin"], esc: 1.0, filtro2d: "sepia(0.5) hue-rotate(-20deg) saturate(1.3)", tinta: "#d89080" } },
   zumbi: { nome: "Zumbi", nivel: 22, vida: 420, dano: 55, material: "carne", altura: 88, barra: 166, sombra: 0.4, anel: 0.5, raio: 0.3,
@@ -5079,7 +5079,7 @@ const NOVAS = {
   fantasma: { nome: "Fantasma", nivel: 26, vida: 380, dano: 64, material: "osso", altura: 110, barra: 196, sombra: 0.35, anel: 0.5, raio: 0.3,
     visao: 8, perto: 1.5, alcance: 2.1, ataque: "golpe", galope: 0, chega: 1.5, passeio: 0.6, levanta: false, flutua: true, vAndar: 0.701, alvoZ: 1.3, somAcerto: "gelo",
     reserva: { base: ["esqueleto"], esc: 1.1, filtro2d: "hue-rotate(180deg) saturate(2.5) brightness(1.5)", alfa2d: 0.62, flutua2d: 0.3, tinta: "#a8d8ff" } },
-  lich: { nome: "Lich", nivel: 30, vida: 6000, dano: 130, material: "osso", altura: 110, barra: 206, sombra: 0.5, anel: 0.75, raio: 0.38,
+  lich: { nome: "Lich", nivel: 30, vida: 21000, dano: 170, material: "osso", altura: 110, barra: 206, sombra: 0.5, anel: 0.75, raio: 0.38,
     visao: 9, perto: 5.5, alcance: 7.5, ataque: "magia", magia: true, projetil: "sombra", conjura: 10, galope: 0, chega: 1.6, passeio: 0.5, renasce: 150,
     chefe: true, chefeCaverna: true, vAndar: 0.969, alvoZ: 1.3, somAcerto: "magia_raio",
     reserva: { base: ["orc_feiticeiro", "orc", "goblin"], esc: 1.05, filtro2d: "hue-rotate(200deg) saturate(1.2) brightness(0.75)", tinta: "#b090d0" } },
@@ -5092,6 +5092,14 @@ const NOVAS = {
   yeti: { nome: "Yeti", nivel: 46, vida: 2500, dano: 175, material: "carne", altura: 130, barra: 244, sombra: 0.85, anel: 0.95, raio: 0.55,
     visao: 7.5, perto: 1.9, alcance: 2.5, ataque: "golpe", galope: 0, chega: 1.5, passeio: 0.6, vAndar: 1.914, alvoZ: 1.5, somAcerto: "carne",
     reserva: { base: ["orc", "goblin"], esc: 1.35, filtro2d: "grayscale(1) brightness(2.1)", tinta: "#f0f4ff" } },
+  // o chefe da Montanha Gelada (o Nove Caudas do Monte Sohan, no Metin2): uma raposa branca de nove caudas. O modelo 3D
+  // (3d/nove_caudas.glb, de outro agente: parado, andando, correndo, garras, leque, rugido, dano, morte); sem ele (?2d=1, ou
+  // o glb não servido), o provisório é a reserva: o lobo 2× maior, claro e dourado (com o "morder" do lobo). O leque das
+  // caudas é o pisão dele e o rugido, a pose de carregar (CHEFES_MAPA.nove_caudas). Confira vAndar/vCorrer e alvoZ no glb
+  nove_caudas: { nome: "Nove Caudas", nivel: 50, vida: 40000, dano: 290, material: "carne", altura: 200, barra: 235, sombra: 1.4, anel: 1.6, raio: 0.9,
+    visao: 9, perto: 2.0, alcance: 2.7, ataque: "garras", galope: 4.2, chega: 2.0, passeio: 0.7, renasce: 1080, chefe: true, chefeCaverna: true,   // (sem uiva: o glb não tem "uivar")
+    vAndar: 1.74, vCorrer: 4.35, alvoZ: 1.6, somAcerto: "mordida",                // (o glb: ~3,2 m de altura, anda a 1,74 m/s e corre a 4,35)
+    reserva: { base: ["lobo"], esc: 2.0, filtro2d: "sepia(0.35) saturate(0.7) brightness(1.75)", tinta: "#fff2d8" } },
 };
 for (const [t, c] of Object.entries(NOVAS)) TIPOS[t] = { ...c, so3d: true, M: null, spr: {} };
 // a reserva (sem o glb): a variante da base que existir, com o ataque, as animações e o tamanho dela
@@ -5181,7 +5189,7 @@ function fatorDifNivel(dif) {                       // dif = nível da criatura 
 }
 function expDe(l) {
   const n = l.cfg.nivel || 1, base = 12 * Math.pow(n, 1.9) + 20;
-  return base * (l.cfg.chefe ? 5 : 1) * (l.cfg.estatico ? 6 : 1) * (l.horda ? 0.6 : 1) * fatorDifNivel(n - prog.nivel);
+  return base * (defChefe(l) ? 15 : l.cfg.chefe ? 5 : 1) * (l.cfg.estatico ? 6 : 1) * (l.horda ? 0.6 : 1) * fatorDifNivel(n - prog.nivel);
 }
 function progressoNovo(c) {
   return { nivel: 1, exp: 0, pontos: 0, atrib: { ...ATRIB_INICIAL[c] }, skills: {}, yang: 0, leituraAte: 0, nome: "", pontosSkill: 0, leitura: {}, arma: { ref: 0 }, equip: { elmo: null, armadura: null, botas: null, escudo: null },
@@ -5332,7 +5340,7 @@ function golpeNoPersonagem(l) {
     numeros.push({ wx: viking.x, wy: viking.y, y: -150, vida: 0.9, txt: "Bloqueou!", contra: true }); som("metal", viking, 0.8);
     return false;
   }
-  const base = (l.cfg.dano || 15) * (0.85 + Math.random() * 0.3), dano = Math.max(1, Math.round(base * 100 / (100 + status.defesa)));
+  const base = (l.cfg.dano || 15) * (l.furiaChefe ? 1.3 : 1) * (0.85 + Math.random() * 0.3), dano = Math.max(1, Math.round(base * 100 / (100 + status.defesa)));
   viking.vida -= dano; viking.semDano = 0;
   numeros.push({ wx: viking.x, wy: viking.y, y: -150, vida: 0.9, txt: "−" + dano, contra: true });
   if (viking.vida <= 0) { morrerJogador(); return true; }
@@ -5345,8 +5353,10 @@ function morrerJogador() {
   avisar(`Você caiu! Perdeu ${perda} de exp; volta na praça em 4 s`);
 }
 function morreuCriatura(l) {
-  if (prog) ganharExp(expDe(l), l);
+  // (o chefe de mapa: até 40% de um nível, acima do teto comum de 20%)
+  if (prog) { if (defChefe(l)) ganharExp(Math.min(expDe(l), EXP_NIVEL[prog.nivel] * 0.4), l, true); else ganharExp(expDe(l), l); }
   if (l.cfg.estatico) metinQuebrou(l);
+  else if (defChefe(l)) chefeMorreu(l);
   else if (l.cfg.chefeCaverna) {
     const itens = [livroQualquer(), { tipo: "pocao", qtd: 3 }, { tipo: "pocaoMana", qtd: 2 },
                    { tipo: "yang", qtd: Math.round(l.cfg.nivel * (60 + Math.random() * 40)) }];
@@ -5494,6 +5504,300 @@ function metinQuebrou(l) {
   avisar(`${l.cfg.nome} quebrou!`);
 }
 
+// ---------------------------------------------------------------- chefes de mapa
+// Como no Metin2 (Logs/Chefes/PESQUISA.md e PROJETO.md): cada chefe tem uma ÁREA fixa e grande (o centro é o spawn dele no
+// Mapa do Mundo, U; nas dungeons, a sala do fundo) e nasce num ponto sorteado dentro dela. Morto, volta em min–max MINUTOS
+// (as Metins: 40–120 s) e, ao nascer, o jogo avisa ("O Nove Caudas despertou na Montanha Gelada!") e pisca no minimapa,
+// onde o chefe vivo fica sempre marcado com uma coroa (morto: a área dele com o cronômetro; de perto, no alto da tela).
+// Vida e dano bem acima de uma Metin do mesmo nível. As mecânicas entram por FASE (fase 2 abaixo de 66% da vida, fase 3
+// abaixo de 33%, com a fúria): pisao (golpe em área em volta dele, empurra), chuva (marcas no chão em volta do jogador que
+// explodem uma a uma), investida (risca uma faixa até atrás do jogador e corre por ela) e horda (chama o bando dele, ao
+// entrar na fase e de 25 em 25 s). Tudo com o aviso no chão antes: dá para sair da frente. Morto, solta o "baú do chefe".
+// mecs: a mecânica que entra em cada fase (1, 2, 3); horda: [[tipo, quantos], ...]; cor: o matiz dos avisos no chão
+const CHEFES_MAPA = {
+  aranha: { artigo: "A", regiao: "no Ninho das Aranhas", raio: 7, min: 8, max: 12, mecs: ["chuva", "horda", "pisao"], horda: [["aranhinha", 3]], cor: 95,
+            falas: ["A Aranha Gigante chama a ninhada!", "A Aranha Gigante se enfurece e salta!"] },
+  lobo_alfa: { regiao: "na Floresta do Leste", raio: 8, min: 9, max: 13, mecs: ["investida", "horda", "pisao"], horda: [["lobo", 3]], cor: 28,
+               falas: ["O Lobo Alfa uiva: a matilha vem!", "O Lobo Alfa se enfurece!"] },
+  chefe_bandido: { regiao: "no Acampamento dos Bandidos", raio: 6, min: 10, max: 14, mecs: ["pisao", "horda", "investida"], horda: [["bandido", 2], ["bandido_arqueiro", 1]], cor: 15,
+                   falas: ["O Chefe dos Bandidos chama o bando!", "O Chefe dos Bandidos se enfurece!"] },
+  lich: { regiao: "nas Ruínas da Cripta", raio: 8, min: 12, max: 16, mecs: ["chuva", "pisao"], raioPisao: 4.5, cor: 280,
+          falas: ["O Lich abre o chão em trevas!", "O Lich se enfurece!"] },
+  orc_chefe: { regiao: "no Vale dos Orcs", raio: 9, min: 14, max: 18, mecs: ["pisao", "horda", "investida"], horda: [["orc_negro", 3]], raioPisao: 3.4, cor: 22,
+               falas: ["O Chefe Orc chama os guerreiros!", "O Chefe Orc se enfurece!"] },
+  nove_caudas: { regiao: "na Montanha Gelada", raio: 8, min: 16, max: 20, mecs: ["chuva", "pisao", "horda"], horda: [["yeti", 1], ["golem", 1]], raioPisao: 3.5, cor: 200, cada: 5.5,
+                 animPisao: "leque",                                // (no glb: o leque das nove caudas; sem ele, a pose e o golpe comuns)
+                 falas: ["O Nove Caudas abre as nove caudas!", "O Nove Caudas se enfurece e chama a montanha!"] },
+  // os chefes das dungeons (montarDungeon: chaveChefe "dg_<id>"; a área é a sala do fundo)
+  dg_ratos: { regiao: "na Caverna dos Ratos", min: 8, max: 10, mecs: ["pisao", "horda"], horda: [["rato", 3]], raioPisao: 2.6, cor: 32 },
+  dg_aranhas: { artigo: "A", regiao: "na Toca das Aranhas", min: 8, max: 10, mecs: ["chuva", "horda"], horda: [["aranhinha", 3]], cor: 95 },
+  dg_cripta: { regiao: "na Cripta Esquecida", min: 8, max: 10, mecs: ["pisao", "horda"], horda: [["esqueleto", 3]], cor: 215 },
+  dg_mina: { regiao: "na Mina dos Goblins", min: 8, max: 10, mecs: ["pisao", "horda"], horda: [["goblin", 3]], raioPisao: 2.8, cor: 38 },
+};
+const ataquesChefe = [];         // os avisos no chão: { tipo: "circulo" (x, y, r) | "linha" (x, y até x1, y1, larg), t, dur, cor, mult, de, empurra, golpe }
+const avisosChefe = [];          // os que acabaram de nascer: { l, ate } (o anel pulsando no minimapa)
+let relogioChefes = 0;           // (s de jogo: anda com o passo, também nos testes)
+function defChefe(l) { return l && l.cfg && l.cfg.chefe ? CHEFES_MAPA[l.cfg.chaveChefe || l.tipo] || null : null; }
+function areaChefe(l) { return l.area || (l.area = { x: l.toca.x, y: l.toca.y, r: (defChefe(l) || {}).raio || 6 }); }
+// um ponto livre da área (fora d'água e da praça; na dungeon, no chão da caverna)
+function lugarChefe(l) {
+  const ar = areaChefe(l), cav = naCaverna(ar.x);
+  for (let k = 0; k < 80; k++) {
+    const a = Math.random() * 7, r = ar.r * Math.sqrt(Math.random()), x = ar.x + Math.cos(a) * r, y = ar.y + Math.sin(a) * r;
+    if (!livre(x, y) || !livre(x + 0.8, y) || !livre(x - 0.8, y) || !livre(x, y + 0.8) || !livre(x, y - 0.8)) continue;
+    if (cav ? pisoCaverna(x, y) : !agua(x, y) && !praca(x, y) && borda(x, y) < RAIO - 4) return { x, y };
+  }
+  return { x: ar.x, y: ar.y };
+}
+// o chefe entra no mapa (porSpawns, montarDungeon): a área em volta do spawn e o primeiro lugar sorteado nela
+function iniciarChefe(l, area) {
+  l.area = area || { x: l.x, y: l.y, r: defChefe(l).raio || 6 };
+  const p = lugarChefe(l); l.x = p.x; l.y = p.y; l.toca = { x: p.x, y: p.y };
+  l.fase = 1; l.tMec = 4;
+}
+function tempoChefe(dc) { return 60 * (dc.min + Math.random() * (dc.max - dc.min)); }
+function relogioTxt(s) { s = Math.max(0, Math.ceil(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+function rachasChefe(r) { return Array.from({ length: 7 }, (_, k) => ({ a: k / 7 * 6.28 + Math.random() * 0.6, comp: r * (0.7 + Math.random() * 0.5), dobra: (Math.random() - 0.5) * 0.7 })); }
+// faíscas da cor do chefe (com os efeitos 3D, o FX3 acrescenta o clarão, o anel e a fumaça: embrulhar("explosaoChefe"))
+function explosaoChefe(x, y, r, cor) {
+  for (let k = 0; k < 14; k++) { const a = Math.random() * 7, v = 1 + Math.random() * 2.5; brasas.push({ x, y, z: 0.2, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 1 + Math.random() * 2, vida: 0.7, max: 0.7, tam: 0.08, cor }); }
+}
+function poeiraChefe(x, y, n, v0 = 1) {
+  for (let k = 0; k < n; k++) { const a = Math.random() * 7, v = v0 * (1 + Math.random() * 2.5); brasas.push({ x, y, z: 0.05, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 0.6 + Math.random() * 1.4, vida: 0.9, max: 0.9, tam: 0.12, poeira: true }); }
+}
+// voltou: aviso na tela, som, onda no chão e o anel no minimapa
+function chefeNasceu(l) {
+  const dc = defChefe(l); if (!dc) return;
+  Object.assign(l, { fase: 1, tMec: 4, tHorda: 0, nMec: 0, furiaChefe: false, canal: 0, investindo: null, manual: null });
+  avisosChefe.push({ l, ate: relogioChefes + 30 });
+  avisarLongo(`${dc.artigo || "O"} ${l.cfg.nome} despertou ${dc.regiao}!`, 6000);
+  som("chefe_aparece", null, 0.8);
+  ondas.push({ x: l.x, y: l.y, t: 0, raio: 3, cor: dc.cor, fogo: false, pilares: [], rachas: rachasChefe(3) });
+  poeiraChefe(l.x, l.y, 30); explosaoChefe(l.x, l.y, 3, dc.cor);
+  if (Math.hypot(viking.x - l.x, viking.y - l.y) < 20) tremor = Math.max(tremor, 0.4);
+}
+// caiu: o baú, o lugar da próxima vez (já sorteado na área) e quanto falta
+function chefeMorreu(l) {
+  const dc = defChefe(l);
+  soltarItens(l, dropsChefe(l));
+  for (let i = ataquesChefe.length - 1; i >= 0; i--) if (ataquesChefe[i].de === l) ataquesChefe.splice(i, 1);
+  ondas.push({ x: l.x, y: l.y, t: 0, raio: 2.8, cor: dc.cor, fogo: true, pilares: [], rachas: rachasChefe(2.8) });
+  tremor = Math.max(tremor, 0.45); explosaoChefe(l.x, l.y, 2.8, dc.cor);
+  l.toca = lugarChefe(l);
+  Object.assign(l, { renascerIni: l.renascer, canal: 0, investindo: null, manual: null, furiaChefe: false });
+  avisarLongo(`${l.cfg.nome} caiu! Volta ${dc.regiao} em ${Math.round(l.renascer / 60)} min`, 5000);
+}
+// o "baú do chefe": peças do nível dele com 2 a 4 bônus garantidos, livros, pedras, pergaminhos, poções e muito yang
+function bonusChefe(parte, tier) {
+  const l = [], n = 2 + (Math.random() < 0.5 ? 1 : 0) + (Math.random() < 0.15 ? 1 : 0);
+  for (let k = 0; k < n; k++) { const b = sortearBonus(parte, tier, l); if (b) l.push(b); }
+  return l;
+}
+function pecaDeChefe(nivel) { const p = pecaDoNivel(nivel), [, parte, tier] = p.chave.split(":"); p.bon = bonusChefe(parte, +tier); return p; }
+function dropsChefe(l) {
+  const n = l.cfg.nivel || 1, itens = [livroQualquer(), livroQualquer(), pecaDeChefe(n), { tipo: "pedra" }, { tipo: Math.random() < 0.5 ? "encantar" : "mudar" },
+    { tipo: "pocao", qtd: 5 }, { tipo: "pocaoMana", qtd: 4 }, { tipo: "yang", qtd: Math.round(n * (150 + Math.random() * 100)) }];
+  if (Math.random() < 0.7) itens.push({ tipo: "alma" });
+  if (Math.random() < 0.6) itens.push({ tipo: "bencao" });
+  if (Math.random() < 0.5) itens.push(pecaDeChefe(n));
+  if (Math.random() < 0.35) itens.push({ tipo: "arma", chave: "arma:" + classe, ref: 0, bon: bonusChefe("arma", 2) });
+  return itens;
+}
+// o golpe de uma mecânica: o do chefe, mult vezes mais forte (na fúria, golpeNoPersonagem soma os 30%)
+function feridoChefe(l, mult) { feridoPor({ ...l, cfg: { ...l.cfg, dano: (l.cfg.dano || 20) * mult } }); }
+function empurrarJogador(dx, dy, dist) {
+  const d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+  for (let k = 0; k < 8; k++) { const nx = viking.x + ux * dist / 8, ny = viking.y + uy * dist / 8; if (!livre(nx, ny)) break; viking.x = nx; viking.y = ny; }
+}
+// a pose de "carregar" a mecânica (pref, se o modelo tiver; senão a ameaça, o rugido, o uivo, a conjuração), sem o golpe sair
+function posarChefe(l, pref) {
+  const a = l.cfg.M.animacoes, n = [pref, "ameaca", "rugido", "uivar", "conjurar"].find(k => k && a[k]);
+  l.destino = null;
+  if (n) { criaturaAcao(l, n); l.acertou = true; } else criaturaAnim(l, "parado");
+}
+// a cada quadro, o chefe vivo (passoCriatura): as fases pela vida e, caçando, as mecânicas na vez delas
+function passoChefe(l, dt) {
+  const dc = defChefe(l); if (!dc) return;
+  if (l.fase === undefined) { l.fase = 1; l.tMec = 4; }
+  const f = l.vida / l.cfg.vida, fase = f < 0.33 ? 3 : f < 0.66 ? 2 : 1;
+  while (l.fase < fase) entrarFase(l, dc, ++l.fase);
+  if (l.investindo) { passoInvestidaChefe(l, dt); return; }
+  if (l.canal > 0) { l.canal -= dt; return; }
+  if (!l.cacando || viking.caido || !criaturasAtacam) return;
+  const d = Math.hypot(viking.x - l.x, viking.y - l.y), mecs = dc.mecs.slice(0, l.fase);
+  if (l.furiaChefe) l.recarga = Math.max(0, l.recarga - dt * 0.4);   // (na fúria, os golpes comuns também vêm mais rápido)
+  if (mecs.includes("horda") && (l.tHorda = (l.tHorda || 0) - dt) <= 0) { l.tHorda = 25; chamarLacaios(l, dc); }
+  l.tMec = (l.tMec ?? 4) - dt * (l.furiaChefe ? 1.4 : 1);
+  if (l.tMec > 0 || l.acao || d > 10) return;
+  const usaveis = mecs.filter(m => m !== "horda" && (m !== "pisao" || d < (dc.raioPisao || 3) + 1.5));
+  if (!usaveis.length) { l.tMec = 0.5; return; }
+  const m = usaveis[(l.nMec = (l.nMec || 0) + 1) % usaveis.length];
+  l.tMec = (dc.cada || 6.5) + Math.random() * 2;
+  if (m === "pisao") pisaoChefe(l, dc); else if (m === "chuva") chuvaChefe(l, dc); else if (m === "investida") investidaChefe(l, dc);
+}
+function entrarFase(l, dc, fase) {
+  if (fase === 3) {
+    l.furiaChefe = true; som("rugido_chefe", l, 1);
+    ondas.push({ x: l.x, y: l.y, t: 0, raio: 2.2, cor: 4, fogo: true, pilares: [], rachas: rachasChefe(2.2) }); explosaoChefe(l.x, l.y, 2.2, 4);
+  } else som(l.cfg.uiva ? "uivo" : "rugido_chefe", l, 0.9);
+  if (!l.acao && !l.investindo && l.cfg.M.animacoes.rugido) { criaturaAcao(l, "rugido"); l.acertou = true; }   // (o modelo que tem o rugido, ruge)
+  avisarLongo((dc.falas && dc.falas[fase - 2]) || `${dc.artigo || "O"} ${l.cfg.nome} ${fase === 3 ? "se enfurece!" : "fica mais forte!"}`, 3500);
+  if (dc.mecs[fase - 1] === "horda") { chamarLacaios(l, dc); l.tHorda = 25; }
+  l.tMec = Math.min(l.tMec ?? 4, 1.5);                             // (a mecânica nova vem logo)
+}
+// o bando do chefe sai do chão em volta dele (no máximo 6 dele vivos; somem ao cair, como as hordas das Metins)
+function chamarLacaios(l, dc) {
+  if (!dc.horda) return;
+  let vivos = criaturas.filter(c => c.conjuradoPor === l && !c.morto).length;
+  for (const [tipo, n] of dc.horda) {
+    const cfgH = TIPOS[tipo]; if (!cfgH || !cfgH.M) continue;
+    for (let k = 0; k < n && vivos < 6; k++, vivos++) {
+      const a = Math.random() * 7, x = l.x + Math.cos(a) * 2.2, y = l.y + Math.sin(a) * 2.2, ok = livre(x, y);
+      const c = novaCriatura(NOVAS[tipo] ? tipo : cfgH.base || tipo, ok ? x : l.x + 1, ok ? y : l.y, cfgH);
+      Object.assign(c, { horda: true, conjuradoPor: l, cacando: criaturasAtacam, toca: { x: l.x, y: l.y } });
+      criaturas.push(c); poeiraChefe(c.x, c.y, 8, 0.6);
+    }
+  }
+  if (!l.acao && !l.investindo && l.cfg.M.animacoes.rugido) { criaturaAcao(l, "rugido"); l.acertou = true; }   // (o rugido da invocação)
+  som(l.cfg.uiva ? "uivo" : "rugido_chefe", l, 0.8);
+}
+// pisão: o chefe para, o círculo em volta dele enche e explode (onda, rachaduras, tremor) e empurra quem estiver dentro
+function pisaoChefe(l, dc) {
+  const dur = 1.1;
+  ataquesChefe.push({ tipo: "circulo", x: l.x, y: l.y, r: dc.raioPisao || 3, t: 0, dur, cor: dc.cor, mult: 1.8, de: l, empurra: 1.6, golpe: true });
+  l.canal = dur; posarChefe(l, dc.animPisao); som("rugido_chefe", l, 0.6);
+}
+// chuva: marcas no chão (uma embaixo do jogador, as outras em volta), cada uma explode na sua vez
+function chuvaChefe(l, dc) {
+  const n = 3 + l.fase + (l.furiaChefe ? 1 : 0);
+  for (let k = 0; k < n; k++) {
+    const a = Math.random() * 7, dd = k === 0 ? 0 : 1.2 + Math.random() * 2.6;
+    ataquesChefe.push({ tipo: "circulo", x: viking.x + Math.cos(a) * dd, y: viking.y + Math.sin(a) * dd, r: 1.3, t: 0, dur: 1.4 + k * 0.12, cor: dc.cor, mult: 1.2, de: l });
+  }
+  l.canal = 0.7; posarChefe(l); som(dc.cor > 180 && dc.cor < 300 ? "magia_raio" : "magia_fogo", l, 0.7);
+}
+// investida: risca a faixa até um pouco atrás do jogador (até onde o chão é livre) e, no fim do aviso, corre por ela
+function investidaChefe(l, dc) {
+  const dx = viking.x - l.x, dy = viking.y - l.y, d = Math.hypot(dx, dy) || 1, len = Math.min(9, Math.max(5, d + 2.5)), ex = dx / d * len, ey = dy / d * len;
+  let u1 = 1;
+  for (let k = 1; k <= 18; k++) if (!livre(l.x + ex * k / 18, l.y + ey * k / 18)) { u1 = (k - 1) / 18; break; }
+  if (u1 * len < 2) { pisaoChefe(l, dc); return; }
+  ataquesChefe.push({ tipo: "linha", x: l.x, y: l.y, x1: l.x + ex * u1, y1: l.y + ey * u1, larg: 1.2 + (l.cfg.raio || 0), t: 0, dur: 0.85, cor: dc.cor, mult: 1.6, de: l });
+  l.canal = 0.85; l.dir = dirDe(dx, dy); posarChefe(l); vozCriatura(l, "ve");
+}
+function passoInvestidaChefe(l, dt) {
+  const v = l.investindo; v.t += dt;
+  const u = Math.min(1, v.t / v.dur), x = v.x0 + (v.x1 - v.x0) * u, y = v.y0 + (v.y1 - v.y0) * u;
+  if (livre(x, y)) { l.x = x; l.y = y; }
+  l.dir = dirDe(v.x1 - v.x0, v.y1 - v.y0);
+  if (Math.random() < dt * 25) poeiraChefe(l.x, l.y, 1, 0.5);
+  const dx = viking.x - l.x, dy = viking.y - l.y;
+  if (!v.acertou && !viking.caido && Math.hypot(dx, dy) < 1.1 + (l.cfg.raio || 0)) {
+    v.acertou = true; feridoChefe(l, v.mult); tremor = Math.max(tremor, 0.3);
+    const px = -(v.y1 - v.y0), py = v.x1 - v.x0, lado = dx * px + dy * py >= 0 ? 1 : -1;   // joga para o lado da faixa
+    empurrarJogador(px * lado, py * lado, 1.8);
+  }
+  if (u >= 1) { l.investindo = null; l.manual = null; criaturaAcao(l, l.cfg.ataque); l.acertou = true; l.recarga = Math.max(l.recarga, 0.8); }
+}
+// o fim do aviso no chão: a faixa vira a corrida; o círculo explode e fere quem estiver dentro
+function passoChefes(dt) {
+  relogioChefes += dt;
+  for (let i = ataquesChefe.length - 1; i >= 0; i--) {
+    const a = ataquesChefe[i];
+    if (!a.de || a.de.morto) { ataquesChefe.splice(i, 1); continue; }
+    a.t += dt;
+    if (a.t < a.dur) continue;
+    ataquesChefe.splice(i, 1);
+    if (a.tipo === "linha") {
+      const l = a.de, an = l.cfg.M.animacoes;
+      l.investindo = { x0: l.x, y0: l.y, x1: a.x1, y1: a.y1, t: 0, dur: Math.hypot(a.x1 - l.x, a.y1 - l.y) / 14, mult: a.mult, acertou: false };
+      l.acao = null; l.manual = an.correndo ? "correndo" : "andando"; l.canal = 0; som("passo_gigante", l, 0.7);
+    } else explodirAtaqueChefe(a);
+  }
+  for (let i = avisosChefe.length - 1; i >= 0; i--) if (avisosChefe[i].ate < relogioChefes || avisosChefe[i].l.morto) avisosChefe.splice(i, 1);
+}
+function explodirAtaqueChefe(a) {
+  const l = a.de;
+  ondas.push({ x: a.x, y: a.y, t: 0, raio: a.r, cor: a.cor, fogo: true, pilares: [], rachas: a.golpe ? rachasChefe(a.r) : [] });
+  poeiraChefe(a.x, a.y, a.golpe ? 24 : 8); explosaoChefe(a.x, a.y, a.r, a.cor);
+  if (a.golpe) {
+    const dc = defChefe(l);
+    if (!(dc && dc.animPisao && l.acao === dc.animPisao)) { criaturaAcao(l, l.cfg.ataque); l.acertou = true; }   // (o leque já está batendo)
+    som("passo_gigante", a, 1); som("metin_golpe", a, 0.5);
+    if (Math.hypot(viking.x - a.x, viking.y - a.y) < 16) tremor = Math.max(tremor, 0.35);
+  } else som("magia_fogo", a, 0.45);
+  const dx = viking.x - a.x, dy = viking.y - a.y;
+  if (!viking.caido && Math.hypot(dx, dy) < a.r + 0.25) { feridoChefe(l, a.mult); if (a.empurra) empurrarJogador(dx || 1, dy, a.empurra); }
+}
+// os avisos no chão (por baixo de todos, em desenharMagiasChao): a área clara e, enchendo de dentro para fora (ou do
+// começo ao fim da faixa), a parte que já carregou, com a borda piscando
+function desenharAtaquesChefe(t) {
+  if (!ataquesChefe.length) return;
+  const s = PX * zoom, pisca = 0.7 + 0.3 * Math.sin(t * 18);
+  cx.save();
+  for (const a of ataquesChefe) {
+    const u = Math.min(1, a.t / a.dur), cor = k => `hsla(${a.cor}, 95%, 52%, ${k})`, borda = k => `hsla(${a.cor}, 100%, 78%, ${k})`;
+    if (a.tipo === "circulo") {
+      const [X, Y] = noMundo(a.x, a.y, 0), r = a.r * s;
+      cx.save(); cx.translate(X, Y); cx.scale(1, ACHATA);
+      cx.fillStyle = cor(0.14); cx.beginPath(); cx.arc(0, 0, r, 0, 7); cx.fill();
+      cx.fillStyle = cor(0.2 + 0.25 * u); cx.beginPath(); cx.arc(0, 0, r * u, 0, 7); cx.fill();
+      cx.strokeStyle = "rgba(20, 10, 8, 0.55)"; cx.lineWidth = 4.5 * zoom; cx.beginPath(); cx.arc(0, 0, r, 0, 7); cx.stroke();
+      cx.strokeStyle = borda(0.95 * pisca); cx.lineWidth = 2.2 * zoom; cx.beginPath(); cx.arc(0, 0, r, 0, 7); cx.stroke();
+      cx.restore();
+    } else {
+      const dx = a.x1 - a.x, dy = a.y1 - a.y, len = Math.hypot(dx, dy) || 1, nx = -dy / len * a.larg / 2, ny = dx / len * a.larg / 2;
+      const faixa = (k0, k1) => { const p = [[k0, 1], [k1, 1], [k1, -1], [k0, -1]].map(([k, sn]) => noMundo(a.x + dx * k + nx * sn, a.y + dy * k + ny * sn, 0));
+        cx.beginPath(); p.forEach(([X, Y], i) => i ? cx.lineTo(X, Y) : cx.moveTo(X, Y)); cx.closePath(); };
+      faixa(0, 1); cx.fillStyle = cor(0.14); cx.fill();
+      cx.strokeStyle = "rgba(20, 10, 8, 0.55)"; cx.lineWidth = 4.5 * zoom; cx.stroke(); cx.strokeStyle = borda(0.95 * pisca); cx.lineWidth = 2.2 * zoom; cx.stroke();
+      faixa(0, u); cx.fillStyle = cor(0.22 + 0.25 * u); cx.fill();
+    }
+  }
+  cx.restore();
+}
+// no minimapa: a coroa de cada chefe vivo (fora do alcance, na borda, apontando para ele; com o anel pulsando logo que
+// nasce) e, morto, a área dele tracejada com o cronômetro
+function coroaMini(g, x, y, w, cor) {
+  const h = w * 0.7;
+  g.save(); g.fillStyle = cor; g.strokeStyle = "#2a1606"; g.lineWidth = 1.3; g.lineJoin = "round";
+  g.beginPath(); g.moveTo(x - w / 2, y + h / 2); g.lineTo(x - w / 2, y - h / 2); g.lineTo(x - w / 4, y - h * 0.05); g.lineTo(x, y - h / 2 - 1.5);
+  g.lineTo(x + w / 4, y - h * 0.05); g.lineTo(x + w / 2, y - h / 2); g.lineTo(x + w / 2, y + h / 2); g.closePath(); g.fill(); g.stroke(); g.restore();
+}
+function desenharChefesMinimapa(g, ponto, W0, R, cav, dun) {
+  const esc = W0 / 2 / R;
+  for (const l of criaturas) {
+    if (!defChefe(l)) continue;
+    const ar = areaChefe(l);
+    if (naCaverna(ar.x) !== cav || (cav && cavDe(ar.x) !== dun)) continue;
+    if (l.morto) {
+      if (Math.hypot(ar.x - viking.x, ar.y - viking.y) > R + ar.r) continue;
+      const [X, Y] = ponto(ar.x, ar.y), txt = relogioTxt(l.renascer);
+      g.save(); g.setLineDash([3, 3]); g.strokeStyle = "rgba(255, 220, 140, 0.75)"; g.lineWidth = 1.2; g.beginPath(); g.arc(X, Y, ar.r * esc, 0, 7); g.stroke(); g.setLineDash([]);
+      g.font = "700 10px system-ui, sans-serif"; g.textAlign = "center"; g.lineJoin = "round"; g.lineWidth = 3; g.strokeStyle = "rgba(0, 0, 0, 0.8)"; g.strokeText(txt, X, Y + 3.5);
+      g.fillStyle = "#ffe6a8"; g.fillText(txt, X, Y + 3.5); g.restore();
+      continue;
+    }
+    let [X, Y] = ponto(l.x, l.y);
+    const dx = X - W0 / 2, dy = Y - W0 / 2, dd = Math.hypot(dx, dy), mx = W0 / 2 - 10, fora = dd > mx;
+    if (fora) { X = W0 / 2 + dx / dd * mx; Y = W0 / 2 + dy / dd * mx; }
+    if (avisosChefe.some(v => v.l === l)) {
+      for (const k0 of [0, 0.5]) { const k = (relogioChefes * 0.8 + k0) % 1; g.strokeStyle = `rgba(255, 210, 90, ${1 - k})`; g.lineWidth = 2; g.beginPath(); g.arc(X, Y, 6 + k * 16, 0, 7); g.stroke(); }
+    }
+    coroaMini(g, X, Y, fora ? 10 : 12, l.furiaChefe ? "#ff6a4a" : "#ffcf4a");
+  }
+}
+// no alto da tela, de dentro (ou da beira) da área de um chefe morto: quanto falta para ele voltar
+function desenharCronometroChefe() {
+  const l = criaturas.find(c => c.morto && defChefe(c) && Math.hypot(viking.x - areaChefe(c).x, viking.y - areaChefe(c).y) < areaChefe(c).r + 6);
+  if (!l) return;
+  const txt = `${l.cfg.nome} desperta em ${relogioTxt(l.renascer)}`;
+  cx.save(); cx.font = '400 18px "Germania One", Georgia, serif'; cx.textAlign = "center"; cx.lineJoin = "round";
+  cx.lineWidth = 4; cx.strokeStyle = "rgba(20, 14, 10, 0.9)"; cx.strokeText(txt, W / 2, 74); cx.fillStyle = "#e8d8b0"; cx.fillText(txt, W / 2, 74); cx.restore();
+}
+window.chefesEstado = () => criaturas.filter(c => defChefe(c)).map(c => ({ tipo: c.tipo, nome: c.cfg.nome, vivo: !c.morto, x: +c.x.toFixed(1), y: +c.y.toFixed(1), area: c.area,
+  volta: c.morto ? Math.round(c.renascer) : 0, fase: c.fase || 1, furia: !!c.furiaChefe }));
+
 // ---------------------------------------------------------------- itens no chão
 // O que cai (livros, poções, yang, Pedra Espiritual) fica no chão 90 s brilhando; chegando perto, o personagem pega.
 const drops = [];
@@ -5579,6 +5883,7 @@ function desenharMinimapa(agora) {
     else { g.fillStyle = l.cacando ? "#ff5a3c" : "#d8463a"; g.beginPath(); g.arc(X, Y, l.cfg.chefe ? 3.5 : 2.4, 0, 7); g.fill(); }
     if (l === selecao) { g.strokeStyle = "#fff"; g.lineWidth = 1.2; g.beginPath(); g.arc(X, Y, 5.5, 0, 7); g.stroke(); }
   }
+  desenharChefesMinimapa(g, ponto, W0, R, cav, dun);  // as coroas dos chefes (sempre à vista) e o cronômetro dos mortos
   if (!cav) missaoNoMinimapa(g, ponto, W0);          // a estrela do objetivo da missão
   // o personagem: seta amarela para onde ele olha
   const a = -viking.dir * Math.PI / 4;
@@ -7233,6 +7538,7 @@ const RENASCE_COMUM = 15, RENASCE_LONGE = 7;
 function tempoRenascer(l) {
   const c = l.cfg;
   if (c.estatico) return 40 + Math.random() * 80;                     // (a pedra Metin: sem tempo fixo)
+  if (defChefe(l)) return tempoChefe(defChefe(l));                   // (o chefe de mapa: de 8 a 20 MINUTOS, CHEFES_MAPA)
   if (c.chefe || c.chefeCaverna) return c.renasce;
   return l.tipo === "rato" ? 10 : RENASCE_COMUM;
 }
@@ -7262,7 +7568,7 @@ const VALE_BANDOS = [
 const RUINAS = { x: -46, y: -25, r: 12 };
 const MONTE_BANDOS = [
   ["golem", 131, 12, 3, 2.5], ["escorpiao", 134, -14, 3, 3], ["yeti", 148, 6, 3, 2.5], ["golem", 152, -8, 2, 2], ["escorpiao", 158, 2, 2, 2],
-  ["yeti", 126, -6, 2, 2]];
+  ["yeti", 126, -6, 2, 2], ["nove_caudas", 140, -3, 1]];             // (o Nove Caudas: o centro da área dele, CHEFES_MAPA)
 const NOVOS_BANDOS = [
   ["urso_negro", 26, 34, 3, 2.2], ["tigre", 40, -2, 3, 2.2], ["lobo_alfa", 33.6, 15, 1],
   ["chefe_bandido", ACAMP.x - 1, ACAMP.y - 3.5, 1], ["bandido", ACAMP.x + 1, ACAMP.y - 0.5, 4, 3], ["bandido_arqueiro", ACAMP.x + 5, ACAMP.y + 2, 3, 2.5],
@@ -7299,6 +7605,8 @@ function carregarSpawns() {
   SPAWNS_ORIGINAL = spawnsOriginais();
   SPAWNS = (MOBS_FIXO && spawnsValidos(MOBS_FIXO)) || SPAWNS_ORIGINAL.map(s => ({ ...s }));
   try { const m = spawnsValidos(JSON.parse(localStorage.getItem(MOBS_CHAVE))); if (m) SPAWNS = m; } catch (e) {}
+  // (um chefe de mapa novo do código que a lista editada ainda não tem, como o Nove Caudas, entra mesmo assim)
+  for (const s of SPAWNS_ORIGINAL) if (CHEFES_MAPA[s.tipo] && !SPAWNS.some(o => o.tipo === s.tipo)) SPAWNS.push({ ...s });
 }
 function salvarSpawns() { try { localStorage.setItem(MOBS_CHAVE, JSON.stringify(spawnsTexto())); } catch (e) {} }
 // os lugares de cada criatura de um spawn: um bando pequeno fica numa roda; um grande se espalha em espiral pelo campo
@@ -7317,6 +7625,7 @@ function porSpawns() {
     for (let [x, y] of lugaresSpawn(s)) {
       for (let k = 0; k < 20 && !livre(x, y); k++) { x -= Math.sign(x) * 0.5; y -= Math.sign(y) * 0.3; }
       const c = novaCriatura(s.tipo, x, y); c.spawn = true;
+      if (defChefe(c)) iniciarChefe(c, { x: s.x, y: s.y, r: CHEFES_MAPA[s.tipo].raio });   // (o chefe: ponto sorteado na área dele)
       criaturas.push(c);
     }
   }
@@ -7371,6 +7680,7 @@ function passoCriatura(l, dt) {
   const cfg = l.cfg, a = cfg.M.animacoes;
   l.recarga = Math.max(0, l.recarga - dt); l.piscar = Math.max(0, l.piscar - dt); l.firme = Math.max(0, (l.firme || 0) - dt);
   if (cfg.conjura && l.cacando) l.tConjura = (l.tConjura ?? 2) - dt;   // o especial do lich: conjura de tempos em tempos, caçando
+  if (cfg.chefe && !l.morto) passoChefe(l, dt);                         // o chefe de mapa: as fases e as mecânicas (CHEFES_MAPA)
   const alvoVista = Math.max(0, l.vida);
   l.vidaVista += (alvoVista - l.vidaVista) * Math.min(1, dt * (alvoVista > l.vidaVista ? 3 : 2.5));
   let vel = 0, mx = 0, my = 0;
@@ -7395,22 +7705,23 @@ function passoCriatura(l, dt) {
         criaturaAcao(l, "levantar"); l.anim = "morte"; l.t = a.morte.quadros / a.morte.fps - 1e-3; som("chocalho", l); som("esqueleto_grito", l, 0.6);
       } else { const t = l.toca; Object.assign(l, novaCriatura(l.tipo, t.x, t.y, l.cfg)); }
       l.anunciado = l.furioso = false;
+      if (defChefe(l)) chefeNasceu(l);                                // o aviso "… despertou …!" e o anel no minimapa
     }
-  } else if (!l.acao && !l.manual) {
+  } else if (!l.acao && !l.manual && !(l.canal > 0)) {                 // (canal: o chefe parado, carregando uma mecânica)
     const dx = viking.x - l.x, dy = viking.y - l.y, d = Math.hypot(dx, dy);
     const antes = l.cacando;
     if (l.voltando > 0) l.voltando -= dt;
     const escondido = NINJA.esconder.buff > 0 && classe === "ninja" && d > 1.2;
     l.cacando = criaturasAtacam && !viking.caido && !escondido && !(l.voltando > 0) && (d < cfg.visao || (l.cacando && d < cfg.visao + 4));
     if (l.cacando && !antes) vozCriatura(l, "ve");
-    if (cfg.chefeCaverna && !l.anunciado && d < 12) { l.anunciado = true; som("chefe_aparece", l, 0.9); }   // o chefe aparece na frente dele
+    if ((cfg.chefeCaverna || defChefe(l)) && !l.anunciado && d < 12) { l.anunciado = true; som("chefe_aparece", l, 0.9); }   // o chefe aparece na frente dele
     if (l.cacando && !antes && cfg.ameaca) { l.dir = dirDe(dx, dy); criaturaAcao(l, "ameaca"); l.recarga = 0.6; som("aranha_ameaca", l); }
     else if (l.cacando) {
       l.destino = null;
       // espremido pelo bando mas já no alcance do golpe: ataca dali mesmo (não fica esperando vaga na frente)
       const [px, py] = separacao(l), apertado = d <= cfg.alcance * 0.95 && Math.hypot(px, py) > 0.3;
       if (d > cfg.perto && !apertado) {
-        vel = d > 3 && cfg.galope ? cfg.galope : cfg.chega;
+        vel = (d > 3 && cfg.galope ? cfg.galope : cfg.chega) * (l.furiaChefe ? 1.3 : 1);   // (o chefe na fúria: mais rápido)
         if (retaLivre(l.x, l.y, viking.x, viking.y)) { mx = dx / d; my = dy / d; l.rota = null; }
         else [mx, my] = rumo(l, viking.x, viking.y, dt);           // algo no meio: vai pela rota com desvio
         if (!mx && !my) { mx = dx / d; my = dy / d; }
@@ -7532,6 +7843,7 @@ const VOZ_NOVAS = {
   golem: { ve: "rugido_chefe", ataca: null, dano: "osso_golpe", morre: "desmorona" },
   escorpiao: { ve: "aranha", ataca: null, dano: "aranha", morre: "aranha_morte" },
   yeti: { ve: "rugido_chefe", ataca: "orc_golpe_voz", dano: "grunhido", morre: "orc_morte" },
+  nove_caudas: { ve: "uivo", ataca: "rosnado", dano: "ganido", morre: "gemido" },
 };
 // os passos e o resto dos sons das criaturas novas, por quadro da animação (meio = o quadro do outro pé)
 function sonsNovas(l, qc, info, meio) {
@@ -8343,7 +8655,7 @@ const distante = () => !lutaPerto();
 function alcanceDist() { return classe === "feiticeiro" ? ALCANCE_MAGIA : ALCANCE_ARCO; }
 
 function limparMagias() {
-  magias.length = relampagos.length = ondas.length = marcas.length = 0;
+  magias.length = relampagos.length = ondas.length = marcas.length = ataquesChefe.length = 0;
   relampago.recarga = meteoros.recarga = erupcao.recarga = 0; meteoros.marca = 0;
   olho.buff = olho.recarga = poder.buff = poder.recarga = 0; viking.buffMago = null;
 }
@@ -8753,6 +9065,7 @@ function desenharMagiasChao(t) {
     }
   }
   cx.restore();
+  desenharAtaquesChefe(t);                           // os avisos no chão das mecânicas dos chefes
 }
 
 // o círculo mágico da erupção: abre do centro, gira devagar e se apaga no fim. Dois anéis dourados com runas entre eles,
@@ -8983,15 +9296,17 @@ function desenharCriatura(l) {
   let q = Math.floor(l.t * info.fps);
   q = info.laco ? ((q % info.quadros) + info.quadros) % info.quadros : Math.min(info.quadros - 1, Math.max(0, q));
   const [sx, sy] = tela(l.x - cam.x, l.y - cam.y), X = W / 2 + sx, Y = H / 2 + sy, z = zoom * (cfg.esc || 1);
-  if (cfg.chefeCaverna && !l.morto) {                                       // chefe: um aro vermelho pulsando no chão
-    const s = PX * zoom, r = (cfg.anel || 0.6) * s * 1.15, k = 0.5 + 0.5 * Math.sin(performance.now() / 300);
+  if ((cfg.chefeCaverna || cfg.chefe) && !l.morto) {                         // chefe: um aro vermelho pulsando no chão
+    // (na fúria do chefe de mapa: maior, mais vivo e pulsando mais rápido)
+    const f = l.furiaChefe ? 1 : 0, s = PX * zoom, r = (cfg.anel || 0.6) * s * (1.15 + 0.35 * f), k = 0.5 + 0.5 * Math.sin(performance.now() / (300 - 160 * f));
     cx.save(); cx.globalCompositeOperation = "lighter";
     const gr = cx.createRadialGradient(X, Y, r * 0.2, X, Y, r);
-    gr.addColorStop(0, "rgba(255, 60, 30, 0)"); gr.addColorStop(0.7, `rgba(255, 70, 30, ${0.12 + 0.1 * k})`); gr.addColorStop(1, "rgba(255, 60, 30, 0)");
+    gr.addColorStop(0, "rgba(255, 60, 30, 0)"); gr.addColorStop(0.7, `rgba(255, 70, 30, ${(0.12 + 0.1 * k) * (1 + 1.6 * f)})`); gr.addColorStop(1, "rgba(255, 60, 30, 0)");
     cx.fillStyle = gr; cx.beginPath(); cx.ellipse(X, Y, r, r * ACHATA, 0, 0, 7); cx.fill(); cx.restore();
   }
   cx.save();
-  cx.globalAlpha = l.morto && !cfg.levanta ? Math.min(1, l.renascer / 1.5) : 1;   // o lobo some aos poucos antes de voltar à toca
+  // o lobo some aos poucos antes de voltar à toca (o chefe de mapa, que demora minutos, some 20 s depois de cair)
+  cx.globalAlpha = l.morto && !cfg.levanta ? Math.max(0, Math.min(1, l.renascer / 1.5, l.renascerIni ? (l.renascer - l.renascerIni + 20) / 2 : 1)) : 1;
   sombra(X, Y, PX * zoom * cfg.sombra);
   const im = cfg.spr[l.anim] && cfg.spr[l.anim][dirTela(l.dir)];
   cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
@@ -9441,25 +9756,25 @@ const DUNGEONS = [
     tuneis: [[0, 0, 12, 4, 2.6], [12, 4, 10, -10, 2.4], [12, 4, 26, 5, 2.8], [10, -10, 22, -8, 2.2], [22, -8, 26, 5, 2.2]],
     tema: { piso: "rgba(18, 12, 10, 0.45)", escuro: 0.88, mini: [92, 80, 66] },
     bandos: [[1, "rato", 6], [2, "rato", 5], [3, "rato", 6], [4, "rato", 6]],
-    chefe: { sala: 3, base: "rato", nome: "Rato Rei", esc: 2.1, vida: 650, nivel: 7, dano: 24, renasce: 90 } },
+    chefe: { sala: 3, base: "rato", nome: "Rato Rei", esc: 2.1, vida: 3800, nivel: 7, dano: 34, renasce: 540 } },
   { id: "aranhas", nome: "Toca das Aranhas", x: 400, y: 0, x0: -8, x1: 36, y0: -14, y1: 18, buraco: [24, -31],
     salas: [{ x: 0, y: 0, r: 4 }, { x: 11, y: 7, r: 5.5 }, { x: 13, y: -6, r: 5 }, { x: 24, y: 9, r: 5 }, { x: 28, y: -3, r: 7.5 }],
     tuneis: [[0, 0, 11, 7, 2.4], [0, 0, 13, -6, 2.4], [11, 7, 24, 9, 2.2], [13, -6, 28, -3, 2.6], [24, 9, 28, -3, 2.2]],
     tema: { piso: "rgba(14, 22, 16, 0.55)", escuro: 0.9, mini: [74, 82, 68], teias: true },
     bandos: [[1, "aranhinha", 3], [2, "aranhinha", 3], [3, "aranhinha", 3]],
-    chefe: { sala: 4, base: "aranha", nome: "Aranha Rainha", esc: 1.25, vida: 2600, nivel: 15, dano: 70, renasce: 120 } },
+    chefe: { sala: 4, base: "aranha", nome: "Aranha Rainha", esc: 1.25, vida: 9000, nivel: 15, dano: 96, renasce: 540 } },
   { id: "cripta", nome: "Cripta Esquecida", x: 500, y: 0, x0: -8, x1: 34, y0: -16, y1: 16, buraco: [-33, -17],
     salas: [{ x: 0, y: 0, r: 4 }, { x: 10, y: -8, r: 5 }, { x: 12, y: 6, r: 5 }, { x: 22, y: -5, r: 5 }, { x: 26, y: 7, r: 7 }],
     tuneis: [[0, 0, 10, -8, 2.4], [0, 0, 12, 6, 2.4], [10, -8, 22, -5, 2.2], [12, 6, 26, 7, 2.6], [22, -5, 26, 7, 2.2]],
     tema: { piso: "rgba(12, 16, 34, 0.55)", escuro: 0.9, mini: [70, 76, 98], lapides: true },
     bandos: [[1, "esqueleto", 3], [2, "esqueleto", 3], [3, "esqueleto", 4]],
-    chefe: { sala: 4, base: "esqueleto", nome: "Rei Esqueleto", esc: 1.5, vida: 3000, nivel: 16, dano: 78, renasce: 120 } },
+    chefe: { sala: 4, base: "esqueleto", nome: "Rei Esqueleto", esc: 1.5, vida: 9500, nivel: 16, dano: 100, renasce: 540 } },
   { id: "mina", nome: "Mina dos Goblins", x: 600, y: 0, x0: -8, x1: 36, y0: -15, y1: 15, buraco: [35, -6],
     salas: [{ x: 0, y: 0, r: 4 }, { x: 12, y: 0, r: 5.5 }, { x: 18, y: 9, r: 4.5 }, { x: 20, y: -8, r: 5 }, { x: 30, y: 2, r: 6.5 }],
     tuneis: [[0, 0, 12, 0, 2.6], [12, 0, 18, 9, 2.2], [12, 0, 20, -8, 2.4], [18, 9, 30, 2, 2.2], [20, -8, 30, 2, 2.4]],
     tema: { piso: "rgba(30, 18, 8, 0.4)", escuro: 0.86, mini: [104, 84, 60], barris: true },
     bandos: [[1, "goblin", 4], [2, "goblin", 4], [3, "goblin", 5]],
-    chefe: { sala: 4, base: "goblin", nome: "Goblin Capataz", esc: 1.55, vida: 1900, nivel: 11, dano: 46, renasce: 90 } },
+    chefe: { sala: 4, base: "goblin", nome: "Goblin Capataz", esc: 1.55, vida: 6500, nivel: 11, dano: 64, renasce: 540 } },
 ];
 const CAV = DUNGEONS[0];                    // a primeira (para quem ainda fala só "da caverna")
 const passagens = [];                   // buracos e escadas: { tipo, x, y, para: { x, y }, nome }
@@ -9497,7 +9812,7 @@ function criarOrcs() {
   TIPOS.orc_gigante = orc({ nome: "Orc Gigante Negro", esc: 1.35, vida: 1300, nivel: 36, dano: 105, chega: 1.6 });
   TIPOS.orc_mago = orc({ nome: "Orc Feiticeiro", esc: proprio("orc_feiticeiro") ? 1 : 0.95, vida: 1100, nivel: 38, dano: 120, perto: 5.5, alcance: 7, magia: true, visao: 9 },
                        ...(proprio("orc_feiticeiro") ? ["orc_feiticeiro", 1] : []));
-  TIPOS.orc_chefe = orc({ nome: "Chefe Orc", esc: 1.6, vida: 9000, nivel: 45, dano: 190, renasce: 150, chefe: true, chefeCaverna: true });
+  TIPOS.orc_chefe = orc({ nome: "Chefe Orc", esc: 1.6, vida: 30000, nivel: 45, dano: 250, renasce: 960, chefe: true, chefeCaverna: true });   // (chefe de mapa: CHEFES_MAPA)
 }
 function montarDungeon(d) {
   // o buraco: um lugar livre do mapa (perto do ponto da dungeon)
@@ -9568,8 +9883,11 @@ function montarDungeon(d) {
   }
   const ch = d.chefe, base = TIPOS[ch.base] && TIPOS[ch.base].M ? ch.base : ch.reserva && TIPOS[ch.reserva] && TIPOS[ch.reserva].M ? ch.reserva : "lobo";
   if (TIPOS[base].M) {
-    d.cfgChefe = variante(base, { nome: ch.nome, esc: ch.esc * (base === ch.base ? 1 : 1.7), vida: ch.vida, nivel: ch.nivel, dano: ch.dano, renasce: ch.renasce, chefe: true, chefeCaverna: true, visao: 8 });
+    d.cfgChefe = variante(base, { nome: ch.nome, esc: ch.esc * (base === ch.base ? 1 : 1.7), vida: ch.vida, nivel: ch.nivel, dano: ch.dano, renasce: ch.renasce, chefe: true, chefeCaverna: true, visao: 8,
+                                  chaveChefe: "dg_" + d.id });       // (chefe de mapa: CHEFES_MAPA["dg_<id>"]; a área é a sala do fundo)
     povoar(d.cfgChefe, base, d.salas[ch.sala], 1, 1.5);
+    const sala = d.salas[ch.sala], c = criaturas[criaturas.length - 1];
+    if (c && c.cfg === d.cfgChefe && defChefe(c)) iniciarChefe(c, { x: d.x + sala.x, y: d.y + sala.y, r: Math.max(1.5, sala.r - 1.8) });
   }
 }
 // pisando num buraco ou numa escada: escurece, troca de lugar e clareia
@@ -10177,7 +10495,7 @@ function passo(dt) {
     else { golpeAcerta(v.anim); explosaoEncanto(); }
   }
   passoFuria(dt);
-  passoFlechas(dt); passoMagiasCriatura(dt);
+  passoFlechas(dt); passoMagiasCriatura(dt); passoChefes(dt);
   passoInvestida(dt);
   passoNinja(dt);
   // golpe andando: no meio do combo, com o alvo um pouco longe (o golpe anterior o empurrou) ou segurando a tecla para a
@@ -10644,12 +10962,13 @@ function desenhar(t) {
 // barra grande do chefe no alto da tela enquanto ele caça (ou está a menos de 14 m)
 function desenharChefe() {
   const l = criaturas.find(c => (c.cfg.chefe || c.cfg.estatico) && !c.morto && (c.cacando || Math.hypot(c.x - viking.x, c.y - viking.y) < (c.cfg.estatico ? 9 : 14)));
-  if (!l) return;
+  if (!l) { desenharCronometroChefe(); return; }
   const larg = Math.min(440, W - 140), alt = 12, x = (W - larg) / 2, y = 78, k = Math.max(0, l.vida) / l.cfg.vida, kv = Math.max(0, l.vidaVista) / l.cfg.vida;
+  const dc = defChefe(l), nome = l.cfg.nome + (dc && l.furiaChefe ? " · em fúria!" : dc && l.fase > 1 ? ` · fase ${l.fase}` : "");
   cx.save();
   cx.font = '400 20px "Germania One", Georgia, serif'; cx.textAlign = "center"; cx.lineJoin = "round";
-  cx.lineWidth = 4; cx.strokeStyle = "rgba(20, 14, 10, 0.9)"; cx.strokeText(l.cfg.nome, W / 2, y - 8);
-  cx.fillStyle = "#f0d9a0"; cx.fillText(l.cfg.nome, W / 2, y - 8);
+  cx.lineWidth = 4; cx.strokeStyle = "rgba(20, 14, 10, 0.9)"; cx.strokeText(nome, W / 2, y - 8);
+  cx.fillStyle = dc && l.furiaChefe ? "#ff9a7a" : "#f0d9a0"; cx.fillText(nome, W / 2, y - 8);
   cx.fillStyle = "rgba(20, 14, 10, 0.9)"; cx.fillRect(x - 2, y - 2, larg + 4, alt + 4);
   cx.fillStyle = "#3a1712"; cx.fillRect(x, y, larg, alt);
   if (kv > k) { cx.fillStyle = "#f2e2b8"; cx.fillRect(x + larg * k, y, larg * (kv - k), alt); }
@@ -10657,6 +10976,7 @@ function desenharChefe() {
   g.addColorStop(0, "#9a4ad0"); g.addColorStop(1, "#4e1d78");
   cx.fillStyle = g; cx.fillRect(x, y, larg * k, alt);
   cx.fillStyle = "rgba(255, 255, 255, 0.22)"; cx.fillRect(x, y, larg * k, 3);
+  if (dc) { cx.fillStyle = "rgba(20, 14, 10, 0.85)"; for (const f of [0.66, 0.33]) cx.fillRect(x + larg * f - 1, y - 2, 2, alt + 4); }   // (as fases)
   cx.font = '600 11px "Alegreya Sans", system-ui, sans-serif'; cx.fillStyle = "#f4ead6";
   cx.fillText(Math.max(0, Math.ceil(l.vida)) + " / " + l.cfg.vida, W / 2, y + alt + 14);
   cx.restore();
@@ -10868,7 +11188,7 @@ const MODELOS_3D = {
   viking: {}, arqueiro: {}, feiticeiro: {}, ninja: {}, guerreiro: {},
   lobo: {}, javali: {}, rato: {}, aranha: {}, goblin: {}, esqueleto: {}, orc: {}, orc_bravo: {}, orc_feiticeiro: {},
   urso_negro: {}, tigre: {}, lobo_alfa: {}, bandido: {}, bandido_arqueiro: {}, chefe_bandido: {}, zumbi: {}, fantasma: {}, lich: {},
-  golem: {}, escorpiao: {}, yeti: {},
+  golem: {}, escorpiao: {}, yeti: {}, nove_caudas: {},
   ferreiro: {}, guarda: {}, guarda_real: {}, armazem: {},
 };
 // os moradores da vila que têm modelo (os outros continuam desenhados por código)
@@ -16244,6 +16564,14 @@ embrulhar("aplicarBuffMago", ([b]) => {
 });
 embrulhar("metinApanhou", ([l]) => pulsoMetin(l));
 embrulhar("ataqueCriatura", ([l]) => { if (l.cfg.chefe && !l.cfg.magia && Math.hypot(l.x - viking.x, l.y - viking.y) < 30) golpeChefe(l); });
+// as explosões das mecânicas dos chefes de mapa (pisão, marcas da chuva, nascer, fúria, cair): anel no chão, clarão e fumaça
+embrulhar("explosaoChefe", ([x, y, r, h]) => {
+  if (Math.hypot(x - viking.x, y - viking.y) > 30) return;
+  const c = hsl(h, 1, 0.58);
+  chao(x, y, r * 1.05, 0, c, rgb(1, 0.92, 0.7), 0.5); chao(x, y, r * 0.8, 3, c, rgb(1, 0.85, 0.6), 1.1, { alfa: 0.8 });
+  clarao(P3(x, y, 0.6), r * 1.3, c, 0.22, { forca: 0.6 }); estouro(P3(x, y, 0.3), LEVE ? 10 : 22, c, 6, { sobe: 1, tam: 0.08, branco: 0.4 });
+  fumaca(P3(x, y, 0.1), rgb(0.4, 0.35, 0.3), r > 2 ? 7 : 3, { r: r * 0.5, tam: 0.5, vel: 1, a: 0.4 }); luz(P3(x, y, 1), c, 4, 8, 0.3);
+});
 return { get ativo() { return ativo(); }, get iso() { return iso; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; },
          get stats() { return { vivos: vivos.length, seguidos: seguidos.size, particulas: PS ? PS.l.length : 0 }; } };
 })();
