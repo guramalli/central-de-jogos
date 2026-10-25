@@ -5232,10 +5232,14 @@ const criaturas = [];
 // nível e força de cada criatura: a exp vem do nível; o golpe delas tira essa vida, antes da defesa do personagem
 Object.assign(TIPOS.lobo, { nivel: 3, dano: 16 }); Object.assign(TIPOS.goblin, { nivel: 5, dano: 22 });
 Object.assign(TIPOS.esqueleto, { nivel: 7, dano: 30 }); Object.assign(TIPOS.aranha, { nivel: 14, dano: 90, vida: 8500 });   // (a Aranha Gigante é chefe: CHEFES_MAPA)
-Object.assign(TIPOS.javali, { nivel: 4, dano: 20 }); Object.assign(TIPOS.rato, { nivel: 2, dano: 8 }); // o vale é caça para o nível 30+
-Object.assign(TIPOS.orc, { nivel: 30, dano: 70, vida: 650 });
-Object.assign(TIPOS.orc_bravo, { nivel: 33, dano: 85, vida: 850 });
-Object.assign(TIPOS.orc_feiticeiro, { nivel: 38, dano: 120, vida: 1100 });
+Object.assign(TIPOS.javali, { nivel: 4, dano: 20 }); Object.assign(TIPOS.rato, { nivel: 2, dano: 8 }); // o vale é caça para o nível 45+
+// (do nível 15 em diante, vida, dano e defesa vêm da curva do NIVEL70.md: o herói típico do nível mata uma criatura
+// comum em 1,8–3 s, uma Metin em ~30–40 s e um chefe em ~2 min; o golpe de uma comum tira ~1,8% da vida dele e o de
+// um chefe ~4,5%. O papel muda isso: "tanque" ×1,7 de vida, ×1,8 de defesa e ×1,5 de exp; "mago" e "longe" têm menos
+// vida e batem mais. A Vila 1 (1–15) fica como estava)
+Object.assign(TIPOS.orc, { nivel: 45, dano: 522, vida: 1750, defesa: 36 });
+Object.assign(TIPOS.orc_bravo, { nivel: 51, dano: 646, vida: 2100, defesa: 41 });
+Object.assign(TIPOS.orc_feiticeiro, { nivel: 53, dano: 863, vida: 2000, defesa: 21 });
 // ---- as criaturas novas (Tripo → Blender → Unity): só com o modelo 3D (3d/<tipo>.glb, so3d), sem sprites ----
 // Floresta perto da vila (10–20): Urso Negro, Tigre e o Lobo Alfa (chefe da matilha); acampamento dos bandidos na estrada
 // do leste (15–25): Bandido, Bandido Arqueiro (atira flechas de longe) e o Chefe dos Bandidos; ruínas da Cripta (20–30):
@@ -5246,50 +5250,51 @@ Object.assign(TIPOS.orc_feiticeiro, { nivel: 38, dano: 120, vida: 1100 });
 // reserva: sem o glb (ou sem 3D, ?2d=1) ela vira uma variante da criatura existente mais parecida, com os números dela,
 // mas os sprites, o tamanho e as animações da base, pintados com filtro2d (no 3D, o modelo da base com a tinta)
 const NOVAS = {
-  urso_negro: { nome: "Urso Negro", nivel: 14, vida: 300, dano: 42, material: "carne", altura: 60, barra: 118, sombra: 0.85, anel: 0.95, raio: 0.5,
+  urso_negro: { nome: "Urso Negro", nivel: 14, vida: 310, dano: 71, defesa: 11, material: "carne", altura: 60, barra: 118, sombra: 0.85, anel: 0.95, raio: 0.5,
     visao: 7, perto: 1.8, alcance: 2.3, ataque: "atacar", galope: 3.0, chega: 1.5, passeio: 0.6, renasce: 20, vAndar: 0.615, vCorrer: 3.17, alvoZ: 0.7, somAcerto: "mordida",
     reserva: { base: ["javali", "lobo"], esc: 1.5, filtro2d: "brightness(0.42) saturate(0.5)", tinta: "#55555f" } },
-  // (a Vila Hahoe, Logs/Mapas/PROJETO_MAPAS.md 2.5: os níveis novos; vida e dano pela curva da página, a conferir no balanceamento)
-  tigre: { nome: "Tigre", nivel: 18, vida: 300, dano: 50, material: "carne", altura: 52, barra: 110, sombra: 0.75, anel: 0.9, raio: 0.45,
+  // (a Vila Hahoe, Logs/Mapas/PROJETO_MAPAS.md 2.5: os níveis novos; vida, dano e defesa pela curva do
+  // Logs/Balanceamento/NIVEL70.md)
+  tigre: { nome: "Tigre", nivel: 18, vida: 450, dano: 109, defesa: 14, material: "carne", altura: 52, barra: 110, sombra: 0.75, anel: 0.9, raio: 0.45,
     visao: 8, perto: 1.7, alcance: 2.2, ataque: "atacar", galope: 3.9, chega: 1.9, passeio: 0.8, renasce: 20, vAndar: 0.702, vCorrer: 3.95, alvoZ: 0.6, somAcerto: "mordida",
     reserva: { base: ["lobo"], esc: 1.3, filtro2d: "sepia(1) saturate(3.2) hue-rotate(-14deg) brightness(1.05)", tinta: "#ffb070" } },
-  lobo_alfa: { nome: "Lobo Alfa", nivel: 22, vida: 14000, dano: 125, material: "carne", altura: 58, barra: 128, sombra: 0.85, anel: 1.1, raio: 0.5,
+  lobo_alfa: { nome: "Lobo Alfa", nivel: 22, vida: 29500, dano: 383, defesa: 27, material: "carne", altura: 58, barra: 128, sombra: 0.85, anel: 1.1, raio: 0.5,
     visao: 8.5, perto: 1.8, alcance: 2.3, ataque: "morder", galope: 3.8, chega: 1.8, passeio: 0.7, renasce: 120, uiva: true, chefe: true, chefeCaverna: true,
     vAndar: 0.673, vCorrer: 4.35, alvoZ: 0.6, somAcerto: "mordida",
     reserva: { base: ["lobo"], esc: 1.5, filtro2d: "brightness(0.55) saturate(0.5)", tinta: "#6a6a78" } },
-  bandido: { nome: "Bandido", nivel: 22, vida: 400, dano: 56, material: "carne", altura: 92, barra: 172, sombra: 0.42, anel: 0.5, raio: 0.3,
+  bandido: { nome: "Bandido", nivel: 22, vida: 600, dano: 153, defesa: 18, material: "carne", altura: 92, barra: 172, sombra: 0.42, anel: 0.5, raio: 0.3,
     visao: 7.5, perto: 1.5, alcance: 2.0, ataque: "golpe", galope: 0, chega: 2.0, passeio: 0.8, vAndar: 1.363, alvoZ: 1.1, somAcerto: "corte",
     reserva: { base: ["orc", "goblin"], esc: 0.85, filtro2d: "sepia(0.6) hue-rotate(-30deg) saturate(1.4) brightness(1.1)", tinta: "#e0a090" } },
-  bandido_arqueiro: { nome: "Bandido Arqueiro", nivel: 23, vida: 330, dano: 52, material: "carne", altura: 92, barra: 172, sombra: 0.42, anel: 0.5, raio: 0.3,
+  bandido_arqueiro: { nome: "Bandido Arqueiro", nivel: 23, vida: 550, dano: 182, defesa: 11, material: "carne", altura: 92, barra: 172, sombra: 0.42, anel: 0.5, raio: 0.3,
     visao: 9, perto: 6, alcance: 8, ataque: "tiro", magia: true, projetil: "flecha", galope: 0, chega: 1.9, passeio: 0.8, vAndar: 1.382, alvoZ: 1.1, somAcerto: "flecha_acerta",
     reserva: { base: ["orc_feiticeiro", "orc", "goblin"], esc: 0.85, filtro2d: "sepia(0.7) hue-rotate(30deg) saturate(1.2) brightness(1.05)", tinta: "#c8d8a0" } },
-  chefe_bandido: { nome: "Chefe dos Bandidos", nivel: 28, vida: 19000, dano: 160, material: "carne", altura: 104, barra: 190, sombra: 0.55, anel: 0.7, raio: 0.38,
+  chefe_bandido: { nome: "Chefe dos Bandidos", nivel: 28, vida: 41000, dano: 579, defesa: 33, material: "carne", altura: 104, barra: 190, sombra: 0.55, anel: 0.7, raio: 0.38,
     visao: 8, perto: 1.6, alcance: 2.3, ataque: "golpe", galope: 0, chega: 2.0, passeio: 0.6, renasce: 120, chefe: true, chefeCaverna: true, vAndar: 1.426, alvoZ: 1.2, somAcerto: "cortePesado",
     reserva: { base: ["orc", "goblin"], esc: 1.0, filtro2d: "sepia(0.5) hue-rotate(-20deg) saturate(1.3)", tinta: "#d89080" } },
-  zumbi: { nome: "Zumbi", nivel: 33, vida: 820, dano: 90, material: "carne", altura: 88, barra: 166, sombra: 0.4, anel: 0.5, raio: 0.3,
+  zumbi: { nome: "Zumbi", nivel: 33, vida: 1100, dano: 307, defesa: 26, material: "carne", altura: 88, barra: 166, sombra: 0.4, anel: 0.5, raio: 0.3,
     visao: 6, perto: 1.4, alcance: 1.9, ataque: "golpe", galope: 0, chega: 0.75, passeio: 0.4, levanta: true, vAndar: 0.43, alvoZ: 1.05, somAcerto: "carne",
     reserva: { base: ["esqueleto"], esc: 1.1, filtro2d: "sepia(0.6) hue-rotate(50deg) saturate(1.6) brightness(0.85)", tinta: "#a0c890" } },
-  fantasma: { nome: "Fantasma", nivel: 37, vida: 1000, dano: 112, material: "osso", altura: 110, barra: 196, sombra: 0.35, anel: 0.5, raio: 0.3,
+  fantasma: { nome: "Fantasma", nivel: 37, vida: 1100, dano: 466, defesa: 15, material: "osso", altura: 110, barra: 196, sombra: 0.35, anel: 0.5, raio: 0.3,
     visao: 8, perto: 1.5, alcance: 2.1, ataque: "golpe", galope: 0, chega: 1.5, passeio: 0.6, levanta: false, flutua: true, vAndar: 0.701, alvoZ: 1.3, somAcerto: "gelo",
     reserva: { base: ["esqueleto"], esc: 1.1, filtro2d: "hue-rotate(180deg) saturate(2.5) brightness(1.5)", alfa2d: 0.62, flutua2d: 0.3, tinta: "#a8d8ff" } },
-  lich: { nome: "Lich", nivel: 40, vida: 26000, dano: 200, material: "osso", altura: 110, barra: 206, sombra: 0.5, anel: 0.75, raio: 0.38,
+  lich: { nome: "Lich", nivel: 40, vida: 65500, dano: 1066, defesa: 48, material: "osso", altura: 110, barra: 206, sombra: 0.5, anel: 0.75, raio: 0.38,
     visao: 9, perto: 5.5, alcance: 7.5, ataque: "magia", magia: true, projetil: "sombra", conjura: 10, galope: 0, chega: 1.6, passeio: 0.5, renasce: 150,
     chefe: true, chefeCaverna: true, vAndar: 0.969, alvoZ: 1.3, somAcerto: "magia_raio",
     reserva: { base: ["orc_feiticeiro", "orc", "goblin"], esc: 1.05, filtro2d: "hue-rotate(200deg) saturate(1.2) brightness(0.75)", tinta: "#b090d0" } },
-  golem: { nome: "Golem de Pedra", nivel: 42, vida: 2200, dano: 150, material: "osso", altura: 140, barra: 258, sombra: 0.95, anel: 1.05, raio: 0.6,
+  golem: { nome: "Golem de Pedra", nivel: 42, vida: 2250, dano: 579, defesa: 61, expMult: 1.5, material: "osso", altura: 140, barra: 258, sombra: 0.95, anel: 1.05, raio: 0.6,
     visao: 7, perto: 2.0, alcance: 2.6, ataque: "golpe", galope: 0, chega: 1.1, passeio: 0.4, vAndar: 1.821, alvoZ: 1.6, somAcerto: "osso_golpe",
     reserva: { base: ["orc", "goblin"], esc: 1.45, filtro2d: "grayscale(1) brightness(1.15) contrast(1.1)", tinta: "#a8a8a8" } },
-  escorpiao: { nome: "Escorpião Gigante", nivel: 44, vida: 1900, dano: 160, material: "carne", altura: 70, barra: 140, sombra: 1.2, anel: 1.4, raio: 0.9,
+  escorpiao: { nome: "Escorpião Gigante", nivel: 44, vida: 1700, dano: 502, defesa: 35, material: "carne", altura: 70, barra: 140, sombra: 1.2, anel: 1.4, raio: 0.9,
     visao: 8, perto: 2.4, alcance: 3.0, ataque: "atacar", ameaca: true, galope: 0, chega: 1.6, passeio: 0.6, vAndar: 1.136, alvoZ: 0.6, somAcerto: "veneno",
     reserva: { base: ["aranha"], esc: 0.75, filtro2d: "sepia(1) saturate(3) hue-rotate(-25deg) brightness(0.9)", tinta: "#ff9a60" } },
-  yeti: { nome: "Yeti", nivel: 46, vida: 2500, dano: 175, material: "carne", altura: 130, barra: 244, sombra: 0.85, anel: 0.95, raio: 0.55,
+  yeti: { nome: "Yeti", nivel: 46, vida: 2550, dano: 677, defesa: 67, expMult: 1.5, material: "carne", altura: 130, barra: 244, sombra: 0.85, anel: 0.95, raio: 0.55,
     visao: 7.5, perto: 1.9, alcance: 2.5, ataque: "golpe", galope: 0, chega: 1.5, passeio: 0.6, vAndar: 1.914, alvoZ: 1.5, somAcerto: "carne",
     reserva: { base: ["orc", "goblin"], esc: 1.35, filtro2d: "grayscale(1) brightness(2.1)", tinta: "#f0f4ff" } },
   // o chefe da Montanha Gelada (o Nove Caudas do Monte Sohan, no Metin2): uma raposa branca de nove caudas. O modelo 3D
   // (3d/nove_caudas.glb, de outro agente: parado, andando, correndo, garras, leque, rugido, dano, morte); sem ele (?2d=1, ou
   // o glb não servido), o provisório é a reserva: o lobo 2× maior, claro e dourado (com o "morder" do lobo). O leque das
   // caudas é o pisão dele e o rugido, a pose de carregar (CHEFES_MAPA.nove_caudas). Confira vAndar/vCorrer e alvoZ no glb
-  nove_caudas: { nome: "Nove Caudas", nivel: 50, vida: 40000, dano: 290, material: "carne", altura: 200, barra: 235, sombra: 1.4, anel: 1.6, raio: 0.9,
+  nove_caudas: { nome: "Nove Caudas", nivel: 50, vida: 88000, dano: 1562, defesa: 60, material: "carne", altura: 200, barra: 235, sombra: 1.4, anel: 1.6, raio: 0.9,
     visao: 9, perto: 2.0, alcance: 2.7, ataque: "garras", galope: 4.2, chega: 2.0, passeio: 0.7, renasce: 1080, chefe: true, chefeCaverna: true,   // (sem uiva: o glb não tem "uivar")
     vAndar: 1.74, vCorrer: 4.35, alvoZ: 1.6, somAcerto: "mordida",                // (o glb: ~3,2 m de altura, anda a 1,74 m/s e corre a 4,35)
     reserva: { base: ["lobo"], esc: 2.0, filtro2d: "sepia(0.35) saturate(0.7) brightness(1.75)", tinta: "#fff2d8" } },
@@ -5313,19 +5318,40 @@ function desenharPlacaJogador(X, Y, z) {
   placaNome(X, y - 6, prog.nivel, prog.nome || NOME_CLASSE[classe], "#ffffff");
 }
 function rotuloCriatura(l) { return `Lv. ${l.cfg.nivel || 1} ${l.cfg.nome}`; }
+// a cor do "Lv." da criatura pela diferença para o herói (o quanto ela vale de exp, fatorDifNivel): cinza bem abaixo
+// (10 ou mais níveis: metade da exp ou menos), dourado na faixa, laranja acima e vermelho bem acima (6 ou mais)
+function corDoNivel(n) {
+  const d = n - (prog ? prog.nivel : 1);
+  return d >= 6 ? "#ff6a4a" : d >= 3 ? "#ffa64a" : d <= -10 ? "#9a948a" : d <= -6 ? "#d8cfa0" : "#f3cf5a";
+}
 
 // ---------------------------------------------------------------- nível, experiência, atributos (como no Metin2)
-// A experiência para subir de cada nível é a tabela do Metin2 (EXP_NIVEL[n] = do nível n ao n+1). Cada criatura dá
-// uma exp pelo nível dela, mais ou menos conforme a diferença para o seu (a mesma tabela do Metin2: criatura mais alta
-// dá até 130%, bem mais baixa quase nada) e uma morte nunca passa de 20% do nível. Cada nível dá 3 pontos para
+// A experiência para subir de cada nível é a tabela do Metin2 (EXP_NIVEL[n] = do nível n ao n+1), agora até o nível 70
+// (o nível máximo: Vila 1 1–15, Vila Hahoe 15–45, Ilha de Daiyu 45–70; Logs/Balanceamento/NIVEL70.md). Cada criatura dá
+// uma exp pelo nível dela (expBase: a tabela dividida por MORTES_NIVEL, quantas criaturas do mesmo nível sobem um
+// nível), mais ou menos conforme a diferença para o seu (a mesma tabela do Metin2: criatura mais alta dá até 130%, bem
+// mais baixa quase nada) e uma morte nunca passa de 20% do nível. Cada nível dá 3 pontos para
 // VIT (Vitalidade), INT (Inteligência), FOR (Força) e DEX (Destreza), como no Metin2. O atributo principal da classe
 // (FOR no viking, DEX no arqueiro, INT no feiticeiro) aumenta o dano; DEX dá crítico; VIT dá vida e defesa.
 const EXP_NIVEL = [0, 300, 800, 1500, 2500, 4300, 7200, 11000, 17000, 24000, 33000, 43000, 58000, 76000, 100000, 130000, 169000,
-  219000, 283000, 365000, 472000, 610000, 705000, 813000, 937000, 1077000, 1237000, 1418000, 1624000, 1857000, 2122000];
+  219000, 283000, 365000, 472000, 610000, 705000, 813000, 937000, 1077000, 1237000, 1418000, 1624000, 1857000, 2122000,
+  2421000, 2761000, 3145000, 3580000, 4073000, 4632000, 5194000, 5717000, 6264000, 6837000,                       // 31–40
+  7600000, 8274000, 8990000, 9753000, 10560000, 11410000, 12320000, 13270000, 14280000, 15340000,                 // 41–50
+  16870000, 18960000, 19980000, 21420000, 22930000, 24530000, 26200000, 27960000, 29800000, 32780000,             // 51–60
+  36060000, 39670000, 43640000, 48000000, 52800000, 58080000, 63890000, 70280000, 77310000, 85040000];            // 61–70
 const NIVEL_MAX = EXP_NIVEL.length - 1, PONTOS_POR_NIVEL = 3, ATRIB_MAX = 90;
+// quantas criaturas comuns do mesmo nível sobem um nível (MORTES_NIVEL[0] + MORTES_NIVEL[1] × nível): a subida fica mais
+// lenta a cada nível, como no Metin2, mas cabe num protótipo (~4 h até o 45; as contas em NIVEL70.md)
+const MORTES_NIVEL = [6, 2.7];
+function expBase(n) {
+  const e = n <= NIVEL_MAX ? EXP_NIVEL[Math.max(1, n)] : EXP_NIVEL[NIVEL_MAX] * Math.pow(1.1, n - NIVEL_MAX);   // (acima do 70: +10% por nível)
+  return e / (MORTES_NIVEL[0] + MORTES_NIVEL[1] * n);
+}
 // os iniciais das classes do Metin2: guerreiro (viking), ninja (arqueiro) e shaman (feiticeiro)
 const ATRIB_INICIAL = { viking: { vit: 4, int: 3, for: 6, dex: 3 }, arqueiro: { vit: 3, int: 3, for: 4, dex: 6 }, feiticeiro: { vit: 4, int: 6, for: 3, dex: 3 }, ninja: { vit: 3, int: 3, for: 4, dex: 6 }, guerreiro: { vit: 5, int: 2, for: 6, dex: 3 } };
 const ATRIB_PRINCIPAL = { viking: "for", arqueiro: "dex", feiticeiro: "int", ninja: "dex", guerreiro: "for" };
+// o acerto fino de cada classe no ataque (a simulação do NIVEL70.md deixa as cinco a menos de 25% da média)
+const FATOR_CLASSE = { viking: 0.92, arqueiro: 1.06, feiticeiro: 1.12, ninja: 1.1, guerreiro: 0.88 };
 const ORDEM_ATRIB = ["vit", "int", "for", "dex"];
 const NOME_ATRIB = { vit: "VIT · Vitalidade", int: "INT · Inteligência", for: "FOR · Força", dex: "DEX · Destreza" };
 // Skills como no Metin2: cada nível do personagem dá 1 ponto de skill. Com pontos a skill vai de 1 a 16; do 17 ao 19,
@@ -5380,8 +5406,9 @@ function fatorDifNivel(dif) {                       // dif = nível da criatura 
   const t = { [-2]: 0.98, [-3]: 0.96, [-4]: 0.94, [-5]: 0.92, [-6]: 0.9, [-7]: 0.85, [-8]: 0.8, [-9]: 0.7, [-10]: 0.5, [-11]: 0.3, [-12]: 0.2, [-13]: 0.1, [-14]: 0.05 };
   return t[dif] !== undefined ? t[dif] : 0.01;
 }
+// (cfg.expMult: o papel da criatura; a de "tanque", que demora mais para cair, dá mais)
 function expDe(l) {
-  const n = l.cfg.nivel || 1, base = 12 * Math.pow(n, 1.9) + 20;
+  const n = l.cfg.nivel || 1, base = expBase(n) * (l.cfg.expMult || 1);
   return base * (defChefe(l) ? 15 : l.cfg.chefe ? 5 : 1) * (l.cfg.estatico ? 6 : 1) * (l.horda ? 0.6 : 1) * fatorDifNivel(n - prog.nivel);
 }
 function progressoNovo(c) {
@@ -5447,7 +5474,7 @@ function recalcularStatus() {
   status.manaMax = Math.round(100 + a.int * 20 + (n - 1) * 12) + eq.mana + (b.mana || 0);
   status.velEquip = 1 + (eq.vel + (b.velocidade || 0)) / 100; status.bloqueio = (eq.bloqueio + (b.bloqueio || 0)) / 100;
   if (viking.mana === undefined || viking.mana > status.manaMax) viking.mana = status.manaMax;
-  status.ataque = (1 + 0.04 * (a[pr] - ini[pr]) + (pr !== "for" ? 0.015 * (a.for - ini.for) : 0) + 0.025 * (n - 1)) * bonusArma(prog.arma ? prog.arma.ref : null) * (1 + (b.ataque || 0) / 100);
+  status.ataque = (1 + 0.04 * (a[pr] - ini[pr]) + (pr !== "for" ? 0.015 * (a.for - ini.for) : 0) + 0.025 * (n - 1)) * bonusArma(prog.arma ? prog.arma.ref : null, prog.arma && prog.arma.tier) * (1 + (b.ataque || 0) / 100) * (FATOR_CLASSE[classe] || 1);
   status.critico = 0.02 + a.dex * 0.006 + (b.critico || 0) / 100;
   status.monstros = (b.monstros || 0) / 100;
   status.defesa = a.vit * 4 + n * 2 + eq.defesa + (b.defesa || 0);
@@ -5553,22 +5580,28 @@ function morreuCriatura(l) {
   else if (defChefe(l)) chefeMorreu(l);
   else if (l.cfg.chefeCaverna) {
     const itens = [livroQualquer(), { tipo: "pocao", qtd: 3 }, { tipo: "pocaoMana", qtd: 2 },
-                   { tipo: "yang", qtd: Math.round(l.cfg.nivel * (60 + Math.random() * 40)) }];
+                   { tipo: "yang", qtd: Math.round(yangNivel(l.cfg.nivel) * (60 + Math.random() * 40)) }];
     if (Math.random() < 0.6) itens.push({ tipo: "pedra" });
     if (Math.random() < 0.5) itens.push({ tipo: "bencao" });
     if (Math.random() < 0.3) itens.push({ tipo: "alma" });
     itens.push(pecaDoNivel(l.cfg.nivel));
-    if (Math.random() < 0.25) itens.push({ tipo: "arma", chave: "arma:" + classe, ref: 0, bon: bonusDeDrop("arma", 2) });
+    if (Math.random() < 0.25) itens.push(armaDoNivel(l.cfg.nivel, bonusDeDrop("arma", 2)));
     if (Math.random() < 0.3) itens.push({ tipo: Math.random() < 0.5 ? "encantar" : "mudar" });
     soltarItens(l, itens);
     avisar(`${l.cfg.nome} caiu! Volta em ${Math.round(l.cfg.renasce)} s`);
   }
   else if (Math.random() < (l.horda ? 0.05 : 0.03)) soltarItens(l, [pecaDoNivel(l.cfg.nivel || 1)]);
   else if (Math.random() < (l.horda ? 0.12 : 0.06)) soltarItens(l, [{ tipo: Math.random() < 0.5 ? "pocao" : "pocaoMana", qtd: 1 }]);
-  else if (Math.random() < 0.3) soltarItens(l, [{ tipo: "yang", qtd: Math.round((l.cfg.nivel || 1) * (6 + Math.random() * 6)) }]);
+  else if (Math.random() < 0.3) soltarItens(l, [{ tipo: "yang", qtd: Math.round(yangNivel(l.cfg.nivel || 1) * (6 + Math.random() * 6) * (l.cfg.expMult || 1)) }]);
   if (l.horda) { l.renascer = 999; l.sumir = 0; }
   missaoMorte(l);                                    // (a etapa "derrote N ..." da missão; por último: o aviso dela fica na tela)
 }
+// o yang que cai sobe com o nível de quem o solta: igual ao nível até o 10 e mais rápido depois (×2 no 30, ×4 no 70),
+// para pagar os modelos novos e os refinos mais caros (NIVEL70.md)
+function yangNivel(n) { return n * (1 + Math.max(0, n - 10) / 20); }
+// a defesa das criaturas (como a do herói: o golpe sai × 100 / (100 + defesa)); a curva padrão pelo nível, e cada
+// criatura pode ter a sua (cfg.defesa: os de "tanque" mais, os magos menos). As pedras Metin e os chefes têm a deles
+function defesaDe(cfg) { return cfg.defesa !== undefined ? cfg.defesa : Math.round(0.8 * (cfg.nivel || 1)); }
 
 // ---------------------------------------------------------------- pedras Metin
 // Como no Metin2: pedras que aparecem pelo mapa, cada uma com o nível das criaturas da região. Nascem com um bando de
@@ -5580,13 +5613,13 @@ const METINS = [
   { tipo: "metin1", nome: "Metin da Tristeza", nivel: 5, vida: 900, cor: "#ff5a3a", horda: "lobo", regioes: [[24, -18], [-28, 6], [28, 16], [-26, 22]].map(noMapa) },
   { tipo: "metin2", nome: "Metin da Batalha", nivel: 10, vida: 1600, cor: "#c86bff", horda: "goblin", regioes: [[-9, -19], [33, -3], [26, 20]].map(noMapa) },
   { tipo: "metin3", nome: "Metin da Ganância", nivel: 15, vida: 2600, cor: "#5ad2ff", horda: "esqueleto", regioes: [[8, -28], [-16, -27], [-31, -12]].map(noMapa) },
-  { tipo: "metin4", nome: "Metin da Sombra", nivel: 40, vida: 7000, cor: "#8a4dff", horda: "orc_negro", regioes: [[84, 4], [96, -12], [104, 12], [112, 2], [94, 6]] },
+  { tipo: "metin4", nome: "Metin da Sombra", nivel: 45, vida: 22000, defesa: 54, cor: "#8a4dff", horda: "orc_negro", regioes: [[84, 4], [96, -12], [104, 12], [112, 2], [94, 6]] },
   // as da Vila Hahoe (mapa: criadas na 1ª visita, criarMetins("hahoe")): uma por zona, no nível dela e com a horda dela
-  { tipo: "metin5", mapa: "hahoe", nome: "Metin Negra", nivel: 20, vida: 4000, cor: "#e0483a", horda: "tigre", regioes: [[-50, 20], [-48, -14]].map(p => pH(...p)) },
-  { tipo: "metin6", mapa: "hahoe", nome: "Metin Negra", nivel: 25, vida: 4800, cor: "#e0483a", horda: "bandido", regioes: [[10, 46], [25, 40]].map(p => pH(...p)) },
-  { tipo: "metin7", mapa: "hahoe", nome: "Metin da Escuridão", nivel: 30, vida: 5600, cor: "#5a6cff", horda: "zumbi", regioes: [[41, -10], [35, -24]].map(p => pH(...p)) },
-  { tipo: "metin8", mapa: "hahoe", nome: "Metin da Inveja", nivel: 35, vida: 6400, cor: "#3ec46a", horda: "fantasma", regioes: [[-18, -40], [-5, -48]].map(p => pH(...p)) },
-  { tipo: "metin9", mapa: "hahoe", nome: "Metin da Alma", nivel: 40, vida: 7000, cor: "#e8d27a", horda: "golem", regioes: [[-30, 38], [-22, 46]].map(p => pH(...p)) },
+  { tipo: "metin5", mapa: "hahoe", nome: "Metin Negra", nivel: 20, vida: 7450, defesa: 24, cor: "#e0483a", horda: "tigre", regioes: [[-50, 20], [-48, -14]].map(p => pH(...p)) },
+  { tipo: "metin6", mapa: "hahoe", nome: "Metin Negra", nivel: 25, vida: 10000, defesa: 30, cor: "#e0483a", horda: "bandido", regioes: [[10, 46], [25, 40]].map(p => pH(...p)) },
+  { tipo: "metin7", mapa: "hahoe", nome: "Metin da Escuridão", nivel: 30, vida: 13000, defesa: 36, cor: "#5a6cff", horda: "zumbi", regioes: [[41, -10], [35, -24]].map(p => pH(...p)) },
+  { tipo: "metin8", mapa: "hahoe", nome: "Metin da Inveja", nivel: 35, vida: 15500, defesa: 42, cor: "#3ec46a", horda: "fantasma", regioes: [[-18, -40], [-5, -48]].map(p => pH(...p)) },
+  { tipo: "metin9", mapa: "hahoe", nome: "Metin da Alma", nivel: 40, vida: 18500, defesa: 48, cor: "#e8d27a", horda: "golem", regioes: [[-30, 38], [-22, 46]].map(p => pH(...p)) },
 ];
 const LIMIARES_HORDA = [0.8, 0.6, 0.4, 0.2], HORDA_MAX = 14;
 function spriteMetin(cor) {
@@ -5626,7 +5659,7 @@ function criarMetins(soMapa = "vila1") {
       im = document.createElement("canvas"); im.width = w; im.height = h; im.getContext("2d").drawImage(imp, 0, 0, w, h);
       info = { quadros: 1, fps: 1, laco: true, acerto: -1, w, h, px: Math.round(pintada.px * k), py: Math.round(pintada.py * k) };
     }
-    TIPOS[m.tipo] = { nome: m.nome, nivel: m.nivel, altura: 120, material: "osso", vida: m.vida, visao: 0, perto: 0.5, alcance: 0, ataque: "parado",
+    TIPOS[m.tipo] = { nome: m.nome, nivel: m.nivel, altura: 120, material: "osso", vida: m.vida, defesa: m.defesa, visao: 0, perto: 0.5, alcance: 0, ataque: "parado",
       galope: 0, chega: 0, passeio: 0, renasce: 60, sombra: 0.7, barra: info.py + 20, anel: 0.95, raio: 0.6, estatico: true, cor: m.cor, horda: m.horda, regioes: m.regioes,
       M: { animacoes: { parado: info, dano: { ...info, laco: false }, morte: { ...info, laco: false } } },
       spr: { parado: Array(8).fill(im), dano: Array(8).fill(im), morte: Array(8).fill(im) } };
@@ -5696,12 +5729,13 @@ function metinQuebrou(l) {
   if (Math.random() < 0.15) itens.push({ tipo: Math.random() < 0.5 ? "encantar" : "mudar" });
   itens.push({ tipo: "pocao", qtd: 1 + Math.floor(Math.random() * 2) });
   itens.push({ tipo: "pocaoMana", qtd: 1 + Math.floor(Math.random() * 2) });
-  itens.push({ tipo: "yang", qtd: Math.round(l.cfg.nivel * 40 * (0.8 + Math.random() * 0.4)) });
+  itens.push({ tipo: "yang", qtd: Math.round(yangNivel(l.cfg.nivel) * 40 * (0.8 + Math.random() * 0.4)) });
   if (Math.random() < 0.4) itens.push({ tipo: "pedra" });
   if (Math.random() < 0.2) itens.push({ tipo: "bencao" });
   if (Math.random() < 0.5) itens.push(pecaDoNivel(l.cfg.nivel));
+  if (Math.random() < 0.08) itens.push(armaDoNivel(l.cfg.nivel, bonusDeDrop("arma", 2)));   // (às vezes a arma do nível dela)
   soltarItens(l, itens);
-  l.toca = (([x, y]) => ({ x, y }))(lugarMetin(l.cfg));               // volta em outro lugar da região
+  l.toca =(([x, y]) => ({ x, y }))(lugarMetin(l.cfg));               // volta em outro lugar da região
   l.defensores = false; l.ondasHorda = 0;                            // ao renascer, chama defensores e hordas de novo
   avisar(`${l.cfg.nome} quebrou!`);
 }
@@ -5803,11 +5837,11 @@ function bonusChefe(parte, tier) {
 function pecaDeChefe(nivel) { const p = pecaDoNivel(nivel), [, parte, tier] = p.chave.split(":"); p.bon = bonusChefe(parte, +tier); return p; }
 function dropsChefe(l) {
   const n = l.cfg.nivel || 1, itens = [livroQualquer(), livroQualquer(), pecaDeChefe(n), { tipo: "pedra" }, { tipo: Math.random() < 0.5 ? "encantar" : "mudar" },
-    { tipo: "pocao", qtd: 5 }, { tipo: "pocaoMana", qtd: 4 }, { tipo: "yang", qtd: Math.round(n * (150 + Math.random() * 100)) }];
+    { tipo: "pocao", qtd: 5 }, { tipo: "pocaoMana", qtd: 4 }, { tipo: "yang", qtd: Math.round(yangNivel(n) * (150 + Math.random() * 100)) }];
   if (Math.random() < 0.7) itens.push({ tipo: "alma" });
   if (Math.random() < 0.6) itens.push({ tipo: "bencao" });
   if (Math.random() < 0.5) itens.push(pecaDeChefe(n));
-  if (Math.random() < 0.35) itens.push({ tipo: "arma", chave: "arma:" + classe, ref: 0, bon: bonusChefe("arma", 2) });
+  if (Math.random() < 0.35) itens.push(armaDoNivel(n, bonusChefe("arma", 2)));
   return itens;
 }
 // o golpe de uma mecânica: o do chefe, mult vezes mais forte (na fúria, golpeNoPersonagem soma os 30%)
@@ -6255,17 +6289,23 @@ const REFINO = [                       // de +n para +n+1
   { chance: 0.2, yang: 9000, pedra: 2 }, { chance: 0.1, yang: 13000, pedra: 3 },
 ];
 const ARMA_NOVA = 300, REF_MAX = 9;
+// o refino dos modelos acima do nível 14 custa mais yang (×1,5 no 22 até ×4 no 62; as pedras não mudam)
+function custoRefino(a) {
+  const r = REFINO[a.ref], req = a.arma ? NIVEIS_ARMA[a.tier || 0] : (PECAS[a.slot] ? PECAS[a.slot].modelos[a.tier || 0][1] : 1), k = 1 + Math.max(0, req - 14) / 16;
+  return k === 1 ? r : { ...r, yang: Math.round(r.yang * k / 50) * 50 };
+}
 let ferEscolha = "arma";                // "arma", "eq:<parte>" ou o item da bolsa
 // o que dá para levar ao ferreiro: a arma na mão, as peças vestidas e as armas e peças da bolsa
 function pecasDoFerreiro() {
   if (!prog) return [];
   const l = [];
-  if (prog.arma) l.push({ id: "arma", rotulo: `Arma +${prog.arma.ref}`, ref: prog.arma.ref, arma: true, nome: r => nomeArma(r), icone: (g, r) => iconeArma(g, ARMAS[classe].desenho, 40, 120, r), mudar: r => { prog.arma = r === null ? null : { ...prog.arma, ref: r }; } });
+  if (prog.arma) l.push({ id: "arma", rotulo: `Arma +${prog.arma.ref}`, ref: prog.arma.ref, arma: true, tier: prog.arma.tier || 0, nome: r => nomeArma(r), icone: (g, r) => iconeArma(g, ARMAS[classe].desenho, 40, 120, r), mudar: r => { prog.arma = r === null ? null : { ...prog.arma, ref: r }; } });
   for (const slot of ORDEM_PECAS) { const e = prog.equip && prog.equip[slot], pc = pecaEquipada(slot); if (!e) continue;
     l.push({ id: "eq:" + slot, rotulo: `${PECAS[pc].nome} +${e.ref}`, ref: e.ref, slot: pc, tier: e.tier, nome: r => nomePeca(pc, e.tier, r), icone: g => iconePeca(g, pc, e.tier, 40, PECAS[pc].h * 40), mudar: r => { prog.equip[slot] = r === null ? null : { ...e, ref: r }; } }); }
   for (const it of prog.inv) { const t = tipoItem(it.chave); if (!t.arma && !t.peca) continue;
+    const dona = t.arma ? armaDaChave(it.chave).classe : null;
     l.push({ id: it, rotulo: `Bolsa: ${t.peca ? PECAS[t.peca].nome : "arma"} +${it.ref || 0}`, ref: it.ref || 0, arma: t.arma, slot: t.peca, tier: t.tier,
-             nome: r => t.arma ? nomeArma(r) : nomePeca(t.peca, t.tier, r), icone: (g, r) => t.arma ? iconeArma(g, ARMAS[classe].desenho, 40, 120, r) : iconePeca(g, t.peca, t.tier, 40, PECAS[t.peca].h * 40),
+             nome: r => t.arma ? nomeArma(r, t.tier, dona) : nomePeca(t.peca, t.tier, r), icone: (g, r) => t.arma ? iconeArma(g, ARMAS[dona].desenho, 40, 120, r) : iconePeca(g, t.peca, t.tier, 40, PECAS[t.peca].h * 40),
              mudar: r => { if (r === null) prog.inv.splice(prog.inv.indexOf(it), 1); else it.ref = r; } }); }
   return l;
 }
@@ -6275,7 +6315,7 @@ function abrirFerreiro(sim = $("#ferreiro").hidden) {
 }
 function pecaEscolhida() { const l = pecasDoFerreiro(); return l.find(p => p.id === ferEscolha) || null; }
 // o que melhora com o refino: ataque da arma ou defesa da peça
-function efeitoRef(p, r) { return p.arma ? `ataque +${Math.round((bonusArma(r) - 1) * 100)}%` : `defesa +${atribPeca(p.slot, p.tier, r).defesa}`; }
+function efeitoRef(p, r) { return p.arma ? `ataque +${Math.round((bonusArma(r, p.tier) - 1) * 100)}%` : `defesa +${atribPeca(p.slot, p.tier, r).defesa}`; }
 function desenharFerreiro() {
   if (!prog || $("#ferreiro").hidden) return;
   const l = pecasDoFerreiro();
@@ -6297,7 +6337,7 @@ function desenharFerreiro() {
     $("#ferCusto").innerHTML = ""; $("#ferMelhorar").disabled = true; $("#ferBencaoLinha").hidden = true;
     return;
   }
-  const r = REFINO[a.ref], temP = contarItem("pedra"), temB = contarItem("bencao");
+  const r = custoRefino(a), temP = contarItem("pedra"), temB = contarItem("bencao");
   $("#ferDe").innerHTML = `<span class="seta">+${a.ref} → </span><b>+${a.ref + 1}</b> · ${efeitoRef(a, a.ref)} → ${efeitoRef(a, a.ref + 1).replace(/^\D+/, "+")}`;
   const linha = (nome, preciso, tenho, txt) => `<span>${nome}</span><b class="${tenho >= preciso ? "ok" : "falta"}">${txt}</b>`;
   $("#ferCusto").innerHTML = `<span>Chance de sucesso</span><b>${Math.round(r.chance * 100)}%</b>` +
@@ -6312,7 +6352,7 @@ function desenharFerreiro() {
 // o refino: cobra, sorteia e conta o resultado (sucesso: +1; falha: quebra, ou −1 com a bênção)
 function refinar() {
   const a = pecaEscolhida(); if (!a || a.ref >= REF_MAX) return;
-  const r = REFINO[a.ref], bencao = $("#ferBencao").checked && contarItem("bencao") > 0;
+  const r = custoRefino(a), bencao = $("#ferBencao").checked && contarItem("bencao") > 0;
   if (prog.yang < r.yang || contarItem("pedra") < (r.pedra || 0)) return;
   prog.yang -= r.yang; if (r.pedra) removerItem("pedra", r.pedra); if (bencao) removerItem("bencao", 1);
   const deu = Math.random() < r.chance, antes = a.ref, nomeAntes = a.nome(antes);
@@ -6539,7 +6579,7 @@ const NPCS = [
     falas: ["Maçãs, cenouras, couves! Tudo da horta do vale.", "Os ratos andam roubando os sacos de grão. Vêm de um buraco ao norte!", "Meu marido foi caçar javalis no leste e voltou mancando."] },
   { nome: "Guarda Real", dx: 0, dy: 6.6, cores: { roupa: "#2c3e78", calca: "#2a2a40", pele: "#e0b896", cabelo: "#5a3a22", elmo: "#b8bec8" }, lanca: true,
     falas: ["No fim da estrada do leste há um portal para a Vila Hahoe, a vila da curva do rio. Ele só se abre a partir do nível 12.",
-            "Quatro buracos levam às profundezas. E a estrada do leste leva ao Vale dos Orcs: só vá depois do nível 30.", "As pedras Metin caem do céu e chamam bandos. Quebre-as e leia os livros que soltarem.", "No fundo de cada caverna mora um chefe. Vá preparado."] },
+            "Quatro buracos levam às profundezas. E a estrada do leste leva ao Vale dos Orcs: só vá depois do nível 45.", "As pedras Metin caem do céu e chamam bandos. Quebre-as e leia os livros que soltarem.", "No fundo de cada caverna mora um chefe. Vá preparado."] },
   { nome: "Senhor do Armazém", dx: -11, dy: 3.4, cores: { roupa: "#6b5a3a", calca: "#3a2a1c", pele: "#e0b896", cabelo: "#9a9a9a", barba: "#b0b0b0" }, armazem: true,
     falas: ["Guardo o que não cabe na sua bolsa. E o que eu guardo, todos os seus heróis podem buscar."] },
   { nome: "Guarda Sigrid", dx: -3.6, dy: -8.6, cores: { roupa: "#7a2a22", calca: "#3a2a1c", pele: "#e8c0a0", cabelo: "#d0a040", elmo: "#9aa0aa" }, lanca: true,
@@ -6864,7 +6904,7 @@ let abaBolsa = 0;
 function tipoItem(chave) {
   if (chave.startsWith("peca:")) { const [, slot, t] = chave.split(":"), P = PECAS[slot] || PECAS.elmo, m = P.modelos[+t] || P.modelos[0];
     return { nome: m[0] + (P.classes ? ` (${P.classes.map(c => NOME_CLASSE[c]).join("/")})` : ""), desc: "", h: P.h, peca: PECAS[slot] ? slot : "elmo", tier: +t, usar: it => equiparPeca(it) }; }
-  if (chave.startsWith("arma:")) { const c = ARMAS[chave.slice(5)] ? chave.slice(5) : "viking", a = ARMAS[c]; return { nome: a.nome, desc: `Arma só para ${NOME_CLASSE[c]}. Clique direito para equipar; o Ferreiro da praça melhora até +9.`, h: a.desenho === "adagas" ? 1 : 2, arma: true, desenho: a.desenho, usar: it => equiparArma(it) }; }
+  if (chave.startsWith("arma:")) { const { classe: c, tier } = armaDaChave(chave), a = ARMAS[c]; return { nome: ARMAS_TIER[c][tier], desc: `Arma só para ${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[tier]} (ataque ×${ATAQUE_TIER[tier]}). Clique direito para equipar; o Ferreiro da praça melhora até +9.`, h: a.desenho === "adagas" ? 1 : 2, arma: true, tier, desenho: a.desenho, usar: it => equiparArma(it) }; }
   if (chave.startsWith("livro:")) { const n = chave.slice(6), c = classeDaSkill(n);
     return { nome: "Livro: " + n, desc: `Skill ${c ? "do " + NOME_CLASSE[c] : ""}. Do M1 ao M10: cada leitura pode falhar, custa um pouco de EXP e a mesma skill só lê de novo depois de 12 h.`, h: 1, usar: () => lerLivro(n), desenho: "livro" }; }
   return {
@@ -6940,6 +6980,23 @@ function classeDaSkill(nome) { for (const [c, l] of [["viking", SKILLS_VIKING], 
 function livroQualquer() { const l = todasAsSkills(); return { tipo: "livro", nome: l[Math.floor(Math.random() * l.length)] }; }
 // as armas (uma por classe), desenhadas em pé num espaço de 1 × 3
 const ARMAS = { viking: { nome: "Espada Viking", desenho: "espada" }, arqueiro: { nome: "Arco Longo", desenho: "arco" }, feiticeiro: { nome: "Cajado Arcano", desenho: "cajado" }, ninja: { nome: "Adagas Gêmeas", desenho: "adagas" }, guerreiro: { nome: "Machado de Guerra", desenho: "machado" } };
+// os modelos de cada arma, como os das peças (Logs/Balanceamento/NIVEL70.md): o 0 é a de sempre (nível 1) e os outros
+// abrem no 22, 30, 38, 46, 54 e 62 (a Vila Hahoe e a Ilha de Daiyu). O modelo multiplica o ataque (ATAQUE_TIER) e o
+// refino (+0 a +9) soma por cima. Na bolsa: "arma:<classe>" (o modelo 0) ou "arma:<classe>:<modelo>". Os ícones dos
+// modelos novos ainda são o da arma de sempre (a arte está na lista do NIVEL70.md)
+const NIVEIS_ARMA = [1, 22, 30, 38, 46, 54, 62], ATAQUE_TIER = [1, 1.2, 1.4, 1.65, 1.9, 2.2, 2.5];
+const ARMAS_TIER = {
+  viking: ["Espada Viking", "Espada de Aço Nórdico", "Espada Rúnica", "Lâmina do Jarl", "Espada do Trovão", "Espada Dente de Dragão", "Espada de Valhalla"],
+  guerreiro: ["Machado de Guerra", "Machado de Aço Nórdico", "Machado Rúnico", "Machado do Berserker", "Machado do Trovão", "Machado Dente de Dragão", "Machado de Ragnarök"],
+  arqueiro: ["Arco Longo", "Arco Composto", "Arco de Chifre", "Arco da Lua Crescente", "Arco do Vento Negro", "Arco da Fênix", "Arco do Dragão Celeste"],
+  feiticeiro: ["Cajado Arcano", "Cajado de Jade", "Cajado das Runas", "Cajado da Lua Crescente", "Cajado do Trovão", "Cajado da Fênix", "Cajado do Dragão Celeste"],
+  ninja: ["Adagas Gêmeas", "Adagas de Aço", "Adagas da Serpente", "Adagas da Lua Crescente", "Adagas do Vento Negro", "Adagas Presas de Raposa", "Adagas do Dragão Celeste"],
+};
+function armaDaChave(chave) { const [, c, t] = chave.split(":"); return { classe: ARMAS[c] ? c : "viking", tier: Math.max(0, Math.min(NIVEIS_ARMA.length - 1, Math.floor(+t) || 0)) }; }
+function chaveArma(c, tier) { return tier ? `arma:${c}:${tier}` : "arma:" + c; }
+function tierArmaDoNivel(nivel) { let t = 0; NIVEIS_ARMA.forEach((n, k) => { if (nivel >= n) t = k; }); return t; }
+// a arma que cai (chefes, Metins): o melhor modelo que o nível de quem a soltou alcança, da classe de quem joga
+function armaDoNivel(nivel, bon) { return { tipo: "arma", chave: chaveArma(classe, tierArmaDoNivel(nivel)), ref: 0, bon }; }
 function iconeArma(g, desenho, w, h, ref) {
   const X = w / 2, u = w / 40, top = 6 * u, bot = h - 6 * u, b = BRILHO_REF[ref];
   if (pintarItem(g, desenho, w, h, b)) return;
@@ -6988,21 +7045,33 @@ function iconeArma(g, desenho, w, h, ref) {
   g.restore();
 }
 // ---------- peças de equipamento (só atributos: a aparência do personagem não muda) ----------
-// Cada parte tem três modelos, por nível (como no Metin2: o de couro no nível 1, o de ferro no 8, o de guerra no 14). Todas
-// dão defesa. A ROUPA (o espaço da armadura) é de cada tipo de classe: o guerreiro (viking) usa armadura pesada, que dá
+// Cada parte tem nove modelos, por nível (como no Metin2: o de couro no nível 1, o de ferro no 8, o de guerra no 14; e,
+// para a Vila Hahoe e a Ilha de Daiyu, os do 22, 30, 38, 46, 54 e 62, NIVEL70.md; os ícones deles ainda são os do
+// modelo de guerra, a arte nova está na lista do NIVEL70.md). Todas dão defesa. A ROUPA (o espaço da armadura) é de cada tipo de classe: o guerreiro (viking) usa armadura pesada, que dá
 // mais defesa e vida; o ninja e o arqueiro usam o traje leve; o feiticeiro, o manto, que dá mana. Elmo, botas e escudo são
 // os mesmos para todos (o elmo dá mana, as botas velocidade e o escudo chance de bloquear). Não há mais calças.
 // O Ferreiro refina as peças como as armas (+0 a +9): cada nível soma 12% da defesa base (pelo menos 1)
 const PECAS = {
   armadura_guerreiro: { nome: "Armadura", slot: "armadura", classes: ["viking", "guerreiro"], h: 2, extra: "vida", cor: null,
-    modelos: [["Peitoral de Couro Batido", 1, 14, 40], ["Cota de Malha Nórdica", 8, 28, 80], ["Armadura de Placas do Jarl", 14, 46, 130]] },
-  armadura_leve: { nome: "Traje", slot: "armadura", classes: ["arqueiro", "ninja"], h: 2, extra: "vida", cor: [["#4a5a3a", "#2a3420"], ["#3a3a46", "#1e1e28"], ["#2a2230", "#120c18"]],
-    modelos: [["Gibão de Couro", 1, 10, 30], ["Traje de Caçador", 8, 20, 60], ["Traje das Sombras", 14, 34, 100]] },
-  armadura_mago: { nome: "Manto", slot: "armadura", classes: ["feiticeiro"], h: 2, extra: "mana", cor: [["#8a6a4a", "#5a4430"], ["#5a3a8a", "#2a1a4a"], ["#a02020", "#4a0a0a"]],
-    modelos: [["Túnica de Linho", 1, 6, 30], ["Manto de Seda", 8, 13, 60], ["Manto Arcano", 14, 22, 100]] },
-  elmo: { nome: "Elmo", h: 1, extra: "mana", modelos: [["Capuz de Couro", 1, 4, 15], ["Elmo de Ferro", 8, 9, 30], ["Elmo de Guerra", 14, 15, 50]] },
-  botas: { nome: "Botas", h: 1, extra: "vel", modelos: [["Botas de Couro", 1, 3, 3], ["Botas de Ferro", 8, 7, 5], ["Botas de Guerra", 14, 12, 7]] },
-  escudo: { nome: "Escudo", h: 1, extra: "bloqueio", modelos: [["Escudo de Madeira", 1, 5, 4], ["Escudo de Ferro", 8, 10, 7], ["Escudo da Batalha", 14, 17, 10]] },
+    modelos: [["Peitoral de Couro Batido", 1, 14, 40], ["Cota de Malha Nórdica", 8, 28, 80], ["Armadura de Placas do Jarl", 14, 46, 130],
+              ["Armadura de Escamas", 22, 64, 180], ["Armadura do Tigre Branco", 30, 84, 235], ["Armadura de Ferro Negro", 38, 104, 290],
+              ["Armadura do Dragão de Bronze", 46, 124, 345], ["Armadura da Tartaruga Negra", 54, 144, 400], ["Armadura do Rei de Longbo", 62, 164, 455]] },
+  armadura_leve: { nome: "Traje", slot: "armadura", classes: ["arqueiro", "ninja"], h: 2, extra: "vida", cor: [["#4a5a3a", "#2a3420"], ["#3a3a46", "#1e1e28"], ["#2a2230", "#120c18"],
+      ["#6a4a2a", "#3a2614"], ["#2a2a3a", "#101018"], ["#5a5a7a", "#2a2a40"], ["#c8a070", "#6a4a2a"], ["#8a9aa8", "#3a4a58"], ["#3a6a8a", "#14304a"]],
+    modelos: [["Gibão de Couro", 1, 10, 30], ["Traje de Caçador", 8, 20, 60], ["Traje das Sombras", 14, 34, 100],
+              ["Traje de Couro Laqueado", 22, 47, 138], ["Traje do Vento Negro", 30, 62, 181], ["Traje da Lua Crescente", 38, 77, 223],
+              ["Traje da Raposa", 46, 92, 266], ["Traje da Névoa", 54, 107, 308], ["Traje do Dragão Celeste", 62, 121, 350]] },
+  armadura_mago: { nome: "Manto", slot: "armadura", classes: ["feiticeiro"], h: 2, extra: "mana", cor: [["#8a6a4a", "#5a4430"], ["#5a3a8a", "#2a1a4a"], ["#a02020", "#4a0a0a"],
+      ["#3a6a5a", "#183a2e"], ["#2a3a7a", "#10183a"], ["#c8c8e0", "#5a5a8a"], ["#4a3a8a", "#1a1040"], ["#e06a2a", "#7a2a0a"], ["#2a8aa8", "#0a3a5a"]],
+    modelos: [["Túnica de Linho", 1, 6, 30], ["Manto de Seda", 8, 13, 60], ["Manto Arcano", 14, 22, 100],
+              ["Manto de Brocado", 22, 31, 140], ["Manto das Estrelas", 30, 40, 185], ["Manto da Lua Crescente", 38, 50, 230],
+              ["Manto do Trovão", 46, 60, 275], ["Manto da Fênix", 54, 69, 320], ["Manto do Dragão Celeste", 62, 79, 365]] },
+  elmo: { nome: "Elmo", h: 1, extra: "mana", modelos: [["Capuz de Couro", 1, 4, 15], ["Elmo de Ferro", 8, 9, 30], ["Elmo de Guerra", 14, 15, 50],
+    ["Elmo de Aço", 22, 21, 70], ["Elmo com Chifres", 30, 27, 90], ["Elmo de Ferro Negro", 38, 34, 112], ["Elmo do Dragão de Bronze", 46, 41, 135], ["Elmo da Tartaruga Negra", 54, 47, 158], ["Elmo do Rei de Longbo", 62, 54, 180]] },
+  botas: { nome: "Botas", h: 1, extra: "vel", modelos: [["Botas de Couro", 1, 3, 3], ["Botas de Ferro", 8, 7, 5], ["Botas de Guerra", 14, 12, 7],
+    ["Botas de Aço", 22, 17, 8], ["Botas de Pele de Tigre", 30, 22, 9], ["Botas de Ferro Negro", 38, 27, 10], ["Botas do Vento", 46, 32, 11], ["Botas da Tartaruga Negra", 54, 38, 12], ["Botas do Dragão Celeste", 62, 43, 13]] },
+  escudo: { nome: "Escudo", h: 1, extra: "bloqueio", modelos: [["Escudo de Madeira", 1, 5, 4], ["Escudo de Ferro", 8, 10, 7], ["Escudo da Batalha", 14, 17, 10],
+    ["Escudo de Aço", 22, 24, 11], ["Escudo do Tigre", 30, 31, 12], ["Escudo de Ferro Negro", 38, 38, 12], ["Escudo do Dragão de Bronze", 46, 46, 13], ["Escudo do Casco da Tartaruga", 54, 53, 14], ["Escudo do Rei de Longbo", 62, 60, 15]] },
 };
 const ORDEM_PECAS = ["elmo", "armadura", "botas", "escudo"];                // os espaços do equipamento
 const ROUPA_DA_CLASSE = { viking: "armadura_guerreiro", arqueiro: "armadura_leve", ninja: "armadura_leve", feiticeiro: "armadura_mago", guerreiro: "armadura_guerreiro" };
@@ -7021,9 +7090,14 @@ function descPeca(slot, tier, ref) {
   return `Defesa +${a.defesa} · ${NOME_EXTRA[PECAS[slot].extra](a.extra)} · nível ${a.nivel}`;
 }
 // ícone de cada parte, na cor do material (couro, ferro, guerra)
-const COR_TIER = [["#8a5a32", "#5e3a1e"], ["#a9b0b8", "#5d646c"], ["#d8dde4", "#8a7a4a"]];
+const COR_TIER = [["#8a5a32", "#5e3a1e"], ["#a9b0b8", "#5d646c"], ["#d8dde4", "#8a7a4a"],
+  ["#c2c9d2", "#6f7884"], ["#d9a441", "#7a5a1e"], ["#4a4e58", "#1c1e24"], ["#c07a3a", "#5a3414"], ["#3f7a64", "#173a2e"], ["#e0b84a", "#8a2a1a"]];
+// (os modelos do 22 em diante, enquanto não têm ícone pintado: o do modelo de guerra com outra cor, FILTRO_TIER)
+const FILTRO_TIER = [null, null, null, "saturate(0.5) brightness(1.15)", "sepia(0.6) saturate(1.7)", "brightness(0.55) contrast(1.25)",
+  "sepia(0.8) hue-rotate(-20deg) saturate(1.8)", "hue-rotate(110deg) saturate(1.3)", "sepia(0.5) saturate(2.4) hue-rotate(-12deg) brightness(1.1)"];
 function iconePeca(g, slot, tier, w, h) {
   if (pintarItem(g, `peca:${slot}:${tier}`, w, h)) return;
+  if (tier > 2 && ICONES_ITEM[`peca:${slot}:2`]) { g.save(); g.filter = FILTRO_TIER[tier] || "none"; pintarItem(g, `peca:${slot}:2`, w, h); g.restore(); return; }
   g.clearRect(0, 0, w, h);
   const corP = PECAS[slot] && PECAS[slot].cor, [c1, c2] = (corP && corP[tier]) || COR_TIER[tier] || COR_TIER[0], X = w / 2, u = w / 40, gr = g.createLinearGradient(0, 0, w, 0);
   gr.addColorStop(0, c2); gr.addColorStop(0.5, c1); gr.addColorStop(1, c2);
@@ -7034,7 +7108,7 @@ function iconePeca(g, slot, tier, w, h) {
   else if (slot === "elmo") { g.beginPath(); g.arc(X, 22 * u, 13 * u, Math.PI, 0); g.lineTo(X + 13 * u, 32 * u); g.lineTo(X - 13 * u, 32 * u); g.closePath(); g.fill(); g.stroke(); if (tier) { g.fillStyle = "#140c06"; g.fillRect(X - 9 * u, 22 * u, 18 * u, 3 * u); } }
   else if (slot === "botas") { pol([[13, 6], [24, 6], [24, 24], [34, 28], [34, 34], [11, 34], [12, 22]]); }
   else if (slot === "escudo") { g.beginPath(); g.moveTo(X, 6 * u); g.lineTo(X + 15 * u, 12 * u); g.quadraticCurveTo(X + 15 * u, 56 * u, X, 74 * u); g.quadraticCurveTo(X - 15 * u, 56 * u, X - 15 * u, 12 * u); g.closePath(); g.fill(); g.stroke();
-    g.fillStyle = tier === 2 ? "#e0b240" : "#6d675e"; g.beginPath(); g.arc(X, 34 * u, 5 * u, 0, 7); g.fill(); g.stroke(); }
+    g.fillStyle = tier >= 2 ? "#e0b240" : "#6d675e"; g.beginPath(); g.arc(X, 34 * u, 5 * u, 0, 7); g.fill(); g.stroke(); }
 }
 // veste uma peça da bolsa (a que estava no lugar volta para a bolsa)
 function equiparPeca(it) {
@@ -7092,10 +7166,12 @@ const BONUS_DA_PARTE = {
   armadura_leve: ["vida", "defesa", "dex", "critico", "velocidade"], armadura_mago: ["mana", "int", "vida", "defesa"], elmo: ["mana", "critico", "int", "vida"], botas: ["velocidade", "vida", "dex"], escudo: ["bloqueio", "defesa", "vida", "for"],
 };
 const BONUS_MAX = 5;
+// o teto do bônus pelo modelo: metade no de couro, 3/4 no de ferro, inteiro no de guerra e +8% a cada modelo acima
+function tetoBonus(tier) { tier = tier || 0; return tier <= 2 ? [0.5, 0.75, 1][tier] : 1 + 0.08 * (tier - 2); }
 // um bônus novo para a parte (sem repetir os que o item já tem)
 function sortearBonus(parte, tier, ja = []) {
   const livres = BONUS_DA_PARTE[parte].filter(b => !ja.some(([t]) => t === b)); if (!livres.length) return null;
-  const t = livres[Math.floor(Math.random() * livres.length)], [lo, hi] = BONUS[t].faixa, teto = lo + (hi - lo) * [0.5, 0.75, 1][tier || 0];
+  const t = livres[Math.floor(Math.random() * livres.length)], [lo, hi] = BONUS[t].faixa, teto = lo + (hi - lo) * tetoBonus(tier);
   return [t, Math.round(lo + Math.random() * (teto - lo))];
 }
 // quantos bônus um item que cai traz: 0 (40%), 1 (30%), 2 (18%), 3 (9%) ou 4 (3%)
@@ -7106,7 +7182,7 @@ function bonusDeDrop(parte, tier) {
 }
 function textoBonus(bon) { return (bon || []).map(([t, v]) => BONUS[t] ? BONUS[t].nome(v) : "").filter(Boolean); }
 // a parte e o modelo de um item (para os bônus): "arma" ou a peça
-function parteDoItem(it) { const t = tipoItem(it.chave); return t.arma ? ["arma", 2] : t.peca ? [t.peca, t.tier] : null; }
+function parteDoItem(it) { const t = tipoItem(it.chave); return t.arma ? ["arma", 2 + (t.tier || 0)] : t.peca ? [t.peca, t.tier] : null; }
 // pergaminho arrastado sobre um item: encantar (mais um bônus) ou mudar (sorteia todos de novo)
 function usarPergaminhoBonus(perg, alvo) {
   const pa = parteDoItem(alvo); if (!pa) return false;
@@ -7132,26 +7208,28 @@ function somaBonus() {
   return r;
 }
 
-// bônus de ataque da arma: +5% no +0 e mais 7% por nível de refino (sem arma, nos punhos, 25% menos)
-function bonusArma(ref) { return ref === null || ref === undefined ? 0.75 : 1.05 + 0.07 * ref; }
-function nomeArma(ref) { return `${ARMAS[classe].nome} +${ref}`; }
+// bônus de ataque da arma: +5% no +0 e mais 7% por nível de refino, vezes o do modelo (ATAQUE_TIER); sem arma, nos
+// punhos, 25% menos
+function bonusArma(ref, tier) { return ref === null || ref === undefined ? 0.75 : (1.05 + 0.07 * ref) * (ATAQUE_TIER[tier || 0] || 1); }
+function nomeArma(ref, tier = prog && prog.arma ? prog.arma.tier : 0, c = classe) { return `${(ARMAS_TIER[c] || ARMAS_TIER.viking)[tier || 0]} +${ref}`; }
 function nomeItem(it) { const t = tipoItem(it.chave); return t.arma || t.peca ? `${t.nome} +${it.ref || 0}` : t.nome; }
 // equipa uma arma da bolsa (a que estava na mão vai para o lugar dela)
 function equiparArma(it) {
   if (!prog) return;
-  // como no Metin2: cada classe só empunha a própria arma
-  const dona = it.chave.slice(5);
-  if (ARMAS[dona] && dona !== classe) { avisar(`${ARMAS[dona].nome} é arma de ${NOME_CLASSE[dona]}`); som("ui_negar"); return; }
+  // como no Metin2: cada classe só empunha a própria arma, e cada modelo pede o nível dele
+  const { classe: dona, tier } = armaDaChave(it.chave);
+  if (dona !== classe) { avisar(`${ARMAS[dona].nome} é arma de ${NOME_CLASSE[dona]}`); som("ui_negar"); return; }
+  if (prog.nivel < NIVEIS_ARMA[tier]) { avisar(`${nomeArma(it.ref || 0, tier)}: precisa do nível ${NIVEIS_ARMA[tier]}`); som("ui_negar"); return; }
   const i = prog.inv.indexOf(it); if (i < 0) return;
   prog.inv.splice(i, 1);
-  if (prog.arma) prog.inv.push({ chave: "arma:" + classe, qtd: 1, ref: prog.arma.ref, bon: prog.arma.bon || [], aba: it.aba, x: it.x, y: it.y });
-  prog.arma = { ref: it.ref || 0, bon: it.bon || [] }; som("equipar", null, 0.9);
+  if (prog.arma) prog.inv.push({ chave: chaveArma(classe, prog.arma.tier), qtd: 1, ref: prog.arma.ref, bon: prog.arma.bon || [], aba: it.aba, x: it.x, y: it.y });
+  prog.arma = { ref: it.ref || 0, bon: it.bon || [], tier }; som("equipar", null, 0.9);
   depoisDaArma(`Equipou: ${nomeArma(prog.arma.ref)}`);
 }
 function tirarArma() {
   if (!prog || !prog.arma) return;
   const l = lugarLivre(3); if (!l) { avisar("A bolsa está cheia"); som("ui_negar"); return; }
-  prog.inv.push({ chave: "arma:" + classe, qtd: 1, ref: prog.arma.ref, bon: prog.arma.bon || [], ...l });
+  prog.inv.push({ chave: chaveArma(classe, prog.arma.tier), qtd: 1, ref: prog.arma.ref, bon: prog.arma.bon || [], ...l });
   prog.arma = null; som("equipar", null, 0.6);
   depoisDaArma("Arma guardada na bolsa: você luta com os punhos (−25% de ataque)");
 }
@@ -7237,7 +7315,7 @@ function desenharBolsa() {
   if (prog.arma) {
     const c = document.createElement("canvas"); c.width = 40; c.height = 120; iconeArma(c.getContext("2d"), ARMAS[classe].desenho, 40, 120, prog.arma.ref); eq.appendChild(c);
     const r = document.createElement("span"); r.className = "ref-eq"; r.textContent = "+" + prog.arma.ref; eq.appendChild(r);
-    eq.title = `${nomeArma(prog.arma.ref)} (ataque +${Math.round((bonusArma(prog.arma.ref) - 1) * 100)}%)${(prog.arma.bon || []).length ? "\n" + textoBonus(prog.arma.bon).join("\n") : ""}\nClique direito guarda na bolsa`;
+    eq.title = `${nomeArma(prog.arma.ref)} (ataque +${Math.round((bonusArma(prog.arma.ref, prog.arma.tier) - 1) * 100)}%)${(prog.arma.bon || []).length ? "\n" + textoBonus(prog.arma.bon).join("\n") : ""}\nClique direito guarda na bolsa`;
   } else eq.title = "Sem arma: clique direito numa arma da bolsa para equipar";
   for (const el of document.querySelectorAll(".peca-eq")) {
     const slot = el.dataset.peca, e = prog.equip && prog.equip[slot], pc = pecaEquipada(slot) || (slot === "armadura" ? ROUPA_DA_CLASSE[classe] : slot);
@@ -7553,7 +7631,7 @@ function montarMenu() {
 // consumíveis, livros de todas as skills e yang) vai direto para a bolsa do personagem atual
 let admRef = 0, admBon = [];
 function admListaItens() {
-  const grupos = [["Armas", ["viking", "guerreiro", "arqueiro", "feiticeiro", "ninja"].filter(c => ARMAS[c]).map(c => ["arma:" + c, `${ARMAS[c].nome} (${NOME_CLASSE[c]})`])]];
+  const grupos = [["Armas", ["viking", "guerreiro", "arqueiro", "feiticeiro", "ninja"].filter(c => ARMAS[c]).flatMap(c => ARMAS_TIER[c].map((nome, t) => [chaveArma(c, t), `${nome} (${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[t]})`]))]];
   for (const [slot, P] of Object.entries(PECAS))
     grupos.push([P.nome + (P.classes ? " · " + P.classes.map(c => NOME_CLASSE[c]).join("/") : ""), P.modelos.map((m, t) => [`peca:${slot}:${t}`, `${m[0]} (nível ${m[1]})`])]);
   grupos.push(["Consumíveis e materiais", ["pocao", "pocaoMana", "pedra", "encantar", "mudar", "alma", "bencao"].map(k => [k, tipoItem(k).nome])]);
@@ -7563,8 +7641,8 @@ function admListaItens() {
   return grupos;
 }
 function admTipo() { const k = $("#admItem").value; return { chave: k, yang: k === "yang", t: k === "yang" ? { nome: "Yang", h: 1, desenho: "yang" } : tipoItem(k) }; }
-function admParte(t) { return t.arma ? ["arma", 2] : t.peca ? [t.peca, t.tier] : null; }
-function admTeto(b, tier) { const [lo, hi] = BONUS[b].faixa; return Math.round(lo + (hi - lo) * [0.5, 0.75, 1][tier || 0]); }
+function admParte(t) { return t.arma ? ["arma", 2 + (t.tier || 0)] : t.peca ? [t.peca, t.tier] : null; }
+function admTeto(b, tier) { const [lo, hi] = BONUS[b].faixa; return Math.round(lo + (hi - lo) * tetoBonus(tier)); }
 function admDesenhar() {
   const { chave, yang, t } = admTipo(), ref = admRef, cv = $("#admIcone"), w = 60, h = t.h * 60, temRef = !!(t.arma || t.peca);
   cv.width = w; cv.height = h;
@@ -7773,7 +7851,7 @@ const GRUPOS = [["javali", -20, 18, 3], ["javali", 14, 30, 3], ["javali", -30, -
   ["lobo", 21, 6, 9, 5.5], ["lobo", 24, -18, 2], ["lobo", -28, 6, 2], ["lobo", -26, 22, 3], ["lobo", -36, 13, 3],
   ["esqueleto", 8, -28, 3], ["esqueleto", -16, -27, 3], ["esqueleto", -31, -12, 3], ["esqueleto", -3, -35, 3], ["aranha", 20, -29, 1],
   ["goblin", -9, -19, 3], ["goblin", 33, -3, 3], ["goblin", 26, 20, 3], ["goblin", 35, 8, 3]];
-// o Vale dos Orcs (x, y já na escala nova, quantos, espalhados em quantos m): caça para o nível 30+, com o Chefe Orc
+// o Vale dos Orcs (x, y já na escala nova, quantos, espalhados em quantos m): caça para o nível 45–61, com o Chefe Orc (60)
 // no meio do vale
 // no centro, o monumento orc (uma pedra gigante) com uma roda de bandos em volta e o Chefe Orc na frente dele
 const MONUMENTO = { x: 98, y: -2 };
@@ -8316,7 +8394,7 @@ function ferir(l, dano, dx, dy, empurra, semReacao = false) {
   // a força do personagem, o nível da skill que fere e o crítico (dobra; o Olho Arcano soma 25%)
   let critico = false;
   if (dano > 0 && prog) {
-    dano *= status.ataque * (fonteDano ? multSkill(fonteDano) : 1) * (1 + (status.monstros || 0));
+    dano *= status.ataque * (fonteDano ? multSkill(fonteDano) : 1) * (1 + (status.monstros || 0)) * 100 / (100 + defesaDe(l.cfg));   // (a defesa da criatura)
     if (classe === "ninja" && NINJA.esconder.buff > 0) { dano *= 2.5 * multSkill("Esconder") / 1; NINJA.esconder.buff = 0; numeros.push({ wx: l.x, wy: l.y, y: -l.cfg.altura - 40, vida: 1, txt: "Emboscada!", critico: true }); }
     critico = Math.random() < status.critico + (classe === "feiticeiro" && olho.buff > 0 ? OLHO_CRIT : 0);
     if (critico) dano *= 2;
@@ -9262,7 +9340,7 @@ function passoMagias(dt) {
       if (a && (a.morto || a.acao === "levantar")) m.alvo = null;
       if (m.alvo) {
         const ex = a.x - m.x, ey = a.y - m.y, ez = alturaAlvo(a) - m.z, d = Math.hypot(ex, ey, ez);
-        if (d < BOLA_VEL * dt + 0.3) { estouroBola(m); acertoMagico(a, 12 + Math.floor(Math.random() * 6), 0, true); som("arcano", a, 0.5); continue; }
+        if (d < BOLA_VEL * dt + 0.3) { estouroBola(m); acertoMagico(a, 18 + Math.floor(Math.random() * 8), 0, true); som("arcano", a, 0.5); continue; }   // (o dano da bola era 12–17: o feiticeiro ficava 30% abaixo das outras classes num alvo só, NIVEL70.md)
         m.dx = ex / d; m.dy = ey / d; m.dz = ez / d;
       }
       m.x += m.dx * BOLA_VEL * dt; m.y += m.dy * BOLA_VEL * dt; m.z += m.dz * BOLA_VEL * dt;
@@ -9496,12 +9574,13 @@ function trocarClasse(nova) {
 // nome e barra de vida acima da cabeça: o tamanho na tela não muda com o zoom (para ler sempre)
 // placa de nome como a do Metin2: "Lv. N" em dourado e o nome em branco, letra pequena e grossa com contorno preto
 const FONTE_PLACA = 'bold 12px Tahoma, Verdana, "Segoe UI", Arial, sans-serif';
-function placaNome(X, y, nivel, nome, corNome) {
+// (corNivel: na criatura, o "Lv." muda de cor pela diferença para o herói, corDoNivel)
+function placaNome(X, y, nivel, nome, corNome, corNivel = "#f3cf5a") {
   cx.save();
   cx.font = FONTE_PLACA; cx.textBaseline = "alphabetic"; cx.lineJoin = "round"; cx.lineWidth = 3; cx.strokeStyle = "rgba(0, 0, 0, 0.9)";
   const lv = `Lv. ${nivel} `, wl = cx.measureText(lv).width, wn = cx.measureText(nome).width, x0 = X - (wl + wn) / 2;
   cx.textAlign = "left";
-  cx.strokeText(lv, x0, y); cx.fillStyle = "#f3cf5a"; cx.fillText(lv, x0, y);
+  cx.strokeText(lv, x0, y); cx.fillStyle = corNivel; cx.fillText(lv, x0, y);
   cx.strokeText(nome, x0 + wl, y); cx.fillStyle = corNome; cx.fillText(nome, x0 + wl, y);
   cx.restore();
 }
@@ -9519,7 +9598,7 @@ function barraVida(l, X, Ytopo) {
   const cfg = l.cfg, larg = 46, alt = 6, y = Ytopo - 10, k = Math.max(0, l.vida) / cfg.vida, kv = Math.max(0, l.vidaVista) / cfg.vida;
   const sobe = l.acao === "levantar" ? Math.max(0, 1 - l.t * 2) : 0;       // o esqueleto levantando: a barra aparece aos poucos
   cx.save(); cx.globalAlpha = 1 - sobe;
-  placaNome(X, y - 4, cfg.nivel || 1, cfg.nome, l.cacando ? "#ff9a86" : "#f2eee6");
+  placaNome(X, y - 4, cfg.nivel || 1, cfg.nome, l.cacando ? "#ff9a86" : "#f2eee6", corDoNivel(cfg.nivel || 1));
   cx.fillStyle = "rgba(20, 14, 10, 0.85)"; cx.fillRect(X - larg / 2 - 1, y - 1, larg + 2, alt + 2);
   cx.fillStyle = "#3a1712"; cx.fillRect(X - larg / 2, y, larg, alt);
   if (kv > k) { cx.fillStyle = "#f2e2b8"; cx.fillRect(X - larg / 2 + larg * k, y, larg * (kv - k), alt); }
@@ -10071,13 +10150,14 @@ function criarOrcs() {
   const bo = TIPOS.orc && TIPOS.orc.M ? "orc" : "goblin", eo = bo === "orc" ? 1 : 1.7;
   const orc = (v, b = bo, e = eo) => variante(b, { visao: 8, chega: 1.9, galope: 0, passeio: 0.8, ...v, esc: v.esc * e });
   const proprio = t => TIPOS[t] && TIPOS[t].M;                   // o modelo dele chegou? (orc_bravo.json, orc_feiticeiro.json)
-  // caça do nível 30+: negro < bravo < gigante < feiticeiro (o mais forte dos comuns, de longe)
-  TIPOS.orc_negro = orc({ nome: "Orc Negro", esc: 1, vida: 650, nivel: 30, dano: 70 });
-  TIPOS.orc_elite = orc({ nome: "Orc Negro Bravo", esc: proprio("orc_bravo") ? 1 : 1.12, vida: 850, nivel: 33, dano: 85, chega: 2.2 }, ...(proprio("orc_bravo") ? ["orc_bravo", 1] : []));
-  TIPOS.orc_gigante = orc({ nome: "Orc Gigante Negro", esc: 1.35, vida: 1300, nivel: 36, dano: 105, chega: 1.6 });
-  TIPOS.orc_mago = orc({ nome: "Orc Feiticeiro", esc: proprio("orc_feiticeiro") ? 1 : 0.95, vida: 1100, nivel: 38, dano: 120, perto: 5.5, alcance: 7, magia: true, visao: 9 },
+  // caça do nível 45 ao 61 (a Ilha de Daiyu, enquanto ela não vira mapa próprio: PROJETO_MAPAS.md 3.4 e NIVEL70.md):
+  // Orc 45 < Orc Bravo 51 < Orc Feiticeiro 53 (de longe) < Orc Gigante 61 (tanque); o Chefe Orc (60) manda neles
+  TIPOS.orc_negro = orc({ nome: "Orc", esc: 1, vida: 1750, nivel: 45, dano: 522, defesa: 36 });
+  TIPOS.orc_elite = orc({ nome: "Orc Bravo", esc: proprio("orc_bravo") ? 1 : 1.12, vida: 2100, nivel: 51, dano: 646, defesa: 41, chega: 2.2 }, ...(proprio("orc_bravo") ? ["orc_bravo", 1] : []));
+  TIPOS.orc_gigante = orc({ nome: "Orc Gigante", esc: 1.35, vida: 3750, nivel: 61, dano: 1098, defesa: 88, expMult: 1.5, chega: 1.6 });
+  TIPOS.orc_mago = orc({ nome: "Orc Feiticeiro", esc: proprio("orc_feiticeiro") ? 1 : 0.95, vida: 2000, nivel: 53, dano: 863, defesa: 21, perto: 5.5, alcance: 7, magia: true, visao: 9 },
                        ...(proprio("orc_feiticeiro") ? ["orc_feiticeiro", 1] : []));
-  TIPOS.orc_chefe = orc({ nome: "Chefe Orc", esc: 1.6, vida: 30000, nivel: 45, dano: 250, renasce: 960, chefe: true, chefeCaverna: true });   // (chefe de mapa: CHEFES_MAPA)
+  TIPOS.orc_chefe = orc({ nome: "Chefe Orc", esc: 1.6, vida: 111500, nivel: 60, dano: 2134, defesa: 72, renasce: 960, chefe: true, chefeCaverna: true });   // (chefe de mapa: CHEFES_MAPA)
 }
 function montarDungeon(d) {
   // o buraco: um lugar livre do mapa (perto do ponto da dungeon)
@@ -10384,16 +10464,22 @@ const LUGARES_H = [
   ["casa2_a", -8, -13], ["casa2_b", 8.5, -14], ["casa2_c", 21, -11], ["pagode", -19.5, -1.5], ["torre_vigia", -37, 16.5],
   ["lanterna_pedra", -2.6, 3.8], ["lanterna_pedra", 6.6, 3.8], ["lanterna_pedra", -2.6, -4.8], ["lanterna_pedra", 6.6, -4.8],
 ].map(([id, x, y]) => ({ id, x: HAHOE.ox + x, y: HAHOE.oy + y, mapa: "hahoe" }));
+// a loja da Armeira Yu-Rang: as peças da faixa da Vila Hahoe (os modelos do nível 14, 22 e 30); as do 38 em diante só
+// caem (dos bichos, das Metins e dos chefes do nível delas), NIVEL70.md
+const LOJA_HAHOE = [14, 22, 30].flatMap((n, k) => {
+  const t = k + 2, preco = [[4000, 6300, 10300], [9000, 14000, 23000], [16000, 25000, 41000]][k];
+  return [[`peca:elmo:${t}`, preco[0]], [`peca:botas:${t}`, preco[0]], [`peca:escudo:${t}`, preco[1]], [`peca:armadura_guerreiro:${t}`, preco[2]], [`peca:armadura_leve:${t}`, preco[2]], [`peca:armadura_mago:${t}`, preco[2]]];
+});
 // os moradores: os mesmos serviços da Vila 1 (o ferreiro, o armazém compartilhado, a loja de poções e a de peças, o
 // guarda), com nomes coreanos (PROJETO_MAPAS.md 2.4) e os modelos 3D dos NPCs que já existem
 function npcsHahoe() {
-  const alq = NPCS.find(n => n.nome === "Alquimista Runa"), arm = NPCS.find(n => n.nome === "Armeiro Bjorn");
+  const alq = NPCS.find(n => n.nome === "Alquimista Runa");
   return [
     { nome: "Velho Gong do Armazém", x: -8, y: 2.6, modelo: "armazem", armazem: true, cores: { roupa: "#3E7A5C", calca: "#2D4A6B", pele: "#e0b896", cabelo: "#d8d0c0", barba: "#e8e4dc" },
       falas: ["O que você guardou na Vila 1 está aqui também: o armazém é um só, de vila em vila.", "O rio dá a volta na vila inteira. Quem chega pela Ponte de Pedra já está em casa."] },
     { nome: "Herbalista Seo", x: 8.8, y: -6.0, modelo: "ninja", tinta: [0.048, 0.195, 0.107], loja: alq ? alq.loja : [], cores: { roupa: "#3E7A5C", calca: "#2f3a2a", pele: "#e8c4a0", cabelo: "#1E1B18", capuz: "#2D4A6B" },
       falas: ["Chá dos terraços e poções do mesmo bule. A vermelha fecha feridas, a azul devolve a mana.", "Os mortos do brejo não gostam de sal. Nem de quem traz poções sobrando."] },
-    { nome: "Armeira Yu-Rang", x: 8.8, y: -8.7, modelo: "arqueiro", tinta: null, loja: arm ? arm.loja : [], cores: { roupa: "#B8322A", calca: "#3a2a1c", pele: "#f0c8a8", cabelo: "#1E1B18", lenco: "#EFE4CC" },
+    { nome: "Armeira Yu-Rang", x: 8.8, y: -8.7, modelo: "arqueiro", tinta: null, loja: LOJA_HAHOE, cores: { roupa: "#B8322A", calca: "#3a2a1c", pele: "#f0c8a8", cabelo: "#1E1B18", lenco: "#EFE4CC" },
       falas: ["Ferro bom não enferruja na beira do rio. O meu, pelo menos, não.", "Para os bandidos da estrada, um escudo. Para os fantasmas das ruínas, coragem: essa eu não vendo."] },
     { nome: "Guarda Baek", x: -3.6, y: 1.8, modelo: "guarda", lanca: true, cores: { roupa: "#2D4A6B", calca: "#2a2a40", pele: "#e0b896", cabelo: "#1E1B18", elmo: "#8C8A80" },
       falas: ["Do outro lado da ponte do oeste, arrozais e tigres (nível 15 a 20). Ao norte, a estrada dos bandidos (20 a 28).",
@@ -10469,7 +10555,7 @@ function montarHahoe() {
 // o chefe da Vila Hahoe, por enquanto pintado sobre o goblin (a malha própria do Dokkaebi está na fila do projeto)
 function criarCriaturasHahoe() {
   if (TIPOS.capitao_dokkaebi || !TIPOS.goblin || !TIPOS.goblin.M) return;
-  TIPOS.capitao_dokkaebi = variante("goblin", { nome: "Capitão Dokkaebi", esc: 1.6, vida: 32000, nivel: 42, dano: 230, renasce: 960, chefe: true, chefeCaverna: true, visao: 8.5, chega: 2.0,
+  TIPOS.capitao_dokkaebi = variante("goblin", { nome: "Capitão Dokkaebi", esc: 1.6, vida: 69500, nivel: 42, dano: 1159, defesa: 51, renasce: 960, chefe: true, chefeCaverna: true, visao: 8.5, chega: 2.0,
     filtro2d: "sepia(1) saturate(4) hue-rotate(-30deg) brightness(0.9)", tinta: "#d8584a" });
 }
 // pisando num buraco ou numa escada: escurece, troca de lugar e clareia
