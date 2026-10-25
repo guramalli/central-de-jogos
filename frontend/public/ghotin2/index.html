@@ -6299,13 +6299,13 @@ let ferEscolha = "arma";                // "arma", "eq:<parte>" ou o item da bol
 function pecasDoFerreiro() {
   if (!prog) return [];
   const l = [];
-  if (prog.arma) l.push({ id: "arma", rotulo: `Arma +${prog.arma.ref}`, ref: prog.arma.ref, arma: true, tier: prog.arma.tier || 0, nome: r => nomeArma(r), icone: (g, r) => iconeArma(g, ARMAS[classe].desenho, 40, 120, r), mudar: r => { prog.arma = r === null ? null : { ...prog.arma, ref: r }; } });
+  if (prog.arma) l.push({ id: "arma", rotulo: `Arma +${prog.arma.ref}`, ref: prog.arma.ref, arma: true, tier: prog.arma.tier || 0, nome: r => nomeArma(r), icone: (g, r) => iconeArma(g, ARMAS[classe].desenho, 40, 120, r, prog.arma.tier), mudar: r => { prog.arma = r === null ? null : { ...prog.arma, ref: r }; } });
   for (const slot of ORDEM_PECAS) { const e = prog.equip && prog.equip[slot], pc = pecaEquipada(slot); if (!e) continue;
     l.push({ id: "eq:" + slot, rotulo: `${PECAS[pc].nome} +${e.ref}`, ref: e.ref, slot: pc, tier: e.tier, nome: r => nomePeca(pc, e.tier, r), icone: g => iconePeca(g, pc, e.tier, 40, PECAS[pc].h * 40), mudar: r => { prog.equip[slot] = r === null ? null : { ...e, ref: r }; } }); }
   for (const it of prog.inv) { const t = tipoItem(it.chave); if (!t.arma && !t.peca) continue;
     const dona = t.arma ? armaDaChave(it.chave).classe : null;
     l.push({ id: it, rotulo: `Bolsa: ${t.peca ? PECAS[t.peca].nome : "arma"} +${it.ref || 0}`, ref: it.ref || 0, arma: t.arma, slot: t.peca, tier: t.tier,
-             nome: r => t.arma ? nomeArma(r, t.tier, dona) : nomePeca(t.peca, t.tier, r), icone: (g, r) => t.arma ? iconeArma(g, ARMAS[dona].desenho, 40, 120, r) : iconePeca(g, t.peca, t.tier, 40, PECAS[t.peca].h * 40),
+             nome: r => t.arma ? nomeArma(r, t.tier, dona) : nomePeca(t.peca, t.tier, r), icone: (g, r) => t.arma ? iconeArma(g, ARMAS[dona].desenho, 40, 120, r, t.tier) : iconePeca(g, t.peca, t.tier, 40, PECAS[t.peca].h * 40),
              mudar: r => { if (r === null) prog.inv.splice(prog.inv.indexOf(it), 1); else it.ref = r; } }); }
   return l;
 }
@@ -6884,7 +6884,7 @@ function botaoItem(it) {
   b.className = "item-inv"; b.type = "button"; b.style.left = it.x * CEL + "px"; b.style.top = it.y * CEL + "px"; b.style.height = t.h * CEL + "px";
   b.setAttribute("aria-label", `${nomeItem(it)}, ${it.qtd}`);
   const c = document.createElement("canvas"); c.width = CEL; c.height = t.h * CEL;
-  if (t.arma) iconeArma(c.getContext("2d"), t.desenho, CEL, t.h * CEL, it.ref || 0);
+  if (t.arma) iconeArma(c.getContext("2d"), t.desenho, CEL, t.h * CEL, it.ref || 0, t.tier);
   else if (t.peca) iconePeca(c.getContext("2d"), t.peca, t.tier, CEL, t.h * CEL);
   else iconeItem(c.getContext("2d"), t.desenho, CEL, t.h * CEL);
   b.appendChild(c);
@@ -6997,8 +6997,9 @@ function chaveArma(c, tier) { return tier ? `arma:${c}:${tier}` : "arma:" + c; }
 function tierArmaDoNivel(nivel) { let t = 0; NIVEIS_ARMA.forEach((n, k) => { if (nivel >= n) t = k; }); return t; }
 // a arma que cai (chefes, Metins): o melhor modelo que o nível de quem a soltou alcança, da classe de quem joga
 function armaDoNivel(nivel, bon) { return { tipo: "arma", chave: chaveArma(classe, tierArmaDoNivel(nivel)), ref: 0, bon }; }
-function iconeArma(g, desenho, w, h, ref) {
+function iconeArma(g, desenho, w, h, ref, tier) {
   const X = w / 2, u = w / 40, top = 6 * u, bot = h - 6 * u, b = BRILHO_REF[ref];
+  if (tier && pintarItem(g, `${desenho}:${tier}`, w, h, b)) return;   // o modelo do 22 em diante tem ícone próprio (espada:1 … espada:6)
   if (pintarItem(g, desenho, w, h, b)) return;
   g.save();
   if (b) { g.shadowColor = b.forte; g.shadowBlur = 9 * u; }
@@ -7301,7 +7302,7 @@ function desenharBolsa() {
     b.className = "item-inv"; b.type = "button"; b.style.left = it.x * CEL + "px"; b.style.top = it.y * CEL + "px"; b.style.height = t.h * CEL + "px";
     b.setAttribute("aria-label", `${nomeItem(it)}, ${it.qtd}`);
     const c = document.createElement("canvas"); c.width = CEL; c.height = t.h * CEL;
-    if (t.arma) iconeArma(c.getContext("2d"), t.desenho, CEL, t.h * CEL, it.ref || 0);
+    if (t.arma) iconeArma(c.getContext("2d"), t.desenho, CEL, t.h * CEL, it.ref || 0, t.tier);
     else if (t.peca) iconePeca(c.getContext("2d"), t.peca, t.tier, CEL, t.h * CEL);
     else iconeItem(c.getContext("2d"), t.desenho, CEL, t.h * CEL);
     b.appendChild(c);
@@ -7313,7 +7314,7 @@ function desenharBolsa() {
   const eq = $("#eqArma");
   eq.innerHTML = prog.arma ? "" : "<span>arma</span>";
   if (prog.arma) {
-    const c = document.createElement("canvas"); c.width = 40; c.height = 120; iconeArma(c.getContext("2d"), ARMAS[classe].desenho, 40, 120, prog.arma.ref); eq.appendChild(c);
+    const c = document.createElement("canvas"); c.width = 40; c.height = 120; iconeArma(c.getContext("2d"), ARMAS[classe].desenho, 40, 120, prog.arma.ref, prog.arma.tier); eq.appendChild(c);
     const r = document.createElement("span"); r.className = "ref-eq"; r.textContent = "+" + prog.arma.ref; eq.appendChild(r);
     eq.title = `${nomeArma(prog.arma.ref)} (ataque +${Math.round((bonusArma(prog.arma.ref, prog.arma.tier) - 1) * 100)}%)${(prog.arma.bon || []).length ? "\n" + textoBonus(prog.arma.bon).join("\n") : ""}\nClique direito guarda na bolsa`;
   } else eq.title = "Sem arma: clique direito numa arma da bolsa para equipar";
@@ -7647,7 +7648,7 @@ function admDesenhar() {
   const { chave, yang, t } = admTipo(), ref = admRef, cv = $("#admIcone"), w = 60, h = t.h * 60, temRef = !!(t.arma || t.peca);
   cv.width = w; cv.height = h;
   const g = cv.getContext("2d"); g.clearRect(0, 0, w, h);
-  if (t.arma) iconeArma(g, t.desenho, w, h, ref);
+  if (t.arma) iconeArma(g, t.desenho, w, h, ref, t.tier);
   else if (t.peca) iconePeca(g, t.peca, t.tier, w, h);
   else if (yang) { if (!pintarItem(g, "yang", w, h)) { g.fillStyle = "#f3cf5a"; g.strokeStyle = "#5a3a10"; g.lineWidth = 2; g.beginPath(); g.arc(w / 2, h / 2, w * 0.3, 0, 7); g.fill(); g.stroke(); } }
   else iconeItem(g, t.desenho, w, h);
