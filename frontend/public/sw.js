@@ -48,7 +48,12 @@
 // FORA: protótipo em JS puro com nomes fixos; nunca foi guardado no cache.
 // (eg-v16, sem subir versão) Torre Infinita (/torre/) também fica FORA:
 // protótipo em módulos ES com nomes fixos; nunca foi guardado no cache.
-const VERSAO = "eg-v16";
+// eg-v17: o Ghotin2 (/ghotin2/) também fica FORA. Os arquivos dele têm nome
+// fixo (sons/efeitos.mp3, sons/sons.json, 3d/*.glb, sprites, json) e caíam no
+// "cache primeiro": quem já tinha aberto ficava com o json dos sons velho e o
+// MP3 novo (cada som tocava o trecho errado) e com modelos/animações antigos.
+// A subida de versão apaga a cópia guardada.
+const VERSAO = "eg-v17";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
@@ -127,6 +132,9 @@ self.addEventListener("fetch", (evento) => {
 
   // ===== Torre Infinita: fica de fora (ver eg-v16) =====
   if (url.pathname === "/torre" || url.pathname.startsWith("/torre/")) return;
+
+  // ===== Ghotin2: fica de fora (ver eg-v17) =====
+  if (url.pathname === "/ghotin2" || url.pathname.startsWith("/ghotin2/")) return;
 
   // ===== Servidor de desenvolvimento (Vite): nunca cachear =====
   // O index.html registra este SW também no `npm run dev`. Lá os módulos
