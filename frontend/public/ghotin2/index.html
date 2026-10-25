@@ -224,6 +224,12 @@
   .janelas ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
   .janelas label { display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer; }
   .janelas .linha { display: flex; gap: 6px; flex-wrap: wrap; }
+  .opcoes { width: min(340px, calc(100% - 32px)); max-height: calc(100% - 90px); overflow-y: auto; }
+  .opcoes h3 { margin: 4px 0 0; font-family: var(--display); font-weight: 400; font-size: 14px; color: var(--ouro); }
+  .opcoes label kbd { margin-left: auto; }
+  .opcoes .vol { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; font-size: 13px; }
+  .opcoes .vol input { grid-column: 1 / -1; width: 100%; accent-color: var(--ouro); margin: 0; }
+  .opcoes .vol output { color: #d8c8a6; font-variant-numeric: tabular-nums; }
   /* ferreiro: a janela de refino, como a do Metin2 */
   .ferreiro {
     position: fixed; z-index: 6; top: calc(env(safe-area-inset-top, 0px) + 110px); left: 50%; transform: translateX(-50%); width: min(340px, calc(100% - 32px));
@@ -752,6 +758,18 @@
   <div class="linha"><button id="janelasOriginal">Posições originais</button></div>
 </aside>
 
+<aside class="janelas opcoes" id="opcoes" hidden aria-label="Opções">
+  <header><h2>Opções</h2><button id="opcoesFechar" aria-label="Fechar">Pronto</button></header>
+  <h3>Som</h3>
+  <label><input type="checkbox" id="oSom"> Som ligado <kbd>M</kbd></label>
+  <label><input type="checkbox" id="oMusica"> Música ligada <kbd>N</kbd></label>
+  <div id="oVolumes"></div>
+  <h3>Imagem</h3>
+  <label><input type="checkbox" id="oContorno"> Contorno dos personagens e criaturas <kbd>Y</kbd></label>
+  <div class="linha"><button id="opcoesPadrao">Volumes padrão</button></div>
+  <p class="nota">Esc abre e fecha este menu. Tudo fica salvo neste navegador.</p>
+</aside>
+
 <div class="acoes" id="janAcoes" aria-label="Ações">
   <button class="grande" id="bAtacar">Atacar</button>
   <button id="bAlvo" title="Marcar a criatura mais perto (Espaço)">Alvo</button>
@@ -772,6 +790,7 @@
     <button type="button" data-menu="mapa" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z" fill="currentColor"/><path d="M9 4v13.5M15 6.5V20" stroke="#2a1b10" stroke-width="1.6"/></svg><span>Minimapa</span></button>
     <button type="button" data-menu="mundo" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M5 9.5c3 .8 4.2-1.8 6.5-1.2 1.6.4 1.2 2.6 3 2.9 1.6.3 2.4-1.4 4-.9M7 16.5c1.8-.9 3.6.3 5.2-.6 1.4-.8 2.6-2.4 4.8-1.6" fill="none" stroke="#2a1b10" stroke-width="1.6" stroke-linecap="round"/><circle cx="15.5" cy="6.5" r="1.4" fill="#2a1b10"/></svg><span>Mapa do Mundo</span><kbd>U</kbd></button>
     <button type="button" data-menu="janelas" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="6" r="2.4" fill="currentColor"/><circle cx="15" cy="12" r="2.4" fill="currentColor"/><circle cx="7" cy="18" r="2.4" fill="currentColor"/></svg><span>Opções de janelas</span><kbd>J</kbd></button>
+    <button type="button" data-menu="opcoes" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 2h3.4l.5 2.6 1.8.8 2.2-1.5 2.4 2.4-1.5 2.2.8 1.8 2.6.5v3.4l-2.6.5-.8 1.8 1.5 2.2-2.4 2.4-2.2-1.5-1.8.8-.5 2.6h-3.4l-.5-2.6-1.8-.8-2.2 1.5-2.4-2.4 1.5-2.2-.8-1.8L2 13.7v-3.4l2.6-.5.8-1.8-1.5-2.2 2.4-2.4 2.2 1.5 1.8-.8z" fill="currentColor"/><circle cx="12" cy="12" r="3.4" fill="#2a1b10"/></svg><span>Opções e som</span><kbd>Esc</kbd></button>
     <button type="button" data-menu="admin" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18.5h18l-1.6-11-5 4.2L12 4.5l-2.4 7.2-5-4.2z" fill="currentColor"/><rect x="3" y="19.5" width="18" height="2" fill="currentColor"/></svg><span>Admin: criar item</span><kbd>G</kbd></button>
   </div>
   <button type="button" class="menu-botao" id="menuBotao" aria-expanded="false" aria-controls="menuLeque" aria-label="Menu: inventário, equipamento e atributos" title="Menu"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 13a5 5 0 0 1 5-5h12a5 5 0 0 1 5 5v1H5z" fill="currentColor"/><rect x="4" y="15" width="24" height="12" rx="2" fill="currentColor"/><path d="M4 15h24" stroke="#2a1b10" stroke-width="1.6"/><path d="M10 8v19M22 8v19" stroke="#2a1b10" stroke-width="1.4" opacity=".55"/><rect x="13.5" y="13" width="5" height="6" rx="1" fill="#2a1b10"/><circle cx="16" cy="16" r="1.2" fill="currentColor"/></svg><span class="selo-pontos" id="menuPontos" hidden></span></button>
@@ -879,8 +898,25 @@ const B_DIRETO = new Set(["entrada", "metin", "fogo", "escada", "lanterna", "bam
 // Cada som é montado na hora com osciladores e ruído filtrado. Sons com lugar no mapa ficam mais baixos longe da câmera
 // e vão para o lado de onde vêm. O navegador só deixa tocar depois do primeiro toque ou tecla.
 const Som = { ctx: null, saida: null, ruido: null, ligado: true, volume: 0.7, arq: null, buf: {}, musica: null, musicaLigada: true };
-Som.volMusica = 0.6;
-try { Som.ligado = localStorage.getItem("som") !== "0"; Som.musicaLigada = localStorage.getItem("musica") !== "0"; const v = parseFloat(localStorage.getItem("volMusica")); if (v >= 0 && v <= 1) Som.volMusica = v; } catch (e) {}
+// volumes do menu de opções (0 a 1): o geral vale para tudo; a música, os efeitos (golpes, magias, criaturas), o ambiente
+// (natureza, chuva, fogueira) e a interface (janelas e cliques) têm cada um o seu
+const VOL_PADRAO = { geral: 1, musica: 0.6, efeitos: 1, ambiente: 1, interface: 1 };
+Som.vol = { ...VOL_PADRAO };
+try {
+  Som.ligado = localStorage.getItem("som") !== "0"; Som.musicaLigada = localStorage.getItem("musica") !== "0";
+  const salvo = JSON.parse(localStorage.getItem("volumes") || "null"), v = parseFloat(localStorage.getItem("volMusica"));
+  if (salvo) { for (const k in VOL_PADRAO) if (salvo[k] >= 0 && salvo[k] <= 1) Som.vol[k] = salvo[k]; }
+  else if (v >= 0 && v <= 1) Som.vol.musica = v;                      // (o volume da música de antes do menu)
+} catch (e) {}
+function salvarVolumes() { try { localStorage.setItem("volumes", JSON.stringify(Som.vol)); } catch (e) {} }
+// aplica os volumes e o liga/desliga do som em cada saída
+function aplicarVolumes() {
+  if (Som.saida) Som.saida.gain.value = Som.ligado ? Som.volume * Som.vol.geral : 0;
+  if (Som.efG) Som.efG.gain.value = Som.vol.efeitos;
+  if (Som.uiG) Som.uiG.gain.value = Som.vol.interface;
+  if (typeof Amb !== "undefined" && Amb.saida) Amb.saida.gain.value = AMB_VOL * Som.vol.ambiente;
+  if (Som.musica) Som.musica.volume = Math.min(1, 0.55 * Som.vol.musica * Som.vol.geral);
+}
 // sons gravados (pacotes grátis de RPG: TomMusic e Leohpaz, mais Kenney e criaturas CC0; ver Tools/sons/CREDITOS.md): todas as variações de todos
 // os eventos ficam num MP3 só (sons/efeitos.mp3); o sons.json diz onde começa cada trecho, a velocidade (tom) e o volume.
 // Decodificado depois do primeiro toque (o navegador só libera o áudio aí); até lá, e para os efeitos de magia, vale o
@@ -898,7 +934,7 @@ async function carregarSons() {
 function tocarGravado(nome, onde, forca, atraso = 0) {
   const lista = Som.buf[nome], c = Som.arq && Som.arq[nome];
   if (!lista || !(Som.efeitos instanceof AudioBuffer)) return false;
-  const d = somSaida(forca * c.vol, onde);
+  const d = somSaida(forca * c.vol, onde, nome);
   if (!d) return true;
   const uv = Som.ultimaVar || (Som.ultimaVar = {});
   let k = Math.floor(Math.random() * lista.length);
@@ -913,14 +949,14 @@ function tocarGravado(nome, onde, forca, atraso = 0) {
 }
 function musica() {
   if (MODO_TESTE) return;
-  if (!Som.musica) { Som.musica = new Audio("sons/musica.mp3"); Som.musica.loop = true; Som.musica.volume = 0.55 * Som.volMusica; }
+  if (!Som.musica) { Som.musica = new Audio("sons/musica.mp3"); Som.musica.loop = true; aplicarVolumes(); }
   if (Som.musicaLigada && Som.ligado) Som.musica.play().catch(() => {}); else Som.musica.pause();
 }
 function musicaAlternar() {
   Som.musicaLigada = !Som.musicaLigada;
   try { localStorage.setItem("musica", Som.musicaLigada ? "1" : "0"); } catch (e) {}
   const b = $("#bMusica"); b.setAttribute("aria-pressed", Som.musicaLigada); b.textContent = Som.musicaLigada ? "música ligada" : "música desligada";
-  musica();
+  musica(); mostrarOpcoes();
 }
 function somIniciar() {
   if (Som.ctx) { if (Som.ctx.state === "suspended") Som.ctx.resume(); return; }
@@ -928,8 +964,10 @@ function somIniciar() {
   try {
     const c = Som.ctx = new C();
     const comp = c.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
-    Som.saida = c.createGain(); Som.saida.gain.value = Som.ligado ? Som.volume : 0;
-    Som.saida.connect(comp); comp.connect(c.destination);
+    Som.saida = c.createGain(); Som.saida.connect(comp); comp.connect(c.destination);
+    Som.efG = c.createGain(); Som.efG.connect(Som.saida);              // efeitos (golpes, magias, criaturas)
+    Som.uiG = c.createGain(); Som.uiG.connect(Som.saida);              // interface (janelas, cliques)
+    aplicarVolumes();
     const n = c.sampleRate * 2, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
     for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
     Som.ruido = b;
@@ -940,18 +978,20 @@ function somIniciar() {
 function somAlternar() {
   Som.ligado = !Som.ligado;
   try { localStorage.setItem("som", Som.ligado ? "1" : "0"); } catch (e) {}
-  if (Som.saida) Som.saida.gain.value = Som.ligado ? Som.volume : 0;
+  aplicarVolumes();
   musica();
   const b = $("#bSom"); b.setAttribute("aria-pressed", Som.ligado); b.textContent = Som.ligado ? "som ligado" : "som desligado";
+  mostrarOpcoes();
 }
 // saída de um som: volume pela distância até a câmera e lado pela posição na tela
-function somSaida(vol, onde) {
+function somSaida(vol, onde, nome) {
   if (!Som.ctx || !Som.ligado || Som.ctx.state !== "running") return null;
   let g = vol, pan = 0;
   if (onde) { const dx = onde.x - cam.x, dy = onde.y - cam.y; g *= Math.max(0, 1 - Math.hypot(dx, dy) / 15); pan = Math.max(-0.8, Math.min(0.8, dx / 8)); }
   if (g < 0.01) return null;
   const c = Som.ctx, ganho = c.createGain(); ganho.gain.value = g;
-  if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pan; ganho.connect(p); p.connect(Som.saida); } else ganho.connect(Som.saida);
+  const destino = (nome && nome.startsWith("ui_") ? Som.uiG : Som.efG) || Som.saida;
+  if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pan; ganho.connect(p); p.connect(destino); } else ganho.connect(destino);
   return ganho;
 }
 function envelope(param, t0, ataque, pico, queda) {
@@ -1116,7 +1156,7 @@ function som(nome, onde = null, forca = 1) {
     if (nome !== "furia_explosao") return;                              // a fúria soma o gravado com o sintetizado
   }
   const sint = SONS[nome] || SONS[SOM_RESERVA[nome]];
-  const d = sint && somSaida(forca, onde);
+  const d = sint && somSaida(forca, onde, nome);
   if (!d) return;
   try { sint(d, Som.ctx.currentTime + 0.005); } catch (e) {}
 }
@@ -1143,7 +1183,7 @@ async function carregarAmbiente() {
   try {
     Amb.arq = await (await fetch("sons/ambiente.json")).json();
     const buf = await Som.ctx.decodeAudioData(await (await fetch("sons/ambiente.mp3")).arrayBuffer());
-    Amb.saida = Som.ctx.createGain(); Amb.saida.gain.value = AMB_VOL; Amb.saida.connect(Som.saida);
+    Amb.saida = Som.ctx.createGain(); Amb.saida.gain.value = AMB_VOL * Som.vol.ambiente; Amb.saida.connect(Som.saida);
     Amb.buf = buf;
   } catch (e) { Amb.buf = "falhou"; }
 }
@@ -5154,7 +5194,7 @@ function fecharUltimaJanela() {
     const id = pilhaJanelas.pop(), el = document.getElementById(id);
     if (!el || el.hidden) continue;
     ({ bolsa: () => abrirBolsa(false), ficha: () => abrirFicha(false), ferreiro: () => abrirFerreiro(false), npcJan: () => abrirNpc(null),
-       janelas: () => abrirJanelas(false), armazem: () => typeof abrirArmazem === "function" && abrirArmazem(false), admin: () => abrirAdmin(false) }[id] || (() => { el.hidden = true; }))();
+       janelas: () => abrirJanelas(false), opcoes: () => abrirOpcoes(false), armazem: () => typeof abrirArmazem === "function" && abrirArmazem(false), admin: () => abrirAdmin(false) }[id] || (() => { el.hidden = true; }))();
     return true;
   }
   // sem janela na pilha: o Livro de teste aberto também fecha com Esc
@@ -6193,6 +6233,7 @@ const MENU_ACOES = {
   skills: () => abrirSkills(),
   mapa: () => { const el = $("#minimapa"), sim = el.hidden; el.hidden = !sim; janelasSalvas.minimapa = { ...(janelasSalvas.minimapa || {}), aberta: sim }; salvarJanelas(); },
   janelas: () => abrirJanelas(),
+  opcoes: () => abrirOpcoes(),
   admin: () => abrirAdmin(),
 };
 function menuAberto() { return !$("#menuLeque").hidden; }
@@ -6202,7 +6243,7 @@ function abrirMenu(sim = !menuAberto()) {
 }
 function marcarMenu() {
   const aberto = id => { const el = document.getElementById(id); return !!el && !el.hidden; };
-  const est = { bolsa: aberto("bolsa"), equip: aberto("bolsa"), ficha: aberto("ficha"), skills: aberto("ficha"), mapa: aberto("minimapa"), janelas: aberto("janelas"), admin: aberto("admin") };
+  const est = { bolsa: aberto("bolsa"), equip: aberto("bolsa"), ficha: aberto("ficha"), skills: aberto("ficha"), mapa: aberto("minimapa"), janelas: aberto("janelas"), opcoes: aberto("opcoes"), admin: aberto("admin") };
   for (const b of document.querySelectorAll("#menuLeque [data-menu]")) b.setAttribute("aria-pressed", !!est[b.dataset.menu]);
 }
 // o equipamento fica no alto da bolsa (como no Metin2): abre a bolsa já mostrando ele, com um brilho na moldura
@@ -6218,7 +6259,39 @@ function abrirSkills() {
   const f = $("#ficha"), h = $("#fSkills").previousElementSibling || $("#fSkills");
   f.scrollTop = Math.max(0, h.offsetTop - 50);
 }
+// ---------------------------------------------------------------- opções (Esc ou o menu do canto)
+// Som ligado, música, volume geral e de cada tipo de som, contorno. Os mesmos botões do painel de informações (M, N, Y)
+const VOL_NOMES = [["geral", "Volume geral"], ["musica", "Música"], ["efeitos", "Efeitos (golpes, magias, criaturas)"], ["ambiente", "Ambiente (natureza, chuva, fogo)"], ["interface", "Interface (janelas e cliques)"]];
+function abrirOpcoes(sim = $("#opcoes").hidden) {
+  $("#opcoes").hidden = !sim; janelaAbriu("opcoes", sim);
+  if (sim) { somIniciar(); mostrarOpcoes(); }
+}
+function mostrarOpcoes() {
+  const j = document.getElementById("opcoes");
+  if (!j || j.hidden) return;
+  $("#oSom").checked = Som.ligado; $("#oMusica").checked = Som.musicaLigada; $("#oContorno").checked = contornoLigado;
+  for (const [k] of VOL_NOMES) {
+    const i = j.querySelector(`input[data-vol="${k}"]`); if (!i) continue;
+    i.value = Som.vol[k]; i.closest(".vol").querySelector("output").textContent = Math.round(100 * Som.vol[k]) + "%";
+  }
+  $("#volMusica").value = Som.vol.musica;
+}
+function montarOpcoes() {
+  $("#oVolumes").innerHTML = VOL_NOMES.map(([k, nome]) => `<label class="vol"><span>${nome}</span><output>0%</output><input type="range" min="0" max="1" step="0.05" data-vol="${k}" aria-label="${nome}"></label>`).join("");
+  $("#oVolumes").oninput = e => {
+    const k = e.target.dataset && e.target.dataset.vol; if (!k) return;
+    Som.vol[k] = +e.target.value; aplicarVolumes(); salvarVolumes(); mostrarOpcoes();
+  };
+  // ao soltar o controle, um som de exemplo no volume novo
+  $("#oVolumes").onchange = e => { const k = e.target.dataset && e.target.dataset.vol; if (k === "efeitos" || k === "geral") som("corte", null, 0.8); else if (k === "interface") som("ui_aceitar", null, 0.8); };
+  $("#oSom").onchange = () => { somIniciar(); somAlternar(); };
+  $("#oMusica").onchange = () => { somIniciar(); musicaAlternar(); };
+  $("#oContorno").onchange = () => contornoAlternar();
+  $("#opcoesPadrao").onclick = () => { Som.vol = { ...VOL_PADRAO }; aplicarVolumes(); salvarVolumes(); mostrarOpcoes(); };
+  $("#opcoesFechar").onclick = () => abrirOpcoes(false);
+}
 function montarMenu() {
+  montarOpcoes();
   $("#menuBotao").onclick = () => abrirMenu();
   $("#menuLeque").onclick = e => { const b = e.target.closest("[data-menu]"); if (!b) return; abrirMenu(false); MENU_ACOES[b.dataset.menu](); };
   addEventListener("pointerdown", e => { if (menuAberto() && !e.target.closest("#menuJogo")) abrirMenu(false); }, true);
@@ -6941,8 +7014,10 @@ function atirar() {
   if (viking.recargaTiro > 0) return;              // o intervalo entre tiros vale para todo jeito de atirar (clique, alvo, automático)
   mirarBoneco();
   tocar("atirar", true);
-  som("flecha_saca", viking, 0.8); som("arco_puxa", viking, 0.5);
+  somPuxada();
 }
+// a flecha chega à corda em ~0,24 s e a corda estica até 0,41 s: a puxada toca aí, forte; a flecha saindo da aljava, baixa
+function somPuxada() { som("flecha_saca", viking, 0.35); setTimeout(() => { if (viking.acao === "atirar") som("arco_puxa", viking, 1.2); }, 200); }
 function alvoDaFlecha() {
   const v = viking, ang = -v.dir * Math.PI / 4, fx = Math.cos(ang), fy = Math.sin(ang);
   const sel = (v.alvo && (v.alvo.criatura || v.alvo.boneco)) || selecao;
@@ -7132,14 +7207,14 @@ function usarVenenosa() {
   if (venenosa.recarga > 0 || !podeSkillArq()) return;
   const alvo = alvoDaSkill(ALCANCE_ARCO + 3); if (alvo) viking.dir = dirDe(alvo.x - viking.x, alvo.y - viking.y);
   venenosa.recarga = VENENOSA_RECARGA; viking.tiroEspecial = "veneno";
-  tocar("atirar", true); som("flecha_saca", viking, 0.9);
+  tocar("atirar", true); somPuxada();
 }
 function usarConcentrado() {
   if (!exigeAlvo()) return;
   if (concentrado.recarga > 0 || !podeSkillArq()) return;
   const alvo = alvoDaSkill(ALCANCE_ARCO + 3); if (alvo) viking.dir = dirDe(alvo.x - viking.x, alvo.y - viking.y);
   concentrado.recarga = CONCENTRADO_RECARGA; viking.tiroEspecial = "rajada";
-  tocar("atirar", true); som("flecha_saca", viking, 0.9);
+  tocar("atirar", true); somPuxada();
 }
 function atordoar(l, seg) {
   if (l.morto || l.cfg.estatico) return;
@@ -7207,7 +7282,7 @@ function lancarChuva(x, y) {
   chuva.marca = 2.6;
   chuva.recarga = CHUVA_RECARGA;
   tocar("chuva", true);
-  som("arco_puxa", v, 0.8);
+  som("arco_puxa", v, 1.2);
 }
 function soltarChuva() {
   const v = viking;
@@ -7251,7 +7326,7 @@ function usarCerteiro() {
   if (alvo) v.dir = dirDe(alvo.x - v.x, alvo.y - v.y);
   certeiro.recarga = CERTEIRO_RECARGA;
   tocar("certeiro", true);
-  som("flecha_saca", v, 0.9); som("arco_puxa", v, 0.9);
+  som("flecha_saca", v, 0.35); setTimeout(() => { if (v.acao === "certeiro") som("arco_puxa", v, 1.2); }, 200);
 }
 function soltarCerteiro() {
   const v = viking, ang = -v.dir * Math.PI / 4, fx = Math.cos(ang), fy = Math.sin(ang);
@@ -8190,7 +8265,8 @@ addEventListener("keydown", e => {
   if (k === "j" && !e.repeat) abrirJanelas();
   if (k === "q" && !e.repeat) usarPocao();
   if (k === "x" && !e.repeat) usarPocaoMana();
-  if (k === "escape") { if (mira) mira = null; else if (!fecharUltimaJanela()) soltarAlvo(); }
+  // Esc: cancela a mira, fecha a última janela, solta o alvo; sem nada disso, abre as opções
+  if (k === "escape") { if (mira) mira = null; else if (!fecharUltimaJanela()) { if (selecao || (viking.alvo && viking.alvo.criatura)) soltarAlvo(); else abrirOpcoes(true); } }
   if (k === "c" && !e.repeat) { verColisao = !verColisao; $("#colisao").setAttribute("aria-pressed", verColisao); }
   if (k === "i" && !e.repeat) abrirBolsa();
   if (k === "g" && !e.repeat) abrirAdmin();
@@ -10270,7 +10346,7 @@ function mostrarContorno() { const b = $("#bContorno"); b.setAttribute("aria-pre
 function contornoAlternar() {
   contornoLigado = !contornoLigado;
   try { localStorage.setItem("contorno", contornoLigado ? "1" : "0"); } catch (e) {}
-  mostrarContorno(); zerarAtlas3d();                                   // (os bonecos do atlas são repintados sem o traço)
+  mostrarContorno(); zerarAtlas3d(); mostrarOpcoes();                  // (os bonecos do atlas são repintados sem o traço)
   avisar(contornoLigado ? "Contorno ligado" : "Contorno desligado");
 }
 function zerarAtlas3d() {
@@ -10670,12 +10746,8 @@ function montarPainelResto() {
   });
   $("#bSom").setAttribute("aria-pressed", Som.ligado); $("#bSom").textContent = Som.ligado ? "som ligado" : "som desligado";
   $("#bMusica").onclick = () => { somIniciar(); musicaAlternar(); };
-  $("#volMusica").value = Som.volMusica;
-  $("#volMusica").oninput = e => {
-    Som.volMusica = +e.target.value;
-    if (Som.musica) Som.musica.volume = 0.55 * Som.volMusica;
-    try { localStorage.setItem("volMusica", Som.volMusica); } catch (er) {}
-  };
+  $("#volMusica").value = Som.vol.musica;
+  $("#volMusica").oninput = e => { Som.vol.musica = +e.target.value; aplicarVolumes(); salvarVolumes(); mostrarOpcoes(); };
   if (!Som.musicaLigada) { const b = $("#bMusica"); b.setAttribute("aria-pressed", false); b.textContent = "música desligada"; }
   $("#bCorrer").onclick = e => { correrFixo = !correrFixo; e.target.setAttribute("aria-pressed", correrFixo); };
   $("#bCorrer").hidden = true;                                       // sempre correndo: o botão não serve mais
