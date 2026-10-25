@@ -4098,21 +4098,26 @@ let correrFixo = false;                  // botão "Correr" (celular)
 
 function dirDe(dx, dy) { const a = Math.atan2(dy, dx) * 180 / Math.PI; return ((Math.round(-a / 45) % 8) + 8) % 8; }
 
+// ações que esperam o q0/q7 da corrida (golpe, skill) ou o fim do clipe de parar: uma ordem nova (clique, tecla, outro
+// alvo), o dano, a queda ou outra ação as descartam (senão disparavam sozinhas depois)
+function limparPendentes(v) { v.golpeCorrida = null; v.skillCorrida = null; v.depoisClipe = null; }
+const PENDENTES_OK = new Set(["golpe1_da_corrida", "golpe1_da_corrida_7", "correr_para_guarda", "correr_para_guarda_7"]);
 function tocar(nome, acao) {
+  if (!PENDENTES_OK.has(nome)) limparPendentes(viking);            // outra ação (dano, morte, skill): o pendente da corrida cai
   viking.anim = nome; viking.t = 0; viking.acertou = false; viking.somCorte = false;
   viking.acao = acao ? nome : null;
   if (acao) viking.noLugar = null;
   if (nome === "sacar" || nome === "sacar_golpe") som("sacar", viking, 0.8);
   if (nome === "guardar") som("guardar", viking, 0.8);
   if (nome === "dano") som("grunhido", viking);
-  if (nome === "giro") som("giro", viking, 0.7);
+  if (nome === "giro" || nome === "giro_entra" || nome === "giro_laco") som("giro", viking, 0.7);
   if (nome.startsWith("furia")) som("furia_carga", viking);
 }
 
 // combo como o do guerreiro do Metin2: cada golpe emenda no seguinte sem voltar à guarda (as folhas do 2º ao 5º golpe
 // começam da pose final do anterior); o seguinte entra assim que o anterior termina o corte (CANCELA). Parado mais que
 // COMBO_PAUSA, o combo recomeça do 1º (que sai da guarda). O 5º, com salto, fecha o combo e volta à guarda
-const CANCELA = { golpe1: 9, golpe2: 9, golpe3: 9, golpe4: 9, sacar_golpe: 12 }, COMBO_PAUSA = 0.45;
+const CANCELA = { golpe1: 9, golpe2: 9, golpe3: 9, golpe4: 9, sacar_golpe: 12, golpe1_da_corrida: 10, golpe1_da_corrida_7: 10 }, COMBO_PAUSA = 0.45;   // (o golpe1 vindo da corrida tem um quadro a mais: emenda no q10)
 // ninja: cortes curtos e rápidos, mais fracos, que valem pelo combo. Cada golpe emenda no fim do seguimento (quadro 7, o
 // NinjaAnimador.ChaveCombo) e o 5º, que volta à guarda, emenda de novo no 1º. Janela curta: o próximo precisa ser pedido
 // antes do quadro da emenda (+1); depois disso, ou parado, o combo recomeça do 1º (que sai da guarda, sem salto de pose)
@@ -4128,12 +4133,21 @@ function atacar(estilo) {
   // ninja pedindo tarde (já passou da emenda): termina este e recomeça do 1º
   if (classe === "ninja" && !estilo && /^golpe[1-4]$/.test(viking.acao || "") && Math.floor(viking.t * M.animacoes[viking.acao].fps) > CANCELA_NINJA[viking.acao] + 1) { viking.fila = "golpe1"; viking.combo = 1; return; }
   const n = estilo || (viking.combo % 5) + 1;
-  if (viking.acao && (viking.acao.startsWith("sacar") || viking.acao.includes("golpe") || viking.acao === "giro")) { viking.fila = "golpe" + n; if (!estilo) viking.combo++; return; }
+  if (viking.acao && (viking.acao.startsWith("sacar") || viking.acao.includes("golpe") || ehGiro(viking.acao))) { viking.fila = "golpe" + n; if (!estilo) viking.combo++; return; }
   if (viking.acao) return;
   mirarBoneco();
   if (classe === "ninja" || classe === "guerreiro") viking.espada = "armada";   // o ninja (adagas) e o guerreiro (machado) estão sempre armados
   // com a espada nas costas, o primeiro golpe já sai do saque (sacar_golpe: tira por cima do ombro e desce cortando)
   if (viking.espada === "costas") { if (n === 1) tocar("sacar_golpe", true); else { tocar("sacar", true); viking.fila = "golpe" + n; } }
+  else if (classe === "viking" && viking.anim === "correndo_armado" && M.animacoes.golpe1_da_corrida && !estilo) {
+    // vindo da corrida é sempre o golpe1 da corrida (n = 1), mesmo na janela do combo: o golpe2 normal saía da guarda com
+    // um salto de 150° contra a espada da corrida. O clipe começa exatamente no q0 ou q7 dela: fora deles, espera (≤ 0,28 s)
+    viking.combo = 0;
+    const qc = quadroCorrida(viking, M.animacoes);
+    if (qc === 0 || qc === 7) { tocar(GOLPE_CORRIDA[qc], true); viking.combo = 1; return; }
+    if (!viking.golpeCorrida) viking.golpeCorrida = { alvo: (viking.alvo && (viking.alvo.criatura || viking.alvo.boneco)) || selecao || null };
+    return;
+  }
   else tocar("golpe" + n, true);
   if (!estilo) viking.combo++;
 }
@@ -4152,7 +4166,8 @@ const FURIA_DURA = 60, FURIA_RECARGA = 70;
 const furia = { buff: 0, recarga: 0, desde: -1 };
 
 // as skills cortam o ataque básico (combo, saque, guarda, giro comum, dano); só não cortam outra skill
-const ACOES_BASICAS = ["golpe1", "golpe2", "golpe3", "golpe4", "golpe5", "sacar_golpe", "sacar", "guardar", "giro", "dano"];
+const ACOES_BASICAS = ["golpe1", "golpe2", "golpe3", "golpe4", "golpe5", "sacar_golpe", "sacar", "guardar", "giro", "dano",
+                      "golpe1_da_corrida", "golpe1_da_corrida_7", "giro_entra", "giro_laco", "giro_sai"];
 const animN = (n, alt) => M.animacoes[n] ? n : alt;
 function ninjaDash() { return NINJA.acrobacia.ativa || NINJA.avanco.ativo; }
 function podeSkillNinja() { if (classe !== "ninja") return false; if (ninjaDash()) return false; return podeSkill(); }
@@ -4295,6 +4310,7 @@ function podeSkill() {
 }
 
 function usarFuria() {
+  if (furia.recarga <= 0 && antesDaSkill(usarFuria)) return;         // correndo armado: para antes (correr_para_guarda a 2×)
   if (furia.recarga > 0 || !podeSkill()) return;
   viking.fila = null;
   tocar(viking.espada === "armada" ? "furia_armado" : "furia", true);
@@ -4334,20 +4350,23 @@ const vortice = { restam: 0, ativo: false, recarga: 0, t: 0, forca: 0 };
 
 function usarVortice() {
   if (!exigeAlvo()) return;
+  if (vortice.recarga <= 0 && antesDaSkill(usarVortice)) return;     // correndo armado: para antes (correr_para_guarda a 2×)
   if (vortice.recarga > 0 || !podeSkill()) return;
   if (viking.espada === "costas") { tocar("sacar", true); viking.fila = "vortice"; return; }
   iniciarVortice();
 }
 function iniciarVortice() {
+  // em três partes: entra (meia volta saindo da guarda), laços (uma volta cada, sem passar pela guarda) e sai (meia volta
+  // até a guarda). A entrada e a saída somam uma volta: o total continua VORTICE_VOLTAS (restam = os laços)
   vortice.ativo = true; vortice.restam = VORTICE_VOLTAS - 1; vortice.recarga = VORTICE_RECARGA; vortice.t = 0;
-  tocar("giro", true);
+  tocar(M.animacoes.giro_entra ? "giro_entra" : "giro", true);
   som("vortice", viking);
 }
 function passoVortice(dt) {
   vortice.recarga = Math.max(0, vortice.recarga - dt);
   vortice.t += dt;
   vortice.forca = Math.max(0, Math.min(1, vortice.forca + (vortice.ativo ? dt / 0.15 : -dt / 0.35)));
-  if (vortice.ativo && viking.acao !== "giro") vortice.ativo = false;
+  if (vortice.ativo && !ehGiro(viking.acao || "")) vortice.ativo = false;
   // poeira saindo pela tangente do redemoinho
   if (vortice.forca > 0.3 && Math.random() < dt * 40) {
     const a = Math.random() * 7, r = 40 + Math.random() * 30;
@@ -4364,6 +4383,7 @@ const espiritual = { buff: 0, recarga: 0, desde: -1 };
 const azul = () => espiritual.buff > 0;
 
 function usarLamina() {
+  if (espiritual.recarga <= 0 && antesDaSkill(usarLamina)) return;   // correndo armado: para antes (correr_para_guarda a 2×)
   if (espiritual.recarga > 0 || !podeSkill()) return;
   if (viking.espada === "costas") { tocar("sacar", true); viking.fila = "lamina_espiritual"; return; }
   tocar("lamina_espiritual", true);
@@ -4613,6 +4633,7 @@ function alvoComEspaco() {
   if (!perto.length) { selecao = null; viking.alvo = null; avisar("Nenhuma criatura na tela"); return; }
   const i = perto.indexOf(selecao);
   const l = i < 0 ? perto[0] : perto[(i + 1) % perto.length];
+  if (l !== selecao) limparPendentes(viking);                       // outro alvo
   selecao = l;
   viking.alvo = { x: l.x, y: l.y, criatura: l, correr: Math.hypot(l.x - viking.x, l.y - viking.y) > 4 };
 }
@@ -4634,7 +4655,7 @@ function exigeAlvo() {
   avisar("Selecione um alvo: Espaço ou clique numa criatura");
   return false;
 }
-function soltarAlvo() { selecao = null; if (viking.alvo && viking.alvo.criatura) viking.alvo = null; }
+function soltarAlvo() { selecao = null; if (viking.alvo && viking.alvo.criatura) viking.alvo = null; limparPendentes(viking); }
 
 // para onde virar ao atacar: o alvo selecionado (clicado) vem primeiro; sem ele, o mais perto
 function mirarBoneco() {
@@ -4650,7 +4671,7 @@ function mirarBoneco() {
 const ALCANCE = 2.1, ARCO = -0.17;
 
 function golpeAcerta(nome) {
-  const giro = nome === "giro";
+  const giro = ehGiro(nome);
   const ang = (-viking.dir * 45) * Math.PI / 180;
   let algum = false;
   for (const o of objetos) {
@@ -7027,6 +7048,7 @@ function alvoDaInvestida() {
 }
 function usarInvestida() {
   if (!exigeAlvo()) return;
+  if (investida.recarga <= 0 && antesDaSkill(usarInvestida)) return; // correndo armado: para antes (correr_para_guarda a 2×)
   if (investida.recarga > 0 || !podeSkill()) return;
   const o = alvoDaInvestida(); if (!o) return;
   const dx = o.x - viking.x, dy = o.y - viking.y, d = Math.hypot(dx, dy) - ((o.cfg && o.cfg.raio) || 0);
@@ -8420,6 +8442,7 @@ addEventListener("keydown", e => {
   if (k === "t" && !e.repeat) trocarClasse({ viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "guerreiro", guerreiro: "viking" }[classe]);
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
   if (e.repeat && !["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"].includes(k)) return;
+  if (!e.repeat && ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) limparPendentes(viking);   // ordem nova de movimento
   teclas.add(k);
   if (k === " ") alvoComEspaco();
   if (k === "j") atacar();
@@ -8451,6 +8474,7 @@ cv.addEventListener("pointermove", e => {
 });
 cv.addEventListener("pointerdown", e => {
   if (!M || viking.caido || editor.ativo) return;
+  limparPendentes(viking);                                          // ordem nova: o golpe ou a skill que esperava a corrida cai
   if (mira) {                                                       // mirando uma skill de área: o clique escolhe o lugar
     const r = cv.getBoundingClientRect();
     ponteiro = doPonteiro(e.clientX - r.left, e.clientY - r.top);
@@ -9302,6 +9326,65 @@ function transicao(v, escolhida, aPe, arm, a) {
   return escolhida;
 }
 
+// viking: guarda de duas mãos ↔ corrida armada (espada no ombro). A troca toca um clipe curto, e o último quadro de cada
+// clipe é o 1º quadro do estado seguinte (que então começa no quadro 1). Parar só entra pelos quadros 0 ou 7 da corrida
+// (espera no máximo 0,28 s), cada um com o seu clipe. Interrupção: com o clipe ainda no quadro 0 ou 1, volta direto ao
+// estado de origem (a diferença é de um quadro); depois disso o clipe termina (≤ 0,35 s) e só então toca o outro
+const PARAR_CORRIDA = { 0: "correr_para_guarda", 7: "correr_para_guarda_7" };
+// o golpe e as skills vindos da corrida também entram pelo q0 ou q7 dela (clipes que começam exatamente ali)
+const GOLPE_CORRIDA = { 0: "golpe1_da_corrida", 7: "golpe1_da_corrida_7" };
+const ehGiro = n => /^giro(_entra|_laco|_sai)?$/.test(n);         // o giro sozinho e as três partes do vórtice
+function quadroCorrida(v, a) { const n = a.correndo_armado.quadros; return ((Math.floor(v.t * a.correndo_armado.fps) % n) + n) % n; }
+function esperaQ0Q7(v, a) {                                        // s até o próximo q0/q7 (no ritmo atual da corrida)
+  const qc = quadroCorrida(v, a), faltam = qc === 0 || qc === 7 ? 0 : qc < 7 ? 7 - qc : 15 - qc;
+  return faltam / a.correndo_armado.fps;
+}
+// a velocidade da corrida neste momento (a mesma conta do passo(): itens, Fúria e Passos Leves)
+const velCorridaAgora = () => Math.min(CORRIDA, M.correr * CORRIDA_MAX) * (furia.buff > 0 ? 1.25 : 1) * velPes() * (status.velEquip || 1);
+// a MESMA conta de alcance no gatilho do golpe vindo da corrida e na revalidação dele: o alcance do golpe parado mais o
+// que ele ainda anda correndo até o q0/q7 e freando (0,1 s de corrida)
+function alcanceCorrida(v, l, a) {
+  return (distante() ? alcanceDist() : 1.6 + ((l.cfg && l.cfg.raio) || 0)) + velCorridaAgora() * (esperaQ0Q7(v, a) + 0.1);
+}
+function transicaoCorrida(v, escolhida, a) {
+  if (!a.guarda_para_correr || !a.correr_para_guarda || !a.correndo_armado) return escolhida;
+  const q = n => Math.floor(v.t * a[n].fps), acabou = n => q(n) >= a[n].quadros;
+  // arrancando
+  if (v.anim === "guarda_para_correr") {
+    if (escolhida === "parado_armado" && q("guarda_para_correr") <= 1) { v.t = 0; return "parado_armado"; }   // desistiu cedo
+    if (!acabou("guarda_para_correr")) return "guarda_para_correr";
+    if (escolhida === "correndo_armado") { v.t = 1 / a.correndo_armado.fps; return "correndo_armado"; }
+    v.t = 0; return PARAR_CORRIDA[0];                               // terminou de arrancar e já quer parar: a corrida está no q0
+  }
+  // parando
+  if (v.anim === "correr_para_guarda" || v.anim === "correr_para_guarda_7") {
+    const ini = v.anim === "correr_para_guarda" ? 0 : 7;
+    // (o tempo já passado no clipe, a 20 fps, vale igual na corrida, a 25 fps: a fase não atrasa ¼ de quadro)
+    if (escolhida === "correndo_armado" && q(v.anim) <= 1) { v.t = ini / a.correndo_armado.fps + v.t; return "correndo_armado"; }
+    if (!acabou(v.anim)) return v.anim;
+    if (escolhida === "parado_armado") { v.t = 1 / a.parado_armado.fps; return "parado_armado"; }
+    v.t = 0; return "guarda_para_correr";                           // terminou de parar e já quer correr
+  }
+  if (v.anim === "parado_armado" && escolhida === "correndo_armado") { v.t = 0; return "guarda_para_correr"; }
+  if (v.anim === "correndo_armado" && escolhida === "parado_armado") {
+    // espera a corrida chegar no quadro 0 ou 7 (o clipe começa exatamente ali)
+    const qc = quadroCorrida(v, a);
+    if (a[PARAR_CORRIDA[7]] && (qc === 7 || qc === 0)) { const c = PARAR_CORRIDA[qc]; v.t = 0; return c; }
+    if (!a[PARAR_CORRIDA[7]] && qc === 0) { v.t = 0; return PARAR_CORRIDA[0]; }
+    return "correndo_armado";                                      // ainda correndo (no máximo 0,28 s)
+  }
+  return escolhida;
+}
+// skills disparadas correndo armado: antes toca o correr_para_guarda (ou _7) a 2× (7 quadros em 0,175 s) e a skill começa
+// no fim dele, da guarda (o 1º quadro de todas elas). Fora do q0/q7, espera por ele (no máximo 0,28 s)
+function antesDaSkill(fn) {
+  const a = M.animacoes;
+  if (classe !== "viking" || viking.espada !== "armada" || viking.anim !== "correndo_armado" || viking.acao || !a.correr_para_guarda) return false;
+  const qc = quadroCorrida(viking, a);
+  if (qc !== 0 && qc !== 7) { viking.skillCorrida = fn; return true; }
+  tocar(qc === 0 ? "correr_para_guarda" : "correr_para_guarda_7", true); viking.depoisClipe = fn; return true;
+}
+
 // depois que o golpe ou a magia já saiu, andar corta o resto da animação: as conjurações sempre; os golpes do viking
 // só quando ele anda com as teclas para longe do alvo (para a frente, o combo segue andando)
 function cortaAndando(v, mx, my, porTeclas) {
@@ -9362,14 +9445,19 @@ function passo(dt) {
     // clicou numa criatura: vai até ela e golpeia até ela cair (um golpe por vez; WASD ou outro clique cancela)
     const dx = v.alvo.x - v.x, dy = v.alvo.y - v.y, d = Math.hypot(dx, dy);
     const emCombo = lutaPerto() && corteCombo(v.acao) !== undefined;   // no meio do combo o passo do golpe alcança mais
-    if (d > (distante() ? alcanceDist() : 1.6 + (emCombo ? 1.2 : 0) + (v.alvo.criatura.cfg.raio || 0))) [mx, my] = rumo(v, v.alvo.x, v.alvo.y, dt);
-    else if (!v.caido && (!v.acao || (lutaPerto() && corteCombo(v.acao) !== undefined && !v.fila))) { if (!v.acao) v.dir = dirDe(dx, dy); atacar(); }
+    // correndo armado, o golpe começa antes: ele ainda anda até o q0/q7 da corrida e freando (a mesma conta da revalidação)
+    const daCorrida = classe === "viking" && !v.acao && v.espada === "armada" && v.anim === "correndo_armado" && a.golpe1_da_corrida;
+    const alcance = daCorrida ? alcanceCorrida(v, v.alvo.criatura, a) : distante() ? alcanceDist() : 1.6 + (emCombo ? 1.2 : 0) + (v.alvo.criatura.cfg.raio || 0);
+    if (d > alcance) [mx, my] = rumo(v, v.alvo.x, v.alvo.y, dt);
+    else if (!v.caido && !v.golpeCorrida && (!v.acao || (lutaPerto() && corteCombo(v.acao) !== undefined && !v.fila))) { if (!v.acao) v.dir = dirDe(dx, dy); atacar(); }
   } else if (!mx && !my && v.alvo && v.alvo.npc && Math.hypot(v.alvo.npc.x - v.x, v.alvo.npc.y - v.y) < 2.2) {
     const npc = v.alvo.npc; v.dir = dirDe(npc.x - v.x, npc.y - v.y); v.alvo = null;   // chegou: conversa (ou o ferreiro)
     if (npc.tipo === "ferreiro") { abrirNpc(null); abrirFerreiro(true); } else abrirNpc(npc);
   } else if (!mx && !my && v.alvo) {
     const dx = v.alvo.x - v.x, dy = v.alvo.y - v.y, d = Math.hypot(dx, dy);
-    const parar = v.alvo.boneco ? (distante() ? alcanceDist() - 1 : 1.3) : 0.12;
+    let parar = v.alvo.boneco ? (distante() ? alcanceDist() - 1 : 1.3) : 0.12;
+    // correndo armado, começa a parar antes: ainda corre até o q0/q7 e anda freando (o erro que sobra é < 1 quadro, ~12 cm)
+    if (classe === "viking" && v.espada === "armada" && v.anim === "correndo_armado" && a.correr_para_guarda) parar += velCorridaAgora() * (esperaQ0Q7(v, a) + 0.1);
     if (d > parar) {
       [mx, my] = rumo(v, v.alvo.x, v.alvo.y, dt);
       if (!mx && !my) v.alvo = null;                               // não dá para chegar mais perto: para onde está
@@ -9392,9 +9480,37 @@ function passo(dt) {
   }
   if (andando) {
     v.dir = dirDe(mx, my);
-    const nx = v.x + mx * vel * dt, ny = v.y + my * vel * dt;
+    if (classe === "viking") v.rumoCorrida = [mx, my];
+    // (arrancando da guarda, a velocidade sobe em 0,2 s, como o guarda_para_correr foi feito: os pés não deslizam)
+    const kv = v.anim === "guarda_para_correr" ? suave(Math.min(1, (v.t + dt) / 0.2)) : 1;
+    const nx = v.x + mx * vel * kv * dt, ny = v.y + my * vel * kv * dt;
     // num lugar inválido (água, árvore) qualquer passo vale: senão ele ficaria preso andando no lugar
     if (livre(nx, ny) || !livre(v.x, v.y)) { v.x = nx; v.y = ny; } else if (livre(nx, v.y)) v.x = nx; else if (livre(v.x, ny)) v.y = ny; else if (!porAlvo) v.alvo = null;
+  }
+  // viking armado sem tecla: esperando o q0/q7 para parar ele segue correndo; parando (correr_para_guarda) e no golpe vindo
+  // da corrida, freia em 0,2 s do clipe (0,1 s no clipe de parar a 2×, antes de uma skill). É como os clipes foram feitos
+  if (classe === "viking" && !andando && !v.caido && v.rumoCorrida && v.espada === "armada") {
+    const espera = !v.acao && v.anim === "correndo_armado", freia = /^(correr_para_guarda|golpe1_da_corrida)/.test(v.anim);
+    if (espera || freia) {
+      const tc = v.t + dt * (v.acao && v.acao.startsWith("correr_para_guarda") ? 2 : 1);
+      const kv = espera ? 1 : 1 - suave(Math.min(1, tc / 0.2)), [rx, ry] = v.rumoCorrida;
+      const nx = v.x + rx * vel * kv * dt, ny = v.y + ry * vel * kv * dt;
+      if (kv > 0 && livre(nx, ny)) { v.x = nx; v.y = ny; }
+    } else v.rumoCorrida = null;
+  }
+  // golpe pendente vindo da corrida: revalida a cada quadro (parou, trocou de alvo, o alvo morreu ou saiu do alcance →
+  // desiste; o próximo clique golpeia) e dispara no q0/q7 da corrida
+  if (v.golpeCorrida && !v.acao) {
+    const l = v.golpeCorrida.alvo, boneco = !!(l && l.tipo === "boneco");
+    const outro = !boneco && ((v.alvo && v.alvo.criatura) || selecao) !== l;
+    if (v.anim !== "correndo_armado" || v.caido || !l || l.morto || outro || Math.hypot(l.x - v.x, l.y - v.y) > alcanceCorrida(v, l, a)) v.golpeCorrida = null;
+    else { const qc = quadroCorrida(v, a); if (qc === 0 || qc === 7) { v.golpeCorrida = null; v.dir = dirDe(l.x - v.x, l.y - v.y); tocar(GOLPE_CORRIDA[qc], true); v.combo = 1; } }
+  }
+  // skill pendente pedida correndo: no q0/q7 toca o clipe de parar (e a skill no fim dele); se ele já parou, sai agora
+  if (v.skillCorrida && !v.acao) {
+    if (v.caido) v.skillCorrida = null;
+    else if (v.anim !== "correndo_armado") { const f = v.skillCorrida; v.skillCorrida = null; f(); }
+    else { const qc = quadroCorrida(v, a); if (qc === 0 || qc === 7) { const f = v.skillCorrida; v.skillCorrida = null; antesDaSkill(f); } }
   }
   // animação de base quando não há ação
   if (!v.acao && !v.caido) {
@@ -9404,21 +9520,23 @@ function passo(dt) {
     const lugar = !andando && v.noLugar;                       // botão "andando" do painel: anda sem sair do lugar
     let escolhida = lugar ? v.noLugar : base;
     if (!lugar) escolhida = transicao(v, escolhida, andando && !corre, arm, a);
+    if (!lugar && classe === "viking" && arm) escolhida = transicaoCorrida(v, escolhida, a);   // guarda ↔ corrida armada
     if (v.anim !== escolhida) v.anim = escolhida;                // laços continuam do mesmo tempo: a troca não pula
     if (arm && !andando && classe === "viking") { v.ociosoArmado += dt; if (v.ociosoArmado > OCIOSO_GUARDAR) tocar("guardar", true); }
     else v.ociosoArmado = 0;
   }
   // tempo da animação
   const info = a[v.anim];
-  const golpeia = v.anim.startsWith("golpe") || v.anim === "sacar_golpe" || v.anim === "giro" || v.anim === "sacar" || v.anim === "investida";
+  const golpeia = v.anim.startsWith("golpe") || v.anim === "sacar_golpe" || ehGiro(v.anim) || v.anim === "sacar" || v.anim === "investida";
   // o andar, o arrancar e o parar tocam no ritmo da passada (parando, o mesmo de quando andava)
   const rAndar = Math.min((andando ? vel : VELOCIDADE * (furia.buff > 0 ? 1.25 : 1) * velPes()) / M.andar, CADENCIA_MAX * (pes.buff > 0 ? 1.3 : 1));
-  const ritmo = /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? 1.3 : golpeia && classe === "ninja" ? 1.3 : golpeia && classe === "guerreiro" ? 0.92 : 1) * (vortice.ativo ? 1.35 : 1)
+  const esperaParar = !andando && !v.acao && classe === "viking" && v.anim === "correndo_armado";   // (segue no ritmo da corrida)
+  const ritmo = v.acao && v.acao.startsWith("correr_para_guarda") ? 2 : /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando && !esperaParar ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? 1.3 : golpeia && classe === "ninja" ? 1.3 : golpeia && classe === "guerreiro" ? 0.92 : 1) * (vortice.ativo ? 1.35 : 1)
               : v.anim.startsWith("correndo") ? Math.min(vel / M.correr, CORRIDA_MAX * (pes.buff > 0 ? 1.3 : 1) * (status.velEquip || 1)) : 1;
   v.t += dt * ritmo;
   const dur = info.quadros / info.fps;
   const q = Math.floor(v.t * info.fps);
-  const golpeQualquer = v.anim.startsWith("golpe") || v.anim === "sacar_golpe" || v.anim === "giro";
+  const golpeQualquer = v.anim.startsWith("golpe") || v.anim === "sacar_golpe" || ehGiro(v.anim);
   v.semGolpe = golpeQualquer && v.acao ? 0 : (v.semGolpe || 0) + dt;
   // emenda: o próximo golpe do combo entra logo depois do corte do atual
   if (triplo.restam > 0 && v.acao === "golpe3" && v.fila === "golpe4") v.fila = null;
@@ -9454,6 +9572,7 @@ function passo(dt) {
     else if (v.anim.startsWith("furia")) explosaoFuria();
     else if (v.anim === "lamina_espiritual") acenderLamina();
     else if (v.anim === "investida" || (investida.ativa && v.anim === "golpe3")) {}
+    else if (v.anim === "giro_sai") {}                               // (a saída do vórtice fecha a última volta: o dano já contou)
     else if (v.golpeNinja) { const g = v.golpeNinja; v.golpeNinja = null; acertoNinja(g); }
     else { golpeAcerta(v.anim); explosaoEncanto(); }
   }
@@ -9490,8 +9609,10 @@ function passo(dt) {
   passoMagias(dt);
   encanto(dt);
   if (emendou) {}
-  else if (v.acao && v.t >= dur && v.acao === "giro" && vortice.ativo && vortice.restam > 0) {
-    vortice.restam--; tocar("giro", true);                        // mais uma volta do vórtice
+  else if (v.acao && v.t >= dur && (v.acao === "giro_entra" || v.acao === "giro_laco") && vortice.ativo) {
+    if (vortice.restam > 0) { vortice.restam--; tocar("giro_laco", true); } else tocar("giro_sai", true);   // mais uma volta, ou sai
+  } else if (v.acao && v.t >= dur && v.acao === "giro" && vortice.ativo && vortice.restam > 0) {
+    vortice.restam--; tocar("giro", true);                        // mais uma volta do vórtice (manifest sem as três partes)
   } else if (v.acao && v.t >= dur) {
     const fim = v.acao;
     if (fim === "sacar" || fim === "sacar_golpe") v.espada = "armada";
@@ -9500,7 +9621,9 @@ function passo(dt) {
     v.ociosoArmado = 0;
     if (fim === "morte") { v.t = dur - 1e-3; v.acao = null; return; }
     v.acao = null;
-    if (v.fila) { const f = v.fila; v.fila = null; if (f === "vortice") iniciarVortice(); else if (f === "lamina_espiritual") tocar(f, true); else { mirarBoneco(); tocar(f, true); } }
+    // o clipe de parar (a 2×) antes de uma skill pedida correndo terminou: a skill começa da guarda
+    if (/^correr_para_guarda/.test(fim) && v.depoisClipe) { const f = v.depoisClipe; v.depoisClipe = null; v.anim = "parado_armado"; v.t = 1 / a.parado_armado.fps; f(); }
+    else if (v.fila) { const f = v.fila; v.fila = null; if (f === "vortice") iniciarVortice(); else if (f === "lamina_espiritual") tocar(f, true); else { mirarBoneco(); tocar(f, true); } }
     else { v.anim = v.espada === "armada" ? "parado_armado" : "parado"; v.t = 0; }
   }
   // bonecos: mola do balanço e palha caindo
@@ -9560,9 +9683,10 @@ function estouroArco() {
 
 function golpeando() {
   const n = viking.anim, info = M.animacoes[n];
-  if (!(n.startsWith("golpe") || n === "sacar_golpe" || n === "giro")) return false;
+  if (!(n.startsWith("golpe") || n === "sacar_golpe" || ehGiro(n))) return false;
   const q = quadroAtual();
-  return n === "giro" ? q >= 2 && q <= 12 : q >= info.acerto - 3 && q <= info.acerto + 2;
+  // (o vórtice: a entrada já corta a partir do q3, o laço inteiro e a saída até o q7)
+  return n === "giro" ? q >= 2 && q <= 12 : n === "giro_entra" ? q >= 3 : n === "giro_laco" ? true : n === "giro_sai" ? q <= 7 : q >= info.acerto - 3 && q <= info.acerto + 2;
 }
 
 // partícula presa a um ponto do chão (a âncora: o viking, se nenhuma for dada); x, y em px do sprite a partir dos pés
@@ -10119,7 +10243,9 @@ function desenharVortice(X, Y, z, t, frente) {
 // sem arma (quebrou no ferreiro ou foi guardada): o desenho usa a variante "_sem" da animação, sem a arma em lugar nenhum.
 // As poses de espada na mão viram as desarmadas equivalentes (só o desenho muda; a ação continua a mesma)
 const SEM_TROCA = { parado_armado: "parado", andando_armado: "andando", correndo_armado: "correndo", arrancar_armado: "arrancar", parar_armado_0: "parar_0",
-                    parar_armado_1: "parar_1", furia_armado: "furia", sacar_golpe: "golpe1", sacar: "parado", guardar: "parado", lamina_espiritual: "parado", giro: "golpe2" };
+                    parar_armado_1: "parar_1", furia_armado: "furia", sacar_golpe: "golpe1", sacar: "parado", guardar: "parado", lamina_espiritual: "parado", giro: "golpe2",
+                    giro_entra: "golpe2", giro_laco: "golpe2", giro_sai: "golpe2", golpe1_da_corrida: "golpe1", golpe1_da_corrida_7: "golpe1",
+                    guarda_para_correr: "correndo", correr_para_guarda: "parado", correr_para_guarda_7: "parado" };   // (os clipes de troca e do vórtice não têm "_sem")
 function animVisivel(n) {
   if (!prog || prog.arma) return n;
   const base = SEM_TROCA[n] || n;
@@ -10922,7 +11048,7 @@ function montarBotoesAnim() {
     const b = document.createElement("button"); b.textContent = n.replace("_", " "); b.id = "anim-" + n;
     b.onclick = () => {
       viking.caido = n === "morte"; viking.fila = null;
-      if (n.includes("_armado") || n === "guardar" || n.startsWith("golpe") || n === "giro" || n === "dano") viking.espada = "armada";
+      if (n.includes("_armado") || n === "guardar" || n.startsWith("golpe") || ehGiro(n) || n === "dano" || /^(guarda_para_correr|correr_para_guarda)/.test(n)) viking.espada = "armada";
       if (["parado", "andando", "correndo", "sacar", "sacar_golpe", "furia", "arrancar", "parar_0", "parar_1"].includes(n)) viking.espada = "costas";
       tocar(n, !M.animacoes[n].laco);
       viking.noLugar = M.animacoes[n].laco ? n : null;
