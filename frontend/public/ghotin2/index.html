@@ -11170,9 +11170,9 @@ function passo(dt) {
     if (sobra) v.t = sobra;                                       // o ninja leva a sobra do passo: o combo não repete quadro na emenda
     if (triplo.restam > 0) triplo.restam--;
   }
-  // a puxada do arco (Freesound 2) no quadro em que a flecha encaixa e a corda estica (~0,2 s), presa à animação: com o
-  // setTimeout ela podia sair depois do disparo (a ordem trocava e o tiro soava diferente do aprovado)
-  if ((v.anim === "atirar" || v.anim === "certeiro") && !v.somPuxa && q >= Math.round(0.2 * info.fps)) { v.somPuxa = true; som("arco_puxa", v, 1.2); }
+  // a puxada do arco (Freesound 2) 0,25 s antes da soltura, presa à animação, como no clipe aprovado (aljava, puxada,
+  // disparo): com o setTimeout ela podia sair depois do disparo, e num tiro mais longo ficava solta longe dele
+  if ((v.anim === "atirar" || v.anim === "certeiro") && !v.somPuxa && q >= Math.max(0, info.acerto - Math.round(0.25 * info.fps))) { v.somPuxa = true; som("arco_puxa", v, 1.2); }
   if (!emendou && golpeQualquer && !v.somCorte && q >= info.acerto - 2) { v.somCorte = true; som(classe === "guerreiro" ? "machado" : classe === "ninja" ? "adaga" : "corte", v, furia.buff > 0 ? 1.1 : 0.9); }
   const qp = ((q % info.quadros) + info.quadros) % info.quadros;
   if (qp !== v.qPasso && (v.anim.startsWith("andando") || v.anim.startsWith("correndo")) && (qp === 0 || qp === Math.round(info.quadros / 2))) {
