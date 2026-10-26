@@ -650,41 +650,124 @@
   :root:not(.semB) .dica-item strong { color: var(--b-cinabre); font-family: var(--pincel); font-size: 15px; }
   :root:not(.semB) .dica-item span[style] { color: var(--b-pinho) !important; font-weight: 600; }
 
-  /* ---- ficha: abas Atributos | Skills */
-  :root:not(.semB) .editor.ficha { width: min(318px, calc(100vw - 24px)); box-sizing: border-box; }
-  .abas-ficha { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-  .ficha-pag { display: grid; gap: 9px; }
-  .ficha-topo { display: grid; gap: 6px; padding: 8px 10px; }
-  .ficha-vm { display: grid; grid-template-columns: auto 1fr; gap: 5px 8px; align-items: center; font-size: 12px; color: var(--apagado); }
-  .ficha .ficha-vm .medidor { height: 15px; }
-  .ficha .ficha-vm .medidor span { line-height: 15px; }
-  :root:not(.semB) :is(.ficha, .admin) .medidor { background: var(--b-papel3); border: 1px solid var(--b-nanquim); border-radius: 2px; }
-  :root:not(.semB) .ficha .medidor.vida i { background: linear-gradient(#c94a3e, var(--b-cinabre)); }
-  :root:not(.semB) .ficha .medidor.mana i { background: linear-gradient(#3f6a94, var(--b-indigo)); }
-  :root:not(.semB) .ficha .medidor.exp i { background: linear-gradient(#dcae5c, var(--b-ocre)); }
-  :root:not(.semB) .ficha .medidor span { color: var(--b-nanquim); font-weight: 600; text-shadow: 0 0 2px var(--b-papel), 0 0 2px var(--b-papel), 0 0 3px var(--b-papel); }
-  :root:not(.semB) .ficha-nivel b { font-family: var(--pincel); font-size: 19px; font-weight: 400; }
-  :root:not(.semB) .ficha-nivel span { font-family: var(--dados); font-size: 11px; color: var(--apagado); }
-  :root:not(.semB) .pontos-livres b { color: var(--b-nanquim); }
-  :root:not(.semB) .pontos-livres.tem { border-color: var(--b-jade); color: var(--b-jade); background: rgba(62, 122, 92, 0.13); box-shadow: inset 0 0 0 1px rgba(62, 122, 92, 0.35); }
-  :root:not(.semB) .pontos-livres.tem b { color: var(--b-jade); }
-  :root:not(.semB) #fAtrib { gap: 0 10px; }
-  :root:not(.semB) #fAtrib > * { padding: 5px 0; border-bottom: 1px dashed rgba(30, 27, 24, 0.28); }
-  :root:not(.semB) #fAtrib > span { font-weight: 500; }
-  :root:not(.semB) #fAtrib > b { font-size: 15px; min-width: 2ch; text-align: right; }
-  :root:not(.semB) #fAtrib > button { justify-self: center; align-self: center; padding: 0; width: 24px; height: 22px; min-width: 0; font: 700 15px/1 var(--dados); }
-  :root:not(.semB) #fAtrib > button:not(:disabled) { background: var(--b-jade); color: var(--b-papel); }
-  :root:not(.semB) .ficha-grade.derivados > * { padding: 3px 0; border-bottom: 1px dotted rgba(30, 27, 24, 0.2); }
-  :root:not(.semB) .ficha-grade.derivados b { text-align: right; font-size: 12px; }
-  /* skills: ícone (arrasta para a barra), nome e o grau num selo, tecla, ação (ponto, livro, Pedra da Alma) */
-  .ficha-skills .sk { grid-template-columns: 44px 1fr auto; grid-template-areas: "ic nome acao" "ic linha acao" "info info info"; gap: 2px 8px; }
-  .ficha-skills .sk-icone { grid-area: ic; width: 44px; height: 44px; border-radius: 3px; cursor: grab; touch-action: none; align-self: start; }
-  :root:not(.semB) .ficha-skills .sk-icone { border: 1.5px solid var(--b-nanquim); box-shadow: 0 1px 0 rgba(30, 27, 24, 0.4); }
-  .ficha-skills .sk-icone:hover { outline: 2px solid var(--ouro); outline-offset: 1px; }
-  .ficha-skills .sk-nome { grid-area: nome; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
-  .ficha-skills .sk > button { grid-area: acao; align-self: center; white-space: nowrap; font-size: 12px; padding: 4px 8px; }
-  .ficha-skills .sk-linha { grid-area: linha; font-size: 11.5px; color: var(--apagado); }
-  .ficha-skills .sk small { grid-area: info; }
+  /* ---- ficha (P), como a janela do personagem do Metin2: Status | Skills | Ações | Quests, com as abas embaixo.
+     Primeiro a forma (vale também no tema antigo, .semB), depois as cores do estilo B */
+  .editor.ficha { width: min(318px, calc(100vw - 24px)); height: 640px; box-sizing: border-box; gap: 8px; grid-template-rows: auto 1fr auto; }
+  .ficha-pag { display: grid; gap: 8px; align-content: start; }
+  .ficha h3 .fx-pontos { order: 1; }
+  .fx-pontos { font: 500 12px var(--corpo); color: var(--apagado); white-space: nowrap; }
+  .fx-pontos b { font: 700 13px var(--dados); color: var(--texto); padding: 0 1px; }
+  .fx-pontos.tem, .fx-pontos.tem b { color: var(--ouro); }
+  .fx-cx { display: block; box-sizing: border-box; min-width: 0; padding: 2px 5px; text-align: center; font: 600 12px/18px var(--dados); color: var(--texto);
+    background: var(--jan-campo); border: 1px solid var(--jan-poco-borda); border-radius: 2px; box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fx-cx small { font-size: 10px; color: var(--ouro); }
+  /* topo: o retrato num quadro e o nome ao lado */
+  .fx-topo { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; }
+  .fx-retrato { width: 64px; height: 72px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--jan-poco-borda); border-radius: 2px; background: var(--jan-poco); box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6); }
+  .fx-retrato svg { display: block; width: 100%; height: 100%; }
+  .fx-id { display: grid; gap: 6px; min-width: 0; }
+  .ficha .ficha-nome { grid-template-columns: auto 1fr; gap: 6px; }
+  .ficha .ficha-nome input { width: 100%; box-sizing: border-box; min-width: 0; }
+  .fx-classe { font-size: 13px; }
+  .fx-classe small { font-size: 11px; color: var(--apagado); }
+  /* Nível | Experiência | Próximo Nível: títulos em vermelho, cada valor numa caixa */
+  .fx-trio { display: grid; grid-template-columns: 0.62fr 1fr 1fr; gap: 6px; }
+  .fx-trio > div { display: grid; gap: 2px; justify-items: stretch; text-align: center; min-width: 0; }
+  .fx-trio i { font-style: normal; font-size: 11.5px; color: #e2725a; white-space: nowrap; }
+  .ficha .fx-expbarra { height: 7px; margin-top: -3px; border-radius: 2px; }
+  :root:not(.semB) .ficha .fx-expbarra { background: #F8F2E4; }
+  /* Status: VIT/INT/FOR/DEX com o + à esquerda; HP, MP, Ataque e Defesa à direita */
+  .fx-status { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+  .fx-atrib { display: grid; grid-template-columns: 30px 40px 22px; gap: 5px 4px; align-items: center; }
+  .fx-vals { display: grid; grid-template-columns: auto 1fr; gap: 5px 6px; align-items: center; min-width: 0; }
+  .fx-vals > span, .fx-caixas > span { font-size: 12px; color: var(--apagado); white-space: nowrap; }
+  .fx-rot { font: 700 12px var(--dados); color: var(--texto); }
+  .fx-rot.pr { color: #e2725a; }
+  .ficha button.fx-mais { width: 22px; height: 22px; min-width: 0; padding: 0; font: 700 14px/1 var(--dados); }
+  .ficha button.fx-mais.some { visibility: hidden; }
+  .ficha .medidor.fx-cx { height: 24px; padding: 0; border-radius: 2px; }
+  .ficha .medidor.fx-cx span { line-height: 22px; font-size: 11px; font-weight: 600; }
+  .fx-dica { margin-top: -3px; }
+  /* Atributos: duas colunas de rótulo + caixinha */
+  .fx-caixas { display: grid; grid-template-columns: 1fr 44px 1fr 44px; gap: 5px 6px; align-items: center; }
+  .fx-caixas .fx-cx { padding: 2px; }
+  .ficha button.fx-recomecar { justify-self: start; font-size: 11.5px; padding: 3px 8px; opacity: 0.8; }
+  /* Skills: os dois grupos e os pontos em cima, a grade 3 × 4 de cada metade, o detalhe e as passivas */
+  .fx-sk-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .fx-grupos { display: flex; gap: 3px; }
+  .ficha .fx-grupos button { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; font-size: 13px; }
+  .fx-grupos svg { width: 11px; height: 11px; }
+  .fx-sk-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fx-meia { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px 3px; padding: 6px 4px 5px; border: 1px solid var(--jan-poco-borda); border-radius: 2px; background: var(--jan-poco); box-shadow: inset 0 1px 6px rgba(0, 0, 0, 0.6); }
+  .fx-sk { position: relative; display: grid; justify-items: center; gap: 2px; }
+  .fx-sk canvas, .fx-sk > span, .fx-trava svg { display: block; box-sizing: border-box; width: 38px; height: 38px; border: 1.5px solid #6b5230; border-radius: 2px; }
+  .fx-sk canvas { cursor: grab; touch-action: none; }
+  .fx-sk > span, .fx-trava svg { background: rgba(0, 0, 0, 0.55); box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.7); }
+  .fx-sk > .sk-grau { font-size: 10px; line-height: 13px; min-width: 14px; padding: 0 3px; text-align: center; }
+  .fx-sk.vazio > i { height: 15px; }
+  .fx-sk.sel canvas { outline: 2px solid var(--ouro); outline-offset: 1px; }
+  .fx-sk canvas:hover { outline: 2px solid var(--ouro); outline-offset: 1px; }
+  .ficha .fx-sk button.fx-mais { position: absolute; top: -5px; right: -1px; width: 17px; height: 17px; border-radius: 50%; font-size: 12px; }
+  .fx-sk-info { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; min-height: 40px; padding: 6px 8px; font-size: 13px;
+    border: 1px solid var(--jan-poco-borda); border-radius: 2px; background: var(--jan-poco); }
+  .fx-sk-info .sk-nome { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+  .ficha .fx-sk-info > button { grid-row: span 2; align-self: center; font-size: 12px; padding: 4px 8px; white-space: nowrap; }
+  .fx-sk-info .sk-linha { font-size: 11.5px; color: var(--apagado); }
+  .fx-sk-info small { grid-column: 1 / -1; font-size: 11px; color: var(--apagado); }
+  .fx-passivas { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px 3px; }
+  .fx-trava { display: grid; justify-items: center; gap: 2px; cursor: help; }
+  .fx-trava svg { padding: 10px; color: #6b5a3a; }
+  .fx-trava i, .fx-acao i { font-style: normal; font-size: 9.5px; line-height: 1.15; color: var(--apagado); text-align: center; }
+  /* Ações */
+  .fx-acoes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .fx-acao { display: grid; justify-items: center; gap: 3px; }
+  .fx-acao canvas { display: block; width: 46px; height: 46px; box-sizing: border-box; border: 1.5px solid #6b5230; border-radius: 2px; cursor: grab; touch-action: none; }
+  .fx-acao canvas:hover { outline: 2px solid var(--ouro); outline-offset: 1px; }
+  .fx-acao i { font-size: 11.5px; color: var(--texto); }
+  .fx-acao small { display: flex; gap: 2px; min-height: 16px; }
+  /* Quests */
+  .fx-quests { display: grid; gap: 8px; }
+  .fx-quest { display: grid; gap: 4px; padding: 7px 9px; border: 1px solid var(--jan-poco-borda); border-left: 4px solid var(--ouro); border-radius: 2px; background: var(--jan-poco); }
+  .fx-q-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+  .fx-q-topo b { font-size: 14px; }
+  .fx-q-topo i { font-style: normal; font-size: 11px; white-space: nowrap; color: var(--apagado); }
+  .fx-quest p { margin: 0; font-size: 12.5px; line-height: 1.4; }
+  .fx-quest small { font-size: 11px; color: var(--apagado); }
+  .fx-q-etapas { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; }
+  .fx-q-etapas span { height: 5px; border-radius: 1px; background: rgba(255, 255, 255, 0.12); }
+  .fx-q-etapas .ok { background: #5fae7f; }
+  .fx-q-etapas .agora { background: var(--ouro); }
+  /* as abas embaixo, presas no pé da janela enquanto ela rola */
+  .abas-ficha { position: sticky; bottom: -12px; z-index: 2; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin: 2px -14px -12px; padding: 0 12px 10px;
+    background: linear-gradient(var(--jan-titulo2), var(--jan-madeira2)); border-top: 1px solid var(--jan-preto); box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.3); }
+  .ficha .abas-ficha button { padding: 4px 0 3px; font-family: var(--display); font-size: 14px; border-top: 0; border-radius: 0 0 5px 5px; }
+  /* estilo B: papel, nanquim, títulos em cinabre, o que está ativo em jade; os quadros vazios em nanquim */
+  :root:not(.semB) .ficha .fx-cx { background: #F8F2E4; color: var(--b-nanquim); border: 1.5px solid var(--b-nanquim); box-shadow: inset 0 1px 3px rgba(30, 27, 24, 0.22); }
+  :root:not(.semB) .ficha .fx-cx small { color: var(--b-jade); }
+  :root:not(.semB) .fx-retrato { background: radial-gradient(circle at 50% 40%, #F3EAD6, var(--b-papel3)); border: 2px solid var(--b-nanquim); box-shadow: inset 0 0 0 2px rgba(239, 228, 204, 0.8), inset 0 0 0 3px rgba(140, 106, 58, 0.55); }
+  :root:not(.semB) .fx-classe { font-family: var(--pincel); font-size: 16px; }
+  :root:not(.semB) .fx-classe small { font-family: var(--corpo); }
+  :root:not(.semB) .fx-trio i { font-family: var(--pincel); font-size: 13.5px; color: var(--b-cinabre); }
+  :root:not(.semB) .fx-rot.pr { color: var(--b-cinabre); }
+  :root:not(.semB) .fx-pontos.tem, :root:not(.semB) .fx-pontos.tem b { color: var(--b-jade); }
+  :root:not(.semB) .ficha button.fx-mais:not(:disabled) { background: var(--b-jade); color: var(--b-papel); }
+  :root:not(.semB) .fx-dica { color: var(--b-jade); }
+  :root:not(.semB) :is(.fx-meia, .fx-sk-info, .fx-quest) { background: rgba(214, 199, 162, 0.42); border: 1px solid rgba(30, 27, 24, 0.55); box-shadow: inset 0 1px 0 rgba(255, 250, 236, 0.5); }
+  :root:not(.semB) :is(.fx-sk canvas, .fx-acao canvas) { border: 1.5px solid var(--b-nanquim); box-shadow: 0 1px 0 rgba(30, 27, 24, 0.4); }
+  :root:not(.semB) :is(.fx-sk > span, .fx-trava svg) { border: 1.5px solid var(--b-nanquim); background: linear-gradient(#2e2924, #1E1B18); box-shadow: inset 0 0 0 1px rgba(140, 106, 58, 0.45); color: #8C8A80; }
+  :root:not(.semB) :is(.fx-sk.sel canvas, .fx-sk canvas:hover, .fx-acao canvas:hover) { outline-color: var(--b-cinabre); }
+  :root:not(.semB) .fx-q-topo b { font-family: var(--pincel); font-size: 16px; font-weight: 400; }
+  :root:not(.semB) .fx-quest { border-left: 4px solid var(--b-pedra); }
+  :root:not(.semB) .fx-quest.andando { border-left-color: var(--b-ocre); }
+  :root:not(.semB) .fx-quest.feita { border-left-color: var(--b-jade); }
+  :root:not(.semB) .fx-quest.andando .fx-q-topo i { color: #8a6420; font-weight: 600; }
+  :root:not(.semB) .fx-quest.feita .fx-q-topo i { color: var(--b-pinho); font-weight: 600; }
+  :root:not(.semB) .fx-q-etapas span { background: rgba(30, 27, 24, 0.16); }
+  :root:not(.semB) .fx-q-etapas .ok { background: var(--b-jade); }
+  :root:not(.semB) .fx-q-etapas .agora { background: var(--b-ocre); }
+  :root:not(.semB) .abas-ficha { background: var(--b-fibra), linear-gradient(#E6D8B8, #DCCDA8); border-top: 2px solid var(--b-nanquim); box-shadow: 0 -2px 0 rgba(140, 106, 58, 0.35); }
+  :root:not(.semB) .ficha .abas-ficha button { font-family: var(--pincel); font-size: 15px; padding: 4px 0 3px; border-top: 0; border-radius: 1px 1px 6px 6px; }
+  :root:not(.semB) .ficha .abas-ficha button[aria-pressed="true"] { padding-top: 6px; margin-top: -2px; }
   .sk-grau { font: 600 11px/16px var(--dados); font-style: normal; padding: 0 5px; border-radius: 2px; border: 1px solid currentColor; color: var(--apagado); }
   :root:not(.semB) .sk-grau { color: var(--b-nanquim); background: var(--b-papel); border-color: var(--b-nanquim); }
   :root:not(.semB) .sk-grau:is(.grau-m, .grau-g, .grau-p) { color: var(--b-papel); }
@@ -815,34 +898,65 @@
 
 <aside class="editor ficha" id="ficha" hidden aria-label="Personagem">
   <header><h2 id="fTitulo">Personagem</h2><button id="fFechar" aria-label="Fechar a ficha">Fechar</button></header>
-  <div class="abas-ficha" role="tablist" aria-label="Páginas da ficha" id="fAbas">
-    <button type="button" role="tab" data-pag="atrib" aria-selected="true" aria-pressed="true">Atributos</button>
-    <button type="button" role="tab" data-pag="skills" aria-selected="false" aria-pressed="false">Skills</button>
-  </div>
-  <section class="ficha-pag" data-pag="atrib" aria-label="Atributos">
-    <div class="ficha-topo">
-      <label class="ficha-nome">Nome <input id="fNome" maxlength="16" autocomplete="off" spellcheck="false"></label>
-      <div class="ficha-nivel"><b id="fNivel"></b><span id="fExp"></span></div>
-      <div class="medidor exp"><i id="fExpBarra"></i></div>
-      <div class="ficha-vm">
-        <span>Vida</span><div class="medidor vida"><i id="fVida"></i><span id="fVidaTxt"></span></div>
-        <span>Mana</span><div class="medidor mana"><i id="fMana"></i><span id="fManaTxt"></span></div>
+  <!-- como a janela do personagem do Metin2: Status, Skills, Ações e Quests, com as abas embaixo -->
+  <section class="ficha-pag" data-pag="atrib" aria-label="Status">
+    <div class="fx-topo">
+      <div class="fx-retrato" id="fRetrato" aria-hidden="true"></div>
+      <div class="fx-id">
+        <label class="ficha-nome"><span>Nome</span><input id="fNome" maxlength="16" autocomplete="off" spellcheck="false"></label>
+        <span class="fx-classe" id="fClasse"></span>
       </div>
     </div>
+    <div class="fx-trio">
+      <div><i>Nível</i><b class="fx-cx" id="fNivel"></b></div>
+      <div><i>Experiência</i><b class="fx-cx" id="fExp"></b></div>
+      <div><i>Próximo Nível</i><b class="fx-cx" id="fProx"></b></div>
+    </div>
+    <div class="medidor exp fx-expbarra" title="Experiência deste nível"><i id="fExpBarra"></i></div>
+    <h3>Status <span class="fx-pontos" id="fPontosCaixa" title="Pontos de atributo: 3 a cada nível">Pontos [ <b id="fPontosN">0</b> ]</span></h3>
+    <div class="fx-status">
+      <div class="fx-atrib" id="fAtrib"></div>
+      <div class="fx-vals">
+        <span>HP</span><div class="fx-cx medidor vida"><i id="fVida"></i><span id="fVidaTxt"></span></div>
+        <span>MP</span><div class="fx-cx medidor mana"><i id="fMana"></i><span id="fManaTxt"></span></div>
+        <span>Ataque</span><b class="fx-cx" id="fAtaque"></b>
+        <span>Defesa</span><b class="fx-cx" id="fDefesa"></b>
+      </div>
+    </div>
+    <p class="nota fx-dica" id="fPontos"></p>
     <h3>Atributos</h3>
-    <div class="pontos-livres" id="fPontosCaixa"><span id="fPontos">Pontos para distribuir</span><b id="fPontosN">0</b></div>
-    <div class="ficha-grade" id="fAtrib"></div>
-    <h3>Combate</h3>
-    <div class="ficha-grade derivados" id="fDerivados"></div>
-    <h3>Bolsa <small>(I)</small></h3>
-    <p class="nota" id="fBolsa"></p>
-    <button id="fRecomecar">Recomeçar este personagem</button>
+    <div class="fx-caixas" id="fDerivados"></div>
+    <p class="nota" id="fEquipNota"></p>
+    <button id="fRecomecar" class="fx-recomecar">Recomeçar este personagem</button>
   </section>
   <section class="ficha-pag" data-pag="skills" aria-label="Skills" hidden>
-    <h3>Skills <small id="fPontosSkill"></small></h3>
-    <div class="ficha-skills" id="fSkills"></div>
-    <p class="nota">Arraste o ícone de uma skill até a barra de atalhos para pô-la naquela tecla. Livros e Pedras da Alma sobem a skill depois do M1.</p>
+    <div class="fx-sk-topo">
+      <div class="fx-grupos" id="fGrupos" role="group" aria-label="Grupos de skills"></div>
+      <span class="fx-pontos" id="fPontosSkillCaixa" title="Pontos de skill: 1 a cada nível">Pontos [ <b id="fPontosSkill">0</b> ]</span>
+    </div>
+    <div class="fx-sk-grade" id="fSkills"></div>
+    <div class="fx-sk-info" id="fSkInfo"></div>
+    <h3>Skills Passivas</h3>
+    <div class="fx-passivas" id="fPassivas"></div>
+    <p class="nota">Clique numa skill para ver os detalhes; arraste o ícone até a barra de atalhos. Livros e Pedras da Alma sobem a skill depois do M1.</p>
   </section>
+  <section class="ficha-pag" data-pag="acoes" aria-label="Ações" hidden>
+    <h3>Ações</h3>
+    <div class="fx-acoes" id="fAcoes"></div>
+    <p class="nota">Arraste uma ação até a barra de atalhos (e para fora dela, para tirar). Um clique usa.</p>
+    <h3>Emoções</h3>
+    <div class="fx-passivas" id="fEmocoes"></div>
+  </section>
+  <section class="ficha-pag" data-pag="quests" aria-label="Quests" hidden>
+    <h3>Missões</h3>
+    <div class="fx-quests" id="fQuests"></div>
+  </section>
+  <div class="abas-ficha" role="tablist" aria-label="Páginas da ficha" id="fAbas">
+    <button type="button" role="tab" data-pag="atrib" aria-selected="true" aria-pressed="true">Status</button>
+    <button type="button" role="tab" data-pag="skills" aria-selected="false" aria-pressed="false">Skills</button>
+    <button type="button" role="tab" data-pag="acoes" aria-selected="false" aria-pressed="false">Ações</button>
+    <button type="button" role="tab" data-pag="quests" aria-selected="false" aria-pressed="false">Quests</button>
+  </div>
 </aside>
 
 <aside class="editor" id="editor" hidden aria-label="Editor de mapa">
@@ -4756,8 +4870,57 @@ function acertoNinja(g) {
     som("veneno", { x, y }, 1); som("terra", { x, y }, 0.35);
   }
 }
+// o avanço do combo do ninja: cada golpe anda para a frente o que o json manda ("avanco": m por quadro do clipe, a raiz
+// do NinjaAnimador; os pés do clipe ficam plantados no mundo). No começo do golpe decide se ele anda o passo INTEIRO: com
+// o caminho livre, anda; o alvo que estiver a menos de 0,9 m à frente é empurrado junto, o mesmo tanto. Sem caminho
+// livre, o golpe não anda nada (nunca só uma parte, senão os pés escorregam)
+function avancoEm(a, t, fps) { const x = Math.max(0, t * fps), i = Math.min(a.length - 1, Math.floor(x)), j = Math.min(a.length - 1, i + 1); return a[i] + (a[j] - a[i]) * (x - Math.floor(x)); }
+function avancarNinja(v, info, t0, t1) {
+  const a = info.avanco, ang = -v.dir * Math.PI / 4, fx = Math.cos(ang), fy = Math.sin(ang);
+  if (t0 < (v.avT === undefined ? 1e9 : v.avT) || v.avAnim !== v.anim) {           // começou um golpe
+    const tot = a[a.length - 1];
+    v.avAnim = v.anim; v.avOk = livre(v.x + fx * tot, v.y + fy * tot) && livre(v.x + fx * tot * 0.5, v.y + fy * tot * 0.5);
+  }
+  v.avT = t1;
+  const d = avancoEm(a, t1, info.fps) - avancoEm(a, Math.max(0, t0), info.fps);
+  if (!v.avOk || d <= 0) return;
+  v.x += fx * d; v.y += fy * d;
+  for (const l of criaturas) {                                     // o alvo colado à frente vai junto (empurrado)
+    if (l.morto || l.cfg.estatico) continue;
+    const dx = l.x - v.x, dy = l.y - v.y, dist = Math.hypot(dx, dy) - (l.cfg.raio || 0);
+    if (dist > 0.9 || (dx * fx + dy * fy) / Math.max(Math.hypot(dx, dy), 1e-3) < 0.3) continue;
+    if (livre(l.x + fx * d, l.y + fy * d)) { l.x += fx * d; l.y += fy * d; }
+  }
+  // o ninja não pisa no alvo: depois do passo, quem está à frente fica a ≥ o raio dele + 0,4 m do herói. Falta espaço:
+  // empurra a criatura o que falta (se o chão deixar); senão o herói devolve o que avançou demais
+  for (const l of criaturas) {
+    if (l.morto) continue;
+    const dx = l.x - v.x, dy = l.y - v.y, dc = Math.hypot(dx, dy), min = (l.cfg.raio || l.cfg.anel || 0.5) + 0.4;   // (sem raio: o anel de seleção)
+    if (dc >= min || (dx * fx + dy * fy) / Math.max(dc, 1e-3) < 0.3) continue;
+    const falta = min - dc;
+    if (!l.cfg.estatico && livre(l.x + fx * falta, l.y + fy * falta)) { l.x += fx * falta; l.y += fy * falta; }
+    else { const volta = Math.min(d, falta); v.x -= fx * volta; v.y -= fy * volta; }
+  }
+}
+// os quadros do corte em que a lâmina do ninja deixa rastro (o FX3, passoArma), e só a adaga que corta: golpe1/3 a
+// direita, golpe2/4 a esquerda, o resto as duas. Na acrobacia, só no mergulho e na saída (na rolagem as mãos giram
+// perto do eixo do giro e desenhavam círculos pequenos)
+function rastroNinja(anim, q, peca) {
+  const n = anim.replace(/_sem$/, ""), d = /_d$/.test(peca || ""), e = /_e$/.test(peca || "");
+  if (n === "golpe1" || n === "golpe3") return d && q >= 1 && q <= 5;
+  if (n === "golpe2" || n === "golpe4") return e && q >= 1 && q <= 5;
+  if (n === "golpe5") return q >= 1 && q <= 6;
+  if (n === "punhalada" || n === "avanco") return d && q >= 5 && q <= 8;
+  if (n === "acrobacia") return (q >= 2 && q <= 4) || (q >= 11 && q <= 14);
+  if (n === "veneno") return q >= 7 && q <= 10;
+  return false;
+}
+// o tremor curto do acerto do ninja: px de amplitude por ~0,06 s (somado ao tremor da tela)
+const tremorNinja = { t: 0, px: 0 };
+function tremerNinja(px) { tremorNinja.t = 0.06; tremorNinja.px = px; }
 // cada passo: a acrobacia girando para a frente, o avanço ágil, o esconderijo e as nuvens
 function passoNinja(dt) {
+  if (tremorNinja.t > 0) tremorNinja.t = Math.max(0, tremorNinja.t - dt);
   for (const k of ["punhalada", "acrobacia", "avanco", "veneno", "esconder"]) NINJA[k].recarga = Math.max(0, NINJA[k].recarga - dt);
   const e = NINJA.esconder; if (e.buff > 0) e.buff = Math.max(0, e.buff - dt);
   for (const n of nuvensToxicas) {
@@ -4790,7 +4953,11 @@ function passoNinja(dt) {
     if (bate || !livre(nx, ny) || av.resta <= 0) {
       av.ativo = false;
       if (bate) { acertos++; comFonte("Avanço Ágil", () => ferir(av.alvo, 16 + Math.floor(Math.random() * 6), av.dx, av.dy, 0.6)); }
-      if (v.acao === "investida" || v.acao === "correndo_armado" || v.acao === "avanco") { v.acao = null; v.anim = "parado_armado"; v.t = 0; }
+      // o ninja novo (o json com o "avanco" do combo) pousa no q6 e corta baixo no q7: o clipe segue a partir do q6 até o
+      // fim, em vez de cortar para a guarda (o ninja antigo, sem esse corte, continua indo direto para a guarda)
+      const fimNovo = classe === "ninja" && v.acao === "avanco" && M.animacoes.avanco && M.animacoes.golpe1 && M.animacoes.golpe1.avanco;
+      if (fimNovo) v.t = Math.max(v.t, 6 / M.animacoes.avanco.fps);
+      else if (v.acao === "investida" || v.acao === "correndo_armado" || v.acao === "avanco") { v.acao = null; v.anim = "parado_armado"; v.t = 0; }
     } else {
       v.x = nx; v.y = ny; av.resta -= passo;
       investida.rastro.push({ x: v.x, y: v.y, anim: v.anim, q: quadroAtual(), dir: v.dir, vida: 0.35, max: 0.35 });
@@ -5034,6 +5201,7 @@ const TECLAS_BARRA = ["f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10
 const ROTULO_TECLA = t => t.toUpperCase();
 const itensBarra = {};
 function itemDaBarra(nome) {
+  if (nome && nome.startsWith("acao:")) return acaoDaBarra(nome);       // (as ações da ficha: atacar, alvo, soltar, espada)
   if (!nome || !nome.startsWith("item:")) return null;
   if (itensBarra[nome]) return itensBarra[nome];
   const chave = nome.slice(5), t = tipoItem(chave);
@@ -5048,7 +5216,7 @@ function ordemSalva() {
   if (Array.isArray(o)) o = o.map(n => RENOMES[n] || n);
   if (Array.isArray(o) && o.length === 10) o = [...Array(10).fill(null), ...o];   // a barra de 10 de antes vira a de baixo
   if (!Array.isArray(o) || o.length !== TECLAS_BARRA.length) o = TECLAS_BARRA.map((_, i) => i === 0 ? "item:pocao" : i === 1 ? "item:pocaoMana" : nomes[i - 10] || null);
-  o = o.map(n => nomes.includes(n) || (n && n.startsWith("item:")) ? n : null);
+  o = o.map(n => nomes.includes(n) || (n && (n.startsWith("item:") || n.startsWith("acao:"))) ? n : null);
   for (const n of nomes) if (!o.includes(n)) { const i = o.indexOf(null, 10); if (i >= 0) o[i] = n; }   // skill nova: primeiro espaço livre de baixo
   return o;
 }
@@ -7607,10 +7775,10 @@ function abrirEquipamento(sim = true) {
   const b = $("#bolsa"), eq = b.querySelector(".equip"); b.scrollTop = 0;
   eq.classList.remove("destaque"); void eq.offsetWidth; eq.classList.add("destaque");
 }
-// a ficha tem duas páginas (abas, como a janela do personagem do Metin2): Atributos e Skills
+// a ficha tem quatro páginas (as abas embaixo, como a janela do personagem do Metin2): Status, Skills, Ações e Quests
 let fichaPag = "atrib";
 function fichaAba(pag) {
-  fichaPag = pag === "skills" ? "skills" : "atrib";
+  fichaPag = ["skills", "acoes", "quests"].includes(pag) ? pag : "atrib";
   for (const b of document.querySelectorAll("#fAbas [data-pag]")) { const s = b.dataset.pag === fichaPag; b.setAttribute("aria-selected", s); b.setAttribute("aria-pressed", s); }
   for (const s of document.querySelectorAll("#ficha .ficha-pag")) s.hidden = s.dataset.pag !== fichaPag;
   $("#ficha").scrollTop = 0;
@@ -7781,37 +7949,144 @@ function montarAdmin() {
 }
 
 // ---------------------------------------------------------------- ficha do personagem (P)
+// Como a janela do personagem do Metin2: Status (retrato, nome, nível/experiência/próximo nível, VIT/INT/FOR/DEX com o +,
+// HP/MP/Ataque/Defesa e os atributos de combate), Skills (dois grupos, a grade 3 × 4 de cada metade, as passivas), Ações
+// (arrastáveis para a barra) e Quests (as missões do jogo com o estado de cada uma). As abas ficam embaixo
+let fichaSk = null, fichaRetrato = "";
+// o retrato: um busto a nanquim com a marca de cada classe (o elmo de chifres, o capuz e o arco, o chapéu de bico, a máscara)
+function retratoFicha(c) {
+  const N = "#1E1B18", P = "#EFE4CC", olhos = `<path d="M27 30.5h3.2M33.8 30.5H37" stroke="${N}" stroke-width="1.5" stroke-linecap="round"/>`;
+  const marca = {
+    viking: `<path d="M23 33q9 15 18 0q-1 9-9 11q-8-2-9-11z" fill="#8C6A3A" stroke="${N}" stroke-width="1.3"/>${olhos}
+      <path d="M21.5 27.5q0-13.5 10.5-13.5t10.5 13.5z" fill="#8C8A80" stroke="${N}" stroke-width="1.8"/><path d="M21 27.5h22" stroke="${N}" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M32 14v13" stroke="${N}" stroke-width="1.2" opacity=".6"/><path d="M22.5 22.5q-9-2-10.5-12q5 6 11.5 6.5M41.5 22.5q9-2 10.5-12q-5 6-11.5 6.5" fill="${P}" stroke="${N}" stroke-width="1.6" stroke-linejoin="round"/>`,
+    arqueiro: `<path d="M51 14q13 24-1 50" fill="none" stroke="#8C6A3A" stroke-width="2.6"/><path d="M51 14l-1 50" stroke="${N}" stroke-width=".9"/>
+      <path d="M18.5 46q-4-27 13.5-33q17.5 6 13.5 33q-5-7-13.5-7t-13.5 7z" fill="#2F5D3A" stroke="${N}" stroke-width="1.8" stroke-linejoin="round"/>
+      <ellipse cx="32" cy="31" rx="8.6" ry="10" fill="${P}" stroke="${N}" stroke-width="1.6"/>${olhos}<path d="M23.5 25q8.5-7 17 0" fill="none" stroke="${N}" stroke-width="2"/>`,
+    feiticeiro: `<path d="M24 34q8 20 16 0q1 13-8 18q-9-5-8-18z" fill="#F8F2E4" stroke="${N}" stroke-width="1.4"/>${olhos}
+      <path d="M22.5 21.5q4-10 19-20q-4 11 0 20z" fill="#2D4A6B" stroke="${N}" stroke-width="1.8" stroke-linejoin="round"/>
+      <ellipse cx="32" cy="22" rx="16" ry="3.6" fill="#2D4A6B" stroke="${N}" stroke-width="1.8"/><circle cx="33" cy="13" r="2" fill="#C9963E"/>`,
+    ninja: `<path d="M22 28.5q0-14.5 10-14.5t10 14.5z" fill="${N}"/><path d="M22.5 31q9.5 3 19 0q-1 10-9.5 10.5q-8.5-.5-9.5-10.5z" fill="${N}"/>
+      <path d="M27 29.5h3.2M33.8 29.5H37" stroke="${N}" stroke-width="1.5" stroke-linecap="round"/><path d="M21.6 25.5h20.8" stroke="#B8322A" stroke-width="2.4"/>
+      <path d="M42 25.5q6 .5 10-4.5M42 26.5q6 3.5 11 1.5" fill="none" stroke="#B8322A" stroke-width="1.8" stroke-linecap="round"/>`,
+  };
+  marca.guerreiro = marca.viking;
+  const capa = { viking: "#B8322A", guerreiro: "#B8322A", arqueiro: "#2F5D3A", feiticeiro: "#2D4A6B", ninja: N }[c] || "#B8322A";
+  return `<svg viewBox="0 0 64 72" aria-hidden="true"><circle cx="32" cy="31" r="25" fill="#C9963E" opacity=".2"/>
+    <path d="M7 72q1-23 25-26q24 3 25 26z" fill="${capa}" fill-opacity=".85" stroke="${N}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M24 49l8 8 8-8" fill="none" stroke="${P}" stroke-width="2"/><path d="M28 40h8v7h-8z" fill="${P}" stroke="${N}" stroke-width="1.5"/>
+    <ellipse cx="32" cy="30" rx="9.5" ry="11" fill="${P}" stroke="${N}" stroke-width="1.9"/>${marca[c] || marca.viking}</svg>`;
+}
+// as ações básicas (os botões do canto), que também vão para a barra de atalhos como "acao:<id>"
+function acoesFicha() {
+  const clicar = id => () => { const b = document.getElementById(id); if (b && b.onclick) b.onclick({ target: b }); };
+  const l = [{ id: "atacar", nome: { arqueiro: "Atirar", feiticeiro: "Conjurar" }[classe] || "Atacar", dica: "Marca a criatura mais perto e ataca; sem nenhuma, golpeia", usar: clicar("bAtacar") },
+    { id: "alvo", nome: "Alvo", tecla: "Espaço", dica: "Marca a criatura mais perto (de novo: a próxima)", usar: clicar("bAlvo") },
+    { id: "soltar", nome: "Soltar alvo", tecla: "Esc", dica: "Solta o alvo marcado", usar: clicar("bSoltar") }];
+  if (classe === "viking") l.push({ id: "espada", nome: "Sacar/guardar", dica: "Saca a espada das costas ou guarda", usar: clicar("bEspada") });
+  return l;
+}
+function acaoDaBarra(nome) {
+  const a = acoesFicha().find(x => "acao:" + x.id === nome); if (!a) return null;
+  return { nome, item: true, acao: true, els: [], rotulo: a.nome, cor: "#C9963E", usar: a.usar, estado: () => [0, 1, 0], icone: g => desenharAcao(g, a.id, 56) };
+}
+// o ícone de uma ação: papel com o desenho em nanquim (espada, mira, mira solta, espada na bainha)
+function desenharAcao(g, id, t = 56) {
+  const N = "#1E1B18", C = "#B8322A";
+  g.save(); g.scale(t / 56, t / 56);
+  const f = g.createLinearGradient(0, 0, 0, 56); f.addColorStop(0, "#F1E7D0"); f.addColorStop(1, "#D9C9A4");
+  g.fillStyle = f; g.fillRect(0, 0, 56, 56);
+  g.strokeStyle = "rgba(140, 106, 58, 0.55)"; g.lineWidth = 1.5; g.strokeRect(3, 3, 50, 50);
+  g.lineCap = "round"; g.lineJoin = "round";
+  const linha = (cor, w, ...p) => { g.strokeStyle = cor; g.lineWidth = w; g.beginPath(); g.moveTo(p[0], p[1]); for (let k = 2; k < p.length; k += 2) g.lineTo(p[k], p[k + 1]); g.stroke(); };
+  if (id === "atacar") {
+    linha(N, 8, 21, 35, 43, 13); linha("#E4E0D6", 3.6, 22, 34, 42, 14);
+    linha(N, 4.5, 14, 30, 26, 42); linha(C, 4.5, 20, 36, 12, 44);
+    g.fillStyle = N; g.beginPath(); g.arc(11, 45, 3.6, 0, 7); g.fill();
+  } else if (id === "alvo" || id === "soltar") {
+    g.strokeStyle = N; g.lineWidth = 3; g.beginPath(); g.arc(28, 28, 16, 0, 7); g.stroke();
+    g.lineWidth = 2.2; g.beginPath(); g.arc(28, 28, 8.5, 0, 7); g.stroke();
+    for (const [a, b, c, d] of [[28, 6, 28, 13], [28, 43, 28, 50], [6, 28, 13, 28], [43, 28, 50, 28]]) linha(N, 3, a, b, c, d);
+    if (id === "alvo") { g.fillStyle = C; g.beginPath(); g.arc(28, 28, 3.6, 0, 7); g.fill(); }
+    else { linha("#F1E7D0", 7.5, 17, 17, 39, 39); linha("#F1E7D0", 7.5, 39, 17, 17, 39); linha(C, 4.2, 17, 17, 39, 39); linha(C, 4.2, 39, 17, 17, 39); }
+  } else if (id === "espada") {
+    g.fillStyle = "#6b5226"; g.strokeStyle = N; g.lineWidth = 2.4; g.beginPath(); g.roundRect ? g.roundRect(23, 24, 10, 25, 3) : g.rect(23, 24, 10, 25); g.fill(); g.stroke();
+    linha("#C9963E", 2, 23.5, 44, 32.5, 44);
+    linha(N, 4.5, 17, 22, 39, 22); linha(C, 4.5, 28, 20, 28, 11);
+    g.fillStyle = N; g.beginPath(); g.arc(28, 8, 3.4, 0, 7); g.fill();
+  }
+  g.restore();
+}
 function abrirFicha(sim = $("#ficha").hidden) {
   $("#ficha").hidden = !sim; janelaAbriu("ficha", sim);
   if (typeof janelasSalvas === "object") { janelasSalvas.ficha = { ...(janelasSalvas.ficha || {}), aberta: sim }; salvarJanelas(); posicionarJanela(JANELAS[8]); }
   if (sim && editor.ativo) editorAbrir(false);
   if (sim) atualizarFicha();
 }
+const CADEADO = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 9V6.6a3.5 3.5 0 0 1 7 0V9" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="9" width="12" height="9" rx="1.6" fill="currentColor"/></svg>`;
 function atualizarFicha() {
   if (!prog || $("#ficha").hidden) return;
-  const nomeClasse = { viking: "Viking", arqueiro: "Arqueiro", feiticeiro: "Feiticeiro" }[classe];
-  $("#fTitulo").textContent = nomeClasse;
+  const nomeClasse = NOME_CLASSE[classe] || "Personagem", fmt = v => v.toLocaleString("pt-BR"), max = prog.nivel >= NIVEL_MAX;
+  $("#fTitulo").textContent = "Personagem";
+  if (fichaRetrato !== classe) { fichaRetrato = classe; $("#fRetrato").innerHTML = retratoFicha(classe); }
   if (document.activeElement !== $("#fNome")) { $("#fNome").value = prog.nome || ""; $("#fNome").placeholder = nomeClasse; }
-  $("#fNivel").textContent = "Nível " + prog.nivel;
-  $("#fExp").textContent = prog.nivel >= NIVEL_MAX ? "máximo" : `${prog.exp.toLocaleString("pt-BR")} / ${EXP_NIVEL[prog.nivel].toLocaleString("pt-BR")} exp`;
-  $("#fExpBarra").style.width = (prog.nivel >= NIVEL_MAX ? 100 : 100 * prog.exp / EXP_NIVEL[prog.nivel]) + "%";
-  // os pontos livres sempre à mostra (em dourado quando há o que distribuir) e, em cada atributo, quanto veio dos pontos
-  $("#fPontosN").textContent = prog.pontos;
-  $("#fPontos").textContent = prog.pontos ? "Pontos para distribuir: clique em +" : "Pontos para distribuir (3 a cada nível)";
-  $("#fPontosCaixa").classList.toggle("tem", prog.pontos > 0);
   const pr = ATRIB_PRINCIPAL[classe];
-  $("#fAtrib").innerHTML = ORDEM_ATRIB.map(k =>
-    `<span>${NOME_ATRIB[k]}${k === pr ? " ★" : ""}</span><small>${ATRIB_INICIAL[classe][k]}${prog.atrib[k] > ATRIB_INICIAL[classe][k] ? " + " + (prog.atrib[k] - ATRIB_INICIAL[classe][k]) : ""}</small><b>${prog.atrib[k]}</b><button data-atrib="${k}" ${prog.pontos > 0 && prog.atrib[k] < ATRIB_MAX ? "" : "disabled"} aria-label="Mais um ponto em ${NOME_ATRIB[k]}">+</button>`).join("");
-  // (os derivados ocupam duas colunas da grade de quatro)
-  const eqS = somaEquip();
-  $("#fDerivados").innerHTML = [["Arma", prog.arma ? nomeArma(prog.arma.ref) : "nenhuma (punhos)"], ["Equipamento", `defesa +${eqS.defesa}${eqS.bloqueio ? ` · bloqueio ${eqS.bloqueio}%` : ""}${eqS.vel ? ` · velocidade +${eqS.vel}%` : ""}`],
-    ["Bônus dos itens", (() => { const b = somaBonus(), l = Object.entries(b).map(([t, v]) => BONUS[t] ? BONUS[t].nome(v) : ""); return l.length ? l.join(" · ") : "nenhum"; })()], ["Vida máxima", status.vidaMax], ["Mana máxima", status.manaMax], ["Ataque", "+" + Math.round((status.ataque - 1) * 100) + "%"],
-    ["Crítico", Math.round(status.critico * 100) + "%"], ["Defesa", `${status.defesa} (−${Math.round(100 - 10000 / (100 + status.defesa))}% de dano)`]]
-    .map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join("");
-  $("#fPontosSkill").textContent = prog.pontosSkill ? `· ${prog.pontosSkill} ponto(s) para distribuir` : "· 1 ponto por nível; M1 do 17 ao 20";
-  const almas = contarItem("alma");
-  $("#fSkills").innerHTML = SKILLS.map(sk => {
-    const n = nivelSkill(sk.nome), l = contarItem("livro:" + sk.nome), espera = esperaLeitura(sk.nome);
+  $("#fClasse").innerHTML = `${nomeClasse} <small>· atributo principal ${pr.toUpperCase()}</small>`;
+  // ---- Status: nível, experiência, próximo nível (a exp que este nível pede)
+  $("#fNivel").textContent = prog.nivel;
+  $("#fExp").textContent = fmt(prog.exp);
+  $("#fProx").textContent = max ? "máximo" : fmt(EXP_NIVEL[prog.nivel]);
+  $("#fExpBarra").style.width = (max ? 100 : 100 * prog.exp / EXP_NIVEL[prog.nivel]) + "%";
+  $("#fPontosN").textContent = prog.pontos;
+  $("#fPontosCaixa").classList.toggle("tem", prog.pontos > 0);
+  $("#fPontos").hidden = !prog.pontos;
+  $("#fPontos").textContent = "Clique em + para pôr um ponto (3 a cada nível).";
+  // VIT, INT, FOR, DEX: o valor (com o que os itens dão) e o + quando há pontos livres
+  const bon = somaBonus();
+  $("#fAtrib").innerHTML = ORDEM_ATRIB.map(k => {
+    const v = prog.atrib[k], ini = ATRIB_INICIAL[classe][k], extra = bon[k] || 0;
+    const tit = `${NOME_ATRIB[k]}: ${ini} inicial${v > ini ? ` + ${v - ini} de pontos` : ""}${extra ? ` + ${extra} dos itens` : ""}${k === pr ? " · atributo principal" : ""}`;
+    return `<span class="fx-rot${k === pr ? " pr" : ""}" title="${tit}">${k.toUpperCase()}</span><b class="fx-cx" title="${tit}">${v + extra}</b>` +
+      `<button data-atrib="${k}" class="fx-mais${prog.pontos > 0 ? "" : " some"}" ${prog.pontos > 0 && v < ATRIB_MAX ? "" : "disabled"} aria-label="Mais um ponto em ${NOME_ATRIB[k]}">+</button>`;
+  }).join("");
+  // HP e MP (a vida e a mana de agora), ataque e defesa: os números do recalcularStatus
+  $("#fVida").style.width = (100 * Math.max(0, viking.vida) / status.vidaMax) + "%"; $("#fVidaTxt").textContent = `${Math.max(0, Math.round(viking.vida))} / ${status.vidaMax}`;
+  $("#fMana").style.width = (100 * Math.max(0, viking.mana || 0) / status.manaMax) + "%"; $("#fManaTxt").textContent = `${Math.round(viking.mana || 0)} / ${status.manaMax}`;
+  const atq = Math.round(status.ataque * 100), red = Math.round(100 - 10000 / (100 + status.defesa));
+  $("#fAtaque").textContent = atq + "%"; $("#fAtaque").title = `Força dos golpes: ${atq}% do dano da arma (nível, ${pr.toUpperCase()}, refino e bônus)`;
+  $("#fDefesa").textContent = status.defesa; $("#fDefesa").title = `Defesa ${status.defesa}: −${red}% do dano recebido`;
+  $("#fDerivados").innerHTML = [["Movimento", Math.round(100 * (status.velEquip || 1)) + "%", "Velocidade de movimento (100% = normal; botas e bônus sobem)"],
+    ["Crítico", Math.round(status.critico * 100) + "%", "Chance de golpe crítico (DEX e bônus)"],
+    ["Bloqueio", Math.round((status.bloqueio || 0) * 100) + "%", "Chance de o escudo segurar um golpe"],
+    ["Redução de dano", red + "%", "Quanto a defesa tira do dano recebido"],
+    ["Contra monstros", "+" + Math.round((status.monstros || 0) * 100) + "%", "Dano a mais contra criaturas (bônus dos itens)"],
+    ["Refino da arma", prog.arma ? "+" + (prog.arma.ref || 0) : "—", prog.arma ? nomeArma(prog.arma.ref) : "Sem arma (punhos)"]]
+    .map(([a, v, t]) => `<span title="${t}">${a}</span><b class="fx-cx" title="${t}">${v}</b>`).join("");
+  const lb = Object.entries(bon).map(([t, v]) => BONUS[t] ? BONUS[t].nome(v) : "").filter(Boolean);
+  $("#fEquipNota").textContent = `${prog.arma ? nomeArma(prog.arma.ref) : "Sem arma (punhos)"} · ${lb.length ? lb.join(" · ") : "nenhum bônus nos itens"}`;
+  // ---- Skills: os grupos (o da classe; o segundo ainda fechado), a grade 3 × 4 de cada metade e o detalhe da escolhida
+  $("#fGrupos").innerHTML = `<button type="button" aria-pressed="true">${nomeClasse}</button><button type="button" disabled title="Em breve">${CADEADO}Apoio</button>`;
+  $("#fPontosSkill").textContent = prog.pontosSkill || 0;
+  $("#fPontosSkillCaixa").classList.toggle("tem", prog.pontosSkill > 0);
+  if (!SKILLS.some(s => s.nome === fichaSk)) fichaSk = SKILLS[0] && SKILLS[0].nome;
+  const grau = n => n >= N_PERFEITO ? "p" : n >= N_GRAO ? "g" : n >= N_MESTRE ? "m" : "n";
+  const cel = sk => {
+    if (!sk) return `<div class="fx-sk vazio" aria-hidden="true"><span></span><i></i></div>`;
+    const n = nivelSkill(sk.nome), mais = prog.pontosSkill > 0 && n < N_MESTRE;
+    return `<div class="fx-sk${sk.nome === fichaSk ? " sel" : ""}" data-sk="${sk.nome}" title="${sk.nome} (${rotuloNivelSkill(n)}): clique para ver, arraste até a barra">` +
+      `<canvas class="sk-icone" width="80" height="80" data-sk="${sk.nome}" aria-label="${sk.nome}: arraste até a barra"></canvas>` +
+      `<i class="sk-grau grau-${grau(n)}">${rotuloNivelSkill(n)}</i>${mais ? `<button type="button" class="fx-mais" data-ponto="${sk.nome}" aria-label="Um ponto em ${sk.nome}">+</button>` : ""}</div>`;
+  };
+  $("#fSkills").innerHTML = `<div class="fx-meia">${Array.from({ length: 12 }, (_, i) => cel(SKILLS[i])).join("")}</div>` +
+    `<div class="fx-meia" title="Grupo de apoio: em breve">${Array.from({ length: 12 }, () => cel(null)).join("")}</div>`;
+  for (const c of $("#fSkills").querySelectorAll(".sk-icone")) {
+    const sk = SKILLS.find(s => s.nome === c.dataset.sk), g = c.getContext("2d"); if (!sk) continue;
+    if (ICONES_SKILL[sk.nome]) { g.imageSmoothingQuality = "high"; g.drawImage(ICONES_SKILL[sk.nome], 0, 0, 80, 80); }
+    else if (sk.icone) { g.save(); g.scale(80 / 56, 80 / 56); sk.icone(g); g.restore(); }
+  }
+  const sk = SKILLS.find(s => s.nome === fichaSk);
+  if (sk) {
+    const almas = contarItem("alma"), n = nivelSkill(sk.nome), l = contarItem("livro:" + sk.nome), espera = esperaLeitura(sk.nome);
     let acao, info;
     if (n < N_MESTRE) {
       acao = `<button data-ponto="${sk.nome}" ${prog.pontosSkill > 0 ? "" : "disabled"} aria-label="Um ponto em ${sk.nome}">+ ponto</button>`;
@@ -7824,18 +8099,28 @@ function atualizarFicha() {
       acao = `<button data-alma="${sk.nome}" ${almas && !espera ? "" : "disabled"}>Pedra da Alma (${almas})</button>`;
       info = `pedra: ${Math.round(chanceLivro(n) * 100)}% · custa ${custoLeitura(n)} EXP`;
     } else { acao = ""; info = "Perfeito: no máximo"; }
-    // o ícone (arrasta para a barra), o grau num selo (normal, M jade, G índigo, P cinabre) e a tecla onde ela está
-    const grau = n >= N_PERFEITO ? "p" : n >= N_GRAO ? "g" : n >= N_MESTRE ? "m" : "n", i = ordemBarra.indexOf(sk.nome);
-    return `<div class="sk"><canvas class="sk-icone" width="56" height="56" data-sk="${sk.nome}" title="Arraste até a barra de atalhos" aria-label="${sk.nome}: arraste até a barra"></canvas>` +
-      `<span class="sk-nome"><b>${sk.nome}</b><i class="sk-grau grau-${grau}">${rotuloNivelSkill(n)}</i></span>${acao}` +
+    const i = ordemBarra.indexOf(sk.nome);
+    $("#fSkInfo").innerHTML = `<span class="sk-nome"><b>${sk.nome}</b><i class="sk-grau grau-${grau(n)}">${rotuloNivelSkill(n)}</i></span>${acao}` +
       `<span class="sk-linha">${sk.mana ? `${sk.mana} mana` : "sem mana"}${i >= 0 ? ` · tecla <kbd>${ROTULO_TECLA(TECLAS_BARRA[i])}</kbd>` : " · fora da barra"}</span>` +
-      `<small>efeito +${Math.round((multSkill(sk.nome) - 1) * 100)}% · ${info}${espera && n >= N_MESTRE ? ` · ler de novo em ${textoEspera(espera)}` : ""}</small></div>`;
-  }).join("");
-  for (const c of $("#fSkills").querySelectorAll(".sk-icone")) {
-    const sk = SKILLS.find(s => s.nome === c.dataset.sk), g = c.getContext("2d"); if (!sk) continue;
-    if (ICONES_SKILL[sk.nome]) { g.imageSmoothingQuality = "high"; g.drawImage(ICONES_SKILL[sk.nome], 0, 0, 56, 56); } else if (sk.icone) sk.icone(g);
-  }
-  $("#fBolsa").textContent = `${contarItem("pocao")} poções vermelhas (Q) · ${contarItem("pocaoMana")} poções azuis (X) · ${prog.yang.toLocaleString("pt-BR")} yang · ${contarItem("pedra")} pedras espirituais`;
+      `<small>efeito +${Math.round((multSkill(sk.nome) - 1) * 100)}%${info ? " · " + info : ""}${espera && n >= N_MESTRE ? ` · ler de novo em ${textoEspera(espera)}` : ""}</small>`;
+  } else $("#fSkInfo").innerHTML = "";
+  const travado = l => l.map(([nome, dica]) => `<div class="fx-trava" title="${nome}: ${dica} (em breve)">${CADEADO}<i>${nome}</i></div>`).join("");
+  $("#fPassivas").innerHTML = travado([["Montaria", "andar a cavalo"], ["Mineração", "tirar minério das rochas"], ["Pesca", "pescar nos lagos"], ["Idiomas", "falar com os outros reinos"], ["Liderança", "bônus para o grupo"], ["Combo", "golpes encadeados"]]);
+  // ---- Ações: arrastáveis para a barra; um clique usa
+  $("#fAcoes").innerHTML = acoesFicha().map(a => { const i = ordemBarra.indexOf("acao:" + a.id);
+    return `<div class="fx-acao" title="${a.dica}"><canvas class="fx-acao-ic" width="80" height="80" data-acao="${a.id}" aria-label="${a.nome}: clique para usar, arraste até a barra"></canvas><i>${a.nome}</i>` +
+      `<small>${a.tecla ? `<kbd>${a.tecla}</kbd>` : ""}${i >= 0 ? `<kbd>${ROTULO_TECLA(TECLAS_BARRA[i])}</kbd>` : ""}</small></div>`; }).join("");
+  for (const c of $("#fAcoes").querySelectorAll("canvas[data-acao]")) desenharAcao(c.getContext("2d"), c.dataset.acao, 80);
+  $("#fEmocoes").innerHTML = travado([["Sentar", "descansar no chão"], ["Acenar", "cumprimentar"], ["Dançar", "dançar"]]);
+  // ---- Quests: as missões do jogo (MISSOES), com a etapa de agora e o andamento
+  $("#fQuests").innerHTML = Object.entries(MISSOES).map(([id, M]) => {
+    const s = (prog.missoes || {})[id] || { etapa: -1, n: 0 }, tot = M.etapas.length, feita = s.etapa >= tot, e = !feita && s.etapa >= 0 ? M.etapas[s.etapa] : null;
+    const est = feita ? "Concluída" : e ? `Etapa ${s.etapa + 1} de ${tot}` : "Não aceita", cls = feita ? "feita" : e ? "andando" : "nova";
+    const txt = feita ? "A recompensa já foi entregue." : e ? e.alvo + (e.matar ? ` (${s.n || 0}/${e.qtd})` : "") : `Fale com ${M.npc} para começar.`;
+    const ok = feita ? tot : Math.max(0, s.etapa);
+    return `<div class="fx-quest ${cls}"><div class="fx-q-topo"><b>${M.nome}</b><i>${est}</i></div><p>${txt}</p>` +
+      `<div class="fx-q-etapas" aria-hidden="true">${M.etapas.map((_, k) => `<span class="${k < ok ? "ok" : k === s.etapa ? "agora" : ""}"></span>`).join("")}</div><small>${M.npc}</small></div>`;
+  }).join("") + `<p class="nota">Mais missões em breve. O objetivo de agora também aparece embaixo do minimapa.</p>`;
 }
 function montarFicha() {
   $("#bFicha").onclick = () => abrirFicha();
@@ -7848,31 +8133,41 @@ function montarFicha() {
     const k = b.dataset.atrib; if (prog.atrib[k] >= ATRIB_MAX) return;
     prog.atrib[k]++; prog.pontos--; recalcularStatus(); salvarProgresso(); atualizarFicha();
   };
+  let fimArrasto = 0;
+  const acaoSkill = b => { if (b.dataset.ponto) porPontoSkill(b.dataset.ponto); else if (b.dataset.alma) usarPedraAlma(b.dataset.alma); else lerLivro(b.dataset.livro); };
   $("#fSkills").onclick = e => {
-    const b = e.target.closest("[data-livro], [data-ponto], [data-alma]"); if (!b) return;
-    if (b.dataset.ponto) porPontoSkill(b.dataset.ponto); else if (b.dataset.alma) usarPedraAlma(b.dataset.alma); else lerLivro(b.dataset.livro);
+    const b = e.target.closest("[data-ponto]"); if (b) { fichaSk = b.dataset.ponto; acaoSkill(b); return; }
+    const c = e.target.closest(".fx-sk[data-sk]"); if (!c || performance.now() - fimArrasto < 250) return;
+    fichaSk = c.dataset.sk; atualizarFicha();
   };
-  $("#fAbas").onclick = e => { const b = e.target.closest("[data-pag]"); if (b) { fichaAba(b.dataset.pag); som("ui_clique", null, 0.6); } };
-  // arrastar o ícone de uma skill até a barra: ela vai para aquela tecla (o que estava lá troca com o lugar antigo dela)
+  $("#fSkInfo").onclick = e => { const b = e.target.closest("[data-livro], [data-ponto], [data-alma]"); if (b) acaoSkill(b); };
+  $("#fAcoes").onclick = e => {
+    const c = e.target.closest("[data-acao]"); if (!c || performance.now() - fimArrasto < 250) return;
+    const a = acoesFicha().find(x => x.id === c.dataset.acao); if (a) { somIniciar(); a.usar(); }
+  };
+  $("#fAbas").onclick = e => { const b = e.target.closest("[data-pag]"); if (b) { fichaAba(b.dataset.pag); atualizarFicha(); som("ui_clique", null, 0.6); } };
+  // arrastar o ícone de uma skill (ou de uma ação) até a barra: vai para aquela tecla (o que estava lá troca com o lugar antigo)
   let arrastoSk = null;
   const fimSk = () => { if (arrastoSk && arrastoSk.fantasma) arrastoSk.fantasma.remove(); arrastoSk = null; $("#barraSkills").querySelectorAll(".sobre").forEach(b => b.classList.remove("sobre")); };
   const slotSob = (x, y) => { const el = document.elementFromPoint(x, y), b = el && el.closest && el.closest("#barraSkills .slot"); return b || null; };
-  $("#fSkills").addEventListener("pointerdown", e => {
-    const c = e.target.closest(".sk-icone"); if (!c || e.button > 0) return;
+  const ficha = $("#ficha");
+  ficha.addEventListener("pointerdown", e => {
+    const c = e.target.closest(".sk-icone[data-sk], .fx-acao-ic[data-acao]"); if (!c || e.button > 0) return;
     e.preventDefault(); c.setPointerCapture(e.pointerId);
-    arrastoSk = { nome: c.dataset.sk, c, x: e.clientX, y: e.clientY, fantasma: null };
+    arrastoSk = { nome: c.dataset.sk || "acao:" + c.dataset.acao, c, x: e.clientX, y: e.clientY, fantasma: null };
   });
-  $("#fSkills").addEventListener("pointermove", e => {
+  ficha.addEventListener("pointermove", e => {
     const a = arrastoSk; if (!a) return;
     if (!a.fantasma && Math.hypot(e.clientX - a.x, e.clientY - a.y) > 5) {
-      const f = document.createElement("canvas"); f.width = f.height = 56; f.className = "slot-fantasma"; f.getContext("2d").drawImage(a.c, 0, 0); document.body.appendChild(f); a.fantasma = f;
+      const f = document.createElement("canvas"); f.width = f.height = 56; f.className = "slot-fantasma"; f.getContext("2d").drawImage(a.c, 0, 0, 56, 56); document.body.appendChild(f); a.fantasma = f;
     }
     if (!a.fantasma) return;
     a.fantasma.style.left = (e.clientX - 27) + "px"; a.fantasma.style.top = (e.clientY - 27) + "px";
     const sob = slotSob(e.clientX, e.clientY); $("#barraSkills").querySelectorAll(".slot").forEach(b => b.classList.toggle("sobre", b === sob));
   });
-  $("#fSkills").addEventListener("pointerup", e => {
+  ficha.addEventListener("pointerup", e => {
     const a = arrastoSk; if (!a) return;
+    if (a.fantasma) fimArrasto = performance.now();
     const para = a.fantasma ? slotSob(e.clientX, e.clientY) : null; fimSk();
     if (!para) return;
     const k = +para.dataset.slot, de = ordemBarra.indexOf(a.nome);
@@ -7880,7 +8175,7 @@ function montarFicha() {
     if (de >= 0) ordemBarra[de] = ordemBarra[k]; ordemBarra[k] = a.nome;
     salvarOrdem(); montarBarraSkills(); atualizarFicha(); som("ui_aceitar", null, 0.6);
   });
-  $("#fSkills").addEventListener("pointercancel", fimSk);
+  ficha.addEventListener("pointercancel", fimSk);
   let confirma = 0;
   $("#fRecomecar").onclick = e => {
     if (performance.now() - confirma > 3000) { confirma = performance.now(); e.target.textContent = "Clique de novo para apagar o progresso"; return; }
@@ -11178,6 +11473,7 @@ function passo(dt) {
   const ritmo = v.acao && v.acao.startsWith("correr_para_guarda") ? 2 : /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando && !esperaParar ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? 1.3 : golpeia && classe === "ninja" ? 1.3 : golpeia && classe === "guerreiro" ? 0.92 : 1) * (vortice.ativo ? 1.35 : 1)
               : v.anim.startsWith("correndo") ? Math.min(vel / M.correr, CORRIDA_MAX * (pes.buff > 0 ? 1.3 : 1) * (status.velEquip || 1)) : 1;
   v.t += dt * ritmo;
+  if (classe === "ninja" && info.avanco && v.acao === v.anim) avancarNinja(v, info, v.t - dt * ritmo, v.t);   // o combo do ninja anda
   const dur = info.quadros / info.fps;
   const q = Math.floor(v.t * info.fps);
   const golpeQualquer = v.anim.startsWith("golpe") || v.anim === "sacar_golpe" || ehGiro(v.anim);
@@ -11606,7 +11902,7 @@ function desenhar(t) {
   // (no piso alto do palácio, a câmera sobe junto com o herói)
   const zFoco = editor.ativo ? 0 : zPiso(foco.x, foco.y), [zcx, zcy] = zFoco ? daVista(0, zFoco * ALTURA / ACHATA) : [0, 0];
   cam.x += (foco.x + CAM_ACIMA[0] + zcx - cam.x) * 0.12; cam.y += (foco.y + CAM_ACIMA[1] + zcy - cam.y) * 0.12;   // (0,4 m acima na tela)
-  const tx = tremor > 0 ? Math.sin(t * 90) * tremor * 14 : 0;
+  const tx = (tremor > 0 ? Math.sin(t * 90) * tremor * 14 : 0) + (tremorNinja.t > 0 ? Math.sin(t * 140) * tremorNinja.px : 0);   // (+ o tremor curto do acerto do ninja)
   cx.save(); cx.translate(tx, 0);
   const s = PX * zoom;
   const noEscuro = naCaverna(cam.x);
@@ -16587,7 +16883,8 @@ class Fita {
     this.pos.setUsage(THREE.DynamicDrawUsage); this.aD.setUsage(THREE.DynamicDrawUsage);
     for (let i = 0; i < cap - 1; i++) { const b = i * 2; idx.push(b, b + 1, b + 2, b + 1, b + 3, b + 2); }
     g.setAttribute("position", this.pos); g.setAttribute("aD", this.aD); g.setIndex(idx); g.setDrawRange(0, 0);
-    this.mat = pegarMat("fita", () => new THREE.ShaderMaterial({ uniforms: { uCor: cor0(), uCor2: cor0(), uForca: num0(), uModo: num0() }, vertexShader: GLSL_FITA_V, fragmentShader: GLSL_FITA_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+    this.chave = (o.normal ? "fita_n" : "fita") + (o.sobre ? "_s" : "");   // (o.normal: mistura normal, para o contorno escuro do rastro do ninja; o.sobre: sem teste de profundidade, a fita fantasma do ninja por cima do corpo)
+    this.mat = pegarMat(this.chave, () => new THREE.ShaderMaterial({ uniforms: { uCor: cor0(), uCor2: cor0(), uForca: num0(), uModo: num0() }, vertexShader: GLSL_FITA_V, fragmentShader: GLSL_FITA_F, transparent: true, depthWrite: false, depthTest: !o.sobre, blending: o.normal ? THREE.NormalBlending : THREE.AdditiveBlending, side: THREE.DoubleSide }));
     this.u = this.mat.uniforms; this.u.uCor.value.copy(cor); this.u.uCor2.value.copy(cor2); this.u.uForca.value = o.forca ?? 1; this.u.uModo.value = modo === "linha" ? 1 : 0;
     this.g = g; this.m = noGrupo(new THREE.Mesh(g, this.mat), 12);
   }
@@ -16622,7 +16919,7 @@ class Fita {
   }
   // deixa o que sobrou do rastro apagar sozinho
   soltar() { adicionar({ passo: () => this.atualizar() > 1, fim: () => this.fim() }); }
-  fim() { grupo.remove(this.m); this.g.dispose(); devolverMat("fita", this.mat); }
+  fim() { grupo.remove(this.m); this.g.dispose(); devolverMat(this.chave || "fita", this.mat); }
 }
 
 // ---- orbe mágico (a bola do feiticeiro, a sombra do lich, o fogo verde do orc): miolo branco, halo na cor, uma bolha de
@@ -16754,7 +17051,7 @@ let arma = null;
 function pecasArma() {
   const c = corpoHeroi(); if (!c || !c.malhas) return null;
   if (arma && arma.c === c && arma.classe === classe) return arma;
-  if (arma) for (const r of arma.l) r.fita.fim();
+  if (arma) for (const r of arma.l) { r.fita.fim(); if (r.contorno) r.contorno.fim(); if (r.fantasma) r.fantasma.fim(); }
   const l = [];
   for (const nome of PECAS[classe] || []) {
     const m = c.malhas.find(o => o.name === nome) || c.malhas.find(o => o.parent && o.parent.name === nome); if (!m) continue;
@@ -16762,13 +17059,15 @@ function pecasArma() {
     const b = m.geometry.boundingBox, s = b.getSize(new THREE.Vector3()), k = s.x > s.y ? (s.x > s.z ? "x" : "z") : (s.y > s.z ? "y" : "z");
     const e0 = b.getCenter(new THREE.Vector3()), e1 = e0.clone(); e0[k] = b.min[k]; e1[k] = b.max[k];
     const ponta = e0.length() > e1.length() ? e0 : e1, base = ponta === e0 ? e1 : e0;
-    l.push({ m, base, ponta, fita: new Fita(LEVE ? 40 : 72, rgb(1, 1, 1), rgb(1, 1, 1), "lamina", { dur: classe === "ninja" ? 0.16 : 0.24 }), antes: null });
+    l.push({ m, nome, base, ponta, fita: new Fita(LEVE ? 40 : 72, rgb(1, 1, 1), rgb(1, 1, 1), "lamina", { dur: classe === "ninja" ? 0.22 : 0.24 }), antes: null,
+             contorno: classe === "ninja" ? new Fita(LEVE ? 40 : 72, rgb(0.02, 0.1, 0.16), rgb(0.02, 0.08, 0.12), "lamina", { dur: 0.22, normal: true }) : null,
+             fantasma: classe === "ninja" ? new Fita(LEVE ? 40 : 72, rgb(1, 1, 1), rgb(1, 1, 1), "lamina", { dur: 0.22, sobre: true }) : null });
   }
   arma = { c, classe, l }; return arma;
 }
 function passoArma(dt) {
   const a = pecasArma(); if (!a) return;
-  const golpe = GOLPE.test(viking.anim) && !viking.caido, [c1, c2] = corGolpe(), meio = classe === "ninja" ? 0.5 : classe === "feiticeiro" ? 0.7 : 0.3;
+  const golpe = GOLPE.test(viking.anim) && !viking.caido, [c1, c2] = corGolpe(), meio = classe === "ninja" ? 0.32 : classe === "feiticeiro" ? 0.7 : 0.3;
   const br = brilhoRef(), luzArma = azul() ? rgb(0.35, 0.7, 1) : br ? new THREE.Color(br.forte) : null;
   const ox = iso ? viking.x : 0, oz = iso ? -viking.y : 0;                // (no isométrico o corpo do atlas fica na origem)
   // (no isométrico com o giro da vista, o corpo do atlas está girado GIRO a mais: as peças voltam para o giro do mapa)
@@ -16779,8 +17078,37 @@ function passoArma(dt) {
     ponta.x += ox; ponta.z += oz; dentro.x += ox; dentro.z += oz;
     const vel = r.antes ? ponta.distanceTo(r.antes) / Math.max(dt, 1e-3) : 0;
     r.antes = (r.antes || new THREE.Vector3()).copy(ponta);
-    if (ok && golpe && vel > 2.2) r.fita.lamina(dentro, ponta);
+    // (o ninja: só nos quadros do corte e na adaga que corta, rastroNinja; a fita vai da base da lâmina até a ponta)
+    const corta = classe === "ninja" ? !viking.caido && typeof rastroNinja === "function" && rastroNinja(viking.anim, quadroAtual(), r.nome) : golpe && vel > 2.2;
+    if (ok && corta) r.fita.lamina(dentro, ponta);
     r.fita.u.uCor.value.copy(c1); r.fita.u.uCor2.value.copy(c2); r.fita.u.uForca.value = triplo.restam > 0 || vortice.ativo ? 1.35 : 1;
+    if (classe === "ninja") {
+      // o ninja: o miolo ciano saturado (o da classe a 100%, não perto do branco), a borda clara, e por baixo um contorno escuro
+      // um pouco mais largo (da base um pouco antes até um pouco além da ponta), em mistura normal: separa a fita do chão claro
+      if (!azul() && !brilhoRef()) { r.fita.u.uCor.value.setRGB(0, 0.78, 1); r.fita.u.uCor2.value.setRGB(0.55, 1, 1); }
+      r.fita.u.uForca.value *= 1.3;
+      if (r.contorno) {
+        if (ok && corta) r.contorno.lamina(_v.copy(r.base).lerp(r.ponta, meio - 0.06).applyMatrix4(W).add(_v2.set(ox, 0, oz)), _a.copy(r.base).lerp(r.ponta, 1.12).applyMatrix4(W).add(_v2.set(ox, 0, oz)));
+        r.contorno.u.uForca.value = 0.9; r.contorno.m.renderOrder = 11; r.contorno.atualizar();
+      }
+      // a fita fantasma: a mesma fita, fraca e sem teste de profundidade (o corte que passa atrás do corpo ainda se lê)
+      if (r.fantasma) {
+        if (ok && corta) r.fantasma.lamina(dentro, ponta);
+        r.fantasma.u.uCor.value.copy(r.fita.u.uCor.value); r.fantasma.u.uCor2.value.copy(r.fita.u.uCor2.value);
+        r.fantasma.u.uForca.value = 0.32; r.fantasma.m.renderOrder = 13; r.fantasma.atualizar();
+      }
+      // o acerto: uma faísca curta na ponta da adaga que corta e um tremor de 2–3 px por ~0,06 s (mais forte no golpe5)
+      if (ok && corta && viking.acertou && r.acertoVisto !== viking.anim + "|" + viking.t.toFixed(0)) {
+        const fecha = /^golpe5/.test(viking.anim);
+        if (!passoArma.acertou) {
+          clarao(ponta.clone(), fecha ? 0.5 : 0.32, rgb(0.3, 0.95, 1), 0.08, { estrela: true, forca: 0.9 });
+          for (let k = 0; k < (fecha ? 10 : 6); k++) faisca(ponta.clone(), new THREE.Vector3(acaso(-1, 1), acaso(-0.2, 1), acaso(-1, 1)).multiplyScalar(acaso(1.5, 3.5)), rgb(0.6, 1, 1), 0.04, 0.16);
+          if (typeof tremerNinja === "function") tremerNinja(fecha ? 4 : 3);
+          passoArma.acertou = true;
+        }
+      }
+      if (!viking.acertou) passoArma.acertou = false;
+    }
     r.fita.atualizar();
     // refino +7/+8/+9 (ou a lâmina azul): pontos de luz subindo da arma
     if (ok && luzArma && Math.random() < dt * (LEVE ? 8 : 18)) subir(_b.copy(r.base).lerp(r.ponta, acaso(0.3, 1)).applyMatrix4(W).add(_v.set(ox, 0, oz)),luzArma.clone().lerp(BRANCO(), 0.25), 1, { r: 0.05, h: 0, vel: 0.6, vida: 0.8, tam: 0.05 });
