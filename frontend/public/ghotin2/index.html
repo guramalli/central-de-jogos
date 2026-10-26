@@ -2181,7 +2181,7 @@ async function carregar() {
 // vai para pedaços de 6 m guardados em cache (só os visíveis são desenhados); mar, espuma, água, nuvens, fumaça e
 // bichinhos são desenhados a cada quadro. Dentro da muralha os telhados somem e o interior aparece.
 // Chão em metros: x para o leste (direita), y para o norte (para cima na tela).
-const RAIO = 67, LADO = 1.25;                // a ilha: 1,6× a primeira (mais espaço entre os bandos)
+const RAIO = 67, LADO = 1.25;                // a ilha: 1,6× a primeira (mais espaço entre os bandos); o raio da parte redonda (as Terras do Sul, o vale e a montanha somam em extraCosta)
 const ALTURA = 0.8;                       // 1 m de altura sobe 0,8 m na tela (câmera a 37°); o chão achata 0,6 (ACHATA)
 const PRACA = { x: 0, y: -9, r: 4.6 };    // campo de treino
 const LAGO = { x: -21, y: -10, r: 4.6 };
@@ -2213,6 +2213,10 @@ ESTRADAS.push([[PRACA.x, PRACA.y], [1.4, -1.5], [2, 4.2]]);
 ESTRADAS.push([[64, -12.2], [76, -9], [88, -6], [100, -4]]);                       // a estrada do leste até o Vale dos Orcs
 const ESTRADA_MONTE = [[100, -4], [108, -8.5], [118, -7.5], [128, -3], [140, 0], [152, 1]];
 ESTRADAS.push(ESTRADA_MONTE);                                                         // e do vale até a Montanha Gelada
+// a estrada do portal: continua a do sul (do portão da cidade) pelas Terras do Sul até o portal da Vila Hahoe, na ponta
+// do cabo (V1_PORTAL, 3 m depois do fim dela: o herói que volta da Vila Hahoe aparece em cima da estrada)
+const ESTRADA_PORTAL = [[12.8, -52.2], [10.5, -64], [5, -77], [-1, -91], [-6, -105], [-10.5, -119], [-13.5, -132], [-15, -144], [-15, -153]];
+ESTRADAS.push(ESTRADA_PORTAL);
 [LAGO.x, LAGO.y] = noMapa([LAGO.x, LAGO.y]); LAGO.r *= 1.25;
 const PONTE_LEV = { x0: -1.7, x1: 1.7, y0: -1.0, y1: 4.2 };
 const PORTAO = { x0: -1.8, x1: 1.8 };
@@ -2259,9 +2263,18 @@ const VALE_E = 50, VALE_W = 0.65, VALE_X = 70;
 // a Montanha Gelada (nível 40+): depois do vale, a costa avança mais MONTE_E m a leste num arco mais estreito (±MONTE_W
 // rad), chão de pedra e neve a partir de x = MONTE_X; a estrada do vale continua até lá
 const MONTE_E = 50, MONTE_W = 0.42, MONTE_X = 121;
+// as Terras do Sul (a Vila 1 maior, 26/10/2026; Logs/Mapas/PROJETO_MAPAS.md 6): a costa avança LOBO_E m para o
+// sul-sudoeste num arco largo (±LOBO_W rad em volta de LOBO_A) e, na ponta, num cabo estreito (CABO_*), onde fica o
+// portal da Vila Hahoe (V1_PORTAL). A cidade fica no norte da ilha e a estrada desce do portão sul até o fim do mapa,
+// como no mapa 1 do Metin2 (a cidade num canto, a saída para o mapa 2 no outro). A ilha ficou com 1,8× a área
+const LOBO_A = -1.70, LOBO_W = 1.2, LOBO_E = 90, CABO_A = -1.66, CABO_W = 0.2, CABO_E = 9;
+const DOIS_PI = Math.PI * 2;
+function difAng(a, b) { let d = (a - b) % DOIS_PI; if (d > Math.PI) d -= DOIS_PI; else if (d < -Math.PI) d += DOIS_PI; return Math.abs(d); }
+const arcoCosta = (a, c, w, e) => { const d = difAng(a, c) / w; return d < 1 ? e * Math.cos(d * Math.PI / 2) ** 2 : 0; };
 const extraCosta = a => {
   const ab = Math.abs(Math.atan2(Math.sin(a), Math.cos(a))), d = ab / VALE_W, dm = ab / MONTE_W;
-  return (d < 1 ? VALE_E * Math.cos(d * Math.PI / 2) ** 2 : 0) + (dm < 1 ? MONTE_E * Math.cos(dm * Math.PI / 2) ** 2 : 0);
+  return (d < 1 ? VALE_E * Math.cos(d * Math.PI / 2) ** 2 : 0) + (dm < 1 ? MONTE_E * Math.cos(dm * Math.PI / 2) ** 2 : 0) +
+         arcoCosta(a, LOBO_A, LOBO_W, LOBO_E) + arcoCosta(a, CABO_A, CABO_W, CABO_E);
 };
 function borda(x, y) { if (y > 350) return bordaMapa(MAPAS.hahoe, x, y); const a = Math.atan2(y, x); return Math.hypot(x, y) + desvioCosta(a) - extraCosta(a); }   // (a Vila Hahoe, em (0, 700): bordaMapa)
 // quanto este ponto é montanha (0 até o fim do vale, 1 na Montanha Gelada) e quanto é vale (0 na ilha, 1 na península)
@@ -2291,6 +2304,18 @@ const MAPAS = {
   hahoe: { id: "hahoe", nome: "Vila Hahoe", sub: "da Curva do Rio", niveis: [15, 45], ox: 0, oy: 700, raio: 62, montado: false },
 };
 MAPAS.vila1.rCosta = a => RAIO - desvioCosta(a) + extraCosta(a);
+// a caixa da costa da Vila 1 (a ilha com o vale, a montanha e as Terras do Sul): o minimapa, o Mapa do Mundo e a grade
+// das árvores cobrem só ela
+const CAIXA_V1 = (() => {
+  const c = { x0: 0, x1: 0, y0: 0, y1: 0 };
+  for (let k = 0; k < 1440; k++) {
+    const a = k / 1440 * DOIS_PI, r = MAPAS.vila1.rCosta(a), x = Math.cos(a) * r, y = Math.sin(a) * r;
+    c.x0 = Math.min(c.x0, x); c.x1 = Math.max(c.x1, x); c.y0 = Math.min(c.y0, y); c.y1 = Math.max(c.y1, y);
+  }
+  for (const k of ["x0", "y0"]) c[k] = Math.floor(c[k]);
+  for (const k of ["x1", "y1"]) c[k] = Math.ceil(c[k]);
+  return c;
+})();
 MAPAS.hahoe.rCosta = a => 62 - (Math.sin(a * 4 + 0.7) * 2.2 + Math.sin(a * 9 + 2) * 0.9 + Math.sin(a * 2 + 0.3) * 1.8);
 const HAHOE = MAPAS.hahoe;
 const pH = (x, y) => [HAHOE.ox + x, HAHOE.oy + y];                       // (da Vila Hahoe para o mundo)
@@ -2470,6 +2495,7 @@ const CLAREIRA_R = 9;
 let clareiras = null;
 function distClareira(x, y) {
   if (!clareiras) clareiras = [...GRUPOS.map(([, gx, gy, , e]) => [...noMapa([gx, gy]), e ? e + 3 : 0]),
+                               ...V1_PONTOS.map(([, gx, gy]) => [gx, gy, -2]),                                                     // (os grupos do Metin2 da Vila 1: 7 m, para sobrar mata entre eles)
                                ...NOVOS_BANDOS.filter(([, gx]) => gx < VALE_X).map(([, gx, gy, , e]) => [gx, gy, e ? e + 3 : 0]),   // (já na escala nova)
                                ...HAHOE_BANDOS.map(([, gx, gy, , e]) => [gx, gy, e ? e + 3 : 0])];                                  // (a Vila Hahoe)
   let m = y > 350 ? Math.hypot(x - HV.x, y - HV.y) - HV.r : Math.hypot(x - VILA.x, y - (VILA.y + 4)) - VILA.r;   // a vila também é campo aberto
@@ -3392,8 +3418,9 @@ function montarCenario() {
   // árvores: grade com sorteio, densas nas florestas e raras nos campos
   const longe = (x, y) => !praca(x, y) && Math.hypot(x - PRACA.x, y - PRACA.y) > 7.5 && !estrada(x, y) && !lago(x, y, 2) &&
     (!COM_CASTELO || retArred(x, y, FOSSO) > 2.5) && borda(x, y) < RAIO - 3.6;
-  const NG = Math.ceil(RAIO / 1.75) + 1;
-  for (let i = -NG; i <= NG; i++) for (let j = -NG; j <= NG; j++) {
+  // (a leste só até o raio da ilha: o vale e a montanha não têm mata; a oeste e ao sul, até a costa das Terras do Sul)
+  const NG = Math.ceil(RAIO / 1.75) + 1, NGO = Math.ceil(-CAIXA_V1.x0 / 1.75) + 1, NGS = Math.ceil(-CAIXA_V1.y0 / 1.75) + 1, NGN = Math.ceil(CAIXA_V1.y1 / 1.75) + 1;
+  for (let i = -NGO; i <= NG; i++) for (let j = -NGS; j <= NGN; j++) {
     const x = (i + hash(i, j, 81) * 0.8) * 1.75, y = (j + hash(i, j, 82) * 0.8) * 1.75;
     if (!longe(x, y)) continue;
     const r = hash(i, j, 83), f = floresta(x, y), aberto = distClareira(x, y) < 0;
@@ -3420,9 +3447,10 @@ function montarCenario() {
   montarAcampamento(por);
   montarMontanha(por);
   // pedras pelos campos e na praia
-  for (let k = 0; k < 1500 && objetos.filter(o => o.tipo === "pedra").length < 150; k++) {
-    const a = entre(0, Math.PI * 2), r = entre(6, RAIO - 0.5), x = Math.cos(a) * r, y = Math.sin(a) * r;
-    if (borda(x, y) > RAIO - 0.8 || praca(x, y) || estrada(x, y) || agua(x, y) || (COM_CASTELO && retArred(x, y, FOSSO) < 1.5) || !vazio(x, y, 1.2) || distClareira(x, y) < -2) continue;
+  // (até a costa de cada ângulo, com as Terras do Sul; o vale e a montanha têm as pedras deles)
+  for (let k = 0; k < 2600 && objetos.filter(o => o.tipo === "pedra").length < 220; k++) {
+    const a = entre(0, Math.PI * 2), r = entre(6, MAPAS.vila1.rCosta(a) - 0.5), x = Math.cos(a) * r, y = Math.sin(a) * r;
+    if (x > VALE_X - 4 || borda(x, y) > RAIO - 0.8 || praca(x, y) || estrada(x, y) || agua(x, y) || (COM_CASTELO && retArred(x, y, FOSSO) < 1.5) || !vazio(x, y, 1.2) || distClareira(x, y) < -2) continue;
     por({ tipo: "pedra", x, y, r: 0.4, esc: entre(0.5, 1.3), forma: Array.from({ length: 7 }, () => entre(0.75, 1.1)) });
   }
 }
@@ -5847,9 +5875,13 @@ function defesaDe(cfg) { return cfg.defesa !== undefined ? cfg.defesa : Math.rou
 // CÉU num ponto qualquer de uma dessas áreas (o rastro desce, a pedra bate no chão com poeira, onda e tremor).
 const METINS = [
   { tipo: "metin1", nome: "Metin da Tristeza", nivel: 5, vida: 900, cor: "#ff5a3a", horda: "lobo", regioes: [[24, -18], [-28, 6], [28, 16], [-26, 22]].map(noMapa) },
-  { tipo: "metin2", nome: "Metin da Batalha", nivel: 10, vida: 1600, cor: "#c86bff", horda: "goblin", regioes: [[-9, -19], [33, -3], [26, 20]].map(noMapa) },
-  { tipo: "metin3", nome: "Metin da Ganância", nivel: 15, vida: 2600, cor: "#5ad2ff", horda: "esqueleto", regioes: [[8, -28], [-16, -27], [-31, -12]].map(noMapa) },
-  { tipo: "metin4", nome: "Metin da Sombra", nivel: 45, vida: 22000, defesa: 54, cor: "#8a4dff", horda: "orc_negro", regioes: [[84, 4], [96, -12], [104, 12], [112, 2], [94, 6]] },
+  // (a da Batalha nos Campos dos Javalis e nas Matas dos Ursos, com os Javalis Rubros; a da Ganância no Juramento Branco,
+  // com os soldados: as Metins do Metin2 chamam os bichos da região delas)
+  { tipo: "metin2", nome: "Metin da Batalha", nivel: 10, vida: 1600, cor: "#c86bff", horda: "javali_rubro", regioes: [[-45, -84], [28, -104], [100, 14]] },   // (as Matas dos Ursos e o fundo do Vale Vermelho)
+  { tipo: "metin3", nome: "Metin da Ganância", nivel: 15, vida: 2600, cor: "#5ad2ff", horda: "soldado_jb", regioes: [[-30, -130], [24, -124], [-4, -136]] },   // (o Juramento Branco, perto do portal)
+  // a da Sombra (45, com os orcs) é da Ilha de Daiyu, que ainda não é um mapa jogável: não nasce em lugar nenhum por
+  // enquanto (as áreas dela, locais da ilha, ficam em regioesDaiyu)
+  { tipo: "metin4", mapa: "daiyu", nome: "Metin da Sombra", nivel: 45, vida: 22000, defesa: 54, cor: "#8a4dff", horda: "orc_negro", regioes: [], regioesDaiyu: [[-14, 6], [-2, -12], [6, 12], [14, 2], [-4, 6]] },
   // as da Vila Hahoe (mapa: criadas na 1ª visita, criarMetins("hahoe")): uma por zona, no nível dela e com a horda dela
   { tipo: "metin5", mapa: "hahoe", nome: "Metin Negra", nivel: 20, vida: 7450, defesa: 24, cor: "#e0483a", horda: "tigre", regioes: [[-50, 20], [-48, -14]].map(p => pH(...p)) },
   { tipo: "metin6", mapa: "hahoe", nome: "Metin Negra", nivel: 25, vida: 10000, defesa: 30, cor: "#e0483a", horda: "bandido", regioes: [[10, 46], [25, 40]].map(p => pH(...p)) },
@@ -6001,7 +6033,7 @@ const CHEFES_MAPA = {
   // folclore coreano, no Desfiladeiro da Cachoeira (40–45). Por enquanto o goblin 1,6× pintado de cinabre (criarCriaturasHahoe)
   capitao_dokkaebi: { regiao: "no Desfiladeiro da Cachoeira da Vila Hahoe", raio: 8, min: 14, max: 18, mecs: ["investida", "pisao", "horda"], horda: [["golem", 1]], raioPisao: 3.2, cor: 5,
                       falas: ["O Capitão Dokkaebi bate a clava: as pedras do desfiladeiro acordam!", "O Capitão Dokkaebi se enfurece!"] },
-  orc_chefe: { regiao: "no Vale dos Orcs", raio: 9, min: 14, max: 18, mecs: ["pisao", "horda", "investida"], horda: [["orc_negro", 3]], raioPisao: 3.4, cor: 22,
+  orc_chefe: { regiao: "na Ilha de Daiyu", mapa: "daiyu", raio: 9, min: 14, max: 18, mecs: ["pisao", "horda", "investida"], horda: [["orc_negro", 3]], raioPisao: 3.4, cor: 22,
                falas: ["O Chefe Orc chama os guerreiros!", "O Chefe Orc se enfurece!"] },
   nove_caudas: { regiao: "na Montanha Gelada", raio: 8, min: 16, max: 20, mecs: ["chuva", "pisao", "horda"], horda: [["yeti", 1], ["golem", 1]], raioPisao: 3.5, cor: 200, cada: 5.5,
                  animPisao: "leque",                                // (no glb: o leque das nove caudas; sem ele, a pose e o golpe comuns)
@@ -6325,8 +6357,8 @@ function pintarBase(x0, y0, x1, y1, cor) {
   return { c, x0, y1 };
 }
 function baseIlha(mp = MAPAS.vila1) {
-  const R = mp.raio + 8, v1 = mp === MAPAS.vila1;                     // (a Vila 1 com o vale e a montanha; os outros mapas, a ilha deles)
-  const b = pintarBase(mp.ox - R, mp.oy - R, mp.ox + R + (v1 ? VALE_E + MONTE_E : 0), mp.oy + R, (x, y) => {
+  const R = mp.raio + 8, v1 = mp === MAPAS.vila1, C = CAIXA_V1;      // (a Vila 1: a caixa da costa, com o vale, a montanha e as Terras do Sul; os outros mapas, a ilha deles)
+  const b = pintarBase(...(v1 ? [C.x0 - 8, C.y0 - 8, C.x1 + 8, C.y1 + 8] : [mp.ox - R, mp.oy - R, mp.ox + R, mp.oy + R]), (x, y) => {
     const bd = borda(x, y);
     if (bd > RAIO) return [38, 84, 110];
     if (bd > RAIO - 2.8) return [205, 182, 130];
@@ -6378,9 +6410,12 @@ function desenharMinimapa(agora) {
   const dentro = (x, y) => Math.hypot(x - viking.x, y - viking.y) < R * 0.97;
   // buracos e escadas
   for (const ps of passagens) if (dentro(ps.x, ps.y)) { const [X, Y] = ponto(ps.x, ps.y); g.fillStyle = "#0b0806"; g.strokeStyle = "#e8d6a0"; g.lineWidth = 1.5; g.beginPath(); g.arc(X, Y, 4, 0, 7); g.fill(); g.stroke(); }
-  // os portais: o redemoinho na cor do destino (apagado se ainda travado pelo nível)
-  for (const p of PORTAIS) if (dentro(p.x, p.y)) {
-    const [X, Y] = ponto(p.x, p.y), c = PORTAL_COR[p.cor] || PORTAL_COR.vila, trava = prog && prog.nivel < p.nivelMin;
+  // os portais: o redemoinho na cor do destino (apagado se ainda travado pelo nível). O do mapa em que o herói está fica
+  // sempre à vista: longe, na borda do minimapa, na direção dele (como a estrela da missão)
+  for (const p of PORTAIS) if (dentro(p.x, p.y) || (!cav && mapaDe(p.x, p.y) === mp)) {
+    let [X, Y] = ponto(p.x, p.y);
+    const c = PORTAL_COR[p.cor] || PORTAL_COR.vila, trava = prog && prog.nivel < p.nivelMin, dx = X - W0 / 2, dy = Y - W0 / 2, dd = Math.hypot(dx, dy), max = W0 / 2 - 8;
+    if (dd > max) { X = W0 / 2 + dx / dd * max; Y = W0 / 2 + dy / dd * max; }
     g.fillStyle = trava ? "#6a665e" : c[0]; g.strokeStyle = "#1E1B18"; g.lineWidth = 1.5; g.beginPath(); g.arc(X, Y, 5, 0, 7); g.fill(); g.stroke();
     g.strokeStyle = trava ? "#a8a49a" : c[1]; g.lineWidth = 1.4; g.beginPath(); g.arc(X, Y, 2.6, 0.4, 5.2); g.stroke();
   }
@@ -6708,9 +6743,9 @@ function montarValeOrcs(por) {
     else por({ tipo: "tronco", x, y, r: 0.45, vale: true });
   }
 }
-// o acampamento dos bandidos, à beira da estrada do leste (ACAMP): barracas, fogueiras, caixotes do saque e a carroça
-// roubada, num campo aberto (a clareira dos bandos dele)
-const ACAMP = { x: 64, y: -24, r: 9 };          // (os bandos ficam no lado de longe do buraco da Mina dos Goblins)
+// o acampamento do Juramento Branco (era o dos bandidos), à beira da estrada do portal, no fim das Terras do Sul (ACAMP):
+// barracas, fogueiras, caixotes do saque e a carroça roubada, num campo aberto (a clareira dos bandos dele)
+const ACAMP = { x: 4, y: -130, r: 9 };          // (a 26 m do portal; os grupos do Juramento em volta)
 function montarAcampamento(por) {
   if (!DECO || !DECO.barraca) return;
   const pôe = (tipo, dx, dy, extra = {}) => {
@@ -6850,8 +6885,8 @@ const NPCS = [
   { nome: "Feirante Hilda", dx: -6.5, dy: 0.9, cores: { roupa: "#b8553a", calca: "#5a3a22", pele: "#f0c8a8", cabelo: "#e0b040", lenco: "#e8e0c8" },
     falas: ["Maçãs, cenouras, couves! Tudo da horta do vale.", "Os ratos andam roubando os sacos de grão. Vêm de um buraco ao norte!", "Meu marido foi caçar javalis no leste e voltou mancando."] },
   { nome: "Guarda Real", dx: 0, dy: 6.6, cores: { roupa: "#2c3e78", calca: "#2a2a40", pele: "#e0b896", cabelo: "#5a3a22", elmo: "#b8bec8" }, lanca: true,
-    falas: ["No fim da estrada do leste há um portal para a Vila Hahoe, a vila da curva do rio. Ele só se abre a partir do nível 12.",
-            "Quatro buracos levam às profundezas. E a estrada do leste leva ao Vale dos Orcs: só vá depois do nível 45.", "As pedras Metin caem do céu e chamam bandos. Quebre-as e leia os livros que soltarem.", "No fundo de cada caverna mora um chefe. Vá preparado."] },
+    falas: ["Saia pelo portão sul e siga a estrada até o fim do vale: na ponta do cabo, depois do acampamento do Juramento Branco, há um portal para a Vila Hahoe, a vila da curva do rio. Ele só se abre a partir do nível 12.",
+            "Os cães, os lobos e os javalis só atacam quem mexe com eles, mas o bando inteiro vem junto. Quanto mais longe da cidade, mais fortes: primeiro os cães, depois os javalis, os ursos e, perto do portal, o Juramento Branco (nível 13 a 15): a capitã deles ataca quem chega perto.", "Quatro buracos levam às profundezas. Os orcs? Só na Ilha de Daiyu, muito além da Vila Hahoe.", "As pedras Metin caem do céu e chamam bandos. Quebre-as e leia os livros que soltarem.", "No fundo de cada caverna mora um chefe. Vá preparado."] },
   { nome: "Senhor do Armazém", dx: -11, dy: 3.4, cores: { roupa: "#6b5a3a", calca: "#3a2a1c", pele: "#e0b896", cabelo: "#9a9a9a", barba: "#b0b0b0" }, armazem: true,
     falas: ["Guardo o que não cabe na sua bolsa. E o que eu guardo, todos os seus heróis podem buscar."] },
   { nome: "Guarda Sigrid", dx: -3.6, dy: -8.6, cores: { roupa: "#7a2a22", calca: "#3a2a1c", pele: "#e8c0a0", cabelo: "#d0a040", elmo: "#9aa0aa" }, lanca: true,
@@ -6976,8 +7011,8 @@ const MISSOES = {
       { matar: "Metin da Tristeza", qtd: 1, onde: [38, -21], alvo: "Quebre a Metin da Tristeza, a sudeste da cidade",
         fala: "A pedra que chora fica a sudeste. Cuidado: apanhando, ela chama um bando. Os cacos dela guardam a segunda brasa.",
         premio: { exp: 1500, yang: 600, itens: [["pocaoMana", 3]] } },
-      { matar: "Aranha Gigante", qtd: 1, onde: [32, -41], alvo: "Derrote a Aranha Gigante (nível 12), ao sul, perto da Toca das Aranhas",
-        fala: "A última brasa foi parar no ninho da Aranha Gigante, ao sul, na boca da Toca das Aranhas. Ela é forte: leve poções e não lute sozinho contra o bando inteiro.",
+      { matar: "Aranha Gigante", qtd: 1, onde: [30, -75], alvo: "Derrote a Aranha Gigante (nível 14), ao sul, nas Matas dos Ursos, perto da Toca das Aranhas",
+        fala: "A última brasa foi parar no ninho da Aranha Gigante, ao sul, nas Matas dos Ursos, na boca da Toca das Aranhas. Ela é forte: leve poções e não lute sozinho contra o bando inteiro.",
         premio: { exp: 4000, yang: 1000, itens: [["pocao", 5]] } },
       { falar: "Sumo-Sacerdote Haneul", entregar: "Entregar as brasas", alvo: "Volte ao Sumo-Sacerdote Haneul, no Templo do Céu",
         fala: "Sinto o calor delas daqui! Ponha as brasas no braseiro, diante do estrado, e vamos ver se o céu ainda nos ouve.",
@@ -8548,6 +8583,7 @@ const RENASCE_COMUM = 15, RENASCE_LONGE = 7;
 function tempoRenascer(l) {
   const c = l.cfg;
   if (c.estatico) return 40 + Math.random() * 80;                     // (a pedra Metin: sem tempo fixo)
+  if (l.semVolta) return GRUPO_CORPO;                                  // (o do grupo do Metin2: o corpo some e quem volta é o grupo, passoGruposV1)
   if (defChefe(l)) return tempoChefe(defChefe(l));                   // (o chefe de mapa: de 8 a 20 MINUTOS, CHEFES_MAPA)
   if (c.chefe || c.chefeCaverna) return c.renasce;
   return l.tipo === "rato" ? 10 : RENASCE_COMUM;
@@ -8557,21 +8593,102 @@ function novaCriatura(tipo, x, y, cfg = TIPOS[tipo]) {
            renascer: 0, destino: null, espera: 1 + Math.random() * 2, recarga: 0, acertou: false, manual: null, piscar: 0, cacando: false, mapa: idMapa(x, y) };   // (mapa: fora dele, dorme)
 }
 // os bandos (tipo, x, y na escala antiga do mapa, quantos, espalhados em quantos m): cada um no meio de uma clareira de
-// campo aberto. O Campo dos Lobos, logo na saída leste da vila, é a caça dos primeiros níveis: uma alcateia grande num
-// campo largo
-const GRUPOS = [["javali", -20, 18, 3], ["javali", 14, 30, 3], ["javali", -30, -3, 3], ["javali", 3, 34, 3],
-  ["lobo", 21, 6, 9, 5.5], ["lobo", 24, -18, 2], ["lobo", -28, 6, 2], ["lobo", -26, 22, 3], ["lobo", -36, 13, 3],
-  ["esqueleto", 8, -28, 3], ["esqueleto", -16, -27, 3], ["esqueleto", -31, -12, 3], ["esqueleto", -3, -35, 3], ["aranha", 20, -29, 1],
-  ["goblin", -9, -19, 3], ["goblin", 33, -3, 3], ["goblin", 26, 20, 3], ["goblin", 35, 8, 3]];
-// o Vale dos Orcs (x, y já na escala nova, quantos, espalhados em quantos m): caça para o nível 45–61, com o Chefe Orc (60)
-// no meio do vale
-// no centro, o monumento orc (uma pedra gigante) com uma roda de bandos em volta e o Chefe Orc na frente dele
+// campo aberto. Da Vila 1 só sobrou aqui o ninho da Aranha Gigante (o chefe): os bichos comuns são os grupos do
+// Metin2 (V1_PONTOS, logo abaixo). O ninho desceu para as Matas dos Ursos com a Vila 1 maior (era (20, −29); na escala
+// nova fica em (30,4; −74,6)), junto com o buraco da Toca das Aranhas
+const GRUPOS = [["aranha", 19, -50, 1]];
+// ---- a Vila 1 como o mapa 1 do Metin2 (metin2_map_a1: regen.txt, group.txt e group_group.txt; Logs/Pesquisa/
+// METIN2_VILA1_MOBS.md). Os bichos vêm em GRUPOS de 3 (líder + 2) e o Juramento Branco em grupos de 4; cada PONTO tem um
+// "conjunto" (o group_group do Metin2: a cada vez que nasce, sorteia um dos grupos dele) e um tempo. O líder nasce num
+// ponto sorteado dentro de GRUPO_RAIO m do ponto e cada membro a 3–5 m do anterior (o SpawnGroup do Metin2). O grupo só
+// volta quando o LÍDER cai: o corpo some em GRUPO_CORPO s e o grupo novo nasce até "tempo" s depois (o regen_event do
+// Metin2 roda a cada "tempo" s); os que sobraram do grupo velho viram órfãos e somem depois de ORFAO_T s sem lutar. Os
+// bichos não atacam sozinhos (no Metin2 só o Tigre Branco e a Capitã do Juramento Branco são agressivos): um golpe em um
+// deles, ou a Capitã vendo o herói, põe o GRUPO INTEIRO na luta, que dura enquanto o herói estiver a menos de
+// GRUPO_PERSEGUE m (o Metin2 desiste a 40 m, com a visão de 20 m; aqui a visão é de ~7 m, então 16 m)
+// As faixas contam a distância à muralha da cidade (V1_CAIXA, a caixa do cidade.json), do portão sul até o portal da Vila
+// Hahoe, na ponta do cabo das Terras do Sul (V1_PORTAL, o ponto da Vila 1 mais longe da cidade): Campos dos Cães (15–35 m,
+// nv 1–4), Campos dos Javalis (35–65 m, nv 4–7), Matas dos Ursos (65–105 m, nv 7–14, os Javalis Rubros e os ursos) e, de
+// 105 m até o portal (e a V1_PORTAL_R m dele), o Acampamento do Juramento Branco (nv 13–15). O Vale Vermelho, a leste, é
+// um braço do mapa: segue as mesmas faixas (javalis na entrada, ursos no fundo); a Montanha Gelada fica fora delas
+const GRUPO_RAIO = 4, GRUPO_MEMBRO = [3, 5], GRUPO_CORPO = 10, ORFAO_T = 300, GRUPO_PERSEGUE = 16;
+const V1_CAIXA = [-22.9, 26.9, -6.9, 34.9], V1_PORTAL = { x: -15, y: -156 }, V1_PORTAL_R = 32;   // (a cidade e o P1, PORTAIS[0])
+const V1_FAIXAS = [null,
+  { nome: "Campos dos Cães", de: 15, ate: 35, niveis: [1, 4] }, { nome: "Campos dos Javalis", de: 35, ate: 65, niveis: [4, 7] },
+  { nome: "Matas dos Ursos", de: 65, ate: 105, niveis: [7, 14] }, { nome: "Acampamento do Juramento Branco", de: 105, ate: 999, niveis: [13, 15] }];
+const distCidadeV1 = (x, y) => Math.hypot(Math.max(V1_CAIXA[0] - x, 0, x - V1_CAIXA[1]), Math.max(V1_CAIXA[2] - y, 0, y - V1_CAIXA[3]));
+// a faixa de um ponto da Vila 1 (0: a cidade e a volta dela, sem bichos)
+function faixaV1(x, y) {
+  if (Math.hypot(x - V1_PORTAL.x, y - V1_PORTAL.y) <= V1_PORTAL_R) return 4;
+  const d = distCidadeV1(x, y);
+  return d < V1_FAIXAS[1].de ? 0 : d < V1_FAIXAS[1].ate ? 1 : d < V1_FAIXAS[2].ate ? 2 : d < V1_FAIXAS[3].ate ? 3 : 4;
+}
+// os grupos (o group.txt): o primeiro é o líder
+const GRUPOS_M2 = {
+  caes: ["cao_selvagem", "cao_selvagem", "cao_selvagem"],              // 101: 3 Cães Selvagens
+  lobo_caes: ["lobo", "cao_selvagem", "cao_selvagem"],                 // 102: Lobo + 2 Cães
+  lobos: ["lobo", "lobo", "lobo"],                                     // 103: 3 Lobos
+  faminto_lobos: ["lobo_faminto", "lobo", "lobo"],                     // 104: Lobo Alfa (aqui o Lobo Faminto) + 2 Lobos
+  javalis: ["javali", "javali", "javali"],                             // (os famintos de 3 do Metin2)
+  lobos_azuis: ["lobo_azul", "lobo_azul", "lobo_azul"],                // 105: 3 Lobos Azuis
+  selvagem_azuis: ["javali_selvagem", "lobo_azul", "lobo_azul"],       // 106: Javali Selvagem + 2 Lobos Azuis
+  selvagem_javalis: ["javali_selvagem", "javali", "javali"],           // (como o 107: um líder + 2 do bando de baixo)
+  esqueletos: ["esqueleto", "esqueleto", "esqueleto"],                 // (as Ruínas da Cripta: não há no Metin2)
+  rubros: ["javali_rubro", "javali_rubro", "javali_rubro"],            // 110: 3 Javalis Rubros
+  rubro_selvagens: ["javali_rubro", "javali_selvagem", "javali_selvagem"],   // 109: Javali Rubro + 2
+  ursos: ["urso", "urso", "urso"],                                     // 112: 3 Ursos
+  negro_ursos: ["urso_negro", "urso", "urso"],                         // 121: Urso Negro + 2
+  soldados: ["soldado_jb", "soldado_jb", "soldado_jb", "soldado_jb"],  // 305: 4 Soldados
+  arqueira_soldados: ["arqueira_jb", "soldado_jb", "soldado_jb", "soldado_jb"],     // 306
+  arqueiras_soldados: ["arqueira_jb", "arqueira_jb", "soldado_jb", "soldado_jb"],   // 307
+  capita_soldados: ["capita_jb", "soldado_jb", "soldado_jb", "soldado_jb"],         // 309
+  capita_arqueiras: ["capita_jb", "arqueira_jb", "arqueira_jb", "soldado_jb"],      // 310
+};
+// os conjuntos (o group_group.txt) com o tempo de cada um no regen.txt do a1 (s)
+const GG_V1 = {
+  v1_01: { nome: "Cães Selvagens", m2: "a1_01", tempo: 5, grupos: ["caes"] },
+  v1_02: { nome: "Cães e Lobos", m2: "a1_02", tempo: 15, grupos: ["caes", "lobo_caes", "lobos", "faminto_lobos"] },
+  v1_03: { nome: "Javalis e Lobos Azuis", m2: "a1_03", tempo: 15, grupos: ["javalis", "lobos_azuis", "selvagem_azuis", "selvagem_javalis"] },
+  v1_cripta: { nome: "Esqueletos da Cripta", m2: "—", tempo: 30, grupos: ["esqueletos"] },
+  v1_04: { nome: "Javalis Rubros", m2: "a1_04", tempo: 30, grupos: ["rubros", "rubro_selvagens"] },
+  v1_06: { nome: "Ursos", m2: "a1_06", tempo: 40, grupos: ["ursos", "negro_ursos"] },
+  v1_08: { nome: "Soldados do Juramento Branco", m2: "a1_08", tempo: 60, grupos: ["soldados", "arqueira_soldados", "arqueiras_soldados"] },
+  v1_10: { nome: "Capitãs do Juramento Branco", m2: "a1_10", tempo: 60, grupos: ["capita_soldados", "capita_arqueiras", "arqueira_soldados"] },
+};
+// os pontos (conjunto, x, y; já na escala nova): no mínimo 19 m um do outro (~21 grupos por hectare, a densidade do
+// Metin2), fora da água, da praia, das estradas, dos buracos, do ninho e da chegada do portal. Os Cães Selvagens (os mais
+// fracos) colados na cidade; as Capitãs (as mais fortes, agressivas) nos três pontos mais perto do portal
+const V1_PONTOS = [
+  ["v1_01", -38, 44], ["v1_01", 42, 43], ["v1_01", 9, -25], ["v1_01", 14, 54], ["v1_01", 46, -7],        // Campos dos Cães
+  ["v1_02", 43, 14], ["v1_02", 45, -26], ["v1_02", -20, -37], ["v1_02", -47, 11], ["v1_02", -48, -10], ["v1_02", -6, 57], ["v1_02", -34, -24],
+  ["v1_02", 56, 30], ["v1_02", 61, 6],
+  ["v1_03", 28, -43], ["v1_03", -13, -64], ["v1_03", -65, -48], ["v1_03", -40, -67], ["v1_03", 49, -63], ["v1_03", 2, -48],   // Campos dos Javalis
+  ["v1_03", -41, -44], ["v1_03", 27, -62], ["v1_03", 70, -20], ["v1_03", 73, 21], ["v1_03", 80, 1], ["v1_03", 90, -19],      // (e a entrada do Vale Vermelho)
+  ["v1_cripta", -56, -30],
+  ["v1_04", -12, -86], ["v1_04", 10, -76], ["v1_04", -64, -70], ["v1_04", 50, -87], ["v1_04", 101, 22],                      // Matas dos Ursos
+  ["v1_06", -58, -96], ["v1_06", 6, -95], ["v1_06", -32, -94], ["v1_06", 26, -92], ["v1_06", 107, -28], ["v1_06", 112, -3],  // (e o fundo do vale)
+  ["v1_08", -29, -117], ["v1_08", 18, -129], ["v1_08", 39, -112], ["v1_08", -7, -123], ["v1_08", -54, -117],                 // Juramento Branco
+  ["v1_10", -39, -134], ["v1_10", 6, -145], ["v1_10", -30, -151]];
+// o tipo mais forte e o tamanho maior de um conjunto (a cor e o "×n" do Mapa do Mundo)
+function tiposGG(gg) { return [...new Set(GG_V1[gg].grupos.flatMap(g => GRUPOS_M2[g]))]; }
+function spawnGrupoV1(gg, x, y) {
+  const ts = tiposGG(gg), nv = t => (TIPOS[t] && TIPOS[t].nivel) || 0;
+  return { tipo: ts.reduce((a, b) => nv(b) > nv(a) ? b : a), x, y, n: Math.max(...GG_V1[gg].grupos.map(g => GRUPOS_M2[g].length)), r: GRUPO_RAIO, gg };
+}
+// no centro, o monumento (uma pedra gigante, do tempo em que o vale era dos orcs)
 const MONUMENTO = { x: 98, y: -2 };
-const VALE_BANDOS = [
-  ["orc_gigante", 107.5, -2, 2, 1.8], ["orc_negro", 102.8, 6.2, 5, 3], ["orc_elite", 93.2, 6.2, 4, 2.6], ["orc_mago", 88.5, -2, 3, 2.2],
-  ["orc_negro", 93.2, -10.2, 5, 3], ["orc_elite", 102.8, -10.2, 4, 2.6], ["orc_chefe", 98, -6.2, 1],
-  ["orc_negro", 80, -6, 6, 4], ["orc_negro", 86, 15, 5, 3.5], ["orc_elite", 90, -21, 4, 3], ["orc_mago", 110, 13, 2, 2],
-  ["orc_gigante", 113, -15, 2, 2], ["orc_negro", 104, 18, 4, 3]];
+// o Vale Vermelho (a península de terra vermelha a leste): os grupos do Juramento Branco que acampassem nele ganhariam
+// uma fogueira (montarValeOrcs); com o Juramento no fim das Terras do Sul, o vale ficou com os javalis e os ursos, sem
+// fogueira
+const VALE_BANDOS = V1_PONTOS.filter(([gg, x]) => x > VALE_X && /^v1_(08|10)$/.test(gg)).map(([gg, x, y]) => [GRUPOS_M2[GG_V1[gg].grupos[0]][0], x, y, 4, 2]);
+// os orcs moram só na Ilha de Daiyu (45–70; Logs/Mapas/PROJETO_MAPAS.md 3), que ainda não é um mapa jogável: os bandos
+// dela ficam guardados aqui (x, y LOCAIS da ilha, a partir do Altar no casco da tartaruga), sem nascer em lugar nenhum
+// até a ilha entrar em MAPAS. Os tipos continuam em criarOrcs, e o Chefe Orc em CHEFES_MAPA (mapa "daiyu")
+const DAIYU_BANDOS = [
+  ["orc_gigante", 9.5, 0, 2, 1.8], ["orc_negro", 4.8, 8.2, 5, 3], ["orc_elite", -4.8, 8.2, 4, 2.6], ["orc_mago", -9.5, 0, 3, 2.2],
+  ["orc_negro", -4.8, -8.2, 5, 3], ["orc_elite", 4.8, -8.2, 4, 2.6], ["orc_chefe", 0, -4.2, 1],
+  ["orc_negro", -18, -4, 6, 4], ["orc_negro", -12, 17, 5, 3.5], ["orc_elite", -8, -19, 4, 3], ["orc_mago", 12, 15, 2, 2],
+  ["orc_gigante", 15, -13, 2, 2], ["orc_negro", 6, 20, 4, 3]];
 // as criaturas novas (x, y já na escala nova, quantos, espalhados em quantos m): a caça da floresta perto da vila (o urso
 // ao norte e o tigre ao sul do Campo dos Lobos, o Lobo Alfa no meio da alcateia), o acampamento dos bandidos (ACAMP) e os
 // mortos-vivos em volta das ruínas da Cripta (o buraco fica perto de (-53, -22)); as de x < VALE_X ganham clareira
@@ -8580,17 +8697,11 @@ const MONTE_BANDOS = [
   ["golem", 131, 12, 3, 2.5], ["escorpiao", 134, -14, 3, 3], ["yeti", 148, 6, 3, 2.5], ["golem", 152, -8, 2, 2], ["escorpiao", 158, 2, 2, 2],
   ["yeti", 126, -6, 2, 2], ["nove_caudas", 140, -3, 1]];             // (o Nove Caudas: o centro da área dele, CHEFES_MAPA)
 // (a Vila 1 ficou com a faixa 1–15, Logs/Mapas/PROJETO_MAPAS.md 2.5: o Tigre, o Lobo Alfa, os bandidos, os zumbis, os
-// fantasmas e o Lich foram para a Vila Hahoe, HAHOE_BANDOS. No lugar deles, SUBST_V1: o Urso Negro (14) também ao sul
-// do Campo dos Lobos, perto do portal; goblins no acampamento abandonado; esqueletos nas Ruínas da Cripta, que continuam
-// com o buraco da Cripta Esquecida)
-const SUBST_V1 = [
-  ["urso_negro", 40, -2, 3, 2.2],
-  ["goblin", ACAMP.x + 1, ACAMP.y - 0.5, 4, 3], ["goblin", ACAMP.x + 5, ACAMP.y + 2, 3, 2.5],
-  ["esqueleto", -43, -21, 3, 2], ["esqueleto", -38, -28, 4, 2.5], ["esqueleto", -51, -32, 3, 2.5]];
+// fantasmas e o Lich foram para a Vila Hahoe, HAHOE_BANDOS. Os substitutos de antes (o Urso Negro, os goblins do
+// acampamento e os esqueletos das ruínas) viraram os grupos do Metin2, V1_PONTOS)
+const SUBST_V1 = [];
 const MOVIDOS_HAHOE = ["tigre", "lobo_alfa", "bandido", "bandido_arqueiro", "chefe_bandido", "zumbi", "fantasma", "lich"];
-const NOVOS_BANDOS = [
-  ["urso_negro", 26, 34, 3, 2.2], ...SUBST_V1,
-  ...MONTE_BANDOS];
+const NOVOS_BANDOS = [...MONTE_BANDOS];
 // a Vila Hahoe (15–45, montada na 1ª visita): as cinco zonas em volta do rio, no sentido do relógio a partir do portal,
 // só com as criaturas que já existem no jogo (as que faltam estão na lista do projeto, 2.5). (x, y locais → mundo)
 const HAHOE_BANDOS = [
@@ -8609,21 +8720,24 @@ const HAHOE_BANDOS = [
 function nomeRegiao(x, y) {
   if (y > 350) return nomeRegiaoHahoe(x, y);                         // (a Vila Hahoe: ZONAS_H)
   if (x > MONTE_X - 2) return "Montanha Gelada";
-  if (x > VALE_X) return "Vale dos Orcs";
-  if (Math.hypot(x - ACAMP.x, y - ACAMP.y) < ACAMP.r + 5) return "Acampamento dos Bandidos";
+  if (x > VALE_X) return "Vale Vermelho";                             // (o antigo Vale dos Orcs: os orcs moram na Ilha de Daiyu)
+  const f = faixaV1(x, y);
+  if (f === 4 || Math.hypot(x - ACAMP.x, y - ACAMP.y) < ACAMP.r + 5) return "Acampamento do Juramento Branco";
   if (Math.hypot(x - RUINAS.x, y - RUINAS.y) < RUINAS.r) return "Ruínas da Cripta";
-  return "Vale do Viking";
+  return f ? V1_FAIXAS[f].nome : "Vale do Viking";                    // (as faixas dos grupos do Metin2, faixaV1)
 }
 // ---- os spawns numa lista só (SPAWNS), que o Mapa do Mundo (U) edita: { tipo, x, y (escala nova), n (quantos),
-// r (espalhados em quantos m) }. Saem de GRUPOS, VALE_BANDOS e NOVOS_BANDOS; as hordas das Metins, os chefes e os
-// bandos das dungeons continuam por conta deles (criarMetins, montarDungeon). Sem edição, o resultado é o mesmo de antes.
+// r (espalhados em quantos m) }. Saem de GRUPOS, V1_PONTOS (os grupos do Metin2: gg, o conjunto) e NOVOS_BANDOS; as
+// hordas das Metins, os chefes e os bandos das dungeons continuam por conta deles (criarMetins, montarDungeon).
 // A lista editada fica salva neste navegador (MOBS_CHAVE); MOBS_FIXO é a aprovada (o texto do "Copiar" do editor).
-const MOBS_CHAVE = "mobsEditados1";
+// (mobsEditados1 era a Vila 1 de antes, com os orcs no vale, e mobsEditados2 a Vila 1 pequena, com o portal a leste:
+// ficam para trás)
+const MOBS_CHAVE = "mobsEditados3";
 const MOBS_FIXO = null;
 let SPAWNS = null, SPAWNS_ORIGINAL = null;
 function spawnsOriginais() {
   return [...GRUPOS.map(([t, x, y, n, e]) => { const [X, Y] = noMapa([x, y]); return { tipo: t, x: X, y: Y, n, r: e || 1.6 }; }),   // na escala nova do mapa
-          ...VALE_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 })),
+          ...V1_PONTOS.map(([gg, x, y]) => spawnGrupoV1(gg, x, y)),
           ...NOVOS_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 })),
           ...HAHOE_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 }))];
 }
@@ -8638,9 +8752,9 @@ function migrarSpawnsHahoe() {
 function spawnsValidos(m) {
   if (!m || m.versao !== 1 || !Array.isArray(m.spawns)) return null;
   return m.spawns.filter(s => s && typeof s.tipo === "string" && isFinite(s.x) && isFinite(s.y))
-    .map(s => ({ tipo: s.tipo, x: +s.x, y: +s.y, n: Math.max(1, Math.min(40, Math.round(+s.n || 1))), r: Math.max(0.3, Math.min(15, +s.r || 1.6)) }));
+    .map(s => ({ tipo: s.tipo, x: +s.x, y: +s.y, n: Math.max(1, Math.min(40, Math.round(+s.n || 1))), r: Math.max(0.3, Math.min(15, +s.r || 1.6)), ...(GG_V1[s.gg] ? { gg: s.gg } : {}) }));
 }
-function spawnsTexto() { const r2 = v => Math.round(v * 100) / 100; return { versao: 1, spawns: SPAWNS.map(s => ({ tipo: s.tipo, x: r2(s.x), y: r2(s.y), n: s.n, r: r2(s.r) })) }; }
+function spawnsTexto() { const r2 = v => Math.round(v * 100) / 100; return { versao: 1, spawns: SPAWNS.map(s => ({ tipo: s.tipo, x: r2(s.x), y: r2(s.y), n: s.n, r: r2(s.r), ...(s.gg ? { gg: s.gg } : {}) })) }; }
 function carregarSpawns() {
   SPAWNS_ORIGINAL = spawnsOriginais();
   SPAWNS = (MOBS_FIXO && spawnsValidos(MOBS_FIXO)) || SPAWNS_ORIGINAL.map(s => ({ ...s }));
@@ -8654,6 +8768,7 @@ function salvarSpawns() { try { localStorage.setItem(MOBS_CHAVE, JSON.stringify(
 // (cada um com espaço para lutar)
 function lugaresSpawn(s) {
   const l = [], { x: gx, y: gy, n, r: e } = s;
+  if (s.gg) { for (let k = 0; k < n; k++) l.push(k ? [gx + Math.cos(k * 2.1 + gx) * 3.5, gy + Math.sin(k * 2.1 + gx) * 3.5] : [gx, gy]); return l; }   // (o grupo do Metin2: o líder no ponto e os outros a 3,5 m; o lugar de verdade é sorteado, nascerGrupoV1)
   for (let k = 0; k < n; k++) {
     const a = k * 2.4 + gx, r = n > 4 ? e * Math.sqrt((k + 0.5) / n) : e;
     l.push(n === 1 ? [gx, gy] : [gx + Math.cos(a) * r, gy + Math.sin(a) * r]);
@@ -8665,6 +8780,7 @@ function porSpawns(soMapa) {
     if (!TIPOS[s.tipo]) continue;
     const mp = mapaDe(s.x, s.y);
     if (soMapa ? mp.id !== soMapa : !mp.montado) continue;            // (os de um mapa ainda não visitado: na 1ª visita, montarMapa)
+    if (s.gg) { const g = { s, gg: GG_V1[s.gg], membros: [], espera: null }; GRUPOS_V1.push(g); nascerGrupoV1(g); continue; }   // (o grupo do Metin2)
     for (let [x, y] of lugaresSpawn(s)) {
       for (let k = 0; k < 20 && !livre(x, y); k++) { x -= Math.sign(x - mp.ox) * 0.5; y -= Math.sign(y - mp.oy) * 0.3; }   // (para o meio do mapa)
       const c = novaCriatura(s.tipo, x, y); c.spawn = true;
@@ -8673,9 +8789,87 @@ function porSpawns(soMapa) {
     }
   }
 }
+// ---- os grupos do Metin2 na Vila 1 (V1_PONTOS): nascer, voltar e lutar juntos
+const GRUPOS_V1 = [];             // { s (o spawn), gg (o conjunto), membros (o líder é o 0), espera (s até nascer de novo; null: vivo) }
+// um lugar bom para um bicho do grupo: terra firme e livre, fora da água, da praia, da cidade e do treino
+function lugarBomV1(x, y) { return livre(x, y) && !agua(x, y) && !praia(x, y) && !praca(x, y) && distCidadeV1(x, y) > 8 && mapaDe(x, y) === MAPAS.vila1 && !naCaverna(x); }
+function nascerGrupoV1(g) {
+  const nomes = g.gg.grupos, comp = GRUPOS_M2[nomes[Math.floor(Math.random() * nomes.length)]].filter(t => TIPOS[t]);
+  if (!comp.length) return;
+  // o líder: um ponto sorteado no círculo do ponto (não na cara do herói, a não ser no começo)
+  let lx = g.s.x, ly = g.s.y, achou = false;
+  for (let k = 0; k < 40 && !achou; k++) {
+    const a = Math.random() * 6.283, r = g.s.r * Math.sqrt(Math.random());
+    lx = g.s.x + Math.cos(a) * r; ly = g.s.y + Math.sin(a) * r;
+    achou = lugarBomV1(lx, ly) && (!g.membros.length || Math.hypot(viking.x - lx, viking.y - ly) > RENASCE_LONGE);
+  }
+  if (!achou && g.membros.length) { g.espera = 1.5; return; }          // (o herói em cima do ponto: tenta de novo daqui a pouco)
+  if (!achou) { lx = g.s.x; ly = g.s.y; }
+  for (const c of g.membros) if (!c.morto) { c.grupo = null; c.orfao = ORFAO_T; }   // os que sobraram do grupo velho
+  g.membros = []; g.espera = null;
+  let px = lx, py = ly;
+  const passo = () => GRUPO_MEMBRO[0] + Math.random() * (GRUPO_MEMBRO[1] - GRUPO_MEMBRO[0]);
+  comp.forEach((tipo, i) => {
+    let x = px, y = py;
+    if (i) {                                                           // cada membro a 3–5 m do anterior (numa caixa, como no Metin2)
+      let ok = false;
+      for (let k = 0; k < 16 && !ok; k++) {
+        x = px + (Math.random() * 2 - 1) * passo(); y = py + (Math.random() * 2 - 1) * passo();
+        ok = lugarBomV1(x, y) && g.membros.every(o => Math.hypot(o.x - x, o.y - y) > 1.3);
+      }
+      if (!ok) for (let k = 1; k < 12; k++) { const a = k * 2.4; x = px + Math.cos(a) * (1.4 + k * 0.2); y = py + Math.sin(a) * (1.4 + k * 0.2); if (lugarBomV1(x, y)) break; }
+    }
+    const c = novaCriatura(tipo, x, y); Object.assign(c, { spawn: true, grupo: g, semVolta: true, lider: i === 0 });
+    g.membros.push(c); criaturas.push(c); px = x; py = y;
+  });
+}
+// a cada passo: os corpos dos grupos somem (GRUPO_CORPO s depois de cair), os órfãos parados somem em ORFAO_T s, e o grupo
+// cujo líder caiu nasce de novo GRUPO_CORPO + até "tempo" s depois (como o regen do Metin2)
+function passoGruposV1(dt) {
+  for (let i = criaturas.length - 1; i >= 0; i--) {
+    const c = criaturas[i]; if (!c.semVolta) continue;
+    let sai = c.morto && c.renascer < 0.01;
+    if (!c.morto && c.orfao !== undefined && !c.cacando && (c.orfao -= dt) <= 0 && Math.hypot(c.x - viking.x, c.y - viking.y) > 12) sai = true;
+    if (sai) { criaturas.splice(i, 1); if (selecao === c) selecao = null; if (viking.alvo && viking.alvo.criatura === c) viking.alvo = null; }
+  }
+  for (const g of GRUPOS_V1) {
+    const lider = g.membros[0];
+    if (lider && !lider.morto) continue;
+    if (g.espera === null) g.espera = GRUPO_CORPO + Math.random() * g.gg.tempo;
+    else if ((g.espera -= dt) <= 0) nascerGrupoV1(g);
+  }
+}
+// a luta do grupo: o golpe num deles (ferir) ou um deles caçando chama os outros
+function provocarGrupoV1(l, t) {
+  l.provocado = Math.max(l.provocado || 0, t);
+  if (l.grupo) for (const m of l.grupo.membros) if (m !== l && !m.morto) m.provocado = Math.max(m.provocado || 0, t);
+}
+// as criaturas novas da Vila 1 (as do Metin2 que o jogo ainda não tinha): variantes das que existem, com outra tinta e
+// outro tamanho (sem modelo novo), e os números pela curva do NIVEL70.md do 1 ao 15 (vida ≈ 18,3 × nível^1,078 e golpe ≈
+// 5,33 × nível: o Lobo 3 tem 60/16 e o Urso Negro 14, 310/71; a defesa é a padrão, 0,8 × nível). A Arqueira é "longe"
+// (×0,8 de vida, ×1,1 de golpe, ×0,6 de defesa) e a Capitã é "tanque" (×1,7, ×1,25, ×1,8 e ×1,5 de exp) e agressiva. O
+// Juramento Branco usa os modelos dos bandidos com a roupa girada para um cinza claro (roupa3d: o mesmo matiz da roupa
+// dos NPCs, GLSL_MATIZ_ROUPA; a tinta só escurece e não deixaria o vermelho branco)
+function criarVariantesV1() {
+  const V = (t, bases, v) => {
+    if (TIPOS[t]) return;
+    const b = bases.find(b => TIPOS[b] && TIPOS[b].M); if (!b) return;
+    TIPOS[t] = variante(b, { raca: TIPOS[b].raca, ...v, chefe: false, chefeCaverna: false, conjura: 0, renasce: RENASCE_COMUM });
+  };
+  V("cao_selvagem", ["lobo"], { nome: "Cão Selvagem", nivel: 1, vida: 18, dano: 5, defesa: 1, esc: 0.78, tinta: "#d9b98f", filtro2d: "sepia(0.55) saturate(1.3) brightness(1.12)" });
+  V("lobo_faminto", ["lobo"], { nome: "Lobo Faminto", nivel: 4, vida: 82, dano: 21, defesa: 3, esc: 0.95, tinta: "#9c8a82", filtro2d: "brightness(0.78) saturate(0.55) sepia(0.2)" });
+  V("lobo_azul", ["lobo"], { nome: "Lobo Azul", nivel: 6, vida: 126, dano: 32, defesa: 5, esc: 1.05, tinta: "#a9c2f0", filtro2d: "sepia(0.3) hue-rotate(185deg) saturate(1.6) brightness(1.05)" });
+  V("javali_selvagem", ["javali", "lobo"], { nome: "Javali Selvagem", nivel: 7, vida: 149, dano: 37, defesa: 6, esc: 1.12, tinta: "#a08068", filtro2d: "brightness(0.82) sepia(0.25)" });
+  V("javali_rubro", ["javali", "lobo"], { nome: "Javali Rubro", nivel: 10, vida: 219, dano: 53, defesa: 8, esc: 1.22, tinta: "#e8907a", filtro2d: "sepia(0.8) saturate(2.6) hue-rotate(-25deg) brightness(0.95)" });
+  V("urso", ["urso_negro", "javali", "lobo"], { nome: "Urso", nivel: 12, vida: 267, dano: 64, defesa: 10, esc: 0.86, tinta: "#d8a878", filtro2d: "sepia(0.7) saturate(1.6) brightness(1.35)" });
+  V("soldado_jb", ["bandido", "goblin"], { nome: "Soldado do Juramento Branco", nivel: 13, vida: 291, dano: 69, defesa: 10, esc: 0.95, roupa3d: [0.86, 0.89, 0.95], tinta: "#e2e8f6", filtro2d: "grayscale(0.6) brightness(1.35)" });
+  V("arqueira_jb", ["bandido_arqueiro", "bandido", "goblin"], { nome: "Arqueira do Juramento Branco", nivel: 14, vida: 252, dano: 82, defesa: 7, esc: 0.92, roupa3d: [0.9, 0.93, 1], tinta: "#e8eefc", filtro2d: "grayscale(0.6) brightness(1.4) hue-rotate(10deg)" });
+  V("capita_jb", ["chefe_bandido", "bandido", "goblin"], { nome: "Capitã do Juramento Branco", nivel: 15, vida: 576, dano: 100, defesa: 22, expMult: 1.5, esc: 0.95, agressivo: true, roupa3d: [0.95, 0.9, 0.75], tinta: "#f4ead0", filtro2d: "grayscale(0.4) sepia(0.3) brightness(1.35)" });
+}
 function montarCriaturas() {
   criarOrcs();
   criarCriaturasHahoe();
+  criarVariantesV1();
   if (!SPAWNS) carregarSpawns();
   porSpawns();
 }
@@ -8686,6 +8880,7 @@ function remontarSpawns() {
   for (let i = criaturas.length - 1; i >= 0; i--) if (sai.has(criaturas[i])) criaturas.splice(i, 1);
   if (sai.has(selecao)) selecao = null;
   if (viking.alvo && sai.has(viking.alvo.criatura)) viking.alvo = null;
+  GRUPOS_V1.length = 0;                                               // (os grupos do Metin2 nascem de novo em porSpawns)
   porSpawns();
 }
 function criaturaAnim(l, nome) { if (l.anim !== nome) { l.anim = nome; l.t = 0; } }
@@ -8731,6 +8926,7 @@ function passoCriatura(l, dt) {
   if (l.atordoado > 0 && !l.morto) { l.atordoado -= dt; if (!l.acao) criaturaAnim(l, "parado"); l.ritmo = 1; return; }
   if (l.morto) {
     l.renascer -= dt;
+    if (l.semVolta) l.renascer = Math.max(l.renascer, 1e-3);           // (do grupo do Metin2: não volta sozinho)
     // renasce na toca, mas não na cara do jogador: com ele a menos de RENASCE_LONGE da toca, espera mais um pouco
     if (l.renascer <= 0 && !cfg.estatico && !l.horda && Math.hypot(viking.x - l.toca.x, viking.y - l.toca.y) < RENASCE_LONGE) l.renascer = 1.5;
     // a pedra Metin cai do céu antes de voltar: METIN_QUEDA s de queda (desenhada em desenharCriatura) e o baque
@@ -8756,7 +8952,12 @@ function passoCriatura(l, dt) {
     const antes = l.cacando;
     if (l.voltando > 0) l.voltando -= dt;
     const escondido = NINJA.esconder.buff > 0 && classe === "ninja" && d > 1.2;
-    l.cacando = criaturasAtacam && !viking.caido && !escondido && !(l.voltando > 0) && (d < cfg.visao || (l.cacando && d < cfg.visao + 4));
+    // (os grupos do Metin2 não atacam sozinhos, menos a Capitã: só depois de um golpe num deles ou de um deles caçar,
+    // e a luta dura até o herói ficar a GRUPO_PERSEGUE m)
+    if (l.provocado > 0) l.provocado -= dt;
+    const passivo = l.semVolta && !cfg.agressivo, provocado = l.provocado > 0 && d < GRUPO_PERSEGUE;
+    l.cacando = criaturasAtacam && !viking.caido && !escondido && !(l.voltando > 0) && (passivo ? provocado : d < cfg.visao || (l.cacando && d < cfg.visao + 4) || provocado);
+    if (l.cacando && l.semVolta) provocarGrupoV1(l, 1.5);              // (caçando, chama o grupo inteiro)
     if (l.cacando && !antes) vozCriatura(l, "ve");
     if ((cfg.chefeCaverna || defChefe(l)) && !l.anunciado && d < 12) { l.anunciado = true; som("chefe_aparece", l, 0.9); }   // o chefe aparece na frente dele
     if (l.cacando && !antes && cfg.ameaca) { l.dir = dirDe(dx, dy); criaturaAcao(l, "ameaca"); l.recarga = 0.6; som("aranha_ameaca", l); }
@@ -9129,6 +9330,7 @@ function ferir(l, dano, dx, dy, empurra, semReacao = false) {
     if (l.cfg.estatico) { metinApanhou(l); return; }                    // (o golpe na pedra soa no impacto)
     if (orcGrande(l) && !l.furioso && l.vida < l.cfg.vida * 0.35) { l.furioso = true; som("rugido_chefe", l, 1); }   // ferido, se enfurece
     l.cacando = criaturasAtacam;
+    if (l.semVolta) provocarGrupoV1(l, 8);                             // (o grupo do Metin2: o golpe num deles põe todos na luta)
     // firmeza: depois de sentir um golpe, fica 1,5 s sem se interromper de novo (e um ataque começado não para). Sem
     // isso o combo do viking (um golpe a cada meio segundo) o deixava preso na animação de dano, sem nunca atacar
     if (semReacao || (l.firme || 0) > 0 || l.acao === l.cfg.ataque || (l.cfg.chefe && (l.acao || Math.random() < 0.65))) { som("carne", l, 0.6); return; }
@@ -10817,7 +11019,7 @@ const DUNGEONS = [
     tema: { piso: "rgba(18, 12, 10, 0.45)", escuro: 0.88, mini: [92, 80, 66] },
     bandos: [[1, "rato", 6], [2, "rato", 5], [3, "rato", 6], [4, "rato", 6]],
     chefe: { sala: 3, base: "rato", nome: "Rato Rei", esc: 2.1, vida: 3800, nivel: 7, dano: 34, renasce: 540 } },
-  { id: "aranhas", nome: "Toca das Aranhas", x: 400, y: 0, x0: -8, x1: 36, y0: -14, y1: 18, buraco: [24, -31],
+  { id: "aranhas", nome: "Toca das Aranhas", x: 400, y: 0, x0: -8, x1: 36, y0: -14, y1: 18, buraco: [23.5, -52.5],   // (na beira do ninho da Aranha Gigante, ~8 m dele)
     salas: [{ x: 0, y: 0, r: 4 }, { x: 11, y: 7, r: 5.5 }, { x: 13, y: -6, r: 5 }, { x: 24, y: 9, r: 5 }, { x: 28, y: -3, r: 7.5 }],
     tuneis: [[0, 0, 11, 7, 2.4], [0, 0, 13, -6, 2.4], [11, 7, 24, 9, 2.2], [13, -6, 28, -3, 2.6], [24, 9, 28, -3, 2.2]],
     tema: { piso: "rgba(14, 22, 16, 0.55)", escuro: 0.9, mini: [74, 82, 68], teias: true },
@@ -10968,8 +11170,10 @@ const PORTAL_ARTE = { pasta: "deco_b/portais/", largura: 4.2 };       // (a larg
 MAPAS.vila1.seguro = null;                                             // (a Vila 1: o renascer da cidade, pontoSeguro)
 MAPAS.hahoe.seguro = pH(0.5, -4.2);                                    // (a Praça do Palco das Máscaras)
 const PORTAIS = [
-  // P1: na Vila 1, no fim da estrada do leste (o portão leste); na Vila Hahoe, do outro lado da Ponte de Pedra do Oeste
-  { id: "v1_hahoe", mapa: "vila1", x: 64.5, y: -4.5, saida: [-0.6, -0.8], destino: "hahoe", para: "hahoe_v1", nivelMin: 12, custo: 0, cor: "vila" },
+  // P1: na Vila 1, na ponta do cabo das Terras do Sul, no fim da estrada do portal (V1_PORTAL: o ponto mais longe da
+  // cidade); na Vila Hahoe, do outro lado da Ponte de Pedra do Oeste. Quem volta da Vila Hahoe aparece 3 m ao norte dele,
+  // na ponta da estrada
+  { id: "v1_hahoe", mapa: "vila1", x: V1_PORTAL.x, y: V1_PORTAL.y, saida: [0, 1], destino: "hahoe", para: "hahoe_v1", nivelMin: 12, custo: 0, cor: "vila" },
   { id: "hahoe_v1", mapa: "hahoe", x: HAHOE.ox - 44.5, y: PONTES_H[0].y, saida: [1, 0], destino: "vila1", para: "v1_hahoe", nivelMin: 0, custo: 0, cor: "vila" },
 ];
 let viagem = null, cartaoViagem = null;
@@ -11707,6 +11911,7 @@ function passo(dt) {
   // as criaturas de outro mapa (ou de outra dungeon) dormem; as mortas continuam contando o tempo de voltar
   const mapaHeroi = idMapa(viking.x, viking.y);
   for (const l of criaturas) if (l.morto || l.mapa === undefined || l.mapa === mapaHeroi) passoCriatura(l, dt);
+  passoGruposV1(dt);                                                   // (os grupos do Metin2 da Vila 1: corpos, órfãos e o renascer)
   passoProgresso(dt);
   passoPassagens(dt);
   const v = viking, a = M.animacoes;
@@ -13065,7 +13270,7 @@ function pedidos3d(agora) {
     const esc = c.cfg.esc || 1;
     if (!naTela(c.x, c.y, m, esc)) continue;
     const k = c.piscar > 0 ? Math.min(1, c.piscar / 0.15) : 0;
-    l.push({ dono: c, m, anim: c.anim, t: c.t, info: c.cfg.M && c.cfg.M.animacoes[c.anim], ang: angDir3d(c.dir), esc, emis: [0.75 * k, 0.12 * k, 0.06 * k], tinta: c.cfg.tinta, morto: c.morto,
+    l.push({ dono: c, m, anim: c.anim, t: c.t, info: c.cfg.M && c.cfg.M.animacoes[c.anim], ang: angDir3d(c.dir), esc, emis: [0.75 * k, 0.12 * k, 0.06 * k], tinta: c.cfg.tinta, roupa: c.cfg.roupa3d, morto: c.morto,
              perto: !c.morto && (c.cacando || !!c.acao) && longe(c.x, c.y) < 9 });   // lutando perto: anima em todo quadro
   }
   // os NPCs com modelo (o ferreiro e os moradores de NPC_3D)
@@ -18180,8 +18385,9 @@ var MM = (() => {
 "use strict";
 const $m = id => document.getElementById(id);
 const el = $m("mapaMundo"), cvM = $m("mmTela"), g = cvM.getContext("2d"), corpoM = cvM.parentNode;
-// o retângulo do mundo (a ilha, o vale e a montanha, com um pouco de mar em volta)
-const LIM = { x0: -RAIO - 10, x1: RAIO + VALE_E + MONTE_E + 10, y0: -RAIO - 10, y1: RAIO + 10 };
+// o retângulo do mundo (a ilha, o vale, a montanha e as Terras do Sul: a caixa da costa, com um pouco de mar em volta)
+const limV1 = () => ({ x0: CAIXA_V1.x0 - 10, x1: CAIXA_V1.x1 + 10, y0: CAIXA_V1.y0 - 10, y1: CAIXA_V1.y1 + 10 });
+const LIM = limV1();
 const V = { cx: 40, cy: 0, esc: 5, w: 0, h: 0, dpr: 1 };
 const est = { aberto: false, aba: "mobs", editando: false, sel: null, selDeco: null, ferr: "escolher", pondoGrupo: false, arrasto: null, mouse: null,
               mudouMobs: false, mudouDeco: false, mudouTerreno: false, pausadoAntes: false, sujo: true };
@@ -18310,13 +18516,13 @@ function garantirBase() {
 // ---------------------------------------------------------------- o que vai no mapa
 // os nomes das regiões: [nome, x, y, tamanho (1 região grande, 2 lugar, 3 marco)]
 function rotulos() {
-  const lobos = noMapa([21, 6]);
   return [["Vale do Viking", -14, 50, 1], ["Vila", VILA.x, VILA.y + 15, 2], ["Campo de Treino", PRACA.x, PRACA.y - 7.5, 3], ["Lago", LAGO.x, LAGO.y + LAGO.r + 3.2, 3],
-          ["Campo dos Lobos", lobos[0], lobos[1] + 9.5, 3], ["Acampamento dos Bandidos", ACAMP.x, ACAMP.y - 12.5, 2], ["Ruínas da Cripta", RUINAS.x - 2, RUINAS.y - 15, 2],
-          ["Vale dos Orcs", VALE_X + 24, 34, 1], ["Monumento Orc", MONUMENTO.x, MONUMENTO.y + 9, 3], ["Montanha Gelada", MONTE_X + 24, 27, 1],
-          ["Portal: Vila Hahoe", PORTAIS[0].x, PORTAIS[0].y + 4, 3],
+          ["Acampamento do Juramento Branco · 13–15", ACAMP.x, ACAMP.y - 12.5, 2], ["Ruínas da Cripta", RUINAS.x - 2, RUINAS.y - 15, 2],
+          // (as faixas dos grupos do Metin2, faixaV1)
+          ["Campos dos Cães · 1–4", 2, -24, 2], ["Campos dos Javalis · 4–7", -22, -55, 2], ["Matas dos Ursos · 7–14", -22, -80, 2],
+          ["Vale Vermelho", VALE_X + 24, 34, 1], ["Monumento", MONUMENTO.x, MONUMENTO.y + 9, 3], ["Montanha Gelada", MONTE_X + 24, 27, 1],
           // (a Vila Hahoe: aparece quando o herói está nela)
-          ["Vila Hahoe", HV.x, HV.y + 13, 1], ...ZONAS_H.map(z => [z.nome, z.x, z.y + (z.r > 6 ? 7 : 3), 2]), ["Portal: Vale do Viking", PORTAIS[1].x, PORTAIS[1].y + 4, 3],
+          ["Vila Hahoe", HV.x, HV.y + 13, 1], ...ZONAS_H.map(z => [z.nome, z.x, z.y + (z.r > 6 ? 7 : 3), 2]),
           ...PONTES_H.map(p => [p.nome, p.x, p.y - 4, 3])];
 }
 // a região de um ponto (a do minimapa; o Vale do Viking dividido em norte, sul, leste e oeste, a partir da praça)
@@ -18327,7 +18533,7 @@ function regiaoDe(x, y) {
   const a = Math.atan2(y - PRACA.y, x - PRACA.x) * 180 / Math.PI;
   return "Vale do Viking: " + (a > 45 && a <= 135 ? "norte" : a > -45 && a <= 45 ? "leste" : a > -135 && a <= -45 ? "sul" : "oeste");
 }
-const ORDEM_REG = ["Vale do Viking: vila", "Vale do Viking: norte", "Vale do Viking: leste", "Vale do Viking: sul", "Vale do Viking: oeste", "Acampamento dos Bandidos", "Ruínas da Cripta", "Vale dos Orcs", "Montanha Gelada",
+const ORDEM_REG = ["Vale do Viking: vila", "Vale do Viking: norte", "Vale do Viking: leste", "Vale do Viking: sul", "Vale do Viking: oeste", "Campos dos Cães", "Campos dos Javalis", "Ruínas da Cripta", "Matas dos Ursos", "Acampamento do Juramento Branco", "Vale Vermelho", "Montanha Gelada",
                    "Vila Hahoe", "Arrozais e Bosque de Bambu", "Estrada dos Mercadores", "Brejo da Margem", "Ruínas do Mosteiro", "Desfiladeiro da Cachoeira"];
 // a distribuição: por região, cada tipo com o nível e quantos (e quantos grupos)
 function tabela() {
@@ -18461,6 +18667,15 @@ function losango(c, X, Y, t, cor) {
   c.save(); c.beginPath(); c.moveTo(X, Y - t); c.lineTo(X + t * 0.62, Y); c.lineTo(X, Y + t); c.lineTo(X - t * 0.62, Y); c.closePath();
   c.fillStyle = cor; c.shadowColor = cor; c.shadowBlur = t * 0.8; c.fill(); c.shadowBlur = 0; c.lineWidth = Math.max(1.2, t * 0.14); c.strokeStyle = "#140c18"; c.stroke(); c.restore();
 }
+// o portal entre mapas (como no minimapa): o redemoinho na cor do destino, num disco com a borda escura
+function portalIcone(c, X, Y, t, p) {
+  const cor = PORTAL_COR[p.cor] || PORTAL_COR.vila;
+  c.save(); c.fillStyle = "rgba(255, 240, 200, 0.22)"; c.beginPath(); c.arc(X, Y, t * 1.7, 0, 7); c.fill();
+  c.fillStyle = cor[0]; c.strokeStyle = "#1E1B18"; c.lineWidth = Math.max(1.5, t * 0.18); c.beginPath(); c.arc(X, Y, t, 0, 7); c.fill(); c.stroke();
+  c.strokeStyle = cor[1]; c.lineWidth = Math.max(1.3, t * 0.16); c.beginPath();
+  for (let k = 0; k <= 24; k++) { const a = 0.4 + k / 24 * 4.6, r = t * (0.18 + 0.55 * k / 24); c.lineTo(X + Math.cos(a) * r, Y + Math.sin(a) * r); }
+  c.stroke(); c.restore();
+}
 function porta(c, X, Y, t) {
   c.save(); c.fillStyle = "#120c08"; c.strokeStyle = "#e8d6a0"; c.lineWidth = Math.max(1.4, t * 0.16);
   c.beginPath(); c.moveTo(X - t, Y + t * 0.8); c.lineTo(X - t, Y - t * 0.1); c.arc(X, Y - t * 0.1, t, Math.PI, 0); c.lineTo(X + t, Y + t * 0.8); c.closePath(); c.fill(); c.stroke();
@@ -18512,7 +18727,8 @@ function desenharSpawns(c, v, opc) {
   for (const s of [...lista].reverse()) {
     const [X, Y] = paraTela(s.x, s.y, v), R = raioVisto(s) * s0, chefe = chefeDe(s.tipo);
     if (X < -80 || X > v.w + 80 || Y < -40 || Y > v.h + 40) continue;
-    const nome = nomeDe(s.tipo), linha2 = `Nv ${nivelDe(s.tipo)} · ×${s.n}`;
+    const gg = s.gg && GG_V1[s.gg], nvs = gg && tiposGG(s.gg).map(nivelDe);
+    const nome = gg ? gg.nome : nomeDe(s.tipo), linha2 = gg ? `Nv ${Math.min(...nvs)}–${Math.max(...nvs)} · ×${s.n} · ${gg.tempo} s` : `Nv ${nivelDe(s.tipo)} · ×${s.n}`;
     c.save(); c.font = `700 ${tam}px 'Alegreya Sans', 'Segoe UI', sans-serif`; const w = Math.max(c.measureText(nome).width, c.measureText(linha2).width * 0.9); c.restore();
     const y0 = Y + R + 3, caixa = [X - w / 2 - 2, y0, X + w / 2 + 2, y0 + tam * 2.1];
     if (!cabe(...caixa, chefe)) continue;
@@ -18540,6 +18756,14 @@ function desenharMarcos(c, v, opc) {
   // as entradas das dungeons
   const buracos = passagens.filter(p => p.tipo === "buraco" && p.dungeon);
   for (const p of buracos) { const [X, Y] = paraTela(p.x, p.y, v); porta(c, X, Y, t * 0.85); cabeTexto(opc, X - t, Y - t, X + t, Y + t, true); }
+  // os portais entre os mapas (o P1 da Vila 1 fica no fim do mapa, na ponta do cabo das Terras do Sul): sempre com o nome
+  for (const p of PORTAIS) {
+    if (p.x < LIM.x0 || p.x > LIM.x1 || p.y < LIM.y0 || p.y > LIM.y1) continue;
+    const [X, Y] = paraTela(p.x, p.y, v), tp = t * 1.05, txt = `Portal: ${MAPAS[p.destino].nome} · Nv ${p.nivelMin || 1}+`, tt2 = Math.max(11, t * 0.95);
+    portalIcone(c, X, Y, tp, p); cabeTexto(opc, X - tp * 1.7, Y - tp * 1.7, X + tp * 1.7, Y + tp * 1.7, true);
+    const w = larguraTexto(c, txt, tt2, 700), yt = Y + tp * 2.4;
+    cabeTexto(opc, X - w / 2 - 2, yt - tt2 * 0.6, X + w / 2 + 2, yt + tt2 * 0.6, true); texto(c, txt, X, yt, tt2, "#bfeedd", { peso: 700 });
+  }
   if (s0 > 2.6 || opc.limpo) {
     for (const p of buracos) {
       const d = p.dungeon, [X, Y] = paraTela(p.x, p.y, v), niv = [...d.bandos.map(([, tp]) => nivelDe(tp)), d.chefe.nivel];
@@ -18548,7 +18772,37 @@ function desenharMarcos(c, v, opc) {
     for (const l of metins) { const [X, Y] = paraTela(l.x, l.y, v); rotulo(`${l.cfg.nome} · Nv ${l.cfg.nivel}`, X, Y - t - 9, "#f0e0ff"); }
   }
 }
+// as faixas da Vila 1 (faixaV1): a borda de cada uma (15, 35, 65 e 105 m da muralha) e a volta do portal (só onde ela
+// passa da linha dos 105 m), tracejadas, só sobre a terra e fora da Montanha Gelada
+function desenharFaixasV1(c, v) {
+  if (LIM.y0 > 300) return;                                             // (o Mapa do Mundo de outro mapa)
+  const [a, b, e, f] = V1_CAIXA, s0 = v.esc;
+  const linha = pts => {
+    c.beginPath(); let dentro = false;
+    for (const [x, y] of pts) {
+      const terra = borda(x, y) < RAIO - 1 && x < MONTE_X - 2;
+      const ok = terra && (pts.portal ? distCidadeV1(x, y) < V1_FAIXAS[4].de : pts.d >= V1_FAIXAS[4].de || faixaV1(x, y) !== 4);
+      const [X, Y] = paraTela(x, y, v);
+      if (ok && dentro) c.lineTo(X, Y); else if (ok) c.moveTo(X, Y);
+      dentro = ok;
+    }
+    c.stroke();
+  };
+  c.save(); c.setLineDash([7, 5]); c.lineWidth = Math.max(1.2, s0 * 0.22); c.strokeStyle = "rgba(255, 248, 225, 0.55)";
+  for (const d of V1_FAIXAS.slice(1).map(q => q.de)) {                // (o retângulo da cidade crescido d m: lados retos e cantos redondos)
+    const pts = []; pts.d = d;
+    const lado = (x0, y0, x1, y1) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0)); for (let k = 0; k <= n; k++) pts.push([x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n]); };
+    const canto = (cx0, cy0, a0) => { for (let k = 0, n = Math.ceil(d / 2); k <= n; k++) { const t = a0 + k / n * Math.PI / 2; pts.push([cx0 + Math.cos(t) * d, cy0 + Math.sin(t) * d]); } };
+    lado(a, e - d, b, e - d); canto(b, e, -Math.PI / 2); lado(b + d, e, b + d, f); canto(b, f, 0);
+    lado(b, f + d, a, f + d); canto(a, f, Math.PI / 2); lado(a - d, f, a - d, e); canto(a, e, Math.PI);
+    linha(pts);
+  }
+  const pp = []; for (let k = 0; k <= 72; k++) { const t = k / 72 * Math.PI * 2; pp.push([V1_PORTAL.x + Math.cos(t) * V1_PORTAL_R, V1_PORTAL.y + Math.sin(t) * V1_PORTAL_R]); }
+  pp.portal = true; c.strokeStyle = "rgba(255, 210, 160, 0.6)"; linha(pp);
+  c.restore();
+}
 function desenharRotulos(c, v, opc) {
+  desenharFaixasV1(c, v);
   for (const [nome, x, y, tam] of rotulos()) {
     const [X, Y] = paraTela(x, y, v);
     const px = tam === 1 ? Math.max(15, Math.min(34, v.esc * 3.4)) : tam === 2 ? Math.max(12, Math.min(22, v.esc * 2.2)) : Math.max(10, Math.min(16, v.esc * 1.5));
@@ -18570,9 +18824,10 @@ function desenharHeroi(c, v, opc, soReservar) {
   c.restore();
   texto(c, dentro ? "Você" : "Você (na dungeon)", X, Y - t * 2.3, Math.max(11, t), "#ffe27a", { peso: 800 });
 }
-// a legenda: a escala dos níveis e os ícones (no canto de baixo à esquerda)
-function desenharLegenda(c, v, k = 1) {
-  const W0 = 250 * k, H0 = 112 * k, x0 = 12 * k, y0 = v.h - H0 - 12 * k;
+// a legenda: a escala dos níveis e os ícones (no canto de baixo à esquerda; na imagem exportada, à direita, em cima da
+// escala: o canto de baixo à esquerda da Vila 1 é a ponta das Terras do Sul, com o portal)
+function desenharLegenda(c, v, k = 1, direita = false, sobe = 0) {
+  const W0 = 300 * k, H0 = 112 * k, x0 = direita ? v.w - W0 - 12 * k : 12 * k, y0 = v.h - H0 - 12 * k - sobe;
   c.save();
   c.fillStyle = "rgba(14, 10, 6, 0.86)"; c.strokeStyle = "#8a6a34"; c.lineWidth = 1.5 * k;
   c.beginPath(); c.roundRect ? c.roundRect(x0, y0, W0, H0, 8 * k) : c.rect(x0, y0, W0, H0); c.fill(); c.stroke();
@@ -18586,8 +18841,9 @@ function desenharLegenda(c, v, k = 1) {
   coroa(c, x0 + 22 * k, ly, 15 * k, "#ffcf4a"); texto(c, "chefe", x0 + 34 * k, ly, 11.5 * k, "#eadfc8", { alinhar: "left" });
   losango(c, x0 + 88 * k, ly, 8 * k, "#c86bff"); texto(c, "Metin", x0 + 98 * k, ly, 11.5 * k, "#eadfc8", { alinhar: "left" });
   porta(c, x0 + 150 * k, ly, 7 * k); texto(c, "dungeon", x0 + 161 * k, ly, 11.5 * k, "#eadfc8", { alinhar: "left" });
-  c.fillStyle = "#ffd84a"; c.beginPath(); c.moveTo(x0 + 220 * k, ly); c.lineTo(x0 + 210 * k, ly + 6 * k); c.lineTo(x0 + 212 * k, ly); c.lineTo(x0 + 210 * k, ly - 6 * k); c.closePath(); c.fill();
-  texto(c, "você", x0 + 232 * k, ly, 11.5 * k, "#eadfc8", { alinhar: "center" });
+  portalIcone(c, x0 + 221 * k, ly, 6.5 * k, { cor: "vila" }); texto(c, "portal", x0 + 231 * k, ly, 11.5 * k, "#eadfc8", { alinhar: "left" });
+  c.fillStyle = "#ffd84a"; c.beginPath(); c.moveTo(x0 + 278 * k, ly); c.lineTo(x0 + 268 * k, ly + 6 * k); c.lineTo(x0 + 270 * k, ly); c.lineTo(x0 + 268 * k, ly - 6 * k); c.closePath(); c.fill();
+  texto(c, "você", x0 + 284 * k, ly, 11.5 * k, "#eadfc8", { alinhar: "left" });
   texto(c, "Círculo: área do grupo · pontos: cada mob", x0 + 12 * k, ly + 22 * k, 10.5 * k, "#a99b82", { alinhar: "left", peso: 500 });
   c.restore();
 }
@@ -18681,7 +18937,7 @@ async function imagem(ppm = 9) {
   desenharMapa(cc, v, { raster: R, limpo: true, k: Math.max(1, ppm / 9) });
   const k = Math.max(1, ppm / 5);
   texto(cc, "Mapa do Mundo · mobs por nível", 18 * k, 24 * k, 22 * k, "#ffe9b8", { alinhar: "left", fonte: "'Germania One', 'Palatino Linotype', Georgia, serif", peso: 400 });
-  desenharLegenda(cc, v, k);
+  desenharLegenda(cc, v, k, true, 34 * k);
   desenharEscala(cc, v, k);
   return c;
 }
@@ -18708,7 +18964,7 @@ function abrir(sim = !est.aberto) {
     montarListas();
     if (!est.editando && innerWidth > 720) editar(true, false);
     // (o mapa em que o herói está: a Vila 1 com o vale e a montanha, ou a ilha de outro mapa; trocou, o chão é refeito)
-    const mpM = mapaDe(viking.x, viking.y), lim = mpM === MAPAS.vila1 ? { x0: -RAIO - 10, x1: RAIO + VALE_E + MONTE_E + 10, y0: -RAIO - 10, y1: RAIO + 10 }
+    const mpM = mapaDe(viking.x, viking.y), lim = mpM === MAPAS.vila1 ? limV1()
       : { x0: mpM.ox - mpM.raio - 12, x1: mpM.ox + mpM.raio + 12, y0: mpM.oy - mpM.raio - 12, y1: mpM.oy + mpM.raio + 12 };
     if (LIM.x0 !== lim.x0 || LIM.y0 !== lim.y0 || LIM.x1 !== lim.x1) { Object.assign(LIM, lim); base = null; }
     ajustarTela(); verTudo(); garantirBase(); atualizarTabela();
