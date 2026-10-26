@@ -53,7 +53,19 @@
 // "cache primeiro": quem já tinha aberto ficava com o json dos sons velho e o
 // MP3 novo (cada som tocava o trecho errado) e com modelos/animações antigos.
 // A subida de versão apaga a cópia guardada.
-const VERSAO = "eg-v17";
+// eg-v18: o "fetch" podia entregar `undefined` ao navegador. Quando a busca na
+// rede falhava (internet oscilando, pedido cancelado ao trocar de página) e o
+// arquivo ainda não estava no cache, o `.catch(() => cacheado)` devolvia o
+// próprio `cacheado` — que era undefined. O Chrome então acusava "Failed to
+// convert value to Response" e o arquivo (JS, CSS, /pwa-192.png) falhava
+// com net::ERR_FAILED, mesmo que uma nova tentativa fosse funcionar. Agora
+// toda resposta passa por `garantir()` e vira um Response de verdade.
+// Também: a Vercel responde 200 com o index.html para um /assets/ que não
+// existe mais (deploy novo, aba antiga). Esse HTML era guardado no cache com
+// o nome do .js/.css e servido pra sempre. Agora só entra no cache resposta
+// com o tipo certo, e a subida de versão limpa o que já tinha sido guardado
+// errado (só o Cache Storage do SW: login e saves do navegador não são tocados).
+const VERSAO = "eg-v18";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
@@ -71,6 +83,25 @@ async function apararAssets(cache) {
   const chaves = (await cache.keys()).filter((r) => new URL(r.url).pathname.startsWith("/assets/"));
   const sobra = chaves.length - MAX_ASSETS;
   for (let i = 0; i < sobra; i++) await cache.delete(chaves[i]);
+}
+
+// Garante que o respondWith() sempre receba um Response (nunca undefined).
+// Response.error() é o mesmo "erro de rede" que o navegador daria sem SW.
+function garantir(resposta) {
+  return resposta instanceof Response ? resposta : Response.error();
+}
+
+// Só guarda no cache resposta inteira, nossa e do TIPO esperado pela
+// extensão: um .js/.css que voltou como text/html é o index.html da Vercel
+// no lugar de um arquivo que não existe mais — guardar isso quebraria a
+// página até alguém limpar o cache.
+const TIPO_ESPERADO = { js: "javascript", mjs: "javascript", css: "text/css", png: "image/", jpg: "image/", jpeg: "image/", webp: "image/", svg: "image/", gif: "image/", ico: "image/", json: "json", mp3: "audio/", ogg: "audio/", wav: "audio/", woff: "font", woff2: "font" };
+function podeGuardar(resposta, pathname) {
+  if (!resposta || resposta.status !== 200 || resposta.type !== "basic") return false;
+  const ext = (pathname.match(/.([a-z0-9]+)$/i) || [])[1];
+  const esperado = ext && TIPO_ESPERADO[ext.toLowerCase()];
+  if (!esperado) return !(resposta.headers.get("content-type") || "").includes("text/html") || !pathname.includes(".");
+  return (resposta.headers.get("content-type") || "").includes(esperado);
 }
 
 const ARTE_TROCAVEL = /^\/(titulos|ranks|ranks-quiz|ranks-acromania|ranks-mentira|temas-quiz|dificuldades|sounds)\/|^\/(educacao-gamer-logo[a-z-]*|favicon|pwa-[a-z0-9-]+|quiz-logo[a-z-]*|stop-logo|acromania-logo[a-z-]*|mentira-logo[a-z-]*|tribunal-logo[a-z-]*|impostor-logo[a-z-]*)\.png$/;
@@ -104,6 +135,10 @@ self.addEventListener("fetch", (evento) => {
 
   // Só interfere em GET. POST, PATCH e DELETE passam direto.
   if (req.method !== "GET") return;
+
+  // Pedido "só do cache" de outro modo (o Chrome faz isso com o DevTools
+  // aberto): repassar com fetch() lança erro. Deixa o navegador resolver.
+  if (req.cache === "only-if-cached" && req.mode !== "same-origin") return;
 
   const url = new URL(req.url);
 
@@ -161,7 +196,7 @@ self.addEventListener("fetch", (evento) => {
         // cair no clássico).
         const casca = url.pathname === "/v2" || url.pathname.startsWith("/v2/") ? "/v2/" : "/";
         return caches.match(casca).then((r) => r || caches.match("/")).then((r) => r || Response.error());
-      })
+      }).then(garantir, () => Response.error())
     );
     return;
   }
@@ -182,16 +217,17 @@ self.addEventListener("fetch", (evento) => {
       caches.match(req).then((cacheado) => {
         const daRede = fetch(req)
           .then((resposta) => {
-            if (resposta && resposta.status === 200 && resposta.type === "basic") {
+            if (podeGuardar(resposta, url.pathname)) {
               const copia = resposta.clone();
-              caches.open(CACHE_ESTATICO).then((cache) => cache.put(req, copia));
+              caches.open(CACHE_ESTATICO).then((cache) => cache.put(req, copia)).catch(() => {});
             }
             return resposta;
           })
-          // Sem internet: se tem cache, ele já foi entregue abaixo.
-          .catch(() => cacheado);
+          // Sem internet: se tem cache, ele já foi entregue abaixo; se não
+          // tem, vira erro de rede (antes devolvia undefined — ver eg-v18).
+          .catch(() => cacheado || Response.error());
         return cacheado || daRede;
-      })
+      }).then(garantir, () => Response.error())
     );
     return;
   }
@@ -204,8 +240,9 @@ self.addEventListener("fetch", (evento) => {
       if (cacheado) return cacheado;
       return fetch(req)
         .then((resposta) => {
-          // Só guarda respostas completas e bem-sucedidas.
-          if (!resposta || resposta.status !== 200 || resposta.type !== "basic") {
+          // Só guarda resposta completa, bem-sucedida e do tipo certo (ver
+          // podeGuardar: o index.html no lugar de um .js nunca entra).
+          if (!podeGuardar(resposta, url.pathname)) {
             return resposta;
           }
           const copia = resposta.clone();
@@ -215,7 +252,9 @@ self.addEventListener("fetch", (evento) => {
             .catch(() => {});
           return resposta;
         })
-        .catch(() => cacheado);
-    })
+        // Falhou na rede e não está no cache: erro de rede de verdade (antes
+        // devolvia o `cacheado` vazio, ou seja, undefined — ver eg-v18).
+        .catch(() => Response.error());
+    }).then(garantir, () => Response.error())
   );
 });
