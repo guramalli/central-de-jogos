@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 </head>
 <body>
-<title>Campo de Treino do Viking</title>
+<title>Ghotin2</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -990,15 +990,42 @@
   @keyframes bau-some { to { opacity: 0; transform: translate(-50%, -10px); } }
   @keyframes bau-item { from { opacity: 0; transform: translateX(-10px); } }
   @media (prefers-reduced-motion: reduce) { .bau-topo .bau-ic { animation: none; } .bau-aviso, .bau-aviso li { animation: bau-some 0.01s linear 5s forwards; } }
+
+  /* ================================================================ modo jogador (o padrão) e modo admin (?admin=1)
+     Sem o admin, tudo o que é de teste some (o .so-admin); com ele, some o logo do jogo (o .so-jogador) e volta o título
+     do campo de treino. Ver Logs/Jogador/INVENTARIO_ADMIN.md */
+  :root:not(.modo-admin) .so-admin { display: none !important; }
+  :root.modo-admin .so-jogador { display: none !important; }
+  h1.logo-titulo { line-height: 0; }
+  .logo-jogo { display: block; width: 150px; height: auto; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6)); pointer-events: none; user-select: none; -webkit-user-drag: none; }
+  @media (max-width: 640px) { .logo-jogo { width: 92px; } }
+  .ficha .fx-rodape { display: flex; flex-wrap: wrap; gap: 6px; justify-content: space-between; }
+  /* Estatísticas da jornada: o registro de sessão do personagem (XP/hora, tempo de cada nível, criaturas, drops) */
+  .jornada { width: min(440px, calc(100% - 24px)); }
+  .jornada .jor-selo { margin: 0; padding: 4px 8px; border-radius: 4px; font-size: 12.5px; font-weight: 700; justify-self: start; }
+  .jornada .jor-selo.limpa { background: rgba(62, 122, 92, 0.22); color: #2f6a4c; border: 1px solid rgba(62, 122, 92, 0.6); }
+  .jornada .jor-selo.admin { background: rgba(184, 50, 42, 0.18); color: #a42a22; border: 1px solid rgba(184, 50, 42, 0.6); }
+  :root.semB .jornada .jor-selo.limpa { color: #8fd6ae; }
+  :root.semB .jornada .jor-selo.admin { color: #ff9a8a; }
+  .jornada .jor-resumo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 0; }
+  .jornada .jor-resumo div { padding: 5px 8px; border: 1px solid rgba(140, 106, 58, 0.45); border-radius: 4px; }
+  .jornada .jor-resumo dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.75; }
+  .jornada .jor-resumo dd { margin: 0; font-family: var(--dados); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .jornada .jor-tabela { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 1px 12px; font-size: 12.5px; }   /* (sem rolagem própria: a janela inteira rola) */
+  .jornada .jor-tabela > span { padding: 1px 0; border-bottom: 1px dotted rgba(140, 106, 58, 0.4); }
+  .jornada .jor-tabela > span:nth-child(3n+2), .jornada .jor-tabela > span:nth-child(3n) { text-align: right; font-family: var(--dados); font-variant-numeric: tabular-nums; }
+  .jornada .jor-tabela > .cab { border-bottom-style: solid; font-weight: 700; font-family: var(--corpo) !important; opacity: 0.8; }
+  .jornada .jor-vazio { grid-column: 1 / -1; opacity: 0.7; font-style: italic; border: 0 !important; }
 </style>
 
-<canvas id="campo" aria-label="Campo de treino: o viking e os bonecos"></canvas>
+<canvas id="campo" aria-label="Ghotin2: o mundo do jogo"></canvas>
 <div class="borda-emb" id="bordaEmb" hidden aria-hidden="true"></div>
 
 <div class="barra">
   <div id="janTitulo">
-    <h1><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
-    <div class="classes" role="group" aria-label="Personagem (T troca)">
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"></h1>
+    <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
+    <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
       <button id="cViking" aria-pressed="true">Viking</button>
       <button id="cArqueiro" aria-pressed="false">Arqueiro</button>
       <button id="cFeiticeiro" aria-pressed="false">Feiticeiro</button>
@@ -1006,7 +1033,7 @@
       <button id="cNinja" aria-pressed="false" title="Ninja (provisório: usa o desenho do viking escurecido até chegar o modelo dele)">Ninja</button>
     </div>
   </div>
-  <div class="estado" id="janEstado" aria-live="polite">
+  <div class="estado so-admin" id="janEstado" aria-live="polite">
     <span class="chip">animação <b id="eAnim">—</b></span>
     <span class="chip">quadro <b id="eQuadro">—</b></span>
     <span class="chip">direção <b id="eDir">—</b></span>
@@ -1106,7 +1133,7 @@
     <h3>Atributos</h3>
     <div class="fx-caixas" id="fDerivados"></div>
     <p class="nota" id="fEquipNota"></p>
-    <button id="fRecomecar" class="fx-recomecar">Recomeçar este personagem</button>
+    <div class="fx-rodape"><button id="fJornada" class="fx-recomecar" title="Tempo jogado, XP por hora, tempo de cada nível, criaturas e drops">Estatísticas da jornada</button><button id="fRecomecar" class="fx-recomecar">Recomeçar este personagem</button></div>
   </section>
   <section class="ficha-pag" data-pag="skills" aria-label="Skills" hidden>
     <div class="fx-sk-topo">
@@ -1138,7 +1165,7 @@
   </div>
 </aside>
 
-<aside class="editor" id="editor" hidden aria-label="Editor de mapa">
+<aside class="editor so-admin" id="editor" hidden aria-label="Editor de mapa">
   <header><h2>Editor de mapa</h2><button id="edFechar" aria-label="Fechar o editor">Fechar</button></header>
   <p class="nota">Clique numa decoração para escolher e arraste para mover. Arraste a borda do círculo dourado para mudar a colisão. Com um tipo da paleta escolhido, clique no chão para pôr. WASD ou o botão direito arrastando movem a câmera. O jogo fica parado enquanto você edita.</p>
   <div class="ed-paleta" id="edPaleta" role="group" aria-label="O que o clique faz"></div>
@@ -1157,7 +1184,7 @@
   <p class="nota" id="edAviso" role="status"></p>
 </aside>
 
-<details class="livro" id="livro" open>
+<details class="livro so-admin" id="livro" open>
   <summary>Livro de teste</summary>
   <div class="miolo">
     <section>
@@ -1313,7 +1340,7 @@
   <label><input type="checkbox" id="oBorda"> Bordas da tela levemente embaçadas</label>
   <div class="linha"><button id="opcoesPadrao">Volumes padrão</button></div>
   <h3>Personagem</h3>
-  <div class="linha"><button id="oNovoPersonagem">Novo personagem…</button></div>
+  <div class="linha"><button id="oNovoPersonagem">Novo personagem…</button><button id="oJornada">Estatísticas da jornada</button></div>
   <p class="nota">Abre a escolha de classe. Os personagens que você já tem continuam salvos.</p>
   <p class="nota">Esc abre e fecha este menu. Tudo fica salvo neste navegador.</p>
   <details class="nota creditos-musica"><summary>Créditos das músicas</summary>
@@ -1321,6 +1348,21 @@
     <p>"Views From Atop the Jade Kings Throne" e "RPG - Misty Mountains" — Hitctrl (opengameart.org), licença CC BY 3.0 (creativecommons.org/licenses/by/3.0/).</p>
     <p>"Dark Myst Mystery Asian Oriental Sad Mood" — szegvari (freesound.org), CC0.</p>
   </details>
+</aside>
+
+<aside class="janelas opcoes jornada" id="jornada" hidden aria-label="Estatísticas da jornada">
+  <header><h2>Estatísticas da jornada</h2><button id="jorFechar" aria-label="Fechar">Pronto</button></header>
+  <p class="jor-selo" id="jorSelo"></p>
+  <dl class="jor-resumo" id="jorResumo"></dl>
+  <h3>Tempo em cada nível</h3>
+  <div class="jor-tabela" id="jorNiveis"></div>
+  <h3>Criaturas derrotadas</h3>
+  <div class="jor-tabela" id="jorCriaturas"></div>
+  <h3>O que caiu</h3>
+  <div class="jor-tabela" id="jorDrops"></div>
+  <div class="linha"><button id="jorCopiar">Copiar relatório</button><button id="jorZerar">Zerar a contagem</button></div>
+  <p class="nota" id="jorAviso" role="status"></p>
+  <p class="nota">Conta o tempo com o jogo rodando (pausado, no mapa do mundo ou na escolha de classe, não conta). Fica salvo neste navegador, um registro por personagem.</p>
 </aside>
 
 <div class="acoes" id="janAcoes" aria-label="Ações">
@@ -1344,12 +1386,12 @@
     <button type="button" data-menu="mundo" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M5 9.5c3 .8 4.2-1.8 6.5-1.2 1.6.4 1.2 2.6 3 2.9 1.6.3 2.4-1.4 4-.9M7 16.5c1.8-.9 3.6.3 5.2-.6 1.4-.8 2.6-2.4 4.8-1.6" fill="none" stroke="#2a1b10" stroke-width="1.6" stroke-linecap="round"/><circle cx="15.5" cy="6.5" r="1.4" fill="#2a1b10"/></svg><span>Mapa do Mundo</span><kbd>U</kbd></button>
     <button type="button" data-menu="janelas" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="6" r="2.4" fill="currentColor"/><circle cx="15" cy="12" r="2.4" fill="currentColor"/><circle cx="7" cy="18" r="2.4" fill="currentColor"/></svg><span>Opções de janelas</span><kbd>J</kbd></button>
     <button type="button" data-menu="opcoes" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 2h3.4l.5 2.6 1.8.8 2.2-1.5 2.4 2.4-1.5 2.2.8 1.8 2.6.5v3.4l-2.6.5-.8 1.8 1.5 2.2-2.4 2.4-2.2-1.5-1.8.8-.5 2.6h-3.4l-.5-2.6-1.8-.8-2.2 1.5-2.4-2.4 1.5-2.2-.8-1.8L2 13.7v-3.4l2.6-.5.8-1.8-1.5-2.2 2.4-2.4 2.2 1.5 1.8-.8z" fill="currentColor"/><circle cx="12" cy="12" r="3.4" fill="#2a1b10"/></svg><span>Opções e som</span><kbd>Esc</kbd></button>
-    <button type="button" data-menu="admin" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18.5h18l-1.6-11-5 4.2L12 4.5l-2.4 7.2-5-4.2z" fill="currentColor"/><rect x="3" y="19.5" width="18" height="2" fill="currentColor"/></svg><span>Admin: criar item</span><kbd>G</kbd></button>
+    <button type="button" class="so-admin" data-menu="admin" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18.5h18l-1.6-11-5 4.2L12 4.5l-2.4 7.2-5-4.2z" fill="currentColor"/><rect x="3" y="19.5" width="18" height="2" fill="currentColor"/></svg><span>Admin: criar item</span><kbd>G</kbd></button>
   </div>
   <button type="button" class="menu-botao" id="menuBotao" aria-expanded="false" aria-controls="menuLeque" aria-label="Menu: inventário, equipamento e atributos" title="Menu"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 13a5 5 0 0 1 5-5h12a5 5 0 0 1 5 5v1H5z" fill="currentColor"/><rect x="4" y="15" width="24" height="12" rx="2" fill="currentColor"/><path d="M4 15h24" stroke="#2a1b10" stroke-width="1.6"/><path d="M10 8v19M22 8v19" stroke="#2a1b10" stroke-width="1.4" opacity=".55"/><rect x="13.5" y="13" width="5" height="6" rx="1" fill="#2a1b10"/><circle cx="16" cy="16" r="1.2" fill="currentColor"/></svg><span class="selo-pontos" id="menuPontos" hidden></span></button>
 </nav>
 
-<aside class="admin" id="admin" hidden aria-label="Admin">
+<aside class="admin so-admin" id="admin" hidden aria-label="Admin">
   <header><h2>Admin</h2><button id="admFechar" aria-label="Fechar o admin">Fechar</button></header>
   <h3>Criar item</h3>
   <div class="adm-criar">
@@ -1457,6 +1499,34 @@ const $ = s => document.querySelector(s);
 // modo de teste (?test=1 na URL, para os testes automáticos): 30 quadros por segundo, sem partículas, sem vegetação
 // balançando, sem fumaça das pedras e sem som nem música. Sem o parâmetro nada muda
 const MODO_TESTE = new URLSearchParams(location.search).has("test");
+// modo admin (escondido): sem ele, a tela é a de um jogador comum (Logs/Jogador/INVENTARIO_ADMIN.md). Liga com ?admin=1,
+// que fica lembrado neste navegador até ?admin=0, ou com o atalho escondido: Ctrl + Alt + Shift + A no teclado, ou sete
+// toques seguidos nas coordenadas embaixo do minimapa (celular). Com ele, volta tudo o que é de teste: o título do campo
+// de treino com a troca de classe (e o T), os chips de depuração, o Livro de teste, o editor de mapa (O), o Admin (G), a
+// edição do Mapa do Mundo e as teclas de teste (C, H, K, R)
+let ADMIN = (() => {
+  const q = new URLSearchParams(location.search).get("admin");
+  try {
+    if (q === "1") localStorage.setItem("admin", "1"); else if (q === "0") localStorage.removeItem("admin");
+    return localStorage.getItem("admin") === "1";
+  } catch (e) { return q === "1"; }
+})();
+document.documentElement.classList.toggle("modo-admin", ADMIN);
+function modoAdmin(sim, lembrar = true) {
+  ADMIN = !!sim; document.documentElement.classList.toggle("modo-admin", ADMIN);
+  if (lembrar) try { if (ADMIN) localStorage.setItem("admin", "1"); else localStorage.removeItem("admin"); } catch (e) {}
+  if (!ADMIN) {                                        // (o que estava aberto de admin fecha; a depuração desliga)
+    if (typeof abrirAdmin === "function" && !$("#admin").hidden) abrirAdmin(false);
+    if (typeof editor === "object" && editor.ativo) editorAbrir(false);
+    if (typeof verColisao !== "undefined") verColisao = false;
+    if (typeof mostrarCaixa !== "undefined") mostrarCaixa = false;
+    if (typeof criaturasAtacam !== "undefined") criaturasAtacam = true;
+    if (typeof veloc !== "undefined") veloc = 1;
+    if (typeof pausado !== "undefined" && !(window.MM && MM.aberto)) pausado = false;
+  }
+  if (typeof listarJanelas === "function" && !$("#janelas").hidden) listarJanelas();
+  return ADMIN;
+}
 const cv = $("#campo");
 let cx = cv.getContext("2d");                 // trocado por um instante pela camada ao desenhar um objeto translúcido
 const camada = document.createElement("canvas"), cxCamada = camada.getContext("2d");
@@ -3398,7 +3468,7 @@ function montarTempo() {
     try { localStorage.setItem(TEMPO_CHAVE, JSON.stringify(tempo)); } catch (er) {}
   };
   $("#tempoParar").setAttribute("aria-pressed", tempo.parado);
-  setInterval(() => { const h = horaDoDia(); $("#eTempo").textContent = `${String(Math.floor(h)).padStart(2, "0")}h · ${nomeFase(h)} · ${ESTACOES[estacaoAtual()]}`; }, 1000);
+  setInterval(() => { if (!ADMIN) return; const h = horaDoDia(); $("#eTempo").textContent = `${String(Math.floor(h)).padStart(2, "0")}h · ${nomeFase(h)} · ${ESTACOES[estacaoAtual()]}`; }, 1000);
 }
 
 function desenharAmbiente(t) {
@@ -5839,7 +5909,7 @@ function cobrarMana() {
 function usarPorNome(nome) { const sk = SKILLS.find(k => k.nome === nome); if (sk) sk.usar(); }
 function usarPocaoMana() {
   if (!prog || !contarItem("pocaoMana") || viking.caido || viking.mana >= status.manaMax) return;
-  removerItem("pocaoMana"); viking.mana = Math.min(status.manaMax, viking.mana + status.manaMax * 0.4);
+  removerItem("pocaoMana"); if (jornada) jornada.pocoes.mana++; viking.mana = Math.min(status.manaMax, viking.mana + status.manaMax * 0.4);
   for (let k = 0; k < 14; k++) brasas.push({ x: viking.x + (Math.random() - 0.5) * 0.6, y: viking.y + (Math.random() - 0.5) * 0.4, z: Math.random(), vx: 0, vy: 0, vz: 1 + Math.random(), vida: 0.7, max: 0.7, tam: 0.05, cor: 215 });
   som("pocao", viking, 0.7); salvarProgresso(); atualizarFicha(); desenharBolsa(); atualizarItensBarra();
 }
@@ -5912,6 +5982,7 @@ function carregarProgresso() {
   migrarRoupas(prog);
   recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
   entrarNoMapaSalvo();                                                // (de volta ao mapa em que estava: prog.mapa)
+  jornadaCarregar();                                                  // (as Estatísticas da jornada deste personagem)
 }
 // (salvarTravado: com a tela de seleção aberta, e ao trocar de classe por ela, o personagem da tela não é gravado)
 let salvarTravado = false;
@@ -5938,8 +6009,9 @@ function ganharExp(qtd, de, semTeto) {          // (semTeto: a recompensa de mis
   if (!prog || prog.nivel >= NIVEL_MAX) return;
   qtd = Math.max(1, semTeto ? Math.round(qtd) : Math.min(Math.round(qtd), Math.round(EXP_NIVEL[prog.nivel] * 0.2)));
   prog.exp += qtd;
+  if (jornada) jornada.xp += qtd;
   if (de) numeros.push({ wx: de.x, wy: de.y, y: -(de.cfg ? de.cfg.barra : 100) - 10, vida: 1.3, txt: "+" + qtd + " exp", exp: true });
-  while (prog.nivel < NIVEL_MAX && prog.exp >= EXP_NIVEL[prog.nivel]) { prog.exp -= EXP_NIVEL[prog.nivel]; prog.nivel++; prog.pontos += PONTOS_POR_NIVEL; subiuNivel(); }
+  while (prog.nivel < NIVEL_MAX && prog.exp >= EXP_NIVEL[prog.nivel]) { prog.exp -= EXP_NIVEL[prog.nivel]; prog.nivel++; prog.pontos += PONTOS_POR_NIVEL; jornadaSubiu(prog.nivel); subiuNivel(); }
   salvarProgresso(); atualizarFicha();
 }
 function subiuNivel() {
@@ -6004,7 +6076,7 @@ function lerLivro(nome, pedra = false) {
 }
 function usarPocao() {
   if (!prog || !contarItem("pocao") || viking.caido || viking.vida >= status.vidaMax) return;
-  removerItem("pocao"); viking.vida = Math.min(status.vidaMax, viking.vida + status.vidaMax * 0.4);
+  removerItem("pocao"); if (jornada) jornada.pocoes.vida++; viking.vida = Math.min(status.vidaMax, viking.vida + status.vidaMax * 0.4);
   for (let k = 0; k < 14; k++) brasas.push({ x: viking.x + (Math.random() - 0.5) * 0.6, y: viking.y + (Math.random() - 0.5) * 0.4, z: Math.random(), vx: 0, vy: 0, vz: 1 + Math.random(), vida: 0.7, max: 0.7, tam: 0.05, cor: 355 });
   som("pocao", viking, 0.7); salvarProgresso(); atualizarFicha(); desenharBolsa(); atualizarItensBarra();
 }
@@ -6026,10 +6098,12 @@ function golpeNoPersonagem(l) {
 function morrerJogador() {
   viking.vida = 0; viking.caido = true; viking.fila = null; viking.alvo = null; selecao = null; mira = null;
   tocar("morte", true); viking.reviver = 4; som("morte_jogador", viking, 1);
-  const perda = Math.round(EXP_NIVEL[prog.nivel] * 0.02); prog.exp = Math.max(0, prog.exp - perda); salvarProgresso();
+  const perda = Math.round(EXP_NIVEL[prog.nivel] * 0.02), expAntes = prog.exp; prog.exp = Math.max(0, prog.exp - perda); salvarProgresso();
+  if (jornada) { jornada.mortes++; jornada.xpPerdido += expAntes - prog.exp; jornadaSalvar(); }
   avisar(`Você caiu! Perdeu ${perda} de exp; volta na praça em 4 s`);
 }
 function morreuCriatura(l) {
+  jornadaCriatura(l);
   // (o chefe de mapa: até 40% de um nível, acima do teto comum de 20%)
   if (prog) { if (defChefe(l)) ganharExp(Math.min(expDe(l), EXP_NIVEL[prog.nivel] * 0.4), l, true); else ganharExp(expDe(l), l); }
   if (l.cfg.estatico) metinQuebrou(l);
@@ -6642,13 +6716,14 @@ function montarMinimapa() {
 // O botão "janelas" (J) abre um painel com cada janela da tela: marcada, fica aberta. Com o painel aberto, cada janela
 // visível ganha uma moldura dourada para arrastar; a posição e o aberto/fechado ficam salvos neste navegador.
 const JANELAS = [
-  { id: "janTitulo", nome: "Título e classes" }, { id: "janEstado", nome: "Informações e som" }, { id: "minimapa", nome: "Minimapa" },
+  { id: "janTitulo", nome: "Título" }, { id: "janEstado", nome: "Informações e som", soAdmin: true }, { id: "minimapa", nome: "Minimapa" },
   { id: "vitais", nome: "Vida, mana e experiência" }, { id: "barraSkills", nome: "Barra de atalhos" }, { id: "janAcoes", nome: "Botões de ação" },
-  { id: "livro", nome: "Livro de teste" }, { id: "bolsa", nome: "Inventário (I)", abre: s => abrirBolsa(s) }, { id: "ficha", nome: "Personagem (P)", abre: s => abrirFicha(s) },
+  { id: "livro", nome: "Livro de teste", soAdmin: true }, { id: "bolsa", nome: "Inventário (I)", abre: s => abrirBolsa(s) }, { id: "ficha", nome: "Personagem (P)", abre: s => abrirFicha(s) },
   { id: "ferreiro", nome: "Ferreiro", abre: s => abrirFerreiro(s) },
   { id: "npcJan", nome: "Conversa com NPC", abre: s => { if (!s) abrirNpc(null); }, soFecha: true },
   { id: "armazem", nome: "Armazém", abre: s => { if (!s) abrirArmazem(false); }, soFecha: true },
-  { id: "admin", nome: "Admin: criar item (G)", abre: s => abrirAdmin(s) }, { id: "menuJogo", nome: "Botão do menu" },
+  { id: "admin", nome: "Admin: criar item (G)", abre: s => abrirAdmin(s), soAdmin: true }, { id: "menuJogo", nome: "Botão do menu" },
+  { id: "jornada", nome: "Estatísticas da jornada", abre: s => abrirJornada(s) },
 ];
 const JANELAS_CHAVE = "janelas1";
 let janelasSalvas = {};
@@ -6677,7 +6752,7 @@ function abrirJanelas(sim = $("#janelas").hidden) {
   molduras(sim);
 }
 function listarJanelas() {
-  $("#listaJanelas").innerHTML = JANELAS.filter(j => !j.soFecha).map(j => `<li><label><input type="checkbox" data-jan="${j.id}" ${document.getElementById(j.id).hidden ? "" : "checked"}> ${j.nome}</label></li>`).join("");
+  $("#listaJanelas").innerHTML = JANELAS.filter(j => !j.soFecha && (!j.soAdmin || ADMIN)).map(j => `<li><label><input type="checkbox" data-jan="${j.id}" ${document.getElementById(j.id).hidden ? "" : "checked"}> ${j.nome}</label></li>`).join("");
 }
 // molduras de arrastar por cima de cada janela aberta (só com o painel aberto)
 function molduras(sim) {
@@ -6685,7 +6760,7 @@ function molduras(sim) {
   if (!sim) return;
   for (const j of JANELAS) {
     const el = document.getElementById(j.id);
-    if (!el || el.hidden) continue;
+    if (!el || el.hidden || (j.soAdmin && !ADMIN)) continue;
     const r = el.getBoundingClientRect(); if (!r.width) continue;
     const m = document.createElement("div");
     m.className = "alca-janela"; m.innerHTML = `<span>${j.nome}</span>`;
@@ -6706,7 +6781,7 @@ function molduras(sim) {
   }
 }
 // arrastar pelo título: bolsa, ficha, ferreiro, conversa (e o que mais tiver header) — sem precisar do painel "janelas"
-const ARRASTA_TITULO = ["bolsa", "ficha", "ferreiro", "npcJan", "armazem", "admin"];
+const ARRASTA_TITULO = ["bolsa", "ficha", "ferreiro", "npcJan", "armazem", "admin", "jornada"];
 function prepararArrastoTitulo() {
   for (const id of ARRASTA_TITULO) {
     const el = document.getElementById(id), cab = el && el.querySelector("header"); if (!cab || cab._arrasta) continue;
@@ -6737,12 +6812,12 @@ function fecharUltimaJanela() {
     const id = pilhaJanelas.pop(), el = document.getElementById(id);
     if (!el || el.hidden) continue;
     ({ bolsa: () => abrirBolsa(false), ficha: () => abrirFicha(false), ferreiro: () => abrirFerreiro(false), npcJan: () => abrirNpc(null),
-       janelas: () => abrirJanelas(false), opcoes: () => abrirOpcoes(false), armazem: () => typeof abrirArmazem === "function" && abrirArmazem(false), admin: () => abrirAdmin(false) }[id] || (() => { el.hidden = true; }))();
+       janelas: () => abrirJanelas(false), opcoes: () => abrirOpcoes(false), jornada: () => abrirJornada(false), armazem: () => typeof abrirArmazem === "function" && abrirArmazem(false), admin: () => abrirAdmin(false) }[id] || (() => { el.hidden = true; }))();
     return true;
   }
   // sem janela na pilha: o Livro de teste aberto também fecha com Esc
   const livro = document.getElementById("livro");
-  if (livro && livro.open) { livro.open = false; som("ui_fechar", null, 0.8); return true; }
+  if (livro && livro.open && ADMIN) { livro.open = false; som("ui_fechar", null, 0.8); return true; }
   return false;
 }
 function montarJanelas() {
@@ -8176,17 +8251,19 @@ function montarBolsa() {
 // o que é raro faz um som próprio ao cair: livros, a Pedra da Alma, a Bênção e o que já vem refinado (+5 ou mais)
 const dropRaro = d => d.tipo === "livro" || d.tipo === "alma" || d.tipo === "bencao" || (d.ref || 0) >= 5 || (d.tipo === "joia" && +d.chave.split(":")[2] >= 3);
 function soltarItens(l, itens) {
+  jornadaCaiu(itens);
   if (itens.length) som(itens.some(dropRaro) ? "drop_raro" : "drop", l, 0.8);
   itens.forEach((d, i) => { const a = i / itens.length * Math.PI * 2 + Math.random(), r = itens.length > 1 ? 1.1 : 0.4; drops.push({ ...d, x: l.x + Math.cos(a) * r, y: l.y + Math.sin(a) * r, vida: 90 }); });
 }
 // pega um item do chão: vai para a bolsa (o yang, para a carteira); se a bolsa estiver cheia, fica no chão
 function pegarItem(d) {
   let txt;
-  if (d.tipo === "yang") { prog.yang += d.qtd; txt = d.qtd + " Yang"; }
+  if (d.tipo === "yang") { prog.yang += d.qtd; txt = d.qtd + " Yang"; jornadaPegou(d, d.qtd); }
   else {
     const chave = d.tipo === "livro" ? "livro:" + d.nome : d.tipo === "peca" || d.tipo === "arma" || d.tipo === "joia" ? d.chave : d.tipo, qtd = d.qtd || 1, sobra = adicionarItem(chave, qtd, d.tipo === "peca" || d.tipo === "arma" ? { ref: d.ref || 0, bon: d.bon || [] } : {});
     if (sobra === qtd) { if (!d.avisou) { avisar("A bolsa está cheia"); som("ui_negar"); d.avisou = true; } return false; }
     txt = d.tipo === "livro" ? "Livro: " + d.nome : d.tipo === "peca" || d.tipo === "arma" || d.tipo === "joia" ? tipoItem(d.chave).nome : (qtd - sobra) + " " + NOME_ITEM[d.tipo];
+    jornadaPegou(d, qtd - sobra);
     if (sobra > 0) { d.qtd = sobra; return false; }
   }
   numeros.push({ wx: viking.x, wy: viking.y, y: -160, vida: 1.4, txt: "+ " + txt, exp: true });
@@ -8495,12 +8572,14 @@ function admCriar() {
   }
   res.hidden = false; res.className = "ref-resultado " + (ok ? "sucesso" : "falhou"); res.textContent = msg;
   if (!ok) return;
+  jornadaAdmin("criou item: " + (yang ? qtd + " Yang" : t.nome));
   const novo = [...prog.inv].reverse().find(it => it.chave === chave); if (novo) abaBolsa = novo.aba;   // mostra a aba onde caiu
   salvarProgresso(); atualizarFicha(); atualizarItensBarra(); if (typeof atualizarVitais === "function") atualizarVitais();
   if ($("#bolsa").hidden && innerWidth >= 900) abrirBolsa(true); else desenharBolsa();
   som("estalo", viking, 0.5);
 }
 function abrirAdmin(sim = $("#admin").hidden) {
+  if (sim && !ADMIN) return;                                           // (sem o modo admin, a janela não abre)
   $("#admin").hidden = !sim; janelaAbriu("admin", sim);
   if (sim) $("#admSemTrava").checked = !!(prog && prog.semTrava);
   if (sim && editor.ativo) editorAbrir(false);
@@ -8534,7 +8613,7 @@ function montarAdmin() {
   $("#admFechar").onclick = () => abrirAdmin(false);
   $("#bAdmin").onclick = () => abrirAdmin();
   // personagem de teste: equipa arma e peça de qualquer nível (para mostrar os modelos novos na mão); fica salvo no progresso dele
-  $("#admSemTrava").onchange = e => { prog.semTrava = e.target.checked || undefined; salvarProgresso(); avisar(e.target.checked ? "Este personagem usa itens de qualquer nível" : "A trava de nível dos itens voltou"); };
+  $("#admSemTrava").onchange = e => { prog.semTrava = e.target.checked || undefined; salvarProgresso(); if (e.target.checked) jornadaAdmin("ligou sem trava"); avisar(e.target.checked ? "Este personagem usa itens de qualquer nível" : "A trava de nível dos itens voltou"); };
 }
 
 // ---------------------------------------------------------------- ficha do personagem (P)
@@ -8776,6 +8855,7 @@ function montarFicha() {
     if (performance.now() - confirma > 3000) { confirma = performance.now(); e.target.textContent = "Clique de novo para apagar o progresso"; return; }
     confirma = 0; e.target.textContent = "Recomeçar este personagem";
     prog = progressoNovo(classe); recalcularStatus(); viking.vida = status.vidaMax; salvarProgresso(); montarBarraSkills(); atualizarFicha();
+    jornadaZerar(true);
   };
   setInterval(() => { if (prog && !$("#ficha").hidden) atualizarFicha(); }, 30000);
 }
@@ -9098,8 +9178,10 @@ function criaturaLivre(l, x, y) {
   if (dv < 1.0 + rl && dv < Math.hypot(viking.x - l.x, viking.y - l.y)) return false;
   return !criaturas.some(o => {
     if (o === l || o.morto) return false;
-    const d = Math.hypot(o.x - x, o.y - y);
-    return d < 1.1 + rl + (o.cfg.raio || 0) && d < Math.hypot(o.x - l.x, o.y - l.y) - 1e-4;
+    const lim = 1.1 + rl + (o.cfg.raio || 0), dx = o.x - x, dy = o.y - y;
+    if (dx > lim || dx < -lim || dy > lim || dy < -lim) return false;   // (longe na caixa: a conta abaixo daria o mesmo, sem a raiz)
+    const d = Math.hypot(dx, dy);
+    return d < lim && d < Math.hypot(o.x - l.x, o.y - l.y) - 1e-4;
   });
 }
 // para longe dos vizinhos (mais forte quanto mais perto): somada ao rumo, espalha o bando em volta do alvo em vez de
@@ -10667,7 +10749,7 @@ function iconeErupcao(g) {
 // troca o personagem jogável (botões no topo ou T): tudo volta ao começo, parado e sem efeitos
 function trocarClasse(nova) {
   if (!MA || !MF || nova === classe) return;
-  salvarProgresso();
+  salvarProgresso(); jornadaSalvar();
   classe = nova;
   M = { viking: MV, arqueiro: MA, feiticeiro: MF, ninja: MN || MV, guerreiro: MG || MV }[classe]; SPR = { viking: SPRV, arqueiro: SPRA, feiticeiro: SPRF, ninja: MN ? SPRN : SPRV, guerreiro: MG ? SPRG : SPRV }[classe];   // sem o ninja.json, o viking escurecido
   const v = viking;
@@ -10693,10 +10775,13 @@ function trocarClasse(nova) {
 // placa de nome como a do Metin2: "Lv. N" em dourado e o nome em branco, letra pequena e grossa com contorno preto
 const FONTE_PLACA = 'bold 12px Tahoma, Verdana, "Segoe UI", Arial, sans-serif';
 // (corNivel: na criatura, o "Lv." muda de cor pela diferença para o herói, corDoNivel)
+// a largura de cada texto da placa na FONTE_PLACA (guardada: o measureText de todas as placas, todo quadro, pesava)
+const LARG_PLACA = new Map();
+function largPlaca(txt) { let w = LARG_PLACA.get(txt); if (w === undefined) { w = cx.measureText(txt).width; if (LARG_PLACA.size > 500) LARG_PLACA.clear(); LARG_PLACA.set(txt, w); } return w; }
 function placaNome(X, y, nivel, nome, corNome, corNivel = "#f3cf5a") {
   cx.save();
   cx.font = FONTE_PLACA; cx.textBaseline = "alphabetic"; cx.lineJoin = "round"; cx.lineWidth = 3; cx.strokeStyle = "rgba(0, 0, 0, 0.9)";
-  const lv = `Lv. ${nivel} `, wl = cx.measureText(lv).width, wn = cx.measureText(nome).width, x0 = X - (wl + wn) / 2;
+  const lv = `Lv. ${nivel} `, wl = largPlaca(lv), wn = largPlaca(nome), x0 = X - (wl + wn) / 2;
   cx.textAlign = "left";
   cx.strokeText(lv, x0, y); cx.fillStyle = corNivel; cx.fillText(lv, x0, y);
   cx.strokeText(nome, x0 + wl, y); cx.fillStyle = corNome; cx.fillText(nome, x0 + wl, y);
@@ -10805,9 +10890,11 @@ addEventListener("keydown", e => {
   if (e.key === "Escape" && ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) { e.target.blur(); fecharUltimaJanela(); return; }
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
   const k = e.key.toLowerCase();
+  // o atalho escondido do modo admin (Ctrl + Alt + Shift + A): liga e desliga, e fica lembrado neste navegador
+  if (k === "a" && e.ctrlKey && e.altKey && e.shiftKey) { e.preventDefault(); if (!e.repeat) avisar(modoAdmin(!ADMIN) ? "Modo admin ligado" : "Modo admin desligado"); return; }
   const iSlot = TECLAS_BARRA.indexOf(k);
   if (iSlot >= 0 && !editor.ativo) { e.preventDefault(); if (!e.repeat) usarSlot(iSlot); return; }
-  if (k === "o" && !e.repeat) { editorAbrir(!editor.ativo); return; }
+  if (k === "o" && !e.repeat && (ADMIN || editor.ativo)) { editorAbrir(!editor.ativo); return; }
   if (editor.ativo) {                                                // no editor, o teclado é só da câmera e da escolhida
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) { e.preventDefault(); editor.teclas.add(k); }
     if (k === "delete" || k === "backspace") { e.preventDefault(); editorApagar(); }
@@ -10817,7 +10904,7 @@ addEventListener("keydown", e => {
   if (k === "m" && !e.repeat) somAlternar();
   if (k === "y" && !e.repeat) contornoAlternar();
   if (k === "n" && !e.repeat) { somIniciar(); musicaAlternar(); }
-  if (k === "t" && !e.repeat) trocarClasse({ viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "guerreiro", guerreiro: "viking" }[classe]);
+  if (k === "t" && !e.repeat && ADMIN) trocarClasse({ viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "guerreiro", guerreiro: "viking" }[classe]);
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
   if (e.repeat && !["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"].includes(k)) return;
   if (!e.repeat && ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) limparPendentes(viking);   // ordem nova de movimento
@@ -10830,13 +10917,14 @@ addEventListener("keydown", e => {
   if (k === "x" && !e.repeat) usarPocaoMana();
   // Esc: cancela a mira, fecha a última janela, solta o alvo; sem nada disso, abre as opções
   if (k === "escape") { if (mira) mira = null; else if (!fecharUltimaJanela()) { if (selecao || (viking.alvo && viking.alvo.criatura)) soltarAlvo(); else abrirOpcoes(true); } }
-  if (k === "c" && !e.repeat) { verColisao = !verColisao; $("#colisao").setAttribute("aria-pressed", verColisao); }
+  if (k === "c" && !e.repeat && ADMIN) { verColisao = !verColisao; $("#colisao").setAttribute("aria-pressed", verColisao); }
   if (k === "i" && !e.repeat) abrirBolsa();
-  if (k === "g" && !e.repeat) abrirAdmin();
+  if (k === "g" && !e.repeat && ADMIN) abrirAdmin();
   if (k === "e") espada();
   if (k === "f") usarPorNome("Fúria");
   if (k === "v") usarPorNome("Vórtice");
   if (k === "l") usarPorNome("Lâmina Espiritual");
+  if (!ADMIN) return;                                               // (as teclas de teste das animações: só no admin)
   if (k === "h" && !viking.caido) { tocar("dano", true); }
   if (k === "k" && !viking.caido) { tocar("morte", true); viking.caido = true; viking.fila = null; }
   if (k === "r" && viking.caido) { viking.caido = false; tocar(viking.espada === "costas" ? "parado" : "parado_armado", false); }
@@ -11026,6 +11114,7 @@ function fecharMapaOriginal() {
 }
 
 function editorAbrir(sim) {
+  if (sim && !ADMIN) return;                                           // (o editor de mapa é do admin)
   editor.ativo = sim; editor.sel = null; editor.pondo = null; editor.arrasto = null; editor.teclas.clear();
   editor.foco = { x: cam.x - CAM_ACIMA[0], y: cam.y - CAM_ACIMA[1] };
   $("#editor").hidden = !sim; $("#bEditor").setAttribute("aria-pressed", sim);
@@ -12118,6 +12207,7 @@ function passo(dt) {
   passoGruposV1(dt);                                                   // (os grupos do Metin2 da Vila 1: corpos, órfãos e o renascer)
   passoProgresso(dt);
   passoPassagens(dt);
+  jornadaPasso(dt);
   const v = viking, a = M.animacoes;
   // intenção de andar
   let mx = 0, my = 0;
@@ -13779,20 +13869,26 @@ function desenharViking() {
     cx.strokeRect(X - info.px * z, Y - info.py * z, info.w * z, info.h * z); cx.setLineDash([]);
     cx.fillStyle = "#e0a84a"; cx.beginPath(); cx.arc(X, Y, 3, 0, 7); cx.fill();
   }
-  $("#eAnim").textContent = v.anim;
-  $("#eQuadro").textContent = (q + 1) + "/" + info.quadros;
-  $("#eDir").textContent = DIRS[v.dir];
-  $("#eEspada").textContent = v.espada === "armada" ? "na mão" : "nas costas";
-  $("#eAcertos").textContent = acertos;
-  $("#eMordidas").textContent = feridas;
+  if (ADMIN) chipsDepuracao(v, q, info);                              // (os chips de depuração: só no admin)
   atualizarVitais();
-  $("#ePesChip").hidden = pes.buff <= 0; $("#ePes").textContent = Math.ceil(pes.buff);
-  $("#eOlhoChip").hidden = olho.buff <= 0 || classe !== "feiticeiro"; $("#eOlho").textContent = Math.ceil(olho.buff);
-  $("#ePoderChip").hidden = poder.buff <= 0 || classe !== "feiticeiro"; $("#ePoder").textContent = Math.ceil(poder.buff);
-  $("#eFuriaChip").hidden = furia.buff <= 0; $("#eFuria").textContent = Math.ceil(furia.buff);
   atualizarBarra();
-  $("#eLaminaChip").hidden = espiritual.buff <= 0; $("#eLamina").textContent = Math.ceil(espiritual.buff);
 
+}
+
+// os chips do topo (só no modo admin): animação, quadro, direção, espada, acertos, feridas e os buffs. Os elementos ficam
+// guardados e cada texto só é escrito quando muda (escrever o mesmo texto todo quadro refazia o layout do topo)
+const CHIPS = {};
+function chipEl(id) { return CHIPS[id] || (CHIPS[id] = { el: document.getElementById(id), txt: null, vis: null }); }
+function chip(id, txt) { const c = chipEl(id); if (c.txt !== txt) { c.txt = txt; c.el.textContent = txt; } }
+function chipVisivel(id, sim) { const c = chipEl(id); if (c.vis !== sim) { c.vis = sim; c.el.hidden = !sim; } }
+function chipsDepuracao(v, q, info) {
+  chip("eAnim", v.anim); chip("eQuadro", (q + 1) + "/" + info.quadros); chip("eDir", DIRS[v.dir]);
+  chip("eEspada", v.espada === "armada" ? "na mão" : "nas costas"); chip("eAcertos", String(acertos)); chip("eMordidas", String(feridas));
+  chipVisivel("ePesChip", pes.buff > 0); chip("ePes", String(Math.ceil(pes.buff)));
+  chipVisivel("eOlhoChip", olho.buff > 0 && classe === "feiticeiro"); chip("eOlho", String(Math.ceil(olho.buff)));
+  chipVisivel("ePoderChip", poder.buff > 0 && classe === "feiticeiro"); chip("ePoder", String(Math.ceil(poder.buff)));
+  chipVisivel("eFuriaChip", furia.buff > 0); chip("eFuria", String(Math.ceil(furia.buff)));
+  chipVisivel("eLaminaChip", espiritual.buff > 0); chip("eLamina", String(Math.ceil(espiritual.buff)));
 }
 
 // ---------------------------------------------------------------- painel
@@ -13827,7 +13923,7 @@ function montarPainelResto() {
     if (d < 0) b.disabled = true; else b.onclick = () => { viking.dir = d; };
     rosa.appendChild(b);
   });
-  $("#velocidade").oninput = e => { veloc = +e.target.value; $("#velocidadeV").textContent = veloc.toFixed(2).replace(/\.?0+$/, "") + "×"; };
+  $("#velocidade").oninput = e => { veloc = +e.target.value; if (veloc !== 1) jornadaAdmin("mudou a velocidade do jogo"); $("#velocidadeV").textContent = veloc.toFixed(2).replace(/\.?0+$/, "") + "×"; };
   $("#pausar").onclick = e => { pausado = !pausado; e.target.setAttribute("aria-pressed", pausado); e.target.textContent = pausado ? "Continuar" : "Pausar"; };
   const passoQuadro = s => { pausado = true; $("#pausar").setAttribute("aria-pressed", true); $("#pausar").textContent = "Continuar"; const info = M.animacoes[viking.anim]; viking.t = Math.max(0, (quadroAtual() + s + 0.5) / info.fps); };
   $("#voltarQ").onclick = () => passoQuadro(-1);
@@ -13868,7 +13964,7 @@ function montarPainelResto() {
       $(grade).appendChild(b);
     });
   }
-  $("#lobosAtacam").onclick = e => { criaturasAtacam = !criaturasAtacam; e.target.setAttribute("aria-pressed", criaturasAtacam); };
+  $("#lobosAtacam").onclick = e => { criaturasAtacam = !criaturasAtacam; if (!criaturasAtacam) jornadaAdmin("criaturas sem atacar"); e.target.setAttribute("aria-pressed", criaturasAtacam); };
   $("#uivar").onclick = () => criaturas.forEach(l => { if (l.cfg.uiva && !l.morto) { l.manual = null; criaturaAcao(l, "uivar"); som("uivo", l); } });
   $("#soltarLobo").onclick = () => criaturas.forEach(l => { if (l.manual) { l.manual = null; criaturaAnim(l, "parado"); } });
   try { if (localStorage.getItem("livroFechado") === "1") $("#livro").open = false; } catch (e) {}
@@ -14265,9 +14361,10 @@ function entrarComClasse(c) {
   if (!salvo) {
     prog = progressoIniciante(c); recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
     nascerNaVila();
+    jornada = jornadaNova(true);                                       // (as Estatísticas da jornada começam do zero)
   }
   fecharSelecao(); salvarTravado = false;
-  salvarProgresso(); lembrarClasse(c);
+  salvarProgresso(); jornadaSalvar(); lembrarClasse(c);
   montarBarraSkills(); atualizarFicha(); desenharBolsa(); atualizarItensBarra(); desenharFerreiro();
   if (!salvo) {
     som("ui_aceitar", null, 0.8);
@@ -14357,6 +14454,163 @@ function mostrarPresente(kit) {
   clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, 5400);
 }
 
+// ---------------------------------------------------------------- Estatísticas da jornada (registro de sessão)
+// Para medir o PvM de um jogador comum, sem trapaça: cada personagem (jornada_<classe> no navegador, ao lado do
+// progresso_<classe>) guarda o tempo jogado (o tempo do jogo rodando: pausado, no Mapa do Mundo ou na escolha de classe
+// não conta), o XP ganho e o perdido ao cair, quanto tempo levou cada nível (do N para o N+1), as criaturas derrotadas
+// por nome e nível, as quedas do herói, as poções usadas e o yang e os itens que caíram e que ele pegou. Se o admin
+// criou item, ligou o "sem trava" ou mexeu na velocidade ou no ataque das criaturas neste personagem, o registro fica
+// marcado como "sessão com admin". O painel abre pelas opções (Esc) e pela ficha (P); "Copiar relatório" dá o texto.
+let jornada = null, jornadaSalvaEm = 0;
+function jornadaNova(novo = false) {
+  const n = prog ? prog.nivel : 1, e = prog ? prog.exp : 0;
+  return { v: 1, criada: Date.now(), novo, jogado: 0, xp: 0, xpPerdido: 0, nivelIni: n, expIni: e, entrouNivel: 0, parcial: !novo && (n > 1 || e > 0) ? n : 0,
+           niveis: {}, criaturas: {}, mortes: 0, pocoes: { vida: 0, mana: 0 }, yangCaiu: 0, yangPegou: 0, itensCaiu: {}, itensPegou: {}, admin: [] };
+}
+function jornadaCarregar() {
+  jornada = null;
+  try { jornada = JSON.parse(localStorage.getItem("jornada_" + classe)); } catch (e) {}
+  if (!jornada || jornada.v !== 1) jornada = jornadaNova();
+  jornadaSalvaEm = jornada.jogado;
+  if (prog && prog.semTrava) jornadaAdmin("sem trava ligado", true);
+  mostrarJornada();
+}
+function jornadaSalvar() {
+  if (!jornada || salvarTravado) return;
+  jornadaSalvaEm = jornada.jogado;
+  try { localStorage.setItem("jornada_" + classe, JSON.stringify(jornada)); } catch (e) {}
+}
+function jornadaZerar(novo = false) { jornada = jornadaNova(novo); if (prog && prog.semTrava) jornadaAdmin("sem trava ligado", true); jornadaSalvar(); mostrarJornada(); }
+function jornadaAdmin(motivo, semSalvar) {
+  if (!jornada) return;
+  if (!jornada.admin.includes(motivo)) { jornada.admin.push(motivo); if (jornada.admin.length > 20) jornada.admin.splice(1, 1); }
+  if (!semSalvar) jornadaSalvar();
+}
+function jornadaPasso(dt) {                                            // (do passo: só o tempo do jogo rodando)
+  if (!jornada || !prog) return;
+  jornada.jogado += dt;
+  if (jornada.jogado - jornadaSalvaEm > 10) jornadaSalvar();
+}
+function jornadaSubiu(n) {                                             // subiu para o nível n
+  if (!jornada) return;
+  jornada.niveis[n - 1] = Math.round((jornada.jogado - jornada.entrouNivel) * 10) / 10;
+  jornada.entrouNivel = jornada.jogado;
+}
+function jornadaCriatura(l) {
+  if (!jornada) return;
+  const k = `${l.cfg.nome || l.tipo}|${l.cfg.nivel || 1}`;
+  jornada.criaturas[k] = (jornada.criaturas[k] || 0) + 1;
+  jornadaSalvar();
+}
+function nomeJornada(d) {
+  if (d.tipo === "livro") return "Livro: " + d.nome;
+  if (d.tipo === "peca" || d.tipo === "arma" || d.tipo === "joia") return tipoItem(d.chave).nome.replace(/ \(.*\)$/, "") + (d.ref ? " +" + d.ref : "");
+  return NOME_ITEM[d.tipo] || (tipoItem(d.tipo) || {}).nome || d.tipo;
+}
+function jornadaCaiu(itens) {
+  if (!jornada) return;
+  for (const d of itens) {
+    if (d.tipo === "yang") jornada.yangCaiu += d.qtd || 0;
+    else { const n = nomeJornada(d); jornada.itensCaiu[n] = (jornada.itensCaiu[n] || 0) + (d.qtd || 1); }
+  }
+}
+function jornadaPegou(d, qtd) {
+  if (!jornada) return;
+  if (d.tipo === "yang") jornada.yangPegou += qtd;
+  else { const n = nomeJornada(d); jornada.itensPegou[n] = (jornada.itensPegou[n] || 0) + qtd; }
+}
+// as contas do painel e do relatório
+function jornadaContas() {
+  const j = jornada, h = j.jogado / 3600;
+  const feitos = Object.entries(j.niveis).filter(([n]) => +n !== j.parcial).map(([, t]) => t);
+  const mortas = Object.values(j.criaturas).reduce((a, b) => a + b, 0);
+  return { xpHora: h > 0 ? j.xp / h : 0, media: feitos.length ? feitos.reduce((a, b) => a + b, 0) / feitos.length : 0, feitos: feitos.length,
+           mortas, porMin: j.jogado > 0 ? mortas / (j.jogado / 60) : 0, nivelAgora: j.jogado - j.entrouNivel, limpa: !j.admin.length };
+}
+function tempoJornada(s) {
+  s = Math.max(0, Math.round(s));
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60;
+  return h ? `${h} h ${String(m).padStart(2, "0")} min` : m ? `${m} min ${String(ss).padStart(2, "0")} s` : `${ss} s`;
+}
+const numJ = n => Math.round(n).toLocaleString("pt-BR");
+function listaJornada(o) { return Object.entries(o).sort((a, b) => b[1] - a[1]); }
+function relatorioJornada() {
+  if (!jornada || !prog) return "";
+  const j = jornada, c = jornadaContas(), L = [];
+  const pct = EXP_NIVEL[prog.nivel] ? (100 * prog.exp / EXP_NIVEL[prog.nivel]).toFixed(1).replace(".", ",") : "100";
+  L.push("Ghotin2 · Estatísticas da jornada");
+  L.push(`Personagem: ${NOME_CLASSE[classe]}${prog.nome ? ` "${prog.nome}"` : ""} · Nv ${j.nivelIni} → Nv ${prog.nivel} (${pct}% do nível)`);
+  L.push(c.limpa ? "Sessão: LIMPA (sem admin)" : `Sessão: COM ADMIN (${j.admin.join("; ")})`);
+  L.push(`Registro desde ${new Date(j.criada).toLocaleString("pt-BR")}${j.novo ? " · personagem novo, do zero" : j.parcial ? ` · começou no meio do nível ${j.parcial}` : ""}`);
+  L.push(`Tempo jogado: ${tempoJornada(j.jogado)}`);
+  L.push(`XP ganho: ${numJ(j.xp)} · XP/hora: ${numJ(c.xpHora)}${j.xpPerdido ? ` · XP perdido ao cair: ${numJ(j.xpPerdido)}` : ""}`);
+  L.push(`Tempo médio por nível: ${c.feitos ? tempoJornada(c.media) + ` (${c.feitos} ${c.feitos > 1 ? "níveis completos" : "nível completo"})` : "ainda nenhum nível completo"}`);
+  L.push("Tempo em cada nível:");
+  for (const [n, t] of Object.entries(j.niveis).sort((a, b) => a[0] - b[0])) L.push(`  Nv ${n} → ${+n + 1}: ${tempoJornada(t)}${+n === j.parcial ? " (começou no meio)" : ""}`);
+  if (prog.nivel < NIVEL_MAX) L.push(`  Nv ${prog.nivel} → ${prog.nivel + 1}: ${tempoJornada(c.nivelAgora)} até agora (${pct}%)`);
+  L.push(`Criaturas derrotadas: ${numJ(c.mortas)} (${c.porMin.toFixed(1).replace(".", ",")} por minuto)`);
+  for (const [k, n] of listaJornada(j.criaturas)) { const [nome, nv] = k.split("|"); L.push(`  ${nome} Nv ${nv}: ${n}`); }
+  L.push(`Quedas do herói: ${j.mortes}`);
+  L.push(`Poções usadas: ${j.pocoes.vida} vermelhas, ${j.pocoes.mana} azuis`);
+  L.push(`Caiu no chão: ${numJ(j.yangCaiu)} Yang${Object.keys(j.itensCaiu).length ? "; " + listaJornada(j.itensCaiu).map(([n, q]) => `${n} ×${q}`).join(", ") : ""}`);
+  L.push(`Pegou: ${numJ(j.yangPegou)} Yang${Object.keys(j.itensPegou).length ? "; " + listaJornada(j.itensPegou).map(([n, q]) => `${n} ×${q}`).join(", ") : ""}`);
+  L.push(`Yang na bolsa agora: ${numJ(prog.yang || 0)}`);
+  return L.join("\n");
+}
+window.relatorioJornada = relatorioJornada;
+function abrirJornada(sim = $("#jornada").hidden) {
+  $("#jornada").hidden = !sim; janelaAbriu("jornada", sim);
+  if (sim) { $("#jorAviso").textContent = ""; mostrarJornada(); }
+}
+function mostrarJornada() {
+  const el = document.getElementById("jornada");
+  if (!el || el.hidden || !jornada || !prog) return;
+  const j = jornada, c = jornadaContas(), selo = $("#jorSelo");
+  selo.className = "jor-selo " + (c.limpa ? "limpa" : "admin");
+  selo.textContent = c.limpa ? "Sessão limpa: nada de admin neste personagem" : "Sessão com admin: " + j.admin.join("; ");
+  const cx = (k, v) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+  $("#jorResumo").innerHTML = cx("Tempo jogado", tempoJornada(j.jogado)) + cx("Nível", `${j.nivelIni} → ${prog.nivel}`) + cx("XP ganho", numJ(j.xp)) + cx("XP por hora", numJ(c.xpHora)) +
+    cx("Tempo médio por nível", c.feitos ? tempoJornada(c.media) : "—") + cx("Criaturas", `${numJ(c.mortas)} · ${c.porMin.toFixed(1).replace(".", ",")}/min`) +
+    cx("Quedas do herói", j.mortes) + cx("Poções usadas", `${j.pocoes.vida} vermelhas · ${j.pocoes.mana} azuis`);
+  const tab = (cab, linhas, vazio) => cab.map(t => `<span class="cab">${t}</span>`).join("") + (linhas.length ? linhas.map(l => l.map(x => `<span>${escH(String(x))}</span>`).join("")).join("") : `<span class="jor-vazio">${vazio}</span>`);
+  const nv = Object.entries(j.niveis).sort((a, b) => a[0] - b[0]).map(([n, t]) => [`Nv ${n} → ${+n + 1}${+n === j.parcial ? " (meio)" : ""}`, tempoJornada(t), (t / 60).toFixed(1).replace(".", ",") + " min"]);
+  if (prog.nivel < NIVEL_MAX) nv.push([`Nv ${prog.nivel} → ${prog.nivel + 1} (agora)`, tempoJornada(c.nivelAgora), EXP_NIVEL[prog.nivel] ? (100 * prog.exp / EXP_NIVEL[prog.nivel]).toFixed(0) + "%" : ""]);
+  $("#jorNiveis").innerHTML = tab(["Nível", "Tempo", ""], nv, "");
+  $("#jorCriaturas").innerHTML = tab(["Criatura", "Nível", "Qtd."], listaJornada(j.criaturas).map(([k, n]) => { const [nome, l] = k.split("|"); return [nome, l, n]; }), "Nenhuma ainda");
+  const dr = [["Yang", numJ(j.yangCaiu), numJ(j.yangPegou)], ...[...new Set([...Object.keys(j.itensCaiu), ...Object.keys(j.itensPegou)])].map(n => [n, j.itensCaiu[n] || 0, j.itensPegou[n] || 0])];
+  $("#jorDrops").innerHTML = tab(["Item", "Caiu", "Pegou"], dr, "");
+}
+function copiarJornada() {
+  const txt = relatorioJornada(), av = $("#jorAviso");
+  const ok = () => { av.textContent = "Relatório copiado: é só colar."; som("ui_aceitar", null, 0.6); };
+  const reserva = () => {
+    const t = document.createElement("textarea"); t.value = txt; t.setAttribute("readonly", ""); t.style.cssText = "position:fixed;left:-9999px;top:0";
+    document.body.appendChild(t); t.select(); let foi = false; try { foi = document.execCommand("copy"); } catch (e) {} t.remove();
+    if (foi) ok(); else av.textContent = "Não deu para copiar sozinho: o relatório está no console (F12).";
+    if (!foi) console.log(txt);
+  };
+  try { if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(ok, reserva); else reserva(); } catch (e) { reserva(); }
+}
+function montarJornada() {
+  $("#jorFechar").onclick = () => abrirJornada(false);
+  $("#jorCopiar").onclick = copiarJornada;
+  $("#oJornada").onclick = () => { abrirOpcoes(false); abrirJornada(true); };
+  $("#fJornada").onclick = () => abrirJornada();
+  let confirma = 0;
+  $("#jorZerar").onclick = e => {
+    if (performance.now() - confirma > 3000) { confirma = performance.now(); e.target.textContent = "Clique de novo para zerar"; return; }
+    confirma = 0; e.target.textContent = "Zerar a contagem"; jornadaZerar(false); $("#jorAviso").textContent = "Contagem zerada: começa de novo a partir de agora.";
+  };
+  setInterval(mostrarJornada, 1000);
+  addEventListener("pagehide", jornadaSalvar);
+  // o atalho escondido do admin no celular: sete toques seguidos nas coordenadas do minimapa
+  let toques = [];
+  $("#miniCoord").addEventListener("pointerdown", () => {
+    const t = performance.now(); toques = toques.filter(x => t - x < 3000); toques.push(t);
+    if (toques.length >= 7) { toques = []; avisar(modoAdmin(!ADMIN) ? "Modo admin ligado" : "Modo admin desligado"); }
+  });
+}
+
 // ---------------------------------------------------------------- laço
 function ajustar() {
   dpr = Math.min(devicePixelRatio || 1, 2);
@@ -14386,7 +14640,7 @@ if (SELECAO_NO_INICIO) abrirSelecao();                  // (antes de tudo: o mun
 carregar().then(() => {
   montarCenario(); carregarMapa(); montarCriaturas(); montarPainel(); montarEditor();
   carregarP3d();
-  prepararMana(); carregarProgresso(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarArmazem(); montarTempo(); montarFicha(); montarBolsa(); montarBarraSkills(); montarMinimapa(); montarMenu(); montarAdmin(); montarJanelas();
+  prepararMana(); carregarProgresso(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarArmazem(); montarTempo(); montarFicha(); montarBolsa(); montarBarraSkills(); montarMinimapa(); montarMenu(); montarAdmin(); montarJornada(); montarJanelas();
   fecharMapaOriginal();
   classeDoInicio();                                   // (a última classe jogada)
   PRED_CARREGANDO.then(montarPredios);              // (as construções em camadas, com ?predios=1)
@@ -18767,21 +19021,21 @@ return { get ativo() { return ativo(); }, get iso() { return iso; }, get fps() {
 <section class="mm" id="mapaMundo" hidden role="dialog" aria-modal="true" aria-label="Mapa do Mundo">
   <header class="mm-topo">
     <h2>Mapa do Mundo</h2>
-    <div class="mm-abas" role="tablist" aria-label="Editor">
+    <div class="mm-abas so-admin" role="tablist" aria-label="Editor">
       <button type="button" role="tab" data-aba="mobs" aria-selected="true">Mobs</button>
       <button type="button" role="tab" data-aba="mapa" aria-selected="false">Mapa</button>
     </div>
     <span class="mm-esp"></span>
-    <button type="button" id="mmEditar" aria-pressed="false" title="Mostrar o editor">Editar</button>
+    <button type="button" class="so-admin" id="mmEditar" aria-pressed="false" title="Mostrar o editor">Editar</button>
     <button type="button" id="mmVerTudo" title="Ver o mapa inteiro">Ver tudo</button>
-    <button type="button" id="mmExportar" title="Gravar o mapa como imagem PNG">Exportar imagem</button>
+    <button type="button" class="so-admin" id="mmExportar" title="Gravar o mapa como imagem PNG">Exportar imagem</button>
     <button type="button" id="mmFechar" title="Fechar (U ou Esc)">Fechar</button>
   </header>
   <div class="mm-corpo">
     <canvas id="mmTela" aria-label="O mapa inteiro visto de cima, com os mobs por nível"></canvas>
     <div class="mm-carregando" id="mmCarregando" hidden>Desenhando o mapa…</div>
     <div class="mm-info" id="mmInfo" hidden></div>
-    <aside class="mm-painel" id="mmPainel" hidden aria-label="Editor do mapa">
+    <aside class="mm-painel so-admin" id="mmPainel" hidden aria-label="Editor do mapa">
       <div data-painel="mobs">
         <p class="mm-dica">Clique num grupo para escolher; arraste para mover. Arrastar o chão (ou o botão direito) move o mapa; a rodinha dá zoom.</p>
         <div class="mm-linha"><select id="mmNovoTipo" aria-label="Tipo do grupo novo"></select><button type="button" id="mmNovoGrupo" aria-pressed="false">+ Grupo</button></div>
@@ -19415,7 +19669,8 @@ function abrir(sim = !est.aberto) {
     est.aberto = true; el.hidden = false;
     est.pausadoAntes = pausado; pausado = true; teclas.clear(); viking.alvo = null; viking.rota = null;
     montarListas();
-    if (!est.editando && innerWidth > 720) editar(true, false);
+    if (!est.editando && innerWidth > 720 && ADMIN) editar(true, false);
+    else if (est.editando && !ADMIN) editar(false, false);              // (o jogador comum só olha o mapa)
     // (o mapa em que o herói está: a Vila 1 com o vale e a montanha, ou a ilha de outro mapa; trocou, o chão é refeito)
     const mpM = mapaDe(viking.x, viking.y), lim = mpM === MAPAS.vila1 ? limV1()
       : { x0: mpM.ox - mpM.raio - 12, x1: mpM.ox + mpM.raio + 12, y0: mpM.oy - mpM.raio - 12, y1: mpM.oy + mpM.raio + 12 };
@@ -19443,6 +19698,7 @@ function aplicarNoJogo() {
   est.mudouMobs = est.mudouDeco = est.mudouTerreno = false;
 }
 function editar(sim = !est.editando, recentrar = true) {
+  if (sim && !ADMIN) sim = false;                                      // (sem o modo admin, o mapa não edita)
   est.editando = sim; $m("mmPainel").hidden = !sim; $m("mmEditar").setAttribute("aria-pressed", sim);
   if (!sim) { est.pondoGrupo = false; $m("mmNovoGrupo").setAttribute("aria-pressed", false); }
   ferramentaCursor(); est.sujo = true;
@@ -19799,7 +20055,7 @@ function ligar() {
     if (k === "escape") { e.preventDefault(); if (campo) e.target.blur(); else if (est.pondoGrupo) { est.pondoGrupo = false; $m("mmNovoGrupo").setAttribute("aria-pressed", false); ferramentaCursor(); } else abrir(false); return; }
     if (campo) return;
     if (k === "u" && !e.repeat) { e.preventDefault(); abrir(false); return; }
-    if (k === "delete" || k === "backspace") { e.preventDefault(); if (est.aba === "mobs") apagarMob(); else apagarDeco(); return; }
+    if (k === "delete" || k === "backspace") { e.preventDefault(); if (!est.editando || !ADMIN) return; if (est.aba === "mobs") apagarMob(); else apagarDeco(); return; }
     const passo = 40 / V.esc;
     if (["arrowleft", "a"].includes(k)) { V.cx -= passo; est.sujo = true; } else if (["arrowright", "d"].includes(k)) { V.cx += passo; est.sujo = true; }
     else if (["arrowup", "w"].includes(k)) { V.cy += passo; est.sujo = true; } else if (["arrowdown", "s"].includes(k)) { V.cy -= passo; est.sujo = true; }
