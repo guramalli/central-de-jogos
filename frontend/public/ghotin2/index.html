@@ -485,6 +485,7 @@
   .adm-bonus { display: grid; gap: 4px; }
   .adm-bonus .bon { display: grid; grid-template-columns: 1fr 58px 24px; gap: 4px; }
   .adm-bonus .bon button { padding: 0; }
+  .adm-joias .bon { grid-template-columns: 1fr 58px 0; }
   .adm-linha { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .adm-teste { display: flex; gap: 8px; align-items: center; font-size: 13px; }
   .adm-linha button { padding: 4px 9px; font-size: 12px; }
@@ -649,6 +650,31 @@
   :root:not(.semB) .dica-item { background: var(--b-fibra), linear-gradient(var(--b-papel), var(--b-papel2)); color: var(--b-nanquim); border: 2px solid var(--b-nanquim); border-radius: 2px; box-shadow: var(--b-moldura), 0 6px 14px rgba(12, 10, 8, 0.45); padding: 7px 10px; }
   :root:not(.semB) .dica-item strong { color: var(--b-cinabre); font-family: var(--pincel); font-size: 15px; }
   :root:not(.semB) .dica-item span[style] { color: var(--b-pinho) !important; font-weight: 600; }
+  /* a dica no formato do Metin2 (htmlDica), igual nos dois estilos: quadro escuro semitransparente, tudo centralizado, as
+     cores da pesquisa (Logs/Pesquisa/METIN2_ATRIBUTOS_JOIAS.md, C.2) e o azul-claro dos bônus do print */
+  html:root .dica-item.m2 { min-width: 190px; max-width: 300px; padding: 7px 10px 8px; text-align: center; color: #C2C2C2; background: rgba(8, 7, 6, 0.88);
+    border: 1px solid rgba(214, 190, 140, 0.55); border-radius: 3px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), 0 6px 16px rgba(0, 0, 0, 0.55);
+    font: 12px/17px Tahoma, Verdana, "Segoe UI", sans-serif; text-shadow: 0 1px 1px #000, 0 0 2px #000; }
+  html:root .dica-item.m2 .esp { height: 5px; }
+  html:root .dica-item.m2 .nome { color: #F2E7C1; font: bold 13px/18px Tahoma, Verdana, "Segoe UI", sans-serif; }
+  html:root .dica-item.m2 .nome.bonus { color: #FFC800; }
+  html:root .dica-item.m2 .preco { color: #FFC800; }
+  html:root .dica-item.m2 .nivel { color: #C2C2C2; }
+  html:root .dica-item.m2 .nivel.falta { color: #E67976; }
+  html:root .dica-item.m2 .atq { color: #FFFFFF; }
+  html:root .dica-item.m2 .fixo { color: #8AB98E; }
+  html:root .dica-item.m2 .bon { color: #A8D8F0; }
+  html:root .dica-item.m2 :is(.cls-t, .cls) { color: #C2C2C2; }
+  html:root .dica-item.m2 .cinza { color: #A9A39A; font-size: 11px; line-height: 15px; }
+  html:root .dica-item.m2 .desc { color: #BEB47D; font-size: 11px; line-height: 15px; }
+  html:root .dica-item.m2 .buraco { display: grid; grid-template-columns: 32px 1fr; gap: 6px; align-items: center; text-align: left; margin: 3px 0 0; min-height: 34px; }
+  html:root .dica-item.m2 .buraco canvas { width: 32px; height: 32px; }
+  html:root .dica-item.m2 .buraco .jn { color: #E8E0CC; }
+  html:root .dica-item.m2 .buraco .je { color: #8AB98E; }
+  html:root .dica-item.m2 .buraco.vazio :is(.jn, .je) { color: #8A857C; }
+  html:root .dica-item.m2 .buraco.partida .jn { color: #A9A39A; } html:root .dica-item.m2 .buraco.partida .je { color: #E67976; }
+  html:root .dica-item.m2.nao, html:root .dica-item.m2.nao * { color: #E67976 !important; }   /* o personagem não pode usar */
+  :root:not(.semB) .dica-item.m2 .nome { font-family: var(--pincel), Tahoma, sans-serif; font-weight: 400; font-size: 16px; line-height: 20px; }
 
   /* ---- ficha (P), como a janela do personagem do Metin2: Status | Skills | Ações | Quests, com as abas embaixo.
      Primeiro a forma (vale também no tema antigo, .semB), depois as cores do estilo B */
@@ -1182,6 +1208,10 @@
   <div id="admBonusCaixa" class="adm-bonus">
     <div class="adm-linha"><span class="nota">Bônus</span><button type="button" id="admBonMais">+ bônus</button><button type="button" id="admBonSortear">Sortear</button><button type="button" id="admBonLimpar">Limpar</button></div>
     <div class="adm-bonus" id="admBonus"></div>
+  </div>
+  <div id="admJoiasCaixa" class="adm-bonus" hidden>
+    <div class="adm-linha"><span class="nota">Jóias nos buracos</span><button type="button" id="admJoiasCheio">Todas +4</button><button type="button" id="admJoiasLimpar">Esvaziar</button></div>
+    <div class="adm-bonus adm-joias" id="admJoias"></div>
   </div>
   <button class="grande" id="admCriar">Criar</button>
   <p class="ref-resultado" id="admResultado" role="status" hidden></p>
@@ -5233,7 +5263,7 @@ function montarBarraSkills() {
     const tecla = ROTULO_TECLA(t0);
     const sk = skillDoSlot(i), b = document.createElement("button");
     b.className = "slot" + (sk ? "" : " vazio"); b.type = "button"; b.dataset.slot = i;
-    if (sk) { const nm = sk.rotulo || sk.nome; b.title = `${nm} (${tecla})${sk.mana ? ` · ${sk.mana} de mana` : ""}: arraste para trocar de lugar${sk.item ? " ou para fora para tirar" : ""}`; b.setAttribute("aria-label", `${nm}, tecla ${tecla}`); b.style.setProperty("--brilho", sk.cor); }
+    if (sk) { const nm = sk.rotulo || sk.nome; b.title = sk.item ? "" : `${nm} (${tecla})${sk.mana ? ` · ${sk.mana} de mana` : ""}: arraste para trocar de lugar${sk.item ? " ou para fora para tirar" : ""}`; b.setAttribute("aria-label", `${nm}, tecla ${tecla}`); b.style.setProperty("--brilho", sk.cor); }
     else { b.title = "Espaço livre: arraste uma skill para cá"; b.setAttribute("aria-label", `Espaço livre, tecla ${tecla}`); }
     const c = document.createElement("canvas"); c.width = c.height = 56; b.appendChild(c);
     if (sk && ICONES_SKILL[sk.nome]) { const g = c.getContext("2d"); g.imageSmoothingQuality = "high"; g.drawImage(ICONES_SKILL[sk.nome], 0, 0, 56, 56); }
@@ -5262,6 +5292,12 @@ function prepararArrastoBarra() {
   const barra = $("#barraSkills");
   const slotEm = (x, y) => { const el = document.elementFromPoint(x, y), b = el && el.closest && el.closest(".slot"); return b && b.parentElement === barra ? b : null; };
   const limpar = () => { const a = arrastoSlot; arrastoSlot = null; if (a && a.fantasma) a.fantasma.remove(); barra.querySelectorAll(".sobre").forEach(b => b.classList.remove("sobre")); };
+  // o item da barra (poção...): a dica do Metin2 dele
+  barra.addEventListener("pointermove", e => {
+    const b = !arrastoSlot && e.target.closest(".slot"), sk = b && skillDoSlot(+b.dataset.slot);
+    mostrarDica(sk && sk.item ? { chave: sk.chave, qtd: contarItem(sk.chave) } : null, e.clientX, e.clientY);
+  });
+  barra.addEventListener("pointerleave", () => mostrarDica(null));
   barra.addEventListener("pointerdown", e => {
     const b = e.target.closest(".slot");
     if (!b || !skillDoSlot(+b.dataset.slot) || e.button > 0) return;
@@ -5477,6 +5513,13 @@ const NOVAS = {
     vAndar: 1.74, vCorrer: 4.35, alvoZ: 1.6, somAcerto: "mordida",                // (o glb: ~3,2 m de altura, anda a 1,74 m/s e corre a 4,35)
     reserva: { base: ["lobo"], esc: 2.0, filtro2d: "sepia(0.35) saturate(0.7) brightness(1.75)", tinta: "#fff2d8" } },
 };
+// a raça de cada criatura (as Jóias contra raça; a placa do alvo): as variantes herdam a da base (o orc e o dokkaebi
+// feitos sobre o goblin dizem a deles); as pedras Metin são "pedra"
+const RACA_TIPO = { lobo: "animal", javali: "animal", rato: "animal", aranha: "animal", urso_negro: "animal", tigre: "animal", lobo_alfa: "animal", escorpiao: "animal", yeti: "animal",
+  esqueleto: "morto_vivo", zumbi: "morto_vivo", fantasma: "morto_vivo", lich: "morto_vivo",
+  orc: "orc", orc_bravo: "orc", orc_feiticeiro: "orc", goblin: "humano", bandido: "humano", bandido_arqueiro: "humano", chefe_bandido: "humano",
+  golem: "pedra", nove_caudas: "demonio" };
+for (const [t, r] of Object.entries(RACA_TIPO)) { if (TIPOS[t]) TIPOS[t].raca = r; if (NOVAS[t]) NOVAS[t].raca = r; }
 for (const [t, c] of Object.entries(NOVAS)) TIPOS[t] = { ...c, so3d: true, M: null, spr: {} };
 // a reserva (sem o glb): a variante da base que existir, com o ataque, as animações e o tamanho dela
 function reservaNova(t) {
@@ -5559,10 +5602,19 @@ function prepararMana() {
   }
 }
 // a mana sai quando a skill sai de verdade (a recarga dela começa): vale para as teclas F, V, L e para as de mira
+// o objeto que guarda a recarga de cada skill (para a Jóia do Resfriamento encurtar a recarga quando a skill sai)
+function objRecarga(nome) {
+  return ({ "Fúria": furia, "Vórtice": vortice, "Lâmina Espiritual": espiritual, "Corte Triplo": triplo, "Investida": investida, "Flecha Venenosa": venenosa, "Flecha de Fogo": certeiro,
+    "Tiro Concentrado": concentrado, "Chuva de Flechas": chuva, "Passos Leves": pes, "Relâmpago": relampago, "Chuva de Meteoros": meteoros, "Olho Arcano": olho, "Poder Arcano": poder,
+    "Erupção Arcana": erupcao, "Punhalada Surpresa": NINJA.punhalada, "Acrobacia": NINJA.acrobacia, "Avanço Ágil": NINJA.avanco, "Veneno de Serpente": NINJA.veneno, "Esconder": NINJA.esconder })[nome] || null;
+}
 function cobrarMana() {
   for (const sk of SKILLS) {
-    const r = sk.estado()[0];
-    if (sk.recAntes !== undefined && r > sk.recAntes + 0.5 && sk.mana) viking.mana = Math.max(0, viking.mana - sk.mana);
+    let r = sk.estado()[0];
+    if (sk.recAntes !== undefined && r > sk.recAntes + 0.5) {
+      if (sk.mana) viking.mana = Math.max(0, viking.mana - sk.mana);
+      if (status.resfriamento > 0) { const o = objRecarga(sk.nome); if (o && typeof o.recarga === "number") { o.recarga = r * (1 - status.resfriamento); r = o.recarga; } }   // (a Jóia do Resfriamento)
+    }
     sk.recAntes = r;
   }
 }
@@ -5647,15 +5699,18 @@ function salvarProgresso() { try { if (prog) localStorage.setItem("progresso_" +
 function recalcularStatus() {
   const b = somaBonus(), a = { ...prog.atrib }, ini = ATRIB_INICIAL[classe], pr = ATRIB_PRINCIPAL[classe], n = prog.nivel;
   for (const k of ORDEM_ATRIB) a[k] += b[k] || 0;                       // os bônus de atributo valem como pontos
-  const eq = somaEquip();
-  status.vidaMax = Math.round(300 + a.vit * 40 + (n - 1) * 30) + eq.vida + (b.vida || 0);
-  status.manaMax = Math.round(100 + a.int * 20 + (n - 1) * 12) + eq.mana + (b.mana || 0);
-  status.velEquip = 1 + (eq.vel + (b.velocidade || 0)) / 100; status.bloqueio = (eq.bloqueio + (b.bloqueio || 0)) / 100;
+  const eq = somaEquip(), j = somaJoias();                             // (j: as Jóias encaixadas na arma e na roupa)
+  status.vidaMax = Math.round(300 + a.vit * 40 + (n - 1) * 30) + eq.vida + (b.vida || 0) + (j.vitalidade || 0);
+  status.manaMax = Math.round(100 + a.int * 20 + (n - 1) * 12) + eq.mana + (b.mana || 0) + (j.magia || 0);
+  status.velEquip = 1 + (eq.vel + (b.velocidade || 0) + (j.aceleracao || 0)) / 100; status.bloqueio = (eq.bloqueio + (b.bloqueio || 0)) / 100;
+  status.evasao = (j.evasao || 0) / 100; status.esquiva = (j.esquiva || 0) / 100;          // (o golpe corpo a corpo / o de longe e a magia)
+  status.perfurante = (j.perfurante || 0) / 100; status.resfriamento = (j.resfriamento || 0) / 100;
+  status.raca = { morto_vivo: (j.morto_vivo || 0) / 100, animal: (j.animal || 0) / 100, orc: (j.orc || 0) / 100 };
   if (viking.mana === undefined || viking.mana > status.manaMax) viking.mana = status.manaMax;
   status.ataque = (1 + 0.04 * (a[pr] - ini[pr]) + (pr !== "for" ? 0.015 * (a.for - ini.for) : 0) + 0.025 * (n - 1)) * bonusArma(prog.arma ? prog.arma.ref : null, prog.arma && prog.arma.tier) * (1 + (b.ataque || 0) / 100) * (FATOR_CLASSE[classe] || 1);
-  status.critico = 0.02 + a.dex * 0.006 + (b.critico || 0) / 100;
-  status.monstros = (b.monstros || 0) / 100;
-  status.defesa = a.vit * 4 + n * 2 + eq.defesa + (b.defesa || 0);
+  status.critico = 0.02 + a.dex * 0.006 + ((b.critico || 0) + (j.critico || 0)) / 100;
+  status.monstros = ((b.monstros || 0) + (j.monstros || 0)) / 100;
+  status.defesa = a.vit * 4 + n * 2 + eq.defesa + (b.defesa || 0) + (j.defesa || 0);
   viking.vidaMax = status.vidaMax;
   if (viking.vida === undefined || viking.vida > status.vidaMax) viking.vida = status.vidaMax;
 }
@@ -5739,6 +5794,9 @@ function golpeNoPersonagem(l) {
     numeros.push({ wx: viking.x, wy: viking.y, y: -150, vida: 0.9, txt: "Bloqueou!", contra: true }); som("metal", viking, 0.8);
     return false;
   }
+  // as Jóias da Evasão (o golpe corpo a corpo) e da Esquiva (a flecha e a magia, as criaturas "magia")
+  const ev = l.cfg.magia ? status.esquiva : status.evasao;
+  if (ev > 0 && Math.random() < ev) { numeros.push({ wx: viking.x, wy: viking.y, y: -150, vida: 0.9, txt: l.cfg.magia ? "Esquivou!" : "Bloqueou!", contra: true }); som(l.cfg.magia ? "estalo" : "metal", viking, 0.6); return false; }
   const base = (l.cfg.dano || 15) * (l.furiaChefe ? 1.3 : 1) * (0.85 + Math.random() * 0.3), dano = Math.max(1, Math.round(base * 100 / (100 + status.defesa)));
   viking.vida -= dano; viking.semDano = 0;
   numeros.push({ wx: viking.x, wy: viking.y, y: -150, vida: 0.9, txt: "−" + dano, contra: true });
@@ -5837,7 +5895,7 @@ function criarMetins(soMapa = "vila1") {
       im = document.createElement("canvas"); im.width = w; im.height = h; im.getContext("2d").drawImage(imp, 0, 0, w, h);
       info = { quadros: 1, fps: 1, laco: true, acerto: -1, w, h, px: Math.round(pintada.px * k), py: Math.round(pintada.py * k) };
     }
-    TIPOS[m.tipo] = { nome: m.nome, nivel: m.nivel, altura: 120, material: "osso", vida: m.vida, defesa: m.defesa, visao: 0, perto: 0.5, alcance: 0, ataque: "parado",
+    TIPOS[m.tipo] = { nome: m.nome, nivel: m.nivel, raca: "pedra", altura: 120, material: "osso", vida: m.vida, defesa: m.defesa, visao: 0, perto: 0.5, alcance: 0, ataque: "parado",
       galope: 0, chega: 0, passeio: 0, renasce: 60, sombra: 0.7, barra: info.py + 20, anel: 0.95, raio: 0.6, estatico: true, cor: m.cor, horda: m.horda, regioes: m.regioes,
       M: { animacoes: { parado: info, dano: { ...info, laco: false }, morte: { ...info, laco: false } } },
       spr: { parado: Array(8).fill(im), dano: Array(8).fill(im), morte: Array(8).fill(im) } };
@@ -5912,6 +5970,7 @@ function metinQuebrou(l) {
   if (Math.random() < 0.2) itens.push({ tipo: "bencao" });
   if (Math.random() < 0.5) itens.push(pecaDoNivel(l.cfg.nivel));
   if (Math.random() < 0.08) itens.push(armaDoNivel(l.cfg.nivel, bonusDeDrop("arma", 2)));   // (às vezes a arma do nível dela)
+  itens.push(...joiasDaMetin(l.cfg.nivel));                         // (as Jóias: das Metins do 25 em diante, JOIAS_METIN)
   soltarItens(l, itens);
   l.toca =(([x, y]) => ({ x, y }))(lugarMetin(l.cfg));               // volta em outro lugar da região
   l.defensores = false; l.ondasHorda = 0;                            // ao renascer, chama defensores e hordas de novo
@@ -6038,6 +6097,7 @@ function dropsChefe(l) {
   if (Math.random() < 0.6) itens.push({ tipo: "bencao" });
   if (Math.random() < 0.5) itens.push(pecaDeChefe(n));
   if (Math.random() < 0.35) itens.push(armaDoNivel(n, bonusChefe("arma", 2)));
+  itens.push(...joiasDoChefe(l));                                    // (as Jóias: do Lobo Alfa em diante; +3/+4 no Nove Caudas e no Chefe Orc)
   return itens;
 }
 // o golpe de uma mecânica: o do chefe, mult vezes mais forte (na fúria, golpeNoPersonagem soma os 30%)
@@ -6244,7 +6304,7 @@ window.chefesEstado = () => criaturas.filter(c => defChefe(c)).map(c => ({ tipo:
 // ---------------------------------------------------------------- itens no chão
 // O que cai (livros, poções, yang, Pedra Espiritual) fica no chão 90 s brilhando; chegando perto, o personagem pega.
 const drops = [];
-const NOME_ITEM = { pocaoMana: "Poção Azul", pocao: "Poção Vermelha", yang: "Yang", pedra: "Pedra Espiritual", bencao: "Pergaminho da Bênção", alma: "Pedra da Alma", encantar: "Objeto Encantado", mudar: "Mudar Bônus" };
+const NOME_ITEM = { pocaoMana: "Poção Azul", pocao: "Poção Vermelha", yang: "Yang", pedra: "Pedra Espiritual", bencao: "Pergaminho da Bênção", alma: "Pedra da Alma", encantar: "Objeto Encantado", mudar: "Mudar Bônus", correcao: "Pergaminho da Correção" };
 // ---------------------------------------------------------------- minimapa
 // Redondo, no canto de cima à direita, visto de cima (norte para cima, como a tela): o chão da ilha (mar, praia, campo,
 // mata, trilhas, lago e praça) é pintado uma vez numa imagem; a cada 0,1 s o pedaço em volta do personagem vai para o
@@ -6493,6 +6553,7 @@ const REFINO = [                       // de +n para +n+1
 const ARMA_NOVA = 300, REF_MAX = 9;
 // o refino dos modelos acima do nível 14 custa mais yang (×1,5 no 22 até ×4 no 62; as pedras não mudam)
 function custoRefino(a) {
+  if (a.joia) return { chance: 0.3, yang: 150000, pedra: 1 };       // (a Jóia +3 → +4)
   const r = REFINO[a.ref], req = a.arma ? NIVEIS_ARMA[a.tier || 0] : (PECAS[a.slot] ? PECAS[a.slot].modelos[a.tier || 0][1] : 1), k = 1 + Math.max(0, req - 14) / 16;
   return k === 1 ? r : { ...r, yang: Math.round(r.yang * k / 50) * 50 };
 }
@@ -6501,14 +6562,21 @@ let ferEscolha = "arma";                // "arma", "eq:<parte>" ou o item da bol
 function pecasDoFerreiro() {
   if (!prog) return [];
   const l = [];
-  if (prog.arma) l.push({ id: "arma", rotulo: `Arma +${prog.arma.ref}`, ref: prog.arma.ref, arma: true, tier: prog.arma.tier || 0, nome: r => nomeArma(r), icone: (g, r) => iconeArma(g, ARMAS[classe].desenho, 40, 120, r, prog.arma.tier), mudar: r => { prog.arma = r === null ? null : { ...prog.arma, ref: r }; } });
+  if (prog.arma) l.push({ id: "arma", rotulo: `Arma +${prog.arma.ref}`, ref: prog.arma.ref, arma: true, tier: prog.arma.tier || 0, nome: r => nomeArma(r), icone: (g, r) => iconeArma(g, ARMAS[classe].desenho, 40, 120, r, prog.arma.tier), mudar: r => { prog.arma = r === null ? null : { ...prog.arma, ref: r, jo: semPartidas(prog.arma.jo) }; },
+                          dica: () => prog.arma && { chave: chaveArma(classe, prog.arma.tier), ref: prog.arma.ref, bon: prog.arma.bon || [], jo: prog.arma.jo } });
   for (const slot of ORDEM_PECAS) { const e = prog.equip && prog.equip[slot], pc = pecaEquipada(slot); if (!e) continue;
-    l.push({ id: "eq:" + slot, rotulo: `${PECAS[pc].nome} +${e.ref}`, ref: e.ref, slot: pc, tier: e.tier, nome: r => nomePeca(pc, e.tier, r), icone: g => iconePeca(g, pc, e.tier, 40, PECAS[pc].h * 40), mudar: r => { prog.equip[slot] = r === null ? null : { ...e, ref: r }; } }); }
+    l.push({ id: "eq:" + slot, rotulo: `${PECAS[pc].nome} +${e.ref}`, ref: e.ref, slot: pc, tier: e.tier, nome: r => nomePeca(pc, e.tier, r), icone: g => iconePeca(g, pc, e.tier, 40, PECAS[pc].h * 40), mudar: r => { prog.equip[slot] = r === null ? null : { ...e, ref: r, jo: semPartidas(e.jo) }; },
+              dica: () => prog.equip[slot] && { chave: chaveDoEquip(slot), ref: prog.equip[slot].ref, bon: prog.equip[slot].bon || [], jo: prog.equip[slot].jo } }); }
   for (const it of prog.inv) { const t = tipoItem(it.chave); if (!t.arma && !t.peca) continue;
     const dona = t.arma ? armaDaChave(it.chave).classe : null;
     l.push({ id: it, rotulo: `Bolsa: ${t.peca ? PECAS[t.peca].nome : "arma"} +${it.ref || 0}`, ref: it.ref || 0, arma: t.arma, slot: t.peca, tier: t.tier,
              nome: r => t.arma ? nomeArma(r, t.tier, dona) : nomePeca(t.peca, t.tier, r), icone: (g, r) => t.arma ? iconeArma(g, ARMAS[dona].desenho, 40, 120, r, t.tier) : iconePeca(g, t.peca, t.tier, 40, PECAS[t.peca].h * 40),
-             mudar: r => { if (r === null) prog.inv.splice(prog.inv.indexOf(it), 1); else it.ref = r; } }); }
+             mudar: r => { if (r === null) prog.inv.splice(prog.inv.indexOf(it), 1); else { it.ref = r; it.jo = semPartidas(it.jo); } }, dica: () => it }); }
+  // as Jóias +3: o Ferreiro sobe para +4 (150 mil yang, 1 Pedra Espiritual, 30%; na falha a Jóia some, ou fica +3 com a bênção)
+  for (const it of prog.inv) { const t = tipoItem(it.chave); if (!t.joia || t.joia.grau !== 3) continue;
+    const tipo = t.joia.tipo;
+    l.push({ id: it, joia: true, rotulo: `Jóia: ${JOIAS[tipo].nome.replace(/^Jóia /, "")} +3`, ref: 3, nome: r => nomeJoia(tipo, r), icone: (g, r) => { g.save(); g.translate(0, 40); iconeItem(g, `joia:${tipo}:${r}`, 40, 40); g.restore(); },
+             mudar: r => { if (r === 3) return; removerItem(it.chave, 1); if (r === 4) adicionarItem(`joia:${tipo}:4`, 1); }, dica: () => ({ chave: it.chave, qtd: 1 }) }); }
   return l;
 }
 function abrirFerreiro(sim = $("#ferreiro").hidden) {
@@ -6517,7 +6585,7 @@ function abrirFerreiro(sim = $("#ferreiro").hidden) {
 }
 function pecaEscolhida() { const l = pecasDoFerreiro(); return l.find(p => p.id === ferEscolha) || null; }
 // o que melhora com o refino: ataque da arma ou defesa da peça
-function efeitoRef(p, r) { return p.arma ? `ataque +${Math.round((bonusArma(r, p.tier) - 1) * 100)}%` : `defesa +${atribPeca(p.slot, p.tier, r).defesa}`; }
+function efeitoRef(p, r) { if (p.joia) return efeitoJoia(tipoItem(p.id.chave).joia.tipo, r).replace(/^.*: /, "efeito "); return p.arma ? `ataque +${Math.round((bonusArma(r, p.tier) - 1) * 100)}%` : `defesa +${atribPeca(p.slot, p.tier, r).defesa}`; }
 function desenharFerreiro() {
   if (!prog || $("#ferreiro").hidden) return;
   const l = pecasDoFerreiro();
@@ -6534,18 +6602,18 @@ function desenharFerreiro() {
   }
   a.icone(g, a.ref);
   $("#ferNome").textContent = a.nome(a.ref);
-  if (a.ref >= REF_MAX) {
+  if (a.ref >= (a.joia ? JOIA_GRAU_MAX : REF_MAX)) {
     $("#ferDe").textContent = "No máximo (+9): não dá para melhorar mais.";
     $("#ferCusto").innerHTML = ""; $("#ferMelhorar").disabled = true; $("#ferBencaoLinha").hidden = true;
     return;
   }
   const r = custoRefino(a), temP = contarItem("pedra"), temB = contarItem("bencao");
-  $("#ferDe").innerHTML = `<span class="seta">+${a.ref} → </span><b>+${a.ref + 1}</b> · ${efeitoRef(a, a.ref)} → ${efeitoRef(a, a.ref + 1).replace(/^\D+/, "+")}`;
+  $("#ferDe").innerHTML = `<span class="seta">+${a.ref} → </span><b>+${a.ref + 1}</b> · ${efeitoRef(a, a.ref)} → ${efeitoRef(a, a.ref + 1).replace(/^[a-zçã ]+/i, "")}`;
   const linha = (nome, preciso, tenho, txt) => `<span>${nome}</span><b class="${tenho >= preciso ? "ok" : "falta"}">${txt}</b>`;
   $("#ferCusto").innerHTML = `<span>Chance de sucesso</span><b>${Math.round(r.chance * 100)}%</b>` +
     linha("Yang", r.yang, prog.yang, `${r.yang.toLocaleString("pt-BR")} (tem ${prog.yang.toLocaleString("pt-BR")})`) +
     (r.pedra ? linha("Pedra Espiritual", r.pedra, temP, `${r.pedra} (tem ${temP})`) : "") +
-    `<span>Se falhar</span><b class="falta">${$("#ferBencao").checked && temB ? `volta para +${Math.max(0, a.ref - 1)}` : `${a.arma ? "a arma" : "a peça"} quebra`}</b>`;
+    `<span>Se falhar</span><b class="falta">${a.joia ? ($("#ferBencao").checked && temB ? "a Jóia fica +3" : "a Jóia some") : $("#ferBencao").checked && temB ? `volta para +${Math.max(0, a.ref - 1)}` : `${a.arma ? "a arma" : "a peça"} quebra`}</b>`;
   $("#ferBencaoLinha").hidden = false;
   $("#ferBencao").disabled = !temB; if (!temB) $("#ferBencao").checked = false;
   $("#ferBencaoTxt").textContent = `Usar Pergaminho da Bênção (tem ${temB})`;
@@ -6553,17 +6621,17 @@ function desenharFerreiro() {
 }
 // o refino: cobra, sorteia e conta o resultado (sucesso: +1; falha: quebra, ou −1 com a bênção)
 function refinar() {
-  const a = pecaEscolhida(); if (!a || a.ref >= REF_MAX) return;
+  const a = pecaEscolhida(); if (!a || a.ref >= (a.joia ? JOIA_GRAU_MAX : REF_MAX)) return;
   const r = custoRefino(a), bencao = $("#ferBencao").checked && contarItem("bencao") > 0;
   if (prog.yang < r.yang || contarItem("pedra") < (r.pedra || 0)) return;
   prog.yang -= r.yang; if (r.pedra) removerItem("pedra", r.pedra); if (bencao) removerItem("bencao", 1);
   const deu = Math.random() < r.chance, antes = a.ref, nomeAntes = a.nome(antes);
-  const novo = deu ? antes + 1 : bencao ? Math.max(0, antes - 1) : null;
+  const novo = deu ? antes + 1 : bencao ? (a.joia ? antes : Math.max(0, antes - 1)) : null;
   a.mudar(novo);
-  if (novo === null) { const l = pecasDoFerreiro(); ferEscolha = l.length ? l[0].id : "arma"; }
+  if (novo === null || !pecasDoFerreiro().some(p => p.id === ferEscolha)) { const l = pecasDoFerreiro(); ferEscolha = l.length ? l[0].id : "arma"; }
   const res = $("#ferResultado");
   res.hidden = false; res.className = "ref-resultado " + (deu ? "sucesso" : "falhou");
-  res.textContent = deu ? `Sucesso! ${a.nome(novo)}` : novo === null ? `Falhou... ${nomeAntes} quebrou.` : `Falhou, mas a bênção salvou: voltou para +${novo}.`;
+  res.textContent = deu ? `Sucesso! ${a.nome(novo)}` : novo === null ? `Falhou... ${nomeAntes} ${a.joia ? "se desfez" : "quebrou"}.` : `Falhou, mas a bênção salvou: ${a.joia ? "a Jóia ficou +3" : `voltou para +${novo}`}.`;
   $("#ferFala").textContent = deu ? `"Ficou uma beleza. ${novo >= 7 ? "Poucos têm uma peça assim!" : "Volte quando quiser mais."}"` : novo === null ? `"Que azar... o metal não aguentou."` : `"Por pouco! A bênção segurou o metal."`;
   ferreiroMartela(deu); som("moeda", null, 0.6);
   setTimeout(() => som(deu ? "ui_aceitar" : "refino_falha", null, 1), 450);   // o resultado, depois das marteladas
@@ -6582,6 +6650,8 @@ function montarFerreiro() {
   $("#ferMelhorar").onclick = refinar;
   $("#ferComprar").onclick = comprarArma;
   $("#ferBencao").onchange = desenharFerreiro;
+  $("#ferIcone").addEventListener("pointermove", e => { const a = pecaEscolhida(); mostrarDica(a && a.dica ? a.dica() : null, e.clientX, e.clientY); });   // (a dica do Metin2)
+  $("#ferIcone").addEventListener("pointerleave", () => mostrarDica(null));
   $("#ferArmas").onclick = e => {
     const b = e.target.closest("[data-fer]"); if (!b) return;
     const p = pecasDoFerreiro()[+b.dataset.fer]; if (p) ferEscolha = p.id;
@@ -6806,6 +6876,8 @@ function montarNpcs() {
   setInterval(atualizarMissao, 700);                                 // (o objetivo embaixo do minimapa)
   $("#npcFechar").onclick = () => abrirNpc(null);
   $("#npcMais").onclick = () => { if (!npcAberto) return; npcAberto.fala = (npcAberto.fala + 1) % npcAberto.dados.falas.length; desenharNpc(); };
+  $("#npcLoja").addEventListener("pointermove", e => { const l = e.target.closest(".item-loja"); mostrarDica(l && l._item, e.clientX, e.clientY, l ? { preco: l._preco } : undefined); });
+  $("#npcLoja").addEventListener("pointerleave", () => mostrarDica(null));
   $("#npcLoja").onclick = e => {
     const b = e.target.closest("[data-compra]"); if (!b || !npcAberto) return;
     const [chave, preco] = npcAberto.dados.loja[+b.dataset.compra], res = $("#npcResultado");
@@ -6837,6 +6909,7 @@ function desenharNpc() {
     const pr = document.createElement("span"); pr.className = "preco"; pr.textContent = preco.toLocaleString("pt-BR") + " Yang";
     const b = document.createElement("button"); b.textContent = "Comprar"; b.dataset.compra = k; b.disabled = prog.yang < preco;
     linha.append(c, nome, pr, b); loja.appendChild(linha);
+    linha._item = { chave, ref: 0, bon: [], qtd: 1 }; linha._preco = preco;          // (a dica do Metin2, com o preço no topo)
   }
   $("#npcMais").hidden = n.falas.length < 2;
   missaoNaConversa(o);                              // (a missão: a fala dela e o quadro com o objetivo e o botão)
@@ -7076,6 +7149,8 @@ function montarArmazem() {
   const grade = $("#gradeArm");
   grade.addEventListener("contextmenu", e => { e.preventDefault(); const b = e.target.closest(".item-inv"); if (b) retirarDoArmazem(b._item); });
   grade.addEventListener("dblclick", e => { const b = e.target.closest(".item-inv"); if (b) retirarDoArmazem(b._item); });
+  grade.addEventListener("pointermove", e => { const b = e.target.closest(".item-inv"); mostrarDica(b ? b._item : null, e.clientX, e.clientY); });   // (a dica do Metin2)
+  grade.addEventListener("pointerleave", () => mostrarDica(null));
   const valor = () => Math.max(0, Math.floor(+$("#armValor").value || 0));
   $("#armGuardar").onclick = () => { const v = Math.min(valor(), prog.yang); if (!v) return; prog.yang -= v; armazem.yang += v; som("moeda", null, 0.6); salvarArmazem(); salvarProgresso(); desenharArmazem(); desenharBolsa(); };
   $("#armRetirar").onclick = () => { const v = Math.min(valor(), armazem.yang); if (!v) return; armazem.yang -= v; prog.yang += v; som("moeda", null, 0.6); salvarArmazem(); salvarProgresso(); desenharArmazem(); desenharBolsa(); };
@@ -7091,7 +7166,7 @@ function botaoItem(it) {
   else iconeItem(g, t.desenho, CEL, t.h * CEL);
   b.appendChild(c);
   if (it.qtd > 1 || t.arma || t.peca) { const q = document.createElement("b"); q.textContent = t.arma || t.peca ? "+" + (it.ref || 0) : it.qtd; b.appendChild(q); }
-  b._item = it; b.title = nomeItem(it);
+  b._item = it;                                                      // (o nome e o resto: a dica do Metin2, mostrarDica)
   return b;
 }
 
@@ -7109,6 +7184,9 @@ function tipoItem(chave) {
   if (chave.startsWith("arma:")) { const { classe: c, tier } = armaDaChave(chave), a = ARMAS[c]; return { nome: ARMAS_TIER[c][tier], desc: `Arma só para ${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[tier]} (ataque ×${ATAQUE_TIER[tier]}). Clique direito para equipar; o Ferreiro da praça melhora até +9.`, h: a.desenho === "adagas" ? 1 : 2, arma: true, tier, desenho: a.desenho, usar: it => equiparArma(it) }; }
   if (chave.startsWith("livro:")) { const n = chave.slice(6), c = classeDaSkill(n);
     return { nome: "Livro: " + n, desc: `Skill ${c ? "do " + NOME_CLASSE[c] : ""}. Do M1 ao M10: cada leitura pode falhar, custa um pouco de EXP e a mesma skill só lê de novo depois de 12 h.`, h: 1, usar: () => lerLivro(n), desenho: "livro" }; }
+  if (chave.startsWith("joia:")) { const [, tipo, g] = chave.split(":"), grau = Math.max(0, Math.min(JOIA_GRAU_MAX, +g || 0)), J = JOIAS[tipo] || JOIAS.critico;
+    return { nome: nomeJoia(tipo, grau), h: 1, desenho: `joia:${tipo}:${grau}`, joia: { tipo: JOIAS[tipo] ? tipo : "critico", grau },
+             desc: `Arraste sobre ${J.parte === "arma" ? "uma arma" : "uma roupa"} na bolsa: 30% de chance de encaixar num buraco livre. Se falhar, a Jóia se parte e deixa uma Pedra Partida no buraco (com um Pergaminho da Bênção na bolsa, ele é gasto e a Jóia volta). Não entram duas iguais no mesmo item.${grau === 3 ? " O Ferreiro refina esta para +4." : ""}` }; }
   return {
     pocao: { nome: "Poção Vermelha", desc: "Recupera 40% da vida. Atalho: Q.", h: 1, usar: () => usarPocao(), desenho: "pocao" },
     pocaoMana: { nome: "Poção Azul", desc: "Recupera 40% da mana. Atalho: X.", h: 1, usar: () => usarPocaoMana(), desenho: "pocaoMana" },
@@ -7116,7 +7194,8 @@ function tipoItem(chave) {
     encantar: { nome: "Objeto Encantado", desc: "Arraste sobre uma arma ou peça na bolsa: acrescenta um bônus (até 5).", h: 1, desenho: "encantar" },
     mudar: { nome: "Mudar Bônus", desc: "Arraste sobre uma arma ou peça na bolsa: sorteia de novo todos os bônus dela.", h: 1, desenho: "mudar" },
     alma: { nome: "Pedra da Alma", desc: "Depois do M10, leva uma skill a Grão-Mestre (G1–G10) e a Perfeito. Use na ficha (P).", h: 1, desenho: "alma" },
-    bencao: { nome: "Pergaminho da Bênção", desc: "No Ferreiro: se o refino falhar, a arma perde só um nível em vez de quebrar.", h: 1, desenho: "bencao" },
+    bencao: { nome: "Pergaminho da Bênção", desc: "No Ferreiro: se o refino falhar, a arma perde só um nível em vez de quebrar. No encaixe de uma Jóia que falha, salva a Jóia.", h: 1, desenho: "bencao" },
+    correcao: { nome: "Pergaminho da Correção", desc: "Arraste sobre uma arma ou roupa na bolsa: tira a última Jóia encaixada e a devolve para a bolsa.", h: 1, desenho: "correcao" },
   }[chave] || { nome: chave, desc: "", h: 1, desenho: "pedra" };
 }
 // um canvas na densidade da tela: desenha-se em w × h (coordenadas lógicas) e ele guarda densidade × mais pixels, para o
@@ -7139,13 +7218,15 @@ function pintarItem(g, chave, w, h, b) {
   return true;
 }
 function iconeItem(g, desenho, w = 40, h = 40) {
+  if (desenho && desenho.startsWith("joia:")) { iconeJoia(g, desenho, w, h); return; }
+  if (desenho === "joia_partida" && !ICONES_ITEM[desenho]) { iconeJoia(g, desenho, w, h); return; }
   if (pintarItem(g, desenho, w, h)) return;
   g.clearRect(0, 0, w, h);
   const X = w / 2, Y = h / 2 + 2, u = Math.min(w, h) / 40;
   g.lineWidth = 1.6; g.strokeStyle = "#140c06";
   if (desenho === "espada" || desenho === "arco" || desenho === "cajado" || desenho === "adagas" || desenho === "machado") { iconeArma(g, desenho, w, h); return; }
-  if (desenho === "encantar" || desenho === "mudar") {
-    g.fillStyle = desenho === "encantar" ? "#cfe8ff" : "#ffe0b0"; g.fillRect(X - 9 * u, Y - 12 * u, 18 * u, 22 * u); g.strokeRect(X - 9 * u, Y - 12 * u, 18 * u, 22 * u);
+  if (desenho === "encantar" || desenho === "mudar" || desenho === "correcao") {
+    g.fillStyle = desenho === "encantar" ? "#cfe8ff" : desenho === "correcao" ? "#efe0b8" : "#ffe0b0"; g.fillRect(X - 9 * u, Y - 12 * u, 18 * u, 22 * u); g.strokeRect(X - 9 * u, Y - 12 * u, 18 * u, 22 * u);
     g.fillStyle = desenho === "encantar" ? "#3a7ad8" : "#d87a2a"; g.beginPath(); g.moveTo(X, Y - 8 * u); g.lineTo(X + 5 * u, Y); g.lineTo(X, Y + 7 * u); g.lineTo(X - 5 * u, Y); g.closePath(); g.fill(); g.stroke();
     return;
   }
@@ -7175,6 +7256,34 @@ function iconeItem(g, desenho, w = 40, h = 40) {
     const gr = g.createLinearGradient(X, Y - 14 * u, X, Y + 12 * u); gr.addColorStop(0, "#c8f0ff"); gr.addColorStop(1, "#2f86c8");
     g.fillStyle = gr; g.beginPath(); g.moveTo(X, Y - 14 * u); g.lineTo(X + 10 * u, Y - 2 * u); g.lineTo(X, Y + 12 * u); g.lineTo(X - 10 * u, Y - 2 * u); g.closePath(); g.fill(); g.stroke();
   }
+}
+// a Jóia: o ícone pintado (itens_b: joia:<tipo>) ou, sem ele, uma gema lapidada desenhada na cor dela; o grau (+0 a +4)
+// vai desenhado no canto de cima, como o refino. "joia_partida": a pedra cinza rachada do buraco que falhou
+function iconeJoia(g, desenho, w, h) {
+  const [, tipo, grau] = desenho.split(":"), chave = desenho === "joia_partida" ? desenho : "joia:" + tipo;
+  if (!pintarItem(g, chave, w, h)) {
+    g.clearRect(0, 0, w, h);
+    const X = w / 2, Y = h / 2, u = Math.min(w, h) / 40, cor = desenho === "joia_partida" ? "#8a8780" : (JOIAS[tipo] || { cor: "#8fd0ff" }).cor;
+    g.save(); g.lineWidth = Math.max(1, 1.6 * u); g.strokeStyle = "#140c06"; g.lineJoin = "round";
+    if (desenho === "joia_partida") {
+      g.fillStyle = cor;
+      for (const [dx, dy, r] of [[-5, 2, 8], [6, -3, 6], [4, 8, 4]]) { g.beginPath(); for (let k = 0; k < 6; k++) { const a = k / 6 * 7 + dx, rr = r * (0.75 + 0.25 * Math.sin(k * 2.3 + dy)) * u; g.lineTo(X + dx * u + Math.cos(a) * rr, Y + dy * u + Math.sin(a) * rr); } g.closePath(); g.fill(); g.stroke(); }
+    } else {
+      const gr = g.createRadialGradient(X - 4 * u, Y - 5 * u, 1, X, Y, 15 * u); gr.addColorStop(0, "#ffffff"); gr.addColorStop(0.35, cor); gr.addColorStop(1, "#140c06");
+      g.fillStyle = gr; g.beginPath();
+      for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.PI / 8; g.lineTo(X + Math.cos(a) * 14 * u, Y + Math.sin(a) * 13 * u); }
+      g.closePath(); g.fill(); g.stroke();
+      g.strokeStyle = "rgba(255, 255, 255, 0.45)"; g.lineWidth = Math.max(0.6, u); g.beginPath(); g.moveTo(X - 7 * u, Y - 4 * u); g.lineTo(X, Y - 9 * u); g.lineTo(X + 7 * u, Y - 4 * u); g.lineTo(X, Y + 9 * u); g.closePath(); g.stroke();
+    }
+    g.restore();
+  }
+  if (grau === undefined || grau === "") return;
+  g.save();
+  const fs = Math.max(8, Math.round(Math.min(w, h) * 0.3));
+  g.font = `bold ${fs}px Tahoma, Verdana, sans-serif`; g.textAlign = "left"; g.textBaseline = "top"; g.lineJoin = "round";
+  g.lineWidth = Math.max(2, fs / 4); g.strokeStyle = "rgba(0, 0, 0, 0.9)"; g.strokeText("+" + grau, 1, 0);
+  g.fillStyle = ["#e8e2d0", "#bfe6ff", "#9ff09a", "#ffd25a", "#ff9a6a"][+grau] || "#fff"; g.fillText("+" + grau, 1, 0);
+  g.restore();
 }
 // o brilho da arma refinada, como no Metin2: só do +7 em diante, uma cor para cada nível (+7 dourado, +8 violeta,
 // +9 vermelho-fogo). Vale para a espada, o arco e a esfera do cajado; abaixo de +7 a arma fica sem efeito
@@ -7330,16 +7439,16 @@ function equiparPeca(it) {
   const i = prog.inv.indexOf(it); if (i < 0) return;
   prog.inv.splice(i, 1);
   const velha = prog.equip[slot], pv = pecaEquipada(slot);
-  if (velha) prog.inv.push({ chave: `peca:${pv}:${velha.tier}`, qtd: 1, ref: velha.ref, bon: velha.bon || [], aba: it.aba, x: it.x, y: it.y });
+  if (velha) prog.inv.push({ chave: `peca:${pv}:${velha.tier}`, qtd: 1, ref: velha.ref, bon: velha.bon || [], ...(velha.jo ? { jo: velha.jo } : {}), aba: it.aba, x: it.x, y: it.y });
   if (velha && PECAS[pv].h !== tipoItem(it.chave).h) { const l = lugarLivre(PECAS[pv].h); const v = prog.inv[prog.inv.length - 1]; if (l) Object.assign(v, l); }
-  prog.equip[slot] = { peca, tier, ref: it.ref || 0, bon: it.bon || [] };
+  prog.equip[slot] = { peca, tier, ref: it.ref || 0, bon: it.bon || [], ...(it.jo ? { jo: it.jo } : {}) };
   som("equipar", null, 0.9);
   depoisDaArma(`Vestiu: ${nomePeca(peca, tier, it.ref)}`);
 }
 function tirarPeca(slot) {
   const e = prog && prog.equip[slot]; if (!e) return;
   const peca = pecaEquipada(slot), l = lugarLivre(PECAS[peca].h); if (!l) { avisar("A bolsa está cheia"); som("ui_negar"); return; }
-  prog.inv.push({ chave: `peca:${peca}:${e.tier}`, qtd: 1, ref: e.ref, bon: e.bon || [], ...l });
+  prog.inv.push({ chave: `peca:${peca}:${e.tier}`, qtd: 1, ref: e.ref, bon: e.bon || [], ...(e.jo ? { jo: e.jo } : {}), ...l });
   prog.equip[slot] = null; som("equipar", null, 0.6);
   depoisDaArma(`${PECAS[peca].nome} guardada na bolsa`);
 }
@@ -7419,6 +7528,220 @@ function somaBonus() {
   return r;
 }
 
+// ---------- Jóias: as pedras dos buracos da arma e da roupa (as "Spirit Stones" do Metin2; Logs/Pesquisa/METIN2_ATRIBUTOS_JOIAS.md, D e F) ----------
+// A arma tem 1 a 3 buracos pelo modelo (1, 1, 2, 2, 3, 3, 3) e a roupa também (1 até o modelo do 22, 2 nos do 30 e 38, 3 do
+// 46 em diante); elmo, botas e escudo não têm. Arrasta-se a Jóia sobre o item NA BOLSA: 30% de chance (a do Metin2). Na
+// falha, a Jóia se perde e o buraco fica com uma Pedra Partida (ocupado, sem efeito), a não ser que haja um Pergaminho da
+// Bênção na bolsa: ele é gasto e a Jóia volta. Duas Jóias iguais não entram no mesmo item. O Pergaminho da Correção tira a
+// última Jóia e a devolve; o refino no Ferreiro limpa as Pedras Partidas. Graus +0 a +4; o Ferreiro sobe a +3 para +4.
+// No item: jo = [null (vazio) | "x" (Pedra Partida) | [tipo, grau]]; o item salvo sem o campo ganha os buracos pelo modelo.
+// Não há PvP: as Jóias contra classes do Metin2 ficam de fora; no lugar delas, as contra raça (cada criatura tem uma).
+const JOIAS = {
+  critico: { nome: "Jóia do Golpe Mortal", parte: "arma", rot: "Chance de golpe crítico", pct: true, val: [1, 2, 3, 5, 8], cor: "#d8343a" },
+  perfurante: { nome: "Jóia do Ataque Perfurante", parte: "arma", rot: "Chance de Perfurar", pct: true, val: [1, 2, 3, 5, 8], cor: "#3a3c44" },
+  monstros: { nome: "Jóia Monstruosa", parte: "arma", rot: "Bônus contra monstros", pct: true, val: [1, 2, 3, 5, 8], cor: "#2f9a4a" },
+  resfriamento: { nome: "Jóia do Resfriamento", parte: "arma", rot: "Recarga das habilidades", pct: true, menos: true, val: [3, 5, 8, 12, 16], cor: "#7fd4f0" },
+  morto_vivo: { nome: "Jóia do Morto-vivo", parte: "arma", raca: "morto_vivo", rot: "Bônus contra Mortos-vivos", pct: true, val: [3, 5, 8, 12, 17], cor: "#8a5ad0" },
+  animal: { nome: "Jóia do Animal", parte: "arma", raca: "animal", rot: "Bônus contra Animais", pct: true, val: [3, 5, 8, 12, 17], cor: "#e8862a" },
+  orc: { nome: "Jóia do Orc", parte: "arma", raca: "orc", rot: "Bônus contra Orcs", pct: true, val: [3, 5, 8, 12, 17], cor: "#8a5a32" },
+  vitalidade: { nome: "Jóia da Vitalidade", parte: "roupa", rot: "PV máx.", val: [50, 100, 150, 200, 300], cor: "#e8508a" },
+  magia: { nome: "Jóia da Magia", parte: "roupa", rot: "PM máx.", val: [30, 60, 90, 120, 150], cor: "#2a56c8" },
+  defesa: { nome: "Jóia da Defesa", parte: "roupa", rot: "Defesa", val: [4, 8, 12, 20, 30], cor: "#e0b830" },
+  aceleracao: { nome: "Jóia da Aceleração", parte: "roupa", rot: "Velocidade de movimento", pct: true, val: [2, 4, 6, 9, 12], cor: "#9ad040" },
+  evasao: { nome: "Jóia da Evasão", parte: "roupa", rot: "Chance de bloquear golpe corpo a corpo", pct: true, val: [1, 2, 3, 5, 8], cor: "#26b0a4" },
+  esquiva: { nome: "Jóia da Esquiva", parte: "roupa", rot: "Chance de esquivar flechas e magias", pct: true, val: [1, 2, 3, 5, 8], cor: "#e8ecf4" },
+};
+const JOIA_GRAU_MAX = 4, CHANCE_JOIA = 0.3;
+const BURACOS_ARMA = [1, 1, 2, 2, 3, 3, 3];
+// as raças das criaturas (para as Jóias contra raça e a placa do alvo)
+const NOME_RACA = { animal: "Animal", morto_vivo: "Morto-vivo", orc: "Orc", demonio: "Demônio", humano: "Humano", pedra: "Pedra" };
+function racaDe(cfg) { return cfg ? cfg.raca || (cfg.estatico ? "pedra" : (TIPOS[cfg.base] && TIPOS[cfg.base].raca) || null) : null; }
+function nomeJoia(tipo, grau) { return `${(JOIAS[tipo] || { nome: "Jóia" }).nome}+${grau}`; }
+function efeitoJoia(tipo, grau) { const J = JOIAS[tipo]; if (!J) return ""; const v = J.val[grau] ?? J.val[0]; return `${J.rot}: ${J.menos ? "−" : "+"}${v}${J.pct ? "%" : ""}`; }
+// quantos buracos o modelo tem (0: não leva Jóias)
+function buracosDe(chave) {
+  const t = tipoItem(chave);
+  if (t.arma) return BURACOS_ARMA[t.tier || 0] || 1;
+  if (t.peca && PECAS[t.peca].slot === "armadura") return t.tier <= 3 ? 1 : t.tier <= 5 ? 2 : 3;
+  return 0;
+}
+// os buracos do item (cria pelo modelo quando o item é de antes das Jóias; o que passar do número do modelo sai)
+function joiasDe(it, chave = it.chave) {
+  const n = buracosDe(chave);
+  if (!Array.isArray(it.jo)) it.jo = Array(n).fill(null);
+  while (it.jo.length < n) it.jo.push(null);
+  if (it.jo.length > n) it.jo.length = n;
+  return it.jo;
+}
+const semPartidas = jo => Array.isArray(jo) ? jo.map(x => x === "x" ? null : x) : jo;
+// a chave de bolsa do que está vestido (para a dica e os buracos)
+function chaveDoEquip(slot) { if (slot === "arma") return prog.arma ? chaveArma(classe, prog.arma.tier) : null; const e = prog.equip[slot]; return e ? `peca:${pecaEquipada(slot)}:${e.tier}` : null; }
+// a soma do que as Jóias encaixadas dão ({ tipo: valor })
+function somaJoias() {
+  const r = {};
+  if (!prog) return r;
+  for (const e of [prog.arma, ...(prog.equip ? Object.values(prog.equip) : [])]) for (const x of (e && e.jo) || []) if (Array.isArray(x) && JOIAS[x[0]]) r[x[0]] = (r[x[0]] || 0) + (JOIAS[x[0]].val[x[1]] ?? 0);
+  return r;
+}
+// a Jóia (ou o Pergaminho da Correção) arrastada sobre uma arma ou roupa da bolsa. Devolve true se tratou (mesmo negando)
+function usarJoia(j, alvo) {
+  const t = tipoItem(alvo.chave); if (!t.arma && !t.peca) return false;
+  const n = buracosDe(alvo.chave);
+  if (!n) { avisar("Só a arma e a roupa têm buracos para Jóias"); som("ui_negar"); return true; }
+  const jo = joiasDe(alvo), fim = () => { salvarProgresso(); desenharBolsa(); atualizarItensBarra(); };
+  if (j.chave === "correcao") {
+    let i = -1; jo.forEach((x, k) => { if (Array.isArray(x)) i = k; });
+    if (i < 0) { avisar("Esse item não tem Jóia para tirar"); som("ui_negar"); return true; }
+    const [tipo, grau] = jo[i];
+    if (adicionarItem(`joia:${tipo}:${grau}`, 1)) { avisar("A bolsa está cheia"); som("ui_negar"); return true; }
+    jo[i] = null; removerItem("correcao", 1);
+    avisar(`${nomeJoia(tipo, grau)} voltou para a bolsa`); som("magia_buff", viking, 0.7); fim(); return true;
+  }
+  const [, tipo, g] = j.chave.split(":"), J = JOIAS[tipo], grau = +g, parte = t.arma ? "arma" : "roupa";
+  if (!J) return false;
+  if (J.parte !== parte) { avisar(`${J.nome} encaixa só em ${J.parte === "arma" ? "armas" : "roupas"}`); som("ui_negar"); return true; }
+  if (jo.some(x => Array.isArray(x) && x[0] === tipo)) { avisar("Não dá para pôr duas Jóias iguais no mesmo item"); som("ui_negar"); return true; }
+  const i = jo.indexOf(null);
+  if (i < 0) { avisar(jo.includes("x") ? "Sem buraco livre: refine o item no Ferreiro para limpar a Pedra Partida" : "Todos os buracos já estão ocupados"); som("ui_negar"); return true; }
+  if (Math.random() < CHANCE_JOIA) {
+    jo[i] = [tipo, grau]; removerItem(j.chave, 1);
+    avisar(`${nomeJoia(tipo, grau)} encaixada! ${efeitoJoia(tipo, grau)}`); som("ui_aceitar", null, 1); som("magia_buff", viking, 0.8);
+  } else if (contarItem("bencao")) {
+    removerItem("bencao", 1);
+    avisar(`A Jóia não encaixou, mas o Pergaminho da Bênção a salvou (${nomeJoia(tipo, grau)} voltou)`); som("refino_falha", null, 0.8);
+  } else {
+    jo[i] = "x"; removerItem(j.chave, 1);
+    avisar(`A Jóia se partiu: o buraco ficou com uma Pedra Partida`); som("refino_falha", null, 1);
+  }
+  fim(); return true;
+}
+// a Jóia que cai: o tipo (os do tema com o dobro de chance) e o grau pela tabela (pesos)
+function sortearJoia(graus, tema = []) {
+  const tipos = Object.keys(JOIAS), pesos = tipos.map(t => tema.includes(t) ? 2 : 1), tot = pesos.reduce((a, b) => a + b, 0);
+  let r = Math.random() * tot, tipo = tipos[0]; for (let k = 0; k < tipos.length; k++) { r -= pesos[k]; if (r < 0) { tipo = tipos[k]; break; } }
+  const tg = graus.reduce((a, [, p]) => a + p, 0); let s = Math.random() * tg, grau = graus[0][0];
+  for (const [gr, p] of graus) { s -= p; if (s < 0) { grau = gr; break; } }
+  return { tipo: "joia", chave: `joia:${tipo}:${grau}` };
+}
+// as Metins do 25 em diante soltam Jóias (as menores, não, como no Metin2): [chance, graus [grau, peso], tema]
+// (os níveis 50 a 70 ficam prontos para as Metins planejadas da Ilha de Daiyu, NIVEL70.md)
+const JOIAS_METIN = [
+  [25, 0.30, [[0, 70], [1, 30]], ["vitalidade", "critico"]],
+  [30, 0.35, [[0, 50], [1, 40], [2, 10]], ["morto_vivo", "esquiva"]],
+  [35, 0.40, [[0, 35], [1, 40], [2, 25]], ["morto_vivo", "magia"]],
+  [40, 0.45, [[0, 20], [1, 40], [2, 30], [3, 10]], ["resfriamento", "defesa"]],
+  [45, 0.50, [[1, 35], [2, 40], [3, 25]], ["orc", "perfurante"]],
+  [50, 0.50, [[1, 20], [2, 40], [3, 35], [4, 5]], ["defesa", "evasao"]],
+  [55, 0.55, [[1, 15], [2, 35], [3, 40], [4, 10]], ["critico", "monstros"]],
+  [60, 0.55, [[2, 30], [3, 50], [4, 20]], ["orc", "aceleracao"]],
+  [65, 0.60, [[2, 25], [3, 50], [4, 25]], ["perfurante", "vitalidade"]],
+  [70, 0.60, [[2, 20], [3, 50], [4, 30]], ["critico", "resfriamento"]],
+];
+function linhaJoiasMetin(nivel) { let l = null; for (const x of JOIAS_METIN) if (nivel >= x[0]) l = x; return l; }
+function joiasDaMetin(nivel) {
+  const l = linhaJoiasMetin(nivel); if (!l) return [];
+  const r = [];
+  if (Math.random() < l[1]) r.push(sortearJoia(l[2], l[3]));
+  if (Math.random() < 0.04) r.push({ tipo: "correcao" });                 // (raro: o Pergaminho da Correção)
+  return r;
+}
+// o chefe: do Lobo Alfa (22) em diante, 50% de uma Jóia do grau das Metins do nível dele; o Nove Caudas e o Chefe Orc
+// dão uma +3 ou +4 garantida (o papel da Bruxa do Gelo Suprema do Metin2). Os chefes das dungeons não dão
+function joiasDoChefe(l) {
+  const n = l.cfg.nivel || 1, chave = l.cfg.chaveChefe || l.tipo;
+  if (chave === "nove_caudas" || chave === "orc_chefe") return [sortearJoia([[3, 50], [4, 50]], chave === "orc_chefe" ? ["orc"] : [])];
+  if (n < 22 || String(chave).startsWith("dg_")) return [];
+  const r = []; if (Math.random() < 0.5) r.push(sortearJoia(linhaJoiasMetin(Math.max(25, n))[2]));
+  if (Math.random() < 0.1) r.push({ tipo: "correcao" });
+  return r;
+}
+
+// ---------- a dica do item, no formato do Metin2 (C.1 da pesquisa) ----------
+// De cima para baixo: o preço (só na loja), o nome com o refino (ouro com bônus, creme sem), o nível necessário (vermelho
+// se faltar), o Ataque mín.–máx. da arma (o golpe básico da classe × o multiplicador da arma, o mesmo que o combate usa)
+// ou a Defesa da peça, o efeito fixo do modelo, os bônus em azul-claro (um por linha), "[ Classes ]", os buracos com as
+// Jóias (ícone e duas linhas) e a descrição. Se o personagem não pode usar o item, tudo fica vermelho.
+const GOLPE_BASICO = { espada: [9, 13], machado: [9, 13], adagas: [9 * DANO_NINJA, 13 * DANO_NINJA], arco: [10, 15], cajado: [18, 25] };
+const ROT_BONUS = { vida: "PV máx.", mana: "PM máx.", vit: "Vitalidade", int: "Inteligência", for: "Força", dex: "Destreza", critico: "Chance de golpe crítico",
+  ataque: "Valor de ataque", monstros: "Bônus contra monstros", defesa: "Defesa", bloqueio: "Chance de bloquear", velocidade: "Velocidade de movimento" };
+const PCT_BONUS = new Set(["critico", "ataque", "monstros", "bloqueio", "velocidade"]);
+const textoBonusM2 = ([t, v]) => ROT_BONUS[t] ? `${ROT_BONUS[t]}: +${v}${PCT_BONUS.has(t) ? "%" : ""}` : "";
+const escH = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+function nomeBaseItem(chave) { return tipoItem(chave).nome.replace(/ \(.*\)$/, ""); }
+// it: { chave, ref, bon, jo, qtd }; extra: { preco }
+function htmlDica(it, extra = {}) {
+  const t = tipoItem(it.chave), L = [], linha = (cls, txt) => L.push(`<div class="${cls}">${escH(txt)}</div>`), esp = () => L.push('<div class="esp"></div>');
+  const temRef = t.arma || t.peca, bon = it.bon || [];
+  let req = 0, dona = null, serve = true;
+  if (t.arma) { req = NIVEIS_ARMA[t.tier || 0]; dona = armaDaChave(it.chave).classe; serve = dona === classe; }
+  if (t.peca) { req = PECAS[t.peca].modelos[t.tier][1]; serve = pecaServe(t.peca); }
+  if (extra.preco !== undefined) { linha("preco", `Preço: ${extra.preco.toLocaleString("pt-BR")} Yang`); esp(); }
+  linha(bon.length ? "nome bonus" : "nome", temRef ? `${nomeBaseItem(it.chave)}+${it.ref || 0}` : t.nome);
+  if (req) { esp(); linha(prog && prog.nivel < req ? "nivel falta" : "nivel", `Nível necessário: ${req}`); }
+  if (t.arma) {
+    const k = bonusArma(it.ref || 0, t.tier), [lo, hi] = GOLPE_BASICO[t.desenho] || [9, 13];
+    esp(); linha("atq", `Ataque: ${Math.round(lo * k)} - ${Math.round(hi * k)}`);
+    linha("fixo", `Força dos golpes: +${Math.round((k - 1) * 100)}%`);
+  }
+  if (t.peca) {
+    const a = atribPeca(t.peca, t.tier, it.ref || 0), ex = PECAS[t.peca].extra;
+    esp(); linha("atq", `Defesa: ${a.defesa}`);
+    linha("fixo", { vida: `PV máx.: +${a.extra}`, mana: `PM máx.: +${a.extra}`, vel: `Velocidade de movimento: +${a.extra}%`, bloqueio: `Chance de bloquear: +${a.extra}%` }[ex]);
+  }
+  if (t.joia) {
+    const J = JOIAS[t.joia.tipo];
+    esp(); linha("fixo", efeitoJoia(t.joia.tipo, t.joia.grau));
+    if (t.joia.grau < JOIA_GRAU_MAX) linha("cinza", `No +${JOIA_GRAU_MAX}: ${efeitoJoia(t.joia.tipo, JOIA_GRAU_MAX).replace(/^.*: /, "")}`);
+    esp(); linha("cinza", `Encaixa em: ${J.parte === "arma" ? "Arma" : "Roupa (armadura, traje ou manto)"}`);
+    if (J.raca) linha("cinza", `${{ morto_vivo: "Mortos-vivos", animal: "Animais", orc: "Orcs" }[J.raca]}: ${criaturasDaRaca(J.raca).join(", ")}`);
+  }
+  for (const b of bon) linha("bon", textoBonusM2(b));
+  if (temRef) {
+    esp(); linha("cls-t", "[ Classes ]");
+    linha("cls", t.arma ? NOME_CLASSE[dona] : PECAS[t.peca].classes ? PECAS[t.peca].classes.map(c => NOME_CLASSE[c]).join(" ") : "Todas as classes");
+    const jo = joiasDe({ jo: it.jo ? [...it.jo] : undefined }, it.chave);
+    if (jo.length) esp();
+    for (const x of jo) {
+      const ic = Array.isArray(x) ? `joia:${x[0]}` : x === "x" ? "joia_partida" : "";
+      const [l1, l2, cls] = Array.isArray(x) ? [nomeJoia(x[0], x[1]), efeitoJoia(x[0], x[1]), "cheio"] : x === "x" ? ["Pedra Partida", "Sem efeito", "partida"] : ["Buraco vazio", "Arraste uma Jóia sobre o item", "vazio"];
+      L.push(`<div class="buraco ${cls}"><canvas data-joia="${ic}" data-grau="${Array.isArray(x) ? x[1] : ""}" width="64" height="64"></canvas><div><div class="jn">${escH(l1)}</div><div class="je">${escH(l2)}</div></div></div>`);
+    }
+  }
+  const desc = t.arma ? "Clique direito para equipar; o Ferreiro melhora até +9." : t.peca ? "Clique direito para vestir; o Ferreiro melhora até +9." : t.desc;
+  if (desc) { esp(); linha("desc", desc); }
+  if ((it.qtd || 1) > 1) linha("desc", `Quantidade: ${it.qtd}`);
+  return { html: L.join(""), nao: !serve };
+}
+function criaturasDaRaca(r) { return [...new Set(Object.values(TIPOS).filter(c => c && c.nome && !c.estatico && racaDe(c) === r).map(c => c.nome))]; }
+// mostra a dica (it, perto do ponto x, y; sem it, esconde). Os ícones das Jóias saem pintados nos canvas dos buracos
+function mostrarDica(it, x, y, extra) {
+  const d = $("#dicaItem");
+  if (!it) { d.hidden = true; return; }
+  const chave = JSON.stringify([it.chave, it.ref, it.bon, it.jo, it.qtd, extra, prog && prog.nivel]);
+  if (d._chave !== chave || d.hidden) {
+    const { html, nao } = htmlDica(it, extra);
+    d.className = "dica-item m2" + (nao ? " nao" : ""); d.innerHTML = html; d._chave = chave;
+    for (const c of d.querySelectorAll("canvas[data-joia]")) { const g = c.getContext("2d"); g.scale(c.width / 32, c.height / 32); iconeBuraco(g, c.dataset.joia, c.dataset.grau); }
+  }
+  d.hidden = false;
+  const r = d.getBoundingClientRect(), w = r.width || 220, h = r.height || 200;
+  let px = x + 16, py = y + 12;
+  if (px + w > innerWidth - 4) px = Math.max(4, x - w - 12);
+  if (py + h > innerHeight - 4) py = Math.max(4, y - h - 12);
+  d.style.left = px + "px"; d.style.top = py + "px";
+}
+// o buraco da dica: moldura escura e a Jóia (ou a Pedra Partida) dentro, com o grau
+function iconeBuraco(g, chave, grau) {
+  g.save();
+  const gr = g.createRadialGradient(16, 14, 2, 16, 16, 16); gr.addColorStop(0, "#3a3226"); gr.addColorStop(1, "#14100c");
+  g.fillStyle = gr; g.strokeStyle = "#9a8456"; g.lineWidth = 1.2;
+  g.beginPath(); g.arc(16, 16, 14.5, 0, 7); g.fill(); g.stroke();
+  g.restore();
+  if (!chave) return;
+  const [c2, g2] = canvasNitido(26, 26); iconeItem(g2, chave + (grau !== "" && grau !== undefined ? ":" + grau : ""), 26, 26);
+  g.drawImage(c2, 3, 3, 26, 26);
+}
+
 // bônus de ataque da arma: +5% no +0 e mais 7% por nível de refino, vezes o do modelo (ATAQUE_TIER); sem arma, nos
 // punhos, 25% menos
 function bonusArma(ref, tier) { return ref === null || ref === undefined ? 0.75 : (1.05 + 0.07 * ref) * (ATAQUE_TIER[tier || 0] || 1); }
@@ -7433,14 +7756,14 @@ function equiparArma(it) {
   if (prog.nivel < NIVEIS_ARMA[tier] && !prog.semTrava) { avisar(`${nomeArma(it.ref || 0, tier)}: precisa do nível ${NIVEIS_ARMA[tier]}`); som("ui_negar"); return; }
   const i = prog.inv.indexOf(it); if (i < 0) return;
   prog.inv.splice(i, 1);
-  if (prog.arma) prog.inv.push({ chave: chaveArma(classe, prog.arma.tier), qtd: 1, ref: prog.arma.ref, bon: prog.arma.bon || [], aba: it.aba, x: it.x, y: it.y });
-  prog.arma = { ref: it.ref || 0, bon: it.bon || [], tier }; som("equipar", null, 0.9);
+  if (prog.arma) prog.inv.push({ chave: chaveArma(classe, prog.arma.tier), qtd: 1, ref: prog.arma.ref, bon: prog.arma.bon || [], ...(prog.arma.jo ? { jo: prog.arma.jo } : {}), aba: it.aba, x: it.x, y: it.y });
+  prog.arma = { ref: it.ref || 0, bon: it.bon || [], tier, ...(it.jo ? { jo: it.jo } : {}) }; som("equipar", null, 0.9);
   depoisDaArma(`Equipou: ${nomeArma(prog.arma.ref)}`);
 }
 function tirarArma() {
   if (!prog || !prog.arma) return;
   const l = lugarLivre(3); if (!l) { avisar("A bolsa está cheia"); som("ui_negar"); return; }
-  prog.inv.push({ chave: chaveArma(classe, prog.arma.tier), qtd: 1, ref: prog.arma.ref, bon: prog.arma.bon || [], ...l });
+  prog.inv.push({ chave: chaveArma(classe, prog.arma.tier), qtd: 1, ref: prog.arma.ref, bon: prog.arma.bon || [], ...(prog.arma.jo ? { jo: prog.arma.jo } : {}), ...l });
   prog.arma = null; som("equipar", null, 0.6);
   depoisDaArma("Arma guardada na bolsa: você luta com os punhos (−25% de ataque)");
 }
@@ -7531,7 +7854,7 @@ function desenharBolsa() {
     else { g.translate(18, 18); g.rotate(Math.PI / 4); g.translate(-9, -24); iconeArma(g, des, 18, 48, prog.arma.ref, prog.arma.tier); }
     eq.appendChild(c);
     const r = document.createElement("span"); r.className = "ref-eq"; r.textContent = "+" + prog.arma.ref; eq.appendChild(r);
-    eq.title = `${nomeArma(prog.arma.ref)} (ataque +${Math.round((bonusArma(prog.arma.ref, prog.arma.tier) - 1) * 100)}%)${(prog.arma.bon || []).length ? "\n" + textoBonus(prog.arma.bon).join("\n") : ""}\nClique direito guarda na bolsa`;
+    eq.title = ""; eq.setAttribute("aria-label", `${nomeArma(prog.arma.ref)}: clique direito guarda na bolsa`);   // (a dica do Metin2 mostra o resto)
   } else eq.title = "Sem arma: clique direito numa arma da bolsa para equipar";
   for (const el of document.querySelectorAll(".peca-eq")) {
     const slot = el.dataset.peca, e = prog.equip && prog.equip[slot], pc = pecaEquipada(slot) || (slot === "armadura" ? ROUPA_DA_CLASSE[classe] : slot);
@@ -7539,7 +7862,7 @@ function desenharBolsa() {
     if (e) {
       const [c, g] = canvasNitido(36, 36); iconePeca(g, pc, e.tier, 36, 36); el.appendChild(c);
       const r = document.createElement("span"); r.className = "ref-eq"; r.textContent = "+" + e.ref; el.appendChild(r);
-      el.title = `${nomePeca(pc, e.tier, e.ref)}: ${descPeca(pc, e.tier, e.ref)}${(e.bon || []).length ? "\n" + textoBonus(e.bon).join("\n") : ""}\nClique direito guarda na bolsa`;
+      el.title = ""; el.setAttribute("aria-label", `${nomePeca(pc, e.tier, e.ref)}: clique direito guarda na bolsa`);
     } else el.title = `${PECAS[pc].nome}: clique direito numa peça da bolsa para vestir`;
   }
 }
@@ -7557,11 +7880,15 @@ function montarBolsa() {
   grade.addEventListener("pointermove", e => {
     const b = e.target.closest(".item-inv");
     if (!b || arrastoItem) { dica.hidden = true; return; }
-    const t = tipoItem(b._item.chave);
-    const bons = textoBonus(b._item.bon);
-    dica.innerHTML = `<strong>${nomeItem(b._item)}</strong>${t.peca ? descPeca(t.peca, t.tier, b._item.ref) + ". Clique direito para vestir." : t.desc}${bons.length ? `<br><span style="color:#8fe08a">${bons.join("<br>")}</span>` : ""}${t.arma ? `<br>Ataque +${Math.round((bonusArma(b._item.ref || 0) - 1) * 100)}%` : ""}${b._item.qtd > 1 ? `<br>Quantidade: ${b._item.qtd}` : ""}`;
-    dica.hidden = false; dica.style.left = (e.clientX + 14) + "px"; dica.style.top = (e.clientY + 10) + "px";
+    mostrarDica(b._item, e.clientX, e.clientY);                      // (a dica no formato do Metin2: htmlDica)
   });
+  // a arma e as peças vestidas: a mesma dica (com as Jóias delas)
+  const dicaEquip = (el, e) => {
+    const slot = el.id === "eqArma" ? "arma" : el.dataset.peca, ch = prog && chaveDoEquip(slot), o = slot === "arma" ? prog.arma : prog.equip[slot];
+    if (!ch || !o || arrastoItem) { dica.hidden = true; return; }
+    mostrarDica({ chave: ch, ref: o.ref || 0, bon: o.bon || [], jo: o.jo, qtd: 1 }, e.clientX, e.clientY);
+  };
+  for (const el of [$("#eqArma"), ...document.querySelectorAll(".peca-eq")]) { el.addEventListener("pointermove", e => dicaEquip(el, e)); el.addEventListener("pointerleave", () => { dica.hidden = true; }); }
   grade.addEventListener("pointerleave", () => { dica.hidden = true; });
   grade.addEventListener("pointerdown", e => {
     const b = e.target.closest(".item-inv"); if (!b || e.button > 0) return;
@@ -7573,7 +7900,7 @@ function montarBolsa() {
     if (!a.moveu && Math.hypot(e.clientX - a.x, e.clientY - a.y) > 5) {
       a.moveu = true; dica.hidden = true;
       const f = a.el.querySelector("canvas").cloneNode(); f.getContext("2d").drawImage(a.el.querySelector("canvas"), 0, 0);
-      f.className = "slot-fantasma"; f.style.width = CEL + "px"; f.style.height = f.height + "px"; document.body.appendChild(f); a.fantasma = f;
+      f.className = "slot-fantasma"; f.style.width = CEL + "px"; f.style.height = a.el.querySelector("canvas").style.height || f.height + "px"; document.body.appendChild(f); a.fantasma = f;   // (a altura em CSS: o canvas nítido tem densidade × pixels)
     }
     if (a.fantasma) { a.fantasma.style.left = (e.clientX - CEL / 2) + "px"; a.fantasma.style.top = (e.clientY - CEL / 2) + "px"; }
   });
@@ -7598,6 +7925,7 @@ function montarBolsa() {
       else {
         const outro = prog.inv.find(o => o !== a.it && o.aba === destAba && o.x === x && y >= o.y && y < o.y + tipoItem(o.chave).h);
         if (outro && (a.it.chave === "encantar" || a.it.chave === "mudar") && parteDoItem(outro)) { usarPergaminhoBonus(a.it, outro); return; }
+        if (outro && (a.it.chave.startsWith("joia:") || a.it.chave === "correcao") && usarJoia(a.it, outro)) return;   // (a Jóia ou a Correção sobre a arma ou a roupa)
         if (outro && outro.chave === a.it.chave && outro.qtd < PILHA_MAX) { const k = Math.min(a.it.qtd, PILHA_MAX - outro.qtd); outro.qtd += k; a.it.qtd -= k; if (a.it.qtd <= 0) prog.inv.splice(prog.inv.indexOf(a.it), 1); }
         else if (outro && tipoItem(outro.chave).h === h) { const p = { aba: a.it.aba, x: a.it.x, y: a.it.y }; Object.assign(a.it, { aba: outro.aba, x: outro.x, y: outro.y }); Object.assign(outro, p); }
       }
@@ -7609,7 +7937,7 @@ function montarBolsa() {
 }
 
 // o que é raro faz um som próprio ao cair: livros, a Pedra da Alma, a Bênção e o que já vem refinado (+5 ou mais)
-const dropRaro = d => d.tipo === "livro" || d.tipo === "alma" || d.tipo === "bencao" || (d.ref || 0) >= 5;
+const dropRaro = d => d.tipo === "livro" || d.tipo === "alma" || d.tipo === "bencao" || (d.ref || 0) >= 5 || (d.tipo === "joia" && +d.chave.split(":")[2] >= 3);
 function soltarItens(l, itens) {
   if (itens.length) som(itens.some(dropRaro) ? "drop_raro" : "drop", l, 0.8);
   itens.forEach((d, i) => { const a = i / itens.length * Math.PI * 2 + Math.random(), r = itens.length > 1 ? 1.1 : 0.4; drops.push({ ...d, x: l.x + Math.cos(a) * r, y: l.y + Math.sin(a) * r, vida: 90 }); });
@@ -7619,9 +7947,9 @@ function pegarItem(d) {
   let txt;
   if (d.tipo === "yang") { prog.yang += d.qtd; txt = d.qtd + " Yang"; }
   else {
-    const chave = d.tipo === "livro" ? "livro:" + d.nome : d.tipo === "peca" || d.tipo === "arma" ? d.chave : d.tipo, qtd = d.qtd || 1, sobra = adicionarItem(chave, qtd, d.tipo === "peca" || d.tipo === "arma" ? { ref: d.ref || 0, bon: d.bon || [] } : {});
+    const chave = d.tipo === "livro" ? "livro:" + d.nome : d.tipo === "peca" || d.tipo === "arma" || d.tipo === "joia" ? d.chave : d.tipo, qtd = d.qtd || 1, sobra = adicionarItem(chave, qtd, d.tipo === "peca" || d.tipo === "arma" ? { ref: d.ref || 0, bon: d.bon || [] } : {});
     if (sobra === qtd) { if (!d.avisou) { avisar("A bolsa está cheia"); som("ui_negar"); d.avisou = true; } return false; }
-    txt = d.tipo === "livro" ? "Livro: " + d.nome : d.tipo === "peca" || d.tipo === "arma" ? tipoItem(d.chave).nome : (qtd - sobra) + " " + NOME_ITEM[d.tipo];
+    txt = d.tipo === "livro" ? "Livro: " + d.nome : d.tipo === "peca" || d.tipo === "arma" || d.tipo === "joia" ? tipoItem(d.chave).nome : (qtd - sobra) + " " + NOME_ITEM[d.tipo];
     if (sobra > 0) { d.qtd = sobra; return false; }
   }
   numeros.push({ wx: viking.x, wy: viking.y, y: -160, vida: 1.4, txt: "+ " + txt, exp: true });
@@ -7635,12 +7963,13 @@ function pegarItem(d) {
 function nomeDrop(d) {
   if (d.tipo === "yang") return "Gold";
   if (d.tipo === "livro") return "Livro de Habilidade";
+  if (d.tipo === "joia") return tipoItem(d.chave).nome;
   const base = d.tipo === "peca" || d.tipo === "arma" ? tipoItem(d.chave).nome.replace(/ \(.*\)$/, "") : (NOME_ITEM[d.tipo] || tipoItem(d.tipo).nome);
   return base + (d.ref ? " +" + d.ref : "") + ((d.qtd || 1) > 1 && d.tipo !== "peca" && d.tipo !== "arma" ? " (" + d.qtd + ")" : "");
 }
 // o ícone pintado que serve de sprite no chão (o mesmo da bolsa), quando existe
 function iconeDrop(d) {
-  const k = d.tipo === "peca" ? d.chave : d.tipo === "arma" ? (ARMAS[(d.chave || "").slice(5)] || ARMAS.viking).desenho : d.tipo;
+  const k = d.tipo === "peca" ? d.chave : d.tipo === "arma" ? (ARMAS[(d.chave || "").slice(5)] || ARMAS.viking).desenho : d.tipo === "joia" ? d.chave.split(":").slice(0, 2).join(":") : d.tipo;
   const im = ICONES_ITEM[k];
   return im && (im instanceof HTMLCanvasElement || (im.complete && im.naturalWidth)) ? im : null;
 }
@@ -7854,12 +8183,14 @@ function montarMenu() {
 // ---------------------------------------------------------------- admin: criar item
 // Para testar desenhos e brilhos: qualquer item do jogo (armas e peças com refino +0 a +9 e os bônus que quiser,
 // consumíveis, livros de todas as skills e yang) vai direto para a bolsa do personagem atual
-let admRef = 0, admBon = [];
+let admRef = 0, admBon = [], admJo = [];
 function admListaItens() {
   const grupos = [["Armas", ["viking", "guerreiro", "arqueiro", "feiticeiro", "ninja"].filter(c => ARMAS[c]).flatMap(c => ARMAS_TIER[c].map((nome, t) => [chaveArma(c, t), `${nome} (${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[t]})`]))]];
   for (const [slot, P] of Object.entries(PECAS))
     grupos.push([P.nome + (P.classes ? " · " + P.classes.map(c => NOME_CLASSE[c]).join("/") : ""), P.modelos.map((m, t) => [`peca:${slot}:${t}`, `${m[0]} (nível ${m[1]})`])]);
-  grupos.push(["Consumíveis e materiais", ["pocao", "pocaoMana", "pedra", "encantar", "mudar", "alma", "bencao"].map(k => [k, tipoItem(k).nome])]);
+  grupos.push(["Consumíveis e materiais", ["pocao", "pocaoMana", "pedra", "encantar", "mudar", "alma", "bencao", "correcao"].map(k => [k, tipoItem(k).nome])]);
+  grupos.push(["Jóias (de arma)", Object.keys(JOIAS).filter(t => JOIAS[t].parte === "arma").flatMap(t => JOIAS[t].val.map((_, g) => [`joia:${t}:${g}`, nomeJoia(t, g)]))]);
+  grupos.push(["Jóias (de roupa)", Object.keys(JOIAS).filter(t => JOIAS[t].parte === "roupa").flatMap(t => JOIAS[t].val.map((_, g) => [`joia:${t}:${g}`, nomeJoia(t, g)]))]);
   for (const [c, l] of [["viking", SKILLS_VIKING], ["arqueiro", SKILLS_ARQUEIRO], ["feiticeiro", SKILLS_FEITICEIRO], ["ninja", SKILLS_NINJA]])
     grupos.push([`Livros · ${NOME_CLASSE[c]}${c === "viking" ? "/Guerreiro" : ""}`, l.map(sk => ["livro:" + sk.nome, "Livro: " + sk.nome])]);
   grupos.push(["Dinheiro", [["yang", "Yang"]]]);
@@ -7877,11 +8208,12 @@ function admDesenhar() {
   else if (yang) { if (!pintarItem(g, "yang", w, h)) { g.fillStyle = "#f3cf5a"; g.strokeStyle = "#5a3a10"; g.lineWidth = 2; g.beginPath(); g.arc(w / 2, h / 2, w * 0.3, 0, 7); g.fill(); g.stroke(); } }
   else iconeItem(g, t.desenho, w, h);
   $("#admRefLinha").hidden = !temRef; $("#admBonusCaixa").hidden = !temRef; $("#admQtdLinha").hidden = temRef;
+  admDesenharJoias(chave, t);
   $("#admQtd").max = yang ? 2000000000 : 1000;
   $("#admSelo").textContent = temRef ? "+" + ref : "";
   const brilho = t.arma && { 7: "brilho dourado", 8: "brilho violeta", 9: "brilho vermelho-fogo" }[ref];
   let info = yang ? "Dinheiro: vai direto para a carteira." : t.desc || "";
-  if (t.arma) info = `Ataque +${Math.round((bonusArma(ref) - 1) * 100)}%${brilho ? " · " + brilho : " · brilha do +7 em diante"}`;
+  if (t.arma) info = `Força dos golpes +${Math.round((bonusArma(ref, t.tier) - 1) * 100)}%${brilho ? " · " + brilho : " · brilha do +7 em diante"}`;
   if (t.peca) info = descPeca(t.peca, t.tier, ref) + (PECAS[t.peca].classes ? ` · só ${PECAS[t.peca].classes.map(c => NOME_CLASSE[c]).join("/")}` : "");
   $("#admNome").firstChild.textContent = temRef ? `${t.nome} +${ref}` : t.nome;
   $("#admDesc").textContent = info;
@@ -7898,6 +8230,17 @@ function admDesenharBonus() {
     `<input type="number" aria-label="Valor do bônus ${i + 1}" value="${v}" min="1" max="9999"><button type="button" aria-label="Tirar o bônus ${i + 1}">×</button></div>`).join("");
   $("#admBonMais").disabled = admBon.length >= Math.min(BONUS_MAX, tipos.length);
 }
+// os buracos do item criado (arma e roupa): cada um vazio, com a Pedra Partida ou com uma Jóia da parte e o grau
+function admDesenharJoias(chave, t) {
+  const n = t.arma || t.peca ? buracosDe(chave) : 0, caixa = $("#admJoias");
+  $("#admJoiasCaixa").hidden = !n;
+  admJo = admJo.slice(0, n); while (admJo.length < n) admJo.push(null);
+  const parte = t.arma ? "arma" : "roupa", tipos = Object.keys(JOIAS).filter(k => JOIAS[k].parte === parte);
+  admJo = admJo.map(x => Array.isArray(x) && !tipos.includes(x[0]) ? null : x);
+  caixa.innerHTML = admJo.map((x, i) => `<div class="bon" data-i="${i}"><select aria-label="Buraco ${i + 1}"><option value="">Buraco vazio</option><option value="x"${x === "x" ? " selected" : ""}>Pedra Partida</option>${tipos.map(k =>
+    `<option value="${k}"${Array.isArray(x) && x[0] === k ? " selected" : ""}>${JOIAS[k].nome}</option>`).join("")}</select>` +
+    `<select aria-label="Grau da Jóia ${i + 1}"${Array.isArray(x) ? "" : " disabled"}>${[0, 1, 2, 3, 4].map(g => `<option value="${g}"${Array.isArray(x) && x[1] === g ? " selected" : ""}>+${g}</option>`).join("")}</select><span></span></div>`).join("");
+}
 function admCriar() {
   if (!prog) return;
   const { chave, yang, t } = admTipo(), res = $("#admResultado"), qtd = Math.max(1, Math.floor(+$("#admQtd").value || 1));
@@ -7905,8 +8248,9 @@ function admCriar() {
   if (yang) { prog.yang += qtd; msg = `+${qtd.toLocaleString("pt-BR")} Yang`; }
   else if (t.arma || t.peca) {
     const vistos = new Set(), bon = admBon.filter(([b]) => !vistos.has(b) && vistos.add(b)).map(([b, v]) => [b, Math.max(1, Math.round(+v || 1))]);
-    ok = !adicionarItem(chave, 1, { ref: admRef, bon });
-    msg = ok ? `Criado: ${t.nome} +${admRef}${bon.length ? ` com ${bon.length} bônus` : ""}` : "A bolsa está cheia.";
+    const jo = admJo.length ? admJo.map(x => Array.isArray(x) ? [...x] : x) : undefined, nj = (jo || []).filter(Array.isArray).length;
+    ok = !adicionarItem(chave, 1, { ref: admRef, bon, ...(jo ? { jo } : {}) });
+    msg = ok ? `Criado: ${t.nome} +${admRef}${bon.length ? ` com ${bon.length} bônus` : ""}${nj ? ` e ${nj} Jóia${nj > 1 ? "s" : ""}` : ""}` : "A bolsa está cheia.";
   } else {
     const sobra = adicionarItem(chave, qtd); ok = sobra < qtd;
     msg = !ok ? "A bolsa está cheia." : sobra ? `Criado: ${qtd - sobra} × ${t.nome} (não coube tudo: faltaram ${sobra})` : `Criado: ${qtd} × ${t.nome}`;
@@ -7941,6 +8285,13 @@ function montarAdmin() {
   $("#admBonSortear").onclick = () => { const pa = admParte(admTipo().t); if (!pa) return;
     const l = [], n = admBon.length || 3; for (let k = 0; k < n; k++) { const b = sortearBonus(pa[0], pa[1], l); if (b) l.push(b); } admBon = l; admDesenharBonus(); };
   $("#admBonLimpar").onclick = () => { admBon = []; admDesenharBonus(); };
+  $("#admJoias").onchange = e => { const l = e.target.closest(".bon"); if (!l) return; const i = +l.dataset.i, [s1, s2] = l.querySelectorAll("select");
+    admJo[i] = s1.value === "" ? null : s1.value === "x" ? "x" : [s1.value, +s2.value];
+    const { chave, t } = admTipo(); admDesenharJoias(chave, t); };
+  // enche os buracos com Jóias +4 diferentes (para mostrar em vídeo)
+  $("#admJoiasCheio").onclick = () => { const { chave, t } = admTipo(), parte = t.arma ? "arma" : "roupa", tipos = Object.keys(JOIAS).filter(k => JOIAS[k].parte === parte);
+    admJo = admJo.map((_, i) => [tipos[i % tipos.length], 4]); admDesenharJoias(chave, t); };
+  $("#admJoiasLimpar").onclick = () => { admJo = admJo.map(() => null); const { chave, t } = admTipo(); admDesenharJoias(chave, t); };
   $("#admCriar").onclick = admCriar;
   $("#admFechar").onclick = () => abrirAdmin(false);
   $("#bAdmin").onclick = () => abrirAdmin();
@@ -8059,10 +8410,16 @@ function atualizarFicha() {
     ["Crítico", Math.round(status.critico * 100) + "%", "Chance de golpe crítico (DEX e bônus)"],
     ["Bloqueio", Math.round((status.bloqueio || 0) * 100) + "%", "Chance de o escudo segurar um golpe"],
     ["Redução de dano", red + "%", "Quanto a defesa tira do dano recebido"],
-    ["Contra monstros", "+" + Math.round((status.monstros || 0) * 100) + "%", "Dano a mais contra criaturas (bônus dos itens)"],
+    ["Contra monstros", "+" + Math.round((status.monstros || 0) * 100) + "%", "Dano a mais contra criaturas (bônus dos itens e Jóia Monstruosa)"],
+    ["Perfurante", Math.round((status.perfurante || 0) * 100) + "%", "Chance de o golpe ignorar a defesa da criatura (Jóia do Ataque Perfurante)"],
+    ["Contra raças", "+" + Math.max(0, ...["morto_vivo", "animal", "orc"].map(r => Math.round(((status.raca || {})[r] || 0) * 100))) + "%",
+      "Jóias contra raça: " + [["morto_vivo", "Mortos-vivos"], ["animal", "Animais"], ["orc", "Orcs"]].map(([r, n]) => `${n} +${Math.round(((status.raca || {})[r] || 0) * 100)}%`).join(" · ")],
+    ["Evasão · Esquiva", Math.round((status.evasao || 0) * 100) + "/" + Math.round((status.esquiva || 0) * 100) + "%", "Chance de bloquear o golpe corpo a corpo / de esquivar a flecha e a magia (Jóias da Evasão e da Esquiva)"],
+    ["Resfriamento", "−" + Math.round((status.resfriamento || 0) * 100) + "%", "Recarga das skills mais curta (Jóia do Resfriamento)"],
     ["Refino da arma", prog.arma ? "+" + (prog.arma.ref || 0) : "—", prog.arma ? nomeArma(prog.arma.ref) : "Sem arma (punhos)"]]
     .map(([a, v, t]) => `<span title="${t}">${a}</span><b class="fx-cx" title="${t}">${v}</b>`).join("");
   const lb = Object.entries(bon).map(([t, v]) => BONUS[t] ? BONUS[t].nome(v) : "").filter(Boolean);
+  for (const [t, v] of Object.entries(somaJoias())) if (JOIAS[t]) lb.push(`${JOIAS[t].rot} ${JOIAS[t].menos ? "−" : "+"}${v}${JOIAS[t].pct ? "%" : ""} (Jóias)`);
   $("#fEquipNota").textContent = `${prog.arma ? nomeArma(prog.arma.ref) : "Sem arma (punhos)"} · ${lb.length ? lb.join(" · ") : "nenhum bônus nos itens"}`;
   // ---- Skills: os grupos (o da classe; o segundo ainda fechado), a grade 3 × 4 de cada metade e o detalhe da escolhida
   $("#fGrupos").innerHTML = `<button type="button" aria-pressed="true">${nomeClasse}</button><button type="button" disabled title="Em breve">${CADEADO}Apoio</button>`;
@@ -8751,7 +9108,10 @@ function ferir(l, dano, dx, dy, empurra, semReacao = false) {
   // a força do personagem, o nível da skill que fere e o crítico (dobra; o Olho Arcano soma 25%)
   let critico = false;
   if (dano > 0 && prog) {
-    dano *= status.ataque * (fonteDano ? multSkill(fonteDano) : 1) * (1 + (status.monstros || 0)) * 100 / (100 + defesaDe(l.cfg));   // (a defesa da criatura)
+    // (a defesa da criatura; o golpe perfurante, da Jóia, a ignora; a Jóia contra a raça dela soma)
+    const raca = status.raca && status.raca[racaDe(l.cfg)] || 0, perfurou = status.perfurante > 0 && Math.random() < status.perfurante;
+    dano *= status.ataque * (fonteDano ? multSkill(fonteDano) : 1) * (1 + (status.monstros || 0)) * (1 + raca) * (perfurou ? 1 : 100 / (100 + defesaDe(l.cfg)));
+    if (perfurou && defesaDe(l.cfg) > 0) numeros.push({ wx: l.x, wy: l.y, y: -l.cfg.altura - 58, vida: 0.7, txt: "Perfurou!", forte: false });
     if (classe === "ninja" && NINJA.esconder.buff > 0) { dano *= 2.5 * multSkill("Esconder") / 1; NINJA.esconder.buff = 0; numeros.push({ wx: l.x, wy: l.y, y: -l.cfg.altura - 40, vida: 1, txt: "Emboscada!", critico: true }); }
     critico = Math.random() < status.critico + (classe === "feiticeiro" && olho.buff > 0 ? OLHO_CRIT : 0);
     if (critico) dano *= 2;
@@ -9951,6 +10311,10 @@ function barraVida(l, X, Ytopo) {
   const sobe = l.acao === "levantar" ? Math.max(0, 1 - l.t * 2) : 0;       // o esqueleto levantando: a barra aparece aos poucos
   cx.save(); cx.globalAlpha = 1 - sobe;
   placaNome(X, y - 4, cfg.nivel || 1, cfg.nome, l.cacando ? "#ff9a86" : "#f2eee6", corDoNivel(cfg.nivel || 1));
+  if (l === selecao && racaDe(cfg)) {                                 // (o alvo marcado: a raça, para as Jóias contra raça)
+    cx.save(); cx.font = 'bold 10px Tahoma, Verdana, "Segoe UI", sans-serif'; cx.textAlign = "center"; cx.lineJoin = "round"; cx.lineWidth = 3; cx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+    const r = NOME_RACA[racaDe(cfg)]; cx.strokeText(r, X, y - 19); cx.fillStyle = "#A8D8F0"; cx.fillText(r, X, y - 19); cx.restore();
+  }
   cx.fillStyle = "rgba(20, 14, 10, 0.85)"; cx.fillRect(X - larg / 2 - 1, y - 1, larg + 2, alt + 2);
   cx.fillStyle = "#3a1712"; cx.fillRect(X - larg / 2, y, larg, alt);
   if (kv > k) { cx.fillStyle = "#f2e2b8"; cx.fillRect(X - larg / 2 + larg * k, y, larg * (kv - k), alt); }
@@ -10500,7 +10864,7 @@ function montarCaverna() {
 function criarOrcs() {
   if (TIPOS.orc_negro) return;
   const bo = TIPOS.orc && TIPOS.orc.M ? "orc" : "goblin", eo = bo === "orc" ? 1 : 1.7;
-  const orc = (v, b = bo, e = eo) => variante(b, { visao: 8, chega: 1.9, galope: 0, passeio: 0.8, ...v, esc: v.esc * e });
+  const orc = (v, b = bo, e = eo) => variante(b, { visao: 8, chega: 1.9, galope: 0, passeio: 0.8, raca: "orc", ...v, esc: v.esc * e });
   const proprio = t => TIPOS[t] && TIPOS[t].M;                   // o modelo dele chegou? (orc_bravo.json, orc_feiticeiro.json)
   // caça do nível 45 ao 61 (a Ilha de Daiyu, enquanto ela não vira mapa próprio: PROJETO_MAPAS.md 3.4 e NIVEL70.md):
   // Orc 45 < Orc Bravo 51 < Orc Feiticeiro 53 (de longe) < Orc Gigante 61 (tanque); o Chefe Orc (60) manda neles
@@ -10822,6 +11186,7 @@ const LOJA_HAHOE = [14, 22, 30].flatMap((n, k) => {
   const t = k + 2, preco = [[4000, 6300, 10300], [9000, 14000, 23000], [16000, 25000, 41000]][k];
   return [[`peca:elmo:${t}`, preco[0]], [`peca:botas:${t}`, preco[0]], [`peca:escudo:${t}`, preco[1]], [`peca:armadura_guerreiro:${t}`, preco[2]], [`peca:armadura_leve:${t}`, preco[2]], [`peca:armadura_mago:${t}`, preco[2]]];
 });
+LOJA_HAHOE.push(["correcao", 25000]);                    // o Pergaminho da Correção (tira a última Jóia de uma arma ou roupa)
 // os moradores: os mesmos serviços da Vila 1 (o ferreiro, o armazém compartilhado, a loja de poções e a de peças, o
 // guarda), com nomes coreanos (PROJETO_MAPAS.md 2.4) e os modelos 3D dos NPCs que já existem
 function npcsHahoe() {
@@ -10907,7 +11272,7 @@ function montarHahoe() {
 // o chefe da Vila Hahoe, por enquanto pintado sobre o goblin (a malha própria do Dokkaebi está na fila do projeto)
 function criarCriaturasHahoe() {
   if (TIPOS.capitao_dokkaebi || !TIPOS.goblin || !TIPOS.goblin.M) return;
-  TIPOS.capitao_dokkaebi = variante("goblin", { nome: "Capitão Dokkaebi", esc: 1.6, vida: 69500, nivel: 42, dano: 1159, defesa: 51, renasce: 960, chefe: true, chefeCaverna: true, visao: 8.5, chega: 2.0,
+  TIPOS.capitao_dokkaebi = variante("goblin", { nome: "Capitão Dokkaebi", raca: "demonio", esc: 1.6, vida: 69500, nivel: 42, dano: 1159, defesa: 51, renasce: 960, chefe: true, chefeCaverna: true, visao: 8.5, chega: 2.0,
     filtro2d: "sepia(1) saturate(4) hue-rotate(-30deg) brightness(0.9)", tinta: "#d8584a" });
 }
 // pisando num buraco ou numa escada: escurece, troca de lugar e clareia
