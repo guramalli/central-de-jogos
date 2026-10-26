@@ -487,6 +487,7 @@
   .adm-bonus .bon { display: grid; grid-template-columns: 1fr 58px 24px; gap: 4px; }
   .adm-bonus .bon button { padding: 0; }
   .adm-linha { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .adm-teste { display: flex; gap: 8px; align-items: center; font-size: 13px; }
   .adm-linha button { padding: 4px 9px; font-size: 12px; }
   .admin .ref-resultado { margin: 0; }
   @media (max-width: 640px) {
@@ -1069,6 +1070,8 @@
   <button class="grande" id="admCriar">Criar</button>
   <p class="ref-resultado" id="admResultado" role="status" hidden></p>
   <p class="nota">O item vai para a bolsa do personagem atual (cada classe tem a sua: troque com T antes, se quiser ver a arma de outra classe na mão). Armas +7, +8 e +9 brilham.</p>
+  <h3>Personagem de teste</h3>
+  <label class="adm-teste"><input type="checkbox" id="admSemTrava"> Usa armas e peças de qualquer nível (só este personagem)</label>
 </aside>
 
 <div id="carregando"><div><p>Afiando a espada…</p><div class="trilho"><i id="barra"></i></div><span id="carregandoTxt">0 / 0</span></div></div>
@@ -7148,7 +7151,7 @@ function equiparPeca(it) {
   if (!prog) return;
   const [, peca, t] = it.chave.split(":"), tier = +t, req = PECAS[peca].modelos[tier][1], slot = slotDa(peca);
   if (!pecaServe(peca)) { avisar(`${PECAS[peca].modelos[tier][0]} é roupa de ${PECAS[peca].classes.map(c => NOME_CLASSE[c]).join(" e ")}`); som("ui_negar"); return; }
-  if (prog.nivel < req) { avisar(`${PECAS[peca].modelos[tier][0]}: precisa do nível ${req}`); som("ui_negar"); return; }
+  if (prog.nivel < req && !prog.semTrava) { avisar(`${PECAS[peca].modelos[tier][0]}: precisa do nível ${req}`); som("ui_negar"); return; }
   const i = prog.inv.indexOf(it); if (i < 0) return;
   prog.inv.splice(i, 1);
   const velha = prog.equip[slot], pv = pecaEquipada(slot);
@@ -7252,7 +7255,7 @@ function equiparArma(it) {
   // como no Metin2: cada classe só empunha a própria arma, e cada modelo pede o nível dele
   const { classe: dona, tier } = armaDaChave(it.chave);
   if (dona !== classe) { avisar(`${ARMAS[dona].nome} é arma de ${NOME_CLASSE[dona]}`); som("ui_negar"); return; }
-  if (prog.nivel < NIVEIS_ARMA[tier]) { avisar(`${nomeArma(it.ref || 0, tier)}: precisa do nível ${NIVEIS_ARMA[tier]}`); som("ui_negar"); return; }
+  if (prog.nivel < NIVEIS_ARMA[tier] && !prog.semTrava) { avisar(`${nomeArma(it.ref || 0, tier)}: precisa do nível ${NIVEIS_ARMA[tier]}`); som("ui_negar"); return; }
   const i = prog.inv.indexOf(it); if (i < 0) return;
   prog.inv.splice(i, 1);
   if (prog.arma) prog.inv.push({ chave: chaveArma(classe, prog.arma.tier), qtd: 1, ref: prog.arma.ref, bon: prog.arma.bon || [], aba: it.aba, x: it.x, y: it.y });
@@ -7728,6 +7731,7 @@ function admCriar() {
 }
 function abrirAdmin(sim = $("#admin").hidden) {
   $("#admin").hidden = !sim; janelaAbriu("admin", sim);
+  if (sim) $("#admSemTrava").checked = !!(prog && prog.semTrava);
   if (sim && editor.ativo) editorAbrir(false);
   if (sim) { $("#admResultado").hidden = true; admDesenhar(); }
 }
@@ -7751,6 +7755,8 @@ function montarAdmin() {
   $("#admCriar").onclick = admCriar;
   $("#admFechar").onclick = () => abrirAdmin(false);
   $("#bAdmin").onclick = () => abrirAdmin();
+  // personagem de teste: equipa arma e peça de qualquer nível (para mostrar os modelos novos na mão); fica salvo no progresso dele
+  $("#admSemTrava").onchange = e => { prog.semTrava = e.target.checked || undefined; salvarProgresso(); avisar(e.target.checked ? "Este personagem usa itens de qualquer nível" : "A trava de nível dos itens voltou"); };
 }
 
 // ---------------------------------------------------------------- ficha do personagem (P)
