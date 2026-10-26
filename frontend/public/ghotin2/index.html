@@ -190,8 +190,7 @@
   .equip .silhueta { position: absolute; left: 50%; top: 14px; width: 54px; height: 120px; transform: translateX(-50%); opacity: 0.35;
     background: radial-gradient(circle at 50% 12%, #c9b28a 0 13px, transparent 14px), linear-gradient(#c9b28a, #c9b28a) 50% 32px / 34px 58px no-repeat,
                 linear-gradient(#c9b28a, #c9b28a) 30% 88px / 12px 32px no-repeat, linear-gradient(#c9b28a, #c9b28a) 70% 88px / 12px 32px no-repeat; }
-  .eq { position: absolute; width: 32px; height: 32px; border: 1px solid #6b5230; border-radius: 3px; background: rgba(10, 7, 4, 0.7); }
-  .eq.alto { height: 66px; }
+  .eq { position: absolute; width: 36px; height: 36px; border: 1px solid #6b5230; border-radius: 3px; background: rgba(10, 7, 4, 0.7); }
   .eq span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 9px; color: #7d6a4c; text-align: center; line-height: 1; }
   .abas-bolsa { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
   .abas-bolsa button { padding: 2px 0; font-family: var(--display); font-size: 14px; }
@@ -796,14 +795,16 @@
         <circle cx="114" cy="5" r="4.5" fill="#1E1B18" stroke-width="1"/><path d="M106 5h16" fill="none" stroke="#C9963E" stroke-width="1.6"/>
       </g>
     </svg>
-    <div class="eq peca-eq" data-peca="elmo" style="left: 98px; top: 6px"><span>elmo</span></div>
-    <div class="eq" style="left: 142px; top: 8px" title="Brincos (em breve)"><span>brinco</span></div>
-    <div class="eq" style="left: 142px; top: 46px" title="Colar (em breve)"><span>colar</span></div>
-    <div class="eq alto peca-eq" data-peca="armadura" style="left: 98px; top: 46px"><span>roupa</span></div>
-    <div class="eq alto arma-eq" id="eqArma" style="left: 18px; top: 64px" title="Arma: clique direito tira e põe na bolsa"><span>arma</span></div>
-    <div class="eq alto peca-eq" data-peca="escudo" style="left: 178px; top: 64px"><span>escudo</span></div>
-    <div class="eq" style="left: 58px; top: 100px" title="Bracelete (em breve)"><span>pulso</span></div>
-    <div class="eq peca-eq" data-peca="botas" style="left: 98px; top: 174px"><span>botas</span></div>
+    <!-- como no Metin2: todos os espaços do mesmo tamanho, numa grade de 5 colunas × 5 linhas (36 px, 6 de folga) sobre o corpo:
+         a cabeça no elmo, a roupa no peito, a arma e o escudo nas mãos, as botas nos pés; joias na coluna da direita -->
+    <div class="eq" style="left: 6px; top: 5px" title="Bracelete (em breve)"><span>pulso</span></div>
+    <div class="eq peca-eq" data-peca="elmo" style="left: 90px; top: 5px"><span>elmo</span></div>
+    <div class="eq" style="left: 174px; top: 5px" title="Brincos (em breve)"><span>brinco</span></div>
+    <div class="eq" style="left: 174px; top: 47px" title="Colar (em breve)"><span>colar</span></div>
+    <div class="eq arma-eq" id="eqArma" style="left: 48px; top: 89px" title="Arma: clique direito tira e põe na bolsa"><span>arma</span></div>
+    <div class="eq peca-eq" data-peca="armadura" style="left: 90px; top: 89px"><span>roupa</span></div>
+    <div class="eq peca-eq" data-peca="escudo" style="left: 132px; top: 89px"><span>escudo</span></div>
+    <div class="eq peca-eq" data-peca="botas" style="left: 90px; top: 173px"><span>botas</span></div>
   </div>
   <div class="abas-bolsa" role="tablist" aria-label="Abas da bolsa" id="abasBolsa"></div>
   <div class="grade-inv" id="gradeInv" aria-label="Espaços da bolsa"></div>
@@ -6916,10 +6917,10 @@ function botaoItem(it) {
   const t = tipoItem(it.chave), b = document.createElement("button");
   b.className = "item-inv"; b.type = "button"; b.style.left = it.x * CEL + "px"; b.style.top = it.y * CEL + "px"; b.style.height = t.h * CEL + "px";
   b.setAttribute("aria-label", `${nomeItem(it)}, ${it.qtd}`);
-  const c = document.createElement("canvas"); c.width = CEL; c.height = t.h * CEL;
-  if (t.arma) iconeArma(c.getContext("2d"), t.desenho, CEL, t.h * CEL, it.ref || 0, t.tier);
-  else if (t.peca) iconePeca(c.getContext("2d"), t.peca, t.tier, CEL, t.h * CEL);
-  else iconeItem(c.getContext("2d"), t.desenho, CEL, t.h * CEL);
+  const [c, g] = canvasNitido(CEL, t.h * CEL);
+  if (t.arma) iconeArma(g, t.desenho, CEL, t.h * CEL, it.ref || 0, t.tier);
+  else if (t.peca) iconePeca(g, t.peca, t.tier, CEL, t.h * CEL);
+  else iconeItem(g, t.desenho, CEL, t.h * CEL);
   b.appendChild(c);
   if (it.qtd > 1 || t.arma || t.peca) { const q = document.createElement("b"); q.textContent = t.arma || t.peca ? "+" + (it.ref || 0) : it.qtd; b.appendChild(q); }
   b._item = it; b.title = nomeItem(it);
@@ -6950,11 +6951,19 @@ function tipoItem(chave) {
     bencao: { nome: "Pergaminho da Bênção", desc: "No Ferreiro: se o refino falhar, a arma perde só um nível em vez de quebrar.", h: 1, desenho: "bencao" },
   }[chave] || { nome: chave, desc: "", h: 1, desenho: "pedra" };
 }
-// o ícone pintado (se houver) cabe inteiro no espaço, centrado; com o brilho do refino em volta, quando houver
+// um canvas na densidade da tela: desenha-se em w × h (coordenadas lógicas) e ele guarda densidade × mais pixels, para o
+// ícone pintado sair nítido nas telas de alta densidade (antes o canvas de 40 px era esticado e ficava borrado)
+function canvasNitido(w, h) {
+  const d = Math.min(3, Math.max(1, window.devicePixelRatio || 1)), c = document.createElement("canvas");
+  c.width = Math.round(w * d); c.height = Math.round(h * d); c.style.width = w + "px"; c.style.height = h + "px";
+  const g = c.getContext("2d"); g.scale(d, d); g.imageSmoothingQuality = "high";
+  return [c, g];
+}
+// o ícone pintado (se houver) cabe inteiro no espaço, centrado, com pouca margem; com o brilho do refino em volta, quando houver
 function pintarItem(g, chave, w, h, b) {
   const im = ICONES_ITEM[chave]; if (!im) return false;
   g.clearRect(0, 0, w, h);
-  const e = Math.min((w - 4) / im.width, (h - 4) / im.height), iw = im.width * e, ih = im.height * e, x = (w - iw) / 2, y = (h - ih) / 2;
+  const e = Math.min((w - 3) / im.width, (h - 3) / im.height), iw = im.width * e, ih = im.height * e, x = (w - iw) / 2, y = (h - ih) / 2;
   g.save();
   if (b) { g.shadowColor = b.forte; g.shadowBlur = Math.max(6, Math.min(w, h) * 0.3); g.drawImage(im, x, y, iw, ih); }
   g.drawImage(im, x, y, iw, ih);
@@ -7334,10 +7343,10 @@ function desenharBolsa() {
     const t = tipoItem(it.chave), b = document.createElement("button");
     b.className = "item-inv"; b.type = "button"; b.style.left = it.x * CEL + "px"; b.style.top = it.y * CEL + "px"; b.style.height = t.h * CEL + "px";
     b.setAttribute("aria-label", `${nomeItem(it)}, ${it.qtd}`);
-    const c = document.createElement("canvas"); c.width = CEL; c.height = t.h * CEL;
-    if (t.arma) iconeArma(c.getContext("2d"), t.desenho, CEL, t.h * CEL, it.ref || 0, t.tier);
-    else if (t.peca) iconePeca(c.getContext("2d"), t.peca, t.tier, CEL, t.h * CEL);
-    else iconeItem(c.getContext("2d"), t.desenho, CEL, t.h * CEL);
+    const [c, g] = canvasNitido(CEL, t.h * CEL);
+    if (t.arma) iconeArma(g, t.desenho, CEL, t.h * CEL, it.ref || 0, t.tier);
+    else if (t.peca) iconePeca(g, t.peca, t.tier, CEL, t.h * CEL);
+    else iconeItem(g, t.desenho, CEL, t.h * CEL);
     b.appendChild(c);
     if (it.qtd > 1 || t.arma || t.peca) { const q = document.createElement("b"); q.textContent = t.arma || t.peca ? "+" + (it.ref || 0) : it.qtd; b.appendChild(q); }
     b._item = it;
@@ -7347,7 +7356,12 @@ function desenharBolsa() {
   const eq = $("#eqArma");
   eq.innerHTML = prog.arma ? "" : "<span>arma</span>";
   if (prog.arma) {
-    const c = document.createElement("canvas"); c.width = 40; c.height = 120; iconeArma(c.getContext("2d"), ARMAS[classe].desenho, 40, 120, prog.arma.ref, prog.arma.tier); eq.appendChild(c);
+    // no quadrado do equipamento a arma comprida vai na diagonal (de baixo à esquerda ao alto à direita) e ocupa o quadro;
+    // as adagas (o par cruzado) já são quadradas
+    const [c, g] = canvasNitido(36, 36), des = ARMAS[classe].desenho;
+    if (des === "adagas") iconeArma(g, des, 36, 36, prog.arma.ref, prog.arma.tier);
+    else { g.translate(18, 18); g.rotate(Math.PI / 4); g.translate(-9, -24); iconeArma(g, des, 18, 48, prog.arma.ref, prog.arma.tier); }
+    eq.appendChild(c);
     const r = document.createElement("span"); r.className = "ref-eq"; r.textContent = "+" + prog.arma.ref; eq.appendChild(r);
     eq.title = `${nomeArma(prog.arma.ref)} (ataque +${Math.round((bonusArma(prog.arma.ref, prog.arma.tier) - 1) * 100)}%)${(prog.arma.bon || []).length ? "\n" + textoBonus(prog.arma.bon).join("\n") : ""}\nClique direito guarda na bolsa`;
   } else eq.title = "Sem arma: clique direito numa arma da bolsa para equipar";
@@ -7355,7 +7369,7 @@ function desenharBolsa() {
     const slot = el.dataset.peca, e = prog.equip && prog.equip[slot], pc = pecaEquipada(slot) || (slot === "armadura" ? ROUPA_DA_CLASSE[classe] : slot);
     el.innerHTML = e ? "" : `<span>${{ armadura: "roupa" }[slot] || slot}</span>`;
     if (e) {
-      const c = document.createElement("canvas"); c.width = 40; c.height = PECAS[pc].h * 40; iconePeca(c.getContext("2d"), pc, e.tier, 40, PECAS[pc].h * 40); el.appendChild(c);
+      const [c, g] = canvasNitido(36, 36); iconePeca(g, pc, e.tier, 36, 36); el.appendChild(c);
       const r = document.createElement("span"); r.className = "ref-eq"; r.textContent = "+" + e.ref; el.appendChild(r);
       el.title = `${nomePeca(pc, e.tier, e.ref)}: ${descPeca(pc, e.tier, e.ref)}${(e.bon || []).length ? "\n" + textoBonus(e.bon).join("\n") : ""}\nClique direito guarda na bolsa`;
     } else el.title = `${PECAS[pc].nome}: clique direito numa peça da bolsa para vestir`;
