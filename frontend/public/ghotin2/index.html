@@ -873,7 +873,7 @@
         <dt>Movimento</dt><dd>todos correm sempre; a velocidade sobe com os itens de velocidade, a Fúria e os Passos Leves</dd>
         <dt>clique · toque</dt><dd>andar até o ponto, desviando do que estiver no caminho (longe, ele corre); num boneco, ir lá e bater; num lobo ou esqueleto, marcar o alvo (anel vermelho), ir atrás e golpear sozinho até ele cair</dd>
         <dt>J</dt><dd>atacar: com a espada nas costas, saca já golpeando; depois os 5 golpes em sequência</dd>
-        <dt>F1 – F10 · 1 – 0 · I</dt><dd>barra de atalhos em duas fileiras (F1–F10 em cima, com as poções; 1–0 embaixo, com as skills) e a bolsa (I): quatro abas de 5 × 9 espaços como no Metin2; arraste um item para a barra para criar um atalho, clique direito usa. Barra: arraste uma skill para outro espaço para trocar de lugar (cada personagem guarda a sua ordem). Ataques e skills de ataque só saem com um alvo marcado (Espaço, clique ou o botão Alvo); os buffs saem sempre. No viking: Fúria, Vórtice, Lâmina Espiritual (também F, V, L), Corte Triplo (três cortes rápidos e fortes na frente) e Investida (dispara com a espada à frente e tromba no primeiro inimigo do caminho: ele voa para trás e o viking para ali). Uma skill corta o ataque básico; depois que a skill sai, andar já corta o fim dela. Os golpes do combo emendam um no outro, como no Metin2</dd>
+        <dt>F1 – F10 · 1 – 0 · I</dt><dd>barra de atalhos em duas fileiras (F1–F10 em cima, com as poções; 1–0 embaixo, com as skills) e a bolsa (I): quatro abas de 5 × 9 espaços como no Metin2; arraste um item para a barra para criar um atalho, clique direito usa. Barra: arraste uma skill para outro espaço para trocar de lugar (cada personagem guarda a sua ordem). O ataque básico só sai com um alvo marcado (Espaço, clique ou o botão Alvo); as skills saem sempre, mesmo sem alvo: viram para a criatura mais perto ou saem para a frente. No viking: Fúria, Vórtice, Lâmina Espiritual (também F, V, L), Corte Triplo (três cortes rápidos e fortes na frente) e Investida (dispara com a espada à frente e tromba no primeiro inimigo do caminho: ele voa para trás e o viking para ali). Uma skill corta o ataque básico; depois que a skill sai, andar já corta o fim dela. Os golpes do combo emendam um no outro, como no Metin2</dd>
         <dt>F</dt><dd>Fúria: abre os braços e olha para o alto, aura vermelha e chamas; por 60 s golpes 30% mais rápidos e mais fortes e 25% mais velocidade</dd>
         <dt>E</dt><dd>sacar ou guardar a espada</dd>
         <dt>H · K · R</dt><dd>levar dano · cair · levantar</dd>
@@ -1016,6 +1016,7 @@
   <div id="oVolumes"></div>
   <h3>Imagem</h3>
   <label><input type="checkbox" id="oContorno"> Contorno dos personagens e criaturas <kbd>Y</kbd></label>
+  <label><input type="checkbox" id="oBorda"> Bordas da tela levemente embaçadas</label>
   <div class="linha"><button id="opcoesPadrao">Volumes padrão</button></div>
   <p class="nota">Esc abre e fecha este menu. Tudo fica salvo neste navegador.</p>
   <details class="nota creditos-musica"><summary>Créditos das músicas</summary>
@@ -4693,13 +4694,11 @@ function ninjaDash() { return NINJA.acrobacia.ativa || NINJA.avanco.ativo; }
 function podeSkillNinja() { if (classe !== "ninja") return false; if (ninjaDash()) return false; return podeSkill(); }
 function revelarNinja() { if (NINJA.esconder.buff > 0) { NINJA.esconder.buff = 0; avisar("Você apareceu"); } }
 function usarPunhalada() {
-  if (!exigeAlvo()) return;
   if (NINJA.punhalada.recarga > 0 || !podeSkillNinja()) return;
   mirarBoneco(); NINJA.punhalada.recarga = PUNHALADA_RECARGA;
   viking.fila = null; viking.golpeNinja = "punhalada"; tocar(animN("punhalada", "golpe3"), true); som("adaga", viking, 1.2);
 }
 function usarAcrobacia() {
-  if (!exigeAlvo()) return;
   if (NINJA.acrobacia.recarga > 0 || !podeSkillNinja()) return;
   mirarBoneco(); const a = NINJA.acrobacia; a.recarga = ACROBACIA_RECARGA; a.ativa = true; a.feito = 0; a.tique = 0; a.golpes.clear();
   viking.fila = null; tocar(animN("acrobacia", "giro"), true); som("giro", viking, 1);
@@ -4719,7 +4718,6 @@ function usarAvancoAgil() {
   v.dir = dirDe(a.dx, a.dy); v.fila = null; tocar(animN("avanco", M.animacoes.investida ? "investida" : "correndo_armado"), true); som("vento", v, 1);
 }
 function usarVenenoSerpente() {
-  if (!exigeAlvo()) return;
   if (NINJA.veneno.recarga > 0 || !podeSkillNinja()) return;
   mirarBoneco(); NINJA.veneno.recarga = VENENO_N_RECARGA;
   viking.fila = null; viking.golpeNinja = "veneno"; tocar(animN("veneno", "golpe2"), true); som("arcano", viking, 0.8);
@@ -4872,7 +4870,6 @@ const vortice = { restam: 0, ativo: false, recarga: 0, t: 0, forca: 0 };
 const vorticeGuerreiro = () => classe === "guerreiro" && !!(M.animacoes.giro_entra && M.animacoes.giro_sai && !M.animacoes.giro_laco);
 
 function usarVortice() {
-  if (!exigeAlvo()) return;
   if (vortice.recarga <= 0 && antesDaSkill(usarVortice)) return;     // correndo armado: para antes (correr_para_guarda a 2×)
   if (vortice.recarga > 0 || !podeSkill()) return;
   if (viking.espada === "costas") { tocar("sacar", true); viking.fila = "vortice"; return; }
@@ -5174,6 +5171,7 @@ function avisar(txt) {
   avisoAte = performance.now() + 1500;
   setTimeout(() => { if (performance.now() >= avisoAte) el.hidden = true; }, 1550);
 }
+// (só o ataque básico usa: as skills saem sem alvo selecionado, para a frente ou para a criatura mais perto)
 function exigeAlvo() {
   if (temAlvo()) return true;
   avisar("Selecione um alvo: Espaço ou clique numa criatura");
@@ -7619,7 +7617,7 @@ function abrirOpcoes(sim = $("#opcoes").hidden) {
 function mostrarOpcoes() {
   const j = document.getElementById("opcoes");
   if (!j || j.hidden) return;
-  $("#oSom").checked = Som.ligado; $("#oMusica").checked = Som.musicaLigada; $("#oContorno").checked = contornoLigado;
+  $("#oSom").checked = Som.ligado; $("#oMusica").checked = Som.musicaLigada; $("#oContorno").checked = contornoLigado; $("#oBorda").checked = bordaLigada();
   for (const [k] of VOL_NOMES) {
     const i = j.querySelector(`input[data-vol="${k}"]`); if (!i) continue;
     i.value = Som.vol[k]; i.closest(".vol").querySelector("output").textContent = Math.round(100 * Som.vol[k]) + "%";
@@ -7637,13 +7635,22 @@ function montarOpcoes() {
   $("#oSom").onchange = () => { somIniciar(); somAlternar(); };
   $("#oMusica").onchange = () => { somIniciar(); musicaAlternar(); };
   $("#oContorno").onchange = () => contornoAlternar();
+  $("#oBorda").onchange = e => { try { localStorage.setItem("borda", e.target.checked ? "leve" : "0"); } catch (x) {} montarBordaEmb(); };
   $("#opcoesPadrao").onclick = () => { Som.vol = { ...VOL_PADRAO }; aplicarVolumes(); salvarVolumes(); mostrarOpcoes(); };
   $("#opcoesFechar").onclick = () => abrirOpcoes(false);
 }
-// as bordas embaçadas (prévia pela URL): leve, médio (com um pouco de sombra nas bordas) ou tilt-shift (só em cima e embaixo)
+// as bordas embaçadas: a leve fica ligada por padrão (escolha do usuário), com a chave no menu de opções salva no
+// navegador; ?borda=leve|medio|tilt|0 na URL passa por cima (médio: com um pouco de sombra; tilt: só em cima e embaixo)
+function bordaEscolhida() {
+  const q = new URLSearchParams(location.search).get("borda");
+  if (q) return q;
+  try { return localStorage.getItem("borda") || "leve"; } catch (e) { return "leve"; }
+}
+function bordaLigada() { return bordaEscolhida() !== "0"; }
 function montarBordaEmb() {
-  const tipo = new URLSearchParams(location.search).get("borda"), el = $("#bordaEmb");
+  const tipo = bordaEscolhida(), el = $("#bordaEmb");
   const cfg = { leve: ["2px", "62%", 0], medio: ["4px", "52%", 0.28], tilt: ["5px", "0%", 0] }[tipo];
+  el.hidden = true;
   if (!cfg || MODO_TESTE) return;
   el.hidden = false; el.classList.toggle("tilt", tipo === "tilt");
   el.style.setProperty("--emb", cfg[0]); el.style.setProperty("--emb-ini", cfg[1]); el.style.setProperty("--emb-esc", cfg[2]);
@@ -8298,7 +8305,6 @@ const triplo = { restam: 0, recarga: 0 };
 const investida = { ativa: false, recarga: 0, feito: 0, bateu: false, alvo: null, rastro: [], riscos: [], baques: [], prox: 0 };
 const animInvestida = () => M.animacoes.investida ? "investida" : "golpe3";
 function usarTriplo() {
-  if (!exigeAlvo()) return;
   if (triplo.recarga > 0 || !podeSkill()) return;
   viking.combo = 0; viking.fila = null;
   triplo.restam = 3; triplo.recarga = TRIPLO_RECARGA;
@@ -8309,13 +8315,16 @@ function usarTriplo() {
 }
 function alvoDaInvestida() {
   const a = viking.alvo, o = (a && (a.criatura || a.boneco)) || selecao;
-  return o && !o.morto ? o : null;
+  if (o && !o.morto) return o;
+  // sem alvo selecionado: a criatura viva mais perto ao alcance da Investida
+  let melhor = null, dm = INVESTIDA_DIST + 0.8;
+  for (const l of criaturas) { if (l.morto) continue; const d = Math.hypot(l.x - viking.x, l.y - viking.y) - (l.cfg.raio || 0); if (d < dm) { dm = d; melhor = l; } }
+  return melhor;
 }
 function usarInvestida() {
-  if (!exigeAlvo()) return;
   if (investida.recarga <= 0 && antesDaSkill(usarInvestida)) return; // correndo armado: para antes (correr_para_guarda a 2×)
   if (investida.recarga > 0 || !podeSkill()) return;
-  const o = alvoDaInvestida(); if (!o) return;
+  const o = alvoDaInvestida(); if (!o) { avisar(`Nenhuma criatura perto para a Investida (até ${INVESTIDA_DIST} m)`); return; }
   const dx = o.x - viking.x, dy = o.y - viking.y, d = Math.hypot(dx, dy) - ((o.cfg && o.cfg.raio) || 0);
   if (d > INVESTIDA_DIST + 0.8) { avisar(`Longe demais para a Investida (até ${INVESTIDA_DIST} m)`); return; }
   viking.dir = dirDe(dx, dy);
@@ -8663,14 +8672,12 @@ const CONCENTRADO_RECARGA = 5, CONCENTRADO_FLECHAS = 5;
 const venenosa = { recarga: 0 }, concentrado = { recarga: 0 };
 const envenenados = new Map();     // criatura → { t, tique }
 function usarVenenosa() {
-  if (!exigeAlvo()) return;
   if (venenosa.recarga > 0 || !podeSkillArq()) return;
   const alvo = alvoDaSkill(ALCANCE_ARCO + 3); if (alvo) viking.dir = dirDe(alvo.x - viking.x, alvo.y - viking.y);
   venenosa.recarga = VENENOSA_RECARGA; viking.tiroEspecial = "veneno";
   tocar("atirar", true); somPuxada();
 }
 function usarConcentrado() {
-  if (!exigeAlvo()) return;
   if (concentrado.recarga > 0 || !podeSkillArq()) return;
   const alvo = alvoDaSkill(ALCANCE_ARCO + 3); if (alvo) viking.dir = dirDe(alvo.x - viking.x, alvo.y - viking.y);
   concentrado.recarga = CONCENTRADO_RECARGA; viking.tiroEspecial = "rajada";
@@ -8780,7 +8787,6 @@ function quedaDeChuva(f) {
 }
 
 function usarCerteiro() {
-  if (!exigeAlvo()) return;
   if (certeiro.recarga > 0 || !podeSkillArq()) return;
   const v = viking, alvo = alvoDaSkill(ALCANCE_ARCO + 3);
   if (alvo) v.dir = dirDe(alvo.x - v.x, alvo.y - v.y);
@@ -9252,7 +9258,6 @@ function estouroBola(m) {
 
 // relâmpago
 function usarRaio() {
-  if (!exigeAlvo()) return;
   if (relampago.recarga > 0 || !podeSkillMago()) return;
   const v = viking, alvo = alvoDaSkill(ALCANCE_MAGIA + 2);
   if (alvo) v.dir = dirDe(alvo.x - v.x, alvo.y - v.y); else mirarBoneco();
@@ -9336,7 +9341,6 @@ function explodirMeteoro(m) {
 // volta dele, girando devagar, e colunas de luz altas e translúcidas (verde, amarelo, rosa, ciano e branco) sobem da terra
 // pela área, tremulando, e se apagam
 function usarErupcao() {
-  if (!exigeAlvo()) return;
   if (erupcao.recarga > 0 || !podeSkillMago()) return;
   // a erupção pega em volta do mago: sem nenhuma criatura ali, avisa em vez de gastar a recarga e a mana
   if (!criaturas.some(l => !l.morto && l.acao !== "levantar" && Math.hypot(l.x - viking.x, l.y - viking.y) <= ERUPCAO_RAIO + (l.cfg.raio || 0) * 0.8)) {
