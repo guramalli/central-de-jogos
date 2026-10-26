@@ -65,8 +65,8 @@
  "yang": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1746,
-   1357,
+   194,
+   1543,
    192,
    173
   ]
@@ -128,8 +128,8 @@
  "peca:armadura_guerreiro:0": {
   "a": "itens_b/atlas.webp",
   "r": [
-   0,
-   1542,
+   388,
+   1543,
    192,
    171
   ]
@@ -137,8 +137,8 @@
  "peca:armadura_guerreiro:1": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1164,
-   1357,
+   1552,
+   1358,
    192,
    175
   ]
@@ -146,8 +146,8 @@
  "peca:armadura_guerreiro:2": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1164,
-   1542,
+   1552,
+   1543,
    192,
    167
   ]
@@ -155,7 +155,7 @@
  "peca:armadura_leve:0": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1164,
+   1328,
    1164,
    192,
    188
@@ -164,7 +164,7 @@
  "peca:armadura_leve:1": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1552,
+   1716,
    1164,
    192,
    185
@@ -173,8 +173,8 @@
  "peca:armadura_leve:2": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1746,
-   1164,
+   0,
+   1358,
    192,
    183
   ]
@@ -236,7 +236,7 @@
  "peca:botas:0": {
   "a": "itens_b/atlas.webp",
   "r": [
-   776,
+   940,
    1164,
    192,
    190
@@ -254,7 +254,7 @@
  "peca:botas:2": {
   "a": "itens_b/atlas.webp",
   "r": [
-   0,
+   164,
    1164,
    192,
    191
@@ -281,7 +281,7 @@
  "peca:escudo:2": {
   "a": "itens_b/atlas.webp",
   "r": [
-   194,
+   358,
    1164,
    192,
    191
@@ -344,7 +344,7 @@
  "peca:armadura_leve:3": {
   "a": "itens_b/atlas.webp",
   "r": [
-   388,
+   552,
    1164,
    192,
    191
@@ -353,8 +353,8 @@
  "peca:armadura_leve:4": {
   "a": "itens_b/atlas.webp",
   "r": [
-   194,
-   1357,
+   388,
+   1358,
    192,
    182
   ]
@@ -362,7 +362,7 @@
  "peca:armadura_leve:5": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1358,
+   1522,
    1164,
    192,
    188
@@ -461,8 +461,8 @@
  "peca:elmo:4": {
   "a": "itens_b/atlas.webp",
   "r": [
-   970,
-   1357,
+   1358,
+   1358,
    192,
    177
   ]
@@ -848,7 +848,7 @@
  "adagas:3": {
   "a": "itens_b/atlas.webp",
   "r": [
-   582,
+   746,
    1164,
    192,
    191
@@ -857,8 +857,8 @@
  "adagas:4": {
   "a": "itens_b/atlas.webp",
   "r": [
+   1746,
    1358,
-   1357,
    192,
    175
   ]
@@ -875,8 +875,8 @@
  "adagas:6": {
   "a": "itens_b/atlas.webp",
   "r": [
-   582,
-   1357,
+   776,
+   1358,
    192,
    179
   ]
@@ -884,8 +884,8 @@
  "joia:critico": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1358,
-   1542,
+   1746,
+   1543,
    192,
    167
   ]
@@ -902,8 +902,8 @@
  "joia:monstros": {
   "a": "itens_b/atlas.webp",
   "r": [
-   582,
-   1542,
+   970,
+   1543,
    192,
    170
   ]
@@ -920,8 +920,8 @@
  "joia:morto_vivo": {
   "a": "itens_b/atlas.webp",
   "r": [
-   970,
-   1542,
+   1358,
+   1543,
    192,
    169
   ]
@@ -929,8 +929,8 @@
  "joia:animal": {
   "a": "itens_b/atlas.webp",
   "r": [
-   194,
-   1542,
+   582,
+   1543,
    192,
    171
   ]
@@ -938,8 +938,8 @@
  "joia:orc": {
   "a": "itens_b/atlas.webp",
   "r": [
-   776,
-   1357,
+   970,
+   1358,
    192,
    179
   ]
@@ -947,8 +947,8 @@
  "joia:vitalidade": {
   "a": "itens_b/atlas.webp",
   "r": [
-   388,
-   1542,
+   776,
+   1543,
    192,
    171
   ]
@@ -956,8 +956,8 @@
  "joia:magia": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1552,
-   1357,
+   0,
+   1543,
    192,
    174
   ]
@@ -965,8 +965,8 @@
  "joia:defesa": {
   "a": "itens_b/atlas.webp",
   "r": [
-   776,
-   1542,
+   1164,
+   1543,
    192,
    170
   ]
@@ -974,8 +974,8 @@
  "joia:aceleracao": {
   "a": "itens_b/atlas.webp",
   "r": [
-   388,
-   1357,
+   582,
+   1358,
    192,
    181
   ]
@@ -983,8 +983,8 @@
  "joia:evasao": {
   "a": "itens_b/atlas.webp",
   "r": [
-   0,
-   1357,
+   194,
+   1358,
    192,
    183
   ]
@@ -992,7 +992,7 @@
  "joia:esquiva": {
   "a": "itens_b/atlas.webp",
   "r": [
-   970,
+   1134,
    1164,
    192,
    189
@@ -1010,10 +1010,28 @@
  "joia_partida": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1552,
-   1542,
+   0,
+   1719,
    192,
    159
+  ]
+ },
+ "bau_iniciante": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1164,
+   1358,
+   192,
+   178
+  ]
+ },
+ "bau_iniciante_aberto": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   0,
+   1164,
+   162,
+   192
   ]
  }
 }

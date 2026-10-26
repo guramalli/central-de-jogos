@@ -837,6 +837,159 @@
   :root:not(.semB) .menu-leque button svg { color: var(--b-jade); filter: none; }
   :root:not(.semB) .menu-leque button[aria-pressed="true"] svg { color: var(--b-papel); }
   @media (max-width: 1180px) { :root:not(.semB) .menu-leque::after { border: 0; border-top: 3px solid var(--b-nanquim); border-right: 3px solid var(--b-nanquim); } }
+  /* ================================================================ seleção de classe (primeira vez) e Baú do Iniciante
+     A tela cobre tudo (até o "Afiando a espada…"): noite de nanquim com o logo no alto, e um rolo de papel hanji com a
+     moldura das janelas do estilo B. Dentro, o desenho grande do herói sobre um sol de ocre, e ao lado (embaixo, no
+     celular) o nome, a frase, os atributos em barras, a dificuldade e as skills. As cores são as da paleta minhwa. */
+  .sel-classe {
+    --sn: #1E1B18; --sp: #EFE4CC; --sp2: #E8DCC0; --sp3: #DDCFAE; --sf: #8C6A3A; --sc: #B8322A; --sj: #3E7A5C; --si: #2D4A6B; --so: #C9963E;
+    --sfibra: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.011 .42' numOctaves='3' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .36 0 0 0 0 .22 1 0 0 0 -.5'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23f)'/%3E%3C/svg%3E");
+    position: fixed; inset: 0; z-index: 40; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+    color-scheme: light; color: var(--sn); font-family: var(--corpo);
+    background: radial-gradient(90% 60% at 50% 0%, rgba(62, 122, 92, 0.32), transparent 70%), radial-gradient(70% 50% at 50% 105%, rgba(45, 74, 107, 0.45), transparent 70%), #16120f;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: max(10px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  }
+  /* as montanhas em aguada de nanquim no pé da tela (só enfeite) */
+  .sel-classe::before { content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: 34vh; pointer-events: none; opacity: 0.55;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 300' preserveAspectRatio='none'%3E%3Cpath d='M0 300V170q90-70 170-20t150-60 160 50 120-80 170 70 140-40 150 60 140-50 100 40V300z' fill='%232D4A6B' opacity='.55'/%3E%3Cpath d='M0 300V220q120-50 230 0t200-30 210 30 180-40 200 40 180-20V300z' fill='%231E1B18' opacity='.8'/%3E%3C/svg%3E") bottom / 100% 100% no-repeat; }
+  .sel-classe, .sel-classe * { box-sizing: border-box; }
+  .sel-classe > * { position: relative; }
+  .sc-topo { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 2px; }
+  .sc-logo { display: block; height: clamp(84px, 17vh, 168px); width: auto; max-width: min(92vw, 420px); object-fit: contain; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.6)); }
+  .sc-topo h2 { margin: 0; font: 400 clamp(17px, 2.4vw, 22px)/1.2 var(--pincel, Georgia, serif); color: var(--sp); letter-spacing: 0.04em; text-shadow: 0 2px 0 #000; }
+  .sc-topo h2::before, .sc-topo h2::after { content: ""; display: inline-block; width: 34px; height: 2px; margin: 0 10px; vertical-align: middle; background: var(--so); opacity: 0.8; }
+  .sc-rolo {
+    width: min(1020px, 100%); display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px; align-items: center; gap: 8px;
+    border: 3px solid var(--sn); border-radius: 4px; padding: 14px 10px;
+    background: var(--sfibra), radial-gradient(120% 80% at 50% 0%, #F3EAD6, transparent 70%), linear-gradient(var(--sp), var(--sp2));
+    box-shadow: inset 0 0 0 3px var(--sp), inset 0 0 0 4px var(--sf), 0 14px 30px rgba(0, 0, 0, 0.55);
+  }
+  .sc-seta {
+    width: 48px; height: 48px; border-radius: 50%; border: 2.5px solid var(--sn); cursor: pointer; padding: 0;
+    display: grid; place-items: center; color: var(--sp); background: var(--sc);
+    box-shadow: inset 0 0 0 2px rgba(239, 228, 204, 0.4), 0 2px 0 rgba(30, 27, 24, 0.5); font: 400 20px/1 var(--corpo);
+    transition: transform 0.12s, background-color 0.12s;
+  }
+  .sc-seta svg { width: 22px; height: 22px; }
+  .sc-seta:hover { background: #cc3d33; transform: scale(1.06); }
+  .sc-seta:active { transform: scale(0.95); }
+  .sel-classe :is(button, [tabindex]):focus-visible { outline: 3px solid var(--so); outline-offset: 3px; }
+  .sc-palco { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); gap: 18px; align-items: center; min-height: 0; touch-action: pan-y; }
+  .sc-figura { margin: 0; position: relative; height: clamp(300px, 56vh, 560px); display: grid; place-items: end center; }
+  .sc-figura::before { content: ""; position: absolute; left: 50%; top: 42%; width: 78%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%;
+    background: radial-gradient(circle, rgba(201, 150, 62, 0.42), rgba(201, 150, 62, 0.16) 62%, transparent 70%); }
+  .sc-figura::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: 1.5%; height: 7%; border-radius: 50%; background: radial-gradient(closest-side, rgba(30, 27, 24, 0.38), transparent); }
+  .sc-figura img { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; filter: drop-shadow(0 3px 0 rgba(30, 27, 24, 0.18)); }
+  .sc-figura .sc-sem-arte { position: relative; z-index: 1; align-self: center; font: 400 64px/1 var(--pincel, Georgia, serif); color: var(--sf); }
+  .sc-info { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .sc-papel { margin: 0; font: 600 12px/1.2 var(--dados); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sj); }
+  .sc-nome { margin: 0; display: flex; align-items: center; gap: 10px; font: 400 clamp(30px, 4vw, 42px)/1 var(--pincel, Georgia, serif); color: var(--sn); }
+  .sc-nome::before { content: "印"; flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 3px; transform: rotate(-5deg);
+    background: var(--sc); color: var(--sp); font: 400 21px/1 var(--selo, serif); }
+  .sc-nome small { margin-left: auto; font: 500 13px var(--dados); color: #66594a; }
+  .sc-frase { margin: 0; font-size: 16px; line-height: 1.4; color: #3a2f24; text-wrap: pretty; }
+  .sc-sub { margin: 4px 0 0; display: flex; align-items: baseline; gap: 10px; font: 400 17px/1.2 var(--pincel, Georgia, serif); color: var(--sn); }
+  .sc-sub::after { content: ""; flex: 1; height: 2px; background: linear-gradient(90deg, var(--sn), rgba(30, 27, 24, 0)); opacity: 0.6; }
+  .sc-atrib { display: grid; grid-template-columns: auto minmax(0, 1fr) 1.6em; gap: 6px 10px; align-items: center; }
+  .sc-atrib span { font: 600 12px var(--dados); color: var(--sn); }
+  .sc-atrib span.pr::after { content: " ★"; color: var(--sc); }
+  .sc-atrib i { position: relative; height: 12px; border: 1.5px solid var(--sn); border-radius: 2px; background: #F8F2E4; box-shadow: inset 0 1px 2px rgba(30, 27, 24, 0.25); overflow: hidden; }
+  .sc-atrib i b { position: absolute; inset: 0 auto 0 0; width: calc(var(--v) * 100%); background: var(--cor); transition: width 0.35s cubic-bezier(.2, .8, .2, 1);
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.25); }
+  .sc-atrib em { font: 600 13px var(--dados); font-style: normal; text-align: right; }
+  .sc-dif { display: flex; align-items: center; gap: 8px; font: 600 12px var(--dados); }
+  .sc-dif .pips { display: inline-flex; gap: 4px; }
+  .sc-dif .pips i { width: 14px; height: 14px; border: 1.5px solid var(--sn); border-radius: 50%; background: #F8F2E4; transform: rotate(45deg); border-radius: 2px; }
+  .sc-dif .pips i.on { background: var(--sc); }
+  .sc-dif b { font: 400 16px var(--pincel, Georgia, serif); color: var(--sn); }
+  .sc-skills { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .sc-skills li { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 10px; align-items: center; }
+  .sc-skills canvas { width: 38px; height: 38px; border: 1.5px solid var(--sn); border-radius: 3px; background: #1E1B18; box-shadow: 0 1px 0 rgba(30, 27, 24, 0.4); }
+  .sc-skills b { display: block; font: 400 16px/1.1 var(--pincel, Georgia, serif); color: var(--sn); }
+  .sc-skills small { display: block; font-size: 13.5px; line-height: 1.25; color: #4a3d30; }
+  .sc-baixo { width: min(1020px, 100%); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 18px; }
+  .sc-pontos { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .sc-pontos button { min-height: 34px; padding: 4px 12px; border: 1.5px solid rgba(239, 228, 204, 0.55); border-radius: 18px; cursor: pointer;
+    background: rgba(239, 228, 204, 0.08); color: var(--sp); font: 400 15px/1 var(--pincel, Georgia, serif); }
+  .sc-pontos button:hover { background: rgba(239, 228, 204, 0.18); }
+  .sc-pontos button[aria-current="true"] { background: var(--sp); color: var(--sn); border-color: var(--so); box-shadow: 0 0 0 2px var(--so); }
+  .sc-acoes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .sc-escolher {
+    min-width: 200px; min-height: 52px; padding: 8px 26px; cursor: pointer; border-radius: 4px;
+    font: 400 24px/1 var(--pincel, Georgia, serif); color: var(--sp); background: var(--sj); border: 2.5px solid var(--sn);
+    box-shadow: inset 0 0 0 2px rgba(239, 228, 204, 0.35), 0 3px 0 var(--sn), 0 8px 18px rgba(0, 0, 0, 0.45); transition: transform 0.12s, background-color 0.12s;
+  }
+  .sc-escolher:hover:not(:disabled) { background: #46876a; transform: translateY(-1px); }
+  .sc-escolher:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 0 0 2px rgba(239, 228, 204, 0.35), 0 1px 0 var(--sn); }
+  .sc-escolher:disabled { cursor: progress; background: #5d7b6c; }
+  .sc-voltar { min-height: 40px; padding: 6px 16px; cursor: pointer; border-radius: 4px; border: 1.5px solid rgba(239, 228, 204, 0.6); background: transparent; color: var(--sp); font: 500 15px var(--corpo); }
+  .sc-voltar:hover { background: rgba(239, 228, 204, 0.12); }
+  .sc-nota { margin: 0; width: 100%; text-align: center; font-size: 14px; color: #d9cbb0; }
+  .sc-nota b { color: #E3B567; font-weight: 600; }
+  .sc-lida { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* a troca de classe: o herói entra pelo lado da seta e o texto acende */
+  .sc-palco.vem-prox .sc-figura img { animation: sc-entra-d 0.32s cubic-bezier(.2, .8, .2, 1); }
+  .sc-palco.vem-ant .sc-figura img { animation: sc-entra-e 0.32s cubic-bezier(.2, .8, .2, 1); }
+  .sc-palco:is(.vem-prox, .vem-ant) .sc-info { animation: sc-acende 0.32s ease-out; }
+  @keyframes sc-entra-d { from { opacity: 0; transform: translateX(46px) scale(0.97); } }
+  @keyframes sc-entra-e { from { opacity: 0; transform: translateX(-46px) scale(0.97); } }
+  @keyframes sc-acende { from { opacity: 0.25; } }
+  @media (max-width: 759px) {
+    .sel-classe { gap: 8px; padding-bottom: 0; }
+    .sc-logo { height: clamp(70px, 13vh, 110px); }
+    .sc-topo h2::before, .sc-topo h2::after { width: 18px; margin: 0 6px; }
+    .sc-rolo { grid-template-columns: minmax(0, 1fr); padding: 10px 12px 14px; position: relative; }
+    .sc-seta { position: absolute; top: calc(10px + clamp(220px, 38vh, 340px) / 2); z-index: 2; width: 44px; height: 44px; transform: translateY(-50%); }
+    .sc-seta:hover { transform: translateY(-50%) scale(1.06); }
+    .sc-seta:active { transform: translateY(-50%) scale(0.95); }
+    #selAnt { left: 6px; } #selProx { right: 6px; }
+    .sc-palco { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .sc-figura { height: clamp(220px, 38vh, 340px); }
+    .sc-nome { font-size: 32px; }
+    .sc-frase { font-size: 15px; }
+    .sc-baixo { position: sticky; bottom: 0; z-index: 3; padding: 18px 0 2px; padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+      background: linear-gradient(rgba(22, 18, 15, 0), #16120f 16px); }
+    .sc-baixo { flex-wrap: nowrap; gap: 6px 12px; flex-direction: column; }
+    /* no celular os nomes viram pontinhos (o nome está no papel e no rótulo do botão) */
+    .sc-pontos { gap: 2px; }
+    .sc-pontos button { width: 26px; min-height: 26px; padding: 0; border: 0; background: none; font-size: 0; display: grid; place-items: center; }
+    .sc-pontos button::before { content: ""; width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid rgba(239, 228, 204, 0.7); background: rgba(239, 228, 204, 0.12); }
+    .sc-pontos button[aria-current="true"] { background: none; box-shadow: none; }
+    .sc-pontos button[aria-current="true"]::before { background: var(--so); border-color: var(--sp); transform: scale(1.25); }
+    .sc-acoes { width: 100%; flex-wrap: nowrap; }
+    .sc-escolher { flex: 1; min-width: 0; min-height: 48px; font-size: 22px; }
+    .sc-nota { font-size: 12.5px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sc-palco :is(.sc-figura img, .sc-info) { animation: none !important; }
+    .sc-atrib i b, .sc-seta, .sc-escolher { transition: none; }
+  }
+
+  /* o presente do baú: um cartão de papel com o que saiu, perto da bolsa, que some sozinho */
+  .bau-aviso {
+    position: fixed; z-index: 30; left: 50%; top: 18%; transform: translateX(-50%); width: min(340px, calc(100vw - 32px));
+    color: #1E1B18; border: 3px solid #1E1B18; border-radius: 4px; padding: 12px 14px 10px; pointer-events: none;
+    background: radial-gradient(120% 80% at 50% 0%, #F7EFDD, transparent 70%), linear-gradient(#EFE4CC, #E8DCC0);
+    box-shadow: inset 0 0 0 3px #EFE4CC, inset 0 0 0 4px #8C6A3A, 0 10px 26px rgba(0, 0, 0, 0.5);
+    animation: bau-sobe 0.45s cubic-bezier(.2, .9, .3, 1.3), bau-some 0.6s ease-in 4.6s forwards;
+  }
+  .bau-topo { display: flex; align-items: center; gap: 8px; margin: -4px 0 6px; }
+  .bau-topo .bau-ic { flex: none; width: 56px; height: 56px; animation: bau-pula 0.6s cubic-bezier(.3, 1.6, .5, 1) 0.1s backwards; }
+  .bau-topo h3 { margin: 0 !important; }
+  .bau-aviso .bau-topo h3::before { display: none; }
+  @keyframes bau-pula { from { transform: scale(0.4) rotate(-12deg); opacity: 0; } }
+  .bau-aviso h3 { margin: 0 0 8px; display: flex; align-items: center; gap: 8px; font: 400 19px/1.1 var(--pincel, Georgia, serif); }
+  .bau-aviso h3::before { content: "印"; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 2px; transform: rotate(-5deg); background: #B8322A; color: #EFE4CC; font: 400 15px/1 var(--selo, serif); }
+  .bau-aviso ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .bau-aviso li { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; font-size: 14px; animation: bau-item 0.35s ease-out backwards; }
+  .bau-aviso li b { font: 600 13px var(--dados); color: #3E7A5C; }
+  .bau-aviso li canvas { width: 34px; height: 34px; border: 1.5px solid #1E1B18; border-radius: 2px; background: #DDCFAE; }
+  .bau-aviso p { margin: 8px 0 0; font-size: 13px; color: #4a3d30; }
+  @keyframes bau-sobe { from { opacity: 0; transform: translate(-50%, 18px) scale(0.92); } }
+  @keyframes bau-some { to { opacity: 0; transform: translate(-50%, -10px); } }
+  @keyframes bau-item { from { opacity: 0; transform: translateX(-10px); } }
+  @media (prefers-reduced-motion: reduce) { .bau-topo .bau-ic { animation: none; } .bau-aviso, .bau-aviso li { animation: bau-some 0.01s linear 5s forwards; } }
 </style>
 
 <canvas id="campo" aria-label="Campo de treino: o viking e os bonecos"></canvas>
@@ -1159,6 +1312,9 @@
   <label><input type="checkbox" id="oContorno"> Contorno dos personagens e criaturas <kbd>Y</kbd></label>
   <label><input type="checkbox" id="oBorda"> Bordas da tela levemente embaçadas</label>
   <div class="linha"><button id="opcoesPadrao">Volumes padrão</button></div>
+  <h3>Personagem</h3>
+  <div class="linha"><button id="oNovoPersonagem">Novo personagem…</button></div>
+  <p class="nota">Abre a escolha de classe. Os personagens que você já tem continuam salvos.</p>
   <p class="nota">Esc abre e fecha este menu. Tudo fica salvo neste navegador.</p>
   <details class="nota creditos-musica"><summary>Créditos das músicas</summary>
     <p>"Shenyang", "Ripples" e "Mountain Emperor" — Kevin MacLeod (incompetech.com), licença Creative Commons: By Attribution 4.0 (creativecommons.org/licenses/by/4.0/).</p>
@@ -1219,6 +1375,40 @@
   <h3>Personagem de teste</h3>
   <label class="adm-teste"><input type="checkbox" id="admSemTrava"> Usa armas e peças de qualquer nível (só este personagem)</label>
 </aside>
+
+<!-- a escolha de classe (primeira vez, ?selecao=1 ou "Novo personagem" nas opções): ver abrirSelecao() -->
+<div class="sel-classe" id="selClasse" role="dialog" aria-modal="true" aria-labelledby="selTitulo" hidden>
+  <header class="sc-topo">
+    <img class="sc-logo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652">
+    <h2 id="selTitulo">Escolha a sua classe</h2>
+  </header>
+  <div class="sc-rolo" role="region" aria-roledescription="carrossel" aria-label="Classes">
+    <button type="button" class="sc-seta" id="selAnt" aria-label="Classe anterior" aria-controls="selPalco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4 7 12l8.5 8" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="sc-palco" id="selPalco" role="group" aria-roledescription="classe" aria-labelledby="selNome">
+      <figure class="sc-figura" id="selFigura"><img id="selImg" alt="" decoding="async"></figure>
+      <section class="sc-info" aria-labelledby="selNome">
+        <p class="sc-papel" id="selPapel"></p>
+        <h3 class="sc-nome" id="selNome"></h3>
+        <p class="sc-frase" id="selFrase"></p>
+        <h4 class="sc-sub">Atributos iniciais</h4>
+        <div class="sc-atrib" id="selAtrib"></div>
+        <div class="sc-dif" id="selDif"></div>
+        <h4 class="sc-sub">Skills</h4>
+        <ul class="sc-skills" id="selSkills"></ul>
+      </section>
+    </div>
+    <button type="button" class="sc-seta" id="selProx" aria-label="Próxima classe" aria-controls="selPalco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4 17 12l-8.5 8" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+  <div class="sc-baixo">
+    <div class="sc-pontos" id="selPontos" role="group" aria-label="Ir para a classe"></div>
+    <div class="sc-acoes">
+      <button type="button" class="sc-voltar" id="selVoltar" hidden>Voltar ao jogo</button>
+      <button type="button" class="sc-escolher" id="selEscolher">Escolher</button>
+    </div>
+    <p class="sc-nota" id="selNota" role="status"></p>
+  </div>
+</div>
+<div class="bau-aviso" id="bauAviso" role="status" hidden></div>
 
 <div id="carregando"><div><p>Afiando a espada…</p><div class="trilho"><i id="barra"></i></div><span id="carregandoTxt">0 / 0</span></div></div>
 
@@ -5723,7 +5913,9 @@ function carregarProgresso() {
   recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
   entrarNoMapaSalvo();                                                // (de volta ao mapa em que estava: prog.mapa)
 }
-function salvarProgresso() { try { if (prog) localStorage.setItem("progresso_" + classe, JSON.stringify(prog)); } catch (e) {} }
+// (salvarTravado: com a tela de seleção aberta, e ao trocar de classe por ela, o personagem da tela não é gravado)
+let salvarTravado = false;
+function salvarProgresso() { try { if (prog && !salvarTravado) localStorage.setItem("progresso_" + classe, JSON.stringify(prog)); } catch (e) {} }
 function recalcularStatus() {
   const b = somaBonus(), a = { ...prog.atrib }, ini = ATRIB_INICIAL[classe], pr = ATRIB_PRINCIPAL[classe], n = prog.nivel;
   for (const k of ORDEM_ATRIB) a[k] += b[k] || 0;                       // os bônus de atributo valem como pontos
@@ -7230,6 +7422,8 @@ function tipoItem(chave) {
     mudar: { nome: "Mudar Bônus", desc: "Arraste sobre uma arma ou peça na bolsa: sorteia de novo todos os bônus dela.", h: 1, desenho: "mudar" },
     alma: { nome: "Pedra da Alma", desc: "Depois do M10, leva uma skill a Grão-Mestre (G1–G10) e a Perfeito. Use na ficha (P).", h: 1, desenho: "alma" },
     bencao: { nome: "Pergaminho da Bênção", desc: "No Ferreiro: se o refino falhar, a arma perde só um nível em vez de quebrar. No encaixe de uma Jóia que falha, salva a Jóia.", h: 1, desenho: "bencao" },
+    bau_iniciante: { nome: "Baú do Iniciante", desc: "Presente de boas-vindas para quem começa a jornada. Clique direito (ou dois cliques) para abrir.", h: 1,
+                     usar: it => abrirBauIniciante(it), desenho: "bau_iniciante", conteudo: () => kitIniciante().map(k => (k.qtd > 1 ? `${k.qtd} × ` : "") + nomeItem(k)) },
     correcao: { nome: "Pergaminho da Correção", desc: "Arraste sobre uma arma ou roupa na bolsa: tira a última Jóia encaixada e a devolve para a bolsa.", h: 1, desenho: "correcao" },
   }[chave] || { nome: chave, desc: "", h: 1, desenho: "pedra" };
 }
@@ -7263,6 +7457,13 @@ function iconeItem(g, desenho, w = 40, h = 40) {
   if (desenho === "encantar" || desenho === "mudar" || desenho === "correcao") {
     g.fillStyle = desenho === "encantar" ? "#cfe8ff" : desenho === "correcao" ? "#efe0b8" : "#ffe0b0"; g.fillRect(X - 9 * u, Y - 12 * u, 18 * u, 22 * u); g.strokeRect(X - 9 * u, Y - 12 * u, 18 * u, 22 * u);
     g.fillStyle = desenho === "encantar" ? "#3a7ad8" : "#d87a2a"; g.beginPath(); g.moveTo(X, Y - 8 * u); g.lineTo(X + 5 * u, Y); g.lineTo(X, Y + 7 * u); g.lineTo(X - 5 * u, Y); g.closePath(); g.fill(); g.stroke();
+    return;
+  }
+  if (desenho === "bau_iniciante") {                                   // o baú de madeira com cintas de ferro e o fecho de ouro
+    g.fillStyle = "#8a5a2e"; g.fillRect(X - 14 * u, Y - 4 * u, 28 * u, 16 * u); g.strokeRect(X - 14 * u, Y - 4 * u, 28 * u, 16 * u);
+    g.fillStyle = "#a8703a"; g.beginPath(); g.moveTo(X - 14 * u, Y - 4 * u); g.quadraticCurveTo(X, Y - 18 * u, X + 14 * u, Y - 4 * u); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = "#3a3026"; for (const dx of [-9, 7]) g.fillRect(X + dx * u, Y - 11 * u, 2.4 * u, 23 * u);
+    g.fillStyle = "#e0b240"; g.fillRect(X - 3 * u, Y - 6 * u, 6 * u, 7 * u); g.strokeRect(X - 3 * u, Y - 6 * u, 6 * u, 7 * u);
     return;
   }
   if (desenho === "alma") {
@@ -7742,6 +7943,7 @@ function htmlDica(it, extra = {}) {
       L.push(`<div class="buraco ${cls}"><canvas data-joia="${ic}" data-grau="${Array.isArray(x) ? x[1] : ""}" width="64" height="64"></canvas><div><div class="jn">${escH(l1)}</div><div class="je">${escH(l2)}</div></div></div>`);
     }
   }
+  if (t.conteudo) { esp(); linha("cls-t", "[ Conteúdo ]"); for (const c of t.conteudo()) linha("fixo", c); }
   const desc = t.arma ? "Clique direito para equipar; o Ferreiro melhora até +9." : t.peca ? "Clique direito para vestir; o Ferreiro melhora até +9." : t.desc;
   if (desc) { esp(); linha("desc", desc); }
   if ((it.qtd || 1) > 1) linha("desc", `Quantidade: ${it.qtd}`);
@@ -8184,6 +8386,7 @@ function montarOpcoes() {
   $("#oBorda").onchange = e => { try { localStorage.setItem("borda", e.target.checked ? "leve" : "0"); } catch (x) {} montarBordaEmb(); };
   $("#opcoesPadrao").onclick = () => { Som.vol = { ...VOL_PADRAO }; aplicarVolumes(); salvarVolumes(); mostrarOpcoes(); };
   $("#opcoesFechar").onclick = () => abrirOpcoes(false);
+  $("#oNovoPersonagem").onclick = () => { abrirOpcoes(false); abrirSelecao({ deMenu: true }); };
 }
 // as bordas embaçadas: a leve fica ligada por padrão (escolha do usuário), com a chave no menu de opções salva no
 // navegador; ?borda=leve|medio|tilt|0 na URL passa por cima (médio: com um pouco de sombra; tilt: só em cima e embaixo)
@@ -8223,7 +8426,7 @@ function admListaItens() {
   const grupos = [["Armas", ["viking", "guerreiro", "arqueiro", "feiticeiro", "ninja"].filter(c => ARMAS[c]).flatMap(c => ARMAS_TIER[c].map((nome, t) => [chaveArma(c, t), `${nome} (${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[t]})`]))]];
   for (const [slot, P] of Object.entries(PECAS))
     grupos.push([P.nome + (P.classes ? " · " + P.classes.map(c => NOME_CLASSE[c]).join("/") : ""), P.modelos.map((m, t) => [`peca:${slot}:${t}`, `${m[0]} (nível ${m[1]})`])]);
-  grupos.push(["Consumíveis e materiais", ["pocao", "pocaoMana", "pedra", "encantar", "mudar", "alma", "bencao", "correcao"].map(k => [k, tipoItem(k).nome])]);
+  grupos.push(["Consumíveis e materiais", ["pocao", "pocaoMana", "bau_iniciante", "pedra", "encantar", "mudar", "alma", "bencao", "correcao"].map(k => [k, tipoItem(k).nome])]);
   grupos.push(["Jóias (de arma)", Object.keys(JOIAS).filter(t => JOIAS[t].parte === "arma").flatMap(t => JOIAS[t].val.map((_, g) => [`joia:${t}:${g}`, nomeJoia(t, g)]))]);
   grupos.push(["Jóias (de roupa)", Object.keys(JOIAS).filter(t => JOIAS[t].parte === "roupa").flatMap(t => JOIAS[t].val.map((_, g) => [`joia:${t}:${g}`, nomeJoia(t, g)]))]);
   for (const [c, l] of [["viking", SKILLS_VIKING], ["arqueiro", SKILLS_ARQUEIRO], ["feiticeiro", SKILLS_FEITICEIRO], ["ninja", SKILLS_NINJA]])
@@ -10481,6 +10684,7 @@ function trocarClasse(nova) {
   limparMagias(); mira = null;
   carregarProgresso(); montarBarraSkills(); atualizarFicha(); desenharBolsa(); desenharFerreiro();
   $("#bEspada").hidden = classe !== "viking";
+  if (!salvarTravado && SELECAO_REGRA) lembrarClasse(classe);          // (a próxima abertura entra com esta)
   $("#bAtacar").textContent = { viking: "Atacar", arqueiro: "Atirar", feiticeiro: "Conjurar", ninja: "Atacar", guerreiro: "Atacar" }[classe];
   montarBotoesAnim();
 }
@@ -13906,6 +14110,253 @@ function filtroTinta(t) {
 }
 window.SUMIE = SUMIE;
 
+// ---------------------------------------------------------------- seleção de classe (primeira vez) e Baú do Iniciante
+// Sem nenhum personagem salvo neste navegador (nenhum progresso_<classe>), a tela de seleção abre antes de tudo, por cima
+// do "Afiando a espada…": um carrossel com as classes jogáveis (◀ ▶, ← →, arrastar no celular, ou os nomes embaixo).
+// Cada página mostra o desenho (selecao/<classe>.webp, do ChatGPT: Midia/selecao/), o papel, uma frase, os atributos
+// iniciais da ficha (ATRIB_INICIAL) em barras, a dificuldade e as skills com o ícone e uma linha. "Escolher" cria o
+// personagem na Vila 1 só com o Baú do Iniciante na bolsa (como a Lehrlingstruhe do Metin2, ver
+// Logs/Pesquisa/METIN2_BAU_INICIANTE.md); quem já tem personagem entra direto, com a última classe jogada ("classe" no
+// navegador). ?selecao=1 força a tela; no modo de teste (?test=1) ela não abre sozinha (?selecao=auto volta à regra de
+// sempre). "Novo personagem", no menu de opções, abre a tela de novo sem apagar ninguém: escolher uma classe que já tem
+// personagem só entra com ele.
+const CLASSES_SELECAO = ["viking", "guerreiro", "arqueiro", "feiticeiro", "ninja"];
+const INFO_CLASSE = {
+  viking: { papel: "Corpo a corpo · espada grande", dif: 1, frase: "Guerreiro do norte que abre caminho com a espada de duas mãos: aguenta pancada e acerta tudo em volta." },
+  guerreiro: { papel: "Corpo a corpo · machado de batalha", dif: 1, frase: "O mais resistente de todos: o machado pesado e a fúria de batalha seguram qualquer bando." },
+  arqueiro: { papel: "À distância · arco longo", dif: 2, frase: "Caçador das matas que mantém o inimigo longe: flechas de fogo, veneno e chuva de flechas." },
+  feiticeiro: { papel: "À distância · cajado arcano", dif: 3, frase: "Mestre das magias de área: raios, meteoros e runas que ferem muitos de uma vez, com pouca vida." },
+  ninja: { papel: "Corpo a corpo · duas adagas", dif: 3, frase: "Rápido e traiçoeiro: some nas sombras, envenena e golpeia antes de ser visto." },
+};
+const NOME_DIF = ["", "Fácil", "Média", "Difícil"];
+const SKILL_LINHA = {
+  "Fúria": "Golpes 30% mais rápidos e fortes, e mais velocidade, por 60 s.",
+  "Vórtice": "Gira num redemoinho de lâmina e acerta tudo em volta.",
+  "Lâmina Espiritual": "Uma aura azul na arma: mais dano em cada golpe por 90 s.",
+  "Corte Triplo": "Três cortes rápidos e fortes à frente.",
+  "Investida": "Dispara à frente e arremessa o primeiro inimigo do caminho.",
+  "Flecha Venenosa": "Envenena o alvo e pode atordoar.",
+  "Flecha de Fogo": "Flecha em chamas que explode em área e queima.",
+  "Tiro Concentrado": "Cinco flechas seguidas no mesmo alvo.",
+  "Chuva de Flechas": "Mire no chão: 24 flechas caem num círculo.",
+  "Passos Leves": "45% mais rápido por 20 s, para abrir distância.",
+  "Relâmpago": "Um raio que salta para mais duas criaturas.",
+  "Chuva de Meteoros": "Bolas de fogo caem do céu onde você mirar.",
+  "Olho Arcano": "+25% de chance de crítico por 60 s.",
+  "Poder Arcano": "+35% de dano das magias por 60 s.",
+  "Erupção Arcana": "Colunas de luz sobem da terra em volta dele.",
+  "Punhalada Surpresa": "Estocada forte que pega todos à frente.",
+  "Acrobacia": "Avança girando e acerta várias vezes no caminho.",
+  "Avanço Ágil": "Dispara reto até o alvo, ou para longe do cerco.",
+  "Veneno de Serpente": "Nuvem tóxica que fere e quase sempre envenena.",
+  "Esconder": "Some por 10 s; o próximo golpe sai 2,5× mais forte.",
+};
+const COR_ATRIB = { vit: "#B8322A", int: "#2D4A6B", for: "#C9963E", dex: "#3E7A5C" };
+const ATRIB_ESCALA = 7;                                   // a barra cheia (o maior atributo inicial é 6)
+const SEL = { aberta: false, i: 0, deMenu: false, escolhendo: null, icones: {}, foco: null, toque: null, inertes: [] };
+function temPersonagem() {
+  try { for (let i = 0; i < localStorage.length; i++) if ((localStorage.key(i) || "").startsWith("progresso_")) return true; } catch (e) {}
+  return false;
+}
+function classeSalva() { try { const c = localStorage.getItem("classe"); return CLASSES_SELECAO.includes(c) ? c : null; } catch (e) { return null; } }
+function lembrarClasse(c) { try { localStorage.setItem("classe", c); } catch (e) {} }
+function progressoSalvoDe(c) { try { const p = JSON.parse(localStorage.getItem("progresso_" + c)); return p && p.atrib ? p : null; } catch (e) { return null; } }
+const SELECAO_PARAM = new URLSearchParams(location.search).get("selecao");
+const SELECAO_REGRA = !MODO_TESTE || SELECAO_PARAM === "auto";     // (no modo de teste, só com ?selecao=auto)
+const SELECAO_NO_INICIO = SELECAO_PARAM === "1" || (SELECAO_PARAM !== "0" && SELECAO_REGRA && !temPersonagem());
+const skillsDaClasse = c => ({ viking: SKILLS_VIKING, guerreiro: SKILLS_GUERREIRO, arqueiro: SKILLS_ARQUEIRO, feiticeiro: SKILLS_FEITICEIRO, ninja: SKILLS_NINJA })[c] || [];
+
+function abrirSelecao(op = {}) {
+  if (SEL.aberta) return;
+  if (op.deMenu && prog) salvarProgresso();                 // (o personagem de agora fica guardado como está)
+  SEL.aberta = true; SEL.deMenu = !!op.deMenu; SEL.foco = document.activeElement; salvarTravado = true;
+  const c0 = op.deMenu ? classe : classeSalva() || "viking";
+  SEL.i = Math.max(0, CLASSES_SELECAO.indexOf(c0));
+  $("#selClasse").hidden = false; $("#selVoltar").hidden = !SEL.deMenu;
+  // (o resto da página fica inerte por baixo: o Tab e o leitor de tela só andam pela escolha de classe)
+  for (const el of document.body.children) if (el.id !== "selClasse" && el.tagName !== "SCRIPT" && !el.inert) { el.inert = true; SEL.inertes.push(el); }
+  $("#selTitulo").textContent = SEL.deMenu ? "Novo personagem" : "Escolha a sua classe";
+  $("#selPontos").innerHTML = CLASSES_SELECAO.map((c, i) => `<button type="button" data-i="${i}" aria-label="${NOME_CLASSE[c]}">${NOME_CLASSE[c]}</button>`).join("");
+  mostrarClasseSel(0);
+  iconesSkillSel();
+  for (const c of CLASSES_SELECAO) { const im = new Image(); im.decoding = "async"; im.src = `selecao/${c}.webp`; }   // (as outras páginas já vêm vindo)
+  setTimeout(() => { if (SEL.aberta) $("#selEscolher").focus({ preventScroll: true }); }, 40);
+}
+function fecharSelecao() {
+  if (!SEL.aberta) return;
+  SEL.aberta = false; salvarTravado = false;
+  $("#selClasse").hidden = true;
+  for (const el of SEL.inertes) el.inert = false;
+  SEL.inertes = [];
+  const f = SEL.foco; SEL.foco = null;
+  if (f && f.isConnected && f !== document.body && f.focus) f.focus({ preventScroll: true });
+}
+function passarSel(d) {
+  if (!SEL.aberta || SEL.escolhendo) return;
+  const n = CLASSES_SELECAO.length;
+  SEL.i = (SEL.i + d + n) % n;
+  mostrarClasseSel(d);
+  som("ui_clique", null, 0.6);
+}
+// a página da classe SEL.i (d: de que lado ela entra, 1 = da direita, -1 = da esquerda, 0 = sem animação)
+function mostrarClasseSel(d) {
+  const c = CLASSES_SELECAO[SEL.i], inf = INFO_CLASSE[c], a = ATRIB_INICIAL[c], pr = ATRIB_PRINCIPAL[c], nome = NOME_CLASSE[c];
+  const img = $("#selImg"), fig = $("#selFigura");
+  fig.querySelector(".sc-sem-arte")?.remove(); img.hidden = false;
+  img.onerror = () => { img.hidden = true; if (!fig.querySelector(".sc-sem-arte")) fig.insertAdjacentHTML("beforeend", `<span class="sc-sem-arte" aria-hidden="true">${nome[0]}</span>`); };
+  img.src = `selecao/${c}.webp`; img.alt = `${nome}: ${inf.papel}`;
+  $("#selPapel").textContent = inf.papel;
+  $("#selNome").innerHTML = `${nome}<small>${SEL.i + 1} / ${CLASSES_SELECAO.length}</small>`;
+  $("#selFrase").textContent = inf.frase;
+  $("#selAtrib").innerHTML = ORDEM_ATRIB.map(k => `<span class="${k === pr ? "pr" : ""}" title="${NOME_ATRIB[k]}${k === pr ? " · atributo principal" : ""}">${k.toUpperCase()}</span>` +
+    `<i role="img" aria-label="${NOME_ATRIB[k]}: ${a[k]}" style="--v:${Math.min(1, a[k] / ATRIB_ESCALA)};--cor:${COR_ATRIB[k]}"><b></b></i><em>${a[k]}</em>`).join("");
+  $("#selDif").innerHTML = `<span>Dificuldade</span><span class="pips" role="img" aria-label="Dificuldade ${NOME_DIF[inf.dif]}: ${inf.dif} de 3">${[1, 2, 3].map(k => `<i class="${k <= inf.dif ? "on" : ""}"></i>`).join("")}</span><b>${NOME_DIF[inf.dif]}</b>`;
+  $("#selSkills").innerHTML = skillsDaClasse(c).map(sk => `<li><canvas width="76" height="76" data-sk="${escH(sk.nome)}" aria-hidden="true"></canvas><div><b>${escH(sk.nome)}</b><small>${escH(SKILL_LINHA[sk.nome] || "")}</small></div></li>`).join("");
+  desenharIconesSel();
+  for (const b of $("#selPontos").children) b.setAttribute("aria-current", +b.dataset.i === SEL.i ? "true" : "false");
+  // quem já tem esta classe entra com ela (nada é apagado)
+  const p = progressoSalvoDe(c), bt = $("#selEscolher");
+  bt.textContent = p ? `Entrar · Nv ${p.nivel || 1}` : "Escolher";
+  bt.setAttribute("aria-label", p ? `Entrar com o ${nome} nível ${p.nivel || 1}` : `Escolher ${nome}`);
+  $("#selNota").innerHTML = `<span class="sc-lida">${nome}, ${SEL.i + 1} de ${CLASSES_SELECAO.length}. </span>` + (p ? `Você já tem um <b>${escH(p.nome || nome)}</b> nível ${p.nivel || 1}: entra com ele, sem perder nada.`
+    : `Nasce na Vila 1 com o <b>Baú do Iniciante</b>: a arma, a roupa, o elmo e poções.`);
+  const palco = $("#selPalco");
+  palco.classList.remove("vem-prox", "vem-ant");
+  if (d) { void palco.offsetWidth; palco.classList.add(d > 0 ? "vem-prox" : "vem-ant"); }
+}
+// os ícones das skills: o pintado (icones.json / icones_b.json; o jogo ainda pode estar carregando) ou o desenhado por código
+function desenharIconesSel() {
+  for (const cv of $("#selSkills").querySelectorAll("canvas[data-sk]")) {
+    const nome = cv.dataset.sk, sk = skillsDaClasse(CLASSES_SELECAO[SEL.i]).find(s => s.nome === nome), g = cv.getContext("2d");
+    const im = ICONES_SKILL[nome] || SEL.icones[nome];
+    g.clearRect(0, 0, 76, 76);
+    if (im && im.complete !== false && (im.naturalWidth || im.width)) { g.imageSmoothingQuality = "high"; g.drawImage(im, 0, 0, 76, 76); }
+    else if (sk && sk.icone) { g.save(); g.scale(76 / 56, 76 / 56); try { sk.icone(g); } catch (e) {} g.restore(); }
+  }
+}
+async function iconesSkillSel() {
+  if (SEL.iconesPedidos) return; SEL.iconesPedidos = true;
+  try {
+    const mapa = await (await fetch("icones.json")).json();
+    if (ESTILO_B) try { Object.assign(mapa, await (await fetch("icones_b.json")).json()); } catch (e) {}
+    await Promise.all(Object.entries(mapa).map(([nome, arq]) => new Promise(ok => { const im = new Image(); im.onload = () => { SEL.icones[nome] = im; ok(); }; im.onerror = ok; im.src = arq; })));
+  } catch (e) {}
+  if (SEL.aberta) desenharIconesSel();
+}
+async function escolherSel() {
+  if (SEL.escolhendo || !SEL.aberta) return SEL.escolhendo;
+  const c = CLASSES_SELECAO[SEL.i], bt = $("#selEscolher");
+  if (typeof somIniciar === "function") somIniciar();
+  SEL.escolhendo = (async () => {
+    if (!window.jogoPronto) {                                          // (escolheu antes de o mundo terminar de carregar)
+      bt.disabled = true; bt.textContent = "Preparando o mundo…"; $("#selClasse").setAttribute("aria-busy", "true");
+      while (!window.jogoPronto) await new Promise(r => setTimeout(r, 120));
+      $("#selClasse").removeAttribute("aria-busy"); bt.disabled = false;
+    }
+    entrarComClasse(c);
+  })();
+  try { await SEL.escolhendo; } finally { SEL.escolhendo = null; }
+}
+// entra com a classe c: a que já tem personagem continua de onde parou; a nova nasce na Vila 1 só com o baú
+function entrarComClasse(c) {
+  const salvo = progressoSalvoDe(c);
+  salvarTravado = true;                                                // (o personagem que estava na tela não é regravado)
+  if (c !== classe) trocarClasse(c);
+  if (!salvo) {
+    prog = progressoIniciante(c); recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
+    nascerNaVila();
+  }
+  fecharSelecao(); salvarTravado = false;
+  salvarProgresso(); lembrarClasse(c);
+  montarBarraSkills(); atualizarFicha(); desenharBolsa(); atualizarItensBarra(); desenharFerreiro();
+  if (!salvo) {
+    som("ui_aceitar", null, 0.8);
+    abrirBolsa(true);
+    avisarLongo(`${NOME_CLASSE[c]} criado! Abra o Baú do Iniciante na bolsa: clique direito ou dois cliques.`, 6500);
+  } else avisar(`Bem-vindo de volta, ${prog.nome || NOME_CLASSE[c]}!`);
+}
+// o personagem novo: nível 1, os atributos da classe e, na bolsa, só o Baú do Iniciante (sem arma na mão)
+function progressoIniciante(c) {
+  return { ...progressoNovo(c), arma: null, mapa: "vila1", inv: [{ chave: "bau_iniciante", qtd: 1, aba: 0, x: 0, y: 0 }] };
+}
+function nascerNaVila() {
+  montarMapa("vila1"); prog.mapa = "vila1";
+  [viking.x, viking.y] = pontoSeguro(MAPAS.vila1);
+  Object.assign(viking, { acao: null, fila: null, alvo: null, rota: null, caido: false });
+  selecao = null;
+  cam.x = viking.x + CAM_ACIMA[0]; cam.y = viking.y + CAM_ACIMA[1];
+}
+// na abertura do jogo: entra com a última classe jogada (sem gravar por cima o personagem que veio de carregarProgresso)
+function classeDoInicio() {
+  const c = classeSalva();
+  if (!c || c === classe || SELECAO_NO_INICIO || !SELECAO_REGRA || !progressoSalvoDe(c)) return;
+  const antes = salvarTravado; salvarTravado = true;
+  try { trocarClasse(c); } finally { salvarTravado = antes; }
+}
+function montarSelecao() {
+  $("#selAnt").onclick = () => passarSel(-1);
+  $("#selProx").onclick = () => passarSel(1);
+  $("#selPontos").onclick = e => { const b = e.target.closest("[data-i]"); if (!b) return; const i = +b.dataset.i; if (i !== SEL.i) { const d = i > SEL.i ? 1 : -1; SEL.i = i; mostrarClasseSel(d); som("ui_clique", null, 0.6); } };
+  $("#selEscolher").onclick = () => escolherSel();
+  $("#selVoltar").onclick = () => fecharSelecao();
+  // arrastar para o lado (celular): troca de classe; para cima e para baixo, a tela rola
+  const palco = $("#selPalco");
+  palco.addEventListener("pointerdown", e => { SEL.toque = { x: e.clientX, y: e.clientY }; });
+  palco.addEventListener("pointerup", e => {
+    const t = SEL.toque; SEL.toque = null; if (!t) return;
+    const dx = e.clientX - t.x, dy = e.clientY - t.y;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.3) passarSel(dx < 0 ? 1 : -1);
+  });
+  palco.addEventListener("pointercancel", () => { SEL.toque = null; });
+  // com a tela aberta, as teclas não chegam ao jogo: ← → trocam, Home/End vão às pontas, Esc volta (vindo do menu)
+  addEventListener("keydown", e => {
+    if (!SEL.aberta) return;
+    e.stopImmediatePropagation();
+    if (e.key === "ArrowRight") { e.preventDefault(); passarSel(1); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); passarSel(-1); }
+    else if (e.key === "Home" || e.key === "End") { e.preventDefault(); const i = e.key === "Home" ? 0 : CLASSES_SELECAO.length - 1; if (i !== SEL.i) { const d = i > SEL.i ? 1 : -1; SEL.i = i; mostrarClasseSel(d); } }
+    else if (e.key === "Escape" && SEL.deMenu) { e.preventDefault(); fecharSelecao(); }
+  }, true);
+  addEventListener("keyup", e => { if (SEL.aberta) e.stopImmediatePropagation(); }, true);
+}
+montarSelecao();
+
+// ---- o Baú do Iniciante: um clique direito (ou dois cliques) abre, ele some e o kit vai para a bolsa
+// O kit segue a Lehrlingstruhe I do Metin2 (arma nível 1 +0, 20 Vermelhas, 20 Azuis) com a roupa e o elmo nível 1 do
+// jogo (no Metin2 a armadura de iniciante vinha das missões dos níveis 2 e 7); sem yang, como o baú de lá
+const KIT_POCOES = 20;
+function kitIniciante(c = classe) {
+  return [{ chave: chaveArma(c, 0), qtd: 1, ref: 0, bon: [] }, { chave: `peca:${ROUPA_DA_CLASSE[c] || "armadura_guerreiro"}:0`, qtd: 1, ref: 0, bon: [] },
+          { chave: "peca:elmo:0", qtd: 1, ref: 0, bon: [] }, { chave: "pocao", qtd: KIT_POCOES }, { chave: "pocaoMana", qtd: KIT_POCOES }];
+}
+function abrirBauIniciante(it) {
+  if (!prog) return;
+  const i = prog.inv.indexOf(it); if (i < 0) return;
+  const antes = JSON.stringify(prog.inv), kit = kitIniciante();
+  prog.inv.splice(i, 1);                                               // o baú sai e deixa o lugar dele livre
+  let sobra = 0;
+  for (const { chave, qtd, ...extra } of kit) sobra += adicionarItem(chave, qtd, extra);
+  if (sobra) { prog.inv = JSON.parse(antes); avisar("A bolsa está cheia: abra espaço para o kit do baú"); som("ui_negar"); desenharBolsa(); return; }
+  som("bau", viking, 0.9);
+  for (let k = 0; k < 26; k++) brasas.push({ x: viking.x + (Math.random() - 0.5) * 0.5, y: viking.y + (Math.random() - 0.5) * 0.4, z: 0.6 + Math.random() * 0.6, vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8, vz: 1.2 + Math.random() * 1.2, vida: 0.9, max: 0.9, tam: 0.05, cor: 45 });
+  salvarProgresso(); desenharBolsa(); atualizarItensBarra(); atualizarFicha();
+  mostrarPresente(kit);
+}
+function mostrarPresente(kit) {
+  const el = $("#bauAviso");
+  el.hidden = true; void el.offsetWidth;
+  el.innerHTML = `<div class="bau-topo"><span class="bau-ic"></span><h3>Baú do Iniciante aberto</h3></div><ul>${kit.map((k, n) => `<li style="animation-delay:${0.12 + n * 0.08}s"><canvas width="34" height="34"></canvas><span>${escH(nomeItem(k))}</span><b>${k.qtd > 1 ? "×" + k.qtd : ""}</b></li>`).join("")}</ul>` +
+    `<p>Clique direito na arma e nas peças para equipar.</p>`;
+  { const [c, g] = canvasNitido(56, 56); if (!pintarItem(g, "bau_iniciante_aberto", 56, 56)) iconeItem(g, "bau_iniciante", 56, 56); el.querySelector(".bau-ic").appendChild(c); }
+  el.querySelectorAll("li canvas").forEach((cv, n) => {
+    const k = kit[n], t = tipoItem(k.chave), [c, g] = canvasNitido(34, 34);
+    if (t.arma) iconeArma(g, t.desenho, 34, 34, 0, t.tier); else if (t.peca) iconePeca(g, t.peca, t.tier, 34, 34); else iconeItem(g, t.desenho, 34, 34);
+    cv.replaceWith(c);
+  });
+  el.hidden = false;
+  clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, 5400);
+}
+
 // ---------------------------------------------------------------- laço
 function ajustar() {
   dpr = Math.min(devicePixelRatio || 1, 2);
@@ -13925,17 +14376,19 @@ function laco(agora) {
   passoTempo(dt); passoClima(dt); passoChaoClima(dt); passoSonsAmbiente(dt); passoMusica(dt, performance.now() / 1000);
   if (congela > 0) congela -= dt;                                 // hit-stop: o mundo para um instante no acerto
   else if (editor.ativo) passoEditor(dt);                           // editando: o jogo fica parado
-  else if (!pausado) passo(dt * veloc);
-  if (!(window.MM && MM.cobre)) desenhar(t);                        // (com o Mapa do Mundo aberto por cima, o jogo não é desenhado)
+  else if (!pausado && !SEL.aberta) passo(dt * veloc);             // (com a escolha de classe aberta, o mundo espera)
+  if (!(window.MM && MM.cobre) && !SEL.aberta) desenhar(t);                        // (com o Mapa do Mundo aberto por cima, o jogo não é desenhado)
   requestAnimationFrame(laco);
 }
 
 ajustar();
+if (SELECAO_NO_INICIO) abrirSelecao();                  // (antes de tudo: o mundo carrega por baixo)
 carregar().then(() => {
   montarCenario(); carregarMapa(); montarCriaturas(); montarPainel(); montarEditor();
   carregarP3d();
   prepararMana(); carregarProgresso(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarArmazem(); montarTempo(); montarFicha(); montarBolsa(); montarBarraSkills(); montarMinimapa(); montarMenu(); montarAdmin(); montarJanelas();
   fecharMapaOriginal();
+  classeDoInicio();                                   // (a última classe jogada)
   PRED_CARREGANDO.then(montarPredios);              // (as construções em camadas, com ?predios=1)
   $("#carregando").hidden = true;
   window.jogoPronto = true;
