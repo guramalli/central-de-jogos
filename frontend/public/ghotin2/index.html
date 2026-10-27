@@ -189,17 +189,26 @@
   }
   .bolsa header { display: flex; justify-content: space-between; align-items: center; }
   .bolsa h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 18px; color: var(--ouro); }
-  .equip { position: relative; height: 150px; border: 1px solid #5a4424; border-radius: 4px; background: radial-gradient(circle at 50% 45%, #3a2c1c, #18110b); }
-  .equip .silhueta { position: absolute; left: 50%; top: 14px; width: 54px; height: 120px; transform: translateX(-50%); opacity: 0.35;
-    background: radial-gradient(circle at 50% 12%, #c9b28a 0 13px, transparent 14px), linear-gradient(#c9b28a, #c9b28a) 50% 32px / 34px 58px no-repeat,
-                linear-gradient(#c9b28a, #c9b28a) 30% 88px / 12px 32px no-repeat, linear-gradient(#c9b28a, #c9b28a) 70% 88px / 12px 32px no-repeat; }
-  .eq { position: absolute; width: 36px; height: 36px; border: 1px solid #6b5230; border-radius: 3px; background: rgba(10, 7, 4, 0.7); }
-  .eq span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 9px; color: #7d6a4c; text-align: center; line-height: 1; }
+  /* a janela tem a largura da grade (desenharBolsa põe --larg-bolsa); as linhas e os quadros são pintados num canvas em
+     pixels de tela inteiros (fundoGrade), e as cores vêm destas variáveis */
+  .bolsa:not(.armazem) { width: var(--larg-bolsa, 200px); }
+  .equip { position: relative; display: grid; justify-content: center; padding: 8px 0; border: 1px solid #5a4424; border-radius: 4px; background: radial-gradient(circle at 50% 45%, #3a2c1c, #18110b); }
+  .equip-grade { position: relative; width: 181px; height: 157px;
+    --q-fundo: rgba(10, 7, 4, 0.55); --q-linha: #7a5a2c; --q-luz: rgba(255, 220, 150, 0.08); --q-borda: #7a5a2c; --q-fantasma: rgba(201, 178, 138, 0.3); }
+  .equip .silhueta { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .equip .silhueta .corpo { fill: #c9b28a; opacity: 0.22; }
+  .equip .silhueta .chao { fill: none; stroke: #c9b28a; opacity: 0.25; }
+  .equip-grade > canvas.grade-fundo, .grade-inv > canvas.grade-fundo { position: absolute; left: 0; top: 0; pointer-events: none; }
+  /* estes canvases já têm o tamanho exato em pixels de tela; sem "pixelated", nas densidades quebradas (1,25, 1,5) o
+     Chrome reamostra a fração de 1/64 px do layout e o ícone inteiro sai mole */
+  .item-inv canvas, .eq canvas, canvas.grade-fundo { image-rendering: pixelated; }
+  .eq { position: absolute; }
+  .eq canvas { display: block; }
   .abas-bolsa { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
   .abas-bolsa button { padding: 2px 0; font-family: var(--display); font-size: 14px; }
-  .grade-inv { position: relative; width: calc(5 * 40px); height: calc(9 * 40px); margin: 0 auto; border: 1px solid #5a4424;
-    background-image: linear-gradient(#5a4424 1px, transparent 1px), linear-gradient(90deg, #5a4424 1px, transparent 1px); background-size: 40px 40px; background-color: #120d08; }
-  .item-inv { position: absolute; width: 40px; padding: 0; border: 0; background: transparent; cursor: grab; touch-action: none; }
+  .grade-inv { position: relative; width: 181px; height: 325px; margin: 0 auto; border: 0; background: #120d08;
+    --q-fundo: #120d08; --q-linha: #4a3518; --q-luz: rgba(255, 220, 150, 0.05); --q-borda: #7a5a26; }
+  .item-inv { position: absolute; padding: 0; border: 0; background: transparent; cursor: grab; touch-action: none; }
   .item-inv canvas { display: block; width: 100%; height: 100%; }
   .item-inv b { position: absolute; right: 2px; bottom: 0; font-family: var(--dados); font-size: 11px; color: #fff; text-shadow: 0 1px 2px #000, 0 0 2px #000; }
   .item-inv:hover { outline: 1px solid var(--ouro); }
@@ -267,7 +276,7 @@
   .ref-resultado.sucesso { background: rgba(80, 160, 60, 0.25); color: #b8f0a0; }
   .ref-resultado.falhou { background: rgba(180, 50, 30, 0.28); color: #ffb09a; }
   .eq.arma-eq, .eq.peca-eq { cursor: pointer; }
-  .eq canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .eq:is(.arma-eq, .peca-eq):hover { outline: 2px solid var(--ouro); outline-offset: -2px; }
   .eq .ref-eq { position: absolute; right: 2px; bottom: 1px; font-family: var(--dados); font-size: 11px; color: #f3cf5a; text-shadow: 0 1px 2px #000; }
   .armazem { right: auto; left: max(16px, env(safe-area-inset-left, 0px)); }
   .linha-yang { display: grid; grid-template-columns: 1fr auto auto; gap: 4px; }
@@ -400,9 +409,7 @@
   .ref-item, .yang-bolsa, .ficha-skills .sk, .loja .item-loja, .ed-sel { background: var(--jan-poco); }
   .pontos-livres:not(.tem) { background: var(--jan-poco); }
   .equip { border-color: #6b4c1f; background: radial-gradient(circle at 50% 45%, #3c2c1a, #140d07); }
-  .grade-inv { border: 1px solid #7a5a26; box-shadow: 0 0 0 1px var(--jan-preto), inset 0 0 10px rgba(0, 0, 0, 0.6);
-    background-image: linear-gradient(#4a3518 1px, transparent 1px), linear-gradient(90deg, #4a3518 1px, transparent 1px); }
-  .eq { border-color: #7a5a2c; background: radial-gradient(circle at 50% 40%, rgba(40, 28, 16, 0.85), rgba(6, 4, 2, 0.9)); box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.8); }
+  .grade-inv { box-shadow: 0 0 0 1px var(--jan-preto); }
   .equip.destaque { animation: destaque-equip 1.4s ease-out; }
   @keyframes destaque-equip { 0%, 40% { box-shadow: 0 0 0 2px var(--jan-ouro-claro), 0 0 16px rgba(242, 214, 142, 0.7), inset 0 1px 6px rgba(0, 0, 0, 0.65); } }
   .yang-bolsa b { color: #f6d264; text-shadow: 0 0 6px rgba(246, 210, 100, 0.3); }
@@ -624,13 +631,14 @@
   :root:not(.semB) details.livro .chip { background: var(--b-papel3); color: var(--b-nanquim); border-color: rgba(30, 27, 24, 0.5); }
 
   /* ---- inventário: o corpo em nanquim com os espaços em cima, as abas I–IV, a grade 5 × 9 e o Yang */
-  :root:not(.semB) .equip { height: 214px; padding: 0; border: 1px solid rgba(30, 27, 24, 0.55); border-radius: 2px; background: rgba(239, 228, 204, 0.6); box-shadow: inset 0 0 0 2px rgba(239, 228, 204, 0.8), inset 0 0 18px rgba(140, 106, 58, 0.16); }
-  :root:not(.semB) .equip .silhueta { position: absolute; inset: 0; left: 0; top: 0; width: 100%; height: 100%; transform: none; opacity: 1; background: none; pointer-events: none; }
+  :root:not(.semB) .equip { padding: 8px 0; border: 1px solid rgba(30, 27, 24, 0.55); border-radius: 2px; background: rgba(239, 228, 204, 0.6); box-shadow: inset 0 0 0 2px rgba(239, 228, 204, 0.8), inset 0 0 18px rgba(140, 106, 58, 0.16); }
+  /* o boneco escuro e discreto do Metin2, em nanquim aguado; os espaços por cima deixam ver o corpo */
+  :root:not(.semB) .equip .silhueta .corpo { fill: var(--b-nanquim); opacity: 0.2; }
+  :root:not(.semB) .equip .silhueta .chao { stroke: var(--b-nanquim); opacity: 0.3; }
+  :root:not(.semB) .equip-grade { --q-fundo: rgba(221, 207, 174, 0.62); --q-linha: #1E1B18; --q-luz: rgba(255, 250, 236, 0.55); --q-borda: #1E1B18; --q-fantasma: rgba(30, 27, 24, 0.24); }
   :root:not(.semB) .equip.destaque { animation: destaque-equip-b 1.4s ease-out; }
   @keyframes destaque-equip-b { 0%, 40% { box-shadow: 0 0 0 2px var(--b-jade), 0 0 12px rgba(62, 122, 92, 0.55), inset 0 0 0 2px rgba(239, 228, 204, 0.8); } }
-  :root:not(.semB) .eq { border: 1.5px solid var(--b-nanquim); border-radius: 2px; background: rgba(221, 207, 174, 0.92); box-shadow: inset 0 0 0 1px rgba(255, 250, 236, 0.45), 0 1px 0 rgba(30, 27, 24, 0.3); }
-  :root:not(.semB) .eq span { color: #6f6251; font-family: var(--corpo); font-size: 9.5px; }
-  :root:not(.semB) :is(.eq.arma-eq, .eq.peca-eq):hover { border-color: var(--b-jade); box-shadow: 0 0 0 1.5px var(--b-jade); }
+  :root:not(.semB) :is(.eq.arma-eq, .eq.peca-eq):hover { outline: 2px solid var(--b-jade); outline-offset: -2px; background: rgba(62, 122, 92, 0.16); }
   :root:not(.semB) :is(.eq, .item-inv) .ref-eq, :root:not(.semB) .item-inv b { color: var(--b-nanquim); font-weight: 600; text-shadow: 0 0 2px var(--b-papel), 0 0 2px var(--b-papel), 0 0 3px var(--b-papel); }
   :root:not(.semB) .eq .ref-eq { color: var(--b-cinabre); inset: auto 2px 0 auto; display: block; font-size: 10.5px; }
   html:root:not(.semB) .yang-bolsa.yang-bolsa b { color: var(--b-nanquim); }
@@ -638,11 +646,8 @@
   html:root:not(.semB) .dica-item.dica-item strong { color: var(--b-cinabre); }
   html:root:not(.semB) .loja .preco.preco { color: var(--b-indigo); }
   :root:not(.semB) .grade-inv {
-    border: 1.5px solid var(--b-nanquim); box-shadow: 0 0 0 2px rgba(239, 228, 204, 0.7), 0 0 0 3px rgba(140, 106, 58, 0.6);
-    background-color: var(--b-papel3);
-    background-image: linear-gradient(rgba(30, 27, 24, 0.42) 1px, transparent 1px), linear-gradient(90deg, rgba(30, 27, 24, 0.42) 1px, transparent 1px),
-                      linear-gradient(rgba(255, 250, 236, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 250, 236, 0.45) 1px, transparent 1px);
-    background-size: 40px 40px; background-position: -1px -1px, -1px -1px, 0 0, 0 0;
+    box-shadow: 0 0 0 2px rgba(239, 228, 204, 0.7), 0 0 0 3px rgba(140, 106, 58, 0.6); background: var(--b-papel3);
+    --q-fundo: #DDCFAE; --q-linha: rgba(30, 27, 24, 0.42); --q-luz: rgba(255, 250, 236, 0.45); --q-borda: #1E1B18;
   }
   :root:not(.semB) .item-inv:hover { outline: 2px solid var(--b-jade); outline-offset: -2px; background: rgba(62, 122, 92, 0.16); }
   :root:not(.semB) .yang-bolsa b { color: var(--b-nanquim); text-shadow: none; font-weight: 600; }
@@ -1061,43 +1066,27 @@
 <aside class="bolsa" id="bolsa" hidden aria-label="Inventário">
   <header><h2>Inventário</h2><button id="bolsaFechar" aria-label="Fechar o inventário">Fechar</button></header>
   <div class="equip" aria-label="Equipamento (clique direito tira e põe na bolsa)">
-    <!-- estilo B: o corpo pintado em nanquim (um sol de ocre atrás) e cada espaço sobre a parte do corpo, como no Metin2 -->
-    <svg class="silhueta" viewBox="0 0 228 214" aria-hidden="true">
-      <defs><filter id="pincelEquip" x="-6%" y="-6%" width="112%" height="112%"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="3.2"/></filter></defs>
-      <circle cx="114" cy="96" r="78" fill="#C9963E" opacity="0.17"/>
-      <g fill="none" stroke="#8C8A80" stroke-width="1.7" stroke-linecap="round" opacity="0.6">
-        <path d="M10 46q8-10 18-4t2 12q-7 3-9-3M28 42q10-8 22-2M176 24q8-9 17-3t2 11q-6 3-8-2M193 21q9-6 22 0"/>
-        <path d="M8 186q10-8 20-2M200 178q8-6 18 1"/>
-      </g>
-      <g filter="url(#pincelEquip)" stroke="#1E1B18" stroke-linejoin="round" stroke-linecap="round">
-        <path d="M50 207q30-7 64-6t66 6" fill="none" stroke-width="3.4" opacity="0.55"/>
-        <path d="M95 146q-2 14-3 26h19l2-25zM133 146q2 14 3 26h-19l-2-25z" fill="#1E1B18" fill-opacity="0.32" stroke-width="2"/>
-        <path d="M92 166h19M117 166h19" fill="none" stroke="#2D4A6B" stroke-width="3"/>
-        <path d="M91 172h20q4 6 4 12H88q-1-7 3-12zM117 172h20q4 5 3 12h-27q0-6 4-12z" fill="#1E1B18" stroke-width="1.2"/>
-        <path d="M106 42q-10 2-18 8l-4 10q-4 46-9 90q39 9 78 0q-5-44-9-90l-4-10q-8-6-18-8z" fill="#1E1B18" fill-opacity="0.12" stroke-width="2.6"/>
-        <path d="M120 45q-3 26-12 47M114 98q1 26-1 50" fill="none" stroke-width="1.3" opacity="0.7"/>
-        <path d="M80 90q34 7 68 0l1 7q-35 8-70 0z" fill="#1E1B18" stroke-width="1"/>
-        <path d="M128 98q5 13 1 27M134 98q7 11 6 24" fill="none" stroke="#B8322A" stroke-width="2.6"/>
-        <path d="M105 43l9 20 10-20" fill="#EFE4CC" stroke-width="2"/>
-        <path d="M88 50q-22 8-38 56l12 9q8-14 13-22q4-10 10-17zM140 50q22 8 38 56l-12 9q-8-14-13-22q-4-10-10-17z" fill="#1E1B18" fill-opacity="0.24" stroke-width="2.4"/>
-        <path d="M50 106l12 9M178 106l-12 9" fill="none" stroke="#2D4A6B" stroke-width="4"/>
-        <circle cx="55" cy="120" r="5.5" fill="#EFE4CC" stroke-width="1.8"/><circle cx="173" cy="120" r="5.5" fill="#EFE4CC" stroke-width="1.8"/>
-        <path d="M109 34h10v10h-10z" fill="#EFE4CC" stroke-width="1.6"/>
-        <ellipse cx="114" cy="23" rx="12.5" ry="14" fill="#EFE4CC" stroke-width="2.4"/>
-        <path d="M101 21q1-12 13-12t13 12q-5-5-13-5t-13 5z" fill="#1E1B18" stroke-width="1"/>
-        <circle cx="114" cy="5" r="4.5" fill="#1E1B18" stroke-width="1"/><path d="M106 5h16" fill="none" stroke="#C9963E" stroke-width="1.6"/>
-      </g>
-    </svg>
-    <!-- como no Metin2: todos os espaços do mesmo tamanho, numa grade de 5 colunas × 5 linhas (36 px, 6 de folga) sobre o corpo:
-         a cabeça no elmo, a roupa no peito, a arma e o escudo nas mãos, as botas nos pés; joias na coluna da direita -->
-    <div class="eq" style="left: 6px; top: 5px" title="Bracelete (em breve)"><span>pulso</span></div>
-    <div class="eq peca-eq" data-peca="elmo" style="left: 90px; top: 5px"><span>elmo</span></div>
-    <div class="eq" style="left: 174px; top: 5px" title="Brincos (em breve)"><span>brinco</span></div>
-    <div class="eq" style="left: 174px; top: 47px" title="Colar (em breve)"><span>colar</span></div>
-    <div class="eq arma-eq" id="eqArma" style="left: 48px; top: 89px" title="Arma: clique direito tira e põe na bolsa"><span>arma</span></div>
-    <div class="eq peca-eq" data-peca="armadura" style="left: 90px; top: 89px"><span>roupa</span></div>
-    <div class="eq peca-eq" data-peca="escudo" style="left: 132px; top: 89px"><span>escudo</span></div>
-    <div class="eq peca-eq" data-peca="botas" style="left: 90px; top: 173px"><span>botas</span></div>
+    <!-- como no Metin2: espaços quadrados do mesmo tamanho dos da bolsa, numa grade de 5 colunas (as mesmas colunas da bolsa)
+         × 4 linhas, por cima do boneco escuro: joias e arma à esquerda e à direita, elmo na cabeça, roupa no peito, botas
+         nos pés. A arma ocupa 1 × 2 como na bolsa; o resto, 1 espaço. Os quadros saem pintados em pixels de tela (desenharEquip) -->
+    <div class="equip-grade" id="equipGrade">
+      <svg class="silhueta" viewBox="0 0 180 156" preserveAspectRatio="none" aria-hidden="true">
+        <defs><filter id="pincelEquip" x="-6%" y="-6%" width="112%" height="112%"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="2.4"/></filter></defs>
+        <g filter="url(#pincelEquip)">
+          <path class="chao" d="M52 153q38-5 76 0" stroke-width="2.4" stroke-linecap="round"/>
+          <ellipse class="corpo" cx="90" cy="17" rx="12.5" ry="14.5"/>
+          <path class="corpo" d="M84 29h12l1 8q15 1 22 7q5 6 6 18l8 42q3 8-2 13q-5 2-7-5l-10-42-3 28-2 52q-9 4-17 0l-1-46h-2l-1 46q-8 4-17 0l-2-52-3-28-10 42q-2 7-7 5q-5-5-2-13l8-42q1-12 6-18q7-6 22-7z"/>
+        </g>
+      </svg>
+      <div class="eq" data-c="0" data-r="0" data-fantasma="brinco" title="Brincos (em breve)" aria-label="Brincos (em breve)"></div>
+      <div class="eq peca-eq" data-peca="elmo" data-c="2" data-r="0"></div>
+      <div class="eq" data-c="4" data-r="0" data-fantasma="colar" title="Colar (em breve)" aria-label="Colar (em breve)"></div>
+      <div class="eq arma-eq" id="eqArma" data-c="0" data-r="1" data-h="2" title="Arma: clique direito tira e põe na bolsa"></div>
+      <div class="eq peca-eq" data-peca="armadura" data-c="2" data-r="1"></div>
+      <div class="eq peca-eq" data-peca="escudo" data-c="4" data-r="1"></div>
+      <div class="eq" data-c="4" data-r="2" data-fantasma="pulso" title="Bracelete (em breve)" aria-label="Bracelete (em breve)"></div>
+      <div class="eq peca-eq" data-peca="botas" data-c="2" data-r="3"></div>
+    </div>
   </div>
   <div class="abas-bolsa" role="tablist" aria-label="Abas da bolsa" id="abasBolsa"></div>
   <div class="grade-inv" id="gradeInv" aria-label="Espaços da bolsa"></div>
@@ -6738,10 +6727,12 @@ function salvarJanelas() { try { localStorage.setItem(JANELAS_CHAVE, JSON.string
 function posicionarJanela(j) {
   const el = document.getElementById(j.id), p = janelasSalvas[j.id];
   if (!el || !p || p.x === undefined) return;
-  if (!el.style.width) el.style.width = (p.w || el.getBoundingClientRect().width) + "px";
+  if (j.id === "bolsa" || j.id === "armazem") el.style.width = "";                     // (a largura delas é a da grade: desenharBolsa)
+  else if (!el.style.width) el.style.width = (p.w || el.getBoundingClientRect().width) + "px";
   const w = el.offsetWidth || p.w || 100, h = el.offsetHeight || 40;
   const x = Math.max(0, Math.min(innerWidth - Math.min(w, innerWidth), p.x)), y = Math.max(0, Math.min(innerHeight - Math.min(h, 60), p.y));
   Object.assign(el.style, { position: "fixed", left: x + "px", top: y + "px", right: "auto", bottom: "auto", transform: "none", margin: "0", zIndex: "3" });
+  if (j.id === "bolsa" || j.id === "armazem") realinharGrades();                     // (a grade de novo em pixel inteiro)
 }
 function aplicarJanelas() {
   for (const j of JANELAS) {
@@ -7444,10 +7435,12 @@ function desenharArmazem() {
   if (!armazemAberto()) return;
   $("#abasArm").innerHTML = ["I", "II", "III"].map((r, i) => `<button role="tab" data-aba="${i}" aria-selected="${i === abaArm}" aria-pressed="${i === abaArm}">${r}</button>`).join("");
   const grade = $("#gradeArm"); grade.innerHTML = "";
+  const G = prepararGrade(grade);
   for (const it of armazem.inv) {
     if (it.aba !== abaArm) continue;
-    grade.appendChild(botaoItem(it));
+    grade.appendChild(botaoItem(it, G));
   }
+  alinharPixel(grade);
   $("#yangArm").textContent = armazem.yang.toLocaleString("pt-BR");
 }
 function montarArmazem() {
@@ -7463,14 +7456,15 @@ function montarArmazem() {
   $("#armRetirar").onclick = () => { const v = Math.min(valor(), armazem.yang); if (!v) return; armazem.yang -= v; prog.yang += v; som("moeda", null, 0.6); salvarArmazem(); salvarProgresso(); desenharArmazem(); desenharBolsa(); };
 }
 // o botão de um item numa grade (bolsa ou armazém): ícone, quantidade ou refino
-function botaoItem(it) {
+function botaoItem(it, G = geoGrade()) {
   const t = tipoItem(it.chave), b = document.createElement("button");
-  b.className = "item-inv"; b.type = "button"; b.style.left = it.x * CEL + "px"; b.style.top = it.y * CEL + "px"; b.style.height = t.h * CEL + "px";
+  b.className = "item-inv"; b.type = "button";
+  const [w, h] = lugarNaGrade(b, it.x, it.y, t.h, G);
   b.setAttribute("aria-label", `${nomeItem(it)}, ${it.qtd}`);
-  const [c, g] = canvasNitido(CEL, t.h * CEL);
-  if (t.arma) iconeArma(g, t.desenho, CEL, t.h * CEL, it.ref || 0, t.tier);
-  else if (t.peca) iconePeca(g, t.peca, t.tier, CEL, t.h * CEL);
-  else iconeItem(g, t.desenho, CEL, t.h * CEL);
+  const [c, g] = canvasNitido(w, h);
+  if (t.arma) iconeArma(g, t.desenho, w, h, it.ref || 0, t.tier);
+  else if (t.peca) iconePeca(g, t.peca, t.tier, w, h);
+  else iconeItem(g, t.desenho, w, h);
   b.appendChild(c);
   if (it.qtd > 1 || t.arma || t.peca) { const q = document.createElement("b"); q.textContent = t.arma || t.peca ? "+" + (it.ref || 0) : it.qtd; b.appendChild(q); }
   b._item = it;                                                      // (o nome e o resto: a dica do Metin2, mostrarDica)
@@ -7481,7 +7475,8 @@ function botaoItem(it) {
 // Quatro abas (I a IV) de 5 × 9 espaços. Cada item ocupa uma coluna e "h" linhas (poções, livros e pedras: 1; armas e
 // armaduras, quando houver, 2 ou 3), e os iguais se empilham até 200. Arrastando, o item muda de lugar (ou troca com o
 // de lá, se couber); arrastando para a barra, vira atalho; clique direito (ou dois cliques) usa.
-const INV_COLS = 5, INV_LINS = 9, INV_ABAS = 4, PILHA_MAX = 200, CEL = 40;
+// CEL: o lado do espaço em px lógicos (o Metin2 usa 32); na tela ele vira um número inteiro de pixels (geoGrade)
+const INV_COLS = 5, INV_LINS = 9, INV_ABAS = 4, PILHA_MAX = 200, CEL = 36;
 let abaBolsa = 0;
 // h = quantos espaços o item ocupa na bolsa, em pé: arco, espada, machado e cajado 2; adagas 1; armadura 2; escudo,
 // elmo e botas 1; o resto 1
@@ -7507,24 +7502,110 @@ function tipoItem(chave) {
     correcao: { nome: "Pergaminho da Correção", desc: "Arraste sobre uma arma ou roupa na bolsa: tira a última Jóia encaixada e a devolve para a bolsa.", h: 1, desenho: "correcao" },
   }[chave] || { nome: chave, desc: "", h: 1, desenho: "pedra" };
 }
-// um canvas na densidade da tela: desenha-se em w × h (coordenadas lógicas) e ele guarda densidade × mais pixels, para o
-// ícone pintado sair nítido nas telas de alta densidade (antes o canvas de 40 px era esticado e ficava borrado)
+// a densidade da tela (devicePixelRatio), sem os extremos
+function dprTela() { return Math.min(4, Math.max(0.5, window.devicePixelRatio || 1)); }
+// um canvas na densidade da tela: desenha-se em w × h (coordenadas lógicas) e ele guarda um número INTEIRO de pixels de
+// tela; o tamanho em CSS é esse número dividido pela densidade, para o navegador não esticar o canvas (esticado, borra)
 function canvasNitido(w, h) {
-  const d = Math.min(3, Math.max(1, window.devicePixelRatio || 1)), c = document.createElement("canvas");
-  c.width = Math.round(w * d); c.height = Math.round(h * d); c.style.width = w + "px"; c.style.height = h + "px";
-  const g = c.getContext("2d"); g.scale(d, d); g.imageSmoothingQuality = "high";
+  const d = dprTela(), c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(w * d)); c.height = Math.max(1, Math.round(h * d)); c.style.width = c.width / d + "px"; c.style.height = c.height / d + "px";
+  const g = c.getContext("2d"); g.setTransform(c.width / w, 0, 0, c.height / h, 0, 0); g.imageSmoothingQuality = "high";
   return [c, g];
 }
-// o ícone pintado (se houver) cabe inteiro no espaço, centrado, com pouca margem; com o brilho do refino em volta, quando houver
+// a arte dos ícones vem grande (até 192 px): reduzida de uma vez para 30–40 px ela fica mole. Aqui ela desce pela metade
+// a cada passo (com a suavização "high") até o tamanho final em pixels de tela, e ganha um realce leve de nitidez; o
+// resultado fica guardado por chave e tamanho
+const ICONES_REDUZIDOS = new Map();
+function iconeReduzido(im, chave, tw, th) {
+  const k = `${chave}|${tw}x${th}`; let c = ICONES_REDUZIDOS.get(k); if (c) return c;
+  let src = im, sw = im.width, sh = im.height;
+  while (sw >= tw * 2 && sh >= th * 2) {
+    const nw = Math.max(tw, Math.round(sw / 2)), nh = Math.max(th, Math.round(sh / 2)), t = document.createElement("canvas"); t.width = nw; t.height = nh;
+    const tg = t.getContext("2d"); tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = "high"; tg.drawImage(src, 0, 0, sw, sh, 0, 0, nw, nh);
+    src = t; sw = nw; sh = nh;
+  }
+  c = document.createElement("canvas"); c.width = tw; c.height = th;
+  const g = c.getContext("2d", { willReadFrequently: true }); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high"; g.drawImage(src, 0, 0, sw, sh, 0, 0, tw, th);
+  realcarIcone(g, tw, th, Math.min(tw / im.width, th / im.height) < 0.35 ? 0.55 : 0.35);
+  if (ICONES_REDUZIDOS.size > 600) ICONES_REDUZIDOS.clear();
+  ICONES_REDUZIDOS.set(k, c);
+  return c;
+}
+// realce de nitidez (máscara de nitidez 3 × 3) feito com as cores multiplicadas pelo alfa, para a borda do ícone ficar
+// firme sem franja escura em volta
+function realcarIcone(g, w, h, k) {
+  let id; try { id = g.getImageData(0, 0, w, h); } catch (e) { return; }
+  const s = id.data, n = w * h, p = new Float32Array(n * 4);
+  for (let i = 0; i < n * 4; i += 4) { const a = s[i + 3] / 255; p[i] = s[i] * a; p[i + 1] = s[i + 1] * a; p[i + 2] = s[i + 2] * a; p[i + 3] = s[i + 3]; }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4, l = (y * w + Math.max(0, x - 1)) * 4, r = (y * w + Math.min(w - 1, x + 1)) * 4, u = (Math.max(0, y - 1) * w + x) * 4, d = (Math.min(h - 1, y + 1) * w + x) * 4;
+    let a = p[i + 3] + k * (p[i + 3] * 4 - p[l + 3] - p[r + 3] - p[u + 3] - p[d + 3]) / 4; a = a < 0 ? 0 : a > 255 ? 255 : a;
+    s[i + 3] = Math.round(a);
+    for (let ch = 0; ch < 3; ch++) {
+      let v = p[i + ch] + k * (p[i + ch] * 4 - p[l + ch] - p[r + ch] - p[u + ch] - p[d + ch]) / 4; v = v < 0 ? 0 : v > a ? a : v;
+      s[i + ch] = a > 0 ? Math.round(v * 255 / a) : 0;
+    }
+  }
+  g.putImageData(id, 0, 0);
+}
+// o ícone pintado (se houver) enche o espaço, centrado, com 1 pixel de tela de margem (2 nas telas densas); com o brilho
+// do refino em volta, quando houver. Ele é colado já reduzido, pixel a pixel, numa posição inteira da tela
 function pintarItem(g, chave, w, h, b) {
   const im = ICONES_ITEM[chave]; if (!im) return false;
   g.clearRect(0, 0, w, h);
-  const e = Math.min((w - 3) / im.width, (h - 3) / im.height), iw = im.width * e, ih = im.height * e, x = (w - iw) / 2, y = (h - ih) / 2;
+  const T = g.getTransform();
+  if (!T.b && !T.c && T.a > 0 && T.d > 0) {
+    const X0 = Math.round(T.e), Y0 = Math.round(T.f), W = Math.round(w * T.a), H = Math.round(h * T.d), m = Math.max(1, Math.round(T.a * 0.75));
+    const e = Math.min((W - 2 * m) / im.width, (H - 2 * m) / im.height), tw = Math.max(1, Math.round(im.width * e)), th = Math.max(1, Math.round(im.height * e));
+    const r = iconeReduzido(im, chave, tw, th), x = X0 + Math.floor((W - tw) / 2), y = Y0 + Math.floor((H - th) / 2);
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+    if (b) { g.shadowColor = b.forte; g.shadowBlur = Math.max(6, Math.min(W, H) * 0.3); g.drawImage(r, x, y); }
+    g.drawImage(r, x, y);
+    g.restore();
+    return true;
+  }
+  const e = Math.min((w - 2) / im.width, (h - 2) / im.height), iw = im.width * e, ih = im.height * e, x = (w - iw) / 2, y = (h - ih) / 2;
   g.save();
   if (b) { g.shadowColor = b.forte; g.shadowBlur = Math.max(6, Math.min(w, h) * 0.3); g.drawImage(im, x, y, iw, ih); }
   g.drawImage(im, x, y, iw, ih);
   g.restore();
   return true;
+}
+// ---- a grade da bolsa (e do armazém e do equipamento) em pixels de tela: o espaço tem CEL px lógicos arredondados para
+// um número inteiro de pixels de tela (celD), as linhas têm 1 pixel de tela por unidade de densidade, e o canto da
+// grade cai num pixel inteiro (alinharPixel). Assim as linhas, os quadros e os ícones batem exatos em qualquer densidade
+function geoGrade() { const d = dprTela(), celD = Math.round(CEL * d), lw = Math.max(1, Math.round(d)); return { d, celD, lw, cel: celD / d }; }
+// desloca o elemento (com "translate", sem mexer no layout) para o canto dele cair num pixel inteiro da tela
+function alinharPixel(el) {
+  if (!el || !el.isConnected) return;
+  el.style.translate = "";
+  const d = dprTela(), r = el.getBoundingClientRect(); if (!r.width) return;
+  const dx = (Math.round(r.left * d) - r.left * d) / d, dy = (Math.round(r.top * d) - r.top * d) / d;
+  if (Math.abs(dx) > 1e-4 || Math.abs(dy) > 1e-4) el.style.translate = `${dx}px ${dy}px`;
+}
+function realinharGrades() { for (const id of ["gradeInv", "gradeArm", "equipGrade"]) { const el = document.getElementById(id); if (el && el.offsetParent) alinharPixel(el); } }
+// o canvas de fundo: as cores vêm das variáveis --q-* do elemento (os dois estilos de janela)
+function canvasFundo(el, W, H, G) {
+  const c = document.createElement("canvas"); c.className = "grade-fundo"; c.width = W; c.height = H; c.style.width = W / G.d + "px"; c.style.height = H / G.d + "px";
+  const cs = getComputedStyle(el), v = (n, pad) => cs.getPropertyValue(n).trim() || pad;
+  return [c, c.getContext("2d"), { fundo: v("--q-fundo", "#DDCFAE"), linha: v("--q-linha", "#1E1B18"), luz: v("--q-luz", "rgba(255,250,236,.45)"), borda: v("--q-borda", "#1E1B18"), fantasma: v("--q-fantasma", "rgba(30,27,24,.24)") }];
+}
+// a grade 5 × 9: fundo, as linhas de cada espaço e o filete claro logo depois de cada linha
+function prepararGrade(grade) {
+  const G = geoGrade(), { celD, lw } = G, W = INV_COLS * celD + lw, H = INV_LINS * celD + lw;
+  grade.style.width = W / G.d + "px"; grade.style.height = H / G.d + "px";
+  const [c, g, k] = canvasFundo(grade, W, H, G);
+  g.fillStyle = k.fundo; g.fillRect(0, 0, W, H);
+  g.fillStyle = k.luz; for (let i = 0; i < INV_COLS; i++) g.fillRect(i * celD + lw, 0, 1, H); for (let j = 0; j < INV_LINS; j++) g.fillRect(0, j * celD + lw, W, 1);
+  g.fillStyle = k.linha; for (let i = 1; i < INV_COLS; i++) g.fillRect(i * celD, 0, lw, H); for (let j = 1; j < INV_LINS; j++) g.fillRect(0, j * celD, W, lw);
+  g.fillStyle = k.borda; g.fillRect(0, 0, W, lw); g.fillRect(0, H - lw, W, lw); g.fillRect(0, 0, lw, H); g.fillRect(W - lw, 0, lw, H);
+  grade.prepend(c);
+  return G;
+}
+// o lugar de um item na grade: o miolo do espaço (sem a linha), em pixels de tela inteiros
+function lugarNaGrade(el, x, y, h, G) {
+  Object.assign(el.style, { left: (x * G.celD + G.lw) / G.d + "px", top: (y * G.celD + G.lw) / G.d + "px", width: (G.celD - G.lw) / G.d + "px", height: (h * G.celD - G.lw) / G.d + "px" });
+  return [(G.celD - G.lw) / G.d, (h * G.celD - G.lw) / G.d];
 }
 function iconeItem(g, desenho, w = 40, h = 40) {
   if (desenho && desenho.startsWith("joia:")) { iconeJoia(g, desenho, w, h); return; }
@@ -8146,47 +8227,84 @@ function desenharBolsa() {
   if (!prog || $("#bolsa").hidden) return;
   $("#abasBolsa").innerHTML = ["I", "II", "III", "IV"].map((r, i) => `<button role="tab" data-aba="${i}" aria-selected="${i === abaBolsa}" aria-pressed="${i === abaBolsa}">${r}</button>`).join("");
   const grade = $("#gradeInv"); grade.innerHTML = "";
+  const G = prepararGrade(grade);
+  $("#bolsa").style.setProperty("--larg-bolsa", (INV_COLS * G.celD + G.lw) / G.d + 16 + "px");   // (a janela na largura da grade)
   for (const it of prog.inv) {
     if (it.aba !== abaBolsa) continue;
-    const t = tipoItem(it.chave), b = document.createElement("button");
-    b.className = "item-inv"; b.type = "button"; b.style.left = it.x * CEL + "px"; b.style.top = it.y * CEL + "px"; b.style.height = t.h * CEL + "px";
-    b.setAttribute("aria-label", `${nomeItem(it)}, ${it.qtd}`);
-    const [c, g] = canvasNitido(CEL, t.h * CEL);
-    if (t.arma) iconeArma(g, t.desenho, CEL, t.h * CEL, it.ref || 0, t.tier);
-    else if (t.peca) iconePeca(g, t.peca, t.tier, CEL, t.h * CEL);
-    else iconeItem(g, t.desenho, CEL, t.h * CEL);
-    b.appendChild(c);
-    if (it.qtd > 1 || t.arma || t.peca) { const q = document.createElement("b"); q.textContent = t.arma || t.peca ? "+" + (it.ref || 0) : it.qtd; b.appendChild(q); }
-    b._item = it;
-    grade.appendChild(b);
+    grade.appendChild(botaoItem(it, G));
   }
   $("#yangBolsa").textContent = prog.yang.toLocaleString("pt-BR");
-  const eq = $("#eqArma");
-  eq.innerHTML = prog.arma ? "" : "<span>arma</span>";
+  desenharEquip(G);
+  realinharGrades();
+}
+// o equipamento: os quadros (do tamanho dos espaços da bolsa, nas mesmas colunas) pintados num canvas de fundo e, em
+// cada um, o item vestido em pé (a arma em 1 × 2, como na bolsa) ou, vazio, o fantasma do que vai ali
+function desenharEquip(G = geoGrade()) {
+  const box = $("#equipGrade"); if (!box) return;
+  const { celD, lw, d } = G, py = celD + Math.round(4 * d), W = INV_COLS * celD + lw, H = 3 * py + celD + lw;
+  box.style.width = W / d + "px"; box.style.height = H / d + "px";
+  box.querySelectorAll("canvas.grade-fundo").forEach(c => c.remove());
+  const [cf, gf, k] = canvasFundo(box, W, H, G);
+  for (const el of box.querySelectorAll(".eq")) {
+    const X = +el.dataset.c * celD, Y = +el.dataset.r * py, hh = ((+el.dataset.h || 1) - 1) * py + celD + lw, ww = celD + lw;
+    gf.fillStyle = k.borda; gf.fillRect(X, Y, ww, hh);
+    gf.clearRect(X + lw, Y + lw, ww - 2 * lw, hh - 2 * lw);
+    gf.fillStyle = k.fundo; gf.fillRect(X + lw, Y + lw, ww - 2 * lw, hh - 2 * lw);
+    gf.fillStyle = k.luz; gf.fillRect(X + lw, Y + lw, ww - 2 * lw, 1); gf.fillRect(X + lw, Y + lw, 1, hh - 2 * lw);
+    Object.assign(el.style, { left: (X + lw) / d + "px", top: (Y + lw) / d + "px", width: (ww - 2 * lw) / d + "px", height: (hh - 2 * lw) / d + "px" });
+    el._tam = [(ww - 2 * lw) / d, (hh - 2 * lw) / d];
+  }
+  box.querySelector("svg").after(cf);
+  const novo = el => { el.innerHTML = ""; return canvasNitido(...el._tam); };
+  // os espaços que ainda não têm item (brinco, colar, pulso): só o fantasma
+  for (const el of box.querySelectorAll("[data-fantasma]")) { const [c, g] = novo(el); fantasmaEquip(g, el.dataset.fantasma, ...el._tam, k.fantasma); el.appendChild(c); }
+  const eq = $("#eqArma"), [ca, ga] = novo(eq), des = ARMAS[classe].desenho;
+  eq.appendChild(ca);
   if (prog.arma) {
-    // no quadrado do equipamento a arma comprida vai na diagonal (de baixo à esquerda ao alto à direita) e ocupa o quadro;
-    // as adagas (o par cruzado) já são quadradas
-    const [c, g] = canvasNitido(36, 36), des = ARMAS[classe].desenho;
-    if (des === "adagas") iconeArma(g, des, 36, 36, prog.arma.ref, prog.arma.tier);
-    else { g.translate(18, 18); g.rotate(Math.PI / 4); g.translate(-9, -24); iconeArma(g, des, 18, 48, prog.arma.ref, prog.arma.tier); }
-    eq.appendChild(c);
+    iconeArma(ga, des, ...eq._tam, prog.arma.ref, prog.arma.tier);
     const r = document.createElement("span"); r.className = "ref-eq"; r.textContent = "+" + prog.arma.ref; eq.appendChild(r);
     eq.title = ""; eq.setAttribute("aria-label", `${nomeArma(prog.arma.ref)}: clique direito guarda na bolsa`);   // (a dica do Metin2 mostra o resto)
-  } else eq.title = "Sem arma: clique direito numa arma da bolsa para equipar";
-  for (const el of document.querySelectorAll(".peca-eq")) {
+  } else { fantasmaEquip(ga, des, ...eq._tam, k.fantasma); eq.title = "Sem arma: clique direito numa arma da bolsa para equipar"; eq.setAttribute("aria-label", "Arma (vazio)"); }
+  for (const el of box.querySelectorAll(".peca-eq")) {
     const slot = el.dataset.peca, e = prog.equip && prog.equip[slot], pc = pecaEquipada(slot) || (slot === "armadura" ? ROUPA_DA_CLASSE[classe] : slot);
-    el.innerHTML = e ? "" : `<span>${{ armadura: "roupa" }[slot] || slot}</span>`;
+    const [c, g] = novo(el); el.appendChild(c);
     if (e) {
-      const [c, g] = canvasNitido(36, 36); iconePeca(g, pc, e.tier, 36, 36); el.appendChild(c);
+      iconePeca(g, pc, e.tier, ...el._tam);
       const r = document.createElement("span"); r.className = "ref-eq"; r.textContent = "+" + e.ref; el.appendChild(r);
       el.title = ""; el.setAttribute("aria-label", `${nomePeca(pc, e.tier, e.ref)}: clique direito guarda na bolsa`);
-    } else el.title = `${PECAS[pc].nome}: clique direito numa peça da bolsa para vestir`;
+    } else { fantasmaEquip(g, `peca:${pc}:0`, ...el._tam, k.fantasma); el.title = `${PECAS[pc].nome}: clique direito numa peça da bolsa para vestir`; el.setAttribute("aria-label", `${PECAS[pc].nome} (vazio)`); }
   }
+}
+// o fantasma do espaço vazio, como no Metin2: a forma do item em nanquim bem aguado (do ícone pintado), ou, para as
+// joias que ainda não existem, um desenho simples a traço
+function fantasmaEquip(g, chave, w, h, cor) {
+  if (pintarItem(g, chave, w, h)) {
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "source-in"; g.fillStyle = cor; g.fillRect(0, 0, g.canvas.width, g.canvas.height); g.restore();
+    return;
+  }
+  const X = w / 2, Y = h / 2, u = Math.min(w, h) / 36;
+  g.save(); g.strokeStyle = cor; g.fillStyle = cor; g.lineWidth = 2.2 * u; g.lineCap = "round"; g.lineJoin = "round";
+  if (chave === "brinco") {                                            // dois brincos: o gancho e a gota
+    for (const dx of [-6, 6]) { g.beginPath(); g.arc(X + dx * u, Y - 8 * u, 3 * u, Math.PI * 0.9, Math.PI * 2.2); g.stroke();
+      g.beginPath(); g.moveTo(X + dx * u, Y - 2 * u); g.quadraticCurveTo(X + (dx + 5) * u, Y + 7 * u, X + dx * u, Y + 10 * u); g.quadraticCurveTo(X + (dx - 5) * u, Y + 7 * u, X + dx * u, Y - 2 * u); g.fill(); }
+  } else if (chave === "colar") {                                      // o fio e o pingente
+    g.beginPath(); g.arc(X, Y - 9 * u, 11 * u, Math.PI * 0.15, Math.PI * 0.85); g.stroke();
+    g.beginPath(); g.moveTo(X, Y + 1 * u); g.lineTo(X + 5 * u, Y + 7 * u); g.lineTo(X, Y + 13 * u); g.lineTo(X - 5 * u, Y + 7 * u); g.closePath(); g.fill();
+  } else {                                                             // o bracelete: um aro visto de lado
+    g.lineWidth = 3.4 * u; g.beginPath(); g.ellipse(X, Y, 11 * u, 6.5 * u, 0, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.arc(X, Y + 6.5 * u, 2.6 * u, 0, Math.PI * 2); g.fill();
+  }
+  g.restore();
 }
 function usarItem(it) { const t = tipoItem(it.chave); if (t.usar) t.usar(it); else avisar(`${t.nome}: ainda não tem uso`); }
 let arrastoItem = null;
 function montarBolsa() {
   $("#bBolsa").onclick = () => abrirBolsa();
+  // a densidade muda com o zoom do navegador e ao passar para outro monitor: a grade é refeita; rolando a janela, ela volta
+  // para o pixel inteiro
+  let refazer = 0;
+  addEventListener("resize", () => { if (refazer) return; refazer = requestAnimationFrame(() => { refazer = 0; desenharBolsa(); desenharArmazem(); }); });
+  for (const id of ["#bolsa", "#armazem"]) $(id).addEventListener("scroll", realinharGrades, { passive: true });
   $("#eqArma").addEventListener("contextmenu", e => { e.preventDefault(); tirarArma(); });
   for (const el of document.querySelectorAll(".peca-eq")) el.addEventListener("contextmenu", e => { e.preventDefault(); tirarPeca(el.dataset.peca); });
   $("#bolsaFechar").onclick = () => abrirBolsa(false);
@@ -8217,7 +8335,7 @@ function montarBolsa() {
     if (!a.moveu && Math.hypot(e.clientX - a.x, e.clientY - a.y) > 5) {
       a.moveu = true; dica.hidden = true;
       const f = a.el.querySelector("canvas").cloneNode(); f.getContext("2d").drawImage(a.el.querySelector("canvas"), 0, 0);
-      f.className = "slot-fantasma"; f.style.width = CEL + "px"; f.style.height = a.el.querySelector("canvas").style.height || f.height + "px"; document.body.appendChild(f); a.fantasma = f;   // (a altura em CSS: o canvas nítido tem densidade × pixels)
+      const cv = a.el.querySelector("canvas"); f.className = "slot-fantasma"; f.style.width = cv.style.width; f.style.height = cv.style.height; document.body.appendChild(f); a.fantasma = f;   // (o tamanho em CSS: o canvas nítido tem densidade × pixels)
     }
     if (a.fantasma) { a.fantasma.style.left = (e.clientX - CEL / 2) + "px"; a.fantasma.style.top = (e.clientY - CEL / 2) + "px"; }
   });
@@ -8234,7 +8352,7 @@ function montarBolsa() {
     }
     // numa aba: muda para ela; na grade: muda de lugar (ou troca com um do mesmo tamanho)
     const aba = el && el.closest && el.closest("[data-aba]");
-    const r = grade.getBoundingClientRect(), x = Math.floor((e.clientX - r.left) / CEL), y = Math.floor((e.clientY - r.top) / CEL);
+    const r = grade.getBoundingClientRect(), G = geoGrade(), x = Math.floor((e.clientX - r.left) / G.cel), y = Math.floor((e.clientY - r.top) / G.cel);
     const destAba = aba ? +aba.dataset.aba : abaBolsa, h = tipoItem(a.it.chave).h;
     if (aba) { const l = (() => { for (let yy = 0; yy < INV_LINS; yy++) for (let xx = 0; xx < INV_COLS; xx++) if (!ocupado(destAba, xx, yy, h, a.it)) return { x: xx, y: yy }; })(); if (l) Object.assign(a.it, { aba: destAba, ...l }); }
     else if (x >= 0 && x < INV_COLS && y >= 0 && y < INV_LINS) {
