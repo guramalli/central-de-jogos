@@ -7544,9 +7544,9 @@ const MISSOES = {
     ],
   },
 };
-// o cavalo ainda espera a aprovação do usuário (o vídeo do protótipo): no site ele só existe com o admin ligado ou com
-// ?cavalo=1. Sem isso a missão da Hilda não aparece e a ação Montar some (sem o Retrato, ninguém chega a ter cavalo)
-const CAVALO_LIBERADO = ADMIN || new URLSearchParams(location.search).has("cavalo");
+// o cavalo de montaria (liberado pelo usuário em 27/10/2026). Com false, ele só existe com o admin ligado ou com
+// ?cavalo=1: a missão da Hilda não aparece e a ação Montar some (sem o Retrato, ninguém chega a ter cavalo)
+const CAVALO_LIBERADO = true || ADMIN || new URLSearchParams(location.search).has("cavalo");
 if (!CAVALO_LIBERADO) delete MISSOES.cavalo;
 function estadoMissao(id) { const m = prog.missoes || (prog.missoes = {}); return m[id] || (m[id] = { etapa: -1, n: 0 }); }
 const nivelMissaoOk = M => !M.nivelMin || (prog && prog.nivel >= M.nivelMin);
