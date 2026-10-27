@@ -8765,7 +8765,7 @@ function desenharItens(t) {
     placas.push(() => { cx.save(); cx.globalAlpha = k; cx.font = FONTE_PLACA; cx.textAlign = "center"; cx.lineJoin = "round"; cx.lineWidth = 3; cx.strokeStyle = "rgba(0, 0, 0, 0.9)";
       cx.strokeText(nome, X, Yn); cx.fillStyle = d.tipo === "yang" ? "#f2c84a" : raro ? "#ffd25a" : "#f2ead8"; cx.fillText(nome, X, Yn); cx.restore(); });
     if (ic) {                                                               // o ícone pintado, deitado um pouco e com sombra
-      const h = 26 * u, w = h * ic.naturalWidth / ic.naturalHeight;
+      const h = 26 * u, w = h * (ic.naturalWidth || ic.width) / (ic.naturalHeight || ic.height);   // (os ícones do atlas são canvas: sem naturalWidth)
       cx.fillStyle = "rgba(20, 14, 10, 0.3)"; cx.beginPath(); cx.ellipse(X, Y0, w * 0.45, w * 0.45 * ACHATA * 0.5, 0, 0, 7); cx.fill();
       cx.drawImage(ic, X - w / 2, Y - h * 0.6, w, h);
     } else if (d.tipo === "livro") {
