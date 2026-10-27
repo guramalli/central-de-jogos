@@ -113,6 +113,9 @@
   .acoes button { height: 64px; border-radius: 50%; font-size: 12px; background: var(--painel); }
   .acoes button.grande { grid-column: span 2; width: 100%; border-radius: 32px; color: var(--ouro); font-family: var(--display); font-size: 18px; }
   .acoes button.largo { grid-column: span 2; width: 100%; height: 40px; border-radius: 20px; }
+  /* no PC (mouse) os botões Atacar, Alvo, Soltar, Espada e Correr saem da tela: o teclado e o clique fazem tudo e as
+     mesmas ações seguem na aba Ações da ficha. No celular (toque) eles ficam */
+  @media (pointer: fine) { #janAcoes { display: none !important; } }
   .barra-skills {
     position: fixed; z-index: 2; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
     display: flex; gap: 6px; padding: 6px; border-radius: 12px;
@@ -925,6 +928,7 @@
   .sc-escolher:disabled { cursor: progress; background: #5d7b6c; }
   .sc-voltar { min-height: 40px; padding: 6px 16px; cursor: pointer; border-radius: 4px; border: 1.5px solid rgba(239, 228, 204, 0.6); background: transparent; color: var(--sp); font: 500 15px var(--corpo); }
   .sc-voltar:hover { background: rgba(239, 228, 204, 0.12); }
+  .sc-zero.confirmar { border-color: #d9a066; color: #f1c58e; }
   .sc-nota { margin: 0; width: 100%; text-align: center; font-size: 14px; color: #d9cbb0; }
   .sc-nota b { color: #E3B567; font-weight: 600; }
   .sc-lida { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -1445,6 +1449,7 @@
     <div class="sc-pontos" id="selPontos" role="group" aria-label="Ir para a classe"></div>
     <div class="sc-acoes">
       <button type="button" class="sc-voltar" id="selVoltar" hidden>Voltar ao jogo</button>
+      <button type="button" class="sc-voltar sc-zero" id="selZero" hidden>Começar do zero</button>
       <button type="button" class="sc-escolher" id="selEscolher">Escolher</button>
     </div>
     <p class="sc-nota" id="selNota" role="status"></p>
@@ -8854,8 +8859,7 @@ function montarFicha() {
   $("#fRecomecar").onclick = e => {
     if (performance.now() - confirma > 3000) { confirma = performance.now(); e.target.textContent = "Clique de novo para apagar o progresso"; return; }
     confirma = 0; e.target.textContent = "Recomeçar este personagem";
-    prog = progressoNovo(classe); recalcularStatus(); viking.vida = status.vidaMax; salvarProgresso(); montarBarraSkills(); atualizarFicha();
-    jornadaZerar(true);
+    entrarComClasse(classe, { novo: true });
   };
   setInterval(() => { if (prog && !$("#ficha").hidden) atualizarFicha(); }, 30000);
 }
@@ -14313,6 +14317,8 @@ function mostrarClasseSel(d) {
   // quem já tem esta classe entra com ela (nada é apagado)
   const p = progressoSalvoDe(c), bt = $("#selEscolher");
   bt.textContent = p ? `Entrar · Nv ${p.nivel || 1}` : "Escolher";
+  const z = $("#selZero"); z.hidden = !p; z.classList.remove("confirmar"); z.textContent = "Começar do zero"; SEL.zero = 0;
+  z.setAttribute("aria-label", p ? `Apagar o ${nome} nível ${p.nivel || 1} e começar um novo do zero` : "Começar do zero");
   bt.setAttribute("aria-label", p ? `Entrar com o ${nome} nível ${p.nivel || 1}` : `Escolher ${nome}`);
   $("#selNota").innerHTML = `<span class="sc-lida">${nome}, ${SEL.i + 1} de ${CLASSES_SELECAO.length}. </span>` + (p ? `Você já tem um <b>${escH(p.nome || nome)}</b> nível ${p.nivel || 1}: entra com ele, sem perder nada.`
     : `Nasce na Vila 1 com o <b>Baú do Iniciante</b>: a arma, a roupa, o elmo e poções.`);
@@ -14339,7 +14345,7 @@ async function iconesSkillSel() {
   } catch (e) {}
   if (SEL.aberta) desenharIconesSel();
 }
-async function escolherSel() {
+async function escolherSel(op = {}) {
   if (SEL.escolhendo || !SEL.aberta) return SEL.escolhendo;
   const c = CLASSES_SELECAO[SEL.i], bt = $("#selEscolher");
   if (typeof somIniciar === "function") somIniciar();
@@ -14349,13 +14355,13 @@ async function escolherSel() {
       while (!window.jogoPronto) await new Promise(r => setTimeout(r, 120));
       $("#selClasse").removeAttribute("aria-busy"); bt.disabled = false;
     }
-    entrarComClasse(c);
+    entrarComClasse(c, op);
   })();
   try { await SEL.escolhendo; } finally { SEL.escolhendo = null; }
 }
 // entra com a classe c: a que já tem personagem continua de onde parou; a nova nasce na Vila 1 só com o baú
-function entrarComClasse(c) {
-  const salvo = progressoSalvoDe(c);
+function entrarComClasse(c, op = {}) {
+  const salvo = op.novo ? null : progressoSalvoDe(c);                 // (op.novo: começar do zero, mesmo já tendo personagem)
   salvarTravado = true;                                                // (o personagem que estava na tela não é regravado)
   if (c !== classe) trocarClasse(c);
   if (!salvo) {
@@ -14395,6 +14401,12 @@ function montarSelecao() {
   $("#selProx").onclick = () => passarSel(1);
   $("#selPontos").onclick = e => { const b = e.target.closest("[data-i]"); if (!b) return; const i = +b.dataset.i; if (i !== SEL.i) { const d = i > SEL.i ? 1 : -1; SEL.i = i; mostrarClasseSel(d); som("ui_clique", null, 0.6); } };
   $("#selEscolher").onclick = () => escolherSel();
+  // começar do zero numa classe que já tem personagem: o 1º clique pede confirmação, o 2º (em até 4 s) apaga e cria um novo
+  $("#selZero").onclick = e => {
+    const z = e.currentTarget, p = progressoSalvoDe(CLASSES_SELECAO[SEL.i]);
+    if (performance.now() - (SEL.zero || 0) > 4000) { SEL.zero = performance.now(); z.classList.add("confirmar"); z.textContent = `Clique de novo: apaga o Nv ${(p && p.nivel) || 1}`; som("ui_clique", null, 0.6); return; }
+    SEL.zero = 0; escolherSel({ novo: true });
+  };
   $("#selVoltar").onclick = () => fecharSelecao();
   // arrastar para o lado (celular): troca de classe; para cima e para baixo, a tela rola
   const palco = $("#selPalco");
