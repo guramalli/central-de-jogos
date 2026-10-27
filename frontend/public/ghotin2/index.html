@@ -3599,6 +3599,7 @@ const ESTRUT = {
 const PLANO = new Set(["ponte", "ponte_v", "pier"]);
 const SEM_ESPELHO = new Set([...Object.keys(ESTRUT), "poco", "caixotes", "cerca_canto", "cerca_poste", "cerca_portao", "torre_pedra", "ruina_arco", "ruina_pilar", "estatua", "ponte", "ponte_v", "pier", "fogueira", "braseiro"]);
 function retDe(o) {
+  if (o.retFixo) return;                                                // (o retângulo já vem pronto: as cercas do curral)
   const c = ESTRUT[o.tipo], v = varDeco(o); if (!c || !v) return;
   const e = escDeco(o), B = v.base * e, w = c.largM ? c.largM * e : B * 0.95, d = c.profM ? c.profM * e : B * c.prof;
   Object.assign(o, { ret: true, x0: o.x - w / 2, x1: o.x + w / 2, y0: o.y - 0.15, y1: o.y + d });
@@ -4023,7 +4024,7 @@ function quemPodeSumir() {
 // para o fundo), o meio entre os cantos de trás das duas faces que aparecem (a da frente e a do lado): quem passa na
 // frente de qualquer uma das duas fica na frente, quem vai para trás do telhado fica atrás
 function profObj(o) {
-  if (!GIRO || !o.ret) return profV(o.x, o.y);
+  if (!GIRO || !o.ret) return profV(o.x, o.y) - (o.dProf || 0);        // (dProf: um pouco mais à frente, como os postes das emendas do curral)
   return (profV(GIRO_S > 0 ? o.x1 : o.x0, o.y0) + profV(GIRO_S > 0 ? o.x0 : o.x1, o.y1)) / 2;
 }
 // o objeto (com o pé em ySul, a profundidade dele, e a caixa cx0..y1 na tela) cobre alguém que está atrás dele?
@@ -4092,6 +4093,94 @@ const CIDADE_LIGADA = PREDIOS_LIGADO && CIDADE_PADRAO;
 if (PRANCHA) {
   const V = VILA, L = (id, dx, dy, extra = {}) => PRED_LUGARES.push({ id, x: V.x + dx, y: V.y + dy, ...extra });
   L("casa", -16, 29); L("B_casa", -8, 25.5); L("casa_C", 0, 29); L("B_arvore", -22.5, 25.5); L("B_pedra", 5.2, 25.6);
+}
+// ---- o estábulo da saída sul: fora do portão sul, a leste da estrada do sul e entre a estrada do leste e o fim dos 15 m
+// livres da muralha (os Campos dos Cães começam depois). O galpão das baias (a arte do ChatGPT no estilo B, endireitada
+// para a vista do jogo e espelhada: Tools/deco3d/estilo/montar_estabulo.py --espelhar → predios/estabulo__f.webp, uma
+// camada só, sem entrar) fica PARALELO às casas do centro: comprido ao longo de x (8,1 × 2,3 m), com as baias abertas
+// para o sul, para o curral, e o feno na ponta oeste. O curral (CURRAL) é um retângulo nas duas direções da grade, na
+// frente das baias: módulos iguais de cerca, um poste em cada emenda, os cantos no sul e a porteira no lado norte, na
+// ponta leste do galpão. Dentro, o Cavalariço Doyun (a missão do cavalo e os exames) e 4 cavalos de enfeite (cavalo.glb,
+// ou as folhas de sprites/cavalo.json sem o 3D): parados, cada um na sua fase, e de vez em quando um dá uns passos. Não
+// são alvo, não têm colisão e não seguem ninguém (o cavalo do herói é o cavaloEnt; estes ficam em ESTABULO.cavalos)
+const ESTABULO = { x: 9.95, y: -13.63, galpao: [-4.05, 4.05, -1.17, 1.17], curral: [5.5, 16, -21.8, -14.8], npc: "Cavalariço Doyun", cavalos: [] };
+const ESTABULO_KIT = { ppm: 177.8, entra: false, luzes: [], rets: [], moveis: {}, altura: 4.0, piso: 0,
+  planta: ESTABULO.galpao, base: ESTABULO.galpao, paredes: [ESTABULO.galpao, [-5.04, -4.05, 0.09, 1.8]],   // (o galpão inteiro e os fardos de feno, a oeste)
+  camadas: { f: { arq: "estabulo__f.webp", px: 780.7, py: 969.6, w: 1581, h: 1426 } } };
+// as peças do curral (as cercas de deco_b, medidas no desenho: Tools/viking/deco_b): por unidade de esc, os pés dos postes
+// das pontas em relação à âncora (m), o cisalhamento e o recorte (px do desenho). A cerca vai ao longo de x, a cerca_v
+// ao longo de y e a porteira (espelhada) ao longo de x. MOD: o módulo (m de poste a poste); as escalas saem dele
+const CURRAL = {
+  MOD: 3.5, POSTE: 1.02, PORTEIRA: 2.0,
+  cerca: { p0: [-1.218, 0.136], p1: [2.86, 0.136], c: -0.1468, rec: [[86, 0], [461, 0], [461, 176], [440, 176], [440, 406], [132, 406], [132, 338], [86, 338]] },
+  cerca_v: { p0: [-0.093, 0.136], p1: [-0.092, 4.059], c: 0.1505, rec: [[85, 0], [446, 0], [446, 335], [425, 335], [425, 389], [102, 389], [102, 150], [85, 150]] },
+  porteira: { p0: [0.154, -0.0436], p1: [1.474, -0.044], c: -0.364, rec: [[51, 0], [227, 0], [227, 239], [51, 239]] },
+  canto: [[58, 0], [120, 0], [120, 188], [58, 188]],                 // (o canto sem os tocos de trilho, que apontavam para fora)
+};
+function montarEstabulo() {
+  const E = ESTABULO, [a, b, e, f] = E.curral, C = CURRAL, M = C.MOD, topo = E.y + E.galpao[3];
+  abrirEspaco(a - 1, e - 1.5, b + 1, topo + 0.6);                    // (as árvores e as pedras que estavam ali)
+  const por = (tipo, x, y, extra) => { const o = Object.assign(completarDecoracao({ tipo, x, y, ...extra }), { cidade: true, estabulo: true }); objetos.push(o); return o; };
+  // um módulo de cerca de (x0, y0) a M m dali, ao longo de x (cerca) ou de y (cerca_v): a âncora sai do pé do 1º poste;
+  // a colisão é o retângulo do trilho (0,4 m de espessura)
+  const modulo = (tipo, x0, y0) => {
+    const g = C[tipo], esc = M / Math.hypot(g.p1[0] - g.p0[0], g.p1[1] - g.p0[1]), lx = tipo === "cerca";
+    por(tipo, x0 - g.p0[0] * esc, y0 - g.p0[1] * esc, { esc, cisalha: g.c, recorte: g.rec, retFixo: true, ret: true,
+      x0: lx ? x0 : x0 - 0.2, x1: lx ? x0 + M : x0 + 0.2, y0: lx ? y0 - 0.2 : y0, y1: lx ? y0 + 0.2 : y0 + M });
+  };
+  const poste = (x, y, canto) => por(canto ? "cerca_canto" : "cerca_poste", x, y, { esc: C.POSTE, dProf: 1.45, varDiag: 0, ...(canto ? { recorte: C.canto } : {}) });
+  // o sul (3 módulos ao longo de x), o oeste e o leste (2 módulos ao longo de y, até a frente do galpão)
+  for (let k = 0; k < 3; k++) modulo("cerca", a + k * M, e);
+  for (let k = 0; k < 2; k++) { modulo("cerca_v", a, e + k * M); modulo("cerca_v", b, e + k * M); }
+  poste(a, e, true); poste(b, e, true);                              // os cantos do sul
+  poste(a + M, e); poste(a + 2 * M, e); poste(a, e + M); poste(b, e + M); poste(a, f);   // as emendas e o fim do oeste, no galpão
+  // a porteira no lado norte, entre a ponta leste do galpão e o canto nordeste (o poste dela faz o canto); aberta
+  const gp = C.porteira, eg = C.PORTEIRA / (gp.p1[0] - gp.p0[0]);
+  por("cerca_portao", b - C.PORTEIRA - gp.p0[0] * eg, f - gp.p0[1] * eg, { esc: eg, cisalha: gp.c, recorte: gp.rec, espForcar: true });
+  por("barril", a + 0.7, e + 0.9); por("barril", a + 1.4, e + 0.7); por("caixote", b - 0.9, e + 0.9);
+  // o Cavalariço, perto da porteira, por dentro
+  const n = objetos.find(o => o.tipo === "pessoa" && o.nome === E.npc);
+  if (n) { n.x = b - 3.2; n.y = f - 2.0; }
+  // os cavalos: aparências e lugares variados, cada um com a sua fase
+  E.cavalos.length = 0;
+  for (const [x, y, dir, ap] of [[8.3, -16.9, 5, "iniciante"], [11.3, -19.4, 1, "blindado"], [13.2, -16.6, 4, "militar"], [7.4, -20.1, 0, "iniciante"]])
+    E.cavalos.push({ x, y, casa: [x, y], dir, aparencia: ap, anim: "parado", t: Math.random() * 3, espera: 4 + Math.random() * 14, alvo: null, nome: "Cavalo do estábulo", estabulo: true });
+  // os bandos que nasciam perto do curral vão para longe dele (para o sul)
+  if (typeof SPAWNS !== "undefined" && SPAWNS) {
+    const d = (x, y) => Math.hypot(Math.max(a - x, 0, x - b), Math.max(e - 1.2 - y, 0, y - topo));
+    let mudou = false;
+    for (const s of SPAWNS) { const m = 1 + (s.r || 0); if (d(s.x, s.y) >= m) continue; for (let k = 0; k < 200 && d(s.x, s.y) < m; k++) s.y -= 0.5; mudou = true; }
+    if (mudou) remontarSpawns();
+  }
+}
+// os cavalos do estábulo: só perto da câmera; de vez em quando um anda até um ponto livre do curral e para de novo
+function passoEstabulo(dt) {
+  const E = ESTABULO; if (!E.cavalos.length || Math.hypot(cam.x - E.x, cam.y - E.y) > 45) return;
+  const [a, b, e, f] = E.curral;
+  for (const h of E.cavalos) {
+    if (h.alvo) {
+      const dx = h.alvo[0] - h.x, dy = h.alvo[1] - h.y, d = Math.hypot(dx, dy), v = CAVALO.passo;
+      if (d < 0.05) { h.alvo = null; h.anim = "parado"; h.t = Math.random() * 3; h.espera = 6 + Math.random() * 16; continue; }
+      const p = Math.min(d, v * dt); h.x += dx / d * p; h.y += dy / d * p; h.dir = dirDe(dx, dy); h.t += dt;
+      continue;
+    }
+    h.t += dt; h.espera -= dt;
+    if (h.espera > 0) continue;
+    // um ponto a até 2,5 m da casa, dentro do curral, longe dos outros cavalos e do Cavalariço
+    const n = objetos.find(o => o.nome === E.npc);
+    for (let k = 0; k < 8; k++) {
+      const ang = Math.random() * 6.283, r = 0.8 + Math.random() * 1.7, x = h.casa[0] + Math.cos(ang) * r, y = h.casa[1] + Math.sin(ang) * r;
+      if (x < a + 1 || x > b - 0.9 || y < e + 1 || y > f - 1) continue;
+      if (E.cavalos.some(o => o !== h && Math.hypot(o.x - x, o.y - y) < 2.4) || (n && Math.hypot(n.x - x, n.y - y) < 1.8)) continue;
+      h.alvo = [x, y]; h.anim = "andando"; h.t = 0; break;
+    }
+    if (!h.alvo) h.espera = 3 + Math.random() * 6;
+  }
+}
+function desenharCavaloEstabulo(h) {
+  const [sx, sy] = tela(h.x - cam.x, h.y - cam.y), X = W / 2 + sx, Y = H / 2 + sy, z = zoom;
+  sombraHeroi(X, Y, z);
+  if (!desenharInst3d(h, X, Y, z)) desenharCavaloSprite("cavalo_" + h.aparencia, { cavalo: h.anim, tc: h.t }, X, Y, z, h.dir, true);
 }
 function foraCidade(x, y) {                     // (a estrada e o treino de fora da muralha: chão limpo)
   const c = CIDADE; if (!c || !c.fora) return false;
@@ -4200,7 +4289,10 @@ function montarCidade() {
   Object.assign(NPC_TINTA, { "Alquimista Runa": [0.048, 0.195, 0.107], "Armeiro Bjorn": null, "Feirante Hilda": null });
   // o Sumo-Sacerdote do Templo do Céu: o modelo do feiticeiro, a túnica tingida de ocre (o dourado do telhado do templo)
   NPC_3D["Sumo-Sacerdote Haneul"] = "feiticeiro"; NPC_TINTA["Sumo-Sacerdote Haneul"] = [0.584, 0.305, 0.048];
+  // o Cavalariço do estábulo: o modelo da Alquimista (ninja) com a roupa tingida de couro (marrom do ocre)
+  NPC_3D["Cavalariço Doyun"] = "ninja"; NPC_TINTA["Cavalariço Doyun"] = [0.30, 0.13, 0.035];
   for (const o of c.objetos || []) objetos.push(Object.assign(completarDecoracao(o), { cidade: true }));
+  montarEstabulo();                                // (o estábulo da saída sul: o curral, o Cavalariço e os cavalos)
   // os bandos a menos de 9 m (+ o espalhamento) da cidade vão para fora, para longe do centro dela
   if (typeof SPAWNS !== "undefined" && SPAWNS) {
     const [a, b, e, f] = c.caixa, mx = (a + b) / 2, my = (e + f) / 2, dist = (x, y) => Math.hypot(Math.max(a - x, 0, x - b), Math.max(e - y, 0, y - f));
@@ -4220,6 +4312,7 @@ async function carregarPredios() {
   if (!PREDIOS_LIGADO) return;
   try { KIT_PREDIOS = await (await fetch("predios.json")).json(); } catch (e) { KIT_PREDIOS = null; }
   if (CIDADE_LIGADA && KIT_PREDIOS) try { CIDADE = await (await fetch("cidade.json")).json(); for (const l of CIDADE.lugares) PRED_LUGARES.push({ id: l.id, x: l.x, y: l.y }); } catch (e) { CIDADE = null; }
+  if (CIDADE && KIT_PREDIOS) { KIT_PREDIOS.estabulo = ESTABULO_KIT; PRED_LUGARES.push({ id: "estabulo", x: ESTABULO.x, y: ESTABULO.y }); }   // (o estábulo da saída sul)
   if (PRANCHA && KIT_PREDIOS) try {                // (as peças B prontas viram construções de uma camada só, pivô no pé)
     const e = await (await fetch("estilo.json")).json(), PL = { casa: [0.5, 5.0, 0.5, 5.0], arvore: [-0.35, 0.35, -0.35, 0.35], pedra: [-0.8, 0.8, -0.5, 0.6] };
     for (const [n, v] of Object.entries(e)) KIT_PREDIOS["B_" + n] = { ppm: v.ppm, camadas: { f: v }, planta: PL[n], base: PL[n], paredes: [PL[n]], luzes: [], rets: [], moveis: {} };
@@ -4563,6 +4656,7 @@ function visDeco(o, v) {
   if (o.caverna) mods = ["caverna", ...(mods || [])];                       // (as paredes das cavernas: as rochas escuras do estilo B)
   for (const m of mods || []) { const e = l.filter(x => x.modelo === m && DECO_IMG[x.arq]); if (e.length) { c = e; break; } }
   if (!c) c = l.filter(x => DECO_IMG[x.arq]);
+  if (o.varDiag !== undefined && c[o.varDiag]) c = [c[o.varDiag]];        // (uma variação fixa: os postes do curral, todos iguais)
   const d = c.length ? c[Math.floor(hash(Math.round(o.x * 10), Math.round(o.y * 10), 57) * c.length) % c.length] : v;
   o._vd = d; o._vdDe = v;
   return d;
@@ -4607,11 +4701,17 @@ function desenharDecoSprite(o, v0, X, Y, s, t) {
   const im = o.caverna && v.pasta !== "deco_b/" ? imagemEscura(v.arq) : imagemEstacao(v.arq, o.tipo, o.neve || (o.monte && o.tipo === "pedra") ? 3 : 0), k = kDeco(o, v0, v, s), w = v.w * k, h = v.h * k;
   if (!diag || !v.sombra) sombra(X, Y, Math.max(0.3, v0.base * 0.42) * s * escDeco(o));
   const balanca = o.tipo === "arvore" || o.tipo === "pinheiro" ? 0.05 : o.tipo === "arbusto" ? 0.09 : 0;
-  const espelho = (!diag || v.livre) && (o.esp !== undefined ? o.esp : !SEM_ESPELHO.has(o.tipo) && hash(Math.round(o.x * 10), Math.round(o.y * 10), 32) < 0.5);   // (na diagonal, espelhar trocaria o lado)
+  const espelho = o.espForcar || ((!diag || v.livre) && (o.esp !== undefined ? o.esp : !SEM_ESPELHO.has(o.tipo) && hash(Math.round(o.x * 10), Math.round(o.y * 10), 32) < 0.5));   // (na diagonal, espelhar trocaria o lado; espForcar: a porteira do curral, que vira para o outro eixo)
   cx.save();
   if (balanca) { const sh = vento(o.x, o.y, t) * balanca; cx.transform(1, 0, -sh, 1, sh * Y, 0); }   // enverga a partir do pé
   if (o.tipo === "boneco") { cx.translate(X, Y); cx.rotate((o.inc || 0) * 0.017); cx.translate(-X, -Y); }   // o boneco tomba e volta quando apanha
+  // (o curral do estábulo: as cercas do estilo B foram pintadas mais achatadas que o chão do jogo; o cisalhamento em pé,
+  // y' = y + c·(x − X), deita os trilhos na direção da grade sem entortar os postes, e o recorte tira os postes das
+  // pontas, que o poste da emenda cobre: CURRAL)
+  const ehB = v.pasta === "deco_b/";
+  if (ehB && o.cisalha) cx.transform(1, o.cisalha, 0, 1, 0, -o.cisalha * X);
   if (espelho) { cx.translate(X, 0); cx.scale(-1, 1); cx.translate(-X, 0); }
+  if (ehB && o.recorte) { cx.beginPath(); o.recorte.forEach(([u, q], i) => cx[i ? "lineTo" : "moveTo"](X - (v.px - u) * k, Y - (v.py - q) * k)); cx.closePath(); cx.clip(); }
   cx.drawImage(im, X - v.px * k, Y - v.py * k, w, h);
   cx.restore();
   if (ESTRUT[o.tipo]) efeitosEstrutura(o, v, X - v.px * k, Y - v.py * k, w, h, t);
@@ -6646,6 +6746,11 @@ function baseIlha(mp = MAPAS.vila1) {
     if (pesoVale(x, y) > 0.5 && !estrada(x, y)) return [150, 104, 70];
     if (lago(x, y)) return [47, 109, 133];
     { const mc = miniCidade(x, y); if (mc) return mc; }
+    if (v1 && CIDADE) {                             // (o estábulo: o telhado jade do galpão e o chão de terra do curral)
+      const E = ESTABULO, G = E.galpao, C = E.curral;
+      if (x > E.x + G[0] && x < E.x + G[1] && y > E.y + G[2] && y < E.y + G[3]) return [62, 122, 92];
+      if (x > C[0] && x < C[1] && y > C[2] && y < C[3]) return Math.min(x - C[0], C[1] - x, y - C[2], C[3] - y) < 0.35 ? [138, 96, 52] : [176, 150, 104];
+    }
     if (praca(x, y)) return [150, 140, 122];
     if (estrada(x, y)) return [176, 150, 104];
     if (floresta(x, y)) return [52, 92, 40];
@@ -7176,6 +7281,13 @@ const NPCS = [
     falas: ["Guardo o que não cabe na sua bolsa. E o que eu guardo, todos os seus heróis podem buscar."] },
   { nome: "Guarda Sigrid", dx: -3.6, dy: -8.6, cores: { roupa: "#7a2a22", calca: "#3a2a1c", pele: "#e8c0a0", cabelo: "#d0a040", elmo: "#9aa0aa" }, lanca: true,
     falas: ["Bem-vindo à vila. Armas na bainha perto do poço!", "Os goblins da mina leste andam ousados. Fique atento na estrada.", "A torre do posto de guarda vê até o lago."] },
+  // o Cavalariço do estábulo da saída sul (o Stable Boy do Metin2): a missão do cavalo (MISSOES.cavalo) e os exames do
+  // cavalo nos níveis 10 e 20 (cavaloNaConversa). Só com a cidade; o lugar vem de montarEstabulo
+  { nome: "Cavalariço Doyun", dx: 14, dy: -23, soCidade: true, missao: "cavalo",
+    cores: { roupa: "#8a5a2a", calca: "#3a2a1c", pele: "#e0b896", cabelo: "#2a1e16", lenco: "#c9963e" },
+    falas: ["Os cavalos da vila comem melhor que muito soldado: feno fresco todo dia e água limpa no cocho.",
+            "Um cavalo bem tratado cresce galopando. No nível 11 e no 21 ele ganha armadura.",
+            "Quando o seu cavalo parar de crescer, no nível 10 e no 20, traga-o aqui para o exame."] },
   // o Sumo-Sacerdote do Templo do Céu (o palácio no fim do eixo da cidade): fica no salão, diante do estrado, e dá a
   // missão principal (MISSOES.chama). Só na cidade (?cidade, o padrão da vista diagonal); modelo do feiticeiro tingido
   { nome: "Sumo-Sacerdote Haneul", dx: 0, dy: 20.95, soCidade: true, cajado: true, missao: "chama",
@@ -7233,7 +7345,7 @@ function desenharNpc() {
   }
   $("#npcMais").hidden = n.falas.length < 2;
   missaoNaConversa(o);                              // (a missão: a fala dela e o quadro com o objetivo e o botão)
-  cavaloNaConversa(o);                              // (a Hilda: o exame do cavalo nos níveis 10 e 20)
+  cavaloNaConversa(o);                              // (o Cavalariço: o exame do cavalo nos níveis 10 e 20)
 }
 // um morador desenhado: botas, calça, túnica, braços, cabeça com cabelo (barba, lenço, capuz ou elmo), respirando;
 // o ancião com cajado, a guarda com lança
@@ -7275,11 +7387,11 @@ function placaNpc(X, y, nome) {
 // Logs/Cavalo (o modelo, as animações e as medidas) e Logs/Pesquisa/METIN2_CAVALO.md (as regras). O modelo é o cavalo CC0
 // do Quaternius (3d/cavalo.glb: as malhas de cada aparência e o nó "Assento", onde o herói vai preso) com as animações
 // dele; os clipes montados de cada classe vêm de 3d/montados.json (CavaloTeste.cs: o tronco e os braços são os da
-// animação da classe, só o quadril, as pernas e as mãos nas rédeas mudam). A missão da Feirante Hilda (nível 15) dá o
+// animação da classe, só o quadril, as pernas e as mãos nas rédeas mudam). A missão do Cavalariço Doyun, no estábulo da saída sul (nível 15), dá o
 // Retrato do Cavalo (chama e manda embora); Ctrl+G (ou a ação "Montar" da ficha e da barra) monta e desmonta.
 // Níveis 1–21: Iniciante (1–10, só anda e galopa), Blindado (11–20, ataca montado), Militar (21); a aparência muda no 11
 // e no 21. O cavalo ganha exp galopando (1 a cada 10 m) e, do 11 em diante, também por criatura derrubada montado; no
-// nível 10 e no 20 ele para até o exame com a Hilda (nível do herói e Yang). Montado: a velocidade do cavalo, o ataque
+// nível 10 e no 20 ele para até o exame com o Cavalariço (nível do herói e Yang). Montado: a velocidade do cavalo, o ataque
 // básico único e repetido (sem o combo a pé) e as skills da classe travadas, como no Metin2.
 const CAVALO = {
   galope: 4.28, passo: 1.105, empinar: 1.6,       // m/s em que os cascos não escorregam (Logs/Cavalo/velocidades.json); s
@@ -7308,8 +7420,8 @@ function lugarCavalo(lado) {
 }
 function chamarCavalo(sim = !cavaloEnt.ativo) {
   const c = cavaloDe();
-  if (!c.tem) { avisoMontado("Você ainda não tem um cavalo: a Feirante Hilda (Vila 1) tem a missão, a partir do nível 15"); return false; }
-  if (!sim) { if (viking.montado) desmontar(); cavaloEnt.ativo = false; avisar("O cavalo voltou para a estrebaria"); return true; }
+  if (!c.tem) { avisoMontado("Você ainda não tem um cavalo: o Cavalariço Doyun, no estábulo da saída sul da Vila 1, tem a missão, a partir do nível 15"); return false; }
+  if (!sim) { if (viking.montado) desmontar(); cavaloEnt.ativo = false; avisar("O cavalo voltou para o estábulo"); return true; }
   [cavaloEnt.x, cavaloEnt.y] = lugarCavalo(false);
   Object.assign(cavaloEnt, { ativo: true, dir: viking.dir, anim: "empinar", t: 0, tEmp: 0 });
   pedirModelo3d("cavalo", 0); carregarMontados3d();
@@ -7318,7 +7430,7 @@ function chamarCavalo(sim = !cavaloEnt.ativo) {
 }
 function montar() {
   const c = cavaloDe(), v = viking;
-  if (!c.tem) { avisoMontado("Você ainda não tem um cavalo: a Feirante Hilda (Vila 1) tem a missão, a partir do nível 15"); return; }
+  if (!c.tem) { avisoMontado("Você ainda não tem um cavalo: o Cavalariço Doyun, no estábulo da saída sul da Vila 1, tem a missão, a partir do nível 15"); return; }
   if (v.caido) return;
   if (!cavaloEnt.ativo) chamarCavalo(true);
   v.montado = true; v.acao = null; v.fila = null; limparPendentes(v); v.montT = 0;
@@ -7342,11 +7454,11 @@ function ganharExpCavalo(n) {
   c.exp = (c.exp || 0) + n;
   if (c.exp >= expCavaloProx(c.nivel)) {
     c.exp = 0; c.nivel++; som("nivel", null, 0.7);
-    avisarLongo(`O cavalo subiu para o nível ${c.nivel}!` + (CAVALO.exame[c.nivel] ? " Para passar de faixa, faça o exame com a Feirante Hilda." : ""));
+    avisarLongo(`O cavalo subiu para o nível ${c.nivel}!` + (CAVALO.exame[c.nivel] ? " Para passar de faixa, faça o exame com o Cavalariço Doyun, no estábulo da saída sul." : ""));
   }
   salvarProgresso(); atualizarFichaCavalo();
 }
-// o exame (nível 10 → 11 e 20 → 21): o nível do herói e o Yang, com a Hilda
+// o exame (nível 10 → 11 e 20 → 21): o nível do herói e o Yang, com o Cavalariço
 function exameCavalo() {
   const c = cavaloDe(), ex = CAVALO.exame[c.nivel]; if (!c.tem || !ex) return false;
   if (prog.nivel < ex.heroi) { avisar(`O exame pede o herói no nível ${ex.heroi}`); som("ui_negar"); return false; }
@@ -7358,7 +7470,7 @@ function exameCavalo() {
 }
 function cavaloNaConversa(o) {
   const c = cavaloDe(), ex = CAVALO.exame[c.nivel];
-  if (!o || o.nome !== "Feirante Hilda" || !c.tem || !ex) return;
+  if (!o || o.nome !== ESTABULO.npc || !c.tem || !ex) return;
   const quadro = document.createElement("div"); quadro.className = "item-loja";
   const sp = document.createElement("span"); sp.textContent = "◆"; sp.style.cssText = "color:#ffd23c;font-size:20px;text-align:center";
   const tx = document.createElement("span"); tx.innerHTML = `<b>Exame do cavalo</b><small></small>`;
@@ -7378,8 +7490,8 @@ function adminCavalo(nv) {
 function atualizarFichaCavalo() {
   const el = $("#fCavalo"); if (!el) return;
   const c = cavaloDe();
-  el.textContent = !c.tem ? "Sem cavalo: a Feirante Hilda, na feira da Vila 1, tem uma missão a partir do nível 15."
-    : `${nomeCavalo(c.nivel)}, nível ${c.nivel}` + (c.nivel >= 21 ? "" : CAVALO.exame[c.nivel] ? ` (pronto para o exame com a Hilda)` : ` (exp ${c.exp || 0}/${expCavaloProx(c.nivel)})`) +
+  el.textContent = !c.tem ? "Sem cavalo: o Cavalariço Doyun, no estábulo da saída sul da Vila 1, tem uma missão a partir do nível 15."
+    : `${nomeCavalo(c.nivel)}, nível ${c.nivel}` + (c.nivel >= 21 ? "" : CAVALO.exame[c.nivel] ? ` (pronto para o exame com o Cavalariço)` : ` (exp ${c.exp || 0}/${expCavaloProx(c.nivel)})`) +
       ` · ${velMontado(c.nivel).toFixed(1).replace(".", ",")} m/s · ${c.nivel >= 11 ? "ataca montado" : "não ataca montado (só do nível 11)"}` + (viking.montado ? " · montado" : "");
 }
 // o que tocam o cavalo e o herói montado neste quadro: os dois do galope duram 0,6 s e andam juntos (o quique em fase)
@@ -7526,17 +7638,17 @@ const MISSOES = {
         premio: { exp: 9000, yang: 2500, itens: [["bencao", 1], ["peca:elmo:1", 1]] } },
     ],
   },
-  // o cavalo de montaria (o Cavalariço do Metin2, nível 25; aqui a Feirante Hilda da Vila 1, nível 15: Logs/Pesquisa/METIN2_CAVALO.md)
+  // o cavalo de montaria (o Cavalariço do Metin2, nível 25; aqui o Cavalariço Doyun, no estábulo da saída sul da Vila 1, nível 15: Logs/Pesquisa/METIN2_CAVALO.md)
   cavalo: {
-    nome: "O Cavalo da Vila", npc: "Feirante Hilda", aceitar: "Aceitar a missão", nivelMin: 15, tipo: "Missão do cavalo (a partir do nível 15)", onde: "na feira da Vila 1",
-    oferta: "Herói, meu irmão cuida dos cavalos da vila e precisa de alguém de confiança. Traga couro de javali para as selas e mostre que aguenta o Juramento Branco: aí um dos cavalos é seu. Montado, o vale fica pequeno.",
+    nome: "O Cavalo da Vila", npc: "Cavalariço Doyun", aceitar: "Aceitar a missão", nivelMin: 15, tipo: "Missão do cavalo (a partir do nível 15)", onde: "no estábulo da saída sul da Vila 1",
+    oferta: "Herói, eu cuido dos cavalos da vila e preciso de alguém de confiança. Traga couro de javali para as selas e mostre que aguenta o Juramento Branco: aí um destes cavalos é seu. Montado, o vale fica pequeno.",
     fim: "Trate bem desse cavalo: galopando ele cresce, e no nível 11 e no 21 ganha armadura. Quando ele parar de crescer (no 10 e no 20), volte aqui para o exame.",
     etapas: [
       { matar: ["Javali", "Javali Selvagem", "Javali Rubro"], qtd: 10, alvo: "Derrote 10 javalis (o couro é para as selas)",
         fala: "Os javalis do vale têm o couro mais grosso. Dez bastam para as selas novas.", premio: { exp: 2000, yang: 400 } },
       { matar: ["Soldado do Juramento Branco"], qtd: 10, alvo: "O exame de montaria: derrote 10 Soldados do Juramento Branco, perto do portal",
         fala: "Agora o exame: quem não encara o Juramento Branco não segura um cavalo assustado. Dez soldados, perto do portal.", premio: { exp: 4000 } },
-      { falar: "Feirante Hilda", entregar: "Pagar 4.000 Yang", yang: 4000, alvo: "Volte à Feirante Hilda e pague 4.000 Yang pelo cavalo",
+      { falar: "Cavalariço Doyun", entregar: "Pagar 4.000 Yang", yang: 4000, alvo: "Volte ao Cavalariço Doyun, no estábulo, e pague 4.000 Yang pelo cavalo",
         fala: "Passou no exame! O cavalo custa 4.000 Yang: a sela, a manta e o feno do primeiro mês.",
         premio: { itens: [["retrato_cavalo", 1]] },
         depois: () => { const c = cavaloDe(); c.tem = true; c.nivel = Math.max(1, c.nivel || 1); c.exp = 0; salvarProgresso(); atualizarFichaCavalo();
@@ -7545,7 +7657,7 @@ const MISSOES = {
   },
 };
 // o cavalo de montaria (liberado pelo usuário em 27/10/2026). Com false, ele só existe com o admin ligado ou com
-// ?cavalo=1: a missão da Hilda não aparece e a ação Montar some (sem o Retrato, ninguém chega a ter cavalo)
+// ?cavalo=1: a missão do Cavalariço não aparece e a ação Montar some (sem o Retrato, ninguém chega a ter cavalo)
 const CAVALO_LIBERADO = true || ADMIN || new URLSearchParams(location.search).has("cavalo");
 if (!CAVALO_LIBERADO) delete MISSOES.cavalo;
 function estadoMissao(id) { const m = prog.missoes || (prog.missoes = {}); return m[id] || (m[id] = { etapa: -1, n: 0 }); }
@@ -7575,7 +7687,7 @@ function pagarMissao(p) {
 }
 function cumprirEtapa(id) {
   const M = MISSOES[id], s = estadoMissao(id), e = M.etapas[s.etapa]; if (!e) return;
-  if (e.yang) {                                     // (a etapa que se paga: o cavalo da Hilda)
+  if (e.yang) {                                     // (a etapa que se paga: o cavalo do Cavalariço)
     if (prog.yang < e.yang) { avisar(`Faltam ${(e.yang - prog.yang).toLocaleString("pt-BR")} Yang`); som("ui_negar"); return; }
     prog.yang -= e.yang;
   }
@@ -12678,6 +12790,7 @@ function passo(dt) {
   for (const l of criaturas) if (l.morto || l.mapa === undefined || l.mapa === mapaHeroi) passoCriatura(l, dt);
   passoGruposV1(dt);                                                   // (os grupos do Metin2 da Vila 1: corpos, órfãos e o renascer)
   passoCavalo(dt);                                                     // (o cavalo: montado, solto atrás do herói ou empinando)
+  passoEstabulo(dt);                                                   // (os cavalos de enfeite do estábulo)
   passoProgresso(dt);
   passoPassagens(dt);
   jornadaPasso(dt);
@@ -13291,6 +13404,7 @@ function desenhar(t) {
   const lista = objetos.filter(o => !PLANO.has(o.tipo) && naTela(o)).map(o => ({ y: profObj(o), f: () => objeto(o) }));
   lista.push({ y: profV(viking.x, viking.y), f: desenharViking });
   if (cavaloEnt.ativo && !viking.montado) lista.push({ y: profV(cavaloEnt.x, cavaloEnt.y), f: desenharCavaloSolto });
+  for (const h of ESTABULO.cavalos) if (Math.abs(h.x - cam.x) < 40 && Math.abs(h.y - cam.y) < 40) lista.push({ y: profV(h.x, h.y), f: () => desenharCavaloEstabulo(h) });
   predLista(lista, t);                              // as construções em camadas (o kit modular: entra-se nelas)
   vegLista(lista, t);                               // o mato alto perto de quem anda (na frente das pernas)
   portaisLista(lista, t);                           // os portais entre os mapas (o portão, o redemoinho e o nome do destino)
@@ -14068,6 +14182,13 @@ function pedidos3d(agora) {
     if (!naTela(o.x, o.y, m, 1)) continue;
     const [anim, t, ang] = animNpc3d(o, nome, m, agora);
     l.push({ dono: o, m, anim, t, info: m.info[anim], ang, esc: 1, emis: [0, 0, 0], perto: longe(o.x, o.y) < 6, roupa: NPC_TINTA[o.nome], semArma: o.nome in NPC_TINTA });
+  }
+  // os cavalos do estábulo (enfeite): só os que aparecem na tela, sem animar a cada quadro (perto: false)
+  for (const h of ESTABULO.cavalos) {
+    const mc = p.modelos.cavalo;
+    if (!mc || !mc.ok) { if (!mc && Math.hypot(h.x - cam.x, h.y - cam.y) < 30) pedirModelo3d("cavalo", longe(h.x, h.y)); continue; }
+    if (!naTela(h.x, h.y, mc, 1)) continue;
+    l.push({ dono: h, m: mc, anim: h.anim, t: h.t, info: mc.info[h.anim], ang: angDir3d(h.dir), esc: 1, emis: [0, 0, 0], aparencia: h.aparencia });
   }
   return l;
 }
@@ -15218,7 +15339,7 @@ const DECO_3D = {
   entrada: ["caverna", "@caverna"], metin: ["metin", "@metin"], lanterna: ["lanterna"], bambu: ["bambu"],
 };
 // os moradores desenhados por código ganham um modelo de personagem (com a tinta da roupa deles)
-const NPC_MUNDO = { "Alquimista Runa": ["feiticeiro", "#c9a8ff"], "Armeiro Bjorn": ["ferreiro", "#b8c4d8"], "Feirante Hilda": ["armazem", "#ffb38a"] };
+const NPC_MUNDO = { "Alquimista Runa": ["feiticeiro", "#c9a8ff"], "Armeiro Bjorn": ["ferreiro", "#b8c4d8"], "Feirante Hilda": ["armazem", "#ffb38a"], "Cavalariço Doyun": ["armazem", "#d8b070"] };
 // o tamanho de cada modelo no mundo: alt = altura em m (vezes o "Tamanho" do objeto), larg = a largura da base do
 // desenho (construções: o modelo ocupa o retângulo de colisão), comp = comprimento em m (muro, ponte)
 const MEDIDA_3D = {
@@ -19730,7 +19851,7 @@ function rotulos() {
   return [["Vale do Viking", -14, 50, 1], ["Vila", VILA.x, VILA.y + 15, 2], ["Campo de Treino", PRACA.x, PRACA.y - 7.5, 3], ["Lago", LAGO.x, LAGO.y + LAGO.r + 3.2, 3],
           ["Acampamento do Juramento Branco · 13–15", ACAMP.x, ACAMP.y - 12.5, 2], ["Ruínas da Cripta", RUINAS.x - 2, RUINAS.y - 15, 2],
           // (as faixas dos grupos do Metin2, faixaV1)
-          ["Campos dos Cães · 1–4", 2, -24, 2], ["Campos dos Javalis · 4–7", -22, -55, 2], ["Matas dos Ursos · 7–14", -22, -80, 2],
+          ["Campos dos Cães · 1–4", 2, -24, 2], ["Estábulo", ESTABULO.x - 5, ESTABULO.y - 6.5, 3], ["Campos dos Javalis · 4–7", -22, -55, 2], ["Matas dos Ursos · 7–14", -22, -80, 2],
           ["Vale Vermelho", VALE_X + 24, 34, 1], ["Monumento", MONUMENTO.x, MONUMENTO.y + 9, 3], ["Montanha Gelada", MONTE_X + 24, 27, 1],
           // (a Vila Hahoe: aparece quando o herói está nela)
           ["Vila Hahoe", HV.x, HV.y + 13, 1], ...ZONAS_H.map(z => [z.nome, z.x, z.y + (z.r > 6 ? 7 : 3), 2]),
