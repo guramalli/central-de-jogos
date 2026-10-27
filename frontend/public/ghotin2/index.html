@@ -1078,13 +1078,13 @@
           <path class="corpo" d="M84 29h12l1 8q15 1 22 7q5 6 6 18l8 42q3 8-2 13q-5 2-7-5l-10-42-3 28-2 52q-9 4-17 0l-1-46h-2l-1 46q-8 4-17 0l-2-52-3-28-10 42q-2 7-7 5q-5-5-2-13l8-42q1-12 6-18q7-6 22-7z"/>
         </g>
       </svg>
-      <div class="eq" data-c="0" data-r="0" data-fantasma="brinco" title="Brincos (em breve)" aria-label="Brincos (em breve)"></div>
+      <div class="eq peca-eq" data-peca="brinco" data-c="0" data-r="0"></div>
       <div class="eq peca-eq" data-peca="elmo" data-c="2" data-r="0"></div>
-      <div class="eq" data-c="4" data-r="0" data-fantasma="colar" title="Colar (em breve)" aria-label="Colar (em breve)"></div>
+      <div class="eq peca-eq" data-peca="colar" data-c="4" data-r="0"></div>
       <div class="eq arma-eq" id="eqArma" data-c="0" data-r="1" data-h="2" title="Arma: clique direito tira e põe na bolsa"></div>
       <div class="eq peca-eq" data-peca="armadura" data-c="2" data-r="1"></div>
       <div class="eq peca-eq" data-peca="escudo" data-c="4" data-r="1"></div>
-      <div class="eq" data-c="4" data-r="2" data-fantasma="pulso" title="Bracelete (em breve)" aria-label="Bracelete (em breve)"></div>
+      <div class="eq peca-eq" data-peca="pulso" data-c="4" data-r="2"></div>
       <div class="eq peca-eq" data-peca="botas" data-c="2" data-r="3"></div>
     </div>
   </div>
@@ -1143,6 +1143,8 @@
     <h3>Ações</h3>
     <div class="fx-acoes" id="fAcoes"></div>
     <p class="nota">Arraste uma ação até a barra de atalhos (e para fora dela, para tirar). Um clique usa.</p>
+    <h3>Cavalo</h3>
+    <p class="nota" id="fCavalo"></p>
     <h3>Emoções</h3>
     <div class="fx-passivas" id="fEmocoes"></div>
   </section>
@@ -1341,6 +1343,9 @@
     <p>"Views From Atop the Jade Kings Throne" e "RPG - Misty Mountains" — Hitctrl (opengameart.org), licença CC BY 3.0 (creativecommons.org/licenses/by/3.0/).</p>
     <p>"Dark Myst Mystery Asian Oriental Sad Mood" — szegvari (freesound.org), CC0.</p>
   </details>
+  <details class="nota creditos-musica"><summary>Créditos da arte 3D</summary>
+    <p>Cavalo de montaria: "Horse" (Animated Animal Pack) — Quaternius (quaternius.com, poly.pizza), CC0. As armaduras e a sela foram feitas para o Ghotin2.</p>
+  </details>
 </aside>
 
 <aside class="janelas opcoes jornada" id="jornada" hidden aria-label="Estatísticas da jornada">
@@ -1409,6 +1414,8 @@
   <p class="nota">O item vai para a bolsa do personagem atual (cada classe tem a sua: troque com T antes, se quiser ver a arma de outra classe na mão). Armas +7, +8 e +9 brilham.</p>
   <h3>Personagem de teste</h3>
   <label class="adm-teste"><input type="checkbox" id="admSemTrava"> Usa armas e peças de qualquer nível (só este personagem)</label>
+  <h3>Cavalo</h3>
+  <div class="adm-linha"><span class="nota">Dá o Retrato e o cavalo:</span><button type="button" id="admCav1">nv 1</button><button type="button" id="admCav11">nv 11</button><button type="button" id="admCav21">nv 21</button></div>
 </aside>
 
 <!-- a escolha de classe (primeira vez, ?selecao=1 ou "Novo personagem" nas opções): ver abrirSelecao() -->
@@ -5074,6 +5081,11 @@ const corteCombo = a => (classe === "ninja" ? CANCELA_NINJA : CANCELA)[a];
 const fatorNinja = () => classe !== "ninja" || triplo.restam > 0 || vortice.ativo ? 1 : DANO_NINJA * (viking.acao === "golpe5" ? DANO_NINJA_5 : 1);
 function atacar(estilo) {
   if (viking.caido) return;
+  if (viking.montado) {
+    // o Cavalo de Iniciante não ataca; do Blindado em diante, o golpe básico único, repetido (sem o combo a pé)
+    if (cavaloDe().nivel < 11) { avisoMontado("O Cavalo de Iniciante não ataca: o ataque montado começa no cavalo nível 11"); return; }
+    if (classe !== "arqueiro" && classe !== "feiticeiro") { if (!exigeAlvo()) return; estilo = 1; }
+  }
   if (!estilo && !exigeAlvo()) return;
   if (classe === "arqueiro") { atirar(); return; }
   if (classe === "feiticeiro") { conjurar(); return; }
@@ -5452,6 +5464,11 @@ const SKILLS_NINJA = [
 ];
 const SKILLS_GUERREIRO = SKILLS_VIKING;            // o guerreiro do machado usa as skills do viking
 let SKILLS = SKILLS_VIKING;
+// montado, as skills da classe ficam travadas, como no Metin2 (é preciso desmontar): um aviso e nada acontece
+for (const l of [SKILLS_VIKING, SKILLS_ARQUEIRO, SKILLS_FEITICEIRO, SKILLS_NINJA]) for (const sk of l) {
+  const usar = sk.usar;
+  sk.usar = (...a) => { if (viking.montado) { avisoMontado("Montado, as habilidades ficam travadas: desmonte com Ctrl+G"); return; } return usar(...a); };
+}
 function iconeTriplo(g) {
   iconeFundo(g, "#5a4a1a", "#141005");
   g.lineCap = "round";
@@ -5988,9 +6005,10 @@ function recalcularStatus() {
   status.vidaMax = Math.round(300 + a.vit * 40 + (n - 1) * 30) + eq.vida + (b.vida || 0) + (j.vitalidade || 0);
   status.manaMax = Math.round(100 + a.int * 20 + (n - 1) * 12) + eq.mana + (b.mana || 0) + (j.magia || 0);
   status.velEquip = 1 + (eq.vel + (b.velocidade || 0) + (j.aceleracao || 0)) / 100; status.bloqueio = (eq.bloqueio + (b.bloqueio || 0)) / 100;
-  status.evasao = (j.evasao || 0) / 100; status.esquiva = (j.esquiva || 0) / 100;          // (o golpe corpo a corpo / o de longe e a magia)
-  status.perfurante = (j.perfurante || 0) / 100; status.resfriamento = (j.resfriamento || 0) / 100;
-  status.raca = { morto_vivo: (j.morto_vivo || 0) / 100, animal: (j.animal || 0) / 100, orc: (j.orc || 0) / 100 };
+  status.evasao = (j.evasao || 0) / 100; status.esquiva = ((j.esquiva || 0) + (b.esquiva || 0)) / 100;          // (o golpe corpo a corpo / o de longe e a magia)
+  status.perfurante = ((j.perfurante || 0) + (b.perfurante || 0)) / 100; status.resfriamento = Math.min(0.5, ((j.resfriamento || 0) + (b.resfriamento || 0)) / 100);
+  status.raca = Object.fromEntries(["morto_vivo", "animal", "orc", "demonio", "humano"].map(r => [r, ((j[r] || 0) + (b[r] || 0)) / 100]));
+  status.exp = (b.exp || 0) / 100; status.yang = (b.yang || 0) / 100; status.drop = (b.drop || 0) / 100;   // (colar e brincos)
   if (viking.mana === undefined || viking.mana > status.manaMax) viking.mana = status.manaMax;
   status.ataque = (1 + 0.04 * (a[pr] - ini[pr]) + (pr !== "for" ? 0.015 * (a.for - ini.for) : 0) + 0.025 * (n - 1)) * bonusArma(prog.arma ? prog.arma.ref : null, prog.arma && prog.arma.tier) * (1 + (b.ataque || 0) / 100) * (FATOR_CLASSE[classe] || 1);
   status.critico = 0.02 + a.dex * 0.006 + ((b.critico || 0) + (j.critico || 0)) / 100;
@@ -6099,7 +6117,7 @@ function morrerJogador() {
 function morreuCriatura(l) {
   jornadaCriatura(l);
   // (o chefe de mapa: até 40% de um nível, acima do teto comum de 20%)
-  if (prog) { if (defChefe(l)) ganharExp(Math.min(expDe(l), EXP_NIVEL[prog.nivel] * 0.4), l, true); else ganharExp(expDe(l), l); }
+  if (prog) { if (defChefe(l)) ganharExp(Math.min(expDe(l), EXP_NIVEL[prog.nivel] * 0.4), l, true); else ganharExp(expDe(l) * (status.exp && Math.random() < status.exp ? 2 : 1), l); }
   if (l.cfg.estatico) metinQuebrou(l);
   else if (defChefe(l)) chefeMorreu(l);
   else if (l.cfg.chefeCaverna) {
@@ -6108,13 +6126,13 @@ function morreuCriatura(l) {
     if (Math.random() < 0.6) itens.push({ tipo: "pedra" });
     if (Math.random() < 0.5) itens.push({ tipo: "bencao" });
     if (Math.random() < 0.3) itens.push({ tipo: "alma" });
-    itens.push(pecaDoNivel(l.cfg.nivel));
+    itens.push(itemDoNivel(l.cfg.nivel));
     if (Math.random() < 0.25) itens.push(armaDoNivel(l.cfg.nivel, bonusDeDrop("arma", 2)));
     if (Math.random() < 0.3) itens.push({ tipo: Math.random() < 0.5 ? "encantar" : "mudar" });
     soltarItens(l, itens);
     avisar(`${l.cfg.nome} caiu! Volta em ${Math.round(l.cfg.renasce)} s`);
   }
-  else if (Math.random() < (l.horda ? 0.05 : 0.03)) soltarItens(l, [pecaDoNivel(l.cfg.nivel || 1)]);
+  else if (Math.random() < (l.horda ? 0.05 : 0.03)) soltarItens(l, [itemDoNivel(l.cfg.nivel || 1)]);
   else if (Math.random() < (l.horda ? 0.12 : 0.06)) soltarItens(l, [{ tipo: Math.random() < 0.5 ? "pocao" : "pocaoMana", qtd: 1 }]);
   else if (Math.random() < 0.3) soltarItens(l, [{ tipo: "yang", qtd: Math.round(yangNivel(l.cfg.nivel || 1) * (6 + Math.random() * 6) * (l.cfg.expMult || 1)) }]);
   if (l.horda) { l.renascer = 999; l.sumir = 0; }
@@ -6261,6 +6279,7 @@ function metinQuebrou(l) {
   if (Math.random() < 0.4) itens.push({ tipo: "pedra" });
   if (Math.random() < 0.2) itens.push({ tipo: "bencao" });
   if (Math.random() < 0.5) itens.push(pecaDoNivel(l.cfg.nivel));
+  if (Math.random() < 0.25) itens.push(acessorioDoNivel(l.cfg.nivel));   // (as Metins soltam acessórios, como no Metin2)
   if (Math.random() < 0.08) itens.push(armaDoNivel(l.cfg.nivel, bonusDeDrop("arma", 2)));   // (às vezes a arma do nível dela)
   itens.push(...joiasDaMetin(l.cfg.nivel));                         // (as Jóias: das Metins do 25 em diante, JOIAS_METIN)
   soltarItens(l, itens);
@@ -6388,6 +6407,7 @@ function dropsChefe(l) {
   if (Math.random() < 0.7) itens.push({ tipo: "alma" });
   if (Math.random() < 0.6) itens.push({ tipo: "bencao" });
   if (Math.random() < 0.5) itens.push(pecaDeChefe(n));
+  if (Math.random() < 0.5) itens.push(acessorioDoNivel(n, undefined, true));
   if (Math.random() < 0.35) itens.push(armaDoNivel(n, bonusChefe("arma", 2)));
   itens.push(...joiasDoChefe(l));                                    // (as Jóias: do Lobo Alfa em diante; +3/+4 no Nove Caudas e no Chefe Orc)
   return itens;
@@ -6862,7 +6882,7 @@ function pecasDoFerreiro() {
   const l = [];
   if (prog.arma) l.push({ id: "arma", rotulo: `Arma +${prog.arma.ref}`, ref: prog.arma.ref, arma: true, tier: prog.arma.tier || 0, nome: r => nomeArma(r), icone: (g, r) => iconeArma(g, ARMAS[classe].desenho, 40, 120, r, prog.arma.tier), mudar: r => { prog.arma = r === null ? null : { ...prog.arma, ref: r, jo: semPartidas(prog.arma.jo) }; },
                           dica: () => prog.arma && { chave: chaveArma(classe, prog.arma.tier), ref: prog.arma.ref, bon: prog.arma.bon || [], jo: prog.arma.jo } });
-  for (const slot of ORDEM_PECAS) { const e = prog.equip && prog.equip[slot], pc = pecaEquipada(slot); if (!e) continue;
+  for (const slot of [...ORDEM_PECAS, ...ACESSORIOS]) { const e = prog.equip && prog.equip[slot], pc = pecaEquipada(slot); if (!e) continue;
     l.push({ id: "eq:" + slot, rotulo: `${PECAS[pc].nome} +${e.ref}`, ref: e.ref, slot: pc, tier: e.tier, nome: r => nomePeca(pc, e.tier, r), icone: g => iconePeca(g, pc, e.tier, 40, PECAS[pc].h * 40), mudar: r => { prog.equip[slot] = r === null ? null : { ...e, ref: r, jo: semPartidas(e.jo) }; },
               dica: () => prog.equip[slot] && { chave: chaveDoEquip(slot), ref: prog.equip[slot].ref, bon: prog.equip[slot].bon || [], jo: prog.equip[slot].jo } }); }
   for (const it of prog.inv) { const t = tipoItem(it.chave); if (!t.arma && !t.peca) continue;
@@ -7140,7 +7160,9 @@ function desenharFaiscasForja(dt) {
 const NPCS = [
   { nome: "Alquimista Runa", dx: 6.5, dy: 0.9, cores: { roupa: "#3f7a4a", calca: "#2f3a2a", pele: "#e8c4a0", cabelo: "#d8d0c0", capuz: "#2d5a36" },
     falas: ["Poções frescas! A vermelha fecha feridas, a azul devolve a mana.", "Um Pergaminho da Bênção salva a sua arma do ferreiro... se você tiver Yang para isso.", "Dizem que a Aranha Rainha guarda pergaminhos no ninho."],
-    loja: [["pocao", 50], ["pocaoMana", 60], ["bencao", 4000], ["encantar", 3000], ["mudar", 1500]] },
+    loja: [["pocao", 50], ["pocaoMana", 60], ["bencao", 4000], ["encantar", 3000], ["mudar", 1500],
+           // (os acessórios de iniciante, como a Vendedora da Loja Geral do Metin2: Madeira e Cobre)
+           ["peca:brinco:0", 300], ["peca:colar:0", 300], ["peca:pulso:0", 300], ["peca:brinco:1", 1500], ["peca:colar:1", 1500], ["peca:pulso:1", 1500]] },
   { nome: "Armeiro Bjorn", dx: -6.5, dy: -3.1, cores: { roupa: "#6a6f78", calca: "#3a2a1c", pele: "#d9a882", cabelo: "#8a4a22", barba: "#8a4a22" },
     falas: ["Couro para quem está começando, ferro para quem já sangrou nas cavernas.", "O escudo bloqueia um golpe de vez em quando. Não confie a vida a ele.", "O ferreiro refina o que eu vendo. Eu só vendo."],
     loja: [["peca:elmo:0", 150], ["peca:botas:0", 150], ["peca:escudo:0", 250], ["peca:armadura_guerreiro:0", 400], ["peca:armadura_leve:0", 400], ["peca:armadura_mago:0", 400],
@@ -7211,6 +7233,7 @@ function desenharNpc() {
   }
   $("#npcMais").hidden = n.falas.length < 2;
   missaoNaConversa(o);                              // (a missão: a fala dela e o quadro com o objetivo e o botão)
+  cavaloNaConversa(o);                              // (a Hilda: o exame do cavalo nos níveis 10 e 20)
 }
 // um morador desenhado: botas, calça, túnica, braços, cabeça com cabelo (barba, lenço, capuz ou elmo), respirando;
 // o ancião com cajado, a guarda com lança
@@ -7248,6 +7271,227 @@ function placaNpc(X, y, nome) {
   cx.restore();
 }
 
+// ---------------------------------------------------------------- o cavalo de montaria (como o do Metin2)
+// Logs/Cavalo (o modelo, as animações e as medidas) e Logs/Pesquisa/METIN2_CAVALO.md (as regras). O modelo é o cavalo CC0
+// do Quaternius (3d/cavalo.glb: as malhas de cada aparência e o nó "Assento", onde o herói vai preso) com as animações
+// dele; os clipes montados de cada classe vêm de 3d/montados.json (CavaloTeste.cs: o tronco e os braços são os da
+// animação da classe, só o quadril, as pernas e as mãos nas rédeas mudam). A missão da Feirante Hilda (nível 15) dá o
+// Retrato do Cavalo (chama e manda embora); Ctrl+G (ou a ação "Montar" da ficha e da barra) monta e desmonta.
+// Níveis 1–21: Iniciante (1–10, só anda e galopa), Blindado (11–20, ataca montado), Militar (21); a aparência muda no 11
+// e no 21. O cavalo ganha exp galopando (1 a cada 10 m) e, do 11 em diante, também por criatura derrubada montado; no
+// nível 10 e no 20 ele para até o exame com a Hilda (nível do herói e Yang). Montado: a velocidade do cavalo, o ataque
+// básico único e repetido (sem o combo a pé) e as skills da classe travadas, como no Metin2.
+const CAVALO = {
+  galope: 4.28, passo: 1.105, empinar: 1.6,       // m/s em que os cascos não escorregam (Logs/Cavalo/velocidades.json); s
+  malhas: { iniciante: ["Corpo", "Sela"], blindado: ["Corpo", "Sela", "Barda"], militar: ["Corpo_Branco", "Sela", "Armadura"] },
+  exame: { 10: { heroi: 25, yang: 20000 }, 20: { heroi: 35, yang: 40000 } },
+};
+const aparenciaCavalo = nv => nv >= 21 ? "militar" : nv >= 11 ? "blindado" : "iniciante";
+const nomeCavalo = nv => ({ iniciante: "Cavalo de Iniciante", blindado: "Cavalo Blindado", militar: "Cavalo Militar" })[aparenciaCavalo(nv)];
+// a pé o herói corre a 3,8 m/s: montado, de 4,6 (nv 1) a 6,0 (nv 21), como no Metin2 (o cavalo maior corre mais)
+const velMontado = nv => nv >= 21 ? 6.0 : nv >= 11 ? 5.2 + 0.04 * (nv - 11) : 4.6 + 0.045 * (nv - 1);
+const expCavaloProx = nv => 30 * nv;
+const cavaloEnt = { x: 0, y: 0, dir: 2, anim: "parado", t: 0, ativo: false, tEmp: -1, nome: "Cavalo" };
+const DONO_CAVALEIRO = { cavaleiro: true };          // (a instância 3D do herói montado, presa ao Assento)
+const ACAO_ATAQUE = /^(golpe|sacar_golpe|atirar|bola)/;
+function cavaloDe() { if (!prog) return { tem: false, nivel: 1, exp: 0 }; return prog.cavalo || (prog.cavalo = { tem: false, nivel: 1, exp: 0 }); }
+let avisoMontadoT = 0;
+function avisoMontado(txt) { const t = performance.now(); if (t - avisoMontadoT > 1500) { avisoMontadoT = t; avisar(txt); som("ui_negar"); } }
+// atrás do herói (ou ao lado, quando desmonta), num lugar livre
+function lugarCavalo(lado) {
+  const v = viking, a = (v.dir || 0) * Math.PI / 4, fx = Math.cos(a), fy = -Math.sin(a);
+  for (const [k, d] of [[lado ? 1 : 0, 1.8], [lado ? 0 : 1, 1.8], [2, 1.2]]) {
+    const x = k === 1 ? v.x - fy * d : k === 0 ? v.x - fx * d : v.x + fy * d, y = k === 1 ? v.y + fx * d : k === 0 ? v.y - fy * d : v.y - fx * d;
+    if (livre(x, y)) return [x, y];
+  }
+  return [v.x, v.y];
+}
+function chamarCavalo(sim = !cavaloEnt.ativo) {
+  const c = cavaloDe();
+  if (!c.tem) { avisoMontado("Você ainda não tem um cavalo: a Feirante Hilda (Vila 1) tem a missão, a partir do nível 15"); return false; }
+  if (!sim) { if (viking.montado) desmontar(); cavaloEnt.ativo = false; avisar("O cavalo voltou para a estrebaria"); return true; }
+  [cavaloEnt.x, cavaloEnt.y] = lugarCavalo(false);
+  Object.assign(cavaloEnt, { ativo: true, dir: viking.dir, anim: "empinar", t: 0, tEmp: 0 });
+  pedirModelo3d("cavalo", 0); carregarMontados3d();
+  som("equipar", null, 0.8); avisar(`${nomeCavalo(c.nivel)} (nv ${c.nivel}) atendeu ao chamado`);
+  return true;
+}
+function montar() {
+  const c = cavaloDe(), v = viking;
+  if (!c.tem) { avisoMontado("Você ainda não tem um cavalo: a Feirante Hilda (Vila 1) tem a missão, a partir do nível 15"); return; }
+  if (v.caido) return;
+  if (!cavaloEnt.ativo) chamarCavalo(true);
+  v.montado = true; v.acao = null; v.fila = null; limparPendentes(v); v.montT = 0;
+  if (classe === "viking") v.espada = "armada";
+  Object.assign(cavaloEnt, { x: v.x, y: v.y, dir: v.dir, anim: "empinar", t: 0, tEmp: 0 });
+  pedirModelo3d("cavalo", -1); carregarMontados3d();
+  som("equipar", null, 0.9); avisar(`Montou no ${nomeCavalo(c.nivel)}`);
+  atualizarFichaCavalo();
+}
+function desmontar() {
+  const v = viking; if (!v.montado) return;
+  v.montado = false; v.acao = null; v.fila = null;
+  [cavaloEnt.x, cavaloEnt.y] = lugarCavalo(true);
+  Object.assign(cavaloEnt, { dir: v.dir, anim: "parado", t: 0, tEmp: -1 });
+  som("equipar", null, 0.6); avisar("Desmontou");
+  atualizarFichaCavalo();
+}
+function alternarMontaria() { if (viking.montado) desmontar(); else montar(); }
+function ganharExpCavalo(n) {
+  const c = cavaloDe(); if (!c.tem || c.nivel >= 21 || CAVALO.exame[c.nivel]) return;   // (no 10 e no 20: espera o exame)
+  c.exp = (c.exp || 0) + n;
+  if (c.exp >= expCavaloProx(c.nivel)) {
+    c.exp = 0; c.nivel++; som("nivel", null, 0.7);
+    avisarLongo(`O cavalo subiu para o nível ${c.nivel}!` + (CAVALO.exame[c.nivel] ? " Para passar de faixa, faça o exame com a Feirante Hilda." : ""));
+  }
+  salvarProgresso(); atualizarFichaCavalo();
+}
+// o exame (nível 10 → 11 e 20 → 21): o nível do herói e o Yang, com a Hilda
+function exameCavalo() {
+  const c = cavaloDe(), ex = CAVALO.exame[c.nivel]; if (!c.tem || !ex) return false;
+  if (prog.nivel < ex.heroi) { avisar(`O exame pede o herói no nível ${ex.heroi}`); som("ui_negar"); return false; }
+  if (prog.yang < ex.yang) { avisar(`Faltam ${(ex.yang - prog.yang).toLocaleString("pt-BR")} Yang`); som("ui_negar"); return false; }
+  prog.yang -= ex.yang; c.nivel++; c.exp = 0; som("missao", null, 0.9);
+  avisarLongo(`Exame aprovado: agora é o ${nomeCavalo(c.nivel)} (nível ${c.nivel})!`);
+  salvarProgresso(); atualizarFichaCavalo(); if (npcAberto) desenharNpc();
+  return true;
+}
+function cavaloNaConversa(o) {
+  const c = cavaloDe(), ex = CAVALO.exame[c.nivel];
+  if (!o || o.nome !== "Feirante Hilda" || !c.tem || !ex) return;
+  const quadro = document.createElement("div"); quadro.className = "item-loja";
+  const sp = document.createElement("span"); sp.textContent = "◆"; sp.style.cssText = "color:#ffd23c;font-size:20px;text-align:center";
+  const tx = document.createElement("span"); tx.innerHTML = `<b>Exame do cavalo</b><small></small>`;
+  tx.lastChild.textContent = `Do nível ${c.nivel} para o ${c.nivel + 1} (${nomeCavalo(c.nivel + 1)}): herói no nível ${ex.heroi} e ${ex.yang.toLocaleString("pt-BR")} Yang`;
+  const b = document.createElement("button"); b.textContent = "Fazer o exame"; b.onclick = () => exameCavalo();
+  quadro.append(sp, tx, b); $("#npcLoja").appendChild(quadro);
+}
+// o atalho de teste (admin): o Retrato e o cavalo no nível pedido, sem a missão
+function adminCavalo(nv) {
+  if (!prog) return;
+  const c = cavaloDe(); Object.assign(c, { tem: true, nivel: Math.max(1, Math.min(21, nv)), exp: 0 });
+  if (!contarItem("retrato_cavalo")) adicionarItem("retrato_cavalo", 1);
+  salvarProgresso(); desenharBolsa(); atualizarItensBarra(); atualizarFichaCavalo();
+  avisar(`Admin: ${nomeCavalo(c.nivel)} (nível ${c.nivel}) e o Retrato do Cavalo`);
+  if (typeof jornadaAdmin === "function") jornadaAdmin(`cavalo nv ${c.nivel}`);
+}
+function atualizarFichaCavalo() {
+  const el = $("#fCavalo"); if (!el) return;
+  const c = cavaloDe();
+  el.textContent = !c.tem ? "Sem cavalo: a Feirante Hilda, na feira da Vila 1, tem uma missão a partir do nível 15."
+    : `${nomeCavalo(c.nivel)}, nível ${c.nivel}` + (c.nivel >= 21 ? "" : CAVALO.exame[c.nivel] ? ` (pronto para o exame com a Hilda)` : ` (exp ${c.exp || 0}/${expCavaloProx(c.nivel)})`) +
+      ` · ${velMontado(c.nivel).toFixed(1).replace(".", ",")} m/s · ${c.nivel >= 11 ? "ataca montado" : "não ataca montado (só do nível 11)"}` + (viking.montado ? " · montado" : "");
+}
+// o que tocam o cavalo e o herói montado neste quadro: os dois do galope duram 0,6 s e andam juntos (o quique em fase)
+function montadoAnim() {
+  const v = viking, e = cavaloEnt;
+  if (e.anim === "empinar") return { heroi: "montado_parado", th: v.montT || 0, cavalo: "empinar", tc: e.t };
+  if (v.acao && ACAO_ATAQUE.test(v.acao)) return { heroi: "montado_ataque", th: v.t, cavalo: "parado", tc: e.t };
+  if (e.anim === "correndo") return { heroi: "montado_galope", th: e.t, cavalo: "correndo", tc: e.t };
+  return { heroi: "montado_parado", th: v.montT || 0, cavalo: "parado", tc: e.t };
+}
+function passoCavalo(dt) {
+  const v = viking, e = cavaloEnt;
+  const mov = e.px !== undefined ? Math.hypot(v.x - e.px, v.y - e.py) / Math.max(dt, 1e-3) : 0;   // (a velocidade do herói)
+  e.px = v.x; e.py = v.y;
+  if (e.tEmp >= 0) {                                 // empinando (ao chamar e ao montar): 1,6 s, depois parado
+    e.tEmp += dt; e.anim = "empinar"; e.t = e.tEmp;
+    if (e.tEmp >= CAVALO.empinar) { e.tEmp = -1; e.anim = "parado"; e.t = 0; }
+  }
+  if (v.montado) {
+    e.ativo = true; e.x = v.x; e.y = v.y; e.dir = v.dir; v.montT = (v.montT || 0) + dt;
+    if (e.tEmp >= 0) return;
+    if (mov > 0.5 && mov < 20 && !v.acao) {
+      if (e.anim !== "correndo") { e.anim = "correndo"; e.t = 0; }
+      e.t += dt * mov / CAVALO.galope;
+      e.dist = (e.dist || 0) + mov * dt;
+      while (e.dist >= 10) { e.dist -= 10; ganharExpCavalo(1); }
+    } else { if (e.anim !== "parado") { e.anim = "parado"; e.t = 0; } e.t += dt; }
+    return;
+  }
+  if (!e.ativo || e.tEmp >= 0) return;
+  // solto: vem atrás do herói (galopa se ficou longe, anda se está perto, para a 2 m)
+  const dx = v.x - e.x, dy = v.y - e.y, d = Math.hypot(dx, dy);
+  if (d > 30) { [e.x, e.y] = lugarCavalo(false); return; }
+  const vel = d > 2.6 ? Math.min(velMontado(cavaloDe().nivel), Math.max(1.1, (d - 2) * 2.2)) : 0;
+  if (vel > 0) { e.x += dx / d * vel * dt; e.y += dy / d * vel * dt; e.dir = dirDe(dx, dy); }
+  const anim = vel > 2.2 ? "correndo" : vel > 0 ? "andando" : "parado";
+  if (anim !== e.anim) { e.anim = anim; e.t = 0; }
+  e.t += dt * (anim === "correndo" ? vel / CAVALO.galope : anim === "andando" ? vel / CAVALO.passo : 1);
+}
+// ---- o desenho: no 3D, o pedaço do cavalo (com o herói preso, se montado); sem o 3D, as folhas de sprites/cavalo.json
+function desenharMontado(X, Y, z) {
+  sombraHeroi(X, Y, z);
+  if (!desenharInst3d(viking, X, Y, z)) desenharCavaloSprite("montado_" + classe, montadoAnim(), X, Y, z, viking.dir, false);
+  placas.push(() => desenharPlacaJogador(X, Y - 0.75 * PX * z, z));   // (a placa acima do herói montado)
+  atualizarVitais(); atualizarBarra();
+}
+function desenharCavaloSolto() {
+  const e = cavaloEnt, [sx, sy] = tela(e.x - cam.x, e.y - cam.y);
+  const X = W / 2 + sx, Y = H / 2 + sy - zPiso(e.x, e.y) * PX * zoom * ALTURA, z = zoom;
+  sombraHeroi(X, Y, z);
+  if (!desenharInst3d(e, X, Y, z)) desenharCavaloSprite("cavalo_" + aparenciaCavalo(cavaloDe().nivel), { cavalo: e.anim, tc: e.t }, X, Y, z, e.dir, true);
+}
+let SPR_CAVALO = null;
+function desenharCavaloSprite(ent, a, X, Y, z, dir, solto) {
+  if (!SPR_CAVALO) { SPR_CAVALO = { mapa: null, folhas: {} }; fetch("sprites/cavalo.json").then(r => r.json()).then(j => { SPR_CAVALO.mapa = j; }).catch(() => {}); }
+  const S = SPR_CAVALO, E = S.mapa && S.mapa.entidades[ent]; if (!E) return false;
+  const c = E.clipes[solto ? a.cavalo : a.heroi]; if (!c) return false;
+  let im = S.folhas[ent]; if (!im) { im = S.folhas[ent] = new Image(); im.src = E.folha; }
+  if (!im.complete || !im.naturalWidth) return false;
+  const t = solto ? a.tc : a.heroi === "montado_galope" ? a.tc : a.th, n = c.quadros, q0 = Math.floor(t * c.fps);
+  const q = c.laco ? ((q0 % n) + n) % n : Math.max(0, Math.min(n - 1, q0));
+  const qs = c.dirs[["E", "SE", "S", "SW", "W", "NW", "N", "NE"][dirTela(dir)]], r = qs && qs[Math.min(q, qs.length - 1)];
+  if (!r) return false;
+  cx.drawImage(im, r[0], r[1], r[2], r[3], X + r[4] * z, Y + r[5] * z, r[2] * z, r[3] * z);
+  return true;
+}
+// ---- o 3D: os clipes montados (3d/montados.json → THREE.AnimationClip; os nós têm os nomes do glb da classe)
+let MONTADOS3D = null, montados3dPedido = false;
+function carregarMontados3d() {
+  if (MONTADOS3D || montados3dPedido || typeof THREE === "undefined") return;
+  montados3dPedido = true;
+  fetch("3d/montados.json").then(r => r.json()).then(j => {
+    const out = {};
+    for (const [cl, clipes] of Object.entries(j.classes)) {
+      out[cl] = {};
+      for (const [nome, c] of Object.entries(clipes)) {
+        const trilhas = c.canais.map(([no, cam, t, v]) => {
+          const nn = THREE.PropertyBinding.sanitizeNodeName(no);
+          return cam === "rotation" ? new THREE.QuaternionKeyframeTrack(nn + ".quaternion", t, v)
+            : new THREE.VectorKeyframeTrack(nn + (cam === "translation" ? ".position" : ".scale"), t, v);
+        });
+        out[cl][nome] = { clip: new THREE.AnimationClip(nome, c.quadros / c.fps, trilhas), fps: c.fps, quadros: c.quadros, laco: c.laco, acerto: c.acerto };
+      }
+    }
+    MONTADOS3D = out;
+  }).catch(e => { console.error("montados:", e); montados3dPedido = false; });
+}
+// as malhas da aparência (e a rédea: esticada com alguém montado, solta no pescoço sem ninguém)
+function vestirCavalo3d(i, aparencia, montado) {
+  const chave = aparencia + (montado ? "|m" : "");
+  if (i.vestido === chave) return;
+  const vis = new Set([...CAVALO.malhas[aparencia], montado ? "Redea" : "Redea_Solta"]);
+  // (sem descer no herói preso ao Assento: as malhas dele não são do cavalo)
+  const vestir = o => { if (o.userData.cavaleiro) return; if (o.isMesh) o.visible = vis.has(o.name) || (!!o.parent && vis.has(o.parent.name)); for (const f of o.children) vestir(f); };
+  vestir(i.raiz);
+  i.vestido = chave;
+}
+// o herói preso ao Assento do cavalo, tocando o clipe montado da classe
+function montarCavaleiro3d(i, r) {
+  const p = P3D, c = instancia3d(DONO_CAVALEIRO, r.m, r.arma || ""), mm = MONTADOS3D && MONTADOS3D[classe] && MONTADOS3D[classe][r.anim];
+  c.pedido = p.quadro;
+  const as = i.assento || (i.assento = i.raiz.getObjectByName("Assento"));
+  if (!as || !mm) return;
+  if (c.raiz.parent !== as) { as.add(c.raiz); c.raiz.position.set(0, 0, 0); c.raiz.rotation.set(0, 0, 0); c.raiz.scale.set(1, 1, 1); c.raiz.userData.cavaleiro = true; }
+  c.raiz.visible = true;
+  const a = c.acoes[r.anim] || (c.acoes[r.anim] = c.mixer.clipAction(mm.clip));
+  if (a !== c.atual) { if (c.atual) c.atual.stop(); a.play(); c.atual = a; }
+  const dur = mm.quadros / mm.fps;
+  a.time = mm.laco ? ((r.t % dur) + dur) % dur : Math.max(0, Math.min(r.t, dur - 1e-3));
+  c.mixer.update(0);
+}
+
 // ---------------------------------------------------------------- missões
 // A missão principal da cidade, "A Chama do Céu": o Sumo-Sacerdote Haneul, no salão do Templo do Céu (o palácio no fim
 // do eixo), pede ao herói que reacenda a chama do templo, apagada quando as pedras Metin caíram. Em cadeia, cada etapa
@@ -7282,8 +7526,31 @@ const MISSOES = {
         premio: { exp: 9000, yang: 2500, itens: [["bencao", 1], ["peca:elmo:1", 1]] } },
     ],
   },
+  // o cavalo de montaria (o Cavalariço do Metin2, nível 25; aqui a Feirante Hilda da Vila 1, nível 15: Logs/Pesquisa/METIN2_CAVALO.md)
+  cavalo: {
+    nome: "O Cavalo da Vila", npc: "Feirante Hilda", aceitar: "Aceitar a missão", nivelMin: 15, tipo: "Missão do cavalo (a partir do nível 15)", onde: "na feira da Vila 1",
+    oferta: "Herói, meu irmão cuida dos cavalos da vila e precisa de alguém de confiança. Traga couro de javali para as selas e mostre que aguenta o Juramento Branco: aí um dos cavalos é seu. Montado, o vale fica pequeno.",
+    fim: "Trate bem desse cavalo: galopando ele cresce, e no nível 11 e no 21 ganha armadura. Quando ele parar de crescer (no 10 e no 20), volte aqui para o exame.",
+    etapas: [
+      { matar: ["Javali", "Javali Selvagem", "Javali Rubro"], qtd: 10, alvo: "Derrote 10 javalis (o couro é para as selas)",
+        fala: "Os javalis do vale têm o couro mais grosso. Dez bastam para as selas novas.", premio: { exp: 2000, yang: 400 } },
+      { matar: ["Soldado do Juramento Branco"], qtd: 10, alvo: "O exame de montaria: derrote 10 Soldados do Juramento Branco, perto do portal",
+        fala: "Agora o exame: quem não encara o Juramento Branco não segura um cavalo assustado. Dez soldados, perto do portal.", premio: { exp: 4000 } },
+      { falar: "Feirante Hilda", entregar: "Pagar 4.000 Yang", yang: 4000, alvo: "Volte à Feirante Hilda e pague 4.000 Yang pelo cavalo",
+        fala: "Passou no exame! O cavalo custa 4.000 Yang: a sela, a manta e o feno do primeiro mês.",
+        premio: { itens: [["retrato_cavalo", 1]] },
+        depois: () => { const c = cavaloDe(); c.tem = true; c.nivel = Math.max(1, c.nivel || 1); c.exp = 0; salvarProgresso(); atualizarFichaCavalo();
+                        avisarLongo("Você ganhou o Retrato do Cavalo! Use-o (clique direito) para chamar o cavalo e Ctrl+G para montar.", 6500); } },
+    ],
+  },
 };
+// o cavalo ainda espera a aprovação do usuário (o vídeo do protótipo): no site ele só existe com o admin ligado ou com
+// ?cavalo=1. Sem isso a missão da Hilda não aparece e a ação Montar some (sem o Retrato, ninguém chega a ter cavalo)
+const CAVALO_LIBERADO = ADMIN || new URLSearchParams(location.search).has("cavalo");
+if (!CAVALO_LIBERADO) delete MISSOES.cavalo;
 function estadoMissao(id) { const m = prog.missoes || (prog.missoes = {}); return m[id] || (m[id] = { etapa: -1, n: 0 }); }
+const nivelMissaoOk = M => !M.nivelMin || (prog && prog.nivel >= M.nivelMin);
+const matarConta = (e, nome) => [].concat(e.matar).includes(nome);
 function etapaAtual(id) { const s = estadoMissao(id), M = MISSOES[id]; return s.etapa >= 0 && s.etapa < M.etapas.length ? M.etapas[s.etapa] : null; }
 // (as missões só existem na cidade: o Sumo-Sacerdote mora no templo dela)
 let npcMissaoOk = false;
@@ -7308,7 +7575,12 @@ function pagarMissao(p) {
 }
 function cumprirEtapa(id) {
   const M = MISSOES[id], s = estadoMissao(id), e = M.etapas[s.etapa]; if (!e) return;
+  if (e.yang) {                                     // (a etapa que se paga: o cavalo da Hilda)
+    if (prog.yang < e.yang) { avisar(`Faltam ${(e.yang - prog.yang).toLocaleString("pt-BR")} Yang`); som("ui_negar"); return; }
+    prog.yang -= e.yang;
+  }
   const ganhos = pagarMissao(e.premio || {});
+  if (e.depois) e.depois();
   s.etapa++; s.n = 0; salvarProgresso();
   const prox = etapaAtual(id);
   som("missao", null, 0.9);
@@ -7318,11 +7590,12 @@ function cumprirEtapa(id) {
 }
 // uma criatura caiu: conta para a etapa "derrote N ..." (pelo nome dela: "Lobo" não conta o Lobo Alfa)
 function missaoMorte(l) {
+  if (viking.montado && cavaloDe().nivel >= 11) ganharExpCavalo(3);   // (o cavalo blindado cresce lutando montado)
   if (!missoesAtivas()) return;
   for (const id in MISSOES) {
-    const e = etapaAtual(id); if (!e || !e.matar || l.cfg.nome !== e.matar) continue;
+    const e = etapaAtual(id); if (!e || !e.matar || !matarConta(e, l.cfg.nome)) continue;
     const s = estadoMissao(id); s.n = Math.min(e.qtd, s.n + 1);
-    if (s.n >= e.qtd) cumprirEtapa(id); else { avisar(`${MISSOES[id].nome}: ${e.matar} ${s.n}/${e.qtd}`); salvarProgresso(); atualizarMissao(); }
+    if (s.n >= e.qtd) cumprirEtapa(id); else { avisar(`${MISSOES[id].nome}: ${l.cfg.nome} ${s.n}/${e.qtd}`); salvarProgresso(); atualizarMissao(); }
   }
 }
 // a marca na placa do NPC: "!" (tem missão para dar) ou "?" (a missão em andamento espera por ele)
@@ -7330,7 +7603,7 @@ function marcaMissao(nome) {
   if (!missoesAtivas()) return "";
   for (const id in MISSOES) {
     const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
-    if (s.etapa < 0 && nome === M.npc) return "!";
+    if (s.etapa < 0 && nome === M.npc && nivelMissaoOk(M)) return "!";
     if (e && e.falar === nome) return "?";
   }
   return "";
@@ -7341,7 +7614,7 @@ function textoMissao() {
   for (const id in MISSOES) {
     const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
     if (e) return `◆ ${M.nome}: ${e.alvo}${e.matar && e.qtd > 1 ? ` (${s.n}/${e.qtd})` : ""}`;
-    if (s.etapa < 0) return `◆ ${M.nome}: fale com o ${M.npc}, no Templo do Céu (fim da avenida)`;
+    if (s.etapa < 0 && nivelMissaoOk(M)) return `◆ ${M.nome}: fale com ${M.npc}, ${M.onde || "no Templo do Céu (fim da avenida)"}`;
   }
   return "";
 }
@@ -7357,9 +7630,10 @@ function ondeMissao() {
     const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
     if (e && e.matar) {
       let m = null, dm = 1e9;
-      for (const c of criaturas) if (!c.morto && c.cfg.nome === e.matar) { const d = Math.hypot(c.x - viking.x, c.y - viking.y); if (d < dm) { dm = d; m = c; } }
+      for (const c of criaturas) if (!c.morto && matarConta(e, c.cfg.nome)) { const d = Math.hypot(c.x - viking.x, c.y - viking.y); if (d < dm) { dm = d; m = c; } }
       return m ? [m.x, m.y] : e.onde;
     }
+    if (!e && s.etapa < 0 && !nivelMissaoOk(M)) continue;
     const quem = e ? e.falar : s.etapa < 0 ? M.npc : null;
     const o = quem && objetos.find(o => o.npc && o.nome === quem);
     if (o) return [o.x, o.y];
@@ -7383,7 +7657,8 @@ function missaoNaConversa(o) {
     const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
     let fala = null, botao = null;
     if (o.nome === M.npc) {
-      if (s.etapa < 0) { fala = M.oferta; botao = [M.aceitar, () => {
+      if (s.etapa < 0 && !nivelMissaoOk(M)) fala = null;
+      else if (s.etapa < 0) { fala = M.oferta; botao = [M.aceitar, () => {
         s.etapa = 0; s.n = 0; salvarProgresso(); som("missao", null, 0.7);
         avisarLongo(`Nova missão: ${M.nome}. ${M.etapas[0].alvo}`); atualizarMissao(); desenharNpc();
       }]; }
@@ -7401,7 +7676,7 @@ function missaoNaConversa(o) {
     const sp = document.createElement("span"); sp.textContent = "◆"; sp.style.cssText = "color:#ffd23c;font-size:20px;text-align:center";
     const tx = document.createElement("span"); tx.innerHTML = `<b></b><small></small>`;
     tx.firstChild.textContent = M.nome;
-    tx.lastChild.textContent = s.etapa < 0 ? "Missão principal da cidade" : e ? e.alvo + (e.matar && e.qtd > 1 ? ` (${s.n}/${e.qtd})` : "") : "Concluída";
+    tx.lastChild.textContent = s.etapa < 0 ? (M.tipo || "Missão principal da cidade") : e ? e.alvo + (e.matar && e.qtd > 1 ? ` (${s.n}/${e.qtd})` : "") : "Concluída";
     quadro.append(sp, tx);
     if (botao) { const b = document.createElement("button"); b.textContent = botao[0]; b.onclick = botao[1]; quadro.append(b); }
     $("#npcLoja").appendChild(quadro);
@@ -7499,6 +7774,8 @@ function tipoItem(chave) {
     bencao: { nome: "Pergaminho da Bênção", desc: "No Ferreiro: se o refino falhar, a arma perde só um nível em vez de quebrar. No encaixe de uma Jóia que falha, salva a Jóia.", h: 1, desenho: "bencao" },
     bau_iniciante: { nome: "Baú do Iniciante", desc: "Presente de boas-vindas para quem começa a jornada. Clique direito (ou dois cliques) para abrir.", h: 1,
                      usar: it => abrirBauIniciante(it), desenho: "bau_iniciante", conteudo: () => kitIniciante().map(k => (k.qtd > 1 ? `${k.qtd} × ` : "") + nomeItem(k)) },
+    retrato_cavalo: { nome: "Retrato do Cavalo", desc: "Chama o seu cavalo (ou manda embora). Ctrl+G monta e desmonta. Do nível 11 do cavalo ele ataca montado; no 11 e no 21 ganha armadura.", h: 1,
+                      usar: () => chamarCavalo(), desenho: "retrato_cavalo" },
     correcao: { nome: "Pergaminho da Correção", desc: "Arraste sobre uma arma ou roupa na bolsa: tira a última Jóia encaixada e a devolve para a bolsa.", h: 1, desenho: "correcao" },
   }[chave] || { nome: chave, desc: "", h: 1, desenho: "pedra" };
 }
@@ -7790,7 +8067,44 @@ const PECAS = {
   escudo: { nome: "Escudo", h: 1, extra: "bloqueio", modelos: [["Escudo de Madeira", 1, 5, 4], ["Escudo de Ferro", 8, 10, 7], ["Escudo da Batalha", 14, 17, 10],
     ["Escudo de Aço", 22, 24, 11], ["Escudo do Tigre", 30, 31, 12], ["Escudo de Ferro Negro", 38, 38, 12], ["Escudo do Dragão de Bronze", 46, 46, 13], ["Escudo do Casco da Tartaruga", 54, 53, 14], ["Escudo do Rei de Longbo", 62, 60, 15]] },
 };
-const ORDEM_PECAS = ["elmo", "armadura", "botas", "escudo"];                // os espaços do equipamento
+// ---------- acessórios: bracelete (pulso), colar e brincos (Logs/Pesquisa/METIN2_ACESSORIOS.md) ----------
+// Os 12 materiais do Metin2, do nível 1 ao 62 (o Cristal da Alma é do 58 no bracelete, 60 no colar e 62 nos brincos).
+// Cada modelo dá, por natureza, 1 ou 2 atributos que crescem com o refino (+0 → +9, como na wiki). O que o Ghotin2 não tem
+// foi trocado pelo vizinho mais perto: a Velocidade de ataque do bracelete vira Valor de ataque (%), a Velocidade de magia
+// do colar vira Recarga das habilidades (metade do número), as resistências a elementos e flechas viram Esquiva, a
+// regeneração e o "recuperar PV/PM" viram PV/PM máx. e os PV/PM do Metin2 entram a 40% (a vida do Ghotin2 é menor)
+const MATERIAIS_ACESS = [["de Madeira", 1], ["de Cobre", 8], ["de Prata", 15], ["de Ouro", 22], ["de Jade", 28], ["de Ébano", 33], ["de Pérola", 38],
+  ["de Ouro Branco", 42], ["de Cristal", 46], ["de Ametista", 50], ["da Lágrima Celestial", 54], ["do Cristal da Alma", 0]];
+const modelosAcess = (nome, alma) => MATERIAIS_ACESS.map(([m, n]) => [`${nome} ${m}`, n || alma]);
+const ACESS_BASE = {
+  pulso: [[["ataque", 1, 5], ["vida", 4, 140]], [["ataque", 1, 5], ["mana", 2, 72]], [["ataque", 1, 5], ["vida", 8, 480]], [["ataque", 1, 5], ["defesa", 1, 10]],
+          [["ataque", 1, 7], ["mana", 6, 200]], [["ataque", 1, 7], ["vida", 10, 500]], [["ataque", 1, 7], ["mana", 6, 200]], [["ataque", 1, 7], ["vida", 10, 720]],
+          [["ataque", 1, 10], ["vida", 20, 800]], [["ataque", 1, 10], ["mana", 10, 300]], [["ataque", 1, 10], ["critico", 1, 10]], [["ataque", 1, 15], ["mana", 12, 400]]],
+  colar: [[["resfriamento", 1, 10], ["esquiva", 1, 6]], [["resfriamento", 1, 10], ["esquiva", 1, 6]], [["resfriamento", 1, 10], ["esquiva", 1, 6]], [["resfriamento", 1, 10], ["esquiva", 1, 6]],
+          [["resfriamento", 2, 11], ["dex", 1, 4]], [["resfriamento", 2, 11], ["vit", 1, 4]], [["resfriamento", 2, 11], ["int", 1, 4]], [["resfriamento", 2, 11], ["for", 1, 4]],
+          [["resfriamento", 3, 12], ["mana", 8, 300]], [["resfriamento", 3, 12], ["vida", 16, 600]], [["resfriamento", 3, 12], ["perfurante", 1, 10]], [["resfriamento", 3, 14], ["vida", 20, 800]]],
+  brinco: [[["dex", 1, 10]], [["for", 1, 10]], [["vit", 1, 10]], [["int", 1, 10]],
+           [["dex", 3, 12], ["mana", 4, 150]], [["for", 3, 12], ["vida", 10, 660]], [["vit", 3, 12], ["mana", 8, 250]], [["int", 3, 12], ["vida", 12, 500]],
+           [["dex", 5, 14], ["defesa", 1, 10]], [["vit", 5, 14], ["ataque", 1, 5]], [["int", 5, 14], ["critico", 1, 5]], [["for", 5, 14], ["mana", 10, 400]]],
+};
+Object.assign(PECAS, {
+  brinco: { nome: "Brincos", h: 1, acess: true, modelos: modelosAcess("Brincos", 62) },
+  colar: { nome: "Colar", h: 1, acess: true, modelos: modelosAcess("Colar", 60) },
+  pulso: { nome: "Bracelete", h: 1, acess: true, modelos: modelosAcess("Bracelete", 58) },
+});
+const ACESSORIOS = ["brinco", "colar", "pulso"];
+// o atributo base do acessório no refino ref: [[tipo, valor]] (o valor vai do +0 ao +9 em linha reta)
+function baseAcess(slot, tier, ref = 0) { return ((ACESS_BASE[slot] || [])[tier] || []).map(([t, a, b]) => [t, Math.round(a + (b - a) * Math.min(9, ref || 0) / 9)]); }
+// o modelo de roupa equivalente (para o teto dos bônus): pelo nível do acessório
+function tierBonus(parte, tier) { const P = PECAS[parte]; if (!P || !P.acess) return tier; const n = P.modelos[tier || 0][1]; return [1, 8, 14, 22, 30, 38, 46, 54, 62].filter(x => n >= x).length - 1; }
+// um acessório que cai: o material do nível de quem o soltou, com os adicionais do drop (ou os do chefe)
+function acessorioDoNivel(nivel, slot = ACESSORIOS[Math.floor(Math.random() * 3)], chefe = false) {
+  let tier = 0; PECAS[slot].modelos.forEach(([, n], k) => { if (nivel >= n) tier = k; });
+  return { tipo: "peca", chave: `peca:${slot}:${tier}`, ref: 0, bon: chefe ? bonusChefe(slot, tier) : bonusDeDrop(slot, tier) };
+}
+// o que cai das criaturas: 1 em 4 é um acessório, o resto uma peça de roupa
+function itemDoNivel(nivel) { return Math.random() < 0.25 ? acessorioDoNivel(nivel) : pecaDoNivel(nivel); }
+const ORDEM_PECAS = ["elmo", "armadura", "botas", "escudo"];                // os espaços do equipamento (roupa; os acessórios à parte)
 const ROUPA_DA_CLASSE = { viking: "armadura_guerreiro", arqueiro: "armadura_leve", ninja: "armadura_leve", feiticeiro: "armadura_mago", guerreiro: "armadura_guerreiro" };
 function slotDa(peca) { return (PECAS[peca] && PECAS[peca].slot) || peca; }
 function pecaEquipada(slot) { const e = prog && prog.equip && prog.equip[slot]; return e ? (e.peca || (slot === "armadura" ? ROUPA_DA_CLASSE[classe] : slot)) : null; }
@@ -7799,11 +8113,13 @@ const NOME_EXTRA = { vida: n => `+${n} de vida`, mana: n => `+${n} de mana`, vel
 // o que uma peça dá: { defesa, extra, nivel }
 function atribPeca(slot, tier, ref = 0) {
   const [, nivel, def, extra] = PECAS[slot].modelos[tier];
+  if (PECAS[slot].acess) return { defesa: 0, extra: 0, nivel, base: baseAcess(slot, tier, ref) };
   return { defesa: def + Math.max(1, Math.round(def * 0.12)) * ref, extra: Math.round(extra * (1 + 0.06 * ref)), nivel };
 }
 function nomePeca(slot, tier, ref) { return `${PECAS[slot].modelos[tier][0]} +${ref || 0}`; }
 function descPeca(slot, tier, ref) {
   const a = atribPeca(slot, tier, ref);
+  if (a.base) return `${a.base.map(textoBonusM2).join(" · ")} · nível ${a.nivel}`;
   return `Defesa +${a.defesa} · ${NOME_EXTRA[PECAS[slot].extra](a.extra)} · nível ${a.nivel}`;
 }
 // ícone de cada parte, na cor do material (couro, ferro, guerra)
@@ -7814,6 +8130,7 @@ const FILTRO_TIER = [null, null, null, "saturate(0.5) brightness(1.15)", "sepia(
   "sepia(0.8) hue-rotate(-20deg) saturate(1.8)", "hue-rotate(110deg) saturate(1.3)", "sepia(0.5) saturate(2.4) hue-rotate(-12deg) brightness(1.1)"];
 function iconePeca(g, slot, tier, w, h) {
   if (pintarItem(g, `peca:${slot}:${tier}`, w, h)) return;
+  if (PECAS[slot] && PECAS[slot].acess) { g.clearRect(0, 0, w, h); fantasmaEquip(g, slot, w, h, (COR_TIER[tier % COR_TIER.length] || COR_TIER[0])[0]); return; }
   if (tier > 2 && ICONES_ITEM[`peca:${slot}:2`]) { g.save(); g.filter = FILTRO_TIER[tier] || "none"; pintarItem(g, `peca:${slot}:2`, w, h); g.restore(); return; }
   g.clearRect(0, 0, w, h);
   const corP = PECAS[slot] && PECAS[slot].cor, [c1, c2] = (corP && corP[tier]) || COR_TIER[tier] || COR_TIER[0], X = w / 2, u = w / 40, gr = g.createLinearGradient(0, 0, w, 0);
@@ -7853,7 +8170,7 @@ function tirarPeca(slot) {
 function somaEquip() {
   const r = { defesa: 0, vida: 0, mana: 0, vel: 0, bloqueio: 0 };
   if (!prog || !prog.equip) return r;
-  for (const slot of ORDEM_PECAS) { const e = prog.equip[slot], pc = pecaEquipada(slot); if (!e || !pecaServe(pc)) continue; const a = atribPeca(pc, e.tier, e.ref); r.defesa += a.defesa; r[PECAS[pc].extra] += a.extra; }
+  for (const slot of ORDEM_PECAS) { const e = prog.equip[slot], pc = pecaEquipada(slot); if (!e || !pecaServe(pc) || PECAS[pc].acess) continue; const a = atribPeca(pc, e.tier, e.ref); r.defesa += a.defesa; r[PECAS[pc].extra] += a.extra; }
   return r;
 }
 // uma peça que cai: o modelo do nível de quem a soltou (o melhor que o nível alcança)
@@ -7877,10 +8194,23 @@ const BONUS = {
   critico: { nome: v => `Chance de golpe crítico +${v}%`, faixa: [1, 10] }, ataque: { nome: v => `Valor de ataque +${v}%`, faixa: [2, 15] },
   monstros: { nome: v => `Forte contra monstros +${v}%`, faixa: [2, 20] }, defesa: { nome: v => `Defesa +${v}`, faixa: [4, 40] },
   bloqueio: { nome: v => `Chance de bloquear +${v}%`, faixa: [1, 8] }, velocidade: { nome: v => `Velocidade de movimento +${v}%`, faixa: [1, 8] },
+  // (os dos acessórios: as faixas são o lv1 e o lv5 do item_attr do Metin2)
+  perfurante: { nome: v => `Chance de golpe perfurante +${v}%`, faixa: [1, 10] }, humano: { nome: v => `Forte contra Semi-humanos +${v}%`, faixa: [1, 10] },
+  animal: { nome: v => `Forte contra Animais +${v}%`, faixa: [2, 20] }, orc: { nome: v => `Forte contra Orcs +${v}%`, faixa: [2, 20] },
+  morto_vivo: { nome: v => `Forte contra Mortos-vivos +${v}%`, faixa: [2, 20] }, demonio: { nome: v => `Forte contra Demônios +${v}%`, faixa: [2, 20] },
+  exp: { nome: v => `Chance de EXP dobrada ${v}%`, faixa: [2, 20] }, yang: { nome: v => `Chance de yang dobrado ${v}%`, faixa: [2, 20] },
+  drop: { nome: v => `Chance de drop dobrado ${v}%`, faixa: [2, 20] },
+  // (só como atributo base do colar)
+  esquiva: { nome: v => `Chance de esquivar flechas e magias +${v}%`, faixa: [1, 6] }, resfriamento: { nome: v => `Recarga das habilidades −${v}%`, faixa: [1, 14] },
 };
 const BONUS_DA_PARTE = {
   arma: ["ataque", "critico", "monstros", "for", "dex", "int", "vida"], armadura_guerreiro: ["vida", "defesa", "vit", "for"],
   armadura_leve: ["vida", "defesa", "dex", "critico", "velocidade"], armadura_mago: ["mana", "int", "vida", "defesa"], elmo: ["mana", "critico", "int", "vida"], botas: ["velocidade", "vida", "dex"], escudo: ["bloqueio", "defesa", "vida", "for"],
+  // os acessórios (as colunas pulso, pescoço e orelha do item_attr; sem os que o Ghotin2 não tem: resistências, absorção,
+  // roubo de mana, regeneração, desmaio)
+  pulso: ["vida", "mana", "perfurante", "humano", "animal", "orc", "morto_vivo", "demonio", "drop"],
+  colar: ["vida", "mana", "critico", "perfurante", "exp", "yang"],
+  brinco: ["velocidade", "humano", "animal", "orc", "morto_vivo", "demonio", "drop"],
 };
 const BONUS_MAX = 5;
 // o teto do bônus pelo modelo: metade no de couro, 3/4 no de ferro, inteiro no de guerra e +8% a cada modelo acima
@@ -7888,7 +8218,7 @@ function tetoBonus(tier) { tier = tier || 0; return tier <= 2 ? [0.5, 0.75, 1][t
 // um bônus novo para a parte (sem repetir os que o item já tem)
 function sortearBonus(parte, tier, ja = []) {
   const livres = BONUS_DA_PARTE[parte].filter(b => !ja.some(([t]) => t === b)); if (!livres.length) return null;
-  const t = livres[Math.floor(Math.random() * livres.length)], [lo, hi] = BONUS[t].faixa, teto = lo + (hi - lo) * tetoBonus(tier);
+  const t = livres[Math.floor(Math.random() * livres.length)], [lo, hi] = BONUS[t].faixa, teto = lo + (hi - lo) * tetoBonus(tierBonus(parte, tier));
   return [t, Math.round(lo + Math.random() * (teto - lo))];
 }
 // quantos bônus um item que cai traz: 0 (40%), 1 (30%), 2 (18%), 3 (9%) ou 4 (3%)
@@ -7922,6 +8252,8 @@ function somaBonus() {
   const r = {};
   const l = [prog && prog.arma, ...(prog && prog.equip ? Object.values(prog.equip) : [])];
   for (const e of l) for (const [t, v] of (e && e.bon) || []) r[t] = (r[t] || 0) + v;
+  // (e o atributo base dos acessórios vestidos)
+  if (prog && prog.equip) for (const s of ACESSORIOS) { const e = prog.equip[s]; if (e) for (const [t, v] of baseAcess(s, e.tier, e.ref)) r[t] = (r[t] || 0) + v; }
   return r;
 }
 
@@ -8060,9 +8392,12 @@ function joiasDoChefe(l) {
 // Jóias (ícone e duas linhas) e a descrição. Se o personagem não pode usar o item, tudo fica vermelho.
 const GOLPE_BASICO = { espada: [9, 13], machado: [9, 13], adagas: [9 * DANO_NINJA, 13 * DANO_NINJA], arco: [10, 15], cajado: [18, 25] };
 const ROT_BONUS = { vida: "PV máx.", mana: "PM máx.", vit: "Vitalidade", int: "Inteligência", for: "Força", dex: "Destreza", critico: "Chance de golpe crítico",
-  ataque: "Valor de ataque", monstros: "Bônus contra monstros", defesa: "Defesa", bloqueio: "Chance de bloquear", velocidade: "Velocidade de movimento" };
-const PCT_BONUS = new Set(["critico", "ataque", "monstros", "bloqueio", "velocidade"]);
-const textoBonusM2 = ([t, v]) => ROT_BONUS[t] ? `${ROT_BONUS[t]}: +${v}${PCT_BONUS.has(t) ? "%" : ""}` : "";
+  ataque: "Valor de ataque", monstros: "Bônus contra monstros", defesa: "Defesa", bloqueio: "Chance de bloquear", velocidade: "Velocidade de movimento",
+  perfurante: "Chance de golpe perfurante", humano: "Forte contra Semi-humanos", animal: "Forte contra Animais", orc: "Forte contra Orcs",
+  morto_vivo: "Forte contra Mortos-vivos", demonio: "Forte contra Demônios", exp: "Chance de EXP dobrada", yang: "Chance de yang dobrado",
+  drop: "Chance de drop dobrado", esquiva: "Chance de esquivar flechas e magias", resfriamento: "Recarga das habilidades" };
+const PCT_BONUS = new Set(["critico", "ataque", "monstros", "bloqueio", "velocidade", "perfurante", "humano", "animal", "orc", "morto_vivo", "demonio", "exp", "yang", "drop", "esquiva", "resfriamento"]);
+const textoBonusM2 = ([t, v]) => ROT_BONUS[t] ? `${ROT_BONUS[t]}: ${t === "resfriamento" ? "−" : "+"}${v}${PCT_BONUS.has(t) ? "%" : ""}` : "";
 const escH = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
 function nomeBaseItem(chave) { return tipoItem(chave).nome.replace(/ \(.*\)$/, ""); }
 // it: { chave, ref, bon, jo, qtd }; extra: { preco }
@@ -8080,7 +8415,8 @@ function htmlDica(it, extra = {}) {
     esp(); linha("atq", `Ataque: ${Math.round(lo * k)} - ${Math.round(hi * k)}`);
     linha("fixo", `Força dos golpes: +${Math.round((k - 1) * 100)}%`);
   }
-  if (t.peca) {
+  if (t.peca && PECAS[t.peca].acess) { esp(); for (const b of baseAcess(t.peca, t.tier, it.ref || 0)) linha("fixo", textoBonusM2(b)); }
+  else if (t.peca) {
     const a = atribPeca(t.peca, t.tier, it.ref || 0), ex = PECAS[t.peca].extra;
     esp(); linha("atq", `Defesa: ${a.defesa}`);
     linha("fixo", { vida: `PV máx.: +${a.extra}`, mana: `PM máx.: +${a.extra}`, vel: `Velocidade de movimento: +${a.extra}%`, bloqueio: `Chance de bloquear: +${a.extra}%` }[ex]);
@@ -8374,6 +8710,9 @@ function montarBolsa() {
 // o que é raro faz um som próprio ao cair: livros, a Pedra da Alma, a Bênção e o que já vem refinado (+5 ou mais)
 const dropRaro = d => d.tipo === "livro" || d.tipo === "alma" || d.tipo === "bencao" || (d.ref || 0) >= 5 || (d.tipo === "joia" && +d.chave.split(":")[2] >= 3);
 function soltarItens(l, itens) {
+  // os adicionais do colar e dos brincos: o yang dobrado e o drop dobrado (os consumíveis e materiais caem duas vezes)
+  if (prog && status.yang) itens = itens.map(d => d.tipo === "yang" && Math.random() < status.yang ? { ...d, qtd: d.qtd * 2 } : d);
+  if (prog && status.drop && Math.random() < status.drop) itens = [...itens, ...itens.filter(d => !["yang", "peca", "arma", "livro", "joia"].includes(d.tipo)).map(d => ({ ...d }))];
   jornadaCaiu(itens);
   if (itens.length) som(itens.some(dropRaro) ? "drop_raro" : "drop", l, 0.8);
   itens.forEach((d, i) => { const a = i / itens.length * Math.PI * 2 + Math.random(), r = itens.length > 1 ? 1.1 : 0.4; drops.push({ ...d, x: l.x + Math.cos(a) * r, y: l.y + Math.sin(a) * r, vida: 90 }); });
@@ -8636,7 +8975,7 @@ function admListaItens() {
 }
 function admTipo() { const k = $("#admItem").value; return { chave: k, yang: k === "yang", t: k === "yang" ? { nome: "Yang", h: 1, desenho: "yang" } : tipoItem(k) }; }
 function admParte(t) { return t.arma ? ["arma", 2 + (t.tier || 0)] : t.peca ? [t.peca, t.tier] : null; }
-function admTeto(b, tier) { const [lo, hi] = BONUS[b].faixa; return Math.round(lo + (hi - lo) * tetoBonus(tier)); }
+function admTeto(b, tier, parte) { const [lo, hi] = BONUS[b].faixa; return Math.round(lo + (hi - lo) * tetoBonus(tierBonus(parte, tier))); }
 function admDesenhar() {
   const { chave, yang, t } = admTipo(), ref = admRef, cv = $("#admIcone"), w = 60, h = t.h * 60, temRef = !!(t.arma || t.peca);
   cv.width = w; cv.height = h;
@@ -8717,11 +9056,11 @@ function montarAdmin() {
   $("#admRefs").onclick = e => { const b = e.target.closest("[data-ref]"); if (b) { admRef = +b.dataset.ref; admDesenhar(); } };
   const bon = $("#admBonus");
   bon.onchange = e => { const l = e.target.closest(".bon"); if (!l) return; const i = +l.dataset.i;
-    if (e.target.tagName === "SELECT") { const pa = admParte(admTipo().t); admBon[i] = [e.target.value, admTeto(e.target.value, pa && pa[1])]; admDesenharBonus(); } };
+    if (e.target.tagName === "SELECT") { const pa = admParte(admTipo().t); admBon[i] = [e.target.value, admTeto(e.target.value, pa && pa[1], pa && pa[0])]; admDesenharBonus(); } };
   bon.oninput = e => { const l = e.target.closest(".bon"); if (l && e.target.tagName === "INPUT") admBon[+l.dataset.i][1] = +e.target.value; };
   bon.onclick = e => { const l = e.target.closest(".bon"); if (l && e.target.tagName === "BUTTON") { admBon.splice(+l.dataset.i, 1); admDesenharBonus(); } };
   $("#admBonMais").onclick = () => { const pa = admParte(admTipo().t); if (!pa) return;
-    const b = (BONUS_DA_PARTE[pa[0]] || []).find(x => !admBon.some(([y]) => y === x)); if (b && admBon.length < BONUS_MAX) admBon.push([b, admTeto(b, pa[1])]); admDesenharBonus(); };
+    const b = (BONUS_DA_PARTE[pa[0]] || []).find(x => !admBon.some(([y]) => y === x)); if (b && admBon.length < BONUS_MAX) admBon.push([b, admTeto(b, pa[1], pa[0])]); admDesenharBonus(); };
   $("#admBonSortear").onclick = () => { const pa = admParte(admTipo().t); if (!pa) return;
     const l = [], n = admBon.length || 3; for (let k = 0; k < n; k++) { const b = sortearBonus(pa[0], pa[1], l); if (b) l.push(b); } admBon = l; admDesenharBonus(); };
   $("#admBonLimpar").onclick = () => { admBon = []; admDesenharBonus(); };
@@ -8736,6 +9075,7 @@ function montarAdmin() {
   $("#admFechar").onclick = () => abrirAdmin(false);
   $("#bAdmin").onclick = () => abrirAdmin();
   // personagem de teste: equipa arma e peça de qualquer nível (para mostrar os modelos novos na mão); fica salvo no progresso dele
+  for (const nv of [1, 11, 21]) $("#admCav" + nv).onclick = () => adminCavalo(nv);
   $("#admSemTrava").onchange = e => { prog.semTrava = e.target.checked || undefined; salvarProgresso(); if (e.target.checked) jornadaAdmin("ligou sem trava"); avisar(e.target.checked ? "Este personagem usa itens de qualquer nível" : "A trava de nível dos itens voltou"); };
 }
 
@@ -8775,6 +9115,7 @@ function acoesFicha() {
     { id: "alvo", nome: "Alvo", tecla: "Espaço", dica: "Marca a criatura mais perto (de novo: a próxima)", usar: clicar("bAlvo") },
     { id: "soltar", nome: "Soltar alvo", tecla: "Esc", dica: "Solta o alvo marcado", usar: clicar("bSoltar") }];
   if (classe === "viking") l.push({ id: "espada", nome: "Sacar/guardar", dica: "Saca a espada das costas ou guarda", usar: clicar("bEspada") });
+  if (CAVALO_LIBERADO) l.push({ id: "montar", nome: "Montar", tecla: "Ctrl+G", dica: "Monta no cavalo (ou desmonta); sem ele por perto, chama antes", usar: () => alternarMontaria() });
   return l;
 }
 function acaoDaBarra(nome) {
@@ -8800,6 +9141,10 @@ function desenharAcao(g, id, t = 56) {
     for (const [a, b, c, d] of [[28, 6, 28, 13], [28, 43, 28, 50], [6, 28, 13, 28], [43, 28, 50, 28]]) linha(N, 3, a, b, c, d);
     if (id === "alvo") { g.fillStyle = C; g.beginPath(); g.arc(28, 28, 3.6, 0, 7); g.fill(); }
     else { linha("#F1E7D0", 7.5, 17, 17, 39, 39); linha("#F1E7D0", 7.5, 39, 17, 17, 39); linha(C, 4.2, 17, 17, 39, 39); linha(C, 4.2, 39, 17, 17, 39); }
+  } else if (id === "montar") {                                         // a cabeça do cavalo com a rédea
+    g.fillStyle = N; g.beginPath(); g.moveTo(16, 47); g.lineTo(20, 28); g.quadraticCurveTo(22, 15, 33, 12); g.lineTo(36, 6); g.lineTo(39, 13);
+    g.quadraticCurveTo(47, 18, 48, 30); g.lineTo(44, 34); g.lineTo(37, 30); g.quadraticCurveTo(31, 37, 33, 47); g.closePath(); g.fill();
+    linha(C, 3, 22, 24, 41, 31); g.fillStyle = "#F1E7D0"; g.beginPath(); g.arc(37, 20, 2.2, 0, 7); g.fill();
   } else if (id === "espada") {
     g.fillStyle = "#6b5226"; g.strokeStyle = N; g.lineWidth = 2.4; g.beginPath(); g.roundRect ? g.roundRect(23, 24, 10, 25, 3) : g.rect(23, 24, 10, 25); g.fill(); g.stroke();
     linha("#C9963E", 2, 23.5, 44, 32.5, 44);
@@ -8851,11 +9196,12 @@ function atualizarFicha() {
     ["Bloqueio", Math.round((status.bloqueio || 0) * 100) + "%", "Chance de o escudo segurar um golpe"],
     ["Redução de dano", red + "%", "Quanto a defesa tira do dano recebido"],
     ["Contra monstros", "+" + Math.round((status.monstros || 0) * 100) + "%", "Dano a mais contra criaturas (bônus dos itens e Jóia Monstruosa)"],
-    ["Perfurante", Math.round((status.perfurante || 0) * 100) + "%", "Chance de o golpe ignorar a defesa da criatura (Jóia do Ataque Perfurante)"],
-    ["Contra raças", "+" + Math.max(0, ...["morto_vivo", "animal", "orc"].map(r => Math.round(((status.raca || {})[r] || 0) * 100))) + "%",
-      "Jóias contra raça: " + [["morto_vivo", "Mortos-vivos"], ["animal", "Animais"], ["orc", "Orcs"]].map(([r, n]) => `${n} +${Math.round(((status.raca || {})[r] || 0) * 100)}%`).join(" · ")],
+    ["Perfurante", Math.round((status.perfurante || 0) * 100) + "%", "Chance de o golpe ignorar a defesa da criatura (Jóia do Ataque Perfurante, colar e bracelete)"],
+    ["Contra raças", "+" + Math.max(0, ...["morto_vivo", "animal", "orc", "demonio", "humano"].map(r => Math.round(((status.raca || {})[r] || 0) * 100))) + "%",
+      "Jóias e acessórios contra raça: " + [["morto_vivo", "Mortos-vivos"], ["animal", "Animais"], ["orc", "Orcs"], ["demonio", "Demônios"], ["humano", "Semi-humanos"]].map(([r, n]) => `${n} +${Math.round(((status.raca || {})[r] || 0) * 100)}%`).join(" · ")],
     ["Evasão · Esquiva", Math.round((status.evasao || 0) * 100) + "/" + Math.round((status.esquiva || 0) * 100) + "%", "Chance de bloquear o golpe corpo a corpo / de esquivar a flecha e a magia (Jóias da Evasão e da Esquiva)"],
-    ["Resfriamento", "−" + Math.round((status.resfriamento || 0) * 100) + "%", "Recarga das skills mais curta (Jóia do Resfriamento)"],
+    ["Resfriamento", "−" + Math.round((status.resfriamento || 0) * 100) + "%", "Recarga das skills mais curta (Jóia do Resfriamento e colar; no máximo 50%)"],
+    ["EXP · Yang · Drop", [status.exp, status.yang, status.drop].map(v => Math.round((v || 0) * 100)).join("/") + "%", "Chance de EXP dobrada, de yang dobrado e de drop dobrado (adicionais do colar, do bracelete e dos brincos)"],
     ["Refino da arma", prog.arma ? "+" + (prog.arma.ref || 0) : "—", prog.arma ? nomeArma(prog.arma.ref) : "Sem arma (punhos)"]]
     .map(([a, v, t]) => `<span title="${t}">${a}</span><b class="fx-cx" title="${t}">${v}</b>`).join("");
   const lb = Object.entries(bon).map(([t, v]) => BONUS[t] ? BONUS[t].nome(v) : "").filter(Boolean);
@@ -8908,6 +9254,7 @@ function atualizarFicha() {
     return `<div class="fx-acao" title="${a.dica}"><canvas class="fx-acao-ic" width="80" height="80" data-acao="${a.id}" aria-label="${a.nome}: clique para usar, arraste até a barra"></canvas><i>${a.nome}</i>` +
       `<small>${a.tecla ? `<kbd>${a.tecla}</kbd>` : ""}${i >= 0 ? `<kbd>${ROTULO_TECLA(TECLAS_BARRA[i])}</kbd>` : ""}</small></div>`; }).join("");
   for (const c of $("#fAcoes").querySelectorAll("canvas[data-acao]")) desenharAcao(c.getContext("2d"), c.dataset.acao, 80);
+  atualizarFichaCavalo();
   $("#fEmocoes").innerHTML = travado([["Sentar", "descansar no chão"], ["Acenar", "cumprimentar"], ["Dançar", "dançar"]]);
   // ---- Quests: as missões do jogo (MISSOES), com a etapa de agora e o andamento
   $("#fQuests").innerHTML = Object.entries(MISSOES).map(([id, M]) => {
@@ -10879,6 +11226,7 @@ function trocarClasse(nova) {
   Object.assign(v, { anim: sempreArmado ? "parado_armado" : "parado", t: 0, acao: null, espada: sempreArmado ? "armada" : "costas", ociosoArmado: 0, combo: 0, fila: null, acertou: false, caido: false, noLugar: null, esperaParar: null, ferido: 0 });
   furia.buff = 0; furia.desde = -1; vortice.ativo = false; vortice.restam = 0; espiritual.buff = 0; espiritual.desde = -1;
   flechas.length = 0; selecao = null;
+  v.montado = false; cavaloEnt.ativo = false;                        // (o cavalo é de cada personagem)
   for (const [id, c] of [["#cViking", "viking"], ["#cArqueiro", "arqueiro"], ["#cFeiticeiro", "feiticeiro"], ["#cNinja", "ninja"], ["#cGuerreiro", "guerreiro"]]) $(id).setAttribute("aria-pressed", classe === c);
   $("#titulo").textContent = "Campo de Treino do " + NOME_CLASSE[classe];
   SKILLS = { viking: SKILLS_VIKING, arqueiro: SKILLS_ARQUEIRO, feiticeiro: SKILLS_FEITICEIRO, ninja: SKILLS_NINJA, guerreiro: SKILLS_GUERREIRO }[classe];
@@ -11014,6 +11362,8 @@ addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
   // o atalho escondido do modo admin (Ctrl + Alt + Shift + A): liga e desliga, e fica lembrado neste navegador
   if (k === "a" && e.ctrlKey && e.altKey && e.shiftKey) { e.preventDefault(); if (!e.repeat) avisar(modoAdmin(!ADMIN) ? "Modo admin ligado" : "Modo admin desligado"); return; }
+  // Ctrl+G: monta e desmonta do cavalo (como no Metin2; o Ctrl não deixa abrir o admin nem o "procurar" do navegador)
+  if (k === "g" && e.ctrlKey && !e.altKey) { e.preventDefault(); if (!e.repeat && !editor.ativo && CAVALO_LIBERADO) alternarMontaria(); return; }
   const iSlot = TECLAS_BARRA.indexOf(k);
   if (iSlot >= 0 && !editor.ativo) { e.preventDefault(); if (!e.repeat) usarSlot(iSlot); return; }
   if (k === "o" && !e.repeat && (ADMIN || editor.ativo)) { editorAbrir(!editor.ativo); return; }
@@ -11813,7 +12163,7 @@ function npcsHahoe() {
   return [
     { nome: "Velho Gong do Armazém", x: -8, y: 2.6, modelo: "armazem", armazem: true, cores: { roupa: "#3E7A5C", calca: "#2D4A6B", pele: "#e0b896", cabelo: "#d8d0c0", barba: "#e8e4dc" },
       falas: ["O que você guardou na Vila 1 está aqui também: o armazém é um só, de vila em vila.", "O rio dá a volta na vila inteira. Quem chega pela Ponte de Pedra já está em casa."] },
-    { nome: "Herbalista Seo", x: 8.8, y: -6.0, modelo: "ninja", tinta: [0.048, 0.195, 0.107], loja: alq ? alq.loja : [], cores: { roupa: "#3E7A5C", calca: "#2f3a2a", pele: "#e8c4a0", cabelo: "#1E1B18", capuz: "#2D4A6B" },
+    { nome: "Herbalista Seo", x: 8.8, y: -6.0, modelo: "ninja", tinta: [0.048, 0.195, 0.107], loja: alq ? [...alq.loja, ["peca:brinco:2", 5000], ["peca:colar:2", 5000], ["peca:pulso:2", 5000], ["peca:brinco:3", 11000], ["peca:colar:3", 11000], ["peca:pulso:3", 11000]] : [], cores: { roupa: "#3E7A5C", calca: "#2f3a2a", pele: "#e8c4a0", cabelo: "#1E1B18", capuz: "#2D4A6B" },
       falas: ["Chá dos terraços e poções do mesmo bule. A vermelha fecha feridas, a azul devolve a mana.", "Os mortos do brejo não gostam de sal. Nem de quem traz poções sobrando."] },
     { nome: "Armeira Yu-Rang", x: 8.8, y: -8.7, modelo: "arqueiro", tinta: null, loja: LOJA_HAHOE, cores: { roupa: "#B8322A", calca: "#3a2a1c", pele: "#f0c8a8", cabelo: "#1E1B18", lenco: "#EFE4CC" },
       falas: ["Ferro bom não enferruja na beira do rio. O meu, pelo menos, não.", "Para os bandidos da estrada, um escudo. Para os fantasmas das ruínas, coragem: essa eu não vendo."] },
@@ -12327,6 +12677,7 @@ function passo(dt) {
   const mapaHeroi = idMapa(viking.x, viking.y);
   for (const l of criaturas) if (l.morto || l.mapa === undefined || l.mapa === mapaHeroi) passoCriatura(l, dt);
   passoGruposV1(dt);                                                   // (os grupos do Metin2 da Vila 1: corpos, órfãos e o renascer)
+  passoCavalo(dt);                                                     // (o cavalo: montado, solto atrás do herói ou empinando)
   passoProgresso(dt);
   passoPassagens(dt);
   jornadaPasso(dt);
@@ -12396,7 +12747,8 @@ function passo(dt) {
   // Shift (ou o botão Correr, ou um clique longe) corre
   // todos só correm (não há mais o andar): a velocidade sobe com a velocidade de movimento dos itens, a Fúria e os Passos Leves
   const corre = true;
-  const vel = (corre ? Math.min(CORRIDA, M.correr * CORRIDA_MAX) : VELOCIDADE) * (furia.buff > 0 ? 1.25 : 1) * velPes() * (status.velEquip || 1);   // fúria: 25% mais rápido; pés leves: 45%
+  const vel = v.montado ? velMontado(cavaloDe().nivel) * (status.velEquip || 1)   // montado: a velocidade do cavalo (Logs/Cavalo)
+    : (corre ? Math.min(CORRIDA, M.correr * CORRIDA_MAX) : VELOCIDADE) * (furia.buff > 0 ? 1.25 : 1) * velPes() * (status.velEquip || 1);   // fúria: 25% mais rápido; pés leves: 45%
   if (len > 0 && cortaAndando(v, mx, my, porTeclas)) { v.acao = null; v.fila = null; }   // já soltou: andar corta o fim
   const andando = len > 0 && !v.acao && !v.caido;
   if (vortice.ativo && len > 0) {                                     // girando, ele anda devagar para onde mandar
@@ -12938,6 +13290,7 @@ function desenhar(t) {
   // (a ordem pela profundidade da vista: com o giro, o fundo é o nordeste; ver profObj)
   const lista = objetos.filter(o => !PLANO.has(o.tipo) && naTela(o)).map(o => ({ y: profObj(o), f: () => objeto(o) }));
   lista.push({ y: profV(viking.x, viking.y), f: desenharViking });
+  if (cavaloEnt.ativo && !viking.montado) lista.push({ y: profV(cavaloEnt.x, cavaloEnt.y), f: desenharCavaloSolto });
   predLista(lista, t);                              // as construções em camadas (o kit modular: entra-se nelas)
   vegLista(lista, t);                               // o mato alto perto de quem anda (na frente das pernas)
   portaisLista(lista, t);                           // os portais entre os mapas (o portão, o redemoinho e o nome do destino)
@@ -13203,6 +13556,7 @@ const MODELOS_3D = {
   lobo: {}, javali: {}, rato: {}, aranha: {}, goblin: {}, esqueleto: {}, orc: {}, orc_bravo: {}, orc_feiticeiro: {},
   urso_negro: {}, tigre: {}, lobo_alfa: {}, bandido: {}, bandido_arqueiro: {}, chefe_bandido: {}, zumbi: {}, fantasma: {}, lich: {},
   golem: {}, escorpiao: {}, yeti: {}, nove_caudas: {},
+  cavalo: {},                                  // (o cavalo de montaria: Logs/Cavalo; o herói montado vai preso ao nó "Assento")
   ferreiro: {}, guarda: {}, guarda_real: {}, armazem: {},
 };
 // os moradores da vila que têm modelo (os outros continuam desenhados por código)
@@ -13471,7 +13825,7 @@ async function montarModelo3d(m, gltf) {
     o.material = mat; o.frustumCulled = false;
   });
   for (const t of texs.values()) limitarMip3d(t);
-  if (ESTILO_TINTA && !NOME_CLASSE[m.nome] && m.nome !== "ferreiro" && !Object.values(NPC_3D).includes(m.nome)) try { olhos3d(m); } catch (e) { console.error("olhos", m.nome, e); }
+  if (ESTILO_TINTA && !NOME_CLASSE[m.nome] && m.nome !== "ferreiro" && m.nome !== "cavalo" && !Object.values(NPC_3D).includes(m.nome)) try { olhos3d(m); } catch (e) { console.error("olhos", m.nome, e); }
   m.caixa = await caixa3d(m);
 }
 // Mundo de Tinta: as criaturas com olhos vermelhos (para se destacarem do papel): duas bolinhas presas ao osso da cabeça,
@@ -13538,6 +13892,7 @@ function texturaLeve3d(t) {
 // sprites do mesmo boneco (o 3D sai do mesmo tamanho e no mesmo lugar); sem sprites, uma folgada em volta da malha
 async function caixa3d(m) {
   const n = m.nome;
+  if (n === "cavalo") return { esq: 1.7, dir: 1.7, cima: 3.1, baixo: 1.2 };   // (cabe o cavalo morto e o herói montado com a arma erguida)
   let j = { viking: MV, arqueiro: MA, feiticeiro: MF, ninja: MN, guerreiro: MG }[n] || (TIPOS[n] && !TIPOS[n].semSprite && TIPOS[n].M);
   if (!j || !j.animacoes) { try { const r = await fetch(n + ".json"); if (r.ok) j = await r.json(); } catch (e) {} }
   m.json = j && j.animacoes ? j : null;
@@ -13644,7 +13999,7 @@ function instancia3d(dono, m, arma = "") {
   p.inst.set(dono, i);
   return i;
 }
-function apagarInst3d(i) { const p = P3D; p.cena.remove(i.raiz); i.mixer.stopAllAction(); p.inst.delete(i.dono); }
+function apagarInst3d(i) { const p = P3D; if (i.raiz.parent) i.raiz.parent.remove(i.raiz); i.mixer.stopAllAction(); p.inst.delete(i.dono); }   // (o herói montado é filho do Assento do cavalo)
 // ---- o que vai em 3D neste quadro: o herói, as criaturas e os NPCs com modelo que aparecem na tela
 function animNpc3d(o, nome, m, agora) {
   const v = viking, dx = v.x - o.x, dy = v.y - o.y, d = Math.hypot(dx, dy);
@@ -13673,11 +14028,27 @@ function pedidos3d(agora) {
   const longe = (x, y) => Math.hypot(x - viking.x, y - viking.y);
   // o herói
   const mh = p.modelos[classe], v = viking;
-  if (mh && mh.ok) {
+  if (v.montado && mh && mh.ok) {
+    // montado: o pedaço do herói é o do cavalo, com o herói preso ao Assento (montarCavaleiro3d); sem o modelo ou os clipes
+    // montados ainda, fica o sprite do conjunto (desenharMontado)
+    const mc = p.modelos.cavalo, mm = MONTADOS3D && MONTADOS3D[classe];
+    if (mc && mc.ok && mm) {
+      const a = montadoAnim(), nf = nivelFuria(agora), fer = v.ferido > 0 ? v.ferido / 0.3 : 0;
+      l.push({ dono: v, m: mc, anim: a.cavalo, t: a.tc, info: mc.info[a.cavalo], ang: angDir3d(v.dir), esc: 1, emis: [0.55 * fer + 0.25 * nf, 0.06 * nf, 0], heroi: true,
+               aparencia: aparenciaCavalo(cavaloDe().nivel), montado: { m: mh, anim: a.heroi, t: a.th, arma: arma3dDoHeroi() } });
+    } else { if (!mc) pedirModelo3d("cavalo", -1); carregarMontados3d(); }
+  } else if (mh && mh.ok) {
     const n = animVisivel(v.anim), nf = nivelFuria(agora), fer = v.ferido > 0 ? v.ferido / 0.3 : 0;
     // ferido pisca vermelho; na fúria, o corpo avermelha (o que no sprite é a silhueta por cima)
     l.push({ dono: v, m: mh, anim: n, t: v.t, info: M.animacoes[n], ang: angDir3d(v.dir), esc: 1, emis: [0.55 * fer + 0.25 * nf, 0.06 * nf, 0], heroi: true, arma: arma3dDoHeroi() });
   } else pedirModelo3d(classe, -1);
+  // o cavalo solto (chamado e sem ninguém montado): segue o herói
+  if (cavaloEnt.ativo && !v.montado) {
+    const mc = p.modelos.cavalo;
+    if (mc && mc.ok) l.push({ dono: cavaloEnt, m: mc, anim: cavaloEnt.anim, t: cavaloEnt.t, info: mc.info[cavaloEnt.anim], ang: angDir3d(cavaloEnt.dir), esc: 1, emis: [0, 0, 0], perto: true,
+                              aparencia: aparenciaCavalo(cavaloDe().nivel) });
+    else pedirModelo3d("cavalo", 0);
+  }
   // as criaturas (as pedras Metin ficam como estão)
   for (const c of criaturas) {
     if (c.cfg.estatico) continue;
@@ -13727,7 +14098,7 @@ function prepararP3d(t) {
     const anim = clip3d(d.m, d.anim);
     if (!anim) continue;                                                   // sem essa animação no glb: fica o sprite
     const i = instancia3d(d.dono, d.m, d.arma || "");
-    i.pedido = p.quadro; i.d = d; i.anim = anim; i.mascara = !!(d.heroi && querMascara3d());
+    i.pedido = p.quadro; i.d = d; i.anim = anim; i.mascara = !!(d.heroi && !d.montado && querMascara3d());
     usar.push(i);
   }
   // o tamanho do pedaço de cada um: o do boneco na tela (vezes a qualidade), em múltiplos de 8 px, no máximo meio atlas
@@ -13771,7 +14142,7 @@ function prepararP3d(t) {
     else { let x = d.ang - i.ang; x = Math.atan2(Math.sin(x), Math.cos(x)); i.ang += x * Math.min(1, dt * (d.heroi ? 16 : 12)); }
     // (no Mundo de Tinta a pose anda a 12 quadros por segundo, como animação à mão, e o traço muda a cada quadro: p.boil)
     const clip = i.m.clips[i.anim], tempo = quadroTinta(tempo3d(clip, d, d.info || i.m.info[i.anim]));
-    const chave = i.anim + "|" + Math.round(tempo * (d.heroi || d.perto ? 120 : leve ? 20 : 40)) + "|" + Math.round(i.ang * 60) + "|" + d.emis.map(e => Math.round(e * 20)).join() + "|" + (d.tinta || "") + (i.mascara ? "|m" : "") + (ESTILO_TINTA && (!leve || d.heroi) ? "|" + p.boil : "");   // (no celular só o herói "ferve")
+    const chave = i.anim + "|" + Math.round(tempo * (d.heroi || d.perto ? 120 : leve ? 20 : 40)) + "|" + Math.round(i.ang * 60) + "|" + d.emis.map(e => Math.round(e * 20)).join() + "|" + (d.tinta || "") + (i.mascara ? "|m" : "") + (ESTILO_TINTA && (!leve || d.heroi) ? "|" + p.boil : "") + (d.montado ? "|" + d.montado.anim + Math.round(d.montado.t * 120) + d.aparencia : d.aparencia || "");   // (no celular só o herói "ferve")
     if (i.valido && chave === i.chave) continue;
     const hTela = (i.m.caixa.cima + i.m.caixa.baixo) * PX * zoom * d.esc;
     const passo = d.heroi || d.perto ? 1 : (d.morto ? 4 : hTela >= 260 ? 1 : hTela >= 140 ? 2 : 3) + (leve ? 1 : 0);
@@ -13805,6 +14176,8 @@ function renderInst3d(i, clip, tempo) {
   const a = i.acoes[i.anim] || (i.acoes[i.anim] = i.mixer.clipAction(clip));
   if (a !== i.atual) { if (i.atual) i.atual.stop(); a.play(); i.atual = a; }
   a.time = tempo; i.mixer.update(0);
+  if (d.aparencia) vestirCavalo3d(i, d.aparencia, !!d.montado);         // (o cavalo: as malhas da aparência do nível)
+  if (d.montado) montarCavaleiro3d(i, d.montado);                       // (o herói preso ao Assento, no clipe montado)
   i.raiz.rotation.y = i.ang + GIRO; i.raiz.updateMatrixWorld(true);       // (+ o giro da vista: a câmera do atlas fica, o boneco gira)
   // os materiais são do modelo (todos os clones os dividem): a cor de cada um vai antes da vez dele
   const tinta = d.tinta ? (TINTAS_3D[d.tinta] || (TINTAS_3D[d.tinta] = new THREE.Color(d.tinta))) : null;
@@ -13926,6 +14299,7 @@ function desenharViking() {
   q = info.laco ? ((q % info.quadros) + info.quadros) % info.quadros : Math.min(info.quadros - 1, Math.max(0, q));
   const [sx, sy] = tela(v.x - cam.x, v.y - cam.y);
   const X = W / 2 + sx, Y = H / 2 + sy - zPiso(v.x, v.y) * PX * zoom * ALTURA, z = zoom;   // (no piso alto do palácio, mais alto)
+  if (v.montado) { desenharMontado(X, Y, z); return; }                 // (montado: o cavalo com o herói preso ao Assento)
   sombraHeroi(X, Y, z);
   const im = SPR[nomeAnim][dirTela(v.dir)], em3d = !!P3D.vale(v);
   cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";

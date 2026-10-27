@@ -65,8 +65,8 @@
  "yang": {
   "a": "itens_b/atlas.webp",
   "r": [
-   194,
-   1543,
+   776,
+   1931,
    192,
    173
   ]
@@ -128,8 +128,8 @@
  "peca:armadura_guerreiro:0": {
   "a": "itens_b/atlas.webp",
   "r": [
-   388,
-   1543,
+   970,
+   1931,
    192,
    171
   ]
@@ -137,8 +137,8 @@
  "peca:armadura_guerreiro:1": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1552,
-   1358,
+   194,
+   1931,
    192,
    175
   ]
@@ -146,8 +146,8 @@
  "peca:armadura_guerreiro:2": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1552,
-   1543,
+   194,
+   2110,
    192,
    167
   ]
@@ -155,8 +155,8 @@
  "peca:armadura_leve:0": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1328,
-   1164,
+   970,
+   1552,
    192,
    188
   ]
@@ -164,8 +164,8 @@
  "peca:armadura_leve:1": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1716,
-   1164,
+   1746,
+   1552,
    192,
    185
   ]
@@ -173,8 +173,8 @@
  "peca:armadura_leve:2": {
   "a": "itens_b/atlas.webp",
   "r": [
-   0,
-   1358,
+   194,
+   1745,
    192,
    183
   ]
@@ -236,8 +236,8 @@
  "peca:botas:0": {
   "a": "itens_b/atlas.webp",
   "r": [
-   940,
-   1164,
+   388,
+   1552,
    192,
    190
   ]
@@ -254,8 +254,8 @@
  "peca:botas:2": {
   "a": "itens_b/atlas.webp",
   "r": [
-   164,
-   1164,
+   1277,
+   1358,
    192,
    191
   ]
@@ -281,8 +281,8 @@
  "peca:escudo:2": {
   "a": "itens_b/atlas.webp",
   "r": [
-   358,
-   1164,
+   1471,
+   1358,
    192,
    191
   ]
@@ -344,8 +344,8 @@
  "peca:armadura_leve:3": {
   "a": "itens_b/atlas.webp",
   "r": [
-   552,
-   1164,
+   1665,
+   1358,
    192,
    191
   ]
@@ -353,8 +353,8 @@
  "peca:armadura_leve:4": {
   "a": "itens_b/atlas.webp",
   "r": [
-   388,
-   1358,
+   582,
+   1745,
    192,
    182
   ]
@@ -362,8 +362,8 @@
  "peca:armadura_leve:5": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1522,
    1164,
+   1552,
    192,
    188
   ]
@@ -461,8 +461,8 @@
  "peca:elmo:4": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1358,
-   1358,
+   0,
+   1931,
    192,
    177
   ]
@@ -848,8 +848,8 @@
  "adagas:3": {
   "a": "itens_b/atlas.webp",
   "r": [
-   746,
-   1164,
+   0,
+   1552,
    192,
    191
   ]
@@ -857,8 +857,8 @@
  "adagas:4": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1746,
-   1358,
+   388,
+   1931,
    192,
    175
   ]
@@ -875,8 +875,8 @@
  "adagas:6": {
   "a": "itens_b/atlas.webp",
   "r": [
-   776,
-   1358,
+   1164,
+   1745,
    192,
    179
   ]
@@ -884,8 +884,8 @@
  "joia:critico": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1746,
-   1543,
+   388,
+   2110,
    192,
    167
   ]
@@ -902,8 +902,8 @@
  "joia:monstros": {
   "a": "itens_b/atlas.webp",
   "r": [
-   970,
-   1543,
+   1552,
+   1931,
    192,
    170
   ]
@@ -920,8 +920,8 @@
  "joia:morto_vivo": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1358,
-   1543,
+   0,
+   2110,
    192,
    169
   ]
@@ -929,8 +929,8 @@
  "joia:animal": {
   "a": "itens_b/atlas.webp",
   "r": [
-   582,
-   1543,
+   1164,
+   1931,
    192,
    171
   ]
@@ -938,8 +938,8 @@
  "joia:orc": {
   "a": "itens_b/atlas.webp",
   "r": [
-   970,
    1358,
+   1745,
    192,
    179
   ]
@@ -947,8 +947,8 @@
  "joia:vitalidade": {
   "a": "itens_b/atlas.webp",
   "r": [
-   776,
-   1543,
+   1358,
+   1931,
    192,
    171
   ]
@@ -956,8 +956,8 @@
  "joia:magia": {
   "a": "itens_b/atlas.webp",
   "r": [
-   0,
-   1543,
+   582,
+   1931,
    192,
    174
   ]
@@ -965,8 +965,8 @@
  "joia:defesa": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1164,
-   1543,
+   1746,
+   1931,
    192,
    170
   ]
@@ -974,8 +974,8 @@
  "joia:aceleracao": {
   "a": "itens_b/atlas.webp",
   "r": [
-   582,
-   1358,
+   970,
+   1745,
    192,
    181
   ]
@@ -983,8 +983,8 @@
  "joia:evasao": {
   "a": "itens_b/atlas.webp",
   "r": [
-   194,
-   1358,
+   388,
+   1745,
    192,
    183
   ]
@@ -992,8 +992,8 @@
  "joia:esquiva": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1134,
-   1164,
+   776,
+   1552,
    192,
    189
   ]
@@ -1010,8 +1010,8 @@
  "joia_partida": {
   "a": "itens_b/atlas.webp",
   "r": [
-   0,
-   1719,
+   776,
+   2110,
    192,
    159
   ]
@@ -1019,8 +1019,8 @@
  "bau_iniciante": {
   "a": "itens_b/atlas.webp",
   "r": [
-   1164,
-   1358,
+   1552,
+   1745,
    192,
    178
   ]
@@ -1031,6 +1031,339 @@
    0,
    1164,
    162,
+   192
+  ]
+ },
+ "retrato_cavalo": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   164,
+   1164,
+   191,
+   192
+  ]
+ },
+ "peca:pulso:0": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1358,
+   2110,
+   192,
+   147
+  ]
+ },
+ "peca:pulso:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   776,
+   2281,
+   192,
+   126
+  ]
+ },
+ "peca:pulso:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   970,
+   2281,
+   192,
+   126
+  ]
+ },
+ "peca:pulso:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1746,
+   2110,
+   192,
+   134
+  ]
+ },
+ "peca:pulso:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   0,
+   2281,
+   192,
+   134
+  ]
+ },
+ "peca:pulso:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   194,
+   2281,
+   192,
+   134
+  ]
+ },
+ "peca:pulso:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1164,
+   2281,
+   192,
+   125
+  ]
+ },
+ "peca:pulso:7": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   582,
+   2281,
+   192,
+   129
+  ]
+ },
+ "peca:pulso:8": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   388,
+   2281,
+   192,
+   134
+  ]
+ },
+ "peca:pulso:9": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1552,
+   2110,
+   192,
+   142
+  ]
+ },
+ "peca:pulso:10": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   970,
+   2110,
+   192,
+   154
+  ]
+ },
+ "peca:pulso:11": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   582,
+   2110,
+   192,
+   164
+  ]
+ },
+ "peca:colar:0": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   582,
+   1552,
+   192,
+   190
+  ]
+ },
+ "peca:colar:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1358,
+   1552,
+   192,
+   187
+  ]
+ },
+ "peca:colar:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   0,
+   1745,
+   192,
+   184
+  ]
+ },
+ "peca:colar:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1552,
+   1552,
+   192,
+   186
+  ]
+ },
+ "peca:colar:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   357,
+   1164,
+   188,
+   192
+  ]
+ },
+ "peca:colar:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   194,
+   1552,
+   192,
+   191
+  ]
+ },
+ "peca:colar:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   776,
+   1745,
+   192,
+   182
+  ]
+ },
+ "peca:colar:7": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1746,
+   1745,
+   192,
+   178
+  ]
+ },
+ "peca:colar:8": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   547,
+   1164,
+   178,
+   192
+  ]
+ },
+ "peca:colar:9": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   727,
+   1164,
+   169,
+   192
+  ]
+ },
+ "peca:colar:10": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   898,
+   1164,
+   169,
+   192
+  ]
+ },
+ "peca:colar:11": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1069,
+   1164,
+   183,
+   192
+  ]
+ },
+ "peca:brinco:0": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1254,
+   1164,
+   189,
+   192
+  ]
+ },
+ "peca:brinco:1": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1164,
+   2110,
+   192,
+   151
+  ]
+ },
+ "peca:brinco:2": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1445,
+   1164,
+   175,
+   192
+  ]
+ },
+ "peca:brinco:3": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1622,
+   1164,
+   177,
+   192
+  ]
+ },
+ "peca:brinco:4": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1801,
+   1164,
+   185,
+   192
+  ]
+ },
+ "peca:brinco:5": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   0,
+   1358,
+   191,
+   192
+  ]
+ },
+ "peca:brinco:6": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   193,
+   1358,
+   183,
+   192
+  ]
+ },
+ "peca:brinco:7": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   378,
+   1358,
+   183,
+   192
+  ]
+ },
+ "peca:brinco:8": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   563,
+   1358,
+   167,
+   192
+  ]
+ },
+ "peca:brinco:9": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   732,
+   1358,
+   175,
+   192
+  ]
+ },
+ "peca:brinco:10": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   909,
+   1358,
+   182,
+   192
+  ]
+ },
+ "peca:brinco:11": {
+  "a": "itens_b/atlas.webp",
+  "r": [
+   1093,
+   1358,
+   182,
    192
   ]
  }
