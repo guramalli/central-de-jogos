@@ -1025,6 +1025,148 @@
   .jornada .jor-tabela > span:nth-child(3n+2), .jornada .jor-tabela > span:nth-child(3n) { text-align: right; font-family: var(--dados); font-variant-numeric: tabular-nums; }
   .jornada .jor-tabela > .cab { border-bottom-style: solid; font-weight: 700; font-family: var(--corpo) !important; opacity: 0.8; }
   .jornada .jor-vazio { grid-column: 1 / -1; opacity: 0.7; font-style: italic; border: 0 !important; }
+
+  /* ================================================================ a barra de baixo, como a do Metin2 (parte 1, 29/10; ajuste 29/10)
+     Uma faixa de nanquim de ponta a ponta, sem emenda (só gradientes, que não repetem bloco), com o filete de papel e
+     ocre contínuo em cima, um trilho ocre passando no meio, os terminais ornamentados nas duas pontas e três bandejas
+     fundas presas ao trilho: à esquerda o nível (um disco de papel encaixado na ponta da bandeja), HP, SP, a stamina
+     (fina, alinhada com as de cima, só enfeite: sempre cheia) e as 4 orbes de EXP (o líquido dourado, num canvas:
+     desenharOrbes); no meio os atalhos em páginas com as setas; à direita os discos da ficha, das skills, do inventário e
+     do menu. Entre as bandejas, as divisórias (o losango ocre). --rp-alt é a altura da faixa; --rp-seg, o pedaço da
+     área segura de baixo que ela cobre (só no toque, até 34 px: no PC a faixa fica sempre colada no fundo) */
+  :root { --rp-alt: 64px; --rp-seg: 0px; --rp-ocre: #C9963E; --rp-ocre2: #6b5226; --rp-papel: #EFE4CC; --rp-nanquim: #0e0c0a; }
+  @media (pointer: coarse) { :root { --rp-seg: min(env(safe-area-inset-bottom, 0px), 34px); } }
+  .rodape {
+    position: fixed; z-index: 2; left: 0; right: 0; bottom: 0; top: auto; width: auto; margin: 0; transform: none;
+    height: calc(var(--rp-alt) + var(--rp-seg)); box-sizing: border-box;
+    padding: 0 22px var(--rp-seg) 22px;
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 34px;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='64' viewBox='0 0 16 64'%3E%3Cpath d='M2 6v52' stroke='%23C9963E' stroke-width='1.5'/%3E%3Cpath d='M5 10v44' stroke='%236b5226'/%3E%3Cpath d='M2 6q9 1 12 8M2 58q9-1 12-8' fill='none' stroke='%23C9963E' stroke-width='1.5'/%3E%3Cpath d='M8 24l5 8-5 8-5-8z' fill='%23C9963E' stroke='%230e0c0a'/%3E%3Ccircle cx='8' cy='32' r='1.6' fill='%23EFE4CC'/%3E%3C/svg%3E") left 3px top 0 / 16px var(--rp-alt) no-repeat,
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='64' viewBox='0 0 16 64'%3E%3Cpath d='M2 6v52' stroke='%23C9963E' stroke-width='1.5'/%3E%3Cpath d='M5 10v44' stroke='%236b5226'/%3E%3Cpath d='M2 6q9 1 12 8M2 58q9-1 12-8' fill='none' stroke='%23C9963E' stroke-width='1.5'/%3E%3Cpath d='M8 24l5 8-5 8-5-8z' fill='%23C9963E' stroke='%230e0c0a'/%3E%3Ccircle cx='8' cy='32' r='1.6' fill='%23EFE4CC'/%3E%3C/svg%3E") right 3px top 0 / 16px var(--rp-alt) no-repeat,
+      linear-gradient(transparent calc(var(--rp-alt) / 2 - 2px), rgba(201, 150, 62, 0.5) calc(var(--rp-alt) / 2 - 2px), rgba(201, 150, 62, 0.5) calc(var(--rp-alt) / 2 - 1px), #0b0908 calc(var(--rp-alt) / 2 - 1px), #0b0908 calc(var(--rp-alt) / 2 + 1px), rgba(201, 150, 62, 0.35) calc(var(--rp-alt) / 2 + 1px), rgba(201, 150, 62, 0.35) calc(var(--rp-alt) / 2 + 2px), transparent calc(var(--rp-alt) / 2 + 2px)) left 18px top 0 / calc(100% - 36px) var(--rp-alt) no-repeat,
+      repeating-linear-gradient(180deg, rgba(239, 228, 204, 0.022) 0 1px, transparent 1px 3px),
+      linear-gradient(#2c2622, #1E1B18 46%, #191613);
+    box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.35);
+  }
+  /* o filete de cima: papel, ocre e a sombra, de ponta a ponta */
+  .rodape::before { content: ""; position: absolute; left: 0; right: 0; top: -4px; height: 4px; pointer-events: none;
+    background: linear-gradient(rgba(239, 228, 204, 0.55) 0 1px, var(--rp-ocre) 1px 3px, var(--rp-ocre2) 3px 4px); }
+  .rp-lida { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* as bandejas: fundas, com o filete ocre e a linha de papel por dentro */
+  .rp-esq, .rp-meio, .rp-dir { position: relative; display: flex; align-items: center; box-sizing: border-box; height: calc(var(--rp-alt) - 10px);
+    background: linear-gradient(#0c0a09, #14110f); border: 1px solid var(--rp-ocre);
+    box-shadow: 0 0 0 1px var(--rp-nanquim), 0 0 0 2px rgba(201, 150, 62, 0.25), inset 0 1px 5px rgba(0, 0, 0, 0.9), inset 0 0 0 1px rgba(239, 228, 204, 0.06); }
+  .rp-esq { justify-self: start; gap: 10px; min-width: 0; padding: 0 12px 0 0; border-radius: calc((var(--rp-alt) - 10px) / 2) 4px 4px calc((var(--rp-alt) - 10px) / 2); }
+  .rp-meio { justify-self: center; gap: 5px; padding: 0 6px 0 5px; border-radius: 4px; }
+  .rp-dir { justify-self: end; gap: 7px; padding: 0 5px; border-radius: calc((var(--rp-alt) - 10px) / 2); }
+  /* as divisórias, dos dois lados dos atalhos: o losango ocre sobre o trilho */
+  .rp-meio::before, .rp-meio::after { content: ""; position: absolute; top: 50%; width: 11px; height: 11px; margin-top: -6.5px; transform: rotate(45deg); pointer-events: none;
+    background: radial-gradient(circle, var(--rp-papel) 0 1.4px, transparent 1.6px), linear-gradient(135deg, #E3B567, var(--rp-ocre) 55%, #8a6420); border: 1px solid var(--rp-nanquim); box-shadow: 0 0 0 1px rgba(201, 150, 62, 0.45); }
+  .rp-meio::before { left: -24px; } .rp-meio::after { right: -24px; }
+  /* o nível: um disco de papel com aro de nanquim encaixado na ponta da bandeja (é também o botão da ficha) */
+  .rp-nivel { position: relative; flex: none; width: calc(var(--rp-alt) - 10px); height: calc(var(--rp-alt) - 10px); margin: -1px 0 -1px -1px; padding: 0; border-radius: 50%; display: grid; place-content: center; justify-items: center; gap: 0; cursor: pointer;
+    color: #1E1B18; background: radial-gradient(circle at 50% 38%, #F6EEDC, #E8DCC0 70%); border: 2.5px solid var(--rp-nanquim);
+    box-shadow: inset 0 0 0 2px var(--rp-papel), inset 0 0 0 3px #8C6A3A, 0 0 0 1px var(--rp-ocre), 0 2px 6px rgba(0, 0, 0, 0.5); }
+  .rp-nivel small { font: 600 9px/1 var(--dados); letter-spacing: 0.06em; color: #66594a; text-transform: uppercase; }
+  .rp-nivel b { font: 400 20px/1 var(--pincel, var(--display)); color: #B8322A; }
+  .rp-nivel:hover { border-color: #3E7A5C; }
+  :root .rp-nivel .selo-pontos { top: -4px; right: -6px; background: #B8322A; color: var(--rp-papel); box-shadow: 0 0 0 1.5px var(--rp-papel); animation: none; }
+  /* HP, SP e stamina: três trilhos da mesma largura, um embaixo do outro, com o mesmo filete */
+  .rodape .vitais { display: grid; gap: 3px; width: 236px; flex: none; }
+  .rodape .medidor { flex: none; height: 15px; border-radius: 2px; background: #070605; border: 1px solid #8C6A3A; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9); box-sizing: border-box; }
+  .rodape .medidor span { font-size: 10px; line-height: 13px; font-weight: 600; }
+  .rodape .medidor.vida i { background: linear-gradient(#e2513a, #B8322A 55%, #7e1c14); }
+  .rodape .medidor.mana i { background: linear-gradient(#6aa8e6, #3566a3 55%, #22406b); }
+  .rodape .medidor.stamina { height: 6px; }
+  .rodape .medidor.stamina i { width: 100%; background: linear-gradient(#f6da8e, var(--rp-ocre) 60%, #8a6420); }
+  /* as 4 orbes: um canvas só (o líquido: desenharOrbes); a dica (title) diz o % */
+  .orbes-exp { position: relative; flex: none; cursor: help; line-height: 0; }
+  .orbes-exp canvas { display: block; width: var(--orbes-w, 154px); height: var(--orbes-h, 38px); }
+  /* os atalhos: os espaços fundos dentro da bandeja; 10 por página */
+  :root .rodape .barra-skills { position: static; transform: none; display: grid; grid-template-columns: repeat(10, 44px); gap: 4px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+  .rodape .slot { width: 44px; height: 44px; border-radius: 3px; }
+  .rodape .slot.fora { display: none; }
+  .rodape .slot .tecla { top: 1px; left: 3px; font-size: 10px; }
+  .rp-paginas { display: grid; justify-items: center; gap: 2px; width: 22px; padding-left: 5px; margin-left: 2px; border-left: 1px solid rgba(201, 150, 62, 0.45); }
+  .rp-paginas b { font: 400 13px/1 var(--pincel, var(--display)); color: #E3B567; }
+  .rp-seta { width: 22px; height: 15px; padding: 0; display: grid; place-items: center; border-radius: 2px; cursor: pointer; color: #1E1B18;
+    background: linear-gradient(#F4ECDA, #D9CAA6); border: 1.5px solid var(--rp-nanquim); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5); }
+  .rp-seta svg { width: 10px; height: 7px; }
+  .rp-seta:hover { background: linear-gradient(#FAF4E6, #E8DCC0); border-color: #3E7A5C; color: #3E7A5C; }
+  /* os botões da direita: discos de papel com o desenho em jade */
+  :root .rp-bt, :root .rodape .menu-botao { position: relative; flex: none; width: 42px; height: 42px; padding: 0; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+    color: #3E7A5C; --rp-fundo-ic: var(--rp-papel); background: radial-gradient(circle at 50% 38%, #F6EEDC, #E8DCC0 70%); border: 2.5px solid var(--rp-nanquim);
+    box-shadow: inset 0 0 0 2px var(--rp-papel), inset 0 0 0 3px #8C6A3A, 0 0 0 1px var(--rp-ocre), 0 2px 5px rgba(0, 0, 0, 0.5); }
+  :root .rp-bt svg, :root .rodape .menu-botao svg { width: 21px; height: 21px; filter: none; }
+  :root .rp-bt:hover, :root .rodape .menu-botao:hover, :root .rp-bt[aria-pressed="true"], :root .rodape .menu-botao[aria-expanded="true"] {
+    color: var(--rp-papel); --rp-fundo-ic: #3E7A5C; background: radial-gradient(circle at 50% 38%, #4f9473, #3E7A5C 70%); border-color: var(--rp-nanquim); }
+  :root .rp-bt .selo-pontos, :root .rodape .menu-botao .selo-pontos { top: -5px; right: -6px; background: #B8322A; color: var(--rp-papel); box-shadow: 0 0 0 1.5px var(--rp-papel); animation: none; }
+  :root .rodape .menu-jogo, :root .rodape .menu-jogo.sem-acoes { position: relative; z-index: auto; right: auto; bottom: auto; }
+  :root .rodape .menu-jogo.aberto { z-index: 8 !important; }
+  #menuPontos { display: none !important; }   /* (o selo dos pontos fica no nível e no botão da ficha, ao lado) */
+  :root .rodape .menu-leque { right: -9px; bottom: calc(100% + 18px); transform-origin: 100% 100%; }
+  :root .rodape .menu-leque::after { right: 22px; bottom: -9px; left: auto; border: 0; border-right: 3px solid var(--b-nanquim, #1E1B18); border-bottom: 3px solid var(--b-nanquim, #1E1B18); }
+  /* o contador de quadros: pequeno, no canto de baixo à direita, logo acima da barra */
+  .fps { position: fixed; z-index: 2; right: max(10px, env(safe-area-inset-right, 0px)); bottom: calc(var(--rp-alt) + var(--rp-seg) + 8px); margin: 0;
+    padding: 1px 6px; border-radius: 3px; background: rgba(30, 27, 24, 0.6); color: rgba(239, 228, 204, 0.82); font: 500 11px/15px var(--dados); font-variant-numeric: tabular-nums; pointer-events: none; }
+  /* o que ficava no rodapé antigo sobe para cima da faixa */
+  details.livro { bottom: calc(var(--rp-alt) + var(--rp-seg) + 14px); }
+  .acoes { bottom: calc(var(--rp-alt) + var(--rp-seg) + 30px); }
+  /* telas médias: tudo um pouco menor */
+  @media (max-width: 1360px) {
+    .rodape { column-gap: 26px; padding: 0 20px var(--rp-seg); }
+    .rodape .vitais { width: 170px; }
+    :root .rodape .barra-skills { grid-template-columns: repeat(10, 41px); }
+    .rodape .slot { width: 41px; height: 41px; }
+    :root .rp-bt, :root .rodape .menu-botao { width: 40px; height: 40px; }
+  }
+  @media (max-width: 1250px) {
+    .rodape .vitais { width: 130px; }
+    :root .rodape .barra-skills { grid-template-columns: repeat(10, 38px); }
+    .rodape .slot { width: 38px; height: 38px; }
+  }
+  @media (max-width: 1100px) {
+    :root { --rp-alt: 58px; }
+    .rodape { column-gap: 22px; }
+    .rodape .vitais { width: 112px; }
+    :root .rodape .barra-skills { grid-template-columns: repeat(10, 35px); gap: 3px; }
+    .rodape .slot { width: 35px; height: 35px; }
+    :root .rp-bt, :root .rodape .menu-botao { width: 34px; height: 34px; }
+    :root .rp-bt svg, :root .rodape .menu-botao svg { width: 18px; height: 18px; }
+    .rp-dir { gap: 4px; }
+  }
+  /* celular em retrato: duas fileiras (nível, barras, orbes e botões em cima; os atalhos embaixo), as mesmas bandejas */
+  @media (max-width: 980px) {
+    :root { --rp-alt: 100px; }
+    .rodape { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 42px 46px; row-gap: 5px; column-gap: 6px; align-content: center;
+      padding: 0 max(8px, env(safe-area-inset-right, 0px)) var(--rp-seg) max(8px, env(safe-area-inset-left, 0px));
+      background: repeating-linear-gradient(180deg, rgba(239, 228, 204, 0.022) 0 1px, transparent 1px 3px), linear-gradient(#2c2622, #1E1B18 46%, #191613); }
+    .rp-esq, .rp-meio, .rp-dir { height: auto; align-self: stretch; }
+    .rp-esq { gap: 5px; width: 100%; padding-right: 6px; border-radius: 21px 4px 4px 21px; }
+    .rp-meio { grid-column: 1 / -1; grid-row: 2; justify-self: center; gap: 3px; padding: 0 4px; }
+    .rp-meio::before, .rp-meio::after { display: none; }
+    .rp-dir { grid-column: 2; grid-row: 1; gap: 3px; padding: 0 3px; border-radius: 21px; }
+    .rp-nivel { width: 42px; height: 42px; margin: -1px 0 -1px -1px; }
+    .rp-nivel small { font-size: 7px; }
+    .rp-nivel b { font-size: 16px; }
+    .rodape .vitais { flex: 1; width: auto; min-width: 0; gap: 2px; }
+    .rodape .medidor { height: 11px; }
+    .rodape .medidor span { font-size: 8.5px; line-height: 9px; }
+    .rodape .medidor.stamina { height: 4px; }
+    .orbes-exp canvas { width: var(--orbes-w, 88px); height: var(--orbes-h, 23px); }
+    :root .rodape .barra-skills { grid-template-columns: repeat(10, 30px); gap: 2px; }
+    .rodape .slot { width: 30px; height: 30px; }
+    .rodape .slot .tecla { font-size: 8px; left: 2px; }
+    .rodape .slot .qtd-slot, .rodape .slot .nivel-slot { font-size: 9px; right: 1px; }
+    .rp-paginas { width: 18px; padding-left: 3px; }
+    .rp-seta { width: 18px; height: 13px; }
+    :root .rp-bt, :root .rodape .menu-botao { width: 32px; height: 32px; border-width: 2px; }
+    :root .rp-bt svg, :root .rodape .menu-botao svg { width: 16px; height: 16px; }
+    :root .rodape .menu-leque { width: 184px; }
+    :root .rodape .selo-pontos { min-width: 15px; height: 15px; padding: 0 3px; font-size: 9px; line-height: 15px; top: -4px; right: -5px; }
+    :root .menu-jogo.sem-acoes, :root .menu-jogo { bottom: auto; }
+  }
 </style>
 
 <canvas id="campo" aria-label="Ghotin2: o mundo do jogo"></canvas>
@@ -1057,7 +1199,7 @@
     <span class="chip" id="eTempo" title="Hora do dia e estação (o dia do jogo dura 24 min)">—</span>
     <button class="chip" id="bJanelas" title="Escolher e arrumar as janelas (J)">janelas</button>
     <button class="chip chip-som" id="bContorno" aria-pressed="true" title="Contorno dos personagens e criaturas (Y)">contorno ligado</button>
-    <button class="chip chip-som" id="bSom" aria-pressed="true" title="Som (M)">som ligado</button>
+    <button class="chip chip-som" id="bSom" aria-pressed="true" title="Som (B ou Ctrl+M)">som ligado</button>
     <button class="chip chip-som" id="bMusica" aria-pressed="true" title="Música (N)">música ligada</button>
     <label class="chip chip-vol" title="Volume da música">volume <input type="range" id="volMusica" min="0" max="1" step="0.05" value="0.6" aria-label="Volume da música"></label>
   </div>
@@ -1189,13 +1331,13 @@
         <dt>Movimento</dt><dd>todos correm sempre; a velocidade sobe com os itens de velocidade, a Fúria e os Passos Leves</dd>
         <dt>clique · toque</dt><dd>andar até o ponto, desviando do que estiver no caminho (longe, ele corre); num boneco, ir lá e bater; num lobo ou esqueleto, marcar o alvo (anel vermelho), ir atrás e golpear sozinho até ele cair</dd>
         <dt>J</dt><dd>atacar: com a espada nas costas, saca já golpeando; depois os 5 golpes em sequência</dd>
-        <dt>F1 – F10 · 1 – 0 · I</dt><dd>barra de atalhos em duas fileiras (F1–F10 em cima, com as poções; 1–0 embaixo, com as skills) e a bolsa (I): quatro abas de 5 × 9 espaços como no Metin2; arraste um item para a barra para criar um atalho, clique direito usa. Barra: arraste uma skill para outro espaço para trocar de lugar (cada personagem guarda a sua ordem). O ataque básico só sai com um alvo marcado (Espaço, clique ou o botão Alvo); as skills saem sempre, mesmo sem alvo: viram para a criatura mais perto ou saem para a frente. No viking: Fúria, Vórtice, Lâmina Espiritual (também F, V, L), Corte Triplo (três cortes rápidos e fortes na frente) e Investida (dispara com a espada à frente e tromba no primeiro inimigo do caminho: ele voa para trás e o viking para ali). Uma skill corta o ataque básico; depois que a skill sai, andar já corta o fim dela. Os golpes do combo emendam um no outro, como no Metin2</dd>
+        <dt>F1 – F10 · 1 – 0 · I</dt><dd>barra de atalhos em duas páginas, como no Metin2 (a I mostra 1–5 e F1–F5, a II mostra 6–0 e F6–F10; as setas ao lado ou Shift+1 e Shift+2 trocam a página, e as 20 teclas valem sempre, em qualquer página) e a bolsa (I): quatro abas de 5 × 9 espaços como no Metin2; arraste um item para a barra para criar um atalho, clique direito usa. Barra: arraste uma skill para outro espaço para trocar de lugar (cada personagem guarda a sua ordem). O ataque básico só sai com um alvo marcado (Espaço, clique ou o botão Alvo); as skills saem sempre, mesmo sem alvo: viram para a criatura mais perto ou saem para a frente. No viking: Fúria, Vórtice, Lâmina Espiritual (também F, V, L), Corte Triplo (três cortes rápidos e fortes na frente) e Investida (dispara com a espada à frente e tromba no primeiro inimigo do caminho: ele voa para trás e o viking para ali). Uma skill corta o ataque básico; depois que a skill sai, andar já corta o fim dela. Os golpes do combo emendam um no outro, como no Metin2</dd>
         <dt>F</dt><dd>Fúria: abre os braços e olha para o alto, aura vermelha e chamas; por 60 s golpes 30% mais rápidos e mais fortes e 25% mais velocidade</dd>
         <dt>E</dt><dd>sacar ou guardar a espada</dd>
         <dt>H · K · R</dt><dd>levar dano · cair · levantar</dd>
         <dt>V</dt><dd>Vórtice: gira três vezes seguidas num redemoinho de vento e lâmina, acertando tudo em volta (anda devagar com WASD enquanto gira)</dd>
         <dt>L</dt><dd>Lâmina Espiritual: ergue a espada e uma aura azul a cobre por 90 s (+1 de dano em cada golpe)</dd>
-        <dt>M · N</dt><dd>ligar ou desligar o som · a música (os dois começam no primeiro toque ou tecla)</dd>
+        <dt>M · B · N</dt><dd>o Mapa do Mundo em tela cheia (M ou Esc fecham; no celular, toque no minimapa) · ligar ou desligar o som (também Ctrl+M; no mundo 3D, ?mundo3d=1, o B gira a câmera) · a música (os dois começam no primeiro toque ou tecla)</dd>
         <dt>Espaço · Esc</dt><dd>Espaço marca a criatura mais perto na tela e ataca até ela cair; de novo, passa para a próxima da tela (nunca uma derrotada ou renascendo). O alvo fica marcado até você se afastar ou apertar Esc</dd>
         <dt>Arqueiro</dt><dd>1 Flecha Venenosa (envenena e pode atordoar) · 2 Flecha de Fogo (explode em área) · 3 Tiro Concentrado (5 flechas seguidas) · 4 Chuva de Flechas · 5 Passos Leves</dd>
         <dt>Chuva (arqueiro)</dt><dd>Chuva de Flechas: mire no chão e clique onde ela deve cair; ele atira para o alto e as flechas caem num círculo de 3,2 m (24 flechas, mais densas no centro). Flecha de Fogo: segura a corda, a ponta esquenta e a flecha sai pegando fogo (dano alto e o alvo queima). As flechas não seguram as criaturas: mantenha a distância, atire e fuja</dd>
@@ -1205,7 +1347,7 @@
         <dt>1 · 2 · 3 (feiticeiro)</dt><dd>Relâmpago: um raio da esfera até o alvo, que salta para mais duas criaturas por perto (recarga de 5 s). Chuva de Meteoros: mire no chão e clique onde ela deve cair; bolas de fogo caem do céu num círculo de 3,4 m (12 s). Erupção Arcana: bate o cajado no chão, um círculo de runas se abre em volta dele e colunas de luz coloridas sobem da terra, ferindo tudo até 3,6 m (9 s). Buffs (60 s): Olho Arcano, +25% de chance de crítico (o crítico dobra o dano e sai em amarelo); Poder Arcano, +35% de dano das magias</dd>
         <dt>P · Q · X</dt><dd>ficha do personagem (nome, nível, experiência, atributos, skills e bolsa) · Poção Vermelha (+40% de vida) · Poção Azul (+40% de mana). Cada skill gasta mana (a INT aumenta a mana; ela volta 2% por segundo). Cada criatura dá exp pelo nível dela, como no Metin2; cada nível dá 3 pontos para VIT (vida e defesa), INT (magia), FOR (força) e DEX (destreza e crítico), como no Metin2. As pedras Metin (Tristeza Nv 5, Batalha Nv 8, Ganância Nv 12) aparecem pelo mapa com defensores, chamam hordas quando apanham e, quebradas, soltam livros de skill da sua classe, poções e yang: o livro sobe a skill (1 a 10, depois M1 a M10), com chance de falhar</dd>
         <dt>Cavernas</dt><dd>como no Tibia: há um buraco com escada ao norte, na beira da mata. Pisando nele você desce para a Caverna dos Ratos (escura, com tochas; os ratos vivem em bandos grandes). A escada perto da entrada leva de volta</dd>
-        <dt>U</dt><dd>Mapa do Mundo (também no menu do canto): o mapa inteiro visto de cima, com cada grupo de mobs na cor do nível (verde, baixo, até vermelho e roxo), chefes, pedras Metin, dungeons e você; rodinha ou pinça para o zoom, arrastar para mover, "Exportar imagem" grava um PNG. Com "Editar": a aba Mobs move, cria, muda e apaga grupos; a aba Mapa põe, move, gira e apaga decoração, pinta árvores, pedras e grama com o pincel e pinta o chão e o relevo do mundo 3D. Fica salvo neste navegador; ao fechar, o jogo é remontado</dd>
+        <dt>U · M</dt><dd>Mapa do Mundo em tela cheia (também no menu e tocando no minimapa): o mapa inteiro visto de cima, com cada grupo de mobs na cor do nível (verde, baixo, até vermelho e roxo), chefes, pedras Metin, dungeons e você; rodinha ou pinça para o zoom, arrastar para mover, "Exportar imagem" grava um PNG. Com "Editar": a aba Mobs move, cria, muda e apaga grupos; a aba Mapa põe, move, gira e apaga decoração, pinta árvores, pedras e grama com o pincel e pinta o chão e o relevo do mundo 3D. Fica salvo neste navegador; ao fechar, o jogo é remontado</dd>
         <dt>O</dt><dd>editor de mapa: mover, pôr e apagar árvores, pedras e o resto das decorações, e ajustar o círculo de colisão de cada tipo. Fica salvo neste navegador; "Copiar mapa" gera o texto para mandar e virar o mapa fixo do jogo</dd>
         <dt>T</dt><dd>trocar entre o viking, o arqueiro e o feiticeiro (botões no topo). O arqueiro atira de longe (até 9 m): tira a flecha da aljava, puxa a corda e solta; a flecha voa até o alvo marcado</dd>
       </dl>
@@ -1262,18 +1404,52 @@
   </div>
 </details>
 
-<div class="rodape">
-  <div class="vitais" id="vitais">
-    <button class="chip nivel" id="bFicha" title="Personagem (P)">Nv <b id="vNivel">1</b><span class="selo-pontos" id="vPontos" hidden></span></button>
-    <div class="medidor vida" title="Vida"><i id="vVida"></i><span id="vVidaTxt"></span></div>
-    <div class="medidor mana" title="Mana"><i id="vMana"></i><span id="vManaTxt"></span></div>
-    <div class="medidor exp" title="Experiência"><i id="vExp"></i><span id="vExpTxt"></span></div>
-    <button class="chip" id="bPocao" title="Poção Vermelha: +40% de vida (Q)">vida <b id="vPocoes">0</b></button>
-    <button class="chip" id="bPocaoMana" title="Poção Azul: +40% de mana (X)">mana <b id="vPocoesMana">0</b></button>
-    <button class="chip" id="bBolsa" title="Inventário (I)">bolsa</button>
+<!-- a barra de baixo, como a do Metin2: à esquerda o nível, a vida (HP), a mana (SP) e a stamina; as 4 orbes da
+     experiência (cada uma é 1/4 do nível); no meio os atalhos em páginas (setas ou Shift+1/Shift+2); à direita os botões
+     da ficha (P), das skills, do inventário (I) e do menu. Ver montarBarraSkills e atualizarVitais -->
+<div class="rodape" id="rodape">
+  <div class="rp-esq">
+    <button class="rp-nivel" id="bFicha" title="Personagem (P)"><small>Nv</small><b id="vNivel">1</b><span class="selo-pontos" id="vPontos" hidden></span></button>
+    <div class="vitais" id="vitais">
+      <div class="medidor vida" title="Vida (HP)"><i id="vVida"></i><span id="vVidaTxt"></span></div>
+      <div class="medidor mana" title="Mana (SP)"><i id="vMana"></i><span id="vManaTxt"></span></div>
+      <div class="medidor stamina" title="Stamina"><i></i></div>
+    </div>
+    <div class="orbes-exp" id="orbesExp" role="img" aria-label="Experiência">
+      <canvas id="orbesTela" aria-hidden="true"></canvas>
+      <span class="rp-lida" id="vExpTxt"></span>
+    </div>
   </div>
-  <div class="barra-skills" id="barraSkills" role="toolbar" aria-label="Barra de skills (arraste para trocar de lugar)"></div>
+  <div class="rp-meio">
+    <div class="barra-skills" id="barraSkills" role="toolbar" aria-label="Barra de atalhos (arraste para trocar de lugar)"></div>
+    <div class="rp-paginas" role="group" aria-label="Página da barra de atalhos">
+      <button type="button" class="rp-seta" id="barraAnt" title="Página anterior (Shift+1, Shift+2)" aria-label="Página anterior da barra"><svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1.5 6.5 6 2l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <b id="barraPagN" aria-live="polite">I</b>
+      <button type="button" class="rp-seta" id="barraProx" title="Próxima página (Shift+1, Shift+2)" aria-label="Próxima página da barra"><svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1.5 1.5 6 6l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+  <div class="rp-dir">
+    <button type="button" class="rp-bt" id="bAtrib" title="Personagem e atributos (P)" aria-label="Personagem e atributos"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4" fill="currentColor"/><path d="M4 21c0-4.6 3.6-8 8-8s8 3.4 8 8z" fill="currentColor"/></svg><span class="selo-pontos" id="atribPontos" hidden></span></button>
+    <button type="button" class="rp-bt" id="bSkills" title="Skills" aria-label="Skills"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 6.4 6.9.5-5.3 4.4 1.7 6.7L12 16.4 6.1 20l1.7-6.7L2.5 8.9l6.9-.5z" fill="currentColor"/></svg></button>
+    <button type="button" class="rp-bt" id="bBolsa" title="Inventário (I)" aria-label="Inventário"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 7V5.5a3.5 3.5 0 0 1 7 0V7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 8.2 7.3 4.6c1.5-.9 3-.5 4.7.6 1.7-1.1 3.2-1.5 4.7-.6L15 8.2z" fill="currentColor"/><path d="M8.6 9.4h6.8c3.3 2.2 5.4 5.6 5.1 8.9-.2 2-1.9 3.3-4.3 3.3H7.8c-2.4 0-4.1-1.3-4.3-3.3-.3-3.3 1.8-6.7 5.1-8.9z" fill="currentColor"/><path d="M8.2 9.4h7.6" stroke="var(--rp-fundo-ic, #2a1b10)" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+    <nav class="menu-jogo" id="menuJogo" aria-label="Menu do jogo">
+  <div class="menu-leque" id="menuLeque" hidden>
+    <h2>Menu</h2>
+    <button type="button" data-menu="bolsa" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 7V5.5a3.5 3.5 0 0 1 7 0V7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="7" width="16" height="14" rx="3.5" fill="currentColor"/><rect x="7.5" y="12" width="9" height="5.5" rx="1.2" fill="#2a1b10"/><rect x="11" y="13.5" width="2" height="2" fill="currentColor"/></svg><span>Inventário</span><kbd>I</kbd></button>
+    <button type="button" data-menu="equip" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10.5-4.6-1.9-8-5.5-8-10.5v-6z" fill="currentColor"/><path d="M12 5.5v13.5M6.8 10.5h10.4" stroke="#2a1b10" stroke-width="2"/></svg><span>Equipamento</span><kbd>I</kbd></button>
+    <button type="button" data-menu="ficha" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4" fill="currentColor"/><path d="M4 21c0-4.6 3.6-8 8-8s8 3.4 8 8z" fill="currentColor"/></svg><span>Atributos</span><kbd>P</kbd></button>
+    <button type="button" data-menu="skills" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 6.4 6.9.5-5.3 4.4 1.7 6.7L12 16.4 6.1 20l1.7-6.7L2.5 8.9l6.9-.5z" fill="currentColor"/></svg><span>Skills</span><kbd>P</kbd></button>
+    <button type="button" data-menu="mapa" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z" fill="currentColor"/><path d="M9 4v13.5M15 6.5V20" stroke="#2a1b10" stroke-width="1.6"/></svg><span>Minimapa</span></button>
+    <button type="button" data-menu="mundo" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M5 9.5c3 .8 4.2-1.8 6.5-1.2 1.6.4 1.2 2.6 3 2.9 1.6.3 2.4-1.4 4-.9M7 16.5c1.8-.9 3.6.3 5.2-.6 1.4-.8 2.6-2.4 4.8-1.6" fill="none" stroke="#2a1b10" stroke-width="1.6" stroke-linecap="round"/><circle cx="15.5" cy="6.5" r="1.4" fill="#2a1b10"/></svg><span>Mapa do Mundo</span><kbd>M</kbd></button>
+    <button type="button" data-menu="janelas" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="6" r="2.4" fill="currentColor"/><circle cx="15" cy="12" r="2.4" fill="currentColor"/><circle cx="7" cy="18" r="2.4" fill="currentColor"/></svg><span>Opções de janelas</span><kbd>J</kbd></button>
+    <button type="button" data-menu="opcoes" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 2h3.4l.5 2.6 1.8.8 2.2-1.5 2.4 2.4-1.5 2.2.8 1.8 2.6.5v3.4l-2.6.5-.8 1.8 1.5 2.2-2.4 2.4-2.2-1.5-1.8.8-.5 2.6h-3.4l-.5-2.6-1.8-.8-2.2 1.5-2.4-2.4 1.5-2.2-.8-1.8L2 13.7v-3.4l2.6-.5.8-1.8-1.5-2.2 2.4-2.4 2.2 1.5 1.8-.8z" fill="currentColor"/><circle cx="12" cy="12" r="3.4" fill="#2a1b10"/></svg><span>Opções e som</span><kbd>Esc</kbd></button>
+    <button type="button" class="so-admin" data-menu="admin" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18.5h18l-1.6-11-5 4.2L12 4.5l-2.4 7.2-5-4.2z" fill="currentColor"/><rect x="3" y="19.5" width="18" height="2" fill="currentColor"/></svg><span>Admin: criar item</span><kbd>G</kbd></button>
+  </div>
+  <button type="button" class="menu-botao rp-bt" id="menuBotao" aria-expanded="false" aria-controls="menuLeque" aria-label="Menu: opções, mapa, janelas e o resto" title="Menu e opções (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h16M4 12h16M4 17.5h16" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><span class="selo-pontos" id="menuPontos" hidden></span></button>
+</nav>
+  </div>
 </div>
+<p class="fps" id="fps" aria-hidden="true" hidden>— fps</p>
 <p class="aviso-tela" id="avisoTela" role="status" hidden></p>
 
 <aside class="minimapa" id="minimapa" aria-label="Minimapa">
@@ -1327,12 +1503,13 @@
 <aside class="janelas opcoes" id="opcoes" hidden aria-label="Opções">
   <header><h2>Opções</h2><button id="opcoesFechar" aria-label="Fechar">Pronto</button></header>
   <h3>Som</h3>
-  <label><input type="checkbox" id="oSom"> Som ligado <kbd>M</kbd></label>
+  <label><input type="checkbox" id="oSom"> Som ligado <kbd>B</kbd></label>
   <label><input type="checkbox" id="oMusica"> Música ligada <kbd>N</kbd></label>
   <div id="oVolumes"></div>
   <h3>Imagem</h3>
   <label><input type="checkbox" id="oContorno"> Contorno dos personagens e criaturas <kbd>Y</kbd></label>
   <label><input type="checkbox" id="oBorda"> Bordas da tela levemente embaçadas</label>
+  <label><input type="checkbox" id="oFps"> Contador de quadros por segundo (fps)</label>
   <div class="linha"><button id="opcoesPadrao">Volumes padrão</button></div>
   <h3>Personagem</h3>
   <div class="linha"><button id="oNovoPersonagem">Novo personagem…</button><button id="oJornada">Estatísticas da jornada</button></div>
@@ -1373,21 +1550,6 @@
 
 </div>
 
-<nav class="menu-jogo" id="menuJogo" aria-label="Menu do jogo">
-  <div class="menu-leque" id="menuLeque" hidden>
-    <h2>Menu</h2>
-    <button type="button" data-menu="bolsa" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 7V5.5a3.5 3.5 0 0 1 7 0V7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="7" width="16" height="14" rx="3.5" fill="currentColor"/><rect x="7.5" y="12" width="9" height="5.5" rx="1.2" fill="#2a1b10"/><rect x="11" y="13.5" width="2" height="2" fill="currentColor"/></svg><span>Inventário</span><kbd>I</kbd></button>
-    <button type="button" data-menu="equip" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10.5-4.6-1.9-8-5.5-8-10.5v-6z" fill="currentColor"/><path d="M12 5.5v13.5M6.8 10.5h10.4" stroke="#2a1b10" stroke-width="2"/></svg><span>Equipamento</span><kbd>I</kbd></button>
-    <button type="button" data-menu="ficha" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4" fill="currentColor"/><path d="M4 21c0-4.6 3.6-8 8-8s8 3.4 8 8z" fill="currentColor"/></svg><span>Atributos</span><kbd>P</kbd></button>
-    <button type="button" data-menu="skills" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 6.4 6.9.5-5.3 4.4 1.7 6.7L12 16.4 6.1 20l1.7-6.7L2.5 8.9l6.9-.5z" fill="currentColor"/></svg><span>Skills</span><kbd>P</kbd></button>
-    <button type="button" data-menu="mapa" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z" fill="currentColor"/><path d="M9 4v13.5M15 6.5V20" stroke="#2a1b10" stroke-width="1.6"/></svg><span>Minimapa</span></button>
-    <button type="button" data-menu="mundo" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M5 9.5c3 .8 4.2-1.8 6.5-1.2 1.6.4 1.2 2.6 3 2.9 1.6.3 2.4-1.4 4-.9M7 16.5c1.8-.9 3.6.3 5.2-.6 1.4-.8 2.6-2.4 4.8-1.6" fill="none" stroke="#2a1b10" stroke-width="1.6" stroke-linecap="round"/><circle cx="15.5" cy="6.5" r="1.4" fill="#2a1b10"/></svg><span>Mapa do Mundo</span><kbd>U</kbd></button>
-    <button type="button" data-menu="janelas" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="6" r="2.4" fill="currentColor"/><circle cx="15" cy="12" r="2.4" fill="currentColor"/><circle cx="7" cy="18" r="2.4" fill="currentColor"/></svg><span>Opções de janelas</span><kbd>J</kbd></button>
-    <button type="button" data-menu="opcoes" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 2h3.4l.5 2.6 1.8.8 2.2-1.5 2.4 2.4-1.5 2.2.8 1.8 2.6.5v3.4l-2.6.5-.8 1.8 1.5 2.2-2.4 2.4-2.2-1.5-1.8.8-.5 2.6h-3.4l-.5-2.6-1.8-.8-2.2 1.5-2.4-2.4 1.5-2.2-.8-1.8L2 13.7v-3.4l2.6-.5.8-1.8-1.5-2.2 2.4-2.4 2.2 1.5 1.8-.8z" fill="currentColor"/><circle cx="12" cy="12" r="3.4" fill="#2a1b10"/></svg><span>Opções e som</span><kbd>Esc</kbd></button>
-    <button type="button" class="so-admin" data-menu="admin" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18.5h18l-1.6-11-5 4.2L12 4.5l-2.4 7.2-5-4.2z" fill="currentColor"/><rect x="3" y="19.5" width="18" height="2" fill="currentColor"/></svg><span>Admin: criar item</span><kbd>G</kbd></button>
-  </div>
-  <button type="button" class="menu-botao" id="menuBotao" aria-expanded="false" aria-controls="menuLeque" aria-label="Menu: inventário, equipamento e atributos" title="Menu"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 13a5 5 0 0 1 5-5h12a5 5 0 0 1 5 5v1H5z" fill="currentColor"/><rect x="4" y="15" width="24" height="12" rx="2" fill="currentColor"/><path d="M4 15h24" stroke="#2a1b10" stroke-width="1.6"/><path d="M10 8v19M22 8v19" stroke="#2a1b10" stroke-width="1.4" opacity=".55"/><rect x="13.5" y="13" width="5" height="6" rx="1" fill="#2a1b10"/><circle cx="16" cy="16" r="1.2" fill="currentColor"/></svg><span class="selo-pontos" id="menuPontos" hidden></span></button>
-</nav>
 
 <aside class="admin so-admin" id="admin" hidden aria-label="Admin">
   <header><h2>Admin</h2><button id="admFechar" aria-label="Fechar o admin">Fechar</button></header>
@@ -2472,8 +2634,10 @@ for (const e of ESTRADAS) for (let k = 1; k < e.length; k++) e[k] = noMapa(e[k])
 const VILA = { x: 2, y: 9, r: 17 };
 ESTRADAS.push([[PRACA.x, PRACA.y], [1.4, -1.5], [2, 4.2]]);
 ESTRADAS.push([[64, -12.2], [76, -9], [88, -6], [100, -4]]);                       // a estrada do leste até o Vale dos Orcs
-const ESTRADA_MONTE = [[100, -4], [108, -8.5], [118, -7.5], [128, -3], [140, 0], [152, 1]];
-ESTRADAS.push(ESTRADA_MONTE);                                                         // e do vale até a Montanha Gelada
+// a estrada da Montanha Gelada (o mapa dela, MAPAS.montanha, em volta de (−700, 0)): do portal de volta (o acampamento
+// da base, a oeste) até o alto, passando pela área do Nove Caudas
+const ESTRADA_MONTE = [[-734, -1.5], [-728, -3], [-722, -7.5], [-712, -3], [-700, 0], [-688, 1]];
+ESTRADAS.push(ESTRADA_MONTE);
 // a estrada do portal: continua a do sul (do portão da cidade) pelas Terras do Sul até o portal da Vila Hahoe, na ponta
 // do cabo (V1_PORTAL, 3 m depois do fim dela: o herói que volta da Vila Hahoe aparece em cima da estrada)
 const ESTRADA_PORTAL = [[12.8, -52.2], [10.5, -64], [5, -77], [-1, -91], [-6, -105], [-10.5, -119], [-13.5, -132], [-15, -144], [-15, -153]];
@@ -2521,9 +2685,13 @@ const desvioCosta = a => Math.sin(a * 5) * 1.8 + Math.sin(a * 11) * 0.8 + Math.s
 // o Vale dos Orcs: a costa avança VALE_E m a leste, num arco de ±VALE_W rad (uma península larga, de terra vermelha,
 // ligada à ilha pela estrada do leste). A ilha continua "estrelada" a partir do centro: a costa é um raio por ângulo
 const VALE_E = 50, VALE_W = 0.65, VALE_X = 70;
-// a Montanha Gelada (nível 40+): depois do vale, a costa avança mais MONTE_E m a leste num arco mais estreito (±MONTE_W
-// rad), chão de pedra e neve a partir de x = MONTE_X; a estrada do vale continua até lá
-const MONTE_E = 50, MONTE_W = 0.42, MONTE_X = 121;
+// a Montanha Gelada (27/10/2026) saiu da Vila 1 e virou um mapa próprio (MAPAS.montanha), com o portal na Vila Hahoe. O
+// mapa dela fica em volta de (−700, 0) (Logs/Mapas/PROJETO_MAPAS.md 4.3: a oeste, longe das dungeons em x > 240 e da
+// Ilha de Daiyu, guardada para (0, −700)): os pontos de antes, 840 m para oeste (MONTE_BANDOS); o relevo (terraFirme)
+// sobe para leste como subia a partir de MONTE_X. A Vila 1
+// termina no Vale Vermelho: do arco da montanha (±0,42 rad) ficou só o fundo do vale, até FUNDO_VALE m (o vale termina
+// redondo em x ~130, e os grupos do fundo dele continuam em terra)
+const MONTE_X = 121, FUNDO_VALE = 14;
 // as Terras do Sul (a Vila 1 maior, 26/10/2026; Logs/Mapas/PROJETO_MAPAS.md 6): a costa avança LOBO_E m para o
 // sul-sudoeste num arco largo (±LOBO_W rad em volta de LOBO_A) e, na ponta, num cabo estreito (CABO_*), onde fica o
 // portal da Vila Hahoe (V1_PORTAL). A cidade fica no norte da ilha e a estrada desce do portão sul até o fim do mapa,
@@ -2533,13 +2701,13 @@ const DOIS_PI = Math.PI * 2;
 function difAng(a, b) { let d = (a - b) % DOIS_PI; if (d > Math.PI) d -= DOIS_PI; else if (d < -Math.PI) d += DOIS_PI; return Math.abs(d); }
 const arcoCosta = (a, c, w, e) => { const d = difAng(a, c) / w; return d < 1 ? e * Math.cos(d * Math.PI / 2) ** 2 : 0; };
 const extraCosta = a => {
-  const ab = Math.abs(Math.atan2(Math.sin(a), Math.cos(a))), d = ab / VALE_W, dm = ab / MONTE_W;
-  return (d < 1 ? VALE_E * Math.cos(d * Math.PI / 2) ** 2 : 0) + (dm < 1 ? MONTE_E * Math.cos(dm * Math.PI / 2) ** 2 : 0) +
+  const ab = Math.abs(Math.atan2(Math.sin(a), Math.cos(a))), d = ab / VALE_W, dm = ab / 0.42;
+  return (d < 1 ? VALE_E * Math.cos(d * Math.PI / 2) ** 2 : 0) + (dm < 1 ? Math.min(FUNDO_VALE, 50 * Math.cos(dm * Math.PI / 2) ** 2) : 0) +
          arcoCosta(a, LOBO_A, LOBO_W, LOBO_E) + arcoCosta(a, CABO_A, CABO_W, CABO_E);
 };
-function borda(x, y) { if (y > 350) return bordaMapa(MAPAS.hahoe, x, y); const a = Math.atan2(y, x); return Math.hypot(x, y) + desvioCosta(a) - extraCosta(a); }   // (a Vila Hahoe, em (0, 700): bordaMapa)
-// quanto este ponto é montanha (0 até o fim do vale, 1 na Montanha Gelada) e quanto é vale (0 na ilha, 1 na península)
-const pesoMonte = (x, y) => liso((x - MONTE_X + 4) / 10);
+function borda(x, y) { if (y > 350) return bordaMapa(MAPAS.hahoe, x, y); if (x < -350) return bordaMapa(MAPAS.montanha, x, y); const a = Math.atan2(y, x); return Math.hypot(x, y) + desvioCosta(a) - extraCosta(a); }   // (a Vila Hahoe, em (0, 700): bordaMapa)
+// quanto este ponto é montanha (1 no mapa da Montanha Gelada, 0 nos outros) e quanto é vale (0 na ilha, 1 na península)
+const pesoMonte = (x, y) => x < -350 ? 1 : 0;
 const pesoVale = (x, y) => liso((x - VALE_X) / 8) * (1 - pesoMonte(x, y));
 function praca(x, y) { if (y > 350) return Math.hypot(x - PRACA_H.x, y - PRACA_H.y) < PRACA_H.r; return (!(CIDADE && CIDADE.treino) && Math.hypot(x - PRACA.x, y - PRACA.y) < PRACA.r) || ruaCidade(x, y); }   // (com ?cidade=1, as vias da cidade; o treino vai para o lado)   // (com ?cidade=1, as ruas de pedra também)
 function estrada(x, y) { for (const e of ESTRADAS) if (distLinha(x, y, e) < 0.8 + (ruido2(x * 0.7, y * 0.7) - 0.5) * 0.35) return true; return false; }
@@ -2554,8 +2722,8 @@ function noCastelo(x, y, folga = 0) { return COM_CASTELO && dentroRet(x, y, CAST
 
 // ---------------------------------------------------------------- os mapas (Logs/Mapas/PROJETO_MAPAS.md, opção B)
 // O mundo é um só, com cada mapa numa região longe das outras (como as dungeons em x = 300…600): a Vila 1 (o Vale do
-// Viking, em volta de (0, 0); o vale e a montanha ainda são dela) e a Vila Hahoe, "da Curva do Rio" (em volta de
-// (0, 700): a 700 m, uma ilha nunca aparece no horizonte da outra). Os mapas de superfície ficam com x < 240 (naCaverna).
+// Viking, em volta de (0, 0), com o Vale Vermelho), a Vila Hahoe, "da Curva do Rio" (em volta de
+// (0, 700): a 700 m, uma ilha nunca aparece no horizonte da outra) e a Montanha Gelada (em volta de (−700, 0)). Os mapas de superfície ficam com x < 240 (naCaverna).
 // MAPAS: nome, faixa de níveis, origem (ox, oy), raio, o raio da costa por ângulo (rCosta), o ponto seguro (onde se
 // renasce e onde se entra no jogo) e se já foi montado. mapaDe(x, y) acha o mapa de um ponto da superfície; idMapa
 // também separa as dungeons (as criaturas fora do mapa do herói dormem: passo). Cada mapa novo é montado na 1ª visita
@@ -2563,9 +2731,11 @@ function noCastelo(x, y, folga = 0) { return COM_CASTELO && dentroRet(x, y, CAST
 const MAPAS = {
   vila1: { id: "vila1", nome: "Vale do Viking", sub: "a cidade e os arredores", niveis: [1, 15], ox: 0, oy: 0, raio: RAIO, montado: true },
   hahoe: { id: "hahoe", nome: "Vila Hahoe", sub: "da Curva do Rio", niveis: [15, 45], ox: 0, oy: 700, raio: 62, montado: false },
+  // a Montanha Gelada (42–50; o portal fica no Desfiladeiro da Vila Hahoe): o centro em (−700, 0), ver MONTE_X
+  montanha: { id: "montanha", nome: "Montanha Gelada", sub: "o passo do Desfiladeiro", niveis: [42, 50], ox: -700, oy: 0, raio: 46, montado: false },
 };
 MAPAS.vila1.rCosta = a => RAIO - desvioCosta(a) + extraCosta(a);
-// a caixa da costa da Vila 1 (a ilha com o vale, a montanha e as Terras do Sul): o minimapa, o Mapa do Mundo e a grade
+// a caixa da costa da Vila 1 (a ilha com o vale e as Terras do Sul): o minimapa, o Mapa do Mundo e a grade
 // das árvores cobrem só ela
 const CAIXA_V1 = (() => {
   const c = { x0: 0, x1: 0, y0: 0, y1: 0 };
@@ -2579,9 +2749,13 @@ const CAIXA_V1 = (() => {
 })();
 MAPAS.hahoe.rCosta = a => 62 - (Math.sin(a * 4 + 0.7) * 2.2 + Math.sin(a * 9 + 2) * 0.9 + Math.sin(a * 2 + 0.3) * 1.8);
 const HAHOE = MAPAS.hahoe;
+// a costa da Montanha Gelada: uma ilha de raio ~46 m, mais comprida no eixo leste–oeste (como a ponta de antes)
+MAPAS.montanha.rCosta = a => 46 - (Math.sin(a * 2 + 1.57) * 4.5 + Math.sin(a * 5 + 0.9) * 1.6 + Math.sin(a * 9 + 2.2) * 0.7);
+const MONTANHA = MAPAS.montanha;
+const pM = (x, y) => [MONTANHA.ox + x, MONTANHA.oy + y];               // (da Montanha Gelada para o mundo)
 const pH = (x, y) => [HAHOE.ox + x, HAHOE.oy + y];                       // (da Vila Hahoe para o mundo)
-function mapaDe(x, y) { return y > 350 ? MAPAS.hahoe : MAPAS.vila1; }
-function idMapa(x, y) { return x > 240 ? "dg" + Math.round(x / 100) : y > 350 ? "hahoe" : "vila1"; }
+function mapaDe(x, y) { return y > 350 ? MAPAS.hahoe : x < -350 ? MAPAS.montanha : MAPAS.vila1; }
+function idMapa(x, y) { return x > 240 ? "dg" + Math.round(x / 100) : y > 350 ? "hahoe" : x < -350 ? "montanha" : "vila1"; }
 function bordaMapa(m, x, y) { const lx = x - m.ox, ly = y - m.oy; return Math.hypot(lx, ly) - m.rCosta(Math.atan2(ly, lx)) + RAIO; }   // (a costa em RAIO, como na Vila 1)
 // ---- a Vila Hahoe (河回, "o rio que dá a volta", a aldeia coreana dentro da curva do rio Nakdong): o rio nasce na
 // cachoeira do norte (o Desfiladeiro), desce pelo oeste da vila, faz a curva por baixo dela e sai no mar ao sul. A vila
@@ -2658,6 +2832,7 @@ const emTerracos = (x, y) => ((x - HAHOE.ox - TERRACOS_H.x) / TERRACOS_H.rx) ** 
   L([2, -0.5], [10, -2], [22, -2.5], [33, -6], [41, -10]);                                       // a praça → a rua dos ofícios → o brejo
   L([33, -6], [31, -26], [pf[0] + 4.6, pf[1]], [pf[0] - 4.6, pf[1]], [8, -44], [-6, -45]);        // o brejo → a ponte da foz → o sul
   L([-44, po[1]], [-45, 18], [-38, 30], [-28, 41]);                                              // o portal → o bosque de bambu → o desfiladeiro
+  L([-38, 30], [-40.5, 35.5], [-42, 40]);                                                         // → o portal da Montanha Gelada (P3)
 }
 // as zonas (o nome no minimapa e no Mapa do Mundo; os níveis do projeto)
 const ZONAS_H = [
@@ -2745,7 +2920,7 @@ function pisoHahoe(g, P, esc, caminho, mx0, mx1, my0, my1) {
 // a mata (fbm alto), menos perto da praça e nas clareiras dos bandos: lá dentro é campo aberto e a mata volta aos poucos
 // na beirada (o limiar sobe perto da clareira)
 function floresta(x, y) {
-  if (x > VALE_X - 4) return false;                                     // o vale é aberto
+  if (x > VALE_X - 4 || x < -350) return false;                         // o vale e a montanha são abertos
   const c = distClareira(x, y);
   if (c < 0) return false;
   return fbm(x * 0.07 + 3, y * 0.07 - 2) > 0.55 + 0.2 * Math.max(0, 1 - c / 5) && Math.hypot(x - PRACA.x, y - PRACA.y) > 10 && (!COM_CASTELO || retArred(x, y, FOSSO) > 4);
@@ -2757,7 +2932,7 @@ let clareiras = null;
 function distClareira(x, y) {
   if (!clareiras) clareiras = [...GRUPOS.map(([, gx, gy, , e]) => [...noMapa([gx, gy]), e ? e + 3 : 0]),
                                ...V1_PONTOS.map(([, gx, gy]) => [gx, gy, -2]),                                                     // (os grupos do Metin2 da Vila 1: 7 m, para sobrar mata entre eles)
-                               ...NOVOS_BANDOS.filter(([, gx]) => gx < VALE_X).map(([, gx, gy, , e]) => [gx, gy, e ? e + 3 : 0]),   // (já na escala nova)
+                               ...NOVOS_BANDOS.filter(([, gx]) => gx < VALE_X && gx > -350).map(([, gx, gy, , e]) => [gx, gy, e ? e + 3 : 0]),   // (já na escala nova)
                                ...HAHOE_BANDOS.map(([, gx, gy, , e]) => [gx, gy, e ? e + 3 : 0])];                                  // (a Vila Hahoe)
   let m = y > 350 ? Math.hypot(x - HV.x, y - HV.y) - HV.r : Math.hypot(x - VILA.x, y - (VILA.y + 4)) - VILA.r;   // a vila também é campo aberto
   for (const [cx0, cy0, extra] of clareiras) m = Math.min(m, Math.hypot(x - cx0, y - cy0) - CLAREIRA_R - extra);
@@ -3707,7 +3882,6 @@ function montarCenario() {
   montarVila(por);
   montarValeOrcs(por);
   montarAcampamento(por);
-  montarMontanha(por);
   // pedras pelos campos e na praia
   // (até a costa de cada ângulo, com as Terras do Sul; o vale e a montanha têm as pedras deles)
   for (let k = 0; k < 2600 && objetos.filter(o => o.tipo === "pedra").length < 220; k++) {
@@ -3758,7 +3932,7 @@ function vegDa(ci, cj) {
   if (v !== undefined) return v;
   v = null;
   const x = (ci + 0.15 + hash(ci, cj, 21) * 0.7) * VEG_C, y = (cj + 0.15 + hash(ci, cj, 22) * 0.7) * VEG_C, h = hash(ci, cj, 23), r = hash(ci, cj, 24), r2 = hash(ci, cj, 25);
-  if ((!VEG_LEVE || hash(ci, cj, 77) < 0.42) && borda(x, y) < RAIO - 3.4 && !agua(x, y) && !lago(x, y, 1.1) && !praca(x, y) && !foraCidade(x, y) && !estrada(x, y) && !noCastelo(x, y, 0.3) && x < MONTE_X - 2 && !vegNaConstrucao(x, y)) {
+  if ((!VEG_LEVE || hash(ci, cj, 77) < 0.42) && borda(x, y) < RAIO - 3.4 && !agua(x, y) && !lago(x, y, 1.1) && !praca(x, y) && !foraCidade(x, y) && !estrada(x, y) && !noCastelo(x, y, 0.3) && x < MONTE_X - 2 && x > -350 && !vegNaConstrucao(x, y)) {
     // o quanto o lugar puxa mato alto: a borda da mata, a beira da estrada e manchas pelos campos
     const c = distClareira(x, y), mg = x > VALE_X - 4 || c < 0 ? -1 : fbm(x * 0.07 + 3, y * 0.07 - 2) - (0.55 + 0.2 * Math.max(0, 1 - c / 5));
     const mata = mg > 0 && Math.hypot(x - PRACA.x, y - PRACA.y) > 10 && (!COM_CASTELO || retArred(x, y, FOSSO) > 4);
@@ -5623,7 +5797,7 @@ function iconeGiro(g) {
   g.fillStyle = "#d8dce4"; g.fillRect(-2, -16, 4, 22); g.fillStyle = "#7a5530"; g.fillRect(-7, 6, 14, 3); g.fillRect(-1.5, 9, 3, 7);
   g.restore();
 }
-// barra de 20 espaços em duas fileiras: F1 a F10 em cima, 1 a 9 e 0 embaixo. Arrastar troca de lugar (a ordem de cada
+// barra de 20 espaços em duas páginas de 10 (PAGINAS_BARRA): a I com 1–5 e F1–F5, a II com 6–0 e F6–F10. Arrastar troca de lugar (a ordem de cada
 // personagem fica salva neste navegador); um clique sem arrastar usa. Poções (e o que mais tiver uso) entram como atalho
 // arrastadas da bolsa; atalho de item arrastado para fora da barra sai dela
 const TECLAS_BARRA = ["f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", ..."1234567890".split("")];
@@ -5652,6 +5826,19 @@ function ordemSalva() {
 function salvarOrdem() { try { localStorage.setItem("barra_" + classe, JSON.stringify(ordemBarra)); } catch (e) {} }
 function skillDoSlot(i) { return itemDaBarra(ordemBarra[i]) || SKILLS.find(sk => sk.nome === ordemBarra[i]) || null; }
 function usarSlot(i) { const sk = skillDoSlot(i); if (sk) sk.usar(); }
+const PAGINAS_BARRA = [[10, 11, 12, 13, 14, 0, 1, 2, 3, 4], [15, 16, 17, 18, 19, 5, 6, 7, 8, 9]];
+let paginaBarra = (() => { try { return Math.max(0, Math.min(PAGINAS_BARRA.length - 1, +localStorage.getItem("barra_pagina") || 0)); } catch (e) { return 0; } })();
+function aplicarPaginaBarra() {
+  const pag = PAGINAS_BARRA[paginaBarra];
+  for (const b of $("#barraSkills").children) { const k = pag.indexOf(+b.dataset.slot); b.classList.toggle("fora", k < 0); b.style.order = k < 0 ? 99 : k; }
+  $("#barraPagN").textContent = ["I", "II", "III", "IV"][paginaBarra];
+}
+function trocarPaginaBarra(p) {
+  const n = PAGINAS_BARRA.length; p = ((p % n) + n) % n;
+  if (p === paginaBarra) return;
+  paginaBarra = p; try { localStorage.setItem("barra_pagina", p); } catch (e) {}
+  aplicarPaginaBarra(); try { som("ui_clique", null, 0.6); } catch (e) {}
+}
 function montarBarraSkills() {
   const barra = $("#barraSkills");
   barra.innerHTML = "";
@@ -5681,6 +5868,7 @@ function montarBarraSkills() {
     }
     barra.appendChild(b);
   });
+  aplicarPaginaBarra();
   atualizarItensBarra();
 }
 // a quantidade de cada item na barra (sem nenhum, o espaço fica apagado)
@@ -5689,6 +5877,8 @@ function atualizarItensBarra() {
 }
 function prepararArrastoBarra() {
   const barra = $("#barraSkills");
+  $("#barraAnt").onclick = () => trocarPaginaBarra(paginaBarra - 1);
+  $("#barraProx").onclick = () => trocarPaginaBarra(paginaBarra + 1);
   const slotEm = (x, y) => { const el = document.elementFromPoint(x, y), b = el && el.closest && el.closest(".slot"); return b && b.parentElement === barra ? b : null; };
   const limpar = () => { const a = arrastoSlot; arrastoSlot = null; if (a && a.fantasma) a.fantasma.remove(); barra.querySelectorAll(".sobre").forEach(b => b.classList.remove("sobre")); };
   // o item da barra (poção...): a dica do Metin2 dele
@@ -6836,12 +7026,12 @@ function montarMinimapa() {
 // visível ganha uma moldura dourada para arrastar; a posição e o aberto/fechado ficam salvos neste navegador.
 const JANELAS = [
   { id: "janTitulo", nome: "Título" }, { id: "janEstado", nome: "Informações e som", soAdmin: true }, { id: "minimapa", nome: "Minimapa" },
-  { id: "vitais", nome: "Vida, mana e experiência" }, { id: "barraSkills", nome: "Barra de atalhos" }, { id: "janAcoes", nome: "Botões de ação" },
+  { id: "rodape", nome: "Barra de baixo (vida, atalhos e menu)", fixa: true }, { id: "janAcoes", nome: "Botões de ação" },
   { id: "livro", nome: "Livro de teste", soAdmin: true }, { id: "bolsa", nome: "Inventário (I)", abre: s => abrirBolsa(s) }, { id: "ficha", nome: "Personagem (P)", abre: s => abrirFicha(s) },
   { id: "ferreiro", nome: "Ferreiro", abre: s => abrirFerreiro(s) },
   { id: "npcJan", nome: "Conversa com NPC", abre: s => { if (!s) abrirNpc(null); }, soFecha: true },
   { id: "armazem", nome: "Armazém", abre: s => { if (!s) abrirArmazem(false); }, soFecha: true },
-  { id: "admin", nome: "Admin: criar item (G)", abre: s => abrirAdmin(s), soAdmin: true }, { id: "menuJogo", nome: "Botão do menu" },
+  { id: "admin", nome: "Admin: criar item (G)", abre: s => abrirAdmin(s), soAdmin: true }, 
   { id: "jornada", nome: "Estatísticas da jornada", abre: s => abrirJornada(s) },
 ];
 const JANELAS_CHAVE = "janelas1";
@@ -6851,7 +7041,7 @@ function salvarJanelas() { try { localStorage.setItem(JANELAS_CHAVE, JSON.string
 // põe a janela no lugar salvo (presa à tela, fora do arranjo original), sem sair da tela
 function posicionarJanela(j) {
   const el = document.getElementById(j.id), p = janelasSalvas[j.id];
-  if (!el || !p || p.x === undefined) return;
+  if (!el || !p || p.x === undefined || j.fixa || (JANELAS.find(o => o.id === j.id) || {}).fixa) return;
   if (j.id === "bolsa" || j.id === "armazem") el.style.width = "";                     // (a largura delas é a da grade: desenharBolsa)
   else if (!el.style.width) el.style.width = (p.w || el.getBoundingClientRect().width) + "px";
   const w = el.offsetWidth || p.w || 100, h = el.offsetHeight || 40;
@@ -6881,7 +7071,7 @@ function molduras(sim) {
   if (!sim) return;
   for (const j of JANELAS) {
     const el = document.getElementById(j.id);
-    if (!el || el.hidden || (j.soAdmin && !ADMIN)) continue;
+    if (!el || el.hidden || (j.soAdmin && !ADMIN) || j.fixa) continue;
     const r = el.getBoundingClientRect(); if (!r.width) continue;
     const m = document.createElement("div");
     m.className = "alca-janela"; m.innerHTML = `<span>${j.nome}</span>`;
@@ -7124,7 +7314,7 @@ function montarValeOrcs(por) {
   });
   for (let k = 0; k < 900 && objetos.filter(o => o.vale).length < 70; k++) {
     const x = VALE_X + 4 + Math.random() * (VALE_E + 2), y = (Math.random() - 0.5) * 70;
-    if (borda(x, y) > RAIO - 3 || x > MONTE_X - 3 || !vazio(x, y, 2.2) || estrada(x, y) || Math.hypot(x - MONUMENTO.x, y - MONUMENTO.y) < 15 || VALE_BANDOS.some(([, bx, by, , e]) => Math.hypot(x - bx, y - by) < (e || 2) + 3)) continue;
+    if (borda(x, y) > RAIO - 3 || !vazio(x, y, 2.2) || estrada(x, y) || Math.hypot(x - MONUMENTO.x, y - MONUMENTO.y) < 15 || VALE_BANDOS.some(([, bx, by, , e]) => Math.hypot(x - bx, y - by) < (e || 2) + 3)) continue;
     const r = Math.random();
     if (r < 0.6) por({ tipo: "pedra", x, y, r: 0.4, esc: entre(0.7, 1.6), forma: Array.from({ length: 7 }, () => entre(0.75, 1.1)), vale: true });
     else if (r < 0.8) por({ tipo: "toco", x, y, r: 0.3, vale: true });
@@ -7147,18 +7337,27 @@ function montarAcampamento(por) {
   pôe("caixotes", 5.8, 0.4); pôe("caixotes", -7.2, -0.8); pôe("caixotes", 3.2, -8.2);
   pôe("carroca", 8, 5.2);
 }
-// a Montanha Gelada (depois do vale, nível 40+): pedras grandes e pinheiros com neve espalhados pela pedra e pela neve,
-// longe da estrada e dos bandos; nada de mata
-function montarMontanha(por) {
-  const longe = (x, y) => MONTE_BANDOS.every(([, bx, by, , e]) => Math.hypot(x - bx, y - by) > (e || 2) + 3);
-  for (let k = 0; k < 1400 && objetos.filter(o => o.monte).length < 58; k++) {
-    const x = MONTE_X + 1 + Math.random() * (MONTE_E - 4), y = (Math.random() - 0.5) * 60;
-    if (borda(x, y) > RAIO - 3.5 || !vazio(x, y, 2.4) || distLinha(x, y, ESTRADA_MONTE) < 2.2 || !longe(x, y)) continue;
+// a Montanha Gelada (o mapa dela, montado na 1ª visita: montarMapa): pedras grandes e pinheiros com neve espalhados pela
+// pedra e pela neve, longe da estrada, dos bandos e do acampamento da base; nada de mata. No acampamento (a oeste, perto
+// do portal de volta): a fogueira, duas barracas e os caixotes de quem sobe
+function montarMontanha() {
+  const por = o => { o.mapa = "montanha"; objetos.push(o); if (temColisao(o)) porNaGrade(o); return o; };
+  const deco = (tipo, x, y, extra = {}) => por(completarDecoracao({ tipo, x, y, ...extra }));
+  const [ax, ay] = pM(-27, 3.5);
+  if (DECO && DECO.barraca) { deco("barraca", ax - 2.5, ay + 3.2, { var: 0 }); deco("barraca", ax + 3.2, ay + 3.6, { var: 2 }); deco("caixotes", ax + 6, ay + 0.6); }
+  if (DECO && DECO.fogueira) deco("fogueira", ax + 0.4, ay - 0.4, { var: 0 });
+  const longe = (x, y) => MONTE_BANDOS.every(([, bx, by, , e]) => Math.hypot(x - bx, y - by) > (e || 2) + 3) && Math.hypot(x - ax, y - ay) > 9;
+  for (let k = 0; k < 1600 && objetos.filter(o => o.monte).length < 64; k++) {
+    const a = Math.random() * 6.283, rr = Math.sqrt(Math.random()) * (MONTANHA.raio - 3), x = MONTANHA.ox + Math.cos(a) * rr, y = MONTANHA.oy + Math.sin(a) * rr;
+    if (borda(x, y) > RAIO - 3.5 || !vazio(x, y, 2.4) || distLinha(x, y, ESTRADA_MONTE) < 2.2 || !longe(x, y) || PORTAIS.some(p => Math.hypot(p.x - x, p.y - y) < 5)) continue;
     const r = Math.random();
     if (r < 0.5) { const e = entre(1.2, 2.4); por({ tipo: "pedra", x, y, r: 0.38 * e, esc: e, forma: Array.from({ length: 7 }, () => entre(0.75, 1.1)), monte: true }); }
     else if (r < 0.9 && DECO && DECO.pinheiro) por(completarDecoracao({ tipo: "pinheiro", x, y, esc: entre(1.0, 1.55), tom: entre(-6, 6), neve: true, monte: true }));
     else por({ tipo: "pedra", x, y, r: 0.35, esc: entre(0.6, 1.0), forma: Array.from({ length: 7 }, () => entre(0.75, 1.1)), monte: true });
   }
+  refazerGrade();
+  porSpawns("montanha");
+  pedacos.clear(); mascaras.clear(); MONTANHA.mini = null;
 }
 // ruínas antigas em volta da entrada da Cripta e o píer no lago (muralha e torres ficam só no editor)
 function montarMarcos() {
@@ -8948,10 +9147,13 @@ function atualizarVitais() {
   $("#vNivel").textContent = prog.nivel;
   $("#vVida").style.width = (100 * Math.max(0, viking.vida) / status.vidaMax) + "%";
   $("#vVidaTxt").textContent = `${Math.max(0, Math.round(viking.vida))} / ${status.vidaMax}`;
-  $("#vExp").style.width = (100 * exp) + "%";
-  $("#vExpTxt").textContent = prog.nivel >= NIVEL_MAX ? "nível máximo" : `${(100 * exp).toFixed(1)}% exp`;
-  $("#vPocoes").textContent = contarItem("pocao");
-  $("#vPocoesMana").textContent = contarItem("pocaoMana");
+  // as 4 orbes do Metin2: cada uma é 1/4 do nível; a dica diz o % do nível e o de cada orbe
+  const txtExp = prog.nivel >= NIVEL_MAX ? "nível máximo" : `${(100 * exp).toFixed(1)}% exp`;
+  $("#vExpTxt").textContent = "Experiência: " + txtExp;
+  const pOrbe = [];
+  for (let k = 0; k < 4; k++) pOrbe.push(Math.floor(100 * Math.max(0, Math.min(1, exp * 4 - k))) + "%");
+  orbesAlvo(exp);
+  $("#orbesExp").title = prog.nivel >= NIVEL_MAX ? "Experiência: nível máximo" : `Experiência: ${(100 * exp).toFixed(1)}% do nível ${prog.nivel} (${prog.exp} / ${EXP_NIVEL[prog.nivel]})\nOrbes: ${pOrbe.join(" · ")}`;
   $("#vMana").style.width = (100 * Math.max(0, viking.mana || 0) / status.manaMax) + "%";
   $("#vManaTxt").textContent = `${Math.round(viking.mana || 0)} / ${status.manaMax}`;
   if (!$("#ficha").hidden) {                                              // (a vida e a mana da ficha andam junto)
@@ -8959,7 +9161,60 @@ function atualizarVitais() {
     $("#fMana").style.width = $("#vMana").style.width; $("#fManaTxt").textContent = $("#vManaTxt").textContent;
   }
   $("#vPontos").hidden = !prog.pontos; $("#vPontos").textContent = "+" + prog.pontos;
+  $("#atribPontos").hidden = !prog.pontos; $("#atribPontos").textContent = "+" + prog.pontos;
   $("#bFicha").title = prog.pontos ? `Personagem (P): ${prog.pontos} pontos para distribuir` : "Personagem (P)";
+}
+
+// ---- as 4 orbes da EXP: esferas de vidro com um líquido dourado dentro (cada uma é 1/4 do nível). A superfície ondula
+// devagar (duas ondas, a de trás mais clara, ciclo de ~5 s), o nível sobe suave quando a EXP sobe e, subindo de nível,
+// as orbes esvaziam e enchem de novo. Um canvas pequeno, redesenhado a ~30 quadros por segundo pelo laço do jogo; com
+// "reduzir movimento" no sistema, o líquido fica parado (só redesenha quando a EXP muda)
+const ORBES = { vista: null, alvo: 0, ult: 0, w: 0, h: 0, r: 0, gap: 0, dpr: 1, g: null, sujo: true,
+  parado: (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } })() };
+function orbesAlvo(exp) {
+  if (ORBES.vista === null) ORBES.vista = exp;
+  else if (exp < ORBES.vista - 0.3) ORBES.vista = 0;                  // (subiu de nível: esvazia e enche de novo)
+  ORBES.alvo = exp; ORBES.sujo = true;
+}
+function medirOrbes() {
+  const c = $("#orbesTela"), cel = innerWidth <= 980, r = cel ? 10.5 : innerWidth <= 1100 ? 12 : innerWidth <= 1250 ? 14 : 17.5, gap = cel ? 3 : 5, w = 8 * r + 3 * gap + 2, h = 2 * r + 2;
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  ORBES.r = r; ORBES.gap = gap; ORBES.w = w; ORBES.h = h; ORBES.dpr = dpr;
+  c.style.setProperty("--orbes-w", w + "px"); c.style.setProperty("--orbes-h", h + "px");
+  c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); ORBES.g = c.getContext("2d"); ORBES.sujo = true;
+}
+function desenharOrbes(agora) {
+  if (!ORBES.g) { if (!document.getElementById("orbesTela")) return; medirOrbes(); addEventListener("resize", medirOrbes); }
+  const dt = Math.min(0.1, (agora - (ORBES.tAnt || agora)) / 1000); ORBES.tAnt = agora;
+  if (ORBES.vista !== ORBES.alvo) { const d = ORBES.alvo - ORBES.vista; ORBES.vista = Math.abs(d) < 0.0005 ? ORBES.alvo : ORBES.vista + d * Math.min(1, dt * 2.2); ORBES.sujo = true; }
+  if (ORBES.parado ? !ORBES.sujo : agora - ORBES.ult < 33 && !ORBES.sujo) return;
+  if ($("#rodape").hidden) return;
+  ORBES.ult = agora; ORBES.sujo = false;
+  const g = ORBES.g, { r, gap, dpr } = ORBES, t = ORBES.parado ? 0 : agora / 1000, fase = t * Math.PI * 2 / 5;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, ORBES.w, ORBES.h);
+  for (let i = 0; i < 4; i++) {
+    const cx0 = 1 + r + i * (2 * r + gap), cy0 = 1 + r, ri = r - 1.6, p = Math.max(0, Math.min(1, ORBES.vista * 4 - i));
+    g.save(); g.beginPath(); g.arc(cx0, cy0, ri, 0, 7); g.clip();
+    const fundo = g.createRadialGradient(cx0, cy0 + ri * 0.3, 0, cx0, cy0, ri); fundo.addColorStop(0, "#211c17"); fundo.addColorStop(1, "#0a0807");
+    g.fillStyle = fundo; g.fillRect(cx0 - ri, cy0 - ri, 2 * ri, 2 * ri);
+    if (p > 0.002) {
+      const yL = p >= 1 ? cy0 - ri + 2.2 : cy0 + ri - p * 2 * ri, A = Math.max(0.7, Math.min(2, ri * 0.12)) * (p >= 1 ? 0.7 : 1), x0 = cx0 - ri - 1, x1 = cx0 + ri + 1;
+      const onda = (k, f, dy) => { g.beginPath(); g.moveTo(x0, cy0 + ri + 2); for (let x = x0; x <= x1 + 0.1; x += 1.5) g.lineTo(x, yL + dy + A * Math.sin(x * k / r * 3 + f)); g.lineTo(x1, cy0 + ri + 2); g.closePath(); };
+      onda(0.85, fase + i * 1.3 + 2.1, -1.1); g.fillStyle = "rgba(240, 206, 120, 0.55)"; g.fill();       // a onda de trás, mais clara
+      const liq = g.createLinearGradient(0, yL - A, 0, cy0 + ri); liq.addColorStop(0, "#E9C26E"); liq.addColorStop(0.35, "#C9963E"); liq.addColorStop(1, "#6e4a14");
+      onda(1.15, -fase + i * 1.3, 0.4); g.fillStyle = liq; g.fill();
+      g.strokeStyle = "rgba(255, 238, 190, 0.55)"; g.lineWidth = 0.8; g.beginPath();                    // o brilho da superfície
+      for (let x = x0; x <= x1 + 0.1; x += 1.5) { const y = yL + 0.4 + A * Math.sin(x * 1.15 / r * 3 - fase + i * 1.3); x === x0 ? g.moveTo(x, y) : g.lineTo(x, y); }
+      g.stroke();
+    }
+    const sombra = g.createRadialGradient(cx0, cy0, ri * 0.55, cx0, cy0, ri); sombra.addColorStop(0, "rgba(0, 0, 0, 0)"); sombra.addColorStop(1, "rgba(0, 0, 0, 0.5)");
+    g.fillStyle = sombra; g.fillRect(cx0 - ri, cy0 - ri, 2 * ri, 2 * ri);
+    g.fillStyle = "rgba(255, 248, 230, 0.4)"; g.beginPath(); g.ellipse(cx0 - ri * 0.34, cy0 - ri * 0.46, ri * 0.4, ri * 0.2, -0.55, 0, 7); g.fill();   // o reflexo do vidro
+    g.fillStyle = "rgba(255, 248, 230, 0.55)"; g.beginPath(); g.arc(cx0 + ri * 0.12, cy0 - ri * 0.66, ri * 0.07, 0, 7); g.fill();
+    g.restore();
+    g.lineWidth = 2.2; g.strokeStyle = "#0b0908"; g.beginPath(); g.arc(cx0, cy0, r - 1.1, 0, 7); g.stroke();                          // o aro: nanquim e ocre
+    g.lineWidth = 1.2; g.strokeStyle = p >= 1 ? "#E3B567" : "#8C6A3A"; g.beginPath(); g.arc(cx0, cy0, r - 1.6, 0, 7); g.stroke();
+  }
 }
 
 // ---------------------------------------------------------------- menu do canto (inventário, equipamento, atributos...)
@@ -9007,7 +9262,7 @@ function abrirFichaPag(pag) {
 }
 function abrirSkills() { fichaAba("skills"); abrirFicha(true); }
 // ---------------------------------------------------------------- opções (Esc ou o menu do canto)
-// Som ligado, música, volume geral e de cada tipo de som, contorno. Os mesmos botões do painel de informações (M, N, Y)
+// Som ligado, música, volume geral e de cada tipo de som, contorno, fps. Os mesmos botões do painel de informações (B, N, Y)
 const VOL_NOMES = [["geral", "Volume geral"], ["musica", "Música"], ["efeitos", "Efeitos (golpes, magias, criaturas)"], ["ambiente", "Ambiente (natureza, chuva, fogo)"], ["interface", "Interface (janelas e cliques)"]];
 function abrirOpcoes(sim = $("#opcoes").hidden) {
   $("#opcoes").hidden = !sim; janelaAbriu("opcoes", sim);
@@ -9016,7 +9271,7 @@ function abrirOpcoes(sim = $("#opcoes").hidden) {
 function mostrarOpcoes() {
   const j = document.getElementById("opcoes");
   if (!j || j.hidden) return;
-  $("#oSom").checked = Som.ligado; $("#oMusica").checked = Som.musicaLigada; $("#oContorno").checked = contornoLigado; $("#oBorda").checked = bordaLigada();
+  $("#oSom").checked = Som.ligado; $("#oMusica").checked = Som.musicaLigada; $("#oContorno").checked = contornoLigado; $("#oBorda").checked = bordaLigada(); $("#oFps").checked = FPS.ligado;
   for (const [k] of VOL_NOMES) {
     const i = j.querySelector(`input[data-vol="${k}"]`); if (!i) continue;
     i.value = Som.vol[k]; i.closest(".vol").querySelector("output").textContent = Math.round(100 * Som.vol[k]) + "%";
@@ -9034,6 +9289,7 @@ function montarOpcoes() {
   $("#oSom").onchange = () => { somIniciar(); somAlternar(); };
   $("#oMusica").onchange = () => { somIniciar(); musicaAlternar(); };
   $("#oContorno").onchange = () => contornoAlternar();
+  $("#oFps").onchange = e => fpsLigar(e.target.checked);
   $("#oBorda").onchange = e => { try { localStorage.setItem("borda", e.target.checked ? "leve" : "0"); } catch (x) {} montarBordaEmb(); };
   $("#opcoesPadrao").onclick = () => { Som.vol = { ...VOL_PADRAO }; aplicarVolumes(); salvarVolumes(); mostrarOpcoes(); };
   $("#opcoesFechar").onclick = () => abrirOpcoes(false);
@@ -9063,6 +9319,8 @@ function montarMenu() {
   addEventListener("keydown", e => { if (e.key === "Escape" && menuAberto()) { e.stopPropagation(); abrirMenu(false); $("#menuBotao").focus(); } }, true);
   // o selo de pontos para distribuir (o mesmo do "Nv") aparece também no botão do menu
   const selo = () => { const v = $("#vPontos"), m = $("#menuPontos"); m.hidden = v.hidden; m.textContent = v.textContent; };
+  $("#miniCanvas").addEventListener("click", () => { if (MENU_ACOES.mundo) MENU_ACOES.mundo(); });
+  $("#miniCanvas").style.cursor = "pointer"; $("#miniCanvas").title = "Mapa do Mundo (M)";
   new MutationObserver(selo).observe($("#vPontos"), { attributes: true, childList: true, characterData: true, subtree: true }); selo();
   // com os botões do canto escondidos, o menu desce para o lugar deles
   const semAcoes = () => $("#menuJogo").classList.toggle("sem-acoes", $("#janAcoes").hidden);
@@ -9381,8 +9639,8 @@ function atualizarFicha() {
 function montarFicha() {
   $("#bFicha").onclick = () => abrirFicha();
   $("#fFechar").onclick = () => abrirFicha(false);
-  $("#bPocao").onclick = () => usarPocao();
-  $("#bPocaoMana").onclick = () => usarPocaoMana();
+  $("#bAtrib").onclick = () => abrirFichaPag("atrib");
+  $("#bSkills").onclick = () => abrirFichaPag("skills");
   $("#fNome").onchange = e => { prog.nome = e.target.value.trim().slice(0, 16); salvarProgresso(); };
   $("#fAtrib").onclick = e => {
     const b = e.target.closest("[data-atrib]"); if (!b || prog.pontos <= 0) return;
@@ -9530,7 +9788,7 @@ const V1_PONTOS = [
   ["v1_03", -41, -44], ["v1_03", 27, -62], ["v1_03", 70, -20], ["v1_03", 73, 21], ["v1_03", 80, 1], ["v1_03", 90, -19],      // (e a entrada do Vale Vermelho)
   ["v1_cripta", -56, -30],
   ["v1_04", -12, -86], ["v1_04", 10, -76], ["v1_04", -64, -70], ["v1_04", 50, -87], ["v1_04", 101, 22],                      // Matas dos Ursos
-  ["v1_06", -58, -96], ["v1_06", 6, -95], ["v1_06", -32, -94], ["v1_06", 26, -92], ["v1_06", 107, -28], ["v1_06", 112, -3],  // (e o fundo do vale)
+  ["v1_06", -58, -96], ["v1_06", 6, -95], ["v1_06", -32, -94], ["v1_06", 26, -92], ["v1_06", 109, -25], ["v1_06", 112, -3],  // (e o fundo do vale)
   ["v1_08", -29, -117], ["v1_08", 18, -129], ["v1_08", 39, -112], ["v1_08", -7, -123], ["v1_08", -54, -117],                 // Juramento Branco
   ["v1_10", -39, -134], ["v1_10", 6, -145], ["v1_10", -30, -151]];
 // o tipo mais forte e o tamanho maior de um conjunto (a cor e o "×n" do Mapa do Mundo)
@@ -9557,9 +9815,10 @@ const DAIYU_BANDOS = [
 // ao norte e o tigre ao sul do Campo dos Lobos, o Lobo Alfa no meio da alcateia), o acampamento dos bandidos (ACAMP) e os
 // mortos-vivos em volta das ruínas da Cripta (o buraco fica perto de (-53, -22)); as de x < VALE_X ganham clareira
 const RUINAS = { x: -46, y: -25, r: 12 };
+// a Montanha Gelada (o mapa dela: os mesmos pontos de quando ela era a ponta leste da Vila 1, 840 m para oeste)
 const MONTE_BANDOS = [
   ["golem", 131, 12, 3, 2.5], ["escorpiao", 134, -14, 3, 3], ["yeti", 148, 6, 3, 2.5], ["golem", 152, -8, 2, 2], ["escorpiao", 158, 2, 2, 2],
-  ["yeti", 126, -6, 2, 2], ["nove_caudas", 140, -3, 1]];             // (o Nove Caudas: o centro da área dele, CHEFES_MAPA)
+  ["yeti", 126, -6, 2, 2], ["nove_caudas", 140, -3, 1]].map(([t, x, y, n, e]) => [t, x + MONTANHA.ox - 140, y, n, e]);   // (o Nove Caudas: o centro da área dele, CHEFES_MAPA)
 // (a Vila 1 ficou com a faixa 1–15, Logs/Mapas/PROJETO_MAPAS.md 2.5: o Tigre, o Lobo Alfa, os bandidos, os zumbis, os
 // fantasmas e o Lich foram para a Vila Hahoe, HAHOE_BANDOS. Os substitutos de antes (o Urso Negro, os goblins do
 // acampamento e os esqueletos das ruínas) viraram os grupos do Metin2, V1_PONTOS)
@@ -9583,7 +9842,7 @@ const HAHOE_BANDOS = [
 // o nome do lugar (o minimapa)
 function nomeRegiao(x, y) {
   if (y > 350) return nomeRegiaoHahoe(x, y);                         // (a Vila Hahoe: ZONAS_H)
-  if (x > MONTE_X - 2) return "Montanha Gelada";
+  if (x < -350) return Math.hypot(x - MONTANHA.ox + 27, y - MONTANHA.oy - 3.5) < 9 ? "Acampamento da Base" : "Montanha Gelada";
   if (x > VALE_X) return "Vale Vermelho";                             // (o antigo Vale dos Orcs: os orcs moram na Ilha de Daiyu)
   const f = faixaV1(x, y);
   if (f === 4 || Math.hypot(x - ACAMP.x, y - ACAMP.y) < ACAMP.r + 5) return "Acampamento do Juramento Branco";
@@ -9624,6 +9883,8 @@ function carregarSpawns() {
   SPAWNS = (MOBS_FIXO && spawnsValidos(MOBS_FIXO)) || SPAWNS_ORIGINAL.map(s => ({ ...s }));
   try { const m = spawnsValidos(JSON.parse(localStorage.getItem(MOBS_CHAVE))); if (m) SPAWNS = m; } catch (e) {}
   migrarSpawnsHahoe();
+  // (uma lista editada de quando a Montanha Gelada era a ponta leste da Vila 1: os bandos de lá vão para o mapa dela)
+  if (!SPAWNS.some(s => s.x < -350)) for (const s of SPAWNS) if (s.x > 117 && s.x < 240 && Math.abs(s.y) < 60) s.x += MONTANHA.ox - 140;
   // (um chefe de mapa novo do código que a lista editada ainda não tem, como o Nove Caudas, entra mesmo assim)
   for (const s of SPAWNS_ORIGINAL) if (CHEFES_MAPA[s.tipo] && !SPAWNS.some(o => o.tipo === s.tipo)) SPAWNS.push({ ...s });
 }
@@ -11476,6 +11737,8 @@ addEventListener("keydown", e => {
   if (k === "a" && e.ctrlKey && e.altKey && e.shiftKey) { e.preventDefault(); if (!e.repeat) avisar(modoAdmin(!ADMIN) ? "Modo admin ligado" : "Modo admin desligado"); return; }
   // Ctrl+G: monta e desmonta do cavalo (como no Metin2; o Ctrl não deixa abrir o admin nem o "procurar" do navegador)
   if (k === "g" && e.ctrlKey && !e.altKey) { e.preventDefault(); if (!e.repeat && !editor.ativo && CAVALO_LIBERADO) alternarMontaria(); return; }
+  if (e.shiftKey && !e.ctrlKey && !e.altKey && /^Digit[1-4]$/.test(e.code) && !editor.ativo) { e.preventDefault(); const p = +e.code[5] - 1; if (!e.repeat && p < PAGINAS_BARRA.length) trocarPaginaBarra(p); return; }
+  if (k === "m" && e.ctrlKey && !e.altKey) { e.preventDefault(); if (!e.repeat) { somIniciar(); somAlternar(); } return; }
   const iSlot = TECLAS_BARRA.indexOf(k);
   if (iSlot >= 0 && !editor.ativo) { e.preventDefault(); if (!e.repeat) usarSlot(iSlot); return; }
   if (k === "o" && !e.repeat && (ADMIN || editor.ativo)) { editorAbrir(!editor.ativo); return; }
@@ -11485,7 +11748,7 @@ addEventListener("keydown", e => {
     if (k === "escape") { editor.sel = null; editor.pondo = null; editorPainel(); editorAviso(""); }
     return;
   }
-  if (k === "m" && !e.repeat) somAlternar();
+  if (k === "b" && !e.ctrlKey && !e.altKey && !e.repeat) { somIniciar(); somAlternar(); }   // (no ?mundo3d=1 o B gira a câmera: lá vale o Ctrl+M)
   if (k === "y" && !e.repeat) contornoAlternar();
   if (k === "n" && !e.repeat) { somIniciar(); musicaAlternar(); }
   if (k === "t" && !e.repeat && ADMIN) trocarClasse({ viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "guerreiro", guerreiro: "viking" }[classe]);
@@ -11669,7 +11932,7 @@ function aplicarMapa(m) {
   if (Array.isArray(m.objetos)) {
     const fica = t => m.versao === 1 && DECO_V2.includes(t);          // (o mapa antigo não sabia das lanternas e dos bambus)
     for (let i = objetos.length - 1; i >= 0; i--) if (DECORACAO.includes(objetos[i].tipo) && !objetos[i].caverna && !objetos[i].mapa && !fica(objetos[i].tipo)) objetos.splice(i, 1);
-    for (const c of m.objetos) if (DECORACAO.includes(c.tipo) && isFinite(c.x) && isFinite(c.y)) objetos.push(completarDecoracao(c));
+    for (const c of m.objetos) if (DECORACAO.includes(c.tipo) && isFinite(c.x) && isFinite(c.y) && !(c.x > 131 && c.x < 240 && Math.abs(c.y) < 350)) objetos.push(completarDecoracao(c));   // (a ponta leste de antes, onde era a montanha, virou mar)
   }
   aplicarTerreno(m.versao === 2 ? m.terreno : null);
   refazerGrade();
@@ -12046,12 +12309,18 @@ const PORTAL_COR = { vila: ["#3E7A5C", "#EFE4CC"], vale: ["#B8322A", "#C9963E"],
 const PORTAL_ARTE = { pasta: "deco_b/portais/", largura: 4.2 };       // (a largura do portão na arte, em m)
 MAPAS.vila1.seguro = null;                                             // (a Vila 1: o renascer da cidade, pontoSeguro)
 MAPAS.hahoe.seguro = pH(0.5, -4.2);                                    // (a Praça do Palco das Máscaras)
+MAPAS.montanha.seguro = pM(-27, 0.5);                                  // (o Acampamento da Base, ao lado da fogueira)
 const PORTAIS = [
   // P1: na Vila 1, na ponta do cabo das Terras do Sul, no fim da estrada do portal (V1_PORTAL: o ponto mais longe da
   // cidade); na Vila Hahoe, do outro lado da Ponte de Pedra do Oeste. Quem volta da Vila Hahoe aparece 3 m ao norte dele,
   // na ponta da estrada
   { id: "v1_hahoe", mapa: "vila1", x: V1_PORTAL.x, y: V1_PORTAL.y, saida: [0, 1], destino: "hahoe", para: "hahoe_v1", nivelMin: 12, custo: 0, cor: "vila" },
   { id: "hahoe_v1", mapa: "hahoe", x: HAHOE.ox - 44.5, y: PONTES_H[0].y, saida: [1, 0], destino: "vila1", para: "v1_hahoe", nivelMin: 0, custo: 0, cor: "vila" },
+  // P3: na Vila Hahoe, no fim da trilha do Desfiladeiro da Cachoeira (40–45, o último degrau dela), o passo da montanha;
+  // na Montanha Gelada, no Acampamento da Base (oeste, a parte baixa). Nível 40: os bichos de lá vão do 42 (Golem de
+  // Pedra) ao 46 (Yeti), e o Nove Caudas é 50; como na Vila Hahoe (nv 12 para a faixa 15), uns níveis abaixo
+  { id: "hahoe_monte", mapa: "hahoe", x: HAHOE.ox - 42, y: HAHOE.oy + 40, saida: [0.6, -0.8], destino: "montanha", para: "monte_hahoe", nivelMin: 40, custo: 0, cor: "montanha" },
+  { id: "monte_hahoe", mapa: "montanha", x: MONTANHA.ox - 34, y: MONTANHA.oy - 1.5, saida: [1, 0], destino: "hahoe", para: "hahoe_monte", nivelMin: 0, custo: 0, cor: "vila" },
 ];
 let viagem = null, cartaoViagem = null;
 const PORTAL_AVISO = { n: 0, txt: "" };                                // (o último aviso de trava: os testes conferem)
@@ -12066,6 +12335,7 @@ function montarMapa(id) {
   const m = MAPAS[id]; if (!m || m.montado) return false;
   m.montado = true;
   if (id === "hahoe") montarHahoe();
+  if (id === "montanha") montarMontanha();
   return true;
 }
 function passoPortais(dt) {
@@ -12282,7 +12552,7 @@ function npcsHahoe() {
     { nome: "Guarda Baek", x: -3.6, y: 1.8, modelo: "guarda", lanca: true, cores: { roupa: "#2D4A6B", calca: "#2a2a40", pele: "#e0b896", cabelo: "#1E1B18", elmo: "#8C8A80" },
       falas: ["Do outro lado da ponte do oeste, arrozais e tigres (nível 15 a 20). Ao norte, a estrada dos bandidos (20 a 28).",
               "O brejo a leste é dos afogados (26 a 32); as ruínas do mosteiro, ao sul, são do Lich (32 a 40).",
-              "No desfiladeiro da cachoeira manda o Capitão Dokkaebi (40 a 45). Dizem que uma ilha de orcs espera os de nível 45."] },
+              "No desfiladeiro da cachoeira manda o Capitão Dokkaebi (40 a 45). No fim da trilha dele, o portal do passo leva à Montanha Gelada (nível 40)."] },
   ];
 }
 function montarHahoe() {
@@ -15248,6 +15518,14 @@ function ajustar() {
 addEventListener("resize", ajustar);
 
 let antes = performance.now();
+const FPS = { ligado: (() => { try { return localStorage.getItem("fps") !== "0"; } catch (e) { return true; } })(), n: 0, t0: performance.now(), el: null };
+function fpsLigar(sim) { FPS.ligado = sim; try { localStorage.setItem("fps", sim ? "1" : "0"); } catch (e) {} FPS.el = $("#fps"); FPS.el.hidden = !sim; FPS.n = 0; FPS.t0 = performance.now(); }
+function contarQuadro(agora) {
+  if (!FPS.ligado) return;
+  FPS.n++;
+  const d = agora - FPS.t0;
+  if (d >= 500) { (FPS.el || (FPS.el = $("#fps"))).textContent = Math.round(FPS.n * 1000 / d) + " fps"; FPS.n = 0; FPS.t0 = agora; }
+}
 function laco(agora) {
   if (MODO_TESTE && agora - antes < 33) { requestAnimationFrame(laco); return; }   // 30 quadros por segundo
   const dt = Math.min(0.05, (agora - antes) / 1000); antes = agora;
@@ -15257,6 +15535,8 @@ function laco(agora) {
   else if (editor.ativo) passoEditor(dt);                           // editando: o jogo fica parado
   else if (!pausado && !SEL.aberta) passo(dt * veloc);             // (com a escolha de classe aberta, o mundo espera)
   if (!(window.MM && MM.cobre) && !SEL.aberta) desenhar(t);                        // (com o Mapa do Mundo aberto por cima, o jogo não é desenhado)
+  contarQuadro(agora);
+  desenharOrbes(agora);
   requestAnimationFrame(laco);
 }
 
@@ -15270,6 +15550,7 @@ carregar().then(() => {
   classeDoInicio();                                   // (a última classe jogada)
   PRED_CARREGANDO.then(montarPredios);              // (as construções em camadas, com ?predios=1)
   $("#carregando").hidden = true;
+  fpsLigar(FPS.ligado);
   window.jogoPronto = true;
   requestAnimationFrame(laco);
 }).catch(e => { console.error("carregar:", e); $("#carregando p").textContent = "Não deu para carregar os sprites"; $("#carregandoTxt").textContent = (e && e.message) || String(e); });
@@ -15376,7 +15657,7 @@ function plano(x, y, dEstr) {
   p = Math.max(p, 0.6 * liso3((RUINAS.r - Math.hypot(x - RUINAS.x, y - RUINAS.y)) / 5));
   p = Math.max(p, liso3((16 - Math.hypot(x - MONUMENTO.x, y - MONUMENTO.y)) / 5));
   if (!bandosLonge) bandosLonge = [...VALE_BANDOS, ...MONTE_BANDOS].map(([, bx, by, , e]) => [bx, by, (e || 2) + 5]);
-  if (x > VALE_X - 6) for (const [bx, by, r] of bandosLonge) p = Math.max(p, 0.75 * liso3((r - Math.hypot(x - bx, y - by)) / 4));
+  if (x > VALE_X - 6 || x < -350) for (const [bx, by, r] of bandosLonge) p = Math.max(p, 0.75 * liso3((r - Math.hypot(x - bx, y - by)) / 4));
   return p;
 }
 let nivelLago = null;
@@ -15388,7 +15669,7 @@ function terraFirme(x, y, d, pv, pm, pl) {
   if (pv > 0) h += pv * (2.6 + morro * 2.6 * (1 - 0.7 * pl) + miudo * 0.5 * (1 - pl) + 8.5 * parede * (1 - 0.55 * pl));
   if (pm > 0) {
     const crista = Math.pow(1 - Math.abs(2 * fbm(x * 0.05 + 5, y * 0.05 - 2) - 1), 2.4);
-    h += pm * (3.4 + 11 * liso3((x - MONTE_X + 2) / 42) + crista * 8 * (1 - 0.85 * pl) + 6 * parede * (1 - 0.5 * pl) + morro * 2 + miudo * 0.8 * (1 - pl));
+    h += pm * (3.4 + 11 * liso3((x - MONTANHA.ox + 21) / 42) + crista * 8 * (1 - 0.85 * pl) + 6 * parede * (1 - 0.5 * pl) + morro * 2 + miudo * 0.8 * (1 - pl));
   }
   return h;
 }
@@ -19594,7 +19875,7 @@ return { get ativo() { return ativo(); }, get iso() { return iso; }, get fps() {
      Com "Editar": o editor de mobs (aba Mobs, sobre a lista SPAWNS) e o editor de mapa (aba Mapa: decoração, pincel
      e pincel de terreno, guardado nas camadas de ajuste AJUSTE). Ao fechar, as criaturas e o mundo 3D são remontados. -->
 <style>
-  .mm { position: fixed; inset: 0; z-index: 30; display: grid; grid-template-rows: auto 1fr; background: #0d1a22; color: var(--texto); font-family: var(--corpo); }
+  .mm { position: fixed; inset: 0; z-index: 30; display: grid; grid-template-rows: auto 1fr; background: #0e0c0a; color: var(--texto); font-family: var(--corpo); }
   .mm-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: calc(env(safe-area-inset-top, 0px) + 8px) max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
              background: linear-gradient(var(--jan-titulo1, #4b331e), var(--jan-titulo2, #22160d)); border-bottom: 2px solid var(--jan-ouro, #b8893e); }
   .mm-topo h2 { margin: 0 6px 0 0; font-family: var(--display); font-weight: 400; font-size: 20px; color: var(--jan-ouro-claro, #f2d68e); text-shadow: 0 1px 0 #000; }
@@ -19654,7 +19935,7 @@ return { get ativo() { return ativo(); }, get iso() { return iso; }, get fps() {
     <button type="button" class="so-admin" id="mmEditar" aria-pressed="false" title="Mostrar o editor">Editar</button>
     <button type="button" id="mmVerTudo" title="Ver o mapa inteiro">Ver tudo</button>
     <button type="button" class="so-admin" id="mmExportar" title="Gravar o mapa como imagem PNG">Exportar imagem</button>
-    <button type="button" id="mmFechar" title="Fechar (U ou Esc)">Fechar</button>
+    <button type="button" id="mmFechar" title="Fechar (M ou Esc)">Fechar</button>
   </header>
   <div class="mm-corpo">
     <canvas id="mmTela" aria-label="O mapa inteiro visto de cima, com os mobs por nível"></canvas>
@@ -19717,7 +19998,7 @@ var MM = (() => {
 "use strict";
 const $m = id => document.getElementById(id);
 const el = $m("mapaMundo"), cvM = $m("mmTela"), g = cvM.getContext("2d"), corpoM = cvM.parentNode;
-// o retângulo do mundo (a ilha, o vale, a montanha e as Terras do Sul: a caixa da costa, com um pouco de mar em volta)
+// o retângulo do mundo (a ilha, o vale e as Terras do Sul: a caixa da costa, com um pouco de mar em volta)
 const limV1 = () => ({ x0: CAIXA_V1.x0 - 10, x1: CAIXA_V1.x1 + 10, y0: CAIXA_V1.y0 - 10, y1: CAIXA_V1.y1 + 10 });
 const LIM = limV1();
 const V = { cx: 40, cy: 0, esc: 5, w: 0, h: 0, dpr: 1 };
@@ -19852,7 +20133,7 @@ function rotulos() {
           ["Acampamento do Juramento Branco · 13–15", ACAMP.x, ACAMP.y - 12.5, 2], ["Ruínas da Cripta", RUINAS.x - 2, RUINAS.y - 15, 2],
           // (as faixas dos grupos do Metin2, faixaV1)
           ["Campos dos Cães · 1–4", 2, -24, 2], ["Estábulo", ESTABULO.x - 5, ESTABULO.y - 6.5, 3], ["Campos dos Javalis · 4–7", -22, -55, 2], ["Matas dos Ursos · 7–14", -22, -80, 2],
-          ["Vale Vermelho", VALE_X + 24, 34, 1], ["Monumento", MONUMENTO.x, MONUMENTO.y + 9, 3], ["Montanha Gelada", MONTE_X + 24, 27, 1],
+          ["Vale Vermelho", VALE_X + 24, 34, 1], ["Monumento", MONUMENTO.x, MONUMENTO.y + 9, 3], ["Montanha Gelada", MONTANHA.ox + 4, MONTANHA.oy + 38, 1], ["Acampamento da Base", MONTANHA.ox - 24, MONTANHA.oy + 11, 3],
           // (a Vila Hahoe: aparece quando o herói está nela)
           ["Vila Hahoe", HV.x, HV.y + 13, 1], ...ZONAS_H.map(z => [z.nome, z.x, z.y + (z.r > 6 ? 7 : 3), 2]),
           ...PONTES_H.map(p => [p.nome, p.x, p.y - 4, 3])];
@@ -20189,12 +20470,17 @@ function desenharEscala(c, v, k = 1, direita = 12) {
 // o mapa inteiro numa vista (a tela ou a imagem exportada)
 function desenharMapa(c, v, opc = {}) {
   opc.ocupado = [];
-  c.fillStyle = "rgb(18, 56, 94)"; c.fillRect(0, 0, v.w, v.h);
+  // na tela, como o Large Map do Metin2: a folha do mapa sobre um fundo escuro de nanquim, com a moldura do jogo
+  // (nanquim e o filete ocre); na imagem exportada, o mar em volta
+  c.fillStyle = opc.raster ? "rgb(18, 56, 94)" : "#0e0c0a"; c.fillRect(0, 0, v.w, v.h);
   const R = opc.raster || base;
-  if (R) {
-    const [X, Y] = paraTela(LIM.x0, LIM.y1, v);
-    c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-    c.drawImage(R.c, X, Y, R.w / R.ppm * v.esc, R.h / R.ppm * v.esc); c.restore();
+  {
+    const [X, Y] = paraTela(LIM.x0, LIM.y1, v), [X1, Y1] = paraTela(LIM.x1, LIM.y0, v);
+    if (!opc.raster) { c.fillStyle = "rgb(18, 56, 94)"; c.fillRect(X, Y, X1 - X, Y1 - Y); }
+    if (R) { c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+      c.drawImage(R.c, X, Y, R.w / R.ppm * v.esc, R.h / R.ppm * v.esc); c.restore(); }
+    if (!opc.raster) { const k = v.dpr || 1; c.save(); c.strokeStyle = "#1E1B18"; c.lineWidth = 6 * k; c.strokeRect(X - 3 * k, Y - 3 * k, X1 - X + 6 * k, Y1 - Y + 6 * k);
+      c.strokeStyle = "#C9963E"; c.lineWidth = 1.5 * k; c.strokeRect(X - 6.5 * k, Y - 6.5 * k, X1 - X + 13 * k, Y1 - Y + 13 * k); c.restore(); }
   }
   // a linha da costa e a do lago, finas e nítidas
   c.save(); c.lineWidth = Math.max(1, v.esc * 0.18); c.strokeStyle = "rgba(255, 250, 230, 0.55)";
@@ -20673,13 +20959,14 @@ function ligar() {
   addEventListener("keydown", e => {
     const campo = ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName), k = e.key.toLowerCase();
     if (!est.aberto) {
-      if (k === "u" && !campo && !e.repeat && !(typeof editor !== "undefined" && editor.ativo)) { e.preventDefault(); e.stopImmediatePropagation(); abrir(true); }
+      const tecla = k === "u" || (k === "m" && !e.ctrlKey && !e.altKey && !e.metaKey);
+      if (tecla && !campo && !e.repeat && !(typeof editor !== "undefined" && editor.ativo) && !(typeof SEL !== "undefined" && SEL.aberta)) { e.preventDefault(); e.stopImmediatePropagation(); abrir(true); }
       return;
     }
     e.stopImmediatePropagation();
     if (k === "escape") { e.preventDefault(); if (campo) e.target.blur(); else if (est.pondoGrupo) { est.pondoGrupo = false; $m("mmNovoGrupo").setAttribute("aria-pressed", false); ferramentaCursor(); } else abrir(false); return; }
     if (campo) return;
-    if (k === "u" && !e.repeat) { e.preventDefault(); abrir(false); return; }
+    if ((k === "u" || (k === "m" && !e.ctrlKey && !e.altKey)) && !e.repeat) { e.preventDefault(); abrir(false); return; }
     if (k === "delete" || k === "backspace") { e.preventDefault(); if (!est.editando || !ADMIN) return; if (est.aba === "mobs") apagarMob(); else apagarDeco(); return; }
     const passo = 40 / V.esc;
     if (["arrowleft", "a"].includes(k)) { V.cx -= passo; est.sujo = true; } else if (["arrowright", "d"].includes(k)) { V.cx += passo; est.sujo = true; }
