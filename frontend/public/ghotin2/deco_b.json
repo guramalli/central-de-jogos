@@ -1095,6 +1095,153 @@
    "fator": 1.0
   }
  ],
+ "pinheiro_daiyu": [
+  {
+   "arq": "pinheiro_daiyu_daiyu_pinheiro_0.webp",
+   "w": 757,
+   "h": 690,
+   "px": 340.9,
+   "py": 662.4,
+   "ppm": 150.0,
+   "base": 2.61,
+   "livre": true,
+   "fator": 1.0
+  }
+ ],
+ "basalto": [
+  {
+   "arq": "basalto_daiyu_basalto_0.webp",
+   "w": 345,
+   "h": 403,
+   "px": 173.4,
+   "py": 354.9,
+   "ppm": 150.0,
+   "base": 1.88,
+   "livre": true,
+   "fator": 1.0
+  }
+ ],
+ "altar_casco": [
+  {
+   "arq": "altar_casco_daiyu_altar_0.webp",
+   "w": 960,
+   "h": 872,
+   "px": 493.7,
+   "py": 597.2,
+   "ppm": 150.0,
+   "base": 6.09,
+   "fator": 1.0
+  }
+ ],
+ "hareubang": [
+  {
+   "arq": "hareubang_daiyu_hareubang_0.webp",
+   "w": 177,
+   "h": 330,
+   "px": 91.2,
+   "py": 316.8,
+   "ppm": 150.0,
+   "base": 1.07,
+   "fator": 1.0
+  }
+ ],
+ "costela": [
+  {
+   "arq": "costela_daiyu_costela_0.webp",
+   "w": 621,
+   "h": 570,
+   "px": 322.3,
+   "py": 541.5,
+   "ppm": 150.0,
+   "base": 3.37,
+   "livre": true,
+   "fator": 1.0
+  }
+ ],
+ "tenda_orc": [
+  {
+   "arq": "tenda_orc_daiyu_tenda_0.webp",
+   "w": 570,
+   "h": 534,
+   "px": 290.7,
+   "py": 366.5,
+   "ppm": 150.0,
+   "base": 3.72,
+   "fator": 1.0
+  }
+ ],
+ "palicada": [
+  {
+   "arq": "palicada_daiyu_palicada_0.webp",
+   "w": 690,
+   "h": 468,
+   "px": 175.1,
+   "py": 430.8,
+   "ppm": 150.0,
+   "base": 2.32,
+   "fator": 1.0
+  }
+ ],
+ "portao_orc": [
+  {
+   "arq": "portao_orc_daiyu_portao_0.webp",
+   "w": 900,
+   "h": 591,
+   "px": 199.4,
+   "py": 555.8,
+   "ppm": 150.0,
+   "base": 2.42,
+   "fator": 1.0
+  }
+ ],
+ "cabeca_tartaruga": [
+  {
+   "arq": "cabeca_tartaruga_daiyu_cabeca_0.webp",
+   "w": 1296,
+   "h": 1174,
+   "px": 645.1,
+   "py": 1033.1,
+   "ppm": 144.0,
+   "base": 8.77,
+   "fator": 1.0
+  }
+ ],
+ "fumarola": [
+  {
+   "arq": "fumarola_daiyu_fumarola_0.webp",
+   "w": 255,
+   "h": 184,
+   "px": 161.2,
+   "py": 146.9,
+   "ppm": 150.0,
+   "base": 1.31,
+   "fator": 1.0
+  }
+ ],
+ "portao_quina": [
+  {
+   "arq": "portao_quina_daiyu_portao_quina_0.webp",
+   "w": 1200,
+   "h": 734,
+   "px": 600.0,
+   "py": 660.2,
+   "ppm": 150.0,
+   "base": 4.78,
+   "fator": 1.0
+  }
+ ],
+ "palicada_diag": [
+  {
+   "arq": "palicada_diag_daiyu_palicada_diag_0.webp",
+   "w": 780,
+   "h": 634,
+   "px": 390.0,
+   "py": 507.3,
+   "ppm": 150.0,
+   "base": 2.31,
+   "fator": 1.0
+  }
+ ],
  "fogo": [
   {
    "arq": "fogo.webp",
