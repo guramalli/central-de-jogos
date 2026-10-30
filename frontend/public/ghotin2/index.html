@@ -756,9 +756,19 @@
   .fx-classe { font-size: 13px; }
   .fx-classe small { font-size: 11px; color: var(--apagado); }
   /* Nível | Experiência | Próximo Nível: títulos em vermelho, cada valor numa caixa */
-  .fx-trio { display: grid; grid-template-columns: 0.62fr 1fr 1fr; gap: 6px; }
-  .fx-trio > div { display: grid; gap: 2px; justify-items: stretch; text-align: center; min-width: 0; }
-  .fx-trio i { font-style: normal; font-size: 11.5px; color: #e2725a; white-space: nowrap; }
+  .fx-duo { display: grid; grid-template-columns: 0.5fr 1.5fr; gap: 6px; }
+  .fx-duo > div { display: grid; gap: 2px; justify-items: stretch; text-align: center; min-width: 0; }
+  .fx-duo i { font-style: normal; font-size: 11.5px; color: #e2725a; white-space: nowrap; }
+  .fx-subabas { display: flex; align-items: center; gap: 3px; }
+  .ficha .fx-subabas button { padding: 2px 9px; font-size: 13px; }
+  .fx-subabas .fx-pontos { margin-left: auto; }
+  .fx-subpag { display: grid; gap: 8px; align-content: start; }
+  .fx-subpag[hidden] { display: none; }
+  .fx-combate { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 8px; }
+  .fx-combate > div { display: grid; grid-template-columns: 1fr 58px; gap: 4px; align-items: center; min-width: 0; }
+  .fx-combate span { font-size: 11px; line-height: 12px; color: var(--apagado); }
+  .fx-combate .fx-cx { padding: 2px; }
+  html:root .dica-item.m2 .at-ctrl { color: #FFC800; }
   .ficha .fx-expbarra { height: 7px; margin-top: -3px; border-radius: 2px; }
   :root:not(.semB) .ficha .fx-expbarra { background: #F8F2E4; }
   /* Status: VIT/INT/FOR/DEX com o + à esquerda; HP, MP, Ataque e Defesa à direita */
@@ -792,7 +802,7 @@
   html:root .dica-item.m2 .sk-atual { color: #7FB8FF; }
   html:root .dica-item.m2 .sk-prox { color: #FF7A6A; }
   html:root .dica-item.m2 .sk-num { color: #E8E0CC; }
-  html:root .dica-item.m2 .sk-num.prox { color: #E8A89A; }
+  html:root .dica-item.m2 .sk-num.prox { color: #FF7A6A; }
   .fx-meia { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px 3px; padding: 6px 4px 5px; border: 1px solid var(--jan-poco-borda); border-radius: 2px; background: var(--jan-poco); box-shadow: inset 0 1px 6px rgba(0, 0, 0, 0.6); }
   .fx-sk { position: relative; display: grid; justify-items: center; gap: 2px; }
   .fx-sk canvas, .fx-sk > span, .fx-trava svg { display: block; box-sizing: border-box; width: 38px; height: 38px; border: 1.5px solid #6b5230; border-radius: 2px; }
@@ -1346,27 +1356,41 @@
         <span class="fx-classe" id="fClasse"></span>
       </div>
     </div>
-    <div class="fx-trio">
+    <div class="fx-duo">
       <div><i>Nível</i><b class="fx-cx" id="fNivel"></b></div>
-      <div><i>Experiência</i><b class="fx-cx" id="fExp"></b></div>
-      <div><i>Próximo Nível</i><b class="fx-cx" id="fProx"></b></div>
+      <div><i>EXP</i><b class="fx-cx"><span id="fExp"></span> / <span id="fProx"></span></b></div>
     </div>
     <div class="medidor exp fx-expbarra" title="Experiência deste nível"><i id="fExpBarra"></i></div>
-    <h3>Status <span class="fx-pontos" id="fPontosCaixa" title="Pontos de atributo: 3 a cada nível">Pontos [ <b id="fPontosN">0</b> ]</span></h3>
-    <div class="fx-status">
-      <div class="fx-atrib" id="fAtrib"></div>
-      <div class="fx-vals">
-        <span>HP</span><div class="fx-cx medidor vida"><i id="fVida"></i><span id="fVidaTxt"></span></div>
-        <span>MP</span><div class="fx-cx medidor mana"><i id="fMana"></i><span id="fManaTxt"></span></div>
-        <span>Ataque</span><b class="fx-cx" id="fAtaque"></b>
-        <span>Defesa</span><b class="fx-cx" id="fDefesa"></b>
-      </div>
+    <div class="fx-subabas" id="fSubAbas" role="tablist" aria-label="Partes da ficha">
+      <button type="button" role="tab" data-sub="status" aria-pressed="true">Status</button>
+      <button type="button" role="tab" data-sub="bonus" aria-pressed="false">Bônus</button>
+      <button type="button" role="tab" data-sub="stats" aria-pressed="false">Stats</button>
+      <span class="fx-pontos" id="fPontosCaixa" title="Pontos de atributo: 1 a cada bolinha de EXP cheia (4 por nível)">Pontos [ <b id="fPontosN">0</b> ]</span>
     </div>
-    <p class="nota fx-dica" id="fPontos"></p>
-    <h3>Atributos</h3>
-    <div class="fx-caixas" id="fDerivados"></div>
-    <p class="nota" id="fEquipNota"></p>
-    <div class="fx-rodape"><button id="fJornada" class="fx-recomecar" title="Tempo jogado, XP por hora, tempo de cada nível, criaturas e drops">Estatísticas da jornada</button><button id="fRecomecar" class="fx-recomecar">Recomeçar este personagem</button></div>
+    <div class="fx-subpag" data-sub="status">
+      <div class="fx-status">
+        <div class="fx-atrib" id="fAtrib"></div>
+        <div class="fx-vals">
+          <span>HP</span><div class="fx-cx medidor vida"><i id="fVida"></i><span id="fVidaTxt"></span></div>
+          <span>SP</span><div class="fx-cx medidor mana"><i id="fMana"></i><span id="fManaTxt"></span></div>
+          <span>Ataque</span><b class="fx-cx" id="fAtaque"></b>
+          <span>Defesa</span><b class="fx-cx" id="fDefesa"></b>
+        </div>
+      </div>
+      <p class="nota fx-dica" id="fPontos"></p>
+      <h3>Atributos de combate</h3>
+      <div class="fx-combate" id="fCombate"></div>
+    </div>
+    <div class="fx-subpag" data-sub="bonus" hidden>
+      <h3>Bônus</h3>
+      <div class="fx-caixas" id="fDerivados"></div>
+      <p class="nota" id="fEquipNota"></p>
+    </div>
+    <div class="fx-subpag" data-sub="stats" hidden>
+      <h3>Stats</h3>
+      <div class="fx-caixas" id="fStats"></div>
+      <div class="fx-rodape"><button id="fJornada" class="fx-recomecar" title="Tempo jogado, XP por hora, tempo de cada nível, criaturas e drops">Estatísticas da jornada</button><button id="fRecomecar" class="fx-recomecar">Recomeçar este personagem</button></div>
+    </div>
   </section>
   <section class="ficha-pag" data-pag="skills" aria-label="Skills" hidden>
     <!-- como a janela "Skill" do Metin2: as abas Corpo e Montaria no alto, "Disponíveis [N]", a grade de 6 colunas com o
@@ -1999,6 +2023,8 @@ const NPC = {
 };
 // as trilhas de chão batido (vista); a escada de cada rampa entra no meio
 const RP = RAMPAS.reduce((m, r) => (m[r.nome] = r, m), {});
+const MURETA = 0.8;                             // (a largura da mureta pintada de cada lado da escada: é sólida, R148)
+RP["Escadaria do Casco"].peLateral = 1.1;       // (o pé dela dá para a boca da Fenda, sem patamar na frente: entra-se pelos lados no 1º metro, como sempre foi)
 const TRILHAS = [
   [[0, -57], [-8, -50], [-16, -43], [-16, RP["Escadaria Negra"].v0], [-16, RP["Escadaria Negra"].v1], [-15, -22], [-14, -12.8], [-19, -6],
    [-22, RP["Rampa do Pinhal"].v0], [-22, RP["Rampa do Pinhal"].v1], [-14, 15], [-5, 23.8], [0, RP["Escadaria do Casco"].v0], [0, RP["Escadaria do Casco"].v1], [0, 39]],
@@ -2083,7 +2109,8 @@ function montarGrade(opc = {}) {
     let z = NIV[NV[c]], f = 0;
     if (dc > 0) f |= F_TERRA;
     const zr = zRampa(u, v);
-    if (zr > z - 0.01 && dc > 0) { z = Math.max(z, zr); f |= F_RAMPA; }
+    if (zr >= 0 && dc > 0) { z = zr; f |= F_RAMPA; }                     // (R148: na largura da escada, a escada manda; o platô ondulado não vira um degrau invisível no meio dela)
+    else if (dc > 0) for (const r of RAMPAS) if (v >= r.v0 + (r.peLateral || 0) && v <= r.vFim && Math.abs(u - r.u) > r.larg / 2 && Math.abs(u - r.u) < r.larg / 2 + MURETA) f |= F_PENHASCO;   // (R148: a mureta desenhada é sólida, mesmo onde a escada ainda está baixa)
     if (dc > 0 && NV[c] === 0 && v > frente1(u) - 1 && !(f & F_RAMPA)) f |= F_ROCHA;   // (a costa de lava atrás da praia)
     const np = NV[c] === 1 ? naPonte(u, v) : null;
     if (np) z = NIV[1] + alturaPonte(np.a);                              // (rodada 3: o topo da ponte de basalto)
@@ -2094,8 +2121,9 @@ function montarGrade(opc = {}) {
   // 3. a beira dos penhascos (a diferença com um vizinho passa do degrau) e o chão escondido atrás de um platô
   const vd = opc.vdir || vdirMundo(), DMAX = NIV[3] * ALT / ACH, rel = ACH / ALT;
   for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
-    const c = j * N + i, z = Z[c];
-    for (let dj = -1; dj <= 1 && !(FL[c] & F_PENHASCO); dj++) for (let di = -1; di <= 1; di++) if (Math.abs(Z[c + dj * N + di] - z) > PASSO_MAX) { FL[c] |= F_PENHASCO; break; }
+    const c = j * N + i, z = Z[c], degrau = FL[c] & F_RAMPA;
+    // (R148: o degrau não vira beira por causa do chão ao lado: a parede é a mureta, e toda a largura pintada se anda)
+    for (let dj = -1; dj <= 1 && !(FL[c] & F_PENHASCO); dj++) for (let di = -1; di <= 1; di++) { const q = c + dj * N + di; if (Math.abs(Z[q] - z) > PASSO_MAX && !(degrau && !(FL[q] & F_RAMPA))) { FL[c] |= F_PENHASCO; break; } }
     if (!(FL[c] & F_TERRA)) continue;
     const lx = -EXT + (i + 0.5) * CEL, ly = -EXT + (j + 0.5) * CEL;
     for (let d = CEL; d <= DMAX; d += CEL) {
@@ -2293,13 +2321,18 @@ D.montar = function (ctx) {
   // a Fortaleza Negra: o recinto em losango (a paliçada nas duas diagonais do isométrico e o portão na quina da frente, onde
   // a rampa chega), quando as peças diagonais existem; senão, o portão e os trechos na beira do platô
   const pf = RP["Portão da Fortaleza"];
+  // (R148) um trecho de parede na grade do chão: as células a menos de m do segmento (na vista) deixam de ser andáveis
+  const barrar = (ua, va, ub, vb, m = 0.45) => {
+    const [xa, ya] = localDeVista(ua, va), [xb, yb] = localDeVista(ub, vb), i0 = Math.max(1, Math.floor((Math.min(xa, xb) - m + EXT) / CEL) - 1), i1 = Math.min(N - 2, Math.ceil((Math.max(xa, xb) + m + EXT) / CEL) + 1), j0 = Math.max(1, Math.floor((Math.min(ya, yb) - m + EXT) / CEL) - 1), j1 = Math.min(N - 2, Math.ceil((Math.max(ya, yb) + m + EXT) / CEL) + 1);
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const lx = -EXT + (i + 0.5) * CEL, ly = -EXT + (j + 0.5) * CEL; if (distSegV((lx - ly) * R2, (lx + ly) * R2, ua, va, ub, vb) < m) { const c = j * N + i; D.FL[c] = (D.FL[c] & ~F_ANDA) | F_PENHASCO; } }
+  };
   if (novo("portao_quina") && novo("palicada_diag")) {
-    const fu = pf.u, fv = pf.vFim + 0.6, R = 11, passo = (ctx.DECO.palicada_diag[0].w / ctx.DECO.palicada_diag[0].ppm) * 1.3;
+    const fu = pf.u, fv = pf.vFim + 0.6, R = 11, passo = (ctx.DECO.palicada_diag[0].w / ctx.DECO.palicada_diag[0].ppm) * 1.3, VAO = 1.5;   // (VAO: do meio do portão até a torre, na diagonal)
     pôr("portao_quina", fu, fv, {}, 2.2);
     for (const lado of [-1, 1]) {                                       // (as duas paredes da frente: da quina para trás, nas diagonais)
-      for (let d = 3.4; d < R * 1.414 - 0.5; d += passo) { const u = fu + lado * d * R2, v = fv + d * R2; if (nivelEm(u, v) === 2) pôr("palicada_diag", u, v, { esp: lado < 0 }, 1.2); }
+      for (let d = 3.4; d < R * 1.414 - 0.5; d += passo) { const u = fu + lado * d * R2, v = fv + d * R2; if (nivelEm(u, v) === 2) { pôr("palicada_diag", u, v, { esp: lado < 0 }, 1.2); const d0 = Math.max(VAO, d - passo * 0.62), d1 = d + passo * 0.62; barrar(fu + lado * d0 * R2, fv + d0 * R2, fu + lado * d1 * R2, fv + d1 * R2); } }
       const bu = fu + lado * R, bv = fv + R;                            // (as de trás: do canto lateral até a quina do fundo)
-      for (let d = passo / 2; d < R * 1.414 - 0.5; d += passo) { const u = bu - lado * d * R2, v = bv + d * R2; if (nivelEm(u, v) === 2 && !D.oculto(...mundoDe(u, v))) pôr("palicada_diag", u, v, { esp: lado > 0 }, 1.2); }
+      for (let d = passo / 2; d < R * 1.414 - 0.5; d += passo) { const u = bu - lado * d * R2, v = bv + d * R2; if (nivelEm(u, v) === 2 && !D.oculto(...mundoDe(u, v))) { pôr("palicada_diag", u, v, { esp: lado > 0 }, 1.2); const t = passo * 0.62; barrar(u + lado * t * R2, v - t * R2, u - lado * t * R2, v + t * R2); } }
     }
   } else {
     if (novo("portao_orc")) pôr("portao_orc", pf.u, pf.vFim + 0.3, {}, 2);
@@ -2532,6 +2565,9 @@ D.pintarPedaco = function (g, P, esc, x0, y1, cw, ch, lado = 6) {
       const u0 = r.u - r.larg / 2, u1 = r.u + r.larg / 2, za = NIV[r.de], zc = NIV[r.de + 1], n = Math.max(2, Math.round((r.v1 - r.v0) / 0.5));
       g.beginPath(); [[u1 + 0.6, r.v0], [u1 + 0.6, r.v1], [u1 + 1.5, r.v1 - 1.8], [u1 + 1.5, r.v0 - 0.4]].forEach(([u, v], k) => k ? g.lineTo(...Pz(u, v, za)) : g.moveTo(...Pz(u, v, za))); g.closePath();
       g.fillStyle = "rgba(30,27,24,0.28)"; g.fill();
+    }
+    const pintarDegraus = r => {                                         // (R148: depois do topo: a frente do platô é ondulada, e o alto da escada passa dela)
+      const u0 = r.u - r.larg / 2, u1 = r.u + r.larg / 2, za = NIV[r.de], zc = NIV[r.de + 1], n = Math.max(2, Math.round((r.v1 - r.v0) / 0.5));
       const espelhos = new Path2D(), pisos = new Path2D(), quad = (pp, a, b, c, d) => { pp.moveTo(...a); pp.lineTo(...b); pp.lineTo(...c); pp.lineTo(...d); pp.closePath(); };
       for (let k = 0; k < n; k++) {
         const va = r.v0 + (r.v1 - r.v0) * k / n, vb = r.v0 + (r.v1 - r.v0) * (k + 1) / n, zk = za + (zc - za) * k / n, zk1 = za + (zc - za) * (k + 1) / n;
@@ -2540,7 +2576,7 @@ D.pintarPedaco = function (g, P, esc, x0, y1, cw, ch, lado = 6) {
       }
       g.fillStyle = TOM.faceEscura; g.fill(espelhos); g.fillStyle = TOM.escada; g.fill(pisos);
       g.strokeStyle = "rgba(30,27,24,0.7)"; g.lineWidth = lw(0.03); g.stroke(espelhos);
-    }
+    };
     // o topo
     caminho(pl.pts, zt);
     g.fillStyle = L === 3 ? TOM.chao3 : padrao(g, L === 2 ? "cinza2" : "cinza", x0, y1, esc, zt, ACH, ALT, 6); g.fill();   // (o casco: chapado, as placas por cima)
@@ -2561,10 +2597,11 @@ D.pintarPedaco = function (g, P, esc, x0, y1, cw, ch, lado = 6) {
     if (L < 3) pintarTrilhas(g, Pz, esc, L);                            // (no casco não: é o chão do altar)
     pintarFendas(g, Pz, esc, L, pertoU);
     pintarPegadas(g, Pz, esc, L, pertoU);
+    for (const r of rampasL) pintarDegraus(r);
     // as muretas das escadarias (rodada 2): basalto em colunas de 2 tons como os paredões, o topo em papel a 60% e a
     // altura acompanhando a escada (0,45 m acima de cada degrau); a face da frente no pé e a sombra no chão de baixo
     for (const r of rampasL) {
-      const u0 = r.u - r.larg / 2, u1 = r.u + r.larg / 2, za = NIV[r.de], zc = NIV[r.de + 1], L2 = 0.8;
+      const u0 = r.u - r.larg / 2, u1 = r.u + r.larg / 2, za = NIV[r.de], zc = NIV[r.de + 1], L2 = MURETA;
       const zf = v => (v <= r.v0 ? za : v >= r.v1 ? zc : za + (zc - za) * (v - r.v0) / (r.v1 - r.v0)) + 0.45;
       for (const [ua, ub] of [[u0 - L2, u0], [u1, u1 + L2]]) {
         const n = Math.max(2, Math.round((r.vFim - r.v0) / 0.55)), topos = [new Path2D(), new Path2D()], juntas = new Path2D();
@@ -3518,7 +3555,8 @@ function montarGrade(opc = {}) {
     let z = NIV[NV[c]], f = 0;
     if (dc > 0) f |= F_TERRA;
     const zr = zRampa(u, v);
-    if (zr > z - 0.01 && dc > 0) { z = Math.max(z, zr); f |= F_RAMPA; }
+    if (zr >= 0 && dc > 0) { z = zr; f |= F_RAMPA; }                     // (R148: na largura da escada, a escada manda; a frente curva do patamar não vira um degrau invisível no meio dela)
+    else if (dc > 0) for (const r of RAMPAS) if (v >= r.v0 - 0.25 && v <= r.v1 && Math.abs(u - r.u) > r.larg / 2 && Math.abs(u - r.u) < r.larg / 2 + 0.85) f |= F_ROCHA;   // (R148: a mureta de blocos desenhada é sólida, mesmo onde a escada ainda está baixa)
     const n = NV[c];
     if (dc > 0 && !(f & F_RAMPA)) {
       if (n < 4 && v > FRENTES[n + 1](u) - 1) f |= F_ROCHA;              // (as ombreiras: o que sobra do patamar atrás da frente do de cima, dos lados)
@@ -3533,8 +3571,9 @@ function montarGrade(opc = {}) {
   }
   const vd = opc.vdir || vdirMundo(), DMAX = NIV[4] * ALT / ACH, rel = ACH / ALT;
   for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
-    const c = j * N + i, z = Z[c];
-    for (let dj = -1; dj <= 1 && !(FL[c] & F_PENHASCO); dj++) for (let di = -1; di <= 1; di++) { const q = c + dj * N + di; if (Math.abs(Z[q] - z) > PASSO_MAX) { FL[c] |= F_PENHASCO; break; } }
+    const c = j * N + i, z = Z[c], degrau = FL[c] & F_RAMPA;
+    // (R148: o degrau não vira beira por causa do chão ao lado: a parede é a mureta, e toda a largura pintada se anda)
+    for (let dj = -1; dj <= 1 && !(FL[c] & F_PENHASCO); dj++) for (let di = -1; di <= 1; di++) { const q = c + dj * N + di; if (Math.abs(Z[q] - z) > PASSO_MAX && !(degrau && !(FL[q] & F_RAMPA))) { FL[c] |= F_PENHASCO; break; } }
     if (!(FL[c] & F_TERRA)) continue;
     const lx = -EXT + (i + 0.5) * CEL, ly = -EXT + (j + 0.5) * CEL;
     for (let d = CEL; d <= DMAX; d += CEL) { const qi = Math.floor((lx - vd[0] * d + EXT) / CEL), qj = Math.floor((ly - vd[1] * d + EXT) / CEL); if (qi < 0 || qj < 0 || qi >= N || qj >= N) break; if (Z[qj * N + qi] - z > d * rel) { FL[c] |= F_OCULTO; break; } }
@@ -9829,7 +9868,7 @@ function corDoNivel(n) {
 // (o nível máximo: Vila 1 1–15, Vila Hahoe 15–45, Ilha de Daiyu 45–70; Logs/Balanceamento/NIVEL70.md). Cada criatura dá
 // uma exp pelo nível dela (expBase: a tabela dividida por MORTES_NIVEL, quantas criaturas do mesmo nível sobem um
 // nível), mais ou menos conforme a diferença para o seu (a mesma tabela do Metin2: criatura mais alta dá até 130%, bem
-// mais baixa quase nada) e uma morte nunca passa de 20% do nível. Cada nível dá 3 pontos para
+// mais baixa quase nada) e uma morte nunca passa de 20% do nível. Cada nível dá 4 pontos (1 por bolinha de EXP, R146) para
 // VIT (Vitalidade), INT (Inteligência), FOR (Força) e DEX (Destreza), como no Metin2. O atributo principal da classe
 // (FOR no viking, DEX no arqueiro, INT no feiticeiro) aumenta o dano; DEX dá crítico; VIT dá vida e defesa.
 const EXP_NIVEL = [0, 300, 800, 1500, 2500, 4300, 7200, 11000, 17000, 24000, 33000, 43000, 58000, 76000, 100000, 130000, 169000,
@@ -9838,7 +9877,7 @@ const EXP_NIVEL = [0, 300, 800, 1500, 2500, 4300, 7200, 11000, 17000, 24000, 330
   7600000, 8274000, 8990000, 9753000, 10560000, 11410000, 12320000, 13270000, 14280000, 15340000,                 // 41–50
   16870000, 18960000, 19980000, 21420000, 22930000, 24530000, 26200000, 27960000, 29800000, 32780000,             // 51–60
   36060000, 39670000, 43640000, 48000000, 52800000, 58080000, 63890000, 70280000, 77310000, 85040000];            // 61–70
-const NIVEL_MAX = EXP_NIVEL.length - 1, PONTOS_POR_NIVEL = 3, ATRIB_MAX = 90;
+const NIVEL_MAX = EXP_NIVEL.length - 1, PONTOS_POR_NIVEL = 4, ATRIB_MAX = 90;   // (R146: 1 ponto a cada uma das 4 bolinhas de EXP; antes, 3 de uma vez na subida)
 // quantas criaturas comuns do mesmo nível sobem um nível (MORTES_NIVEL[0] + MORTES_NIVEL[1] × nível): a subida fica mais
 // lenta a cada nível, como no Metin2. Desde 29/10 a versão mais branda do balanço (Logs/Jogador/BALANCO_EXP_GOLD.md):
 // 10 + 7 × nível (era 6 + 2,7), com as quests de nível pagando 25–35% de cada nível; ~9–13 h até o 45
@@ -9927,7 +9966,7 @@ function expDe(l) {
   return base * (defChefe(l) ? 15 : l.cfg.chefe ? 5 : 1) * (l.cfg.estatico ? 6 : 1) * (l.horda ? 0.6 : 1) * fatorDifNivel(n - prog.nivel);
 }
 function progressoNovo(c) {
-  return { nivel: 1, exp: 0, pontos: 0, atrib: { ...ATRIB_INICIAL[c] }, skills: {}, yang: 0, leituraAte: 0, nome: "", pontosSkill: 0, leitura: {}, arma: { ref: 0 }, equip: { elmo: null, armadura: null, botas: null, escudo: null },
+  return { nivel: 1, exp: 0, pontos: 0, atribPago: 0, atrib: { ...ATRIB_INICIAL[c] }, skills: {}, yang: 0, leituraAte: 0, nome: "", pontosSkill: 0, leitura: {}, arma: { ref: 0 }, equip: { elmo: null, armadura: null, botas: null, escudo: null },
            inv: [{ chave: "pocao", qtd: 3, aba: 0, x: 0, y: 0 }, { chave: "pocaoMana", qtd: 3, aba: 0, x: 1, y: 0 }] };
 }
 // skills que mudaram de nome (os níveis, livros, esperas, a barra e o armazém salvos com o nome antigo vêm junto)
@@ -9969,6 +10008,13 @@ function carregarProgresso() {
   if (a.def !== undefined) { a.vit = a.def; delete a.def; }
   if (a.des !== undefined) { a.dex = a.des; delete a.des; }
   for (const k of ORDEM_ATRIB) if (a[k] === undefined) a[k] = ATRIB_INICIAL[classe][k];
+  // (R146) o save antigo: quem recebeu menos que a regra nova ganha a diferença; quem gastou mais não perde nada e fica
+  // sem pontos novos até o total alcançar. Nada de reset escondido
+  if (prog.atribPago === undefined) {
+    const ja = Object.keys(ATRIB_INICIAL[classe]).reduce((s, k) => s + Math.max(0, a[k] - ATRIB_INICIAL[classe][k]), prog.pontos || 0), devido = atribDevido(), dif = devido - ja;
+    if (dif > 0) { prog.pontos = (prog.pontos || 0) + dif; if (!salvarTravado) setTimeout(() => { avisar(`Regra nova dos pontos: você recebeu ${dif} de atributo`); chatSistema(`Regra nova: 1 ponto de atributo por bolinha de EXP. Você recebeu ${dif} ponto(s).`, "nivel"); }, 1500); }
+    prog.atribPago = Math.max(ja, devido);
+  }
   migrarBolsa();
   if (prog.pontosSkill === undefined) {
     for (const [k, v] of Object.entries(prog.skills || {})) if (v > 10) prog.skills[k] = N_MESTRE + (v - 11);   // M antigo → M novo
@@ -9984,6 +10030,7 @@ function carregarProgresso() {
 // (salvarTravado: com a tela de seleção aberta, e ao trocar de classe por ela, o personagem da tela não é gravado)
 let salvarTravado = false;
 function salvarProgresso() { try { if (prog && !salvarTravado) localStorage.setItem("progresso_" + classe, JSON.stringify(prog)); } catch (e) {} }
+const POR_PONTO = { staminaVit: 0.01, defMagInt: 2, esquivaDex: 0.001 };   // (R146: +1% de velocidade da stamina, +2 de defesa mágica e +0,1% de esquiva por ponto)
 function recalcularStatus() {
   const b = somaBonus(), a = { ...prog.atrib }, ini = ATRIB_INICIAL[classe], pr = ATRIB_PRINCIPAL[classe], n = prog.nivel;
   for (const k of ORDEM_ATRIB) a[k] += b[k] || 0;                       // os bônus de atributo valem como pontos
@@ -9991,7 +10038,9 @@ function recalcularStatus() {
   status.vidaMax = Math.round(300 + a.vit * 40 + (n - 1) * 30) + eq.vida + (b.vida || 0) + (j.vitalidade || 0);
   status.manaMax = Math.round(100 + a.int * 20 + (n - 1) * 12) + eq.mana + (b.mana || 0) + (j.magia || 0);
   status.velEquip = 1 + (eq.vel + (b.velocidade || 0) + (j.aceleracao || 0)) / 100; status.bloqueio = (eq.bloqueio + (b.bloqueio || 0)) / 100;
-  status.evasao = (j.evasao || 0) / 100; status.esquiva = ((j.esquiva || 0) + (b.esquiva || 0)) / 100;          // (o golpe corpo a corpo / o de longe e a magia)
+  const pontosDe = k => Math.max(0, a[k] - ini[k]), esqDex = pontosDe("dex") * POR_PONTO.esquivaDex;   // (R146: a DEX esquiva; os pontos iniciais não contam)
+  status.evasao = (j.evasao || 0) / 100 + esqDex; status.esquiva = ((j.esquiva || 0) + (b.esquiva || 0)) / 100 + esqDex;          // (o golpe corpo a corpo / o de longe e a magia)
+  status.dashFator = 1 + pontosDe("vit") * POR_PONTO.staminaVit;       // (R146: a VIT enche a stamina mais rápido)
   status.perfurante = ((j.perfurante || 0) + (b.perfurante || 0)) / 100; status.resfriamento = Math.min(0.5, ((j.resfriamento || 0) + (b.resfriamento || 0)) / 100);
   status.raca = Object.fromEntries(["morto_vivo", "animal", "orc", "demonio", "humano"].map(r => [r, ((j[r] || 0) + (b[r] || 0)) / 100]));
   status.exp = (b.exp || 0) / 100; status.yang = (b.yang || 0) / 100; status.drop = (b.drop || 0) / 100;   // (colar e brincos)
@@ -10000,8 +10049,22 @@ function recalcularStatus() {
   status.critico = 0.02 + a.dex * 0.006 + ((b.critico || 0) + (j.critico || 0)) / 100;
   status.monstros = ((b.monstros || 0) + (j.monstros || 0)) / 100;
   status.defesa = a.vit * 4 + n * 2 + eq.defesa + (b.defesa || 0) + (j.defesa || 0);
+  status.defesaMagica = status.defesa + pontosDe("int") * POR_PONTO.defMagInt;   // (R146: contra as criaturas "magia")
   viking.vidaMax = status.vidaMax;
   if (viking.vida === undefined || viking.vida > status.vidaMax) viking.vida = status.vidaMax;
+}
+// (R146) o total de pontos de atributo que o nível e a EXP pedem: 1 por bolinha cheia (25%, 50%, 75% e a subida)
+function atribDevido(n = prog.nivel, exp = prog.exp) {
+  if (n >= NIVEL_MAX) return (NIVEL_MAX - 1) * PONTOS_POR_NIVEL;
+  return (n - 1) * PONTOS_POR_NIVEL + Math.min(PONTOS_POR_NIVEL - 1, Math.floor(PONTOS_POR_NIVEL * exp / EXP_NIVEL[n]));
+}
+// paga o que falta. atribPago guarda o maior total já pago: perder EXP numa morte e encher de novo a mesma bolinha não paga outra vez
+function pagarAtributos() {
+  const falta = atribDevido() - (prog.atribPago || 0);
+  if (falta <= 0) return 0;
+  prog.atribPago = (prog.atribPago || 0) + falta; prog.pontos += falta;
+  chatSistema(falta === 1 ? "Você ganhou 1 ponto de atributo." : `Você ganhou ${falta} pontos de atributo.`, "nivel");
+  return falta;
 }
 function ganharExp(qtd, de, semTeto) {          // (semTeto: a recompensa de missão, sem o teto de 20% do nível)
   if (!prog || prog.nivel >= NIVEL_MAX) return;
@@ -10010,17 +10073,18 @@ function ganharExp(qtd, de, semTeto) {          // (semTeto: a recompensa de mis
   if (jornada) jornada.xp += qtd;
   if (de) numeros.push({ wx: de.x, wy: de.y, y: -(de.cfg ? de.cfg.barra : 100) - 10, vida: 1.3, txt: "+" + qtd + " exp", exp: true });
   chatSistema(`Você recebeu ${qtd.toLocaleString("pt-BR")} de experiência.`, "exp");
-  while (prog.nivel < NIVEL_MAX && prog.exp >= EXP_NIVEL[prog.nivel]) { prog.exp -= EXP_NIVEL[prog.nivel]; prog.nivel++; prog.pontos += PONTOS_POR_NIVEL; jornadaSubiu(prog.nivel); subiuNivel(); }
+  while (prog.nivel < NIVEL_MAX && prog.exp >= EXP_NIVEL[prog.nivel]) { prog.exp -= EXP_NIVEL[prog.nivel]; prog.nivel++; const novos = pagarAtributos(); jornadaSubiu(prog.nivel); subiuNivel(novos); }
+  pagarAtributos();
   salvarProgresso(); atualizarFicha();
 }
-function subiuNivel() {
+function subiuNivel(novos = 0) {
   recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
   ondas.push({ x: viking.x, y: viking.y, t: 0, raio: 2, cor: 45, fogo: true, pilares: [], rachas: [] });
   for (let k = 0; k < 40; k++) { const a = Math.random() * 7, v = 0.4 + Math.random() * 1.2; brasas.push({ x: viking.x + Math.cos(a) * 0.5, y: viking.y + Math.sin(a) * 0.4, z: Math.random() * 1.8, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 1.5 + Math.random() * 2.5, vida: 1, max: 1, tam: 0.06, cor: 46 + Math.random() * 10 }); }
   som("nivel", viking, 1.1);
   numeros.push({ wx: viking.x, wy: viking.y, y: -190, vida: 2, txt: "Nível " + prog.nivel + "!", critico: true });
   prog.pontosSkill = (prog.pontosSkill || 0) + PONTOS_SKILL_NIVEL;
-  avisar(`Nível ${prog.nivel}! +${PONTOS_POR_NIVEL} pontos de atributo e +${PONTOS_SKILL_NIVEL} de skill: abra a ficha (P)`);
+  avisar(`Nível ${prog.nivel}! ${novos ? `+${novos} de atributo e ` : ""}+${PONTOS_SKILL_NIVEL} de skill: abra a ficha (P)`);
   chatSistema(`Você subiu para o nível ${prog.nivel}!`, "nivel", true);
   chatSistema(`Pontos de status disponíveis: ${prog.pontos}. Pontos de skill: ${prog.pontosSkill}.`, "nivel");
 }
@@ -10091,7 +10155,7 @@ function golpeNoPersonagem(l) {
   if (l.medo > 0 && Math.random() < MEDO_ERRA) { numeros.push({ wx: viking.x, wy: viking.y, y: -150, vida: 0.9, txt: "Errou!", contra: true }); return false; }   // (o Medo do shura)
   const ev = l.cfg.magia ? status.esquiva : status.evasao;
   if (ev > 0 && Math.random() < ev) { numeros.push({ wx: viking.x, wy: viking.y, y: -150, vida: 0.9, txt: l.cfg.magia ? "Esquivou!" : "Bloqueou!", contra: true }); som(l.cfg.magia ? "estalo" : "metal", viking, 0.6); return false; }
-  const base = (l.cfg.dano || 15) * (l.furiaChefe ? 1.3 : 1) * (0.85 + Math.random() * 0.3) * (XAMA.bencao.buff > 0 && !l.cfg.magia ? 1 - BENCAO_REDUZ : 1) * (l.medo > 0 ? 1 - MEDO_REDUZ : 1), dano = Math.max(1, Math.round(base * 100 / (100 + status.defesa)));   // (a Bênção da xamã: −20% do físico)
+  const base = (l.cfg.dano || 15) * (l.furiaChefe ? 1.3 : 1) * (0.85 + Math.random() * 0.3) * (XAMA.bencao.buff > 0 && !l.cfg.magia ? 1 - BENCAO_REDUZ : 1) * (l.medo > 0 ? 1 - MEDO_REDUZ : 1), dano = Math.max(1, Math.round(base * 100 / (100 + (l.cfg.magia ? status.defesaMagica : status.defesa))));   // (a Bênção da xamã: −20% do físico)
   viking.vida -= dano; viking.semDano = 0;
   numeros.push({ wx: viking.x, wy: viking.y, y: -150, vida: 0.9, txt: "−" + dano, contra: true });
   if (viking.vida <= 0) { morrerJogador(); return true; }
@@ -14894,11 +14958,27 @@ function numerosSkill(nome, n) {
 // a tabela inteira de uma skill (os 40 níveis: 1–19, M1–M10, G1–G10, P)
 function tabelaSkill(nome) { return Array.from({ length: SKILL_MAX }, (_, i) => ({ nivel: i + 1, rotulo: rotuloNivelSkill(i + 1), numeros: numerosSkill(nome, i + 1) })); }
 // a dica do Metin2: nome, subtítulo, descrição, efeito; "Nível atual" (azul) com os números; "Próximo nível" (vermelho)
+const TIPO_SKILL = { "Fúria": "Fortalecimento", "Vórtice": "Ataque corpo a corpo", "Lâmina Espiritual": "Fortalecimento", "Corte Triplo": "Ataque corpo a corpo", "Investida": "Ataque corpo a corpo",
+  "Flecha Venenosa": "Ataque à distância", "Flecha de Fogo": "Ataque à distância", "Tiro Concentrado": "Ataque à distância", "Chuva de Flechas": "Ataque à distância em área", "Passos Leves": "Fortalecimento",
+  "Relâmpago": "Ataque mágico à distância", "Chuva de Meteoros": "Ataque mágico em área", "Olho Arcano": "Fortalecimento", "Poder Arcano": "Fortalecimento", "Erupção Arcana": "Ataque mágico em volta",
+  "Punhalada Surpresa": "Ataque corpo a corpo", "Acrobacia": "Ataque corpo a corpo", "Avanço Ágil": "Ataque corpo a corpo", "Veneno de Serpente": "Ataque à distância em área", "Esconder": "Fortalecimento",
+  "Tiro de Dragão": "Ataque mágico à distância", "Rugido do Dragão": "Ataque mágico em volta", "Invocar Relâmpago": "Ataque mágico em área", "Bênção": "Fortalecimento", "Cura": "Cura",
+  "Lâmina Encantada": "Fortalecimento", "Turbilhão do Dragão": "Ataque mágico em volta", "Medo": "Enfraquecimento", "Golpe Sombrio": "Ataque mágico em linha", "Espírito de Fogo": "Ataque mágico automático" };
+// o que faz os números da dica subirem, de verdade: o dano vem de status.ataque × o nível da skill; a duração, do nível
+function fortalecidoPor(nome, D) {
+  const pr = ATRIB_PRINCIPAL[classe].toUpperCase();
+  if (D.dano || nome === "Lâmina Espiritual") return `Fortalecido por ${pr}, nível, arma e nível da skill`;
+  if (nome === "Cura") return "Fortalecido por VIT (o HP máximo)";
+  return D.dura ? "A duração sobe com o nível da skill" : "Não muda com os atributos";
+}
 function htmlDicaSkill(nome) {
   const D = SKILL_DADOS[nome] || { sub: "", desc: "", ef: "" }, n = nivelSkill(nome), L = [];
   const linha = (cls, txt) => L.push(`<div class="${cls}">${escH(txt)}</div>`), esp = () => L.push('<div class="esp"></div>');
   linha("nome", nome); if (D.sub) linha("sub", D.sub);
-  esp(); if (D.desc) linha("desc", D.desc); if (D.ef) linha("fixo", D.ef);
+  esp(); if (D.desc) linha("desc", D.desc);
+  if (TIPO_SKILL[nome]) linha("cinza", TIPO_SKILL[nome]);
+  if (D.ef) linha("fixo", D.ef);
+  linha("cinza", fortalecidoPor(nome, D));
   esp(); linha("sk-atual", `Nível atual: ${rotuloNivelSkill(n)}`);
   if (prog) linha("sk-atual", n < N_MESTRE ? `Pontos disponíveis: ${prog.pontosSkill || 0}` : n < N_GRAO - 1 ? `Livros restantes: ${contarItem("livro:" + nome)}` : `Pedras da Alma: ${contarItem("alma")}`);
   for (const [r, v] of numerosSkill(nome, n)) linha("sk-num", `${r}: ${v}`);
@@ -14969,6 +15049,46 @@ function desenharAcao(g, id, t = 56) {
   }
   g.restore();
 }
+// (R146) a parte da aba Status: Status, Bônus ou Stats
+function fichaSub(sub) {
+  for (const b of document.querySelectorAll("#fSubAbas [data-sub]")) b.setAttribute("aria-pressed", b.dataset.sub === sub);
+  for (const s of document.querySelectorAll("#ficha .fx-subpag")) s.hidden = s.dataset.sub !== sub;
+}
+// o ataque básico, antes da defesa da criatura: o dano-base do código de cada classe × a força dos golpes
+function ataqueBasico() {
+  const [lo, hi] = classe === "arqueiro" || classe === "feiticeiro" ? [10, 15] : [9, 13], f = status.ataque * (classe === "ninja" ? fatorNinja() : 1);
+  return [Math.max(1, Math.round(lo * f)), Math.max(1, Math.round(hi * f))];
+}
+// o ataque mágico: só nas classes de INT; o dano da 1ª skill de ataque, no nível em que ela está
+function ataqueMagico() {
+  if (ATRIB_PRINCIPAL[classe] !== "int") return "—";
+  const sk = SKILLS.find(s => SKILL_DADOS[s.nome] && SKILL_DADOS[s.nome].dano); if (!sk) return "—";
+  const [lo, hi] = SKILL_DADOS[sk.nome].dano, f = status.ataque * multSkill(sk.nome);
+  return `${Math.round(lo * f)}–${Math.round(hi * f)}`;
+}
+// a dica do "+", como no vídeo: o que o atributo aumenta, os números de 1 ponto e a linha do Ctrl
+function dicaAtribTexto(k) {
+  const pr = ATRIB_PRINCIPAL[classe], forca = q => q === pr ? "+4% de força dos golpes" : q === "for" ? "+1,5% de força dos golpes" : "";
+  const T = {
+    vit: ["Aumenta o HP, a stamina e a defesa.", "+40 de HP, +4 de defesa, stamina 1% mais rápida"],
+    int: [pr === "int" ? "Aumenta o SP, o ataque mágico e a defesa mágica." : "Aumenta o SP e a defesa mágica.", ["+20 de SP", "+2 de defesa mágica", forca("int")].filter(Boolean).join(", ")],
+    for: ["Aumenta o valor de ataque e o dano.", forca("for")],
+    dex: [pr === "dex" ? "Aumenta o ataque e a esquiva." : "Aumenta o ataque crítico e a esquiva.", [forca("dex"), "+0,6% de crítico", "+0,1% de esquiva"].filter(Boolean).join(", ")],
+  };
+  return T[k];
+}
+function dicaAtrib(k, x, y) {
+  const d = $("#dicaItem");
+  if (!k) { if (d._skill) { d.hidden = true; d._skill = null; } return; }
+  const chave = "atrib|" + k + "|" + classe;
+  if (d._chave !== chave || d.hidden) { const [a, b] = dicaAtribTexto(k); d.className = "dica-item m2"; d.innerHTML = `<div class="fixo">${escH(a)}</div><div class="cinza">${escH(b)}</div><div class="at-ctrl">Ctrl + clique: +10 pontos</div>`; d._chave = chave; }
+  d._skill = "atrib:" + k; d.hidden = false;
+  const r = d.getBoundingClientRect(), w = r.width || 220, h = r.height || 80;
+  let px = x + 16, py = y + 12;
+  if (px + w > innerWidth - 4) px = Math.max(4, x - w - 12);
+  if (py + h > innerHeight - 4) py = Math.max(4, y - h - 12);
+  d.style.left = px + "px"; d.style.top = py + "px";
+}
 function abrirFicha(sim = $("#ficha").hidden) {
   $("#ficha").hidden = !sim; janelaAbriu("ficha", sim);
   if (typeof janelasSalvas === "object") { janelasSalvas.ficha = { ...(janelasSalvas.ficha || {}), aberta: sim }; salvarJanelas(); posicionarJanela(JANELAS[8]); }
@@ -14992,26 +15112,36 @@ function atualizarFicha() {
   $("#fPontosN").textContent = prog.pontos;
   $("#fPontosCaixa").classList.toggle("tem", prog.pontos > 0);
   $("#fPontos").hidden = !prog.pontos;
-  $("#fPontos").textContent = "Clique em + para pôr um ponto (3 a cada nível).";
+  $("#fPontos").textContent = "Clique em + para pôr um ponto; Ctrl + clique põe 10. Ganha 1 a cada bolinha de EXP cheia.";
   // VIT, INT, FOR, DEX: o valor (com o que os itens dão) e o + quando há pontos livres
   const bon = somaBonus();
   $("#fAtrib").innerHTML = ORDEM_ATRIB.map(k => {
     const v = prog.atrib[k], ini = ATRIB_INICIAL[classe][k], extra = bon[k] || 0;
     const tit = `${NOME_ATRIB[k]}: ${ini} inicial${v > ini ? ` + ${v - ini} de pontos` : ""}${extra ? ` + ${extra} dos itens` : ""}${k === pr ? " · atributo principal" : ""}`;
     return `<span class="fx-rot${k === pr ? " pr" : ""}" title="${tit}">${k.toUpperCase()}</span><b class="fx-cx" title="${tit}">${v + extra}</b>` +
-      `<button data-atrib="${k}" class="fx-mais${prog.pontos > 0 ? "" : " some"}" ${prog.pontos > 0 && v < ATRIB_MAX ? "" : "disabled"} aria-label="Mais um ponto em ${NOME_ATRIB[k]}">+</button>`;
+      `<button data-atrib="${k}" class="fx-mais${prog.pontos > 0 ? "" : " some"}" ${prog.pontos > 0 && v < ATRIB_MAX ? "" : "disabled"} aria-label="Mais um ponto em ${NOME_ATRIB[k]}. Ctrl + clique: mais 10">+</button>`;
   }).join("");
   // HP e MP (a vida e a mana de agora), ataque e defesa: os números do recalcularStatus
   $("#fVida").style.width = (100 * Math.max(0, viking.vida) / status.vidaMax) + "%"; $("#fVidaTxt").textContent = `${Math.max(0, Math.round(viking.vida))} / ${status.vidaMax}`;
   $("#fMana").style.width = (100 * Math.max(0, viking.mana || 0) / status.manaMax) + "%"; $("#fManaTxt").textContent = `${Math.round(viking.mana || 0)} / ${status.manaMax}`;
-  const atq = Math.round(status.ataque * 100), red = Math.round(100 - 10000 / (100 + status.defesa));
-  $("#fAtaque").textContent = atq + "%"; $("#fAtaque").title = `Força dos golpes: ${atq}% do dano da arma (nível, ${pr.toUpperCase()}, refino e bônus)`;
+  const atq = Math.round(status.ataque * 100), red = Math.round(100 - 10000 / (100 + status.defesa)), [atqMin, atqMax] = ataqueBasico();
+  $("#fAtaque").textContent = atqMin === atqMax ? String(atqMin) : `${atqMin}–${atqMax}`; $("#fAtaque").title = `O dano do ataque básico, antes da defesa da criatura. Força dos golpes: ${atq}% (nível, ${pr.toUpperCase()}, refino e bônus)`;
   $("#fDefesa").textContent = status.defesa; $("#fDefesa").title = `Defesa ${status.defesa}: −${red}% do dano recebido`;
-  $("#fDerivados").innerHTML = [["Movimento", Math.round(100 * (status.velEquip || 1)) + "%", "Velocidade de movimento (100% = normal; botas e bônus sobem)"],
+  // os Atributos de combate do vídeo, em 2 colunas, só com o que existe no jogo: não há velocidade de ataque, de conjuração
+  // nem taxa de acerto (as criaturas não têm esquiva), e o movimento não tem teto; no lugar deles, o crítico, a esquiva e a redução
+  const am = ataqueMagico(), red2 = Math.round(100 - 10000 / (100 + status.defesaMagica)), esq = v => (Math.round((v || 0) * 1000) / 10).toString().replace(".", ",") + "%";
+  $("#fCombate").innerHTML = [["Velocidade de movimento", Math.round(100 * (status.velEquip || 1)) + "%", "100% = normal; botas e bônus sobem"],
+    ["Ataque mágico", am, am === "—" ? "Esta classe não tem ataque mágico" : "O dano da 1ª skill de ataque, no nível dela, antes da defesa da criatura (INT, nível, refino e bônus)"],
     ["Crítico", Math.round(status.critico * 100) + "%", "Chance de golpe crítico (DEX e bônus)"],
-    ["Bloqueio", Math.round((status.bloqueio || 0) * 100) + "%", "Chance de o escudo segurar um golpe"],
-    ["Redução de dano", red + "%", "Quanto a defesa tira do dano recebido"],
-    ["Contra monstros", "+" + Math.round((status.monstros || 0) * 100) + "%", "Dano a mais contra criaturas (bônus dos itens e Jóia Monstruosa)"],
+    ["Defesa mágica", String(status.defesaMagica), `Contra as magias das criaturas: −${red2}% do dano (defesa e INT)`],
+    ["Esquiva", esq(status.esquiva), `Chance de escapar de flecha e magia; corpo a corpo: ${esq(status.evasao)} (DEX e Jóias)`],
+    ["Redução de dano", red + "%", "Quanto a defesa tira do dano recebido"]]
+    .map(([a, v, t]) => `<div title="${t}"><span>${a}</span><b class="fx-cx">${v}</b></div>`).join("");
+  $("#fStats").innerHTML = [["Bloqueio", Math.round((status.bloqueio || 0) * 100) + "%", "Chance de o escudo segurar um golpe"],
+    ["Stamina", (DASH.cheia / (status.dashFator || 1)).toFixed(1).replace(".", ",") + " s", "O tempo para encher a stamina (VIT)"],
+    ["Força dos golpes", atq + "%", "O multiplicador de todo o dano (nível, atributo, refino e bônus)"]]
+    .map(([a, v, t]) => `<span title="${t}">${a}</span><b class="fx-cx" title="${t}">${v}</b>`).join("");
+  $("#fDerivados").innerHTML = [["Contra monstros", "+" + Math.round((status.monstros || 0) * 100) + "%", "Dano a mais contra criaturas (bônus dos itens e Jóia Monstruosa)"],
     ["Perfurante", Math.round((status.perfurante || 0) * 100) + "%", "Chance de o golpe ignorar a defesa da criatura (Jóia do Ataque Perfurante, colar e bracelete)"],
     ["Contra raças", "+" + Math.max(0, ...["morto_vivo", "animal", "orc", "demonio", "humano"].map(r => Math.round(((status.raca || {})[r] || 0) * 100))) + "%",
       "Jóias e acessórios contra raça: " + [["morto_vivo", "Mortos-vivos"], ["animal", "Animais"], ["orc", "Orcs"], ["demonio", "Demônios"], ["humano", "Semi-humanos"]].map(([r, n]) => `${n} +${Math.round(((status.raca || {})[r] || 0) * 100)}%`).join(" · ")],
@@ -15071,7 +15201,7 @@ function atualizarFicha() {
   const travado = l => l.map(([nome, dica]) => `<div class="fx-trava" title="${nome}: ${dica} (em breve)">${CADEADO}<i>${nome}</i></div>`).join("");
   // as Skills comuns (Standard Skills do Metin2): só as que existem no jogo (montar, o dash e o combo)
   const comuns = [["montar", "Montar", CAVALO_LIBERADO ? "Ctrl+G: monta e desmonta do cavalo" : "Montar: o Cavalariço Doyun, no estábulo, dá o cavalo (nível 15)"],
-    ["dash", "Dash", "Shift: um avanço rápido de 4 m; gasta 1/3 da stamina, que recarrega em 6 s"], ["atacar", "Combo", "Os golpes do ataque básico emendam um no outro"]];
+    ["dash", "Dash", `Shift: um avanço rápido de 4 m; gasta 1/3 da stamina, que recarrega em ${(DASH.cheia / (status.dashFator || 1)).toFixed(1).replace(".", ",").replace(",0", "")} s`], ["atacar", "Combo", "Os golpes do ataque básico emendam um no outro"]];
   $("#fPassivas").className = "fx-comuns";
   $("#fPassivas").innerHTML = comuns.map(([id, nome, dica]) => `<div class="fx-comum" title="${dica}"><canvas width="80" height="80" data-comum="${id}" aria-label="${nome}"></canvas><i>${nome}</i></div>`).join("");
   for (const c of $("#fPassivas").querySelectorAll("canvas[data-comum]")) desenharAcao(c.getContext("2d"), c.dataset.comum, 80);
@@ -15104,9 +15234,12 @@ function montarFicha() {
   $("#fNome").onchange = e => { prog.nome = e.target.value.trim().slice(0, 16); salvarProgresso(); };
   $("#fAtrib").onclick = e => {
     const b = e.target.closest("[data-atrib]"); if (!b || prog.pontos <= 0) return;
-    const k = b.dataset.atrib; if (prog.atrib[k] >= ATRIB_MAX) return;
-    prog.atrib[k]++; prog.pontos--; recalcularStatus(); salvarProgresso(); atualizarFicha();
+    const k = b.dataset.atrib, n = Math.min(e.ctrlKey ? 10 : 1, prog.pontos, ATRIB_MAX - prog.atrib[k]); if (n <= 0) return;
+    prog.atrib[k] += n; prog.pontos -= n; recalcularStatus(); salvarProgresso(); atualizarFicha();
   };
+  $("#fAtrib").addEventListener("pointermove", e => { const b = e.target.closest("[data-atrib]"); dicaAtrib(b && b.dataset.atrib, e.clientX, e.clientY); });
+  $("#fAtrib").addEventListener("pointerleave", () => dicaAtrib(null));
+  $("#fSubAbas").onclick = e => { const b = e.target.closest("[data-sub]"); if (b) { fichaSub(b.dataset.sub); som("ui_clique", null, 0.6); } };
   let fimArrasto = 0;
   const acaoSkill = b => { if (b.dataset.ponto) porPontoSkill(b.dataset.ponto); else if (b.dataset.alma) usarPedraAlma(b.dataset.alma); else lerLivro(b.dataset.livro); };
   $("#fSkills").onclick = e => {
@@ -15943,6 +16076,9 @@ const ALCANCE_ARCO = 9, FLECHA_VEL = 22, RITMO_TIRO = 2.7;
 const INTERVALO_TIRO = { arqueiro: 0.55, feiticeiro: 0.7 };   // depois de um disparo, até o próximo automático (dá para andar)
 // ritmo das conjurações (tiros, magias e skills sem golpe): tocam mais rápido para a magia sair cedo; depois que ela sai,
 // andar já corta o resto da animação (CORTA_ANDANDO): o tempo de conjurar existe, mas não prende o personagem
+// o combo da xamã (golpe1 a golpe4): o valor BASE, fiel ao Metin2; o usuário disse que essa velocidade vai subir depois (R145)
+// um ritmo por golpe, para os acertos caírem nos 0,53 / 0,99 / 1,44 / 1,92 s do Metin2 no tempo que o jogador vê, com a pausa em cada acerto (R145)
+const RITMO_COMBO_XAMA = { golpe1: 1, golpe2: 1.5, golpe3: 1.5, golpe4: 1.7 };
 const RITMO_CAST = { atirar: RITMO_TIRO, chuva: 2.4, certeiro: 1.8, bola: 2, raio: 1.6, terra: 1.5, lamina_espiritual: 1.3, furia: 1.25, furia_armado: 1.25 };
 const CORTA_ANDANDO = new Set(["atirar", "chuva", "certeiro", "bola", "raio", "terra", "lamina_espiritual", "furia", "furia_armado"]);
 const flechas = [];
@@ -18251,7 +18387,7 @@ const COLISAO_PADRAO = {
   muralha: { r: 0, dx: 0, dy: 0 }, muralha_v: { r: 0, dx: 0, dy: 0 }, torre_pedra: { r: 1.15, dx: 0, dy: 0.4 }, muralha_portao: { r: 0, dx: 0, dy: 0 },
   ruina_arco: { r: 0, dx: 0, dy: 0 }, ruina_muro: { r: 0, dx: 0, dy: 0 }, ruina_muro_lado: { r: 0, dx: 0, dy: 0 }, ruina_pilar: { r: 0.55, dx: 0, dy: 0.2 },
   ruina_caido: { r: 0, dx: 0, dy: 0 }, estatua: { r: 0.6, dx: 0, dy: 0.2 }, ponte: { r: 0, dx: 0, dy: 0 }, ponte_v: { r: 0, dx: 0, dy: 0 }, pier: { r: 0, dx: 0, dy: 0 },
-  lanterna: { r: 0, dx: 0, dy: 0 }, bambu: { r: 0, dx: 0, dy: 0 },
+  lanterna: { r: 0.25, dx: 0, dy: 0 }, bambu: { r: 0.2, dx: 0, dy: 0 },   // (R148: sólidos, como o resto da decoração)
   // as da Ilha de Daiyu (Tools/viking/deco_b/recortar.py, folhas daiyu_*; mapa_daiyu.js as usa quando DECO tiver)
   pinheiro_daiyu: { r: 0.4, dx: 0, dy: 0 }, basalto: { r: 0.75, dx: 0, dy: 0.1 }, altar_casco: { r: 2.2, dx: 0, dy: 0.3 }, hareubang: { r: 0.45, dx: 0, dy: 0.1 },
   costela: { r: 0.35, dx: 0, dy: 0 }, tenda_orc: { r: 1.1, dx: 0, dy: 0.2 }, palicada: { r: 0, dx: 0, dy: 0 }, portao_orc: { r: 0, dx: 0, dy: 0 },
@@ -18387,7 +18523,7 @@ function rumo(ent, x, y, dt) {
 let verColisao = false;
 // círculo deitado no chão (no mapa: centro e raio em m)
 function circuloNoChao(x, y, r, cor, pontilhado, largura = 1.5) {
-  const [X, Y] = noMundo(x, y), s = PX * zoom;
+  const [X, Y] = noMundo(x, y, zPiso(x, y)), s = PX * zoom;              // (R148: na altura do chão, nos platôs)
   cx.save(); cx.strokeStyle = cor; cx.lineWidth = largura; if (pontilhado) cx.setLineDash([5, 4]);
   cx.beginPath(); cx.ellipse(X, Y, r * s, r * s * ACHATA, 0, 0, 7); cx.stroke(); cx.restore();
 }
@@ -18401,7 +18537,7 @@ function desenharColisao() {
   for (let x = Math.floor(mx0 / G) * G; x < mx1; x += G)
     for (let y = Math.floor(my0 / G) * G; y < my1; y += G) {
       if (livre(x, y)) continue;
-      const a = noMundo(x - G / 2, y - G / 2), b = noMundo(x + G / 2, y - G / 2), c = noMundo(x + G / 2, y + G / 2), d = noMundo(x - G / 2, y + G / 2);
+      const z = zPiso(x, y), a = noMundo(x - G / 2, y - G / 2, z), b = noMundo(x + G / 2, y - G / 2, z), c = noMundo(x + G / 2, y + G / 2, z), d = noMundo(x - G / 2, y + G / 2, z);   // (R148: na altura do chão, nos platôs)
       cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b[0], b[1]); cx.lineTo(c[0], c[1]); cx.lineTo(d[0], d[1]); cx.closePath(); cx.fill();
     }
   // caixa de cada objeto
@@ -18580,7 +18716,7 @@ function dashPedir() {
 // a cada passo: a recarga da stamina e o avanço do dash (devolve true enquanto ele anda)
 function passoDash(v, dt) {
   DASH.desde += dt;
-  if (!DASH.ativo && DASH.desde > DASH.espera) DASH.stamina = Math.min(1, DASH.stamina + dt / DASH.cheia);
+  if (!DASH.ativo && DASH.desde > DASH.espera) DASH.stamina = Math.min(1, DASH.stamina + dt * (status.dashFator || 1) / DASH.cheia);
   const d = DASH.ativo; if (!d) return false;
   if (v.caido || v.acao || v.montado) { DASH.ativo = null; return false; }
   d.t = Math.min(DASH.dura, d.t + dt);
@@ -18761,7 +18897,7 @@ function passo(dt) {
   // o andar, o arrancar e o parar tocam no ritmo da passada (parando, o mesmo de quando andava)
   const rAndar = Math.min((andando ? vel : VELOCIDADE * (furia.buff > 0 ? 1.25 : 1) * velPes()) / M.andar, CADENCIA_MAX * (pes.buff > 0 ? 1.3 : 1));
   const esperaParar = !andando && !v.acao && classe === "viking" && v.anim === "correndo_armado";   // (segue no ritmo da corrida)
-  const ritmo = v.acao && v.acao.startsWith("correr_para_guarda") ? 2 : /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando && !esperaParar ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? 1.3 : golpeia && classe === "ninja" ? 1.3 : golpeia && classe === "guerreiro" ? 0.92 : 1) * (vortice.ativo ? 1.35 : 1)
+  const ritmo = v.acao && v.acao.startsWith("correr_para_guarda") ? 2 : /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando && !esperaParar ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? 1.3 : golpeia && classe === "ninja" ? 1.3 : golpeia && classe === "guerreiro" ? 0.92 : classe === "xama" && /^golpe[1-4]$/.test(v.anim) ? RITMO_COMBO_XAMA[v.anim] : 1) * (vortice.ativo ? 1.35 : 1)
               : v.anim.startsWith("correndo") ? Math.min(vel / M.correr, CORRIDA_MAX * (pes.buff > 0 ? 1.3 : 1) * (status.velEquip || 1)) : 1;
   v.t += dt * ritmo;
   if ((classe === "ninja" || classe === "xama" || classe === "shura") && info.avanco && v.acao === v.anim) avancarNinja(v, info, v.t - dt * ritmo, v.t);   // (o combo da xamã também anda)   // o combo do ninja anda
