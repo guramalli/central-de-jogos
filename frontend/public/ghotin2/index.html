@@ -280,8 +280,22 @@
   .minimapa .norte { position: absolute; top: -2px; left: 50%; transform: translateX(-50%); font-family: var(--display); font-size: 13px; color: var(--ouro); text-shadow: 0 1px 2px #000; }
   .minimapa .lugar { padding: 2px 10px; border-radius: 4px; background: rgba(12, 9, 6, 0.8); border: 1px solid #5a4424; font-size: 12px; text-align: center; }
   .minimapa .lugar b { font-family: var(--dados); font-weight: 400; color: var(--apagado); margin-left: 6px; }
-  .minimapa .missao { width: 100%; box-sizing: border-box; padding: 3px 8px; color: #ffd23c; font-size: 11.5px; line-height: 1.3; text-align: left; }   /* o objetivo da missão */
+  .minimapa .missao { width: 100%; box-sizing: border-box; padding: 3px 8px; color: #ffd23c; font-size: 13.5px; line-height: 1.3; text-align: left; }   /* o objetivo da missão */
   .minimapa .missao[hidden] { display: none !important; }
+  /* os primeiros passos: à esquerda, embaixo dos pergaminhos e acima do chat, sem cobrir o herói nem a bolsa */
+  .guia { position: fixed; z-index: 3; left: 14px; top: 330px; width: 290px; box-sizing: border-box; padding: 10px 12px 12px; color: #1E1B18; background: #E8DCC0; border: 2px solid #1E1B18; border-radius: 3px; box-shadow: 0 0 0 1px #C9963E inset, 0 6px 16px rgba(0, 0, 0, 0.45); }
+  .guia[hidden] { display: none; }
+  .guia header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .guia h2 { flex: 1; margin: 0; font-family: "Song Myung", "Nanum Myeongjo", "Palatino Linotype", Georgia, serif; font-size: 19px; font-weight: 400; }
+  .guia #guiaConta { font-size: 13px; font-weight: 700; color: #8e2721; white-space: nowrap; }
+  .guia #guiaFechar { width: 24px; height: 24px; min-width: 0; padding: 0; font-size: 13px; line-height: 1; }
+  .guia ul { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+  .guia li.feito { font-size: 13px; color: #3f3528; }
+  .guia li.feito::before { content: "✓ "; font-weight: 700; color: #2f6b4d; }
+  .guia li.agora { padding: 7px 9px; background: #F5EBD3; border-left: 4px solid #B8322A; }
+  .guia li.agora > b { display: block; font-size: 15.5px; }
+  .guia li.agora p { margin: 3px 0 0; font-size: 14.5px; line-height: 1.38; font-weight: 500; }
+  .guia kbd { display: inline-block; padding: 0 5px; font: 700 12.5px/18px var(--dados, monospace); color: #F5EBD3; background: #1E1B18; border-radius: 3px; }
   /* janelas: escolher quais ficam abertas e arrastar cada uma para onde quiser */
   .janelas {
     position: fixed; z-index: 6; top: 70px; left: 50%; transform: translateX(-50%); width: min(300px, calc(100% - 32px));
@@ -674,6 +688,11 @@
   }
   :root:not(.semB) :is(.bolsa, .editor, .ferreiro, .janelas, .admin, details.livro) :is(.nota, .fala) { color: var(--apagado); }
   :root:not(.semB) .ferreiro .fala { color: #3a332b; }
+  :root:not(.semB) #npcFala { color: #1E1B18; font-size: 15px; }
+  #npcLoja .item-loja.com-retrato { grid-template-columns: 128px 1fr auto auto; align-items: center; }
+  #npcLoja .item-loja.com-retrato img { display: block; width: 128px; height: 172px; object-fit: contain; object-position: center bottom; }
+  :root:not(.semB) #npcLoja .item-loja small { font-size: 13.5px; line-height: 1.35; font-weight: 500; color: #2a2118; }
+  :root:not(.semB) #npcLoja .item-loja b { font-size: 15px; }
   /* subtítulos: pincel em nanquim com um traço que some para a direita */
   :root:not(.semB) :is(.ficha, .admin, .opcoes) h3 { font-family: var(--pincel); font-size: 17px; color: var(--b-nanquim); text-shadow: none; }
   :root:not(.semB) :is(.ficha, .admin) h3::after { height: 2px; background: linear-gradient(90deg, var(--b-nanquim), rgba(30, 27, 24, 0)); opacity: 0.7; }
@@ -841,12 +860,12 @@
   .fx-acao i { font-size: 11.5px; color: var(--texto); }
   .fx-acao small { display: flex; gap: 2px; min-height: 16px; }
   /* as quests ativas (Q; R131) */
-  .quests-jan { width: min(440px, calc(100% - 32px)); max-height: calc(100dvh - 200px); overflow-y: auto; }
+  .quests-jan { width: min(520px, calc(100% - 32px)); max-height: calc(100dvh - 200px); overflow-y: auto; }
   .quests-jan .fx-quest { cursor: pointer; }
-  .quests-jan .nota { margin: 0; font-size: 12px; line-height: 1.4; color: var(--apagado); }
-  .quests-jan .quests-vazio { margin: 0; font-size: 13px; line-height: 1.45; }
+  .quests-jan .nota { margin: 0; font-size: 13.5px; line-height: 1.4; color: #3f3528; }
+  .quests-jan .quests-vazio { margin: 0; font-size: 14.5px; line-height: 1.45; }
   /* o prêmio em destaque, no card e no menu do Q: o ícone e o nome de cada coisa */
-  .premio-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 10px; font-size: 12.5px; line-height: 1.3; }
+  .premio-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 10px; font-size: 14px; line-height: 1.3; }
   .premio-linha b { font-weight: 700; color: #8e2721; }
   .premio-linha .pr-chip { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: #3a2a1c; }
   .premio-linha canvas { flex: none; }
@@ -854,10 +873,10 @@
   .fx-quests { display: grid; gap: 8px; }
   .fx-quest { display: grid; gap: 4px; padding: 7px 9px; border: 1px solid var(--jan-poco-borda); border-left: 4px solid var(--ouro); border-radius: 2px; background: var(--jan-poco); }
   .fx-q-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
-  .fx-q-topo b { font-size: 14px; }
-  .fx-q-topo i { font-style: normal; font-size: 11px; white-space: nowrap; color: var(--apagado); }
-  .fx-quest p { margin: 0; font-size: 12.5px; line-height: 1.4; }
-  .fx-quest small { font-size: 11px; color: var(--apagado); }
+  .fx-q-topo b { font-size: 16px; }
+  .fx-q-topo i { font-style: normal; font-size: 13px; font-weight: 600; white-space: nowrap; color: #3f3528; }
+  .fx-quest p { margin: 0; font-size: 14.5px; line-height: 1.4; font-weight: 500; color: #1E1B18; }
+  .fx-quest small { font-size: 13px; font-weight: 500; color: #3f3528; }
   .fx-q-etapas { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; }
   .fx-q-etapas span { height: 5px; border-radius: 1px; background: rgba(255, 255, 255, 0.12); }
   .fx-q-etapas .ok { background: #5fae7f; }
@@ -881,12 +900,17 @@
   :root:not(.semB) :is(.fx-sk canvas, .fx-acao canvas) { border: 1.5px solid var(--b-nanquim); box-shadow: 0 1px 0 rgba(30, 27, 24, 0.4); }
   :root:not(.semB) :is(.fx-sk > span, .fx-trava svg) { border: 1.5px solid var(--b-nanquim); background: linear-gradient(#2e2924, #1E1B18); box-shadow: inset 0 0 0 1px rgba(140, 106, 58, 0.45); color: #8C8A80; }
   :root:not(.semB) :is(.fx-sk.sel canvas, .fx-sk canvas:hover, .fx-acao canvas:hover) { outline-color: var(--b-cinabre); }
-  :root:not(.semB) .fx-q-topo b { font-family: var(--pincel); font-size: 16px; font-weight: 400; }
+  :root:not(.semB) .fx-q-topo b { font-family: var(--pincel); font-size: 18px; font-weight: 400; }
   :root:not(.semB) .fx-quest { border-left: 4px solid var(--b-pedra); }
   :root:not(.semB) .fx-quest.andando { border-left-color: var(--b-ocre); }
   :root:not(.semB) .fx-quest.feita { border-left-color: var(--b-jade); }
-  :root:not(.semB) .fx-quest.andando .fx-q-topo i { color: #8a6420; font-weight: 600; }
-  :root:not(.semB) .fx-quest.feita .fx-q-topo i { color: var(--b-pinho); font-weight: 600; }
+  :root:not(.semB) .fx-quest.andando .fx-q-topo i { color: #553b0a; font-weight: 700; }
+  :root:not(.semB) .fx-quest.feita .fx-q-topo i { color: var(--b-pinho); font-weight: 700; }
+  :root:not(.semB) .fx-quest .fx-q-topo i { color: #3f3528; }
+  :root:not(.semB) .fx-quest.andando .fx-q-topo i { color: #553b0a; }
+  :root:not(.semB) #questsJan .nota { color: #2a2118; }
+  :root #cartaJan.com-arte .carta-texto { font-size: 15.5px; color: #1E1B18; }
+  :root #cartaJan .carta-obj { color: #741a15; }
   :root:not(.semB) .fx-q-etapas span { background: rgba(30, 27, 24, 0.16); }
   :root:not(.semB) .fx-q-etapas .ok { background: var(--b-jade); }
   :root:not(.semB) .fx-q-etapas .agora { background: var(--b-ocre); }
@@ -1014,6 +1038,34 @@
   .sc-pontos button:hover { background: rgba(239, 228, 204, 0.18); }
   .sc-pontos button[aria-current="true"] { background: var(--sp); color: var(--sn); border-color: var(--so); box-shadow: 0 0 0 2px var(--so); }
   .sc-acoes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  /* a tela inicial (R165): os cartões de papel dos personagens e das vocações, como as páginas do carrossel */
+  .ic-corpo { width: min(1180px, 100%); display: grid; gap: 12px; }
+  .ic-lista { grid-template-columns: repeat(auto-fit, minmax(440px, 560px)); justify-content: center; margin-top: 2vh; }
+  .ic-vocacoes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ic-perso, .ic-voc { border: 3px solid var(--sn); border-radius: 4px; background: var(--sfibra), var(--sp); color: var(--sn); box-shadow: 0 4px 0 rgba(30, 27, 24, 0.55); }
+  .ic-perso { display: grid; grid-template-columns: 82px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 12px; }
+  .ic-perso figure { margin: 0; height: 104px; display: flex; align-items: flex-end; justify-content: center; background: var(--sp3); border: 2px solid var(--sn); overflow: hidden; }
+  .ic-perso img { display: block; height: 100%; width: auto; object-fit: contain; }
+  .ic-perso h3, .ic-voc h3 { margin: 0; font: 400 21px/1.15 var(--pincel, Georgia, serif); }
+  .ic-perso p { margin: 3px 0 0; font-size: 14px; }
+  .ic-perso .ic-nv { color: var(--sc); font-weight: 700; }
+  .ic-botoes { display: flex; flex-direction: column; gap: 6px; align-items: stretch; width: 136px; }
+  .ic-botoes .sc-escolher { min-height: 44px; min-width: 0; padding: 4px 10px; font-size: 18px; width: 100%; }
+  .ic-botoes .sc-voltar { min-height: 30px; padding: 3px 8px; font-size: 13px; line-height: 1.1; color: var(--sn); border-color: var(--sn); }
+  .ic-botoes .sc-voltar:hover { background: rgba(30, 27, 24, 0.1); }
+  .ic-botoes .sc-zero.confirmar { color: var(--sc); border-color: var(--sc); font-weight: 700; }
+  .ic-voc { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; text-align: center; }
+  .ic-voc.fechada { background: var(--sp3); }
+  .ic-voc.fechada img { filter: grayscale(1) opacity(0.55); }
+  .ic-figs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1 1 auto; align-items: end; }
+  .ic-figs figure { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; min-width: 0; }
+  .ic-figs img { display: block; width: 100%; height: clamp(150px, 31vh, 300px); object-fit: contain; object-position: bottom; }
+  .ic-figs figcaption { font-weight: 700; font-size: 14px; line-height: 1.15; }
+  .ic-figs figcaption small { display: block; font-weight: 400; color: var(--sc); }
+  .ic-coberta span { display: block; width: 74%; height: clamp(140px, 28vh, 270px); background: var(--si); border: 2px solid var(--sn); border-radius: 46% 46% 6px 6px; opacity: 0.85; }
+  .ic-voc > p { margin: 0; font-size: 14px; line-height: 1.3; }
+  .ic-voc .ic-aviso { color: var(--sc); font-weight: 700; }
+  @media (max-width: 980px) { .ic-vocacoes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .sc-escolher {
     min-width: 200px; min-height: 52px; padding: 8px 26px; cursor: pointer; border-radius: 4px;
     font: 400 24px/1 var(--pincel, Georgia, serif); color: var(--sp); background: var(--sj); border: 2.5px solid var(--sn);
@@ -1599,6 +1651,10 @@
   <input type="text" class="chat-linha" id="chatLinha" maxlength="120" placeholder="Fale algo (Enter envia, Esc fecha)" aria-label="Linha do chat" hidden>
 </section>
 
+<aside class="guia" id="guia" aria-label="Primeiros passos" hidden>
+  <header><h2>Primeiros passos</h2><span id="guiaConta"></span><button id="guiaFechar" aria-label="Pular os primeiros passos" title="Pular (volta pelas Opções)">✕</button></header>
+  <ul id="guiaLista"></ul>
+</aside>
 <aside class="minimapa" id="minimapa" aria-label="Minimapa">
   <div class="aro">
     <canvas id="miniCanvas" width="164" height="164" aria-label="Mapa em volta do personagem"></canvas>
@@ -1666,7 +1722,7 @@
   <label class="o-limite">Limite de quadros <select id="oLimite" aria-label="Limite de quadros por segundo"><option value="30">30 por segundo</option><option value="60">60 por segundo</option><option value="0">sem limite</option></select></label>
   <div class="linha"><button id="opcoesPadrao">Volumes padrão</button></div>
   <h3>Personagem</h3>
-  <div class="linha"><button id="oNovoPersonagem">Novo personagem…</button><button id="oJornada">Estatísticas da jornada</button><button id="oHistoria">Ver a história</button></div>
+  <div class="linha"><button id="oNovoPersonagem">Personagens…</button><button id="oGuia">Primeiros passos</button><button id="oJornada">Estatísticas da jornada</button><button id="oHistoria">Ver a história</button></div>
   <p class="nota">Abre a escolha de classe. Os personagens que você já tem continuam salvos.</p>
   <p class="nota">Esc abre e fecha este menu. Tudo fica salvo neste navegador.</p>
   <details class="nota creditos-musica"><summary>Créditos das músicas</summary>
@@ -1762,6 +1818,22 @@
       <button type="button" class="sc-escolher" id="selEscolher">Escolher</button>
     </div>
     <p class="sc-nota" id="selNota" role="status"></p>
+  </div>
+</div>
+<!-- a tela inicial (R165): a lista dos personagens e as 4 vocações: ver abrirInicio() -->
+<div class="sel-classe inicio" id="inicio" role="dialog" aria-modal="true" aria-labelledby="inTitulo" hidden>
+  <header class="sc-topo">
+    <img class="sc-logo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652">
+    <h2 id="inTitulo">Seus personagens</h2>
+  </header>
+  <div class="ic-corpo" id="inCorpo"></div>
+  <div class="sc-baixo">
+    <div class="sc-acoes">
+      <button type="button" class="sc-voltar" id="inVoltar" hidden>Voltar ao jogo</button>
+      <button type="button" class="sc-voltar" id="inLista" hidden>Seus personagens</button>
+      <button type="button" class="sc-escolher" id="inNovo">Novo personagem</button>
+    </div>
+    <p class="sc-nota" id="inNota" role="status"></p>
   </div>
 </div>
 <div class="bau-aviso" id="bauAviso" role="status" hidden></div>
@@ -4433,7 +4505,7 @@ const TINTA = "#1c120c";                  // a linha de nanquim dos sprites
 let M = null, SPR = {}, PX = 84;          // manifest, imagens por animação e direção, pixels por metro
 // o personagem jogável: o viking (manifest.json) ou o arqueiro (arqueiro.json); M e SPR apontam para o da vez
 const ICONES_SKILL = {}; const ICONES_ITEM = {};
-let MV = null, SPRV = {}, MA = null, SPRA = {}, MF = null, SPRF = {}, MN = null, SPRN = {}, MG = null, SPRG = {}, MX = null, SPRX = {}, MS = null, SPRS = {}, classe = "viking";
+let MV = null, SPRV = {}, MA = null, SPRA = {}, MF = null, SPRF = {}, MN = null, SPRN = {}, MG = null, SPRG = {}, MX = null, SPRX = {}, MS = null, SPRS = {}, MP = null, SPRP = {}, VOCACAO = null, classe = "viking";
 let FX = null, FXI = {};                  // fogo da Fúria: fx.json e as tiras
 let zoom = 1, dpr = 1, W = 0, H = 0;
 const ZOOM_MIN_2D = 0.6;                   // o mais afastado que o zoom vai no isométrico (mais longe os bonecos ficam miúdos)
@@ -5098,6 +5170,7 @@ function desenharChaoClima(t) {
         const onda = clima.chuva > 0.1 ? Math.sin(t * 7) * 0.012 : 0;
         cx.globalAlpha = 0.7 * Math.min(1, CC.molhado * 1.5);
         cx.translate(X, Y + 2 * zoom); cx.transform(1, 0, onda, -0.82, 0, 0);
+        cx.imageSmoothingQuality = "low";                                 // (R163: com "high", o Chrome monta mipmaps do atlas inteiro a cada cópia reduzida)
         cx.drawImage(pose.src, pose.sx, pose.sy, pose.sw, pose.sh, -pose.esq, -pose.cima, pose.w, pose.h);
         cx.setTransform(base); cx.globalAlpha = 1;
         cx.fillStyle = "rgba(92, 112, 138, 0.32)"; cx.fillRect(-20, -20, W + 40, H + 40);   // (a cor da água por cima: o reflexo fica azulado)
@@ -5224,6 +5297,7 @@ async function carregar() {
   try { const r = await fetch("guerreiro.json"); if (r.ok) MG = await r.json(); } catch (e) { MG = null; }
   try { const r = await fetch("xama.json"); if (r.ok) MX = await r.json(); } catch (e) { MX = null; }   // (a xamã: Logs/Xama/exportacao)
   try { const r = await fetch("shura.json"); if (r.ok) MS = await r.json(); } catch (e) { MS = null; }  // (o shura: Logs/Shura/exportacao)
+  try { const r = await fetch("aprendiz.json"); if (r.ok) MP = await r.json(); } catch (e) { MP = null; }  // (o aprendiz, R165: Tools/aprendiz/pintar.py)
   MV = M; SPRV = SPR;
   PX = M.pxPorMetro;
   const nomes = Object.keys(M.animacoes);
@@ -5280,7 +5354,7 @@ async function carregar() {
     ? (spr[n] = folhaSobDemanda(prefixo + n, () => { if (n.endsWith("_sem")) { delete mapa.animacoes[n]; delete spr[n]; } }), Promise.resolve())
     : folha(prefixo + n).then(p => { spr[n] = p; }, e => { if (n.endsWith("_sem")) delete mapa.animacoes[n]; else if (semClasse) semClasse(); else throw e; });
   // (as classes novas, com folhas grandes, vêm sob demanda também no ?test=1: o teste só simula)
-  const sobDe = c => SOB_DEMANDA || ((c === "xama" || c === "shura") && MODO_TESTE);
+  const sobDe = c => SOB_DEMANDA || ((c === "xama" || c === "shura" || c === "aprendiz") && MODO_TESTE);
   await Promise.all([
     ...nomes.map(n => heroi(sobDe("viking"), M, SPR, "", n)),
     ...Object.keys(MA.animacoes).map(n => heroi(sobDe("arqueiro"), MA, SPRA, "arqueiro_", n)),
@@ -5288,6 +5362,7 @@ async function carregar() {
     ...(MN ? Object.keys(MN.animacoes) : []).map(n => heroi(sobDe("ninja"), MN, SPRN, "ninja_", n, () => { MN = null; })),
     ...(MX ? Object.keys(MX.animacoes) : []).map(n => heroi(sobDe("xama"), MX, SPRX, "xama_", n, () => { MX = null; })),
     ...(MS ? Object.keys(MS.animacoes) : []).map(n => heroi(sobDe("shura"), MS, SPRS, "shura_", n, () => { MS = null; })),
+    ...(MP ? Object.keys(MP.animacoes) : []).map(n => heroi(sobDe("aprendiz"), MP, SPRP, "aprendiz_", n, () => { MP = null; })),
     ...Object.keys(MF.animacoes).map(n => heroi(sobDe("feiticeiro"), MF, SPRF, "feiticeiro_", n)),
     // decorações pintadas (sem elas, árvores, pedras e arbustos voltam a ser desenhados só por código)
     (async () => {
@@ -5366,6 +5441,8 @@ async function carregar() {
   if (MX) for (const [de, para] of [["parado_armado", "parado"], ["andando_armado", "andando"], ["correndo_armado", "correndo"]]) if (MX.animacoes[para]) { MX.animacoes[de] = MX.animacoes[para]; SPRX[de] = SPRX[para]; }
   // o shura também: sempre com a espada na mão
   if (MS) for (const [de, para] of [["parado_armado", "parado"], ["andando_armado", "andando"], ["correndo_armado", "correndo"]]) if (MS.animacoes[para]) { MS.animacoes[de] = MS.animacoes[para]; SPRS[de] = SPRS[para]; }
+  // o aprendiz também: sempre com a arma de treino na mão
+  if (MP) for (const [de, para] of [["parado_armado", "parado"], ["andando_armado", "andando"], ["correndo_armado", "correndo"]]) if (MP.animacoes[para]) { MP.animacoes[de] = MP.animacoes[para]; SPRP[de] = SPRP[para]; }
 }
 
 // ---------------------------------------------------------------- mapa (feito por código)
@@ -5412,6 +5489,7 @@ const ESTRADA_MONTE = [[-734, -1.5], [-728, -3], [-722, -7.5], [-712, -3], [-700
 // do cabo (V1_PORTAL, 3 m depois do fim dela: o herói que volta da Vila Hahoe aparece em cima da estrada)
 const ESTRADA_PORTAL = [[12.8, -52.2], [10.5, -64], [5, -77], [-1, -91], [-6, -105], [-10.5, -119], [-13.5, -132], [-15, -144], [-15, -153]];
 ESTRADAS.push(ESTRADA_PORTAL);
+ESTRADAS.push([[-27, -8.5], [-31, 6], [-36, 22], [-42, 31], [-48.4, 36.4]]);   // (R165: a trilha, da estrada do lago até a ponte do Altar das Eras)
 [LAGO.x, LAGO.y] = noMapa([LAGO.x, LAGO.y]); LAGO.r *= 1.25;
 const PONTE_LEV = { x0: -1.7, x1: 1.7, y0: -1.0, y1: 4.2 };
 const PORTAO = { x0: -1.8, x1: 1.8 };
@@ -5475,7 +5553,26 @@ const extraCosta = a => {
   return (d < 1 ? VALE_E * Math.cos(d * Math.PI / 2) ** 2 : 0) + (dm < 1 ? Math.min(FUNDO_VALE, 50 * Math.cos(dm * Math.PI / 2) ** 2) : 0) +
          arcoCosta(a, LOBO_A, LOBO_W, LOBO_E) + arcoCosta(a, CABO_A, CABO_W, CABO_E);
 };
-function borda(x, y) { if (y > 350) return bordaMapa(MAPAS.hahoe, x, y); if (y < -350) return bordaMapa(MAPAS.daiyu, x, y); if (x < -350) return bordaMapa(MAPAS.montanha, x, y); const a = Math.atan2(y, x); return Math.hypot(x, y) + desvioCosta(a) - extraCosta(a); }   // (a Vila Hahoe, em (0, 700): bordaMapa)
+// (R165) o Altar das Eras: as medidas, em m, em volta do meio da ilha, nas coordenadas (a, b) da vista de 45° (ver altarPintar). lances: [b, altura] da escadaria
+const NIVEL_ALTAR = 5, NOME_GUARDIA = "Guardiã do Altar";
+const VOCACOES = {
+  norte: { nome: "Guerreiros do Norte", classes: ["viking", "guerreiro"], frase: "Corpo a corpo: a espada que abre caminho ou o machado que segura o bando." },
+  caca: { nome: "Caçadores das Sombras", classes: ["arqueiro", "ninja"], frase: "Rápidos: as flechas de longe ou as adagas de perto." },
+  trevas: { nome: "Mestres das Trevas", classes: ["shura", "feiticeiro"], frase: "O poder proibido: a lâmina amaldiçoada ou as magias de área." },
+  dragao: { nome: "Filhos do Dragão", classes: ["xama"], frase: "O leque do dragão, o raio e a cura. A outra era ainda não despertou." },
+};
+const ALTAR = { U: -96, V: 0, z: 8, ilha: { rx: 22, ry: 17.5, cb: 1 }, esc: { meia: 3.5, b0: -9, mureta: 0.8 }, topo: { meia: 10, b0: 5, b1: 20, bal: 0.5 }, colina: { ra: 16.4, rb: 11.7, cb: 2.7 },
+  lances: [[-9, 0], [-2.46, 4.9], [0.87, 4.9], [5, 8]], ponte: { b: -8.5, meia: 2.3, a0: 15, a1: 36, g0: 15.8, g1: 35.2, baixa: 2.66, perfil: [[0, 1.08], [1.8, 1], [3.5, 0.85], [5.3, 0.7], [6.5, 0.55], [8, 0.2], [9.4, 0.05], [10.5, 0]] }, npc: [0, 10.5],
+  templo: { b: 16.2, meia: 3.9, b0: 14 }, ordem: ["viking", "guerreiro", "arqueiro", "ninja", "shura", "feiticeiro", "xama", null] };
+// as artes da ilha, em deco_b/altar (Tools/deco3d/altar/render_tudo.py): o pé de cada uma na imagem e os px por metro
+const ALTAR_PECAS = {"templo":{"px":410.0,"py":598.6,"ppm":100},"ponte":{"px":1110.0,"py":608.3,"ppm":100},"ponte_frente":{"px":1110.0,"py":608.3,"ppm":100},"estatua_viking":{"px":95.0,"py":225.5,"ppm":100},"estatua_guerreiro":{"px":95.0,"py":192.4,"ppm":100},"estatua_arqueiro":{"px":95.0,"py":197.8,"ppm":100},"estatua_ninja":{"px":95.0,"py":174.0,"ppm":100},"estatua_shura":{"px":95.0,"py":193.8,"ppm":100},"estatua_feiticeiro":{"px":95.0,"py":189.4,"ppm":100},"estatua_xama":{"px":95.0,"py":190.4,"ppm":100},"ilha":{"px":629.5,"py":981,"ppm":38.1}};
+const altarMundo = (a, b) => { const u = a + ALTAR.U, v = b + ALTAR.V; return [(u + v) * Math.SQRT1_2, (v - u) * Math.SQRT1_2]; };
+const altarLocal = (x, y) => [(x - y) * Math.SQRT1_2 - ALTAR.U, (x + y) * Math.SQRT1_2 - ALTAR.V];
+const naZonaAltar = (x, y) => x < -38 && y > 28 && x > -115 && y < 115;
+const bordaV1 = (x, y) => { const a = Math.atan2(y, x); return Math.hypot(x, y) + desvioCosta(a) - extraCosta(a); };
+// o pedaço de chão em (x, y) tem o bloco do patamar? (ele é pintado subido, por cima do mar atrás da ilha)
+const altarNoPedaco = (x, y) => { if (!naZonaAltar(x, y)) return false; const [a, b] = altarLocal(x, y); return Math.abs(a) < ALTAR.topo.meia + 7 && b > ALTAR.topo.b0 - 5 && b < ALTAR.topo.b1 + 16; };
+function borda(x, y) { if (y > 350) return bordaMapa(MAPAS.hahoe, x, y); if (y < -350) return bordaMapa(MAPAS.daiyu, x, y); if (x < -350) return bordaMapa(MAPAS.montanha, x, y); const b = bordaV1(x, y); return naZonaAltar(x, y) ? Math.min(b, bordaAltar(x, y)) : b; }   // (a Vila Hahoe, em (0, 700): bordaMapa)
 // quanto este ponto é montanha (1 no mapa da Montanha Gelada, 0 nos outros) e quanto é vale (0 na ilha, 1 na península)
 const pesoMonte = (x, y) => x < -350 ? 1 : 0;
 const pesoVale = (x, y) => y < -350 ? 0 : liso((x - VALE_X) / 8) * (1 - pesoMonte(x, y));   // (a ponta leste da Ilha de Daiyu não é o vale)
@@ -5760,6 +5857,7 @@ function doPonteiro(px, py) {
   const s = PX * zoom, [dx, dy] = daVista((px - W / 2) / s, -(py - H / 2) / (s * ACHATA));
   const p = { x: cam.x + dx, y: cam.y + dy };
   if (p.x < -350 && !(window.M3D && M3D.ativo)) return GELADA.corrigirClique(p.x, p.y);    // (Montanha Gelada: idem)
+  if (naZonaAltar(p.x, p.y) && !(window.M3D && M3D.ativo)) return altarClique(p.x, p.y);   // (R165: o Altar das Eras: idem)
   return p.y < -350 && !(window.M3D && M3D.ativo) ? DAIYU.corrigirClique(p.x, p.y) : p;   // (Daiyu: o chão visível mais alto sob o ponteiro)
 }
 // a caixa do mapa (alinhada a x e y) que a tela mostra, com folga em m: [x0, x1, y0, y1]
@@ -5995,6 +6093,7 @@ function pedaco(i, j, esc) {
       if (X < -esc || X > cw + esc || Y < -esc || Y > ch + esc) continue;      // (fora do pedaço, com a folga de 1 m)
       detalheChao(g, x, y, X, Y, esc, hash(ci, cj, 3), hash(ci, cj, 4));
     }
+  if (MAPA_CAM === MAPAS.vila1) altarPintar(g, P, esc, x0, y1, c.width, c.height);   // (R165: a ilha, a ponte, a escadaria e o patamar do Altar das Eras)
   pedacos.set(chave, c);
   // cabe o quanto der em ~60 MB: com zoom longe os pedaços são pequenos e cabem muitos
   const limite = Math.max(60, Math.min(400, Math.floor(120e6 / (c.width * c.height * 4))));
@@ -6098,7 +6197,7 @@ function desenharChao() {
   const j0 = Math.floor((cv0 - alt / 2) / PEDACO) - 1, j1 = Math.floor((cv0 + alt / 2) / PEDACO) + 1;
   for (let j = j1; j >= j0; j--) for (let i = i0; i <= i1; i++) {
     const x0 = i * PEDACO, y1 = (j + 1) * PEDACO, [mx, my] = meio(i, j);
-    if (borda(mx, my) > RAIO + (MAPA_CAM === MAPAS.montanha ? 26 : PEDACO + 3)) continue;   // pedaço só de mar (na montanha, o patamar alto aparece bem acima do chão dele)
+    if (borda(mx, my) > RAIO + (MAPA_CAM === MAPAS.montanha ? 26 : PEDACO + 3) && !altarNoPedaco(mx, my)) continue;   // pedaço só de mar (na montanha, o patamar alto aparece bem acima do chão dele)
     let c = pedacos.get(faixa + ":" + i + "," + j);
     if (!c && novos < PEDACOS_POR_QUADRO) { c = pedaco(i, j, faixa); novos++; }
     if (!c) {                                                           // ainda não pintado nesta faixa: o da faixa mais perto
@@ -6118,7 +6217,7 @@ function desenharChao() {
     for (let j = j1 + 1; j >= j0 - 1; j--) for (let i = i0 - 1; i <= i1 + 1; i++) {
       if (i > i0 && i < i1 && j > j0 && j < j1) continue;
       const [mx, my] = meio(i, j);
-      if (borda(mx, my) > RAIO + (MAPA_CAM === MAPAS.montanha ? 26 : PEDACO + 3) || pedacos.has(faixa + ":" + i + "," + j)) continue;
+      if ((borda(mx, my) > RAIO + (MAPA_CAM === MAPAS.montanha ? 26 : PEDACO + 3) && !altarNoPedaco(mx, my)) || pedacos.has(faixa + ":" + i + "," + j)) continue;
       pedaco(i, j, faixa); return;
     }
   }
@@ -6235,6 +6334,7 @@ function desenharCostaB(t) {
   if (!marNaVista()) return;
   const s = PX * zoom, caixa = caixaVista(4), C = costaMar();
   cx.save(); cx.lineJoin = "round"; cx.lineCap = "round";
+  altarRecorteCosta();                                                 // (R165: a beira da água passa por baixo da ponte do altar)
   caminhoMar(() => 1.45, caixa); cx.strokeStyle = "rgba(62, 122, 92, 0.7)"; cx.lineWidth = 2.7 * s; cx.stroke();
   caminhoMar(() => 0.55, caixa); cx.strokeStyle = "rgba(110, 160, 140, 0.55)"; cx.lineWidth = 1.0 * s; cx.stroke();
   // duas ondas por vez, defasadas; cada trecho da costa recebe a onda num tempo um pouco diferente
@@ -6831,7 +6931,7 @@ function vegDa(ci, cj) {
   if (v !== undefined) return v;
   v = null;
   const x = (ci + 0.15 + hash(ci, cj, 21) * 0.7) * VEG_C, y = (cj + 0.15 + hash(ci, cj, 22) * 0.7) * VEG_C, h = hash(ci, cj, 23), r = hash(ci, cj, 24), r2 = hash(ci, cj, 25);
-  if (borda(x, y) < RAIO - 3.4 && !agua(x, y) && !lago(x, y, 1.1) && !praca(x, y) && !foraCidade(x, y) && !estrada(x, y) && !noCastelo(x, y, 0.3) && x < MONTE_X - 2 && x > -350 && y > -350 && !vegNaConstrucao(x, y)) {
+  if (borda(x, y) < RAIO - 3.4 && !agua(x, y) && !lago(x, y, 1.1) && !praca(x, y) && !foraCidade(x, y) && !estrada(x, y) && !noCastelo(x, y, 0.3) && x < MONTE_X - 2 && x > -350 && y > -350 && !vegNaConstrucao(x, y) && !(naZonaAltar(x, y) && bordaAltar(x, y) < RAIO + 1)) {
     // o quanto o lugar puxa mato alto: a borda da mata, a beira da estrada e manchas pelos campos
     const c = distClareira(x, y), mg = x > VALE_X - 4 || c < 0 ? -1 : fbm(x * 0.07 + 3, y * 0.07 - 2) - (0.55 + 0.2 * Math.max(0, 1 - c / 5));
     const mata = mg > 0 && Math.hypot(x - PRACA.x, y - PRACA.y) > 10 && (!COM_CASTELO || retArred(x, y, FOSSO) > 4);
@@ -7511,6 +7611,7 @@ function pintarTerra(g, P, esc, mx0, mx1, my0, my1, c) {
 }
 // as cores da cidade no minimapa (muralha, muros, portões, prédios, vias e quintais)
 function miniCidade(x, y) {
+  { const cor = altarCorMini(x, y); if (cor) return cor; }             // (R165: o patamar, a escada e a ponte do Altar das Eras)
   const c = CIDADE; if (!c) return null;
   const k = c.caixa; if (x < k[0] || x > k[1] || y < k[2] || y > k[3]) return null;
   for (const p of predInst) {
@@ -7672,6 +7773,7 @@ let PRED_ALTOS = [];
 function zPiso(x, y) {
   if (y < -350) return DAIYU.z(x, y);                                  // (a Ilha de Daiyu: os platôs e as escadarias)
   if (x < -350) return GELADA.z(x, y);                                 // (a Montanha Gelada: os patamares e as escadas)
+  if (naZonaAltar(x, y)) { const z = altarZ(x, y); if (z) return z; }   // (R165: a escadaria e o patamar do Altar das Eras)
   for (const p of PRED_ALTOS) {
     const lx = p.esp ? y - p.y : x - p.x, ly = p.esp ? x - p.x : y - p.y, B = p.d.base, e = p.d.escada;
     if (lx > B[0] && lx < B[1] && ly > B[2] && ly < B[3]) return p.d.piso;
@@ -8034,6 +8136,8 @@ function desenharObjeto(o, t) {
   const X = W / 2 + sx, Y = H / 2 + sy - (o.zChao || 0) * PX * zoom * ALTURA, s = PX * zoom, lw = Math.max(1.2, s * 0.022);
   const g = cx;
   const vento = Math.sin(t * 1.3 + o.x * 0.7 + o.y * 0.3) * s * 0.035;
+  if (o.tipo === "estatua_era") return desenharEstatuaEra(o, X, Y, s, lw, t);   // (R165)
+  if (o.tipo === "altar_arte") return desenharArteAltar(o, X, Y, s);
   { const v = varDeco(o); if (v) return desenharDecoSprite(o, v, X, Y, s, t); }
   switch (o.tipo) {
     case "muro": return desenharMuro(o, s, lw);
@@ -8476,8 +8580,9 @@ const CANCELA = { golpe1: 9, golpe2: 9, golpe3: 9, golpe4: 9, sacar_golpe: 12, g
 // antes do quadro da emenda (+1); depois disso, ou parado, o combo recomeça do 1º (que sai da guarda, sem salto de pose)
 const CANCELA_NINJA = { golpe1: 7, golpe2: 7, golpe3: 7, golpe4: 7, golpe5: 10 }, DANO_NINJA = 0.75, DANO_NINJA_5 = 1.3, EMPURRA_NINJA = 0.06;
 const CANCELA_XAMA = { golpe1: 16, golpe2: 11, golpe3: 11 }, CANCELA_SHURA = { golpe1: 13, golpe2: 10, golpe3: 9 };   // (o shura: as emendas do shura.json)      // (a xamã: 4 golpes, emendas do Logs/Xama/rodada6/INDEX_HTML.md)
-const corteCombo = a => (classe === "ninja" ? CANCELA_NINJA : classe === "xama" ? CANCELA_XAMA : classe === "shura" ? CANCELA_SHURA : CANCELA)[a];
-const nGolpes = () => classe === "xama" || classe === "shura" ? 4 : 5;
+const CANCELA_APRENDIZ = { golpe1: 9, golpe2: 9 };
+const corteCombo = a => (classe === "ninja" ? CANCELA_NINJA : classe === "xama" ? CANCELA_XAMA : classe === "shura" ? CANCELA_SHURA : classe === "aprendiz" ? CANCELA_APRENDIZ : CANCELA)[a];
+const nGolpes = () => classe === "aprendiz" ? 3 : classe === "xama" || classe === "shura" ? 4 : 5;
 const fatorNinja = () => classe !== "ninja" || triplo.restam > 0 || vortice.ativo ? 1 : DANO_NINJA * (viking.acao === "golpe5" ? DANO_NINJA_5 : 1);
 function atacar(estilo) {
   if (viking.caido) return;
@@ -8496,7 +8601,7 @@ function atacar(estilo) {
   if (viking.acao && (viking.acao.startsWith("sacar") || viking.acao.includes("golpe") || ehGiro(viking.acao))) { viking.fila = "golpe" + n; if (!estilo) viking.combo++; return; }
   if (viking.acao) return;
   mirarBoneco();
-  if (classe === "ninja" || classe === "guerreiro" || classe === "xama" || classe === "shura") viking.espada = "armada";   // o ninja (adagas), o guerreiro (machado) e a xamã (leque) estão sempre armados
+  if (classe === "ninja" || classe === "guerreiro" || classe === "xama" || classe === "shura" || classe === "aprendiz") viking.espada = "armada";   // o ninja (adagas), o guerreiro (machado) e a xamã (leque) estão sempre armados
   // com a espada nas costas, o primeiro golpe já sai do saque (sacar_golpe: tira por cima do ombro e desce cortando)
   if (viking.espada === "costas") { if (n === 1) tocar("sacar_golpe", true); else { tocar("sacar", true); viking.fila = "golpe" + n; } }
   else if (classe === "viking" && viking.anim === "correndo_armado" && M.animacoes.golpe1_da_corrida && !estilo) {
@@ -9857,14 +9962,19 @@ function reservaNova(t) {
   return variante(base, { ...v, esc: e, filtro2d: r.filtro2d, alfa2d: r.alfa2d, flutua2d: r.flutua2d, tinta: r.tinta, semSprite: true, reservaDe: base,
     perto: c.perto > 3 ? c.perto : 0, alcance: c.perto > 3 ? c.alcance : 0, levanta: !!c.levanta && !!b.levanta, uiva: !!uiva && !!b.uiva, ameaca: !!ameaca && !!b.ameaca });
 }
-const NOME_CLASSE = { viking: "Viking", arqueiro: "Arqueiro", feiticeiro: "Feiticeiro", ninja: "Ninja", guerreiro: "Guerreiro", xama: "Xamã", shura: "Shura" };
+const NOME_CLASSE = { viking: "Viking", arqueiro: "Arqueiro", feiticeiro: "Feiticeiro", ninja: "Ninja", guerreiro: "Guerreiro", xama: "Xamã", shura: "Shura", aprendiz: "Aprendiz" };
 function desenharPlacaJogador(X, Y, z) {
   if (!prog || viking.caido) return;
   const topo = { viking: 168, arqueiro: 152, feiticeiro: 196 }[classe] || 160, y = (window.M3D && M3D.ativo ? M3D.acima(viking, topo * z) : Y - topo * z) - 4;
   barrinha(X, y, 56, 5, viking.vida / status.vidaMax, ["#ee6a50", "#a8261a"]);
   barrinha(X, y + 7, 56, 4, viking.mana / status.manaMax, ["#7cc2ff", "#2a5fc0"]);
   placaNome(X, y - 6, prog.nivel, prog.nome || NOME_CLASSE[classe], "#ffffff");
-  if (viking.balao) desenharBalao(X, y - 22);                         // (a fala do chat)
+  const hon = honraDe();
+  if (hon.titulo) {                                                    // (R164: o título de honra, em cima do nome)
+    cx.save(); cx.font = "700 12px 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif"; cx.textAlign = "center"; cx.textBaseline = "middle"; cx.lineJoin = "round";
+    cx.lineWidth = 3; cx.strokeStyle = "rgba(10, 8, 6, 0.9)"; cx.strokeText(hon.titulo, X, y - 21); cx.fillStyle = hon.cor; cx.fillText(hon.titulo, X, y - 21); cx.restore();
+  }
+  if (viking.balao) desenharBalao(X, y - (hon.titulo ? 36 : 22));      // (a fala do chat)
 }
 function rotuloCriatura(l) { return `Lv. ${l.cfg.nivel || 1} ${l.cfg.nome}`; }
 // a cor do "Lv." da criatura pela diferença para o herói (o quanto ela vale de exp, fatorDifNivel): cinza bem abaixo
@@ -9900,14 +10010,18 @@ function expBase(n) {
 // os iniciais das classes do Metin2: guerreiro (viking), ninja (arqueiro) e shaman (feiticeiro)
 const ATRIB_INICIAL = { viking: { vit: 4, int: 3, for: 6, dex: 3 }, arqueiro: { vit: 3, int: 3, for: 4, dex: 6 }, feiticeiro: { vit: 4, int: 6, for: 3, dex: 3 }, ninja: { vit: 3, int: 3, for: 4, dex: 6 }, guerreiro: { vit: 5, int: 2, for: 6, dex: 3 }, xama: { vit: 3, int: 6, for: 3, dex: 4 }, shura: { vit: 3, int: 5, for: 5, dex: 3 } };
 const ATRIB_PRINCIPAL = { viking: "for", arqueiro: "dex", feiticeiro: "int", ninja: "dex", guerreiro: "for", xama: "int", shura: "int" };
+// (o aprendiz usa os da primeira classe da vocação; ao confirmar, os iniciais passam a ser os da classe escolhida: R165)
+Object.defineProperty(ATRIB_INICIAL, "aprendiz", { get: () => ATRIB_INICIAL[(VOCACOES[VOCACAO] || VOCACOES.norte).classes[0]] });
+Object.defineProperty(ATRIB_PRINCIPAL, "aprendiz", { get: () => ATRIB_PRINCIPAL[(VOCACOES[VOCACAO] || VOCACOES.norte).classes[0]] });
 // o acerto fino de cada classe no ataque (a simulação do NIVEL70.md deixa as cinco a menos de 25% da média)
-const FATOR_CLASSE = { viking: 0.92, arqueiro: 1.06, feiticeiro: 1.12, ninja: 1.1, guerreiro: 0.88, xama: 1.08, shura: 0.96 };
+const FATOR_CLASSE = { aprendiz: 1, viking: 0.92, arqueiro: 1.06, feiticeiro: 1.12, ninja: 1.1, guerreiro: 0.88, xama: 1.08, shura: 0.96 };
 const ORDEM_ATRIB = ["vit", "int", "for", "dex"];
 const NOME_ATRIB = { vit: "VIT · Vitalidade", int: "INT · Inteligência", for: "FOR · Força", dex: "DEX · Destreza" };
 // Skills como no Metin2: cada nível do personagem dá 1 ponto de skill. Com pontos a skill vai de 1 a 16; do 17 ao 19,
 // cada ponto pode virar Mestre (M1) com a chance de CHANCE_MESTRE, e o 20º ponto vira M1 com certeza. De M1 a M10, só com
-// livros da skill (cada leitura custa um pouco de EXP, pode falhar e a mesma skill só lê de novo depois de 12 h); de
-// M10 a G10 (Grão-Mestre), com Pedras da Alma (também 12 h por skill); depois do G10, uma Pedra da Alma a mais faz P
+// livros da skill (R158: do M1 ao M2 são 2 livros, do M2 ao M3 são 3, até 10 do M9 ao M10; cada leitura custa um pouco de EXP,
+// pode falhar, e aí não conta, e a mesma skill só lê de novo depois de 12 h, ou na hora com um Conselho do Eremita, R159); o M10 vira G1 (Grão-Mestre) na hora; de G1 a G10, com Pedras da Alma, que
+// podem falhar (também 12 h por skill); depois do G10, uma Pedra da Alma a mais faz P
 // (Perfeito). Por dentro: 1–19 pontos, 20–29 M1–M10, 30–39 G1–G10, 40 P
 const N_MESTRE = 20, N_GRAO = 30, N_PERFEITO = 40, SKILL_MAX = N_PERFEITO;
 const CHANCE_MESTRE = { 17: 0.25, 18: 0.4, 19: 0.6, 20: 1 };
@@ -10011,7 +10125,7 @@ function renomearProgresso(p) {
 }
 function carregarProgresso() {
   prog = null;
-  try { prog = JSON.parse(localStorage.getItem("progresso_" + classe)); } catch (e) {}
+  try { prog = JSON.parse(localStorage.getItem("progresso_" + chaveSave())); } catch (e) {}
   if (prog) renomearProgresso(prog);
   if (!prog || !prog.atrib) prog = progressoNovo(classe);
   // progresso salvo com os nomes antigos (Defesa e Destreza): a Defesa vira Vitalidade, a Destreza vira DEX
@@ -10019,6 +10133,7 @@ function carregarProgresso() {
   if (a.def !== undefined) { a.vit = a.def; delete a.def; }
   if (a.des !== undefined) { a.dex = a.des; delete a.des; }
   for (const k of ORDEM_ATRIB) if (a[k] === undefined) a[k] = ATRIB_INICIAL[classe][k];
+  for (const k in prog.skills || {}) if (prog.skills[k] === N_GRAO - 1) prog.skills[k] = N_GRAO;   // (R158: o save com a skill no M10 vira Grão-Mestre)
   // (R146) o save antigo: quem recebeu menos que a regra nova ganha a diferença; quem gastou mais não perde nada e fica
   // sem pontos novos até o total alcançar. Nada de reset escondido
   if (prog.atribPago === undefined) {
@@ -10040,7 +10155,8 @@ function carregarProgresso() {
 }
 // (salvarTravado: com a tela de seleção aberta, e ao trocar de classe por ela, o personagem da tela não é gravado)
 let salvarTravado = false;
-function salvarProgresso() { try { if (prog && !salvarTravado) localStorage.setItem("progresso_" + classe, JSON.stringify(prog)); } catch (e) {} }
+const chaveSave = () => classe === "aprendiz" ? "aprendiz_" + VOCACAO : classe;   // (R165: o aprendiz tem um save por vocação)
+function salvarProgresso() { try { if (prog && !salvarTravado) localStorage.setItem("progresso_" + chaveSave(), JSON.stringify(prog)); } catch (e) {} }
 const POR_PONTO = { staminaVit: 0.01, defMagInt: 2, esquivaDex: 0.001 };   // (R146: +1% de velocidade da stamina, +2 de defesa mágica e +0,1% de esquiva por ponto)
 function recalcularStatus() {
   const b = somaBonus(), a = { ...prog.atrib }, ini = ATRIB_INICIAL[classe], pr = ATRIB_PRINCIPAL[classe], n = prog.nivel;
@@ -10054,7 +10170,7 @@ function recalcularStatus() {
   status.dashFator = 1 + pontosDe("vit") * POR_PONTO.staminaVit;       // (R146: a VIT enche a stamina mais rápido)
   status.perfurante = ((j.perfurante || 0) + (b.perfurante || 0)) / 100; status.resfriamento = Math.min(0.5, ((j.resfriamento || 0) + (b.resfriamento || 0)) / 100);
   status.raca = Object.fromEntries(["morto_vivo", "animal", "orc", "demonio", "humano"].map(r => [r, ((j[r] || 0) + (b[r] || 0)) / 100]));
-  status.exp = (b.exp || 0) / 100; status.yang = (b.yang || 0) / 100; status.drop = (b.drop || 0) / 100;   // (colar e brincos)
+  status.exp = (b.exp || 0) / 100; status.yang = (b.yang || 0) / 100; status.drop = (b.drop || 0) / 100 + honraDe().drop / 100;   // (colar e brincos; R164: o título de honra)
   if (viking.mana === undefined || viking.mana > status.manaMax) viking.mana = status.manaMax;
   status.ataque = (1 + 0.04 * (a[pr] - ini[pr]) + (pr !== "for" ? 0.015 * (a.for - ini.for) : 0) + 0.025 * (n - 1)) * bonusArma(prog.arma ? prog.arma.ref : null, prog.arma && prog.arma.tier) * (1 + (b.ataque || 0) / 100) * (FATOR_CLASSE[classe] || 1);
   status.critico = 0.02 + a.dex * 0.006 + ((b.critico || 0) + (j.critico || 0)) / 100;
@@ -10088,14 +10204,18 @@ function ganharExp(qtd, de, semTeto) {          // (semTeto: a recompensa de mis
   pagarAtributos();
   salvarProgresso(); atualizarFicha();
 }
+// (R165) quem nasceu aprendiz (prog.vocacao): 0 até o nível 4, 4 ao chegar ao 5 e 1 por nível depois; os outros, a regra de sempre
+function pontosSkillDoNivel(n) { return prog && prog.vocacao ? (n < NIVEL_ALTAR ? 0 : n === NIVEL_ALTAR ? 4 : 1) : PONTOS_SKILL_NIVEL; }
 function subiuNivel(novos = 0) {
   recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
   ondas.push({ x: viking.x, y: viking.y, t: 0, raio: 2, cor: 45, fogo: true, pilares: [], rachas: [] });
   for (let k = 0; k < 40; k++) { const a = Math.random() * 7, v = 0.4 + Math.random() * 1.2; brasas.push({ x: viking.x + Math.cos(a) * 0.5, y: viking.y + Math.sin(a) * 0.4, z: Math.random() * 1.8, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 1.5 + Math.random() * 2.5, vida: 1, max: 1, tam: 0.06, cor: 46 + Math.random() * 10 }); }
   som("nivel", viking, 1.1);
   numeros.push({ wx: viking.x, wy: viking.y, y: -190, vida: 2, txt: "Nível " + prog.nivel + "!", critico: true });
-  prog.pontosSkill = (prog.pontosSkill || 0) + PONTOS_SKILL_NIVEL;
-  avisar(`Nível ${prog.nivel}! ${novos ? `+${novos} de atributo e ` : ""}+${PONTOS_SKILL_NIVEL} de skill: abra a ficha (P)`);
+  const ganhoSkill = pontosSkillDoNivel(prog.nivel);
+  prog.pontosSkill = (prog.pontosSkill || 0) + ganhoSkill;
+  if (classe === "aprendiz") avisar(`Nível ${prog.nivel}! ${novos ? `+${novos} de atributo` : ""}${novos && ganhoSkill ? " e " : ""}${ganhoSkill ? `+${ganhoSkill} de skill` : ""}${prog.nivel >= NIVEL_ALTAR ? ": vá ao Altar das Eras escolher a sua classe" : ": abra a ficha (P)"}`);
+  else avisar(`Nível ${prog.nivel}! ${novos ? `+${novos} de atributo e ` : ""}+${ganhoSkill} de skill: abra a ficha (P)`);
   chatSistema(`Você subiu para o nível ${prog.nivel}!`, "nivel", true);
   chatSistema(`Pontos de status disponíveis: ${prog.pontos}. Pontos de skill: ${prog.pontosSkill}.`, "nivel");
 }
@@ -10133,8 +10253,16 @@ function desenharFormaSkill(g, f) {
   g.restore();
 }
 function rotuloNivelSkill(n) { return n >= N_PERFEITO ? "P" : n >= N_GRAO ? "G" + (n - N_GRAO + 1) : n >= N_MESTRE ? "M" + (n - N_MESTRE + 1) : String(n); }
-// chance de cada leitura: livros do M1 ao M9 (70% caindo até 30%), pedras da alma do M10 ao G10 (40% caindo até 20%)
-function chanceLivro(n) { return n < N_GRAO ? Math.max(0.3, 0.7 - (n - N_MESTRE) * 0.045) : Math.max(0.2, 0.4 - (n - N_GRAO) * 0.022); }
+// quantos livros a skill precisa para sair deste nível de Mestre: 2 no M1, 3 no M2 ... 10 no M9
+const livrosParaSubir = n => n - N_MESTRE + 2;
+const livrosLidos = nome => (prog.livrosLidos && prog.livrosLidos[nome]) || 0;
+// o próximo nível: o M10 não fica, vira G1 na hora
+const proxNivelSkill = n => n + 1 === N_GRAO - 1 ? N_GRAO : n + 1;
+// chance de cada livro: 50% em todos os níveis de Mestre (o usuário, 02/11; o Metin2 usa 35% fixos)
+const CHANCE_LIVRO = 0.5;
+function chanceLivro() { return CHANCE_LIVRO; }
+// chance de cada Pedra da Alma: do G1 ao G10, 40% caindo até 20%
+function chancePedra(n) { return Math.max(0.2, 0.4 - (n - N_GRAO) * 0.022); }
 // EXP gasta em cada leitura: 5% do que o nível pede (no M) e 10% (no G)
 function custoLeitura(n) { return Math.round(EXP_NIVEL[Math.min(prog.nivel, NIVEL_MAX)] * (n < N_GRAO ? 0.05 : 0.1)); }
 // a skill é desta classe?
@@ -10165,20 +10293,43 @@ function lerLivro(nome, pedra = false) {
   const n = nivelSkill(nome);
   if (n >= SKILL_MAX) { avisar(`${nome} já está no máximo`); return; }
   if (!pedra && n < N_MESTRE) { avisar(`${nome}: o livro só ensina a partir de Mestre (M1). Use pontos de skill até lá`); return; }
-  if (!pedra && n >= N_GRAO - 1) { avisar(`${nome} já é M10: agora só a Pedra da Alma (Grão-Mestre)`); return; }
-  if (pedra && n < N_GRAO - 1) { avisar(`A Pedra da Alma só serve depois do M10`); return; }
+  if (!pedra && n >= N_GRAO) { avisar(`${nome} já é Grão-Mestre: agora só a Pedra da Alma`); return; }
+  if (pedra && n < N_GRAO) { avisar(`A Pedra da Alma só serve para quem já é Grão-Mestre`); return; }
   const espera = esperaLeitura(nome);
   if (espera > 0) { avisar(`${nome}: espere ${textoEspera(espera)} para ler de novo`); return; }
   const custo = custoLeitura(n);
   if (prog.exp < custo) { avisar(`Precisa de ${custo} de EXP para ler (tem ${prog.exp})`); return; }
   prog.exp -= custo; removerItem(item);
   prog.leitura = prog.leitura || {}; prog.leitura[nome] = Date.now() + LEITURA_ESPERA;
-  if (Math.random() < chanceLivro(n)) {
-    prog.skills[nome] = n + 1; som("arcano", viking, 0.6); som("missao", null, 0.9);   // (ainda não há missões: a fanfarra fica para a skill que subiu)
-    avisar(`${nome} subiu para ${rotuloNivelSkill(n + 1)}!`);
-    numeros.push({ wx: viking.x, wy: viking.y, y: -180, vida: 1.6, txt: nome + " " + rotuloNivelSkill(n + 1), critico: true });
-  } else { avisar(pedra ? `A Pedra da Alma se desfez sem ensinar nada (−${custo} EXP)` : `O livro de ${nome} não ensinou nada desta vez (−${custo} EXP)`); som("ui_negar"); }
+  let sobe = false;
+  if (!pedra) {                                                        // (a leitura pode falhar; a que falha gasta o livro e não conta)
+    if (Math.random() < chanceLivro(n)) {
+      const lidos = prog.livrosLidos || (prog.livrosLidos = {});
+      lidos[nome] = (lidos[nome] || 0) + 1;
+      sobe = lidos[nome] >= livrosParaSubir(n);
+      if (sobe) lidos[nome] = 0;
+      else { avisar(`${nome}: livro ${lidos[nome]} de ${livrosParaSubir(n)} para ${rotuloNivelSkill(proxNivelSkill(n))} (−${custo} EXP)`); som("arcano", viking, 0.4); }
+    } else { avisar(`O livro de ${nome} não ensinou nada desta vez (−${custo} EXP)`); som("ui_negar"); }
+  } else sobe = Math.random() < chancePedra(n);
+  if (sobe) {
+    const novo = proxNivelSkill(n);
+    prog.skills[nome] = novo; som("arcano", viking, 0.6); som("missao", null, 0.9);   // (ainda não há missões: a fanfarra fica para a skill que subiu)
+    avisar(novo === N_GRAO ? `${nome} chegou ao M10 e virou Grão-Mestre (G1)!` : `${nome} subiu para ${rotuloNivelSkill(novo)}!`);
+    numeros.push({ wx: viking.x, wy: viking.y, y: -180, vida: 1.6, txt: nome + " " + rotuloNivelSkill(novo), critico: true });
+  } else if (pedra) { avisar(`A Pedra da Alma se desfez sem ensinar nada (−${custo} EXP)`); som("ui_negar"); }
   salvarProgresso(); montarBarraSkills(); atualizarFicha(); desenharBolsa();
+}
+// o Conselho do Eremita (R159): tira a espera da próxima leitura de um livro, 1 item por vez. Sem nome (usado na bolsa): a skill
+// escolhida na ficha, ou a primeira com o livro em espera. Sem nenhum livro em espera, o item fica na bolsa
+function usarConselho(nome) {
+  if (!contarItem("conselho")) { avisar("Você não tem Conselho do Eremita"); return false; }
+  const espera = s => { const n = nivelSkill(s); return n >= N_MESTRE && n < N_GRAO && esperaLeitura(s) > 0; };
+  if (!nome || !espera(nome)) nome = espera(fichaSk) ? fichaSk : (SKILLS.find(sk => espera(sk.nome)) || {}).nome;
+  if (!nome) { avisar("Nenhum livro em espera: o Conselho do Eremita fica para depois"); return false; }
+  removerItem("conselho", 1); delete prog.leitura[nome];
+  avisar(`Conselho do Eremita: ${nome} já pode ler outro livro`); som("arcano", viking, 0.5);
+  salvarProgresso(); atualizarFicha(); desenharBolsa();
+  return true;
 }
 function usarPocao() {
   if (!prog || !contarItem("pocao") || viking.caido || viking.vida >= status.vidaMax) return;
@@ -11041,7 +11192,7 @@ window.chefesEstado = () => criaturas.filter(c => defChefe(c)).map(c => ({ tipo:
 // ---------------------------------------------------------------- itens no chão
 // O que cai (livros, poções, yang, Pedra Espiritual) fica no chão 90 s brilhando; chegando perto, o personagem pega.
 const drops = [];
-const NOME_ITEM = { pocaoMana: "Poção Azul", pocao: "Poção Vermelha", yang: "Yang", pedra: "Pedra Espiritual", bencao: "Pergaminho da Bênção", alma: "Pedra da Alma", encantar: "Objeto Encantado", mudar: "Mudar Bônus", correcao: "Pergaminho da Correção" };
+const NOME_ITEM = { conselho: "Conselho do Eremita", pocaoMana: "Poção Azul", pocao: "Poção Vermelha", yang: "Yang", pedra: "Pedra Espiritual", bencao: "Pergaminho da Bênção", alma: "Pedra da Alma", encantar: "Objeto Encantado", mudar: "Mudar Bônus", correcao: "Pergaminho da Correção" };
 // ---------------------------------------------------------------- minimapa
 // Redondo, no canto de cima à direita, visto de cima (norte para cima, como a tela): o chão da ilha (mar, praia, campo,
 // mata, trilhas, lago e praça) é pintado uma vez numa imagem; a cada 0,1 s o pedaço em volta do personagem vai para o
@@ -11062,7 +11213,7 @@ function pintarBase(x0, y0, x1, y1, cor) {
   return { c, x0, y1 };
 }
 function baseIlha(mp = MAPAS.vila1) {
-  const R = mp.raio + 8, v1 = mp === MAPAS.vila1, C = CAIXA_V1;      // (a Vila 1: a caixa da costa, com o vale, a montanha e as Terras do Sul; os outros mapas, a ilha deles)
+  const R = mp.raio + 8, v1 = mp === MAPAS.vila1, C = { x0: Math.min(CAIXA_V1.x0, -104), x1: CAIXA_V1.x1, y0: CAIXA_V1.y0, y1: Math.max(CAIXA_V1.y1, 102) };   // (R165: com a ilha do Altar das Eras)      // (a Vila 1: a caixa da costa, com o vale, a montanha e as Terras do Sul; os outros mapas, a ilha deles)
   const b = pintarBase(...(v1 ? [C.x0 - 8, C.y0 - 8, C.x1 + 8, C.y1 + 8] : [mp.ox - R, mp.oy - R, mp.ox + R, mp.oy + R]), (x, y) => {
     const bd = borda(x, y);
     if (bd > RAIO) return mp.semMar ? [149, 171, 181] : [38, 84, 110];   // (Montanha Gelada: o mar de nuvens)
@@ -11310,7 +11461,7 @@ let ferEscolha = "arma";                // "arma", "eq:<parte>" ou o item da bol
 function pecasDoFerreiro() {
   if (!prog) return [];
   const l = [];
-  if (prog.arma) l.push({ id: "arma", rotulo: `Arma +${prog.arma.ref}`, ref: prog.arma.ref, arma: true, tier: prog.arma.tier || 0, nome: r => nomeArma(r), icone: (g, r) => iconeArma(g, ARMAS[classe].desenho, 40, 120, r, prog.arma.tier), mudar: r => { prog.arma = r === null ? null : { ...prog.arma, ref: r, jo: semPartidas(prog.arma.jo) }; },
+  if (prog.arma && classe !== "aprendiz") l.push({ id: "arma", rotulo: `Arma +${prog.arma.ref}`, ref: prog.arma.ref, arma: true, tier: prog.arma.tier || 0, nome: r => nomeArma(r), icone: (g, r) => iconeArma(g, ARMAS[classe].desenho, 40, 120, r, prog.arma.tier), mudar: r => { prog.arma = r === null ? null : { ...prog.arma, ref: r, jo: semPartidas(prog.arma.jo) }; },
                           dica: () => prog.arma && { chave: chaveArma(classe, prog.arma.tier), ref: prog.arma.ref, bon: prog.arma.bon || [], jo: prog.arma.jo } });
   for (const slot of [...ORDEM_PECAS, ...ACESSORIOS]) { const e = prog.equip && prog.equip[slot], pc = pecaEquipada(slot); if (!e) continue;
     l.push({ id: "eq:" + slot, rotulo: `${PECAS[pc].nome} +${e.ref}`, ref: e.ref, slot: pc, tier: e.tier, nome: r => nomePeca(pc, e.tier, r), icone: g => iconePeca(g, pc, e.tier, 40, PECAS[pc].h * 40), mudar: r => { prog.equip[slot] = r === null ? null : { ...e, ref: r, jo: semPartidas(e.jo) }; },
@@ -11340,7 +11491,7 @@ function desenharFerreiro() {
   $("#ferArmas").innerHTML = l.map((p, k) => `<button data-fer="${k}" aria-pressed="${p.id === ferEscolha}">${p.rotulo}</button>`).join("");
   $("#ferArmas").hidden = l.length < 2;
   const a = pecaEscolhida(), cv2 = $("#ferIcone"), g = cv2.getContext("2d");
-  $("#ferComprar").hidden = !!prog.arma; $("#ferComprar").textContent = `Comprar ${ARMAS[classe].nome} +0 (${ARMA_NOVA} Yang)`;
+  $("#ferComprar").hidden = !!prog.arma || classe === "aprendiz"; $("#ferComprar").textContent = `Comprar ${ARMAS[classe].nome} +0 (${ARMA_NOVA} Yang)`;
   $("#ferComprar").disabled = prog.yang < ARMA_NOVA;
   g.clearRect(0, 0, 40, 120);
   if (!a) {
@@ -11638,6 +11789,10 @@ const NPCS = [
   // o Mukseon, o Imortal da Tinta (o Biólogo do Metin2; Logs/Quests/BIOLOGO.md): o pintor-eremita que estuda o que a tinta
   // das Ghotin faz com os bichos. Mora no salão do Templo do Céu, ao lado do Sumo-Sacerdote (o Templo guarda os
   // pedaços da pérola e quer entender a tinta); a outra casa dele é nos Terraços da Vila Hahoe (npcsHahoe)
+  // (R165) a Guardiã do Altar, no alto da escadaria, com o modelo da xamã em outra pintura (0 crédito): montarAltar
+  { nome: NOME_GUARDIA, dx: altarMundo(...ALTAR.npc)[0] - VILA.x, dy: altarMundo(...ALTAR.npc)[1] - VILA.y, altar: true,
+    cores: { roupa: "#3E7A5C", calca: "#2D4A6B", pele: "#e8c4a0", cabelo: "#1E1B18", lenco: "#EFE4CC" },
+    falas: ["As estátuas guardam as eras de onde os heróis vieram. Quem sobe até aqui escolhe a sua."] },
   { nome: "Mukseon", titulo: "Mukseon, o Imortal da Tinta", dx: -1.3, dy: 22.0, soCidade: true, cajado: true, bio: true,
     cores: { roupa: "#1e1b18", calca: "#2d4a6b", pele: "#e8c4a0", cabelo: "#e8e4dc", barba: "#e8e4dc" },
     falas: ["(a fala da pesquisa: bioNaConversa põe no lugar desta)", "A tinta não mata os bichos: ela os reescreve. Eu só leio o que ela escreveu.",
@@ -11679,6 +11834,7 @@ function abrirNpc(o) {
 }
 function desenharNpc() {
   const o = npcAberto; if (!o) return;
+  if (o.estatua) return desenharFichaEstatua(o);                         // (R166: a ficha de uma estátua do altar)
   const n = o.dados;
   $("#npcNome").textContent = n.titulo || n.nome;
   $("#npcFala").textContent = `"${n.falas[o.fala % n.falas.length]}"`;
@@ -11707,7 +11863,8 @@ function desenharNpc() {
     }
   }
   $("#npcMais").hidden = n.falas.length < 2;
-  missaoNaConversa(o);                              // (a missão: a fala dela e o quadro com o objetivo e o botão)
+  if (n.altar) altarNaConversa(o);                  // (R165: a Guardiã do Altar: a escolha da classe)
+  else missaoNaConversa(o);                         // (a missão: a fala dela e o quadro com o objetivo e o botão)
   if (n.bio) bioNaConversa(o);                      // (o Mukseon: a pesquisa da tinta)
   cavaloNaConversa(o);                              // (o Cavalariço: o exame do cavalo nos níveis 10 e 20)
 }
@@ -12102,6 +12259,13 @@ const MISSOES = {
         fala: "Sinto o calor delas daqui! Ponha as brasas no braseiro, diante do estrado, e vamos ver se o céu ainda nos ouve.",
         premio: { exp: 9000, yang: 2500, itens: [["bencao", 1], ["peca:elmo:1", 1]] } },
     ],
+  },
+  // (R165) o Altar das Eras: a carta do nível 5, só para o aprendiz. A estrela do Mapa do Mundo vai à Guardiã; a conversa dela (altarNaConversa) cumpre a quest
+  altar: {
+    nome: "O Altar das Eras", npc: NOME_GUARDIA, aceitar: "Aceitar a missão", nivelMin: NIVEL_ALTAR, get carta() { return classe === "aprendiz"; }, soAprendiz: true, tipo: "Missão do nível 5", onde: "no alto da escadaria, na ilha a oeste da Vila 1",
+    oferta: "Aprendiz, a pintura já conhece o seu traço. Atravesse a ponte de pedra a oeste do vale, suba a escadaria do Altar das Eras e fale comigo: as estátuas guardam as eras de onde os heróis vieram. Lá você escolhe a sua classe e recebe as skills.",
+    fim: "As eras reconheceram você.",
+    etapas: [{ falar: NOME_GUARDIA, alvo: "Suba ao Altar das Eras, na ilha a oeste da Vila 1, e fale com a Guardiã", fala: "A pedra reconhece você.", premio: { itens: [["pocao", 5], ["pocaoMana", 5]] } }],
   },
   // o cavalo de montaria (o Cavalariço do Metin2, nível 25; aqui o Cavalariço Doyun, no estábulo da saída sul da Vila 1, nível 15: Logs/Pesquisa/METIN2_CAVALO.md)
   cavalo: {
@@ -12716,7 +12880,7 @@ const MISSOES = {
 const CAVALO_LIBERADO = true || ADMIN || new URLSearchParams(location.search).has("cavalo");
 if (!CAVALO_LIBERADO) delete MISSOES.cavalo;
 function estadoMissao(id) { const m = prog.missoes || (prog.missoes = {}); return m[id] || (m[id] = { etapa: -1, n: 0 }); }
-const nivelMissaoOk = M => !M.nivelMin || (prog && prog.nivel >= M.nivelMin);
+const nivelMissaoOk = M => (!M.nivelMin || (prog && prog.nivel >= M.nivelMin)) && !(M.soAprendiz && classe !== "aprendiz") && !(classe === "aprendiz" && M.nivelMin > NIVEL_ALTAR);   // (R165: as cartas acima do 5 esperam a escolha)
 const matarConta = (e, nome) => [].concat(e.matar).includes(nome);
 function etapaAtual(id) { const s = estadoMissao(id), M = MISSOES[id]; return s.etapa >= 0 && s.etapa < M.etapas.length ? M.etapas[s.etapa] : null; }
 // (as missões só existem na cidade: o Sumo-Sacerdote mora no templo dela)
@@ -12761,10 +12925,76 @@ function cumprirEtapa(id) {
   avisarLongo(`${M.nome}: ${prox ? "etapa cumprida" : "missão concluída"}!${ganhos.length ? " " + ganhos.join(", ") + "." : ""}${prox ? ` Agora: ${prox.alvo}` : ""}`);
   atualizarMissao(); if (npcAberto) desenharNpc();
 }
+// ---- a honra (R164; o sistema de honra do Metin2, só a parte positiva, porque ainda não há PvP): cada criatura derrotada dá 1 ponto, se ela não
+// estiver mais de 10 níveis abaixo do herói. Os títulos aparecem em cima do nome e somam na chance de drop dobrado. prog.honra
+const HONRA_MAX = 20000, HONRA_TITULOS = [[12000, "Admirável", 5, "#ffd98a"], [8000, "Nobre", 4, "#f2c14e"], [4000, "Íntegro", 2, "#a8e6c0"], [1000, "Valioso", 1, "#bfe3ff"]];
+function honraDe(p = prog) {
+  const pontos = (p && p.honra) || 0, t = HONRA_TITULOS.find(x => pontos >= x[0]);
+  return { pontos, titulo: t ? t[1] : "", drop: t ? t[2] : 0, cor: t ? t[3] : "#ffffff" };
+}
+function honraMorte(l) {
+  if (!prog || !l.cfg || l.cfg.boneco || (l.cfg.nivel || 1) < prog.nivel - 10) return;
+  const antes = honraDe().titulo;
+  prog.honra = Math.min(HONRA_MAX, (prog.honra || 0) + 1);
+  const h = honraDe();
+  if (h.titulo !== antes) {
+    recalcularStatus(); salvarProgresso(); som("missao", null, 0.8);
+    avisarLongo(`Novo título de honra: ${h.titulo}! +${h.drop}% de chance de drop dobrado.`);
+    chatSistema(`Você agora é ${h.titulo} (${h.pontos.toLocaleString("pt-BR")} pontos de honra).`, "nivel");
+    numeros.push({ wx: viking.x, wy: viking.y, y: -190, vida: 2.4, txt: h.titulo + "!", critico: true });
+  }
+}
+// ---- a cadeia de caça (R162; as Hunting Quests do Metin2): uma por nível, do 2 ao 69, cada uma com 2 criaturas. Chega sozinha, sem NPC
+// e sem aceitar, quando o nível alcança e a anterior foi feita (quem está no 10 e só fez a do 2 recebe a do 3), corre junto das outras
+// quests e paga na hora: 15% da EXP do nível da caçada, Yang e um item. prog.cacada = { n, a, b, avisada }
+const CACADA_FAIXAS = [[2, 3, "Cão Selvagem", "Lobo"], [4, 5, "Lobo", "Javali"], [6, 7, "Javali", "Lobo Azul"], [8, 9, "Lobo Azul", "Javali Selvagem"], [10, 11, "Javali Selvagem", "Javali Rubro"],
+  [12, 13, "Javali Rubro", "Urso"], [14, 15, "Urso", "Soldado do Juramento Branco"], [16, 17, "Soldado do Juramento Branco", "Arqueira do Juramento Branco"], [18, 20, "Urso Negro", "Tigre"], [21, 22, "Tigre", "Bandido"],
+  [23, 32, "Bandido", "Bandido Arqueiro"], [33, 36, "Zumbi", "Bandido Arqueiro"], [37, 41, "Zumbi", "Fantasma"], [42, 43, "Fantasma", "Golem de Pedra"], [44, 45, "Golem de Pedra", "Escorpião Gigante"],
+  [46, 48, "Escorpião Gigante", "Yeti"], [49, 50, "Orc", "Orc Bravo"], [51, 60, "Orc Bravo", "Orc Feiticeiro"], [61, 69, "Orc Feiticeiro", "Orc Gigante"]];
+const CACADA_FIM = 69;
+function cacadaDo(n) {
+  const f = CACADA_FAIXAS.find(x => n >= x[0] && n <= x[1]); if (!f) return null;
+  const k = n - f[0], qa = n === 2 ? 10 : k ? Math.min(40, 15 + 5 * k) : 15, qb = k ? Math.min(20, 5 + 5 * k) : 5;
+  const item = n % 10 === 0 ? ["bencao", 1] : n % 5 === 0 ? ["encantar", 1] : ["pocao", 5];
+  return { n, a: f[2], b: f[3], qa, qb, premio: { exp: Math.round(EXP_NIVEL[n] * 0.15), yang: Math.round(100 * yangNivel(n)), itens: [item] } };
+}
+function cacadaEstado() { return prog.cacada || (prog.cacada = { n: 2, a: 0, b: 0 }); }
+// a caçada de agora (null: terminou a cadeia, ou o nível ainda não chegou)
+function cacadaAtiva() { if (!prog || !missoesAtivas()) return null; const s = cacadaEstado(); return s.n <= CACADA_FIM && prog.nivel >= s.n && !(classe === "aprendiz" && s.n > NIVEL_ALTAR) ? cacadaDo(s.n) : null; }
+const cacadaAlvo = q => { const s = cacadaEstado(); return `${q.a} ${s.a}/${q.qa}, ${q.b} ${s.b}/${q.qb}`; };
+function textoCacada() { const q = cacadaAtiva(); return q ? `◆ Caçada do nível ${q.n}: ${cacadaAlvo(q)}` : ""; }
+function cacadaMorte(l) {
+  const q = cacadaAtiva(); if (!q) return;
+  const s = cacadaEstado(), nome = l.cfg.nome;
+  if (nome === q.a && s.a < q.qa) s.a++; else if (nome === q.b && s.b < q.qb) s.b++; else return;
+  if (s.a < q.qa || s.b < q.qb) { avisar(`Caçada do nível ${q.n}: ${cacadaAlvo(q)}`); salvarProgresso(); atualizarMissao(); return; }
+  s.n++; s.a = 0; s.b = 0;
+  const ganhos = pagarMissao(q.premio);
+  som("missao", null, 0.8);
+  numeros.push({ wx: viking.x, wy: viking.y, y: -170, vida: 2.2, txt: "Caçada concluída!", critico: true });
+  avisarLongo(`Caçada do nível ${q.n} concluída! ${ganhos.join(", ")}.`);
+  salvarProgresso(); cacadaAvisar(); atualizarMissao();
+}
+// avisa uma vez cada caçada nova: logo depois da anterior, ou quando o nível chega
+function cacadaAvisar() {
+  const q = cacadaAtiva(); if (!q) return;
+  const s = cacadaEstado(); if (s.avisada === q.n) return; s.avisada = q.n;
+  const txt = `Nova caçada do nível ${q.n}: derrote ${q.qa} ${q.a} e ${q.qb} ${q.b}. O prêmio sai na hora, sem falar com ninguém.`;
+  chatSistema(txt, "missao"); salvarProgresso();
+}
+// a criatura viva mais perto entre as que ainda faltam (para a estrela do mapa e do minimapa)
+function ondeCacada() {
+  const q = cacadaAtiva(); if (!q) return null;
+  const s = cacadaEstado(); let m = null, dm = 1e9;
+  for (const c of criaturas) { if (c.morto || !((c.cfg.nome === q.a && s.a < q.qa) || (c.cfg.nome === q.b && s.b < q.qb))) continue; const d = Math.hypot(c.x - viking.x, c.y - viking.y); if (d < dm) { dm = d; m = c; } }
+  return m ? [m.x, m.y] : null;
+}
 // uma criatura caiu: conta para a etapa "derrote N ..." (pelo nome dela: "Lobo" não conta o Lobo Alfa)
 function missaoMorte(l) {
   if (viking.montado && cavaloDe().nivel >= 11) ganharExpCavalo(3);   // (o cavalo blindado cresce lutando montado)
+  honraMorte(l);
   if (!missoesAtivas()) return;
+  cacadaMorte(l);
   for (const id in MISSOES) {
     const e = etapaAtual(id); if (!e || !e.matar || !matarConta(e, l.cfg.nome)) continue;
     const s = estadoMissao(id); s.n = Math.min(e.qtd, s.n + 1);
@@ -12816,16 +13046,18 @@ function marcaMissao(nome) {
 // o texto do objetivo de agora (embaixo do minimapa); sem missão, a pesquisa do Mukseon
 function textoMissao() {
   if (!missoesAtivas()) return "";
+  if (prog.missaoVista === "cacada" && cacadaAtiva()) return textoCacada();
   for (const id of ordemMissoes()) {
     const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
     if (e) return s.pronta ? `◆ ${M.nome}: concluída! Abra o pergaminho para receber o prêmio` : `◆ ${M.nome}: ${e.alvo}${e.matar && e.qtd > 1 ? ` (${s.n}/${e.qtd})` : ""}`;
     if (s.etapa < 0 && !M.carta && nivelMissaoOk(M)) return `◆ ${M.nome}: fale com ${M.npc}, ${M.onde || "no Templo do Céu (fim da avenida)"}`;
   }
-  return textoBio();
+  return textoCacada() || textoBio();
 }
 function atualizarMissao() {
   if (!document.getElementById("cartas")) desenharCartas();
   passoCartas();
+  if (missoesAtivas() && !SEL.aberta) cacadaAvisar();
   // (a etapa "chegue a tal mapa": cumpre-se ao pisar nele)
   if (missoesAtivas()) for (const id in MISSOES) { const e = etapaAtual(id); if (e && e.chegar && !estadoMissao(id).pronta && idMapa(viking.x, viking.y) === e.chegar) terminarEtapa(id); }
   desenharMenuQuests();
@@ -12851,8 +13083,9 @@ function ondeDaMissao(id) {
 }
 function ondeMissao() {
   if (!missoesAtivas()) return null;
+  if (prog.missaoVista === "cacada") { const q = ondeCacada(); if (q) return q; }
   for (const id of ordemMissoes()) { const q = ondeDaMissao(id); if (q) return q; }
-  return null;
+  return ondeCacada();
 }
 // ---- as marcas do Mapa do Mundo (R154): as quests ativas e o ponto que o jogador marca, com a seta no jogo até ele
 // para ir de onde o herói está até (x, y): o próprio ponto, se está neste mapa; senão, o portal deste mapa no caminho de lá,
@@ -12891,6 +13124,8 @@ function questsNoMapa() {
     const s = estadoMissao(id);
     r.push({ id, nome: MISSOES[id].nome, alvo: e.alvo + (e.matar && e.qtd > 1 ? ` (${s.n}/${e.qtd})` : ""), x: p[0], y: p[1], vista: prog.missaoVista === id, fora: p[0] !== q[0] || p[1] !== q[1] });
   }
+  const qc = cacadaAtiva(), oc = qc && ondeCacada(), pc = oc && pontoNoCaminho(oc[0], oc[1]);
+  if (pc) r.push({ id: "cacada", nome: `Caçada do nível ${qc.n}`, alvo: cacadaAlvo(qc), x: pc[0], y: pc[1], vista: prog.missaoVista === "cacada", fora: pc[0] !== oc[0] || pc[1] !== oc[1] });
   return r;
 }
 // o alfinete do ponto marcado, com a ponta em (X, Y)
@@ -12973,9 +13208,10 @@ function missaoNoMinimapa(g, ponto, W0) {
   g.closePath(); g.fill(); g.stroke(); g.restore();
 }
 // um quadro na janela da conversa (o losango, o nome, a linha de baixo e os botões [texto, ação, desligado])
-function quadroConversa(titulo, sub, botoes = [], cor = "#ffd23c") {
-  const quadro = document.createElement("div"); quadro.className = "item-loja";
+function quadroConversa(titulo, sub, botoes = [], cor = "#ffd23c", retrato = null) {
+  const quadro = document.createElement("div"); quadro.className = "item-loja" + (retrato ? " com-retrato" : "");
   const sp = document.createElement("span"); sp.textContent = "◆"; sp.style.cssText = `color:${cor};font-size:20px;text-align:center`;
+  if (retrato) { sp.textContent = ""; sp.style.cssText = ""; const im = document.createElement("img"); im.src = retrato; im.alt = titulo; im.draggable = false; sp.appendChild(im); }   // (o desenho do personagem, para escolher vendo)
   const tx = document.createElement("span"); tx.innerHTML = `<b></b><small></small>`;
   tx.firstChild.textContent = titulo; tx.lastChild.textContent = sub;
   quadro.append(sp, tx);
@@ -13027,7 +13263,7 @@ function cartasPendentes() {
   return l;
 }
 function passoCartas() {
-  if (!prog || !missoesAtivas()) return;
+  if (!prog || !missoesAtivas() || SEL.aberta) return;
   const novas = [];
   for (const id in MISSOES) {
     const M = MISSOES[id]; if (!M.carta || !nivelMissaoOk(M)) continue;
@@ -13088,12 +13324,12 @@ function desenharCartas() {
       #cartas button.nova { animation: cartaPisca 0.45s ease-in-out 7 alternate; }
       #cartas button.fim { outline: 2px solid #f3cf5a; outline-offset: -2px; background: rgba(243, 207, 90, 0.22); }
       @keyframes cartaPisca { from { box-shadow: 0 0 0 rgba(243, 207, 90, 0); } to { box-shadow: 0 0 14px rgba(243, 207, 90, 0.95); background: rgba(243, 207, 90, 0.3); } }
-      #cartaJan .carta-texto { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--texto); }
-      #cartaJan .carta-obj, #cartaJan .carta-premio { margin: 0; font-size: 13px; font-weight: 600; color: #8e2721; }
+      #cartaJan .carta-texto { margin: 0; font-size: 15.5px; line-height: 1.45; font-weight: 500; color: #1E1B18; }
+      #cartaJan .carta-obj, #cartaJan .carta-premio { margin: 0; font-size: 15px; font-weight: 700; color: #8e2721; }
       #cartaJan .carta-premio { font-weight: 400; color: #3a2a1c; padding: 4px 7px; background: rgba(184, 146, 60, 0.2); border: 1px solid rgba(30, 20, 10, 0.5); border-radius: 2px; }
       #cartaJan .carta-aviso { margin: 0; padding: 4px 7px; font-size: 12.5px; line-height: 1.35; font-weight: 600; color: #8e2721; border-left: 3px solid #8e2721; }
       #fDerivados .fx-cx.pesquisa { grid-column: 2 / -1; text-align: left; padding: 2px 6px; white-space: normal; height: auto; font-size: 11px; line-height: 15px; }
-      #cartaJan .selo { font-size: 12px; color: var(--apagado); font-style: italic; }
+      #cartaJan .selo { font-size: 13.5px; color: #3f3528; font-style: italic; }
       #fQuests .fx-quest.vista { outline: 1px solid #f3cf5a; outline-offset: 1px; }
       /* a carta com a arte (R130): --l é a largura; a imagem é o ::before, e o conteúdo fica dentro do papel */
       #cartaJan .carta-corpo { display: grid; gap: 10px; min-height: 0; align-content: start; }
@@ -13105,7 +13341,7 @@ function desenharCartas() {
       #cartaJan.com-arte > header { position: static; margin: 0; padding: 0; min-height: 24px; background: none; border: 0; box-shadow: none; }
       #cartaJan.com-arte > header::before { display: none; }
       #cartaJan.com-arte > header h2 { font-size: 22px; }
-      #cartaJan.com-arte .selo { margin: 0; color: #54483a; }
+      #cartaJan.com-arte .selo { margin: 0; color: #3f3528; }
       #cartaJan.com-arte .carta-corpo { overflow-y: auto; scrollbar-width: thin; }
       #cartaJan.com-arte .carta-texto { font-size: 14.5px; line-height: 1.45; }
       #cartaJan.com-arte .botoes { margin: max(2px, calc(var(--l) * 0.0875 - 30px)) calc(var(--l) * 0.1004 + 4px) 0 0; }
@@ -13216,6 +13452,8 @@ function linhasQuests() {
       objetivo: fim === "receber" ? "Objetivo cumprido: abra o pergaminho para receber o prêmio" : e.alvo + (fim ? " para receber o prêmio" : ""),
       premio: M.carta ? premioFinal(M) : e.premio || premioFinal(M), rotulo: M.carta || final ? "Prêmio" : "Prêmio desta etapa", fim });
   }
+  const qc = cacadaAtiva();
+  if (qc) { const sc = cacadaEstado(); l.push({ id: "cacada", nome: `Caçada do nível ${qc.n}`, estado: `${sc.a + sc.b}/${qc.qa + qc.qb}`, objetivo: `Derrote ${cacadaAlvo(qc)}. O prêmio sai na hora, sem falar com ninguém.`, premio: qc.premio, rotulo: "Prêmio" }); }
   const txt = textoBio();
   if (txt) { const B = BIO[bioDe().m]; l.push({ id: "bio", nome: B.titulo, estado: "Pesquisa", objetivo: txt.replace(/^◆ [^:]*: /, ""), texto: `Prêmio permanente: ${textoBonus(Object.entries(B.premio)).join(", ")}` }); }
   return l;
@@ -13246,7 +13484,7 @@ function montarMenuQuests() {
   const j = $("#questsJan");
   for (const ev of ["pointerdown", "mousedown"]) j.addEventListener(ev, e => e.stopPropagation());
   $("#questsFechar").onclick = () => abrirQuests(false);
-  $("#questsLista").onclick = e => { const q = e.target.closest("[data-q]"); if (!q || q.dataset.q === "bio" || !prog || !etapaAtual(q.dataset.q)) return; prog.missaoVista = q.dataset.q; salvarProgresso(); atualizarMissao(); atualizarFicha(); desenharMenuQuests(true); };
+  $("#questsLista").onclick = e => { const q = e.target.closest("[data-q]"); if (!q || q.dataset.q === "bio" || !prog || (q.dataset.q !== "cacada" && !etapaAtual(q.dataset.q))) return; prog.missaoVista = q.dataset.q; salvarProgresso(); atualizarMissao(); atualizarFicha(); desenharMenuQuests(true); };
 }
 
 // ---------------------------------------------------------------- o Mukseon, o Imortal da Tinta (o Biólogo do Metin2)
@@ -13515,7 +13753,7 @@ function tipoItem(chave) {
     return { nome: m[0] + (P.classes ? ` (${P.classes.map(c => NOME_CLASSE[c]).join("/")})` : ""), desc: "", h: P.h, peca: PECAS[slot] ? slot : "elmo", tier: +t, usar: it => equiparPeca(it) }; }
   if (chave.startsWith("arma:")) { const { classe: c, tier } = armaDaChave(chave), a = ARMAS[c]; return { nome: ARMAS_TIER[c][tier], desc: `Arma só para ${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[tier]} (ataque ×${ATAQUE_TIER[tier]}). Clique direito para equipar; o Ferreiro da praça melhora até +9.`, h: a.desenho === "adagas" ? 1 : 2, arma: true, tier, desenho: a.desenho, usar: it => equiparArma(it) }; }
   if (chave.startsWith("livro:")) { const n = chave.slice(6), c = classeDaSkill(n);
-    return { nome: "Livro: " + n, desc: `Skill ${c ? "do " + NOME_CLASSE[c] : ""}. Do M1 ao M10: cada leitura pode falhar, custa um pouco de EXP e a mesma skill só lê de novo depois de 12 h.`, h: 1, usar: () => lerLivro(n), desenho: "livro" }; }
+    return { nome: "Livro: " + n, desc: `Skill ${c ? "do " + NOME_CLASSE[c] : ""}. Do M1 ao M2 são 2 livros, do M2 ao M3 são 3, até 10 do M9 ao M10, e o M10 vira Grão-Mestre. Cada leitura pode falhar, e aí não conta; custa um pouco de EXP e a mesma skill só lê de novo depois de 12 h (ou na hora, com um Conselho do Eremita).`, h: 1, usar: () => lerLivro(n), desenho: "livro" }; }
   if (BIO_ITENS && BIO_ITENS[chave]) return BIO_ITENS[chave];          // (os da pesquisa do Mukseon)
   if (chave.startsWith("joia:")) { const [, tipo, g] = chave.split(":"), grau = Math.max(0, Math.min(JOIA_GRAU_MAX, +g || 0)), J = JOIAS[tipo] || JOIAS.critico;
     return { nome: nomeJoia(tipo, grau), h: 1, desenho: `joia:${tipo}:${grau}`, joia: { tipo: JOIAS[tipo] ? tipo : "critico", grau },
@@ -13532,6 +13770,7 @@ function tipoItem(chave) {
                      usar: it => abrirBauIniciante(it), desenho: "bau_iniciante", conteudo: () => kitIniciante().map(k => (k.qtd > 1 ? `${k.qtd} × ` : "") + nomeItem(k)) },
     retrato_cavalo: { nome: "Retrato do Cavalo", desc: "Chama o seu cavalo (ou manda embora). Ctrl+G monta e desmonta. Do nível 11 do cavalo ele ataca montado; no 11 e no 21 ganha armadura.", h: 1,
                       usar: () => chamarCavalo(), desenho: "retrato_cavalo" },
+    conselho: { nome: "Conselho do Eremita", desc: "Tira a espera de 12 h para ler o próximo livro de uma skill, 1 por vez. Clique direito (ou dois cliques), ou use na ficha (P).", h: 1, usar: () => usarConselho(), desenho: "conselho" },
     correcao: { nome: "Pergaminho da Correção", desc: "Arraste sobre uma arma ou roupa na bolsa: tira a última Jóia encaixada e a devolve para a bolsa.", h: 1, desenho: "correcao" },
   }[chave] || { nome: chave, desc: "", h: 1, desenho: "pedra" };
 }
@@ -13666,6 +13905,12 @@ function iconeItem(g, desenho, w = 40, h = 40) {
     g.fillStyle = gr; g.beginPath(); g.moveTo(X, Y - 13 * u); g.lineTo(X + 9 * u, Y - 2 * u); g.lineTo(X + 5 * u, Y + 11 * u); g.lineTo(X - 5 * u, Y + 11 * u); g.lineTo(X - 9 * u, Y - 2 * u); g.closePath(); g.fill(); g.stroke();
     return;
   }
+  if (desenho === "conselho") {                                        // o bilhete do eremita: o papel enrolado, as linhas de nanquim e o selo jade
+    g.fillStyle = "#e6dcc0"; g.fillRect(X - 8 * u, Y - 13 * u, 16 * u, 25 * u); g.strokeRect(X - 8 * u, Y - 13 * u, 16 * u, 25 * u);
+    g.fillStyle = "#1E1B18"; for (const xx of [-4, 0, 4]) g.fillRect(X + xx * u - 0.75 * u, Y - 10 * u, 1.5 * u, (xx === 4 ? 9 : 14) * u);
+    g.fillStyle = "#3f8a5e"; g.beginPath(); g.arc(X + 3 * u, Y + 6 * u, 3.6 * u, 0, 7); g.fill(); g.stroke();
+    return;
+  }
   if (desenho === "bencao") {
     g.fillStyle = "#efe0b8"; g.fillRect(X - 9 * u, Y - 12 * u, 18 * u, 22 * u); g.strokeRect(X - 9 * u, Y - 12 * u, 18 * u, 22 * u);
     g.fillStyle = "#c9a96a"; for (const yy of [-14, 10]) { g.beginPath(); g.ellipse(X, Y + yy * u, 11 * u, 3 * u, 0, 0, 7); g.fill(); g.stroke(); }
@@ -13729,13 +13974,14 @@ function todasAsSkills() { return [...SKILLS_VIKING, ...SKILLS_ARQUEIRO, ...SKIL
 function classeDaSkill(nome) { for (const [c, l] of [["viking", SKILLS_VIKING], ["arqueiro", SKILLS_ARQUEIRO], ["feiticeiro", SKILLS_FEITICEIRO], ["ninja", SKILLS_NINJA], ["xama", SKILLS_XAMA], ["shura", SKILLS_SHURA]]) if (l.some(s => s.nome === nome)) return c; return null; }
 function livroQualquer() { const l = todasAsSkills(); return { tipo: "livro", nome: l[Math.floor(Math.random() * l.length)] }; }
 // as armas (uma por classe), desenhadas em pé num espaço de 1 × 3
-const ARMAS = { viking: { nome: "Espada Viking", desenho: "espada" }, arqueiro: { nome: "Arco Longo", desenho: "arco" }, feiticeiro: { nome: "Cajado Arcano", desenho: "cajado" }, ninja: { nome: "Adagas Gêmeas", desenho: "adagas" }, guerreiro: { nome: "Machado de Guerra", desenho: "machado" }, xama: { nome: "Leque do Dragão", desenho: "leque" }, shura: { nome: "Espada Sombria", desenho: "espada" } };
+const ARMAS = { aprendiz: { nome: "Espada de Treino", desenho: "treino" }, viking: { nome: "Espada Viking", desenho: "espada" }, arqueiro: { nome: "Arco Longo", desenho: "arco" }, feiticeiro: { nome: "Cajado Arcano", desenho: "cajado" }, ninja: { nome: "Adagas Gêmeas", desenho: "adagas" }, guerreiro: { nome: "Machado de Guerra", desenho: "machado" }, xama: { nome: "Leque do Dragão", desenho: "leque" }, shura: { nome: "Espada Sombria", desenho: "espada" } };
 // os modelos de cada arma, como os das peças (Logs/Balanceamento/NIVEL70.md): o 0 é a de sempre (nível 1) e os outros
 // abrem no 22, 30, 38, 46, 54 e 62 (a Vila Hahoe e a Ilha de Daiyu). O modelo multiplica o ataque (ATAQUE_TIER) e o
 // refino (+0 a +9) soma por cima. Na bolsa: "arma:<classe>" (o modelo 0) ou "arma:<classe>:<modelo>". Os ícones dos
 // modelos novos ainda são o da arma de sempre (a arte está na lista do NIVEL70.md)
 const NIVEIS_ARMA = [1, 22, 30, 38, 46, 54, 62], ATAQUE_TIER = [1, 1.2, 1.4, 1.65, 1.9, 2.2, 2.5];
 const ARMAS_TIER = {
+  aprendiz: Array(7).fill("Espada de Treino"),
   viking: ["Espada Viking", "Espada de Aço Nórdico", "Espada Rúnica", "Lâmina do Jarl", "Espada do Trovão", "Espada Dente de Dragão", "Espada de Valhalla"],
   guerreiro: ["Machado de Guerra", "Machado de Aço Nórdico", "Machado Rúnico", "Machado do Berserker", "Machado do Trovão", "Machado Dente de Dragão", "Machado de Ragnarök"],
   arqueiro: ["Arco Longo", "Arco Composto", "Arco de Chifre", "Arco da Lua Crescente", "Arco do Vento Negro", "Arco da Fênix", "Arco do Dragão Celeste"],
@@ -13748,8 +13994,17 @@ function armaDaChave(chave) { const [, c, t] = chave.split(":"); return { classe
 function chaveArma(c, tier) { return tier ? `arma:${c}:${tier}` : "arma:" + c; }
 function tierArmaDoNivel(nivel) { let t = 0; NIVEIS_ARMA.forEach((n, k) => { if (nivel >= n) t = k; }); return t; }
 // a arma que cai (chefes, Metins): o melhor modelo que o nível de quem a soltou alcança, da classe de quem joga
-function armaDoNivel(nivel, bon) { return { tipo: "arma", chave: chaveArma(classe, tierArmaDoNivel(nivel)), ref: 0, bon }; }
+function armaDoNivel(nivel, bon) { if (classe === "aprendiz") return pecaDoNivel(nivel);   // (R165: criatura não solta arma de classe para o aprendiz)
+  return { tipo: "arma", chave: chaveArma(classe, tierArmaDoNivel(nivel)), ref: 0, bon }; }
 function iconeArma(g, desenho, w, h, ref, tier) {
+  if (desenho === "treino") {                                            // (R165: a espada de treino, de madeira)
+    const X = w / 2, u = w / 40, y0 = 5 * u, y1 = h - 5 * u; g.save(); g.lineJoin = "round"; g.lineWidth = 1.6; g.strokeStyle = "#1E1B18";
+    g.fillStyle = "#c49a5e"; g.beginPath(); g.moveTo(X, y0); g.lineTo(X + 4.5 * u, y0 + 7 * u); g.lineTo(X + 4 * u, y1 - 26 * u); g.lineTo(X - 4 * u, y1 - 26 * u); g.lineTo(X - 4.5 * u, y0 + 7 * u); g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = "#7a5530"; g.beginPath(); g.moveTo(X, y0 + 7 * u); g.lineTo(X, y1 - 28 * u); g.stroke(); g.strokeStyle = "#1E1B18";
+    g.fillStyle = "#7a5530"; g.fillRect(X - 10 * u, y1 - 26 * u, 20 * u, 5 * u); g.strokeRect(X - 10 * u, y1 - 26 * u, 20 * u, 5 * u);
+    g.fillStyle = "#c9bda4"; g.fillRect(X - 3 * u, y1 - 21 * u, 6 * u, 15 * u); g.strokeRect(X - 3 * u, y1 - 21 * u, 6 * u, 15 * u);
+    g.fillStyle = "#7a5530"; g.beginPath(); g.arc(X, y1 - 3.5 * u, 3.5 * u, 0, 7); g.fill(); g.stroke(); g.restore(); return;
+  }
   const X = w / 2, u = w / 40, top = 6 * u, bot = h - 6 * u, b = BRILHO_REF[ref];
   if (tier && pintarItem(g, `${desenho}:${tier}`, w, h, b)) return;   // o modelo do 22 em diante tem ícone próprio (espada:1 … espada:6)
   if (pintarItem(g, desenho, w, h, b)) return;
@@ -13875,7 +14130,7 @@ function acessorioDoNivel(nivel, slot = ACESSORIOS[Math.floor(Math.random() * 3)
 // o que cai das criaturas: 1 em 4 é um acessório, o resto uma peça de roupa
 function itemDoNivel(nivel) { return Math.random() < 0.25 ? acessorioDoNivel(nivel) : pecaDoNivel(nivel); }
 const ORDEM_PECAS = ["elmo", "armadura", "botas", "escudo"];                // os espaços do equipamento (roupa; os acessórios à parte)
-const ROUPA_DA_CLASSE = { viking: "armadura_guerreiro", arqueiro: "armadura_leve", ninja: "armadura_leve", feiticeiro: "armadura_mago", guerreiro: "armadura_guerreiro", xama: "armadura_mago", shura: "armadura_guerreiro" };
+const ROUPA_DA_CLASSE = { aprendiz: "armadura_guerreiro", viking: "armadura_guerreiro", arqueiro: "armadura_leve", ninja: "armadura_leve", feiticeiro: "armadura_mago", guerreiro: "armadura_guerreiro", xama: "armadura_mago", shura: "armadura_guerreiro" };
 function slotDa(peca) { return (PECAS[peca] && PECAS[peca].slot) || peca; }
 function pecaEquipada(slot) { const e = prog && prog.equip && prog.equip[slot]; return e ? (e.peca || (slot === "armadura" ? ROUPA_DA_CLASSE[classe] : slot)) : null; }
 function pecaServe(peca) { const c = PECAS[peca] && PECAS[peca].classes; return !c || c.includes(classe); }
@@ -13948,7 +14203,7 @@ function pecaDoNivel(nivel) {
   // a roupa que cai é, na maioria das vezes, a da classe de quem está jogando (às vezes a de outra, para o armazém)
   const roupas = ["armadura_guerreiro", "armadura_leve", "armadura_mago"];
   let slot = ORDEM_PECAS[Math.floor(Math.random() * ORDEM_PECAS.length)];
-  if (slot === "armadura") slot = Math.random() < 0.7 ? ROUPA_DA_CLASSE[classe] : roupas[Math.floor(Math.random() * 3)];
+  if (slot === "armadura") slot = classe === "aprendiz" ? "elmo" : Math.random() < 0.7 ? ROUPA_DA_CLASSE[classe] : roupas[Math.floor(Math.random() * 3)];   // (R165: nem roupa de classe)
   let tier = 0; PECAS[slot].modelos.forEach(([, n], k) => { if (nivel >= n) tier = k; });
   return { tipo: "peca", chave: `peca:${slot}:${tier}`, ref: 0, bon: bonusDeDrop(slot, tier) };
 }
@@ -14483,7 +14738,7 @@ function montarBolsa() {
 }
 
 // o que é raro faz um som próprio ao cair: livros, a Pedra da Alma, a Bênção e o que já vem refinado (+5 ou mais)
-const dropRaro = d => d.tipo === "livro" || d.tipo === "alma" || d.tipo === "bencao" || (d.ref || 0) >= 5 || (d.tipo === "joia" && +d.chave.split(":")[2] >= 3);
+const dropRaro = d => d.tipo === "livro" || d.tipo === "conselho" || d.tipo === "alma" || d.tipo === "bencao" || (d.ref || 0) >= 5 || (d.tipo === "joia" && +d.chave.split(":")[2] >= 3);
 function soltarItens(l, itens) {
   // os adicionais do colar e dos brincos: o yang dobrado e o drop dobrado (os consumíveis e materiais caem duas vezes)
   if (prog && status.yang) itens = itens.map(d => d.tipo === "yang" && Math.random() < status.yang ? { ...d, qtd: d.qtd * 2 } : d);
@@ -14764,7 +15019,7 @@ function montarOpcoes() {
   $("#oBorda").onchange = e => { try { localStorage.setItem("borda", e.target.checked ? "leve" : "0"); } catch (x) {} montarBordaEmb(); };
   $("#opcoesPadrao").onclick = () => { Som.vol = { ...VOL_PADRAO }; aplicarVolumes(); salvarVolumes(); mostrarOpcoes(); };
   $("#opcoesFechar").onclick = () => abrirOpcoes(false);
-  $("#oNovoPersonagem").onclick = () => { abrirOpcoes(false); abrirSelecao({ deMenu: true }); };
+  $("#oNovoPersonagem").onclick = () => { abrirOpcoes(false); if (MODO_TESTE && !INICIO_NOVO) abrirSelecao({ deMenu: true }); else abrirInicio({ deMenu: true }); };
 }
 // as bordas embaçadas: a leve fica ligada por padrão (escolha do usuário), com a chave no menu de opções salva no
 // navegador; ?borda=leve|medio|tilt|0 na URL passa por cima (médio: com um pouco de sombra; tilt: só em cima e embaixo)
@@ -14803,7 +15058,7 @@ function admListaItens() {
   const grupos = [["Armas", ["viking", "guerreiro", "arqueiro", "feiticeiro", "ninja", "shura", "xama"].filter(c => ARMAS[c]).flatMap(c => ARMAS_TIER[c].map((nome, t) => [chaveArma(c, t), `${nome} (${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[t]})`]))]];
   for (const [slot, P] of Object.entries(PECAS))
     grupos.push([P.nome + (P.classes ? " · " + P.classes.map(c => NOME_CLASSE[c]).join("/") : ""), P.modelos.map((m, t) => [`peca:${slot}:${t}`, `${m[0]} (nível ${m[1]})`])]);
-  grupos.push(["Consumíveis e materiais", ["pocao", "pocaoMana", "bau_iniciante", "pedra", "encantar", "mudar", "alma", "bencao", "correcao"].map(k => [k, tipoItem(k).nome])]);
+  grupos.push(["Consumíveis e materiais", ["pocao", "pocaoMana", "bau_iniciante", "pedra", "encantar", "mudar", "alma", "bencao", "correcao", "conselho"].map(k => [k, tipoItem(k).nome])]);
   grupos.push(["Jóias (de arma)", Object.keys(JOIAS).filter(t => JOIAS[t].parte === "arma").flatMap(t => JOIAS[t].val.map((_, g) => [`joia:${t}:${g}`, nomeJoia(t, g)]))]);
   grupos.push(["Jóias (de roupa)", Object.keys(JOIAS).filter(t => JOIAS[t].parte === "roupa").flatMap(t => JOIAS[t].val.map((_, g) => [`joia:${t}:${g}`, nomeJoia(t, g)]))]);
   for (const [c, l] of [["viking", SKILLS_VIKING], ["arqueiro", SKILLS_ARQUEIRO], ["feiticeiro", SKILLS_FEITICEIRO], ["ninja", SKILLS_NINJA], ["xama", SKILLS_XAMA], ["shura", SKILLS_SHURA]])
@@ -15125,13 +15380,13 @@ function htmlDicaSkill(nome) {
   if (D.ef) linha("fixo", D.ef);
   linha("cinza", fortalecidoPor(nome, D));
   esp(); linha("sk-atual", `Nível atual: ${rotuloNivelSkill(n)}`);
-  if (prog) linha("sk-atual", n < N_MESTRE ? `Pontos disponíveis: ${prog.pontosSkill || 0}` : n < N_GRAO - 1 ? `Livros restantes: ${contarItem("livro:" + nome)}` : `Pedras da Alma: ${contarItem("alma")}`);
+  if (prog) linha("sk-atual", n < N_MESTRE ? `Pontos disponíveis: ${prog.pontosSkill || 0}` : n < N_GRAO ? `Livros: ${livrosLidos(nome)} de ${livrosParaSubir(n)} lidos · na bolsa: ${contarItem("livro:" + nome)}` : `Pedras da Alma: ${contarItem("alma")}`);
   for (const [r, v] of numerosSkill(nome, n)) linha("sk-num", `${r}: ${v}`);
   esp();
   if (n >= SKILL_MAX) linha("sk-prox", "Nível máximo (P)");
   else {
-    linha("sk-prox", `Próximo nível: ${rotuloNivelSkill(n + 1)} (máx. P)`);
-    for (const [r, v] of numerosSkill(nome, n + 1)) linha("sk-num prox", `${r}: ${v}`);
+    linha("sk-prox", `Próximo nível: ${rotuloNivelSkill(proxNivelSkill(n))} (máx. P)`);
+    for (const [r, v] of numerosSkill(nome, proxNivelSkill(n))) linha("sk-num prox", `${r}: ${v}`);
   }
   return L.join("");
 }
@@ -15292,6 +15547,7 @@ function atualizarFicha() {
       "Jóias e acessórios contra raça: " + [["morto_vivo", "Mortos-vivos"], ["animal", "Animais"], ["orc", "Orcs"], ["demonio", "Demônios"], ["humano", "Semi-humanos"]].map(([r, n]) => `${n} +${Math.round(((status.raca || {})[r] || 0) * 100)}%`).join(" · ")],
     ["Evasão · Esquiva", Math.round((status.evasao || 0) * 100) + "/" + Math.round((status.esquiva || 0) * 100) + "%", "Chance de bloquear o golpe corpo a corpo / de esquivar a flecha e a magia (Jóias da Evasão e da Esquiva)"],
     ["Resfriamento", "−" + Math.round((status.resfriamento || 0) * 100) + "%", "Recarga das skills mais curta (Jóia do Resfriamento e colar; no máximo 50%)"],
+    ["Honra", `${honraDe().titulo || "Sem título"} · ${Math.floor(honraDe().pontos).toLocaleString("pt-BR")}`, `Cada criatura derrotada dá 1 ponto, se não estiver mais de 10 níveis abaixo de você. Valioso 1.000 (+1% de drop), Íntegro 4.000 (+2%), Nobre 8.000 (+4%) e Admirável 12.000 (+5%)`],
     ["EXP · Yang · Drop", [status.exp, status.yang, status.drop].map(v => Math.round((v || 0) * 100)).join("/") + "%", "Chance de EXP dobrada, de yang dobrado e de drop dobrado (adicionais do colar, do bracelete e dos brincos)"],
     ["Refino da arma", prog.arma ? "+" + (prog.arma.ref || 0) : "—", prog.arma ? nomeArma(prog.arma.ref) : "Sem arma (punhos)"],
     ["Pesquisa", resumoBio(true), `Atributos permanentes das pesquisas de ${NOME_MUKSEON_TITULO} (${Math.min(bioDe().m, BIO.length)} de ${BIO.length}): ${resumoBio()}`]]
@@ -15343,18 +15599,19 @@ function atualizarFicha() {
       acao = `<button data-ponto="${sk.nome}" ${prog.pontosSkill > 0 ? "" : "disabled"} aria-label="Um ponto em ${sk.nome}">+ ponto</button>`;
       const ch = CHANCE_MESTRE[n + 1];
       info = ch ? `próximo ponto: ${Math.round(ch * 100)}% de virar M1` : `${17 - n > 0 ? `mais ${17 - n} ponto(s) até a chance de M1` : ""}`;
-    } else if (n < N_GRAO - 1) {
-      acao = `<button data-livro="${sk.nome}" ${l && !espera ? "" : "disabled"}>Ler livro (${l})</button>`;
-      info = `livro: ${Math.round(chanceLivro(n) * 100)}% · custa ${custoLeitura(n)} EXP`;
+    } else if (n < N_GRAO) {
+      const conselhos = contarItem("conselho");
+      acao = espera && conselhos ? `<button data-conselho="${sk.nome}">Conselho do Eremita (${conselhos})</button>` : `<button data-livro="${sk.nome}" ${l && !espera ? "" : "disabled"}>Ler livro (${l})</button>`;
+      info = `livros: ${livrosLidos(sk.nome)} de ${livrosParaSubir(n)} · chance ${Math.round(chanceLivro(n) * 100)}% · custa ${custoLeitura(n)} EXP`;
     } else if (n < SKILL_MAX) {
       acao = `<button data-alma="${sk.nome}" ${almas && !espera ? "" : "disabled"}>Pedra da Alma (${almas})</button>`;
-      info = `pedra: ${Math.round(chanceLivro(n) * 100)}% · custa ${custoLeitura(n)} EXP`;
+      info = `pedra: ${Math.round(chancePedra(n) * 100)}% · custa ${custoLeitura(n)} EXP`;
     } else { acao = ""; info = "Perfeito: no máximo"; }
     const i = ordemBarra.indexOf(sk.nome);
     $("#fSkInfo").innerHTML = `<span class="sk-nome"><b>${sk.nome}</b><i class="sk-grau grau-${grau(n)}">${rotuloNivelSkill(n)}</i></span>${acao}` +
       `<span class="sk-linha">${sk.mana ? `${sk.mana} mana` : "sem mana"}${i >= 0 ? ` · tecla <kbd>${ROTULO_TECLA(TECLAS_BARRA[i])}</kbd>` : " · fora da barra"}</span>` +
       `<small>efeito +${Math.round((multSkill(sk.nome) - 1) * 100)}%${info ? " · " + info : ""}${espera && n >= N_MESTRE ? ` · ler de novo em ${textoEspera(espera)}` : ""}</small>`;
-  } else $("#fSkInfo").innerHTML = "";
+  } else $("#fSkInfo").innerHTML = classe === "aprendiz" ? `<span class="sk-nome"><b>As skills chegam com a classe</b></span> No nível ${NIVEL_ALTAR}, suba ao Altar das Eras, na ilha a oeste da Vila 1. Os seus pontos de skill ficam guardados até lá.` : "";
   const travado = l => l.map(([nome, dica]) => `<div class="fx-trava" title="${nome}: ${dica} (em breve)">${CADEADO}<i>${nome}</i></div>`).join("");
   // as Skills comuns (Standard Skills do Metin2): só as que existem no jogo (montar, o dash e o combo)
   const comuns = [["montar", "Montar", CAVALO_LIBERADO ? "Ctrl+G: monta e desmonta do cavalo" : "Montar: o Cavalariço Doyun, no estábulo, dá o cavalo (nível 15)"],
@@ -15371,7 +15628,8 @@ function atualizarFicha() {
   $("#fEmocoes").innerHTML = travado([["Sentar", "descansar no chão"], ["Acenar", "cumprimentar"], ["Dançar", "dançar"]]);
   // ---- Quests: as missões do jogo (MISSOES), com a etapa de agora e o andamento
   const peso = ([id, M]) => { const s = (prog.missoes || {})[id] || { etapa: -1 }; return s.etapa >= M.etapas.length ? 2 : s.etapa >= 0 ? 0 : 1; };
-  $("#fQuests").innerHTML = Object.entries(MISSOES).filter(([id, M]) => { const s = (prog.missoes || {})[id] || { etapa: -1 };
+  const qc = cacadaAtiva(), sc = qc && cacadaEstado();
+  $("#fQuests").innerHTML = (qc ? `<div class="fx-quest andando${prog.missaoVista === "cacada" ? " vista" : ""}" data-q="cacada" title="Clique para acompanhar esta caçada"><div class="fx-q-topo"><b>Caçada do nível ${qc.n}</b><i>${sc.a + sc.b}/${qc.qa + qc.qb}</i></div><p>Derrote ${cacadaAlvo(qc)}.</p><small>O prêmio sai na hora, sem falar com ninguém</small></div>` : "") + Object.entries(MISSOES).filter(([id, M]) => { const s = (prog.missoes || {})[id] || { etapa: -1 };
       return s.etapa >= 0 || (M.carta ? s.carta : nivelMissaoOk(M)); }).sort((a, b) => peso(a) - peso(b)).map(([id, M]) => {
     const s = (prog.missoes || {})[id] || { etapa: -1, n: 0 }, tot = M.etapas.length, feita = s.etapa >= tot, e = !feita && s.etapa >= 0 ? M.etapas[s.etapa] : null;
     const est = feita ? "Concluída" : e ? `Etapa ${s.etapa + 1} de ${tot}` : "Não aceita", cls = feita ? "feita" : e ? "andando" : "nova";
@@ -15379,11 +15637,11 @@ function atualizarFicha() {
     const ok = feita ? tot : Math.max(0, s.etapa);
     return `<div class="fx-quest ${cls}${prog.missaoVista === id ? " vista" : ""}" data-q="${id}" title="${e ? "Clique para acompanhar esta missão" : ""}"><div class="fx-q-topo"><b>${M.nome}</b><i>${est}</i></div><p>${txt}</p>` +
       `<div class="fx-q-etapas" aria-hidden="true">${M.etapas.map((_, k) => `<span class="${k < ok ? "ok" : k === s.etapa ? "agora" : ""}"></span>`).join("")}</div><small>${M.npc}</small></div>`;
-  }).join("") + `<p class="nota">Uma carta chega a cada nível (o pergaminho na esquerda da tela), e só uma quest de nível fica ativa por vez. Clique numa missão em andamento para acompanhá-la embaixo do minimapa. A tecla Q abre as quests ativas.</p>`;
+  }).join("") + `<p class="nota">Uma carta chega a cada nível (o pergaminho na esquerda da tela), e as caçadas chegam sozinhas, uma de cada vez. Clique numa missão em andamento para acompanhá-la embaixo do minimapa. A tecla Q abre as quests ativas.</p>`;
 }
 function montarFicha() {
   montarMenuQuests();
-  $("#fQuests").onclick = e => { const q = e.target.closest("[data-q]"); if (!q || !prog || !etapaAtual(q.dataset.q)) return; prog.missaoVista = q.dataset.q; salvarProgresso(); atualizarMissao(); atualizarFicha(); };
+  $("#fQuests").onclick = e => { const q = e.target.closest("[data-q]"); if (!q || !prog || (q.dataset.q !== "cacada" && !etapaAtual(q.dataset.q))) return; prog.missaoVista = q.dataset.q; salvarProgresso(); atualizarMissao(); atualizarFicha(); };
   $("#bFicha").onclick = () => abrirFicha();
   $("#fFechar").onclick = () => abrirFicha(false);
   $("#bAtrib").onclick = () => abrirFichaPag("atrib");
@@ -15398,13 +15656,13 @@ function montarFicha() {
   $("#fAtrib").addEventListener("pointerleave", () => dicaAtrib(null));
   $("#fSubAbas").onclick = e => { const b = e.target.closest("[data-sub]"); if (b) { fichaSub(b.dataset.sub); som("ui_clique", null, 0.6); } };
   let fimArrasto = 0;
-  const acaoSkill = b => { if (b.dataset.ponto) porPontoSkill(b.dataset.ponto); else if (b.dataset.alma) usarPedraAlma(b.dataset.alma); else lerLivro(b.dataset.livro); };
+  const acaoSkill = b => { if (b.dataset.conselho) usarConselho(b.dataset.conselho); else if (b.dataset.ponto) porPontoSkill(b.dataset.ponto); else if (b.dataset.alma) usarPedraAlma(b.dataset.alma); else lerLivro(b.dataset.livro); };
   $("#fSkills").onclick = e => {
     const b = e.target.closest("[data-ponto]"); if (b) { fichaSk = b.dataset.ponto; acaoSkill(b); return; }
     const c = e.target.closest(".fx-sk[data-sk]"); if (!c || performance.now() - fimArrasto < 250) return;
     fichaSk = c.dataset.sk; atualizarFicha();
   };
-  $("#fSkInfo").onclick = e => { const b = e.target.closest("[data-livro], [data-ponto], [data-alma]"); if (b) acaoSkill(b); };
+  $("#fSkInfo").onclick = e => { const b = e.target.closest("[data-livro], [data-ponto], [data-alma], [data-conselho]"); if (b) acaoSkill(b); };
   $("#fGrupos").onclick = e => { const b = e.target.closest("[data-aba-sk]"); if (b) { abaSkills = b.dataset.abaSk; som("ui_clique", null, 0.6); atualizarFicha(); } };
   // a dica de cada skill (nível atual e próximo): na grade da ficha e na barra de atalhos
   $("#fSkills").addEventListener("pointermove", e => { const c = e.target.closest(".fx-sk[data-sk]"); dicaSkill(c && c.dataset.sk, e.clientX, e.clientY); });
@@ -15593,6 +15851,7 @@ function nomeRegiao(x, y) {
   if (y < -350) return DAIYU.nomeRegiao(x, y);                       // (a Ilha de Daiyu: as zonas de mapa_daiyu.js)
   if (y > 350) return nomeRegiaoHahoe(x, y);                         // (a Vila Hahoe: ZONAS_H)
   if (x < -350) return GELADA.nomeRegiao(x, y);                      // (Montanha Gelada: as zonas de mapa_montanha.js)
+  if (naZonaAltar(x, y) && bordaAltar(x, y) < RAIO + 1) return "Altar das Eras";   // (R165)
   if (x > VALE_X) return "Vale Vermelho";                             // (o antigo Vale dos Orcs: os orcs moram na Ilha de Daiyu)
   const f = faixaV1(x, y);
   if (f === 4 || Math.hypot(x - ACAMP.x, y - ACAMP.y) < ACAMP.r + 5) return "Acampamento do Juramento Branco";
@@ -16799,7 +17058,7 @@ const suaveM = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u
 const acaso2 = k => { const x = Math.sin(k * 12.9898) * 43758.5453; return x - Math.floor(x); };   // sorteio fixo por número
 
 // quem luta de longe (o arqueiro e o feiticeiro) e até onde
-const lutaPerto = () => classe === "viking" || classe === "ninja" || classe === "guerreiro" || classe === "xama" || classe === "shura";
+const lutaPerto = () => classe === "viking" || classe === "ninja" || classe === "guerreiro" || classe === "xama" || classe === "shura" || classe === "aprendiz";
 const distante = () => !lutaPerto();
 function alcanceDist() { return classe === "feiticeiro" ? ALCANCE_MAGIA : ALCANCE_ARCO; }
 
@@ -17352,20 +17611,20 @@ function iconeErupcao(g) {
 }
 
 // troca o personagem jogável (botões no topo ou T): tudo volta ao começo, parado e sem efeitos
-function trocarClasse(nova) {
-  if (!MA || !MF || nova === classe) return;
+function trocarClasse(nova, voc = null) {
+  if (!MA || !MF || (nova === classe && (nova !== "aprendiz" || voc === VOCACAO))) return;
   salvarProgresso(); jornadaSalvar();
-  classe = nova;
-  M = { viking: MV, arqueiro: MA, feiticeiro: MF, ninja: MN || MV, guerreiro: MG || MV, xama: MX || MV, shura: MS || MV }[classe]; SPR = { viking: SPRV, arqueiro: SPRA, feiticeiro: SPRF, ninja: MN ? SPRN : SPRV, guerreiro: MG ? SPRG : SPRV, xama: MX ? SPRX : SPRV, shura: MS ? SPRS : SPRV }[classe];   // sem o ninja.json, o viking escurecido
+  classe = nova; VOCACAO = nova === "aprendiz" ? voc : null;
+  M = { viking: MV, arqueiro: MA, feiticeiro: MF, ninja: MN || MV, guerreiro: MG || MV, xama: MX || MV, shura: MS || MV, aprendiz: MP || MV }[classe]; SPR = { aprendiz: MP ? SPRP : SPRV, viking: SPRV, arqueiro: SPRA, feiticeiro: SPRF, ninja: MN ? SPRN : SPRV, guerreiro: MG ? SPRG : SPRV, xama: MX ? SPRX : SPRV, shura: MS ? SPRS : SPRV }[classe];   // sem o ninja.json, o viking escurecido
   const v = viking;
-  const sempreArmado = classe === "ninja" || classe === "guerreiro" || classe === "xama" || classe === "shura";
+  const sempreArmado = classe === "ninja" || classe === "guerreiro" || classe === "xama" || classe === "shura" || classe === "aprendiz";
   Object.assign(v, { anim: sempreArmado ? "parado_armado" : "parado", t: 0, acao: null, espada: sempreArmado ? "armada" : "costas", ociosoArmado: 0, combo: 0, fila: null, acertou: false, caido: false, noLugar: null, esperaParar: null, ferido: 0 });
   furia.buff = 0; furia.desde = -1; vortice.ativo = false; vortice.restam = 0; espiritual.buff = 0; espiritual.desde = -1;
   flechas.length = 0; selecao = null;
   v.montado = false; cavaloEnt.ativo = false;                        // (o cavalo é de cada personagem)
   for (const [id, c] of [["#cViking", "viking"], ["#cArqueiro", "arqueiro"], ["#cFeiticeiro", "feiticeiro"], ["#cNinja", "ninja"], ["#cGuerreiro", "guerreiro"], ["#cXama", "xama"], ["#cShura", "shura"]]) $(id).setAttribute("aria-pressed", classe === c);
   $("#titulo").textContent = "Campo de Treino do " + NOME_CLASSE[classe];
-  SKILLS = { viking: SKILLS_VIKING, arqueiro: SKILLS_ARQUEIRO, feiticeiro: SKILLS_FEITICEIRO, ninja: SKILLS_NINJA, guerreiro: SKILLS_GUERREIRO, xama: SKILLS_XAMA, shura: SKILLS_SHURA }[classe];
+  SKILLS = { aprendiz: [], viking: SKILLS_VIKING, arqueiro: SKILLS_ARQUEIRO, feiticeiro: SKILLS_FEITICEIRO, ninja: SKILLS_NINJA, guerreiro: SKILLS_GUERREIRO, xama: SKILLS_XAMA, shura: SKILLS_SHURA }[classe];
   montarBarraSkills();
   chuva.recarga = 0; chuva.marca = 0; certeiro.recarga = 0; brasas.length = 0; queimando.clear();
   pes.buff = 0; pes.recarga = 0; pes.desde = -1; pes.vultos.length = 0; pes.riscos.length = 0;
@@ -17517,7 +17776,7 @@ addEventListener("keydown", e => {
   if (k === "b" && !e.ctrlKey && !e.altKey && !e.repeat) { somIniciar(); somAlternar(); }   // (no ?mundo3d=1 o B gira a câmera: lá vale o Ctrl+M)
   if (k === "y" && !e.repeat) contornoAlternar();
   if (k === "n" && !e.repeat) { somIniciar(); musicaAlternar(); }
-  if (k === "t" && !e.repeat && ADMIN) trocarClasse({ viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "guerreiro", guerreiro: "xama", xama: "shura", shura: "viking" }[classe]);
+  if (k === "t" && !e.repeat && ADMIN) trocarClasse({ aprendiz: "viking", viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "guerreiro", guerreiro: "xama", xama: "shura", shura: "viking" }[classe]);
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
   if (e.repeat && !["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"].includes(k)) return;
   if (!e.repeat && ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) limparPendentes(viking);   // ordem nova de movimento
@@ -17576,9 +17835,10 @@ cv.addEventListener("pointerdown", e => {
   if (pk === null) return;
   const pm = pk || doPonteiro(e.clientX - r.left, e.clientY - r.top), x = pm.x, y = pm.y;
   const criatura = pk ? pk.criatura : criaturaNoClique(e.clientX - r.left, e.clientY - r.top);
+  { const est = !criatura && !pk && altarEstatuaNoClique(e.clientX - r.left, e.clientY - r.top); if (est) { abrirEstatua(est); return; } }   // (R166: a estátua abre a ficha)
   // (o clique no corpo do NPC e do boneco: a caixa na tela, medida na vista; o lugar de falar fica na frente dele na tela)
   const naV = o => naVista(x - o.x, y - o.y);
-  const npc = !criatura && (pk ? pk.npc : objetos.find(o => { if (!o.npc) return false; const [du, dv0] = naV(o), dv = dv0 - zPiso(o.x, o.y) * ALTURA / ACHATA; return Math.abs(du) < 0.6 && dv > -0.4 && dv < 2.4; }));   // (no piso alto, o corpo mais acima)
+  const npc = !criatura && (pk ? pk.npc : objetos.find(o => { if (!o.npc) return false; const [du, dv0] = naV(o), dv = dv0 - (naZonaAltar(o.x, o.y) ? 0 : zPiso(o.x, o.y)) * ALTURA / ACHATA; return Math.abs(du) < 0.6 && dv > -0.4 && dv < 2.4; }));   // (no piso alto, o corpo mais acima; no altar, altarClique já tirou a altura)
   if (npc) { const [fx, fy] = daVista(-0.3, -1.1); viking.alvo = { x: npc.x + fx, y: npc.y + fy, npc }; viking.rota = null; viking.alvo.correr = Math.hypot(viking.alvo.x - viking.x, viking.alvo.y - viking.y) > 4; return; }
   const boneco = !criatura && (pk ? pk.boneco : objetos.find(o => { if (o.tipo !== "boneco") return false; const [du, dv] = naV(o); return Math.hypot(du, dv - 0.6) < 0.6; }));
   viking.alvo = criatura ? { x: criatura.x, y: criatura.y, criatura } : boneco ? { x: boneco.x, y: boneco.y, boneco } : { x, y };
@@ -18127,6 +18387,10 @@ function passoPortais(dt) {
     if (d > 0.9 || p.armado === false || (v.passou || 0) > 0) continue;
     p.armado = false;                                                  // (só vale de novo depois de sair de 2 m)
     const dest = MAPAS[p.destino];
+    if (classe === "aprendiz") {                                       // (R165: antes de escolher a classe, ninguém sai da Vila 1)
+      PORTAL_AVISO.n++; PORTAL_AVISO.txt = `O portal para ${dest.nome} só abre depois da escolha: suba ao Altar das Eras, na ilha a oeste da Vila 1, ${prog.nivel < NIVEL_ALTAR ? `a partir do nível ${NIVEL_ALTAR}` : "e fale com a Guardiã"}.`;
+      avisar(PORTAL_AVISO.txt); som("ui_negar"); return;
+    }
     if (prog && prog.nivel < p.nivelMin) {
       PORTAL_AVISO.n++; PORTAL_AVISO.txt = `O portal para ${dest.nome} ainda está fechado: volte no nível ${p.nivelMin}.`;
       avisar(PORTAL_AVISO.txt); som("ui_negar"); return;
@@ -18578,6 +18842,7 @@ function livre(x, y) {
   else if (borda(x, y) > RAIO - 0.8 || agua(x, y)) return false;
   if (y < -350 && !DAIYU.andavel(x, y)) return false;                 // (Ilha de Daiyu: os penhascos, a lava e o que um platô esconde)
   if (x < -350 && !GELADA.andavel(x, y)) return false;                 // (Montanha Gelada: as beiras, as fontes, as fendas e os marcos)
+  if (!altarAndavel(x, y)) return false;                               // (R165: a mureta, a balaustrada e o que o patamar esconde)
   if (foraTabuleiro(x, y)) return false;                               // (R086: o corrimão e o vão da ponte)
   const l = grade.get(Math.floor(x / 4) + "," + Math.floor(y / 4));
   if (!l) return true;
@@ -18667,7 +18932,7 @@ function rumo(ent, x, y, dt) {
   const rota = ent.rota;
   rota.t += dt * (Math.hypot(ent.x - (rota.ultX ?? ent.x), ent.y - (rota.ultY ?? ent.y)) < 0.01 ? 1 : 0);   // conta o tempo parado
   rota.ultX = ent.x; rota.ultY = ent.y;
-  while (rota.pts.length && Math.hypot(rota.pts[0][0] - ent.x, rota.pts[0][1] - ent.y) < 0.4) rota.pts.shift();
+  while (rota.pts.length && Math.hypot(rota.pts[0][0] - ent.x, rota.pts[0][1] - ent.y) < 0.4 && (!naZonaAltar(ent.x, ent.y) || rota.pts.length === 1 || Math.hypot(rota.pts[0][0] - ent.x, rota.pts[0][1] - ent.y) < 0.12 || retaLivre(ent.x, ent.y, rota.pts[1][0], rota.pts[1][1]))) rota.pts.shift();
   if (!rota.pts.length) return [0, 0];
   const [px, py] = rota.pts[0], d = Math.hypot(px - ent.x, py - ent.y);
   return [(px - ent.x) / d, (py - ent.y) / d];
@@ -18945,7 +19210,7 @@ addEventListener("keyup", e => { if (e.key === "Shift") shiftDeuDash = false; },
 function passo(dt) {
   passoAmbiente(dt);
   if (ferreiroNpc && !$("#ferreiro").hidden && Math.hypot(ferreiroNpc.x - viking.x, ferreiroNpc.y - viking.y) > 4) abrirFerreiro(false);
-  if (npcAberto && Math.hypot(npcAberto.x - viking.x, npcAberto.y - viking.y) > 4) abrirNpc(null);
+  if (npcAberto && Math.hypot(npcAberto.x - viking.x, npcAberto.y - viking.y) > (npcAberto.estatua ? 18 : 4)) abrirNpc(null);
   if (armazemAberto() && !objetos.some(o => o.dados && o.dados.armazem && Math.hypot(o.x - viking.x, o.y - viking.y) <= 4)) abrirArmazem(false);   // (o armazém de qualquer vila)
   // as criaturas de outro mapa (ou de outra dungeon) dormem; as mortas continuam contando o tempo de voltar
   const mapaHeroi = idMapa(viking.x, viking.y);
@@ -19531,7 +19796,7 @@ function quadroAtual() {
 // acima do pé, em m, com folga; mais 80 px para a placa do nome e a barra de vida). As criaturas eram todas desenhadas,
 // as ~220 do mapa (a sombra, o sprite ou o pedaço 3D, a placa e a barra), mesmo as fora da tela: ~12% do laço
 function peNaTela(x, y, larg, alto, extraPx = 0) {
-  const [sx, sy] = tela(x - cam.x, y - cam.y), s = PX * zoom, X = W / 2 + sx, Y = H / 2 + sy - (y < -350 ? DAIYU.z(x, y) * s * ALTURA : x < -350 ? GELADA.z(x, y) * s * ALTURA : 0);
+  const [sx, sy] = tela(x - cam.x, y - cam.y), s = PX * zoom, X = W / 2 + sx, Y = H / 2 + sy - (y < -350 ? DAIYU.z(x, y) * s * ALTURA : x < -350 ? GELADA.z(x, y) * s * ALTURA : naZonaAltar(x, y) ? altarZ(x, y) * s * ALTURA : 0);
   return X > -larg * s - extraPx && X < W + larg * s + extraPx && Y > -s * 1.2 - extraPx && Y - alto * s - extraPx < H;
 }
 function criaturaNaTela(l) {
@@ -19565,6 +19830,7 @@ function desenhar(t) {
     desenharNuvens(t);
     desenharTrevasChao();                             // o chão em trevas em volta das Ghotins (por cima da grama baixa)
   }
+  if (MAPA_CAM === MAPAS.vila1) altarArteChao();    // (R165: a colina e a ponte do Altar das Eras)
   desenharPassagens(t);
   desenharPlanos(t);
   desenharNuvensToxicas(t);
@@ -19577,7 +19843,7 @@ function desenhar(t) {
   // tudo por profundidade (quem está mais ao norte fica atrás)
   // só o que aparece na tela (objetos altos ou compridos usam a caixa inteira: muros, telhados, torres)
   const naTela = o => {
-    const m = Math.max(1, o.r, ESTRUT[o.tipo] || COLISAO_PADRAO[o.tipo] && DECO && DECO[o.tipo] && DECO[o.tipo][0].w / DECO[o.tipo][0].ppm > 3 ? 7 : 0);
+    const m = Math.max(1, o.r, o.arteM || 0, ESTRUT[o.tipo] || COLISAO_PADRAO[o.tipo] && DECO && DECO[o.tipo] && DECO[o.tipo][0].w / DECO[o.tipo][0].ppm > 3 ? 7 : 0);
     const x0 = o.p ? o.p.x0 : o.ret ? Math.min(o.x0, o.x - m) : o.x - m, x1 = o.p ? o.p.x1 : o.ret ? Math.max(o.x1, o.x + m) : o.x + m;
     const y0 = o.p ? o.p.y0 : o.ret ? o.y0 : o.y - m, y1 = o.p ? o.p.y1 : o.ret ? Math.max(o.y1, o.y + m) : o.y + m;
     // (com o giro, a caixa da tela sai dos quatro cantos)
@@ -19872,7 +20138,7 @@ function animVisivel(n) {
 // (o herói e o que está perto do jogador primeiro). Sem WebGL, sem o glb ou sem a animação, aquele boneco fica no sprite.
 // Modelo novo: o glb em 3d/ e uma linha em MODELOS_3D (criatura só com o glb, sem sprites: "so3d: true" no TIPOS dela).
 const MODELOS_3D = {
-  viking: {}, arqueiro: {}, feiticeiro: {}, ninja: {}, guerreiro: {}, xama: {}, shura: {},
+  viking: {}, arqueiro: {}, feiticeiro: {}, ninja: {}, guerreiro: {}, xama: {}, shura: {}, aprendiz: {},
   lobo: {}, javali: {}, rato: {}, aranha: {}, goblin: {}, esqueleto: {}, orc: {}, orc_bravo: {}, orc_feiticeiro: {},
   urso_negro: {}, tigre: {}, lobo_alfa: {}, bandido: {}, bandido_arqueiro: {}, chefe_bandido: {}, zumbi: {}, fantasma: {}, lich: {},
   golem: {}, escorpiao: {}, yeti: {}, nove_caudas: {},
@@ -20104,15 +20370,19 @@ const GLSL_COR_3D = `
     diffuseColor.rgb = clamp(mix(vec3(l), c, s) * BRILHO, 0.0, 1.0); }`;
 function toon3d(map, cor, side) {
   const m = new THREE.MeshToonMaterial({ map, color: cor, gradientMap: P3D.faixas, side });
-  m.userData.uMatiz = { value: 0 }; m.userData.uRoupa = { value: new THREE.Vector3(1, 1, 1) };
+  m.userData.uPedra = { value: 0 }; m.userData.uMatiz = { value: 0 }; m.userData.uRoupa = { value: new THREE.Vector3(1, 1, 1) };
   m.onBeforeCompile = sh => {
-    sh.uniforms.uMatiz = m.userData.uMatiz; sh.uniforms.uRoupa = m.userData.uRoupa;
-    sh.fragmentShader = "uniform float uMatiz; uniform vec3 uRoupa;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>" +
+    sh.uniforms.uPedra = m.userData.uPedra; sh.uniforms.uMatiz = m.userData.uMatiz; sh.uniforms.uRoupa = m.userData.uRoupa;
+    sh.fragmentShader = "uniform float uPedra; uniform float uMatiz; uniform vec3 uRoupa;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>" +
       // a cor viva puxa menos os tons de pele (laranja-rosado), senão rosto e mãos ficam alaranjados
-      `${GLSL_COR_3D.replace(/SAT/g, COR_3D.sat.toFixed(2)).replace(/BRILHO/g, COR_3D.brilho.toFixed(2))}` + GLSL_MATIZ_ROUPA);
+      `${GLSL_COR_3D.replace(/SAT/g, COR_3D.sat.toFixed(2)).replace(/BRILHO/g, COR_3D.brilho.toFixed(2))}` + GLSL_PEDRA + GLSL_MATIZ_ROUPA);
   };
   return m;
 }
+// (R165) as estátuas do Altar das Eras: o modelo da classe em pedra pintada, 3 tons chapados do cinza pedra
+const GLSL_PEDRA = `
+  if (uPedra > 0.5) { float l = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+    diffuseColor.rgb = (l < 0.1 ? vec3(0.14, 0.135, 0.12) : l < 0.3 ? vec3(0.27, 0.265, 0.235) : vec3(0.46, 0.45, 0.40)) * diffuse; }`;
 // a roupa de outra cor (os NPCs com o modelo de uma classe): gira o matiz dos tons saturados que não são pele
 const GLSL_MATIZ_ROUPA = `
   if (uMatiz > 0.001) { vec3 c = diffuseColor.rgb; float r = max(c.r, 1e-4), mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
@@ -20357,7 +20627,7 @@ function animNpc3d(o, nome, m, agora) {
 }
 // (R136: com a altura do chão: num patamar alto, o corpo aparece bem acima do ponto do mapa)
 function naTela3d(x, y, m, esc) {
-  const [sx, sy] = tela(x - cam.x, y - cam.y), s = PX * zoom * esc, X = W / 2 + sx, Y = H / 2 + sy - (x < -350 || y < -350 ? zPiso(x, y) * PX * zoom * ALTURA : 0), c = m.caixa;
+  const [sx, sy] = tela(x - cam.x, y - cam.y), s = PX * zoom * esc, X = W / 2 + sx, Y = H / 2 + sy - (x < -350 || y < -350 || naZonaAltar(x, y) ? zPiso(x, y) * PX * zoom * ALTURA : 0), c = m.caixa;
   return X + c.dir * s > -40 && X - c.esq * s < W + 40 && Y + c.baixo * s > -40 && Y - c.cima * s < H + 40;
 }
 function pedidos3d(agora) {
@@ -20429,6 +20699,9 @@ function querMascara3d() {
 }
 const TINTAS_3D = {};
 // Mundo de Tinta: o tempo da pose em quadros de 1/12 s (só o desenho; o golpe acerta no mesmo instante)
+// quanto tempo os bonecos de agora couberam folgados no atlas pequeno (menos de 45% da área; precisou de mais, zera)
+const ATLAS_BASE = 2048, ATLAS_ESPERA = 15;
+const atlasFolga = (area, folga, dt) => area <= 0.45 * ATLAS_BASE * ATLAS_BASE ? folga + dt : 0;
 const quadroTinta = t => ESTILO_TINTA ? Math.floor(t * 12 + 1e-4) / 12 : t;
 function prepararP3d(t) {
   const p = P3D;
@@ -20453,6 +20726,12 @@ function prepararP3d(t) {
     const k = Math.min(1, p.maxCel / Math.max(w, h));
     return [Math.min(p.maxCel, Math.max(16, Math.ceil(w * k / 8) * 8)), Math.min(p.maxCel, Math.max(16, Math.ceil(h * k / 8) * 8))];
   };
+  // (R163) o atlas de 4096 pesa 4× a memória de vídeo do de 2048 e crescia para sempre no 1º zoom: volta quando sobra espaço por um tempo
+  if (p.lado > ATLAS_BASE && !(window.M3D && M3D.ativo)) {
+    const area = usar.reduce((n, i) => { const [w, h] = tam(i, 1); return n + (w + 2 * MARGEM_3D) * (h + 2 * MARGEM_3D) * (i.mascara ? 2 : 1); }, 0);
+    p.folga = atlasFolga(area, p.folga || 0, dt);
+    if (p.folga >= ATLAS_ESPERA) { p.folga = 0; p.lado = ATLAS_BASE; p.render.setSize(p.lado, p.lado, false); zerarAtlas3d(); }
+  }
   let cheio = p.qual < 1 && p.quadro % 180 === 0;                         // de vez em quando tenta voltar à qualidade cheia
   for (const i of usar) {
     if (cheio) break;
@@ -20569,6 +20848,7 @@ function renderInst3d(i, clip, tempo) {
   for (const mat of m.mats) {
     mat.emissive.setRGB(d.emis[0] * ke, d.emis[1] * ke, d.emis[2] * ke);
     mat.color.copy(mat.userData.cor); if (tinta) mat.color.multiply(tinta);
+    if (mat.userData.uPedra) mat.userData.uPedra.value = d.pedra || 0;
     if (mat.userData.uMatiz) { mat.userData.uMatiz.value = d.roupa ? 0.85 : 0; if (d.roupa) mat.userData.uRoupa.value.set(d.roupa[0], d.roupa[1], d.roupa[2]); }
   }
   const c = m.caixa;
@@ -21145,12 +21425,14 @@ function temPersonagem() {
   return false;
 }
 function classeSalva() { try { const c = localStorage.getItem("classe"); return CLASSES_SELECAO.includes(c) ? c : null; } catch (e) { return null; } }
-function lembrarClasse(c) { try { localStorage.setItem("classe", c); } catch (e) {} }
+function lembrarClasse(c) { try { localStorage.setItem("classe", c === "aprendiz" ? "aprendiz_" + VOCACAO : c); } catch (e) {} }
 function progressoSalvoDe(c) { try { const p = JSON.parse(localStorage.getItem("progresso_" + c)); return p && p.atrib ? p : null; } catch (e) { return null; } }
 const SELECAO_PARAM = new URLSearchParams(location.search).get("selecao");
 const SELECAO_REGRA = !MODO_TESTE || SELECAO_PARAM === "auto";     // (no modo de teste, só com ?selecao=auto)
-const SELECAO_NO_INICIO = SELECAO_PARAM === "1" || (SELECAO_PARAM !== "0" && SELECAO_REGRA && !temPersonagem());
-const skillsDaClasse = c => ({ viking: SKILLS_VIKING, guerreiro: SKILLS_GUERREIRO, arqueiro: SKILLS_ARQUEIRO, feiticeiro: SKILLS_FEITICEIRO, ninja: SKILLS_NINJA, xama: SKILLS_XAMA, shura: SKILLS_SHURA })[c] || [];
+const SELECAO_NO_INICIO = SELECAO_PARAM === "1" || SELECAO_PARAM === "classes" || (SELECAO_PARAM !== "0" && SELECAO_REGRA && !temPersonagem());
+// (R165) a tela inicial: a lista dos personagens e as vocações. O carrossel das classes continua para os testes (?test=1&selecao=auto) e o admin (?selecao=classes)
+const INICIO_NOVO = SELECAO_PARAM === "inicio" || (!MODO_TESTE && SELECAO_PARAM !== "0" && SELECAO_PARAM !== "classes" && SELECAO_PARAM !== "auto");
+const skillsDaClasse = c => ({ aprendiz: [], viking: SKILLS_VIKING, guerreiro: SKILLS_GUERREIRO, arqueiro: SKILLS_ARQUEIRO, feiticeiro: SKILLS_FEITICEIRO, ninja: SKILLS_NINJA, xama: SKILLS_XAMA, shura: SKILLS_SHURA })[c] || [];
 
 function abrirSelecao(op = {}) {
   if (SEL.aberta) return;
@@ -21171,14 +21453,14 @@ function abrirSelecao(op = {}) {
 function fecharSelecao() {
   if (!SEL.aberta) return;
   SEL.aberta = false; salvarTravado = false;
-  $("#selClasse").hidden = true;
+  $("#selClasse").hidden = true; $("#inicio").hidden = true; SEL.inicio = false;
   for (const el of SEL.inertes) el.inert = false;
   SEL.inertes = [];
   const f = SEL.foco; SEL.foco = null;
   if (f && f.isConnected && f !== document.body && f.focus) f.focus({ preventScroll: true });
 }
 function passarSel(d) {
-  if (!SEL.aberta || SEL.escolhendo) return;
+  if (!SEL.aberta || SEL.escolhendo || SEL.inicio) return;
   const n = CLASSES_SELECAO.length;
   SEL.i = (SEL.i + d + n) % n;
   mostrarClasseSel(d);
@@ -21266,8 +21548,48 @@ function entrarComClasse(c, op = {}) {
 }
 // o personagem novo: nível 1, os atributos da classe e, na bolsa, só o Baú do Iniciante (sem arma na mão)
 function progressoIniciante(c) {
-  return { ...progressoNovo(c), arma: null, mapa: "vila1", inv: [{ chave: "bau_iniciante", qtd: 1, aba: 0, x: 0, y: 0 }] };
+  return { ...progressoNovo(c), arma: null, mapa: "vila1", guia: { passo: 0 }, inv: [{ chave: "bau_iniciante", qtd: 1, aba: 0, x: 0, y: 0 }] };
 }
+// ---- os primeiros passos (R161): uma janela ao lado do jogo, sem pausar nada, com o que fazer agora. Cada passo se marca sozinho
+// quando o jogador faz o que ele pede. Só o personagem novo começa com ela (prog.guia); as Opções abrem de novo
+const GUIA_PASSOS = [
+  ["Abra o Baú do Iniciante", "Na bolsa, dê um <b>clique direito</b> ou <b>dois cliques</b> no baú.", () => !contarItem("bau_iniciante")],
+  ["Vista o que ganhou", "Dê um <b>clique direito</b> na arma e na roupa, na bolsa.", () => !!prog.arma && !!prog.equip && !!prog.equip.armadura],
+  ["Ande pelo mundo", "Use <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> ou <b>clique no chão</b>.", g => { g.x0 === undefined && (g.x0 = viking.x, g.y0 = viking.y); return Math.hypot(viking.x - g.x0, viking.y - g.y0) > 4; }],
+  ["Aceite uma quest", "Clique no <b>pergaminho</b> à esquerda da tela e em <b>Aceitar</b>. <kbd>Q</kbd> mostra as suas quests.", () => Object.keys(MISSOES).some(id => etapaAtual(id))],
+  ["Veja o mapa", "Aperte <kbd>M</kbd>. As estrelas são as suas quests. <b>Clique num lugar</b> e uma seta no chão leva até ele.", () => !!(window.MM && MM.aberto) || !!prog.marcaMapa],
+  ["Derrote uma criatura", "Saia da cidade, <b>clique numa criatura</b> ou aperte <kbd>Espaço</kbd>, e ela é atacada até cair.", () => prog.exp > 0 || prog.nivel > 1],
+  ["Abra a sua ficha", "Aperte <kbd>P</kbd>. Cada bolinha de EXP cheia dá um ponto de atributo, e cada nível, um de skill. <kbd>R</kbd> e <kbd>X</kbd> usam as poções.", () => !$("#ficha").hidden],
+  ["Dê um dash", "Aperte <kbd>Shift</kbd> para um avanço rápido, bom para fugir de um golpe.", () => !!DASH.ativo],
+];
+// (R165) a lista de quem nasceu aprendiz: o passo 2 pede só a arma, a ficha explica o nível 5 e um passo novo no fim manda ao altar
+const GUIA_PASSOS_APRENDIZ = GUIA_PASSOS.map(p => p[0] === "Vista o que ganhou" ? ["Vista a arma de treino", "Dê um <b>clique direito</b> na espada de madeira, na bolsa.", () => !!prog.arma]
+  : p[0] === "Abra a sua ficha" ? [p[0], "Aperte <kbd>P</kbd>. Cada bolinha de EXP cheia dá um ponto de atributo. As skills chegam no <b>nível 5</b>, com a classe. <kbd>R</kbd> e <kbd>X</kbd> usam as poções.", p[2]] : p).concat([
+  ["Vá ao Altar das Eras", "No <b>nível 5</b>, siga a estrela do mapa (<kbd>M</kbd>) até a ilha a oeste, suba a escadaria e fale com a Guardiã para escolher a sua classe.", () => classe !== "aprendiz"]]);
+const guiaPassos = () => prog && prog.vocacao ? GUIA_PASSOS_APRENDIZ : GUIA_PASSOS;
+let guiaFeito = null;
+function guiaDesenhar() {
+  const el = $("#guia"), g = prog && prog.guia, ver = !!g && !g.fim;
+  if (el.hidden === ver) el.hidden = !ver;
+  if (!ver) { guiaFeito = null; return; }
+  if (guiaFeito === g.passo) return; guiaFeito = g.passo;
+  const PASSOS = guiaPassos();
+  $("#guiaConta").textContent = `${Math.min(g.passo + 1, PASSOS.length)} de ${PASSOS.length}`;
+  $("#guiaLista").innerHTML = PASSOS.map(([t, txt], k) => k < g.passo ? `<li class="feito">${t}</li>` : k === g.passo ? `<li class="agora"><b>${t}</b><p>${txt}</p></li>` : "").join("");
+}
+// a cada 0,3 s, também com o jogo pausado (o Mapa do Mundo pausa)
+function passoGuia() {
+  const g = prog && prog.guia;
+  const PASSOS = guiaPassos();
+  if (g && !g.fim && PASSOS[g.passo] && PASSOS[g.passo][2](g)) {
+    g.passo++; delete g.x0; delete g.y0;
+    if (g.passo >= PASSOS.length) { g.fim = true; avisarLongo("Primeiros passos concluídos. Boa caçada! As quests no pergaminho mostram o caminho.", 5000); som("missao", null, 0.7); }
+    else som("ui_aceitar", null, 0.5);
+    salvarProgresso();
+  }
+  guiaDesenhar();
+}
+function guiaAbrir(sim) { if (!prog) return; prog.guia = sim ? { passo: 0 } : { ...(prog.guia || {}), fim: true }; salvarProgresso(); guiaFeito = null; guiaDesenhar(); }
 function nascerNaVila() {
   montarMapa("vila1"); prog.mapa = "vila1";
   [viking.x, viking.y] = pontoSeguro(MAPAS.vila1);
@@ -21277,8 +21599,10 @@ function nascerNaVila() {
 }
 // na abertura do jogo: entra com a última classe jogada (sem gravar por cima o personagem que veio de carregarProgresso)
 function classeDoInicio() {
+  const k = (() => { try { return localStorage.getItem("classe") || ""; } catch (e) { return ""; } })();
+  if (k.startsWith("aprendiz_") && !INICIO_NOVO && !SELECAO_NO_INICIO && SELECAO_REGRA && progressoAprendizDe(k.slice(9))) { const a = salvarTravado; salvarTravado = true; try { trocarClasse("aprendiz", k.slice(9)); } finally { salvarTravado = a; } return; }   // (R165)
   const c = classeSalva();
-  if (!c || c === classe || SELECAO_NO_INICIO || !SELECAO_REGRA || !progressoSalvoDe(c)) return;
+  if (!c || c === classe || INICIO_NOVO || SELECAO_NO_INICIO || !SELECAO_REGRA || !progressoSalvoDe(c)) return;
   const antes = salvarTravado; salvarTravado = true;
   try { trocarClasse(c); } finally { salvarTravado = antes; }
 }
@@ -21316,11 +21640,343 @@ function montarSelecao() {
 }
 montarSelecao();
 
+// ---------------------------------------------------------------- o aprendiz e a tela inicial (R165; Logs/Vocacoes/DESENHO_ALTAR_APRENDIZ.md)
+// Quem nasce pela tela nova é um aprendiz: corpo a corpo, sem skills, com a arma de treino e a vocação guardada (prog.vocacao). No nível 5 ele
+// sobe ao Altar das Eras (na ilha a oeste da Vila 1) e escolhe uma das classes da vocação. O save fica em progresso_aprendiz_<vocacao> e, ao
+// confirmar, vira progresso_<classe>. Quem já tem classe segue como está (sem prog.vocacao, a regra de pontos de sempre)
+function vocacaoDaClasse(c) { return Object.keys(VOCACOES).find(k => VOCACOES[k].classes.includes(c)) || null; }
+function classeOcupada(c) { return !!progressoSalvoDe(c); }
+function vocacaoLivre(v) { return VOCACOES[v].classes.some(c => !classeOcupada(c)); }
+function progressoAprendizDe(v) { try { const p = JSON.parse(localStorage.getItem("progresso_aprendiz_" + v)); return p && p.atrib ? p : null; } catch (e) { return null; } }
+// os personagens deste navegador (a lista da tela inicial; com o login, ela vem da conta)
+function listaPersonagens() {
+  const l = [];
+  for (const c of CLASSES_SELECAO) { const p = progressoSalvoDe(c); if (p) l.push({ chave: c, classe: c, nome: p.nome || NOME_CLASSE[c], titulo: NOME_CLASSE[c], nivel: p.nivel || 1, mapa: p.mapa, img: c }); }
+  for (const v of Object.keys(VOCACOES)) { const p = progressoAprendizDe(v); if (p) l.push({ chave: "aprendiz_" + v, classe: "aprendiz", vocacao: v, nome: p.nome || "Aprendiz", titulo: "Aprendiz · " + VOCACOES[v].nome, nivel: p.nivel || 1, mapa: p.mapa, img: "aprendiz" }); }
+  return l;
+}
+function apagarPersonagem(chave) {
+  try { localStorage.removeItem("progresso_" + chave); localStorage.removeItem("jornada_" + chave); if (localStorage.getItem("classe") === chave) localStorage.removeItem("classe"); } catch (e) {}
+  if (chave === chaveSave()) SEL.semVolta = true;                       // (o personagem da tela foi apagado: sem "Voltar ao jogo")
+}
+// a tela inicial: a lista dos personagens (entrar, apagar) e "Novo personagem", com as 4 vocações. Sem ninguém salvo, abre direto nas vocações
+function abrirInicio(op = {}) {
+  if (SEL.aberta) return;
+  if (op.deMenu && prog) salvarProgresso();
+  SEL.aberta = true; SEL.inicio = true; SEL.deMenu = !!op.deMenu; SEL.semVolta = false; SEL.foco = document.activeElement; salvarTravado = true;
+  $("#inicio").hidden = false;
+  for (const el of document.body.children) if (el.id !== "inicio" && el.tagName !== "SCRIPT" && !el.inert) { el.inert = true; SEL.inertes.push(el); }
+  desenharInicio(listaPersonagens().length ? "lista" : "novo");
+}
+function desenharInicio(aba) {
+  SEL.aba = aba;
+  const lista = listaPersonagens(), corpo = $("#inCorpo");
+  $("#inTitulo").textContent = aba === "lista" ? "Seus personagens" : "Novo personagem";
+  $("#inNovo").hidden = aba !== "lista"; $("#inLista").hidden = aba === "lista" || !lista.length;
+  $("#inVoltar").hidden = !SEL.deMenu || !!SEL.semVolta;
+  $("#inNota").textContent = aba === "lista" ? "Cada navegador guarda um personagem por classe." : "Você começa como aprendiz. No nível 5, sobe ao Altar das Eras e escolhe uma das classes da vocação.";
+  if (aba === "lista") {
+    corpo.className = "ic-corpo ic-lista";
+    corpo.innerHTML = lista.map(p => `<article class="ic-perso" data-chave="${p.chave}"><figure><img src="selecao/${p.img}.webp" alt="" decoding="async"></figure>` +
+      `<div class="ic-txt"><h3>${escH(p.nome)}</h3><p>${escH(p.titulo)}</p><p class="ic-nv">Nível ${p.nivel} · ${escH((MAPAS[p.mapa] || MAPAS.vila1).nome)}</p></div>` +
+      `<div class="ic-botoes"><button type="button" class="sc-escolher" data-entrar="${p.chave}">Entrar</button><button type="button" class="sc-voltar sc-zero" data-apagar="${p.chave}">Apagar</button></div></article>`).join("");
+  } else {
+    corpo.className = "ic-corpo ic-vocacoes";
+    corpo.innerHTML = Object.entries(VOCACOES).map(([v, V]) => {
+      const livre = vocacaoLivre(v), ap = progressoAprendizDe(v);
+      const figs = [...V.classes.map(c => `<figure><img src="selecao/${c}.webp" alt="" decoding="async"><figcaption>${NOME_CLASSE[c]}${classeOcupada(c) ? " <small>(já existe)</small>" : ""}</figcaption></figure>`), ...(V.classes.length < 2 ? [`<figure class="ic-coberta"><span aria-hidden="true"></span><figcaption>Em breve</figcaption></figure>`] : [])].join("");
+      const txt = ap ? `Entrar · Nv ${ap.nivel || 1}` : livre ? "Escolher" : "Sem vaga";
+      return `<article class="ic-voc${livre || ap ? "" : " fechada"}" data-voc="${v}"><h3>${V.nome}</h3><div class="ic-figs">${figs}</div><p>${V.frase}</p>` +
+        (livre || ap ? "" : `<p class="ic-aviso">As classes desta vocação já têm personagem neste navegador.</p>`) +
+        `<button type="button" class="sc-escolher" data-vocacao="${v}"${livre || ap ? "" : " disabled"}>${txt}</button></article>`;
+    }).join("");
+  }
+  setTimeout(() => { const b = corpo.querySelector("button:not([disabled])"); if (SEL.aberta && b) b.focus({ preventScroll: true }); }, 40);
+}
+function inicioEntrar(f) {
+  if (SEL.escolhendo || !SEL.aberta) return SEL.escolhendo;
+  if (typeof somIniciar === "function") somIniciar();
+  SEL.escolhendo = (async () => {
+    if (!window.jogoPronto) { $("#inNota").textContent = "Preparando o mundo…"; while (!window.jogoPronto) await new Promise(r => setTimeout(r, 120)); }
+    f();
+  })().finally(() => { SEL.escolhendo = null; });
+  return SEL.escolhendo;
+}
+// entra com o aprendiz da vocação v: o que já existe continua; o novo nasce na Vila 1 só com o baú
+function entrarAprendiz(v, op = {}) {
+  const salvo = op.novo ? null : progressoAprendizDe(v);
+  salvarTravado = true;
+  trocarClasse("aprendiz", v);
+  if (!salvo) {
+    prog = progressoIniciante("aprendiz"); prog.vocacao = v; recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
+    nascerNaVila();
+    jornada = jornadaNova(true);
+  }
+  fecharSelecao(); salvarTravado = false;
+  salvarProgresso(); jornadaSalvar(); lembrarClasse("aprendiz");
+  montarBarraSkills(); atualizarFicha(); desenharBolsa(); atualizarItensBarra(); desenharFerreiro();
+  if (!salvo) { som("ui_aceitar", null, 0.8); abrirBolsa(true); avisarLongo("Aprendiz criado! Abra o Baú do Iniciante na bolsa: clique direito ou dois cliques.", 6500); }
+  else avisar(`Bem-vindo de volta, ${prog.nome || "Aprendiz"}!`);
+}
+function entrarPersonagem(chave) {
+  if (chave.startsWith("aprendiz_")) entrarAprendiz(chave.slice(9));
+  else entrarComClasse(chave);
+}
+function montarInicio() {
+  $("#inNovo").onclick = () => { desenharInicio("novo"); som("ui_clique", null, 0.6); };
+  $("#inLista").onclick = () => { desenharInicio("lista"); som("ui_clique", null, 0.6); };
+  $("#inVoltar").onclick = () => fecharSelecao();
+  $("#inCorpo").onclick = e => {
+    const en = e.target.closest("[data-entrar]"), ap = e.target.closest("[data-apagar]"), vo = e.target.closest("[data-vocacao]");
+    if (en) { const k = en.dataset.entrar; if (k === chaveSave() && SEL.deMenu && !SEL.semVolta) { fecharSelecao(); return; } inicioEntrar(() => entrarPersonagem(k)); }
+    else if (vo && !vo.disabled) {
+      const v = vo.dataset.vocacao, jaTem = !!progressoAprendizDe(v);
+      inicioEntrar(() => entrarAprendiz(v, { novo: !jaTem }));
+    } else if (ap) {
+      // (o 1º clique pede confirmação, o 2º, em até 4 s, apaga)
+      const k = ap.dataset.apagar, p = listaPersonagens().find(q => q.chave === k);
+      if (SEL.apagando !== k || performance.now() - (SEL.apagandoEm || 0) > 4000) { SEL.apagando = k; SEL.apagandoEm = performance.now(); ap.classList.add("confirmar"); ap.textContent = `Clique de novo: apaga o Nv ${p ? p.nivel : 1}`; som("ui_clique", null, 0.6); return; }
+      SEL.apagando = null; apagarPersonagem(k); som("ui_negar"); desenharInicio(listaPersonagens().length ? "lista" : "novo");
+    }
+  };
+}
+montarInicio();
+
+// ---- a escolha no altar: o modelo, as skills, a arma e a roupa inicial passam a ser os da classe; nível, EXP, Yang, bolsa, quests e pontos ficam
+function confirmarClasse(c) {
+  if (classe !== "aprendiz" || !prog || prog.nivel < NIVEL_ALTAR || !VOCACOES[VOCACAO] || !VOCACOES[VOCACAO].classes.includes(c) || classeOcupada(c)) return false;
+  const v = VOCACAO, p = prog, ini0 = { ...ATRIB_INICIAL.aprendiz }, ini1 = ATRIB_INICIAL[c], { x, y, dir } = viking;
+  for (const k of ORDEM_ATRIB) p.atrib[k] = ini1[k] + (p.atrib[k] - ini0[k]);   // (os pontos que ele distribuiu continuam valendo)
+  p.inv = (p.inv || []).filter(it => !(it.chave || "").startsWith("arma:aprendiz"));
+  p.arma = { ref: 0, bon: [], tier: 0 };
+  p.equip = p.equip || {};
+  p.equip.armadura = { peca: ROUPA_DA_CLASSE[c] || "armadura_guerreiro", tier: 0, ref: 0, bon: [] };
+  if (!p.equip.elmo) p.equip.elmo = { peca: "elmo", tier: 0, ref: 0, bon: [] };
+  p.skills = {};
+  const m = p.missoes || (p.missoes = {}); m.altar = { ...(m.altar || {}), etapa: MISSOES.altar.etapas.length, n: 0, carta: 2 };
+  if (npcAberto) abrirNpc(null);
+  salvarTravado = true;
+  try {
+    localStorage.setItem("progresso_" + c, JSON.stringify(p));
+    const jn = localStorage.getItem("jornada_aprendiz_" + v); if (jn) localStorage.setItem("jornada_" + c, jn);
+    localStorage.removeItem("progresso_aprendiz_" + v); localStorage.removeItem("jornada_aprendiz_" + v);
+  } catch (e) {}
+  trocarClasse(c);
+  salvarTravado = false;
+  Object.assign(viking, { x, y, dir, alvo: null, rota: null });
+  salvarProgresso(); jornadaSalvar(); lembrarClasse(c);
+  montarBarraSkills(); atualizarFicha(); desenharBolsa(); atualizarItensBarra(); desenharFerreiro();
+  ondas.push({ x, y, t: 0, raio: 3, cor: 45, fogo: true, pilares: [], rachas: [] });
+  for (let k = 0; k < 60; k++) { const a = Math.random() * 7, w = 0.4 + Math.random() * 1.4; brasas.push({ x: x + Math.cos(a) * 0.5, y: y + Math.sin(a) * 0.4, z: Math.random() * 1.8, vx: Math.cos(a) * w, vy: Math.sin(a) * w, vz: 1.5 + Math.random() * 2.5, vida: 1.2, max: 1.2, tam: 0.06, cor: 46 + Math.random() * 10 }); }
+  pagarMissao(MISSOES.altar.etapas[0].premio);
+  som("nivel", viking, 1.1);
+  numeros.push({ wx: x, wy: y, y: -190, vida: 2.4, txt: NOME_CLASSE[c] + "!", critico: true });
+  avisarLongo(`Você agora é ${NOME_CLASSE[c]}! Abra a ficha (P) e gaste os seus ${p.pontosSkill || 0} pontos de skill.`, 6500);
+  chatSistema(`A Guardiã do Altar confirmou a sua escolha: ${NOME_CLASSE[c]}.`, "nivel");
+  return true;
+}
+// a conversa da Guardiã do Altar: abaixo do nível 5 manda voltar; depois mostra as classes da vocação e pede a confirmação
+function altarNaConversa(o) {
+  const fala = t => { $("#npcFala").textContent = `"${t}"`; };
+  if (classe !== "aprendiz") { fala(`Você já escolheu o seu caminho, ${NOME_CLASSE[classe]}. Veja: a pedra guarda todos os heróis que vieram pelos rasgos.`); return; }
+  if (prog.nivel < NIVEL_ALTAR) { fala(`Ainda não, aprendiz. Treine no vale e volte no nível ${NIVEL_ALTAR}: então a pedra vai reconhecer a sua era.`); quadroConversa("Altar das Eras", `A escolha abre no nível ${NIVEL_ALTAR}. Você está no nível ${prog.nivel}.`); return; }
+  const V = VOCACOES[VOCACAO];
+  if (o.altarEscolha && V.classes.includes(o.altarEscolha) && !classeOcupada(o.altarEscolha)) {
+    const c = o.altarEscolha, inf = INFO_CLASSE[c];
+    fala(`Então a sua era é a dos ${NOME_CLASSE[c]}s? Pense bem: esta escolha não se desfaz.`);
+    quadroConversa(`Ser ${NOME_CLASSE[c]}?`, `${inf.papel}. ${inf.frase} Você recebe a arma e a roupa inicial da classe e as skills dela, com os seus ${prog.pontosSkill || 0} pontos. O nível, a EXP, o Yang e a bolsa ficam.`,
+      [["Confirmar", () => { o.altarEscolha = null; confirmarClasse(c); }], ["Voltar", () => { o.altarEscolha = null; desenharNpc(); }]], "#B8322A", `selecao/${c}.webp`);
+    return;
+  }
+  fala(`A pedra reconhece você. ${V.nome}: duas eras chamam, mas só uma será a sua. Qual delas?`);
+  for (const c of V.classes) {
+    const oc = classeOcupada(c);
+    quadroConversa(NOME_CLASSE[c], oc ? `Você já tem um ${NOME_CLASSE[c]} neste navegador, e cada navegador guarda um personagem por classe.` : `${INFO_CLASSE[c].papel}. ${INFO_CLASSE[c].frase}`,
+      [["Escolher", () => { o.altarEscolha = c; desenharNpc(); som("ui_clique", null, 0.6); }, oc]], oc ? "#8C8A80" : "#ffd23c", `selecao/${c}.webp`);
+  }
+  if (V.classes.length < 2) quadroConversa("Pedestal coberto", "A outra era desta vocação ainda não despertou.", [], "#8C8A80");
+}
+
+// ---------------------------------------------------------------- o Altar das Eras (Logs/Vocacoes): a ilha a oeste da Vila 1, a ponte, a escadaria e o patamar
+// A geometria fica em coordenadas locais (a, b): a para a direita da tela, b para o fundo dela (a vista de 45°), com a origem no meio da ilha. Como na
+// Ilha de Daiyu, o relevo é pintado subido dentro dos pedaços do chão, e a altura (altarZ) entra no zPiso: o herói, a câmera e o clique sobem com ela.
+// O patamar é um bloco: da câmera só se veem a frente e o topo. O chão atrás dele fica escondido, por isso não se pisa (e lá é mar)
+// o perfil da escadaria: 3 lances com 2 patamares pequenos, do chão ao topo
+function altarPerfil(b) {
+  const P = ALTAR.lances;
+  if (b <= P[0][0]) return 0;
+  for (let i = 1; i < P.length; i++) if (b <= P[i][0]) { const [b0, z0] = P[i - 1], [b1, z1] = P[i]; return z0 + (z1 - z0) * (b - b0) / (b1 - b0); }
+  return ALTAR.z;
+}
+const altarDeckZ = a => { const P = ALTAR.ponte, L = P.perfil, t = Math.abs(a - (P.a0 + P.a1) / 2); for (let i = 1; i < L.length; i++) if (t <= L[i][0]) return L[i - 1][1] + (L[i][1] - L[i - 1][1]) * (t - L[i - 1][0]) / (L[i][0] - L[i - 1][0]); return 0; };
+function altarZ(x, y) {
+  if (!naZonaAltar(x, y)) return 0;
+  const [a, b] = altarLocal(x, y), E = ALTAR.esc, T = ALTAR.topo, P = ALTAR.ponte;
+  if (Math.abs(a) <= E.meia && b >= E.b0 && b <= T.b0) return altarPerfil(b);
+  if (Math.abs(a) < T.meia && b >= T.b0 && b < T.b1) return ALTAR.z;
+  if (Math.abs(b - P.b) < P.meia && a > P.a0 && a < P.a1) return altarDeckZ(a);
+  return 0;
+}
+// o que se pisa: a escada inteira, o topo dentro da balaustrada e o chão; a mureta, a balaustrada, o pé do bloco e o que ele esconde barram
+function altarAndavel(x, y) {
+  if (!naZonaAltar(x, y)) return true;
+  const [a, b] = altarLocal(x, y), E = ALTAR.esc, T = ALTAR.topo, P = ALTAR.ponte, aa = Math.abs(a);
+  if (aa < T.meia + 0.4 && b > T.b0 - 0.4) {
+    if (aa < E.meia && b < T.b0 + T.bal) return true;                   // (a boca da escada, no alto)
+    if (aa < ALTAR.templo.meia && b > ALTAR.templo.b0) return false;     // (o templo)
+    return aa < T.meia - T.bal && b > T.b0 + T.bal && b < T.b1 - T.bal;
+  }
+  { const C = ALTAR.colina; if (aa >= E.meia && (a / C.ra) ** 2 + ((b - C.cb) / C.rb) ** 2 < 1) return false; }   // (a rocha)
+  if (aa >= E.meia && aa < E.meia + E.mureta && b > E.b0 - 0.2 && b < T.b0) return false;
+  if (Math.abs(b - P.b) >= P.meia - 0.5 && Math.abs(b - P.b) < P.meia + 0.3 && a > P.g0 && a < P.g1) return false;   // (o guarda-corpo da ponte)
+  return true;
+}
+// o clique: o chão visível mais alto sob o ponteiro (o topo, a escada ou o chão)
+function altarClique(x, y) {
+  const k = ALTURA / ACHATA, vx = Math.SQRT1_2, vy = Math.SQRT1_2;
+  const qx = x - vx * ALTAR.z * k, qy = y - vy * ALTAR.z * k, [qa, qb] = altarLocal(qx, qy), T = ALTAR.topo;
+  if (Math.abs(qa) < T.meia && qb >= T.b0 && qb < T.b1) return { x: qx, y: qy };
+  let px = x, py = y;
+  for (let n = 0; n < 6; n++) { const h = altarZ(px, py); px = x - vx * h * k; py = y - vy * h * k; }
+  return { x: px, y: py };
+}
+// o raio da ilha na direção t e a distância com sinal até a terra (a ilha e a ponte; negativa dentro): entra em borda()
+function altarRaio(t) { const I = ALTAR.ilha; return 1 / Math.hypot(Math.cos(t) / I.rx, Math.sin(t) / I.ry) * (1 + 0.035 * Math.sin(3 * t + 1) + 0.02 * Math.sin(7 * t + 2)); }
+function bordaAltar(x, y) {
+  const [a, b] = altarLocal(x, y), I = ALTAR.ilha, P = ALTAR.ponte, db = b - I.cb;
+  const ilha = Math.hypot(a, db) - altarRaio(Math.atan2(db, a));
+  const deck = Math.max(Math.abs(b - P.b) - (P.meia + 0.3), P.a0 - 3 - a, a - P.a1);   // (entra 3 m na terra da ilha: a folga da costa não corta a ponta da ponte)
+  return RAIO + Math.min(ilha, deck);
+}
+function altarCorMini(x, y) {
+  if (!naZonaAltar(x, y)) return null;
+  const [a, b] = altarLocal(x, y), E = ALTAR.esc, T = ALTAR.topo, P = ALTAR.ponte;
+  if (Math.abs(a) < T.meia && b >= T.b0 && b < T.b1) return [201, 150, 62];
+  if (Math.abs(a) < E.meia + E.mureta && b >= E.b0 && b < T.b0) return [184, 176, 158];
+  if (Math.abs(b - P.b) < P.meia && a > P.a0 && a < P.a1 && bordaV1(x, y) > RAIO) return [150, 146, 134];
+  return null;
+}
+// (a beira da água da Vila 1 é desenhada por cima do chão a cada quadro: ela passa por baixo da ponte)
+function altarRecorteCosta() {
+  const P = ALTAR.ponte, [mx, my] = altarMundo((P.a0 + P.a1) / 2, P.b);
+  if (Math.hypot(mx - cam.x, my - cam.y) > 46 || (window.M3D && M3D.ativo)) return;
+  const c = new Path2D(); c.rect(0, 0, W, H);
+  const pts = [], N = 12;
+  for (let k = 0; k <= N; k++) { const a = P.g0 + (P.a1 - P.g0) * k / N, [x, y] = altarMundo(a, P.b + P.meia); pts.push(noMundo(x, y, altarDeckZ(a) + 0.9)); }
+  for (let k = N; k >= 0; k--) { const a = P.g0 + (P.a1 - P.g0) * k / N, [x, y] = altarMundo(a, P.b - P.meia); pts.push(noMundo(x, y, -0.9)); }
+  pts.forEach((q, k) => k ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); c.closePath();
+  cx.clip(c, "evenodd");
+}
+// a pintura, dentro de cada pedaço de chão por onde o altar passa (P: do mapa para o pedaço). Cores da paleta fechada, chapadas, com o traço de nanquim
+function altarPintar(g, P, esc, x0, y1, cw, ch) {
+  const U0 = x0 - 2, U1 = x0 + PEDACO + 2, V0 = y1 - PEDACO - 2, V1 = y1 + 2;
+  if (U1 < ALTAR.U - 34 || U0 > ALTAR.U + ALTAR.ponte.a1 + 3 || V1 < ALTAR.V - 26 || V0 > ALTAR.V + ALTAR.topo.b1 + 11) return;
+  const Pz = (a, b, z = 0) => { const p = P(...altarMundo(a, b)); return [p[0], p[1] - z * ALTURA * esc]; };
+  const caminho = (pts, fechar = true) => { g.beginPath(); pts.forEach(([a, b, z], k) => { const q = Pz(a, b, z || 0); k ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); if (fechar) g.closePath(); };
+  const lw = m => Math.max(1, m * esc);
+  const NAN = "#1E1B18", I = ALTAR.ilha, E = ALTAR.esc, Pt = ALTAR.ponte;
+  const contorno = d => { const l = []; for (let k = 0; k <= 96; k++) { const t = k / 96 * Math.PI * 2, r = altarRaio(t) + d; l.push([Math.cos(t) * r, I.cb + Math.sin(t) * r]); } return l; };
+  g.save(); g.lineJoin = "round"; g.lineCap = "round"; g.globalAlpha = 1;
+  // o raso em volta da ilha (as mesmas faixas chapadas do mar da Vila 1)
+  for (const [d, cor] of [[3.4, "#356472"], [1.7, "#3a6e6c"]]) { caminho(contorno(d)); g.fillStyle = cor; g.fill(); }
+  // a areia, a grama e o nanquim da beira
+  caminho(contorno(0)); g.fillStyle = TEX.areia ? padraoChao(g, TEX.areia, x0, y1, esc) : "#d9c08a"; g.fill();
+  g.strokeStyle = "#bfa36d"; g.lineWidth = 0.9 * esc * 0.5; g.stroke();
+  caminho(contorno(0)); g.strokeStyle = NAN; g.lineWidth = lw(0.03); g.stroke();
+  caminho(contorno(-2.8)); g.fillStyle = TEX.grama ? padraoChao(g, TEX.grama, x0, y1, esc) : "#6E9A4A"; g.fill();
+  // o caminho de lajes: da ponte ao pé da escada
+  const lajes = [[Pt.a0 + 0.5, Pt.b], [9, Pt.b - 0.4], [3.5, E.b0 - 1.8], [0, E.b0 - 1.4]];
+  caminho(lajes, false); g.strokeStyle = "#8A7A5C"; g.lineWidth = 3.1 * esc * 0.72; g.stroke();
+  caminho(lajes, false); g.strokeStyle = "#B7A98C"; g.lineWidth = 2.7 * esc * 0.72; g.stroke();
+  g.restore();
+}
+// as artes da ilha: carregam na 1ª vez que a câmera chega perto. A colina e a ponte vão logo acima do chão; o templo, as estátuas e o guarda-corpo da frente da ponte, na ordem dos objetos
+function altarPeca(n) {
+  const q = ALTAR_PECAS[n];
+  if (!q.im) { q.im = new Image(); q.im.onload = () => { q.ok = true; }; const arq = `deco_b/altar/${n}.webp`; q.im.src = VERSOES.com ? VERSOES.com(arq) : arq; }
+  return q.ok ? q : null;
+}
+function altarDesenha(q, im, X, Y, s) { const k = s / q.ppm; cx.drawImage(im, X - q.px * k, Y - q.py * k, im.width * k, im.height * k); }
+function altarArteChao() {
+  if (window.M3D && M3D.ativo) return;
+  { const [mx, my] = altarMundo(10, 0); if (Math.hypot(mx - cam.x, my - cam.y) > 90) return; }
+  const s = PX * zoom, P = ALTAR.ponte, po = altarPeca("ponte"), il = altarPeca("ilha");
+  if (po) { const [X, Y] = noMundo(...altarMundo((P.a0 + P.a1) / 2, P.b), -P.baixa); altarDesenha(po, po.im, X, Y, s); }
+  if (il) { const [X, Y] = noMundo(...altarMundo(0, ALTAR.esc.b0)); altarDesenha(il, il.im, X, Y, s); }
+}
+let ALTAR_ESTATUAS = [];
+function altarAcesa(c) { return classe === "aprendiz" ? !!VOCACOES[VOCACAO] && VOCACOES[VOCACAO].classes.includes(c) : c === classe; }
+function montarAltar() {
+  for (let i = objetos.length - 1; i >= 0; i--) { const o = objetos[i]; if (!o.npc && !o.caverna && DECORACAO.includes(o.tipo) && naZonaAltar(o.x, o.y) && bordaAltar(o.x, o.y) < RAIO + 1) objetos.splice(i, 1); }
+  const T = ALTAR.topo, por = (tipo, a, b, extra = {}) => { const [x, y] = altarMundo(a, b), o = completarDecoracao({ tipo, x, y, ...extra }); o.altar = true; objetos.push(o); return o; };
+  const ordem = ALTAR.ordem;
+  ALTAR_ESTATUAS = ordem.map((c, k) => {                                 // (duas fileiras de 4, uma de cada lado, do fundo para a frente: a de trás pode cobrir a cerca do fundo, a da frente não encosta na cerca da frente)
+    const lado = k < ordem.length / 2 ? -1 : 1, i = lado < 0 ? k : k - ordem.length / 2, [x, y] = altarMundo(lado * 8, 18.6 - i * 3.53);
+    const o = { tipo: "estatua_era", classe: c, x, y, r: 0.55, zChao: ALTAR.z, altar: true, coberta: !c };
+    objetos.push(o); return o;
+  });
+  { const [x, y] = altarMundo(0, ALTAR.templo.b); objetos.push({ tipo: "altar_arte", peca: "templo", x, y, r: 0, zChao: ALTAR.z, altar: true, arteM: 7 }); }
+  { const P = ALTAR.ponte, m = (P.a0 + P.a1) / 2, [x, y] = altarMundo(m, P.b - P.meia); objetos.push({ tipo: "altar_arte", peca: "ponte_frente", x, y, r: 0, zChao: -P.baixa, anc: altarMundo(m, P.b), altar: true, arteM: 13 }); }
+  // o verde e as lanternas da ilha (os mesmos modelos do cenário)
+  for (const [t, a, b, e] of [["pinheiro", -17.5, -5, 1.25], ["pinheiro", -13.5, -10.5, 1.05], ["arvore", 18.5, 3, 1.15], ["pinheiro", 17.5, 8, 1.2], ["arbusto", -6.5, -12.5, 0.9], ["arbusto", 8, -12, 0.85], ["arbusto", -11, -11.5, 0.9], ["pedra", -18, 2, 1.1], ["pedra", 14, -12.5, 0.9], ["bambu", -18.5, 6, 1], ["bambu", -19.5, -1, 1]]) por(t, a, b, { esc: e, r: t === "pedra" ? 0.45 : 0.35, tom: 0, forma: t === "pedra" ? Array.from({ length: 7 }, (_, k) => 0.8 + hash(k, a * 10, 77) * 0.3) : undefined });
+  for (const [a, b] of [[-4.7, ALTAR.esc.b0 - 1.2], [4.7, ALTAR.esc.b0 - 1.2]]) por("lanterna", a, b);
+  NPC_3D[NOME_GUARDIA] = "xama"; NPC_TINTA[NOME_GUARDIA] = [0.048, 0.195, 0.107];
+  { const n = objetos.find(o => o.npc && o.nome === NOME_GUARDIA); if (n) n.dentroPredio = true; }   // (o lugar dela é o alto da escadaria: a cidade não a move)
+  refazerGrade();
+}
+function desenharEstatuaEra(o, X, Y, s, lw, t) {
+  const g = cx;
+  if (!o.coberta) {
+    const q = altarPeca("estatua_" + o.classe);
+    sombra(X, Y, s * 0.7);
+    if (q) altarDesenha(q, q.im, X, Y, s);
+    return;
+  }
+  // o pedestal coberto (a outra era da xamã ainda não despertou): o mesmo bloco reto das estátuas, com o pano por cima
+  const H = s * 0.2, ML = s * 0.85, MF = s * 0.42, Yp = Y - H + s * 0.1, e = s * 0.92;
+  sombra(X, Y, s * 0.7);
+  g.save(); g.lineJoin = "round"; g.strokeStyle = "#1E1B18"; g.lineWidth = lw;
+  g.fillStyle = "#7B736A"; g.fillRect(X - ML, Y + MF - H, 2 * ML, H); g.strokeRect(X - ML, Y + MF - H, 2 * ML, H);
+  g.fillStyle = "#A69C8E"; g.fillRect(X - ML, Y - MF - H, 2 * ML, 2 * MF); g.strokeRect(X - ML, Y - MF - H, 2 * ML, 2 * MF);
+  g.fillStyle = "#2D4A6B"; g.beginPath(); g.moveTo(X - e * 0.34, Yp + e * 0.02); g.quadraticCurveTo(X - e * 0.42, Yp - e * 0.8, X - e * 0.12, Yp - e * 1.5); g.quadraticCurveTo(X, Yp - e * 1.72, X + e * 0.12, Yp - e * 1.5); g.quadraticCurveTo(X + e * 0.42, Yp - e * 0.8, X + e * 0.34, Yp + e * 0.02); g.quadraticCurveTo(X, Yp + e * 0.1, X - e * 0.34, Yp + e * 0.02); g.closePath(); g.fill(); g.stroke();
+  g.strokeStyle = "#16283e"; g.lineWidth = Math.max(1, e * 0.03); for (const d of [-0.16, 0.02, 0.17]) { g.beginPath(); g.moveTo(X + e * d, Yp - e * 0.02); g.quadraticCurveTo(X + e * d * 0.7, Yp - e * 0.7, X + e * d * 0.3, Yp - e * 1.3); g.stroke(); }
+  g.fillStyle = "#C9963E"; g.beginPath(); g.ellipse(X, Yp - e * 0.72, e * 0.27, e * 0.05, 0, 0, 7); g.fill(); g.restore();
+}
+// o clique: a caixa de cada estátua na tela, da da frente para a do fundo
+function altarEstatuaNoClique(px, py) {
+  if (MAPA_CAM !== MAPAS.vila1 || (window.M3D && M3D.ativo)) return null;
+  const s = PX * zoom;
+  for (const o of [...ALTAR_ESTATUAS].sort((p, q) => altarLocal(p.x, p.y)[1] - altarLocal(q.x, q.y)[1])) {
+    const [X, Y] = noMundo(o.x, o.y, o.zChao);
+    if (Math.abs(px - X) < s * 0.9 && py > Y - s * 2.3 && py < Y + s * 0.55) return o;
+  }
+  return null;
+}
+function abrirEstatua(o) {
+  abrirNpc({ estatua: o, x: o.x, y: o.y, fala: 0, dados: { titulo: o.coberta ? "Pedestal coberto" : `Estátua: ${NOME_CLASSE[o.classe]}`, falas: [""] } });
+  som("ui_clique", null, 0.6);
+}
+function desenharFichaEstatua(o) {
+  const q = o.estatua, c = q.classe;
+  $("#npcNome").textContent = o.dados.titulo; $("#npcLoja").innerHTML = ""; $("#npcMais").hidden = true;
+  if (q.coberta) { $("#npcFala").textContent = "Um pano cobre esta pedra. A era que ela guarda ainda não despertou."; quadroConversa("Pedestal coberto", "A outra era dos Filhos do Dragão.", [], "#8C8A80"); return; }
+  const inf = INFO_CLASSE[c], V = Object.values(VOCACOES).find(v => v.classes.includes(c));
+  $("#npcFala").textContent = `Uma das eras dos ${V.nome}.`;
+  const sua = classe === "aprendiz" && altarAcesa(c) ? ` A sua vocação pode escolher esta era, a partir do nível ${NIVEL_ALTAR}, falando com a ${NOME_GUARDIA}.` : "";
+  quadroConversa(NOME_CLASSE[c], `${inf.papel}. ${inf.frase} Dificuldade: ${NOME_DIF[inf.dif]}.${sua}`, [], "#ffd23c", `selecao/${c}.webp`);
+}
+function desenharArteAltar(o, X, Y, s) {
+  const q = altarPeca(o.peca); if (!q) return;
+  if (o.anc) { const [ax, ay] = noMundo(o.anc[0], o.anc[1], o.zChao); X = ax; Y = ay; }   // (o pé da imagem não é o lugar dela na ordem)
+  altarDesenha(q, q.im, X, Y, s);
+}
+
 // ---- o Baú do Iniciante: um clique direito (ou dois cliques) abre, ele some e o kit vai para a bolsa
 // O kit segue a Lehrlingstruhe I do Metin2 (arma nível 1 +0, 20 Vermelhas, 20 Azuis) com a roupa e o elmo nível 1 do
 // jogo (no Metin2 a armadura de iniciante vinha das missões dos níveis 2 e 7); sem yang, como o baú de lá
 const KIT_POCOES = 20;
 function kitIniciante(c = classe) {
+  if (c === "aprendiz") return [{ chave: chaveArma("aprendiz", 0), qtd: 1, ref: 0, bon: [] }, { chave: "pocao", qtd: KIT_POCOES }, { chave: "pocaoMana", qtd: KIT_POCOES }];   // (R165: a arma de treino e as poções; o kit da classe vem na confirmação)
   return [{ chave: chaveArma(c, 0), qtd: 1, ref: 0, bon: [] }, { chave: `peca:${ROUPA_DA_CLASSE[c] || "armadura_guerreiro"}:0`, qtd: 1, ref: 0, bon: [] },
           { chave: "peca:elmo:0", qtd: 1, ref: 0, bon: [] }, { chave: "pocao", qtd: KIT_POCOES }, { chave: "pocaoMana", qtd: KIT_POCOES }];
 }
@@ -21367,7 +22023,7 @@ function jornadaNova(novo = false) {
 }
 function jornadaCarregar() {
   jornada = null;
-  try { jornada = JSON.parse(localStorage.getItem("jornada_" + classe)); } catch (e) {}
+  try { jornada = JSON.parse(localStorage.getItem("jornada_" + chaveSave())); } catch (e) {}
   if (!jornada || jornada.v !== 1) jornada = jornadaNova();
   jornadaSalvaEm = jornada.jogado;
   if (prog && prog.semTrava) jornadaAdmin("sem trava ligado", true);
@@ -21376,7 +22032,7 @@ function jornadaCarregar() {
 function jornadaSalvar() {
   if (!jornada || salvarTravado) return;
   jornadaSalvaEm = jornada.jogado;
-  try { localStorage.setItem("jornada_" + classe, JSON.stringify(jornada)); } catch (e) {}
+  try { localStorage.setItem("jornada_" + chaveSave(), JSON.stringify(jornada)); } catch (e) {}
 }
 function jornadaZerar(novo = false) { jornada = jornadaNova(novo); if (prog && prog.semTrava) jornadaAdmin("sem trava ligado", true); jornadaSalvar(); mostrarJornada(); }
 function jornadaAdmin(motivo, semSalvar) {
@@ -21496,6 +22152,9 @@ function montarJornada() {
   $("#jorFechar").onclick = () => abrirJornada(false);
   $("#jorCopiar").onclick = copiarJornada;
   $("#oJornada").onclick = () => { abrirOpcoes(false); abrirJornada(true); };
+  $("#oGuia").onclick = () => { abrirOpcoes(false); guiaAbrir(true); };
+  $("#guiaFechar").onclick = () => guiaAbrir(false);
+  setInterval(passoGuia, 300);
   $("#fJornada").onclick = () => abrirJornada();
   let confirma = 0;
   $("#jorZerar").onclick = e => {
@@ -21526,10 +22185,19 @@ function contarQuadro(agora) {
   const d = agora - FPS.t0;
   if (d >= 500) { (FPS.el || (FPS.el = $("#fps"))).textContent = Math.round(FPS.n * 1000 / d) + " fps"; FPS.n = 0; FPS.t0 = agora; }
 }
-// o limite de quadros das Opções (padrão 60: em monitores de 120/144 Hz o jogo não desenha 2× mais à toa). Os quadros
-// têm hora marcada (LIMITE.prox): na média sai o número pedido, mesmo quando a tela não é múltipla dele
-const LIMITE = { fps: (() => { const p = 60; try { const v = localStorage.getItem("fpsLimite"); return v === null ? p : +v; } catch (e) { return p; } })(), prox: 0, escondido: false, raf: 0 };
-function limiteQuadros(v) { LIMITE.fps = +v || 0; LIMITE.prox = 0; try { localStorage.setItem("fpsLimite", LIMITE.fps); } catch (e) {} }
+// o limite de quadros das Opções (padrão 60: em monitores de 120/144 Hz o jogo não desenha 2× mais à toa). R163: desenha de n
+// em n quadros da tela (144 Hz com limite 60: de 2 em 2, 72 por segundo). Com hora marcada, ele alternava 2 e 3 quadros da
+// tela (14 e 21 ms) e o movimento tremia
+const LIMITE = { fps: (() => { const p = 60; try { const v = localStorage.getItem("fpsLimite"); return v === null ? p : +v; } catch (e) { return p; } })(), conta: 0, ult: 0, per: 0, escondido: false, raf: 0 };
+function limiteDeixa(agora) {
+  const L = LIMITE, d = agora - (L.ult || agora); L.ult = agora;
+  if (d > 1 && d < 50) L.per = L.per ? L.per * 0.95 + d * 0.05 : d;     // (o período da tela, medido entre os pedidos de quadro)
+  if (!L.fps || !L.per) return true;
+  const n = Math.max(1, Math.floor(1000 / L.per / L.fps + 0.08));
+  if ((L.conta = (L.conta || 0) + 1) < n) return false;
+  L.conta = 0; return true;
+}
+function limiteQuadros(v) { LIMITE.fps = +v || 0; LIMITE.conta = 0; try { localStorage.setItem("fpsLimite", LIMITE.fps); } catch (e) {} }
 // a aba escondida: o laço para de vez (sem desenhar nem simular) e o som dorme; ao voltar, segue de onde estava
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
@@ -21537,7 +22205,7 @@ document.addEventListener("visibilitychange", () => {
     try { if (Som.ctx && Som.ctx.state === "running") Som.ctx.suspend(); } catch (e) {}
     for (const a of Object.values(Mus.faixas || {})) try { if (!a.paused) { a.pause(); a.dormindo = true; } } catch (e) {}
   } else if (LIMITE.escondido) {
-    LIMITE.escondido = false; antes = performance.now(); LIMITE.prox = 0;
+    LIMITE.escondido = false; antes = performance.now(); LIMITE.ult = 0; LIMITE.conta = 0;
     try { if (Som.ctx && Som.ligado) Som.ctx.resume(); } catch (e) {}
     for (const a of Object.values(Mus.faixas || {})) if (a.dormindo) { a.dormindo = false; a.play().catch(() => {}); }
     if (window.jogoPronto) { cancelAnimationFrame(LIMITE.raf); LIMITE.raf = requestAnimationFrame(laco); }   // (um laço só: o pedido de antes de esconder ainda estava na fila)
@@ -21546,11 +22214,7 @@ document.addEventListener("visibilitychange", () => {
 function laco(agora) {
   if (LIMITE.escondido) return;                                   // (a aba escondida: o visibilitychange volta o laço)
   if (MODO_TESTE && agora - antes < 33) { LIMITE.raf = requestAnimationFrame(laco); return; }   // 30 quadros por segundo
-  if (LIMITE.fps && !MODO_TESTE) {
-    const passo = 1000 / LIMITE.fps;
-    if (agora < LIMITE.prox - 2) { LIMITE.raf = requestAnimationFrame(laco); return; }
-    LIMITE.prox = agora - LIMITE.prox > passo ? agora + passo : LIMITE.prox + passo;
-  }
+  if (!MODO_TESTE && !limiteDeixa(agora)) { LIMITE.raf = requestAnimationFrame(laco); return; }
   const dt = Math.min(0.05, (agora - antes) / 1000); antes = agora;
   const t = agora / 1000;
   passoTempo(dt); passoClima(dt); passoChaoClima(dt); passoSonsAmbiente(dt); passoMusica(dt, performance.now() / 1000);
@@ -21634,11 +22298,12 @@ function montarIntro() {
   $("#oHistoria").onclick = () => { abrirOpcoes(false); abrirIntro(); };
 }
 montarIntro();
-if (SELECAO_NO_INICIO) { if (introNaPrimeira()) abrirIntro({ aoFim: () => abrirSelecao() }); else abrirSelecao(); }   // (antes de tudo: o mundo carrega por baixo; na 1ª vez, a história antes)
+if (INICIO_NOVO) { if (introNaPrimeira()) abrirIntro({ aoFim: () => abrirInicio() }); else abrirInicio(); }   // (R165)
+else if (SELECAO_NO_INICIO) { if (introNaPrimeira()) abrirIntro({ aoFim: () => abrirSelecao() }); else abrirSelecao(); }   // (antes de tudo: o mundo carrega por baixo; na 1ª vez, a história antes)
 carregar().then(() => {
   montarCenario(); carregarMapa(); montarCriaturas(); montarPainel(); montarEditor();
   carregarP3d();
-  prepararMana(); carregarProgresso(); montarChat(); montarCursores(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarArmazem(); montarTempo(); montarFicha(); montarBolsa(); montarBarraSkills(); montarMinimapa(); montarMenu(); montarAdmin(); montarJornada(); montarJanelas();
+  prepararMana(); carregarProgresso(); montarChat(); montarCursores(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarAltar(); montarArmazem(); montarTempo(); montarFicha(); montarBolsa(); montarBarraSkills(); montarMinimapa(); montarMenu(); montarAdmin(); montarJornada(); montarJanelas();
   fecharMapaOriginal();
   classeDoInicio();                                   // (a última classe jogada)
   PRED_CARREGANDO.then(montarPredios);              // (as construções em camadas, com ?predios=1)
@@ -25420,7 +26085,7 @@ function seguir(obj, criar) {
   e.visto = quadro; return e;
 }
 // ---- o rastro da arma: a ponta e o meio da peça da arma (do glb) no mundo, a cada quadro do golpe
-const PECAS = { viking: ["peca_espada"], guerreiro: ["peca_machado"], ninja: ["peca_adaga_d", "peca_adaga_e"], feiticeiro: ["peca_cajado"], arqueiro: [], xama: ["peca_leque"], shura: ["peca_espada"] };
+const PECAS = { aprendiz: ["peca_espada"], viking: ["peca_espada"], guerreiro: ["peca_machado"], ninja: ["peca_adaga_d", "peca_adaga_e"], feiticeiro: ["peca_cajado"], arqueiro: [], xama: ["peca_leque"], shura: ["peca_espada"] };
 const GOLPE = /^(golpe\d|sacar_golpe|giro|punhalada|acrobacia|veneno|bola|raio|terra|lamina_espiritual|furia)/;
 let arma = null;
 function pecasArma() {
@@ -26393,7 +27058,7 @@ var MM = (() => {
 const $m = id => document.getElementById(id);
 const el = $m("mapaMundo"), cvM = $m("mmTela"), g = cvM.getContext("2d"), corpoM = cvM.parentNode;
 // o retângulo do mundo (a ilha, o vale e as Terras do Sul: a caixa da costa, com um pouco de mar em volta)
-const limV1 = () => ({ x0: CAIXA_V1.x0 - 10, x1: CAIXA_V1.x1 + 10, y0: CAIXA_V1.y0 - 10, y1: CAIXA_V1.y1 + 10 });
+const limV1 = () => ({ x0: Math.min(CAIXA_V1.x0, -96) - 10, x1: CAIXA_V1.x1 + 10, y0: CAIXA_V1.y0 - 10, y1: Math.max(CAIXA_V1.y1, 96) + 10 });   // (R165: o mapa cresce para caber a ilha do Altar das Eras)
 const LIM = limV1();
 const V = { cx: 40, cy: 0, esc: 5, w: 0, h: 0, dpr: 1 };
 const est = { aberto: false, aba: "mobs", editando: false, sel: null, selDeco: null, ferr: "escolher", pondoGrupo: false, arrasto: null, mouse: null,
@@ -26523,7 +27188,7 @@ function garantirBase() {
 // ---------------------------------------------------------------- o que vai no mapa
 // os nomes das regiões: [nome, x, y, tamanho (1 região grande, 2 lugar, 3 marco)]
 function rotulos() {
-  return [["Vale do Viking", -14, 50, 1], ["Vila", VILA.x, VILA.y + 15, 2], ["Campo de Treino", PRACA.x, PRACA.y - 7.5, 3], ["Lago", LAGO.x, LAGO.y + LAGO.r + 3.2, 3],
+  return [["Altar das Eras", altarMundo(0, -2)[0], altarMundo(0, -2)[1], 2], ["Vale do Viking", -14, 50, 1], ["Vila", VILA.x, VILA.y + 15, 2], ["Campo de Treino", PRACA.x, PRACA.y - 7.5, 3], ["Lago", LAGO.x, LAGO.y + LAGO.r + 3.2, 3],
           ["Acampamento do Juramento Branco · 13–15", ACAMP.x, ACAMP.y - 12.5, 2], ["Ruínas da Cripta", RUINAS.x - 2, RUINAS.y - 15, 2],
           // (as faixas dos grupos do Metin2, faixaV1)
           ["Campos dos Cães · 1–4", 2, -24, 2], ["Estábulo", ESTABULO.x - 5, ESTABULO.y - 6.5, 3], ["Campos dos Javalis · 4–7", -22, -55, 2], ["Matas dos Ursos · 7–14", -22, -80, 2],
@@ -27420,7 +28085,7 @@ ferramentaCursor();
 
 return {
   abrir, editar, trocarAba, verTudo, imagem, desenharAgora: desenharTela, tabela, tabelaTexto, corNivel, paraTela: (x, y) => paraTela(x, y), doMundo: (px, py) => doMundo(px, py),
-  get aberto() { return est.aberto; }, get cobre() { return est.aberto; }, get pronto() { return !!(base && base.pronto); }, est, V,
+  limites: () => LIM, get aberto() { return est.aberto; }, get cobre() { return est.aberto; }, get pronto() { return !!(base && base.pronto); }, est, V,
 };
 })();
 </script>
