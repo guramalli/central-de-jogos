@@ -813,6 +813,16 @@
   .fx-sk.sel canvas { outline: 2px solid var(--ouro); outline-offset: 1px; }
   .fx-sk canvas:hover { outline: 2px solid var(--ouro); outline-offset: 1px; }
   .ficha .fx-sk button.fx-mais { position: absolute; top: -5px; right: -1px; width: 17px; height: 17px; border-radius: 50%; font-size: 12px; }
+  .fx-sk-grade .fx-formas { grid-template-columns: repeat(3, 1fr); gap: 4px 6px; justify-items: center; }
+  .fx-forma-tit { font-size: 10.5px; line-height: 13px; text-align: center; color: var(--apagado); white-space: nowrap; }
+  .fx-forma { padding-bottom: 5px; }
+  .fx-forma canvas { width: 40px; height: 40px; }
+  .fx-forma > .sk-grau { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); white-space: nowrap; }
+  .fx-forma.apagada canvas { opacity: 0.5; filter: grayscale(0.9) brightness(0.62); cursor: default; }
+  .fx-forma.apagada canvas:hover { outline: none; }
+  .fx-forma.apagada > .sk-grau { opacity: 0.6; }
+  .fx-forma.ativa canvas { outline: 2px solid #c9963e; outline-offset: 1px; }
+  .fx-forma.ativa.sel canvas { outline-color: #ffd98a; box-shadow: 0 0 9px 2px rgba(255, 205, 110, 0.75); }
   .fx-sk-info { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; min-height: 40px; padding: 6px 8px; font-size: 13px;
     border: 1px solid var(--jan-poco-borda); border-radius: 2px; background: var(--jan-poco); }
   .fx-sk-info .sk-nome { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
@@ -1365,7 +1375,7 @@
       <button type="button" role="tab" data-sub="status" aria-pressed="true">Status</button>
       <button type="button" role="tab" data-sub="bonus" aria-pressed="false">Bônus</button>
       <button type="button" role="tab" data-sub="stats" aria-pressed="false">Stats</button>
-      <span class="fx-pontos" id="fPontosCaixa" title="Pontos de atributo: 1 a cada bolinha de EXP cheia (4 por nível)">Pontos [ <b id="fPontosN">0</b> ]</span>
+      <span class="fx-pontos" id="fPontosCaixa" title="Pontos de atributo: 1 em cada uma das 3 primeiras bolinhas de EXP do nível (a 4ª só sobe o nível)">Pontos [ <b id="fPontosN">0</b> ]</span>
     </div>
     <div class="fx-subpag" data-sub="status">
       <div class="fx-status">
@@ -1393,8 +1403,9 @@
     </div>
   </section>
   <section class="ficha-pag" data-pag="skills" aria-label="Skills" hidden>
-    <!-- como a janela "Skill" do Metin2: as abas Corpo e Montaria no alto, "Disponíveis [N]", a grade de 6 colunas com o
-         "+" no canto de quem pode subir, e embaixo as Skills comuns (Standard Skills). A dica de cada skill traz o nível
+    <!-- como a janela "Skill" do Metin2: as abas Corpo e Montaria no alto, "Disponíveis [N]", uma fileira por skill com as 3
+         formas (normal, Mestre, Grão-Mestre e Perfeita; só a do nível atual acesa, com o "+" no canto de quem pode subir),
+         e embaixo as Skills comuns (Standard Skills). A dica de cada skill traz o nível
          atual e o próximo com os números (dicaSkill, SKILL_DADOS) -->
     <div class="fx-sk-topo">
       <div class="fx-grupos" id="fGrupos" role="tablist" aria-label="Grupos de skills"></div>
@@ -1463,7 +1474,7 @@
         <dt>H · K · R</dt><dd>levar dano · cair · levantar</dd>
         <dt>V</dt><dd>Vórtice: gira três vezes seguidas num redemoinho de vento e lâmina, acertando tudo em volta (anda devagar com WASD enquanto gira)</dd>
         <dt>L</dt><dd>Lâmina Espiritual: ergue a espada e uma aura azul a cobre por 90 s (+1 de dano em cada golpe)</dd>
-        <dt>M · B · N</dt><dd>o Mapa do Mundo em tela cheia (M ou Esc fecham; também abre clicando no minimapa) · ligar ou desligar o som (também Ctrl+M; no mundo 3D, ?mundo3d=1, o B gira a câmera) · a música (os dois começam no primeiro clique ou tecla)</dd>
+        <dt>M · B · N</dt><dd>o Mapa do Mundo em tela cheia, com as quests ativas; um clique marca um ponto e uma seta no jogo mostra o caminho (M ou Esc fecham; também abre clicando no minimapa) · ligar ou desligar o som (também Ctrl+M; no mundo 3D, ?mundo3d=1, o B gira a câmera) · a música (os dois começam no primeiro clique ou tecla)</dd>
         <dt>Espaço · Esc</dt><dd>Espaço marca a criatura mais perto na tela e ataca até ela cair; de novo, passa para a próxima da tela (nunca uma derrotada ou renascendo). O alvo fica marcado até você se afastar ou apertar Esc</dd>
         <dt>Arqueiro</dt><dd>1 Flecha Venenosa (envenena e pode atordoar) · 2 Flecha de Fogo (explode em área) · 3 Tiro Concentrado (5 flechas seguidas) · 4 Chuva de Flechas · 5 Passos Leves</dd>
         <dt>Chuva (arqueiro)</dt><dd>Chuva de Flechas: mire no chão e clique onde ela deve cair; ele atira para o alto e as flechas caem num círculo de 3,2 m (24 flechas, mais densas no centro). Flecha de Fogo: segura a corda, a ponta esquenta e a flecha sai pegando fogo (dano alto e o alvo queima). As flechas não seguram as criaturas: mantenha a distância, atire e fuja</dd>
@@ -1602,7 +1613,7 @@
 <aside class="ferreiro quests-jan" id="questsJan" hidden aria-label="Quests ativas">
   <header><h2>Quests ativas</h2><button id="questsFechar" aria-label="Fechar as quests">Fechar</button></header>
   <div class="fx-quests quests-lista" id="questsLista"></div>
-  <p class="nota">Clique numa quest para acompanhá-la embaixo do minimapa. Só uma quest de nível por vez: a ativa nunca é cancelada.</p>
+  <p class="nota">Clique numa quest para acompanhá-la embaixo do minimapa.</p>
 </aside>
 <aside class="ferreiro" id="ferreiro" hidden aria-label="Ferreiro">
   <header><h2>Ferreiro</h2><button id="ferFechar" aria-label="Fechar o ferreiro">Fechar</button></header>
@@ -9868,7 +9879,7 @@ function corDoNivel(n) {
 // (o nível máximo: Vila 1 1–15, Vila Hahoe 15–45, Ilha de Daiyu 45–70; Logs/Balanceamento/NIVEL70.md). Cada criatura dá
 // uma exp pelo nível dela (expBase: a tabela dividida por MORTES_NIVEL, quantas criaturas do mesmo nível sobem um
 // nível), mais ou menos conforme a diferença para o seu (a mesma tabela do Metin2: criatura mais alta dá até 130%, bem
-// mais baixa quase nada) e uma morte nunca passa de 20% do nível. Cada nível dá 4 pontos (1 por bolinha de EXP, R146) para
+// mais baixa quase nada) e uma morte nunca passa de 20% do nível. Cada nível dá 3 pontos (1 em cada uma das 3 primeiras bolinhas de EXP, R157) para
 // VIT (Vitalidade), INT (Inteligência), FOR (Força) e DEX (Destreza), como no Metin2. O atributo principal da classe
 // (FOR no viking, DEX no arqueiro, INT no feiticeiro) aumenta o dano; DEX dá crítico; VIT dá vida e defesa.
 const EXP_NIVEL = [0, 300, 800, 1500, 2500, 4300, 7200, 11000, 17000, 24000, 33000, 43000, 58000, 76000, 100000, 130000, 169000,
@@ -9877,7 +9888,7 @@ const EXP_NIVEL = [0, 300, 800, 1500, 2500, 4300, 7200, 11000, 17000, 24000, 330
   7600000, 8274000, 8990000, 9753000, 10560000, 11410000, 12320000, 13270000, 14280000, 15340000,                 // 41–50
   16870000, 18960000, 19980000, 21420000, 22930000, 24530000, 26200000, 27960000, 29800000, 32780000,             // 51–60
   36060000, 39670000, 43640000, 48000000, 52800000, 58080000, 63890000, 70280000, 77310000, 85040000];            // 61–70
-const NIVEL_MAX = EXP_NIVEL.length - 1, PONTOS_POR_NIVEL = 4, ATRIB_MAX = 90;   // (R146: 1 ponto a cada uma das 4 bolinhas de EXP; antes, 3 de uma vez na subida)
+const NIVEL_MAX = EXP_NIVEL.length - 1, PONTOS_POR_NIVEL = 3, BOLINHAS_EXP = 4, ATRIB_MAX = 90;   // (R157, como no Metin2: as bolinhas 1, 2 e 3 dão 1 ponto cada; a 4ª só sobe o nível)
 // quantas criaturas comuns do mesmo nível sobem um nível (MORTES_NIVEL[0] + MORTES_NIVEL[1] × nível): a subida fica mais
 // lenta a cada nível, como no Metin2. Desde 29/10 a versão mais branda do balanço (Logs/Jogador/BALANCO_EXP_GOLD.md):
 // 10 + 7 × nível (era 6 + 2,7), com as quests de nível pagando 25–35% de cada nível; ~9–13 h até o 45
@@ -10012,7 +10023,7 @@ function carregarProgresso() {
   // sem pontos novos até o total alcançar. Nada de reset escondido
   if (prog.atribPago === undefined) {
     const ja = Object.keys(ATRIB_INICIAL[classe]).reduce((s, k) => s + Math.max(0, a[k] - ATRIB_INICIAL[classe][k]), prog.pontos || 0), devido = atribDevido(), dif = devido - ja;
-    if (dif > 0) { prog.pontos = (prog.pontos || 0) + dif; if (!salvarTravado) setTimeout(() => { avisar(`Regra nova dos pontos: você recebeu ${dif} de atributo`); chatSistema(`Regra nova: 1 ponto de atributo por bolinha de EXP. Você recebeu ${dif} ponto(s).`, "nivel"); }, 1500); }
+    if (dif > 0) { prog.pontos = (prog.pontos || 0) + dif; if (!salvarTravado) setTimeout(() => { avisar(`Regra nova dos pontos: você recebeu ${dif} de atributo`); chatSistema(`Regra nova: 3 pontos de atributo por nível, um em cada uma das 3 primeiras bolinhas de EXP. Você recebeu ${dif} ponto(s).`, "nivel"); }, 1500); }
     prog.atribPago = Math.max(ja, devido);
   }
   migrarBolsa();
@@ -10053,10 +10064,10 @@ function recalcularStatus() {
   viking.vidaMax = status.vidaMax;
   if (viking.vida === undefined || viking.vida > status.vidaMax) viking.vida = status.vidaMax;
 }
-// (R146) o total de pontos de atributo que o nível e a EXP pedem: 1 por bolinha cheia (25%, 50%, 75% e a subida)
+// (R146, R157) o total de pontos de atributo que o nível e a EXP pedem: 1 por bolinha cheia (25%, 50% e 75%); a subida não dá ponto
 function atribDevido(n = prog.nivel, exp = prog.exp) {
   if (n >= NIVEL_MAX) return (NIVEL_MAX - 1) * PONTOS_POR_NIVEL;
-  return (n - 1) * PONTOS_POR_NIVEL + Math.min(PONTOS_POR_NIVEL - 1, Math.floor(PONTOS_POR_NIVEL * exp / EXP_NIVEL[n]));
+  return (n - 1) * PONTOS_POR_NIVEL + Math.min(PONTOS_POR_NIVEL, Math.floor(BOLINHAS_EXP * exp / EXP_NIVEL[n]));
 }
 // paga o que falta. atribPago guarda o maior total já pago: perder EXP numa morte e encher de novo a mesma bolinha não paga outra vez
 function pagarAtributos() {
@@ -10091,6 +10102,36 @@ function subiuNivel(novos = 0) {
 function multSkill(nome) { return 1 + 0.025 * (nivelSkill(nome) - 1); }          // P (40): quase o dobro
 function duraSkill(nome) { return 1 + 0.0125 * (nivelSkill(nome) - 1); }
 function nivelSkill(nome) { return (prog && prog.skills[nome]) || 1; }
+// a forma da skill: 0 normal (1 a 19), 1 Mestre (M1 a M10), 2 Grão-Mestre e Perfeita (G1 a G10 e P)
+const formaSkill = n => n >= N_GRAO ? 2 : n >= N_MESTRE ? 1 : 0;
+// o que muda no símbolo de cada forma (por cima do ícone, em 80 × 80): a Mestre ganha a luz índigo, o filete de prata e dois
+// losangos; a Grão-Mestre e Perfeita, os raios e a moldura de ouro e a estrela
+function desenharFormaSkill(g, f) {
+  if (!f) return;
+  const losango = (x, y, r, cor) => { g.fillStyle = cor; g.strokeStyle = "#1E1B18"; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r * 0.75, y); g.lineTo(x, y + r); g.lineTo(x - r * 0.75, y); g.closePath(); g.fill(); g.stroke(); };
+  g.save();
+  g.globalCompositeOperation = "lighter";
+  const luz = g.createRadialGradient(40, 40, 6, 40, 40, 48);
+  if (f === 1) { luz.addColorStop(0, "rgba(90, 150, 255, 0.05)"); luz.addColorStop(1, "rgba(70, 130, 255, 0.5)"); }
+  else { luz.addColorStop(0, "rgba(255, 220, 120, 0.42)"); luz.addColorStop(0.6, "rgba(255, 150, 40, 0.14)"); luz.addColorStop(1, "rgba(255, 190, 60, 0.6)"); }
+  g.fillStyle = luz; g.fillRect(0, 0, 80, 80);
+  if (f === 2) {
+    g.translate(40, 40); g.fillStyle = "rgba(255, 226, 140, 0.34)";
+    for (let k = 0; k < 8; k++) { g.rotate(Math.PI / 4); g.beginPath(); g.moveTo(-3.5, -14); g.lineTo(0, -58); g.lineTo(3.5, -14); g.closePath(); g.fill(); }
+    g.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  g.globalCompositeOperation = "source-over";
+  g.strokeStyle = "#1E1B18"; g.lineWidth = 7; g.strokeRect(3.5, 3.5, 73, 73);
+  g.strokeStyle = f === 1 ? "#cfd8e6" : "#f0bf4e"; g.lineWidth = f === 1 ? 3 : 4.5; g.strokeRect(3.5, 3.5, 73, 73);
+  if (f === 1) { losango(12, 12, 8, "#cfd8e6"); losango(68, 12, 8, "#cfd8e6"); }
+  else {
+    for (const [x, y] of [[12, 12], [68, 12]]) losango(x, y, 8, "#f0bf4e");
+    g.fillStyle = "#ffd23c"; g.strokeStyle = "#1E1B18"; g.lineWidth = 2.5; g.lineJoin = "round"; g.beginPath();
+    for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 5.6 : 13; g.lineTo(40 + Math.cos(a) * r, 64 + Math.sin(a) * r); }
+    g.closePath(); g.fill(); g.stroke();
+  }
+  g.restore();
+}
 function rotuloNivelSkill(n) { return n >= N_PERFEITO ? "P" : n >= N_GRAO ? "G" + (n - N_GRAO + 1) : n >= N_MESTRE ? "M" + (n - N_MESTRE + 1) : String(n); }
 // chance de cada leitura: livros do M1 ao M9 (70% caindo até 30%), pedras da alma do M10 ao G10 (40% caindo até 20%)
 function chanceLivro(n) { return n < N_GRAO ? Math.max(0.3, 0.7 - (n - N_MESTRE) * 0.045) : Math.max(0.2, 0.4 - (n - N_GRAO) * 0.022); }
@@ -11101,6 +11142,7 @@ function desenharMinimapa(agora) {
   }
   desenharChefesMinimapa(g, ponto, W0, R, cav, dun);  // as coroas dos chefes (sempre à vista) e o cronômetro dos mortos
   if (!cav) missaoNoMinimapa(g, ponto, W0);          // a estrela do objetivo da missão
+  marcaNoMinimapa(g, ponto, W0);                     // o ponto marcado no Mapa do Mundo
   // o personagem: seta amarela para onde ele olha
   const a = -viking.dir * Math.PI / 4;
   g.translate(W0 / 2, W0 / 2); g.rotate(-a);
@@ -12747,9 +12789,6 @@ function receberCarta(id) {
   if (fimDaQuest(id) !== "receber") return false;
   delete estadoMissao(id).pronta; cumprirEtapa(id); return true;
 }
-// a quest de nível ativa (só pode haver uma; um save antigo pode ter mais, e nenhuma é cancelada: a primeira serve para o aviso)
-const questNivelAtiva = () => Object.keys(MISSOES).find(id => MISSOES[id].carta && etapaAtual(id)) || null;
-const avisoQuestAtiva = a => `Você já tem a quest de nível ${MISSOES[a].nome} ativa. Termine-a para aceitar esta. Ela não será cancelada.`;
 // a ordem das missões para o objetivo de agora e a estrela: a acompanhada (prog.missaoVista, a última aceita ou a
 // escolhida na ficha), as outras em andamento e depois o resto (Logs/Quests/QUESTS_NIVEL.md, 1)
 function ordemMissoes() {
@@ -12759,7 +12798,6 @@ function ordemMissoes() {
 // aceitar uma missão (pela carta ou pelo NPC): ela passa a ser a acompanhada
 function aceitarMissao(id) {
   const M = MISSOES[id], s = estadoMissao(id); if (!M || s.etapa >= 0) return;
-  if (M.carta) { const a = questNivelAtiva(); if (a) { avisarLongo(avisoQuestAtiva(a)); som("ui_negar"); return; } }
   s.etapa = 0; s.n = 0; s.carta = 2; prog.missaoVista = id; salvarProgresso(); som("missao", null, 0.7);
   avisarLongo(`Nova missão: ${M.nome}. ${M.etapas[0].alvo}`); atualizarMissao(); desenharCartas();
 }
@@ -12771,7 +12809,7 @@ function marcaMissao(nome) {
   for (const id in MISSOES) {
     const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
     if (e && e.falar === nome) return "?";
-    if (s.etapa < 0 && nome === M.npc && nivelMissaoOk(M) && !(M.carta && questNivelAtiva())) marca = "!";
+    if (s.etapa < 0 && nome === M.npc && nivelMissaoOk(M)) marca = "!";
   }
   return marca;
 }
@@ -12797,23 +12835,132 @@ function atualizarMissao() {
 }
 // onde fica o objetivo de agora: a criatura viva mais perto com o nome da etapa (ou o lugar dela; ondeH é um ponto local
 // da Vila Hahoe), o portal do mapa da etapa "chegar", o NPC com quem falar
+function ondeDaMissao(id) {
+  const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
+  if (s.pronta) return null;
+  if (e && e.matar) {
+    let m = null, dm = 1e9;
+    for (const c of criaturas) if (!c.morto && matarConta(e, c.cfg.nome)) { const d = Math.hypot(c.x - viking.x, c.y - viking.y); if (d < dm) { dm = d; m = c; } }
+    return m ? [m.x, m.y] : e.ondeH ? pH(...e.ondeH) : e.onde || null;
+  }
+  if (e && e.chegar) { const p = PORTAIS.find(q => q.destino === e.chegar); return p ? [p.x, p.y] : null; }
+  if (!e && (s.etapa < 0 && (M.carta || !nivelMissaoOk(M)) || s.etapa >= M.etapas.length)) return null;
+  const quem = e ? e.falar : s.etapa < 0 ? M.npc : null;
+  const o = quem && objetos.find(o => o.npc && o.nome === quem);
+  return o ? [o.x, o.y] : null;
+}
 function ondeMissao() {
   if (!missoesAtivas()) return null;
-  for (const id of ordemMissoes()) {
-    const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
-    if (s.pronta) continue;
-    if (e && e.matar) {
-      let m = null, dm = 1e9;
-      for (const c of criaturas) if (!c.morto && matarConta(e, c.cfg.nome)) { const d = Math.hypot(c.x - viking.x, c.y - viking.y); if (d < dm) { dm = d; m = c; } }
-      return m ? [m.x, m.y] : e.ondeH ? pH(...e.ondeH) : e.onde;
+  for (const id of ordemMissoes()) { const q = ondeDaMissao(id); if (q) return q; }
+  return null;
+}
+// ---- as marcas do Mapa do Mundo (R154): as quests ativas e o ponto que o jogador marca, com a seta no jogo até ele
+// para ir de onde o herói está até (x, y): o próprio ponto, se está neste mapa; senão, o portal deste mapa no caminho de lá,
+// a saída da caverna em que ele está ou a entrada da caverna do destino (null: não há caminho)
+function pontoNoCaminho(x, y) {
+  const v = viking, aqui = idMapa(v.x, v.y);
+  if (idMapa(x, y) === aqui) return [x, y];
+  if (naCaverna(v.x)) {
+    let m = null, dm = 1e9;
+    for (const p of passagens) if (p.tipo === "escada" && idMapa(p.x, p.y) === aqui) { const d = Math.hypot(p.x - v.x, p.y - v.y); if (d < dm) { dm = d; m = p; } }
+    return m ? [m.x, m.y] : null;
+  }
+  if (naCaverna(x)) {
+    const d = cavDe(x), e = d && passagens.find(p => !naCaverna(p.x) && p.dungeon && (p.dungeon === d || (d.vale && p.vale)));
+    if (!e) return null;
+    x = e.x; y = e.y;
+    if (idMapa(x, y) === aqui) return [x, y];
+  }
+  const alvo = idMapa(x, y), fila = [aqui], primeiro = { [aqui]: null };
+  while (fila.length) {
+    const m = fila.shift();
+    for (const p of PORTAIS) if (p.mapa === m && p.destino && !(p.destino in primeiro)) {
+      const q = primeiro[p.destino] = primeiro[m] || p;
+      if (p.destino === alvo) return [q.x, q.y];
+      fila.push(p.destino);
     }
-    if (e && e.chegar) { const p = PORTAIS.find(q => q.destino === e.chegar); return p ? [p.x, p.y] : null; }
-    if (!e && (s.etapa < 0 && (M.carta || !nivelMissaoOk(M)) || s.etapa >= M.etapas.length)) continue;
-    const quem = e ? e.falar : s.etapa < 0 ? M.npc : null;
-    const o = quem && objetos.find(o => o.npc && o.nome === quem);
-    if (o) return [o.x, o.y];
   }
   return null;
+}
+// as quests ativas no mapa em que o herói está: a acompanhada primeiro; a pronta para entregar pelo pergaminho não tem lugar
+function questsNoMapa() {
+  const r = []; if (!missoesAtivas()) return r;
+  for (const id of ordemMissoes()) {
+    const e = etapaAtual(id); if (!e) continue;
+    const q = ondeDaMissao(id), p = q && pontoNoCaminho(q[0], q[1]); if (!p) continue;
+    const s = estadoMissao(id);
+    r.push({ id, nome: MISSOES[id].nome, alvo: e.alvo + (e.matar && e.qtd > 1 ? ` (${s.n}/${e.qtd})` : ""), x: p[0], y: p[1], vista: prog.missaoVista === id, fora: p[0] !== q[0] || p[1] !== q[1] });
+  }
+  return r;
+}
+// o alfinete do ponto marcado, com a ponta em (X, Y)
+function alfinete(c, X, Y, t) {
+  c.save(); c.fillStyle = "#d9432b"; c.strokeStyle = "#1E1B18"; c.lineWidth = Math.max(1.5, t * 0.16); c.lineJoin = "round";
+  c.beginPath(); c.moveTo(X, Y); c.bezierCurveTo(X - t * 0.15, Y - t * 0.55, X - t * 0.72, Y - t * 0.8, X - t * 0.72, Y - t * 1.35);
+  c.arc(X, Y - t * 1.35, t * 0.72, Math.PI, 0); c.bezierCurveTo(X + t * 0.72, Y - t * 0.8, X + t * 0.15, Y - t * 0.55, X, Y); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = "#EFE4CC"; c.beginPath(); c.arc(X, Y - t * 1.35, t * 0.28, 0, 7); c.fill(); c.restore();
+}
+function estrelaMapa(c, X, Y, r, cor = "#ffd23c") {
+  c.save(); c.fillStyle = cor; c.strokeStyle = "#1a1208"; c.lineWidth = Math.max(1.5, r * 0.2); c.lineJoin = "round"; c.beginPath();
+  for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, q = k % 2 ? r * 0.42 : r; c.lineTo(X + Math.cos(a) * q, Y + Math.sin(a) * q); }
+  c.closePath(); c.fill(); c.stroke(); c.restore();
+}
+// marca um ponto (no chão livre até 6 m dali; no mar ou longe de qualquer chão, não). Fica no save do personagem
+function marcarPonto(x, y) {
+  const p = admChaoLivre(x, y);
+  if (!p || Math.hypot(p[0] - x, p[1] - y) > 6) return false;
+  prog.marcaMapa = { x: +p[0].toFixed(2), y: +p[1].toFixed(2) }; MARCA.rota = null; MARCA.rumo = null; MARCA.prox = 0; salvarProgresso();
+  return true;
+}
+function tirarMarca() { delete prog.marcaMapa; MARCA.rota = null; MARCA.rumo = null; salvarProgresso(); }
+// a seta: o rumo vem da rota até o ponto, refeita só quando o herói sai dela, e não a cada quadro
+const MARCA = { rota: null, rumo: null, prox: 0, refez: 0, dist: 0 };
+function passoMarca(dt) {
+  const m = prog && prog.marcaMapa, v = viking;
+  if (!m) { MARCA.rumo = null; MARCA.rota = null; return; }
+  MARCA.refez -= dt;
+  if (idMapa(m.x, m.y) === idMapa(v.x, v.y) && Math.hypot(m.x - v.x, m.y - v.y) < 2.5) { tirarMarca(); avisar("Você chegou ao ponto marcado"); try { som("ui_abrir", null, 0.6); } catch (e) {} return; }
+  if ((MARCA.prox -= dt) > 0 && MARCA.rumo) return;
+  MARCA.prox = 0.15;
+  const a = pontoNoCaminho(m.x, m.y);
+  if (!a) { MARCA.rumo = null; MARCA.rota = null; return; }
+  MARCA.dist = Math.hypot(a[0] - v.x, a[1] - v.y);
+  let r = MARCA.rota;
+  if (r && (r.x !== a[0] || r.y !== a[1])) r = null;
+  if (r) { while (r.pts.length > 1 && retaLivre(v.x, v.y, r.pts[1][0], r.pts[1][1])) r.pts.shift(); if (r.pts.length && (Math.hypot(r.pts[0][0] - v.x, r.pts[0][1] - v.y) < 0.5 || !retaLivre(v.x, v.y, r.pts[0][0], r.pts[0][1]))) { if (r.pts.length === 1 || MARCA.refez <= 0) r = null; } }
+  if ((!r || !r.pts.length) && MARCA.refez <= 0) { r = MARCA.rota = { x: a[0], y: a[1], pts: acharCaminho(v.x, v.y, a[0], a[1], 6000).pts }; MARCA.refez = 0.8; }
+  const q = r && r.pts[0] || a, d = Math.hypot(q[0] - v.x, q[1] - v.y);
+  if (d > 1e-3) MARCA.rumo = [(q[0] - v.x) / d, (q[1] - v.y) / d];
+}
+// o ponto no minimapa (fora do círculo: na borda, na direção dele)
+function marcaNoMinimapa(g, ponto, W0) {
+  const m = prog && prog.marcaMapa, a = m && pontoNoCaminho(m.x, m.y); if (!a) return;
+  let [X, Y] = ponto(a[0], a[1]);
+  const dx = X - W0 / 2, dy = Y - W0 / 2, d = Math.hypot(dx, dy), max = W0 / 2 - 12;
+  if (d > max) { X = W0 / 2 + dx / d * max; Y = W0 / 2 + dy / d * max; }
+  alfinete(g, X, Y + 5, 5.5);
+}
+// no jogo: a seta deitada no chão, em volta do herói, com a distância, e o alfinete no ponto
+function desenharSetaMarca(t) {
+  const m = prog && prog.marcaMapa, v = viking, u = MARCA.rumo;
+  if (!m || !u || v.caido || (classe === "ninja" && NINJA.esconder.buff > 0)) return;
+  const z = zPiso(v.x, v.y), [nx, ny] = [-u[1], u[0]], r0 = 1.05 + 0.12 * Math.sin(t * 5);
+  const P = (a, b) => noMundo(v.x + u[0] * a + nx * b, v.y + u[1] * a + ny * b, z);
+  const pts = [P(r0 + 1, 0), P(r0, 0.5), P(r0 + 0.28, 0), P(r0, -0.5)];
+  cx.save(); cx.lineJoin = "round"; cx.fillStyle = "#d9432b"; cx.strokeStyle = "#1E1B18"; cx.lineWidth = Math.max(2, 2.4 * zoom);
+  cx.beginPath(); pts.forEach((p, k) => k ? cx.lineTo(p[0], p[1]) : cx.moveTo(p[0], p[1])); cx.closePath(); cx.fill(); cx.stroke();
+  cx.font = "700 " + Math.round(Math.max(12, 12 * zoom)) + "px 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif"; cx.textAlign = "center"; cx.textBaseline = "middle";
+  const [TX, TY] = P(r0 + 1.45, 0), txt = Math.round(MARCA.dist) + " m";
+  cx.lineWidth = 3.5; cx.strokeStyle = "rgba(20, 14, 8, 0.9)"; cx.strokeText(txt, TX, TY); cx.fillStyle = "#fff4d6"; cx.fillText(txt, TX, TY);
+  cx.restore();
+  if (idMapa(m.x, m.y) === idMapa(v.x, v.y)) {
+    const [X, Y] = noMundo(m.x, m.y, zPiso(m.x, m.y)), s = PX * zoom;
+    if (X > -60 && X < W + 60 && Y > -60 && Y < H + 120) {
+      const f = (t * 0.9) % 1;
+      cx.save(); cx.strokeStyle = `rgba(217, 67, 43, ${0.8 * (1 - f)})`; cx.lineWidth = 2.5; cx.beginPath(); cx.ellipse(X, Y, s * (0.3 + f * 0.7), s * (0.3 + f * 0.7) * ACHATA, 0, 0, 7); cx.stroke(); cx.restore();
+      alfinete(cx, X, Y, s * 0.3);
+    }
+  }
 }
 // a estrela do objetivo no minimapa (fora do círculo: na borda, na direção dele)
 function missaoNoMinimapa(g, ponto, W0) {
@@ -12857,7 +13004,7 @@ function missaoNaConversa(o) {
   const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id);
   let fala = null, botao = null, bloqueio = null;
   if (s.etapa < 0 && !nivelMissaoOk(M)) fala = null;
-  else if (s.etapa < 0) { const a = M.carta && questNivelAtiva(); if (a) bloqueio = avisoQuestAtiva(a); fala = M.oferta; botao = [M.aceitar, () => { aceitarMissao(id); desenharNpc(); }, !!a]; }
+  else if (s.etapa < 0) { fala = M.oferta; botao = [M.aceitar, () => { aceitarMissao(id); desenharNpc(); }]; }
   else if (!e) fala = M.fim;
   else { fala = e.fala; if (e.falar === o.nome) botao = [e.entregar || "Conversar", () => cumprirEtapa(id)]; }
   if (o.fala) fala = null;                          // ("Conversar mais": as falas comuns dele; a da missão volta no começo)
@@ -13052,8 +13199,6 @@ function abrirCarta(id) {
       j.querySelector("#cartaDe").textContent = `Carta de ${M.npc}, ${M.onde || ""} · ${M.tipo || ""}`;
       j.querySelector("#cartaTexto").textContent = M.oferta;
       j.querySelector("#cartaObj").textContent = `◆ ${M.etapas[0].alvo}`;
-      const a = M.carta && questNivelAtiva();
-      if (a) { const txt = avisoQuestAtiva(a); aceitar.disabled = true; aviso.textContent = txt; aviso.hidden = false; chatSistema(txt, "missao"); }
     }
   }
   j.hidden = false; janelaAbriu("cartaJan", true);
@@ -15112,7 +15257,7 @@ function atualizarFicha() {
   $("#fPontosN").textContent = prog.pontos;
   $("#fPontosCaixa").classList.toggle("tem", prog.pontos > 0);
   $("#fPontos").hidden = !prog.pontos;
-  $("#fPontos").textContent = "Clique em + para pôr um ponto; Ctrl + clique põe 10. Ganha 1 a cada bolinha de EXP cheia.";
+  $("#fPontos").textContent = "Clique em + para pôr um ponto; Ctrl + clique põe 10. Ganha 1 em cada uma das 3 primeiras bolinhas de EXP do nível.";
   // VIT, INT, FOR, DEX: o valor (com o que os itens dão) e o + quando há pontos livres
   const bon = somaBonus();
   $("#fAtrib").innerHTML = ORDEM_ATRIB.map(k => {
@@ -15168,15 +15313,27 @@ function atualizarFicha() {
       `<canvas class="sk-icone" width="80" height="80" data-sk="${sk.nome}" aria-label="${sk.nome}: arraste até a barra"></canvas>` +
       `<i class="sk-grau grau-${grau(n)}">${rotuloNivelSkill(n)}</i>${mais ? `<button type="button" class="fx-mais" data-ponto="${sk.nome}" aria-label="Um ponto em ${sk.nome}">+</button>` : ""}</div>`;
   };
+  // uma fileira por skill: as 3 formas lado a lado, só a do nível atual acesa (ela é a que se arrasta e a que leva o "+")
+  const NOME_FORMA = ["Normal", "Mestre", "Grão-Mestre / Perfeita"], ROTULO_FORMA = ["1–19", "M", "G · P"], GRAU_FORMA = ["n", "m", "g"];
+  const linhaFormas = sk => {
+    const n = nivelSkill(sk.nome), at = formaSkill(n), mais = prog.pontosSkill > 0 && n < N_MESTRE;
+    return [0, 1, 2].map(f => {
+      const ativa = f === at;
+      return `<div class="fx-sk fx-forma ${ativa ? "ativa" : "apagada"}${ativa && sk.nome === fichaSk ? " sel" : ""}" data-sk="${sk.nome}" data-forma="${f}">` +
+        `<canvas class="${ativa ? "sk-icone" : "sk-forma"}" width="80" height="80" data-sk="${sk.nome}" data-forma="${f}" aria-label="${sk.nome}, ${NOME_FORMA[f]}${ativa ? ": arraste até a barra" : ""}"></canvas>` +
+        `<i class="sk-grau grau-${ativa ? grau(n) : GRAU_FORMA[f]}">${ativa ? rotuloNivelSkill(n) : ROTULO_FORMA[f]}</i>${ativa && mais ? `<button type="button" class="fx-mais" data-ponto="${sk.nome}" aria-label="Um ponto em ${sk.nome}">+</button>` : ""}</div>`;
+    }).join("");
+  };
   const montada = c => `<div class="fx-sk" data-montada="1" title="Ataque montado: do nível 11 do cavalo, o ataque básico a cavalo (como no Metin2, as skills ficam travadas montado)"><canvas class="sk-montada" width="80" height="80"></canvas><i class="sk-grau grau-n">${c.tem ? (c.nivel >= 11 ? "ok" : "11") : "—"}</i></div>`;
   $("#fSkills").innerHTML = abaSkills === "montaria"
     ? `<div class="fx-meia">${montada(cavaloDe())}${Array.from({ length: 17 }, () => cel(null)).join("")}</div>`
-    : `<div class="fx-meia">${Array.from({ length: 18 }, (_, i) => cel(SKILLS[i])).join("")}</div>`;
+    : `<div class="fx-meia fx-formas">${NOME_FORMA.map(t => `<div class="fx-forma-tit">${t}</div>`).join("")}${SKILLS.map(linhaFormas).join("")}</div>`;
   for (const c of $("#fSkills").querySelectorAll(".sk-montada")) desenharAcao(c.getContext("2d"), "montar", 80);
-  for (const c of $("#fSkills").querySelectorAll(".sk-icone")) {
+  for (const c of $("#fSkills").querySelectorAll(".sk-icone, .sk-forma")) {
     const sk = SKILLS.find(s => s.nome === c.dataset.sk), g = c.getContext("2d"); if (!sk) continue;
     if (ICONES_SKILL[sk.nome]) { g.imageSmoothingQuality = "high"; g.drawImage(ICONES_SKILL[sk.nome], 0, 0, 80, 80); }
     else if (sk.icone) { g.save(); g.scale(80 / 56, 80 / 56); sk.icone(g); g.restore(); }
+    desenharFormaSkill(g, +c.dataset.forma);
   }
   const sk = SKILLS.find(s => s.nome === fichaSk);
   if (sk) {
@@ -18810,6 +18967,7 @@ function passo(dt) {
   passoProgresso(dt);
   passoPassagens(dt);
   jornadaPasso(dt);
+  passoMarca(dt);
   const v = viking, a = M.animacoes;
   // intenção de andar
   let mx = 0, my = 0;
@@ -20530,6 +20688,7 @@ function desenharViking() {
   q = info.laco ? ((q % info.quadros) + info.quadros) % info.quadros : Math.min(info.quadros - 1, Math.max(0, q));
   const [sx, sy] = tela(v.x - cam.x, v.y - cam.y);
   const X = W / 2 + sx, Y = H / 2 + sy - zPiso(v.x, v.y) * PX * zoom * ALTURA, z = zoom;   // (no piso alto do palácio, mais alto)
+  desenharSetaMarca(performance.now() / 1000);
   if (v.montado) { desenharMontado(X, Y, z); return; }                 // (montado: o cavalo com o herói preso ao Assento)
   sombraHeroi(X, Y, z);
   const em3d = !!P3D.vale(v), querFolha = em3d ? nivelFuria(performance.now() / 1000) > 0 : true;   // (folhas sob demanda: o herói pede a da pose enquanto o modelo chega)
@@ -26112,6 +26271,7 @@ return { get ativo() { return ativo(); }, get iso() { return iso; }, get fps() {
              background: linear-gradient(var(--jan-titulo1, #4b331e), var(--jan-titulo2, #22160d)); border-bottom: 2px solid var(--jan-ouro, #b8893e); }
   .mm-topo h2 { margin: 0 6px 0 0; font-family: var(--display); font-weight: 400; font-size: 20px; color: var(--jan-ouro-claro, #f2d68e); text-shadow: 0 1px 0 #000; }
   .mm-esp { flex: 1; }
+  .mm-dica-marca { font-size: 13px; color: #d8c8a4; }
   .mm button, .mm select, .mm input[type="number"] { font: inherit; font-size: 13px; color: var(--texto); background: linear-gradient(#4a3420, #2a1b0e); border: 1px solid #6b4a1c; border-radius: 5px; padding: 5px 10px; cursor: pointer; }
   .mm select { padding: 4px 6px; max-width: 100%; }
   .mm button:hover, .mm button:focus-visible { border-color: var(--jan-ouro-claro, #f2d68e); outline: none; }
@@ -26163,6 +26323,8 @@ return { get ativo() { return ativo(); }, get iso() { return iso; }, get fps() {
       <button type="button" role="tab" data-aba="mobs" aria-selected="true">Mobs</button>
       <button type="button" role="tab" data-aba="mapa" aria-selected="false">Mapa</button>
     </div>
+    <span class="mm-dica-marca" id="mmDicaMarca">Clique no mapa para marcar um ponto</span>
+    <button type="button" id="mmTirarMarca" hidden title="Tirar o ponto marcado">Tirar a marca</button>
     <span class="mm-esp"></span>
     <button type="button" class="so-admin" id="mmEditar" aria-pressed="false" title="Mostrar o editor">Editar</button>
     <button type="button" id="mmVerTudo" title="Ver o mapa inteiro">Ver tudo</button>
@@ -26671,8 +26833,8 @@ function desenharHeroi(c, v, opc, soReservar) {
 }
 // a legenda: a escala dos níveis e os ícones (no canto de baixo à esquerda; na imagem exportada, à direita, em cima da
 // escala: o canto de baixo à esquerda da Vila 1 é a ponta das Terras do Sul, com o portal)
-function desenharLegenda(c, v, k = 1, direita = false, sobe = 0) {
-  const W0 = 300 * k, H0 = 112 * k, x0 = direita ? v.w - W0 - 12 * k : 12 * k, y0 = v.h - H0 - 12 * k - sobe;
+function desenharLegenda(c, v, k = 1, direita = false, sobe = 0, marcas = false) {
+  const W0 = 300 * k, H0 = (marcas ? 134 : 112) * k, x0 = direita ? v.w - W0 - 12 * k : 12 * k, y0 = v.h - H0 - 12 * k - sobe;
   c.save();
   c.fillStyle = "rgba(14, 10, 6, 0.86)"; c.strokeStyle = "#8a6a34"; c.lineWidth = 1.5 * k;
   c.beginPath(); c.roundRect ? c.roundRect(x0, y0, W0, H0, 8 * k) : c.rect(x0, y0, W0, H0); c.fill(); c.stroke();
@@ -26690,6 +26852,10 @@ function desenharLegenda(c, v, k = 1, direita = false, sobe = 0) {
   c.fillStyle = "#ffd84a"; c.beginPath(); c.moveTo(x0 + 278 * k, ly); c.lineTo(x0 + 268 * k, ly + 6 * k); c.lineTo(x0 + 270 * k, ly); c.lineTo(x0 + 268 * k, ly - 6 * k); c.closePath(); c.fill();
   texto(c, "você", x0 + 284 * k, ly, 11.5 * k, "#eadfc8", { alinhar: "left" });
   texto(c, "Círculo: área do grupo · pontos: cada mob", x0 + 12 * k, ly + 22 * k, 10.5 * k, "#a99b82", { alinhar: "left", peso: 500 });
+  if (marcas) {
+    estrelaMapa(c, x0 + 22 * k, ly + 44 * k, 8 * k); texto(c, "quest ativa", x0 + 34 * k, ly + 44 * k, 11.5 * k, "#eadfc8", { alinhar: "left" });
+    alfinete(c, x0 + 120 * k, ly + 51 * k, 6 * k); texto(c, "ponto marcado", x0 + 131 * k, ly + 44 * k, 11.5 * k, "#eadfc8", { alinhar: "left" });
+  }
   c.restore();
 }
 // a escala (quantos metros) no canto de baixo à direita
@@ -26727,10 +26893,24 @@ function desenharMapa(c, v, opc = {}) {
   desenharSpawns(c, v, opc);
   desenharHeroi(c, v, opc);
 }
+// as quests ativas (estrela e nome; no mesmo lugar, uma embaixo da outra) e o ponto marcado
+function desenharMarcas(c, v) {
+  const dentro = (x, y) => x >= LIM.x0 && x <= LIM.x1 && y >= LIM.y0 && y <= LIM.y1, usados = {};
+  for (const q of questsNoMapa()) {
+    if (!dentro(q.x, q.y)) continue;
+    const [X, Y] = paraTela(q.x, q.y, v), r = q.vista ? 12 : 10, chave = Math.round(X / 12) + "," + Math.round(Y / 12), n = usados[chave] = (usados[chave] || 0) + 1;
+    if (n === 1) estrelaMapa(c, X, Y, r);
+    texto(c, q.nome, X, Y + r + 10 + (n - 1) * 15, 13, "#ffe27a", { peso: 700 });
+  }
+  const m = prog && prog.marcaMapa;
+  if (m && dentro(m.x, m.y)) { const [X, Y] = paraTela(m.x, m.y, v); alfinete(c, X, Y, 11); texto(c, "Ponto marcado", X, Y + 11, 12.5, "#fff4d6", { peso: 700 }); }
+  $m("mmTirarMarca").hidden = !m; $m("mmDicaMarca").hidden = est.editando;
+}
 function desenharTela() {
   const c = g;
   c.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
   desenharMapa(c, V);
+  desenharMarcas(c, V);
   // o que o editor mostra por cima: a peça escolhida, o pincel e o grupo novo
   if (est.editando && est.aba === "mapa") {
     const o = est.selDeco;
@@ -26748,7 +26928,7 @@ function desenharTela() {
     const [X, Y] = paraTela(est.mouse.x, est.mouse.y, V);
     c.save(); c.strokeStyle = rgb(corNivel(nivelDe($m("mmNovoTipo").value))); c.lineWidth = 2; c.setLineDash([6, 4]); c.beginPath(); c.arc(X, Y, 4.5 * V.esc, 0, 7); c.stroke(); c.restore();
   }
-  desenharLegenda(c, V, V.w < 520 ? 0.78 : 1);
+  desenharLegenda(c, V, V.w < 520 ? 0.78 : 1, false, 0, true);
   desenharEscala(c, V, 1, est.editando && V.w > 720 ? 316 : 12);
 }
 function quadro() {
@@ -27075,8 +27255,29 @@ function originalMapa() {
 const toques = new Map();
 let pinca = null, ultimoPincel = null;
 function ponto(e) { const r = cvM.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, [x, y] = doMundo(px, py); return { px, py, x, y }; }
+// a quest cuja estrela está embaixo do ponteiro (a 16 px)
+function questNoPonto(p) {
+  let m = null, dm = 16;
+  for (const q of questsNoMapa()) { const [X, Y] = paraTela(q.x, q.y, V), d = Math.hypot(X - p.px, Y - p.py); if (d < dm) { dm = d; m = q; } }
+  return m;
+}
+// um clique sem arrastar, fora do editor: no ponto marcado, tira a marca; numa estrela, marca o objetivo; senão, marca ali
+function cliqueMarca(p) {
+  const m = prog && prog.marcaMapa; if (!prog) return;
+  if (m) { const [X, Y] = paraTela(m.x, m.y, V); if (Math.hypot(X - p.px, Y - p.py) < 16) { tirarMarca(); est.sujo = true; aviso("Marca tirada."); return; } }
+  const q = questNoPonto(p);
+  if (marcarPonto(q ? q.x : p.x, q ? q.y : p.y)) { est.sujo = true; try { som("ui_abrir", null, 0.5); } catch (e) {} }
+  else aviso("Não dá para chegar nesse ponto.");
+}
 function info(p) {
   const box = $m("mmInfo");
+  const qp = p && questNoPonto(p);
+  if (qp) {
+    box.textContent = ""; const b = document.createElement("b"); b.textContent = qp.nome; box.append(b, document.createElement("br"), qp.alvo);
+    if (qp.fora) box.append(document.createElement("br"), "Fica em outro lugar: este é o caminho.");
+    box.hidden = false; box.style.left = Math.min(V.w - 250, p.px + 14) + "px"; box.style.top = Math.min(V.h - 90, p.py + 14) + "px";
+    return;
+  }
   const s = p && spawnNoPonto(p.x, p.y);
   if (!s) { box.hidden = true; return; }
   const c = cfgDe(s.tipo);
@@ -27096,7 +27297,7 @@ cvM.addEventListener("pointerdown", e => {
   }
   try { cvM.setPointerCapture(e.pointerId); } catch (er) {}
   const p = ponto(e); est.mouse = p;
-  const mover = () => { est.arrasto = { tipo: "mapa", px: p.px, py: p.py, cx: V.cx, cy: V.cy, id: e.pointerId, mexeu: 0, p0: p }; };
+  const mover = () => { est.arrasto = { tipo: "mapa", px: p.px, py: p.py, cx: V.cx, cy: V.cy, id: e.pointerId, mexeu: 0, p0: p, marca: e.button === 0 && !est.editando }; };
   if (e.button === 1 || e.button === 2) { mover(); return; }
   if (!est.editando) { mover(); return; }
   if (est.aba === "mobs") {
@@ -27152,7 +27353,8 @@ const soltar = e => {
   if (a.tipo === "mob" && a.mudou) { mobsMudou(); aviso(`Movido: ${nomeDe(a.s.tipo)} para ${a.s.x.toFixed(1)}, ${a.s.y.toFixed(1)} (${regiaoDe(a.s.x, a.s.y)})`); }
   if (a.tipo === "deco" && a.mudou) { refazerGrade(); decoMudou(); }
   if (a.tipo === "pincel" || a.tipo === "terreno") { refazerGrade(); salvarMapa(); }
-  if (a.tipo === "mapa" && a.mexeu < 6 && e.pointerType === "touch") info(a.p0);  // um toque sem arrastar: o que é aquele grupo
+  if (a.tipo === "mapa" && a.mexeu < 6 && a.marca) cliqueMarca(a.p0);
+  else if (a.tipo === "mapa" && a.mexeu < 6 && e.pointerType === "touch") info(a.p0);  // um toque sem arrastar: o que é aquele grupo
 };
 cvM.addEventListener("pointerup", soltar); cvM.addEventListener("pointercancel", soltar);
 cvM.addEventListener("pointerleave", () => { $m("mmInfo").hidden = true; est.mouse = null; est.sujo = true; });
@@ -27161,6 +27363,7 @@ cvM.addEventListener("wheel", e => { e.preventDefault(); const r = cvM.getBoundi
 // ---------------------------------------------------------------- botões e teclas
 function ligar() {
   $m("mmFechar").onclick = () => abrir(false);
+  $m("mmTirarMarca").onclick = () => { tirarMarca(); est.sujo = true; };
   $m("mmEditar").onclick = () => editar();
   $m("mmVerTudo").onclick = () => verTudo();
   $m("mmExportar").onclick = exportar;
@@ -27216,7 +27419,7 @@ ligar();
 ferramentaCursor();
 
 return {
-  abrir, editar, trocarAba, verTudo, imagem, tabela, tabelaTexto, corNivel, paraTela: (x, y) => paraTela(x, y), doMundo: (px, py) => doMundo(px, py),
+  abrir, editar, trocarAba, verTudo, imagem, desenharAgora: desenharTela, tabela, tabelaTexto, corNivel, paraTela: (x, y) => paraTela(x, y), doMundo: (px, py) => doMundo(px, py),
   get aberto() { return est.aberto; }, get cobre() { return est.aberto; }, get pronto() { return !!(base && base.pronto); }, est, V,
 };
 })();
