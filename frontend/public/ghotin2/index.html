@@ -1454,7 +1454,7 @@
       <dl class="teclas">
         <dt>WASD · setas</dt><dd>andar (8 direções)</dd>
         <dt>Movimento</dt><dd>todos correm sempre; a velocidade sobe com os itens de velocidade, a Fúria e os Passos Leves</dd>
-        <dt>Shift</dt><dd>dash: um avanço rápido de 4 m para onde anda (parado: para o mouse). Gasta 1/3 da stamina (a barra amarela), que recarrega sozinha em 6 s; não sai montado nem no meio de um golpe ou skill, e não deixa invulnerável</dd>
+        <dt>Shift</dt><dd>dash: um avanço rápido de 2,5 m para onde anda (parado: para o mouse), que sai ao apertar e deixa um rastro. Gasta 1/3 da stamina (a barra amarela), que recarrega sozinha em 6 s; corta o fim de um golpe que já acertou, mas não sai montado nem numa skill, e não deixa invulnerável</dd>
         <dt>clique</dt><dd>andar até o ponto, desviando do que estiver no caminho (longe, ele corre); num boneco, ir lá e bater; num lobo ou esqueleto, marcar o alvo (anel vermelho), ir atrás e golpear sozinho até ele cair</dd>
         <dt>J</dt><dd>atacar: com a espada nas costas, saca já golpeando; depois os 5 golpes em sequência</dd>
         <dt>F1 – F10 · 1 – 0 · I</dt><dd>barra de atalhos em duas páginas, como no Metin2 (a I mostra 1–5 e F1–F5, a II mostra 6–0 e F6–F10; as setas ao lado ou Shift+1 e Shift+2 trocam a página, e as 20 teclas valem sempre, em qualquer página) e a bolsa (I): quatro abas de 5 × 9 espaços como no Metin2; arraste um item para a barra para criar um atalho, clique direito usa. Barra: arraste uma skill para outro espaço para trocar de lugar (cada personagem guarda a sua ordem). O ataque básico só sai com um alvo marcado (Espaço, clique ou o botão Alvo); as skills saem sempre, mesmo sem alvo: viram para a criatura mais perto ou saem para a frente. No viking: Fúria, Vórtice, Lâmina Espiritual (também F, V, L), Corte Triplo (três cortes rápidos e fortes na frente) e Investida (dispara com a espada à frente e tromba no primeiro inimigo do caminho: ele voa para trás e o viking para ali). Uma skill corta o ataque básico; depois que a skill sai, andar já corta o fim dela. Os golpes do combo emendam um no outro, como no Metin2</dd>
@@ -15201,7 +15201,7 @@ function atualizarFicha() {
   const travado = l => l.map(([nome, dica]) => `<div class="fx-trava" title="${nome}: ${dica} (em breve)">${CADEADO}<i>${nome}</i></div>`).join("");
   // as Skills comuns (Standard Skills do Metin2): só as que existem no jogo (montar, o dash e o combo)
   const comuns = [["montar", "Montar", CAVALO_LIBERADO ? "Ctrl+G: monta e desmonta do cavalo" : "Montar: o Cavalariço Doyun, no estábulo, dá o cavalo (nível 15)"],
-    ["dash", "Dash", `Shift: um avanço rápido de 4 m; gasta 1/3 da stamina, que recarrega em ${(DASH.cheia / (status.dashFator || 1)).toFixed(1).replace(".", ",").replace(",0", "")} s`], ["atacar", "Combo", "Os golpes do ataque básico emendam um no outro"]];
+    ["dash", "Dash", `Shift: um avanço rápido de 2,5 m, com rastro; gasta 1/3 da stamina, que recarrega em ${(DASH.cheia / (status.dashFator || 1)).toFixed(1).replace(".", ",").replace(",0", "")} s`], ["atacar", "Combo", "Os golpes do ataque básico emendam um no outro"]];
   $("#fPassivas").className = "fx-comuns";
   $("#fPassivas").innerHTML = comuns.map(([id, nome, dica]) => `<div class="fx-comum" title="${dica}"><canvas width="80" height="80" data-comum="${id}" aria-label="${nome}"></canvas><i>${nome}</i></div>`).join("");
   for (const c of $("#fPassivas").querySelectorAll("canvas[data-comum]")) desenharAcao(c.getContext("2d"), c.dataset.comum, 80);
@@ -15885,7 +15885,7 @@ function feridoPor(l) {
   impacto(viking, 64, "golpeViking", 0);
   if (golpeNoPersonagem(l)) return;
   // com a espada na mão ele sente o golpe (a animação de dano é armada); atacando, ele não para
-  if ((viking.espada === "armada" || distante()) && (!viking.acao || viking.acao === "dano")) { viking.fila = null; tocar("dano", true); }
+  if ((viking.espada === "armada" || distante()) && (!viking.acao || viking.acao === "dano") && !DASH.ativo) { viking.fila = null; tocar("dano", true); }   // (R153: apanhar não interrompe o dash)
 }
 
 // Corte Triplo (do Metin2: corta à velocidade de um raio, três vezes, na frente): os três primeiros golpes do combo, mais
@@ -18681,12 +18681,18 @@ function cortaAndando(v, mx, my, porTeclas) {
   }
   return false;
 }
-// ---- o dash (Shift sozinho; Logs/Dash/PEDIDO.md, 29/10): DASH.dist m em DASH.dura s na direção em que anda (parado: para
-// o mouse, ou para onde está virado). Gasta 1/3 da stamina (a barra amarela), que recarrega sozinha: cheia em DASH.cheia s,
-// a partir de DASH.espera s depois do último dash. Sem invulnerabilidade: é só movimento. Não sai montado, caído, numa
-// skill ou golpe (v.acao), com a mira aberta nem no Vórtice. Anda em passos de 0,12 m e para no 1º que não é livre
-// (parede, cerca, água): não atravessa nada
-const DASH = { dist: 4, dura: 0.25, custo: 1 / 3, cheia: 6, espera: 0.5, stamina: 1, desde: 99, ativo: null, semStamina: 0, ultimo: null };
+// ---- o dash (Shift; Logs/Dash/PEDIDO.md, 29/10; R153, 02/11: sai ao apertar, mais curto e com o rastro do herói): DASH.dist m
+// em DASH.dura s na direção em que anda (parado: para o mouse, ou para onde está virado), com a velocidade toda já no 1º
+// quadro. Gasta 1/3 da stamina (a barra amarela), que recarrega sozinha: cheia em DASH.cheia s, a partir de DASH.espera s
+// depois do último dash. Sem invulnerabilidade: é só movimento. Não sai montado, caído, numa skill, num golpe que ainda não
+// acertou, com a mira aberta nem no Vórtice; apertado nessa hora, o pedido fica guardado por DASH.guarda s. Anda em passos
+// de 0,12 m e para no 1º que não é livre (parede, cerca, água): não atravessa nada
+const DASH = { dist: 2.5, dura: 0.16, custo: 1 / 3, cheia: 6, espera: 0.5, stamina: 1, desde: 99, ativo: null, semStamina: 0, ultimo: null, pedido: 0, guarda: 0.3, frear: false, vultos: [], vultoCada: 0.55, vultoVida: 0.3, telas: [], tela: 0 };
+// o dash corta a reação ao dano e o fim do golpe ou da conjuração que já saiu (como andar corta); a skill e o Golpe Triplo, não
+function dashCorta(v) {
+  if (v.acao === "dano") return true;
+  return !!v.acertou && !(triplo.restam > 0) && (CORTA_ANDANDO.has(v.acao) || /^(golpe[1-5]|golpe1_da_corrida(_7)?|sacar_golpe)$/.test(v.acao));
+}
 function dashDirecao(v) {
   let mx = (teclas.has("d") || teclas.has("arrowright") ? 1 : 0) - (teclas.has("a") || teclas.has("arrowleft") ? 1 : 0);
   let my = (teclas.has("w") || teclas.has("arrowup") ? 1 : 0) - (teclas.has("s") || teclas.has("arrowdown") ? 1 : 0);
@@ -18698,18 +18704,20 @@ function dashDirecao(v) {
 }
 function dashPedir() {
   const v = viking;
-  if (DASH.ativo || !M || v.caido || v.acao || v.montado || v.golpeCorrida || v.skillCorrida || mira || vortice.ativo || editor.ativo) return false;
+  if (DASH.ativo || !M || v.caido || (v.acao && !dashCorta(v)) || v.montado || mira || vortice.ativo || editor.ativo) return false;
   if (DASH.stamina < DASH.custo - 1e-6) {                             // sem stamina: a barra pisca (o aviso discreto)
     DASH.semStamina++;
     const el = document.getElementById("vStam"); if (el) { el.parentNode.classList.remove("falta"); void el.offsetWidth; el.parentNode.classList.add("falta"); }
     if (typeof chatSistema === "function") chatSistema("Stamina insuficiente.", "aviso");
     return false;
   }
-  DASH.stamina = Math.max(0, DASH.stamina - DASH.custo); DASH.desde = 0;
+  DASH.stamina = Math.max(0, DASH.stamina - DASH.custo); DASH.desde = 0; DASH.pedido = 0;
   const [dx, dy] = dashDirecao(v);
-  DASH.ativo = { dx, dy, t: 0, feito: 0, x0: v.x, y0: v.y };
+  DASH.ativo = { dx, dy, t: 0, feito: 0, x0: v.x, y0: v.y, prox: DASH.vultoCada };
+  DASH.vultos.push({ x: v.x, y: v.y, vida: DASH.vultoVida, max: DASH.vultoVida, f: null });
+  v.acao = null; v.fila = null; v.golpeCorrida = null; v.skillCorrida = null;
   v.alvo = null; v.rota = null; v.noLugar = null; v.dir = dirDe(dx, dy);
-  if (classe === "viking") v.rumoCorrida = [dx, dy];
+  v.rumoCorrida = null;                                               // (o viking armado não desliza depois: o dash anda só DASH.dist)
   for (let k = 0; k < 6; k++) { const a = Math.random() * 7, w = 0.4 + Math.random() * 0.8; brasas.push({ x: v.x, y: v.y, z: 0.04, vx: Math.cos(a) * w - dx, vy: Math.sin(a) * w - dy, vz: 0.3 + Math.random() * 0.5, vida: 0.45, max: 0.45, tam: 0.08, poeira: true }); }
   return true;
 }
@@ -18717,32 +18725,66 @@ function dashPedir() {
 function passoDash(v, dt) {
   DASH.desde += dt;
   if (!DASH.ativo && DASH.desde > DASH.espera) DASH.stamina = Math.min(1, DASH.stamina + dt * (status.dashFator || 1) / DASH.cheia);
+  for (let i = DASH.vultos.length - 1; i >= 0; i--) if ((DASH.vultos[i].vida -= dt) <= 0) DASH.vultos.splice(i, 1);
+  if (DASH.pedido > 0) { DASH.pedido -= dt; if (!DASH.ativo && DASH.pedido > 0) dashPedir(); }   // (o Shift apertado num golpe ou no fim de outro dash)
   const d = DASH.ativo; if (!d) return false;
   if (v.caido || v.acao || v.montado) { DASH.ativo = null; return false; }
   d.t = Math.min(DASH.dura, d.t + dt);
-  let falta = DASH.dist * suave(d.t / DASH.dura) - d.feito;
+  const u = 1 - d.t / DASH.dura;                                       // (a velocidade toda no começo, freando no fim: sai na hora)
+  let falta = DASH.dist * (1 - u * u) - d.feito;
   while (falta > 1e-6) {
     const s = Math.min(0.12, falta), nx = v.x + d.dx * s, ny = v.y + d.dy * s;
     if (!livre(nx, ny)) { d.t = DASH.dura; d.parou = true; break; }
     v.x = nx; v.y = ny; d.feito += s; falta -= s;
+    if (d.feito >= d.prox) { d.prox += DASH.vultoCada; DASH.vultos.push({ x: v.x, y: v.y, vida: DASH.vultoVida, max: DASH.vultoVida, f: null }); }
   }
   if (Math.random() < dt * 45) brasas.push({ x: v.x - d.dx * 0.3, y: v.y - d.dy * 0.3, z: 0.03, vx: -d.dx * 1.6 + (Math.random() - 0.5), vy: -d.dy * 1.6 + (Math.random() - 0.5), vz: 0.3 + Math.random() * 0.5, vida: 0.4, max: 0.4, tam: 0.07, poeira: true });
-  if (d.t >= DASH.dura) { DASH.ativo = null; DASH.desde = 0; DASH.ultimo = { feito: d.feito, parou: !!d.parou }; }
+  if (d.t >= DASH.dura) { DASH.ativo = null; DASH.desde = 0; DASH.frear = true; DASH.ultimo = { feito: d.feito, parou: !!d.parou }; }
   return true;
 }
-// o Shift sozinho: apertado e solto sem outra tecla (nem clique) no meio. Shift+1/Shift+2 (as páginas da barra) não dão dash
-let shiftSozinho = false;
+// o rastro do dash: vultos do próprio herói no caminho, um a cada DASH.vultoCada m, que somem em DASH.vultoVida s. A pose é a
+// do quadro em que o vulto nasceu (o pedaço do atlas 3D ou da folha), levemente clareada, guardada num anel de canvas
+function desenharVultosDash(z) {
+  const L = DASH.vultos;
+  if (!L.length || (window.M3D && M3D.ativo) || (classe === "ninja" && NINJA.esconder.buff > 0)) return;
+  if (L.some(r => !r.f)) {
+    const pose = poseHeroi(z);
+    if (pose) {
+      const cv = DASH.telas[DASH.tela] || (DASH.telas[DASH.tela] = document.createElement("canvas"));
+      DASH.tela = (DASH.tela + 1) % 16;
+      cv.width = Math.max(1, Math.ceil(pose.w)); cv.height = Math.max(1, Math.ceil(pose.h));
+      const g = cv.getContext("2d");
+      g.imageSmoothingQuality = "low";                                 // (com "medium"/"high" o Chrome monta mipmaps do atlas inteiro)
+      g.drawImage(pose.src, pose.sx, pose.sy, pose.sw, pose.sh, 0, 0, pose.w, pose.h);
+      g.globalCompositeOperation = "source-atop"; g.fillStyle = "rgba(255, 244, 214, 0.28)"; g.fillRect(0, 0, cv.width, cv.height);
+      const f = { cv, esq: pose.esq / z, cima: pose.cima / z, w: pose.w / z, h: pose.h / z };
+      for (const r of L) if (!r.f) r.f = f;
+    }
+  }
+  cx.save();
+  for (const r of L) {
+    if (!r.f) continue;
+    const [X, Y] = noMundo(r.x, r.y, zPiso(r.x, r.y));
+    cx.globalAlpha = 0.6 * r.vida / r.max;
+    cx.drawImage(r.f.cv, X - r.f.esq * z, Y - r.f.cima * z, r.f.w * z, r.f.h * z);
+  }
+  cx.restore();
+}
+// o Shift dá o dash ao APERTAR (R153: esperar soltar era a demora). Shift+1/Shift+2 (as páginas da barra) também passam por
+// ele: o dash já saiu quando o número chega, então a tecla devolve a stamina
+let shiftDeuDash = false;
 addEventListener("keydown", e => {
-  if (e.key === "Shift") { if (!e.repeat) shiftSozinho = !e.ctrlKey && !e.altKey && !e.metaKey; }
-  else if (!e.repeat) shiftSozinho = false;
+  if (e.key === "Shift") {
+    if (e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName) || e.target.isContentEditable) return;
+    shiftDeuDash = dashPedir();
+    if (!shiftDeuDash && DASH.stamina >= DASH.custo - 1e-6) DASH.pedido = DASH.guarda;
+  } else if (!e.repeat) {
+    if (e.shiftKey && /^Digit[1-4]$/.test(e.code)) { if (shiftDeuDash) DASH.stamina = Math.min(1, DASH.stamina + DASH.custo); DASH.pedido = 0; }
+    shiftDeuDash = false;
+  }
 }, true);
-addEventListener("pointerdown", () => { shiftSozinho = false; }, true);
-addEventListener("keyup", e => {
-  if (e.key !== "Shift" || !shiftSozinho) return;
-  shiftSozinho = false;
-  if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName) || e.target.isContentEditable) return;
-  dashPedir();
-}, true);
+addEventListener("keyup", e => { if (e.key === "Shift") shiftDeuDash = false; }, true);
 function passo(dt) {
   passoAmbiente(dt);
   if (ferreiroNpc && !$("#ferreiro").hidden && Math.hypot(ferreiroNpc.x - viking.x, ferreiroNpc.y - viking.y) > 4) abrirFerreiro(false);
@@ -18885,8 +18927,10 @@ function passo(dt) {
     const base = andando ? (arm ? mov + "_armado" : mov) : (arm ? "parado_armado" : "parado");
     const lugar = !andando && v.noLugar;                       // botão "andando" do painel: anda sem sair do lugar
     let escolhida = lugar ? v.noLugar : base;
-    if (!lugar) escolhida = transicao(v, escolhida, andando && !corre, arm, a);
-    if (!lugar && classe === "viking" && arm) escolhida = transicaoCorrida(v, escolhida, a);   // guarda ↔ corrida armada
+    // (no dash, a corrida entra direto, sem o clipe de arrancar; no fim, o parar começa na hora, sem esperar o q0/q7)
+    if (DASH.frear && !dashou) { if (!andando && v.anim === "correndo_armado") v.t = 0; DASH.frear = false; }
+    if (!lugar && !dashou) escolhida = transicao(v, escolhida, andando && !corre, arm, a);
+    if (!lugar && !dashou && classe === "viking" && arm) escolhida = transicaoCorrida(v, escolhida, a);   // guarda ↔ corrida armada
     if (v.anim !== escolhida) v.anim = escolhida;                // laços continuam do mesmo tempo: a troca não pula
     if (arm && !andando && classe === "viking") { v.ociosoArmado += dt; if (v.ociosoArmado > OCIOSO_GUARDAR) tocar("guardar", true); }
     else v.ociosoArmado = 0;
@@ -20524,6 +20568,7 @@ function desenharViking() {
     cx.drawImage(silhueta(SPR[r.anim][dirTela(r.dir)], r.q, ri, "#ff6a2a"), W / 2 + rx - ri.px * z, H / 2 + ry - ri.py * z, ri.w * z, ri.h * z);
     cx.restore();
   }
+  desenharVultosDash(z);
   const escondido = classe === "ninja" && NINJA.esconder.buff > 0;
   if (escondido) { cx.save(); cx.globalAlpha = 0.22 + 0.06 * Math.sin(agora * 6); }
   if (em3d) desenharInst3d(v, X, Y, z);
