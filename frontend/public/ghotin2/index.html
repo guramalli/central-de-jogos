@@ -12866,9 +12866,18 @@ function baseCaverna(d) {
 }
 let npcsMini = [], npcsMiniN = -1;
 function npcsMinimapa() { if (objetos.length !== npcsMiniN) { npcsMiniN = objetos.length; npcsMini = objetos.filter(o => o.npc && o.nome && !o.caverna && !naCaverna(o.x)); } return npcsMini; }
+// (R203) a imagem do mapa de fora (a mesma do minimapa, que o Mapa do Mundo usa de chão) fica pronta mesmo com o
+// minimapa fechado: na caverna, a do mapa da entrada
+function chaoDoMapaPronto() {
+  let x = viking.x, y = viking.y;
+  if (naCaverna(x)) { const d = cavDe(x); if (!d || !d.saida) return; x = d.saida.x; y = d.saida.y; }
+  const mp = mapaDe(x, y);
+  if (mp === MAPAS.vila1) { if (!miniBase) miniBase = baseIlha(); } else if (!mp.mini) mp.mini = baseIlha(mp);
+}
 function desenharMinimapa(agora) {
   const el = $("#minimapa");
-  if (el.hidden || agora < miniProx) return;
+  if (agora < miniProx) return;
+  if (el.hidden) { miniProx = agora + 250; chaoDoMapaPronto(); return; }
   miniProx = agora + 100;
   const cav = naCaverna(viking.x), dun = cav && cavDe(viking.x);
   if (cav && !dun) return;
@@ -12892,10 +12901,15 @@ function desenharMinimapa(agora) {
   g.drawImage(b.c, bx, by, b.c.width / MINI_PX * esc, b.c.height / MINI_PX * esc);
   const dentro = (x, y) => Math.hypot(x - viking.x, y - viking.y) < R * 0.97;
   // buracos e escadas
-  for (const o of npcsMinimapa()) if (dentro(o.x, o.y)) { const [X, Y] = ponto(o.x, o.y); g.fillStyle = "#f6e9c8"; g.strokeStyle = "#1E1B18"; g.lineWidth = 1; g.beginPath(); g.arc(X, Y, 2.3, 0, 7); g.fill(); g.stroke(); }   // (R173: os NPCs, um ponto pequeno, sem nome)
+  const npcsQuest = [];                               // (R203: os de quest, o pontinho na cor do estado, por cima de tudo)
+  for (const o of npcsMinimapa()) if (dentro(o.x, o.y)) {   // (R173: os NPCs, um ponto pequeno, sem nome)
+    const [X, Y] = ponto(o.x, o.y), st = estadoNpcQuest(o.nome);
+    if (st) { npcsQuest.push([X, Y, COR_QUEST[st]]); continue; }
+    g.fillStyle = "#f6e9c8"; g.strokeStyle = "#1E1B18"; g.lineWidth = 1; g.beginPath(); g.arc(X, Y, 2.3, 0, 7); g.fill(); g.stroke();
+  }
   for (const ps of passagens) if (dentro(ps.x, ps.y)) { const [X, Y] = ponto(ps.x, ps.y); g.fillStyle = "#0b0806"; g.strokeStyle = "#e8d6a0"; g.lineWidth = 1.5; g.beginPath(); g.arc(X, Y, 4, 0, 7); g.fill(); g.stroke(); }
   // os portais: o redemoinho na cor do destino (apagado se ainda travado pelo nível). O do mapa em que o herói está fica
-  // sempre à vista: longe, na borda do minimapa, na direção dele (como a estrela da missão)
+  // sempre à vista: longe, na borda do minimapa, na direção dele (como o pontinho da missão)
   for (const p of PORTAIS) if (dentro(p.x, p.y) || (!cav && mapaDe(p.x, p.y) === mp)) {
     let [X, Y] = ponto(p.x, p.y);
     const c = PORTAL_COR[p.cor] || PORTAL_COR.vila, trava = prog && prog.nivel < p.nivelMin, dx = X - W0 / 2, dy = Y - W0 / 2, dd = Math.hypot(dx, dy), max = W0 / 2 - 8;
@@ -12914,7 +12928,8 @@ function desenharMinimapa(agora) {
     if (l === selecao) { g.strokeStyle = "#fff"; g.lineWidth = 1.2; g.beginPath(); g.arc(X, Y, 5.5, 0, 7); g.stroke(); }
   }
   desenharChefesMinimapa(g, ponto, W0, R, cav, dun);  // as coroas dos chefes (sempre à vista) e o cronômetro dos mortos
-  if (!cav) missaoNoMinimapa(g, ponto, W0);          // a estrela do objetivo da missão
+  for (const [X, Y, cor] of npcsQuest) pontoQuest(g, X, Y, 3.6, cor, agora);   // os NPCs de quest piscando
+  if (!cav) missaoNoMinimapa(g, ponto, W0, agora);   // o pontinho do objetivo da missão
   marcaNoMinimapa(g, ponto, W0);                     // o ponto marcado no Mapa do Mundo
   // o personagem: seta amarela para onde ele olha
   const a = -viking.dir * Math.PI / 4;
@@ -13871,7 +13886,7 @@ function montarCavaleiro3d(i, r) {
 // leva a um canto do mapa: os lobos do leste, a Guarda Sigrid perto do portão sul, a Metin da Tristeza a sudeste, a
 // Aranha Gigante perto da Toca das Aranhas e a volta ao templo. O estado fica no progresso do personagem
 // (prog.missoes.<id> = { etapa, n }: etapa -1 = não aceitou; = etapas.length, concluída). O objetivo de agora fica embaixo
-// do minimapa (#missaoAtual), com uma estrela no minimapa (o lugar ou, fora do círculo, a borda na direção dele) e a
+// do minimapa (#missaoAtual), com um pontinho piscando no minimapa (R203; o lugar ou, fora do círculo, a borda na direção dele) e a
 // marca na placa do NPC; cada etapa cumprida avisa, toca a fanfarra e paga na hora (exp sem o teto, Yang e itens; com a
 // bolsa cheia, os itens caem no chão aos pés do herói). Os prêmios seguem a economia da vila: poções a 50/60 Yang, o
 // elmo de ferro a 1.400 e o Pergaminho da Bênção a 4.000 na loja; a exp de cada etapa ~1/3 do nível em que se chega nela.
@@ -13899,7 +13914,7 @@ const MISSOES = {
         premio: { exp: 9000, yang: 2500, itens: [["bencao", 1], ["peca:elmo:1", 1]] } },
     ],
   },
-  // (R165) o Altar das Eras: a carta do nível 5, só para o aprendiz. A estrela do Mapa do Mundo vai à Guardiã; a conversa dela (altarNaConversa) cumpre a quest
+  // (R165) o Altar das Eras: a carta do nível 5, só para o aprendiz. O pontinho do Mapa do Mundo vai à Guardiã; a conversa dela (altarNaConversa) cumpre a quest
   altar: {
     nome: "O Altar das Eras", npc: NOME_GUARDIA, aceitar: "Aceitar a missão", nivelMin: NIVEL_ALTAR, get carta() { return classe === "aprendiz"; }, soAprendiz: true, tipo: "Missão do nível 5", onde: "no alto da escadaria, na ilha a oeste da Vila 1",
     oferta: "Aprendiz, a pintura já conhece o seu traço. Atravesse a ponte de pedra a oeste do vale, suba a escadaria do Altar das Eras e fale comigo: as estátuas guardam as eras de onde os heróis vieram. Lá você escolhe a sua classe e recebe as skills.",
@@ -14623,7 +14638,7 @@ function cacadaAvisar() {
   const txt = `Nova caçada do nível ${q.n}: derrote ${q.qa} ${q.a} e ${q.qb} ${q.b}. O prêmio sai na hora, sem falar com ninguém.`;
   chatSistema(txt, "missao"); salvarProgresso();
 }
-// a criatura viva mais perto entre as que ainda faltam (para a estrela do mapa e do minimapa)
+// a criatura viva mais perto entre as que ainda faltam (para o pontinho do mapa e do minimapa)
 function ondeCacada() {
   const q = cacadaAtiva(); if (!q) return null;
   const s = cacadaEstado(); let m = null, dm = 1e9;
@@ -14674,7 +14689,7 @@ function receberCarta(id) {
   if (fimDaQuest(id) !== "receber") return false;
   delete estadoMissao(id).pronta; cumprirEtapa(id); return true;
 }
-// a ordem das missões para o objetivo de agora e a estrela: a acompanhada (prog.missaoVista, a última aceita ou a
+// a ordem das missões para o objetivo de agora e o pontinho: a acompanhada (prog.missaoVista, a última aceita ou a
 // escolhida na ficha), as outras em andamento e depois o resto (Logs/Quests/QUESTS_NIVEL.md, 1)
 function ordemMissoes() {
   const ids = Object.keys(MISSOES), v = prog && prog.missaoVista, ativa = id => !!etapaAtual(id);
@@ -14790,11 +14805,6 @@ function alfinete(c, X, Y, t) {
   c.arc(X, Y - t * 1.35, t * 0.72, Math.PI, 0); c.bezierCurveTo(X + t * 0.72, Y - t * 0.8, X + t * 0.15, Y - t * 0.55, X, Y); c.closePath(); c.fill(); c.stroke();
   c.fillStyle = "#EFE4CC"; c.beginPath(); c.arc(X, Y - t * 1.35, t * 0.28, 0, 7); c.fill(); c.restore();
 }
-function estrelaMapa(c, X, Y, r, cor = "#ffd23c") {
-  c.save(); c.fillStyle = cor; c.strokeStyle = "#1a1208"; c.lineWidth = Math.max(1.5, r * 0.2); c.lineJoin = "round"; c.beginPath();
-  for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, q = k % 2 ? r * 0.42 : r; c.lineTo(X + Math.cos(a) * q, Y + Math.sin(a) * q); }
-  c.closePath(); c.fill(); c.stroke(); c.restore();
-}
 // marca um ponto (no chão livre até 6 m dali; no mar ou longe de qualquer chão, não). Fica no save do personagem
 function marcarPonto(x, y) {
   const p = admChaoLivre(x, y);
@@ -14852,15 +14862,29 @@ function desenharSetaMarca(t) {
     }
   }
 }
-// a estrela do objetivo no minimapa (fora do círculo: na borda, na direção dele)
-function missaoNoMinimapa(g, ponto, W0) {
+// (R203) os pontinhos das quests (no lugar das estrelas, como os NPCs de quest piscando no mapa do Metin2; o desenho é
+// nosso): um ponto na cor do estado, com o contorno de nanquim, um miolo claro que acende e apaga e uma onda fina que abre
+// e some, a cada 1,4 s. Ouro: o NPC tem quest nova ("!"); verde: a quest espera por ele, falar ou entregar ("?"); azul: o
+// objetivo de uma quest em andamento (onde caçar, aonde ir, o portal no caminho)
+const COR_QUEST = { nova: "#ffd23c", entregar: "#5fe08c", objetivo: "#7cc8ff" }, PULSO_QUEST = 1400;
+function estadoNpcQuest(nome) { const m = marcaMissao(nome); return m === "!" ? "nova" : m === "?" ? "entregar" : null; }
+function pontoQuest(c, X, Y, r, cor, agora = 0) {
+  const f = (agora % PULSO_QUEST) / PULSO_QUEST, p = 0.5 - 0.5 * Math.cos(f * Math.PI * 2);
+  c.save();
+  c.globalAlpha = 0.75 * (1 - f); c.strokeStyle = cor; c.lineWidth = Math.max(1.5, r * 0.3); c.beginPath(); c.arc(X, Y, r * (1.05 + 1.5 * f), 0, 7); c.stroke();
+  c.globalAlpha = 1; c.fillStyle = cor; c.strokeStyle = "#1E1B18"; c.lineWidth = Math.max(1.2, r * 0.28);
+  c.beginPath(); c.arc(X, Y, r * (0.86 + 0.18 * p), 0, 7); c.fill(); c.stroke();
+  c.globalAlpha = 0.3 + 0.55 * p; c.fillStyle = "#fffbe8"; c.beginPath(); c.arc(X, Y, r * 0.36, 0, 7); c.fill();
+  c.restore();
+}
+// o objetivo no minimapa (fora do círculo: na borda, na direção dele): o pontinho azul; verde se é falar com alguém
+function missaoNoMinimapa(g, ponto, W0, agora = performance.now()) {
   const q = ondeMissao(); if (!q) return;
   let [X, Y] = ponto(q[0], q[1]);
   const dx = X - W0 / 2, dy = Y - W0 / 2, d = Math.hypot(dx, dy), max = W0 / 2 - 8;
   if (d > max) { X = W0 / 2 + dx / d * max; Y = W0 / 2 + dy / d * max; }
-  g.save(); g.fillStyle = "#ffd23c"; g.strokeStyle = "#1a1208"; g.lineWidth = 1.5; g.beginPath();
-  for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 2.6 : 6.2; g.lineTo(X + Math.cos(a) * r, Y + Math.sin(a) * r); }
-  g.closePath(); g.fill(); g.stroke(); g.restore();
+  const npc = objetos.find(o => o.npc && o.nome && Math.hypot(o.x - q[0], o.y - q[1]) < 0.5);
+  pontoQuest(g, X, Y, 4, npc && estadoNpcQuest(npc.nome) === "entregar" ? COR_QUEST.entregar : COR_QUEST.objetivo, agora);
 }
 // um quadro na janela da conversa (o losango, o nome, a linha de baixo e os botões [texto, ação, desligado])
 function quadroConversa(titulo, sub, botoes = [], cor = "#ffd23c", retrato = null) {
@@ -24648,7 +24672,7 @@ const GUIA_PASSOS = [
   ["Vista o que ganhou", "Dê um <b>clique direito</b> na arma e na roupa, na bolsa.", () => !!prog.arma && !!prog.equip && !!prog.equip.armadura],
   ["Ande pelo mundo", "Use <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> ou <b>clique no chão</b>.", g => { g.x0 === undefined && (g.x0 = viking.x, g.y0 = viking.y); return Math.hypot(viking.x - g.x0, viking.y - g.y0) > 4; }],
   ["Aceite uma quest", "Clique no <b>pergaminho</b> à esquerda da tela e em <b>Aceitar</b>. <kbd>Q</kbd> mostra as suas quests.", () => Object.keys(MISSOES).some(id => etapaAtual(id))],
-  ["Veja o mapa", "Aperte <kbd>M</kbd>. As estrelas são as suas quests. <b>Clique num lugar</b> e uma seta no chão leva até ele.", () => !!(window.MM && MM.aberto) || !!prog.marcaMapa],
+  ["Veja o mapa", "Aperte <kbd>M</kbd>. Os pontinhos que piscam são as suas quests (ouro: quest nova; verde: entregar; azul: o objetivo). <b>Clique num lugar</b> e uma seta no chão leva até ele.", () => !!(window.MM && MM.aberto) || !!prog.marcaMapa],
   ["Derrote uma criatura", "Saia da cidade, <b>clique numa criatura</b> ou aperte <kbd>Espaço</kbd>, e ela é atacada até cair.", () => prog.exp > 0 || prog.nivel > 1],
   ["Abra a sua ficha", "Aperte <kbd>P</kbd>. Cada bolinha de EXP cheia dá um ponto de atributo, e cada nível, um de skill. <kbd>R</kbd> e <kbd>X</kbd> usam as poções.", () => !$("#ficha").hidden],
   ["Dê um dash", "Aperte <kbd>Shift</kbd> para um avanço rápido, bom para fugir de um golpe.", () => !!DASH.ativo],
@@ -24656,7 +24680,7 @@ const GUIA_PASSOS = [
 // (R165) a lista de quem nasceu aprendiz: o passo 2 pede só a arma, a ficha explica o nível 5 e um passo novo no fim manda ao altar
 const GUIA_PASSOS_APRENDIZ = GUIA_PASSOS.map(p => p[0] === "Vista o que ganhou" ? ["Vista a arma de treino", "Dê um <b>clique direito</b> na espada de madeira, na bolsa.", () => !!prog.arma]
   : p[0] === "Abra a sua ficha" ? [p[0], "Aperte <kbd>P</kbd>. Cada bolinha de EXP cheia dá um ponto de atributo. As skills chegam no <b>nível 5</b>, com a classe. <kbd>R</kbd> e <kbd>X</kbd> usam as poções.", p[2]] : p).concat([
-  ["Vá ao Altar das Eras", "No <b>nível 5</b>, siga a estrela do mapa (<kbd>M</kbd>) até a ilha a oeste, suba a escadaria e fale com a Guardiã para escolher a sua classe.", () => classe !== "aprendiz"]]);
+  ["Vá ao Altar das Eras", "No <b>nível 5</b>, siga o pontinho que pisca no mapa (<kbd>M</kbd>) até a ilha a oeste, suba a escadaria e fale com a Guardiã para escolher a sua classe.", () => classe !== "aprendiz"]]);
 const guiaPassos = () => prog && prog.vocacao ? GUIA_PASSOS_APRENDIZ : GUIA_PASSOS;
 let guiaFeito = null;
 function guiaDesenhar() {
@@ -32081,9 +32105,10 @@ return { get ativo() { return ativo(); }, get iso() { return iso; }, get aquecid
 </section>
 <script>
 // ================================================================ MAPA DO MUNDO (o bloco da tela; ver o comentário acima)
-// A vista: (cx, cy) é o ponto do mundo no meio da tela e esc os px por metro. O chão vem de uma imagem pintada uma vez
-// (2 px por m: as cores das regiões, a máscara do pincel de terreno e o sombreado do relevo do mundo 3D) e o resto é
-// desenhado por cima a cada mudança (estradas, decoração, spawns, ícones e nomes), sempre nítido.
+// A vista: (cx, cy) é o ponto do mundo no meio da tela e esc os px por metro. O chão é a imagem do minimapa (R203: 2 px
+// por m, cores chapadas, já pintada; o chão com o relevo do mundo 3D só na aba Mapa do editor do admin e na imagem
+// exportada) e o resto é desenhado por cima a cada mudança (estradas, decoração, spawns, ícones e nomes), sempre nítido,
+// numa camada parada; os pontinhos das quests piscam por cima dela.
 var MM = (() => {
 "use strict";
 const $m = id => document.getElementById(id);
@@ -32208,8 +32233,19 @@ function repintarArea(R, x0, y0, x1, y1) {
   amostrar(R, i0, i1, j0, Math.min(j1, R.linhas - 1));
   sombrear(R, i0 - 1, i1 + 1, j0 - 1, Math.min(j1, R.linhas - 1) + 1);
 }
+// (R203, 03/11: "um mapa mais leve e com menos efeitos para abrir mais rápido") o chão que o jogador vê é a imagem do
+// minimapa: 2 px por m, cores chapadas, sem relevo nem textura, e já pintada pelo minimapa ao entrar no mapa (abrir não
+// pinta nada; antes, a Vila 1 levava ~5 s pintando 1,9 milhão de pixels com relevo, Logs/Mapa/DIAGNOSTICO.md). O chão
+// com relevo (base) ficou só para a aba Mapa do editor do admin (o pincel de terreno repinta nele) e a imagem exportada
+const chaoComRelevo = () => ADMIN && est.editando && est.aba === "mapa";
+function chaoLeve() {
+  const mp = est.mapa || MAPAS.vila1;
+  if (mp === MAPAS.vila1) { if (!miniBase) miniBase = baseIlha(); return miniBase; }
+  if (!mp.mini) mp.mini = baseIlha(mp);
+  return mp.mini;
+}
 function garantirBase() {
-  if (base) return;
+  if (base || !chaoComRelevo()) return;
   base = novoRaster(4);
   $m("mmCarregando").hidden = false;
   construirRaster(base, f => { $m("mmCarregando").textContent = `Desenhando o mapa… ${Math.round(f * 100)}%`; est.sujo = true; })
@@ -32368,7 +32404,7 @@ function coroa(c, X, Y, t, cor) {
 }
 function losango(c, X, Y, t, cor) {
   c.save(); c.beginPath(); c.moveTo(X, Y - t); c.lineTo(X + t * 0.62, Y); c.lineTo(X, Y + t); c.lineTo(X - t * 0.62, Y); c.closePath();
-  c.fillStyle = cor; c.shadowColor = cor; c.shadowBlur = t * 0.8; c.fill(); c.shadowBlur = 0; c.lineWidth = Math.max(1.2, t * 0.14); c.strokeStyle = "#140c18"; c.stroke(); c.restore();
+  c.fillStyle = cor; c.fill(); c.lineWidth = Math.max(1.2, t * 0.14);   // (R203: sem o brilho borrado, shadowBlur) c.strokeStyle = "#140c18"; c.stroke(); c.restore();
 }
 // o portal entre mapas (como no minimapa): o redemoinho na cor do destino, num disco com a borda escura
 function portalIcone(c, X, Y, t, p) {
@@ -32530,7 +32566,7 @@ function desenharHeroi(c, v, opc, soReservar) {
 // a legenda: a escala dos níveis e os ícones (no canto de baixo à esquerda; na imagem exportada, à direita, em cima da
 // escala: o canto de baixo à esquerda da Vila 1 é a ponta das Terras do Sul, com o portal)
 function desenharLegenda(c, v, k = 1, direita = false, sobe = 0, marcas = false) {
-  const W0 = 300 * k, H0 = 134 * k, x0 = direita ? v.w - W0 - 12 * k : 12 * k, y0 = v.h - H0 - 12 * k - sobe;
+  const W0 = 300 * k, H0 = (marcas ? 156 : 134) * k, x0 = direita ? v.w - W0 - 12 * k : 12 * k, y0 = v.h - H0 - 12 * k - sobe;
   c.save();
   c.fillStyle = "rgba(14, 10, 6, 0.86)"; c.strokeStyle = "#8a6a34"; c.lineWidth = 1.5 * k;
   c.beginPath(); c.roundRect ? c.roundRect(x0, y0, W0, H0, 8 * k) : c.rect(x0, y0, W0, H0); c.fill(); c.stroke();
@@ -32548,11 +32584,13 @@ function desenharLegenda(c, v, k = 1, direita = false, sobe = 0, marcas = false)
   c.fillStyle = "#ffd84a"; c.beginPath(); c.moveTo(x0 + 278 * k, ly); c.lineTo(x0 + 268 * k, ly + 6 * k); c.lineTo(x0 + 270 * k, ly); c.lineTo(x0 + 268 * k, ly - 6 * k); c.closePath(); c.fill();
   texto(c, "você", x0 + 284 * k, ly, 11.5 * k, "#eadfc8", { alinhar: "left" });
   texto(c, "Círculo: área do grupo · pontos: cada mob", x0 + 12 * k, ly + 22 * k, 10.5 * k, "#a99b82", { alinhar: "left", peso: 500 });
-  if (marcas) {
-    estrelaMapa(c, x0 + 22 * k, ly + 44 * k, 8 * k); texto(c, "quest ativa", x0 + 34 * k, ly + 44 * k, 11.5 * k, "#eadfc8", { alinhar: "left" });
-    alfinete(c, x0 + 120 * k, ly + 51 * k, 6 * k); texto(c, "ponto marcado", x0 + 131 * k, ly + 44 * k, 11.5 * k, "#eadfc8", { alinhar: "left" });
+  if (marcas) {                                                        // (R203: os pontinhos das quests, parados na legenda)
+    const pq = (x, cor, txt) => { c.save(); c.fillStyle = cor; c.strokeStyle = "#1E1B18"; c.lineWidth = 1.6 * k; c.beginPath(); c.arc(x, ly + 44 * k, 5.5 * k, 0, 7); c.fill(); c.stroke(); c.restore(); texto(c, txt, x + 10 * k, ly + 44 * k, 11.5 * k, "#eadfc8", { alinhar: "left" }); };
+    pq(x0 + 22 * k, COR_QUEST.nova, "quest nova"); pq(x0 + 112 * k, COR_QUEST.entregar, "entregar"); pq(x0 + 190 * k, COR_QUEST.objetivo, "objetivo");
+    alfinete(c, x0 + 22 * k, ly + 73 * k, 6 * k); texto(c, "ponto marcado", x0 + 33 * k, ly + 66 * k, 11.5 * k, "#eadfc8", { alinhar: "left" });
   }
-  seloNpc(c, x0 + 228 * k, ly + 44 * k, 7 * k); texto(c, "NPC", x0 + 239 * k, ly + 44 * k, 11.5 * k, "#eadfc8", { alinhar: "left" });
+  const ln = marcas ? ly + 66 * k : ly + 44 * k;
+  seloNpc(c, x0 + 128 * k, ln, 7 * k); texto(c, "NPC", x0 + 139 * k, ln, 11.5 * k, "#eadfc8", { alinhar: "left" });
   c.restore();
 }
 // a escala (quantos metros) no canto de baixo à direita
@@ -32599,9 +32637,15 @@ function reservarNpcs(c, v, opc) {
   }
   opc.npcs = lista;
 }
+// (R203) os pontinhos que piscam na tela: [{ X, Y, r, cor, estado, nome }], refeitos a cada redesenho da camada parada
+let pontosQuest = [];
 function desenharNpcs(c, v, opc) {
   const lista = opc.npcs || [];
-  for (const a of lista) if (a.X > -20 && a.X < v.w + 20 && a.Y > -20 && a.Y < v.h + 20) seloNpc(c, a.X, a.Y, a.t);
+  for (const a of lista) if (a.X > -20 && a.X < v.w + 20 && a.Y > -20 && a.Y < v.h + 20) {
+    const st = !opc.limpo && estadoNpcQuest(a.nome); a.quest = st || null;   // (o NPC de quest: o pontinho no lugar do selo)
+    if (st && v === V) pontosQuest.push({ X: a.X, Y: a.Y, r: Math.max(7, a.t * 0.9), cor: COR_QUEST[st], estado: st, nome: a.nome });
+    else seloNpc(c, a.X, a.Y, a.t);
+  }
   for (const a of lista) if (a.caixa) texto(c, a.nome, (a.caixa[0] + a.caixa[2]) / 2, (a.caixa[1] + a.caixa[3]) / 2, a.tam, "#fff4d6", { peso: 700 });
   if (v === V) marcasNpc = lista;
 }
@@ -32619,12 +32663,17 @@ function desenharMapa(c, v, opc = {}) {
   // na tela, como o Large Map do Metin2: a folha do mapa sobre um fundo escuro de nanquim, com a moldura do jogo
   // (nanquim e o filete ocre); na imagem exportada, o mar em volta
   c.fillStyle = opc.raster ? "rgb(18, 56, 94)" : "#0e0c0a"; c.fillRect(0, 0, v.w, v.h);
-  const R = opc.raster || base;
+  const R = opc.raster || (chaoComRelevo() ? base : null);
   {
     const [X, Y] = paraTela(LIM.x0, LIM.y1, v), [X1, Y1] = paraTela(LIM.x1, LIM.y0, v);
-    if (!opc.raster) { c.fillStyle = "rgb(18, 56, 94)"; c.fillRect(X, Y, X1 - X, Y1 - Y); }
+    if (!opc.raster) { c.fillStyle = "rgb(38, 84, 110)"; c.fillRect(X, Y, X1 - X, Y1 - Y); }   // (o mar do minimapa)
     if (R) { c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
       c.drawImage(R.c, X, Y, R.w / R.ppm * v.esc, R.h / R.ppm * v.esc); c.restore(); }
+    else if (!opc.raster) {                                              // (R203: o chão leve, a imagem do minimapa, cortada na moldura)
+      const L = chaoLeve(), [lx, ly] = paraTela(L.x0, L.y1, v);
+      c.save(); c.beginPath(); c.rect(X, Y, X1 - X, Y1 - Y); c.clip(); c.imageSmoothingEnabled = true;
+      c.drawImage(L.c, lx, ly, L.c.width / MINI_PX * v.esc, L.c.height / MINI_PX * v.esc); c.restore();
+    }
     if (!opc.raster) { const k = v.dpr || 1; c.save(); c.strokeStyle = "#1E1B18"; c.lineWidth = 6 * k; c.strokeRect(X - 3 * k, Y - 3 * k, X1 - X + 6 * k, Y1 - Y + 6 * k);
       c.strokeStyle = "#C9963E"; c.lineWidth = 1.5 * k; c.strokeRect(X - 6.5 * k, Y - 6.5 * k, X1 - X + 13 * k, Y1 - Y + 13 * k); c.restore(); }
   }
@@ -32643,21 +32692,35 @@ function desenharMapa(c, v, opc = {}) {
   desenharNpcs(c, v, opc);
   desenharHeroi(c, v, opc);
 }
-// as quests ativas (estrela e nome; no mesmo lugar, uma embaixo da outra) e o ponto marcado
+// as quests ativas (o pontinho azul do objetivo e o nome; no mesmo lugar, uma embaixo da outra) e o ponto marcado. A que
+// espera um NPC ("?") não ganha o azul: o verde dele já pisca (R203)
 function desenharMarcas(c, v) {
   const dentro = (x, y) => x >= LIM.x0 && x <= LIM.x1 && y >= LIM.y0 && y <= LIM.y1, usados = {};
   for (const q of questsNoMapa()) {
     if (!dentro(q.x, q.y)) continue;
     const [X, Y] = paraTela(q.x, q.y, v), r = q.vista ? 12 : 10, chave = Math.round(X / 12) + "," + Math.round(Y / 12), n = usados[chave] = (usados[chave] || 0) + 1;
-    if (n === 1) estrelaMapa(c, X, Y, r);
+    const noNpc = pontosQuest.some(p => p.estado === "entregar" && Math.hypot(p.X - X, p.Y - Y) < 4);
+    if (n === 1 && !noNpc && v === V) pontosQuest.push({ X, Y, r: q.vista ? 8 : 7, cor: COR_QUEST.objetivo, estado: "objetivo", nome: q.nome });
     texto(c, q.nome, X, Y + r + 10 + (n - 1) * 15, 13, "#ffe27a", { peso: 700 });
   }
   const m = prog && prog.marcaMapa;
   if (m && dentro(m.x, m.y)) { const [X, Y] = paraTela(m.x, m.y, v); alfinete(c, X, Y, 11); texto(c, "Ponto marcado", X, Y + 11, 12.5, "#fff4d6", { peso: 700 }); }
   $m("mmTirarMarca").hidden = !m; $m("mmDicaMarca").hidden = est.editando;
 }
+// (R203) a camada parada: o mapa inteiro é desenhado nela só quando muda (arrastar, rodinha, clique: est.sujo); a cada
+// quadro, a 30 por segundo, a tela recebe a camada pronta e os pontinhos por cima (o pulso custa ~0,1 ms por quadro)
+let camada = null, cg = null, ultPulso = 0;
+function camadaCtx() {
+  if (!camada || camada.width !== cvM.width || camada.height !== cvM.height) { camada = document.createElement("canvas"); camada.width = cvM.width; camada.height = cvM.height; cg = camada.getContext("2d"); }
+  return cg;
+}
+function compor(agora = performance.now()) {
+  if (!camada) return;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(camada, 0, 0);
+  if (pontosQuest.length) { g.setTransform(V.dpr, 0, 0, V.dpr, 0, 0); for (const q of pontosQuest) pontoQuest(g, q.X, q.Y, q.r, q.cor, agora); }
+}
 function desenharTela() {
-  const c = g;
+  const c = camadaCtx(); pontosQuest = [];
   c.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
   desenharMapa(c, V);
   desenharMarcas(c, V);
@@ -32680,10 +32743,12 @@ function desenharTela() {
   }
   desenharLegenda(c, V, V.w < 520 ? 0.78 : 1, false, 0, true);
   desenharEscala(c, V, 1, est.editando && V.w > 720 ? 316 : 12);
+  compor();
 }
-function quadro() {
+function quadro(agora) {
   if (!est.aberto) return;
-  if (est.sujo) { est.sujo = false; desenharTela(); }
+  if (est.sujo) { est.sujo = false; desenharTela(); ultPulso = agora; }
+  else if (pontosQuest.length && agora - ultPulso >= 33) { ultPulso = agora; compor(agora); }   // (só os pontinhos)
   requestAnimationFrame(quadro);
 }
 function ajustarTela() {
@@ -32741,14 +32806,18 @@ function abrir(sim = !est.aberto) {
     if (typeof editor !== "undefined" && editor.ativo) editorAbrir(false);
     est.aberto = true; el.hidden = false;
     est.pausadoAntes = pausado; pausado = true; teclas.clear(); viking.alvo = null; viking.rota = null;
-    montarListas();
+    if (ADMIN) montarListas();                                         // (R203: as listas e a tabela são do editor do admin)
     if (!est.editando && innerWidth > 720 && ADMIN) editar(true, false);
     else if (est.editando && !ADMIN) editar(false, false);              // (o jogador comum só olha o mapa)
-    // (o mapa em que o herói está: a Vila 1 com o vale e a montanha, ou a ilha de outro mapa; trocou, o chão é refeito)
-    const mpM = mapaDe(viking.x, viking.y), lim = mpM === MAPAS.vila1 ? limV1()
+    // (o mapa em que o herói está: a Vila 1 com o vale e a montanha, ou a ilha de outro mapa. R203: na caverna, o mapa de
+    // fora, onde fica a entrada; o Vale dos Dragões abria a Vila 1, com o herói fora da tela)
+    let hx = viking.x, hy = viking.y;
+    if (naCaverna(hx)) { const d = cavDe(hx); if (d && d.saida) { hx = d.saida.x; hy = d.saida.y; } }
+    const mpM = mapaDe(hx, hy), lim = mpM === MAPAS.vila1 ? limV1()
       : { x0: mpM.ox - mpM.raio - 12, x1: mpM.ox + mpM.raio + 12, y0: mpM.oy - mpM.raio - 12, y1: mpM.oy + mpM.raio + 12 };
+    est.mapa = mpM;
     if (LIM.x0 !== lim.x0 || LIM.y0 !== lim.y0 || LIM.x1 !== lim.x1) { Object.assign(LIM, lim); base = null; }
-    ajustarTela(); verTudo(); garantirBase(); atualizarTabela();
+    ajustarTela(); verTudo(); garantirBase(); if (ADMIN) atualizarTabela();
     est.sujo = true; requestAnimationFrame(quadro);
     try { som("ui_abrir", null, 0.7); } catch (e) {}
     $m("mmFechar").focus({ preventScroll: true });
@@ -32782,6 +32851,7 @@ function trocarAba(a) {
   for (const b of el.querySelectorAll("[data-aba]")) b.setAttribute("aria-selected", b.dataset.aba === a);
   for (const p of el.querySelectorAll("[data-painel]")) p.hidden = p.dataset.painel !== a;
   if (!est.editando) editar(true);
+  garantirBase();                                                       // (a aba Mapa: o chão com relevo, para o pincel de terreno)
   est.sel = null; est.selDeco = null; painelMob(); painelDeco(); ferramentaCursor(); est.sujo = true;
 }
 function aviso(t) { $m("mmAviso").textContent = t; }
@@ -33005,13 +33075,13 @@ function originalMapa() {
 const toques = new Map();
 let pinca = null, ultimoPincel = null;
 function ponto(e) { const r = cvM.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, [x, y] = doMundo(px, py); return { px, py, x, y }; }
-// a quest cuja estrela está embaixo do ponteiro (a 16 px)
+// a quest cujo pontinho está embaixo do ponteiro (a 16 px)
 function questNoPonto(p) {
   let m = null, dm = 16;
   for (const q of questsNoMapa()) { const [X, Y] = paraTela(q.x, q.y, V), d = Math.hypot(X - p.px, Y - p.py); if (d < dm) { dm = d; m = q; } }
   return m;
 }
-// um clique sem arrastar, fora do editor: no ponto marcado, tira a marca; numa estrela, marca o objetivo; senão, marca ali
+// um clique sem arrastar, fora do editor: no ponto marcado, tira a marca; num pontinho de quest, marca o objetivo; senão, marca ali
 function cliqueMarca(p) {
   const m = prog && prog.marcaMapa; if (!prog) return;
   if (m) { const [X, Y] = paraTela(m.x, m.y, V); if (Math.hypot(X - p.px, Y - p.py) < 16) { tirarMarca(); est.sujo = true; aviso("Marca tirada."); return; } }
@@ -33177,7 +33247,7 @@ ferramentaCursor();
 
 return {
   abrir, editar, trocarAba, verTudo, imagem, desenharAgora: desenharTela, tabela, tabelaTexto, corNivel, paraTela: (x, y) => paraTela(x, y), doMundo: (px, py) => doMundo(px, py),
-  marcasNpc: () => marcasNpc, limites: () => LIM, get aberto() { return est.aberto; }, get cobre() { return est.aberto; }, get pronto() { return !!(base && base.pronto); }, est, V,
+  marcasNpc: () => marcasNpc, limites: () => LIM, get aberto() { return est.aberto; }, get cobre() { return est.aberto; }, get pronto() { return !chaoComRelevo() || !!(base && base.pronto); }, pontos: () => pontosQuest, est, V,
 };
 })();
 </script>
