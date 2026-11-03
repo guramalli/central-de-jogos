@@ -833,6 +833,8 @@
   .fx-sk canvas:hover { outline: 2px solid var(--ouro); outline-offset: 1px; }
   .ficha .fx-sk button.fx-mais { position: absolute; top: -5px; right: -1px; width: 17px; height: 17px; border-radius: 50%; font-size: 12px; }
   .fx-sk-grade .fx-formas { grid-template-columns: repeat(3, 1fr); gap: 4px 6px; justify-items: center; }
+  .fx-sk-grade .fx-formas.fx-seis { gap: 1px 6px; padding-top: 3px; padding-bottom: 2px; }
+  .fx-formas.fx-seis .fx-sk canvas { width: 32px; height: 32px; }
   .fx-forma-tit { font-size: 10.5px; line-height: 13px; text-align: center; color: var(--apagado); white-space: nowrap; }
   .fx-forma { padding-bottom: 5px; }
   .fx-forma canvas { width: 40px; height: 40px; }
@@ -846,6 +848,7 @@
     border: 1px solid var(--jan-poco-borda); border-radius: 2px; background: var(--jan-poco); }
   .fx-sk-info .sk-nome { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
   .ficha .fx-sk-info > button { grid-row: span 2; align-self: center; font-size: 12px; padding: 4px 8px; white-space: nowrap; }
+  .fx-sk-info .sk-aviso { grid-column: 1 / -1; line-height: 1.35; }
   .fx-sk-info .sk-linha { font-size: 11.5px; color: var(--apagado); }
   .fx-sk-info small { grid-column: 1 / -1; font-size: 11px; color: var(--apagado); }
   .fx-passivas { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px 3px; }
@@ -1350,7 +1353,8 @@
       <button id="cFeiticeiro" aria-pressed="false">Feiticeiro</button>
       <button id="cGuerreiro" aria-pressed="false" title="Guerreiro do machado">Guerreiro</button>
       <button id="cNinja" aria-pressed="false" title="Ninja (provisório: usa o desenho do viking escurecido até chegar o modelo dele)">Ninja</button>
-      <button id="cXama" aria-pressed="false" title="Xamã do leque">Xamã</button>
+      <button id="cXama" aria-pressed="false" title="A Xamã Relâmpago">Xamã Relâmpago</button>
+      <button id="cXamaDragao" aria-pressed="false" title="O Xamã Dragão">Xamã Dragão</button>
       <button id="cShura" aria-pressed="false" title="Shura da espada sombria">Shura</button>
     </div>
   </div>
@@ -4562,7 +4566,8 @@ const TINTA = "#1c120c";                  // a linha de nanquim dos sprites
 let M = null, SPR = {}, PX = 84;          // manifest, imagens por animação e direção, pixels por metro
 // o personagem jogável: o viking (manifest.json) ou o arqueiro (arqueiro.json); M e SPR apontam para o da vez
 const ICONES_SKILL = {}; const ICONES_ITEM = {};
-let MV = null, SPRV = {}, MA = null, SPRA = {}, MF = null, SPRF = {}, MN = null, SPRN = {}, MG = null, SPRG = {}, MX = null, SPRX = {}, MS = null, SPRS = {}, MP = null, SPRP = {}, VOCACAO = null, classe = "viking";
+let MV = null, SPRV = {}, MA = null, SPRA = {}, MF = null, SPRF = {}, MN = null, SPRN = {}, MG = null, SPRG = {}, MX = null, SPRX = {}, MXD = null, SPRXD = {}, MS = null, SPRS = {}, MP = null, SPRP = {}, VOCACAO = null, classe = "viking";
+const ehXama = (c = classe) => c === "xama" || c === "xama_dragao";   // (as duas classes da vocação Filhos do Dragão)
 let FX = null, FXI = {};                  // fogo da Fúria: fx.json e as tiras
 let zoom = 1, dpr = 1, W = 0, H = 0;
 const ZOOM_MIN_2D = 0.6;                   // o mais afastado que o zoom vai no isométrico (mais longe os bonecos ficam miúdos)
@@ -5353,6 +5358,7 @@ async function carregar() {
   try { const r = await fetch("ninja.json"); if (r.ok) MN = await r.json(); } catch (e) { MN = null; }
   try { const r = await fetch("guerreiro.json"); if (r.ok) MG = await r.json(); } catch (e) { MG = null; }
   try { const r = await fetch("xama.json"); if (r.ok) MX = await r.json(); } catch (e) { MX = null; }   // (a xamã: Logs/Xama/exportacao)
+  try { const r = await fetch("xama_dragao.json"); if (r.ok) MXD = await r.json(); } catch (e) { MXD = null; }   // (o Xamã Dragão: Logs/XamaHomem/saida)
   try { const r = await fetch("shura.json"); if (r.ok) MS = await r.json(); } catch (e) { MS = null; }  // (o shura: Logs/Shura/exportacao)
   try { const r = await fetch("aprendiz.json"); if (r.ok) MP = await r.json(); } catch (e) { MP = null; }  // (o aprendiz, R165: Tools/aprendiz/pintar.py)
   MV = M; SPRV = SPR;
@@ -5411,13 +5417,14 @@ async function carregar() {
     ? (spr[n] = folhaSobDemanda(prefixo + n, () => { if (n.endsWith("_sem")) { delete mapa.animacoes[n]; delete spr[n]; } }), Promise.resolve())
     : folha(prefixo + n).then(p => { spr[n] = p; }, e => { if (n.endsWith("_sem")) delete mapa.animacoes[n]; else if (semClasse) semClasse(); else throw e; });
   // (as classes novas, com folhas grandes, vêm sob demanda também no ?test=1: o teste só simula)
-  const sobDe = c => SOB_DEMANDA || ((c === "xama" || c === "shura" || c === "aprendiz") && MODO_TESTE);
+  const sobDe = c => SOB_DEMANDA || ((ehXama(c) || c === "shura" || c === "aprendiz") && MODO_TESTE);
   await Promise.all([
     ...nomes.map(n => heroi(sobDe("viking"), M, SPR, "", n)),
     ...Object.keys(MA.animacoes).map(n => heroi(sobDe("arqueiro"), MA, SPRA, "arqueiro_", n)),
     ...(MG ? Object.keys(MG.animacoes) : []).map(n => heroi(sobDe("guerreiro"), MG, SPRG, "guerreiro_", n, () => { MG = null; })),
     ...(MN ? Object.keys(MN.animacoes) : []).map(n => heroi(sobDe("ninja"), MN, SPRN, "ninja_", n, () => { MN = null; })),
     ...(MX ? Object.keys(MX.animacoes) : []).map(n => heroi(sobDe("xama"), MX, SPRX, "xama_", n, () => { MX = null; })),
+    ...(MXD ? Object.keys(MXD.animacoes) : []).map(n => heroi(sobDe("xama_dragao"), MXD, SPRXD, "xama_dragao_", n, () => { MXD = null; })),
     ...(MS ? Object.keys(MS.animacoes) : []).map(n => heroi(sobDe("shura"), MS, SPRS, "shura_", n, () => { MS = null; })),
     ...(MP ? Object.keys(MP.animacoes) : []).map(n => heroi(sobDe("aprendiz"), MP, SPRP, "aprendiz_", n, () => { MP = null; })),
     ...Object.keys(MF.animacoes).map(n => heroi(sobDe("feiticeiro"), MF, SPRF, "feiticeiro_", n)),
@@ -5496,6 +5503,7 @@ async function carregar() {
   if (MG) for (const [de, para] of [["parado_armado", "parado"], ["andando_armado", "andando"], ["correndo_armado", "correndo"], ["furia_armado", "furia"]]) if (MG.animacoes[para]) { MG.animacoes[de] = MG.animacoes[para]; SPRG[de] = SPRG[para]; }
   // a xamã também: sempre com o leque na mão
   if (MX) for (const [de, para] of [["parado_armado", "parado"], ["andando_armado", "andando"], ["correndo_armado", "correndo"]]) if (MX.animacoes[para]) { MX.animacoes[de] = MX.animacoes[para]; SPRX[de] = SPRX[para]; }
+  if (MXD) for (const [de, para] of [["parado_armado", "parado"], ["andando_armado", "andando"], ["correndo_armado", "correndo"]]) if (MXD.animacoes[para]) { MXD.animacoes[de] = MXD.animacoes[para]; SPRXD[de] = SPRXD[para]; }
   // o shura também: sempre com a espada na mão
   if (MS) for (const [de, para] of [["parado_armado", "parado"], ["andando_armado", "andando"], ["correndo_armado", "correndo"]]) if (MS.animacoes[para]) { MS.animacoes[de] = MS.animacoes[para]; SPRS[de] = SPRS[para]; }
   // o aprendiz também: sempre com a arma de treino na mão
@@ -5605,11 +5613,11 @@ const VOCACOES = {
   norte: { nome: "Guerreiros do Norte", classes: ["viking", "guerreiro"], frase: "Corpo a corpo: a espada que abre caminho ou o machado que segura o bando." },
   caca: { nome: "Caçadores das Sombras", classes: ["arqueiro", "ninja"], frase: "Rápidos: as flechas de longe ou as adagas de perto." },
   trevas: { nome: "Mestres das Trevas", classes: ["shura", "feiticeiro"], frase: "O poder proibido: a lâmina amaldiçoada ou as magias de área." },
-  dragao: { nome: "Filhos do Dragão", classes: ["xama"], frase: "O leque do dragão, o raio e a cura. A outra era ainda não despertou." },
+  dragao: { nome: "Filhos do Dragão", classes: ["xama", "xama_dragao"], frase: "O leque do dragão: o raio e a cura, ou o fogo e a proteção." },
 };
 const ALTAR = { U: -122.5, V: 0, z: 8, ilha: { rx: 22, ry: 17.5, cb: 1 }, esc: { meia: 3.5, b0: -9, mureta: 0.8 }, topo: { meia: 10, b0: 5, b1: 20, bal: 0.5 }, colina: { ra: 16.4, rb: 11.7, cb: 2.7 },
   lances: [[-9, 0], [-2.46, 4.9], [0.87, 4.9], [5, 8]], ponte: { b: -8.5, meia: 2.3, a0: 15, a1: 36, g0: 15.8, g1: 35.2, baixa: 2.66, perfil: [[0, 1.08], [1.8, 1], [3.5, 0.85], [5.3, 0.7], [6.5, 0.55], [8, 0.2], [9.4, 0.05], [10.5, 0]] }, npc: [0, 10.5],
-  templo: { b: 16.2, meia: 3.9, b0: 14 }, ordem: ["viking", "guerreiro", "arqueiro", "ninja", "shura", "feiticeiro", "xama", null] };
+  templo: { b: 16.2, meia: 3.9, b0: 14 }, ordem: ["viking", "guerreiro", "arqueiro", "ninja", "shura", "feiticeiro", "xama", "xama_dragao"] };
 // as artes da ilha, em deco_b/altar (Tools/deco3d/altar/render_tudo.py): o pé de cada uma na imagem e os px por metro
 const ALTAR_PECAS = {"templo":{"px":410.0,"py":598.6,"ppm":100},"ponte":{"px":1110.0,"py":608.3,"ppm":100},"ponte_frente":{"px":1110.0,"py":608.3,"ppm":100},"estatua_viking":{"px":95.0,"py":225.5,"ppm":100},"estatua_guerreiro":{"px":95.0,"py":192.4,"ppm":100},"estatua_arqueiro":{"px":95.0,"py":197.8,"ppm":100},"estatua_ninja":{"px":95.0,"py":174.0,"ppm":100},"estatua_shura":{"px":95.0,"py":193.8,"ppm":100},"estatua_feiticeiro":{"px":95.0,"py":189.4,"ppm":100},"estatua_xama":{"px":95.0,"py":190.4,"ppm":100},"ilha":{"px":629.5,"py":981,"ppm":38.1}};
 const altarMundo = (a, b) => { const u = a + ALTAR.U, v = b + ALTAR.V; return [(u + v) * Math.SQRT1_2, (v - u) * Math.SQRT1_2]; };
@@ -8668,10 +8676,10 @@ const CANCELA = { golpe1: 9, golpe2: 9, golpe3: 9, golpe4: 9, sacar_golpe: 12, g
 // NinjaAnimador.ChaveCombo) e o 5º, que volta à guarda, emenda de novo no 1º. Janela curta: o próximo precisa ser pedido
 // antes do quadro da emenda (+1); depois disso, ou parado, o combo recomeça do 1º (que sai da guarda, sem salto de pose)
 const CANCELA_NINJA = { golpe1: 7, golpe2: 7, golpe3: 7, golpe4: 7, golpe5: 10 }, DANO_NINJA = 0.75, DANO_NINJA_5 = 1.3, EMPURRA_NINJA = 0.06;
-const CANCELA_XAMA = { golpe1: 16, golpe2: 11, golpe3: 11 }, CANCELA_SHURA = { golpe1: 13, golpe2: 10, golpe3: 9 };   // (o shura: as emendas do shura.json)      // (a xamã: 4 golpes, emendas do Logs/Xama/rodada6/INDEX_HTML.md)
+const CANCELA_SHURA = { golpe1: 13, golpe2: 10, golpe3: 9 };   // (o shura: as emendas do shura.json)      // (a xamã: 4 golpes, emendas do Logs/Xama/rodada6/INDEX_HTML.md)
 const CANCELA_APRENDIZ = { golpe1: 9, golpe2: 9 };
-const corteCombo = a => (classe === "ninja" ? CANCELA_NINJA : classe === "xama" ? CANCELA_XAMA : classe === "shura" ? CANCELA_SHURA : classe === "aprendiz" ? CANCELA_APRENDIZ : CANCELA)[a];
-const nGolpes = () => classe === "aprendiz" ? 3 : classe === "xama" || classe === "shura" ? 4 : 5;
+const corteCombo = a => (classe === "ninja" ? CANCELA_NINJA : ehXama() ? { golpe1: M.animacoes.golpe1 && M.animacoes.golpe1.emenda, golpe2: M.animacoes.golpe2 && M.animacoes.golpe2.emenda, golpe3: M.animacoes.golpe3 && M.animacoes.golpe3.emenda } : classe === "shura" ? CANCELA_SHURA : classe === "aprendiz" ? CANCELA_APRENDIZ : CANCELA)[a];
+const nGolpes = () => classe === "aprendiz" ? 3 : ehXama() || classe === "shura" ? 4 : 5;
 const fatorNinja = () => classe !== "ninja" || triplo.restam > 0 || vortice.ativo ? 1 : DANO_NINJA * (viking.acao === "golpe5" ? DANO_NINJA_5 : 1);
 function atacar(estilo) {
   if (viking.caido) return;
@@ -8690,7 +8698,7 @@ function atacar(estilo) {
   if (viking.acao && (viking.acao.startsWith("sacar") || viking.acao.includes("golpe") || ehGiro(viking.acao))) { viking.fila = "golpe" + n; if (!estilo) viking.combo++; return; }
   if (viking.acao) return;
   mirarBoneco();
-  if (classe === "ninja" || classe === "guerreiro" || classe === "xama" || classe === "shura" || classe === "aprendiz") viking.espada = "armada";   // o ninja (adagas), o guerreiro (machado) e a xamã (leque) estão sempre armados
+  if (classe === "ninja" || classe === "guerreiro" || ehXama() || classe === "shura" || classe === "aprendiz") viking.espada = "armada";   // o ninja (adagas), o guerreiro (machado) e a xamã (leque) estão sempre armados
   // com a espada nas costas, o primeiro golpe já sai do saque (sacar_golpe: tira por cima do ombro e desce cortando)
   if (viking.espada === "costas") { if (n === 1) tocar("sacar_golpe", true); else { tocar("sacar", true); viking.fila = "golpe" + n; } }
   else if (classe === "viking" && viking.anim === "correndo_armado" && M.animacoes.golpe1_da_corrida && !estilo) {
@@ -9057,39 +9065,77 @@ const SKILLS_NINJA = [
   { nome: "Esconder", tecla: "5", cor: "#b08aff", usar: () => usarEsconder(), estado: () => [NINJA.esconder.recarga, ESCONDER_RECARGA, NINJA.esconder.buff], icone: iconeEsconder },
 ];
 // ---------------------------------------------------------------- Xamã (Logs/Xama/rodada6/INDEX_HTML.md)
-// Luta de perto com o leque (o combo de 4 golpes) e as 5 skills do dragão, como a shaman do Metin2. Durante as skills ela
+// Luta de perto com o leque (o combo de 4 golpes) e as 6 skills de cada doutrina (Logs/Vocacoes/DIVISAO_XAMAS.md). Durante as skills ela
 // para (como o feiticeiro: podeSkillXama). Cada skill sai no quadro "acerto" da animação (soltarXama); o 2º tempo do
 // Rugido e do Invocar vem pelo tempo do clipe (passoXama). Os efeitos são feitos com o que a página já tem: brasas,
 // ondas, relâmpagos e o chão queimado
-const XAMA = { tiro: { recarga: 0 }, rugido: { recarga: 0 }, invocar: { recarga: 0 }, bencao: { recarga: 0, buff: 0, desde: -1 }, cura: { recarga: 0 }, dragoes: [], depois: [], segundos: [], relogio: 0 };
+const XAMA = { tiro: { recarga: 0 }, rugido: { recarga: 0 }, invocar: { recarga: 0 }, bencao: { recarga: 0, buff: 0, desde: -1 }, cura: { recarga: 0 },
+               tiroR: { recarga: 0 }, garra: { recarga: 0 }, redemoinho: { recarga: 0, buff: 0 }, ataque: { recarga: 0, buff: 0 }, talisma: { recarga: 0 }, refletir: { recarga: 0, buff: 0 }, ajuda: { recarga: 0, buff: 0 },
+               dragoes: [], depois: [], segundos: [], relogio: 0 };
 const TIRO_RECARGA = 8, RUGIDO_RECARGA = 14, INVOCAR_RECARGA = 12, BENCAO_RECARGA = 30, BENCAO_DURA = 60, BENCAO_REDUZ = 0.2, CURA_RECARGA = 10, CURA_FRACAO = 0.3;
-const TIRO_LINHA = 8, TIRO_LARG = 0.6, TIRO_VEL = 12, RUGIDO_RAIO = 3, INVOCAR_ALCANCE = 12, INVOCAR_RAIO = 3, INVOCAR_ATORDOA = 1.5;
-const ANIMS_XAMA = new Set(["tiro_dragao", "rugido_dragao", "invocar_relampago", "bencao", "cura"]);
+const TIRO_LINHA = 8, TIRO_LARG = 0.6, TIRO_VEL = 30, RUGIDO_RAIO = 3, INVOCAR_ALCANCE = 12, INVOCAR_RAIO = 3, INVOCAR_ATORDOA = 1.5;
+// as skills novas, cada uma nos números de uma do jogo: Tiro Relâmpago = Tiro de Dragão; Garra e Talismã = Relâmpago do feiticeiro; Redemoinho = Passos Leves;
+// Aumentar Ataque = Poder Arcano; Ajuda do Dragão = Olho Arcano; Refletir = recarga, duração e mana da Bênção
+const GARRA_RECARGA = 5, TALISMA_RECARGA = 5, SALTO_XAMA = 4.5, TIRO_R_RAIO = 1.5, REDEMOINHO_RECARGA = 30, REDEMOINHO_DURA = 20, ATAQUE_XAMA_RECARGA = 75, ATAQUE_XAMA_DURA = 60, AJUDA_RECARGA = 75, AJUDA_DURA = 60, REFLETIR_RECARGA = 30, REFLETIR_DURA = 60, REFLETIR_FRACAO = 0.2;
+const ANIMS_XAMA = new Set(["tiro_dragao", "rugido_dragao", "invocar_relampago", "bencao", "cura", "tiro_relampago", "garra_relampago", "remolinos", "orbe_fogo", "talisma_voador", "refletir", "ajuda_dragao"]);
+const ANIMS_XAMA_ALVO = new Set(["tiro_dragao", "invocar_relampago", "tiro_relampago", "garra_relampago", "talisma_voador"]);
+const skillXama = (nome, tecla, cor, anim, obj, rec, icone, buff) => ({ nome, tecla, cor, usar: () => usarXama(anim, obj, rec), estado: () => [obj.recarga, rec, buff ? obj.buff : viking.anim === anim ? 1 : 0], icone });
+// a Xamã Relâmpago (a classe "xama") e o Xamã Dragão (Logs/Vocacoes/DIVISAO_XAMAS.md)
 const SKILLS_XAMA = [
-  { nome: "Tiro de Dragão", tecla: "1", cor: "#ff7a3a", usar: () => usarXama("tiro_dragao", XAMA.tiro, TIRO_RECARGA), estado: () => [XAMA.tiro.recarga, TIRO_RECARGA, viking.anim === "tiro_dragao" ? 1 : 0], icone: iconeTiroDragao },
-  { nome: "Rugido do Dragão", tecla: "2", cor: "#ff4a3a", usar: () => usarXama("rugido_dragao", XAMA.rugido, RUGIDO_RECARGA), estado: () => [XAMA.rugido.recarga, RUGIDO_RECARGA, viking.anim === "rugido_dragao" ? 1 : 0], icone: iconeRugido },
-  { nome: "Invocar Relâmpago", tecla: "3", cor: "#9cc4ff", usar: () => usarXama("invocar_relampago", XAMA.invocar, INVOCAR_RECARGA), estado: () => [XAMA.invocar.recarga, INVOCAR_RECARGA, viking.anim === "invocar_relampago" ? 1 : 0], icone: iconeInvocar },
-  { nome: "Bênção", tecla: "4", cor: "#ffd35a", usar: () => usarXama("bencao", XAMA.bencao, BENCAO_RECARGA), estado: () => [XAMA.bencao.recarga, BENCAO_RECARGA, XAMA.bencao.buff], icone: iconeBencao },
-  { nome: "Cura", tecla: "5", cor: "#8affb0", usar: () => usarXama("cura", XAMA.cura, CURA_RECARGA), estado: () => [XAMA.cura.recarga, CURA_RECARGA, 0], icone: iconeCura },
+  skillXama("Tiro Relâmpago", "1", "#f5b8e0", "tiro_relampago", XAMA.tiroR, TIRO_RECARGA, iconeTiroRelampago),
+  skillXama("Invocar Relâmpago", "2", "#9cc4ff", "invocar_relampago", XAMA.invocar, INVOCAR_RECARGA, iconeInvocar),
+  skillXama("Garra do Relâmpago", "3", "#6cb6ff", "garra_relampago", XAMA.garra, GARRA_RECARGA, iconeGarra),
+  { nome: "Cura", tecla: "4", cor: "#8affb0", usar: () => usarXama("cura", XAMA.cura, CURA_RECARGA), estado: () => [XAMA.cura.recarga, CURA_RECARGA, 0], icone: iconeCura },
+  skillXama("Redemoinho", "5", "#b18cf0", "remolinos", XAMA.redemoinho, REDEMOINHO_RECARGA, iconeRedemoinho, true),
+  skillXama("Aumentar Ataque", "6", "#ff9a4a", "orbe_fogo", XAMA.ataque, ATAQUE_XAMA_RECARGA, iconeAumentarAtaque, true),
 ];
+const SKILLS_DRAGAO = [
+  skillXama("Talismã Voador", "1", "#ffb84a", "talisma_voador", XAMA.talisma, TALISMA_RECARGA, iconeTalisma),
+  skillXama("Tiro de Dragão", "2", "#ff7a3a", "tiro_dragao", XAMA.tiro, TIRO_RECARGA, iconeTiroDragao),
+  skillXama("Rugido do Dragão", "3", "#ff4a3a", "rugido_dragao", XAMA.rugido, RUGIDO_RECARGA, iconeRugido),
+  skillXama("Bênção", "4", "#ffd35a", "bencao", XAMA.bencao, BENCAO_RECARGA, iconeBencao, true),
+  skillXama("Refletir", "5", "#ff5a3a", "refletir", XAMA.refletir, REFLETIR_RECARGA, iconeRefletir, true),
+  skillXama("Ajuda do Dragão", "6", "#ffa83a", "ajuda_dragao", XAMA.ajuda, AJUDA_RECARGA, iconeAjuda, true),
+];
+function limparXama() {
+  for (const k of ["tiro", "rugido", "invocar", "bencao", "cura", "tiroR", "garra", "redemoinho", "ataque", "talisma", "refletir", "ajuda"]) { XAMA[k].recarga = 0; if ("buff" in XAMA[k]) XAMA[k].buff = 0; }
+  XAMA.dragoes.length = 0; XAMA.depois.length = 0; XAMA.segundos.length = 0; viking.xamaAlvo = null; viking.xamaHit = null;
+}
 function podeSkillXama() {
-  if (viking.caido || classe !== "xama") return false;
+  if (viking.caido || !ehXama()) return false;
   if (!viking.acao) return true;
   if (!/^golpe/.test(viking.acao) && viking.acao !== "dano") return false;
   viking.fila = null; viking.acao = null; viking.combo = 0;      // corta o golpe básico no meio
   return true;
 }
+// o alvo: o selecionado ou, sem ele, a criatura viva mais perto ao alcance
+function alvoXama(alcance) {
+  const s = alvoDaSkill(alcance); if (s) return s;
+  let m = null, dm = alcance;
+  for (const l of criaturas) { if (l.morto || l.acao === "levantar" || l.remover) continue; const d = Math.hypot(l.x - viking.x, l.y - viking.y); if (d < dm) { dm = d; m = l; } }
+  return m;
+}
 function usarXama(anim, obj, recarga) {
   if (obj.recarga > 0 || !podeSkillXama() || !M.animacoes[anim]) return;
   const v = viking;
-  if (anim === "tiro_dragao" || anim === "invocar_relampago") {     // vira para o alvo (ou para a criatura mais perto)
-    const alvo = alvoDaSkill(anim === "tiro_dragao" ? TIRO_LINHA : INVOCAR_ALCANCE);
-    if (alvo) v.dir = dirDe(alvo.x - v.x, alvo.y - v.y); else mirarBoneco();
+  v.xamaAlvo = null; v.xamaHit = null;
+  if (ANIMS_XAMA_ALVO.has(anim)) {                                  // vira para o alvo
+    const alvo = alvoXama(INVOCAR_ALCANCE);
+    if (alvo) { v.xamaAlvo = alvo; v.dir = dirDe(alvo.x - v.x, alvo.y - v.y); } else mirarBoneco();
   }
-  obj.recarga = recarga; v.xamaAlvo = anim === "invocar_relampago" ? alvoDaSkill(INVOCAR_ALCANCE) : null;
+  obj.recarga = recarga;
   tocar(anim, true);
   som("arcano_carga", v, 0.8);
-  if (anim === "tiro_dragao") XAMA.carga = 1.07;                  // (as brasas no leque até a soltura)
+}
+// sem os efeitos 3D (?2d=1, ?fx=0, sem WebGL2), o desenho simples do jogo: raios, ondas e faíscas. Com eles, só o FX3 desenha (passoRelampago3, passoDragao3)
+function efeitoSimples() { return !fx3(); }
+function faiscasSimples(x, y, n, cor, z = 0.6, vel = 3) {
+  for (let k = 0; k < n; k++) { const a = Math.random() * 7, s = vel * Math.random(); brasas.push({ x, y, z: z * Math.random(), vx: Math.cos(a) * s, vy: Math.sin(a) * s, vz: Math.random() * 2.5, vida: 0.6, max: 0.6, tam: 0.05, cor }); }
+}
+function buffSimples(cor, r = 1.8) {
+  if (!efeitoSimples()) return;
+  ondas.push({ x: viking.x, y: viking.y, t: 0, raio: r, cor, pilares: [], rachas: [], runas: true, semente: Math.random() * 1000 });
+  faiscasSimples(viking.x, viking.y, 24, cor, 1.6, 1.5);
 }
 const pontaLeque = () => { const ang = -viking.dir * Math.PI / 4; return { x: viking.x + Math.cos(ang) * 0.45, y: viking.y + Math.sin(ang) * 0.45, z: 1.25 }; };
 function acertosEmVolta(x, y, r, max, dano, empurra, nome, depois) {
@@ -9099,70 +9145,118 @@ function acertosEmVolta(x, y, r, max, dano, empurra, nome, depois) {
   for (const o of objetos) if (o.tipo === "boneco" && Math.hypot(o.x - x, o.y - y) < r) acertoMagico(o, 1, 0, true);
   return lista;
 }
+// o alvo e até n vizinhos, cada um o mais perto do anterior (como o Relâmpago do feiticeiro)
+function cadeiaXama(alvo, n) {
+  const L = alvo ? [alvo] : [];
+  for (let de = alvo; de && L.length <= n;) {
+    let prox = null, dm = SALTO_XAMA;
+    for (const l of criaturas) { if (l.morto || l.acao === "levantar" || L.includes(l)) continue; const d = Math.hypot(l.x - de.x, l.y - de.y); if (d < dm) { dm = d; prox = l; } }
+    if (!prox) break; L.push(prox); de = prox;
+  }
+  return L;
+}
 function soltarXama(nome) {
-  const v = viking, ang = -v.dir * Math.PI / 4, fx = Math.cos(ang), fy = Math.sin(ang);
+  const v = viking, ang = -v.dir * Math.PI / 4, fx = Math.cos(ang), fy = Math.sin(ang), A = v.xamaAlvo && !v.xamaAlvo.morto ? v.xamaAlvo : null;
+  const a = A ? { x: A.x, y: A.y, real: true } : { x: v.x + fx * 5, y: v.y + fy * 5, real: false };
+  v.xamaHit = { nome, alvo: a, vizinhos: [] };
+  const simples = efeitoSimples();
   if (nome === "tiro_dragao") {
-    // a cabeça do dragão: uma bola de fogo grande com rastro, reta a 12 m/s até 8 m, atravessando (até 10 alvos, 2 acertos)
-    const p = pontaLeque();
-    XAMA.dragoes.push({ x: p.x, y: p.y, z: p.z, dx: fx, dy: fy, andou: 0, atingidos: new Set() });
-    XAMA.carga = 0; som("fogo", v, 1); som("arcano", v, 0.7); tremor = Math.max(tremor, 0.12);
+    // a rajada: reta a 30 m/s até 8 m, atravessando (até 10 alvos, 2 acertos)
+    const p = pontaLeque(), dx = A ? a.x - v.x : fx, dy = A ? a.y - v.y : fy, n = Math.hypot(dx, dy) || 1;
+    XAMA.dragoes.push({ x: p.x, y: p.y, z: p.z, dx: dx / n, dy: dy / n, andou: 0, atingidos: new Set() });
+    som("fogo", v, 1); som("arcano", v, 0.7); tremor = Math.max(tremor, 0.12);
   } else if (nome === "rugido_dragao") {
     rugidoXama(RUGIDO_RAIO, 1);
-    XAMA.depois.push({ anim: nome, t: 1.53, f: () => rugidoXama(RUGIDO_RAIO * 1.1, 0.6) });
+    XAMA.depois.push({ anim: nome, t: v.t + 0.55, f: () => rugidoXama(RUGIDO_RAIO * 1.1, 0.6) });   // (o 2º tempo vem com a onda clara do efeito)
   } else if (nome === "invocar_relampago") {
-    const a = v.xamaAlvo && !v.xamaAlvo.morto ? { x: v.xamaAlvo.x, y: v.xamaAlvo.y } : { x: v.x + fx * 5, y: v.y + fy * 5 };
     raioXama(a, 1, true);
     XAMA.depois.push({ anim: nome, t: 1.31, f: () => raioXama(a, 0.5, false) });
   } else if (nome === "bencao") {
     XAMA.bencao.buff = BENCAO_DURA * duraSkill("Bênção"); XAMA.bencao.desde = 0;
-    ondas.push({ x: v.x, y: v.y, t: 0, raio: 1.8, cor: 46, pilares: [], rachas: [], runas: true, semente: Math.random() * 1000 });
-    for (let k = 0; k < 28; k++) { const a = Math.random() * 7, s = 0.5 + Math.random() * 1.4; brasas.push({ x: v.x + Math.cos(a) * 0.5, y: v.y + Math.sin(a) * 0.5, z: 0.1 + Math.random() * 1.6, vx: Math.cos(a) * s, vy: Math.sin(a) * s, vz: 0.6 + Math.random(), vida: 0.9, max: 0.9, tam: 0.05, cor: 46 }); }
-    som("magia_buff", v, 1);
+    buffSimples(46); som("magia_buff", v, 1);
   } else if (nome === "cura") {
     const ganho = Math.round(status.vidaMax * CURA_FRACAO);
     v.vida = Math.min(status.vidaMax, v.vida + ganho);
     numeros.push({ wx: v.x, wy: v.y, y: -170, vida: 1.2, txt: "+" + ganho, cura: true, critico: true });
-    const pilares = []; for (let k = 0; k < 7; k++) pilares.push({ a: k / 7 * Math.PI * 2, d: 0.15 + Math.random() * 0.45, alt: 3 + Math.random() * 1.5, larg: 0.18 + Math.random() * 0.12, atraso: k * 0.04, cor: 140, fase: Math.random() * 7 });
-    ondas.push({ x: v.x, y: v.y, t: 0, raio: 1.1, cor: 140, pilares, rachas: [] });
-    for (let k = 0; k < 30; k++) { const a = Math.random() * 7, r = Math.random() * 0.6; brasas.push({ x: v.x + Math.cos(a) * r, y: v.y + Math.sin(a) * r, z: Math.random() * 0.4, vx: 0, vy: 0, vz: 0.9 + Math.random() * 1.4, vida: 1, max: 1, tam: 0.045, cor: 140 }); }
+    if (simples) {
+      const pilares = []; for (let k = 0; k < 7; k++) pilares.push({ a: k / 7 * Math.PI * 2, d: 0.15 + Math.random() * 0.45, alt: 3 + Math.random() * 1.5, larg: 0.18 + Math.random() * 0.12, atraso: k * 0.04, cor: 140, fase: Math.random() * 7 });
+      ondas.push({ x: v.x, y: v.y, t: 0, raio: 1.1, cor: 140, pilares, rachas: [] });
+      faiscasSimples(v.x, v.y, 30, 140, 0.4, 0.3);
+    }
     som("magia_buff", v, 0.9);
+  } else if (nome === "tiro_relampago") {
+    // o estouro no alvo, com o 2º acerto a 70%
+    const dano = () => 28 + Math.floor(Math.random() * 9);
+    const lista = acertosEmVolta(a.x, a.y, TIRO_R_RAIO, 5, dano, 0, "Tiro Relâmpago");
+    XAMA.segundos.push({ em: XAMA.relogio + 0.26, f: () => { for (const l of lista) if (!l.morto) comFonte("Tiro Relâmpago", () => acertoMagico(l, Math.round(dano() * 0.7), 0, true)); } });
+    if (simples) { const p = pontaLeque(); relampagos.push({ a: p, b: { x: a.x, y: a.y, z: 0.6 }, vida: 0.3, max: 0.3, semente: Math.random() * 1000 }); faiscasSimples(a.x, a.y, 16, 300); }
+    som("magia_raio", a, 0.9); tremor = Math.max(tremor, 0.1);
+  } else if (nome === "garra_relampago") {
+    // salta para mais 2 (100%, 70%, 49%): o 1º na hora, os outros quando o raio chega neles
+    const L = cadeiaXama(A, 2), dano0 = 26 + Math.floor(Math.random() * 8);
+    v.xamaHit.vizinhos = L.slice(1).map(l => ({ x: l.x, y: l.y }));
+    L.forEach((l, k) => {
+      const f = () => { if (!l.morto) comFonte("Garra do Relâmpago", () => acertoMagico(l, Math.round(dano0 * Math.pow(0.7, k)), 0, true)); };
+      if (k) XAMA.segundos.push({ em: XAMA.relogio + 0.16 + (k - 1) * 0.17, f }); else f();
+      if (simples) { const de = k ? { x: L[k - 1].x, y: L[k - 1].y, z: 0.6 } : pontaLeque(); relampagos.push({ a: de, b: { x: l.x, y: l.y, z: 0.6 }, vida: 0.32, max: 0.32, semente: Math.random() * 1000 }); faiscasSimples(l.x, l.y, 10, 205); }
+    });
+    if (simples && !L.length) relampagos.push({ a: pontaLeque(), b: { x: a.x, y: a.y, z: 0 }, vida: 0.3, max: 0.3, semente: Math.random() * 1000 });
+    som("magia_raio", v, 1.1); tremor = Math.max(tremor, 0.14);
+  } else if (nome === "remolinos") {
+    XAMA.redemoinho.buff = REDEMOINHO_DURA * duraSkill("Redemoinho");
+    buffSimples(120); som("vento", v, 1.1);
+  } else if (nome === "orbe_fogo") {
+    XAMA.ataque.buff = ATAQUE_XAMA_DURA * duraSkill("Aumentar Ataque");
+    buffSimples(22); som("magia_buff", v, 1); som("fogo", v, 0.7);
+  } else if (nome === "talisma_voador") {
+    // três talismãs: o alvo e os vizinhos (100%, 70%, 49%), cada um quando o talismã chega; sem vizinhos, os três vão no alvo e contam como um
+    const L = cadeiaXama(A, 2), dano0 = 26 + Math.floor(Math.random() * 8);
+    v.xamaHit.vizinhos = L.slice(1).map(l => ({ x: l.x, y: l.y }));
+    L.forEach((l, k) => XAMA.segundos.push({ em: XAMA.relogio + 0.51 + k * 0.09, f: () => { if (!l.morto) comFonte("Talismã Voador", () => acertoMagico(l, Math.round(dano0 * Math.pow(0.7, k)), 0, true)); } }));
+    if (simples) for (const l of (L.length ? L : [a])) { const p = pontaLeque(); ondas.push({ x: l.x, y: l.y, t: 0, raio: 1, cor: 28, fogo: true, pilares: [], rachas: [] }); faiscasSimples(p.x, p.y, 8, 28); }
+    som("fogo", v, 0.8);
+  } else if (nome === "refletir") {
+    XAMA.depois.push({ anim: nome, t: 27 / 20, f: () => { XAMA.refletir.buff = REFLETIR_DURA * duraSkill("Refletir"); buffSimples(8); som("magia_buff", v, 1); } });
+  } else if (nome === "ajuda_dragao") {
+    XAMA.depois.push({ anim: nome, t: 22 / 20, f: () => { XAMA.ajuda.buff = AJUDA_DURA * duraSkill("Ajuda do Dragão"); buffSimples(36); som("magia_buff", v, 1); } });
   }
 }
 function rugidoXama(r, forca) {
   const v = viking;
   acertosEmVolta(v.x, v.y, r, 15, () => Math.round((34 + Math.floor(Math.random() * 9)) * forca), forca >= 1 ? 1.2 : 0.6, "Rugido do Dragão");
-  ondas.push({ x: v.x, y: v.y, t: 0, raio: r, cor: 10, fogo: true, pilares: [], rachas: [] });
-  // o dragão de brasas subindo em espiral em volta dela
-  for (let k = 0; k < 46; k++) { const u = k / 46, a = u * Math.PI * 5, rr = 0.6 + u * 0.7; brasas.push({ x: v.x + Math.cos(a) * rr, y: v.y + Math.sin(a) * rr, z: 0.2 + u * 2.2, vx: -Math.sin(a) * 1.4, vy: Math.cos(a) * 1.4, vz: 0.6, vida: 0.6 + u * 0.3, max: 0.9, tam: 0.07 + 0.05 * (1 - u), cor: 12 + u * 20 }); }
+  if (efeitoSimples()) {
+    ondas.push({ x: v.x, y: v.y, t: 0, raio: r, cor: 10, fogo: true, pilares: [], rachas: [] });
+    for (let k = 0; k < 46; k++) { const u = k / 46, a = u * Math.PI * 5, rr = 0.6 + u * 0.7; brasas.push({ x: v.x + Math.cos(a) * rr, y: v.y + Math.sin(a) * rr, z: 0.2 + u * 2.2, vx: -Math.sin(a) * 1.4, vy: Math.cos(a) * 1.4, vz: 0.6, vida: 0.6 + u * 0.3, max: 0.9, tam: 0.07 + 0.05 * (1 - u), cor: 12 + u * 20 }); }
+  }
   som(forca >= 1 ? "rugido_chefe" : "fogo", v, forca >= 1 ? 0.7 : 0.6);
   tremor = Math.max(tremor, 0.2 * forca);
 }
 function raioXama(a, forca, atordoa) {
-  relampagos.push({ a: { x: a.x + 0.6, y: a.y - 0.4, z: 8 }, b: { x: a.x, y: a.y, z: 0 }, vida: 0.36, max: 0.36, semente: Math.random() * 1000 });
-  for (let k = 0; k < 3; k++) { const an = Math.random() * 7, d = 0.8 + Math.random() * 1.6; relampagos.push({ a: { x: a.x, y: a.y, z: 2.5 + Math.random() * 2 }, b: { x: a.x + Math.cos(an) * d, y: a.y + Math.sin(an) * d, z: 0 }, vida: 0.26, max: 0.26, semente: Math.random() * 1000 }); }
+  if (efeitoSimples()) {
+    relampagos.push({ a: { x: a.x + 0.6, y: a.y - 0.4, z: 8 }, b: { x: a.x, y: a.y, z: 0 }, vida: 0.36, max: 0.36, semente: Math.random() * 1000 });
+    for (let k = 0; k < 3; k++) { const an = Math.random() * 7, d = 0.8 + Math.random() * 1.6; relampagos.push({ a: { x: a.x, y: a.y, z: 2.5 + Math.random() * 2 }, b: { x: a.x + Math.cos(an) * d, y: a.y + Math.sin(an) * d, z: 0 }, vida: 0.26, max: 0.26, semente: Math.random() * 1000 }); }
+    queimar(a.x, a.y, 0.8);
+    faiscasSimples(a.x, a.y, 16, 205, 0.1, 4);
+  } else if (!atordoa) relampagos.push({ a: { x: a.x + 0.6, y: a.y - 0.4, z: 8 }, b: { x: a.x, y: a.y, z: 0 }, vida: 0.26, max: 0.26, semente: Math.random() * 1000 });   // (o 2º tempo; o 1º é do FX3)
   acertosEmVolta(a.x, a.y, INVOCAR_RAIO, 15, () => Math.round((30 + Math.floor(Math.random() * 9)) * forca), 0, "Invocar Relâmpago", atordoa ? l => atordoar(l, INVOCAR_ATORDOA) : null);
-  queimar(a.x, a.y, 0.8);
-  for (let k = 0; k < 16; k++) brasas.push({ x: a.x, y: a.y, z: 0.1, vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4, vz: Math.random() * 3, vida: 0.4, max: 0.4, tam: 0.05, cor: 205 });
   som("magia_raio", a, 1.1);
   tremor = Math.max(tremor, atordoa ? 0.15 : 0.25);
 }
 function passoXama(dt) {
-  for (const o of [XAMA.tiro, XAMA.rugido, XAMA.invocar, XAMA.bencao, XAMA.cura]) o.recarga = Math.max(0, o.recarga - dt);
-  const b = XAMA.bencao; b.buff = Math.max(0, b.buff - dt); if (b.desde >= 0) b.desde += dt;
+  for (const k of ["tiro", "rugido", "invocar", "bencao", "cura", "tiroR", "garra", "redemoinho", "ataque", "talisma", "refletir", "ajuda"]) { const o = XAMA[k]; o.recarga = Math.max(0, o.recarga - dt); if ("buff" in o) o.buff = Math.max(0, o.buff - dt); }
+  const b = XAMA.bencao; if (b.desde >= 0) b.desde += dt;
   const v = viking;
-  if (b.buff > 0 && Math.random() < dt * 5) { const a = Math.random() * 7; brasas.push({ x: v.x + Math.cos(a) * 0.42, y: v.y + Math.sin(a) * 0.32, z: 0.1, vx: 0, vy: 0, vz: 0.7 + Math.random(), vida: 0.9, max: 0.9, tam: 0.04, cor: 46 }); }
-  // a carga do Tiro: brasas laranja presas à ponta do leque até a soltura
-  if (XAMA.carga > 0 && v.anim === "tiro_dragao" && v.t > 0.44) { const p = pontaLeque(); for (let k = 0; k < 2; k++) brasas.push({ x: p.x + (Math.random() - 0.5) * 0.2, y: p.y + (Math.random() - 0.5) * 0.2, z: p.z + (Math.random() - 0.5) * 0.2, vx: 0, vy: 0, vz: 0.3, vida: 0.3, max: 0.3, tam: 0.05, cor: 22 }); }
-  if (v.anim !== "tiro_dragao") XAMA.carga = 0;
+  if (prog && prog.avisoXamas && !salvarTravado) { avisarLongo(prog.avisoXamas, 9000); chatSistema(prog.avisoXamas, "nivel"); delete prog.avisoXamas; salvarProgresso(); montarBarraSkills(); atualizarFicha(); }
+  if (b.buff > 0 && efeitoSimples() && Math.random() < dt * 5) { const a = Math.random() * 7; brasas.push({ x: v.x + Math.cos(a) * 0.42, y: v.y + Math.sin(a) * 0.32, z: 0.1, vx: 0, vy: 0, vz: 0.7 + Math.random(), vida: 0.9, max: 0.9, tam: 0.04, cor: 46 }); }
   XAMA.relogio += dt;
   for (let i = XAMA.segundos.length - 1; i >= 0; i--) if (XAMA.relogio >= XAMA.segundos[i].em) { const s2 = XAMA.segundos[i]; XAMA.segundos.splice(i, 1); s2.f(); }
   // os 2º tempos (pelo tempo do clipe; outra ação no meio, cancela)
   for (let i = XAMA.depois.length - 1; i >= 0; i--) { const d = XAMA.depois[i]; if (v.acao !== d.anim) { XAMA.depois.splice(i, 1); continue; } if (v.t >= d.t) { XAMA.depois.splice(i, 1); d.f(); } }
-  // as cabeças de dragão voando
+  // a rajada voando
   for (let i = XAMA.dragoes.length - 1; i >= 0; i--) {
     const g = XAMA.dragoes[i], passo = Math.min(TIRO_VEL * dt, TIRO_LINHA - g.andou);
     g.x += g.dx * passo; g.y += g.dy * passo; g.andou += passo;
-    for (let k = 0; k < 5; k++) brasas.push({ x: g.x - g.dx * k * 0.12, y: g.y - g.dy * k * 0.12, z: g.z + (Math.random() - 0.5) * 0.2, vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8, vz: 0.4, vida: 0.35 + k * 0.05, max: 0.55, tam: 0.14 - k * 0.018, cor: 18 + k * 4 });
+    if (efeitoSimples()) for (let k = 0; k < 5; k++) brasas.push({ x: g.x - g.dx * k * 0.12, y: g.y - g.dy * k * 0.12, z: g.z + (Math.random() - 0.5) * 0.2, vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8, vz: 0.4, vida: 0.35 + k * 0.05, max: 0.55, tam: 0.14 - k * 0.018, cor: 18 + k * 4 });
     for (const l of criaturas) {
       if (l.morto || l.acao === "levantar" || g.atingidos.has(l) || g.atingidos.size >= 10) continue;
       const rx = l.x - (g.x - g.dx * passo), ry = l.y - (g.y - g.dy * passo), ao = rx * g.dx + ry * g.dy, lado = Math.abs(rx * g.dy - ry * g.dx);
@@ -9174,8 +9268,96 @@ function passoXama(dt) {
       XAMA.segundos.push({ em: XAMA.relogio + 0.26, f: () => { if (!l.morto) comFonte("Tiro de Dragão", () => acertoMagico(l, Math.round(dano() * 0.7), 0, true)); } });   // (o 2º acerto, a 70%)
     }
     for (const o of objetos) if (o.tipo === "boneco" && !g.atingidos.has(o) && Math.hypot(o.x - g.x, o.y - g.y) < 0.8) { g.atingidos.add(o); acertoMagico(o, 1, 0, true); }
-    if (g.andou >= TIRO_LINHA - 1e-6) { XAMA.dragoes.splice(i, 1); queimar(g.x, g.y, 0.6); ondas.push({ x: g.x, y: g.y, t: 0, raio: 1.2, cor: 20, fogo: true, pilares: [], rachas: [] }); }
+    if (g.andou >= TIRO_LINHA - 1e-6) { XAMA.dragoes.splice(i, 1); if (efeitoSimples()) { queimar(g.x, g.y, 0.6); ondas.push({ x: g.x, y: g.y, t: 0, raio: 1.2, cor: 20, fogo: true, pilares: [], rachas: [] }); } }
   }
+}
+
+// os ícones das 7 skills novas dos xamãs, por código, no estilo dos pintados: fundo escuro, moldura de ouro e nanquim com os cantos em quadrado, formas chapadas
+function iconeXamaMoldura(g, c1, c2) {
+  iconeFundo(g, c1, c2);
+  g.fillStyle = "rgba(239, 228, 204, 0.08)"; for (const [x, y, r] of [[12, 44, 11], [46, 14, 10], [44, 46, 8]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+  g.__moldura = true;
+}
+function iconeXamaFecha(g) {
+  g.strokeStyle = "#1E1B18"; g.lineWidth = 4; g.strokeRect(2, 2, 52, 52);
+  g.strokeStyle = "#C9963E"; g.lineWidth = 1.6; g.strokeRect(3.6, 3.6, 48.8, 48.8);
+  for (const [x, y] of [[0, 0], [47, 0], [0, 47], [47, 47]]) { g.fillStyle = "#1E1B18"; g.fillRect(x, y, 9, 9); g.strokeStyle = "#C9963E"; g.lineWidth = 1.2; g.strokeRect(x + 2, y + 2, 5, 5); }
+}
+function iconeXamaRaio(g, pts, cor, l = 2.4) {
+  g.lineJoin = "round"; g.lineCap = "round";
+  g.strokeStyle = "#1E1B18"; g.lineWidth = l + 2; g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke();
+  g.strokeStyle = cor; g.lineWidth = l; g.stroke();
+}
+function iconeXamaLeque(g, x, y, r, a0, c1, c2) {
+  const a1 = a0 + 2.1;
+  g.fillStyle = c1; g.strokeStyle = "#1E1B18"; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x, y); g.arc(x, y, r, a0, a1); g.closePath(); g.fill(); g.stroke();
+  g.strokeStyle = c2; g.lineWidth = 1; for (let k = 1; k < 6; k++) { const a = a0 + (a1 - a0) * k / 6; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); g.stroke(); }
+}
+function iconeTiroRelampago(g) {
+  iconeXamaMoldura(g, "#4a2a5c", "#150a1c");
+  iconeXamaLeque(g, 16, 44, 19, -1.7, "#B8322A", "#EFE4CC");
+  g.fillStyle = "#1E1B18"; g.beginPath(); g.arc(37, 19, 11, 0, 7); g.fill();
+  g.fillStyle = "#f5b8e0"; g.beginPath(); g.arc(37, 19, 9.4, 0, 7); g.fill();
+  g.fillStyle = "#fff6fb"; g.beginPath(); g.arc(37, 19, 5.5, 0, 7); g.fill();
+  iconeXamaRaio(g, [[28, 28], [30, 34], [25, 36], [27, 43]], "#fff6fb", 1.8);
+  iconeXamaFecha(g);
+}
+function iconeGarra(g) {
+  iconeXamaMoldura(g, "#163a6c", "#081022");
+  for (const p of [[[28, 28], [14, 22], [17, 15], [8, 10]], [[28, 28], [44, 18], [41, 12], [50, 8]], [[28, 28], [17, 40], [11, 40], [8, 49]], [[28, 28], [42, 40], [47, 39], [49, 49]]]) iconeXamaRaio(g, p, "#6cb6ff", 2.2);
+  g.fillStyle = "#1E1B18"; g.beginPath(); g.arc(28, 28, 12, 0, 7); g.fill();
+  g.fillStyle = "#6cb6ff"; g.beginPath(); g.arc(28, 28, 10.4, 0, 7); g.fill();
+  g.fillStyle = "#fffbf0"; g.beginPath(); g.arc(28, 28, 7, 0, 7); g.fill();
+  iconeXamaFecha(g);
+}
+function iconeRedemoinho(g) {
+  iconeXamaMoldura(g, "#2f1f6c", "#0d0822");
+  g.lineCap = "round";
+  for (const [cor, l, d] of [["#1E1B18", 6, 0], ["#7B4BD0", 4, 0], ["#1E1B18", 4.4, 3.14], ["#b18cf0", 2.6, 3.14]]) {
+    g.strokeStyle = cor; g.lineWidth = l; g.beginPath();
+    for (let a = 0; a < 7.5; a += 0.2) { const r = 2 + a * 2.4, x = 28 + Math.cos(a + d) * r, y = 28 + Math.sin(a + d) * r * 0.85; a ? g.lineTo(x, y) : g.moveTo(x, y); }
+    g.stroke();
+  }
+  g.fillStyle = "#fffbf0"; g.beginPath(); g.arc(28, 28, 3, 0, 7); g.fill();
+  iconeXamaFecha(g);
+}
+function iconeAumentarAtaque(g) {
+  iconeXamaMoldura(g, "#5a2410", "#160604");
+  g.strokeStyle = "#1E1B18"; g.lineWidth = 6; g.beginPath(); g.arc(28, 28, 17, 0, 7); g.stroke();
+  g.strokeStyle = "#9C5BE0"; g.lineWidth = 3.6; g.stroke();
+  g.fillStyle = "#1E1B18"; g.beginPath(); g.arc(28, 28, 12, 0, 7); g.fill();
+  g.fillStyle = "#D8491E"; g.beginPath(); g.arc(28, 28, 10.4, 0, 7); g.fill();
+  g.fillStyle = "#F49A2E"; g.beginPath(); g.moveTo(28, 19); g.quadraticCurveTo(36, 28, 33, 34); g.quadraticCurveTo(28, 38, 23, 34); g.quadraticCurveTo(20, 27, 28, 19); g.fill();
+  g.fillStyle = "#FFE9A8"; g.beginPath(); g.arc(28, 30, 3.6, 0, 7); g.fill();
+  iconeXamaFecha(g);
+}
+function iconeTalisma(g) {
+  iconeXamaMoldura(g, "#5a3a10", "#160e04");
+  for (const [x, y, an, e] of [[20, 34, -0.5, 0.9], [34, 22, -0.25, 1.05]]) {
+    g.save(); g.translate(x, y); g.rotate(an); g.scale(e, e);
+    g.fillStyle = "#EFE4CC"; g.strokeStyle = "#1E1B18"; g.lineWidth = 1.8; g.fillRect(-7, -14, 14, 28); g.strokeRect(-7, -14, 14, 28);
+    g.strokeStyle = "#B8322A"; g.lineWidth = 2; g.beginPath(); g.moveTo(-3, -9); g.lineTo(3, -9); g.moveTo(0, -9); g.lineTo(0, 9); g.moveTo(-3, -2); g.lineTo(3, 2); g.moveTo(-3, 9); g.lineTo(3, 9); g.stroke();
+    g.restore();
+  }
+  g.strokeStyle = "#ffb84a"; g.lineWidth = 2; g.lineCap = "round"; g.beginPath(); g.moveTo(9, 50); g.quadraticCurveTo(10, 40, 15, 41); g.moveTo(26, 40); g.quadraticCurveTo(30, 36, 28, 32); g.stroke();
+  iconeXamaFecha(g);
+}
+function iconeRefletir(g) {
+  iconeXamaMoldura(g, "#5a1410", "#160404");
+  g.strokeStyle = "#1E1B18"; g.lineWidth = 7; g.beginPath(); g.ellipse(28, 29, 18, 20, 0, 0, 7); g.stroke();
+  g.strokeStyle = "#ff5a2a"; g.lineWidth = 4; g.stroke();
+  g.fillStyle = "#f4b23c"; g.strokeStyle = "#1E1B18"; g.lineWidth = 1.4;
+  for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; g.save(); g.translate(28 + Math.cos(a) * 18, 29 + Math.sin(a) * 20); g.rotate(a); g.beginPath(); g.moveTo(8, 0); g.lineTo(-2, -3); g.lineTo(-2, 3); g.closePath(); g.fill(); g.stroke(); g.restore(); }
+  g.strokeStyle = "#1E1B18"; g.lineWidth = 5; g.lineCap = "round"; g.beginPath(); g.moveTo(36, 21); g.lineTo(22, 29); g.lineTo(36, 37); g.stroke();
+  g.strokeStyle = "#fff0c8"; g.lineWidth = 2.6; g.stroke();
+  iconeXamaFecha(g);
+}
+function iconeAjuda(g) {
+  iconeXamaMoldura(g, "#6a3408", "#1a0c02");
+  for (const [r, c] of [[20, "#f4823c"], [14, "#ffb84a"]]) { g.strokeStyle = "#1E1B18"; g.lineWidth = 5; g.beginPath(); g.arc(28, 25, r, 0, 7); g.stroke(); g.strokeStyle = c; g.lineWidth = 2.6; g.stroke(); }
+  g.fillStyle = "#fff0c8"; g.strokeStyle = "#1E1B18"; g.lineWidth = 1.4; g.beginPath(); g.arc(28, 25, 7, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = "#ffd35a"; g.beginPath(); g.moveTo(28, 40); g.lineTo(36, 50); g.lineTo(28, 47); g.lineTo(20, 50); g.closePath(); g.fill(); g.stroke();
+  iconeXamaFecha(g);
 }
 // os ícones por código: a reserva (os pintados, icones_b/xama_0..4, vêm do icones_b.json; R130)
 function iconeTiroDragao(g) {
@@ -9519,7 +9701,7 @@ function iconeEspirito(g) {
 const SKILLS_GUERREIRO = SKILLS_VIKING;            // o guerreiro do machado usa as skills do viking
 let SKILLS = SKILLS_VIKING;
 // montado, as skills da classe ficam travadas, como no Metin2 (é preciso desmontar): um aviso e nada acontece
-for (const l of [SKILLS_VIKING, SKILLS_ARQUEIRO, SKILLS_FEITICEIRO, SKILLS_NINJA, SKILLS_XAMA, SKILLS_SHURA]) for (const sk of l) {
+for (const l of [SKILLS_VIKING, SKILLS_ARQUEIRO, SKILLS_FEITICEIRO, SKILLS_NINJA, SKILLS_XAMA, SKILLS_DRAGAO, SKILLS_SHURA]) for (const sk of l) {
   const usar = sk.usar;
   sk.usar = (...a) => { if (viking.montado) { avisoMontado("Montado, as habilidades ficam travadas: desmonte com Ctrl+G"); return; } return usar(...a); };
 }
@@ -9607,9 +9789,10 @@ function salvarOrdem() { try { localStorage.setItem("barra_" + classe, JSON.stri
 function skillDoSlot(i) { return itemDaBarra(ordemBarra[i]) || SKILLS.find(sk => sk.nome === ordemBarra[i]) || null; }
 function usarSlot(i) { const sk = skillDoSlot(i); if (sk) sk.usar(); }
 const PAGINAS_BARRA = [[10, 11, 12, 13, 14, 0, 1, 2, 3, 4], [15, 16, 17, 18, 19, 5, 6, 7, 8, 9]];
+const PAGINAS_BARRA_6 = [[10, 11, 12, 13, 14, 15, 0, 1, 2, 3], [16, 17, 18, 19, 4, 5, 6, 7, 8, 9]];   // (os xamãs têm 6 skills: a I vai de 1 a 6 e F1 a F4)
 let paginaBarra = (() => { try { return Math.max(0, Math.min(PAGINAS_BARRA.length - 1, +localStorage.getItem("barra_pagina") || 0)); } catch (e) { return 0; } })();
 function aplicarPaginaBarra() {
-  const pag = PAGINAS_BARRA[paginaBarra];
+  const pag = (SKILLS.length > 5 ? PAGINAS_BARRA_6 : PAGINAS_BARRA)[paginaBarra];
   for (const b of $("#barraSkills").children) { const k = pag.indexOf(+b.dataset.slot); b.classList.toggle("fora", k < 0); b.style.order = k < 0 ? 99 : k; }
   $("#barraPagN").textContent = ["I", "II", "III", "IV"][paginaBarra];
 }
@@ -10077,7 +10260,7 @@ function reservaNova(t) {
   return variante(base, { ...v, esc: e, filtro2d: r.filtro2d, alfa2d: r.alfa2d, flutua2d: r.flutua2d, tinta: r.tinta, semSprite: true, reservaDe: base,
     perto: c.perto > 3 ? c.perto : 0, alcance: c.perto > 3 ? c.alcance : 0, levanta: !!c.levanta && !!b.levanta, uiva: !!uiva && !!b.uiva, ameaca: !!ameaca && !!b.ameaca });
 }
-const NOME_CLASSE = { viking: "Viking", arqueiro: "Arqueiro", feiticeiro: "Feiticeiro", ninja: "Ninja", guerreiro: "Guerreiro", xama: "Xamã", shura: "Shura", aprendiz: "Aprendiz" };
+const NOME_CLASSE = { viking: "Viking", arqueiro: "Arqueiro", feiticeiro: "Feiticeiro", ninja: "Ninja", guerreiro: "Guerreiro", xama: "Xamã Relâmpago", xama_dragao: "Xamã Dragão", shura: "Shura", aprendiz: "Aprendiz" };
 function desenharPlacaJogador(X, Y, z) {
   if (!prog || viking.caido) return;
   const topo = { viking: 168, arqueiro: 152, feiticeiro: 196 }[classe] || 160, y = (window.M3D && M3D.ativo ? M3D.acima(viking, topo * z) : Y - topo * z) - 4;
@@ -10123,13 +10306,13 @@ function expBase(n) {
   return e / (MORTES_NIVEL[0] + MORTES_NIVEL[1] * n);
 }
 // os iniciais das classes do Metin2: guerreiro (viking), ninja (arqueiro) e shaman (feiticeiro)
-const ATRIB_INICIAL = { viking: { vit: 4, int: 3, for: 6, dex: 3 }, arqueiro: { vit: 3, int: 3, for: 4, dex: 6 }, feiticeiro: { vit: 4, int: 6, for: 3, dex: 3 }, ninja: { vit: 3, int: 3, for: 4, dex: 6 }, guerreiro: { vit: 5, int: 2, for: 6, dex: 3 }, xama: { vit: 3, int: 6, for: 3, dex: 4 }, shura: { vit: 3, int: 5, for: 5, dex: 3 } };
-const ATRIB_PRINCIPAL = { viking: "for", arqueiro: "dex", feiticeiro: "int", ninja: "dex", guerreiro: "for", xama: "int", shura: "int" };
+const ATRIB_INICIAL = { viking: { vit: 4, int: 3, for: 6, dex: 3 }, arqueiro: { vit: 3, int: 3, for: 4, dex: 6 }, feiticeiro: { vit: 4, int: 6, for: 3, dex: 3 }, ninja: { vit: 3, int: 3, for: 4, dex: 6 }, guerreiro: { vit: 5, int: 2, for: 6, dex: 3 }, xama: { vit: 3, int: 6, for: 3, dex: 4 }, xama_dragao: { vit: 3, int: 6, for: 3, dex: 4 }, shura: { vit: 3, int: 5, for: 5, dex: 3 } };
+const ATRIB_PRINCIPAL = { viking: "for", arqueiro: "dex", feiticeiro: "int", ninja: "dex", guerreiro: "for", xama: "int", xama_dragao: "int", shura: "int" };
 // (o aprendiz usa os da primeira classe da vocação; ao confirmar, os iniciais passam a ser os da classe escolhida: R165)
 Object.defineProperty(ATRIB_INICIAL, "aprendiz", { get: () => ATRIB_INICIAL[(VOCACOES[VOCACAO] || VOCACOES.norte).classes[0]] });
 Object.defineProperty(ATRIB_PRINCIPAL, "aprendiz", { get: () => ATRIB_PRINCIPAL[(VOCACOES[VOCACAO] || VOCACOES.norte).classes[0]] });
 // o acerto fino de cada classe no ataque (a simulação do NIVEL70.md deixa as cinco a menos de 25% da média)
-const FATOR_CLASSE = { aprendiz: 1, viking: 0.92, arqueiro: 1.06, feiticeiro: 1.12, ninja: 1.1, guerreiro: 0.88, xama: 1.08, shura: 0.96 };
+const FATOR_CLASSE = { aprendiz: 1, viking: 0.92, arqueiro: 1.06, feiticeiro: 1.12, ninja: 1.1, guerreiro: 0.88, xama: 1.08, xama_dragao: 1.08, shura: 0.96 };
 const ORDEM_ATRIB = ["vit", "int", "for", "dex"];
 const NOME_ATRIB = { vit: "VIT · Vitalidade", int: "INT · Inteligência", for: "FOR · Força", dex: "DEX · Destreza" };
 // Skills como no Metin2: cada nível do personagem dá 1 ponto de skill. Com pontos a skill vai de 1 a 16; do 17 ao 19,
@@ -10150,9 +10333,10 @@ const CUSTO_MANA = { "Fúria": 30, "Vórtice": 25, "Lâmina Espiritual": 30, "Co
   "Relâmpago": 22, "Chuva de Meteoros": 40, "Olho Arcano": 30, "Poder Arcano": 30, "Erupção Arcana": 35,
   "Punhalada Surpresa": 25, "Acrobacia": 30, "Avanço Ágil": 15, "Veneno de Serpente": 30, "Esconder": 20,
   "Tiro de Dragão": 25, "Rugido do Dragão": 35, "Invocar Relâmpago": 35, "Bênção": 30, "Cura": 30,
+  "Tiro Relâmpago": 25, "Garra do Relâmpago": 22, "Redemoinho": 20, "Aumentar Ataque": 30, "Talismã Voador": 22, "Refletir": 30, "Ajuda do Dragão": 30,
   "Lâmina Encantada": 30, "Turbilhão do Dragão": 30, "Medo": 30, "Golpe Sombrio": 22, "Espírito de Fogo": 35 };
 function prepararMana() {
-  for (const lista of [SKILLS_VIKING, SKILLS_ARQUEIRO, SKILLS_FEITICEIRO, SKILLS_NINJA, SKILLS_XAMA, SKILLS_SHURA]) for (const sk of lista) {
+  for (const lista of [SKILLS_VIKING, SKILLS_ARQUEIRO, SKILLS_FEITICEIRO, SKILLS_NINJA, SKILLS_XAMA, SKILLS_DRAGAO, SKILLS_SHURA]) for (const sk of lista) {
     if (sk.usarSemMana) continue;
     sk.usarSemMana = sk.usar; sk.mana = CUSTO_MANA[sk.nome] || 0;
     sk.usar = () => {
@@ -10169,6 +10353,7 @@ function objRecarga(nome) {
     "Tiro Concentrado": concentrado, "Chuva de Flechas": chuva, "Passos Leves": pes, "Relâmpago": relampago, "Chuva de Meteoros": meteoros, "Olho Arcano": olho, "Poder Arcano": poder,
     "Erupção Arcana": erupcao, "Punhalada Surpresa": NINJA.punhalada, "Acrobacia": NINJA.acrobacia, "Avanço Ágil": NINJA.avanco, "Veneno de Serpente": NINJA.veneno, "Esconder": NINJA.esconder,
     "Tiro de Dragão": XAMA.tiro, "Rugido do Dragão": XAMA.rugido, "Invocar Relâmpago": XAMA.invocar, "Bênção": XAMA.bencao, "Cura": XAMA.cura,
+    "Tiro Relâmpago": XAMA.tiroR, "Garra do Relâmpago": XAMA.garra, "Redemoinho": XAMA.redemoinho, "Aumentar Ataque": XAMA.ataque, "Talismã Voador": XAMA.talisma, "Refletir": XAMA.refletir, "Ajuda do Dragão": XAMA.ajuda,
     "Lâmina Encantada": SHURA.lamina, "Turbilhão do Dragão": SHURA.turbilhao, "Medo": SHURA.medo, "Golpe Sombrio": SHURA.sombrio, "Espírito de Fogo": SHURA.espirito })[nome] || null;
 }
 function cobrarMana() {
@@ -10232,6 +10417,27 @@ function renomearItens(lista) {
     else if (it.chave && it.chave.startsWith("peca:armadura:")) it.chave = "peca:armadura_guerreiro:" + it.chave.split(":")[2];
   }
 }
+// a xamã de antes vira a Xamã Relâmpago e perde 3 skills: os pontos delas voltam, e os livros e as Pedras da Alma lidos com sucesso voltam para a bolsa (uma vez só)
+const SKILLS_DA_XAMA_ANTIGA = ["Tiro de Dragão", "Rugido do Dragão", "Bênção"];
+function devolverSkillsXama(p) {
+  if (p.divisaoXamas) return;
+  p.divisaoXamas = 1;
+  let pontos = 0, livros = 0, almas = 0;
+  for (const nome of SKILLS_DA_XAMA_ANTIGA) {
+    const n = (p.skills || {})[nome] || 0, lidos = (p.livrosLidos || {})[nome] || 0;
+    if (n > 1) pontos += Math.min(n, N_MESTRE) - 1;
+    let nl = lidos;
+    for (let k = N_MESTRE; k < Math.min(n, N_GRAO - 1); k++) nl += livrosParaSubir(k);
+    if (nl) { const sobra = adicionarItem("livro:" + nome, nl); livros += nl - sobra; if (sobra) { p.livrosGuardados = p.livrosGuardados || {}; p.livrosGuardados[nome] = sobra; } }
+    if (n > N_GRAO) almas += n - N_GRAO;
+    if (p.skills) delete p.skills[nome];
+    if (p.leitura) delete p.leitura[nome];
+    if (p.livrosLidos) delete p.livrosLidos[nome];
+  }
+  if (almas) adicionarItem("alma", almas);
+  p.pontosSkill = (p.pontosSkill || 0) + pontos;
+  if (pontos || livros || almas) p.avisoXamas = `A xamã virou Xamã Relâmpago: Tiro de Dragão, Rugido e Bênção agora são do Xamã Dragão. Você recebeu de volta ${pontos} ponto(s) de skill${livros ? `, ${livros} livro(s)` : ""}${almas ? `, ${almas} Pedra(s) da Alma` : ""}. Abra a ficha (P).`;
+}
 function renomearProgresso(p) {
   for (const [velho, novo] of Object.entries(RENOMES)) {
     for (const k of ["skills", "leitura"]) if (p[k] && p[k][velho] !== undefined) { p[k][novo] = p[k][velho]; delete p[k][velho]; }
@@ -10265,6 +10471,7 @@ function carregarProgresso() {
   if (prog.arma === undefined) prog.arma = { ref: 0 };                 // todo personagem começa com a arma +0 na mão
   if (!prog.equip) prog.equip = { elmo: null, armadura: null, botas: null, escudo: null };
   migrarRoupas(prog);
+  if (classe === "xama") devolverSkillsXama(prog);                     // (Tiro de Dragão, Rugido e Bênção ficaram com o Xamã Dragão)
   recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
   entrarNoMapaSalvo();                                                // (de volta ao mapa em que estava: prog.mapa)
   jornadaCarregar();                                                  // (as Estatísticas da jornada deste personagem)
@@ -10466,6 +10673,7 @@ function golpeNoPersonagem(l) {
   const base = (l.cfg.dano || 15) * (l.furiaChefe ? 1.3 : 1) * (0.85 + Math.random() * 0.3) * (XAMA.bencao.buff > 0 && !l.cfg.magia ? 1 - BENCAO_REDUZ : 1) * (l.medo > 0 ? 1 - MEDO_REDUZ : 1), dano = Math.max(1, Math.round(base * 100 / (100 + (l.cfg.magia ? status.defesaMagica : status.defesa))));   // (a Bênção da xamã: −20% do físico)
   viking.vida -= dano; viking.semDano = 0;
   numeros.push({ wx: viking.x, wy: viking.y, y: -150, vida: 0.9, txt: "−" + dano, contra: true });
+  if (XAMA.refletir.buff > 0 && !l.morto) comFonte("Refletir", () => acertoMagico(l, Math.max(1, Math.round(dano * REFLETIR_FRACAO)), 0, true));   // (o círculo do Xamã Dragão devolve parte do golpe)
   if (viking.vida <= 0) { morrerJogador(); return true; }
   return false;
 }
@@ -11372,6 +11580,8 @@ function baseIlha(mp = MAPAS.vila1) {
 function baseCaverna(d) {
   return pintarBase(d.x + d.x0 - 2, d.y + d.y0 - 2, d.x + d.x1 + 2, d.y + d.y1 + 2, (x, y) => pisoCaverna(x, y) ? d.tema.mini : d.tema.miniFora || [22, 18, 16]);
 }
+let npcsMini = [], npcsMiniN = -1;
+function npcsMinimapa() { if (objetos.length !== npcsMiniN) { npcsMiniN = objetos.length; npcsMini = objetos.filter(o => o.npc && o.nome && !o.caverna && !naCaverna(o.x)); } return npcsMini; }
 function desenharMinimapa(agora) {
   const el = $("#minimapa");
   if (el.hidden || agora < miniProx) return;
@@ -11398,6 +11608,7 @@ function desenharMinimapa(agora) {
   g.drawImage(b.c, bx, by, b.c.width / MINI_PX * esc, b.c.height / MINI_PX * esc);
   const dentro = (x, y) => Math.hypot(x - viking.x, y - viking.y) < R * 0.97;
   // buracos e escadas
+  for (const o of npcsMinimapa()) if (dentro(o.x, o.y)) { const [X, Y] = ponto(o.x, o.y); g.fillStyle = "#f6e9c8"; g.strokeStyle = "#1E1B18"; g.lineWidth = 1; g.beginPath(); g.arc(X, Y, 2.3, 0, 7); g.fill(); g.stroke(); }   // (R173: os NPCs, um ponto pequeno, sem nome)
   for (const ps of passagens) if (dentro(ps.x, ps.y)) { const [X, Y] = ponto(ps.x, ps.y); g.fillStyle = "#0b0806"; g.strokeStyle = "#e8d6a0"; g.lineWidth = 1.5; g.beginPath(); g.arc(X, Y, 4, 0, 7); g.fill(); g.stroke(); }
   // os portais: o redemoinho na cor do destino (apagado se ainda travado pelo nível). O do mapa em que o herói está fica
   // sempre à vista: longe, na borda do minimapa, na direção dele (como a estrela da missão)
@@ -12121,7 +12332,7 @@ const CAVALO = {
   // a rédea solta de cada aparência (some com alguém montado: aí aparece a esticada, Redea)
   soltas: { iniciante: "Redea_Solta", blindado: "Redea_Solta_Blindado", militar: "Redea_Solta_Militar" },
   // as classes que montam (os clipes de cada uma em 3d/montados.json e as folhas montado_<classe> em sprites/cavalo.json)
-  classes: ["viking", "guerreiro", "arqueiro", "feiticeiro", "ninja", "xama", "shura"],
+  classes: ["viking", "guerreiro", "arqueiro", "feiticeiro", "ninja", "xama", "xama_dragao", "shura"],
   exame: { 10: { heroi: 25, yang: 20000 }, 20: { heroi: 35, yang: 40000 } },
 };
 const aparenciaCavalo = nv => nv >= 21 ? "militar" : nv >= 11 ? "blindado" : "iniciante";
@@ -12274,7 +12485,7 @@ function passoCavalo(dt) {
 // ---- o desenho: no 3D, o pedaço do cavalo (com o herói preso, se montado); sem o 3D, as folhas de sprites/cavalo.json
 function desenharMontado(X, Y, z) {
   sombraCavalo(cavaloEnt, X, Y, z);                                    // (R095: no empinar, embaixo das patas de trás)
-  if (!desenharInst3d(viking, X, Y, z)) desenharCavaloSprite("montado_" + classe, montadoAnim(), X, Y, z, viking.dir, false);
+  if (!desenharInst3d(viking, X, Y, z)) desenharCavaloSprite("montado_" + (classe === "xama_dragao" ? "xama" : classe), montadoAnim(), X, Y, z, viking.dir, false);
   placas.push(() => desenharPlacaJogador(X, Y - 0.75 * PX * z, z));   // (a placa acima do herói montado)
   atualizarVitais(); atualizarBarra();
 }
@@ -12317,6 +12528,15 @@ function carregarMontados3d() {
       }
     }
     MONTADOS3D = out;
+    // (o Xamã Dragão: 3d/montados_dragao.json, o movimento dela nos ossos dele; se faltar o arquivo, ele não monta em T: fica a folha)
+    fetch("3d/montados_dragao.json").then(r => r.json()).then(j2 => {
+      const clipes = j2.classes.xama_dragao, d = {};
+      for (const [nome, c] of Object.entries(clipes)) {
+        const trilhas = c.canais.map(([no, cam, t, v]) => { const nn = THREE.PropertyBinding.sanitizeNodeName(no); return cam === "rotation" ? new THREE.QuaternionKeyframeTrack(nn + ".quaternion", t, v) : new THREE.VectorKeyframeTrack(nn + ".position", t, v); });
+        d[nome] = { clip: new THREE.AnimationClip(nome, c.quadros / c.fps, trilhas), fps: c.fps, quadros: c.quadros, laco: c.laco, acerto: c.acerto };
+      }
+      MONTADOS3D.xama_dragao = d;
+    }).catch(e => console.error("montados_dragao:", e));
   }).catch(e => { console.error("montados:", e); montados3dPedido = false; });
 }
 // as malhas da aparência (e a rédea: esticada com alguém montado, solta no pescoço sem ninguém)
@@ -13456,6 +13676,7 @@ function desenharCartas() {
       #cartaJan .carta-obj, #cartaJan .carta-premio { margin: 0; font-size: 15px; font-weight: 700; color: #8e2721; }
       #cartaJan .carta-premio { font-weight: 400; color: #3a2a1c; padding: 4px 7px; background: rgba(184, 146, 60, 0.2); border: 1px solid rgba(30, 20, 10, 0.5); border-radius: 2px; }
       #cartaJan .carta-aviso { margin: 0; padding: 4px 7px; font-size: 12.5px; line-height: 1.35; font-weight: 600; color: #8e2721; border-left: 3px solid #8e2721; }
+      #fDerivados .fx-cx.larga { grid-column: 2 / -1; }
       #fDerivados .fx-cx.pesquisa { grid-column: 2 / -1; text-align: left; padding: 2px 6px; white-space: normal; height: auto; font-size: 11px; line-height: 15px; }
       #cartaJan .selo { font-size: 13.5px; color: #3f3528; font-style: italic; }
       #fQuests .fx-quest.vista { outline: 1px solid #f3cf5a; outline-offset: 1px; }
@@ -14098,11 +14319,11 @@ const BRILHO_REF = {
 };
 function brilhoRef() { return prog && prog.arma ? BRILHO_REF[prog.arma.ref] || null : null; }
 // livros: caem de todas as classes (o viking acha livros do arqueiro e do feiticeiro também)
-function todasAsSkills() { return [...SKILLS_VIKING, ...SKILLS_ARQUEIRO, ...SKILLS_FEITICEIRO, ...SKILLS_NINJA, ...SKILLS_XAMA, ...SKILLS_SHURA].map(sk => sk.nome); }
-function classeDaSkill(nome) { for (const [c, l] of [["viking", SKILLS_VIKING], ["arqueiro", SKILLS_ARQUEIRO], ["feiticeiro", SKILLS_FEITICEIRO], ["ninja", SKILLS_NINJA], ["xama", SKILLS_XAMA], ["shura", SKILLS_SHURA]]) if (l.some(s => s.nome === nome)) return c; return null; }
+function todasAsSkills() { return [...SKILLS_VIKING, ...SKILLS_ARQUEIRO, ...SKILLS_FEITICEIRO, ...SKILLS_NINJA, ...SKILLS_XAMA, ...SKILLS_DRAGAO, ...SKILLS_SHURA].map(sk => sk.nome); }
+function classeDaSkill(nome) { for (const [c, l] of [["viking", SKILLS_VIKING], ["arqueiro", SKILLS_ARQUEIRO], ["feiticeiro", SKILLS_FEITICEIRO], ["ninja", SKILLS_NINJA], ["xama", SKILLS_XAMA], ["xama_dragao", SKILLS_DRAGAO], ["shura", SKILLS_SHURA]]) if (l.some(s => s.nome === nome)) return c; return null; }
 function livroQualquer() { const l = todasAsSkills(); return { tipo: "livro", nome: l[Math.floor(Math.random() * l.length)] }; }
 // as armas (uma por classe), desenhadas em pé num espaço de 1 × 3
-const ARMAS = { aprendiz: { nome: "Espada de Treino", desenho: "treino" }, viking: { nome: "Espada Viking", desenho: "espada" }, arqueiro: { nome: "Arco Longo", desenho: "arco" }, feiticeiro: { nome: "Cajado Arcano", desenho: "cajado" }, ninja: { nome: "Adagas Gêmeas", desenho: "adagas" }, guerreiro: { nome: "Machado de Guerra", desenho: "machado" }, xama: { nome: "Leque do Dragão", desenho: "leque" }, shura: { nome: "Espada Sombria", desenho: "espada" } };
+const ARMAS = { aprendiz: { nome: "Espada de Treino", desenho: "treino" }, viking: { nome: "Espada Viking", desenho: "espada" }, arqueiro: { nome: "Arco Longo", desenho: "arco" }, feiticeiro: { nome: "Cajado Arcano", desenho: "cajado" }, ninja: { nome: "Adagas Gêmeas", desenho: "adagas" }, guerreiro: { nome: "Machado de Guerra", desenho: "machado" }, xama: { nome: "Leque do Dragão", desenho: "leque" }, xama_dragao: { nome: "Leque do Dragão", desenho: "leque" }, shura: { nome: "Espada Sombria", desenho: "espada" } };
 // os modelos de cada arma, como os das peças (Logs/Balanceamento/NIVEL70.md): o 0 é a de sempre (nível 1) e os outros
 // abrem no 22, 30, 38, 46, 54 e 62 (a Vila Hahoe e a Ilha de Daiyu). O modelo multiplica o ataque (ATAQUE_TIER) e o
 // refino (+0 a +9) soma por cima. Na bolsa: "arma:<classe>" (o modelo 0) ou "arma:<classe>:<modelo>". Os ícones dos
@@ -14116,6 +14337,7 @@ const ARMAS_TIER = {
   feiticeiro: ["Cajado Arcano", "Cajado de Jade", "Cajado das Runas", "Cajado da Lua Crescente", "Cajado do Trovão", "Cajado da Fênix", "Cajado do Dragão Celeste"],
   ninja: ["Adagas Gêmeas", "Adagas de Aço", "Adagas da Serpente", "Adagas da Lua Crescente", "Adagas do Vento Negro", "Adagas Presas de Raposa", "Adagas do Dragão Celeste"],
   xama: ["Leque do Dragão", "Leque de Seda", "Leque de Jade", "Leque da Lua Crescente", "Leque do Trovão", "Leque da Fênix", "Leque do Dragão Celeste"],
+  xama_dragao: ["Leque do Dragão", "Leque de Seda", "Leque de Jade", "Leque da Lua Crescente", "Leque do Trovão", "Leque da Fênix", "Leque do Dragão Celeste"],
   shura: ["Espada Sombria", "Lâmina do Fantasma", "Lâmina Demoníaca", "Espada do Leão", "Dente de Dragão", "Lâmina da Serpente", "Lâmina do Abismo"],
 };
 function armaDaChave(chave) { const [, c, t] = chave.split(":"); return { classe: ARMAS[c] ? c : "viking", tier: Math.max(0, Math.min(NIVEIS_ARMA.length - 1, Math.floor(+t) || 0)) }; }
@@ -14208,7 +14430,7 @@ const PECAS = {
     modelos: [["Gibão de Couro", 1, 10, 30], ["Traje de Caçador", 8, 20, 60], ["Traje das Sombras", 14, 34, 100],
               ["Traje de Couro Laqueado", 22, 47, 138], ["Traje do Vento Negro", 30, 62, 181], ["Traje da Lua Crescente", 38, 77, 223],
               ["Traje da Raposa", 46, 92, 266], ["Traje da Névoa", 54, 107, 308], ["Traje do Dragão Celeste", 62, 121, 350]] },
-  armadura_mago: { nome: "Manto", slot: "armadura", classes: ["feiticeiro", "xama"], h: 2, extra: "mana", cor: [["#8a6a4a", "#5a4430"], ["#5a3a8a", "#2a1a4a"], ["#a02020", "#4a0a0a"],
+  armadura_mago: { nome: "Manto", slot: "armadura", classes: ["feiticeiro", "xama", "xama_dragao"], h: 2, extra: "mana", cor: [["#8a6a4a", "#5a4430"], ["#5a3a8a", "#2a1a4a"], ["#a02020", "#4a0a0a"],
       ["#3a6a5a", "#183a2e"], ["#2a3a7a", "#10183a"], ["#c8c8e0", "#5a5a8a"], ["#4a3a8a", "#1a1040"], ["#e06a2a", "#7a2a0a"], ["#2a8aa8", "#0a3a5a"]],
     modelos: [["Túnica de Linho", 1, 6, 30], ["Manto de Seda", 8, 13, 60], ["Manto Arcano", 14, 22, 100],
               ["Manto de Brocado", 22, 31, 140], ["Manto das Estrelas", 30, 40, 185], ["Manto da Lua Crescente", 38, 50, 230],
@@ -14258,7 +14480,7 @@ function acessorioDoNivel(nivel, slot = ACESSORIOS[Math.floor(Math.random() * 3)
 // o que cai das criaturas: 1 em 4 é um acessório, o resto uma peça de roupa
 function itemDoNivel(nivel) { return Math.random() < 0.25 ? acessorioDoNivel(nivel) : pecaDoNivel(nivel); }
 const ORDEM_PECAS = ["elmo", "armadura", "botas", "escudo"];                // os espaços do equipamento (roupa; os acessórios à parte)
-const ROUPA_DA_CLASSE = { aprendiz: "armadura_guerreiro", viking: "armadura_guerreiro", arqueiro: "armadura_leve", ninja: "armadura_leve", feiticeiro: "armadura_mago", guerreiro: "armadura_guerreiro", xama: "armadura_mago", shura: "armadura_guerreiro" };
+const ROUPA_DA_CLASSE = { aprendiz: "armadura_guerreiro", viking: "armadura_guerreiro", arqueiro: "armadura_leve", ninja: "armadura_leve", feiticeiro: "armadura_mago", guerreiro: "armadura_guerreiro", xama: "armadura_mago", xama_dragao: "armadura_mago", shura: "armadura_guerreiro" };
 function slotDa(peca) { return (PECAS[peca] && PECAS[peca].slot) || peca; }
 function pecaEquipada(slot) { const e = prog && prog.equip && prog.equip[slot]; return e ? (e.peca || (slot === "armadura" ? ROUPA_DA_CLASSE[classe] : slot)) : null; }
 function pecaServe(peca) { const c = PECAS[peca] && PECAS[peca].classes; return !c || c.includes(classe); }
@@ -15186,13 +15408,13 @@ function montarMenu() {
 // consumíveis, livros de todas as skills e yang) vai direto para a bolsa do personagem atual
 let admRef = 0, admBon = [], admJo = [];
 function admListaItens() {
-  const grupos = [["Armas", ["viking", "guerreiro", "arqueiro", "feiticeiro", "ninja", "shura", "xama"].filter(c => ARMAS[c]).flatMap(c => ARMAS_TIER[c].map((nome, t) => [chaveArma(c, t), `${nome} (${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[t]})`]))]];
+  const grupos = [["Armas", ["viking", "guerreiro", "arqueiro", "feiticeiro", "ninja", "shura", "xama", "xama_dragao"].filter(c => ARMAS[c]).flatMap(c => ARMAS_TIER[c].map((nome, t) => [chaveArma(c, t), `${nome} (${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[t]})`]))]];
   for (const [slot, P] of Object.entries(PECAS))
     grupos.push([P.nome + (P.classes ? " · " + P.classes.map(c => NOME_CLASSE[c]).join("/") : ""), P.modelos.map((m, t) => [`peca:${slot}:${t}`, `${m[0]} (nível ${m[1]})`])]);
   grupos.push(["Consumíveis e materiais", ["pocao", "pocaoMana", "bau_iniciante", "pedra", "encantar", "mudar", "alma", "bencao", "correcao", "conselho"].map(k => [k, tipoItem(k).nome])]);
   grupos.push(["Jóias (de arma)", Object.keys(JOIAS).filter(t => JOIAS[t].parte === "arma").flatMap(t => JOIAS[t].val.map((_, g) => [`joia:${t}:${g}`, nomeJoia(t, g)]))]);
   grupos.push(["Jóias (de roupa)", Object.keys(JOIAS).filter(t => JOIAS[t].parte === "roupa").flatMap(t => JOIAS[t].val.map((_, g) => [`joia:${t}:${g}`, nomeJoia(t, g)]))]);
-  for (const [c, l] of [["viking", SKILLS_VIKING], ["arqueiro", SKILLS_ARQUEIRO], ["feiticeiro", SKILLS_FEITICEIRO], ["ninja", SKILLS_NINJA], ["xama", SKILLS_XAMA], ["shura", SKILLS_SHURA]])
+  for (const [c, l] of [["viking", SKILLS_VIKING], ["arqueiro", SKILLS_ARQUEIRO], ["feiticeiro", SKILLS_FEITICEIRO], ["ninja", SKILLS_NINJA], ["xama", SKILLS_XAMA], ["xama_dragao", SKILLS_DRAGAO], ["shura", SKILLS_SHURA]])
     grupos.push([`Livros · ${NOME_CLASSE[c]}${c === "viking" ? "/Guerreiro" : ""}`, l.map(sk => ["livro:" + sk.nome, "Livro: " + sk.nome])]);
   grupos.push(["Dinheiro", [["yang", "Yang"]]]);
   return grupos;
@@ -15396,7 +15618,7 @@ function retratoFicha(c) {
       <path d="M42 25.5q6 .5 10-4.5M42 26.5q6 3.5 11 1.5" fill="none" stroke="#B8322A" stroke-width="1.8" stroke-linecap="round"/>`,
   };
   marca.guerreiro = marca.viking;
-  const capa = { viking: "#B8322A", guerreiro: "#B8322A", arqueiro: "#2F5D3A", feiticeiro: "#2D4A6B", ninja: N, xama: "#3E7A5C", shura: "#2a0b3f" }[c] || "#B8322A";
+  const capa = { viking: "#B8322A", guerreiro: "#B8322A", arqueiro: "#2F5D3A", feiticeiro: "#2D4A6B", ninja: N, xama: "#3E7A5C", xama_dragao: "#B8322A", shura: "#2a0b3f" }[c] || "#B8322A";
   return `<svg viewBox="0 0 64 72" aria-hidden="true"><circle cx="32" cy="31" r="25" fill="#C9963E" opacity=".2"/>
     <path d="M7 72q1-23 25-26q24 3 25 26z" fill="${capa}" fill-opacity=".85" stroke="${N}" stroke-width="2" stroke-linejoin="round"/>
     <path d="M24 49l8 8 8-8" fill="none" stroke="${P}" stroke-width="2"/><path d="M28 40h8v7h-8z" fill="${P}" stroke="${N}" stroke-width="1.5"/>
@@ -15455,10 +15677,24 @@ const SKILL_DADOS = {
     linhas: (n, d) => [["2º acerto", d(19.6, 25.2)], ["Alcance", "8 m, até 10 alvos"]] },
   "Rugido do Dragão": { sub: "Voz do Dragão", desc: "Um rugido que fere e empurra todos em volta.", ef: "Dano em volta e empurrão", dano: [34, 42],
     linhas: (n, d) => [["2º tempo", d(20.4, 25.2)], ["Raio", "3 m, até 15 alvos"]] },
-  "Invocar Relâmpago": { sub: "Trovão do Dragão", desc: "Raios caem na área escolhida e atordoam.", ef: "Dano em área e atordoamento", dano: [30, 38],
+  "Invocar Relâmpago": { sub: "Trovão do Céu", desc: "Raios caem na área escolhida e atordoam.", ef: "Dano em área e atordoamento", dano: [30, 38],
     linhas: (n, d) => [["2º tempo", d(15, 19)], ["Atordoa", "1,5 s (chefe: 0,5 s)"], ["Alcance · raio", "12 m · 3 m"]] },
   "Bênção": { sub: "Proteção do Dragão", desc: "A proteção do dragão por um tempo.", ef: "Diminui o dano recebido", dura: 60,
     linhas: () => [["Dano físico recebido", "−20%"]] },
+  "Refletir": { sub: "Espelho do Dragão", desc: "Um círculo de fogo devolve parte de cada golpe a quem bateu.", ef: "Devolve o dano ao atacante", dura: 60,
+    linhas: () => [["Dano devolvido", "20% do golpe, e sobe com a skill"]] },
+  "Ajuda do Dragão": { sub: "Força do Dragão", desc: "A força do dragão guia os golpes. Sem grupo, vale para você.", ef: "Aumenta a chance de crítico", dura: 60,
+    linhas: () => [["Chance de crítico", "+25%"], ["Dano do crítico", "×2"]] },
+  "Talismã Voador": { sub: "Papel de Fogo", desc: "Três talismãs voam em arco e procuram o alvo e os vizinhos.", ef: "Dano à distância em vários alvos", dano: [26, 33], danoRot: "Dano no alvo",
+    linhas: (n, d) => [["Outros alvos", `${d(18.2, 23.1)} e ${d(12.7, 16.2)}`], ["Alcance · salto", "12 m · 4,5 m"]] },
+  "Tiro Relâmpago": { sub: "Raio do Leque", desc: "O leque junta a luz e ela estoura no alvo.", ef: "Dano no alvo e em volta", dano: [28, 36],
+    linhas: (n, d) => [["2º acerto", d(19.6, 25.2)], ["Alcance · raio", "12 m · 1,5 m, até 5 alvos"]] },
+  "Garra do Relâmpago": { sub: "Reação em Cadeia", desc: "A bola de raios fere o alvo e salta de um inimigo para outro.", ef: "Dano em cadeia", dano: [26, 33], danoRot: "Dano no 1º alvo",
+    linhas: (n, d) => [["Saltos", "2 (até 4,5 m)"], ["Dano dos saltos", `${d(18.2, 23.1)} e ${d(12.7, 16.2)}`]] },
+  "Redemoinho": { sub: "Pés de Vento", desc: "Corre como o vento por um tempo.", ef: "Aumenta a velocidade", dura: 20,
+    linhas: () => [["Velocidade de movimento", "+45%"]] },
+  "Aumentar Ataque": { sub: "Fogo na Mão", desc: "O fogo na mão fortalece todos os golpes e magias. Sem grupo, vale para você.", ef: "Aumenta o dano", dura: 60,
+    linhas: () => [["Dano", "+35%"]] },
   "Cura": { sub: "Sopro da Vida", desc: "Recupera parte da vida.", ef: "Cura", linhas: () => [["Cura", `30% da vida (${Math.round(status.vidaMax * 0.3)} PV)`]] },
   "Lâmina Encantada": { sub: "Lâmina das Trevas", desc: "A arma suga a vida de quem ela fere por um tempo.", ef: "Aumenta o dano e rouba vida", dura: 60,
     linhas: () => [["Dano dos golpes", "+30%"], ["Roubo de vida", "8% do dano"]] },
@@ -15473,7 +15709,7 @@ const SKILL_DADOS = {
 };
 // os números de uma skill no nível n: [[rótulo, valor]...] na ordem da dica (efeito, duração, recarga, mana)
 function numerosSkill(nome, n) {
-  const D = SKILL_DADOS[nome], sk = [...SKILLS_VIKING, ...SKILLS_ARQUEIRO, ...SKILLS_FEITICEIRO, ...SKILLS_NINJA, ...SKILLS_XAMA, ...SKILLS_SHURA].find(k => k.nome === nome);
+  const D = SKILL_DADOS[nome], sk = [...SKILLS_VIKING, ...SKILLS_ARQUEIRO, ...SKILLS_FEITICEIRO, ...SKILLS_NINJA, ...SKILLS_XAMA, ...SKILLS_DRAGAO, ...SKILLS_SHURA].find(k => k.nome === nome);
   if (!D || !sk) return [];
   const m = 1 + 0.025 * (n - 1), dm = 1 + 0.0125 * (n - 1), atq = status.ataque || 1;
   const d = (lo, hi) => { const a = Math.max(1, Math.round(lo * atq * m)), b = Math.max(1, Math.round(hi * atq * m)); return a === b ? String(a) : `${a}–${b}`; };
@@ -15494,6 +15730,7 @@ const TIPO_SKILL = { "Fúria": "Fortalecimento", "Vórtice": "Ataque corpo a cor
   "Relâmpago": "Ataque mágico à distância", "Chuva de Meteoros": "Ataque mágico em área", "Olho Arcano": "Fortalecimento", "Poder Arcano": "Fortalecimento", "Erupção Arcana": "Ataque mágico em volta",
   "Punhalada Surpresa": "Ataque corpo a corpo", "Acrobacia": "Ataque corpo a corpo", "Avanço Ágil": "Ataque corpo a corpo", "Veneno de Serpente": "Ataque à distância em área", "Esconder": "Fortalecimento",
   "Tiro de Dragão": "Ataque mágico à distância", "Rugido do Dragão": "Ataque mágico em volta", "Invocar Relâmpago": "Ataque mágico em área", "Bênção": "Fortalecimento", "Cura": "Cura",
+  "Tiro Relâmpago": "Ataque mágico à distância", "Garra do Relâmpago": "Ataque mágico em cadeia", "Redemoinho": "Fortalecimento", "Aumentar Ataque": "Fortalecimento", "Talismã Voador": "Ataque mágico à distância", "Refletir": "Fortalecimento", "Ajuda do Dragão": "Fortalecimento",
   "Lâmina Encantada": "Fortalecimento", "Turbilhão do Dragão": "Ataque mágico em volta", "Medo": "Enfraquecimento", "Golpe Sombrio": "Ataque mágico em linha", "Espírito de Fogo": "Ataque mágico automático" };
 // o que faz os números da dica subirem, de verdade: o dano vem de status.ataque × o nível da skill; a duração, do nível
 function fortalecidoPor(nome, D) {
@@ -15676,13 +15913,13 @@ function atualizarFicha() {
     ["Perfurante", Math.round((status.perfurante || 0) * 100) + "%", "Chance de o golpe ignorar a defesa da criatura (Jóia do Ataque Perfurante, colar e bracelete)"],
     ["Contra raças", "+" + Math.max(0, ...["morto_vivo", "animal", "orc", "demonio", "humano"].map(r => Math.round(((status.raca || {})[r] || 0) * 100))) + "%",
       "Jóias e acessórios contra raça: " + [["morto_vivo", "Mortos-vivos"], ["animal", "Animais"], ["orc", "Orcs"], ["demonio", "Demônios"], ["humano", "Semi-humanos"]].map(([r, n]) => `${n} +${Math.round(((status.raca || {})[r] || 0) * 100)}%`).join(" · ")],
+    ["Refino da arma", prog.arma ? "+" + (prog.arma.ref || 0) : "—", prog.arma ? nomeArma(prog.arma.ref) : "Sem arma (punhos)"],
     ["Evasão · Esquiva", Math.round((status.evasao || 0) * 100) + "/" + Math.round((status.esquiva || 0) * 100) + "%", "Chance de bloquear o golpe corpo a corpo / de esquivar a flecha e a magia (Jóias da Evasão e da Esquiva)"],
     ["Resfriamento", "−" + Math.round((status.resfriamento || 0) * 100) + "%", "Recarga das skills mais curta (Jóia do Resfriamento e colar; no máximo 50%)"],
     ["Honra", `${honraDe().titulo || "Sem título"} · ${Math.floor(honraDe().pontos).toLocaleString("pt-BR")}`, `Cada criatura derrotada dá 1 ponto, se não estiver mais de 10 níveis abaixo de você. Valioso 1.000 (+1% de drop), Íntegro 4.000 (+2%), Nobre 8.000 (+4%) e Admirável 12.000 (+5%)`],
     ["EXP · Yang · Drop", [status.exp, status.yang, status.drop].map(v => Math.round((v || 0) * 100)).join("/") + "%", "Chance de EXP dobrada, de yang dobrado e de drop dobrado (adicionais do colar, do bracelete e dos brincos)"],
-    ["Refino da arma", prog.arma ? "+" + (prog.arma.ref || 0) : "—", prog.arma ? nomeArma(prog.arma.ref) : "Sem arma (punhos)"],
     ["Pesquisa", resumoBio(true), `Atributos permanentes das pesquisas de ${NOME_MUKSEON_TITULO} (${Math.min(bioDe().m, BIO.length)} de ${BIO.length}): ${resumoBio()}`]]
-    .map(([a, v, t]) => `<span title="${t}"${a === "Pesquisa" ? ' style="grid-column: 1"' : ""}>${a}</span><b class="fx-cx${a === "Pesquisa" ? " pesquisa" : ""}" title="${t}">${v}</b>`).join("");
+    .map(([a, v, t]) => { const larga = ["Evasão · Esquiva", "Honra", "EXP · Yang · Drop", "Pesquisa"].includes(a); return `<span title="${t}"${larga ? ' style="grid-column: 1"' : ""}>${a}</span><b class="fx-cx${larga ? " larga" : ""}${a === "Pesquisa" ? " pesquisa" : ""}" title="${t}">${v}</b>`; }).join("");
   const lb = Object.entries(somaBonus(true)).map(([t, v]) => BONUS[t] ? BONUS[t].nome(v) : "").filter(Boolean);
   for (const [t, v] of Object.entries(somaJoias())) if (JOIAS[t]) lb.push(`${JOIAS[t].rot} ${JOIAS[t].menos ? "−" : "+"}${v}${JOIAS[t].pct ? "%" : ""} (Jóias)`);
   $("#fEquipNota").textContent = `${prog.arma ? nomeArma(prog.arma.ref) : "Sem arma (punhos)"} · ${lb.length ? lb.join(" · ") : "nenhum bônus nos itens"}`;
@@ -15714,7 +15951,7 @@ function atualizarFicha() {
   const montada = c => `<div class="fx-sk" data-montada="1" title="Ataque montado: do nível 11 do cavalo, o ataque básico a cavalo (como no Metin2, as skills ficam travadas montado)"><canvas class="sk-montada" width="80" height="80"></canvas><i class="sk-grau grau-n">${c.tem ? (c.nivel >= 11 ? "ok" : "11") : "—"}</i></div>`;
   $("#fSkills").innerHTML = abaSkills === "montaria"
     ? `<div class="fx-meia">${montada(cavaloDe())}${Array.from({ length: 17 }, () => cel(null)).join("")}</div>`
-    : `<div class="fx-meia fx-formas">${NOME_FORMA.map(t => `<div class="fx-forma-tit">${t}</div>`).join("")}${SKILLS.map(linhaFormas).join("")}</div>`;
+    : `<div class="fx-meia fx-formas${SKILLS.length > 5 ? " fx-seis" : ""}">${NOME_FORMA.map(t => `<div class="fx-forma-tit">${t}</div>`).join("")}${SKILLS.map(linhaFormas).join("")}</div>`;
   for (const c of $("#fSkills").querySelectorAll(".sk-montada")) desenharAcao(c.getContext("2d"), "montar", 80);
   for (const c of $("#fSkills").querySelectorAll(".sk-icone, .sk-forma")) {
     const sk = SKILLS.find(s => s.nome === c.dataset.sk), g = c.getContext("2d"); if (!sk) continue;
@@ -15742,7 +15979,7 @@ function atualizarFicha() {
     $("#fSkInfo").innerHTML = `<span class="sk-nome"><b>${sk.nome}</b><i class="sk-grau grau-${grau(n)}">${rotuloNivelSkill(n)}</i></span>${acao}` +
       `<span class="sk-linha">${sk.mana ? `${sk.mana} mana` : "sem mana"}${i >= 0 ? ` · tecla <kbd>${ROTULO_TECLA(TECLAS_BARRA[i])}</kbd>` : " · fora da barra"}</span>` +
       `<small>efeito +${Math.round((multSkill(sk.nome) - 1) * 100)}%${info ? " · " + info : ""}${espera && n >= N_MESTRE ? ` · ler de novo em ${textoEspera(espera)}` : ""}</small>`;
-  } else $("#fSkInfo").innerHTML = classe === "aprendiz" ? `<span class="sk-nome"><b>As skills chegam com a classe</b></span> No nível ${NIVEL_ALTAR}, suba ao Altar das Eras, na ilha a oeste da Vila 1. Os seus pontos de skill ficam guardados até lá.` : "";
+  } else $("#fSkInfo").innerHTML = classe === "aprendiz" ? `<span class="sk-nome"><b>As skills chegam com a classe</b></span><span class="sk-aviso">No nível ${NIVEL_ALTAR}, suba ao Altar das Eras, na ilha a oeste da Vila 1. Os seus pontos de skill ficam guardados até lá.</span>` : "";
   const travado = l => l.map(([nome, dica]) => `<div class="fx-trava" title="${nome}: ${dica} (em breve)">${CADEADO}<i>${nome}</i></div>`).join("");
   // as Skills comuns (Standard Skills do Metin2): só as que existem no jogo (montar, o dash e o combo)
   const comuns = [["montar", "Montar", CAVALO_LIBERADO ? "Ctrl+G: monta e desmonta do cavalo" : "Montar: o Cavalariço Doyun, no estábulo, dá o cavalo (nível 15)"],
@@ -15994,7 +16231,7 @@ function nomeRegiao(x, y) {
 // (mobsEditados1 era a Vila 1 de antes, com os orcs no vale, e mobsEditados2 a Vila 1 pequena, com o portal a leste:
 // ficam para trás)
 const MOBS_CHAVE = "mobsEditados4";
-const MOBS_FIXO = null;
+const MOBS_FIXO = {"versao":1,"spawns":[{"tipo":"aranha","x":42.56,"y":-104.44,"n":1,"r":1.6},{"tipo":"cao_selvagem","x":-53.2,"y":61.6,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":58.8,"y":60.35,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":17.2,"y":-43.7,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":19.6,"y":75.6,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":63,"y":-8.4,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":-72,"y":40.8,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":-33,"y":77.1,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":43.4,"y":77.9,"n":3,"r":4,"gg":"v1_01"},{"tipo":"lobo_faminto","x":61.5,"y":20.4,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":61.2,"y":-36,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-29.1,"y":-50.1,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-65.8,"y":15.4,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-71,"y":-17.8,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-8.4,"y":79.8,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-49.3,"y":-36.6,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":78.4,"y":42,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":85.4,"y":8.4,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":40,"y":-39.7,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":61.5,"y":-57.5,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-4.3,"y":-47.2,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-81.5,"y":0.9,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":78.5,"y":-23.3,"n":3,"r":4,"gg":"v1_02"},{"tipo":"javali_selvagem","x":38.6,"y":-62.9,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-20.4,"y":-89.2,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-91,"y":-67.2,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-56,"y":-93.8,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":71.8,"y":-90.2,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":5.3,"y":-66.5,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-57.4,"y":-61.6,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":35.2,"y":-87.6,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":99.7,"y":-26.8,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":102.2,"y":29.4,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":111.4,"y":0.5,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":126.8,"y":-25.6,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-38,"y":-74.9,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-36,"y":-104,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-72,"y":-78.7,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":84.5,"y":-45.1,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":121.3,"y":40.3,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":5.1,"y":-88,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":122.6,"y":18.8,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":52.5,"y":-101,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-17.1,"y":-68,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":114,"y":-42.9,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":54.2,"y":-77.7,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-6.9,"y":-105.8,"n":3,"r":4,"gg":"v1_03"},{"tipo":"esqueleto","x":-78.4,"y":-42,"n":3,"r":4,"gg":"v1_cripta"},{"tipo":"javali_rubro","x":-19,"y":-123.7,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":17.2,"y":-107.8,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-89.6,"y":-97.9,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":70,"y":-121.8,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":141.4,"y":31.9,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-20.5,"y":-146.6,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":27.4,"y":-149,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":163.1,"y":19.6,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-69.8,"y":-113.1,"n":3,"r":4,"gg":"v1_04"},{"tipo":"urso_negro","x":-81,"y":-134.6,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":8.5,"y":-132.7,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-44.8,"y":-131.6,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":36.4,"y":-128.8,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":152.2,"y":-35.4,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":157.7,"y":-4.7,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-58.3,"y":-149,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-95.4,"y":-118.6,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":169.5,"y":-22.6,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":142.4,"y":10.5,"n":3,"r":4,"gg":"v1_06"},{"tipo":"arqueira_jb","x":-37.3,"y":-162.4,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":28.45,"y":-187.3,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":54.6,"y":-156.8,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":-6.4,"y":-173,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":-77.4,"y":-163.1,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":2.6,"y":-153.5,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":47.4,"y":-177.5,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":-57.2,"y":-170.5,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":18,"y":-168.4,"n":4,"r":4,"gg":"v1_08"},{"tipo":"capita_jb","x":-54,"y":-191.8,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":8.4,"y":-203,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-42,"y":-211.4,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-29,"y":-186.1,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-10.2,"y":-217.6,"n":4,"r":4,"gg":"v1_10"},{"tipo":"golem","x":-722.63,"y":-39.6,"n":2,"r":2},{"tipo":"golem","x":-710.25,"y":-41.37,"n":3,"r":2.5},{"tipo":"golem","x":-699.29,"y":-30.41,"n":3,"r":2.5},{"tipo":"golem","x":-708.13,"y":-20.86,"n":3,"r":2.5},{"tipo":"golem","x":-716.62,"y":-8.13,"n":4,"r":3},{"tipo":"golem","x":-731.11,"y":-2.83,"n":3,"r":2.5},{"tipo":"golem","x":-686.92,"y":-36.42,"n":2,"r":2},{"tipo":"escorpiao","x":-718.38,"y":22.63,"n":3,"r":2.5},{"tipo":"escorpiao","x":-708.84,"y":5.3,"n":3,"r":2.5},{"tipo":"escorpiao","x":-698.23,"y":1.77,"n":3,"r":2.5},{"tipo":"escorpiao","x":-690.45,"y":-8.84,"n":3,"r":2.5},{"tipo":"escorpiao","x":-682.68,"y":-22.27,"n":2,"r":2},{"tipo":"yeti","x":-673.13,"y":-1.41,"n":3,"r":2.5},{"tipo":"yeti","x":-681.62,"y":7.78,"n":3,"r":2.5},{"tipo":"yeti","x":-691.16,"y":13.08,"n":3,"r":2.5},{"tipo":"yeti","x":-698.59,"y":24.04,"n":2,"r":2},{"tipo":"nove_caudas","x":-672.78,"y":25.81,"n":1,"r":1.6},{"tipo":"urso_negro","x":-50,"y":717,"n":3,"r":2.2},{"tipo":"tigre","x":-50,"y":688,"n":3,"r":2.2},{"tipo":"tigre","x":-41,"y":681,"n":2,"r":2},{"tipo":"lobo_alfa","x":-46,"y":730,"n":1,"r":1.6},{"tipo":"bandido","x":11,"y":744,"n":4,"r":3},{"tipo":"bandido_arqueiro","x":21,"y":747,"n":3,"r":2.5},{"tipo":"chefe_bandido","x":17,"y":750,"n":1,"r":1.6},{"tipo":"zumbi","x":41,"y":694,"n":4,"r":2.5},{"tipo":"zumbi","x":45,"y":680,"n":3,"r":2.5},{"tipo":"fantasma","x":-21,"y":663,"n":3,"r":2.5},{"tipo":"zumbi","x":-4,"y":652,"n":3,"r":2.5},{"tipo":"fantasma","x":-26,"y":652,"n":2,"r":2},{"tipo":"lich","x":-14,"y":655,"n":1,"r":1.6},{"tipo":"golem","x":-34,"y":735,"n":3,"r":2.5},{"tipo":"golem","x":-19,"y":749,"n":2,"r":2},{"tipo":"capitao_dokkaebi","x":-26,"y":744,"n":1,"r":1.6},{"tipo":"orc_negro","x":-42.43,"y":-724.04,"n":4,"r":3},{"tipo":"orc_negro","x":-23.33,"y":-741.72,"n":4,"r":3},{"tipo":"orc_negro","x":-28.99,"y":-728.99,"n":3,"r":2.5},{"tipo":"orc_elite","x":-33.23,"y":-702.12,"n":4,"r":3},{"tipo":"orc_elite","x":-2.83,"y":-731.11,"n":4,"r":3},{"tipo":"orc_mago","x":-16.97,"y":-716.97,"n":3,"r":2.5},{"tipo":"orc_mago","x":-25.46,"y":-683.03,"n":3,"r":2.5},{"tipo":"orc_elite","x":16.97,"y":-725.46,"n":4,"r":3},{"tipo":"orc_gigante","x":-2.83,"y":-680.2,"n":2,"r":2},{"tipo":"orc_elite","x":-7.07,"y":-667.47,"n":4,"r":3},{"tipo":"orc_gigante","x":6.36,"y":-662.52,"n":2,"r":2.2},{"tipo":"orc_mago","x":11.31,"y":-656.16,"n":3,"r":2.2},{"tipo":"orc_gigante","x":19.8,"y":-702.83,"n":2,"r":2},{"tipo":"orc_mago","x":32.53,"y":-707.07,"n":3,"r":2.5},{"tipo":"orc_gigante","x":37.48,"y":-693.64,"n":2,"r":2.2},{"tipo":"orc_elite","x":43.84,"y":-687.27,"n":3,"r":2},{"tipo":"orc_gigante","x":19.09,"y":-669.59,"n":1,"r":1.6},{"tipo":"orc_gigante","x":30.41,"y":-680.91,"n":1,"r":1.6},{"tipo":"orc_mago","x":22.63,"y":-663.23,"n":2,"r":1.5},{"tipo":"orc_mago","x":33.59,"y":-681.97,"n":2,"r":1.5},{"tipo":"orc_chefe","x":23.33,"y":-676.67,"n":1,"r":1.6},{"tipo":"lobo_faminto","x":-38.41,"y":-44.38,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-16.66,"y":-50.72,"n":3,"r":4,"gg":"v1_02"},{"tipo":"cao_selvagem","x":28.56,"y":-31.89,"n":3,"r":4,"gg":"v1_01"},{"tipo":"lobo_faminto","x":48.54,"y":-29.13,"n":3,"r":4,"gg":"v1_02"},{"tipo":"javali_selvagem","x":27.93,"y":-68.72,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-5.37,"y":-70.55,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-7.44,"y":-93.1,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_rubro","x":21.12,"y":-120.66,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":22.72,"y":-133.76,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-9.44,"y":-127.84,"n":3,"r":4,"gg":"v1_04"},{"tipo":"urso_negro","x":-41.07,"y":-123.63,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-53.89,"y":-128.08,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-84.01,"y":-122.19,"n":3,"r":4,"gg":"v1_06"},{"tipo":"javali_selvagem","x":-67.81,"y":-89.73,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-45.84,"y":-96.63,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-65.62,"y":-56.54,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-76.3,"y":-54.55,"n":3,"r":4,"gg":"v1_03"},{"tipo":"cao_selvagem","x":46.75,"y":59.74,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":37.3,"y":67.4,"n":3,"r":4,"gg":"v1_01"},{"tipo":"lobo_faminto","x":73.05,"y":13.81,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":53.95,"y":2.62,"n":3,"r":4,"gg":"v1_02"},{"tipo":"javali_selvagem","x":99.45,"y":-37.53,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":114.67,"y":-30.18,"n":3,"r":4,"gg":"v1_03"},{"tipo":"urso_negro","x":160.38,"y":-28.35,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":148.89,"y":21.07,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":170.63,"y":-0.87,"n":3,"r":4,"gg":"v1_06"},{"tipo":"javali_rubro","x":157.02,"y":29.71,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_selvagem","x":114.92,"y":29.27,"n":3,"r":4,"gg":"v1_03"},{"tipo":"lobo_faminto","x":84.12,"y":32.19,"n":3,"r":4,"gg":"v1_02"},{"tipo":"capita_jb","x":-1.05,"y":-210.36,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":1.31,"y":-192.58,"n":4,"r":4,"gg":"v1_10"},{"tipo":"arqueira_jb","x":39.94,"y":-184.4,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":58.49,"y":-143.62,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":47.35,"y":-148.06,"n":4,"r":4,"gg":"v1_08"},{"tipo":"javali_rubro","x":59.48,"y":-124.1,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-22.13,"y":-159.32,"n":3,"r":4,"gg":"v1_04"},{"tipo":"capita_jb","x":-28.64,"y":-196.83,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-38.85,"y":-183.65,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-42.15,"y":-196.24,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-62.93,"y":-181.99,"n":4,"r":4,"gg":"v1_10"},{"tipo":"javali_selvagem","x":26.67,"y":-88.98,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":62.99,"y":-76.63,"n":3,"r":4,"gg":"v1_03"},{"tipo":"lobo_faminto","x":-68.34,"y":-4.31,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-57.56,"y":3.04,"n":3,"r":4,"gg":"v1_02"},{"tipo":"cao_selvagem","x":-48.35,"y":34.82,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":-45.38,"y":21.8,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":-54.83,"y":44.17,"n":3,"r":4,"gg":"v1_01"},{"tipo":"lobo_faminto","x":-76.39,"y":25.27,"n":3,"r":4,"gg":"v1_02"}]};
 let SPAWNS = null, SPAWNS_ORIGINAL = null;
 function spawnsOriginais() {
   return [...GRUPOS.map(([t, x, y, n, e]) => { const [X, Y] = noMapa([x, y]); return { tipo: t, x: X, y: Y, n, r: e || 1.6 }; }),   // na escala nova do mapa
@@ -16603,10 +16840,10 @@ function ferir(l, dano, dx, dy, empurra, semReacao = false) {
   if (dano > 0 && prog) {
     // (a defesa da criatura; o golpe perfurante, da Jóia, a ignora; a Jóia contra a raça dela soma)
     const raca = status.raca && status.raca[racaDe(l.cfg)] || 0, perfurou = status.perfurante > 0 && Math.random() < status.perfurante;
-    dano *= status.ataque * (fonteDano ? multSkill(fonteDano) : 1) * (1 + (status.monstros || 0)) * (1 + raca) * (perfurou ? 1 : 100 / (100 + defesaDe(l.cfg)));
+    dano *= status.ataque * (XAMA.ataque.buff > 0 ? PODER_MULT : 1) * (fonteDano ? multSkill(fonteDano) : 1) * (1 + (status.monstros || 0)) * (1 + raca) * (perfurou ? 1 : 100 / (100 + defesaDe(l.cfg)));
     if (perfurou && defesaDe(l.cfg) > 0) numeros.push({ wx: l.x, wy: l.y, y: -l.cfg.altura - 58, vida: 0.7, txt: "Perfurou!", forte: false });
     if (classe === "ninja" && NINJA.esconder.buff > 0) { dano *= 2.5 * multSkill("Esconder") / 1; NINJA.esconder.buff = 0; numeros.push({ wx: l.x, wy: l.y, y: -l.cfg.altura - 40, vida: 1, txt: "Emboscada!", critico: true }); }
-    critico = Math.random() < status.critico + (classe === "feiticeiro" && olho.buff > 0 ? OLHO_CRIT : 0);
+    critico = Math.random() < status.critico + (classe === "feiticeiro" && olho.buff > 0 ? OLHO_CRIT : 0) + (XAMA.ajuda.buff > 0 ? OLHO_CRIT : 0);   // (a Ajuda do Dragão soma o mesmo que o Olho Arcano)
     if (critico) dano *= 2;
     dano = Math.max(1, Math.round(dano));
   }
@@ -16644,7 +16881,7 @@ const INTERVALO_TIRO = { arqueiro: 0.55, feiticeiro: 0.7 };   // depois de um di
 // andar já corta o resto da animação (CORTA_ANDANDO): o tempo de conjurar existe, mas não prende o personagem
 // o combo da xamã (golpe1 a golpe4): o valor BASE, fiel ao Metin2; o usuário disse que essa velocidade vai subir depois (R145)
 // um ritmo por golpe, para os acertos caírem nos 0,53 / 0,99 / 1,44 / 1,92 s do Metin2 no tempo que o jogador vê, com a pausa em cada acerto (R145)
-const RITMO_COMBO_XAMA = { golpe1: 1, golpe2: 1.5, golpe3: 1.5, golpe4: 1.7 };
+const RITMO_COMBO_XAMA = { golpe1: 1, golpe2: 1, golpe3: 1, golpe4: 1 };   // (os dois xamãs: os clipes já vêm no tempo do vídeo; a emenda de cada golpe vem do json)
 const RITMO_CAST = { atirar: RITMO_TIRO, chuva: 2.4, certeiro: 1.8, bola: 2, raio: 1.6, terra: 1.5, lamina_espiritual: 1.3, furia: 1.25, furia_armado: 1.25 };
 const CORTA_ANDANDO = new Set(["atirar", "chuva", "certeiro", "bola", "raio", "terra", "lamina_espiritual", "furia", "furia_armado"]);
 const flechas = [];
@@ -17017,7 +17254,7 @@ function usarPesLeves() {
   for (let k = 0; k < 18; k++) { const a = Math.random() * 7, v = 60 + Math.random() * 140; soltar(Math.cos(a) * 14, -10 - Math.random() * 30, Math.cos(a) * v, Math.sin(a) * v * 0.4 - 70, "luz"); }
 }
 // multiplicador de velocidade agora (some suave no último meio segundo)
-function velPes() { return pes.buff > 0 ? 1 + (PES_VEL - 1) * Math.min(1, pes.buff / 0.5) : 1; }
+function velPes() { const b = Math.max(pes.buff, XAMA.redemoinho.buff); return b > 0 ? 1 + (PES_VEL - 1) * Math.min(1, b / 0.5) : 1; }   // (o Redemoinho da Xamã Relâmpago é o mesmo vento)
 function passoPes(dt) {
   pes.recarga = Math.max(0, pes.recarga - dt);
   if (pes.desde >= 0) pes.desde += dt;
@@ -17209,7 +17446,7 @@ const suaveM = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u
 const acaso2 = k => { const x = Math.sin(k * 12.9898) * 43758.5453; return x - Math.floor(x); };   // sorteio fixo por número
 
 // quem luta de longe (o arqueiro e o feiticeiro) e até onde
-const lutaPerto = () => classe === "viking" || classe === "ninja" || classe === "guerreiro" || classe === "xama" || classe === "shura" || classe === "aprendiz";
+const lutaPerto = () => classe === "viking" || classe === "ninja" || classe === "guerreiro" || ehXama() || classe === "shura" || classe === "aprendiz";
 const distante = () => !lutaPerto();
 function alcanceDist() { return classe === "feiticeiro" ? ALCANCE_MAGIA : ALCANCE_ARCO; }
 
@@ -17767,16 +18004,16 @@ function trocarClasse(nova, voc = null) {
   if (!MA || !MF || (nova === classe && (nova !== "aprendiz" || voc === VOCACAO))) return;
   salvarProgresso(); jornadaSalvar();
   classe = nova; VOCACAO = nova === "aprendiz" ? voc : null;
-  M = { viking: MV, arqueiro: MA, feiticeiro: MF, ninja: MN || MV, guerreiro: MG || MV, xama: MX || MV, shura: MS || MV, aprendiz: MP || MV }[classe]; SPR = { aprendiz: MP ? SPRP : SPRV, viking: SPRV, arqueiro: SPRA, feiticeiro: SPRF, ninja: MN ? SPRN : SPRV, guerreiro: MG ? SPRG : SPRV, xama: MX ? SPRX : SPRV, shura: MS ? SPRS : SPRV }[classe];   // sem o ninja.json, o viking escurecido
+  M = { viking: MV, arqueiro: MA, feiticeiro: MF, ninja: MN || MV, guerreiro: MG || MV, xama: MX || MV, xama_dragao: MXD || MV, shura: MS || MV, aprendiz: MP || MV }[classe]; SPR = { aprendiz: MP ? SPRP : SPRV, viking: SPRV, arqueiro: SPRA, feiticeiro: SPRF, ninja: MN ? SPRN : SPRV, guerreiro: MG ? SPRG : SPRV, xama: MX ? SPRX : SPRV, xama_dragao: MXD ? SPRXD : SPRV, shura: MS ? SPRS : SPRV }[classe];   // sem o ninja.json, o viking escurecido
   const v = viking;
-  const sempreArmado = classe === "ninja" || classe === "guerreiro" || classe === "xama" || classe === "shura" || classe === "aprendiz";
+  const sempreArmado = classe === "ninja" || classe === "guerreiro" || ehXama() || classe === "shura" || classe === "aprendiz";
   Object.assign(v, { anim: sempreArmado ? "parado_armado" : "parado", t: 0, acao: null, espada: sempreArmado ? "armada" : "costas", ociosoArmado: 0, combo: 0, fila: null, acertou: false, caido: false, noLugar: null, esperaParar: null, ferido: 0 });
   furia.buff = 0; furia.desde = -1; vortice.ativo = false; vortice.restam = 0; espiritual.buff = 0; espiritual.desde = -1;
-  flechas.length = 0; selecao = null;
+  flechas.length = 0; selecao = null; limparXama();
   v.montado = false; cavaloEnt.ativo = false;                        // (o cavalo é de cada personagem)
-  for (const [id, c] of [["#cViking", "viking"], ["#cArqueiro", "arqueiro"], ["#cFeiticeiro", "feiticeiro"], ["#cNinja", "ninja"], ["#cGuerreiro", "guerreiro"], ["#cXama", "xama"], ["#cShura", "shura"]]) $(id).setAttribute("aria-pressed", classe === c);
+  for (const [id, c] of [["#cViking", "viking"], ["#cArqueiro", "arqueiro"], ["#cFeiticeiro", "feiticeiro"], ["#cNinja", "ninja"], ["#cGuerreiro", "guerreiro"], ["#cXama", "xama"], ["#cXamaDragao", "xama_dragao"], ["#cShura", "shura"]]) $(id).setAttribute("aria-pressed", classe === c);
   $("#titulo").textContent = "Campo de Treino do " + NOME_CLASSE[classe];
-  SKILLS = { aprendiz: [], viking: SKILLS_VIKING, arqueiro: SKILLS_ARQUEIRO, feiticeiro: SKILLS_FEITICEIRO, ninja: SKILLS_NINJA, guerreiro: SKILLS_GUERREIRO, xama: SKILLS_XAMA, shura: SKILLS_SHURA }[classe];
+  SKILLS = { aprendiz: [], viking: SKILLS_VIKING, arqueiro: SKILLS_ARQUEIRO, feiticeiro: SKILLS_FEITICEIRO, ninja: SKILLS_NINJA, guerreiro: SKILLS_GUERREIRO, xama: SKILLS_XAMA, xama_dragao: SKILLS_DRAGAO, shura: SKILLS_SHURA }[classe];
   montarBarraSkills();
   chuva.recarga = 0; chuva.marca = 0; certeiro.recarga = 0; brasas.length = 0; queimando.clear();
   pes.buff = 0; pes.recarga = 0; pes.desde = -1; pes.vultos.length = 0; pes.riscos.length = 0;
@@ -17939,7 +18176,7 @@ addEventListener("keydown", e => {
   if (k === "b" && !e.ctrlKey && !e.altKey && !e.repeat) { somIniciar(); somAlternar(); }   // (no ?mundo3d=1 o B gira a câmera: lá vale o Ctrl+M)
   if (k === "y" && !e.repeat) contornoAlternar();
   if (k === "n" && !e.repeat) { somIniciar(); musicaAlternar(); }
-  if (k === "t" && !e.repeat && ADMIN) trocarClasse({ aprendiz: "viking", viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "guerreiro", guerreiro: "xama", xama: "shura", shura: "viking" }[classe]);
+  if (k === "t" && !e.repeat && ADMIN) trocarClasse({ aprendiz: "viking", viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "guerreiro", guerreiro: "xama", xama: "xama_dragao", xama_dragao: "shura", shura: "viking" }[classe]);
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
   if (e.repeat && !["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"].includes(k)) return;
   if (!e.repeat && ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) limparPendentes(viking);   // ordem nova de movimento
@@ -20635,12 +20872,12 @@ function passo(dt) {
   const info = a[v.anim];
   const golpeia = v.anim.startsWith("golpe") || v.anim === "sacar_golpe" || ehGiro(v.anim) || v.anim === "sacar" || v.anim === "investida";
   // o andar, o arrancar e o parar tocam no ritmo da passada (parando, o mesmo de quando andava)
-  const rAndar = Math.min((andando ? vel : VELOCIDADE * (furia.buff > 0 ? 1.25 : 1) * velPes()) / M.andar, CADENCIA_MAX * (pes.buff > 0 ? 1.3 : 1));
+  const rAndar = Math.min((andando ? vel : VELOCIDADE * (furia.buff > 0 ? 1.25 : 1) * velPes()) / M.andar, CADENCIA_MAX * (pes.buff > 0 || XAMA.redemoinho.buff > 0 ? 1.3 : 1));
   const esperaParar = !andando && !v.acao && classe === "viking" && v.anim === "correndo_armado";   // (segue no ritmo da corrida)
-  const ritmo = v.acao && v.acao.startsWith("correr_para_guarda") ? 2 : /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando && !esperaParar ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? 1.3 : golpeia && classe === "ninja" ? 1.3 : golpeia && classe === "guerreiro" ? 0.92 : classe === "xama" && /^golpe[1-4]$/.test(v.anim) ? RITMO_COMBO_XAMA[v.anim] : 1) * (vortice.ativo ? 1.35 : 1)
-              : v.anim.startsWith("correndo") ? Math.min(vel / M.correr, CORRIDA_MAX * (pes.buff > 0 ? 1.3 : 1) * (status.velEquip || 1)) : 1;
+  const ritmo = v.acao && v.acao.startsWith("correr_para_guarda") ? 2 : /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando && !esperaParar ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? 1.3 : golpeia && classe === "ninja" ? 1.3 : golpeia && classe === "guerreiro" ? 0.92 : ehXama() && /^golpe[1-4]$/.test(v.anim) ? RITMO_COMBO_XAMA[v.anim] : 1) * (vortice.ativo ? 1.35 : 1)
+              : v.anim.startsWith("correndo") ? Math.min(vel / M.correr, CORRIDA_MAX * (pes.buff > 0 || XAMA.redemoinho.buff > 0 ? 1.3 : 1) * (status.velEquip || 1)) : 1;
   v.t += dt * ritmo;
-  if ((classe === "ninja" || classe === "xama" || classe === "shura") && info.avanco && v.acao === v.anim) avancarNinja(v, info, v.t - dt * ritmo, v.t);   // (o combo da xamã também anda)   // o combo do ninja anda
+  if ((classe === "ninja" || ehXama() || classe === "shura") && info.avanco && v.acao === v.anim) avancarNinja(v, info, v.t - dt * ritmo, v.t);   // (o combo da xamã também anda)   // o combo do ninja anda
   const dur = info.quadros / info.fps;
   const q = Math.floor(v.t * info.fps);
   const golpeQualquer = v.anim.startsWith("golpe") || v.anim === "sacar_golpe" || ehGiro(v.anim);
@@ -20684,7 +20921,7 @@ function passo(dt) {
     else if (v.anim === "investida" || (investida.ativa && v.anim === "golpe3")) {}
     else if (v.anim === "giro_sai" && !vorticeGuerreiro()) {}         // (a saída do vórtice fecha a última volta: o dano já contou; no guerreiro a saída é uma volta inteira e acerta)
     else if (v.golpeNinja) { const g = v.golpeNinja; v.golpeNinja = null; acertoNinja(g); }
-    else if (classe === "xama" && ANIMS_XAMA.has(v.anim)) soltarXama(v.anim);
+    else if (ehXama() && ANIMS_XAMA.has(v.anim)) soltarXama(v.anim);
     else if (classe === "shura" && ANIMS_SHURA.has(v.anim)) soltarShura(v.anim);
     else { golpeAcerta(v.anim); explosaoEncanto(); if (classe === "guerreiro" && v.anim.startsWith("golpe5")) pancadaMachado(); }
   }
@@ -20827,7 +21064,7 @@ function impacto(alvo, altura, material, dano) {
   const dx = alvo.x - viking.x, dy = alvo.y - viking.y, d = Math.max(1e-3, Math.hypot(dx, dy));
   const [sx, sy] = dirNaTela(dx / d, dy / d);                     // direção do golpe na tela (com o giro)
   const forte = furia.buff > 0, agora = performance.now() / 1000;
-  if (material !== "golpeViking" && !SEM_PAUSA.has(fonteDano) && agora - ultimaPausa > PAUSA_INTERVALO) { congela = Math.max(congela, forte ? 0.1 : classe === "ninja" && !fonteDano ? 0.03 : 0.07); ultimaPausa = agora; }   // (os cortes rápidos do ninja: pausa curta, senão o combo engasga)
+  if (material !== "golpeViking" && !SEM_PAUSA.has(fonteDano) && agora - ultimaPausa > PAUSA_INTERVALO) { congela = Math.max(congela, forte ? 0.1 : (classe === "ninja" || ehXama()) && !fonteDano ? 0.03 : 0.07); ultimaPausa = agora; }   // (os cortes rápidos do ninja: pausa curta, senão o combo engasga)
   impactos.push({ wx: alvo.x, wy: alvo.y, y: -altura, vida: 0.14, max: 0.14, ang: Math.atan2(sy, sx) + (Math.random() - 0.5) * 0.8,
                   cor: azul() && material !== "golpeViking" ? "140, 205, 255" : material === "osso" ? "200, 225, 255" : material === "golpeViking" ? "255, 70, 50" : "255, 210, 140", tam: forte ? 1.4 : 1 });
   const n = material === "golpeViking" ? 8 : forte ? 22 : 15;
@@ -21419,7 +21656,7 @@ function animVisivel(n) {
 // (o herói e o que está perto do jogador primeiro). Sem WebGL, sem o glb ou sem a animação, aquele boneco fica no sprite.
 // Modelo novo: o glb em 3d/ e uma linha em MODELOS_3D (criatura só com o glb, sem sprites: "so3d: true" no TIPOS dela).
 const MODELOS_3D = {
-  viking: {}, arqueiro: {}, feiticeiro: {}, ninja: {}, guerreiro: {}, xama: {}, shura: {}, aprendiz: {},
+  viking: {}, arqueiro: {}, feiticeiro: {}, ninja: {}, guerreiro: {}, xama: {}, xama_dragao: {}, shura: {}, aprendiz: {},
   lobo: {}, javali: {}, rato: {}, aranha: {}, goblin: {}, esqueleto: {}, orc: {}, orc_bravo: {}, orc_feiticeiro: {},
   urso_negro: {}, tigre: {}, lobo_alfa: {}, bandido: {}, bandido_arqueiro: {}, chefe_bandido: {}, zumbi: {}, fantasma: {}, lich: {},
   golem: {}, escorpiao: {}, yeti: {}, nove_caudas: {},
@@ -21431,7 +21668,7 @@ const MODELOS_3D = {
 const NPC_3D = { "Guarda Real": "guarda_real", "Guarda Sigrid": "guarda", "Senhor do Armazém": "armazem" };
 const NPC_TINTA = {};                          // (os NPCs com o modelo de uma classe: o giro de cor da roupa deles, e sem a arma)
 // a parte da arma que brilha com o refino (a máscara do brilho, como a fileira de baixo das tiras dos sprites)
-const MASCARA_3D = { viking: ["peca_espada"], ninja: ["peca_adaga_d", "peca_adaga_e"], guerreiro: ["peca_machado"], arqueiro: ["peca_arco"], feiticeiro: ["peca_esfera"], xama: ["peca_leque"], shura: ["peca_espada"] };
+const MASCARA_3D = { viking: ["peca_espada"], ninja: ["peca_adaga_d", "peca_adaga_e"], guerreiro: ["peca_machado"], arqueiro: ["peca_arco"], feiticeiro: ["peca_esfera"], xama: ["peca_leque"], xama_dragao: ["peca_leque"], shura: ["peca_espada"] };
 const P3D = { ligado: (() => { const q = new URLSearchParams(location.search); return !q.has("2d") && (q.has("3d") || !MODO_TESTE); })(),
               modelos: {}, inst: new Map(), fila: [], ativos: 0, quadro: 0, qual: 1, prateleiras: [], yLivre: 0, stats: {} };
 window.R3D = P3D;
@@ -22367,6 +22604,7 @@ function montarPainel() {
   $("#cFeiticeiro").onclick = () => trocarClasse("feiticeiro");
   $("#cNinja").onclick = () => trocarClasse("ninja");
   $("#cXama").onclick = () => trocarClasse("xama");
+  $("#cXamaDragao").onclick = () => trocarClasse("xama_dragao");
   $("#cShura").onclick = () => trocarClasse("shura");
   $("#cGuerreiro").onclick = () => trocarClasse("guerreiro");
   montarPainelResto();
@@ -22666,7 +22904,7 @@ window.SUMIE = SUMIE;
 // navegador). ?selecao=1 força a tela; no modo de teste (?test=1) ela não abre sozinha (?selecao=auto volta à regra de
 // sempre). "Novo personagem", no menu de opções, abre a tela de novo sem apagar ninguém: escolher uma classe que já tem
 // personagem só entra com ele.
-const CLASSES_SELECAO = ["viking", "guerreiro", "arqueiro", "feiticeiro", "ninja", "shura", "xama"];
+const CLASSES_SELECAO = ["viking", "guerreiro", "arqueiro", "feiticeiro", "ninja", "shura", "xama", "xama_dragao"];
 const INFO_CLASSE = {
   viking: { papel: "Corpo a corpo · espada grande", dif: 1, frase: "Guerreiro do norte que abre caminho com a espada de duas mãos: aguenta pancada e acerta tudo em volta." },
   guerreiro: { papel: "Corpo a corpo · machado de batalha", dif: 1, frase: "O mais resistente de todos: o machado pesado e a fúria de batalha seguram qualquer bando." },
@@ -22674,7 +22912,8 @@ const INFO_CLASSE = {
   feiticeiro: { papel: "À distância · cajado arcano", dif: 3, frase: "Mestre das magias de área: raios, meteoros e runas que ferem muitos de uma vez, com pouca vida." },
   ninja: { papel: "Corpo a corpo · duas adagas", dif: 3, frase: "Rápido e traiçoeiro: some nas sombras, envenena e golpeia antes de ser visto." },
   shura: { papel: "Corpo a corpo · espada e magia negra", dif: 2, frase: "Guerreiro amaldiçoado: a espada corta de perto e o braço demoníaco lança as trevas, o fogo e o medo." },
-  xama: { papel: "Suporte · leque do dragão", dif: 2, frase: "Xamã do dragão: luta com o leque, invoca o dragão e o raio, e protege e cura os aliados." },
+  xama: { papel: "Suporte · leque e relâmpago", dif: 2, frase: "O raio e a cura: fere de longe, salta de alvo em alvo, corre como o vento e fortalece o próprio ataque." },
+  xama_dragao: { papel: "Magia · leque do dragão", dif: 2, frase: "O fogo e a proteção: lança a figura do dragão e os talismãs, protege o corpo e devolve o dano." },
 };
 const NOME_DIF = ["", "Fácil", "Média", "Difícil"];
 const SKILL_LINHA = {
@@ -22684,7 +22923,14 @@ const SKILL_LINHA = {
   "Golpe Sombrio": "Uma bola de energia negra que atravessa os inimigos em linha.",
   "Espírito de Fogo": "Bolas de fogo orbitam o shura e atacam quem chega perto, por 30 s.",
   "Tiro de Dragão": "Um dragão de fogo sai do leque e atravessa tudo em linha à frente (8 m, dois acertos).",
-  "Rugido do Dragão": "O dragão surge em volta dela: fere e empurra todos por perto (3 m).",
+  "Rugido do Dragão": "O dragão surge em volta dele: fere e empurra todos por perto (3 m).",
+  "Talismã Voador": "Três talismãs voam em arco até o alvo e os vizinhos (12 m).",
+  "Refletir": "Um círculo que devolve 20% de cada golpe a quem bateu, por 60 s.",
+  "Ajuda do Dragão": "+25% de chance de crítico por 60 s.",
+  "Tiro Relâmpago": "A luz do leque estoura no alvo e em volta (12 m, dois acertos).",
+  "Garra do Relâmpago": "Uma bola de raios que salta para mais duas criaturas.",
+  "Redemoinho": "45% mais rápido por 20 s.",
+  "Aumentar Ataque": "+35% de dano em tudo por 60 s.",
   "Invocar Relâmpago": "Um raio cai do céu no alvo e atordoa quem estiver em volta (1,5 s).",
   "Bênção": "Um círculo de proteção: −20% de dano físico recebido por 60 s.",
   "Cura": "Recupera 30% da vida.",
@@ -22724,7 +22970,7 @@ const SELECAO_REGRA = !MODO_TESTE || SELECAO_PARAM === "auto";     // (no modo d
 const SELECAO_NO_INICIO = SELECAO_PARAM === "1" || SELECAO_PARAM === "classes" || (SELECAO_PARAM !== "0" && SELECAO_REGRA && !temPersonagem());
 // (R165) a tela inicial: a lista dos personagens e as vocações. O carrossel das classes continua para os testes (?test=1&selecao=auto) e o admin (?selecao=classes)
 const INICIO_NOVO = SELECAO_PARAM === "inicio" || (!MODO_TESTE && SELECAO_PARAM !== "0" && SELECAO_PARAM !== "classes" && SELECAO_PARAM !== "auto");
-const skillsDaClasse = c => ({ aprendiz: [], viking: SKILLS_VIKING, guerreiro: SKILLS_GUERREIRO, arqueiro: SKILLS_ARQUEIRO, feiticeiro: SKILLS_FEITICEIRO, ninja: SKILLS_NINJA, xama: SKILLS_XAMA, shura: SKILLS_SHURA })[c] || [];
+const skillsDaClasse = c => ({ aprendiz: [], viking: SKILLS_VIKING, guerreiro: SKILLS_GUERREIRO, arqueiro: SKILLS_ARQUEIRO, feiticeiro: SKILLS_FEITICEIRO, ninja: SKILLS_NINJA, xama: SKILLS_XAMA, xama_dragao: SKILLS_DRAGAO, shura: SKILLS_SHURA })[c] || [];
 
 function abrirSelecao(op = {}) {
   if (SEL.aberta) return;
@@ -23075,7 +23321,7 @@ function altarNaConversa(o) {
   const V = VOCACOES[VOCACAO];
   if (o.altarEscolha && V.classes.includes(o.altarEscolha) && !classeOcupada(o.altarEscolha)) {
     const c = o.altarEscolha, inf = INFO_CLASSE[c];
-    fala(`Então a sua era é a dos ${NOME_CLASSE[c]}s? Pense bem: esta escolha não se desfaz.`);
+    fala(`Então a sua era é a de ${NOME_CLASSE[c]}? Pense bem: esta escolha não se desfaz.`);
     quadroConversa(`Ser ${NOME_CLASSE[c]}?`, `${inf.papel}. ${inf.frase} Você recebe a arma e a roupa inicial da classe e as skills dela, com os seus ${prog.pontosSkill || 0} pontos. O nível, a EXP, o Yang e a bolsa ficam.`,
       [["Confirmar", () => { o.altarEscolha = null; confirmarClasse(c); }], ["Voltar", () => { o.altarEscolha = null; desenharNpc(); }]], "#B8322A", `selecao/${c}.webp`);
     return;
@@ -23086,7 +23332,6 @@ function altarNaConversa(o) {
     quadroConversa(NOME_CLASSE[c], oc ? `Você já tem um ${NOME_CLASSE[c]} neste navegador, e cada navegador guarda um personagem por classe.` : `${INFO_CLASSE[c].papel}. ${INFO_CLASSE[c].frase}`,
       [["Escolher", () => { o.altarEscolha = c; desenharNpc(); som("ui_clique", null, 0.6); }, oc]], oc ? "#8C8A80" : "#ffd23c", `selecao/${c}.webp`);
   }
-  if (V.classes.length < 2) quadroConversa("Pedestal coberto", "A outra era desta vocação ainda não despertou.", [], "#8C8A80");
 }
 
 // ---------------------------------------------------------------- o Altar das Eras (Logs/Vocacoes): a ilha a oeste da Vila 1, a ponte, a escadaria e o patamar
@@ -23204,7 +23449,7 @@ function montarAltar() {
   const ordem = ALTAR.ordem;
   ALTAR_ESTATUAS = ordem.map((c, k) => {                                 // (duas fileiras de 4, uma de cada lado, do fundo para a frente: a de trás pode cobrir a cerca do fundo, a da frente não encosta na cerca da frente)
     const lado = k < ordem.length / 2 ? -1 : 1, i = lado < 0 ? k : k - ordem.length / 2, [x, y] = altarMundo(lado * 8, 18.6 - i * 3.53);
-    const o = { tipo: "estatua_era", classe: c, x, y, r: 0.55, zChao: ALTAR.z, altar: true, coberta: !c };
+    const o = { tipo: "estatua_era", classe: c, x, y, r: 0.55, zChao: ALTAR.z, altar: true, coberta: c === "xama_dragao" };   // (a estátua dele ainda está por fazer)
     objetos.push(o); return o;
   });
   { const [x, y] = altarMundo(0, ALTAR.templo.b); objetos.push({ tipo: "altar_arte", peca: "templo", x, y, r: 0, zChao: ALTAR.z, altar: true, arteM: 7 }); }
@@ -23224,7 +23469,7 @@ function desenharEstatuaEra(o, X, Y, s, lw, t) {
     if (q) altarDesenha(q, q.im, X, Y, s);
     return;
   }
-  // o pedestal coberto (a outra era da xamã ainda não despertou): o mesmo bloco reto das estátuas, com o pano por cima
+  // o pedestal coberto (a estátua do Xamã Dragão ainda está por fazer): o mesmo bloco reto das estátuas, com o pano por cima
   const H = s * 0.2, ML = s * 0.85, MF = s * 0.42, Yp = Y - H + s * 0.1, e = s * 0.92;
   sombra(X, Y, s * 0.7);
   g.save(); g.lineJoin = "round"; g.strokeStyle = "#1E1B18"; g.lineWidth = lw;
@@ -23245,15 +23490,14 @@ function altarEstatuaNoClique(px, py) {
   return null;
 }
 function abrirEstatua(o) {
-  abrirNpc({ estatua: o, x: o.x, y: o.y, fala: 0, dados: { titulo: o.coberta ? "Pedestal coberto" : `Estátua: ${NOME_CLASSE[o.classe]}`, falas: [""] } });
+  abrirNpc({ estatua: o, x: o.x, y: o.y, fala: 0, dados: { titulo: `${o.coberta ? "Pedestal coberto" : "Estátua"}: ${NOME_CLASSE[o.classe]}`, falas: [""] } });
   som("ui_clique", null, 0.6);
 }
 function desenharFichaEstatua(o) {
   const q = o.estatua, c = q.classe;
   $("#npcNome").textContent = o.dados.titulo; $("#npcLoja").innerHTML = ""; $("#npcMais").hidden = true;
-  if (q.coberta) { $("#npcFala").textContent = "Um pano cobre esta pedra. A era que ela guarda ainda não despertou."; quadroConversa("Pedestal coberto", "A outra era dos Filhos do Dragão.", [], "#8C8A80"); return; }
   const inf = INFO_CLASSE[c], V = Object.values(VOCACOES).find(v => v.classes.includes(c));
-  $("#npcFala").textContent = `Uma das eras dos ${V.nome}.`;
+  $("#npcFala").textContent = q.coberta ? `Um pano cobre esta pedra: a estátua ainda está sendo esculpida. Uma das eras dos ${V.nome}.` : `Uma das eras dos ${V.nome}.`;
   const sua = classe === "aprendiz" && altarAcesa(c) ? ` A sua vocação pode escolher esta era, a partir do nível ${NIVEL_ALTAR}, falando com a ${NOME_GUARDIA}.` : "";
   quadroConversa(NOME_CLASSE[c], `${inf.papel}. ${inf.frase} Dificuldade: ${NOME_DIF[inf.dif]}.${sua}`, [], "#ffd23c", `selecao/${c}.webp`);
 }
@@ -27305,7 +27549,7 @@ function chamas(cor, cor2) {
 // ================================================================ os acontecimentos
 // as cores de cada classe: [corpo do rastro, borda] (o refino pinta a borda; a Lâmina Espiritual e a Fúria mandam)
 const COR_CLASSE = { viking: [[1, 0.94, 0.72], [1, 0.72, 0.2]], guerreiro: [[1, 0.5, 0.12], [1, 0.88, 0.45]], ninja: [[0.3, 0.9, 1], [0.85, 1, 1]],
-                     arqueiro: [[0.4, 1, 0.4], [0.9, 1, 0.75]], feiticeiro: [[0.62, 0.36, 1], [0.55, 0.78, 1]], xama: [[1, 0.55, 0.2], [1, 0.9, 0.55]], shura: [[0.64, 0.14, 0.99], [1, 0.23, 0.82]] };
+                     arqueiro: [[0.4, 1, 0.4], [0.9, 1, 0.75]], feiticeiro: [[0.62, 0.36, 1], [0.55, 0.78, 1]], xama: [[0.32, 0.48, 1], [0.8, 0.88, 1]], xama_dragao: [[1, 0.55, 0.2], [1, 0.9, 0.55]], shura: [[0.64, 0.14, 0.99], [1, 0.23, 0.82]] };
 function corGolpe() {
   if (azul()) return [rgb(0.25, 0.55, 1), rgb(0.8, 0.95, 1)];
   if (classe === "shura" && SHURA.lamina.buff > 0) return [rgb(0.93, 0.96, 1), rgb(1, 1, 1)];   // (rodada 6: o rastro branco da Lâmina Encantada)
@@ -27377,7 +27621,7 @@ function seguir(obj, criar) {
   e.visto = quadro; return e;
 }
 // ---- o rastro da arma: a ponta e o meio da peça da arma (do glb) no mundo, a cada quadro do golpe
-const PECAS = { aprendiz: ["peca_espada"], viking: ["peca_espada"], guerreiro: ["peca_machado"], ninja: ["peca_adaga_d", "peca_adaga_e"], feiticeiro: ["peca_cajado"], arqueiro: [], xama: ["peca_leque"], shura: ["peca_espada"] };
+const PECAS = { aprendiz: ["peca_espada"], viking: ["peca_espada"], guerreiro: ["peca_machado"], ninja: ["peca_adaga_d", "peca_adaga_e"], feiticeiro: ["peca_cajado"], arqueiro: [], xama: ["peca_leque"], xama_dragao: ["peca_leque"], shura: ["peca_espada"] };
 const GOLPE = /^(golpe\d|sacar_golpe|giro|punhalada|acrobacia|veneno|bola|raio|terra|lamina_espiritual|furia)/;
 let arma = null;
 function pecasArma() {
@@ -27767,6 +28011,443 @@ function passoShura3(dt, t) {
   if (SH3.aceso && !SH3.vivo) { SH3.vivo = true; adicionar({ passo: () => SH3.aceso, fim() { SH3.vivo = false; } }); }
   if (tb) { tb.pai.position.copy(P3(hx, hy, 0)); tb.pai.rotation.y -= dt * 16; const u = (v.t - 0.22) / 0.73; tb.l.forEach(m => m.u.uAlfa.value = 0.75 * Math.sin(Math.PI * Math.max(0, Math.min(1, u)))); }
 }
+// ================================================================ a Xamã Relâmpago (VFX 3D): as 6 skills, com as peças do FX3 (sprites somados,
+// bolha de fresnel, colunas, chão com shader, fitas, partículas, luz e o bloom da camada 1), como o shura. As ideias e os
+// tempos vêm do vídeo de referência (Logs/XamaRelampago/MOVIMENTOS.md); o desenho é próprio: nenhum arquivo do vídeo.
+// Entra DENTRO do FX3, logo antes de passoEstados; passoRelampago3 entra na lista de etapas. Tudo é guiado pelo estado do
+// herói (viking.anim, viking.t): se a skill for cortada antes do acerto, a carga some sozinha e nada é solto.
+const relAtiva = () => classe === "xama";
+const RL = { tex: null, ant: null, est: null, aceso: false, vivo: false, vento: 0, orbe: 0, pos: null };
+const ACERTO_REL = { tiro_relampago: 33 / 30, garra_relampago: 26 / 30, remolinos: 19 / 20, invocar_relampago: 1 / 20, cura: 20 / 20, orbe_fogo: 37 / 30 };
+const lim01 = u => u < 0 ? 0 : u > 1 ? 1 : u, liso01 = u => { u = lim01(u); return u * u * (3 - 2 * u); };
+// sobe em a, segura até b, cai até c
+const pulsoR = (t, a, b, c) => t <= 0 || t >= c ? 0 : t < a ? t / a : t < b ? 1 : 1 - (t - b) / (c - b);
+function texRel() {
+  if (RL.tex) return RL.tex;
+  // a espiral: dois braços que afinam, de luz macia (shadowBlur só aqui, uma vez, na textura)
+  const espiral = texCanvas(128, (g, n) => {
+    const c = n / 2; g.strokeStyle = "#fff"; g.shadowColor = "#fff"; g.shadowBlur = n * 0.05; g.lineCap = "round";
+    for (let b = 0; b < 2; b++) for (let i = 0; i < 46; i++) {
+      const u0 = i / 46, u1 = (i + 1) / 46, a0 = b * Math.PI + u0 * 6.4, a1 = b * Math.PI + u1 * 6.4, r0 = n * 0.44 * u0, r1 = n * 0.44 * u1;
+      g.globalAlpha = 0.35 + 0.65 * u0; g.lineWidth = n * (0.015 + 0.05 * Math.sin(Math.PI * u0));
+      g.beginPath(); g.moveTo(c + Math.cos(a0) * r0, c + Math.sin(a0) * r0); g.lineTo(c + Math.cos(a1) * r1, c + Math.sin(a1) * r1); g.stroke();
+    }
+  });
+  // o selo que sobe na coluna da Cura: um trigrama de três barras, de luz
+  const selo = texCanvas(64, (g, n) => {
+    g.fillStyle = "#fff"; g.shadowColor = "#fff"; g.shadowBlur = n * 0.1;
+    const l = n * 0.1, x0 = n * 0.14, x1 = n * 0.86;
+    g.fillRect(x0, n * 0.22, x1 - x0, l); g.fillRect(x0, n * 0.46, n * 0.28, l); g.fillRect(n * 0.58, n * 0.46, n * 0.28, l); g.fillRect(x0, n * 0.7, x1 - x0, l);
+  });
+  // o corpo da esfera: um disco cheio de borda macia, para a mistura normal
+  const disco = texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, n * 0.3, n / 2, n / 2, n / 2); r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.8, "rgba(255,255,255,1)"); r.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = r; g.fillRect(0, 0, n, n); });
+  return RL.tex = { espiral, selo, disco, anel: texShura().anel };
+}
+// a peça de cor (mistura normal): por baixo da luz e fora do bloom, senão violeta vira branco e laranja vira amarelo
+const deCor = o => { o.renderOrder = 12; o.layers.disable(1); return o; };
+const tiraSprite = (...l) => { for (const s of l) if (s) { grupo.remove(s); devolverMat("sprite", s.material); } };
+function pontoLeque() {
+  const a = pecasArma(), r = a && a.l[0];
+  if (r && r.m.visible) { const W = r.m.matrixWorld; return noMundoHeroi(r.base.clone().applyMatrix4(W).lerp(r.ponta.clone().applyMatrix4(W), 0.5)); }
+  return ossoShura("Right_Hand");
+}
+const pontoAcima = (nome, dz) => { const p = ossoShura(nome); return p ? p.add(_v.set(0, dz, 0)) : P3(viking.x, viking.y, 1.5 + dz); };
+// o caminho de um relampaguinho entre dois pontos da cena, numa fita
+function formaRaio(f, A, B, largura, desvio = 0.22, nivel = 3) { const tr = [A.clone()]; caminhoRaio(A, B, desvio, nivel, tr); f.pts = tr.map(p => ({ p, w: largura, t: tAgora })); }
+// os relampaguinhos que dançam no chão, em volta de um ponto
+function faiscasChao(x, y, n, r, dur, cor) {
+  const fitas = []; for (let k = 0; k < n; k++) fitas.push(new Fita(14, cor, rgb(0.95, 0.97, 1), "linha", { semCauda: true, dur: 9 }));
+  let t = 0, tq = 1;
+  return adicionar({ passo(dt) {
+      t += dt; tq += dt; const u = t / dur; if (u >= 1) return false;
+      if (tq > 0.06) { tq = 0; for (const f of fitas) { const a = Math.random() * 6.28, d = r * Math.sqrt(Math.random()), o = P3(x + Math.cos(a) * d, y + Math.sin(a) * d, 0.03); formaRaio(f, o, o.clone().add(_v.set(acaso(-0.3, 0.3), acaso(0.4, 0.95), acaso(-0.3, 0.3))), 0.055, 0.28, 3); } }
+      const k = u < 0.7 ? 1 : (1 - u) / 0.3;
+      for (const f of fitas) { f.u.uForca.value = (0.55 + 0.75 * Math.random()) * k; f.atualizar(); }
+      return true; },
+    fim() { fitas.forEach(f => f.fim()); } });
+}
+// a nuvem do estouro: tufos de luz (sprites somados) que abrem e somem, por cima do alvo; é o que dá corpo ao clarão
+function tufos(p, n, r, tam, cor, dur, o = {}) {
+  const l = [];
+  for (let k = 0; k < n; k++) { const a = Math.random() * 6.28, d = r * Math.sqrt(Math.random()), c0 = cor.clone().lerp(BRANCO(), Math.random() * (o.branco ?? 0.3)), s = o.normal ? spriteN(texShura().sombra, c0, tam, 1) : sprite(texBrilho, c0, tam);
+    if (o.normal) deCor(s);
+    l.push({ s, x: Math.cos(a) * d, y: Math.sin(a) * d * 0.7 + (o.y ?? 0), z: Math.sin(a) * d * 0.5, v: acaso(0.7, 1.2), a0: (o.alfa ?? 0.8) * acaso(0.6, 1), t0: (o.atraso ?? 0) * Math.random() }); }
+  let t = 0;
+  return adicionar({ passo(dt) {
+      t += dt; let vivo = false;
+      for (const q of l) { const u = (t - q.t0) / (dur * q.v); if (u >= 1) { q.s.visible = false; continue; } vivo = true; q.s.visible = u >= 0; if (u < 0) continue;
+        q.s.position.set(p.x + q.x * (0.55 + 0.75 * Math.sqrt(u)), p.y + q.y * (0.55 + 0.75 * Math.sqrt(u)) + (o.sobe ?? 0) * u, p.z + q.z); q.s.scale.setScalar(tam * (0.55 + 0.9 * Math.sqrt(u))); q.s.material.opacity = q.a0 * (1 - u) * (1 - u); }
+      return vivo; },
+    fim() { if (o.normal) l.forEach(q => tirar(q.s)); else tiraSprite(...l.map(q => q.s)); } });
+}
+// um disco de cor no chão, em mistura normal (a cor de verdade, sem somar com o chão), como o disco do Medo do shura
+function discoCor(cor, R0, a0, dur) {
+  const d = noGrupo(new THREE.Mesh(new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: texShura().sombra, color: cor, transparent: true, opacity: 0, depthWrite: false })), 6);
+  d.layers.disable(1);
+  let t = 0;
+  return adicionar({ passo(dt) { t += dt; if (t >= dur) return false; d.position.copy(P3(viking.x, viking.y, 0.04)); d.scale.setScalar(R0 * (0.75 + 0.25 * liso01(t / 0.12))); d.material.opacity = a0 * Math.min(1, t / 0.08) * Math.min(1, (dur - t) / 0.3); return true; }, fim() { d.geometry.dispose(); tirar(d); } });
+}
+// a coluna que acompanha o herói
+function colunaHeroi(r, h, cor, dur, o = {}) { return coluna(viking.x, viking.y, r, h, cor, dur, { ...o, passo: e => { e.m.position.copy(P3(viking.x, viking.y, o.z ?? 0)); } }); }
+function chaoHeroi(R, tipo, cor, cor2, dur, o = {}) { return chao(viking.x, viking.y, R, tipo, cor, cor2, dur, { ...o, passo: e => { e.mover(viking.x, viking.y); } }); }
+
+// ---- os acontecimentos: no quadro do acerto de cada skill
+function impactoTiro(a) {
+  const p = P3(a.x, a.y, 0.55), rosa = rgb(1, 0.72, 0.92), vio = rgb(0.68, 0.42, 1);
+  clarao(p, 1.8, rgb(1, 0.78, 0.94), 0.16, { estrela: true, forca: 0.6, frente: 0.6 });
+  tufos(p, 8, 0.95, 0.75, rgb(0.9, 0.62, 0.95), 0.28, { branco: 0.5, alfa: 0.55, normal: true });        // a nuvem pálida (a cor por baixo)
+  tufos(p, 3, 0.45, 0.7, rgb(1, 0.82, 0.95), 0.18, { branco: 0.4, alfa: 0.2 });                            // o miolo branco (a luz por cima)
+  tufos(p, 9, 1.05, 0.72, vio, 0.6, { branco: 0.08, alfa: 0.8, atraso: 0.16, sobe: 0.55, normal: true }); // os tufos violeta, depois
+  estouro(p, 24, rgb(1, 0.85, 1), 5.5, { forma: 0, tam: 0.07, branco: 0.8, vida: 0.5, grav: -1, arrasto: 2.2 });
+  chao(a.x, a.y, 1.7, 0, vio, rgb(1, 0.85, 1), 0.45, { alfa: 0.42 });
+  luz(p, rosa, 4, 8, 0.4);
+  faiscasChao(a.x, a.y, 5, 0.75, 1.05, rgb(0.42, 0.62, 1));
+  tremor = Math.max(tremor, 0.1);
+}
+function impactoGarra(a, esc = 1) {
+  const p = P3(a.x, a.y, 0.6), azul = rgb(0.38, 0.62, 1), vio = rgb(0.66, 0.42, 1);
+  clarao(p, 1.7 * esc, rgb(0.5, 0.74, 1), 0.16, { estrela: true, forca: 0.5, frente: 0.6 });
+  tufos(p, Math.round(8 * esc), 1.0 * esc, 0.8 * esc, azul, 0.3, { branco: 0.1, alfa: 0.5, normal: true });
+  tufos(p, Math.round(3 * esc), 0.45 * esc, 0.7 * esc, rgb(0.55, 0.76, 1), 0.18, { branco: 0.3, alfa: 0.18 });
+  tufos(p, Math.round(8 * esc), 1.05 * esc, 0.8 * esc, vio, 0.52, { branco: 0.1, alfa: 0.75, atraso: 0.14, sobe: 0.35, normal: true });
+  estouro(p, Math.round(18 * esc), rgb(0.7, 0.85, 1), 7, { tam: 0.07, branco: 0.8, vida: 0.4 });
+  chao(a.x, a.y, 2.1 * esc, 0, azul, rgb(0.85, 0.94, 1), 0.42, { alfa: 0.34 }); chao(a.x, a.y, 1.4 * esc, 3, azul, rgb(0.85, 0.95, 1), 0.9, { alfa: 0.5 });
+  luz(p, rgb(0.6, 0.75, 1), 2.5 * esc, 8, 0.35);
+  faiscasChao(a.x, a.y, Math.round(5 * esc), 0.85 * esc, 0.8, rgb(0.42, 0.62, 1));
+}
+function soltarRelampago3(nome, e) {
+  const v = viking, a = e.alvo;
+  if (nome === "tiro_relampago") impactoTiro(a);
+  else if (nome === "garra_relampago") {
+    const de = pontoLeque() || P3(v.x, v.y, 1.2);
+    relampagos.push({ a: { x: de.x, y: -de.z, z: de.y - alt(de.x, -de.z) }, b: { x: a.x, y: a.y, z: 0.5 }, vida: 0.12, max: 0.12, semente: 1 });
+    impactoGarra(a); tremor = Math.max(tremor, 0.14);
+    // a reação em cadeia: um salto de cada vez, de alvo em alvo
+    let t = 0, salto = 0, de2 = a;
+    adicionar({ passo(dt) { t += dt;
+        while (salto < e.vizinhos.length && t >= 0.16 + salto * 0.17) {
+          const vz = e.vizinhos[salto++];
+          relampagos.push({ a: { x: de2.x, y: de2.y, z: 0.5 }, b: { x: vz.x, y: vz.y, z: 0.5 }, vida: 0.2, max: 0.2, semente: salto });
+          impactoGarra(vz, 0.55); de2 = vz;
+        }
+        return salto < e.vizinhos.length; }, fim() {} });
+  } else if (nome === "remolinos") {
+    const branco = rgb(1, 0.96, 0.84), verde = rgb(0.4, 1, 0.5);
+    colunaHeroi(0.46, 7.5, branco, 0.62, { miolo: 0.45, sobe: 0.05, alfa: 0.42 }); colunaHeroi(0.14, 7.5, rgb(1, 1, 1), 0.5, { miolo: 1, sobe: 0.05, alfa: 0.4 });
+    
+    chao(v.x, v.y, 2.3, 0, branco, rgb(1, 1, 1), 0.5, { alfa: 0.42 });
+    chaoHeroi(1.2, 2, verde, rgb(0.95, 1, 0.75), 2.3, { giro: 0.9, alfa: 0.85 }); chaoHeroi(1.25, 1, rgb(0.72, 1, 0.68), rgb(1, 1, 0.92), 2.3, { giro: -1.1, alfa: 0.7 });
+    estouro(P3(v.x, v.y, 0.1), 22, rgb(0.85, 1, 0.8), 4, { forma: 0, sobe: 1.2, tam: 0.06, grav: 0, vida: 0.8 });
+    luz(P3(v.x, v.y, 1.2), branco, 4, 7, 0.5);
+  } else if (nome === "invocar_relampago") {
+    // o clarão é contido: um véu fraco em volta dela; o branco forte fica só no pé do raio, como no raio da xamã atual
+    const c = P3(v.x, v.y, 1.0), h = sprite(texBrilho, rgb(1, 0.9, 0.96), 6); h.position.copy(c); let t = 0;
+    adicionar({ passo(dt) { t += dt; const u = t / 0.66; if (u >= 1) return false;
+        h.material.color.setRGB(t < 0.32 ? 1 : 0.72, t < 0.14 ? 0.92 : t < 0.32 ? 0.8 : 0.82, t < 0.32 ? 0.92 : 1);
+        h.material.opacity = 0.09 * Math.min(1, t / 0.05) * (1 - u) * (1 - u); return true; }, fim() { tiraSprite(h); } });
+    // os riscos de luz subindo em volta dela (as colunas da erupção do feiticeiro)
+    for (let k = 0; k < 5; k++) {
+      const an = Math.random() * 6.28, d = acaso(1.9, 4.6), c2 = [rgb(0.72, 1, 0.8), rgb(0.72, 0.84, 1), rgb(0.9, 0.84, 1)][k % 3];
+      coluna(v.x + Math.cos(an) * d, v.y + Math.sin(an) * d, acaso(0.12, 0.24), 8, c2, acaso(0.42, 0.6), { miolo: 0.45, afina: true, sobe: 0.1, alfa: 0.38 });
+      estouro(P3(v.x + Math.cos(an) * d, v.y + Math.sin(an) * d, 0.1), 4, c2, 3, { sobe: 1.5, tam: 0.05, grav: 2 });
+    }
+    // o raio no alvo e um a mais em volta: os mesmos relâmpagos da xamã atual
+    relampagos.push({ a: { x: a.x + 0.6, y: a.y - 0.4, z: 8 }, b: { x: a.x, y: a.y, z: 0 }, vida: 0.36, max: 0.36, semente: 1 });
+    { const an = Math.atan2(a.y - v.y, a.x - v.x) + acaso(-1, 1), d = acaso(1.2, 2); relampagos.push({ a: { x: a.x, y: a.y, z: acaso(2.5, 4.5) }, b: { x: a.x + Math.cos(an) * d, y: a.y + Math.sin(an) * d, z: 0 }, vida: 0.26, max: 0.26, semente: 2 }); }
+    estouro(P3(a.x, a.y, 0.4), 18, rgb(0.72, 0.8, 1), 5, { forma: 0, tam: 0.06, branco: 0.6, vida: 0.5, grav: -1 });
+    faiscasChao(a.x, a.y, 4, 0.8, 0.8, rgb(0.42, 0.62, 1));
+    tufos(P3(a.x, a.y, 0.5), 7, 0.75, 0.75, rgb(0.66, 0.42, 1), 0.6, { branco: 0.1, alfa: 0.7, atraso: 0.2, sobe: 0.4, normal: true });
+    tremor = Math.max(tremor, 0.16);
+  } else if (nome === "cura") {
+    const creme = rgb(1, 0.82, 0.5), ouro = rgb(1, 0.72, 0.25), dur = 2.3;
+    colunaHeroi(0.7, 8, rgb(1, 0.46, 0.18), dur, { miolo: 0.25, alfa: 0.36, sobe: 0.12 }); colunaHeroi(0.32, 8, rgb(1, 0.62, 0.36), dur * 0.95, { miolo: 0.5, alfa: 0.24, sobe: 0.12 });
+    discoCor(rgb(1, 0.66, 0.26), 1.45, 0.6, dur);
+    chaoHeroi(1.3, 1, ouro, rgb(1, 0.92, 0.6), dur, { giro: 1, alfa: 0.8 });
+    chao(v.x, v.y, 2, 0, ouro, rgb(1, 0.9, 0.65), 0.45, { alfa: 0.4 }); luz(P3(v.x, v.y, 1.4), creme, 3, 8, dur * 0.8);
+    // os selos subindo na coluna e as luzinhas (ouro e algumas de jade: é o que diz "cura")
+    const selos = []; for (let k = 0; k < 5; k++) selos.push(sprite(texRel().selo, ouro.clone().lerp(BRANCO(), 0.35), 0.42));
+    let t = 0;
+    adicionar({ passo(dt) { t += dt; if (t >= dur) return false;
+        const al = Math.min(1, t / 0.2) * Math.min(1, (dur - t) / 0.4), q = P3(viking.x, viking.y, 0);
+        selos.forEach((s, k) => { const u = (t * 0.34 + k * 0.2) % 1; s.position.set(q.x + Math.sin(k * 2.1) * 0.08, q.y + 1.5 + u * 5, q.z); s.material.opacity = al * (1 - u) * Math.min(1, u * 6) * 0.85; });
+        if (Math.random() < dt * 34 * al) subir(q, Math.random() < 0.3 ? rgb(0.45, 1, 0.55) : rgb(1, 0.85, 0.5), 1, { r: 0.55, vel: 1.7, vida: 1.1, tam: 0.06 });
+        return true; }, fim() { tiraSprite(...selos); } });
+  } else if (nome === "orbe_fogo") {
+    const quente = rgb(1, 0.5, 0.18), fogo = rgb(1, 0.24, 0.03), dur = 1.2;
+    colunaHeroi(0.46, 5, quente, 0.42, { miolo: 0.4, sobe: 0.05, alfa: 0.42 });
+    chao(v.x, v.y, 2.1, 0, fogo, rgb(1, 0.8, 0.4), 0.45, { alfa: 0.8 }); clarao(P3(v.x, v.y, 1.1), 1.8, fogo, 0.22, { forca: 0.6 });
+    estouro(P3(v.x, v.y, 0.8), 22, fogo, 6, { sobe: 0.8, tam: 0.08, branco: 0.3 });
+    discoCor(rgb(0.98, 0.38, 0.05), 1.5, 0.45, dur);
+    const c1 = chamas(rgb(1, 0.24, 0.03), rgb(1, 0.72, 0.25)), c2 = chamas(rgb(1, 0.14, 0.02), rgb(1, 0.52, 0.12));
+    const sl = chaoHeroi(1.25, 1, fogo, rgb(1, 0.78, 0.35), dur, { giro: 1.4, alfa: 0.9 }), d2 = chaoHeroi(1.2, 3, fogo, rgb(1, 0.7, 0.2), dur, { alfa: 0.8 });
+    luz(P3(v.x, v.y, 0.6), fogo, 3, 7, dur);
+    let t = 0;
+    adicionar({ passo(dt) { t += dt; if (t >= dur) return false;
+        const k = Math.min(1, t / 0.08) * Math.min(1, (dur - t) / 0.28), q = P3(viking.x, viking.y, 0);
+        c1.position.copy(q); c1.scale.set(1.05, 1.5, 1.05); c2.position.copy(q); c2.scale.set(0.72, 1.05, 0.72); c2.rotation.y = 1.3;
+        for (const c of [c1, c2]) { c.userData.u.uT.value = t + 3; c.userData.u.uAlfa.value = 0.8 * k; }
+        if (Math.random() < dt * 45 * k) subir(q.clone().add(_v.set(0, 0.2, 0)), rgb(1, acaso(0.3, 0.65), 0.08), 1, { r: 0.8, vel: 1.8, vida: 0.8, tam: 0.07, pisca: 14 });
+        return true; },
+      fim() { for (const c of [c1, c2]) { grupo.remove(c); devolverMat("chamas", c.material); } sl.morto = d2.morto = true; } });
+  }
+}
+// ---- o que dura (a cada quadro): as cargas presas ao corpo e os dois buffs
+function esferaCabeca(nome, cfg, liga, u, t, p) {
+  // cfg: cores. u: 0..1 na vida da esfera; depois de cfg.sai, ela vira um anel que aperta e apaga
+  const e = manter(nome, liga, () => { const tx = texRel(), pc = spriteN(tx.disco, cfg.corpo, 1, 1), aro = cfg.aroN ? spriteN(tx.anel, cfg.aro, 1, 1) : sprite(tx.anel, cfg.aro, 1);
+    deCor(pc); if (cfg.aroN) { aro.renderOrder = 15; aro.layers.disable(1); } return { pc, aro, aroN: cfg.aroN,
+    halo: sprite(texBrilho, cfg.halo, 1), b: bolha(cfg.bolha, 1), giro: sprite(tx.espiral, cfg.espiral, 1), miolo: sprite(texBrilho, cfg.miolo, 1),
+    fim() { tiraSprite(this.halo, this.giro, this.miolo); if (this.aroN) tirar(this.aro); else tiraSprite(this.aro); tirar(this.pc); grupo.remove(this.b); devolverMat("bolha", this.b.material); } }; });
+  if (!e) return;
+  const nasce = liso01(u / cfg.nasce), fecha = liso01((u - cfg.sai) / (1 - cfg.sai)), corpo = nasce * (1 - fecha), R = cfg.R * (0.3 + 0.7 * nasce);
+  for (const s of [e.halo, e.giro, e.aro, e.miolo, e.b, e.pc]) s.position.copy(p);
+  e.pc.scale.setScalar(R * 2.15); e.pc.material.opacity = 0.96 * corpo;
+  e.halo.scale.setScalar(R * 3.8); e.halo.material.opacity = cfg.alfaHalo * corpo;
+  e.b.scale.setScalar(R); e.b.userData.u.uAlfa.value = cfg.alfaBolha * corpo; e.b.userData.u.uT.value = t;
+  e.giro.scale.setScalar(R * 2.2); e.giro.material.rotation = -t * cfg.gira; e.giro.material.opacity = cfg.alfaGiro * corpo;
+  e.miolo.scale.setScalar(R * (cfg.tamMiolo + 0.6 * fecha)); e.miolo.material.opacity = cfg.alfaMiolo * nasce * (1 - fecha * fecha);
+  e.aro.scale.setScalar(R * 3.1 * (1 - 0.32 * fecha)); e.aro.material.rotation = t * 3; e.aro.material.opacity = cfg.alfaAro * (0.92 + 0.08 * Math.sin(t * 13)) * nasce * (1 - fecha * fecha * fecha);
+}
+function passoRelampago3(dt, t) {
+  const liga = relAtiva();
+  if (!liga && !RL.aceso) return;
+  const v = viking, hx = v.x, hy = v.y, an = liga && v.acao === v.anim && ACERTO_REL[v.anim] !== undefined ? v.anim : null;
+  // começou uma skill: guarda o alvo agora (o quadro do acerto pode vir depois de ele sair do lugar)
+  if (an && (!RL.est || RL.est.nome !== an || v.t < RL.est.t)) {
+    const al = v.xamaAlvo && !v.xamaAlvo.morto ? v.xamaAlvo : null, F0 = frenteHeroi();
+    const alvo = al ? { x: al.x, y: al.y } : { x: hx + F0.x * 5, y: hy - F0.z * 5 };
+    RL.est = { nome: an, t: 0, solto: false, alvo, vizinhos: [], fantasma: null };
+  }
+  const e = an ? RL.est : null;
+  if (e) { e.t = v.t; if (!e.solto && v.t >= ACERTO_REL[an]) { e.solto = true; if (v.xamaHit && v.xamaHit.nome === an) { e.alvo = v.xamaHit.alvo; e.vizinhos = v.xamaHit.vizinhos; } soltarRelampago3(an, e); } } else RL.est = null;
+  const cl = n => !!e && an === n;
+  // Tiro: a bolha pálida no leque, transparente (o leque aparece dentro), do "T" até o acerto
+  const ct = manter("rl_tiro", cl("tiro_relampago") && v.t > 0.17 && v.t < 1.13, () => { const c = deCor(spriteN(texRel().disco, rgb(0.96, 0.62, 0.86), 1, 0.16)); return { c, h: sprite(texBrilho, rgb(1, 0.72, 0.9), 1), m: sprite(texBrilho, rgb(1, 0.95, 0.98), 1), b: bolha(rgb(1, 0.72, 0.92), 0.33),
+    fim() { tiraSprite(this.h, this.m); tirar(this.c); grupo.remove(this.b); devolverMat("bolha", this.b.material); } }; });
+  if (ct) { const p = pontoLeque(); if (p) { const k = liso01((v.t - 0.17) / 0.12);
+    ct.b.position.copy(p); ct.h.position.copy(p); ct.m.position.copy(p); ct.b.scale.setScalar(0.33 * k * (1 + 0.03 * Math.sin(t * 17))); ct.b.userData.u.uT.value = t; ct.b.userData.u.uAlfa.value = 0.7;
+    ct.c.position.copy(p); ct.c.scale.setScalar(0.7 * k); ct.h.scale.setScalar(1.1 * k); ct.h.material.opacity = 0.3; ct.m.scale.setScalar(0.3 * k); ct.m.material.opacity = 0.1 + 0.04 * Math.sin(t * 23);
+    if (Math.random() < dt * 34) { const a = Math.random() * 6.28, b2 = Math.random() * 6.28; faisca(p.clone().add(_v.set(Math.cos(a) * Math.cos(b2), Math.sin(b2), Math.sin(a) * Math.cos(b2)).multiplyScalar(0.36)), new THREE.Vector3(acaso(-0.3, 0.3), acaso(-0.1, 0.5), acaso(-0.3, 0.3)), rgb(1, 0.9, 1), 0.05, 0.28, { forma: 0, grav: 0, pisca: 18 }); } } }
+  // Garra: a bola branca com os raios azuis saindo dela; encolhe depois do acerto. Fica um fantasma azul onde ela estava
+  const gt = ACERTO_REL.garra_relampago, cg = manter("rl_garra", cl("garra_relampago") && v.t > 0.12 && v.t < gt + 0.35, () => { const az = rgb(0.42, 0.68, 1), f = []; for (let k = 0; k < 5; k++) f.push(new Fita(12, az, rgb(0.95, 0.98, 1), "linha", { semCauda: true, dur: 9 }));
+    const c = deCor(spriteN(texShura().sombra, rgb(0.42, 0.64, 1), 1, 0.8)); return { c, h: sprite(texBrilho, az, 1), m: sprite(texBrilho, rgb(1, 1, 1), 1), b: bolha(rgb(0.55, 0.78, 1), 0.4), f, tq: 1, fim() { tirar(this.c); tiraSprite(this.h, this.m); grupo.remove(this.b); devolverMat("bolha", this.b.material); this.f.forEach(q => q.fim()); } }; });
+  if (cg) { const p = pontoLeque(); if (p) { const d = v.t - gt, k = liso01((v.t - 0.12) / 0.14) * (d > 0 ? 1 - 0.6 * lim01(d / 0.3) : 1), al = d > 0.2 ? 1 - lim01((d - 0.2) / 0.15) : 1, R = 0.4 * k;
+    cg.b.position.copy(p); cg.h.position.copy(p); cg.m.position.copy(p); cg.b.scale.setScalar(R); cg.b.userData.u.uT.value = t; cg.b.userData.u.uAlfa.value = 1.1 * al;
+    cg.c.position.copy(p); cg.c.scale.setScalar(R * 3.6); cg.c.material.opacity = 0.85 * al; cg.h.scale.setScalar(R * 3.6); cg.h.material.opacity = 0.3 * al; cg.m.scale.setScalar(R * 2.15); cg.m.material.opacity = 0.98 * al;
+    cg.tq += dt; if (cg.tq > 0.055) { cg.tq = 0; for (const q of cg.f) { const a = Math.random() * 6.28, b2 = acaso(-1.2, 1.2), dir = new THREE.Vector3(Math.cos(a) * Math.cos(b2), Math.sin(b2), Math.sin(a) * Math.cos(b2)); formaRaio(q, p.clone().addScaledVector(dir, R * 0.85), p.clone().addScaledVector(dir, R + acaso(0.2, 0.46)), 0.05, 0.3, 3); } }
+    for (const q of cg.f) { q.u.uForca.value = (0.8 + 0.5 * Math.random()) * al; q.atualizar(); }
+    if (e && !e.fantasma && v.t >= 0.74) { e.fantasma = true; const pf = p.clone(), h2 = sprite(texBrilho, rgb(0.55, 0.78, 1), 1.5), m2 = bolha(rgb(0.6, 0.82, 1), 0.3); h2.position.copy(pf); m2.position.copy(pf); let t2 = 0;
+      adicionar({ passo(dt2) { t2 += dt2; const u = t2 / 0.6; if (u >= 1) return false; h2.material.opacity = 0.55 * (1 - u); m2.userData.u.uAlfa.value = 0.8 * (1 - u); m2.scale.setScalar(0.3 * (1 + 0.25 * u)); return true; }, fim() { tiraSprite(h2); grupo.remove(m2); devolverMat("bolha", m2.material); } }); } } }
+  // Remolinos e Cura: a esfera sobre a cabeça, que vira um anel; o Orbe: o sol com aro laranja
+  if (true) {
+    const tv = cl("remolinos") && v.t > 0.14 && v.t < 0.98;
+    esferaCabeca("rl_vento", { R: 0.42, nasce: 0.17, sai: 0.69, corpo: rgb(0.42, 0.18, 0.92), halo: rgb(0.42, 0.14, 1), bolha: rgb(0.5, 0.24, 1), espiral: rgb(0.42, 0.24, 1), aro: rgb(0.86, 0.74, 1), miolo: rgb(0.7, 0.55, 1), alfaMiolo: 0.06, tamMiolo: 0.6, alfaGiro: 0.2, alfaHalo: 0.14, alfaBolha: 0.3, alfaAro: 0.4, gira: 5 }, tv, (v.t - 0.14) / 0.84, t, tv ? pontoAcima("Head", 0.85) : null);
+    const tc = cl("cura") && v.t > 0.14 && v.t < 0.98;
+    esferaCabeca("rl_cura", { R: 0.43, nasce: 0.17, sai: 0.74, corpo: rgb(0.95, 0.36, 0.08), halo: rgb(1, 0.3, 0.05), bolha: rgb(1, 0.46, 0.14), espiral: rgb(1, 0.42, 0.16), aro: rgb(1, 0.72, 0.4), aroN: true, miolo: rgb(1, 0.82, 0.6), alfaMiolo: 0.2, tamMiolo: 0.6, alfaGiro: 0.28, alfaHalo: 0.1, alfaBolha: 0.28, alfaAro: 0.95, gira: 4 }, tc, (v.t - 0.14) / 0.84, t, tc ? pontoAcima("Head", 0.87) : null);
+    const ts = cl("orbe_fogo") && v.t > 0.36 && v.t < 1.2;
+    esferaCabeca("rl_sol", { R: 0.38, nasce: 0.17, sai: 0.7, corpo: rgb(1, 0.74, 0.2), halo: rgb(1, 0.55, 0.1), bolha: rgb(1, 0.5, 0.1), espiral: rgb(1, 0.78, 0.35), aro: rgb(1, 0.38, 0.05), aroN: true, miolo: rgb(1, 0.98, 0.85), alfaMiolo: 0.7, tamMiolo: 1.0, alfaGiro: 0.35, alfaHalo: 0.18, alfaBolha: 0.5, alfaAro: 1, gira: 3 }, ts, (v.t - 0.36) / 0.84, t, ts ? pontoAcima("Head", 0.9) : null);
+  }
+  // o orbe de fogo na mão esquerda: nasce em 0,37 s e fica enquanto durar o buff
+  const om = manter("rl_orbe", liga && ((cl("orbe_fogo") && v.t > 0.37) || XAMA.ataque.buff > 0), () => { const tx = texRel(), c = deCor(spriteN(tx.disco, rgb(0.98, 0.36, 0.05), 1, 1)), a = sprite(tx.anel, rgb(0.5, 0.14, 1), 1); return { c, a, h: sprite(texBrilho, rgb(1, 0.3, 0.06), 1), m: sprite(texBrilho, rgb(1, 0.82, 0.45), 1), g: sprite(tx.espiral, rgb(1, 0.5, 0.15), 1), fim() { tiraSprite(this.h, this.m, this.g, this.a); tirar(this.c); } }; });
+  if (om) { const p = ossoShura("Left_Hand"); if (p) { const k = XAMA.ataque.buff > 0 ? Math.min(1, XAMA.ataque.buff / 0.4) : 1;
+    for (const s of [om.c, om.h, om.m, om.a, om.g]) s.position.copy(p);
+    om.c.scale.setScalar(0.28); om.c.material.opacity = 0.95 * k; om.h.scale.setScalar(0.5); om.h.material.opacity = 0.34 * k; om.m.scale.setScalar(0.14 * (1 + 0.08 * Math.sin(t * 19))); om.m.material.opacity = 0.5 * k;
+    om.a.scale.setScalar(0.52); om.a.material.rotation = t * 4; om.a.material.opacity = 0.95 * k; om.g.scale.setScalar(0.29); om.g.material.rotation = -t * 6; om.g.material.opacity = 0.1 * k;
+    if (Math.random() < dt * 9) subir(p.clone(), rgb(1, acaso(0.35, 0.7), 0.12), 1, { r: 0.056, vel: 0.8, vida: 0.5, tam: 0.035, pisca: 12 }); } }
+  // o buff do Remolinos, nos pés: vento verde e três riscos brancos para trás, só com ela andando
+  const anda = !!RL.pos && Math.hypot(hx - RL.pos[0], hy - RL.pos[1]) > 0.5 * dt; RL.pos = [hx, hy];
+  const vt = manter("rl_ventoPes", liga && XAMA.redemoinho.buff > 0, () => ({ d: chao(hx, hy, 0.62, 2, rgb(0.4, 1, 0.5), rgb(0.95, 1, 0.8), -1, { giro: 2 }), f: [-1, 0, 1].map(() => new Fita(18, rgb(0.5, 1, 0.6), rgb(1, 1, 0.95), "linha", { dur: 0.34 })), fim() { this.d.morto = true; this.f.forEach(q => q.soltar()); } }));
+  if (vt) { vt.d.mover(hx, hy); vt.d.u.uAlfa.value = anda ? 0.95 * Math.min(1, XAMA.redemoinho.buff / 0.5) : 0;
+    const F = frenteHeroi(), E = new THREE.Vector3(F.z, 0, -F.x);
+    vt.f.forEach((q, k) => { if (anda) q.ponto(P3(hx, hy, 0.04).addScaledVector(E, (k - 1) * 0.17), 0.17); q.atualizar(); });
+    if (anda && Math.random() < dt * 22) faisca(P3(hx, hy, acaso(0.03, 0.3)), F.clone().multiplyScalar(-acaso(1.5, 3.5)).add(_v.set(0, 0.3, 0)), rgb(0.7, 1, 0.75), 0.07, 0.3, { grav: 0, arrasto: 2 }); }
+  RL.aceso = !!(ct || cg || om || vt || estado.rl_vento || estado.rl_cura || estado.rl_sol);
+  if (RL.aceso && !RL.vivo) { RL.vivo = true; adicionar({ passo: () => RL.aceso, fim() { RL.vivo = false; } }); }
+}
+// ================================================================ o Xamã Dragão (VFX 3D): as 6 skills, com as peças do FX3 (sprites somados, bolha de
+// fresnel, colunas, chão com shader, fitas, chamas, partículas, luz e o bloom da camada 1), como o shura e a Xamã Relâmpago.
+// As ideias e os tempos vêm do vídeo de referência (Logs/XamaHomem/MOVIMENTOS.md); o desenho é próprio: nenhum arquivo do vídeo.
+// Tema: fogo, dourado e vermelho. Entra DENTRO do FX3, antes de passoEstados; passoDragao3 entra na lista de etapas.
+// Fica numa função própria: os nomes daqui não colidem com os da Relâmpago. É guiado por viking.anim e viking.t: se a skill for
+// cortada antes do acerto, a carga some e nada é solto. ativa(): chave de teste; na integração vira a classe nova.
+const passoDragao3 = (() => {
+const ativa = () => classe === "xama_dragao";
+const B = { est: null, aceso: false, vivo: false };
+// o segundo do clipe em que o efeito principal nasce
+const FIXO = { ajuda_dragao: 22 / 20, refletir: 27 / 20 };   // (nestas duas o efeito vem depois do quadro "acerto", que é a abertura do "T")
+const SOLTA = n => { if (FIXO[n]) return FIXO[n]; const a = M.animacoes[n]; return a ? a.acerto / a.fps : NaN; };
+const ANIMS_DRAGAO = new Set(["tiro_dragao", "rugido_dragao", "ajuda_dragao", "talisma_voador", "bencao", "refletir"]);
+const lim = u => u < 0 ? 0 : u > 1 ? 1 : u, liso = u => { u = lim(u); return u * u * (3 - 2 * u); };
+const tira = (...l) => { for (const s of l) if (s) { grupo.remove(s); devolverMat("sprite", s.material); } };
+// a peça de cor (mistura normal, textura de borda macia): por baixo da luz e fora do bloom, senão o vermelho vira amarelo
+const deCor = o => { o.renderOrder = 12; o.layers.disable(1); return o; };
+const macia = () => texShura().sombra;
+function leque() {
+  const a = pecasArma(), r = a && a.l[0];
+  if (r && r.m.visible) { const W = r.m.matrixWorld; return noMundoHeroi(r.base.clone().applyMatrix4(W).lerp(r.ponta.clone().applyMatrix4(W), 0.6)); }
+  return ossoShura("Right_Hand");
+}
+const acima = dz => { const p = ossoShura("Head"); return p ? p.add(_v.set(0, dz, 0)) : P3(viking.x, viking.y, 1.6 + dz); };
+const colunaH = (r, h, cor, dur, o = {}) => coluna(viking.x, viking.y, r, h, cor, dur, { ...o, passo: e => { e.m.position.copy(P3(viking.x, viking.y, 0)); } });
+const chaoH = (R, tipo, cor, cor2, dur, o = {}) => chao(viking.x, viking.y, R, tipo, cor, cor2, dur, { ...o, passo: e => { e.mover(viking.x, viking.y); } });
+// tufos de fogo: a cor de verdade por baixo, abrindo e subindo
+function tufos(p, n, r, tam, cor, dur, o = {}) {
+  const l = [];
+  for (let k = 0; k < n; k++) { const a = Math.random() * 6.28, d = r * Math.sqrt(Math.random()), s = deCor(spriteN(macia(), cor.clone().lerp(rgb(1, 0.85, 0.4), Math.random() * (o.claro ?? 0.3)), tam, 1));
+    l.push({ s, x: Math.cos(a) * d, y: Math.sin(a) * d * 0.7, z: Math.sin(a) * d * 0.5, v: acaso(0.7, 1.2), a0: (o.alfa ?? 0.7) * acaso(0.6, 1), t0: (o.atraso ?? 0) * Math.random() }); }
+  let t = 0;
+  return adicionar({ passo(dt) {
+      t += dt; let vivo = false;
+      for (const q of l) { const u = (t - q.t0) / (dur * q.v); if (u >= 1) { q.s.visible = false; continue; } vivo = true; q.s.visible = u >= 0; if (u < 0) continue;
+        const e = 0.55 + 0.75 * Math.sqrt(u); q.s.position.set(p.x + q.x * e, p.y + q.y * e + (o.sobe ?? 0) * u, p.z + q.z); q.s.scale.setScalar(tam * (0.55 + 0.9 * Math.sqrt(u))); q.s.material.opacity = q.a0 * (1 - u) * (1 - u); }
+      return vivo; },
+    fim() { l.forEach(q => tirar(q.s)); } });
+}
+function discoCor(cor, R0, a0, dur) {
+  const d = noGrupo(new THREE.Mesh(new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: macia(), color: cor, transparent: true, opacity: 0, depthWrite: false })), 6);
+  d.layers.disable(1); let t = 0;
+  return adicionar({ passo(dt) { t += dt; if (t >= dur) return false; d.position.copy(P3(viking.x, viking.y, 0.04)); d.scale.setScalar(R0 * (0.75 + 0.25 * liso(t / 0.12))); d.material.opacity = a0 * Math.min(1, t / 0.08) * Math.min(1, (dur - t) / 0.3); return true; }, fim() { d.geometry.dispose(); tirar(d); } });
+}
+// o estouro de fogo no alvo: a estrela, os tufos, as brasas que ficam (o "fogo que dura" da descrição)
+function impacto(a, esc = 1) {
+  const p = P3(a.x, a.y, 0.6), fogo = rgb(1, 0.34, 0.05);
+  clarao(p, 2.1 * esc, rgb(1, 0.62, 0.18), 0.16, { estrela: true, forca: 0.6, frente: 0.6, miolo: rgb(1, 0.95, 0.72) });
+  tufos(p, Math.round(8 * esc), 0.9 * esc, 0.85 * esc, rgb(1, 0.4, 0.05), 0.32, { claro: 0.45, alfa: 0.6 });
+  tufos(p, Math.round(6 * esc), 1.0 * esc, 0.7 * esc, rgb(0.82, 0.13, 0.03), 0.55, { claro: 0.1, alfa: 0.6, atraso: 0.14, sobe: 0.45 });
+  estouro(p, Math.round(16 * esc), rgb(1, 0.68, 0.2), 6, { tam: 0.07, branco: 0.4, vida: 0.42 });
+  chao(a.x, a.y, 1.9 * esc, 0, fogo, rgb(1, 0.82, 0.42), 0.42, { alfa: 0.42 }); chao(a.x, a.y, 1.3 * esc, 3, fogo, rgb(1, 0.72, 0.25), 0.8, { alfa: 0.5 });
+  luz(p, rgb(1, 0.55, 0.2), 2.5 * esc, 7, 0.32);
+  let t = 0; adicionar({ passo(dt) { t += dt; if (Math.random() < dt * 16 * esc) subir(P3(a.x, a.y, 0.15), rgb(1, acaso(0.3, 0.65), 0.08), 1, { r: 0.4 * esc, vel: 1.4, vida: 0.7, tam: 0.06, pisca: 12 }); return t < 0.8; }, fim() {} });
+}
+// o cometa: uma cabeça de luz com a fita de fogo atrás, de A a C em dur segundos; chega() no fim
+function cometa(A, C, dur, larg, c1, c2, tam, chega, curva = null) {
+  const f = new Fita(44, c1, c2, "linha", { dur: 0.26 }), f2 = larg > 0.5 ? new Fita(44, rgb(0.9, 0.16, 0.02), rgb(1, 0.5, 0.08), "linha", { dur: 0.32, forca: 0.55 }) : null, cab = sprite(texBrilho, c1, tam);
+  let t = 0, passou = false; const p = new THREE.Vector3();
+  return adicionar({ passo(dt) {
+      t += dt; const u = Math.min(1, t / dur);
+      p.copy(A).lerp(C, u); if (curva) { const b = 4 * u * (1 - u); p.addScaledVector(curva, b); }
+      f.ponto(p, larg); f.atualizar(); if (f2) { f2.ponto(p, larg * 1.9); f2.atualizar(); }
+      cab.position.copy(p);
+      if (u >= 1) { if (chega && !passou) { passou = true; chega(); } return false; }
+      return true; },
+    fim() { tira(cab); f.soltar(); if (f2) f2.soltar(); } });
+}
+function soltar(nome, e) {
+  const v = viking, a = e.alvo, ouro = rgb(1, 0.72, 0.2), fogo = rgb(1, 0.3, 0.04), creme = rgb(1, 0.9, 0.62);
+  if (nome === "tiro_dragao") {
+    // a rajada vem de trás dele, passa pelo corpo e segue até 8 m, reta: atravessa, e estoura no alvo quando passa por ele
+    const o = P3(v.x, v.y, 1.05), alvoP = P3(a.x, a.y, 1.05), d = alvoP.clone().sub(o); d.y = 0; const L = d.length() || 1; d.divideScalar(L);
+    const A = o.clone().addScaledVector(d, -3), C = o.clone().addScaledVector(d, 8), vel = 11 / 0.36;
+    cometa(A, C, 0.36, 0.95, rgb(1, 0.68, 0.14), rgb(1, 0.96, 0.66), 1.5, null);
+    let t = 0, feito = false, atraso = (3 + L) / vel;
+    adicionar({ passo(dt) { t += dt; if (!feito && t >= atraso) { feito = true; if (a.real !== false) impacto(a, 1); } return !feito; }, fim() {} });
+    clarao(o, 2.9, ouro, 0.3, { forca: 0.5 }); estouro(o, 18, rgb(1, 0.78, 0.3), 6, { sobe: 0.5, tam: 0.07, branco: 0.4, vida: 0.4 });
+    chao(v.x, v.y, 2.2, 0, fogo, rgb(1, 0.82, 0.42), 0.4, { alfa: 0.45 }); luz(o, rgb(1, 0.65, 0.25), 3, 8, 0.35); tremor = Math.max(tremor, 0.12);
+  } else if (nome === "rugido_dragao") {
+    // a coluna de fogo, o círculo no chão, o fogo em volta; e, no fim, a onda clara que abre
+    const dur = 1.05;
+    colunaH(0.58, 7.5, fogo, dur, { miolo: 0.3, sobe: 0.1, alfa: 0.5 });
+    chaoH(3, 1, rgb(1, 0.2, 0.03), rgb(1, 0.62, 0.16), 1.5, { giro: 0.9, alfa: 0.62 }); chao(v.x, v.y, 2.6, 3, rgb(1, 0.22, 0.03), rgb(1, 0.6, 0.15), 1.3, { alfa: 0.6 });
+    discoCor(rgb(0.95, 0.3, 0.05), 2.6, 0.4, dur); clarao(P3(v.x, v.y, 0.7), 3.4, rgb(1, 0.5, 0.12), 0.3, { forca: 0.24 });
+    estouro(P3(v.x, v.y, 0.5), 26, fogo, 6, { forma: 0, sobe: 1.6, tam: 0.08, grav: -1, vida: 0.8, branco: 0.25 }); luz(P3(v.x, v.y, 1.2), rgb(1, 0.5, 0.15), 3.5, 9, dur); tremor = Math.max(tremor, 0.2);
+    const c1 = chamas(rgb(1, 0.16, 0.02), rgb(1, 0.5, 0.1)), c2 = chamas(rgb(1, 0.08, 0.01), rgb(1, 0.34, 0.05)); let t = 0, onda = false;
+    adicionar({ passo(dt) { t += dt;
+        if (!onda && t >= 0.55) { onda = true; chao(viking.x, viking.y, 3.8, 0, rgb(1, 0.5, 0.2), rgb(1, 0.82, 0.55), 0.65, { alfa: 0.36 }); }
+        if (t >= dur) return false;
+        const k = Math.min(1, t / 0.08) * Math.min(1, (dur - t) / 0.3), q = P3(viking.x, viking.y, 0);
+        c1.position.copy(q); c1.scale.set(0.9, 2.5, 0.9); c2.position.copy(q); c2.scale.set(0.62, 1.8, 0.62); c2.rotation.y = 1.3;
+        for (const c of [c1, c2]) { c.userData.u.uT.value = t + 5; c.userData.u.uAlfa.value = 0.62 * k; }
+        if (Math.random() < dt * 40 * k) subir(q.clone().add(_v.set(0, 0.2, 0)), rgb(1, acaso(0.26, 0.62), 0.06), 1, { r: 1.3, vel: 2, vida: 0.8, tam: 0.07, pisca: 14 });
+        return true; },
+      fim() { for (const c of [c1, c2]) { grupo.remove(c); devolverMat("chamas", c.material); } } });
+  } else if (nome === "ajuda_dragao") {
+    // o clarão dourado, oval, em volta do corpo: forte só por um instante
+    const q = P3(v.x, v.y, 1.0), h = deCor(spriteN(macia(), rgb(1, 0.66, 0.16), 1, 1)), bl = bolha(rgb(1, 0.5, 0.1), 1); let t = 0;
+    adicionar({ passo(dt) { t += dt; const u = t / 0.4; if (u >= 1) return false; const p2 = P3(viking.x, viking.y, 1.0), s = 1 + 0.2 * u;
+        h.position.copy(p2); h.scale.set(2.5 * s, 3.5 * s, 1); h.material.opacity = 0.62 * (1 - u) * (1 - u); bl.position.copy(p2); bl.scale.set(0.72 * s, 1.2 * s, 0.72 * s); bl.userData.u.uAlfa.value = 0.22 * (1 - u); bl.userData.u.uT.value = t; return true; },
+      fim() { tirar(h); grupo.remove(bl); devolverMat("bolha", bl.material); } });
+    estouro(q, 16, rgb(1, 0.76, 0.28), 3.5, { forma: 0, sobe: 1, tam: 0.06, grav: 0, vida: 0.8, branco: 0.3 }); luz(q, ouro, 3, 7, 0.4);
+  } else if (nome === "talisma_voador") {
+    // o clarão no bote, na ponta do leque, e os talismãs: cometas curtos em arco, um para cada alvo
+    const pf = leque() || P3(v.x, v.y, 1); clarao(pf, 1.9, rgb(1, 0.5, 0.1), 0.24, { forca: 0.6, miolo: rgb(1, 0.95, 0.72) }); estouro(pf, 10, rgb(1, 0.78, 0.3), 3.5, { tam: 0.05, vida: 0.32 }); luz(pf, ouro, 2.5, 6, 0.25);
+    const alvos = [a, ...e.vizinhos].slice(0, 3); while (alvos.length < 3) alvos.push(a);
+    alvos.forEach((al, k) => { let esp = 0.05 + k * 0.09; const lado = (k - 1) * 1.2 + (k === 1 ? 0 : 0);
+      adicionar({ passo(dt) { esp -= dt; if (esp > 0) return true;
+          const A = (leque() || P3(viking.x, viking.y, 1)).clone(), C = P3(al.x, al.y, 0.7), d = C.clone().sub(A), lat = new THREE.Vector3(-d.z, 0, d.x).normalize().multiplyScalar(lado).add(_v.set(0, 1.1, 0));
+          cometa(A, C, 0.46, 0.2, rgb(1, 0.46, 0.05), rgb(1, 0.9, 0.5), 0.5, () => impacto(al, 0.5), lat.clone()); return false; }, fim() {} }); });
+  } else if (nome === "bencao") {
+    // a coluna na hora de levantar e a onda clara que abre no chão; o anel fica (B.bencao)
+    colunaH(0.3, 7.5, rgb(1, 0.56, 0.16), 0.5, { miolo: 0.5, sobe: 0.06, alfa: 0.44 }); chao(v.x, v.y, 3.2, 0, rgb(1, 0.46, 0.1), rgb(1, 0.76, 0.34), 0.6, { alfa: 0.3 });
+    estouro(P3(v.x, v.y, 0.1), 20, ouro, 3, { forma: 0, sobe: 1.5, tam: 0.06, grav: 0, vida: 0.9, branco: 0.3 }); luz(P3(v.x, v.y, 1.2), ouro, 3, 7, 0.5);
+  } else if (nome === "refletir") {
+    // a coluna na curvatura e a onda; a aura de pontas fica (B.refletir)
+    colunaH(0.36, 7, rgb(1, 0.46, 0.16), 0.5, { miolo: 0.6, sobe: 0.06, alfa: 0.5 }); chao(v.x, v.y, 3.2, 0, rgb(1, 0.3, 0.08), rgb(1, 0.62, 0.3), 0.6, { alfa: 0.3 });
+    estouro(P3(v.x, v.y, 0.1), 16, fogo, 3, { forma: 0, sobe: 1.5, tam: 0.06, grav: 0, vida: 0.8, branco: 0.25 }); luz(P3(v.x, v.y, 1.2), fogo, 2.5, 7, 0.5);
+  }
+}
+// a esfera sobre a cabeça: luz macia, sem disco de borda dura; os anéis ficam em volta
+function esfera(nome, liga, u, t, p, c) {
+  const e = manter(nome, liga, () => { const an = texShura().anel, pc = deCor(spriteN(macia(), c.corpo, 1, 1)); return { pc, halo: sprite(texBrilho, c.halo, 1), miolo: sprite(texBrilho, c.miolo, 1), a1: sprite(an, c.aro, 1), a2: c.aro2 ? sprite(an, c.aro2, 1) : null,
+    fim() { tira(this.halo, this.miolo, this.a1, this.a2); tirar(this.pc); } }; });
+  if (!e) return;
+  const nasce = liso(u / c.nasce), fecha = liso((u - c.sai) / (1 - c.sai)), k = nasce * (1 - fecha), R = c.R * (0.4 + 0.6 * nasce), ach = c.achata || 1;
+  for (const s of [e.pc, e.halo, e.miolo, e.a1, e.a2]) if (s) s.position.copy(p);
+  e.pc.scale.setScalar(R * 2.6); e.pc.material.opacity = c.alfaCorpo * k;
+  e.halo.scale.setScalar(R * 3.6); e.halo.material.opacity = c.alfaHalo * k;
+  e.miolo.scale.setScalar(R * c.tamMiolo); e.miolo.material.opacity = c.alfaMiolo * k;
+  e.a1.scale.set(R * 3, R * 3 * ach, 1); e.a1.material.rotation = t * 2; e.a1.material.opacity = c.alfaAro * k;
+  if (e.a2) { const s = R * (4.3 + 0.5 * Math.sin(t * 5)); e.a2.scale.set(s, s * ach, 1); e.a2.material.opacity = c.alfaAro * 0.7 * k; }
+}
+function passo(dt, t) {
+  const liga = ativa();
+  if (!liga && !B.aceso) return;
+  const v = viking, hx = v.x, hy = v.y, an = liga && v.acao === v.anim && ANIMS_DRAGAO.has(v.anim) ? v.anim : null;
+  if (an && (!B.est || B.est.nome !== an || v.t < B.est.t)) {
+    const al = v.xamaAlvo && !v.xamaAlvo.morto ? v.xamaAlvo : null, F = frenteHeroi();
+    const alvo = al ? { x: al.x, y: al.y, real: true } : { x: hx + F.x * 5, y: hy - F.z * 5, real: false };
+    B.est = { nome: an, t: 0, solto: false, alvo, vizinhos: [] };
+  }
+  const e = an ? B.est : null;
+  if (e) { e.t = v.t; if (!e.solto && v.t >= SOLTA(an)) { e.solto = true; if (v.xamaHit && v.xamaHit.nome === an) { e.alvo = v.xamaHit.alvo; e.vizinhos = v.xamaHit.vizinhos; } soltar(an, e); } } else B.est = null;
+  const cl = n => !!e && an === n;
+  const sT = SOLTA("tiro_dragao");
+  // Disparo: a carga é um brilho com uma estrela na ponta do leque, sem bola
+  const cc = manter("dr_carga", cl("tiro_dragao") && v.t > sT - 0.53 && v.t < sT + 0.03, () => ({ h: sprite(texBrilho, rgb(1, 0.6, 0.14), 1), s: sprite(texEstrela, rgb(1, 0.92, 0.6), 1), fim() { tira(this.h, this.s); } }));
+  if (cc) { const p = leque(); if (p) { const k = liso((v.t - (sT - 0.53)) / 0.3);
+    cc.h.position.copy(p); cc.s.position.copy(p); cc.h.scale.setScalar(1.15 * k); cc.h.material.opacity = 0.55 * k; cc.s.scale.setScalar((0.8 + 0.1 * Math.sin(t * 31)) * k); cc.s.material.rotation = t * 1.5; cc.s.material.opacity = 0.75 * k;
+    if (Math.random() < dt * 26) faisca(p.clone(), new THREE.Vector3(acaso(-1, 1), acaso(-0.3, 1), acaso(-1, 1)).multiplyScalar(1), rgb(1, acaso(0.5, 0.85), 0.2), 0.05, 0.25, { forma: 0, grav: 1 }); } }
+  // Talismã: o fogo preso no leque, do "T" até o bote: brilho e um anel fino
+  const ct = manter("dr_talisma", cl("talisma_voador") && v.t > 0.1 && v.t < SOLTA("talisma_voador") + 0.03, () => ({ h: sprite(texBrilho, rgb(1, 0.42, 0.08), 1), m: sprite(texBrilho, rgb(1, 0.85, 0.45), 1), a: sprite(texShura().anel, rgb(1, 0.5, 0.12), 1), fim() { tira(this.h, this.m, this.a); } }));
+  if (ct) { const p = leque(); if (p) { const k = liso((v.t - 0.1) / 0.14);
+    for (const s of [ct.h, ct.m, ct.a]) s.position.copy(p); ct.h.scale.setScalar(0.85 * k); ct.h.material.opacity = 0.42; ct.m.scale.setScalar(0.28 * k * (1 + 0.08 * Math.sin(t * 19))); ct.m.material.opacity = 0.7; ct.a.scale.setScalar(0.72 * k); ct.a.material.rotation = t * 4; ct.a.material.opacity = 0.5;
+    if (Math.random() < dt * 12) subir(p.clone(), rgb(1, acaso(0.4, 0.75), 0.12), 1, { r: 0.1, vel: 0.8, vida: 0.45, tam: 0.04, pisca: 12 }); } }
+  // Ajuda: a esfera laranja com dois anéis sobre a cabeça. Bênção: a auréola dourada, só anéis. Refletir: a esfera pálida com o aro vermelho
+  { const on = cl("ajuda_dragao") && v.t > 0.42 && v.t < 1.15;
+    esfera("dr_ajuda_e", on, (v.t - 0.42) / 0.73, t, on ? acima(0.72) : null, { R: 0.34, nasce: 0.2, sai: 0.78, corpo: rgb(0.95, 0.3, 0.04), halo: rgb(1, 0.26, 0.04), miolo: rgb(1, 0.72, 0.34), aro: rgb(1, 0.42, 0.08), aro2: rgb(1, 0.3, 0.05), alfaCorpo: 0.75, alfaHalo: 0.16, alfaMiolo: 0.24, tamMiolo: 0.9, alfaAro: 0.6 }); }
+  { const on = cl("bencao") && v.t > 0.28 && v.t < 1.05;
+    esfera("dr_bencao_e", on, (v.t - 0.28) / 0.77, t, on ? acima(0.42) : null, { R: 0.27, nasce: 0.2, sai: 0.8, corpo: rgb(1, 0.72, 0.2), halo: rgb(1, 0.66, 0.16), miolo: rgb(1, 0.85, 0.45), aro: rgb(1, 0.6, 0.12), aro2: rgb(1, 0.5, 0.1), alfaCorpo: 0, alfaHalo: 0.12, alfaMiolo: 0.08, tamMiolo: 0.8, alfaAro: 0.8, achata: 0.62 }); }
+  { const on = cl("refletir") && v.t > 0.58 && v.t < 1.2;
+    esfera("dr_refletir_e", on, (v.t - 0.58) / 0.62, t, on ? acima(0.74) : null, { R: 0.34, nasce: 0.2, sai: 0.78, corpo: rgb(1, 0.82, 0.68), halo: rgb(1, 0.28, 0.06), miolo: rgb(1, 0.92, 0.82), aro: rgb(1, 0.26, 0.06), alfaCorpo: 0.5, alfaHalo: 0.26, alfaMiolo: 0.5, tamMiolo: 1.25, alfaAro: 0.85 }); }
+  // o anel da Bênção: abre na hora do "T" e fica nos pés
+  const be = cl("bencao") && v.t > 0.28, ab = manter("dr_bencao", liga && (be || XAMA.bencao.buff > 0), () => { const c = noGrupo(new THREE.Mesh(new THREE.CircleGeometry(1, 36).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: macia(), color: rgb(1, 0.68, 0.16), transparent: true, opacity: 0, depthWrite: false })), 6); c.layers.disable(1); return { c, s: chao(hx, hy, 1.08, 1, rgb(1, 0.52, 0.08), rgb(1, 0.84, 0.36), -1, { giro: 0.8 }), d: chao(hx, hy, 1, 2, rgb(1, 0.46, 0.08), rgb(1, 0.78, 0.3), -1, { giro: 0.5 }), fim() { c.geometry.dispose(); tirar(c); this.s.morto = this.d.morto = true; } }; });
+  if (ab) { const k = Math.min(be ? liso((v.t - 0.28) / 0.25) : 1, XAMA.bencao.buff > 0 && !be ? Math.min(1, XAMA.bencao.buff / 0.5) : 1); ab.s.mover(hx, hy); ab.d.mover(hx, hy); ab.c.position.copy(P3(hx, hy, 0.04)); ab.c.scale.setScalar(1.28); ab.c.material.opacity = 0.5 * k; ab.s.u.uAlfa.value = 0.8 * k; ab.d.u.uAlfa.value = 0.32 * k;
+    if (Math.random() < dt * 8 * k) subir(P3(hx, hy, 0.05), rgb(1, 0.62, 0.18), 1, { r: 0.7, vel: 1, vida: 0.9, tam: 0.05 }); }
+  // a aura do Refletir: pontas de fogo num oval em volta do corpo (sem os pés), um brilho oval fraco e o chão vermelho
+  const ar = manter("dr_refletir", liga && XAMA.refletir.buff > 0, () => { const l = []; for (let k = 0; k < 15; k++) l.push(deCor(spriteN(macia(), k % 3 ? rgb(0.96, 0.18, 0.03) : rgb(1, 0.56, 0.08), 1, 1))); return { l, o: bolha(rgb(1, 0.28, 0.05), 1), d: chao(hx, hy, 0.95, 2, rgb(1, 0.28, 0.05), rgb(1, 0.66, 0.2), -1, { giro: 1.2 }), fim() { this.l.forEach(q => tirar(q)); grupo.remove(this.o); devolverMat("bolha", this.o.material); this.d.morto = true; } }; });
+  if (ar) { const k = Math.min(1, XAMA.refletir.buff / 0.5) * Math.min(1, (e && an === "refletir" ? v.t - SOLTA("refletir") : 1) / 0.2 + 0.001), c0 = P3(hx, hy, 0.98);
+    const dir = _a.setFromMatrixColumn(S.camera.matrixWorld, 0), cim = _b.setFromMatrixColumn(S.camera.matrixWorld, 1);
+    ar.l.forEach((s, n) => { const an2 = -0.45 + (n / 14) * (Math.PI + 0.9), pul = 0.82 + 0.25 * Math.sin(t * 6 + n * 1.7); s.position.copy(c0).addScaledVector(dir, Math.cos(an2) * 0.62).addScaledVector(cim, Math.sin(an2) * 0.98); s.scale.set(0.22, 0.72 * pul, 1); s.material.rotation = an2 - Math.PI / 2; s.material.opacity = 0.85 * k; });
+    ar.o.position.copy(c0); ar.o.scale.set(0.62, 1.15, 0.62); ar.o.userData.u.uAlfa.value = 0.38 * k; ar.o.userData.u.uT.value = t; ar.d.mover(hx, hy); ar.d.u.uAlfa.value = 0.5 * k; }
+  // a Ajuda: um fogo pequeno preso no leque, do "T" até o fim do buff
+  const af = manter("dr_ajuda", liga && ((cl("ajuda_dragao") && v.t > 0.5) || XAMA.ajuda.buff > 0), () => ({ h: sprite(texBrilho, rgb(1, 0.4, 0.08), 1), m: sprite(texBrilho, rgb(1, 0.82, 0.42), 1), fim() { tira(this.h, this.m); } }));
+  if (af) { const p = leque(); if (p) { const k = cl("ajuda_dragao") ? liso((v.t - 0.5) / 0.15) : Math.min(1, XAMA.ajuda.buff / 0.4);
+    af.h.position.copy(p); af.m.position.copy(p); af.h.scale.setScalar(0.78); af.h.material.opacity = 0.42 * k; af.m.scale.setScalar(0.26 * (1 + 0.08 * Math.sin(t * 17))); af.m.material.opacity = 0.7 * k;
+    if (Math.random() < dt * 9 * k) subir(p.clone(), rgb(1, acaso(0.4, 0.75), 0.12), 1, { r: 0.08, vel: 0.8, vida: 0.45, tam: 0.04, pisca: 12 }); } }
+  B.aceso = !!(cc || ct || ab || ar || af || estado.dr_ajuda_e || estado.dr_bencao_e || estado.dr_refletir_e);
+  if (B.aceso && !B.vivo) { B.vivo = true; adicionar({ passo: () => B.aceso, fim() { B.vivo = false; } }); }
+}
+return passo;
+})();
 function passoEstados(dt, t) {
   const v = viking, hx = v.x, hy = v.y;
   // Fúria: chamas subindo em volta do corpo, selo de fogo no chão e brasas
@@ -28124,7 +28805,7 @@ function passo(dt, t) {
   if (!ligado) return;
   tAgora = t; quadro++;
   if (iso) M3D.passoParticulas(S.pNormal, dt, t);         // (no mundo 3D quem anda a fumaça é o M3D)
-  const etapas = [passoArma, passoFlechas3, passoMagias3, passoRaios, passoOndas, passoNuvens, passoCriaturas3, passoEstados, passoShura3, passoMundo];   // (rodada 6: os efeitos 3D do shura)
+  const etapas = [passoArma, passoFlechas3, passoMagias3, passoRaios, passoOndas, passoNuvens, passoCriaturas3, passoEstados, passoShura3, passoRelampago3, passoDragao3, passoMundo];   // (rodada 6: os efeitos 3D do shura)
   for (const f of etapas) { try { f(dt, t); } catch (e) { if (!f.erro) { f.erro = true; console.error("fx3 " + f.name + ":", e); } } }
   for (const [o, e] of seguidos) if (e.visto !== quadro) { seguidos.delete(o); try { if (e.acabou) e.acabou(); } catch (er) { console.error("fx3:", er); } e.fim(); }
   for (let i = vivos.length - 1; i >= 0; i--) {
@@ -28791,7 +29472,7 @@ function desenharHeroi(c, v, opc, soReservar) {
 // a legenda: a escala dos níveis e os ícones (no canto de baixo à esquerda; na imagem exportada, à direita, em cima da
 // escala: o canto de baixo à esquerda da Vila 1 é a ponta das Terras do Sul, com o portal)
 function desenharLegenda(c, v, k = 1, direita = false, sobe = 0, marcas = false) {
-  const W0 = 300 * k, H0 = (marcas ? 134 : 112) * k, x0 = direita ? v.w - W0 - 12 * k : 12 * k, y0 = v.h - H0 - 12 * k - sobe;
+  const W0 = 300 * k, H0 = 134 * k, x0 = direita ? v.w - W0 - 12 * k : 12 * k, y0 = v.h - H0 - 12 * k - sobe;
   c.save();
   c.fillStyle = "rgba(14, 10, 6, 0.86)"; c.strokeStyle = "#8a6a34"; c.lineWidth = 1.5 * k;
   c.beginPath(); c.roundRect ? c.roundRect(x0, y0, W0, H0, 8 * k) : c.rect(x0, y0, W0, H0); c.fill(); c.stroke();
@@ -28813,6 +29494,7 @@ function desenharLegenda(c, v, k = 1, direita = false, sobe = 0, marcas = false)
     estrelaMapa(c, x0 + 22 * k, ly + 44 * k, 8 * k); texto(c, "quest ativa", x0 + 34 * k, ly + 44 * k, 11.5 * k, "#eadfc8", { alinhar: "left" });
     alfinete(c, x0 + 120 * k, ly + 51 * k, 6 * k); texto(c, "ponto marcado", x0 + 131 * k, ly + 44 * k, 11.5 * k, "#eadfc8", { alinhar: "left" });
   }
+  seloNpc(c, x0 + 228 * k, ly + 44 * k, 7 * k); texto(c, "NPC", x0 + 239 * k, ly + 44 * k, 11.5 * k, "#eadfc8", { alinhar: "left" });
   c.restore();
 }
 // a escala (quantos metros) no canto de baixo à direita
@@ -28821,6 +29503,57 @@ function desenharEscala(c, v, k = 1, direita = 12) {
   const x1 = v.w - direita * k, x0 = x1 - w, y = v.h - 18 * k;
   c.save(); c.strokeStyle = "#fff"; c.lineWidth = 2 * k; c.beginPath(); c.moveTo(x0, y - 5 * k); c.lineTo(x0, y); c.lineTo(x1, y); c.lineTo(x1, y - 5 * k); c.stroke(); c.restore();
   texto(c, `${m} m`, (x0 + x1) / 2, y - 10 * k, 11 * k, "#fff");
+}
+// (R173) os NPCs do mapa em que o herói está: um selo e o nome, na posição de agora. Os nomes não se cobrem: o que não cabe
+// (muitos juntos, como na cidade vista de longe) aparece ao passar o mouse e ao chegar mais perto com a rodinha.
+let marcasNpc = [];
+const npcsDoMapa = () => objetos.filter(o => o.npc && o.nome && !o.caverna && !naCaverna(o.x) && o.x >= LIM.x0 && o.x <= LIM.x1 && o.y >= LIM.y0 && o.y <= LIM.y1);
+function seloNpc(c, X, Y, t) {
+  c.save(); c.fillStyle = "#f6e9c8"; c.strokeStyle = "#1E1B18"; c.lineWidth = Math.max(1.3, t * 0.2); c.beginPath(); c.arc(X, Y, t, 0, 7); c.fill(); c.stroke();
+  c.fillStyle = "#8e2721"; c.beginPath(); c.arc(X, Y - t * 0.28, t * 0.32, 0, 7); c.fill();
+  c.beginPath(); c.moveTo(X - t * 0.6, Y + t * 0.62); c.quadraticCurveTo(X - t * 0.58, Y + t * 0.08, X, Y + t * 0.08); c.quadraticCurveTo(X + t * 0.58, Y + t * 0.08, X + t * 0.6, Y + t * 0.62); c.closePath(); c.fill();
+  c.restore();
+}
+// guarda os lugares antes dos nomes dos grupos de mobs: os selos, depois os nomes de quem está mais sozinho (cada um tenta embaixo, à direita, à esquerda e em cima)
+function reservarNpcs(c, v, opc) {
+  const k = opc.k || 1, t = Math.max(6.5, Math.min(12 * k, v.esc * 1.25)), tam = Math.max(11.5, Math.min(14.5 * k, v.esc * 1.1 + 9));
+  if (!opc.limpo) {                                                     // (as quests e o ponto marcado são desenhados depois, por cima: os nomes não caem neles)
+    const usados = {}, m = prog && prog.marcaMapa;
+    for (const q of questsNoMapa()) {
+      if (q.x < LIM.x0 || q.x > LIM.x1 || q.y < LIM.y0 || q.y > LIM.y1) continue;
+      const [X, Y] = paraTela(q.x, q.y, v), r = q.vista ? 12 : 10, chave = Math.round(X / 12) + "," + Math.round(Y / 12), n = usados[chave] = (usados[chave] || 0) + 1, w = larguraTexto(c, q.nome, 13);
+      if (n === 1) cabeTexto(opc, X - r, Y - r, X + r, Y + r, true);
+      const yt = Y + r + 10 + (n - 1) * 15; cabeTexto(opc, X - w / 2 - 2, yt - 8, X + w / 2 + 2, yt + 8, true);
+    }
+    if (m) { const [X, Y] = paraTela(m.x, m.y, v), w = larguraTexto(c, "Ponto marcado", 12.5); cabeTexto(opc, X - 11, Y - 30, X + 11, Y, true); cabeTexto(opc, X - w / 2 - 2, Y + 3, X + w / 2 + 2, Y + 19, true); }
+  }
+  const lista = npcsDoMapa().map(o => { const [X, Y] = paraTela(o.x, o.y, v); return { o, nome: o.nome, X, Y, t, tam, caixa: null }; });
+  for (const a of lista) cabeTexto(opc, a.X - a.t, a.Y - a.t, a.X + a.t, a.Y + a.t, true);
+  const vizinhos = a => lista.reduce((n, b) => n + (Math.hypot(a.X - b.X, a.Y - b.Y) < 70 ? 1 : 0), 0);
+  const ordem = lista.map(a => [vizinhos(a), a]).sort((p, q) => p[0] - q[0] || (p[1].nome < q[1].nome ? -1 : 1)).map(p => p[1]);
+  for (const a of ordem) {
+    if (a.X < -80 || a.X > v.w + 80 || a.Y < -40 || a.Y > v.h + 40) continue;
+    if (lista.some(b => b.caixa && b.nome === a.nome && Math.hypot(a.X - b.X, a.Y - b.Y) < 110)) continue;   // (os guardas iguais, lado a lado: o nome uma vez só)
+    const w = larguraTexto(c, a.nome, a.tam), h = a.tam * 1.25, f = a.t + 2;
+    for (const [x0, y0] of [[a.X - w / 2, a.Y + f], [a.X + f, a.Y - h / 2], [a.X - f - w, a.Y - h / 2], [a.X - w / 2, a.Y - f - h]]) {
+      if (cabeTexto(opc, x0 - 2, y0, x0 + w + 2, y0 + h)) { a.caixa = [x0 - 2, y0, x0 + w + 2, y0 + h]; break; }
+    }
+  }
+  opc.npcs = lista;
+}
+function desenharNpcs(c, v, opc) {
+  const lista = opc.npcs || [];
+  for (const a of lista) if (a.X > -20 && a.X < v.w + 20 && a.Y > -20 && a.Y < v.h + 20) seloNpc(c, a.X, a.Y, a.t);
+  for (const a of lista) if (a.caixa) texto(c, a.nome, (a.caixa[0] + a.caixa[2]) / 2, (a.caixa[1] + a.caixa[3]) / 2, a.tam, "#fff4d6", { peso: 700 });
+  if (v === V) marcasNpc = lista;
+}
+function npcsNoPonto(p) {
+  const r = marcasNpc.length ? Math.max(11, marcasNpc[0].t + 4) : 0;
+  return marcasNpc.map(a => [Math.hypot(a.X - p.px, a.Y - p.py), a]).filter(q => q[0] < r).sort((a, b) => a[0] - b[0]).map(q => q[1]);
+}
+function textoNpcsNoPonto(p) {                                          // ("Guarda Real ×3": os iguais juntos)
+  const n = {}; for (const a of npcsNoPonto(p)) n[a.nome] = (n[a.nome] || 0) + 1;
+  return Object.entries(n).map(([nome, q]) => q > 1 ? `${nome} ×${q}` : nome);
 }
 // o mapa inteiro numa vista (a tela ou a imagem exportada)
 function desenharMapa(c, v, opc = {}) {
@@ -28847,7 +29580,9 @@ function desenharMapa(c, v, opc = {}) {
   desenharRotulos(c, v, opc);
   desenharHeroi(c, v, opc, true);                                      // (o lugar do nome dele fica guardado)
   desenharMarcos(c, v, opc);
+  reservarNpcs(c, v, opc);
   desenharSpawns(c, v, opc);
+  desenharNpcs(c, v, opc);
   desenharHeroi(c, v, opc);
 }
 // as quests ativas (estrela e nome; no mesmo lugar, uma embaixo da outra) e o ponto marcado
@@ -29232,7 +29967,14 @@ function info(p) {
   if (qp) {
     box.textContent = ""; const b = document.createElement("b"); b.textContent = qp.nome; box.append(b, document.createElement("br"), qp.alvo);
     if (qp.fora) box.append(document.createElement("br"), "Fica em outro lugar: este é o caminho.");
+    if (!est.editando) for (const n of textoNpcsNoPonto(p)) box.append(document.createElement("br"), "NPC: " + n);
     box.hidden = false; box.style.left = Math.min(V.w - 250, p.px + 14) + "px"; box.style.top = Math.min(V.h - 90, p.py + 14) + "px";
+    return;
+  }
+  const nn = p && !est.editando ? textoNpcsNoPonto(p) : [];
+  if (nn.length) {
+    box.textContent = ""; nn.forEach((n, i) => { const b = document.createElement("b"); b.textContent = n; if (i) box.append(document.createElement("br")); box.append(b); });
+    box.hidden = false; box.style.left = Math.min(V.w - 250, p.px + 14) + "px"; box.style.top = Math.min(V.h - 30 - nn.length * 20, p.py + 14) + "px";
     return;
   }
   const s = p && spawnNoPonto(p.x, p.y);
@@ -29377,7 +30119,7 @@ ferramentaCursor();
 
 return {
   abrir, editar, trocarAba, verTudo, imagem, desenharAgora: desenharTela, tabela, tabelaTexto, corNivel, paraTela: (x, y) => paraTela(x, y), doMundo: (px, py) => doMundo(px, py),
-  limites: () => LIM, get aberto() { return est.aberto; }, get cobre() { return est.aberto; }, get pronto() { return !!(base && base.pronto); }, est, V,
+  marcasNpc: () => marcasNpc, limites: () => LIM, get aberto() { return est.aberto; }, get cobre() { return est.aberto; }, get pronto() { return !!(base && base.pronto); }, est, V,
 };
 })();
 </script>
