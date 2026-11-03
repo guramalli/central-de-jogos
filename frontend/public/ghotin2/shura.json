@@ -301,6 +301,26 @@
    "h": 168,
    "px": 76,
    "py": 132
+  },
+  "aura_negra": {
+   "quadros": 32,
+   "fps": 20,
+   "laco": false,
+   "acerto": 6,
+   "w": 151,
+   "h": 216,
+   "px": 76,
+   "py": 188
+  },
+  "dissipar_magia": {
+   "quadros": 36,
+   "fps": 20,
+   "laco": false,
+   "acerto": 23,
+   "w": 186,
+   "h": 200,
+   "px": 93,
+   "py": 172
   }
  }
 }

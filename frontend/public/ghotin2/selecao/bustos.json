@@ -1,0 +1,66 @@
+{
+ "viking": {
+  "w": 480,
+  "h": 560,
+  "colunas": 10,
+  "n": 46,
+  "fps": 30,
+  "modo": "ida"
+ },
+ "guerreiro": {
+  "w": 480,
+  "h": 560,
+  "colunas": 10,
+  "n": 46,
+  "fps": 30,
+  "modo": "ida"
+ },
+ "arqueiro": {
+  "w": 480,
+  "h": 560,
+  "colunas": 10,
+  "n": 46,
+  "fps": 30,
+  "modo": "ida"
+ },
+ "ninja": {
+  "w": 480,
+  "h": 560,
+  "colunas": 10,
+  "n": 46,
+  "fps": 30,
+  "modo": "ida"
+ },
+ "shura": {
+  "w": 480,
+  "h": 560,
+  "colunas": 10,
+  "n": 46,
+  "fps": 30,
+  "modo": "ida"
+ },
+ "feiticeiro": {
+  "w": 480,
+  "h": 560,
+  "colunas": 10,
+  "n": 46,
+  "fps": 30,
+  "modo": "ida"
+ },
+ "xama": {
+  "w": 480,
+  "h": 560,
+  "colunas": 10,
+  "n": 46,
+  "fps": 30,
+  "modo": "ida"
+ },
+ "xama_dragao": {
+  "w": 480,
+  "h": 560,
+  "colunas": 10,
+  "n": 46,
+  "fps": 30,
+  "modo": "ida"
+ }
+}
