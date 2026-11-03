@@ -803,3 +803,69 @@ model JocelinoSave {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 }
+
+// ===== Ghotin2 (RPG de ação em frontend/public/ghotin2/) — contas SÓ do jogo, save na nuvem e ranking =====
+// 03/11/2026. Rotas em src/routes/ghotin2.js (/api/ghotin2); SQL em prisma/sql/20261103_ghotin2_contas.sql.
+// Tabelas próprias, sem relação com User: a conta do Ghotin2 não é a conta do site. Só acrescenta (nada muda nas outras).
+model Ghotin2Conta {
+  id           String    @id @default(cuid())
+  usuario      String    @unique // o login, em minúsculas
+  nomeVisivel  String // o usuário como a pessoa digitou
+  senhaHash    String // bcrypt
+  emailHash    String // bcrypt do e-mail (só para conferir no "esqueci a senha"; o endereço não é guardado)
+  termosEm     DateTime // marcou "Tenho 13 anos ou mais, ou meus pais deixaram" e os termos
+  criadoEm     DateTime  @default(now())
+  ultimoAcesso DateTime  @default(now())
+  falhasLogin  Int       @default(0) // senhas erradas seguidas (5 travam por 15 min)
+  travadoAte   DateTime?
+  tokenVersao  Int       @default(0) // sobe ao trocar a senha / sair de todos: derruba os tokens antigos
+  resetHash    String?   @unique // sha256 do código do link de "esqueci a senha"
+  resetAte     DateTime?
+  sessao       String? // o computador que está com a conta ("o último que entra fica")
+  sessaoDesde  DateTime?
+  banido       Boolean   @default(false)
+
+  personagens Ghotin2Personagem[]
+  comum       Ghotin2Comum?
+}
+
+// Um personagem da conta (até 4 vivos). `dados` = prog + jornada + barra, comprimido pelo jogo (gzip em base64);
+// o servidor não abre. nome/classe/nivel/exp/mapa = o resumo que a lista e o ranking mostram.
+// Apagar: apagadoEm preenchido, espaco e nomeChave viram null (o espaço e o nome ficam livres) e a linha some em 7 dias.
+model Ghotin2Personagem {
+  id             String       @id @default(cuid())
+  contaId        String
+  conta          Ghotin2Conta @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  espaco         Int? // 0 a 3
+  nome           String
+  nomeChave      String?      @unique // o nome sem maiúscula, acento e espaço: não repete no jogo
+  classe         String
+  vocacao        String?
+  nivel          Int          @default(1)
+  exp            Int          @default(0) // a EXP dentro do nível (como prog.exp)
+  mapa           String?
+  dados          String       @default("")
+  tamanho        Int          @default(0)
+  versao         Int          @default(0) // sobe a cada save gravado (detecta save mais novo em outro computador)
+  suspeito       Boolean      @default(false) // resumo impossível: fica fora do ranking (o save é gravado igual)
+  suspeitoMotivo String?
+  subiuEm        DateTime     @default(now()) // quando chegou ao nível atual (desempate do ranking)
+  criadoEm       DateTime     @default(now())
+  atualizadoEm   DateTime     @updatedAt
+  apagadoEm      DateTime?
+
+  @@unique([contaId, espaco])
+  @@index([nivel, exp])
+  @@index([classe, nivel, exp])
+}
+
+// O que é da conta e não de um personagem: armazém e mapa explorado (gzip em base64, feito pelo jogo).
+model Ghotin2Comum {
+  contaId      String       @id
+  conta        Ghotin2Conta @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  dados        String
+  tamanho      Int          @default(0)
+  versao       Int          @default(1)
+  criadoEm     DateTime     @default(now())
+  atualizadoEm DateTime     @updatedAt
+}

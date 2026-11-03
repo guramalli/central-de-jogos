@@ -32,6 +32,24 @@ export async function sendFeedbackEmail({ nickname, email, type, message }) {
   }
 }
 
+// Ghotin2 (contas só do jogo, routes/ghotin2.js): o link de "esqueci a senha". O servidor não guarda o e-mail da conta
+// (só uma impressão bcrypt): manda para o endereço que a pessoa digitou, depois de conferir a impressão.
+export async function enviarSenhaGhotin2({ usuario, email, link }) {
+  if (!transporter) return false;
+  try {
+    await transporter.sendMail({
+      from: `"Ghotin2 — Educação Gamer" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Ghotin2 — nova senha",
+      text: `Olá, ${usuario}!\n\nRecebemos um pedido para trocar a senha da sua conta do Ghotin2.\n\nAbra o link abaixo para escolher uma senha nova (vale 1 hora e uma vez só):\n${link}\n\nSe não foi você, pode ignorar este e-mail: a sua senha continua a mesma.`,
+    });
+    return true;
+  } catch (err) {
+    console.error("Falha ao enviar e-mail de senha do Ghotin2:", err.message);
+    return false;
+  }
+}
+
 export async function sendPasswordResetEmail({ nickname, email, resetUrl }) {
   if (!transporter) return false;
   try {

@@ -41,6 +41,8 @@ import lendaMercadoRoutes from "./routes/lendaMercado.js";
 import jocelinoRoutes from "./routes/jocelino.js";
 import theLastDanceRoutes from "./routes/thelastdance.js";
 import torreRoutes from "./routes/torre.js";
+import ghotin2Routes from "./routes/ghotin2.js";
+import { contaDoCabecalhoG2 } from "./ghotin2/token.js";
 import { setupSocket } from "./socket/index.js";
 import { ipEstaBanido, mensagemDoBanido } from "./ipBan.js";
 import { verifyToken } from "./utils/jwt.js";
@@ -117,12 +119,17 @@ const contaDoToken = (req) => {
   return (req._contaLenda = id);
 };
 const ehLendaComConta = (req) => req.originalUrl.startsWith("/api/lenda") && !!contaDoToken(req);
+// Ghotin2 (03/11/2026): a mesma exceção da escola, com o token PRÓPRIO do jogo (ghotin2/token.js; o do site não vale lá).
+const contaG2 = (req) => {
+  if (req._contaG2 !== undefined) return req._contaG2;
+  return (req._contaG2 = req.originalUrl.startsWith("/api/ghotin2") ? contaDoCabecalhoG2(req) : null);
+};
 const limiteGlobal = rateLimit({
   windowMs: 60 * 1000, // 1 minuto
   max: 300, // 300 requisições por minuto por IP
   standardHeaders: true,
   legacyHeaders: false,
-  skip: ehLendaComConta,
+  skip: (req) => ehLendaComConta(req) || !!contaG2(req),
   message: { error: "Muitas requisições. Aguarde um instante e tente de novo." },
 });
 app.use("/api", limiteGlobal);
@@ -136,6 +143,16 @@ const limiteLendaConta = rateLimit({
   message: { error: "Muitas requisições. Aguarde um instante e tente de novo." },
 });
 app.use("/api/lenda", limiteLendaConta);
+const limiteG2Conta = rateLimit({
+  windowMs: 60 * 1000,
+  max: 240, // por CONTA do Ghotin2 (o jogo salva no máximo a cada 10 s por personagem)
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => !contaG2(req),
+  keyGenerator: (req) => "g2:" + contaG2(req),
+  message: { error: "Muitas requisições. Aguarde um instante e tente de novo.", codigo: "limite" },
+});
+app.use("/api/ghotin2", limiteG2Conta);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -170,11 +187,16 @@ app.use("/api/lenda", lendaRoutes); // Lenda do Campinho (RPG): save na nuvem e 
 app.use("/api/jocelino", jocelinoRoutes); // Família Santos (jogo em /jocelino/): save na conta
 app.use("/api/thelastdance", theLastDanceRoutes); // The Last Dance: senha da área dos amigos (TLD_SENHA/TLD_CHAVE)
 app.use("/api/torre", torreRoutes); // Torre Infinita: ranking online sem conta (apelido + ficha assinada)
+app.use("/api/ghotin2", ghotin2Routes); // Ghotin2: contas só do jogo, save na nuvem e ranking (tabelas Ghotin2*)
 
 // Rede de segurança: qualquer erro não tratado numa rota (que ninguém
 // prendeu com try/catch) cai aqui, em vez de vazar detalhe técnico interno
 // (nome de arquivo, linha do código) pra resposta que o navegador recebe.
 app.use((err, req, res, next) => {
+  // corpo acima do limite do express.json (100 kB): 413, para o jogo saber que não adianta reenviar (antes virava 500)
+  if (err && err.type === "entity.too.large") {
+    return res.status(413).json({ error: "Envio grande demais.", codigo: "grande_demais" });
+  }
   console.error("Erro não tratado numa rota:", err);
   res.status(500).json({ error: "Algo deu errado no servidor. Tenta de novo?" });
 });
