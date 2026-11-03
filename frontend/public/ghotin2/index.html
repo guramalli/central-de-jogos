@@ -8973,9 +8973,33 @@ function passoEstabulo(dt) {
     if (!h.alvo) h.espera = 3 + Math.random() * 6;
   }
 }
+// R225 (bug, 03/11, aprovado pelo usuário): a sombra do cavalo do estábulo é a dele. Era a silhueta do HERÓI (sombraHeroi usa a
+// pose do herói), deitada embaixo de cada cavalo. Agora: a mancha dos cascos e o pedaço do cavalo no atlas 3D escurecido
+// (brightness 0), deitado para o lado contrário do sol como a do herói; sem o modelo, só a mancha
+function sombraCavaloEstabulo(h, X, Y, z) {
+  if (window.M3D && M3D.ativo) return;
+  if (ESTILO_TINTA) { sombraTinta(X, Y, PX * z * 0.6); return; }
+  const r = PX * z * 0.55;
+  cx.fillStyle = "rgba(20, 14, 10, 0.32)";
+  cx.beginPath(); cx.ellipse(X, Y, r, r * ACHATA * 0.5, 0, 0, 7); cx.fill();
+  const hd = horaDoDia(), dia = hd > 6 && hd < 18.5 ? Math.min(1, (hd - 6) / 1, (18.5 - hd) / 1) : 0;
+  const forca = dia * (1 - 0.75 * Math.min(1, clima.chuva || 0)) * (naCaverna(h.x) ? 0 : 1);
+  const i = P3D.vale(h);
+  if (forca < 0.05 || !i || !i.cel) return;
+  const th = Math.PI * (1 - Math.min(1, Math.max(0, (hd - 6) / 12.5))), L = 0.32 + 0.7 * Math.abs(Math.cos(th));
+  const Dx = Math.cos(th) * L, Dy = Math.max(0.12, Math.sin(th)) * 0.42 * L, c = i.m.caixa, s = PX * z, q0 = cx.imageSmoothingQuality;
+  cx.save();
+  cx.globalAlpha = 0.42 * forca; cx.imageSmoothingQuality = "low";
+  cx.filter = `brightness(0) blur(${Math.max(0.5, 0.9 * z).toFixed(1)}px)`;
+  cx.translate(X, Y); cx.transform(1, 0, -Dx, -Dy, 0, 0);
+  cx.drawImage(P3D.render.domElement, i.cel.x, i.cel.y, i.cel.w, i.cel.h, -c.esq * s, -c.cima * s, (c.esq + c.dir) * s, (c.cima + c.baixo) * s);
+  cx.restore(); cx.imageSmoothingQuality = q0;
+  SOMBRA_CAVALO.n++;
+}
+const SOMBRA_CAVALO = { n: 0 };
 function desenharCavaloEstabulo(h) {
   const [sx, sy] = tela(h.x - cam.x, h.y - cam.y), X = W / 2 + sx, Y = H / 2 + sy, z = zoom;
-  sombraHeroi(X, Y, z);
+  sombraCavaloEstabulo(h, X, Y, z);
   if (!desenharInst3d(h, X, Y, z)) desenharCavaloSprite("cavalo_" + h.aparencia, { cavalo: h.anim, tc: h.t }, X, Y, z, h.dir, true);
 }
 function foraCidade(x, y) {                     // (a estrada e o treino de fora da muralha: chão limpo)
@@ -11974,11 +11998,21 @@ function chatSistema(txt, tipo = "aviso", raro = false) {
   p.className = `a-${CHAT_ABA[tipo] || "sis"} c-${tipo}${raro ? " raro" : ""}`;
   if (tipo === "fala") { const i = txt.indexOf(": "); const b = document.createElement("b"); b.textContent = txt.slice(0, i + 1); p.append(b, txt.slice(i + 1)); }
   else p.textContent = txt;
+  CHAT_FILA.push(p); CHAT.linhas++;
+  if (MODO_TESTE || !CHAT_DEPOIS.ligado) chatDescarregar(); else if (CHAT_FILA.length === 1) setTimeout(chatDescarregar, 0);
+  return p;
+}
+// DESEMPENHO (R222, rodada 5): a linha nova entra no log depois do quadro (setTimeout 0: depois de o navegador desenhar, com o
+// layout pronto). Ler a altura do log no meio do quadro obrigava a refazer o layout da página ali: ~6 ms ao matar uma criatura
+// (a experiência, o loot, a missão), com a CPU do usuário. O texto e a ordem são os mesmos; no ?test=1, na hora
+const CHAT_FILA = [], CHAT_DEPOIS = { ligado: true, n: 0 };
+function chatDescarregar() {
+  const log = document.getElementById("chatLog"); if (!log || !CHAT_FILA.length) { CHAT_FILA.length = 0; return; }
   const noFim = log.scrollHeight - log.scrollTop - log.clientHeight < 24;
-  log.appendChild(p); CHAT.linhas++;
+  for (const p of CHAT_FILA) log.appendChild(p);
+  CHAT_FILA.length = 0; CHAT_DEPOIS.n++;
   while (log.childElementCount > CHAT_MAX) log.firstElementChild.remove();
   if (noFim) log.scrollTop = log.scrollHeight;                      // (quem rolou para ler o histórico não é puxado para baixo)
-  return p;
 }
 // o que vem pelo aviso do centro da tela também vai para o chat, com o tipo pelo texto
 function tipoDoAviso(txt) {
@@ -20814,7 +20848,26 @@ const FONTE_PLACA = 'bold 12px Tahoma, Verdana, "Segoe UI", Arial, sans-serif';
 // a largura de cada texto da placa na FONTE_PLACA (guardada: o measureText de todas as placas, todo quadro, pesava)
 const LARG_PLACA = new Map();
 function largPlaca(txt) { let w = LARG_PLACA.get(txt); if (w === undefined) { w = cx.measureText(txt).width; if (LARG_PLACA.size > 500) LARG_PLACA.clear(); LARG_PLACA.set(txt, w); } return w; }
+// DESEMPENHO (R224, rodada 5, aprovado pelo usuário em 03/11): a placa pronta numa imagem por texto, cor e densidade da tela
+// (o contorno e o texto desenhados uma vez), posta no pixel inteiro do aparelho mais perto. Escrever o texto com contorno de cada
+// placa a cada quadro pesava (~0,1 ms com 13 criaturas na tela, com a CPU do usuário). PLACA_PRONTA.ligado = false: o de antes
+const PLACA_PRONTA = { ligado: true, m: new Map(), feitas: 0 };
+function placaPronta(nivel, nome, corNome, corNivel) {
+  const k = nivel + "|" + nome + "|" + corNome + "|" + corNivel + "|" + dpr; let p = PLACA_PRONTA.m.get(k);
+  if (p) return p;
+  // (as larguras medidas aqui, na fonte da placa: o largPlaca mede no cx, com a fonte que ele tiver no momento)
+  const lv = `Lv. ${nivel} `, c = document.createElement("canvas"), g = c.getContext("2d"); g.font = FONTE_PLACA;
+  const wl = g.measureText(lv).width, wn = g.measureText(nome).width, w = Math.ceil(wl + wn) + 8, h = 20;
+  c.width = Math.ceil(w * dpr); c.height = Math.ceil(h * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.font = FONTE_PLACA; g.textBaseline = "alphabetic"; g.lineJoin = "round"; g.lineWidth = 3; g.strokeStyle = "rgba(0, 0, 0, 0.9)"; g.textAlign = "left";
+  g.strokeText(lv, 4, 15); g.fillStyle = corNivel; g.fillText(lv, 4, 15); g.strokeText(nome, 4 + wl, 15); g.fillStyle = corNome; g.fillText(nome, 4 + wl, 15);
+  p = { c, w, h, meio: (wl + wn) / 2 + 4 }; if (PLACA_PRONTA.m.size > 400) PLACA_PRONTA.m.clear(); PLACA_PRONTA.m.set(k, p); PLACA_PRONTA.feitas++; return p;
+}
 function placaNome(X, y, nivel, nome, corNome, corNivel = "#f3cf5a") {
+  if (PLACA_PRONTA.ligado) {
+    const p = placaPronta(nivel, nome, corNome, corNivel), T = cx.getTransform();
+    if (!T.b && !T.c) { cx.save(); cx.setTransform(1, 0, 0, 1, 0, 0); cx.drawImage(p.c, Math.round((X - p.meio) * T.a + T.e), Math.round((y - 15) * T.d + T.f)); cx.restore(); return; }
+  }
   cx.save();
   cx.font = FONTE_PLACA; cx.textBaseline = "alphabetic"; cx.lineJoin = "round"; cx.lineWidth = 3; cx.strokeStyle = "rgba(0, 0, 0, 0.9)";
   const lv = `Lv. ${nivel} `, wl = largPlaca(lv), wn = largPlaca(nome), x0 = X - (wl + wn) / 2;
@@ -23206,13 +23259,21 @@ function retaLivre(x0, y0, x1, y1) {
   for (let k = 1; k <= n; k++) if (!livre(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)) return false;
   return true;
 }
-const ROTA_OK = { m: new Map(), chave: "", ligado: true, aq: null };
-// o mapa das células já vistas, valendo para a colisão de agora (zerado quando ela muda)
+const ROTA_OK = { chave: "", ligado: true, aq: null };
+// DESEMPENHO (R221, rodada 5): o livre/não livre das células numa grade de bytes indexada pela chave da célula
+// ((i + 2048)·4096 + j + 2048: 16 MB). O byte guarda a geração da colisão (2·ger) e o valor (1 livre, 0 não): trocar a colisão
+// só sobe a geração (a cada 126 trocas, apaga). Era um Map de até 300 mil entradas: a busca faz ~16 consultas por nó, e o Map
+// pesava mais que a conta. Com ROTA_OK.ligado = false, cada busca começa sem nada guardado (como antes)
+const ROTA_G = { v: null, ger: 1 };
 function rotaCache() {
   const C0 = ROTA_OK, ver = GRADE_V + "|" + objetos.length + "|" + grade.size + "|" + (typeof predInst !== "undefined" ? predInst.length : 0);
-  if (C0.chave !== ver || C0.m.size > 300000 || !C0.ligado) { C0.m.clear(); C0.chave = C0.ligado ? ver : ""; C0.aq = null; }
-  return C0.m;
+  if (!ROTA_G.v) ROTA_G.v = new Uint8Array(1 << 24);
+  if (C0.chave !== ver || !C0.ligado) { C0.chave = C0.ligado ? ver : ""; C0.aq = null; rotaLimpar(); }
+  return ROTA_G;
 }
+function rotaLimpar() { if (!ROTA_G.v) ROTA_G.v = new Uint8Array(1 << 24); if (++ROTA_G.ger > 126) { ROTA_G.ger = 1; ROTA_G.v.fill(0); } }
+// (para os testes) as células guardadas na geração de agora: [chave, livre]
+function rotaCelulas() { const G0 = rotaCache(), v = G0.v, gm = G0.ger << 1, l = []; for (let k = 0; k < v.length; k++) if ((v[k] & 254) === gm) l.push([k, (v[k] & 1) === 1]); return l; }
 // R214 (rodada 3): a 1ª busca numa área nova ainda custava a busca inteira (até ~50 ms com a CPU do usuário: as células não
 // estavam no cache). A cada passo, até ROTA_AQUECE células em volta do herói (de dentro para fora, até 24 m) entram no cache:
 // a mesma conta da busca (livre no centro e a 20 cm para os 4 lados). Recomeça quando o herói anda mais de 12 m. O resultado
@@ -23224,7 +23285,7 @@ let ROTA_AQUECE = 40, ROTA_FRENTE = 8;
 const ROTA_RUMO = { x: 0, y: 0, vx: 0, vy: 0, ok: false };
 function rotaAquecer() {
   if (!ROTA_OK.ligado || !ROTA_AQUECE) return;
-  const m = rotaCache(), G = PASSO_GRADE, R = Math.round(24 / G), M = ROTA_RUMO;
+  const RG = rotaCache(), GV = RG.v, gm = RG.ger << 1, G = PASSO_GRADE, R = Math.round(24 / G), M = ROTA_RUMO;
   if (M.ok) { const dx = viking.x - M.x, dy = viking.y - M.y; if (Math.hypot(dx, dy) < 2) { M.vx = M.vx * 0.9 + dx * 0.1; M.vy = M.vy * 0.9 + dy * 0.1; } }
   M.x = viking.x; M.y = viking.y; M.ok = true;
   const vv = Math.hypot(M.vx, M.vy), fx = vv > 0.01 && ROTA_FRENTE ? viking.x + M.vx / vv * ROTA_FRENTE : viking.x, fy = vv > 0.01 && ROTA_FRENTE ? viking.y + M.vy / vv * ROTA_FRENTE : viking.y;
@@ -23236,17 +23297,102 @@ function rotaAquecer() {
     const k = A.k++, s = Math.floor(k / lado), q = k % lado;
     const i = A.ci + (r === 0 ? 0 : s === 0 ? -r + q : s === 1 ? r : s === 2 ? r - q : -r), j = A.cj + (r === 0 ? 0 : s === 0 ? -r : s === 1 ? -r + q : s === 2 ? r : r - q);
     const ch = (i + 2048) * 4096 + (j + 2048);
-    if (m.has(ch)) continue;
-    const x = i * G, y = j * G; m.set(ch, livre(x, y) && livre(x + 0.2, y) && livre(x - 0.2, y) && livre(x, y + 0.2) && livre(x, y - 0.2)); n++;
+    if ((GV[ch] & 254) === gm) continue;
+    const x = i * G, y = j * G; GV[ch] = gm | (livre(x, y) && livre(x + 0.2, y) && livre(x - 0.2, y) && livre(x, y + 0.2) && livre(x, y - 0.2) ? 1 : 0); n++;
   }
+}
+// DESEMPENHO (R221, rodada 5): a mesma busca (o mesmo resultado, conferido contra acharCaminhoRef), sem um objeto por nó: a fila de
+// prioridade em arrays paralelos (f e o número do nó) com as mesmas comparações de subir e descer; g e "de onde veio" num array por
+// nó; o número do nó de cada célula numa janela de 512 × 512 células em volta do começo, marcada pela busca (fora dela, um Map); e
+// o livre das células na grade de bytes (rotaCache). As buscas que não chegam (o alvo numa célula fechada: 1.500 nós) caíram de
+// ~10 para ~4 ms com a CPU do usuário
+const ASTAR = { cap: 0, gi: null, gj: null, gg: null, de: null, hf: null, hn: null }, ASTAR_IDX = new Map(), ASTAR_J = { marca: new Uint32Array(512 * 512), no: new Int32Array(512 * 512), busca: 0 };
+// (a busca só depende das células do começo e do alvo, do limite de nós e da colisão: o caminho de células fica guardado por
+//  essa chave enquanto a colisão não muda. Uma criatura presa que tenta de novo do mesmo lugar não refaz os 1.500 nós; o
+//  encurtamento em retas, que usa o ponto exato, é refeito)
+const ASTAR_MEMO = { m: new Map(), ger: -1, chave: "", usos: 0, ligado: true };
+function astarCap(n) {
+  if (ASTAR.cap >= n) return;
+  const c = Math.max(n, ASTAR.cap * 2, 4096);
+  ASTAR.cap = c; ASTAR.gi = new Int32Array(c); ASTAR.gj = new Int32Array(c); ASTAR.gg = new Float64Array(c); ASTAR.de = new Int32Array(c);
+  ASTAR.hf = new Float64Array(c * 8 + 16); ASTAR.hn = new Int32Array(c * 8 + 16);
 }
 function acharCaminho(x0, y0, x1, y1, maxNos = 9000) {
   const G = PASSO_GRADE, ci = v => Math.round(v / G), chave = (i, j) => (i + 2048) * 4096 + (j + 2048);
   const si = ci(x0), sj = ci(y0), ti = ci(x1), tj = ci(y1);
   const h = (i, j) => { const dx = Math.abs(i - ti), dy = Math.abs(j - tj); return (dx + dy + (Math.SQRT2 - 2) * Math.min(dx, dy)) * G; };
+  // célula boa: livre no centro e a 20 cm para os quatro lados (a rota não passa rente a quinas e paredes)
+  const RG = rotaCache(), GV = RG.v, gm = RG.ger << 1, MM = ASTAR_MEMO;
+  if (MM.ger !== RG.ger || MM.chave !== ROTA_OK.chave) { MM.m.clear(); MM.ger = RG.ger; MM.chave = ROTA_OK.chave; }
+  const kMemo = ((si + 2048) * 4096 + (sj + 2048)) * 16777216 + (ti + 2048) * 4096 + (tj + 2048) + "|" + maxNos, memo = MM.ligado && ROTA_OK.ligado ? MM.m.get(kMemo) : undefined;
+  if (memo) { MM.usos++; return astarEncurtar(memo.cel, memo.chega, x0, y0, x1, y1); }
+  const ok = (i, j) => {
+    const k = chave(i, j), c = GV[k];
+    if ((c & 254) === gm) return (c & 1) === 1;
+    const x = i * G, y = j * G, v = livre(x, y) && livre(x + 0.2, y) && livre(x - 0.2, y) && livre(x, y + 0.2) && livre(x, y - 0.2); GV[k] = gm | (v ? 1 : 0);
+    return v;
+  };
+  astarCap(Math.min(maxNos * 8 + 16, 200000));
+  const idx = ASTAR_IDX; idx.clear();
+  const J = ASTAR_J, JM = J.marca, JN = J.no, bz = ++J.busca;
+  const pega = (i, j, k) => { const wi = i - si + 256, wj = j - sj + 256; if (wi >= 0 && wi < 512 && wj >= 0 && wj < 512) { const w = wi * 512 + wj; return JM[w] === bz ? JN[w] : undefined; } return idx.get(k); };
+  const poe = (i, j, k, q) => { const wi = i - si + 256, wj = j - sj + 256; if (wi >= 0 && wi < 512 && wj >= 0 && wj < 512) { const w = wi * 512 + wj; JM[w] = bz; JN[w] = q; } else idx.set(k, q); };
+  let A = ASTAR, nn = 0, hl = 0;
+  const novo = (i, j, g, d) => { if (nn >= A.cap) { const v = A; ASTAR.cap = 0; astarCap(nn * 2); A = ASTAR; A.gi.set(v.gi); A.gj.set(v.gj); A.gg.set(v.gg); A.de.set(v.de); A.hf.set(v.hf.subarray(0, hl)); A.hn.set(v.hn.subarray(0, hl)); }
+    A.gi[nn] = i; A.gj[nn] = j; A.gg[nn] = g; A.de[nn] = d; return nn++; };
+  const push = (f, n) => { if (hl >= A.hf.length) { const c = A.hf.length * 2, hf = new Float64Array(c), hn = new Int32Array(c); hf.set(A.hf); hn.set(A.hn); A.hf = hf; A.hn = hn; }
+    const HF = A.hf, HN = A.hn; HF[hl] = f; HN[hl] = n; let i = hl++;
+    while (i > 0) { const p = (i - 1) >> 1; if (HF[p] <= HF[i]) break; const tf = HF[p]; HF[p] = HF[i]; HF[i] = tf; const tn = HN[p]; HN[p] = HN[i]; HN[i] = tn; i = p; } };
+  let topF = 0, topN = 0;
+  const pop = () => { const HF = A.hf, HN = A.hn; topF = HF[0]; topN = HN[0]; hl--;
+    if (hl > 0) { HF[0] = HF[hl]; HN[0] = HN[hl]; let i = 0;
+      for (;;) { const a = 2 * i + 1, b = a + 1; let m = i; if (a < hl && HF[a] < HF[m]) m = a; if (b < hl && HF[b] < HF[m]) m = b; if (m === i) break; const tf = HF[m]; HF[m] = HF[i]; HF[i] = tf; const tn = HN[m]; HN[m] = HN[i]; HN[i] = tn; i = m; } } };
+  const s0 = novo(si, sj, 0, -1); poe(si, sj, chave(si, sj), s0); push(h(si, sj), s0);
+  let mi = si, mj = sj, mh = h(si, sj), mn = s0, nos = 0;
+  while (hl && nos++ < maxNos) {
+    pop(); const n = topN, ni = A.gi[n], nj = A.gj[n], gn = A.gg[n];
+    if (topF > gn + h(ni, nj) + 1e-6) continue;                      // entrada velha na fila
+    const hn = h(ni, nj);
+    if (hn < mh) { mi = ni; mj = nj; mh = hn; mn = n; }
+    if (ni === ti && nj === tj) { mi = ti; mj = tj; mh = 0; mn = n; break; }
+    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+      if (!di && !dj) continue;
+      const i = ni + di, j = nj + dj;
+      if (!ok(i, j)) continue;
+      if (di && dj && (!ok(ni + di, nj) || !ok(ni, nj + dj))) continue;   // não corta quina
+      const k = chave(i, j), ng = gn + (di && dj ? Math.SQRT2 : 1) * G;
+      let q = pega(i, j, k);
+      if (q !== undefined && A.gg[q] <= ng) continue;
+      if (q === undefined) { q = novo(i, j, ng, n); poe(i, j, k, q); } else { A.gg[q] = ng; A.de[q] = n; }
+      push(ng + h(i, j), q);
+    }
+  }
+  // volta do melhor nó até o começo e encurta em retas
+  const pts = []; for (let q = mn, guarda = 0; guarda < 20000 && q >= 0; guarda++) { pts.push([A.gi[q], A.gj[q]]); q = A.de[q]; }
+  pts.reverse();
+  if (MM.ligado && ROTA_OK.ligado) { if (MM.m.size > 512) MM.m.clear(); MM.m.set(kMemo, { cel: pts, chega: mh === 0 }); }
+  return astarEncurtar(pts, mh === 0, x0, y0, x1, y1);
+}
+function astarEncurtar(pts, chega, x0, y0, x1, y1) {
+  const G = PASSO_GRADE, mundo = pts.map(([i, j]) => [i * G, j * G]);
+  if (chega) mundo[mundo.length - 1] = [x1, y1];
+  const curto = [[x0, y0]];
+  let a = 0;
+  while (a < mundo.length - 1) {
+    let b = mundo.length - 1;
+    while (b > a + 1 && !retaLivre(curto[curto.length - 1][0], curto[curto.length - 1][1], mundo[b][0], mundo[b][1])) b--;
+    curto.push(mundo[b]); a = b;
+  }
+  return { pts: curto.slice(1), chega };
+}
+// o A* de antes da rodada 5 (R221), igual, com um Map próprio das células: só os testes usam, para conferir o novo
+function acharCaminhoRef(x0, y0, x1, y1, maxNos = 9000) {
+  const G = PASSO_GRADE, ci = v => Math.round(v / G), chave = (i, j) => (i + 2048) * 4096 + (j + 2048);
+  const si = ci(x0), sj = ci(y0), ti = ci(x1), tj = ci(y1);
+  const h = (i, j) => { const dx = Math.abs(i - ti), dy = Math.abs(j - tj); return (dx + dy + (Math.SQRT2 - 2) * Math.min(dx, dy)) * G; };
   // célula boa: livre no centro e a 20 cm para os quatro lados (a rota não passa rente a quinas e paredes). DESEMPENHO
   // (R205, rodada 3): guardada entre as buscas enquanto a colisão do mapa não muda (ROTA_OK.chave)
-  const livreC = rotaCache(), ok = (i, j) => {
+  const livreC = new Map(), ok = (i, j) => {
     const k = chave(i, j); let v = livreC.get(k);
     if (v === undefined) { const x = i * G, y = j * G; v = livre(x, y) && livre(x + 0.2, y) && livre(x - 0.2, y) && livre(x, y + 0.2) && livre(x, y - 0.2); livreC.set(k, v); }
     return v;
@@ -32942,7 +33088,7 @@ function pulsoMetin(l) {
 // ================================================================ bloom
 // O que passa do limiar na tela (só no desktop, mais à noite) e a camada 1 (os efeitos) vão para um alvo a 1/4 da
 // tela; descem 3 níveis com desfoque (cada um metade), sobem somando e voltam somados na tela
-const B = { ok: false, ligado: !QS.has("bloom") || QS.get("bloom") !== "0", rt: [], w: 0, h: 0 };
+const B = { ok: false, ligado: !QS.has("bloom") || QS.get("bloom") !== "0", rt: [], w: 0, h: 0, daTela: true };   // (daTela: R223)
 function montarBloom() {
   const vs = "varying vec2 vUv; void main() { vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }";
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3));
@@ -32994,6 +33140,16 @@ function bloom() {
     const kx = rt.width / W, ky = rt.height / H;
     rt.scissor.set(Math.max(0, Math.floor(bx[0] * kx) - 1), Math.max(0, Math.floor((H - bx[1] - bx[3]) * ky) - 1), Math.ceil(bx[2] * kx) + 2, Math.ceil(bx[3] * ky) + 2); rt.scissorTest = true;
   }
+  if (iso && B.daTela) {
+    // R223 (rodada 5, aprovado pelo usuário em 03/11): no isométrico o brilho sai da imagem dos efeitos já renderizada (a tela do
+    // FX3, limiar 0: tudo o que foi desenhado brilha), sem renderizar a cena de novo só com a camada 1. ~0,3 ms a menos de CPU
+    // por quadro com efeito (a cena inteira era percorrida de novo pelo three.js); a diferença na imagem fica no ruído da animação
+    if (!B.fbt2 || B.fbt2.image.width !== tam.x || B.fbt2.image.height !== tam.y) { if (B.fbt2) B.fbt2.dispose(); B.fbt2 = new THREE.FramebufferTexture(tam.x, tam.y, THREE.RGBAFormat); B.fbt2.minFilter = B.fbt2.magFilter = THREE.LinearFilter; }
+    r.setRenderTarget(null); r.copyFramebufferToTexture(B.zero, B.fbt2);
+    r.setRenderTarget(B.rt[0]); r.clear(true, true, false);
+    const u = B.mPre.uniforms; u.tTela.value = B.fbt2; u.uPx.value.set(1 / tam.x, 1 / tam.y); u.uForca.value = 1; u.uLimiar.value = 0;
+    passada(B.mPre, B.rt[0]); u.uLimiar.value = 0.86;
+  } else {
   if (B.tela) { r.setRenderTarget(null); r.copyFramebufferToTexture(B.zero, B.fbt); }
   r.setRenderTarget(B.rt[0]); r.clear(true, true, false);
   if (B.tela) {
@@ -33006,6 +33162,7 @@ function bloom() {
   cam.layers.set(1);
   r.setRenderTarget(B.rt[0]); r.render(S.cena, cam);
   cam.layers.set(0); r.shadowMap.autoUpdate = sm;
+  }
   for (let k = 1; k < B.rt.length; k++) { const u = B.mDesce.uniforms; u.tF.value = B.rt[k - 1].texture; u.uPx.value.set(1 / B.rt[k - 1].width, 1 / B.rt[k - 1].height); passada(B.mDesce, B.rt[k]); }
   for (let k = B.rt.length - 1; k > 0; k--) { const u = B.mSobe.uniforms; u.tF.value = B.rt[k].texture; u.uPx.value.set(1 / B.rt[k].width, 1 / B.rt[k].height); passada(B.mSobe, B.rt[k - 1]); }
   B.mFim.uniforms.tF.value = B.rt[0].texture; B.mFim.uniforms.uForca.value = iso ? 0.65 : 0.55;
@@ -33345,7 +33502,7 @@ embrulhar("explosaoChefe", ([x, y, r, h]) => {
   clarao(P3(x, y, 0.6), r * 1.3, c, 0.22, { forca: 0.6 }); estouro(P3(x, y, 0.3), 22, c, 6, { sobe: 1, tam: 0.08, branco: 0.4 });
   fumaca(P3(x, y, 0.1), rgb(0.4, 0.35, 0.3), r > 2 ? 7 : 3, { r: r * 0.5, tam: 0.5, vel: 1, a: 0.4 }); luz(P3(x, y, 1), c, 4, 8, 0.3);
 });
-return { get ativo() { return ativo(); }, get iso() { return iso; }, get aquecidos() { return aquecerProgramas.feitos || 0; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, caixa: FX_CAIXA, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; },
+return { get ativo() { return ativo(); }, get iso() { return iso; }, get aquecidos() { return aquecerProgramas.feitos || 0; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, caixa: FX_CAIXA, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; }, get bloomDaTela() { return B.daTela; }, set bloomDaTela(v) { B.daTela = !!v; },
          get stats() { return { vivos: vivos.length, seguidos: seguidos.size, particulas: PS ? PS.l.length : 0 }; } };
 })();
 </script>
