@@ -356,6 +356,16 @@
   .loja .preco { font-family: var(--dados); color: #f3cf5a; font-size: 12px; }
   .loja .venda-nota { margin: 4px 0 0; font-size: 11px; }
   .loja .recompra { opacity: 0.85; }
+  /* R220 (03/11, o usuário: "precisa criar uma barra de rolagem"): com as poções P/M/G a loja da Alquimista passava da borda de
+     baixo, sem rolagem. As janelas de NPC (conversa e loja, Ferreiro) e o painel das janelas cabem na tela, acima da barra de
+     baixo (92 px); na conversa só a lista rola (o título e a fala ficam), nas outras a janela inteira (o título fica preso).
+     A barra é a das janelas: fina, nanquim sobre papel (a cor vem herdada da janela). Arrastada para baixo, a janela ganha a
+     altura que sobra até a borda (posicionarJanela). A página não rola: overscroll-behavior contém a rodinha */
+  :root :is(#npcJan, #ferreiro, #janelas) { max-height: calc(100dvh - var(--topo-jan, 110px) - 92px - 32px); overflow-y: auto; overscroll-behavior: contain; }   /* (− 32: a borda e o preenchimento; a largura fica a de sempre) */
+  :root #janelas { --topo-jan: 70px; }
+  :root #npcJan { display: flex; flex-direction: column; }
+  :root #npcJan > * { flex: none; }
+  :root #npcJan > #npcLoja { flex: 0 1 auto; min-height: 72px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding-right: 3px; }
   .venda-conf { margin: 6px 0; padding: 8px 10px; border: 1px solid #a8823e; border-radius: 4px; background: var(--jan-poco, rgba(10, 7, 4, 0.7)); font-size: 13px; box-shadow: 0 0 0 1px rgba(168, 130, 62, 0.35) inset; }
   .venda-conf p { margin: 0 0 6px; } .venda-conf .botoes { display: flex; gap: 6px; }
   .loja small { display: block; color: var(--apagado); font-size: 11px; }
@@ -4699,6 +4709,1008 @@ G.GELADA = D;
 
 </script>
 <script>
+// ================================================================ Ghotin2: CONTA, SAVE NA NUVEM e RANKING (lado do jogo)
+// Módulo separado do index.html (03/11/2026). Entra na página ANTES do script principal (a tag do nuvem.js, que o
+// build embute como o mapa_daiyu.js) e só expõe window.NUVEM. As poucas ligações com o jogo são os ganchos que o
+// Tools/viking/teste/aplicar.py põe no index (a lista está no próprio aplicar.py, GANCHOS). Contrato do servidor: Logs/Login/API.md.
+//
+// O que faz:
+//  - a PORTA (tela de entrada, antes da lista de personagens): Entrar, Criar conta, Esqueci a senha, Nova senha (pelo
+//    link #redefinir=... do e-mail), Jogar sem conta, e o RANKING (top 20 por EXP total, com filtro por classe);
+//  - com conta: a lista e a criação usam os 4 espaços da conta (a classe pode repetir); o armazém e o mapa explorado
+//    são os da conta. O 1º login começa do zero (decisão do usuário, 03/11: nada sobe do navegador);
+//  - o SAVE AUTOMÁTICO: o jogo continua gravando no navegador como sempre; daqui sai uma cópia para a conta no máximo a
+//    cada 30 s (só se mudou) e na hora ao subir de nível, trocar de mapa, escolher a classe no Altar, voltar à lista,
+//    sair e fechar a aba (keepalive, até 60 mil caracteres). Um envio por vez. Sem internet, guarda e tenta de novo;
+//  - o aviso no canto: "Salvando…" → "Salvo ✓ 16:42" (ou "Sem conexão: salvo neste computador");
+//  - a sessão tomada (outro computador entrou) com "Jogar aqui", e a escolha entre o save da conta e o deste computador.
+//
+// Sem ganchos chamando (modo de teste, ?selecao=..., admin), nada aqui roda: nem rede, nem timers, nem DOM.
+// As chaves do navegador com conta: progresso_/jornada_/barra_g2_<usuario>_<espaço>, armazem_g2_<usuario>,
+// tintaMapa_g2_<usuario> e os pendentes g2pend_... (o que ainda não subiu). Sair da conta apaga todas.
+(() => {
+  "use strict";
+  if (window.NUVEM) return;
+  const Q = new URLSearchParams(location.search);
+  // o endereço da API: ?nuvem=<url> passa por cima; no localhost, o backend local; no resto, o do site
+  const API = (() => {
+    const q = Q.get("nuvem");
+    if (q && /^https?:\/\//.test(q)) return q.replace(/\/+$/, "");
+    if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) return "http://localhost:4000/api/ghotin2";
+    return "https://api.educacaogamer.com.br/api/ghotin2";
+  })();
+  const CFG = { intervaloMs: 30000, preparoMs: 5000, tiqueMs: 1000, espera: [30000, 60000, 120000, 300000], keepaliveMax: 60000, dadosMax: 90000 };
+  const MAX_ESPACOS = 4;
+
+  // ---------------------------------------------------------------- navegador (localStorage) e utilidades
+  const LS = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+    del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+    json(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+    chaves() { const l = []; try { for (let i = 0; i < localStorage.length; i++) l.push(localStorage.key(i)); } catch (e) {} return l; },
+  };
+  const esperar = ms => new Promise(r => setTimeout(r, ms));
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const el = id => document.getElementById(id);
+  const hora = d => { const x = new Date(d); return `${String(x.getHours()).padStart(2, "0")}:${String(x.getMinutes()).padStart(2, "0")}`; };
+  const quando = d => {
+    const x = new Date(d), hoje = new Date(), ontem = new Date(Date.now() - 86400000);
+    const dia = x.toDateString() === hoje.toDateString() ? "hoje" : x.toDateString() === ontem.toDateString() ? "ontem" : `${String(x.getDate()).padStart(2, "0")}/${String(x.getMonth() + 1).padStart(2, "0")}`;
+    return `${dia} ${hora(x)}`;
+  };
+  const g = nome => { try { return (0, eval)(nome); } catch (e) { return undefined; } };   // (as variáveis do jogo, que nascem depois deste arquivo)
+  const nomeClasse = c => { const N = g("NOME_CLASSE"); return (N && N[c]) || c; };
+  const nomeVocacao = v => { const V = g("VOCACOES"); return (V && V[v] && V[v].nome) || v; };
+  const som = (n, vol = 0.6) => { try { const f = g("som"); if (typeof f === "function") f(n, null, vol); } catch (e) {} };
+
+  // gzip + base64 (como no Lenda e na Família Santos): CompressionStream do próprio navegador
+  function b64(u8) { let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+  async function comprimir(txt) {
+    const s = new Blob([txt]).stream().pipeThrough(new CompressionStream("gzip"));
+    return b64(new Uint8Array(await new Response(s).arrayBuffer()));
+  }
+  async function descomprimir(b) {
+    const bin = atob(b), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  }
+
+  // ---------------------------------------------------------------- o estado
+  const E = {
+    token: LS.get("g2_token"), conta: LS.json("g2_conta"),   // conta: { usuario, nome }
+    entrou: false,              // passou pela porta com a conta (só aí os ganchos mudam o jogo)
+    lista: [], max: MAX_ESPACOS,
+    sessao: null, slot: null,   // slot: { chave, espaco, versao, nome, classe, vocacao }
+    tomada: false, tokenRuim: false, trocando: false, ocupado: false, apagado: false, conflito: false,
+    montado: false, porta: null,
+  };
+  const S = {                   // o envio
+    fila: Promise.resolve(), ultimoTxt: null, pronto: null, ultimaTentativa: 0, proxTentativa: 0, falhas: 0, imediato: null,
+    ultimoPreparo: 0, salvoEm: 0, ocupado: false, timer: 0, vigia: {},
+    comum: { versao: 0, ultimoTxt: null, pronto: null },
+  };
+  const usuario = () => (E.conta && E.conta.usuario) || "";
+  const chaveDe = e => `g2_${usuario()}_${e}`;
+  const chaveArm = () => `armazem_g2_${usuario()}`;
+  const chaveTinta = () => `tintaMapa_g2_${usuario()}`;
+  const chavePend = ch => `g2pend_${ch}`;
+  const chavePendComum = () => `g2pend_comum_${usuario()}`;
+  const logado = () => !!(E.entrou && E.token && E.conta);
+  const ativo = () => !!(logado() && E.slot);
+  const ehChave = k => typeof k === "string" && !!usuario() && k.startsWith(`g2_${usuario()}_`) && /^[0-3]$/.test(k.slice(-1));
+  const espacoDe = k => +String(k).slice(-1);
+
+  // ---------------------------------------------------------------- a API
+  async function pedir(metodo, rota, { corpo, comToken = true, tempo = 15000, keepalive = false } = {}) {
+    // (sem corpo, sem Content-Type: o ranking da porta vira um pedido simples, sem a ida e volta do preflight do CORS)
+    const h = corpo ? { "Content-Type": "application/json" } : {};
+    if (comToken && E.token) h.Authorization = "Bearer " + E.token;
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), tempo);
+    try {
+      const r = await fetch(API + rota, { method: metodo, headers: h, body: corpo ? JSON.stringify(corpo) : undefined, cache: "no-store", keepalive, signal: keepalive ? undefined : ctl.signal });
+      let j = {}; try { j = await r.json(); } catch (e) {}
+      const out = { ok: r.ok, status: r.status, j, codigo: r.ok ? null : j.codigo || (r.status >= 500 ? "fora_do_ar" : "erro") };
+      if (out.codigo === "token_invalido" && comToken) tokenInvalido();
+      if (out.codigo === "banido") tokenInvalido("Esta conta foi banida.");
+      return out;
+    } catch (e) {
+      return { ok: false, status: 0, j: {}, codigo: "rede" };
+    } finally { clearTimeout(t); }
+  }
+  const MSG = {
+    rede: "Sem conexão com o servidor. Tente de novo em instantes.",
+    fora_do_ar: "As contas do Ghotin2 voltam em instantes. Tente de novo daqui a pouco.",
+    erro: "Algo deu errado. Tente de novo.",
+  };
+  const msgErro = r => (r.j && r.j.error) || MSG[r.codigo] || MSG.erro;
+  function guardarConta(j) {
+    E.token = j.token; E.conta = { usuario: j.conta.usuario, nome: j.conta.nome || j.conta.usuario };
+    E.tokenRuim = false;
+    LS.set("g2_token", E.token); LS.set("g2_conta", JSON.stringify(E.conta)); LS.del("g2_sem_conta");
+  }
+  function esquecerToken() { E.token = null; LS.del("g2_token"); }
+
+  // ---------------------------------------------------------------- o pacote do personagem e o comum
+  function pacoteTxt() {
+    const p = g("prog");
+    if (!E.slot || !p || !p.atrib || E.trocando) return null;
+    return JSON.stringify({ v: 1, prog: p, jornada: g("jornada") || null, barra: LS.json("barra_" + E.slot.chave) });
+  }
+  // (a marca do que mudou: o prog e a barra. A jornada conta o tempo jogado e muda a cada segundo: vai no pacote, mas não
+  // decide sozinha um envio, senão o "só se mudou" nunca seria falso)
+  function marcaAtual() {
+    const p = g("prog");
+    if (!E.slot || !p || !p.atrib || E.trocando) return null;
+    return JSON.stringify(p) + "|" + (LS.get("barra_" + E.slot.chave) || "");
+  }
+  function resumoDe(p) {
+    const mapa = String(p.mapa || "").toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 40);
+    const r = { nivel: Math.max(1, Math.min(120, Math.floor(+p.nivel || 1))), exp: Math.max(0, Math.min(2e9, Math.floor(+p.exp || 0))), classe: g("classe") || E.slot.classe };
+    if (mapa) r.mapa = mapa;
+    return r;
+  }
+  function comumTxt() {
+    if (!E.slot) return null;
+    return JSON.stringify({ v: 1, armazem: LS.get(chaveArm()), mapa: LS.get(chaveTinta()) });
+  }
+  function lerPacoteLocal(ch) {
+    const prog = LS.json("progresso_" + ch);
+    return prog && prog.atrib ? { v: 1, prog, jornada: LS.json("jornada_" + ch), barra: LS.json("barra_" + ch) } : null;
+  }
+  function gravarPacoteLocal(ch, pac) {
+    const pon = (k, v) => (v == null ? LS.del(k) : LS.set(k, JSON.stringify(v)));
+    pon("progresso_" + ch, pac && pac.prog); pon("jornada_" + ch, pac && pac.jornada); pon("barra_" + ch, pac && pac.barra);
+  }
+  function gravarComumLocal(pac) {
+    if (pac && pac.armazem != null) LS.set(chaveArm(), pac.armazem); else LS.del(chaveArm());
+    if (pac && pac.mapa) LS.set(chaveTinta(), pac.mapa); else LS.del(chaveTinta());
+  }
+  // o mapa explorado da conta (SUMIE.mapa) e o armazém da conta (relido na próxima abertura)
+  function trocarTinta(chave) {
+    const SU = g("SUMIE"); if (!SU || !SU.mapa) return;
+    const m = SU.mapa; m.chave = chave; m.v.fill(0); m.mudou = false; m.sujo = true;
+    const s = LS.get(chave);
+    if (s) try { const b = atob(s); if (b.length === m.v.length) for (let i = 0; i < b.length; i++) m.v[i] = b.charCodeAt(i); } catch (e) {}
+  }
+  function soltarArmazem() { try { armazem = null; } catch (e) {} }   // eslint-disable-line no-undef (a variável do jogo)
+  function travarSave(v) { try { salvarTravado = v; } catch (e) {} }   // eslint-disable-line no-undef
+
+  // ---------------------------------------------------------------- o aviso do canto: Salvando… / Salvo ✓ 16:42
+  let avisoT = 0;
+  function aviso(estado, txt) {
+    montar();
+    const a = el("g2Salvo"); if (!a) return;
+    clearTimeout(avisoT);
+    a.hidden = false; a.classList.remove("some", "erro", "ok");
+    if (estado === "salvando") a.textContent = "Salvando…";
+    else if (estado === "ok") { a.classList.add("ok"); a.textContent = `Salvo ✓ ${hora(Date.now())}`; avisoT = setTimeout(() => a.classList.add("some"), 6000); }
+    else { a.classList.add("erro"); a.textContent = txt || "Sem conexão: salvo neste computador"; avisoT = setTimeout(() => a.classList.add("some"), 15000); }
+    a.dataset.estado = estado;
+  }
+
+  // ---------------------------------------------------------------- o envio (um por vez, na fila)
+  function naFila(fn) { const p = S.fila.then(fn, fn); S.fila = p.catch(() => {}); return p; }
+  const podeSalvar = () => ativo() && !!E.sessao && !E.tomada && !E.tokenRuim && !E.trocando && !E.conflito && !E.apagado;
+  function salvoEmNovo() { S.salvoEm = Math.max(Date.now(), S.salvoEm + 1); return S.salvoEm; }
+  function marcarPendente(extra) {
+    if (!E.slot) return;
+    const k = chavePend(E.slot.chave), p = LS.json(k) || {};
+    const prog = g("prog") || {};
+    if (p.versaoBase !== E.slot.versao || extra) LS.set(k, JSON.stringify({ ...p, versaoBase: E.slot.versao, nivel: prog.nivel || 1, quando: Date.now(), ...(extra || {}) }));
+  }
+  function marcarPendenteComum() {
+    const k = chavePendComum(), p = LS.json(k);
+    if (!p || p.versaoBase !== S.comum.versao) LS.set(k, JSON.stringify({ versaoBase: S.comum.versao, quando: Date.now() }));
+  }
+
+  function salvarAgora(motivo = "agora") {
+    return naFila(async () => {
+      if (!podeSalvar()) return "parado";
+      const mc = marcaAtual(), ct = comumTxt();
+      const mudouP = !!mc && mc !== S.ultimoTxt, mudouC = ct != null && ct !== S.comum.ultimoTxt;
+      if (!mudouP && !mudouC) return "igual";
+      S.ultimaTentativa = Date.now();
+      aviso("salvando");
+      let r = "ok";
+      if (mudouP) r = await enviarPersonagem(pacoteTxt(), mc, motivo);
+      if (r === "ok" && mudouC && podeSalvar()) r = await enviarComum(ct);
+      if (r === "ok") { S.falhas = 0; S.proxTentativa = 0; aviso("ok"); }
+      else if (r === "rede") {
+        S.falhas++; S.proxTentativa = Date.now() + CFG.espera[Math.min(S.falhas - 1, CFG.espera.length - 1)];
+        aviso("erro");
+      } else if (r === "conflito") aviso("erro", "Dois saves deste personagem: escolha qual continuar");
+      else if (r === "rapido") { const a = el("g2Salvo"); if (a && a.dataset.estado === "salvando") a.classList.add("some"); }
+      return r;
+    });
+  }
+  async function enviarPersonagem(txt, mc, motivo) {
+    const pac = JSON.parse(txt), dados = await comprimir(txt);
+    if (dados.length > CFG.dadosMax) { aviso("erro", "Personagem grande demais para a conta: salvo neste computador"); return "grande"; }
+    const sl = E.slot;
+    const r = await pedir("PUT", `/personagens/${sl.espaco}`, { corpo: { dados, versaoBase: sl.versao, sessao: E.sessao, resumo: resumoDe(pac.prog), salvoEm: salvoEmNovo(), fechando: false } });
+    if (E.slot !== sl) return "trocou";
+    if (r.ok) {
+      sl.versao = r.j.versao; S.ultimoTxt = mc;
+      if (marcaAtual() === mc) LS.del(chavePend(sl.chave)); else marcarPendente();
+      const it = E.lista.find(p => p.espaco === sl.espaco);
+      if (it) Object.assign(it, resumoDe(pac.prog), { versao: r.j.versao, atualizadoEm: r.j.atualizadoEm });
+      sl.classe = resumoDe(pac.prog).classe;
+      return "ok";
+    }
+    return tratarErro(r, "personagem", motivo);
+  }
+  async function enviarComum(ct) {
+    const dados = await comprimir(ct);
+    if (dados.length > CFG.dadosMax) { aviso("erro", "Armazém grande demais para a conta: salvo neste computador"); return "grande"; }
+    const r = await pedir("PUT", "/comum", { corpo: { dados, versaoBase: S.comum.versao, sessao: E.sessao, salvoEm: salvoEmNovo(), fechando: false } });
+    if (r.ok) { S.comum.versao = r.j.versao; S.comum.ultimoTxt = ct; if (comumTxt() === ct) LS.del(chavePendComum()); else marcarPendenteComum(); return "ok"; }
+    if (r.codigo === "versao_antiga") { await puxarComum(); return "ok"; }   // (o armazém: vale o da conta; o daqui fica guardado como _antes_da_conta)
+    return tratarErro(r, "comum");
+  }
+  function tratarErro(r, oque, motivo) {
+    switch (r.codigo) {
+      case "sessao_tomada": sessaoTomada(); return "tomada";
+      case "versao_antiga": if (oque === "personagem") versaoAntiga(r.j); return "conflito";
+      case "velho": return "ok";
+      case "rapido": S.proxTentativa = Date.now() + 1000 * Math.max(1, +r.j.tenteEmS || 10); S.imediato = S.imediato || motivo || "rapido"; return "rapido";
+      case "grande_demais": aviso("erro", "Grande demais para a conta: salvo neste computador"); return "grande";
+      case "nao_encontrado": E.apagado = true; aviso("erro", "Este personagem não está mais na conta: salvo só neste computador"); return "apagado";
+      case "save_invalido": case "resumo_invalido": console.warn("[nuvem] o servidor recusou o save:", r.j); aviso("erro", "A conta recusou este save: salvo neste computador"); return "invalido";
+      case "token_invalido": case "banido": return "token";
+      default: return "rede";   // (rede, 503, 500, tempo esgotado)
+    }
+  }
+
+  // a cada segundo: os momentos de salvar na hora (nível, mapa, Altar, lista) e o relógio dos 30 s
+  function tique() {
+    if (!ativo() || E.trocando) return;
+    const p = g("prog"), c = g("classe"), SEL = g("SEL"), v = S.vigia, t = Date.now();
+    const n = p && p.nivel, m = p && p.mapa, aberta = !!(SEL && SEL.aberta);
+    let motivo = null;
+    if (v.nivel != null && n > v.nivel) motivo = "nivel";
+    else if (v.mapa != null && m !== v.mapa) motivo = "mapa";
+    else if (v.classe != null && c !== v.classe) motivo = "altar";
+    else if (aberta && v.aberta === false) motivo = "lista";
+    Object.assign(v, { nivel: n, mapa: m, classe: c, aberta });
+    if (motivo) S.imediato = motivo;
+    if (t - S.ultimoPreparo >= CFG.preparoMs) { S.ultimoPreparo = t; preparar(); }
+    if (t < S.proxTentativa || !podeSalvar()) return;
+    if (S.imediato || t - S.ultimaTentativa >= CFG.intervaloMs) {
+      const mot = S.imediato || "tempo"; S.imediato = null; S.ultimaTentativa = t;
+      salvarAgora(mot);
+    }
+  }
+  // a vigia começa já com o estado de agora (sem ela, uma troca no 1º segundo depois de entrar passaria sem salvar na hora)
+  function vigiaAgora() {
+    const p = g("prog"), SEL = g("SEL");
+    S.vigia = { nivel: p && p.nivel, mapa: p && p.mapa, classe: g("classe"), aberta: !!(SEL && SEL.aberta) };
+  }
+  // o pacote já comprimido para o pagehide (que não espera nada assíncrono) e a marca de "pendente" no navegador
+  let preparando = false;
+  async function preparar() {
+    if (preparando || !ativo()) return;
+    preparando = true;
+    try {
+      const mc = marcaAtual();
+      if (mc && mc !== S.ultimoTxt) {
+        marcarPendente();
+        if (!S.pronto || S.pronto.marca !== mc) { const txt = pacoteTxt(); S.pronto = { marca: mc, dados: await comprimir(txt), resumo: resumoDe(JSON.parse(txt).prog), chave: E.slot && E.slot.chave }; }
+      }
+      const ct = comumTxt();
+      if (ct != null && ct !== S.comum.ultimoTxt) {
+        marcarPendenteComum();
+        if (!S.comum.pronto || S.comum.pronto.txt !== ct) S.comum.pronto = { txt: ct, dados: await comprimir(ct) };
+      }
+    } catch (e) {} finally { preparando = false; }
+  }
+  // fechar a aba: o último pacote pronto, com keepalive (o navegador limita a 64 KB somando os envios)
+  function aoFechar() {
+    if (!podeSalvar()) return;
+    try { const f = g("salvarProgresso"); if (typeof f === "function") f(); } catch (e) {}
+    const mc = marcaAtual(), sl = E.slot;
+    let usado = 0;
+    if (mc && mc !== S.ultimoTxt) {
+      const p = S.pronto;
+      if (p && p.chave === sl.chave && p.dados.length <= CFG.keepaliveMax) {
+        usado += p.dados.length;
+        marcarPendente({ fechando: sl.versao + 1, fechandoCompleto: p.marca === mc });
+        pedir("PUT", `/personagens/${sl.espaco}`, { keepalive: true, corpo: { dados: p.dados, versaoBase: sl.versao, sessao: E.sessao, resumo: p.resumo, salvoEm: salvoEmNovo(), fechando: true } });
+      } else marcarPendente();
+    }
+    const ct = comumTxt(), pc = S.comum.pronto;
+    if (ct != null && ct !== S.comum.ultimoTxt && pc && usado + pc.dados.length <= CFG.keepaliveMax) {
+      pedir("PUT", "/comum", { keepalive: true, corpo: { dados: pc.dados, versaoBase: S.comum.versao, sessao: E.sessao, salvoEm: salvoEmNovo(), fechando: true } });
+    }
+  }
+  let ouvindo = false;
+  function ligarEnvio() {
+    if (!S.timer) S.timer = setInterval(tique, CFG.tiqueMs);
+    if (ouvindo) return; ouvindo = true;
+    addEventListener("pagehide", aoFechar);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && podeSalvar()) salvarAgora("escondeu"); });
+    addEventListener("online", () => { if (S.falhas) { S.proxTentativa = 0; S.imediato = "voltou"; } });
+  }
+  async function despedir() {   // (manda o que falta do personagem de agora, antes de trocar de espaço ou sair)
+    if (!podeSalvar()) return;
+    try { const f = g("salvarProgresso"); if (typeof f === "function" && !g("salvarTravado")) f(); } catch (e) {}
+    await Promise.race([salvarAgora("lista"), esperar(8000)]);
+  }
+
+  // ---------------------------------------------------------------- sessão, personagens e comum
+  async function novaSessao() {
+    const r = await pedir("POST", "/sessao");
+    if (r.ok) { E.sessao = r.j.sessao; E.tomada = false; }
+    return r;
+  }
+  async function carregarLista() {
+    const r = await pedir("GET", "/personagens");
+    if (r.ok) { E.lista = r.j.personagens || []; E.max = r.j.maxEspacos || MAX_ESPACOS; }
+    return r;
+  }
+  // o comum da conta (armazém + mapa explorado) para o navegador. Pendente daqui que a conta não viu: fica o daqui
+  async function puxarComum() {
+    const r = await pedir("GET", "/comum");
+    if (!r.ok && r.status !== 404) return r;
+    const versao = r.ok ? r.j.versao : 0, pend = LS.json(chavePendComum());
+    const temLocal = LS.get(chaveArm()) != null || LS.get(chaveTinta()) != null;
+    if (pend && temLocal && pend.versaoBase === versao) {
+      S.comum.versao = versao; S.comum.ultimoTxt = null;   // (o daqui é mais novo: sobe no próximo envio)
+    } else {
+      if (pend && temLocal) LS.set(chaveArm() + "_antes_da_conta", JSON.stringify({ armazem: LS.get(chaveArm()), mapa: LS.get(chaveTinta()), quando: Date.now() }));
+      gravarComumLocal(r.ok ? JSON.parse(await descomprimir(r.j.dados)) : null);
+      LS.del(chavePendComum());
+      S.comum.versao = versao; S.comum.ultimoTxt = null;
+      S.comum.ultimoTxt = E.slot ? comumTxt() : JSON.stringify({ v: 1, armazem: LS.get(chaveArm()), mapa: LS.get(chaveTinta()) });
+    }
+    S.comum.pronto = null;
+    soltarArmazem(); if (E.slot) trocarTinta(chaveTinta());
+    return { ok: true };
+  }
+  // liga o espaço (antes de o jogo carregar o personagem): daqui em diante chaveSave() é o espaço
+  function ativar(per) {
+    E.slot = { chave: chaveDe(per.espaco), espaco: per.espaco, versao: per.versao || 0, nome: per.nome, classe: per.classe, vocacao: per.vocacao };
+    E.apagado = false; E.conflito = false;
+    S.ultimoTxt = null; S.pronto = null; S.imediato = null; S.falhas = 0; S.proxTentativa = 0; S.vigia = {};
+    soltarArmazem(); trocarTinta(chaveTinta());
+    ligarEnvio();
+  }
+  // entra no mundo com o personagem (a classe e a vocação vêm da conta)
+  function entrarNoJogo(per, op = {}) {
+    travarSave(true);
+    const c = g("classe"), V = g("VOCACAO");
+    // (trocarClasse não recarrega quando a classe é a mesma: aqui o personagem do espaço é lido de novo)
+    if (per.classe === c && (per.classe !== "aprendiz" || per.vocacao === V)) { const f = g("carregarProgresso"); if (typeof f === "function") f(); }
+    if (per.classe === "aprendiz") g("entrarAprendiz")(per.vocacao, op.novo ? { novo: true, nome: per.nome } : { nome: per.nome });
+    else g("entrarComClasse")(per.classe);
+  }
+  function notaInicio(t) { const n = el("inNota"); if (n) n.textContent = t; }
+  async function esperarMundo(nota) {
+    if (window.jogoPronto) return;
+    nota("Preparando o mundo…");
+    while (!window.jogoPronto) await esperar(120);
+  }
+
+  // Entrar (da lista): sessão nova, o save da conta, o pendente daqui, o comum, e o jogo
+  async function entrar(chave) {
+    if (E.ocupado) return;
+    const e = espacoDe(chave), per = E.lista.find(p => p.espaco === e);
+    if (!per) return;
+    E.ocupado = true;
+    try {
+      notaInicio("Abrindo o personagem da conta…");
+      await despedir();
+      const s = await novaSessao();
+      if (!s.ok) { notaInicio(msgErro(s)); return; }
+      const r = await pedir("GET", `/personagens/${e}`);
+      if (!r.ok) { notaInicio(msgErro(r)); if (r.codigo === "nao_encontrado") { E.lista = E.lista.filter(p => p.espaco !== e); redesenharLista(); } return; }
+      const sv = r.j.personagem, ch = chaveDe(e);
+      const daConta = r.j.dados ? JSON.parse(await descomprimir(r.j.dados)) : null;
+      // o pendente: o que este computador gravou e a conta ainda não recebeu
+      const pend = LS.json(chavePend(ch)), local = lerPacoteLocal(ch);
+      let usar = daConta, versaoBase = sv.versao, subir = !daConta;
+      if (pend && local) {
+        if (sv.versao === pend.versaoBase) { usar = local; subir = true; }   // (a conta não andou: o daqui sobe agora)
+        else if (pend.fechandoCompleto && sv.versao === pend.fechando) usar = daConta;   // (o envio do fechamento chegou)
+        else {
+          const escolha = await escolherVersao({ conta: { nivel: sv.nivel, quando: sv.atualizadoEm }, local: { nivel: local.prog.nivel || 1, quando: pend.quando } });
+          if (escolha === "local") { usar = local; subir = true; }
+          else LS.set("progresso_" + ch + "_antes_da_conta", JSON.stringify(local.prog));
+        }
+      }
+      LS.del(chavePend(ch));
+      gravarPacoteLocal(ch, usar);
+      const rc = await puxarComum();
+      if (!rc.ok) { notaInicio(msgErro(rc)); return; }
+      await esperarMundo(notaInicio);
+      Object.assign(per, sv);
+      E.trocando = true;
+      ativar({ ...sv, versao: versaoBase });
+      entrarNoJogo(sv);
+      E.trocando = false;
+      S.comum.ultimoTxt = S.comum.ultimoTxt == null ? null : comumTxt();
+      S.ultimoTxt = subir ? null : marcaAtual(); vigiaAgora();
+      if (subir) S.imediato = "entrou";
+    } finally { E.ocupado = false; E.trocando = false; }
+  }
+  // Criar (na tela "Novo personagem"): o aprendiz da vocação num espaço livre da conta
+  function criarNoNovo(v) {
+    if (E.ocupado) return null;
+    const campo = el("npNome"), avisoN = el("npAviso"), bt = el("npCriar");
+    const n = g("limparNome")(campo.value), erro = g("validarNome")(n);
+    avisoN.textContent = erro;
+    if (erro) { campo.focus({ preventScroll: true }); som("ui_negar"); return null; }
+    if (E.lista.length >= E.max) { avisoN.textContent = `A conta já tem ${E.max} personagens. Apague um na lista para criar outro.`; som("ui_negar"); return null; }
+    E.ocupado = true;
+    return (async () => {
+      const txtBt = bt && bt.textContent;
+      if (bt) { bt.disabled = true; bt.textContent = "Criando…"; }
+      try {
+        await despedir();
+        const s = await novaSessao();
+        if (!s.ok) { avisoN.textContent = msgErro(s); return; }
+        const r = await pedir("POST", "/personagens", { corpo: { nome: n, classe: "aprendiz", vocacao: v, sessao: E.sessao } });
+        if (!r.ok) { avisoN.textContent = msgErro(r); som("ui_negar"); return; }
+        const per = r.j.personagem, ch = chaveDe(per.espaco);
+        E.lista = E.lista.filter(p => p.espaco !== per.espaco).concat(per).sort((a, b) => a.espaco - b.espaco);
+        gravarPacoteLocal(ch, null); LS.del(chavePend(ch));
+        const rc = await puxarComum();
+        if (!rc.ok) { avisoN.textContent = msgErro(rc); return; }
+        await esperarMundo(t => { avisoN.textContent = t; });
+        E.trocando = true;
+        ativar(per);
+        entrarNoJogo(per, { novo: true });
+        E.trocando = false;
+        S.ultimoTxt = null; S.imediato = "novo"; vigiaAgora();   // (sobe já: aparece no ranking e na lista de outro computador)
+      } finally {
+        E.ocupado = false; E.trocando = false;
+        if (bt) { bt.disabled = false; if (bt.textContent === "Criando…") bt.textContent = txtBt || "Criar"; }
+      }
+    })();
+  }
+  // Apagar (da lista, depois da confirmação de 2 cliques do jogo): o nome vai junto, como o servidor pede
+  function apagar(chave) {
+    const e = espacoDe(chave), per = E.lista.find(p => p.espaco === e);
+    if (!per) return;
+    const antes = E.lista;
+    E.lista = E.lista.filter(p => p.espaco !== e);       // (some já da lista que o jogo redesenha; volta se falhar)
+    const SEL = g("SEL");
+    if (E.slot && E.slot.espaco === e) { if (SEL) SEL.semVolta = true; }
+    (async () => {
+      let r = E.sessao ? await pedir("DELETE", `/personagens/${e}`, { corpo: { nome: per.nome, sessao: E.sessao } }) : { codigo: "sessao_tomada" };
+      if (r.codigo === "sessao_tomada") { const s = await novaSessao(); if (s.ok) r = await pedir("DELETE", `/personagens/${e}`, { corpo: { nome: per.nome, sessao: E.sessao } }); else r = s; }
+      if (r.ok || r.codigo === "nao_encontrado") {
+        const ch = chaveDe(e);
+        gravarPacoteLocal(ch, null); LS.del(chavePend(ch));
+        if (E.slot && E.slot.espaco === e) { E.slot = null; }
+      } else { E.lista = antes; notaInicio(msgErro(r)); }
+      redesenharLista();
+    })();
+  }
+  function redesenharLista() {
+    const SEL = g("SEL"), d = g("desenharInicio");
+    if (SEL && SEL.aberta && SEL.inicio && SEL.aba === "lista" && typeof d === "function") d(lista().length ? "lista" : "novo");
+  }
+  // a lista no formato da tela inicial do jogo (o personagem aberto agora com o nível de agora)
+  function lista() {
+    const p = g("prog");
+    return E.lista.map(x => {
+      const aqui = E.slot && E.slot.espaco === x.espaco && p && !E.trocando, c = aqui ? (g("classe") || x.classe) : x.classe;
+      return { chave: chaveDe(x.espaco), classe: c, vocacao: x.vocacao, nome: x.nome, nivel: aqui ? p.nivel || 1 : x.nivel || 1, mapa: aqui ? p.mapa : x.mapa,
+               titulo: c === "aprendiz" ? "Aprendiz · " + nomeVocacao(x.vocacao) : nomeClasse(c), img: c === "aprendiz" ? "aprendiz" : c };
+    });
+  }
+  const notaLista = () => `Conta ${E.conta.nome}: ${E.lista.length} de ${E.max} personagens. Tudo é salvo na conta, sozinho.`;
+  function progAtivo() { if (!E.slot) return null; const p = LS.json("progresso_" + E.slot.chave); return p && p.atrib ? p : null; }
+
+  // ---------------------------------------------------------------- sessão tomada, versão antiga, token
+  let pausadoAntes = null;
+  function pausar(sim) {
+    try {
+      if (sim) { if (pausadoAntes === null) { pausadoAntes = pausado; pausado = true; } }   // eslint-disable-line no-undef
+      else if (pausadoAntes !== null) { pausado = pausadoAntes; pausadoAntes = null; }    // eslint-disable-line no-undef
+    } catch (e) {}
+  }
+  function sessaoTomada() {
+    if (E.tomada) return;
+    E.tomada = true;
+    aviso("erro", "A conta foi aberta em outro computador: salvo só neste");
+    modal({
+      id: "tomada", titulo: "Aberto em outro computador",
+      texto: `<p><b>Este personagem foi aberto em outro computador.</b></p><p>Aqui ele parou de salvar na conta (o que você fez continua guardado neste computador). Para continuar a jogar aqui, clique em <b>Jogar aqui</b>: o outro computador é que para.</p>`,
+      botoes: [["Jogar aqui", async (b, msg) => {
+        b.disabled = true; msg("Pegando a conta de volta…");
+        const r = await novaSessao();
+        if (!r.ok) { b.disabled = false; msg(msgErro(r)); return; }
+        fecharModal(); S.proxTentativa = 0; S.imediato = "jogar_aqui"; salvarAgora("jogar_aqui");
+      }, true]],
+    });
+  }
+  // a conta tem um save mais novo deste personagem: a escolha, uma vez
+  async function versaoAntiga(j) {
+    if (E.conflito || !E.slot) return;
+    E.conflito = true;
+    const sl = E.slot, p = g("prog") || {};
+    const esc = await escolherVersao({ conta: { nivel: j.nivel, quando: j.atualizadoEm }, local: { nivel: p.nivel || 1, quando: Date.now() } });
+    if (E.slot !== sl) { E.conflito = false; return; }
+    if (esc === "local") { sl.versao = j.versao; S.ultimoTxt = null; E.conflito = false; S.proxTentativa = 0; S.imediato = "escolha"; return; }
+    // a da conta: guarda a daqui como _antes_da_conta e recarrega o personagem no mundo
+    LS.set("progresso_" + sl.chave + "_antes_da_conta", JSON.stringify(p));
+    const r = await pedir("GET", `/personagens/${sl.espaco}`);
+    if (!r.ok) { E.conflito = false; aviso("erro"); return; }
+    const pac = r.j.dados ? JSON.parse(await descomprimir(r.j.dados)) : null, sv = r.j.personagem;
+    E.trocando = true;
+    try {
+      gravarPacoteLocal(sl.chave, pac); sl.versao = sv.versao; sl.classe = sv.classe;
+      travarSave(true);
+      if (sv.classe !== g("classe") || (sv.classe === "aprendiz" && sv.vocacao !== g("VOCACAO"))) g("trocarClasse")(sv.classe, sv.classe === "aprendiz" ? sv.vocacao : null);
+      else g("carregarProgresso")();
+    } finally { travarSave(false); E.trocando = false; E.conflito = false; }
+    for (const f of ["montarBarraSkills", "atualizarFicha", "desenharBolsa", "atualizarItensBarra", "desenharFerreiro"]) try { g(f)(); } catch (e) {}
+    S.ultimoTxt = marcaAtual(); LS.del(chavePend(sl.chave)); vigiaAgora();
+    aviso("ok");
+  }
+  function escolherVersao({ conta, local }) {
+    return new Promise(ok => {
+      modal({
+        id: "versao", titulo: "Dois saves deste personagem",
+        texto: `<p>A conta tem um save mais novo do que o deste computador. Qual você quer continuar?</p>
+          <div class="g2-escolha"><button type="button" class="g2-opcao" data-v="conta"><b>Conta</b><span>Nv ${esc(conta.nivel || "?")}</span><small>${conta.quando ? esc(quando(conta.quando)) : ""}</small></button>
+          <button type="button" class="g2-opcao" data-v="local"><b>Este computador</b><span>Nv ${esc(local.nivel || "?")}</span><small>${local.quando ? esc(quando(local.quando)) : ""}</small></button></div>
+          <p class="g2-mini">O que não for escolhido fica guardado neste computador.</p>`,
+        aoMontar: card => card.querySelectorAll(".g2-opcao").forEach(b => b.onclick = () => { fecharModal(); som("ui_aceitar"); ok(b.dataset.v); }),
+        botoes: [],
+      });
+    });
+  }
+  function tokenInvalido(txt) {
+    if (E.tokenRuim) return;
+    E.tokenRuim = true; esquecerToken();
+    if (!E.slot) return;
+    modal({
+      id: "token", titulo: "Entre de novo",
+      texto: `<p>${esc(txt || "A sua conta saiu deste computador (a senha foi trocada ou o acesso venceu).")}</p><p>O que você fez está guardado neste computador. Entre de novo para continuar salvando na conta.</p>`,
+      botoes: [["Entrar de novo", () => { fecharModal(); abrirPorta({ modo: "entrar", sobre: true, aoEntrar: async (contaAntes) => {
+        if (contaAntes && contaAntes !== usuario()) { travarSave(true); location.reload(); return; }   // (outra conta: começa limpo)
+        fecharPorta(); const s = await novaSessao(); if (s.ok) { S.proxTentativa = 0; salvarAgora("voltou"); }
+      } }); }, true]],
+    });
+  }
+
+  // ---------------------------------------------------------------- sair da conta
+  async function sair() {
+    aviso("salvando");
+    if (E.slot) await despedir();
+    await Promise.race([pedir("POST", "/conta/sair", { corpo: E.sessao ? { sessao: E.sessao } : {} }), esperar(4000)]);
+    travarSave(true);
+    try { const SU = g("SUMIE"); if (SU && SU.mapa) { SU.mapa.mudou = false; SU.mapa.salvo = Infinity; } } catch (e) {}
+    apagarCopias(usuario());
+    esquecerToken(); LS.del("g2_conta"); E.conta = null; E.entrou = false; E.slot = null;
+    location.reload();
+  }
+  function apagarCopias(u) {
+    if (!u) return;
+    const pre = [`progresso_g2_${u}_`, `jornada_g2_${u}_`, `barra_g2_${u}_`, `g2pend_g2_${u}_`, `armazem_g2_${u}`, `tintaMapa_g2_${u}`, `g2pend_comum_${u}`];
+    for (const k of LS.chaves()) if (k && pre.some(p => k.startsWith(p))) LS.del(k);
+  }
+
+  // ---------------------------------------------------------------- a PORTA (a página inicial do jogo)
+  const CLASSES_RANK = ["viking", "guerreiro", "arqueiro", "ninja", "feiticeiro", "shura", "xama", "xama_dragao", "aprendiz"];
+  // o selo de cada classe no ranking: o carimbo e a cor da vocação, como na tela "Novo personagem" (北 影 闇 龍; 印 o aprendiz)
+  const SELO = { viking: ["北", "#C9963E"], guerreiro: ["北", "#C9963E"], arqueiro: ["影", "#3E7A5C"], ninja: ["影", "#3E7A5C"], feiticeiro: ["闇", "#B8322A"], shura: ["闇", "#B8322A"],
+    xama: ["龍", "#2D4A6B"], xama_dragao: ["龍", "#2D4A6B"], aprendiz: ["印", "#8C8A80"] };
+  let portaCb = null, portaInertes = [], rankFiltro = "", rankPedido = 0;
+  function porta(aoSeguir) {
+    montar();
+    portaCb = aoSeguir;
+    // (o mundo carrega por baixo com o personagem padrão: enquanto a porta está aberta, nada dele é gravado no navegador,
+    // como acontecia com a lista aberta logo na abertura; a lista, depois, segue travando como sempre)
+    travarSave(true);
+    let modo = "entrar", msg = "";
+    const m = /^#redefinir=([0-9a-f]{64})$/.exec(location.hash || "");
+    if (m) { E.codigoReset = m[1]; history.replaceState(null, "", location.pathname + location.search); modo = "redefinir"; }
+    else if (E.token && E.conta) modo = "logado";
+    abrirPorta({ modo, msg });
+    if (modo === "logado") conferirToken();
+  }
+  async function conferirToken() {
+    const box = el("g2Conta");
+    mostrarMsg("Conectando…", "ok");
+    const r = await pedir("GET", "/conta/quem-sou");
+    if (r.ok) {
+      if (r.j.token) { E.token = r.j.token; LS.set("g2_token", r.j.token); }
+      E.conta = { usuario: r.j.conta.usuario, nome: r.j.conta.nome }; LS.set("g2_conta", JSON.stringify(E.conta));
+      if (box && E.porta && E.porta.modo === "logado") desenharPorta("logado");
+    } else if (r.codigo === "token_invalido" || r.codigo === "banido") desenharPorta("entrar", r.codigo === "banido" ? "Esta conta foi banida." : "Sua sessão acabou. Entre de novo.");
+    else desenharPorta("logado", msgErro(r), true);
+  }
+  function abrirPorta({ modo = "entrar", msg = "", sobre = false, aoEntrar = null } = {}) {
+    montar();
+    const P = el("g2Porta");
+    E.porta = { modo, sobre, aoEntrar };
+    P.hidden = false; P.classList.toggle("g2-sobre", sobre);
+    for (const x of document.body.children) if (x !== P && x.id !== "g2Modal" && x.tagName !== "SCRIPT" && !x.inert) { x.inert = true; portaInertes.push(x); }
+    desenharPorta(modo, msg);
+    carregarRanking(rankFiltro);
+  }
+  function fecharPorta() {
+    const P = el("g2Porta"); if (P) P.hidden = true;
+    for (const x of portaInertes) x.inert = false;
+    portaInertes = []; if (E.porta) E.porta = null;
+    atualizarExtras();
+  }
+  const portaAberta = () => { const P = el("g2Porta"); return !!P && !P.hidden; };
+  function mostrarMsg(t, tipo) { const m = el("g2Msg"); if (!m) return; m.textContent = t || ""; m.className = "g2-msg" + (tipo ? " " + tipo : ""); }
+  function campo(id, rotulo, tipo, extra = "", dica = "") {
+    return `<div class="g2-campo"><label for="${id}">${rotulo}</label><input id="${id}" type="${tipo}" ${extra}>${dica ? `<p class="g2-dica">${dica}</p>` : ""}</div>`;
+  }
+  function desenharPorta(modo, msg = "", erroRede = false) {
+    if (!E.porta) return;
+    E.porta.modo = modo;
+    const box = el("g2Conta"), sobre = E.porta.sobre;
+    const semConta = sobre ? "" : `<div class="g2-sem"><button type="button" class="g2-bt2" id="g2SemConta">Jogar sem conta</button>
+      <p>Sem conta, os personagens ficam <b>só neste navegador</b>: se limpar o navegador ou trocar de computador, eles se perdem.</p></div>`;
+    const fechar = sobre ? `<button type="button" class="g2-link g2-fechar" id="g2Fechar">Voltar</button>` : "";
+    let h = "";
+    if (modo === "logado") {
+      h = `<h3>Olá, ${esc(E.conta.nome)}!</h3><p class="g2-txt">Seus heróis ficam salvos na conta: dá para continuar em qualquer computador.</p>
+        <div class="g2-acoes"><button type="button" class="sc-escolher" id="g2Jogar">Jogar</button></div>
+        <p class="g2-msg" id="g2Msg" role="status" aria-live="polite"></p>
+        <div class="g2-acoes g2-pe"><span>Não é você?</span><button type="button" class="g2-link" id="g2Sair">Sair da conta</button></div>
+        ${erroRede ? semConta : ""}`;
+    } else if (modo === "entrar") {
+      h = `<h3>Entrar</h3>
+        ${campo("g2Usuario", "Usuário", "text", `autocomplete="username" maxlength="16" spellcheck="false" value="${esc((E.conta && E.conta.usuario) || "")}"`)}
+        ${campo("g2Senha", "Senha", "password", `autocomplete="current-password" maxlength="72"`)}
+        <div class="g2-acoes"><button type="button" class="sc-escolher" id="g2Entrar">Entrar</button><button type="button" class="g2-link" id="g2Esqueci">Esqueci a senha</button></div>
+        <p class="g2-msg" id="g2Msg" role="status" aria-live="polite"></p>
+        <div class="g2-acoes g2-pe"><span>Ainda não tem conta?</span><button type="button" class="g2-bt2" id="g2IrCadastro">Criar conta</button>${fechar}</div>
+        ${semConta}`;
+    } else if (modo === "cadastrar") {
+      h = `<h3>Criar conta</h3>
+        ${campo("g2Usuario", "Usuário", "text", `autocomplete="username" maxlength="16" spellcheck="false"`, "De 3 a 16 letras (sem acento), números ou _.")}
+        <div class="g2-duas">${campo("g2Senha", "Senha", "password", `autocomplete="new-password" maxlength="72"`, "No mínimo 8 caracteres.")}
+        ${campo("g2Senha2", "Repita a senha", "password", `autocomplete="new-password" maxlength="72"`)}</div>
+        ${campo("g2Email", "E-mail", "email", `autocomplete="email" maxlength="120" spellcheck="false"`, "O e-mail serve só para recuperar a senha.")}
+        <label class="g2-caixa"><input type="checkbox" id="g2Idade"><span>Tenho 13 anos ou mais, ou meus pais deixaram</span></label>
+        <div class="g2-acoes"><button type="button" class="sc-escolher" id="g2Cadastrar">Criar conta</button></div>
+        <p class="g2-msg" id="g2Msg" role="status" aria-live="polite"></p>
+        <div class="g2-acoes g2-pe"><span>Já tem conta?</span><button type="button" class="g2-bt2" id="g2IrEntrar">Entrar</button>${fechar}</div>`;
+    } else if (modo === "esqueci") {
+      h = `<h3>Esqueci a senha</h3><p class="g2-txt">Escreva o usuário e o e-mail da conta. Se conferirem, mandamos um link para criar uma senha nova.</p>
+        ${campo("g2Usuario", "Usuário", "text", `autocomplete="username" maxlength="16" spellcheck="false" value="${esc((E.conta && E.conta.usuario) || "")}"`)}
+        ${campo("g2Email", "E-mail", "email", `autocomplete="email" maxlength="120" spellcheck="false"`)}
+        <div class="g2-acoes"><button type="button" class="sc-escolher" id="g2Mandar">Mandar o link</button></div>
+        <p class="g2-msg" id="g2Msg" role="status" aria-live="polite"></p>
+        <div class="g2-acoes g2-pe"><button type="button" class="g2-bt2" id="g2IrEntrar">Voltar</button></div>`;
+    } else if (modo === "redefinir") {
+      h = `<h3>Nova senha</h3><p class="g2-txt">Escolha a senha nova da sua conta. Depois de trocar, os outros computadores saem da conta.</p>
+        <div class="g2-duas">${campo("g2Senha", "Senha nova", "password", `autocomplete="new-password" maxlength="72"`, "No mínimo 8 caracteres.")}
+        ${campo("g2Senha2", "Repita a senha", "password", `autocomplete="new-password" maxlength="72"`)}</div>
+        <div class="g2-acoes"><button type="button" class="sc-escolher" id="g2Redefinir">Salvar a senha nova</button></div>
+        <p class="g2-msg" id="g2Msg" role="status" aria-live="polite"></p>
+        <div class="g2-acoes g2-pe"><button type="button" class="g2-bt2" id="g2IrEntrar">Voltar</button></div>`;
+    }
+    box.innerHTML = h;
+    if (msg) mostrarMsg(msg, modo === "logado" && !erroRede ? "ok" : "");
+    const liga = (id, f) => { const b = el(id); if (b) b.onclick = f; };
+    liga("g2Jogar", jogarComConta);
+    liga("g2Sair", () => sair());
+    liga("g2Entrar", acaoEntrar);
+    liga("g2Esqueci", () => { desenharPorta("esqueci"); som("ui_clique"); });
+    liga("g2IrCadastro", () => { desenharPorta("cadastrar"); som("ui_clique"); });
+    liga("g2IrEntrar", () => { desenharPorta(E.token && E.conta && !E.tokenRuim ? "logado" : "entrar"); som("ui_clique"); });
+    liga("g2Cadastrar", acaoCadastrar);
+    liga("g2Mandar", acaoEsqueci);
+    liga("g2Redefinir", acaoRedefinir);
+    liga("g2SemConta", jogarSemConta);
+    liga("g2Fechar", () => { fecharPorta(); som("ui_clique"); });
+    // (o foco: quem já escolheu jogar sem conta antes encontra esse botão pronto; os outros, o 1º campo vazio)
+    const semAntes = modo === "entrar" && !sobre && LS.get("g2_sem_conta") === "1" && el("g2SemConta");
+    setTimeout(() => { const f = semAntes || box.querySelector("input:not([value]):not([type=checkbox]), input[value=''], .sc-escolher"); if (f && portaAberta()) f.focus({ preventScroll: true }); }, 30);
+  }
+  const valor = id => (el(id) ? el(id).value : "");
+  async function comBotao(id, f) {
+    const b = el(id); if (!b || b.disabled) return;
+    const t = b.textContent; b.disabled = true; b.textContent = "Aguarde…";
+    try { await f(); } finally { if (b.isConnected) { b.disabled = false; b.textContent = t; } }
+  }
+  function acaoEntrar() {
+    const u = valor("g2Usuario").trim(), s = valor("g2Senha");
+    if (!u || !s) { mostrarMsg("Escreva o usuário e a senha."); som("ui_negar"); return; }
+    return comBotao("g2Entrar", async () => {
+      mostrarMsg("");
+      const r = await pedir("POST", "/conta/entrar", { comToken: false, corpo: { usuario: u, senha: s } });
+      if (!r.ok) { mostrarMsg(r.codigo === "conta_travada" && r.j.tenteEmS ? `${r.j.error} Faltam ${Math.ceil(r.j.tenteEmS / 60)} min.` : msgErro(r)); som("ui_negar"); return; }
+      const antes = usuario(); guardarConta(r.j); som("ui_aceitar");
+      await depoisDeEntrar(antes);
+    });
+  }
+  function acaoCadastrar() {
+    const u = valor("g2Usuario").trim(), s = valor("g2Senha"), s2 = valor("g2Senha2"), m = valor("g2Email").trim(), idade = el("g2Idade") && el("g2Idade").checked;
+    const erro = !/^[A-Za-z0-9_]{3,16}$/.test(u) ? "O usuário precisa ter de 3 a 16 letras (sem acento), números ou _."
+      : s.length < 8 ? "A senha precisa ter pelo menos 8 caracteres." : s.length > 72 ? "A senha pode ter no máximo 72 caracteres."
+      : s !== s2 ? "As duas senhas não são iguais." : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m) ? "Escreva um e-mail válido (ele serve só para recuperar a senha)."
+      : !idade ? "Marque a caixa \"Tenho 13 anos ou mais, ou meus pais deixaram\"." : "";
+    if (erro) { mostrarMsg(erro); som("ui_negar"); return; }
+    return comBotao("g2Cadastrar", async () => {
+      mostrarMsg("");
+      const r = await pedir("POST", "/conta/cadastrar", { comToken: false, corpo: { usuario: u, senha: s, email: m, tenho13: true } });
+      if (!r.ok) { mostrarMsg(msgErro(r)); som("ui_negar"); return; }
+      const antes = usuario(); guardarConta(r.j); som("ui_aceitar");
+      await depoisDeEntrar(antes, true);
+    });
+  }
+  function acaoEsqueci() {
+    const u = valor("g2Usuario").trim(), m = valor("g2Email").trim();
+    if (!u || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)) { mostrarMsg("Escreva o usuário e um e-mail válido."); som("ui_negar"); return; }
+    return comBotao("g2Mandar", async () => {
+      const r = await pedir("POST", "/conta/esqueci-senha", { comToken: false, corpo: { usuario: u, email: m } });
+      if (!r.ok) { mostrarMsg(msgErro(r)); return; }
+      mostrarMsg(r.j.mensagem || "Se os dados conferem, mandamos um link para o e-mail (vale 1 hora).", "ok");
+    });
+  }
+  function acaoRedefinir() {
+    const s = valor("g2Senha"), s2 = valor("g2Senha2");
+    const erro = s.length < 8 ? "A senha precisa ter pelo menos 8 caracteres." : s.length > 72 ? "A senha pode ter no máximo 72 caracteres." : s !== s2 ? "As duas senhas não são iguais." : "";
+    if (erro) { mostrarMsg(erro); som("ui_negar"); return; }
+    if (!E.codigoReset) { mostrarMsg("Este link não vale mais. Peça outro em \"Esqueci a senha\"."); return; }
+    return comBotao("g2Redefinir", async () => {
+      const r = await pedir("POST", "/conta/redefinir-senha", { comToken: false, corpo: { codigo: E.codigoReset, senha: s } });
+      if (!r.ok) { mostrarMsg(msgErro(r)); som("ui_negar"); return; }
+      E.codigoReset = null;
+      if (r.j.token) { guardarConta(r.j); desenharPorta("logado", "Senha trocada. Você já entrou com a senha nova."); }
+      else desenharPorta("entrar", "Senha trocada. Entre com a senha nova.");
+    });
+  }
+  async function depoisDeEntrar(antes, novaConta) {
+    if (E.porta && E.porta.aoEntrar) { const f = E.porta.aoEntrar; await f(antes); return; }
+    if (E.porta && E.porta.sobre && !novaConta) { /* (aberta por cima da lista: segue como "Jogar") */ }
+    await jogarComConta();
+  }
+  async function jogarComConta() {
+    const b = el("g2Jogar"); if (b) { b.disabled = true; b.textContent = "Abrindo…"; }
+    mostrarMsg("Buscando os seus personagens…", "ok");
+    const r = await carregarLista();
+    if (!r.ok) {
+      if (r.codigo === "token_invalido") { desenharPorta("entrar", "Sua sessão acabou. Entre de novo."); return; }
+      if (el("g2Jogar")) { desenharPorta("logado", msgErro(r), true); } else mostrarMsg(msgErro(r));
+      return;
+    }
+    E.entrou = true;
+    const sobre = E.porta && E.porta.sobre;
+    fecharPorta();
+    const SEL = g("SEL");
+    if (sobre && SEL && SEL.aberta && SEL.inicio) {   // (entrou pela faixa da lista: a lista agora é a da conta)
+      SEL.semVolta = true;
+      g("desenharInicio")(lista().length ? "lista" : "novo");
+    } else if (sobre) {                                // (pelas Opções, de dentro do jogo)
+      const ab = g("abrirInicio"); ab({ deMenu: true }); const S2 = g("SEL"); if (S2) { S2.semVolta = true; g("desenharInicio")(lista().length ? "lista" : "novo"); }
+    } else if (portaCb) { const f = portaCb; portaCb = null; f(); }
+    atualizarExtras();
+  }
+  function jogarSemConta() {
+    LS.set("g2_sem_conta", "1"); som("ui_clique");
+    fecharPorta();
+    if (portaCb) { const f = portaCb; portaCb = null; f(); }
+    atualizarExtras();
+  }
+
+  // ---- o ranking: top 20 por EXP total, filtro por classe, atualizado ao abrir (sem nenhum dado da conta)
+  async function carregarRanking(classe = "") {
+    rankFiltro = classe;
+    const n = ++rankPedido, corpo = el("g2RankCorpo"), nota = el("g2RankNota");
+    for (const b of document.querySelectorAll("#g2Filtro button")) b.setAttribute("aria-pressed", b.dataset.c === classe ? "true" : "false");
+    if (!corpo) return;
+    nota.textContent = "Carregando…";
+    const r = await pedir("GET", `/ranking?limite=20${classe ? "&classe=" + classe : ""}`, { comToken: false });
+    if (n !== rankPedido) return;
+    if (!r.ok) { corpo.innerHTML = ""; nota.textContent = r.codigo === "rede" ? "O ranking não carregou (sem conexão com o servidor)." : "O ranking volta em instantes."; return; }
+    const l = r.j.lista || [];
+    const fmt = x => Number(x || 0).toLocaleString("pt-BR");
+    corpo.innerHTML = l.map(p => `<tr class="${p.posicao <= 3 ? "g2-top g2-top" + p.posicao : ""}"><td class="g2-pos">${p.posicao}</td>
+      <td><span class="g2-nome">${esc(p.nome)}</span></td>
+      <td><span class="g2-cls"><i class="g2-selo" style="--c:${SELO[p.classe] ? SELO[p.classe][1] : "#8C8A80"}" aria-hidden="true">${SELO[p.classe] ? SELO[p.classe][0] : "印"}</i>${esc(nomeClasse(p.classe))}</span></td>
+      <td class="g2-nv">${p.nivel}</td><td class="g2-exp">${fmt(p.expTotal)}</td></tr>`).join("");
+    nota.textContent = l.length ? `Atualizado às ${hora(r.j.geradoEm || Date.now())}. Só aparecem os heróis de quem tem conta.` : classe ? `Ainda não há ${nomeClasse(classe)} no ranking.` : "Ainda não há heróis no ranking. Crie uma conta e seja o primeiro!";
+  }
+
+  // ---------------------------------------------------------------- a faixa da lista, as Opções e a janela de aviso
+  function atualizarExtras() {
+    if (!E.montado) return;
+    const f = el("g2Faixa"), ini = el("inicio");
+    if (f && ini) {
+      if (logado()) f.innerHTML = `<span>Conta <b>${esc(E.conta.nome)}</b>: os personagens são salvos na conta.</span><button type="button" class="sc-voltar" data-g2="sair">Sair da conta</button>`;
+      else f.innerHTML = `<span>Seus personagens ficam <b>só neste navegador</b>. Se limpar o navegador ou trocar de computador, eles se perdem.</span><button type="button" class="sc-voltar" data-g2="cadastrar">Criar conta</button><button type="button" class="sc-voltar" data-g2="entrar">Entrar</button>`;
+    }
+    const lin = el("g2OpLinha"), nota = el("g2OpNota");
+    if (lin) {
+      lin.innerHTML = logado() ? `<button id="g2OpSair">Sair da conta</button>` : `<button id="g2OpEntrar">Entrar ou criar conta</button>`;
+      nota.textContent = logado() ? `Conta ${E.conta.nome}: o jogo salva sozinho na conta e neste computador.` : "Jogando sem conta: os personagens ficam só neste navegador.";
+      const s = el("g2OpSair"), e = el("g2OpEntrar");
+      if (s) s.onclick = () => { const f = g("abrirOpcoes"); if (f) f(false); sair(); };
+      if (e) e.onclick = () => { const f = g("abrirOpcoes"); if (f) f(false); abrirPorta({ modo: "entrar", sobre: true }); };
+    }
+    for (const p of document.querySelectorAll("#opcoes p.nota")) if (/Tudo fica salvo neste navegador|salvo na conta e neste/.test(p.textContent))
+      p.textContent = logado() ? "Esc abre e fecha este menu. Tudo fica salvo na conta e neste navegador." : "Esc abre e fecha este menu. Tudo fica salvo neste navegador.";
+  }
+  let modalAberto = null, modalInertes = [];
+  function modal({ id, titulo, texto, botoes = [], aoMontar }) {
+    montar();
+    const M = el("g2Modal");
+    modalAberto = id;
+    M.innerHTML = `<div class="g2-cartao" role="alertdialog" aria-modal="true" aria-labelledby="g2ModalTit"><h3 id="g2ModalTit">${esc(titulo)}</h3>${texto}
+      <p class="g2-msg" id="g2ModalMsg" role="status"></p><div class="g2-acoes">${botoes.map(([t, , pri], i) => `<button type="button" class="${pri ? "sc-escolher" : "g2-bt2"}" data-i="${i}">${esc(t)}</button>`).join("")}</div></div>`;
+    M.hidden = false; M.dataset.id = id;
+    const msg = t => { const m = el("g2ModalMsg"); if (m) m.textContent = t; };
+    M.querySelectorAll("[data-i]").forEach(b => b.onclick = () => botoes[+b.dataset.i][1](b, msg));
+    if (aoMontar) aoMontar(M);
+    for (const x of document.body.children) if (x !== M && x.tagName !== "SCRIPT" && !x.inert) { x.inert = true; modalInertes.push(x); }
+    pausar(true); som("ui_negar", 0.5);
+    setTimeout(() => { const b = M.querySelector("button"); if (b) b.focus({ preventScroll: true }); }, 30);
+  }
+  function fecharModal() {
+    const M = el("g2Modal"); if (M) { M.hidden = true; M.innerHTML = ""; }
+    modalAberto = null;
+    for (const x of modalInertes) x.inert = false;
+    modalInertes = []; pausar(false);
+  }
+
+  // ---------------------------------------------------------------- o HTML e o CSS (só quando a porta ou o envio ligam)
+  function montar() {
+    if (E.montado) return;
+    E.montado = true;
+    const st = document.createElement("style"); st.id = "g2Estilo"; st.textContent = CSS; document.head.appendChild(st);
+    const filtros = [["", "Todas"]].concat(CLASSES_RANK.map(c => [c, nomeClasse(c)]));
+    document.body.insertAdjacentHTML("beforeend", `
+<div class="sel-classe g2-porta g2-v" id="g2Porta" role="dialog" aria-modal="true" aria-labelledby="g2PortaTit" hidden>
+  <header class="sc-topo"><img class="sc-logo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652"><h2 id="g2PortaTit">Bem-vindo à pintura</h2></header>
+  <div class="g2-corpo">
+    <section class="g2-cartao g2-conta" id="g2Conta" aria-label="Sua conta"></section>
+    <section class="g2-cartao g2-rank" aria-labelledby="g2RankTit">
+      <h3 id="g2RankTit">Ranking dos heróis</h3>
+      <div class="g2-filtro" id="g2Filtro" role="group" aria-label="Filtrar por classe">${filtros.map(([c, n]) => `<button type="button" data-c="${c}" aria-pressed="${c === "" ? "true" : "false"}">${esc(n)}</button>`).join("")}</div>
+      <div class="g2-tab-caixa"><table class="g2-tab"><thead><tr><th class="g2-pos">#</th><th>Herói</th><th>Classe</th><th class="g2-nv">Nível</th><th class="g2-exp">EXP total</th></tr></thead><tbody id="g2RankCorpo"></tbody></table></div>
+      <p class="g2-rank-nota" id="g2RankNota" role="status"></p>
+    </section>
+  </div>
+</div>
+<div class="g2-modal g2-v" id="g2Modal" hidden></div>
+<div class="g2-salvo" id="g2Salvo" role="status" aria-live="polite" hidden></div>`);
+    el("g2Filtro").onclick = e => { const b = e.target.closest("button[data-c]"); if (b) { som("ui_clique", 0.5); carregarRanking(b.dataset.c); } };
+    // a faixa na lista dos personagens (abaixo do título) e a parte "Conta" nas Opções
+    const ini = el("inicio");
+    if (ini) {
+      const fx = document.createElement("div"); fx.className = "g2-faixa"; fx.id = "g2Faixa";
+      const topo = ini.querySelector(".sc-topo"); if (topo) topo.after(fx); else ini.prepend(fx);
+      fx.onclick = e => {
+        const b = e.target.closest("[data-g2]"); if (!b) return;
+        if (b.dataset.g2 === "sair") sair();
+        else abrirPorta({ modo: b.dataset.g2 === "cadastrar" ? "cadastrar" : "entrar", sobre: true });
+      };
+    }
+    const notaOp = [...document.querySelectorAll("#opcoes p.nota")].find(p => /Tudo fica salvo neste navegador/.test(p.textContent));
+    if (notaOp) notaOp.insertAdjacentHTML("beforebegin", `<h3>Conta</h3><div class="linha" id="g2OpLinha"></div><p class="nota" id="g2OpNota"></p>`);
+    atualizarExtras();
+  }
+  // com a porta ou a janela de aviso abertas, as teclas não chegam ao jogo (este ouvinte nasce antes dos do jogo)
+  // (o Enter num campo aperta o botão principal do cartão: o evento não chega ao campo, mas digitar e o Tab seguem normais)
+  const segura = e => {
+    if (!(portaAberta() || modalAberto)) return;
+    e.stopImmediatePropagation();
+    const t = e.target;
+    if (e.type === "keydown" && e.key === "Enter" && t && t.tagName === "INPUT" && t.type !== "checkbox") {
+      e.preventDefault();
+      const c = t.closest(".g2-cartao"), b = c && c.querySelector(".sc-escolher");
+      if (b && !b.disabled) b.click();
+    }
+  };
+  addEventListener("keydown", segura, true);
+  addEventListener("keyup", segura, true);
+
+  const CSS = `
+  .g2-v { --sn: #1E1B18; --sp: #EFE4CC; --sp2: #E8DCC0; --sp3: #DDCFAE; --sf: #8C6A3A; --sc: #B8322A; --sj: #3E7A5C; --si: #2D4A6B; --so: #C9963E;
+    --sfibra: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.011 .42' numOctaves='3' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .36 0 0 0 0 .22 1 0 0 0 -.5'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23f)'/%3E%3C/svg%3E"); }
+  .g2-porta { z-index: 46; gap: 8px; }
+  .g2-porta[hidden], .g2-modal[hidden], .g2-salvo[hidden] { display: none !important; }
+  .g2-porta .sc-logo { height: clamp(70px, 14vh, 140px); }
+  .g2-corpo { width: min(1200px, 100%); display: grid; grid-template-columns: minmax(330px, 440px) minmax(420px, 640px); gap: 22px; justify-content: center; align-items: start; }
+  .g2-cartao { position: relative; border: 3px solid var(--sn); border-radius: 4px; padding: 16px 22px 18px; color: var(--sn); font-family: var(--corpo, "Alegreya Sans", sans-serif);
+    background: var(--sfibra), radial-gradient(120% 80% at 50% 0%, #F3EAD6, transparent 70%), linear-gradient(var(--sp), var(--sp2));
+    box-shadow: inset 0 0 0 3px var(--sp), inset 0 0 0 4px var(--sf), 0 14px 30px rgba(0, 0, 0, 0.55); }
+  .g2-cartao, .g2-cartao * { box-sizing: border-box; }
+  .g2-cartao h3 { margin: 0 0 8px; display: flex; align-items: center; gap: 10px; font: 400 26px/1.15 var(--pincel, Georgia, serif); color: var(--sn); }
+  .g2-cartao h3::before { content: "印"; flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 3px; transform: rotate(-5deg);
+    background: var(--sc); color: var(--sp); font: 400 19px/1 var(--selo, serif); }
+  .g2-txt { margin: 0 0 6px; font-size: 16px; line-height: 1.4; color: #3a2f24; }
+  .g2-campo label { display: block; margin: 10px 0 4px; font: 600 12px var(--dados, monospace); letter-spacing: 0.06em; text-transform: uppercase; color: #4a3d30; }
+  .g2-campo input { width: 100%; min-height: 42px; padding: 6px 10px; border: 2px solid var(--sn); border-radius: 3px; background: #F8F2E4; color: var(--sn);
+    font: 500 17px var(--corpo, sans-serif); box-shadow: inset 0 1px 3px rgba(30, 27, 24, 0.2); }
+  .g2-campo input:focus { outline: 3px solid var(--so); outline-offset: 1px; }
+  .g2-dica { margin: 3px 0 0; font-size: 13px; color: #5a4c3c; }
+  .g2-duas { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .g2-caixa { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-size: 16px; line-height: 1.3; cursor: pointer; }
+  .g2-caixa input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--sc); cursor: pointer; }
+  .g2-acoes { display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+  .g2-cartao .sc-escolher { flex: 1; min-width: 0; min-height: 48px; font-size: 22px; }
+  .g2-pe { margin-top: 12px; font-size: 14.5px; color: #4a3d30; }
+  .g2-bt2 { min-height: 38px; padding: 5px 14px; border: 2px solid var(--sn); border-radius: 4px; background: rgba(248, 242, 228, 0.6); color: var(--sn); font: 600 15px var(--corpo, sans-serif); cursor: pointer; }
+  .g2-bt2:hover { background: rgba(30, 27, 24, 0.1); }
+  .g2-link { padding: 2px 0; border: 0; background: none; color: var(--si); font: 600 15px var(--corpo, sans-serif); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .g2-fechar { margin-left: auto; }
+  .g2-cartao :is(button, input):focus-visible { outline: 3px solid var(--so); outline-offset: 2px; }
+  .g2-msg { min-height: 1.35em; margin: 10px 0 0; font-size: 15px; font-weight: 700; color: var(--sc); }
+  .g2-msg.ok { color: var(--sj); }
+  .g2-msg:empty { min-height: 0; margin: 0; }
+  .g2-sem { margin-top: 16px; padding-top: 14px; border-top: 2px dashed rgba(30, 27, 24, 0.35); }
+  .g2-sem p { margin: 8px 0 0; font-size: 14px; line-height: 1.35; color: #4a3d30; }
+  .g2-rank { max-height: calc(100vh - 205px); display: flex; flex-direction: column; min-height: 0; }
+  .g2-filtro { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0 10px; }
+  .g2-filtro button { min-height: 28px; padding: 2px 11px; border: 1.5px solid var(--sn); border-radius: 14px; background: #F8F2E4; color: var(--sn); font: 600 13.5px var(--corpo, sans-serif); cursor: pointer; }
+  .g2-filtro button:hover { background: #fff8ea; }
+  .g2-filtro button[aria-pressed="true"] { background: var(--sn); color: var(--sp); }
+  .g2-tab-caixa { overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+  .g2-tab { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .g2-tab th { position: sticky; top: 0; z-index: 1; padding: 0 6px 5px; border-bottom: 2px solid var(--sn); background: #EDE2C8; text-align: left; font: 600 11px var(--dados, monospace); letter-spacing: 0.06em; text-transform: uppercase; color: #4a3d30; }
+  .g2-tab td { height: 29px; padding: 1px 6px; border-bottom: 1px solid rgba(30, 27, 24, 0.14); }
+  .g2-tab tbody tr:nth-child(even) td { background: rgba(30, 27, 24, 0.035); }
+  .g2-tab .g2-pos { width: 2.4em; text-align: center; font: 700 14px var(--dados, monospace); }
+  .g2-top .g2-pos { color: var(--sp); }
+  .g2-top td.g2-pos { background: radial-gradient(circle at 50% 50%, var(--med) 0 11px, transparent 12px) !important; }
+  .g2-top1 { --med: #C9963E; } .g2-top2 { --med: #8C8A80; } .g2-top3 { --med: #9a5b2e; }
+  .g2-nome { font: 400 18px/1.1 var(--pincel, Georgia, serif); }
+  .g2-cls { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; color: #3a2f24; }
+  .g2-selo { display: grid; place-items: center; width: 22px; height: 22px; flex: none; border-radius: 3px; transform: rotate(-4deg); background: var(--c); color: var(--sp);
+    font: 400 15px/1 var(--selo, serif); font-style: normal; box-shadow: 0 1px 0 rgba(30, 27, 24, 0.5); }
+  .g2-tab .g2-nv { text-align: right; font: 700 14px var(--dados, monospace); color: var(--sc); }
+  .g2-tab .g2-exp { text-align: right; font: 500 13px var(--dados, monospace); color: #4a3d30; }
+  .g2-rank-nota { margin: 8px 0 0; font-size: 13px; color: #5a4c3c; }
+  .g2-porta.g2-sobre { background: rgba(14, 11, 8, 0.86); }
+  .g2-faixa { width: auto; max-width: min(1180px, 100%); display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 12px; padding: 7px 14px;
+    border: 1.5px solid rgba(201, 150, 62, 0.7); border-radius: 4px; background: rgba(30, 27, 24, 0.85); color: #EFE4CC; font-size: 15px; }
+  .g2-faixa b { color: #E3B567; }
+  .g2-faixa .sc-voltar { min-height: 32px; padding: 3px 12px; font-size: 14px; }
+  #inicio.novo .g2-faixa { display: none; }
+  .g2-modal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(10, 8, 6, 0.66); }
+  .g2-modal .g2-cartao { width: min(540px, 100%); }
+  .g2-modal p { margin: 6px 0; font-size: 16.5px; line-height: 1.4; color: #2a2119; }
+  .g2-modal .g2-mini { font-size: 14px; color: #5a4c3c; }
+  .g2-escolha { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0 4px; }
+  .g2-opcao { display: grid; gap: 2px; justify-items: center; padding: 12px 8px; border: 2.5px solid var(--sn); border-radius: 4px; background: #F8F2E4; color: var(--sn); cursor: pointer;
+    box-shadow: 0 3px 0 var(--sn); font-family: var(--corpo, sans-serif); }
+  .g2-opcao:hover { background: #fff8ea; transform: translateY(-1px); }
+  .g2-opcao b { font: 400 21px var(--pincel, Georgia, serif); }
+  .g2-opcao span { font: 700 18px var(--dados, monospace); color: var(--sc); }
+  .g2-opcao small { font-size: 14px; color: #5a4c3c; }
+  /* (ao lado do logo, no alto à esquerda: o meio de cima é da barra do chefe e do nome dele) */
+  .g2-salvo { position: fixed; z-index: 4; top: 22px; left: 182px; padding: 4px 12px; border-radius: 4px; pointer-events: none;
+    background: rgba(20, 16, 12, 0.8); border: 1px solid rgba(201, 150, 62, 0.6); color: #EFE4CC; font: 600 13.5px/1.3 var(--corpo, sans-serif); letter-spacing: 0.01em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); transition: opacity 0.8s; white-space: nowrap; }
+  .g2-salvo.ok { color: #c8eab8; border-color: rgba(120, 190, 120, 0.65); }
+  .g2-salvo.erro { color: #ffcdb2; border-color: rgba(194, 85, 47, 0.85); }
+  .g2-salvo.some { opacity: 0; }
+  :root.modo-admin .g2-salvo { top: 6px; left: 50%; transform: translateX(-50%); }   /* (no admin, o alto à esquerda tem o título e os botões) */
+  @media (max-width: 980px) { .g2-corpo { grid-template-columns: minmax(0, 1fr); } .g2-rank { max-height: none; } }
+  `;
+
+  window.NUVEM = {
+    API,
+    // os ganchos do index (aplicar.py)
+    chaveSave: () => (ativo() ? E.slot.chave : null),
+    chaveArmazem: () => (ativo() ? chaveArm() : null),
+    logado, ativo, ehChave, lista, notaLista, progAtivo, entrar, apagar, criarNoNovo, porta,
+    // o resto (as Opções, os testes)
+    salvarAgora, sair, abrirPorta, fecharPorta, carregarRanking,
+    config: o => Object.assign(CFG, o || {}),
+    diag: () => ({ api: API, logado: logado(), conta: E.conta && E.conta.usuario, slot: E.slot && { ...E.slot }, sessao: E.sessao, tomada: E.tomada, conflito: E.conflito,
+      tokenRuim: E.tokenRuim, imediato: S.imediato, espera: Math.max(0, S.proxTentativa - Date.now()), lista: E.lista.map(p => ({ ...p })), falhas: S.falhas, proxTentativa: S.proxTentativa, comumVersao: S.comum.versao,
+      aviso: el("g2Salvo") ? { txt: el("g2Salvo").textContent, estado: el("g2Salvo").dataset.estado, visivel: !el("g2Salvo").hidden && !el("g2Salvo").classList.contains("some") } : null,
+      porta: portaAberta() ? E.porta && E.porta.modo : null, modal: modalAberto }),
+  };
+})();
+
+</script>
+<script>
 "use strict";
 // ---------------------------------------------------------------- utilidades
 const $ = s => document.querySelector(s);
@@ -7243,6 +8255,7 @@ function cobreViking(x0, y0, x1, y1, ySul) { return cobreAlguem([x0, y0, x1, y1]
 // flores e mato alto, às vezes soltam pétalas e folhinhas (vegParticulas). O mato alto perto de quem anda entra na lista
 // da profundidade (vegLista), em lotes por faixa: fica na frente das pernas de quem está atrás dele; o resto vai no chão.
 const VEG_C = 0.6, vegCache = new Map(), vegAtivas = new Set(), vegParticulas = [];
+let VEG_CACHE_VEZ = 0;                      // (R216: conta as limpezas do cache; o buffer montado aos poucos de antes dela não vale)
 const VEG_PPM = 120;
 // as cores (primavera/verão, outono, inverno): lâmina escura, clara, jade; espiga; caule; folha e folha clara
 const VEG_COR = [
@@ -7284,7 +8297,7 @@ function vegDa(ci, cj) {
     }
     if (v) { v.pl = 0; v.vl = 0; v.pf = 0; v.vf = 0; v.tl = 0; v.tf = 0; v.ci = ci; v.cj = cj; v.alto = v.tipo === "capim" || v.tipo === "samambaia"; }
   }
-  if (vegCache.size > 40000) { vegCache.clear(); vegAtivas.clear(); }
+  if (vegCache.size > 40000) { vegCache.clear(); vegAtivas.clear(); VEG_CACHE_VEZ++; }
   vegCache.set(k, v);
   return v;
 }
@@ -7523,7 +8536,7 @@ function vegGLPintar(cels, t, s) {
 // senos do tempo (uniformes) e, por touceira, o empurrão (pl, pf) e se ela está na lista da profundidade (vegPerto). O shader faz
 // a mesma conta de vegMatriz (vento, inclinação, achatamento) e a projeção da tela. O buffer é refeito quando a vista sai da
 // caixa, o zoom ou a estação mudam. Com VEG_GPU.ligado = false (ou sem o programa), o caminho de antes (vegGLPintar)
-const VEG_GPU = { ligado: true, ok: null, chave: "", caixa: null, cels: [], n: 0, din: new Float32Array(0) };
+const VEG_GPU = { ligado: true, ok: null, chave: "", caixa: null, cels: [], n: 0, din: new Float32Array(0), prox: null, aosPoucos: true, montagens: 0, trocas: 0 };
 function vegGpuIniciar() {
   if (!VEGGL.ok) return false;
   const gl = VEGGL.gl, sh = (tipo, fonte) => { const o = gl.createShader(tipo); gl.shaderSource(o, fonte); gl.compileShader(o); return o; };
@@ -7559,18 +8572,22 @@ precision mediump float; in vec2 uv; uniform sampler2D tx; out vec4 o; void main
   Object.assign(VEG_GPU, { p, vao, bs, bd, u, vaoAntes });
   return true;
 }
-// monta o buffer das células da caixa (com folga), na ordem da profundidade
-function vegGpuMontar(est, A, i0, i1, j0, j1) {
-  const G = VEG_GPU, gl = VEGGL.gl, cels = G.cels; cels.length = 0;
-  for (let j = j1; j >= j0; j--) for (let i = i0; i <= i1; i++) {
-    const v = vegDa(i, j); if (!v) continue;
-    if (est === 3 && !v.alto) continue;
-    if (est === 2 && v.tipo === "flor" && (v.ci + v.cj) % 3) continue;
-    if (!A.quadros[v.tipo][v.q]) continue;
-    if (v.pv === undefined) v.pv = profV(v.x, v.y);
-    cels.push(v);
+// monta o buffer das células da caixa (com folga), na ordem da profundidade. Em passos (R216): uma fileira de células por
+// passo, a ordem num passo e os dados em lotes de 1.024 touceiras; vegGpuMontar faz tudo de uma vez
+function* vegGpuMontarPassos(est, A, i0, i1, j0, j1) {
+  const cels = [];
+  for (let j = j1; j >= j0; j--) {
+    for (let i = i0; i <= i1; i++) {
+      const v = vegDa(i, j); if (!v) continue;
+      if (est === 3 && !v.alto) continue;
+      if (est === 2 && v.tipo === "flor" && (v.ci + v.cj) % 3) continue;
+      if (!A.quadros[v.tipo][v.q]) continue;
+      if (v.pv === undefined) v.pv = profV(v.x, v.y);
+      cels.push(v);
+    }
+    yield;
   }
-  cels.sort((a, b) => b.pv - a.pv);
+  cels.sort((a, b) => b.pv - a.pv); yield;
   const n = cels.length, D = new Float32Array(n * 20);
   for (let k = 0; k < n; k++) {
     const v = cels[k], qd = A.quadros[v.tipo][v.q], o = k * 20, b1 = v.x * 0.45 + v.y * 0.28, b2 = v.x * 1.3 - v.y * 0.7, b3 = v.x * 0.06 - v.y * 0.03, b4 = v.x * 3;
@@ -7579,10 +8596,20 @@ function vegGpuMontar(est, A, i0, i1, j0, j1) {
     D[o + 8] = qd.w; D[o + 9] = qd.h; D[o + 10] = qd.px; D[o + 11] = qd.py;
     D[o + 12] = Math.sin(b1); D[o + 13] = Math.cos(b1); D[o + 14] = Math.sin(b2); D[o + 15] = Math.cos(b2);
     D[o + 16] = Math.sin(b3); D[o + 17] = Math.cos(b3); D[o + 18] = Math.sin(b4); D[o + 19] = Math.cos(b4);
+    if ((k & 1023) === 1023) yield;
   }
-  gl.bindBuffer(gl.ARRAY_BUFFER, G.bs); gl.bufferData(gl.ARRAY_BUFFER, D, gl.STATIC_DRAW);
+  return { cels, D, caixa: [i0, i1, j0, j1] };
+}
+// o buffer pronto vai para a GPU e passa a valer
+function vegGpuUsar(r) {
+  const G = VEG_GPU, gl = VEGGL.gl, n = r.cels.length;
+  gl.bindBuffer(gl.ARRAY_BUFFER, G.bs); gl.bufferData(gl.ARRAY_BUFFER, r.D, gl.STATIC_DRAW);
   if (G.din.length < n * 4) G.din = new Float32Array(Math.ceil(n * 1.3) * 4);
-  G.n = n; G.caixa = [i0, i1, j0, j1];
+  G.cels = r.cels; G.n = n; G.caixa = r.caixa;
+}
+function vegGpuMontar(est, A, i0, i1, j0, j1) {
+  const g = vegGpuMontarPassos(est, A, i0, i1, j0, j1); let r; do r = g.next(); while (!r.done);
+  vegGpuUsar(r.value); VEG_GPU.montagens++;
 }
 function vegGpuPintar(t, s, mx0, mx1, my0, my1) {
   if (!VEG_GPU.ligado || !VEGGL.ok || (window.M3D && M3D.ativo)) return false;
@@ -7592,8 +8619,21 @@ function vegGpuPintar(t, s, mx0, mx1, my0, my1) {
   if (VEGGL.de !== A.cv) { gl.bindTexture(gl.TEXTURE_2D, VEGGL.tx); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, A.cv); VEGGL.de = A.cv; G.chave = ""; }
   const i0 = Math.floor(mx0 / VEG_C), i1 = Math.ceil(mx1 / VEG_C), j0 = Math.floor(my0 / VEG_C), j1 = Math.ceil(my1 / VEG_C), c = G.caixa;
   const chave = est + "|" + A.cv.width;
+  const f = Math.ceil(5 / VEG_C);
   if (G.chave !== chave || !c || i0 < c[0] || i1 > c[1] || j0 < c[2] || j1 > c[3]) {
-    const f = Math.ceil(5 / VEG_C); vegGpuMontar(est, A, i0 - f, i1 + f, j0 - f, j1 + f); G.chave = chave;
+    G.prox = null; vegGpuMontar(est, A, i0 - f, i1 + f, j0 - f, j1 + f); G.chave = chave;
+  } else if (G.aosPoucos) {
+    // DESEMPENHO (R216, rodada 4): a vista chegou a meia folga da borda da caixa: o buffer seguinte, centrado na vista, é
+    // montado aos poucos (até ~0,7 ms por quadro) e troca quando fica pronto, antes de a vista sair da caixa. Era montado
+    // inteiro no quadro em que a vista saía (~6 ms aqui, ~15 ms com a CPU do usuário). O desenho é o mesmo: a caixa só
+    // decide quais touceiras fora da tela vão no buffer, e a ordem das da tela não muda
+    if (!G.prox && (i0 - c[0] < f / 2 || c[1] - i1 < f / 2 || j0 - c[2] < f / 2 || c[3] - j1 < f / 2))
+      G.prox = { g: vegGpuMontarPassos(est, A, i0 - f, i1 + f, j0 - f, j1 + f), chave, vez: VEG_CACHE_VEZ };
+    if (G.prox) {
+      const t0 = performance.now(); let r; do r = G.prox.g.next(); while (!r.done && performance.now() - t0 < 0.7);
+      if (r.done) { const q = G.prox, b = r.value.caixa; G.prox = null;
+        if (q.chave === chave && q.vez === VEG_CACHE_VEZ && i0 >= b[0] && i1 <= b[1] && j0 >= b[2] && j1 <= b[3]) { vegGpuUsar(r.value); G.trocas++; } }
+    }
   }
   // o que muda por quadro: o empurrão e quem está na lista da profundidade (perto de quem anda)
   const n = G.n, D = G.din, cels = G.cels;
@@ -10774,7 +11814,7 @@ let ordemBarra = [], arrastoSlot = null;
 function ordemSalva() {
   const nomes = SKILLS.map(sk => sk.nome);
   let o = null;
-  try { o = JSON.parse(localStorage.getItem("barra_" + classe)); } catch (e) {}
+  try { o = JSON.parse(localStorage.getItem("barra_" + ((window.NUVEM && NUVEM.chaveSave()) || classe))); } catch (e) {}
   if (Array.isArray(o)) o = o.map(n => RENOMES[n] || n);
   if (Array.isArray(o) && o.length === 10) o = [...Array(10).fill(null), ...o];   // a barra de 10 de antes vira a de baixo
   if (!Array.isArray(o) || o.length !== TECLAS_BARRA.length) o = TECLAS_BARRA.map((_, i) => i === 0 ? "item:pocao" : i === 1 ? "item:pocaoMana" : nomes[i - 10] || null);
@@ -10782,7 +11822,7 @@ function ordemSalva() {
   for (const n of nomes) if (!o.includes(n)) { const i = o.indexOf(null, 10); if (i >= 0) o[i] = n; }   // skill nova: primeiro espaço livre de baixo
   return o;
 }
-function salvarOrdem() { try { localStorage.setItem("barra_" + classe, JSON.stringify(ordemBarra)); } catch (e) {} }
+function salvarOrdem() { try { localStorage.setItem("barra_" + ((window.NUVEM && NUVEM.chaveSave()) || classe), JSON.stringify(ordemBarra)); } catch (e) {} }
 function skillDoSlot(i) { return itemDaBarra(ordemBarra[i]) || SKILLS.find(sk => sk.nome === ordemBarra[i]) || null; }
 function usarSlot(i) { const sk = skillDoSlot(i); if (sk) sk.usar(); }
 const PAGINAS_BARRA = [[10, 11, 12, 13, 14, 0, 1, 2, 3, 4], [15, 16, 17, 18, 19, 5, 6, 7, 8, 9]];
@@ -11554,7 +12594,7 @@ function carregarProgresso() {
 }
 // (salvarTravado: com a tela de seleção aberta, e ao trocar de classe por ela, o personagem da tela não é gravado)
 let salvarTravado = false;
-const chaveSave = () => classe === "aprendiz" ? "aprendiz_" + VOCACAO : classe;   // (R165: o aprendiz tem um save por vocação)
+const chaveSave = () => (window.NUVEM && NUVEM.chaveSave()) || (classe === "aprendiz" ? "aprendiz_" + VOCACAO : classe);   // (com conta: o espaço, nuvem.js)   // (R165: o aprendiz tem um save por vocação)
 function salvarProgresso() { try { if (prog && !salvarTravado) localStorage.setItem("progresso_" + chaveSave(), JSON.stringify(prog)); } catch (e) {} }
 const POR_PONTO = { staminaVit: 0.01, defMagInt: 2, esquivaDex: 0.001 };   // (R146: +1% de velocidade da stamina, +2 de defesa mágica e +0,1% de esquiva por ponto)
 function recalcularStatus() {
@@ -12023,7 +13063,7 @@ function migrarPocoes(p) {
   recalcularStatus();
   const troca = converterPocoesAntigas(p.inv, status.vidaMax, status.manaMax);
   for (const [de, para] of Object.entries(troca)) if (para !== de) {
-    try { const o = JSON.parse(localStorage.getItem("barra_" + classe)); if (Array.isArray(o) && o.includes("item:" + de)) localStorage.setItem("barra_" + classe, JSON.stringify(o.map(n => n === "item:" + de ? "item:" + para : n))); } catch (e) {}
+    try { const o = JSON.parse(localStorage.getItem("barra_" + ((window.NUVEM && NUVEM.chaveSave()) || classe))); if (Array.isArray(o) && o.includes("item:" + de)) localStorage.setItem("barra_" + ((window.NUVEM && NUVEM.chaveSave()) || classe), JSON.stringify(o.map(n => n === "item:" + de ? "item:" + para : n))); } catch (e) {}
   }
 }
 function recuperarM2(v) {
@@ -13158,6 +14198,7 @@ function posicionarJanela(j) {
   const w = el.offsetWidth || p.w || 100, h = el.offsetHeight || 40;
   const x = Math.max(0, Math.min(innerWidth - Math.min(w, innerWidth), p.x)), y = Math.max(0, Math.min(innerHeight - Math.min(h, 60), p.y));
   Object.assign(el.style, { position: "fixed", left: x + "px", top: y + "px", right: "auto", bottom: "auto", transform: "none", margin: "0", zIndex: "3" });
+  if (["npcJan", "ferreiro", "janelas", "questsJan", "admin"].includes(j.id)) el.style.maxHeight = Math.max(200, innerHeight - y - 92 - 32) + "px";   // (R220: arrastada, cabe até a barra de baixo)
   if (j.id === "bolsa" || j.id === "armazem") realinharGrades();                     // (a grade de novo em pixel inteiro)
 }
 function aplicarJanelas() {
@@ -15550,10 +16591,10 @@ function iconeBio(g, desenho, w, h) {
 // ele que o livro do arqueiro achado pelo viking chega ao arqueiro. Abre falando com o Senhor do Armazém, na vila
 const ARM_ABAS = 3, ARM_CHAVE = "armazem1";
 let armazem = null, abaArm = 0;
-function lerArmazem() { if (armazem) return armazem; try { armazem = JSON.parse(localStorage.getItem(ARM_CHAVE)); } catch (e) {} if (!armazem || !Array.isArray(armazem.inv)) armazem = { inv: [], yang: 0, pocoesM2: 1 }; renomearItens(armazem.inv);
+function lerArmazem() { if (armazem) return armazem; try { armazem = JSON.parse(localStorage.getItem((window.NUVEM && NUVEM.chaveArmazem()) || ARM_CHAVE)); } catch (e) {} if (!armazem || !Array.isArray(armazem.inv)) armazem = { inv: [], yang: 0, pocoesM2: 1 }; renomearItens(armazem.inv);
   if (!armazem.pocoesM2) { armazem.pocoesM2 = 1; converterPocoesAntigas(armazem.inv, (prog && status.vidaMax) || 1000, (prog && status.manaMax) || 500); }   // (R184: as poções guardadas antes dos tamanhos)
   return armazem; }
-function salvarArmazem() { try { localStorage.setItem(ARM_CHAVE, JSON.stringify(armazem)); } catch (e) {} }
+function salvarArmazem() { try { localStorage.setItem((window.NUVEM && NUVEM.chaveArmazem()) || ARM_CHAVE, JSON.stringify(armazem)); } catch (e) {} }
 function armazemAberto() { return !$("#armazem").hidden; }
 function abrirArmazem(sim = $("#armazem").hidden) {
   $("#armazem").hidden = !sim; janelaAbriu("armazem", sim);
@@ -16370,6 +17411,18 @@ function htmlDica(it, extra = {}) {
 }
 function criaturasDaRaca(r) { return [...new Set(Object.values(TIPOS).filter(c => c && c.nome && !c.estatico && racaDe(c) === r).map(c => c.nome))]; }
 // mostra a dica (it, perto do ponto x, y; sem it, esconde). Os ícones das Jóias saem pintados nos canvas dos buracos
+// R220 (03/11): a dica sempre inteira dentro da tela. Ela era medida ainda no lugar anterior: encostada na borda direita, a caixa
+// (largura pelo conteúdo) encolhia, a conta achava que cabia e o texto saía cortado. Agora mede no canto (0, 0), com a largura
+// de verdade, vira para a esquerda/para cima do cursor quando não cabe e, no fim, fica presa à tela (4 px de folga)
+function posicionarDica(d, x, y) {
+  d.style.left = "0px"; d.style.top = "0px";
+  const r = d.getBoundingClientRect(), w = Math.min(r.width || 220, innerWidth - 8), h = Math.min(r.height || 200, innerHeight - 8);
+  let px = x + 16, py = y + 12;
+  if (px + w > innerWidth - 4) px = x - w - 12;
+  if (py + h > innerHeight - 4) py = y - h - 12;
+  px = Math.max(4, Math.min(innerWidth - 4 - w, px)); py = Math.max(4, Math.min(innerHeight - 4 - h, py));
+  d.style.left = px + "px"; d.style.top = py + "px";
+}
 function mostrarDica(it, x, y, extra) {
   const d = $("#dicaItem");
   d._skill = null;
@@ -16381,11 +17434,7 @@ function mostrarDica(it, x, y, extra) {
     for (const c of d.querySelectorAll("canvas[data-joia]")) { const g = c.getContext("2d"); g.scale(c.width / 32, c.height / 32); iconeBuraco(g, c.dataset.joia, c.dataset.grau); }
   }
   d.hidden = false;
-  const r = d.getBoundingClientRect(), w = r.width || 220, h = r.height || 200;
-  let px = x + 16, py = y + 12;
-  if (px + w > innerWidth - 4) px = Math.max(4, x - w - 12);
-  if (py + h > innerHeight - 4) py = Math.max(4, y - h - 12);
-  d.style.left = px + "px"; d.style.top = py + "px";
+  posicionarDica(d, x, y);
 }
 // o buraco da dica: moldura escura e a Jóia (ou a Pedra Partida) dentro, com o grau
 function iconeBuraco(g, chave, grau) {
@@ -17379,11 +18428,7 @@ function dicaSkill(nome, x, y) {
   const chave = "sk|" + classe + "|" + nome + "|" + nivelSkill(nome) + "|" + (prog && prog.pontosSkill) + "|" + Math.round(status.ataque * 100) + "|" + (prog && prog.nivel) + "|" + (status.atrib ? ORDEM_ATRIB.map(k => status.atrib[k]).join() : "");
   if (d._chave !== chave || d.hidden) { d.className = "dica-item m2"; d.innerHTML = htmlDicaSkill(nome); d._chave = chave; }
   d._skill = nome; d.hidden = false;
-  const r = d.getBoundingClientRect(), w = r.width || 220, h = r.height || 260;
-  let px = x + 16, py = y + 12;
-  if (px + w > innerWidth - 4) px = Math.max(4, x - w - 12);
-  if (py + h > innerHeight - 4) py = Math.max(4, y - h - 12);
-  d.style.left = px + "px"; d.style.top = py + "px";
+  posicionarDica(d, x, y);
 }
 let abaSkills = "corpo";                                   // (a aba da janela de skills: "corpo" ou "montaria")
 function acoesFicha() {
@@ -17468,11 +18513,7 @@ function dicaAtrib(k, x, y) {
   const chave = "atrib|" + k + "|" + classe;
   if (d._chave !== chave || d.hidden) { const [a, b] = dicaAtribTexto(k); d.className = "dica-item m2"; d.innerHTML = `<div class="fixo">${escH(a)}</div><div class="cinza">${escH(b)}</div><div class="at-ctrl">Ctrl + clique: +10 pontos</div>`; d._chave = chave; }
   d._skill = "atrib:" + k; d.hidden = false;
-  const r = d.getBoundingClientRect(), w = r.width || 220, h = r.height || 80;
-  let px = x + 16, py = y + 12;
-  if (px + w > innerWidth - 4) px = Math.max(4, x - w - 12);
-  if (py + h > innerHeight - 4) py = Math.max(4, y - h - 12);
-  d.style.left = px + "px"; d.style.top = py + "px";
+  posicionarDica(d, x, y);
 }
 function abrirFicha(sim = $("#ficha").hidden) {
   $("#ficha").hidden = !sim; janelaAbriu("ficha", sim);
@@ -22176,12 +23217,19 @@ function rotaCache() {
 // estavam no cache). A cada passo, até ROTA_AQUECE células em volta do herói (de dentro para fora, até 24 m) entram no cache:
 // a mesma conta da busca (livre no centro e a 20 cm para os 4 lados). Recomeça quando o herói anda mais de 12 m. O resultado
 // das buscas não muda (o cache só guarda o que a busca calcularia)
-let ROTA_AQUECE = 40;
+// R218 (rodada 4): o centro do aquecimento vai ROTA_FRENTE m à frente do herói, na direção em que ele anda (a média do
+// deslocamento dos últimos passos); parado, nele mesmo. Recomeça quando esse ponto anda mais de 8 m. As células na frente,
+// onde as próximas criaturas vão buscar rota, ficam prontas antes
+let ROTA_AQUECE = 40, ROTA_FRENTE = 8;
+const ROTA_RUMO = { x: 0, y: 0, vx: 0, vy: 0, ok: false };
 function rotaAquecer() {
   if (!ROTA_OK.ligado || !ROTA_AQUECE) return;
-  const m = rotaCache(), G = PASSO_GRADE, R = Math.round(24 / G);
+  const m = rotaCache(), G = PASSO_GRADE, R = Math.round(24 / G), M = ROTA_RUMO;
+  if (M.ok) { const dx = viking.x - M.x, dy = viking.y - M.y; if (Math.hypot(dx, dy) < 2) { M.vx = M.vx * 0.9 + dx * 0.1; M.vy = M.vy * 0.9 + dy * 0.1; } }
+  M.x = viking.x; M.y = viking.y; M.ok = true;
+  const vv = Math.hypot(M.vx, M.vy), fx = vv > 0.01 && ROTA_FRENTE ? viking.x + M.vx / vv * ROTA_FRENTE : viking.x, fy = vv > 0.01 && ROTA_FRENTE ? viking.y + M.vy / vv * ROTA_FRENTE : viking.y;
   let A = ROTA_OK.aq;
-  if (!A || Math.hypot(viking.x - A.x, viking.y - A.y) > 12) A = ROTA_OK.aq = { x: viking.x, y: viking.y, ci: Math.round(viking.x / G), cj: Math.round(viking.y / G), r: 0, k: 0 };
+  if (!A || Math.hypot(fx - A.x, fy - A.y) > (ROTA_FRENTE ? 8 : 12)) A = ROTA_OK.aq = { x: fx, y: fy, ci: Math.round(fx / G), cj: Math.round(fy / G), r: 0, k: 0 };
   for (let n = 0; n < ROTA_AQUECE && A.r <= R; ) {
     const r = A.r, lado = 2 * r || 1, tot = r ? 4 * lado : 1;             // (o anel r: 8r células; o 0 é uma)
     if (A.k >= tot) { A.r++; A.k = 0; continue; }
@@ -24284,9 +25332,14 @@ function poseHeroi(z, atrasado = false) {
   if (!im) return null;
   return { src: im, sx: q * info.w, sy: 0, sw: info.w, sh: info.h, esq: info.px * z, cima: info.py * z, w: info.w * z, h: info.h * z };
 }
-// a silhueta da pose numa cor só (um canvas reaproveitado, no tamanho da tela)
-const silHeroi = { cv: null };
+// a silhueta da pose numa cor só (um canvas reaproveitado, no tamanho da tela). DESEMPENHO (R217, rodada 4): a mesma pose
+// na mesma cor no mesmo quadro do atlas sai do canvas já pronto, sem ler o atlas WebGL de novo (os cavalos do estábulo
+// usam a sombra do herói: eram 1 + 1 por cavalo leituras do atlas por quadro, ~65 ms/s perto do estábulo com a CPU dele)
+const silHeroi = { cv: null, chave: null, usos: 0, feitas: 0, ligado: true };
 function silhuetaPose(pose, cor) {
+  const S0 = silHeroi, q = typeof P3D === "object" && pose.src === P3D.render?.domElement ? P3D.quadro : -1, K = S0.chave;
+  if (S0.ligado && S0.cv && K && K.src === pose.src && K.q === q && K.sx === pose.sx && K.sy === pose.sy && K.sw === pose.sw && K.sh === pose.sh && K.w === pose.w && K.h === pose.h && K.cor === cor) { S0.usos++; return S0.cv; }
+  S0.chave = { src: pose.src, q, sx: pose.sx, sy: pose.sy, sw: pose.sw, sh: pose.sh, w: pose.w, h: pose.h, cor }; S0.feitas++;
   const cv2 = silHeroi.cv || (silHeroi.cv = document.createElement("canvas")), w = Math.max(1, Math.ceil(pose.w)), h = Math.max(1, Math.ceil(pose.h));
   if (cv2.width < w || cv2.height < h) { cv2.width = Math.max(cv2.width, w); cv2.height = Math.max(cv2.height, h); }
   const g = cv2.getContext("2d");
@@ -24921,7 +25974,7 @@ async function escolherSel(op = {}) {
 }
 // entra com a classe c: a que já tem personagem continua de onde parou; a nova nasce na Vila 1 só com o baú
 function entrarComClasse(c, op = {}) {
-  const salvo = op.novo ? null : progressoSalvoDe(c);                 // (op.novo: começar do zero, mesmo já tendo personagem)
+  const salvo = op.novo ? null : window.NUVEM && NUVEM.ativo() ? NUVEM.progAtivo() : progressoSalvoDe(c);                 // (op.novo: começar do zero, mesmo já tendo personagem)
   salvarTravado = true;                                                // (o personagem que estava na tela não é regravado)
   if (c !== classe) trocarClasse(c);
   if (!salvo) {
@@ -25038,17 +26091,19 @@ montarSelecao();
 // sobe ao Altar das Eras (na ilha a oeste da Vila 1) e escolhe uma das classes da vocação. O save fica em progresso_aprendiz_<vocacao> e, ao
 // confirmar, vira progresso_<classe>. Quem já tem classe segue como está (sem prog.vocacao, a regra de pontos de sempre)
 function vocacaoDaClasse(c) { return Object.keys(VOCACOES).find(k => VOCACOES[k].classes.includes(c)) || null; }
-function classeOcupada(c) { return !!progressoSalvoDe(c); }
+function classeOcupada(c) { if (window.NUVEM && NUVEM.logado()) return false; return !!progressoSalvoDe(c); }   // (com conta, a classe pode repetir)
 function vocacaoLivre(v) { return VOCACOES[v].classes.some(c => !classeOcupada(c)); }
-function progressoAprendizDe(v) { try { const p = JSON.parse(localStorage.getItem("progresso_aprendiz_" + v)); return p && p.atrib ? p : null; } catch (e) { return null; } }
+function progressoAprendizDe(v) { if (window.NUVEM && NUVEM.logado()) return null; try { const p = JSON.parse(localStorage.getItem("progresso_aprendiz_" + v)); return p && p.atrib ? p : null; } catch (e) { return null; } }
 // os personagens deste navegador (a lista da tela inicial; com o login, ela vem da conta)
 function listaPersonagens() {
+  if (window.NUVEM && NUVEM.logado()) return NUVEM.lista();                     // (com conta: os 4 espaços da conta, nuvem.js)
   const l = [];
   for (const c of CLASSES_SELECAO) { const p = progressoSalvoDe(c); if (p) l.push({ chave: c, classe: c, nome: p.nome || NOME_CLASSE[c], titulo: NOME_CLASSE[c], nivel: p.nivel || 1, mapa: p.mapa, img: c }); }
   for (const v of Object.keys(VOCACOES)) { const p = progressoAprendizDe(v); if (p) l.push({ chave: "aprendiz_" + v, classe: "aprendiz", vocacao: v, nome: p.nome || "Aprendiz", titulo: "Aprendiz · " + VOCACOES[v].nome, nivel: p.nivel || 1, mapa: p.mapa, img: "aprendiz" }); }
   return l;
 }
 function apagarPersonagem(chave) {
+  if (window.NUVEM && NUVEM.ehChave(chave)) return NUVEM.apagar(chave);         // (com conta, nuvem.js)
   try { localStorage.removeItem("progresso_" + chave); localStorage.removeItem("jornada_" + chave); if (localStorage.getItem("classe") === chave) localStorage.removeItem("classe"); } catch (e) {}
   if (chave === chaveSave()) SEL.semVolta = true;                       // (o personagem da tela foi apagado: sem "Voltar ao jogo")
 }
@@ -25071,7 +26126,7 @@ function desenharInicio(aba) {
   $("#inTitulo").textContent = "Seus personagens";
   $("#inNovo").hidden = false; $("#inLista").hidden = true;
   $("#inVoltar").hidden = !SEL.deMenu || !!SEL.semVolta;
-  $("#inNota").textContent = "Cada navegador guarda um personagem por classe.";
+  $("#inNota").textContent = window.NUVEM && NUVEM.logado() ? NUVEM.notaLista() : "Cada navegador guarda um personagem por classe.";
   corpo.className = "ic-corpo ic-lista";
   corpo.innerHTML = lista.map(p => `<article class="ic-perso" data-chave="${p.chave}"><figure><img src="selecao/${p.img}.webp" alt="" decoding="async"></figure>` +
     `<div class="ic-txt"><h3>${escH(p.nome)}</h3><p>${escH(p.titulo)}</p><p class="ic-nv">Nível ${p.nivel} · ${escH((MAPAS[p.mapa] || MAPAS.vila1).nome)}</p></div>` +
@@ -25089,7 +26144,7 @@ function inicioEntrar(f) {
 }
 // entra com o aprendiz da vocação v: o que já existe continua; o novo nasce na Vila 1 só com o baú
 function entrarAprendiz(v, op = {}) {
-  const salvo = op.novo ? null : progressoAprendizDe(v);
+  const salvo = op.novo ? null : window.NUVEM && NUVEM.ativo() ? NUVEM.progAtivo() : progressoAprendizDe(v);
   salvarTravado = true;
   trocarClasse("aprendiz", v);
   if (!salvo) {
@@ -25104,6 +26159,7 @@ function entrarAprendiz(v, op = {}) {
   else avisar(`Bem-vindo de volta, ${prog.nome || "Aprendiz"}!`);
 }
 function entrarPersonagem(chave) {
+  if (window.NUVEM && NUVEM.ehChave(chave)) return NUVEM.entrar(chave);         // (com conta, nuvem.js)
   if (chave.startsWith("aprendiz_")) entrarAprendiz(chave.slice(9));
   else entrarComClasse(chave);
 }
@@ -25457,6 +26513,7 @@ const NOVO = (() => {
   function criar() {
     if (!ativo || SEL.escolhendo) return SEL.escolhendo || null;
     const v = ORDEM[sel];
+    if (window.NUVEM && NUVEM.logado()) return NUVEM.criarNoNovo(v);              // (com conta, nuvem.js)
     if (progressoAprendizDe(v)) return inicioEntrar(() => entrarAprendiz(v));
     if (!vocacaoLivre(v)) return null;
     const n = limparNome($("#npNome").value), erro = validarNome(n);
@@ -25544,9 +26601,12 @@ function confirmarClasse(c) {
   if (npcAberto) abrirNpc(null);
   salvarTravado = true;
   try {
+    if (window.NUVEM && NUVEM.ativo()) localStorage.setItem("progresso_" + chaveSave(), JSON.stringify(p));   // (com conta: o mesmo espaço, nuvem.js)
+    else {
     localStorage.setItem("progresso_" + c, JSON.stringify(p));
     const jn = localStorage.getItem("jornada_aprendiz_" + v); if (jn) localStorage.setItem("jornada_" + c, jn);
     localStorage.removeItem("progresso_aprendiz_" + v); localStorage.removeItem("jornada_aprendiz_" + v);
+    }
   } catch (e) {}
   trocarClasse(c);
   salvarTravado = false;
@@ -26088,7 +27148,7 @@ function montarIntro() {
   $("#oHistoria").onclick = () => { abrirOpcoes(false); abrirIntro(); };
 }
 montarIntro();
-if (INICIO_NOVO) { if (introNaPrimeira()) abrirIntro({ aoFim: () => abrirInicio() }); else abrirInicio(); }   // (R165)
+if (INICIO_NOVO) { const abrirPorta = () => window.NUVEM ? NUVEM.porta(() => abrirInicio()) : abrirInicio(); if (introNaPrimeira()) abrirIntro({ aoFim: abrirPorta }); else abrirPorta(); }   // (R165; a porta da conta, nuvem.js)
 else if (SELECAO_NO_INICIO) { if (introNaPrimeira()) abrirIntro({ aoFim: () => abrirSelecao() }); else abrirSelecao(); }   // (antes de tudo: o mundo carrega por baixo; na 1ª vez, a história antes)
 carregar().then(() => {
   montarCenario(); carregarMapa(); montarCriaturas(); montarPainel(); montarEditor();
