@@ -1535,7 +1535,7 @@
         <dt>Feiticeiro</dt><dd>ataca de longe (até 8,5 m) com a bola arcana, que sai da esfera do cajado e persegue o alvo. A esfera pulsa do violeta ao azul e solta faíscas; enquanto ele conjura, a magia é sugada para dentro dela</dd>
         <dt>1 · 2 · 3 (feiticeiro)</dt><dd>Relâmpago: um raio da esfera até o alvo, que salta para mais duas criaturas por perto (recarga de 5 s). Chuva de Meteoros: mire no chão e clique onde ela deve cair; bolas de fogo caem do céu num círculo de 3,4 m (12 s). Erupção Arcana: bate o cajado no chão, um círculo de runas se abre em volta dele e colunas de luz coloridas sobem da terra, ferindo tudo até 3,6 m (9 s). Buffs (60 s): Olho Arcano, +25% de chance de crítico (o crítico dobra o dano e sai em amarelo); Poder Arcano, +35% de dano das magias</dd>
         <dt>P · Q · R · X</dt><dd>ficha do personagem (nome, nível, experiência, atributos, skills e bolsa) · as quests ativas · Poção Vermelha (+40% de vida) · Poção Azul (+40% de mana). Cada skill gasta mana (a INT aumenta a mana; ela volta 2% por segundo). Cada criatura dá exp pelo nível dela, como no Metin2; cada nível dá 3 pontos para VIT (vida e defesa), INT (magia), FOR (força) e DEX (destreza e crítico), como no Metin2. As pedras Ghotin (Tristeza Nv 5, Batalha Nv 10, Ganância Nv 15; quanto maior o nível, maior a pedra e o raio das trevas em volta dela, onde as criaturas ficam amaldiçoadas: +30% de vida, +20% de dano, +25% de EXP e de drop) aparecem pelo mapa com defensores, chamam hordas quando apanham e, quebradas, soltam livros de skill da sua classe, poções e yang: o livro sobe a skill (1 a 10, depois M1 a M10), com chance de falhar</dd>
-        <dt>Cavernas</dt><dd>como no Tibia: há um buraco com escada ao norte, na beira da mata. Pisando nele você desce para a Caverna dos Ratos (escura, com tochas; os ratos vivem em bandos grandes). A escada perto da entrada leva de volta</dd>
+        <dt>Cavernas</dt><dd>como no Tibia: há um buraco com escada logo fora do portão sul, perto do treino. Pisando nele você desce para a Caverna dos Ratos (escura, com tochas; os ratos vivem em bandos grandes). A escada perto da entrada leva de volta</dd>
         <dt>U · M</dt><dd>Mapa do Mundo em tela cheia (também no menu e clicando no minimapa): o mapa inteiro visto de cima, com cada grupo de mobs na cor do nível (verde, baixo, até vermelho e roxo), chefes, pedras Ghotin, dungeons e você; rodinha para o zoom, arrastar para mover, "Exportar imagem" grava um PNG. Com "Editar": a aba Mobs move, cria, muda e apaga grupos; a aba Mapa põe, move, gira e apaga decoração, pinta árvores, pedras e grama com o pincel e pinta o chão e o relevo do mundo 3D. Fica salvo neste navegador; ao fechar, o jogo é remontado</dd>
         <dt>O</dt><dd>editor de mapa: mover, pôr e apagar árvores, pedras e o resto das decorações, e ajustar o círculo de colisão de cada tipo. Fica salvo neste navegador; "Copiar mapa" gera o texto para mandar e virar o mapa fixo do jogo</dd>
         <dt>T</dt><dd>trocar entre o viking, o arqueiro e o feiticeiro (botões no topo). O arqueiro atira de longe (até 9 m): tira a flecha da aljava, puxa a corda e solta; a flecha voa até o alvo marcado</dd>
@@ -4902,7 +4902,7 @@ function alvosAmbiente(dt) {
   let mata = 0;                                                           // quanto de mata em volta (9 pontos até 5 m)
   for (let k = 0; k < 9; k++) { const an = k * 0.785, r = k === 8 ? 0 : 5; if (floresta(v.x + Math.cos(an) * r, v.y + Math.sin(an) * r)) mata++; }
   mata /= 9;
-  const dv = Math.hypot(v.x - VILA.x, v.y - VILA.y), vila = NPCS.length ? Math.max(0, Math.min(1, 1 - (dv - 9) / 14)) : 0;
+  const dv = Math.hypot(v.x - VILA.x, v.y - VILA.y), vila = NPCS.length ? Math.max(0, Math.min(1, 1 - (dv - 30) / 14)) : 0;
   a.vila_loop = vila * (0.35 + 0.65 * dia) * (1 - 0.5 * chuva);
   a.floresta_loop = dia * mata * seco;
   a.campo_loop = 0;                                                 // (o zumbido de insetos do campo incomodava: desligado)
@@ -5457,14 +5457,7 @@ const ALTURA = 0.8;                       // 1 m de altura sobe 0,8 m na tela (c
 const PRACA = { x: 0, y: -9, r: 4.6 };    // campo de treino
 const LAGO = { x: -21, y: -10, r: 4.6 };
 const FOGO = { x: 4.4, y: -6.2 };
-const ESTRADAS = [
-  [[0, -9], [0.3, -5], [0, -0.6]],                                              // treino → ponte do castelo
-  [[0, -9], [6, -10.5], [15, -9], [24, -12], [33, -10], [40, -11]],             // treino → leste
-  [[0, -9], [-7, -9.5], [-14, -8], [-17, -9.5]],                                // treino → lago
-  [[0, -9], [1.5, -17], [6, -26], [8, -36]],                                    // treino → sul
-  [[-2, -2], [-12, -2], [-22, 3], [-30, 8]],                                    // ao longo do fosso, oeste
-  [[2, -2], [12, -2], [22, 2], [30, 9]],                                        // ao longo do fosso, leste
-];
+const ESTRADAS = [];                                                  // (as da Vila 1 logo abaixo, com a largura de cada uma em .meia; as da Vila Hahoe entram depois)
 
 // ---------- o castelo (medidas da foto de referência, na escala do viking de 1,5 m) ----------
 const CAST = { x0: -13, x1: 13, y0: 4, y1: 26, T: 1.4, H: 4.6 };                // muralha: faces de fora, espessura, altura
@@ -5472,25 +5465,21 @@ const DENTRO = { x0: CAST.x0 + CAST.T, x1: CAST.x1 - CAST.T, y0: CAST.y0 + CAST.
 const FOSSO = { x0: -17.6, x1: 17.6, y0: -0.6, y1: 30.6, larg: 3.2, raio: 5 };
 // o castelo (muralha, fosso, ponte, prédios e telhados) fica fora do mapa por enquanto; true o traz de volta
 const COM_CASTELO = false;
-if (!COM_CASTELO) { ESTRADAS.splice(4, 2); ESTRADAS.splice(0, 1); }      // as estradas que iam até ele
-// o mapa cresceu 1,6× a partir da praça: trilhas, lago, bandos, pedras Metin e o buraco da caverna se afastam juntos
-// (as coordenadas continuam escritas na escala antiga e passam por noMapa)
-const ESC_MAPA = 1.6;
-const noMapa = ([x, y]) => [PRACA.x + (x - PRACA.x) * ESC_MAPA, PRACA.y + (y - PRACA.y) * ESC_MAPA];
-for (const e of ESTRADAS) for (let k = 1; k < e.length; k++) e[k] = noMapa(e[k]);
+// a Vila 1 maior (02/11/2026, Logs/Mapas/vila1_maior/PLANO.md): a costa, os lugares e as estradas ×ESC_V1 (a terra dobra); a
+// cidade cresce mais (cidade.json v6, 84 × 70 m). noMapa: as coordenadas antigas (a escala de antes, 1,6× a partir da praça
+// velha) no mundo de hoje. kV1: o ruído das manchas de mata da Vila 1 acompanha o terreno (as árvores foram junto)
+const ESC_V1 = 1.4, ESC_MAPA = 1.6;
+const noMapa = ([x, y]) => [ESC_V1 * (PRACA.x + (x - PRACA.x) * ESC_MAPA), ESC_V1 * (PRACA.y + (y - PRACA.y) * ESC_MAPA)];
+const kV1 = (x, y) => x > -350 && x < 240 && y > -350 && y < 350 ? 1 / ESC_V1 : 1;
 // a vila (o centrinho): ao norte da praça, com uma trilha até ela
-const VILA = { x: 2, y: 9, r: 17 };
-ESTRADAS.push([[PRACA.x, PRACA.y], [1.4, -1.5], [2, 4.2]]);
-ESTRADAS.push([[64, -12.2], [76, -9], [88, -6], [100, -4]]);                       // a estrada do leste até o Vale dos Orcs
+const VILA = { x: 2, y: 14, r: 46 };
 // a estrada da Montanha Gelada (o mapa dela, MAPAS.montanha, em volta de (−700, 0)): do portal de volta (o acampamento
 // da base, a oeste) até o alto, passando pela área do Nove Caudas
 const ESTRADA_MONTE = [[-734, -1.5], [-728, -3], [-722, -7.5], [-712, -3], [-700, 0], [-688, 1]];
-// a estrada do portal: continua a do sul (do portão da cidade) pelas Terras do Sul até o portal da Vila Hahoe, na ponta
-// do cabo (V1_PORTAL, 3 m depois do fim dela: o herói que volta da Vila Hahoe aparece em cima da estrada)
-const ESTRADA_PORTAL = [[12.8, -52.2], [10.5, -64], [5, -77], [-1, -91], [-6, -105], [-10.5, -119], [-13.5, -132], [-15, -144], [-15, -153]];
-ESTRADAS.push(ESTRADA_PORTAL);
-ESTRADAS.push([[-27, -8.5], [-31, 6], [-36, 22], [-42, 31], [-48.4, 36.4]]);   // (R165: a trilha, da estrada do lago até a ponte do Altar das Eras)
-[LAGO.x, LAGO.y] = noMapa([LAGO.x, LAGO.y]); LAGO.r *= 1.25;
+// as estradas da Vila 1: a principal (portão sul → portal da Vila Hahoe, 7 m), a do portão leste ao Vale Vermelho, a do portão
+// oeste à ponte do Altar das Eras e a da saída sul pelo treino e pelo lago até a do altar (5 m). pts: o eixo; meia: a meia largura
+for (const { meia, pts } of [{"meia":3.5,"pts":[[2,-23],[2,-38],[13.4,-55],[17.9,-75],[14.7,-89.6],[7,-107.8],[-1.4,-127.4],[-8.4,-147],[-14.7,-166.6],[-18.9,-184.8],[-21,-201.6],[-21.0,-220.0]]},{"meia":2.5,"pts":[[45,11],[60,12],[78,3],[92,-12],[106.4,-12.6],[123.2,-8.4],[140,-5.6]]},{"meia":2.5,"pts":[[-41,11],[-52,15],[-60,34],[-67.18,55.15]]},{"meia":2.5,"pts":[[2,-29],[-10,-29],[-24,-37],[-44,-30],[-46,-6],[-52,15]]}]) { pts.meia = meia; ESTRADAS.push(pts); }
+LAGO.x = -58; LAGO.y = -12; LAGO.r = 7.2;   // (a oeste da muralha nova)
 const PONTE_LEV = { x0: -1.7, x1: 1.7, y0: -1.0, y1: 4.2 };
 const PORTAO = { x0: -1.8, x1: 1.8 };
 const PAREDE = { T: 0.45, H: 3.2 };                                            // paredes de dentro
@@ -5532,14 +5521,14 @@ const dentroRet = (x, y, r, folga = 0) => x > r.x0 - folga && x < r.x1 + folga &
 const desvioCosta = a => Math.sin(a * 5) * 1.8 + Math.sin(a * 11) * 0.8 + Math.sin(a * 3 + 1) * 1.3;
 // o Vale dos Orcs: a costa avança VALE_E m a leste, num arco de ±VALE_W rad (uma península larga, de terra vermelha,
 // ligada à ilha pela estrada do leste). A ilha continua "estrelada" a partir do centro: a costa é um raio por ângulo
-const VALE_E = 50, VALE_W = 0.65, VALE_X = 70;
+const VALE_E = 50, VALE_W = 0.65, VALE_X = 98;
 // a Montanha Gelada (27/10/2026) saiu da Vila 1 e virou um mapa próprio (MAPAS.montanha), com o portal na Vila Hahoe. O
 // mapa dela fica em volta de (−700, 0) (Logs/Mapas/PROJETO_MAPAS.md 4.3: a oeste, longe das dungeons em x > 240 e da
 // Ilha de Daiyu, guardada para (0, −700)): os pontos de antes, 840 m para oeste (MONTE_BANDOS); o relevo (terraFirme)
 // sobe para leste como subia a partir de MONTE_X. A Vila 1
 // termina no Vale Vermelho: do arco da montanha (±0,42 rad) ficou só o fundo do vale, até FUNDO_VALE m (o vale termina
 // redondo em x ~130, e os grupos do fundo dele continuam em terra)
-const MONTE_X = 121, FUNDO_VALE = 14;
+const MONTE_X = 169.4, FUNDO_VALE = 14;
 // as Terras do Sul (a Vila 1 maior, 26/10/2026; Logs/Mapas/PROJETO_MAPAS.md 6): a costa avança LOBO_E m para o
 // sul-sudoeste num arco largo (±LOBO_W rad em volta de LOBO_A) e, na ponta, num cabo estreito (CABO_*), onde fica o
 // portal da Vila Hahoe (V1_PORTAL). A cidade fica no norte da ilha e a estrada desce do portão sul até o fim do mapa,
@@ -5561,15 +5550,15 @@ const VOCACOES = {
   trevas: { nome: "Mestres das Trevas", classes: ["shura", "feiticeiro"], frase: "O poder proibido: a lâmina amaldiçoada ou as magias de área." },
   dragao: { nome: "Filhos do Dragão", classes: ["xama"], frase: "O leque do dragão, o raio e a cura. A outra era ainda não despertou." },
 };
-const ALTAR = { U: -96, V: 0, z: 8, ilha: { rx: 22, ry: 17.5, cb: 1 }, esc: { meia: 3.5, b0: -9, mureta: 0.8 }, topo: { meia: 10, b0: 5, b1: 20, bal: 0.5 }, colina: { ra: 16.4, rb: 11.7, cb: 2.7 },
+const ALTAR = { U: -122.5, V: 0, z: 8, ilha: { rx: 22, ry: 17.5, cb: 1 }, esc: { meia: 3.5, b0: -9, mureta: 0.8 }, topo: { meia: 10, b0: 5, b1: 20, bal: 0.5 }, colina: { ra: 16.4, rb: 11.7, cb: 2.7 },
   lances: [[-9, 0], [-2.46, 4.9], [0.87, 4.9], [5, 8]], ponte: { b: -8.5, meia: 2.3, a0: 15, a1: 36, g0: 15.8, g1: 35.2, baixa: 2.66, perfil: [[0, 1.08], [1.8, 1], [3.5, 0.85], [5.3, 0.7], [6.5, 0.55], [8, 0.2], [9.4, 0.05], [10.5, 0]] }, npc: [0, 10.5],
   templo: { b: 16.2, meia: 3.9, b0: 14 }, ordem: ["viking", "guerreiro", "arqueiro", "ninja", "shura", "feiticeiro", "xama", null] };
 // as artes da ilha, em deco_b/altar (Tools/deco3d/altar/render_tudo.py): o pé de cada uma na imagem e os px por metro
 const ALTAR_PECAS = {"templo":{"px":410.0,"py":598.6,"ppm":100},"ponte":{"px":1110.0,"py":608.3,"ppm":100},"ponte_frente":{"px":1110.0,"py":608.3,"ppm":100},"estatua_viking":{"px":95.0,"py":225.5,"ppm":100},"estatua_guerreiro":{"px":95.0,"py":192.4,"ppm":100},"estatua_arqueiro":{"px":95.0,"py":197.8,"ppm":100},"estatua_ninja":{"px":95.0,"py":174.0,"ppm":100},"estatua_shura":{"px":95.0,"py":193.8,"ppm":100},"estatua_feiticeiro":{"px":95.0,"py":189.4,"ppm":100},"estatua_xama":{"px":95.0,"py":190.4,"ppm":100},"ilha":{"px":629.5,"py":981,"ppm":38.1}};
 const altarMundo = (a, b) => { const u = a + ALTAR.U, v = b + ALTAR.V; return [(u + v) * Math.SQRT1_2, (v - u) * Math.SQRT1_2]; };
 const altarLocal = (x, y) => [(x - y) * Math.SQRT1_2 - ALTAR.U, (x + y) * Math.SQRT1_2 - ALTAR.V];
-const naZonaAltar = (x, y) => x < -38 && y > 28 && x > -115 && y < 115;
-const bordaV1 = (x, y) => { const a = Math.atan2(y, x); return Math.hypot(x, y) + desvioCosta(a) - extraCosta(a); };
+const naZonaAltar = (x, y) => x < -56.7 && y > 46.7 && x > -133.7 && y < 133.7;
+const bordaV1 = (x, y) => { const a = Math.atan2(y, x); return Math.hypot(x, y) + ESC_V1 * (desvioCosta(a) - extraCosta(a) - RAIO) + RAIO; };
 // o pedaço de chão em (x, y) tem o bloco do patamar? (ele é pintado subido, por cima do mar atrás da ilha)
 const altarNoPedaco = (x, y) => { if (!naZonaAltar(x, y)) return false; const [a, b] = altarLocal(x, y); return Math.abs(a) < ALTAR.topo.meia + 7 && b > ALTAR.topo.b0 - 5 && b < ALTAR.topo.b1 + 16; };
 function borda(x, y) { if (y > 350) return bordaMapa(MAPAS.hahoe, x, y); if (y < -350) return bordaMapa(MAPAS.daiyu, x, y); if (x < -350) return bordaMapa(MAPAS.montanha, x, y); const b = bordaV1(x, y); return naZonaAltar(x, y) ? Math.min(b, bordaAltar(x, y)) : b; }   // (a Vila Hahoe, em (0, 700): bordaMapa)
@@ -5577,7 +5566,7 @@ function borda(x, y) { if (y > 350) return bordaMapa(MAPAS.hahoe, x, y); if (y <
 const pesoMonte = (x, y) => x < -350 ? 1 : 0;
 const pesoVale = (x, y) => y < -350 ? 0 : liso((x - VALE_X) / 8) * (1 - pesoMonte(x, y));   // (a ponta leste da Ilha de Daiyu não é o vale)
 function praca(x, y) { if (y > 350) return Math.hypot(x - PRACA_H.x, y - PRACA_H.y) < PRACA_H.r; return (!(CIDADE && CIDADE.treino) && Math.hypot(x - PRACA.x, y - PRACA.y) < PRACA.r) || ruaCidade(x, y); }   // (com ?cidade=1, as vias da cidade; o treino vai para o lado)   // (com ?cidade=1, as ruas de pedra também)
-function estrada(x, y) { for (const e of ESTRADAS) if (distLinha(x, y, e) < 0.8 + (ruido2(x * 0.7, y * 0.7) - 0.5) * 0.35) return true; return false; }
+function estrada(x, y) { for (const e of ESTRADAS) if (distLinha(x, y, e) < (e.meia || 0.8) + (ruido2(x * 0.7, y * 0.7) - 0.5) * 0.35) return true; return false; }
 const trilha = estrada;
 const raioLago = a => LAGO.r + Math.sin(a * 3) * 0.5 + Math.sin(a * 7) * 0.25;
 function lago(x, y, folga = 0) { if (y > 350) return rioH(x, y, folga); const dx = x - LAGO.x, dy = (y - LAGO.y) * 1.15; return Math.hypot(dx, dy) < raioLago(Math.atan2(dy, dx)) + folga; }   // (na Vila Hahoe, o "lago" é o rio: margens, juncos e vitórias-régias vêm junto)
@@ -5596,12 +5585,12 @@ function noCastelo(x, y, folga = 0) { return COM_CASTELO && dentroRet(x, y, CAST
 // também separa as dungeons (as criaturas fora do mapa do herói dormem: passo). Cada mapa novo é montado na 1ª visita
 // (montarMapa: árvores, construções, NPCs, bandos e Metins). Os portais (PORTAIS) ligam os mapas.
 const MAPAS = {
-  vila1: { id: "vila1", nome: "Vale do Viking", sub: "a cidade e os arredores", niveis: [1, 15], ox: 0, oy: 0, raio: RAIO, montado: true },
+  vila1: { id: "vila1", nome: "Vale do Viking", sub: "a cidade e os arredores", niveis: [1, 15], ox: 0, oy: 0, raio: RAIO * ESC_V1, montado: true },
   hahoe: { id: "hahoe", nome: "Vila Hahoe", sub: "da Curva do Rio", niveis: [15, 45], ox: 0, oy: 700, raio: 62, montado: false },
   // a Montanha Gelada (42–50; o portal fica no Desfiladeiro da Vila Hahoe): o centro em (−700, 0), ver MONTE_X
   montanha: { id: "montanha", nome: "Montanha Gelada", sub: "o passo do Desfiladeiro", niveis: [42, 50], ox: -700, oy: 0, raio: 46, montado: false },
 };
-MAPAS.vila1.rCosta = a => RAIO - desvioCosta(a) + extraCosta(a);
+MAPAS.vila1.rCosta = a => ESC_V1 * (RAIO - desvioCosta(a) + extraCosta(a));
 // a caixa da costa da Vila 1 (a ilha com o vale e as Terras do Sul): o minimapa, o Mapa do Mundo e a grade
 // das árvores cobrem só ela
 const CAIXA_V1 = (() => {
@@ -5818,7 +5807,7 @@ function floresta(x, y) {
   if (x > VALE_X - 4 || x < -350) return false;                         // o vale e a montanha são abertos
   const c = distClareira(x, y);
   if (c < 0) return false;
-  return fbm(x * 0.07 + 3, y * 0.07 - 2) > 0.55 + 0.2 * Math.max(0, 1 - c / 5) && Math.hypot(x - PRACA.x, y - PRACA.y) > 10 && (!COM_CASTELO || retArred(x, y, FOSSO) > 4);
+  return fbm(x * kV1(x, y) * 0.07 + 3, y * kV1(x, y) * 0.07 - 2) > 0.55 + 0.2 * Math.max(0, 1 - c / 5) && Math.hypot(x - PRACA.x, y - PRACA.y) > 10 && (!COM_CASTELO || retArred(x, y, FOSSO) > 4);
 }
 // clareiras: um campo aberto de CLAREIRA_R m em volta de cada bando (e das pedras Metin, que aparecem nas mesmas regiões),
 // para lutar e andar sem esbarrar em árvore. Distância (m) da borda da clareira mais perto; negativa = dentro
@@ -5901,7 +5890,7 @@ let contornoGrama = null;
 const tmpChao = document.createElement("canvas");             // camada da mistura, reaproveitada entre pedaços
 const liso = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
 function pesoMusgo(x, y) {
-  const f = fbm(x * 0.07 + 3, y * 0.07 - 2), dp = Math.hypot(x - PRACA.x, y - PRACA.y);
+  const f = fbm(x * kV1(x, y) * 0.07 + 3, y * kV1(x, y) * 0.07 - 2), dp = Math.hypot(x - PRACA.x, y - PRACA.y);
   const mata = liso((f - 0.5) / 0.08) * liso((dp - 9) / 2);
   const manchas = fbm(x * 0.22 + 31, y * 0.22 - 17);
   return Math.max(mata, 0.7 * liso((manchas - 0.6) / 0.08)) * (1 - pesoVale(x, y) - pesoMonte(x, y));
@@ -5910,7 +5899,7 @@ function pesoMusgo(x, y) {
 function neveMonte(x, y) { return liso((fbm(x * 0.11 + 3, y * 0.11 - 8) - 0.4) / 0.14); }
 function pesoTerra(x, y) {
   let w = 0;
-  for (const e of ESTRADAS) w = Math.max(w, liso((1.15 - distLinha(x, y, e) - (ruido2(x * 0.7, y * 0.7) - 0.5) * 0.45) / 0.5));
+  for (const e of ESTRADAS) if (!e.meia) w = Math.max(w, liso((1.15 - distLinha(x, y, e) - (ruido2(x * 0.7, y * 0.7) - 0.5) * 0.45) / 0.5));   // (as da Vila 1 são a terra batida: pintarTerra)
   if (lago(x, y, 1.9)) w = Math.max(w, lago(x, y, 1.0) ? 1 : 0.6);
   w = Math.max(w, 0.85 * liso((borda(x, y) - (RAIO - 5)) / 1.6));
   w = Math.max(w, liso((PRACA.r + 1.7 - Math.hypot(x - PRACA.x, y - PRACA.y)) / 1.3));
@@ -6835,6 +6824,8 @@ function porNaGrade(o) {
 }
 function vazio(x, y, dist) { return !objetos.some(o => !o.ret && Math.hypot(o.x - x, o.y - y) < dist + o.r); }
 
+// (tipo: 0 árvore, 1 pinheiro, 2 arbusto, 3 pedra, 4 tronco, 5 toco; x, y, esc, tom, flor)
+const V1_VEG = [[0,-38.0,-143.21,1.16,-8.0,0],[1,-4.3,-196.87,1.22,-3.5,0],[1,-44.02,78.67,1.04,1.8,0],[0,14.95,66.93,1.19,-0.6,0],[1,-75.08,-6.23,1.02,0.3,0],[0,-67.8,-81.73,1.17,7.8,0],[1,-63.67,-116.73,1.32,5.8,0],[1,-28.24,-133.46,1.03,3.8,0],[1,55.01,-48.69,1.39,-5.2,0],[0,64.99,-97.71,0.98,1.7,0],[1,-29.36,-131.29,1.07,-0.7,0],[0,6.51,-145.63,1.24,1.6,0],[0,-17.89,58.06,1.08,-2.5,0],[0,-9.73,-53.63,1.31,0.1,0],[0,-43.78,-143.63,0.95,2.4,0],[0,82.29,-17.68,1.23,6.1,0],[0,19.82,59.74,1.25,-3.9,0],[1,61.28,39.63,0.94,-1.2,0],[1,-85.09,-155.12,0.9,3.6,0],[1,-33.21,-119.32,1.01,-4.0,0],[0,-26.89,-137.09,1.32,-6.5,0],[1,31.86,-182.67,0.93,5.3,0],[1,-81.77,-77.03,1.03,0.5,0],[0,22.41,-54.74,1.34,3.8,0],[0,-5.45,-51.28,1.1,-0.7,0],[0,-63.7,-47.24,1.11,-7.6,0],[0,-47.52,-146.8,1.03,-0.8,0],[0,59.05,-68.1,1.22,-6.1,0],[0,44.44,-136.36,1.15,-4.0,0],[1,-59.99,-40.96,1.12,2.6,0],[0,61.94,-101.7,1.26,-3.9,0],[1,-65.11,-120.81,0.9,-0.1,0],[0,-60.66,-130.48,1.01,-4.6,0],[1,-26.73,-110.88,1.02,-0.6,0],[0,-24.16,81.79,1.05,7.6,0],[1,76.68,-18.26,1.32,-3.1,0],[1,-17.0,-52.84,1.39,3.3,0],[1,-16.38,-136.05,1.38,0.1,0],[0,59.02,-142.6,1.09,-3.5,0],[0,14.18,58.17,0.94,-7.0,0],[0,-59.43,-168.48,1.05,5.0,0],[1,42.74,-75.81,1.19,-0.8,0],[1,-60.58,-119.83,0.97,-2.5,0],[0,-61.84,-132.2,1.01,-6.9,0],[0,19.05,-199.51,1.34,-0.7,0],[0,49.99,-79.79,1.29,-4.2,0],[0,-87.07,-11.58,0.93,2.7,0],[0,62.78,-97.29,1.31,0.6,0],[0,-6.86,-45.74,1.09,-2.8,0],[0,52.35,-55.16,1.35,0.9,0],[1,-72.77,-180.54,1.33,1.6,0],[1,-81.62,-21.66,0.99,-2.5,0],[0,-31.51,-135.76,0.99,-6.1,0],[1,-43.61,-109.45,1.23,2.0,0],[1,-28.35,74.48,1.14,-5.2,0],[0,-40.89,64.3,0.93,-8.0,0],[0,-37.34,-141.34,1.11,-3.4,0],[1,49.07,34.55,0.98,0.8,0],[1,-30.88,-96.04,1.23,-1.7,0],[0,28.48,-36.18,0.93,-2.9,0],[1,64.39,-26.7,1.25,4.1,0],[0,26.39,-47.77,1.12,-6.6,0],[0,50.85,-172.35,1.12,2.0,0],[1,-87.72,-151.77,1.05,2.8,0],[0,-49.71,-123.13,1.09,2.6,0],[1,-80.65,-74.51,1.03,0.3,0],[0,8.74,59.23,1.17,6.1,0],[1,34.58,-167.43,1.06,4.5,0],[0,-37.67,62.01,1.29,1.3,0],[0,54.85,-72.49,1.18,6.6,0],[0,14.77,-170.11,1.15,3.8,0],[0,-23.32,-144.06,1.07,1.1,0],[0,-37.66,57.34,1.35,-5.6,0],[1,-21.97,66.85,1.13,-3.3,0],[1,-70.6,-180.54,1.15,2.7,0],[0,55.78,-138.81,1.26,2.5,0],[0,-20.19,63.08,0.97,-5.5,0],[0,-9.73,-50.39,1.05,6.2,0],[1,-59.79,-43.81,1.26,0.4,0],[0,-47.56,-142.79,1.14,-3.3,0],[1,-69.75,-182.53,0.94,-1.1,0],[0,73.63,25.79,1.08,3.7,0],[1,16.62,-154.13,0.9,-1.4,0],[1,-25.8,66.93,1.37,-4.0,0],[1,73.5,-23.45,1.4,-5.0,0],[1,59.28,-52.68,1.05,-4.2,0],[1,-68.35,32.93,1.03,-2.7,0],[0,23.84,59.49,1.26,2.1,0],[1,-11.84,-207.2,1.28,-4.5,0],[1,-47.21,-154.31,1.32,2.4,0],[1,-26.59,-133.27,1.39,-2.2,0],[0,-9.6,-43.41,1.18,-6.9,0],[0,-40.59,-118.68,1.2,-5.9,0],[0,20.43,62.69,1.18,1.5,0],[1,-53.23,-205.53,1.37,-1.9,0],[0,8.85,56.8,0.98,-0.7,0],[1,64.15,-60.33,0.98,-2.7,0],[1,-86.59,-5.45,1.29,-5.1,0],[1,-72.35,20.99,1.19,-3.8,0],[0,57.97,-99.33,0.97,-2.9,0],[1,-25.97,-168.94,1.23,4.1,0],[0,-54.95,-165.93,1.03,-0.4,0],[1,-8.97,-197.53,1.28,-0.3,0],[1,-76.97,-15.33,1.08,-2.5,0],[0,59.82,-109.19,1.22,-3.1,0],[0,-36.65,77.57,0.93,-3.1,0],[1,-35.1,71.41,0.9,-0.2,0],[1,-31.14,-105.87,1.27,3.4,0],[0,-3.33,-59.39,1.06,-6.9,0],[0,-21.15,80.29,1.26,-3.9,0],[0,59.11,-101.96,1.08,1.9,0],[1,12.36,-197.82,1.34,-4.9,0],[1,-32.77,-68.47,1.28,5.8,0],[0,-14.34,57.2,1.32,1.3,0],[1,70.07,-24.5,0.9,-4.2,0],[1,-37.32,-114.03,1.03,-1.6,0],[1,-41.16,-43.93,1.02,2.5,0],[0,27.16,-45.63,1.05,-7.6,0],[1,51.97,38.39,1.09,1.1,0],[1,-23.55,-99.54,1.15,0.2,0],[1,-28.48,-70.08,1.32,5.6,0],[0,-27.97,79.17,1.17,1.8,0],[1,-32.54,-89.98,0.99,3.3,0],[0,-15.26,68.67,1.09,0.8,0],[0,59.46,-97.79,1.34,6.4,0],[0,-71.05,-82.35,0.99,-6.2,0],[0,50.11,41.99,1.01,-4.1,0],[1,70.56,-26.03,1.27,-4.3,0],[0,0.46,-161.35,1.11,-1.6,0],[0,-66.88,-79.3,0.91,6.4,0],[1,0.63,-151.19,1.2,-4.0,0],[0,1.08,-170.32,1.16,-3.1,0],[0,25.7,63.13,1.19,-2.6,0],[1,-60.13,-178.64,1.2,-1.7,0],[0,-34.8,54.29,1.35,-3.1,0],[0,-5.59,-52.71,1.16,-7.7,0],[0,-44.88,-190.89,1.25,-6.7,0],[0,42.01,-101.71,1.15,-6.2,0],[1,-21.08,-134.54,1.04,2.6,0],[0,-25.48,-140.92,1.23,-0.2,0],[0,-71.69,-53.55,1.23,-6.2,0],[1,-47.54,76.82,1.33,0.8,0],[0,-97.93,-82.61,1.23,5.2,0],[1,-75.05,-179.87,0.85,1.3,0],[0,0.49,-167.97,0.91,-4.8,0],[1,-40.1,-90.47,1.37,2.0,0],[1,93.44,-43.33,1.4,2.0,0],[0,-33.47,-113.25,0.96,7.8,0],[1,-75.59,-75.38,1.15,4.4,0],[1,-34.15,-178.26,1.02,-3.4,0],[1,-83.01,-1.65,1.39,5.4,0],[0,-26.45,63.76,0.92,6.4,0],[0,-59.77,13.06,0.93,4.1,0],[0,6.02,-165.7,1.3,1.4,0],[1,64.95,33.74,0.95,-5.0,0],[0,-38.26,-100.02,1.15,0.6,0],[0,-16.81,63.88,1.04,7.1,0],[1,79.53,-28.5,0.95,-4.9,0],[1,-65.72,-131.14,1.26,-2.3,0],[0,-28.06,-140.63,1.22,4.8,0],[0,68.64,-64.83,1.24,2.2,0],[0,-15.5,67.33,1.05,7.9,0],[1,-90.22,-146.97,1.28,-2.3,0],[1,62.17,-62.33,1.33,0.1,0],[1,-65.18,-128.94,1.39,4.2,0],[1,18.76,-161.08,1.32,-4.3,0],[0,-33.43,-108.96,1.19,-6.9,0],[1,6.43,-213.71,0.86,3.1,0],[0,-31.12,63.07,1.26,1.2,0],[1,-28.34,-126.18,1.39,5.2,0],[0,27.33,-111.89,1.29,0.8,0],[0,65.02,-49.92,1.17,-2.0,0],[0,-62.55,-172.49,1.04,-5.4,0],[1,-58.41,-158.16,1.13,0.6,0],[0,-60.56,-128.38,1.16,3.3,0],[0,-58.28,-140.66,1.28,-0.6,0],[1,-39.73,69.34,1.05,-4.6,0],[0,-43.92,-192.86,1.02,-5.3,0],[1,-28.49,68.6,1.17,1.3,0],[1,-43.05,-149.35,0.95,5.3,0],[0,99.57,14.91,1.31,7.7,0],[1,-26.91,-109.24,1.31,1.3,0],[1,-82.8,-81.68,0.91,2.0,0],[1,-59.44,-115.82,1.0,0.6,0],[1,15.6,-150.26,1.36,1.8,0],[0,-59.5,-120.95,0.93,6.5,0],[0,63.84,-71.67,1.21,-4.2,0],[1,-53.14,-109.94,1.34,1.5,0],[0,-30.34,-141.12,1.15,-2.8,0],[1,87.01,-35.32,0.97,5.2,0],[1,-84.42,0.35,1.32,3.9,0],[1,-46.48,32.44,1.27,-4.9,0],[1,-21.32,-105.03,1.09,-1.2,0],[0,-12.96,69.01,1.29,2.6,0],[1,-87.23,-161.55,1.08,-5.8,0],[1,62.1,38.65,1.28,-5.9,0],[0,-96.28,-129.01,1.24,-3.7,0],[2,-93.7,-113.99,1.06,3.5,0],[2,-92.64,-144.12,0.79,1.3,0],[2,-91.76,-8.13,0.94,5.0,1],[2,-89.94,-115.0,1.06,-2.3,1],[2,-89.6,-86.3,1.06,-1.0,1],[2,-89.19,1.69,0.95,0.4,1],[2,-87.19,-9.53,0.78,-5.3,0],[2,-85.58,-7.88,0.77,7.5,0],[2,-84.97,-1.55,0.89,5.2,1],[2,-81.97,-12.03,0.95,0.3,0],[2,-79.46,-149.95,0.96,-2.5,0],[2,-79.49,-77.83,0.86,4.5,1],[2,-80.29,-10.3,0.77,1.3,1],[2,-79.83,12.75,0.89,1.0,0],[2,-76.65,-99.76,1.09,-3.2,0],[2,-78.04,-72.44,0.73,-6.0,0],[2,-77.38,-10.68,0.73,7.6,1],[2,-78.06,34.71,0.83,7.1,0],[2,-74.0,-99.61,0.96,-4.0,0],[2,-74.06,-86.52,0.9,0.7,0],[2,-74.63,-77.71,0.91,1.4,0],[2,-70.76,-124.1,0.92,3.8,1],[2,-69.1,-85.13,0.77,6.0,1],[2,-69.44,-67.91,0.88,-5.3,1],[2,-69.69,36.93,0.89,-6.5,1],[4,-67.4,-175.48,1,0,0],[2,-64.62,-174.92,0.74,1.8,0],[2,-64.4,-126.0,1.03,3.2,0],[2,-64.5,-123.91,0.71,-6.7,0],[2,-64.46,-116.21,0.88,-4.0,1],[2,-65.72,-80.53,0.75,3.5,0],[2,-66.14,32.27,1.06,1.1,0],[2,-61.84,-180.26,0.97,-5.2,0],[2,-61.94,-169.93,0.99,-5.1,0],[5,-61.78,-151.77,1,0,0],[2,-60.89,-175.2,1.08,1.9,0],[2,-60.56,-172.03,0.83,-1.6,0],[5,-60.21,-161.59,1,0,0],[2,-59.92,-143.68,1.01,1.5,0],[2,-60.56,-138.61,0.96,-1.2,0],[5,-59.84,-37.98,1,0,0],[2,-56.98,-164.09,1.01,4.8,0],[2,-58.6,-143.74,0.75,6.6,0],[2,-58.59,-123.8,0.89,3.8,0],[2,-56.91,-121.77,0.83,1.5,1],[2,-58.49,-118.69,0.84,-4.8,0],[2,-54.43,-163.41,0.87,-7.6,1],[2,-55.47,-123.0,0.79,-3.0,0],[2,-55.68,-118.62,0.9,-6.2,1],[2,-52.53,-177.56,1.03,5.5,0],[2,-53.8,-173.18,0.75,2.5,0],[2,-52.07,-158.12,0.89,5.7,0],[2,-53.37,-122.21,0.85,6.1,0],[2,-52.86,-119.28,0.82,5.9,0],[2,-52.35,73.58,1.02,3.1,0],[2,-51.45,-142.69,0.76,-5.9,1],[2,-50.22,-111.93,0.71,5.5,0],[2,-51.25,-108.53,0.95,-4.0,1],[2,-47.57,-113.74,0.81,3.7,0],[2,-47.22,-109.51,0.77,0.2,1],[2,-45.92,-141.54,0.78,-4.7,0],[2,-46.0,-113.96,0.78,-0.2,0],[2,-46.19,25.28,1.07,5.9,0],[2,-44.62,35.97,0.93,-7.6,1],[5,-42.57,-66.91,1,0,0],[2,-39.96,-143.71,0.96,1.2,0],[5,-40.94,-116.84,1,0,0],[2,-40.88,-104.24,1.04,4.0,0],[2,-40.82,-100.14,0.89,2.4,1],[2,-39.83,-94.4,0.74,3.7,1],[2,-40.53,59.32,0.98,7.2,0],[2,-41.08,67.98,0.96,0.7,0],[2,-38.36,-148.89,0.86,4.9,1],[2,-38.98,-116.56,1.07,-1.4,0],[2,-38.28,-92.44,0.79,4.4,0],[2,-37.48,-63.34,1.04,4.3,0],[4,-37.25,60.63,1,0,0],[2,-37.42,76.37,0.8,5.7,1],[2,-35.0,-114.3,1.05,3.8,0],[2,-36.47,-106.96,0.82,-7.2,0],[2,-36.5,-94.16,0.97,1.7,0],[2,-35.69,-71.61,1.03,1.6,0],[2,-36.5,69.3,0.72,-5.7,1],[5,-33.71,-142.09,1,0,0],[2,-32.86,-135.45,0.87,2.5,0],[2,-33.01,-111.36,1.0,3.6,0],[2,-32.59,-102.86,0.97,-1.1,1],[2,-34.02,-98.84,0.85,-3.4,1],[2,-32.68,65.6,0.77,-6.0,1],[2,-33.46,73.71,0.98,0.8,0],[2,-33.4,80.07,0.85,0.6,1],[5,-30.44,-147.9,1,0,0],[2,-31.64,-137.75,0.86,-7.1,0],[2,-31.32,-93.88,0.84,-2.7,1],[2,-30.06,64.58,1.06,3.3,0],[5,-30.98,67.02,1,0,0],[2,-29.93,81.33,1.09,-7.0,0],[2,-28.0,-148.96,0.8,4.7,0],[2,-27.57,-146.58,1.07,-2.8,0],[2,-28.43,-137.06,1.09,-0.2,0],[2,-28.5,-95.23,0.78,-0.5,0],[2,-27.83,54.75,0.84,-6.4,0],[2,-27.47,60.51,0.84,6.7,0],[2,-28.27,76.45,0.83,-3.5,0],[2,-25.47,-173.25,0.97,3.1,0],[2,-25.72,53.96,0.83,-6.5,1],[2,-25.98,79.8,0.83,4.3,0],[2,-21.97,-139.51,1.08,4.5,0],[2,-21.9,72.93,0.84,5.9,0],[2,-21.48,74.12,0.87,1.9,1],[2,-19.42,-155.48,0.78,1.8,0],[2,-18.35,-140.27,1.0,-4.7,1],[2,-18.82,-106.16,0.77,2.5,0],[2,-18.02,71.12,0.83,-3.7,0],[2,-19.29,77.53,0.94,-7.0,0],[2,-15.27,-143.95,1.07,1.8,1],[2,-17.01,54.94,0.9,2.0,0],[2,-13.83,60.21,1.08,6.8,0],[2,-10.88,-203.28,0.85,1.3,0],[2,-11.4,-200.75,0.93,-7.7,0],[2,-12.07,-101.61,0.8,-5.7,0],[4,-11.3,-54.56,1,0,0],[2,-10.46,55.01,0.72,3.7,1],[2,-8.95,-200.35,1.09,2.5,0],[2,-7.88,-192.14,0.91,-7.0,1],[2,-8.01,-88.82,0.73,7.5,1],[2,-9.3,-55.72,0.86,-1.6,1],[2,-7.32,-109.61,1.04,2.0,1],[2,-6.48,-43.04,0.92,2.6,0],[2,-3.37,-202.22,1.0,2.8,0],[2,-4.62,-52.44,1.05,-5.8,0],[2,-2.18,-204.75,0.78,-7.4,1],[2,3.64,-146.09,1.07,4.5,0],[2,3.54,-143.91,0.73,-0.1,1],[2,4.07,-55.38,0.77,3.0,0],[2,4.24,54.61,1.06,-8.0,0],[2,3.71,61.92,0.81,4.6,0],[2,5.59,-169.76,0.86,1.1,0],[2,6.27,-168.63,1.05,-2.4,0],[2,6.55,-156.67,0.89,-4.6,0],[2,7.95,-159.0,0.89,2.9,1],[2,8.01,-153.34,0.84,7.9,1],[4,8.16,62.83,1,0,0],[2,10.19,-159.14,1.06,5.7,0],[2,12.42,-157.79,0.95,-1.0,0],[2,14.07,-123.19,0.96,0.7,0],[2,13.3,54.92,1.07,-1.3,0],[2,16.3,-165.9,0.75,-7.1,1],[2,15.41,-146.78,0.75,7.2,0],[2,15.62,59.02,0.79,-4.8,0],[2,17.15,-162.55,0.75,3.8,1],[2,18.42,-153.19,1.1,-4.4,0],[2,21.28,-195.96,0.92,-1.2,0],[2,20.75,-151.73,0.93,-3.6,0],[2,23.67,-164.14,0.77,-6.6,0],[2,22.34,-57.64,0.87,-0.2,0],[2,23.95,-45.05,0.96,4.6,0],[2,22.9,56.53,1.01,-5.7,0],[2,22.58,62.47,1.1,4.1,0],[2,22.46,64.16,1.07,-6.1,1],[2,25.63,-161.31,0.89,5.5,0],[2,24.79,58.24,0.85,-0.2,0],[5,30.81,60.03,1,0,0],[2,33.07,-164.98,0.91,6.5,0],[2,35.11,-163.51,0.74,-7.9,0],[2,35.7,-158.4,0.8,-1.3,0],[2,35.62,-32.55,0.87,5.4,0],[2,38.32,-145.59,0.99,4.3,0],[2,41.72,-187.82,0.99,-8.0,0],[4,42.48,-182.91,1,0,0],[2,42.42,-181.27,0.82,2.6,1],[2,42.14,-178.57,0.8,5.9,1],[2,42.73,-162.72,1.02,1.7,0],[2,45.19,-182.71,0.78,-2.7,0],[2,45.14,-134.34,0.75,5.0,0],[2,48.36,-30.39,0.74,-2.4,0],[2,49.76,-57.16,0.86,-6.4,1],[2,49.83,-47.67,0.98,-1.3,0],[2,52.86,-144.49,0.78,-5.4,1],[2,52.26,-92.33,1.0,-7.2,0],[2,51.49,-59.36,1.08,7.7,0],[2,52.74,-49.99,1.02,2.7,0],[2,52.61,-41.33,0.76,3.4,1],[2,52.18,-20.93,1.03,-6.4,0],[4,52.89,33.71,1,0,0],[5,52.21,40.98,1,0,0],[2,52.56,69.54,1.08,2.2,0],[2,55.79,-53.77,1.09,-3.2,0],[2,55.57,-46.02,0.9,3.1,1],[2,55.58,33.4,1.03,3.3,1],[2,55.62,38.65,0.87,3.2,1],[2,54.03,71.05,0.96,-5.7,1],[2,57.26,-102.68,0.76,-4.5,0],[2,56.73,-64.75,0.84,-4.2,0],[2,56.84,-60.94,0.97,-3.8,0],[2,56.46,-56.13,1.05,-7.9,0],[2,56.84,39.28,0.79,-3.7,1],[2,60.16,-99.54,0.98,4.0,1],[2,62.85,-128.79,0.93,5.3,0],[2,61.68,-110.81,0.83,2.8,1],[2,61.56,-109.75,0.73,-3.1,0],[2,62.22,-104.12,0.81,5.8,0],[2,62.83,-22.83,0.82,-0.7,1],[2,62.02,35.13,0.85,4.3,0],[2,62.96,44.46,0.91,5.8,0],[2,63.88,-107.52,0.97,-5.6,1],[2,64.44,-67.38,0.82,7.9,0],[4,63.73,35.53,1,0,0],[2,66.7,-60.28,0.71,-0.4,0],[2,69.29,-69.55,1.04,-4.7,0],[2,70.24,22.34,0.87,-0.5,0],[5,72.95,-23.56,1,0,0],[2,74.54,-25.34,0.94,-0.3,0],[2,74.62,-18.69,0.88,-3.5,0],[2,75.39,30.03,1.09,7.5,1],[4,80.19,-18.09,1,0,0],[2,85.16,-19.35,0.77,-7.4,0],[2,87.29,-18.54,0.9,-7.3,0],[2,88.94,-18.16,0.74,-3.4,1],[2,99.06,-3.08,1.09,2.0,1],[3,-6.94,-74.63,0.88,0,0],[3,30.25,-60.41,1.18,0,0],[3,13.66,81.82,0.56,0,0],[3,-32.05,-40.52,1.2,0,0],[3,-47.6,-190.67,1.2,0,0],[3,-30.81,59.47,0.52,0,0],[3,-10.96,-66.16,1.28,0,0],[3,48.4,17.88,0.88,0,0],[3,-13.09,71.72,0.61,0,0],[3,-3.57,-101.78,0.62,0,0],[3,-91.31,-112.88,1.28,0,0],[3,90.27,28.97,1.26,0,0],[3,-91.64,-51.95,1.03,0,0],[3,-67.65,2.04,0.84,0,0],[3,-43.48,-70.29,0.79,0,0],[3,56.57,-15.76,0.78,0,0],[3,-78.13,-18.66,0.62,0,0],[3,47.49,-44.31,0.84,0,0],[3,-58.46,3.89,1.21,0,0],[3,-55.05,43.93,1.19,0,0],[3,-95.49,-73.72,0.72,0,0],[3,-28.55,-90.58,0.97,0,0],[3,26.73,-34.41,0.9,0,0],[3,90.47,19.91,0.62,0,0],[3,-54.77,72.63,0.51,0,0],[3,61.88,-80.16,0.78,0,0],[3,-76.06,-48.89,1.11,0,0],[3,42.71,-40.18,1.22,0,0],[3,50.9,74.12,1.17,0,0],[3,70.14,-20.58,1.14,0,0],[3,55.75,46.33,0.83,0,0],[3,-45.16,58.53,0.5,0,0],[3,-74.12,-150.18,1.29,0,0],[3,-74.94,-72.31,0.84,0,0],[3,53.06,18.51,0.89,0,0],[3,-89.0,-14.92,0.71,0,0],[3,3.84,77.8,0.59,0,0],[3,67.56,-48.19,1.12,0,0],[3,-73.12,-113.46,0.86,0,0],[3,72.95,48.76,1.09,0,0],[3,25.47,68.67,0.71,0,0],[3,50.23,23.11,1.06,0,0],[3,68.03,44.37,0.52,0,0],[3,-21.64,-75.18,0.9,0,0],[3,-36.83,-39.13,1.18,0,0],[3,48.27,-172.55,0.66,0,0],[3,45.23,-73.28,0.57,0,0],[3,7.08,79.13,0.56,0,0],[3,53.62,-4.37,1.28,0,0],[3,54.47,42.35,0.85,0,0],[3,-52.53,41.66,1.07,0,0],[3,-77.36,38.99,1.26,0,0],[3,69.47,-114.32,0.73,0,0],[3,-0.97,-100.48,1.24,0,0],[3,-96.84,-104.57,1.21,0,0],[3,-80.37,9.28,0.78,0,0]];
 function montarCenario() {
   semente = 41;
   costa = pontosCosta(0); costaRasa = pontosCosta(1.4);
@@ -6843,7 +6834,7 @@ function montarCenario() {
   // campo de treino: pedras rúnicas, fogueira e bonecos
   for (let k = 0; k < 5; k++) {
     const a = k / 5 * Math.PI * 2 + 0.9, x = PRACA.x + Math.cos(a) * 5.6, y = PRACA.y + Math.sin(a) * 5.6;
-    if (estrada(x, y)) continue;
+    if (k === 4) continue;                                             // (as mesmas 4 de antes: a 5ª caía na estrada velha)
     por({ tipo: "runa", x, y, r: 0.35, fase: k * 1.3, alt: entre(1.5, 1.9) });
   }
   por({ tipo: "fogueira", x: FOGO.x, y: FOGO.y, r: 0.6, var: 1 });
@@ -6852,23 +6843,11 @@ function montarCenario() {
     for (const [x, y, c] of [[-2.4, -1.6, "#2f4f9e"], [2.4, -1.6, "#9e2a22"]]) por({ tipo: "bandeira", x, y, r: 0.12, cor: c });
     for (const [x, y] of [[-1.3, -2.6], [1.3, -2.6]]) por({ tipo: "tocha", x, y, r: 0.14 });
   }
-  // árvores: grade com sorteio, densas nas florestas e raras nos campos
-  const longe = (x, y) => !praca(x, y) && Math.hypot(x - PRACA.x, y - PRACA.y) > 7.5 && !estrada(x, y) && !lago(x, y, 2) &&
-    (!COM_CASTELO || retArred(x, y, FOSSO) > 2.5) && borda(x, y) < RAIO - 3.6;
-  // (a leste só até o raio da ilha: o vale e a montanha não têm mata; a oeste e ao sul, até a costa das Terras do Sul)
-  const NG = Math.ceil(RAIO / 1.75) + 1, NGO = Math.ceil(-CAIXA_V1.x0 / 1.75) + 1, NGS = Math.ceil(-CAIXA_V1.y0 / 1.75) + 1, NGN = Math.ceil(CAIXA_V1.y1 / 1.75) + 1;
-  for (let i = -NGO; i <= NG; i++) for (let j = -NGS; j <= NGN; j++) {
-    const x = (i + hash(i, j, 81) * 0.8) * 1.75, y = (j + hash(i, j, 82) * 0.8) * 1.75;
-    if (!longe(x, y)) continue;
-    const r = hash(i, j, 83), f = floresta(x, y), aberto = distClareira(x, y) < 0;
-    if (aberto && r > 0.012) continue;                                 // na clareira: uma árvore solta, rara
-    if (f ? r < 0.32 : r < 0.03) {
-      if (hash(i, j, 86) < 0.2) continue;                               // 20% menos árvores (o mapa ficava carregado)
-      const pinho = fbm(x * 0.1 + 11, y * 0.1 + 5) > 0.47;
-      por(pinho ? { tipo: "pinheiro", x, y, r: 0.35, esc: entre(0.85, 1.4), tom: entre(-6, 6) }
-                : { tipo: "arvore", x, y, r: 0.4, esc: entre(0.9, 1.35), tom: entre(-8, 8) });
-    } else if (r < (f ? 0.7 : 0.06)) por({ tipo: "arbusto", x, y, r: 0.35, esc: entre(0.7, 1.1), tom: entre(-8, 8), flor: hash(i, j, 84) < 0.3 });
-    else if (f && r < 0.73) por(hash(i, j, 85) < 0.5 ? { tipo: "tronco", x, y, r: 0.45 } : { tipo: "toco", x, y, r: 0.3 });
+  // a vegetação da Vila 1 (Logs/Mapas/vila1_maior/dados_v1.json): as árvores, os arbustos, as pedras, os troncos e os tocos da
+  // Vila 1 de antes, levados pelo fator do terreno e desbastados; nenhum novo (201 árvores fora da cidade; eram 396)
+  for (const [t, x, y, esc, tom, flor] of V1_VEG) {
+    por(t === 0 ? { tipo: "arvore", x, y, r: 0.4, esc, tom } : t === 1 ? { tipo: "pinheiro", x, y, r: 0.35, esc, tom } : t === 2 ? { tipo: "arbusto", x, y, r: 0.35, esc, tom, flor: !!flor }
+      : t === 3 ? { tipo: "pedra", x, y, r: 0.4, esc, forma: Array.from({ length: 7 }, () => entre(0.75, 1.1)) } : t === 4 ? { tipo: "tronco", x, y, r: 0.45 } : { tipo: "toco", x, y, r: 0.3 });
   }
   // acampamentos: uma fogueira pequena na clareira de cada bando de goblins e de javalis
   for (const [tipo, gx, gy] of GRUPOS) {
@@ -6882,13 +6861,6 @@ function montarCenario() {
   montarVila(por);
   montarValeOrcs(por);
   montarAcampamento(por);
-  // pedras pelos campos e na praia
-  // (até a costa de cada ângulo, com as Terras do Sul; o vale e a montanha têm as pedras deles)
-  for (let k = 0; k < 2600 && objetos.filter(o => o.tipo === "pedra").length < 220; k++) {
-    const a = entre(0, Math.PI * 2), r = entre(6, MAPAS.vila1.rCosta(a) - 0.5), x = Math.cos(a) * r, y = Math.sin(a) * r;
-    if (x > VALE_X - 4 || borda(x, y) > RAIO - 0.8 || praca(x, y) || estrada(x, y) || agua(x, y) || (COM_CASTELO && retArred(x, y, FOSSO) < 1.5) || !vazio(x, y, 1.2) || distClareira(x, y) < -2) continue;
-    por({ tipo: "pedra", x, y, r: 0.4, esc: entre(0.5, 1.3), forma: Array.from({ length: 7 }, () => entre(0.75, 1.1)) });
-  }
 }
 
 function linha(g, w) { g.strokeStyle = TINTA; g.lineWidth = w; g.lineJoin = "round"; g.lineCap = "round"; g.stroke(); }
@@ -6933,9 +6905,9 @@ function vegDa(ci, cj) {
   const x = (ci + 0.15 + hash(ci, cj, 21) * 0.7) * VEG_C, y = (cj + 0.15 + hash(ci, cj, 22) * 0.7) * VEG_C, h = hash(ci, cj, 23), r = hash(ci, cj, 24), r2 = hash(ci, cj, 25);
   if (borda(x, y) < RAIO - 3.4 && !agua(x, y) && !lago(x, y, 1.1) && !praca(x, y) && !foraCidade(x, y) && !estrada(x, y) && !noCastelo(x, y, 0.3) && x < MONTE_X - 2 && x > -350 && y > -350 && !vegNaConstrucao(x, y) && !(naZonaAltar(x, y) && bordaAltar(x, y) < RAIO + 1)) {
     // o quanto o lugar puxa mato alto: a borda da mata, a beira da estrada e manchas pelos campos
-    const c = distClareira(x, y), mg = x > VALE_X - 4 || c < 0 ? -1 : fbm(x * 0.07 + 3, y * 0.07 - 2) - (0.55 + 0.2 * Math.max(0, 1 - c / 5));
+    const c = distClareira(x, y), mg = x > VALE_X - 4 || c < 0 ? -1 : fbm(x * kV1(x, y) * 0.07 + 3, y * kV1(x, y) * 0.07 - 2) - (0.55 + 0.2 * Math.max(0, 1 - c / 5));
     const mata = mg > 0 && Math.hypot(x - PRACA.x, y - PRACA.y) > 10 && (!COM_CASTELO || retArred(x, y, FOSSO) > 4);
-    let dE = 99; for (const e of ESTRADAS) dE = Math.min(dE, distLinha(x, y, e));
+    let dE = 99; for (const e of ESTRADAS) dE = Math.min(dE, distLinha(x, y, e) - (e.meia ? e.meia - 0.8 : 0));
     const alta = Math.max(mata ? 0 : Math.max(0, 1 - Math.abs(mg) / 0.09), dE < 3.4 ? 1 - Math.max(0, dE - 1.0) / 2.4 : 0,
                           Math.max(0, Math.min(1, (fbm(x * 0.11 + 11, y * 0.11 - 4) - 0.58) / 0.12)));
     const cel = (tipo, q, esc) => ({ x, y, tipo, q, esc, esp: r2 < 0.5 });
@@ -7300,7 +7272,7 @@ if (PRANCHA) {
 // ponta leste do galpão. Dentro, o Cavalariço Doyun (a missão do cavalo e os exames) e 4 cavalos de enfeite (cavalo.glb,
 // ou as folhas de sprites/cavalo.json sem o 3D): parados, cada um na sua fase, e de vez em quando um dá uns passos. Não
 // são alvo, não têm colisão e não seguem ninguém (o cavalo do herói é o cavaloEnt; estes ficam em ESTABULO.cavalos)
-const ESTABULO = { x: 9.95, y: -13.63, galpao: [-4.05, 4.05, -1.17, 1.17], curral: [5.5, 16, -21.8, -14.8], npc: "Cavalariço Doyun", cavalos: [] };
+const ESTABULO = { x: 12.45, y: -28.53, galpao: [-4.05, 4.05, -1.17, 1.17], curral: [8.0,18.5,-36.7,-29.7], npc: "Cavalariço Doyun", cavalos: [] };
 const ESTABULO_KIT = { ppm: 177.8, entra: false, luzes: [], rets: [], moveis: {}, altura: 4.0, piso: 0,
   planta: ESTABULO.galpao, base: ESTABULO.galpao, paredes: [ESTABULO.galpao, [-5.04, -4.05, 0.09, 1.8]],   // (o galpão inteiro e os fardos de feno, a oeste)
   camadas: { f: { arq: "estabulo__f.webp", px: 780.7, py: 969.6, w: 1581, h: 1426 } } };
@@ -7344,7 +7316,7 @@ function montarEstabulo() {
   if (n) { n.x = b - 3.2; n.y = f - 2.0; }
   // os cavalos: aparências e lugares variados, cada um com a sua fase
   E.cavalos.length = 0;
-  for (const [x, y, dir, ap] of [[8.3, -16.9, 5, "iniciante"], [11.3, -19.4, 1, "blindado"], [13.2, -16.6, 4, "militar"], [7.4, -20.1, 0, "iniciante"]])
+  for (const [x, y, dir, ap] of [[10.8, -31.8, 5, "iniciante"], [13.8, -34.3, 1, "blindado"], [15.7, -31.5, 4, "militar"], [9.9, -35, 0, "iniciante"]])
     E.cavalos.push({ x, y, casa: [x, y], dir, aparencia: ap, anim: "parado", t: Math.random() * 3, espera: 4 + Math.random() * 14, alvo: null, nome: "Cavalo do estábulo", estabulo: true });
   // os bandos que nasciam perto do curral vão para longe dele (para o sul)
   if (typeof SPAWNS !== "undefined" && SPAWNS) {
@@ -7394,6 +7366,33 @@ function ruaCidade(x, y) {
   for (const g of c.grama) if (x > g[0] && x < g[1] && y > g[2] && y < g[3]) return false;
   return true;
 }
+// o círculo do comércio (R169; só o espaço, o comércio vem depois): blocos cimentícios assentados por código, em fiadas leste-oeste
+// desencontradas, nos tons chapados de cinza quente (BIBLIA_B: sem degradê, sem textura), com as juntas em traço fino de
+// nanquim, levemente tortas; e a borda cinabre e ocre, para o círculo ler de longe. Pintado no pedaço (custo zero por quadro)
+const BLOCO = { l: 1.9, a: 0.95, tons: ["#B4AC9B", "#A79F8E", "#BDB5A3"], junta: "rgba(30, 27, 24, 0.5)" };
+function pintarCirculo(g, P, esc, x0, x1, y0, y1, ci) {
+  const [cx, cy] = ci.c, R = ci.r;
+  if (cx + R < x0 || cx - R > x1 || cy + R < y0 || cy - R > y1) return;
+  const volta = r => { const p = new Path2D(); for (let k = 0; k <= 96; k++) { const a = k / 96 * 6.2832, q = P(cx + Math.cos(a) * r, cy + Math.sin(a) * r); k ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1]); } p.closePath(); return p; };
+  const fora = volta(R), { l: L, a: A, tons } = BLOCO, cor = tons.map(() => new Path2D()), juntas = new Path2D();
+  const [ox, oy] = P(0, 0), [ux, uy] = P(1, 0), [vx, vy] = P(0, 1), ax = ux - ox, bx = vx - ox, ay = uy - oy, by = vy - oy, X = (x, y) => ox + ax * x + bx * y, Y = (x, y) => oy + ay * x + by * y;
+  g.save(); g.clip(fora);
+  const xa = Math.max(x0, cx - R), xb = Math.min(x1, cx + R), j0 = Math.floor(Math.max(y0, cy - R) / A), j1 = Math.ceil(Math.min(y1, cy + R) / A);
+  for (let j = j0; j < j1; j++) {
+    const of = j & 1 ? L / 2 : 0, y = j * A;
+    for (let i = Math.floor((xa - of) / L); i * L + of < xb; i++) {
+      const x = i * L + of, h = hash(i, j, 171), t = h < 0.45 ? 0 : h < 0.78 ? 1 : 2, e1 = (hash(i, j, 172) - 0.5) * 0.05, e2 = (hash(i, j, 173) - 0.5) * 0.05, e3 = (hash(i + 1, j, 172) - 0.5) * 0.05, p = cor[t];
+      p.moveTo(X(x, y), Y(x, y)); p.lineTo(X(x + L, y), Y(x + L, y)); p.lineTo(X(x + L, y + A), Y(x + L, y + A)); p.lineTo(X(x, y + A), Y(x, y + A)); p.closePath();
+      juntas.moveTo(X(x, y + e1), Y(x, y + e1)); juntas.lineTo(X(x + L, y + e3), Y(x + L, y + e3));           // (a junta de baixo)
+      juntas.moveTo(X(x + e2, y), Y(x + e2, y)); juntas.lineTo(X(x - e2, y + A), Y(x - e2, y + A));           // (a junta do lado)
+    }
+  }
+  tons.forEach((c, t) => { g.fillStyle = c; g.fill(cor[t]); });
+  g.strokeStyle = BLOCO.junta; g.lineWidth = Math.max(0.7, 0.024 * esc); g.lineJoin = "round"; g.stroke(juntas);
+  g.restore();
+  g.strokeStyle = "#B8322A"; g.lineWidth = Math.max(1.5, 0.3 * esc); g.stroke(fora);
+  g.strokeStyle = "#C9963E"; g.lineWidth = Math.max(1, 0.09 * esc); g.stroke(volta(R - 0.42));
+}
 // o chão da cidade em cada pedaço (chamado no fim da pintura do pedaço): a base de terra clara (com os quintais de grama
 // vazados), as vias por cima com as juntas das lajes, a faixa-guia do eixo e o medalhão da praça em volta do poço
 const PISO_COR = { estrada: "#B89A6E", treino: "#C4AC80", base: "#D8C9A6", rua: "#ABA595", avenida: "#CFC6AE", praca: "#D6CDB6", patio_palacio: "#D3CAB2", patio: "#C6BA9E",
@@ -7440,6 +7439,7 @@ function pisoCidade(g, P, esc, mx0, mx1, my0, my1) {
     g.strokeStyle = cor; g.lineWidth = Math.max(1, w * esc); g.stroke();
   }
   g.restore();
+  if (c.circulo) pintarCirculo(g, P, esc, mx0, mx1, my0, my1, c.circulo);
   pintarTerra(g, P, esc, mx0, mx1, my0, my1, c);
 }
 // R133: a terra batida do treino e da estrada de fora da muralha (o usuário em 30/10: "esse piso que nao tem nada"). Tudo em
@@ -7452,10 +7452,13 @@ let terraDados = null;
 function dadosTerra(c) {
   if (terraDados) return terraDados;
   const rects = c.pisos.filter(p => p.t === "estrada" || p.t === "treino").map(p => ({ r: p.r, estrada: p.t === "estrada" })); if (!rects.length) return null;
+  // (a Vila 1 maior: as estradas são da mesma terra batida, do portão até o fim; cada pedaço só olha os trechos perto dele)
+  const segs = []; for (const e of ESTRADAS) if (e.meia) for (let k = 1; k < e.length; k++) { const [ax, ay] = e[k - 1], [bx, by] = e[k]; segs.push({ ax, ay, bx, by, meia: e.meia, x0: Math.min(ax, bx) - e.meia - 1.2, x1: Math.max(ax, bx) + e.meia + 1.2, y0: Math.min(ay, by) - e.meia - 1.2, y1: Math.max(ay, by) + e.meia + 1.2 }); }
   const alvos = objetos.filter(o => o.cidade && (o.tipo === "boneco" || o.tipo === "fogueira")).map(o => ({ x: o.x, y: o.y, r: o.tipo === "fogueira" ? 2.1 : 1.7, fogo: o.tipo === "fogueira" }));
   const caixa = [1e9, -1e9, 1e9, -1e9];
   for (const { r } of rects) { caixa[0] = Math.min(caixa[0], r[0] - 1.2); caixa[1] = Math.max(caixa[1], r[1] + 1.2); caixa[2] = Math.min(caixa[2], r[2] - 1.2); caixa[3] = Math.max(caixa[3], r[3] + 1.2); }
   for (const a of alvos) { caixa[0] = Math.min(caixa[0], a.x - a.r - 1); caixa[1] = Math.max(caixa[1], a.x + a.r + 1); caixa[2] = Math.min(caixa[2], a.y - a.r - 1); caixa[3] = Math.max(caixa[3], a.y + a.r + 1); }
+  for (const s of segs) { caixa[0] = Math.min(caixa[0], s.x0); caixa[1] = Math.max(caixa[1], s.x1); caixa[2] = Math.min(caixa[2], s.y0); caixa[3] = Math.max(caixa[3], s.y1); }
   // as marcas: as pegadas (x, y, ângulo) e os riscos de arrasto (linhas), sempre as mesmas (pelo hash)
   const pegadas = [], riscos = [];
   const trilha = (ax, ay, bx, by, sem, chance = 1) => {
@@ -7493,17 +7496,33 @@ function dadosTerra(c) {
       if (l.length > 1) riscos.push(l);
     }
   }
-  const d = { rects, alvos, caixa, pegadas, riscos };
+  for (const s of segs) {                                             // nas estradas: as pegadas no meio e os sulcos dos carros
+    const L = Math.hypot(s.bx - s.ax, s.by - s.ay), ux = (s.bx - s.ax) / L, uy = (s.by - s.ay) / L, sem = Math.round(s.ax * 3 + s.ay * 7) + 100;
+    trilha(s.ax, s.ay, s.bx, s.by, sem, 0.3);
+    for (const lado of [-1, 1]) {
+      let l = [];
+      for (let t = 0, q = 0; t < L; t += 0.5, q++) {
+        const o = lado * s.meia * 0.48 + (hash(q, lado + 2, sem) - 0.5) * 0.09;
+        if (hash(Math.floor(q / 3), lado + 2, sem + 1) < 0.3) { if (l.length > 1) riscos.push(l); l = []; continue; }
+        l.push([s.ax + ux * t - uy * o, s.ay + uy * t + ux * o]);
+      }
+      if (l.length > 1) riscos.push(l);
+    }
+  }
+  const d = { rects, alvos, caixa, pegadas, riscos, segs, ativos: null, cidade: [c.caixa[0], c.caixa[1], c.dentro[2] - 1.85, c.caixa[3]] };
   if (alvos.length) terraDados = d;                                   // (antes de montarCidade os bonecos ainda não estão aqui: não guarda)
   return d;
 }
 function campoTerra(d, x, y) {                                        // < 0: é terra batida
   let f = 1e9;
+  for (const s of d.ativos || d.segs) { const q = distSeg(x, y, s.ax, s.ay, s.bx, s.by) - s.meia; if (q < f) f = q; }
   for (const { r } of d.rects) { const qx = Math.abs(x - (r[0] + r[1]) / 2) - (r[1] - r[0]) / 2, qy = Math.abs(y - (r[2] + r[3]) / 2) - (r[3] - r[2]) / 2, s = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0); if (s < f) f = s; }
   f += (ruido2(x * 0.9 + 3.1, y * 0.9 - 5.3) - 0.5) * 0.85 + (ruido2(x * 2.3 - 1.7, y * 2.3 + 2.3) - 0.5) * 0.36;
   const r0 = (ruido2(x * 1.3 + 9.2, y * 1.3 + 1.4) - 0.5) * 0.9;
   for (const a of d.alvos) { const dx = x - a.x, dy = y - a.y; if (Math.abs(dx) > a.r + 1 || Math.abs(dy) > a.r + 1) continue; const s = Math.hypot(dx, dy) - a.r + r0; if (s < f) f = s; }
-  return Math.max(f, y + 7.85);                                       // (a terra para nas lajes do portão sul, sem subir nelas)
+  const K = d.cidade;                                                 // (a terra para na muralha e nas lajes do portão sul, sem subir nelas)
+  if (x > K[0] && x < K[1] && y > K[2] && y < K[3]) f = Math.max(f, Math.min(x - K[0], K[1] - x, y - K[2], K[3] - y));
+  return f;
 }
 function tomTerra(d, x, y) {                                          // > TERRA_CLARO: o gasto, claro; < TERRA_ESCURO: a terra mais escura
   let t = (ruido2(x * 0.62 + 11.3, y * 0.62 + 7.9) - 0.5) * 1.15 + (ruido2(x * 1.9 + 2.2, y * 1.9 - 4.1) - 0.5) * 0.34;
@@ -7512,6 +7531,12 @@ function tomTerra(d, x, y) {                                          // > TERRA
 }
 function pintarTerra(g, P, esc, mx0, mx1, my0, my1, c) {
   const d = dadosTerra(c); if (!d) return;
+  // (o custo fica nos pedaços com terra: quem não tem estrada, treino nem boneco por perto sai aqui)
+  const m = 1.3; d.ativos = d.segs.filter(s => s.x0 < mx1 + m && s.x1 > mx0 - m && s.y0 < my1 + m && s.y1 > my0 - m);
+  if (d.ativos.length || d.rects.some(({ r }) => r[0] - m < mx1 && r[1] + m > mx0 && r[2] - m < my1 && r[3] + m > my0) || d.alvos.some(a => a.x + a.r + m > mx0 && a.x - a.r - m < mx1 && a.y + a.r + m > my0 && a.y - a.r - m < my1)) pintarTerraDe(g, P, esc, mx0, mx1, my0, my1, c, d);
+  d.ativos = null;
+}
+function pintarTerraDe(g, P, esc, mx0, mx1, my0, my1, c, d) {
   const k = d.caixa, x0 = Math.max(mx0, k[0]), x1 = Math.min(mx1, k[1]), y0 = Math.max(my0, k[2]), y1 = Math.min(my1, k[3]);
   if (x0 >= x1 || y0 >= y1) return;
   // (P é afim: as contas vão direto, sem criar um par por ponto; o que cai fora do pedaço nem é calculado)
@@ -7589,7 +7614,7 @@ function pintarTerra(g, P, esc, mx0, mx1, my0, my1, c) {
     if (!naTela(X, Y)) continue;
     const f = campoTerra(d, x, y), h = hash(ci, cj, 55), h2 = hash(ci, cj, 56);
     if (f > -0.06 && f < 0.2) {
-      if (h < 0.62 && y < yLaje) { const pt = tufos[h2 < 0.5 ? 0 : 1]; for (let e = -1; e <= 1; e++) { pt.moveTo(X + e * esc * 0.04, Y); pt.lineTo(X + e * esc * 0.09, Y - esc * (0.14 + 0.05 * Math.abs(e))); } }
+      if (h < 0.62 && (y < yLaje || x < c.caixa[0] - 1 || x > c.caixa[1] + 1 || y > c.caixa[3] + 1)) { const pt = tufos[h2 < 0.5 ? 0 : 1]; for (let e = -1; e <= 1; e++) { pt.moveTo(X + e * esc * 0.04, Y); pt.lineTo(X + e * esc * 0.09, Y - esc * (0.14 + 0.05 * Math.abs(e))); } }
       continue;
     }
     if (f > 0) continue;
@@ -7625,6 +7650,7 @@ function miniCidade(x, y) {
     return [59, 66, 80];
   }
   for (const g of c.grama) if (x > g[0] && x < g[1] && y > g[2] && y < g[3]) return [96, 140, 60];
+  if (c.circulo) { const dc = Math.hypot(x - c.circulo.c[0], y - c.circulo.c[1]); if (dc < c.circulo.r) return dc > c.circulo.r - 0.7 ? [184, 50, 42] : [180, 172, 155]; }   // (o círculo do comércio)
   for (let i = c.pisos.length - 1; i >= 0; i--) {
     const r = c.pisos[i].r; if (x < r[0] || x > r[1] || y < r[2] || y > r[3]) continue;
     const h = PISO_COR[c.pisos[i].t]; return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -8545,7 +8571,7 @@ function sombraTinta(X, Y, r) {
 }
 
 // ---------------------------------------------------------------- o viking
-const viking = { x: 0.6, y: -7.4, dir: 2, anim: "parado", t: 0, acao: null, espada: "costas", ociosoArmado: 0, combo: 0, fila: null, acertou: false, alvo: null, caido: false, noLugar: null };
+const viking = { x: 0.6, y: -22.4, dir: 2, anim: "parado", t: 0, acao: null, espada: "costas", ociosoArmado: 0, combo: 0, fila: null, acertou: false, alvo: null, caido: false, noLugar: null };
 let acertos = 0;
 const OCIOSO_GUARDAR = 4;
 const VELOCIDADE = 2.5;                  // m/s andando
@@ -10127,6 +10153,7 @@ function carregarProgresso() {
   prog = null;
   try { prog = JSON.parse(localStorage.getItem("progresso_" + chaveSave())); } catch (e) {}
   if (prog) renomearProgresso(prog);
+  if (prog && !prog.v1Maior) { delete prog.marcaMapa; prog.v1Maior = 1; }   // (a marca do mapa de um save de antes da Vila 1 maior apontaria para outro lugar)
   if (!prog || !prog.atrib) prog = progressoNovo(classe);
   // progresso salvo com os nomes antigos (Defesa e Destreza): a Defesa vira Vitalidade, a Destreza vira DEX
   const a = prog.atrib;
@@ -10403,8 +10430,8 @@ const METINS = [
   { tipo: "metin1", nome: "Ghotin da Tristeza", nivel: 5, vida: 900, cor: "#ff5a3a", horda: "lobo", regioes: [[24, -18], [-28, 6], [28, 16], [-26, 22]].map(noMapa) },
   // (a da Batalha nos Campos dos Javalis e nas Matas dos Ursos, com os Javalis Rubros; a da Ganância no Juramento Branco,
   // com os soldados: as Metins do Metin2 chamam os bichos da região delas)
-  { tipo: "metin2", nome: "Ghotin da Batalha", nivel: 10, vida: 1600, cor: "#f2b544", horda: "javali_rubro", regioes: [[-45, -84], [28, -104], [100, 14]] },   // (as Matas dos Ursos e o fundo do Vale Vermelho)
-  { tipo: "metin3", nome: "Ghotin da Ganância", nivel: 15, vida: 2600, cor: "#4fd08a", horda: "soldado_jb", regioes: [[-30, -130], [24, -124], [-4, -136]] },   // (o Juramento Branco, perto do portal)
+  { tipo: "metin2", nome: "Ghotin da Batalha", nivel: 10, vida: 1600, cor: "#f2b544", horda: "javali_rubro", regioes: [[-63.0,-117.6],[39.2,-145.6],[140.0,19.6]] },   // (as Matas dos Ursos e o fundo do Vale Vermelho)
+  { tipo: "metin3", nome: "Ghotin da Ganância", nivel: 15, vida: 2600, cor: "#4fd08a", horda: "soldado_jb", regioes: [[-42.0,-182.0],[33.6,-173.6],[-5.6,-190.4]] },   // (o Juramento Branco, perto do portal)
   // a da Sombra (45, com os orcs) é da Ilha de Daiyu, que ainda não é um mapa jogável: não nasce em lugar nenhum por
   // enquanto (as áreas dela, locais da ilha, ficam em regioesDaiyu)
   { tipo: "metin4", mapa: "daiyu", nome: "Ghotin da Sombra", nivel: 45, vida: 22000, defesa: 54, cor: "#8a4dff", horda: "orc_negro", regioes: [], regioesDaiyu: [[-14, 6], [-2, -12], [6, 12], [14, 2], [-4, 6]] },
@@ -11213,7 +11240,7 @@ function pintarBase(x0, y0, x1, y1, cor) {
   return { c, x0, y1 };
 }
 function baseIlha(mp = MAPAS.vila1) {
-  const R = mp.raio + 8, v1 = mp === MAPAS.vila1, C = { x0: Math.min(CAIXA_V1.x0, -104), x1: CAIXA_V1.x1, y0: CAIXA_V1.y0, y1: Math.max(CAIXA_V1.y1, 102) };   // (R165: com a ilha do Altar das Eras)      // (a Vila 1: a caixa da costa, com o vale, a montanha e as Terras do Sul; os outros mapas, a ilha deles)
+  const R = mp.raio + 8, v1 = mp === MAPAS.vila1, C = { x0: Math.min(CAIXA_V1.x0, altarMundo(0, 0)[0] - 36), x1: CAIXA_V1.x1, y0: CAIXA_V1.y0, y1: Math.max(CAIXA_V1.y1, altarMundo(0, 0)[1] + 34) };   // (R165: com a ilha do Altar das Eras)      // (a Vila 1: a caixa da costa, com o vale, a montanha e as Terras do Sul; os outros mapas, a ilha deles)
   const b = pintarBase(...(v1 ? [C.x0 - 8, C.y0 - 8, C.x1 + 8, C.y1 + 8] : [mp.ox - R, mp.oy - R, mp.ox + R, mp.oy + R]), (x, y) => {
     const bd = borda(x, y);
     if (bd > RAIO) return mp.semMar ? [149, 171, 181] : [38, 84, 110];   // (Montanha Gelada: o mar de nuvens)
@@ -11599,8 +11626,8 @@ function montarValeOrcs(por) {
     pôe("fogueira", x + 0.4, y + 2.6, { var: k % 2 });
     if (DECO && DECO.caixotes) pôe("caixotes", x + 3.2, y + 3, {});
   });
-  for (let k = 0; k < 900 && objetos.filter(o => o.vale).length < 70; k++) {
-    const x = VALE_X + 4 + Math.random() * (VALE_E + 2), y = (Math.random() - 0.5) * 70;
+  for (let k = 0; k < 900 && objetos.filter(o => o.vale).length < 40; k++) {
+    const x = VALE_X + 4 + Math.random() * (VALE_E * ESC_V1 + 2), y = (Math.random() - 0.5) * 98;
     if (borda(x, y) > RAIO - 3 || !vazio(x, y, 2.2) || estrada(x, y) || Math.hypot(x - MONUMENTO.x, y - MONUMENTO.y) < 15 || VALE_BANDOS.some(([, bx, by, , e]) => Math.hypot(x - bx, y - by) < (e || 2) + 3)) continue;
     const r = Math.random();
     if (r < 0.6) por({ tipo: "pedra", x, y, r: 0.4, esc: entre(0.7, 1.6), forma: Array.from({ length: 7 }, () => entre(0.75, 1.1)), vale: true });
@@ -11610,7 +11637,7 @@ function montarValeOrcs(por) {
 }
 // o acampamento do Juramento Branco (era o dos bandidos), à beira da estrada do portal, no fim das Terras do Sul (ACAMP):
 // barracas, fogueiras, caixotes do saque e a carroça roubada, num campo aberto (a clareira dos bandos dele)
-const ACAMP = { x: 4, y: -130, r: 9 };          // (a 26 m do portal; os grupos do Juramento em volta)
+const ACAMP = { x: 5.6, y: -182.0, r: 12.0 };          // (a 41 m do portal; os grupos do Juramento em volta)
 function montarAcampamento(por) {
   if (!DECO || !DECO.barraca) return;
   const pôe = (tipo, dx, dy, extra = {}) => {
@@ -11670,7 +11697,7 @@ function montarMarcos() {
   // os mortos-vivos das ruínas (lich, zumbis e fantasmas): campo aberto em volta de cada bando, com restos de ruína
   // (os mortos-vivos foram para a Vila Hahoe; as ruínas ficam, com os esqueletos de SUBST_V1)
   for (const [t, x, y, , e] of NOVOS_BANDOS) if (t === "esqueleto" && Math.hypot(x - RUINAS.x, y - RUINAS.y) < RUINAS.r + 6) abrirEspaco(x - (e || 1) - 4.5, y - (e || 1) - 6, x + (e || 1) + 4.5, y + (e || 1) + 4);
-  const lich = [null, -43, -21];                                       // (o lugar onde ficava o Lich)
+  const lich = [null, -60.2, -29.4];                                       // (o lugar onde ficava o Lich)
   if (lich) { pôe("ruina_pilar", lich[1] - 3.2, lich[2] + 2.4); pôe("ruina_caido", lich[1] + 3.4, lich[2] + 1.8); pôe("ruina_muro_lado", lich[1] + 0.5, lich[2] + 4.6); }
   // o píer na beira sul do lago
   pôe("pier", LAGO.x + 1.2, LAGO.y - LAGO.r * 0.95);
@@ -11764,7 +11791,7 @@ const NPCS = [
     loja: [["peca:elmo:0", 150], ["peca:botas:0", 150], ["peca:escudo:0", 250], ["peca:armadura_guerreiro:0", 400], ["peca:armadura_leve:0", 400], ["peca:armadura_mago:0", 400],
            ["peca:elmo:1", 1400], ["peca:botas:1", 1400], ["peca:escudo:1", 2200], ["peca:armadura_guerreiro:1", 3600], ["peca:armadura_leve:1", 3600], ["peca:armadura_mago:1", 3600]] },
   { nome: "Feirante Hilda", dx: -6.5, dy: 0.9, cores: { roupa: "#b8553a", calca: "#5a3a22", pele: "#f0c8a8", cabelo: "#e0b040", lenco: "#e8e0c8" },
-    falas: ["Maçãs, cenouras, couves! Tudo da horta do vale.", "Os ratos andam roubando os sacos de grão. Vêm de um buraco ao norte!", "Meu marido foi caçar javalis no leste e voltou mancando."] },
+    falas: ["Maçãs, cenouras, couves! Tudo da horta do vale.", "Os ratos andam roubando os sacos de grão. Vêm de um buraco logo fora do portão sul!", "Meu marido foi caçar javalis no leste e voltou mancando."] },
   { nome: "Guarda Real", dx: 0, dy: 6.6, cores: { roupa: "#2c3e78", calca: "#2a2a40", pele: "#e0b896", cabelo: "#5a3a22", elmo: "#b8bec8" }, lanca: true,
     falas: ["Saia pelo portão sul e siga a estrada até o fim do vale: na ponta do cabo, depois do acampamento do Juramento Branco, há um portal para a Vila Hahoe, a vila da curva do rio. Ele só se abre a partir do nível 12.",
             "Os cães, os lobos e os javalis só atacam quem mexe com eles, mas o bando inteiro vem junto. Quanto mais longe da cidade, mais fortes: primeiro os cães, depois os javalis, os ursos e, perto do portal, o Juramento Branco (nível 13 a 15): a capitã deles ataca quem chega perto.", "Quatro buracos levam às profundezas. Os orcs? Só na Ilha de Daiyu, muito além da Vila Hahoe.", "As pedras Ghotin caem do céu e chamam bandos. Em volta delas o chão fica em trevas, e os bichos de lá ficam amaldiçoados: mais fortes, mas com mais EXP e mais drop. Quebre a pedra e as trevas somem.", "No fundo de cada caverna mora um chefe. Vá preparado."] },
@@ -11781,7 +11808,7 @@ const NPCS = [
             "Quando o seu cavalo parar de crescer, no nível 10 e no 20, traga-o aqui para o exame."] },
   // o Sumo-Sacerdote do Templo do Céu (o palácio no fim do eixo da cidade): fica no salão, diante do estrado, e dá a
   // missão principal (MISSOES.chama). Só na cidade (?cidade, o padrão da vista diagonal); modelo do feiticeiro tingido
-  { nome: "Sumo-Sacerdote Haneul", dx: 0, dy: 20.95, soCidade: true, cajado: true, missao: "chama",
+  { nome: "Sumo-Sacerdote Haneul", dx: 0, dy: 30.35, soCidade: true, cajado: true, missao: "chama",
     cores: { roupa: "#c9963e", calca: "#8e2721", pele: "#e8c4a0", cabelo: "#e8e4dc", barba: "#e8e4dc" },
     falas: ["(a fala da missão: missaoNaConversa põe no lugar desta)", "O Templo do Céu guarda a chama que protege a cidade. Quando ela arde, nenhum bicho do vale ousa chegar à muralha.",
             "O sol e a lua do biombo velam o trono vazio. O rei partiu há muitos invernos; o templo ficou e espera.",
@@ -11793,7 +11820,7 @@ const NPCS = [
   { nome: NOME_GUARDIA, dx: altarMundo(...ALTAR.npc)[0] - VILA.x, dy: altarMundo(...ALTAR.npc)[1] - VILA.y, altar: true,
     cores: { roupa: "#3E7A5C", calca: "#2D4A6B", pele: "#e8c4a0", cabelo: "#1E1B18", lenco: "#EFE4CC" },
     falas: ["As estátuas guardam as eras de onde os heróis vieram. Quem sobe até aqui escolhe a sua."] },
-  { nome: "Mukseon", titulo: "Mukseon, o Imortal da Tinta", dx: -1.3, dy: 22.0, soCidade: true, cajado: true, bio: true,
+  { nome: "Mukseon", titulo: "Mukseon, o Imortal da Tinta", dx: -1.3, dy: 31.4, soCidade: true, cajado: true, bio: true,
     cores: { roupa: "#1e1b18", calca: "#2d4a6b", pele: "#e8c4a0", cabelo: "#e8e4dc", barba: "#e8e4dc" },
     falas: ["(a fala da pesquisa: bioNaConversa põe no lugar desta)", "A tinta não mata os bichos: ela os reescreve. Eu só leio o que ela escreveu.",
             "Traga-me o que a tinta deixou neles. Um por vez: preciso de tempo para ler cada pedaço.",
@@ -12242,17 +12269,17 @@ const MISSOES = {
     oferta: "Viajante, a Chama do Céu se apagou na noite em que as pedras Ghotin caíram. Desde então os bichos do vale perderam o medo da muralha. Sozinho não posso reacendê-la: preciso de alguém que ande pelo vale e traga de volta as brasas que as pedras espalharam. Aceita?",
     fim: "A chama arde de novo e o vale respira. Enquanto ela queimar, o Templo do Céu terá sempre uma almofada e uma tigela de chá para você, herói.",
     etapas: [
-      { matar: "Lobo", qtd: 6, onde: [43, 14], alvo: "Derrote 6 Lobos no leste do vale (saia pelo portão leste)",
+      { matar: "Lobo", qtd: 6, onde: [61.5, 20.4], alvo: "Derrote 6 Lobos no leste do vale (saia pelo portão leste)",
         fala: "Os lobos do leste uivam para o templo apagado todas as noites. Silencie seis deles: quando o vale se cala, a brasa escondida no capim volta a brilhar.",
         premio: { exp: 500, yang: 300, itens: [["pocao", 3]] } },
       { falar: "Guarda Sigrid", alvo: "Fale com a Guarda Sigrid, na avenida perto do portão sul",
         fala: "A Guarda Sigrid vigia o portão sul desde a noite das pedras. Ela viu para onde elas rolaram: pergunte a ela.",
         resposta: "O Sumo-Sacerdote mandou você? Então escute: naquela noite uma pedra caiu a sudeste, depois da estrada, e não parou de chorar. Onde ela chora, a grama seca. Quebre-a, e o que sobrar dela leve ao templo.",
         premio: { exp: 300 } },
-      { matar: "Ghotin da Tristeza", qtd: 1, onde: [38, -21], alvo: "Quebre a Ghotin da Tristeza, a sudeste da cidade",
+      { matar: "Ghotin da Tristeza", qtd: 1, onde: [53.8, -32.8], alvo: "Quebre a Ghotin da Tristeza, a sudeste da cidade",
         fala: "A pedra que chora fica a sudeste. Cuidado: apanhando, ela chama um bando. Os cacos dela guardam a segunda brasa.",
         premio: { exp: 1500, yang: 600, itens: [["pocaoMana", 3]] } },
-      { matar: "Aranha Gigante", qtd: 1, onde: [30, -75], alvo: "Derrote a Aranha Gigante (nível 14), ao sul, nas Matas dos Ursos, perto da Toca das Aranhas",
+      { matar: "Aranha Gigante", qtd: 1, onde: [42.6, -104.4], alvo: "Derrote a Aranha Gigante (nível 14), ao sul, nas Matas dos Ursos, perto da Toca das Aranhas",
         fala: "A última brasa foi parar no ninho da Aranha Gigante, ao sul, nas Matas dos Ursos, na boca da Toca das Aranhas. Ela é forte: leve poções e não lute sozinho contra o bando inteiro.",
         premio: { exp: 4000, yang: 1000, itens: [["pocao", 5]] } },
       { falar: "Sumo-Sacerdote Haneul", entregar: "Entregar as brasas", alvo: "Volte ao Sumo-Sacerdote Haneul, no Templo do Céu",
@@ -12310,7 +12337,7 @@ const MISSOES = {
     oferta: "Os cães selvagens rondam o portão sul desde que a tinta caiu do céu. Espante dez deles e os mercadores voltam a passar.",
     fim: "O portão ficou quieto. Bom trabalho para quem acabou de chegar.",
     etapas: [
-      { matar: "Cão Selvagem", qtd: 10, onde: [42, 43], alvo: "Derrote 10 Cães Selvagens nos Campos dos Cães",
+      { matar: "Cão Selvagem", qtd: 10, onde: [58.8, 60.2], alvo: "Derrote 10 Cães Selvagens nos Campos dos Cães",
         fala: "Os cães andam em trios, logo depois da muralha." },
       { falar: "Guarda Sigrid", entregar: "Avisar a Guarda", alvo: "Volte à Guarda Sigrid",
         fala: "Dez cães a menos. Leve estas poções: o lobo morde mais forte.",
@@ -12322,7 +12349,7 @@ const MISSOES = {
     oferta: "À noite os lobos uivam para o Templo apagado. Silencie doze deles nos campos ao leste e ao sul.",
     fim: "Menos uivos, mais sono. A vila agradece.",
     etapas: [
-      { matar: "Lobo", qtd: 12, onde: [43, 14], alvo: "Derrote 12 Lobos nos Campos dos Cães",
+      { matar: "Lobo", qtd: 12, onde: [61.5, 20.4], alvo: "Derrote 12 Lobos nos Campos dos Cães",
         fala: "Os lobos andam com os cães. Pegue o bando inteiro de uma vez, se tiver coragem." },
       { falar: "Guarda Sigrid", entregar: "Avisar a Guarda", alvo: "Volte à Guarda Sigrid",
         fala: "Tome um escudo de madeira. Não é bonito, mas segura.",
@@ -12334,9 +12361,9 @@ const MISSOES = {
     oferta: "Os lobos famintos e os javalis reviram a minha horta toda noite. Cuide disso que eu pago em Yang e em botas boas para andar no barro.",
     fim: "A horta está inteira de novo. Volte para uma maçã quando quiser.",
     etapas: [
-      { matar: "Lobo Faminto", qtd: 6, onde: [43, 14], alvo: "Derrote 6 Lobos Famintos nos Campos dos Cães",
+      { matar: "Lobo Faminto", qtd: 6, onde: [61.5, 20.4], alvo: "Derrote 6 Lobos Famintos nos Campos dos Cães",
         fala: "O faminto é o líder dos lobos: tem o pelo mais escuro." },
-      { matar: "Javali", qtd: 8, onde: [28, -43], alvo: "Derrote 8 Javalis nos Campos dos Javalis",
+      { matar: "Javali", qtd: 8, onde: [41, -63], alvo: "Derrote 8 Javalis nos Campos dos Javalis",
         fala: "Agora os javalis, ao sul, depois da estrada." },
       { falar: "Feirante Hilda", entregar: "Entregar a horta salva", alvo: "Volte à Feirante Hilda",
         fala: "Que alívio! Estas botas eram do meu marido, antes de ele mancar.",
@@ -12345,10 +12372,10 @@ const MISSOES = {
   },
   nv05: {
     nome: "Ratos no Celeiro", npc: "Feirante Hilda", aceitar: "Aceitar a missão", nivelMin: 5, carta: true, tipo: "Missão de nível 5", onde: "na praça da Vila 1",
-    oferta: "Os ratos roubam os sacos de grão e somem num buraco ao norte da vila: a Caverna dos Ratos. Desça e mate quinze deles.",
+    oferta: "Os ratos roubam os sacos de grão e somem num buraco logo fora do portão sul: a Caverna dos Ratos. Desça e mate quinze deles.",
     fim: "O celeiro respira. E você também, longe daquele cheiro.",
     etapas: [
-      { matar: "Rato", qtd: 15, onde: [-6, 24], alvo: "Derrote 15 Ratos na Caverna dos Ratos (o buraco ao norte)",
+      { matar: "Rato", qtd: 15, onde: [-8.0, -24.4], alvo: "Derrote 15 Ratos na Caverna dos Ratos (o buraco perto do portão sul)",
         fala: "O buraco fica perto da muralha norte. Leve poções: lá embaixo é escuro." },
       { falar: "Feirante Hilda", entregar: "Contar da caverna", alvo: "Volte à Feirante Hilda",
         fala: "Quinze! Tome, para as próximas descidas.",
@@ -12360,7 +12387,7 @@ const MISSOES = {
     oferta: "O pelo dos lobos azuis brilha com a tinta do céu. Preciso dele para uma poção nova. Quinze lobos azuis, nos Campos dos Javalis.",
     fim: "Este azul não é natural. A tinta da Ghotin entrou nos bichos, como eu temia.",
     etapas: [
-      { matar: "Lobo Azul", qtd: 15, onde: [28, -43], alvo: "Derrote 15 Lobos Azuis nos Campos dos Javalis",
+      { matar: "Lobo Azul", qtd: 15, onde: [41, -63], alvo: "Derrote 15 Lobos Azuis nos Campos dos Javalis",
         fala: "Os azuis andam com os javalis selvagens. Não deixe o bando cercar você." },
       { falar: "Alquimista Runa", entregar: "Entregar o pelo azul", alvo: "Volte à Alquimista Runa",
         fala: "Obrigada. Isto aqui é para você ver o mundo mais devagar quando sangrar.",
@@ -12372,7 +12399,7 @@ const MISSOES = {
     oferta: "Nas Ruínas da Cripta, a oeste, andam esqueletos que nenhum pintor deste vale desenhou. Vieram pelos rasgos. Derrote quinze e traga-me um osso: quero saber de que obra eles fugiram.",
     fim: "Este osso tem verniz de pintura a óleo. Vem de longe, de muito longe. O Imugi está abrindo portas.",
     etapas: [
-      { matar: "Esqueleto", qtd: 15, onde: [-56, -30], alvo: "Derrote 15 Esqueletos nas Ruínas da Cripta (oeste)",
+      { matar: "Esqueleto", qtd: 15, onde: [-78.4, -42], alvo: "Derrote 15 Esqueletos nas Ruínas da Cripta (oeste)",
         fala: "As ruínas ficam a oeste, além do campo dos lobos." },
       { falar: "Sumo-Sacerdote Haneul", entregar: "Entregar o osso", alvo: "Volte ao Sumo-Sacerdote Haneul, no Templo do Céu",
         fala: "Mostre o osso. Devagar.",
@@ -12384,7 +12411,7 @@ const MISSOES = {
     oferta: "Os ratos voltaram, e agora dizem que um rato do tamanho de um bezerro manda neles. O Rato Rei. Desça até o fundo da caverna.",
     fim: "O Rei caiu? Então os sacos de grão são meus de novo!",
     etapas: [
-      { matar: "Rato Rei", qtd: 1, onde: [-6, 24], alvo: "Derrote o Rato Rei, no fundo da Caverna dos Ratos",
+      { matar: "Rato Rei", qtd: 1, onde: [-8.0, -24.4], alvo: "Derrote o Rato Rei, no fundo da Caverna dos Ratos",
         fala: "Ele fica na última sala. Vai chamar os filhotes: limpe-os primeiro." },
       { falar: "Feirante Hilda", entregar: "Contar da vitória", alvo: "Volte à Feirante Hilda",
         fala: "Botas de ferro, do ferreiro. Paguei com três sacos de grão.",
@@ -12396,7 +12423,7 @@ const MISSOES = {
     oferta: "As aranhas da toca, ao sul, fiam uma seda tingida de tinta negra. Ela segura as minhas poções melhor que qualquer rolha. Quinze aranhas, por favor.",
     fim: "Seda negra... e quente. As Ghotin respiram por baixo da terra.",
     etapas: [
-      { matar: "Aranha", qtd: 15, onde: [23.5, -52.5], alvo: "Derrote 15 Aranhas na Toca das Aranhas (sul)",
+      { matar: "Aranha", qtd: 15, onde: [52.6, -110], alvo: "Derrote 15 Aranhas na Toca das Aranhas (sul)",
         fala: "A Toca fica nas Matas dos Ursos, perto do ninho da Aranha Gigante. Não acorde a mãe." },
       { falar: "Alquimista Runa", entregar: "Entregar a seda", alvo: "Volte à Alquimista Runa",
         fala: "Perfeita. Tome um elmo de ferro: o Bjorn me devia um favor.",
@@ -12408,9 +12435,9 @@ const MISSOES = {
     oferta: "Uma Ghotin caiu nas Matas dos Ursos e os javalis rubros enlouqueceram em volta dela. Quebre a Ghotin da Batalha e acalme o bando.",
     fim: "Sem a pedra, as trevas se desfazem. Você aprende rápido, herói de fora.",
     etapas: [
-      { matar: "Javali Rubro", qtd: 12, onde: [-12, -86], alvo: "Derrote 12 Javalis Rubros nas Matas dos Ursos",
+      { matar: "Javali Rubro", qtd: 12, onde: [-16.8, -120.4], alvo: "Derrote 12 Javalis Rubros nas Matas dos Ursos",
         fala: "Os rubros ficam ao sul, depois dos Campos dos Javalis." },
-      { matar: "Ghotin da Batalha", qtd: 1, onde: [-45, -84], alvo: "Quebre a Ghotin da Batalha",
+      { matar: "Ghotin da Batalha", qtd: 1, onde: [-63, -117.6], alvo: "Quebre a Ghotin da Batalha",
         fala: "A pedra chama hordas a cada pedaço que perde. Fique de costas para uma árvore." },
       { falar: "Guarda Real", entregar: "Relatar ao Guarda", alvo: "Volte ao Guarda Real, na praça",
         fala: "Ouvi o estrondo daqui. Tome o Pergaminho da Bênção: o Ferreiro vai cobrar caro de você.",
@@ -12422,9 +12449,9 @@ const MISSOES = {
     oferta: "Os goblins tomaram a mina do leste e o capataz deles guarda o meu ferro. Sem ferro, sem escudo. Desça e traga a mina de volta.",
     fim: "Ferro de novo na forja. O vale vai ter escudos neste inverno.",
     etapas: [
-      { matar: "Goblin", qtd: 15, onde: [35, -6], alvo: "Derrote 15 Goblins na Mina dos Goblins (leste)",
+      { matar: "Goblin", qtd: 15, onde: [78.4, -5.9], alvo: "Derrote 15 Goblins na Mina dos Goblins (leste)",
         fala: "A boca da mina fica a leste da cidade." },
-      { matar: "Goblin Capataz", qtd: 1, onde: [35, -6], alvo: "Derrote o Goblin Capataz, no fundo da mina",
+      { matar: "Goblin Capataz", qtd: 1, onde: [78.4, -5.9], alvo: "Derrote o Goblin Capataz, no fundo da mina",
         fala: "O capataz bate com a picareta. Não fique parado na frente dele." },
       { falar: "Armeiro Bjorn", entregar: "Entregar o ferro", alvo: "Volte ao Armeiro Bjorn",
         fala: "O primeiro escudo do ferro novo é seu.",
@@ -12436,7 +12463,7 @@ const MISSOES = {
     oferta: "Para a sua roupa nova eu preciso de couro grosso. Os ursos das Matas dos Ursos têm o melhor do vale. Vinte deles.",
     fim: "Couro bom. A roupa sai mais leve e mais dura.",
     etapas: [
-      { matar: ["Urso","Urso Negro"], qtd: 20, onde: [6, -95], alvo: "Derrote 20 Ursos nas Matas dos Ursos",
+      { matar: ["Urso","Urso Negro"], qtd: 20, onde: [8.4, -133], alvo: "Derrote 20 Ursos nas Matas dos Ursos",
         fala: "Os ursos ficam no fundo das matas e no fim do Vale Vermelho." },
       { falar: "Armeiro Bjorn", entregar: "Entregar o couro", alvo: "Volte ao Armeiro Bjorn",
         fala: "Pronta. Feita sob medida para alguém de outra pintura.",
@@ -12448,7 +12475,7 @@ const MISSOES = {
     oferta: "Os de branco acampam perto do portal e juram que as Ghotin são presentes do céu. Eles as guardam e as alimentam. Derrote vinte soldados e veja o que carregam.",
     fim: "Uma seita das pedras... O Sumo-Sacerdote precisa saber disso.",
     etapas: [
-      { matar: "Soldado do Juramento Branco", qtd: 20, onde: [-7, -123], alvo: "Derrote 20 Soldados do Juramento Branco, perto do portal",
+      { matar: "Soldado do Juramento Branco", qtd: 20, onde: [-6.4, -173], alvo: "Derrote 20 Soldados do Juramento Branco, perto do portal",
         fala: "O acampamento fica no fim da estrada do sul, antes do portal." },
       { falar: "Sumo-Sacerdote Haneul", alvo: "Leve o selo dos soldados ao Sumo-Sacerdote Haneul",
         fala: "Um selo branco com uma pedra negra pintada. Leve-o ao Templo.",
@@ -12463,9 +12490,9 @@ const MISSOES = {
     oferta: "As arqueiras do Juramento atiram nos caçadores e os ursos negros protegem o acampamento. Derrube umas e outros.",
     fim: "O acampamento perdeu os olhos. Agora falta a cabeça.",
     etapas: [
-      { matar: "Arqueira do Juramento Branco", qtd: 12, onde: [-7, -123], alvo: "Derrote 12 Arqueiras do Juramento Branco",
+      { matar: "Arqueira do Juramento Branco", qtd: 12, onde: [-6.4, -173], alvo: "Derrote 12 Arqueiras do Juramento Branco",
         fala: "Elas ficam atrás dos soldados. Corra até elas." },
-      { matar: "Urso Negro", qtd: 8, onde: [6, -95], alvo: "Derrote 8 Ursos Negros",
+      { matar: "Urso Negro", qtd: 8, onde: [8.4, -133], alvo: "Derrote 8 Ursos Negros",
         fala: "Os negros lideram os bandos de ursos no fundo das matas." },
       { falar: "Guarda Real", entregar: "Relatar ao Guarda", alvo: "Volte ao Guarda Real",
         fala: "Tome um elmo de guerra. Ele já viu três invernos e nenhuma flecha passou.",
@@ -12477,9 +12504,9 @@ const MISSOES = {
     oferta: "As capitãs do Juramento Branco alimentam a Ghotin da Ganância perto do portal. Derrube três delas e quebre a pedra: o portal para a Vila Hahoe precisa ficar livre.",
     fim: "O caminho para a Curva do Rio está aberto. Lá as máscaras falam e a tinta corre com a água. Vá quando estiver pronto.",
     etapas: [
-      { matar: "Capitã do Juramento Branco", qtd: 3, onde: [6, -145], alvo: "Derrote 3 Capitãs do Juramento Branco",
+      { matar: "Capitã do Juramento Branco", qtd: 3, onde: [8.4, -203], alvo: "Derrote 3 Capitãs do Juramento Branco",
         fala: "As capitãs atacam quem chega perto. Vá com a vida cheia." },
-      { matar: "Ghotin da Ganância", qtd: 1, onde: [-4, -136], alvo: "Quebre a Ghotin da Ganância, perto do portal",
+      { matar: "Ghotin da Ganância", qtd: 1, onde: [-5.6, -190.4], alvo: "Quebre a Ghotin da Ganância, perto do portal",
         fala: "A pedra chama os soldados. Quebre-a e o acampamento perde a fé." },
       { falar: "Sumo-Sacerdote Haneul", entregar: "Contar ao Sumo-Sacerdote", alvo: "Volte ao Sumo-Sacerdote Haneul",
         fala: "Sinto daqui: uma pedra a menos.",
@@ -12491,7 +12518,7 @@ const MISSOES = {
     oferta: "Debaixo das Ruínas da Cripta, na Cripta Esquecida, um rei de ossos comanda os esqueletos que vazaram. Derrube-o antes que ele abra um rasgo maior.",
     fim: "A coroa dele era de latão pintado. Alguém, em outra pintura, ainda espera esse rei voltar.",
     etapas: [
-      { matar: "Rei Esqueleto", qtd: 1, onde: [-33, -17], alvo: "Derrote o Rei Esqueleto, no fundo da Cripta Esquecida",
+      { matar: "Rei Esqueleto", qtd: 1, onde: [-73.9, -30.5], alvo: "Derrote o Rei Esqueleto, no fundo da Cripta Esquecida",
         fala: "O buraco da Cripta fica nas Ruínas, a oeste." },
       { falar: "Sumo-Sacerdote Haneul", entregar: "Entregar a coroa", alvo: "Volte ao Sumo-Sacerdote Haneul",
         fala: "Deixe a coroa no braseiro. Ela não pertence a este mundo.",
@@ -15145,7 +15172,7 @@ function abrirAdmin(sim = $("#admin").hidden) {
 function admDestinos() {
   const L = { vila1: [], hahoe: [], montanha: [], daiyu: [] }, por = (grupo, nome, x, y) => { const m = mapaDe(x, y).id; if (L[m] && !naCaverna(x)) L[m].push({ grupo, nome, x, y }); };
   por("Zonas", "Praça", PRACA.x, PRACA.y - 2);
-  for (const z of [["Campos dos Cães", 2, -24], ["Campos dos Javalis", -22, -55], ["Matas dos Ursos", -22, -80], ["Acampamento do Juramento Branco", ACAMP.x, ACAMP.y], ["Ruínas da Cripta", RUINAS.x, RUINAS.y], ["Estábulo", ESTABULO.x, ESTABULO.y], ["Vale Vermelho", VALE_X + 20, 20], ["Monumento", MONUMENTO.x, MONUMENTO.y]]) por("Zonas", ...z);
+  for (const z of [["Campos dos Cães", 32, -44], ["Campos dos Javalis", -31, -77], ["Matas dos Ursos", -31, -112], ["Acampamento do Juramento Branco", ACAMP.x, ACAMP.y], ["Ruínas da Cripta", RUINAS.x, RUINAS.y], ["Estábulo", ESTABULO.x, ESTABULO.y], ["Vale Vermelho", VALE_X + 28, 28], ["Monumento", MONUMENTO.x, MONUMENTO.y]]) por("Zonas", ...z);
   for (const z of ZONAS_H) por("Zonas", z.nome, z.x, z.y);
   por("Zonas", "Praça da Vila Hahoe", HV.x, HV.y);
   for (const z of GELADA.ZONAS) por("Zonas", z.nome, ...GELADA.mundoDe(z.u, z.v));
@@ -15743,15 +15770,15 @@ const GRUPOS = [["aranha", 19, -50, 1]];
 // deles, ou a Capitã vendo o herói, põe o GRUPO INTEIRO na luta, que dura enquanto o herói estiver a menos de
 // GRUPO_PERSEGUE m (o Metin2 desiste a 40 m, com a visão de 20 m; aqui a visão é de ~7 m, então 16 m)
 // As faixas contam a distância à muralha da cidade (V1_CAIXA, a caixa do cidade.json), do portão sul até o portal da Vila
-// Hahoe, na ponta do cabo das Terras do Sul (V1_PORTAL, o ponto da Vila 1 mais longe da cidade): Campos dos Cães (15–35 m,
-// nv 1–4), Campos dos Javalis (35–65 m, nv 4–7), Matas dos Ursos (65–105 m, nv 7–14, os Javalis Rubros e os ursos) e, de
-// 105 m até o portal (e a V1_PORTAL_R m dele), o Acampamento do Juramento Branco (nv 13–15). O Vale Vermelho, a leste, é
+// Hahoe, na ponta do cabo das Terras do Sul (V1_PORTAL, o ponto da Vila 1 mais longe da cidade): Campos dos Cães (15–41 m,
+// nv 1–4), Campos dos Javalis (41–84 m, nv 4–7), Matas dos Ursos (84–130 m, nv 7–14, os Javalis Rubros e os ursos) e, de
+// 130 m até o portal (e a V1_PORTAL_R m dele), o Acampamento do Juramento Branco (nv 13–15). O Vale Vermelho, a leste, é
 // um braço do mapa: segue as mesmas faixas (javalis na entrada, ursos no fundo); a Montanha Gelada fica fora delas
 const GRUPO_RAIO = 4, GRUPO_MEMBRO = [3, 5], GRUPO_CORPO = 10, ORFAO_T = 300, GRUPO_PERSEGUE = 16;
-const V1_CAIXA = [-22.9, 26.9, -6.9, 34.9], V1_PORTAL = { x: -15, y: -156 }, V1_PORTAL_R = 32;   // (a cidade e o P1, PORTAIS[0])
+const V1_CAIXA = [-40.9, 44.9, -21.9, 49.9], V1_PORTAL = { x: -21, y: -223 }, V1_PORTAL_R = 45;   // (a cidade e o P1, PORTAIS[0])
 const V1_FAIXAS = [null,
-  { nome: "Campos dos Cães", de: 15, ate: 35, niveis: [1, 4] }, { nome: "Campos dos Javalis", de: 35, ate: 65, niveis: [4, 7] },
-  { nome: "Matas dos Ursos", de: 65, ate: 105, niveis: [7, 14] }, { nome: "Acampamento do Juramento Branco", de: 105, ate: 999, niveis: [13, 15] }];
+  { nome: "Campos dos Cães", de: 15, ate: 41, niveis: [1, 4] }, { nome: "Campos dos Javalis", de: 41, ate: 84, niveis: [4, 7] },
+  { nome: "Matas dos Ursos", de: 84, ate: 130, niveis: [7, 14] }, { nome: "Acampamento do Juramento Branco", de: 130, ate: 999, niveis: [13, 15] }];
 const distCidadeV1 = (x, y) => Math.hypot(Math.max(V1_CAIXA[0] - x, 0, x - V1_CAIXA[1]), Math.max(V1_CAIXA[2] - y, 0, y - V1_CAIXA[3]));
 // a faixa de um ponto da Vila 1 (0: a cidade e a volta dela, sem bichos)
 function faixaV1(x, y) {
@@ -15791,20 +15818,18 @@ const GG_V1 = {
   v1_08: { nome: "Soldados do Juramento Branco", m2: "a1_08", tempo: 60, grupos: ["soldados", "arqueira_soldados", "arqueiras_soldados"] },
   v1_10: { nome: "Capitãs do Juramento Branco", m2: "a1_10", tempo: 60, grupos: ["capita_soldados", "capita_arqueiras", "arqueira_soldados"] },
 };
-// os pontos (conjunto, x, y; já na escala nova): no mínimo 19 m um do outro (~21 grupos por hectare, a densidade do
-// Metin2), fora da água, da praia, das estradas, dos buracos, do ninho e da chegada do portal. Os Cães Selvagens (os mais
-// fracos) colados na cidade; as Capitãs (as mais fortes, agressivas) nos três pontos mais perto do portal
+// os pontos (conjunto, x, y): 80 grupos (a Vila 1 maior, 02/11/2026), ~18 por hectare de caça, no mínimo 21 m um do outro,
+// fora da água, da praia, das estradas, dos buracos, do ninho e da chegada do portal. Por faixa: 22 Cães, 25 Javalis, 19 Ursos e
+// 14 do Juramento Branco; as Capitãs (as mais fortes, agressivas) nos cinco pontos mais perto do portal
 const V1_PONTOS = [
-  ["v1_01", -38, 44], ["v1_01", 42, 43], ["v1_01", 9, -25], ["v1_01", 14, 54], ["v1_01", 46, -7],        // Campos dos Cães
-  ["v1_02", 43, 14], ["v1_02", 45, -26], ["v1_02", -20, -37], ["v1_02", -47, 11], ["v1_02", -48, -10], ["v1_02", -6, 57], ["v1_02", -34, -24],
-  ["v1_02", 56, 30], ["v1_02", 61, 6],
-  ["v1_03", 28, -43], ["v1_03", -13, -64], ["v1_03", -65, -48], ["v1_03", -40, -67], ["v1_03", 49, -63], ["v1_03", 2, -48],   // Campos dos Javalis
-  ["v1_03", -41, -44], ["v1_03", 27, -62], ["v1_03", 70, -20], ["v1_03", 73, 21], ["v1_03", 80, 1], ["v1_03", 90, -19],      // (e a entrada do Vale Vermelho)
-  ["v1_cripta", -56, -30],
-  ["v1_04", -12, -86], ["v1_04", 10, -76], ["v1_04", -64, -70], ["v1_04", 50, -87], ["v1_04", 101, 22],                      // Matas dos Ursos
-  ["v1_06", -58, -96], ["v1_06", 6, -95], ["v1_06", -32, -94], ["v1_06", 26, -92], ["v1_06", 109, -25], ["v1_06", 112, -3],  // (e o fundo do vale)
-  ["v1_08", -29, -117], ["v1_08", 18, -129], ["v1_08", 39, -112], ["v1_08", -7, -123], ["v1_08", -54, -117],                 // Juramento Branco
-  ["v1_10", -39, -134], ["v1_10", 6, -145], ["v1_10", -30, -151]];
+  ["v1_01", -53.2, 61.6], ["v1_01", 58.8, 60.2], ["v1_01", 17.2, -43.7], ["v1_01", 19.6, 75.6], ["v1_01", 63, -8.4], ["v1_01", -72, 40.8], ["v1_01", -33, 77.1], ["v1_01", 43.4, 77.9],
+  ["v1_02", 61.5, 20.4], ["v1_02", 61.2, -36], ["v1_02", -29.1, -50.1], ["v1_02", -65.8, 15.4], ["v1_02", -71, -17.8], ["v1_02", -8.4, 79.8], ["v1_02", -49.3, -36.6], ["v1_02", 78.4, 42], ["v1_02", 85.4, 8.4], ["v1_02", 40, -39.7], ["v1_02", 61.5, -57.5], ["v1_02", -4.3, -47.2], ["v1_02", -81.5, 0.9], ["v1_02", 78.5, -23.3],
+  ["v1_03", 38.6, -62.9], ["v1_03", -20.4, -89.2], ["v1_03", -91, -67.2], ["v1_03", -56, -93.8], ["v1_03", 71.8, -90.2], ["v1_03", 5.3, -66.5], ["v1_03", -57.4, -61.6], ["v1_03", 35.2, -87.6], ["v1_03", 99.7, -26.8], ["v1_03", 102.2, 29.4], ["v1_03", 111.4, 0.5], ["v1_03", 126.8, -25.6], ["v1_03", -38, -74.9], ["v1_03", -36, -104], ["v1_03", -72, -78.7], ["v1_03", 84.5, -45.1], ["v1_03", 121.3, 40.3], ["v1_03", 5.1, -88], ["v1_03", 122.6, 18.8], ["v1_03", 52.5, -101], ["v1_03", -17.1, -68], ["v1_03", 114, -42.9], ["v1_03", 54.2, -77.7], ["v1_03", -6.9, -105.8],
+  ["v1_cripta", -78.4, -42],
+  ["v1_04", -19, -123.7], ["v1_04", 17.2, -107.8], ["v1_04", -89.6, -97.9], ["v1_04", 70, -121.8], ["v1_04", 141.4, 31.9], ["v1_04", -20.5, -146.6], ["v1_04", 27.4, -149], ["v1_04", 163.1, 19.6], ["v1_04", -69.8, -113.1],
+  ["v1_06", -81, -134.6], ["v1_06", 8.5, -132.7], ["v1_06", -44.8, -131.6], ["v1_06", 36.4, -128.8], ["v1_06", 152.2, -35.4], ["v1_06", 157.7, -4.7], ["v1_06", -58.3, -149], ["v1_06", -95.4, -118.6], ["v1_06", 169.5, -22.6], ["v1_06", 142.4, 10.5],
+  ["v1_08", -37.3, -162.4], ["v1_08", 28.3, -187.3], ["v1_08", 54.6, -156.8], ["v1_08", -6.4, -173], ["v1_08", -77.4, -163.1], ["v1_08", 2.6, -153.5], ["v1_08", 47.4, -177.5], ["v1_08", -57.2, -170.5], ["v1_08", 18, -168.4],
+  ["v1_10", -54, -191.8], ["v1_10", 8.4, -203], ["v1_10", -42, -211.4], ["v1_10", -29, -186.1], ["v1_10", -10.2, -217.6]];
 // o tipo mais forte e o tamanho maior de um conjunto (a cor e o "×n" do Mapa do Mundo)
 function tiposGG(gg) { return [...new Set(GG_V1[gg].grupos.flatMap(g => GRUPOS_M2[g]))]; }
 function spawnGrupoV1(gg, x, y) {
@@ -15812,7 +15837,7 @@ function spawnGrupoV1(gg, x, y) {
   return { tipo: ts.reduce((a, b) => nv(b) > nv(a) ? b : a), x, y, n: Math.max(...GG_V1[gg].grupos.map(g => GRUPOS_M2[g].length)), r: GRUPO_RAIO, gg };
 }
 // no centro, o monumento (uma pedra gigante, do tempo em que o vale era dos orcs)
-const MONUMENTO = { x: 98, y: -2 };
+const MONUMENTO = { x: 137.2, y: -2.8 };
 // o Vale Vermelho (a península de terra vermelha a leste): os grupos do Juramento Branco que acampassem nele ganhariam
 // uma fogueira (montarValeOrcs); com o Juramento no fim das Terras do Sul, o vale ficou com os javalis e os ursos, sem
 // fogueira
@@ -15824,7 +15849,7 @@ const DAIYU_BANDOS = DAIYU.bandos();                                 // (mapa_da
 // as criaturas novas (x, y já na escala nova, quantos, espalhados em quantos m): a caça da floresta perto da vila (o urso
 // ao norte e o tigre ao sul do Campo dos Lobos, o Lobo Alfa no meio da alcateia), o acampamento dos bandidos (ACAMP) e os
 // mortos-vivos em volta das ruínas da Cripta (o buraco fica perto de (-53, -22)); as de x < VALE_X ganham clareira
-const RUINAS = { x: -46, y: -25, r: 12 };
+const RUINAS = { x: -64.4, y: -35.0, r: 16.8 };
 const MONTE_BANDOS = GELADA.bandos();                                  // (mapa_montanha.js: 17 bandos, um trecho em cada patamar)
 // (a Vila 1 ficou com a faixa 1–15, Logs/Mapas/PROJETO_MAPAS.md 2.5: o Tigre, o Lobo Alfa, os bandidos, os zumbis, os
 // fantasmas e o Lich foram para a Vila Hahoe, HAHOE_BANDOS. Os substitutos de antes (o Urso Negro, os goblins do
@@ -15864,7 +15889,7 @@ function nomeRegiao(x, y) {
 // A lista editada fica salva neste navegador (MOBS_CHAVE); MOBS_FIXO é a aprovada (o texto do "Copiar" do editor).
 // (mobsEditados1 era a Vila 1 de antes, com os orcs no vale, e mobsEditados2 a Vila 1 pequena, com o portal a leste:
 // ficam para trás)
-const MOBS_CHAVE = "mobsEditados3";
+const MOBS_CHAVE = "mobsEditados4";
 const MOBS_FIXO = null;
 let SPAWNS = null, SPAWNS_ORIGINAL = null;
 function spawnsOriginais() {
@@ -17866,7 +17891,7 @@ cv.addEventListener("wheel", e => { e.preventDefault(); zoom = Math.max(ZOOM_MIN
 // navegador (localStorage) e "Copiar mapa" gera o texto com as decorações e as colisões, para virar o mapa fixo.
 // 8: versao 2, com as lanternas e os bambus da vila como decoração, o giro, o modelo (cerejeira, bambu...) e o terreno
 // (as camadas de ajuste do Mapa do Mundo); o mapa salvo na 7 continua valendo (é lido se não houver um na 8)
-const MAPA_CHAVE = "mapaEditado8", MAPA_CHAVE_ANTIGA = "mapaEditado7";
+const MAPA_CHAVE = "mapaEditado9", MAPA_CHAVE_ANTIGA = "mapaEditado9";
 const MAPA_FIXO = null;                    // o mapa aprovado entra aqui (o texto do "Copiar mapa")
 const editor = { ativo: false, sel: null, pondo: null, arrasto: null, foco: { x: 0, y: 0 }, teclas: new Set(), mouse: null };
 let mapaOriginal = null;
@@ -18182,7 +18207,7 @@ function desenharMira(t) {
 // Pisando no buraco, desce; pisando na escada, sobe. O tema muda a cor do chão, o escuro, a luz das tochas e os enfeites
 // (teias, lápides, barris).
 const DUNGEONS = [
-  { id: "ratos", nome: "Caverna dos Ratos", x: 300, y: 0, x0: -8, x1: 34, y0: -16, y1: 15, buraco: [-6, 24],
+  { id: "ratos", nome: "Caverna dos Ratos", x: 300, y: 0, x0: -8, x1: 34, y0: -16, y1: 15, buracoMundo: [-8.0,-24.4],
     salas: [{ x: 0, y: 0, r: 4 }, { x: 12, y: 4, r: 6 }, { x: 10, y: -10, r: 5 }, { x: 26, y: 5, r: 7 }, { x: 22, y: -8, r: 4.5 }],
     tuneis: [[0, 0, 12, 4, 2.6], [12, 4, 10, -10, 2.4], [12, 4, 26, 5, 2.8], [10, -10, 22, -8, 2.2], [22, -8, 26, 5, 2.2]],
     tema: { piso: "rgba(18, 12, 10, 0.45)", escuro: 0.88, mini: [92, 80, 66] },
@@ -18248,7 +18273,7 @@ function criarOrcs() {
 }
 function montarDungeon(d) {
   // o buraco: um lugar livre do mapa (perto do ponto da dungeon)
-  const [hx, hy] = noMapa(d.buraco);
+  const [hx, hy] = d.buracoMundo || noMapa(d.buraco);
   let bx = hx, by = hy;
   const cabe = (x, y) => livre(x, y) && livre(x + 1.6, y) && livre(x - 1.6, y) && livre(x, y - 1.4) && livre(x, y + 1.3) && livre(x + 1.2, y + 1) && livre(x - 1.2, y + 1) && borda(x, y) < RAIO - 4;
   for (let k = 0; k < 160 && !cabe(bx, by); k++) { bx = hx + (Math.random() - 0.5) * 14; by = hy + (Math.random() - 0.5) * 10; }
@@ -22400,7 +22425,7 @@ const mix = (a, b, k) => a + (b - a) * k;
 // alturas a partir do mesmo mapa: morros suaves nos campos, estradas, clareiras, a vila e a praça mais planas, a costa
 // descendo para o mar (praia de areia; no Vale dos Orcs e na Montanha Gelada, paredões de pedra), o vale com muralhas de
 // pedra em volta, a montanha subindo para o leste com cristas e o lago num barranco
-function distEstrada(x, y) { let m = Infinity; for (const e of ESTRADAS) { const d = distLinha(x, y, e); if (d < m) m = d; } return m; }
+function distEstrada(x, y) { let m = Infinity; for (const e of ESTRADAS) { const d = distLinha(x, y, e) - (e.meia ? e.meia - 0.8 : 0); if (d < m) m = d; } return m; }
 let bandosLonge = null;
 function plano(x, y, dEstr) {
   let p = 0.62 * liso3((7 - dEstr) / 5);
@@ -22464,7 +22489,7 @@ function pesoTerraIlha(x, y) {
   return [w, est];
 }
 function pesoMusgo3(x, y) {
-  const f = fbm(x * 0.07 + 3, y * 0.07 - 2), dp = Math.hypot(x - PRACA.x, y - PRACA.y), m2 = fbm(x * 0.045 + 31, y * 0.045 - 17), m3 = ruido2(x * 0.6, y * 0.6) - 0.5;
+  const f = fbm(x * kV1(x, y) * 0.07 + 3, y * kV1(x, y) * 0.07 - 2), dp = Math.hypot(x - PRACA.x, y - PRACA.y), m2 = fbm(x * 0.045 + 31, y * 0.045 - 17), m3 = ruido2(x * 0.6, y * 0.6) - 0.5;
   const mata = liso3((f - 0.47 + m3 * 0.06) / 0.2) * liso3((dp - 9) / 5);
   return Math.max(mata, 0.32 * liso3((m2 - 0.52) / 0.22));
 }
@@ -27058,7 +27083,7 @@ var MM = (() => {
 const $m = id => document.getElementById(id);
 const el = $m("mapaMundo"), cvM = $m("mmTela"), g = cvM.getContext("2d"), corpoM = cvM.parentNode;
 // o retângulo do mundo (a ilha, o vale e as Terras do Sul: a caixa da costa, com um pouco de mar em volta)
-const limV1 = () => ({ x0: Math.min(CAIXA_V1.x0, -96) - 10, x1: CAIXA_V1.x1 + 10, y0: CAIXA_V1.y0 - 10, y1: Math.max(CAIXA_V1.y1, 96) + 10 });   // (R165: o mapa cresce para caber a ilha do Altar das Eras)
+const limV1 = () => ({ x0: Math.min(CAIXA_V1.x0, altarMundo(0, 0)[0] - 28) - 10, x1: CAIXA_V1.x1 + 10, y0: CAIXA_V1.y0 - 10, y1: Math.max(CAIXA_V1.y1, altarMundo(0, 0)[1] + 28) + 10 });   // (R165: o mapa cresce para caber a ilha do Altar das Eras)
 const LIM = limV1();
 const V = { cx: 40, cy: 0, esc: 5, w: 0, h: 0, dpr: 1 };
 const est = { aberto: false, aba: "mobs", editando: false, sel: null, selDeco: null, ferr: "escolher", pondoGrupo: false, arrasto: null, mouse: null,
@@ -27188,11 +27213,11 @@ function garantirBase() {
 // ---------------------------------------------------------------- o que vai no mapa
 // os nomes das regiões: [nome, x, y, tamanho (1 região grande, 2 lugar, 3 marco)]
 function rotulos() {
-  return [["Altar das Eras", altarMundo(0, -2)[0], altarMundo(0, -2)[1], 2], ["Vale do Viking", -14, 50, 1], ["Vila", VILA.x, VILA.y + 15, 2], ["Campo de Treino", PRACA.x, PRACA.y - 7.5, 3], ["Lago", LAGO.x, LAGO.y + LAGO.r + 3.2, 3],
+  return [["Altar das Eras", altarMundo(0, -2)[0], altarMundo(0, -2)[1], 2], ["Vale do Viking", -20, 70, 1], ["Vila", VILA.x, VILA.y + 15, 2], ["Campo de Treino", -16, -37.5, 3], ["Lago", LAGO.x, LAGO.y + LAGO.r + 3.2, 3],
           ["Acampamento do Juramento Branco · 13–15", ACAMP.x, ACAMP.y - 12.5, 2], ["Ruínas da Cripta", RUINAS.x - 2, RUINAS.y - 15, 2],
           // (as faixas dos grupos do Metin2, faixaV1)
-          ["Campos dos Cães · 1–4", 2, -24, 2], ["Estábulo", ESTABULO.x - 5, ESTABULO.y - 6.5, 3], ["Campos dos Javalis · 4–7", -22, -55, 2], ["Matas dos Ursos · 7–14", -22, -80, 2],
-          ["Vale Vermelho", VALE_X + 24, 34, 1], ["Monumento", MONUMENTO.x, MONUMENTO.y + 9, 3], ...GELADA.rotulos(),
+          ["Campos dos Cães · 1–4", 32, -44, 2], ["Estábulo", ESTABULO.x - 5, ESTABULO.y - 6.5, 3], ["Campos dos Javalis · 4–7", -31, -77, 2], ["Matas dos Ursos · 7–14", -31, -112, 2],
+          ["Vale Vermelho", VALE_X + 34, 48, 1], ["Monumento", MONUMENTO.x, MONUMENTO.y + 9, 3], ...GELADA.rotulos(),
           // (a Vila Hahoe: aparece quando o herói está nela)
           ["Vila Hahoe", HV.x, HV.y + 13, 1], ...ZONAS_H.map(z => [z.nome, z.x, z.y + (z.r > 6 ? 7 : 3), 2]),
           ...PONTES_H.map(p => [p.nome, p.x, p.y - 4, 3])];
@@ -27318,11 +27343,11 @@ function linhaMundo(c, v, pts, fechar) {
 function desenharEstradas(c, v) {
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
   for (const [cor, larg] of [["rgba(84, 60, 34, 0.75)", 2.3], ["#c8a670", 1.6]]) {
-    c.strokeStyle = cor; c.lineWidth = Math.max(1.5, larg * v.esc);
-    for (const e of ESTRADAS) { linhaMundo(c, v, e); c.stroke(); }
+    c.strokeStyle = cor;
+    for (const e of ESTRADAS) { c.lineWidth = Math.max(1.5, (e.meia ? larg - 1.6 + e.meia * 2 : larg) * v.esc); linhaMundo(c, v, e); c.stroke(); }
   }
   // a praça do campo de treino
-  const [X, Y] = paraTela(PRACA.x, PRACA.y, v);
+  const [X, Y] = CIDADE && CIDADE.treino ? paraTela(CIDADE.treino.para[0], CIDADE.treino.para[1], v) : paraTela(PRACA.x, PRACA.y, v);
   c.fillStyle = "#a89c88"; c.strokeStyle = "rgba(60, 50, 40, 0.8)"; c.lineWidth = Math.max(1, v.esc * 0.2);
   c.beginPath(); c.arc(X, Y, PRACA.r * v.esc, 0, 7); c.fill(); c.stroke();
   c.restore();
