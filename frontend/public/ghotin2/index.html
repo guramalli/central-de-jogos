@@ -30127,6 +30127,7 @@ function cenaTintaHeroi(X, Y, z) {
 // o rasgo do biombo na Vila 1 (minhwa: BIBLIA_B): uma fenda vertical no ar, com as bordas de papel rasgado (hanji, contorno de
 // nanquim), o vazio de nanquim com um veio de índigo dentro e a luz somada fraca em volta (o padrão dos efeitos). Respira devagar.
 // Na costura, 3 pontos de cinabre cruzam a fenda, ela se fecha e some com um clarão
+const RASGO_IMG = new Image();
 function desenharRasgo(R, t) {
   const C = CENA, cost = C.ativa === "rasgo" && C.m.costura != null ? c01((C.t - C.m.costura) / 2.8) : 0, foi = C.m.fechou != null && C.ativa === "rasgo" ? c01((C.t - C.m.fechou) / 0.5) : 0;
   if (foi >= 1) return;
@@ -30140,10 +30141,16 @@ function desenharRasgo(R, t) {
   const g = cx.createRadialGradient(X, base - alto / 2, 0, X, base - alto / 2, 1.3 * s); g.addColorStop(0, `rgba(201, 150, 62, ${0.32 * (1 - cost * 0.5)})`); g.addColorStop(1, "rgba(201, 150, 62, 0)");
   cx.fillStyle = g; cx.fillRect(X - 1.3 * s, base - alto / 2 - 1.3 * s, 2.6 * s, 2.6 * s);
   cx.globalCompositeOperation = "source-over";
+  if (!RASGO_IMG.src) { RASGO_IMG.decoding = "async"; RASGO_IMG.src = "cena/rasgo.webp"; }
+  if (RASGO_IMG.complete && RASGO_IMG.naturalWidth) {                   // (a pintura do ChatGPT, 04/11: o papel e o vazio; a largura respira e se fecha na costura)
+    const ih = alto * 1.12, iw = 1.25 * ih * RASGO_IMG.naturalWidth / RASGO_IMG.naturalHeight * (larg / (0.5 * s));   // (1,25: a pintura é mais estreita que a fenda antiga)
+    if (iw > 0.5) cx.drawImage(RASGO_IMG, X - iw / 2, base - ih + 0.06 * alto, iw, ih);
+  } else {                                                               // (enquanto a imagem não chega: o desenho por código)
   cx.lineJoin = "round"; cx.strokeStyle = "#1E1B18"; cx.lineWidth = Math.max(1, 1.8 * zoom);
   caminho(0.13 * s); cx.fillStyle = "#EFE4CC"; cx.fill(); cx.stroke();      // (as bordas de papel rasgado)
   caminho(0); cx.fillStyle = "#1E1B18"; cx.fill(); cx.stroke();          // (o vazio de nanquim)
-  if (larg > 2) {                                                      // (o veio de índigo: um traço de pincel em zigue-zague, não uma forma)
+  }
+  if (larg > 2 && !(RASGO_IMG.complete && RASGO_IMG.naturalWidth)) {                                                      // (o veio de índigo: um traço de pincel em zigue-zague, não uma forma)
     cx.strokeStyle = "rgba(45, 74, 107, 0.75)"; cx.lineWidth = Math.max(1.5, larg * 0.22); cx.lineCap = "round"; cx.beginPath();
     for (let i = 2; i <= N - 2; i++) { const u = i / N, xx = X + Math.sin(i * 2.7) * larg * 0.18 * Math.sin(Math.PI * u), yy = topo + u * alto; if (i === 2) cx.moveTo(xx, yy); else cx.lineTo(xx, yy); }
     cx.stroke(); cx.lineCap = "butt";
