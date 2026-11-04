@@ -5749,6 +5749,20 @@ function modoAdmin(sim, lembrar = true) {
 const cv = $("#campo");
 let cx = cv.getContext("2d");                 // trocado por um instante pela camada ao desenhar um objeto translúcido
 const camada = document.createElement("canvas"), cxCamada = camada.getContext("2d");
+// (plano E, LOTE): cada canvas 2D criado daqui em diante conta as vezes que foi pintado (__lv), para o lote WebGL2 saber quando
+// a textura dele ficou velha; o canvas com WebGL é marcado (__lgl: muda sem o 2D saber). O do jogo (cx) e a camada ficam de fora
+(() => {
+  const gc = HTMLCanvasElement.prototype.getContext, NOMES = ["drawImage", "fillRect", "clearRect", "fill", "stroke", "fillText", "strokeText", "putImageData", "strokeRect", "reset"];
+  HTMLCanvasElement.prototype.getContext = function (tipo, opc) {
+    const g = gc.call(this, tipo, opc);
+    if (!g || g.__lp) return g;
+    g.__lp = true;
+    if (tipo === "2d") { const c = this, P = Object.getPrototypeOf(g); c.__lv = c.__lv | 0; for (const n of NOMES) if (typeof P[n] === "function") g[n] = function () { c.__lv++; return P[n].apply(g, arguments); }; }   // (o método do protótipo da vez: quem embrulha o protótipo, como os testes e o medidor, continua valendo)
+    else if (/webgl/.test(tipo)) this.__lgl = true;
+    return g;
+  };
+  for (const k of ["width", "height"]) { const d = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, k); if (d && d.set) Object.defineProperty(HTMLCanvasElement.prototype, k, { get: d.get, set(v) { this.__lv = (this.__lv | 0) + 1; d.set.call(this, v); }, configurable: true, enumerable: d.enumerable }); }
+})();
 const DIRS = ["L", "SE", "S", "SO", "O", "NO", "N", "NE"];
 let semente = 11;
 const acaso = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
@@ -8848,6 +8862,7 @@ function cobreAlguem(caixa, ySul, quem) {
 // desenha numa camada à parte e põe na tela com a transparência (assim as copas e camadas de dentro não aparecem
 // umas através das outras); a caixa limita o trecho limpo e copiado
 function translucido(alfa, caixa, desenho) {
+  if (cx.__lote) { LOTE.grupo(cx, alfa, caixa, desenho); return; }   // (plano E: numa camada da GPU)
   const m = cx.getTransform(), folga = 40;
   const x0 = Math.max(0, Math.floor(m.a * (caixa[0] - folga) + m.e)), y0 = Math.max(0, Math.floor(m.d * (caixa[1] - folga) + m.f));
   const x1 = Math.min(camada.width, Math.ceil(m.a * (caixa[2] + folga) + m.e)), y1 = Math.min(camada.height, Math.ceil(m.d * (caixa[3] + folga) + m.f));
@@ -22361,8 +22376,9 @@ function pontosCobre(i, l, X, Y) {
 function pedirCobre(gl, pts) {
   const b = COBRE_GL.livres.pop() || gl.createBuffer();
   P3D.render.setRenderTarget(null);                                      // (o atlas: o framebuffer da tela do WebGL, pelo three, para o cache dele não se perder)
+  if (LOTE.ativo && P3D.compartilhado) gl.bindFramebuffer(gl.FRAMEBUFFER, null);   // (no meio do lote: o three não sabe do framebuffer dele)
   gl.bindBuffer(gl.PIXEL_PACK_BUFFER, b); gl.bufferData(gl.PIXEL_PACK_BUFFER, pts.length * 4, gl.STREAM_READ);
-  pts.forEach((p, k) => { if (p) gl.readPixels(p[0], P3D.lado - 1 - p[1], 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, k * 4); });
+  pts.forEach((p, k) => { if (p) gl.readPixels(p[0], (P3D.altGL || P3D.lado) - 1 - p[1], 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, k * 4); });
   gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
   const f = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); gl.flush(); COBRE_GL.pedidas++;
   return { gl, b, f, pts, quadro: P3D.quadro };
@@ -24708,7 +24724,9 @@ function desenharQuadro(t) {
     else translucido(o.alfa, caixa, () => desenharObjeto(o, t));
   };
   // (a ordem pela profundidade da vista: com o giro, o fundo é o nordeste; ver profObj)
-  for (const o of montarListaDesenho(naTela, objeto, t)) o.f();
+  const lista = montarListaDesenho(naTela, objeto, t), lote = LOTE.ligado ? LOTE.comecar(cx) : null;
+  if (lote) { const real = cx; cx = lote; try { for (const o of lista) o.f(); } finally { cx = real; LOTE.terminar(); } }   // (plano E: a lista em lote no WebGL2)
+  else for (const o of lista) o.f();
   if (naCaverna(cam.x)) desenharSilhuetaVale();     // (o herói atrás de um dragão, numa silhueta por cima dele)
   desenharTrevasChao(0.5);                          // (o véu das trevas por cima do mato alto e de quem está nelas)
   desenharShura2d(t);                               // (a caveira do Medo do shura e o crânio das criaturas com medo)
@@ -24797,6 +24815,7 @@ function desenharSelecao(t) {
 const tinta = document.createElement("canvas"), tintaLamina = document.createElement("canvas");
 // máscara da lâmina do quadro (fileira de baixo da tira: só a parte da lâmina que aparece) pintada de uma cor
 function mascaraLamina(im, q, info, cor) {
+  if (cx.__lote) return LOTE.tinta(im, q * info.w, info.h, info.w, info.h, cor);   // (no lote: a cor com o alfa da máscara, na GPU)
   if (tintaLamina.width !== info.w || tintaLamina.height !== info.h) { tintaLamina.width = info.w; tintaLamina.height = info.h; }
   const g = tintaLamina.getContext("2d");
   g.globalCompositeOperation = "source-over"; g.clearRect(0, 0, info.w, info.h);
@@ -24870,6 +24889,7 @@ function brilhoArco(im, q, info, X, Y, z, t) {
 }
 // silhueta do quadro atual pintada de uma cor (para a aura e o tom vermelho)
 function silhueta(im, q, info, cor) {
+  if (cx.__lote && im) return LOTE.tinta(im, q * info.w, 0, info.w, info.h, cor);
   if (tinta.width !== info.w || tinta.height !== info.h) { tinta.width = info.w; tinta.height = info.h; }
   const g = tinta.getContext("2d");
   g.globalCompositeOperation = "source-over"; g.clearRect(0, 0, info.w, info.h);
@@ -24965,6 +24985,1057 @@ function animVisivel(n) {
   const base = SEM_TROCA[n] || n;
   return M.animacoes[base + "_sem"] && SPR[base + "_sem"] ? base + "_sem" : n;
 }
+// ================================================================ LOTE (plano "Arquitetura para muitas criaturas", passos E e
+// D parte 2, 03/11; Logs/Desempenho/FPS_JOGO_TODO.md, rodada 7): um canvas WebGL2 só (L.canvas, um contexto) para os bonecos 3D,
+// os efeitos 3D (FX3) e a lista da profundidade.
+// - No canvas, em cima, o atlas dos bonecos (P3D, o mesmo de antes, pelo three.js); embaixo, o "palco", do tamanho da tela.
+// - E: a lista da profundidade (decoração, construções, criaturas, herói, sombras) desenha num contexto 2D de mentira (L.ctx:
+//   o cx da vez) que junta os desenhos e manda à GPU em lote. Cada imagem vira uma textura (enviada uma vez; um canvas, quando
+//   é pintado de novo: __lv); os bonecos 3D saem da textura do atlas, no mesmo contexto (sem cópia para o 2D); as elipses e os
+//   retângulos viram quadriláteros com a borda suavizada no shader; os degradês saem de uma tabela; os caminhos e os traços
+//   vão pelo estêncil; os borrados (a sombra do herói, o brilho da arma) por duas passadas; o objeto translúcido numa camada
+//   da GPU. No fim, o palco vai para o canvas 2D numa drawImage só (eram uma por boneco 3D, mais as leituras do atlas para a
+//   sombra e para a máscara da arma). O que o lote não sabe desenhar (texto, padrão...) descarrega o palco no 2D e é
+//   desenhado lá, na mesma ordem (L.st.quebras). Fica no 2D o que vem depois da lista (o véu, a luz, o FX3, as placas, o HUD).
+// - D, parte 2: o FX3 usa o renderer dos bonecos (L.fxRenderer: o mesmo contexto, desenhando no palco depois da lista); os
+//   corpos dão a profundidade aos efeitos sem trocar de cena e sem refazer os ossos (a câmera vai até cada corpo).
+// Chaves: ?lote=0 (a lista no canvas 2D, como antes), ?fxjunto=0 (o FX3 no canvas dele). Sem WebGL2: o de antes.
+const LOTE = (() => {
+"use strict";
+const QS = new URLSearchParams(location.search);
+const L = {
+  ligado: !QS.has("2d") && QS.get("lote") !== "0" && !ESTILO_TINTA && (!MODO_TESTE || QS.get("lote") === "1"),
+  fxJunto: !QS.has("2d") && QS.get("fxjunto") !== "0" && !ESTILO_TINTA,
+  canvas: null, gl: null, erro: null, perdido: false, ativo: false, ctx: null, palcoSujo: false,
+  Wd: 1, Hd: 1, cw: 1, ch: 1, lado: 0, quadro: 0, fx: null,
+  // (a imagem reduzida no "medium"/"high": o mipmap trilinear com o nível puxado para o mais nítido (mipK 0,6). O canvas 2D do
+  //  Chrome guarda a imagem já reduzida conforme o uso anterior dela, então não dá para copiar igual; medido contra o Graphite no
+  //  mato e na Ghotin com zoom 0,6, este ficou mais perto: ~1% dos pixels acima de 8/255, só na nitidez das folhas)
+  mipK: 0.6, mipAbaixo: 0.999,
+  st: { quadros: 0, lotes: 0, imagens: 0, formas: 0, caminhos: 0, borrados: 0, reusos: 0, grupos: 0, quebras: 0, perdidos: 0, envios: 0, mbEnviados: 0, texturas: 0, mb: 0, motivos: {} },
+};
+let gl = null, REAL = null, ger = 1, montado = false;
+// ---- o canvas e o contexto
+L.contexto = () => {
+  if (L.gl) return L.perdido ? null : L;
+  if (L.erro || typeof WebGL2RenderingContext === "undefined") return null;
+  try {
+    const c = document.createElement("canvas"); c.width = c.height = 16;
+    const g = c.getContext("webgl2", { alpha: true, premultipliedAlpha: true, antialias: true, preserveDrawingBuffer: true, stencil: true, depth: true, powerPreference: "high-performance" });
+    if (!g) { L.erro = "sem WebGL2"; return null; }
+    c.addEventListener("webglcontextlost", e => { e.preventDefault(); L.perdido = true; });
+    c.addEventListener("webglcontextrestored", () => { L.perdido = false; ger++; montado = false; });
+    L.canvas = c; L.gl = gl = g;
+    return L;
+  } catch (e) { L.erro = String(e); return null; }
+};
+const medidas = () => { L.Wd = Math.max(1, Math.round(W * dpr)); L.Hd = Math.max(1, Math.round(H * dpr)); };
+// o tamanho do canvas com o atlas (lado × lado) em cima e o palco (a tela) embaixo
+L.tamanho = lado => { medidas(); L.lado = lado; L.cw = Math.max(lado, L.Wd); L.ch = lado + L.Hd; return [L.cw, L.ch]; };
+L.compartilhado = () => !!(L.gl && typeof P3D === "object" && P3D.compartilhado && P3D.render && !P3D.perdido);
+function conferirTamanho() {
+  medidas();
+  const lado = L.compartilhado() ? P3D.lado : 0;
+  if (L.lado === lado && L.cw === Math.max(lado, L.Wd) && L.ch === lado + L.Hd && L.canvas.width === L.cw && L.canvas.height === L.ch) return;
+  if (L.compartilhado()) { p3dTamanho(); zerarAtlas3d(); }          // (a tela mudou: o canvas é refeito e os bonecos voltam ao atlas)
+  else { L.tamanho(0); L.canvas.width = L.cw; L.canvas.height = L.ch; }
+}
+
+// ---- os programas
+const VS = `#version 300 es
+in vec2 aPos; in vec2 aUv; in vec4 aCor; in float aTipo; in vec4 aGrad;
+uniform vec2 uTela, uOrig;
+out vec2 vUv; out vec4 vCor; flat out float vTipo; out vec4 vGrad;
+void main() { vec2 p = (aPos - uOrig) / uTela; gl_Position = vec4(p.x * 2.0 - 1.0, 1.0 - p.y * 2.0, 0.0, 1.0); vUv = aUv; vCor = aCor; vTipo = aTipo; vGrad = aGrad; }`;
+// tipo = 16 × forma + unidade da textura (+ 128: "lighter", somado: a cor com alfa 0 no "source-over" pré-multiplicado soma a
+// cor e não mexe no alfa; assim o lighter não quebra o lote). 0: imagem; 1: imagem tingida (a cor com o alfa da imagem: a silhueta, a máscara da
+// arma, a sombra); 2: elipse (vUv: o círculo unitário); 3: retângulo (vUv de 0 a 1); 4: cobertura de caminho (o estêncil corta)
+const FS = `#version 300 es
+precision highp float;
+uniform sampler2D uT0, uT1, uT2, uT3, uT4, uT5, uT6, uT7, uT8, uT9, uT10, uT11; uniform highp sampler2D uLut;
+uniform float uLutH, uMipK; uniform int uFiltro; uniform mat4 uFM; uniform vec4 uFA;
+in vec2 vUv; in vec4 vCor; flat in float vTipo; in vec4 vGrad;
+out vec4 saida;
+vec4 amostra(int u, vec2 uv, vec2 dx, vec2 dy) {
+  if (u < 4) { if (u < 2) return u == 0 ? textureGrad(uT0, uv, dx, dy) : textureGrad(uT1, uv, dx, dy); return u == 2 ? textureGrad(uT2, uv, dx, dy) : textureGrad(uT3, uv, dx, dy); }
+  if (u < 8) { if (u < 6) return u == 4 ? textureGrad(uT4, uv, dx, dy) : textureGrad(uT5, uv, dx, dy); return u == 6 ? textureGrad(uT6, uv, dx, dy) : textureGrad(uT7, uv, dx, dy); }
+  if (u < 10) return u == 8 ? textureGrad(uT8, uv, dx, dy) : textureGrad(uT9, uv, dx, dy);
+  return u == 10 ? textureGrad(uT10, uv, dx, dy) : textureGrad(uT11, uv, dx, dy);
+}
+// o degradê: a linha vGrad.z da tabela tem o número de paradas e os 7 lugares (texels 0 e 1) e as cores sem pré-multiplicar
+// (texels 2 a 8); a cor é interpolada como no canvas e pré-multiplicada no fim
+vec4 pintura() {
+  if (vGrad.z < -0.5) return vCor;
+  float t = clamp(vGrad.w < -0.5 ? vGrad.x : (length(vGrad.xy) - vGrad.w) / max(1e-6, 1.0 - vGrad.w), 0.0, 1.0);
+  int row = int(vGrad.z + 0.5);
+  vec4 h0 = texelFetch(uLut, ivec2(0, row), 0), h1 = texelFetch(uLut, ivec2(1, row), 0);
+  int n = int(h0.x + 0.5);
+  float o[7]; o[0] = h0.y; o[1] = h0.z; o[2] = h0.w; o[3] = h1.x; o[4] = h1.y; o[5] = h1.z; o[6] = h1.w;
+  vec4 c = texelFetch(uLut, ivec2(2, row), 0);
+  if (t > o[0]) {
+    c = texelFetch(uLut, ivec2(1 + n, row), 0);
+    for (int i = 1; i < 7; i++) { if (i >= n) break; if (t <= o[i]) { c = mix(texelFetch(uLut, ivec2(1 + i, row), 0), texelFetch(uLut, ivec2(2 + i, row), 0), (t - o[i - 1]) / max(1e-6, o[i] - o[i - 1])); break; } }
+  }
+  return vec4(c.rgb * c.a, c.a) * vCor.a;
+}
+void main() {
+  int tp = int(vTipo + 0.5); bool soma = tp >= 128; if (soma) tp -= 128;
+  int forma = tp / 16, u = tp - forma * 16;
+  vec2 dx = dFdx(vUv), dy = dFdy(vUv);
+  vec4 c;
+  if (forma == 0) {
+    c = amostra(u, vUv, dx * uMipK, dy * uMipK);
+    if (uFiltro == 1) { vec3 n = c.a > 0.0 ? c.rgb / c.a : vec3(0.0); vec4 q = clamp(uFM * vec4(n, c.a) + uFA, 0.0, 1.0); c = vec4(q.rgb * q.a, q.a); }
+    c *= vCor;
+  } else if (forma == 1) c = vCor * amostra(u, vUv, dx, dy).a;
+  else if (forma == 2) { float d = length(vUv), w = max(length(vec2(dFdx(d), dFdy(d))), 1e-5); c = pintura() * clamp((1.0 - d) / w + 0.5, 0.0, 1.0); }
+  else if (forma == 3) { vec2 w = max(vec2(length(vec2(dx.x, dy.x)), length(vec2(dx.y, dy.y))), vec2(1e-5)); vec2 e = clamp(min(vUv, 1.0 - vUv) / w + 0.5, 0.0, 1.0); c = pintura() * e.x * e.y; }
+  else c = pintura();
+  saida = soma ? vec4(c.rgb, 0.0) : c;
+}`;
+// o borrado (gaussiano, uma direção por passada), dentro do retângulo de rascunho
+const VSB = `#version 300 es
+uniform vec2 uEsc; out vec2 vUv;
+void main() { vec2 p = vec2(float(gl_VertexID & 1), float(gl_VertexID >> 1)); gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); vUv = p * uEsc; }`;
+const FSB = `#version 300 es
+precision highp float;
+uniform sampler2D uT; uniform vec2 uDir; uniform float uSig; uniform vec4 uRet;
+in vec2 vUv; out vec4 saida;
+void main() {
+  int R = int(ceil(uSig * 3.0)); float s2 = 2.0 * uSig * uSig;
+  vec4 acc = texture(uT, vUv); float ws = 1.0;
+  for (int k = 1; k <= 160; k++) { if (k > R) break; float w = exp(-float(k * k) / s2); vec2 o = uDir * float(k);
+    acc += w * (texture(uT, clamp(vUv + o, uRet.xy, uRet.zw)) + texture(uT, clamp(vUv - o, uRet.xy, uRet.zw))); ws += 2.0 * w; }
+  saida = acc / ws;
+}`;
+const F = 13, MAXQ = 8192, LUT_W = 9, LUT_H = 1024, RASC = 2048, NU = 12;   // (NU: texturas por lote; a tabela dos degradês na unidade NU)
+const vb = new Float32Array(MAXQ * 4 * F);
+let tb = new Float32Array(6000 * F);
+const lutCPU = new Float32Array(LUT_W * LUT_H * 4);
+let prog, progB, U = {}, UB = {}, vao, vbo, ibo, vaoT, vboT, vaoB, AM = [], amLut, lutTex, texA, fboA, texB, fboB, texG = null, fboG = null, rbG = null, gW = 0, gH = 0;
+const entA = { t: null, w: RASC, h: RASC, inv: true, interna: true }, entG = { t: null, w: 1, h: 1, inv: true, interna: true };
+function sh(tipo, src) { const s = gl.createShader(tipo); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+function programa(vs, fs, attrs) {
+  const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+  attrs.forEach((a, i) => gl.bindAttribLocation(p, i, a)); gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p;
+}
+function atributos() {
+  const s = F * 4;
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, s, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, s, 8);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, s, 16);
+  gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, s, 32);
+  gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 4, gl.FLOAT, false, s, 36);
+}
+const bindTmp = t => { gl.activeTexture(gl.TEXTURE15); gl.bindTexture(gl.TEXTURE_2D, t); };
+function novaTex(w, h) { const t = gl.createTexture(); bindTmp(t); gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, w, h); return t; }
+function alvoDe(t) { const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0); gl.bindFramebuffer(gl.FRAMEBUFFER, null); return f; }
+function montar() {
+  if (montado) return true;
+  try {
+    prog = programa(VS, FS, ["aPos", "aUv", "aCor", "aTipo", "aGrad"]);
+    for (const n of ["uTela", "uOrig", "uLut", "uLutH", "uFiltro", "uFM", "uFA", "uMipK"]) U[n] = gl.getUniformLocation(prog, n);
+    gl.useProgram(prog); for (let i = 0; i < NU; i++) gl.uniform1i(gl.getUniformLocation(prog, "uT" + i), i); gl.uniform1i(U.uLut, NU); gl.uniform1f(U.uLutH, LUT_H);
+    progB = programa(VSB, FSB, []); for (const n of ["uT", "uDir", "uSig", "uRet", "uEsc"]) UB[n] = gl.getUniformLocation(progB, n);
+    gl.useProgram(progB); gl.uniform1i(UB.uT, 0); gl.useProgram(null);
+    vbo = gl.createBuffer(); vboT = gl.createBuffer(); ibo = gl.createBuffer();
+    const idx = new Uint16Array(MAXQ * 6);
+    for (let q = 0; q < MAXQ; q++) { const b = q * 4, k = q * 6; idx[k] = b; idx[k + 1] = b + 1; idx[k + 2] = b + 2; idx[k + 3] = b + 2; idx[k + 4] = b + 1; idx[k + 5] = b + 3; }
+    vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, vb.byteLength, gl.DYNAMIC_DRAW); atributos();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+    vaoT = gl.createVertexArray(); gl.bindVertexArray(vaoT);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vboT); gl.bufferData(gl.ARRAY_BUFFER, tb.byteLength, gl.DYNAMIC_DRAW); atributos();
+    vaoB = gl.createVertexArray();
+    gl.bindVertexArray(null); gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    AM = [gl.NEAREST, gl.LINEAR, gl.LINEAR_MIPMAP_LINEAR].map((f, i) => { const s = gl.createSampler(); gl.samplerParameteri(s, gl.TEXTURE_MIN_FILTER, f); gl.samplerParameteri(s, gl.TEXTURE_MAG_FILTER, i ? gl.LINEAR : gl.NEAREST);
+      gl.samplerParameteri(s, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.samplerParameteri(s, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return s; });
+    amLut = gl.createSampler(); gl.samplerParameteri(amLut, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.samplerParameteri(amLut, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.samplerParameteri(amLut, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.samplerParameteri(amLut, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    lutTex = gl.createTexture(); bindTmp(lutTex); gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA32F, LUT_W, LUT_H);
+    texA = novaTex(RASC, RASC); fboA = alvoDe(texA); texB = novaTex(RASC, RASC); fboB = alvoDe(texB); entA.t = texA;
+    texG = null; gW = gH = 0;
+    montado = true; return true;
+  } catch (e) { console.error("lote:", e); L.erro = String(e).slice(0, 300); return false; }
+}
+// a camada da GPU dos objetos translúcidos (com estêncil, para os caminhos e o recorte dentro dela)
+function garantirGrupo() {
+  if (texG && gW === L.Wd && gH === L.Hd) return;
+  if (texG) { gl.deleteTexture(texG); gl.deleteFramebuffer(fboG); gl.deleteRenderbuffer(rbG); }
+  gW = L.Wd; gH = L.Hd; texG = novaTex(gW, gH); fboG = alvoDe(texG);
+  rbG = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, rbG); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, gW, gH); gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fboG); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, rbG); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  entG.t = texG; entG.w = gW; entG.h = gH;
+}
+
+// ---- as texturas: uma por imagem ou canvas (enviada uma vez; o canvas de novo quando é pintado: __lv), com poda pelo uso
+const TEX = new WeakMap(), vivas = new Set();
+let bytes = 0;
+const ORC = 768 * 1024 * 1024;
+function texDe(s) {
+  let e = TEX.get(s);
+  if (e && e.falhou && e.ger === ger) return null;
+  if (e && e.ger !== ger) { if (vivas.delete(e)) bytes -= e.bytes; e = null; }
+  const img = s instanceof HTMLImageElement, w = img ? s.naturalWidth : s.width, h = img ? s.naturalHeight : s.height;
+  if (!w || !h || (img && !s.complete)) return null;
+  const v = s.__lv | 0;
+  if (e && e.w === w && e.h === h && e.v === v && !s.__lgl) { e.usado = L.quadro; return e; }
+  if (!e) { e = { t: gl.createTexture(), w: 0, h: 0, v: -1, mip: false, usado: 0, bytes: 0, ger, inv: false }; TEX.set(s, e); vivas.add(e); }
+  bindTmp(e.t);
+  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+  gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0); gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0); gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
+  try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, s); }
+  catch (er) { e.falhou = true; return null; }                    // (uma imagem que o WebGL não aceita: fica no 2D)
+  const b = w * h * 4; bytes += b - e.bytes; e.bytes = b; e.w = w; e.h = h; e.v = v; e.mip = false; e.usado = L.quadro;
+  L.st.envios++; L.st.mbEnviados += b / 1048576;
+  return e;
+}
+function mipDe(e) { if (e.mip || e.interna) return !!e.mip; bindTmp(e.t); gl.generateMipmap(gl.TEXTURE_2D); e.mip = true; const b = Math.round(e.bytes / 3); e.bytes += b; bytes += b; return true; }
+function podar() {
+  L.st.texturas = vivas.size; L.st.mb = Math.round(bytes / 1048576);
+  if (bytes <= ORC) return;
+  const l = [...vivas].filter(e => L.quadro - e.usado > 120).sort((a, b) => a.usado - b.usado);
+  for (const e of l) { gl.deleteTexture(e.t); vivas.delete(e); bytes -= e.bytes; e.ger = -1; if (bytes < ORC * 0.8) break; }
+}
+// o atlas dos bonecos (a textura que o P3D mantém igual ao pedaço de cima do canvas: celAoAtlas, tracoAoAtlas)
+const entAtlas = { t: null, w: 1, h: 1, inv: true, interna: true };
+function atlasEnt() {
+  const p = P3D, rt = p.rtAtlas; if (!rt) return null;
+  const pr = p.render.properties.get(rt.texture); if (!pr || !pr.__webglTexture) return null;
+  entAtlas.t = pr.__webglTexture; entAtlas.w = rt.width; entAtlas.h = rt.height; return entAtlas;
+}
+function garantirRtAtlas() {
+  const p = P3D;
+  if (!p.rtAtlas || p.rtAtlas.width !== p.lado) {
+    if (p.rtAtlas) p.rtAtlas.dispose();
+    p.rtAtlas = new THREE.WebGLRenderTarget(p.lado, p.lado, { depthBuffer: false, stencilBuffer: false, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+    p.render.setRenderTarget(p.rtAtlas); p.render.setRenderTarget(null);
+  }
+  return p.rtAtlas;
+}
+// o pedaço do boneco (com a margem) do canvas para a textura do atlas: sem traço (a máscara da arma, o contorno desligado)
+L.celAoAtlas = cel => {
+  const p = P3D, r = p.render, rt = garantirRtAtlas(), m = MARGEM_3D, t = r.properties.get(rt.texture).__webglTexture;
+  if (!t) return;
+  const x = cel.x - m, w = cel.w + 2 * m, h = cel.h + 2 * m, ty = p.lado - cel.y - cel.h - m, gy = p.altGL - cel.y - cel.h - m;
+  r.state.bindTexture(gl.TEXTURE_2D, t);
+  gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, x, ty, x, gy, w, h);
+};
+// com o traço: o mesmo passe que pinta o pedaço no canvas (o boneco já copiado e o traço por fora) também na textura
+L.tracoAoAtlas = cel => {
+  const p = P3D, r = p.render, rt = garantirRtAtlas(), m = MARGEM_3D, ty = p.lado - cel.y - cel.h;
+  rt.scissorTest = true;
+  rt.viewport.set(cel.x - m, ty - m, cel.w + 2 * m, cel.h + 2 * m); rt.scissor.copy(rt.viewport);
+  r.setRenderTarget(rt); r.clear(true, false, false);
+  rt.viewport.set(cel.x, ty, cel.w, cel.h); rt.scissor.copy(rt.viewport);
+  r.setRenderTarget(rt); r.render(p.cenaTraco, p.camTraco);
+  r.setRenderTarget(null);
+};
+
+// ---- as cores e os degradês
+const CORES = new Map(), cvCor = document.createElement("canvas").getContext("2d");
+// "rgb(r, g, b)" / "rgba(r, g, b, a)" lido à mão (as cores do degradê da fumaça mudam a cada quadro: a expressão regular pesava)
+function corRgb(s) {
+  const n = s.length; let i = s.indexOf("("); if (i < 0 || s.charCodeAt(n - 1) !== 41) return null;
+  const v = [0, 0, 0, 1]; let k = 0;
+  i++;
+  while (i < n) {
+    while (s.charCodeAt(i) === 32) i++;
+    let neg = false, int = 0, fr = 0, esc = 1, dig = 0, ch = s.charCodeAt(i);
+    if (ch === 45) { neg = true; i++; ch = s.charCodeAt(i); }
+    while (ch >= 48 && ch <= 57) { int = int * 10 + ch - 48; dig++; ch = s.charCodeAt(++i); }
+    if (ch === 46) { ch = s.charCodeAt(++i); while (ch >= 48 && ch <= 57) { fr = fr * 10 + ch - 48; esc *= 10; dig++; ch = s.charCodeAt(++i); } }
+    if (!dig) return null;
+    while (ch === 32) ch = s.charCodeAt(++i);
+    if (k > 3 || (ch !== 44 && ch !== 41)) return null;               // (expoente, %, espaço no lugar da vírgula: o caminho lento)
+    const x = int + fr / esc; v[k++] = neg ? -x : x; i++;
+    if (ch === 41) break;
+  }
+  if (k < 3 || i !== n) return null;
+  v[0] = Math.max(0, Math.min(255, Math.round(v[0]))); v[1] = Math.max(0, Math.min(255, Math.round(v[1]))); v[2] = Math.max(0, Math.min(255, Math.round(v[2]))); v[3] = Math.max(0, Math.min(1, v[3]));
+  return v;
+}
+function cor(s) {
+  if (s.charCodeAt(0) === 114) { const r = corRgb(s); if (r) return r; }   // (rgb/rgba: lido direto, sem guardar)
+  let c = CORES.get(s);
+  if (c !== undefined) return c;
+  if (CORES.size > 4000) CORES.clear();
+  let m;
+  if ((m = /^#([0-9a-f]{3,8})$/i.exec(s))) { const h = m[1]; c = h.length === 3 || h.length === 4 ? [parseInt(h[0] + h[0], 16), parseInt(h[1] + h[1], 16), parseInt(h[2] + h[2], 16), h.length === 4 ? parseInt(h[3] + h[3], 16) / 255 : 1]
+      : h.length === 6 || h.length === 8 ? [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16), h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1] : null; }
+  else if ((m = /^rgba?\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*,\s*([-\d.]+)\s*(?:,\s*([-\d.]+)\s*)?\)$/i.exec(s))) c = [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]];
+  if (!c || c.some(v => !isFinite(v))) {                           // (hsl, nomes...: o próprio canvas traduz)
+    cvCor.fillStyle = "#000"; cvCor.fillStyle = s; const n = cvCor.fillStyle;
+    if (n === "#000000" && !/^(#000|#000000|black|rgba?\(\s*0\s*,\s*0\s*,\s*0\s*(,\s*1\s*)?\))$/i.test(s.trim())) { cvCor.fillStyle = "#fff"; cvCor.fillStyle = s; if (cvCor.fillStyle === "#ffffff") { CORES.set(s, null); return null; } }
+    c = n[0] === "#" ? [parseInt(n.slice(1, 3), 16), parseInt(n.slice(3, 5), 16), parseInt(n.slice(5, 7), 16), 1] : (m = /rgba?\(([^)]*)\)/.exec(n)) ? m[1].split(",").map(Number) : null;
+    if (c && c.length === 3) c.push(1);
+  }
+  if (c) { c[0] = Math.max(0, Math.min(255, Math.round(c[0]))); c[1] = Math.max(0, Math.min(255, Math.round(c[1]))); c[2] = Math.max(0, Math.min(255, Math.round(c[2]))); c[3] = Math.max(0, Math.min(1, c[3])); }
+  CORES.set(s, c || null); return c || null;
+}
+class Degrade {
+  constructor(tipo, a) { this.tipo = tipo; this.a = a; this.stops = []; this.real = null; this.lq = -1; this.lr = 0; }
+  addColorStop(o, c) {
+    o = +o; if (!(o >= 0 && o <= 1)) throw new DOMException("offset", "IndexSizeError");
+    const k = typeof c === "string" ? cor(c) : null; if (!k) throw new SyntaxError("cor do degradê: " + c);
+    let i = this.stops.length; while (i > 0 && this.stops[i - 1][0] > o) i--;
+    this.stops.splice(i, 0, [o, k, c]); this.lq = -1; this.real = null;
+  }
+  paraReal(g) {
+    if (this.real && this.real.g === g) return this.real.d;
+    const d = this.tipo === 1 ? g.createLinearGradient(...this.a) : g.createRadialGradient(...this.a);
+    for (const [o, , c] of this.stops) d.addColorStop(o, c);
+    this.real = { g, d }; return d;
+  }
+}
+let lutN = 0, lutGer = 1, lutMin = 1e9, lutMax = -1;
+// a linha da tabela deste degradê neste quadro: o número de paradas, os lugares e as cores (a conta fica na GPU)
+function linhaLut(d) {
+  if (d.lq === lutGer) return d.lr;
+  if (lutN >= LUT_H) { descarregar(); lutN = 0; lutGer++; }
+  const r = lutN++, st = d.stops, n = st.length, b = r * LUT_W * 4;
+  lutCPU[b] = n;
+  for (let i = 0; i < 7; i++) lutCPU[b + 1 + i] = i < n ? st[i][0] : 1;
+  for (let i = 0; i < n; i++) { const c = st[i][1], o = b + 8 + i * 4; lutCPU[o] = c[0] / 255; lutCPU[o + 1] = c[1] / 255; lutCPU[o + 2] = c[2] / 255; lutCPU[o + 3] = c[3]; }
+  if (r < lutMin) lutMin = r; if (r > lutMax) lutMax = r;
+  d.lq = lutGer; d.lr = r; return r;
+}
+function enviarLut() {
+  if (lutMax < lutMin) return;
+  gl.activeTexture(gl.TEXTURE0 + NU); gl.bindTexture(gl.TEXTURE_2D, lutTex);
+  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4); gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0); gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0); gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, lutMin, LUT_W, lutMax - lutMin + 1, gl.RGBA, gl.FLOAT, lutCPU, lutMin * LUT_W * 4);
+  lutMin = 1e9; lutMax = -1;
+}
+
+// ---- o filtro do canvas (CSS) numa matriz de cor 4×4 + soma, mais o borrado
+const FILTROS = new Map();
+function filtroDe(s) {
+  let f = FILTROS.get(s);
+  if (f) return f;
+  if (FILTROS.size > 500) FILTROS.clear();
+  f = { ok: true, m: null, a: null, sig: 0 };
+  if (s && s !== "none") {
+    let M = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], A = [0, 0, 0, 0];
+    // (cada função: c' = K·c + k; K em linhas, sobre r, g, b, a sem pré-multiplicar)
+    const aplica = (K, k = [0, 0, 0, 0]) => { const N = new Array(16), B = [0, 0, 0, 0];
+      for (let i = 0; i < 4; i++) { for (let j = 0; j < 4; j++) { let v = 0; for (let q = 0; q < 4; q++) v += K[i * 4 + q] * M[q * 4 + j]; N[i * 4 + j] = v; } let b = k[i]; for (let q = 0; q < 4; q++) b += K[i * 4 + q] * A[q]; B[i] = b; }
+      M = N; A = B; };
+    const re = /([a-z-]+)\(([^)]*)\)/g; let m, n = 0;
+    while ((m = re.exec(s))) {
+      n++;
+      const nome = m[1], arg = m[2].trim(), v = arg === "" ? null : /%$/.test(arg) ? parseFloat(arg) / 100 : parseFloat(arg);
+      if (nome === "blur") { f.sig += parseFloat(arg) || 0; continue; }
+      if (nome === "brightness") { const b = v ?? 1; aplica([b, 0, 0, 0, 0, b, 0, 0, 0, 0, b, 0, 0, 0, 0, 1]); }
+      else if (nome === "contrast") { const c = v ?? 1, o = 0.5 - 0.5 * c; aplica([c, 0, 0, 0, 0, c, 0, 0, 0, 0, c, 0, 0, 0, 0, 1], [o, o, o, 0]); }
+      else if (nome === "opacity") { const o = Math.min(1, v ?? 1); aplica([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, o]); }
+      else if (nome === "invert") { const i = Math.min(1, v ?? 1); aplica([1 - 2 * i, 0, 0, 0, 0, 1 - 2 * i, 0, 0, 0, 0, 1 - 2 * i, 0, 0, 0, 0, 1], [i, i, i, 0]); }
+      else if (nome === "grayscale" || nome === "sepia" || nome === "saturate" || nome === "hue-rotate") {
+        let K;
+        if (nome === "saturate") { const q = v ?? 1; K = [0.213 + 0.787 * q, 0.715 - 0.715 * q, 0.072 - 0.072 * q, 0.213 - 0.213 * q, 0.715 + 0.285 * q, 0.072 - 0.072 * q, 0.213 - 0.213 * q, 0.715 - 0.715 * q, 0.072 + 0.928 * q]; }
+        else if (nome === "grayscale") { const q = 1 - Math.min(1, v ?? 1); K = [0.2126 + 0.7874 * q, 0.7152 - 0.7152 * q, 0.0722 - 0.0722 * q, 0.2126 - 0.2126 * q, 0.7152 + 0.2848 * q, 0.0722 - 0.0722 * q, 0.2126 - 0.2126 * q, 0.7152 - 0.7152 * q, 0.0722 + 0.9278 * q]; }
+        else if (nome === "sepia") { const q = 1 - Math.min(1, v ?? 1); K = [0.393 + 0.607 * q, 0.769 - 0.769 * q, 0.189 - 0.189 * q, 0.349 - 0.349 * q, 0.686 + 0.314 * q, 0.168 - 0.168 * q, 0.272 - 0.272 * q, 0.534 - 0.534 * q, 0.131 + 0.869 * q]; }
+        else { const g = (/rad$/.test(arg) ? parseFloat(arg) : /turn$/.test(arg) ? parseFloat(arg) * 2 * Math.PI : (parseFloat(arg) || 0) * Math.PI / 180), c = Math.cos(g), si = Math.sin(g);
+          K = [0.213 + c * 0.787 - si * 0.213, 0.715 - c * 0.715 - si * 0.715, 0.072 - c * 0.072 + si * 0.928, 0.213 - c * 0.213 + si * 0.143, 0.715 + c * 0.285 + si * 0.140, 0.072 - c * 0.072 - si * 0.283, 0.213 - c * 0.213 - si * 0.787, 0.715 - c * 0.715 + si * 0.715, 0.072 + c * 0.928 + si * 0.072]; }
+        aplica([K[0], K[1], K[2], 0, K[3], K[4], K[5], 0, K[6], K[7], K[8], 0, 0, 0, 0, 1]);
+      }
+      else { f.ok = false; break; }                                      // (drop-shadow, url(#...): o 2D de verdade)
+    }
+    if (!n && s.trim() !== "none") f.ok = false;
+    const id = M.every((x, i) => Math.abs(x - (i % 5 === 0 ? 1 : 0)) < 1e-6) && A.every(x => Math.abs(x) < 1e-6);
+    if (!id) { const T = new Float32Array(16); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) T[j * 4 + i] = M[i * 4 + j]; f.m = T; f.a = new Float32Array(A); }
+  }
+  FILTROS.set(s, f); return f;
+}
+
+// ---- o lote: os quadriláteros do quadro e o estado de quem desenha
+let nq = 0, k = 0, alvo = 0, lComp = 0, lFiltro = null, lClip = false, lCobre = 0, palcoUsado = false;
+const uni = [];                                  // as texturas do lote: { e, kind } (kind: 0 pixel, 1 linear, 2 mipmap)
+let cr = 0, cg = 0, cb = 0, ca = 0, ct = 0, gz = -1, gw = -1;
+let ox = 0, oy = 0, rw = 1, rh = 1;              // o alvo de rascunho (borrado): a origem na tela e o tamanho
+function vtx(x, y, u, v, gx, gy) { vb[k] = x; vb[k + 1] = y; vb[k + 2] = u; vb[k + 3] = v; vb[k + 4] = cr; vb[k + 5] = cg; vb[k + 6] = cb; vb[k + 7] = ca; vb[k + 8] = ct; vb[k + 9] = gx; vb[k + 10] = gy; vb[k + 11] = gz; vb[k + 12] = gw; k += F; }
+function prepara(comp, filtro, clip, cobre) {
+  if (nq && (comp !== lComp || filtro !== lFiltro || clip !== lClip || cobre !== lCobre)) { if (L.razoes) { const r = comp !== lComp ? "comp" : filtro !== lFiltro ? "filtro" : clip !== lClip ? "clip" : "cobre"; L.razoes[r] = (L.razoes[r] || 0) + 1; } descarregar(); }
+  if (nq >= MAXQ) descarregar();
+  lComp = comp; lFiltro = filtro; lClip = clip; lCobre = cobre;
+}
+function unidade(e, kind) {
+  for (let i = 0; i < uni.length; i++) if (uni[i].e === e && uni[i].kind === kind) return i;
+  if (uni.length >= NU) { if (L.razoes) L.razoes.texturas = (L.razoes.texturas || 0) + 1; const c = lComp, f = lFiltro, cl = lClip, co = lCobre; descarregar(); lComp = c; lFiltro = f; lClip = cl; lCobre = co; }
+  uni.push({ e, kind }); return uni.length - 1;
+}
+function estadoAlvo() {
+  if (alvo === 2) { gl.bindFramebuffer(gl.FRAMEBUFFER, fboA); gl.viewport(0, 0, rw, rh); gl.scissor(0, 0, rw, rh); }
+  else { gl.bindFramebuffer(gl.FRAMEBUFFER, alvo === 1 ? fboG : null); gl.viewport(0, 0, L.Wd, L.Hd); gl.scissor(0, 0, L.Wd, L.Hd); }
+  gl.enable(gl.SCISSOR_TEST); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE); gl.disable(gl.SAMPLE_COVERAGE); gl.disable(gl.POLYGON_OFFSET_FILL); gl.disable(gl.RASTERIZER_DISCARD);
+  gl.colorMask(true, true, true, true); gl.depthMask(false);
+}
+function blendDe(c) {
+  gl.enable(gl.BLEND); gl.blendEquation(gl.FUNC_ADD);
+  if (c === 1) { if (alvo === 0) gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ZERO, gl.ONE); else gl.blendFunc(gl.ONE, gl.ONE); }   // (lighter no palco: soma a cor sem somar o alfa: ao ir para o 2D, soma no chão de baixo)
+  else if (c === 2) gl.blendFunc(gl.ONE, gl.ZERO);
+  else gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+}
+function stencilDe(clip, cobre) {
+  if (!clip && !cobre) { gl.disable(gl.STENCIL_TEST); return; }
+  gl.enable(gl.STENCIL_TEST);
+  if (!cobre) { gl.stencilFunc(gl.EQUAL, 0x80, 0x80); gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP); gl.stencilMask(0); return; }
+  const par = cobre === 2;                                     // (1: não-zero; 2: par-ímpar)
+  if (clip) gl.stencilFunc(par ? gl.EQUAL : gl.LESS, par ? 0x81 : 0x80, par ? 0x81 : 0xff); else gl.stencilFunc(gl.NOTEQUAL, 0, par ? 0x01 : 0x7f);
+  gl.stencilOp(gl.ZERO, gl.ZERO, gl.ZERO); gl.stencilMask(par ? 0x01 : 0x7f);
+}
+function uniformesAlvo() {
+  if (alvo === 2) { gl.uniform2f(U.uTela, rw, rh); gl.uniform2f(U.uOrig, ox, oy); } else { gl.uniform2f(U.uTela, L.Wd, L.Hd); gl.uniform2f(U.uOrig, 0, 0); }
+}
+function descarregar() {
+  if (!nq) return;
+  enviarLut();
+  estadoAlvo(); blendDe(lComp); stencilDe(lClip, lCobre);
+  gl.useProgram(prog); uniformesAlvo(); gl.uniform1f(U.uMipK, L.mipK);
+  if (lFiltro) { gl.uniform1i(U.uFiltro, 1); gl.uniformMatrix4fv(U.uFM, false, lFiltro.m); gl.uniform4fv(U.uFA, lFiltro.a); } else gl.uniform1i(U.uFiltro, 0);
+  for (let i = 0; i < uni.length; i++) { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, uni[i].e.t); gl.bindSampler(i, AM[uni[i].kind]); }
+  gl.activeTexture(gl.TEXTURE0 + NU); gl.bindTexture(gl.TEXTURE_2D, lutTex); gl.bindSampler(NU, amLut);
+  gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferSubData(gl.ARRAY_BUFFER, 0, vb, 0, nq * 4 * F);
+  gl.drawElements(gl.TRIANGLES, nq * 6, gl.UNSIGNED_SHORT, 0);
+  if (alvo === 0) palcoUsado = true;
+  L.st.lotes++; nq = 0; k = 0; uni.length = 0; lCobre = 0;
+}
+// devolve o contexto num estado limpo (o three.js, quando divide o contexto, refaz o dele: resetState)
+function soltarGL() {
+  for (let i = 0; i <= NU; i++) { gl.bindSampler(i, null); }
+  gl.bindVertexArray(null); gl.bindBuffer(gl.ARRAY_BUFFER, null); gl.useProgram(null); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.disable(gl.STENCIL_TEST); gl.disable(gl.SCISSOR_TEST); gl.disable(gl.BLEND); gl.stencilMask(0xff); gl.activeTexture(gl.TEXTURE0);
+  if (L.compartilhado()) P3D.render.resetState();
+}
+function limparPalco() {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.enable(gl.SCISSOR_TEST); gl.scissor(0, 0, L.Wd, L.Hd);
+  gl.colorMask(true, true, true, true); gl.stencilMask(0xff); gl.clearColor(0, 0, 0, 0); gl.clearStencil(0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+}
+// o palco para o canvas 2D (no fim da lista, ou antes de um desenho que o lote não sabe fazer) e limpo de novo
+function descarregarPalco(fim) {
+  descarregar();
+  if (!palcoUsado) return;
+  const g = REAL; g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; g.filter = "none"; g.shadowBlur = 0; g.shadowColor = "rgba(0, 0, 0, 0)"; g.imageSmoothingEnabled = false;
+  g.drawImage(L.canvas, 0, L.ch - L.Hd, L.Wd, L.Hd, 0, 0, L.Wd, L.Hd);
+  g.restore();
+  palcoUsado = false;
+  if (fim) L.palcoSujo = true; else limparPalco();                  // (no fim fica: o FX3 limpa o palco se for usá-lo)
+}
+
+// ---- os desenhos
+const T6 = [0, 0, 0, 0, 0, 0];
+function inv6(m, o) { const d = m[0] * m[3] - m[1] * m[2]; if (!d) return null; const a = m[3] / d, b = -m[1] / d, c = -m[2] / d, e = m[0] / d; o[0] = a; o[1] = b; o[2] = c; o[3] = e; o[4] = -(a * m[4] + c * m[5]); o[5] = -(b * m[4] + e * m[5]); return o; }
+const INV = [0, 0, 0, 0, 0, 0];
+// a pintura (cor ou degradê) para os quadriláteros e as coberturas: falso = o lote não sabe
+let gFun = null;   // (x, y na tela) → [gx, gy] do degradê
+const GP = [0, 0];
+let gk = null;
+function pintura(est, alfa, m) {
+  if (Array.isArray(est)) { const a = est[3] * alfa; cr = est[0] / 255 * a; cg = est[1] / 255 * a; cb = est[2] / 255 * a; ca = a; gz = -1; gw = -1; gFun = null; return true; }
+  if (!(est instanceof Degrade) || !est.stops.length || est.stops.length > 7) return false;
+  const a = est.a;
+  if (!inv6(m, INV)) return false;
+  if (est.tipo === 2) {
+    if (Math.abs(a[0] - a[3]) > 1e-6 || Math.abs(a[1] - a[4]) > 1e-6 || a[5] <= 0 || a[2] < 0 || a[2] >= a[5]) return false;   // (só os concêntricos)
+    gk = [a[0], a[1], 1 / a[5]]; gw = a[2] / a[5];
+    gFun = (x, y) => { const ux = INV[0] * x + INV[2] * y + INV[4], uy = INV[1] * x + INV[3] * y + INV[5]; GP[0] = (ux - gk[0]) * gk[2]; GP[1] = (uy - gk[1]) * gk[2]; };
+  } else {
+    const dx = a[2] - a[0], dy = a[3] - a[1], L2 = dx * dx + dy * dy; if (!(L2 > 0)) return false;
+    gk = [a[0], a[1], dx / L2, dy / L2]; gw = -1;
+    gFun = (x, y) => { const ux = INV[0] * x + INV[2] * y + INV[4], uy = INV[1] * x + INV[3] * y + INV[5]; GP[0] = (ux - gk[0]) * gk[2] + (uy - gk[1]) * gk[3]; GP[1] = 0; };
+  }
+  gz = linhaLut(est); cr = cg = cb = 0; ca = alfa; return true;
+}
+function vtxP(x, y, u, v) { if (gFun) { gFun(x, y); vtx(x, y, u, v, GP[0], GP[1]); } else vtx(x, y, u, v, 0, 0); }
+// a fonte de uma drawImage: textura e coordenadas (FN), seguindo as fontes virtuais (tinta, região)
+const FN = { e: null, u0: 0, v0: 0, u1: 0, v1: 0, tinta: null, sx: 0, sy: 0, sw: 0, sh: 0, reduz: 1 };
+function fonte(s, sx, sy, sw, sh) {
+  if (s.__lote === "tinta") { if (!fonte(s.s, s.sx + sx, s.sy + sy, sw, sh)) return false; FN.tinta = s.cor; return true; }
+  if (s.__lote === "regiao") return fonte(s.s, s.x0 + sx * s.kx, s.y0 + sy * s.ky, sw * s.kx, sh * s.ky);
+  let e;
+  if (s === L.canvas) { if (!L.compartilhado() || sy + sh > P3D.lado + 0.5) return false; e = atlasEnt(); }
+  else e = texDe(s);
+  if (!e) return false;
+  FN.e = e; FN.tinta = null; FN.sx = sx; FN.sy = sy; FN.sw = sw; FN.sh = sh;
+  FN.u0 = sx / e.w; FN.u1 = (sx + sw) / e.w;
+  if (e.inv) { FN.v0 = 1 - sy / e.h; FN.v1 = 1 - (sy + sh) / e.h; } else { FN.v0 = sy / e.h; FN.v1 = (sy + sh) / e.h; }
+  return true;
+}
+function dimsFonte(s) {
+  if (s.__lote) return [s.width, s.height];
+  if (s instanceof HTMLImageElement) return s.complete ? [s.naturalWidth, s.naturalHeight] : [0, 0];
+  if (s instanceof HTMLVideoElement) return [s.videoWidth, s.videoHeight];
+  return [s.width | 0, s.height | 0];
+}
+const Q = new Float64Array(8);
+// os 4 cantos do retângulo (x, y, w, h) pela matriz m, na ordem: em cima à esquerda, em cima à direita, embaixo à esquerda, embaixo à direita
+function cantos(m, x, y, w, h) {
+  const a = m[0], b = m[1], c = m[2], d = m[3], e = m[4], f = m[5];
+  Q[0] = a * x + c * y + e; Q[1] = b * x + d * y + f; Q[2] = Q[0] + a * w; Q[3] = Q[1] + b * w; Q[4] = Q[0] + c * h; Q[5] = Q[1] + d * h; Q[6] = Q[2] + c * h; Q[7] = Q[3] + d * h;
+}
+// ---- o borrado (filtro blur e sombra): a fonte no rascunho A, duas passadas (A → B → A) e o resultado como uma imagem
+let ULT = null;
+function borrar(fboD, texS, dx, dy, sig) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fboD); gl.viewport(0, 0, rw, rh); gl.enable(gl.SCISSOR_TEST); gl.scissor(0, 0, rw, rh);
+  gl.disable(gl.BLEND); gl.disable(gl.STENCIL_TEST); gl.colorMask(true, true, true, true);
+  gl.useProgram(progB); gl.bindVertexArray(vaoB);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texS); gl.bindSampler(0, AM[1]);
+  gl.uniform2f(UB.uDir, dx / RASC, dy / RASC); gl.uniform1f(UB.uSig, sig); gl.uniform2f(UB.uEsc, rw / RASC, rh / RASC);
+  gl.uniform4f(UB.uRet, 0.5 / RASC, 0.5 / RASC, (rw - 0.5) / RASC, (rh - 0.5) / RASC);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+// modo 0: a sombra (o alfa da fonte na cor dada); 1: o filtro (a fonte com a matriz de cor). cor: [r, g, b, a] pré-multiplicada
+function efeito(sig, modo, mat, corP, comp, alfa, clip, offX, offY) {
+  const e = FN.e;
+  let x0 = Math.min(Q[0], Q[2], Q[4], Q[6]), x1 = Math.max(Q[0], Q[2], Q[4], Q[6]), y0 = Math.min(Q[1], Q[3], Q[5], Q[7]), y1 = Math.max(Q[1], Q[3], Q[5], Q[7]);
+  const mg = Math.ceil(3 * sig) + 2;
+  x0 = Math.floor(x0 - mg); y0 = Math.floor(y0 - mg); x1 = Math.ceil(x1 + mg); y1 = Math.ceil(y1 + mg);
+  const W0 = alvo === 0 || alvo === 1 ? L.Wd : rw, H0 = alvo === 0 || alvo === 1 ? L.Hd : rh;
+  if (x1 + offX <= 0 || y1 + offY <= 0 || x0 + offX >= W0 || y0 + offY >= H0) return;
+  const cx0 = Math.max(x0, -mg - offX), cy0 = Math.max(y0, -mg - offY), cx1 = Math.min(x1, Math.min(cx0 + RASC, W0 + mg - offX)), cy1 = Math.min(y1, Math.min(cy0 + RASC, H0 + mg - offY));
+  const w = cx1 - cx0, h = cy1 - cy0; if (w <= 0 || h <= 0) return;
+  // (o mesmo desenho só deslocado: os anéis do brilho da arma são 8 cópias da mesma máscara)
+  // (a forma: os cantos a partir do primeiro; o mesmo desenho deslocado reaproveita o borrado, posto no lugar novo)
+  const U2 = ULT, rel = [0, 0, Q[2] - Q[0], Q[3] - Q[1], Q[4] - Q[0], Q[5] - Q[1], Q[6] - Q[0], Q[7] - Q[1]];
+  const solto = cx0 === x0 && cy0 === y0 && cx1 === x1 && cy1 === y1;
+  let reusa = U2 && solto && U2.solto && U2.e === e && U2.u0 === FN.u0 && U2.v0 === FN.v0 && U2.u1 === FN.u1 && U2.v1 === FN.v1 && U2.sig === sig && U2.modo === modo && U2.mat === mat
+    && (U2.tinta === FN.tinta || (U2.tinta && FN.tinta && U2.tinta[0] === FN.tinta[0] && U2.tinta[1] === FN.tinta[1] && U2.tinta[2] === FN.tinta[2] && U2.tinta[3] === FN.tinta[3]));
+  if (reusa) for (let i = 2; i < 8; i++) if (Math.abs(U2.rel[i] - rel[i]) > 0.02) { reusa = false; break; }
+  const ant = alvo, aOx = ox, aOy = oy, aRw = rw, aRh = rh;
+  let qx = cx0, qy = cy0, w2 = w, h2 = h;
+  if (reusa) { qx = U2.cx0 + (Q[0] - U2.q0x); qy = U2.cy0 + (Q[1] - U2.q0y); w2 = U2.w; h2 = U2.h; L.st.reusos++; }
+  else {
+    descarregar();
+    if (ant === 2) { L.st.perdidos++; return; }
+    // 1. a fonte no rascunho, limpo
+    alvo = 2; ox = cx0; oy = cy0; rw = w; rh = h;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fboA); gl.enable(gl.SCISSOR_TEST); gl.scissor(0, 0, w, h); gl.colorMask(true, true, true, true); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    const kind = 1;
+    prepara(2, modo === 1 ? mat : null, false, 0);
+    const u = unidade(e, kind);
+    if (modo === 0) { cr = cg = cb = ca = 1; ct = 16 + u; if (FN.tinta) { ca = FN.tinta[3]; cr = cg = cb = ca; } }
+    else if (FN.tinta) { const t = FN.tinta, a = t[3]; cr = t[0] / 255 * a; cg = t[1] / 255 * a; cb = t[2] / 255 * a; ca = a; ct = 16 + u; }
+    else { cr = cg = cb = ca = 1; ct = u; }
+    gz = -1; gw = -1; gFun = null;
+    vtx(Q[0], Q[1], FN.u0, FN.v0, 0, 0); vtx(Q[2], Q[3], FN.u1, FN.v0, 0, 0); vtx(Q[4], Q[5], FN.u0, FN.v1, 0, 0); vtx(Q[6], Q[7], FN.u1, FN.v1, 0, 0); nq++;
+    descarregar();
+    // 2. as duas passadas
+    borrar(fboB, texA, 1, 0, sig); borrar(fboA, texB, 0, 1, sig);
+    alvo = ant; ox = aOx; oy = aOy; rw = aRw; rh = aRh;
+    ULT = { e, u0: FN.u0, v0: FN.v0, u1: FN.u1, v1: FN.v1, sig, modo, mat, w, h, tinta: FN.tinta, rel, solto, cx0, cy0, q0x: Q[0], q0y: Q[1] };
+    L.st.borrados++;
+  }
+  // 3. o resultado, na vez dele (uma imagem: o rascunho A, de baixo para cima)
+  prepara(0, null, clip, 0);
+  const u = unidade(entA, 1), sm = comp === 1 ? 128 : 0;
+  if (modo === 0) { cr = corP[0]; cg = corP[1]; cb = corP[2]; ca = corP[3]; ct = 16 + u + sm; } else { cr = cg = cb = ca = alfa; ct = u + sm; }
+  gz = -1; gw = -1; gFun = null;
+  const X0 = qx + offX, Y0 = qy + offY, uu = w2 / RASC, vv = h2 / RASC;
+  vtx(X0, Y0, 0, vv, 0, 0); vtx(X0 + w2, Y0, uu, vv, 0, 0); vtx(X0, Y0 + h2, 0, 0, 0, 0); vtx(X0 + w2, Y0 + h2, uu, 0, 0, 0); nq++;
+}
+
+// ---- os caminhos (em coordenadas da tela, achatados em polígonos)
+function pontoArco(cmd, out) {
+  // (arco/elipse: x, y, rx, ry, rot, a0, a1, anti)
+  const [x, y, rx, ry, rot, a0, a1, anti] = cmd.a, m = cmd.m;
+  let sw;
+  if (!anti && a1 - a0 >= 2 * Math.PI) sw = 2 * Math.PI;
+  else if (anti && a0 - a1 >= 2 * Math.PI) sw = -2 * Math.PI;
+  else { const T = 2 * Math.PI; sw = anti ? -(((a0 - a1) % T + T) % T) : ((a1 - a0) % T + T) % T; }
+  const esc = Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) * Math.max(rx, ry);
+  const n = Math.max(2, Math.ceil(Math.abs(sw) / (2 * Math.PI) * Math.min(256, Math.max(16, 4 * Math.sqrt(esc) + 8))));
+  const cr0 = Math.cos(rot), sr0 = Math.sin(rot);
+  for (let i = 0; i <= n; i++) {
+    const t = a0 + sw * i / n, ex = rx * Math.cos(t), ey = ry * Math.sin(t), ux = x + ex * cr0 - ey * sr0, uy = y + ex * sr0 + ey * cr0;
+    out.push(m[0] * ux + m[2] * uy + m[4], m[1] * ux + m[3] * uy + m[5]);
+  }
+}
+function achatar(cam, nc = cam.length) {
+  const subs = []; let cur = null, ini = null;
+  const tp = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+  const novo = (x, y) => { cur = { p: [x, y], z: false }; subs.push(cur); ini = [x, y]; };
+  for (let ic = 0; ic < nc; ic++) {
+    const c = cam[ic], a = c.a, m = c.m;
+    if (c.op === "moveTo") { const [x, y] = tp(m, a[0], a[1]); novo(x, y); }
+    else if (c.op === "lineTo") { const [x, y] = tp(m, a[0], a[1]); if (!cur) novo(x, y); else cur.p.push(x, y); }
+    else if (c.op === "closePath") { if (cur) { cur.z = true; const s = ini; cur = { p: [s[0], s[1]], z: false }; subs.push(cur); } }
+    else if (c.op === "rect") { const [x0, y0] = tp(m, a[0], a[1]), [x1, y1] = tp(m, a[0] + a[2], a[1]), [x2, y2] = tp(m, a[0] + a[2], a[1] + a[3]), [x3, y3] = tp(m, a[0], a[1] + a[3]);
+      subs.push({ p: [x0, y0, x1, y1, x2, y2, x3, y3], z: true }); novo(x0, y0); }
+    else if (c.op === "quadraticCurveTo" || c.op === "bezierCurveTo") {
+      if (!cur) { const [x, y] = c.op === "quadraticCurveTo" ? tp(m, a[0], a[1]) : tp(m, a[0], a[1]); novo(x, y); }
+      const p0x = cur.p[cur.p.length - 2], p0y = cur.p[cur.p.length - 1], P = [];
+      for (let i = 0; i < a.length; i += 2) P.push(tp(m, a[i], a[i + 1]));
+      const n = 16;
+      for (let i = 1; i <= n; i++) { const t = i / n, s = 1 - t;
+        if (P.length === 2) cur.p.push(s * s * p0x + 2 * s * t * P[0][0] + t * t * P[1][0], s * s * p0y + 2 * s * t * P[0][1] + t * t * P[1][1]);
+        else cur.p.push(s * s * s * p0x + 3 * s * s * t * P[0][0] + 3 * s * t * t * P[1][0] + t * t * t * P[2][0], s * s * s * p0y + 3 * s * s * t * P[0][1] + 3 * s * t * t * P[1][1] + t * t * t * P[2][1]); }
+    }
+    else if (c.op === "arc" || c.op === "ellipse") {
+      const pts = []; pontoArco(c, pts);
+      if (!cur) novo(pts[0], pts[1]); else cur.p.push(pts[0], pts[1]);
+      for (let i = 2; i < pts.length; i++) cur.p.push(pts[i]);
+    }
+  }
+  return subs.filter(s => s.p.length >= 4);
+}
+function garantirTb(n) { if (tb.length >= n * F) return; let t = tb.length; while (t < n * F) t *= 2; tb = new Float32Array(t); gl.bindBuffer(gl.ARRAY_BUFFER, vboT); gl.bufferData(gl.ARRAY_BUFFER, tb.byteLength, gl.DYNAMIC_DRAW); }
+let nt = 0;
+function tri(x0, y0, x1, y1, x2, y2) { let o = nt * F; for (const [x, y] of [[x0, y0], [x1, y1], [x2, y2]]) { tb[o] = x; tb[o + 1] = y; for (let i = 2; i < F; i++) tb[o + i] = 0; o += F; } nt += 3; }
+// o polígono é convexo e simples (as curvas todas para o mesmo lado, uma volta só)?
+function convexo(p) {
+  const n = p.length / 2; if (n < 3) return false;
+  let sinal = 0, giro = 0;
+  for (let i = 0; i < n; i++) {
+    const a = i * 2, b = ((i + 1) % n) * 2, c = ((i + 2) % n) * 2;
+    const ux = p[b] - p[a], uy = p[b + 1] - p[a + 1], vx = p[c] - p[b], vy = p[c + 1] - p[b + 1], z = ux * vy - uy * vx;
+    if (Math.abs(z) < 1e-9) continue;
+    if (!sinal) sinal = Math.sign(z); else if (Math.sign(z) !== sinal) return false;
+    giro += Math.atan2(z, ux * vx + uy * vy);
+  }
+  return !!sinal && Math.abs(Math.abs(giro) - 2 * Math.PI) < 0.01;
+}
+// os triângulos marcam o estêncil (modo: 0 não-zero, 1 par-ímpar, 2 o recorte no bit 0x80, 3 o traço: só marca)
+function marcar(modo) {
+  if (!nt) return;
+  descarregar();
+  estadoAlvo(); gl.disable(gl.BLEND); gl.colorMask(false, false, false, false);
+  gl.useProgram(prog); uniformesAlvo();
+  gl.enable(gl.STENCIL_TEST);
+  if (modo === 0) { gl.stencilFunc(gl.ALWAYS, 0, 0xff); gl.stencilMask(0x7f); gl.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.KEEP, gl.INCR_WRAP); gl.stencilOpSeparate(gl.BACK, gl.KEEP, gl.KEEP, gl.DECR_WRAP); }
+  else if (modo === 1) { gl.stencilFunc(gl.ALWAYS, 0, 0xff); gl.stencilMask(0x01); gl.stencilOp(gl.KEEP, gl.KEEP, gl.INVERT); }
+  else if (modo === 2) { gl.stencilFunc(gl.ALWAYS, 0, 0xff); gl.stencilMask(0x80); gl.stencilOp(gl.KEEP, gl.KEEP, gl.INVERT); }
+  else { gl.stencilFunc(gl.ALWAYS, 1, 0xff); gl.stencilMask(0x7f); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE); }
+  gl.bindVertexArray(vaoT); gl.bindBuffer(gl.ARRAY_BUFFER, vboT); gl.bufferSubData(gl.ARRAY_BUFFER, 0, tb, 0, nt * F);
+  gl.drawArrays(gl.TRIANGLES, 0, nt);
+  gl.colorMask(true, true, true, true); gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP); gl.stencilMask(0xff);
+  nt = 0;
+}
+function leques(subs) { let n = 0; for (const s of subs) n += Math.max(0, s.p.length / 2 - 2) * 3; garantirTb(n); nt = 0;
+  for (const s of subs) { const p = s.p; for (let i = 2; i + 3 < p.length; i += 2) tri(p[0], p[1], p[i], p[i + 1], p[i + 2], p[i + 3]); } }
+// a caixa dos pontos (com 1 px de folga) coberta com a pintura, onde o estêncil marcou (e zera a marca)
+function cobrir(subs, comp, clip, cobre) {
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const s of subs) for (let i = 0; i < s.p.length; i += 2) { const x = s.p[i], y = s.p[i + 1]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x0 > x1) return;
+  x0 -= 1; y0 -= 1; x1 += 1; y1 += 1;
+  const r0 = cr, g0 = cg, b0 = cb, a0 = ca, z0 = gz, w0 = gw, f0 = gFun;
+  prepara(0, null, clip, cobre);
+  cr = r0; cg = g0; cb = b0; ca = a0; gz = z0; gw = w0; gFun = f0; ct = 64 + (comp === 1 ? 128 : 0);
+  vtxP(x0, y0, 0, 0); vtxP(x1, y0, 0, 0); vtxP(x0, y1, 0, 0); vtxP(x1, y1, 0, 0); nq++;
+  descarregar();
+}
+// o traço de uma polilinha em triângulos (no espaço do usuário, depois para a tela): as juntas e as pontas redondas viram leques
+function tracar(subs, est, m) {
+  const iv = inv6(m, [0, 0, 0, 0, 0, 0]); if (!iv) return;
+  const hw = est.lw / 2, tp = (x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+  const T = [];
+  const disco = (x, y) => { const n = 12; let px = x + hw, py = y; for (let i = 1; i <= n; i++) { const a = i / n * 2 * Math.PI, qx = x + hw * Math.cos(a), qy = y + hw * Math.sin(a); T.push(x, y, px, py, qx, qy); px = qx; py = qy; } };
+  for (const s of subs) {
+    const P = []; for (let i = 0; i < s.p.length; i += 2) { const x = iv[0] * s.p[i] + iv[2] * s.p[i + 1] + iv[4], y = iv[1] * s.p[i] + iv[3] * s.p[i + 1] + iv[5]; if (!P.length || Math.hypot(x - P[P.length - 2], y - P[P.length - 1]) > 1e-6) P.push(x, y); }
+    const n = P.length / 2, fecha = s.z && n > 2;
+    if (n < 2) { if (n === 1 && est.cap === "round") disco(P[0], P[1]); continue; }
+    const seg = fecha ? n : n - 1;
+    for (let i = 0; i < seg; i++) {
+      let ax = P[i * 2], ay = P[i * 2 + 1], bx = P[((i + 1) % n) * 2], by = P[((i + 1) % n) * 2 + 1];
+      const L0 = Math.hypot(bx - ax, by - ay); if (!L0) continue;
+      const ux = (bx - ax) / L0, uy = (by - ay) / L0, nx = -uy * hw, ny = ux * hw;
+      if (est.cap === "square" && !fecha) { if (i === 0) { ax -= ux * hw; ay -= uy * hw; } if (i === seg - 1) { bx += ux * hw; by += uy * hw; } }
+      T.push(ax + nx, ay + ny, bx + nx, by + ny, ax - nx, ay - ny, ax - nx, ay - ny, bx + nx, by + ny, bx - nx, by - ny);
+    }
+    for (let i = 0; i < n; i++) {
+      const fim = !fecha && (i === 0 || i === n - 1), x = P[i * 2], y = P[i * 2 + 1];
+      if (fim) { if (est.cap === "round") disco(x, y); continue; }
+      if (est.join === "round") { disco(x, y); continue; }
+      const pa = ((i - 1 + n) % n) * 2, pb = ((i + 1) % n) * 2;
+      const d1x = x - P[pa], d1y = y - P[pa + 1], d2x = P[pb] - x, d2y = P[pb + 1] - y, l1 = Math.hypot(d1x, d1y), l2 = Math.hypot(d2x, d2y); if (!l1 || !l2) continue;
+      const n1x = -d1y / l1 * hw, n1y = d1x / l1 * hw, n2x = -d2y / l2 * hw, n2y = d2x / l2 * hw, cz = d1x * d2y - d1y * d2x, sgn = cz > 0 ? -1 : 1;
+      const ax = x + sgn * n1x, ay = y + sgn * n1y, bx = x + sgn * n2x, by = y + sgn * n2y;
+      T.push(x, y, ax, ay, bx, by);
+      if (est.join === "miter") { const mx = (n1x + n2x) / 2, my = (n1y + n2y) / 2, ml = Math.hypot(mx, my); if (ml > 1e-9) { const k2 = hw * hw / (ml * ml); if (Math.sqrt(k2) * 2 <= est.miter * 2 && k2 * ml <= est.miter * hw) { const tx = x + sgn * mx * k2, ty = y + sgn * my * k2; T.push(ax, ay, tx, ty, bx, by); } } }
+    }
+  }
+  garantirTb(T.length / 2); nt = 0;
+  for (let i = 0; i < T.length; i += 6) { const [x0, y0] = tp(T[i], T[i + 1]), [x1, y1] = tp(T[i + 2], T[i + 3]), [x2, y2] = tp(T[i + 4], T[i + 5]); tri(x0, y0, x1, y1, x2, y2); }
+  return T;
+}
+
+// ---- o contexto de mentira (o cx durante a lista)
+const COMP = { "source-over": 0, "lighter": 1 };
+class Estado {
+  constructor(e) {
+    if (!e) { this.m = [1, 0, 0, 1, 0, 0]; this.alfa = 1; this.comp = 0; this.compS = "source-over"; this.filtro = "none"; this.fp = null; this.sombraS = "rgba(0, 0, 0, 0)"; this.sombraC = [0, 0, 0, 0]; this.sombraBlur = 0; this.sombraX = 0; this.sombraY = 0;
+      this.suave = true; this.qual = "low"; this.fill = [0, 0, 0, 1]; this.fillS = "#000000"; this.stroke = [0, 0, 0, 1]; this.strokeS = "#000000"; this.lw = 1; this.cap = "butt"; this.join = "miter"; this.miter = 10; this.dash = []; this.dashO = 0;
+      this.font = "10px sans-serif"; this.textAlign = "start"; this.textBaseline = "alphabetic"; this.direction = "inherit"; this.clip = null; return; }
+    this.m = [e.m[0], e.m[1], e.m[2], e.m[3], e.m[4], e.m[5]]; this.alfa = e.alfa; this.comp = e.comp; this.compS = e.compS; this.filtro = e.filtro; this.fp = e.fp; this.sombraS = e.sombraS; this.sombraC = e.sombraC; this.sombraBlur = e.sombraBlur; this.sombraX = e.sombraX; this.sombraY = e.sombraY;
+    this.suave = e.suave; this.qual = e.qual; this.fill = e.fill; this.fillS = e.fillS; this.stroke = e.stroke; this.strokeS = e.strokeS; this.lw = e.lw; this.cap = e.cap; this.join = e.join; this.miter = e.miter; this.dash = e.dash; this.dashO = e.dashO;
+    this.font = e.font; this.textAlign = e.textAlign; this.textBaseline = e.textBaseline; this.direction = e.direction; this.clip = e.clip;
+  }
+}
+Estado.prototype.copiar = function (e) {
+  const m = this.m, n = e.m; m[0] = n[0]; m[1] = n[1]; m[2] = n[2]; m[3] = n[3]; m[4] = n[4]; m[5] = n[5]; this.alfa = e.alfa; this.comp = e.comp; this.compS = e.compS; this.filtro = e.filtro; this.fp = e.fp; this.sombraS = e.sombraS; this.sombraC = e.sombraC; this.sombraBlur = e.sombraBlur; this.sombraX = e.sombraX; this.sombraY = e.sombraY;
+  this.suave = e.suave; this.qual = e.qual; this.fill = e.fill; this.fillS = e.fillS; this.stroke = e.stroke; this.strokeS = e.strokeS; this.lw = e.lw; this.cap = e.cap; this.join = e.join; this.miter = e.miter; this.dash = e.dash; this.dashO = e.dashO;
+  this.font = e.font; this.textAlign = e.textAlign; this.textBaseline = e.textBaseline; this.direction = e.direction; this.clip = e.clip; return this;
+};
+const estadoNovo = () => new Estado(null), copia = e => new Estado(e);
+const fpDe = e => e.fp || (e.fp = filtroDe(e.filtro));
+const nomeEstilo = v => typeof v === "string" ? v : v;
+class Ctx {
+  constructor() { this.__lote = true; this.e = estadoNovo(); this.pilha = []; this.np = 0; this.cam = []; this.nc = 0; }
+  get canvas() { return REAL ? REAL.canvas : cv; }
+  // -- estado
+  // (a pilha guarda estados reaproveitados: o save copia no próximo, o restore troca)
+  save() { const t = this.pilha[this.np] || (this.pilha[this.np] = estadoNovo()); t.copiar(this.e); this.np++; }
+  restore() {
+    if (!this.np) return;
+    const e = this.pilha[--this.np], c0 = this.e.clip;
+    this.pilha[this.np] = this.e; this.e = e;
+    if (c0 !== e.clip) { descarregar(); if (e.clip) refazerClip(e.clip); }
+  }
+  setTransform(a, b, c, d, e, f) { const m = this.e.m; if (a === undefined) { m[0] = 1; m[1] = 0; m[2] = 0; m[3] = 1; m[4] = 0; m[5] = 0; } else if (typeof a === "object") { m[0] = a.a ?? a.m11 ?? 1; m[1] = a.b ?? a.m12 ?? 0; m[2] = a.c ?? a.m21 ?? 0; m[3] = a.d ?? a.m22 ?? 1; m[4] = a.e ?? a.m41 ?? 0; m[5] = a.f ?? a.m42 ?? 0; }
+    else if (isFinite(a) && isFinite(b) && isFinite(c) && isFinite(d) && isFinite(e) && isFinite(f)) { m[0] = a; m[1] = b; m[2] = c; m[3] = d; m[4] = e; m[5] = f; } }
+  resetTransform() { this.setTransform(1, 0, 0, 1, 0, 0); }
+  getTransform() { const m = this.e.m; return new DOMMatrix([m[0], m[1], m[2], m[3], m[4], m[5]]); }
+  transform(a, b, c, d, e, f) { if (!(isFinite(a) && isFinite(b) && isFinite(c) && isFinite(d) && isFinite(e) && isFinite(f))) return; const m = this.e.m, A = m[0], B = m[1], C = m[2], D = m[3];
+    m[0] = A * a + C * b; m[1] = B * a + D * b; m[2] = A * c + C * d; m[3] = B * c + D * d; m[4] += A * e + C * f; m[5] += B * e + D * f; }
+  translate(x, y) { if (!(isFinite(x) && isFinite(y))) return; const m = this.e.m; m[4] += m[0] * x + m[2] * y; m[5] += m[1] * x + m[3] * y; }
+  scale(x, y) { if (!(isFinite(x) && isFinite(y))) return; const m = this.e.m; m[0] *= x; m[1] *= x; m[2] *= y; m[3] *= y; }
+  rotate(a) { if (!isFinite(a)) return; const c = Math.cos(a), s = Math.sin(a); this.transform(c, s, -s, c, 0, 0); }
+  get globalAlpha() { return this.e.alfa; } set globalAlpha(v) { v = +v; if (v >= 0 && v <= 1) this.e.alfa = v; }
+  get globalCompositeOperation() { return this.e.compS; } set globalCompositeOperation(v) { if (typeof v !== "string") return; this.e.compS = v; this.e.comp = v in COMP ? COMP[v] : -1; }
+  get fillStyle() { return this.e.fillS; } set fillStyle(v) { if (typeof v === "string") { const c = cor(v); if (c) { this.e.fill = c; this.e.fillS = v; } } else if (v && typeof v === "object") { this.e.fill = v; this.e.fillS = v; } }
+  get strokeStyle() { return this.e.strokeS; } set strokeStyle(v) { if (typeof v === "string") { const c = cor(v); if (c) { this.e.stroke = c; this.e.strokeS = v; } } else if (v && typeof v === "object") { this.e.stroke = v; this.e.strokeS = v; } }
+  get filter() { return this.e.filtro; } set filter(v) { v = String(v); if (v !== this.e.filtro) { this.e.filtro = v; this.e.fp = null; } }
+  get shadowColor() { return this.e.sombraS; } set shadowColor(v) { const c = typeof v === "string" && cor(v); if (c) { this.e.sombraS = v; this.e.sombraC = c; } }
+  get shadowBlur() { return this.e.sombraBlur; } set shadowBlur(v) { v = +v; if (v >= 0 && isFinite(v)) this.e.sombraBlur = v; }
+  get shadowOffsetX() { return this.e.sombraX; } set shadowOffsetX(v) { v = +v; if (isFinite(v)) this.e.sombraX = v; }
+  get shadowOffsetY() { return this.e.sombraY; } set shadowOffsetY(v) { v = +v; if (isFinite(v)) this.e.sombraY = v; }
+  get imageSmoothingEnabled() { return this.e.suave; } set imageSmoothingEnabled(v) { this.e.suave = !!v; }
+  get imageSmoothingQuality() { return this.e.qual; } set imageSmoothingQuality(v) { if (v === "low" || v === "medium" || v === "high") this.e.qual = v; }
+  get lineWidth() { return this.e.lw; } set lineWidth(v) { v = +v; if (v > 0 && isFinite(v)) this.e.lw = v; }
+  get lineCap() { return this.e.cap; } set lineCap(v) { if (v === "butt" || v === "round" || v === "square") this.e.cap = v; }
+  get lineJoin() { return this.e.join; } set lineJoin(v) { if (v === "miter" || v === "round" || v === "bevel") this.e.join = v; }
+  get miterLimit() { return this.e.miter; } set miterLimit(v) { v = +v; if (v > 0 && isFinite(v)) this.e.miter = v; }
+  get lineDashOffset() { return this.e.dashO; } set lineDashOffset(v) { v = +v; if (isFinite(v)) this.e.dashO = v; }
+  setLineDash(l) { this.e.dash = l && l.length ? Array.from(l) : []; } getLineDash() { return this.e.dash.slice(); }
+  get font() { return this.e.font; } set font(v) { this.e.font = v; }
+  get textAlign() { return this.e.textAlign; } set textAlign(v) { this.e.textAlign = v; }
+  get textBaseline() { return this.e.textBaseline; } set textBaseline(v) { this.e.textBaseline = v; }
+  get direction() { return this.e.direction; } set direction(v) { this.e.direction = v; }
+  createLinearGradient(x0, y0, x1, y1) { return new Degrade(1, [x0, y0, x1, y1]); }
+  createRadialGradient(x0, y0, r0, x1, y1, r1) { if (r0 < 0 || r1 < 0) throw new DOMException("raio", "IndexSizeError"); return new Degrade(2, [x0, y0, r0, x1, y1, r1]); }
+  createPattern(im, rep) { return REAL.createPattern(im, rep); }
+  measureText(t) { REAL.save(); REAL.font = this.e.font; REAL.textAlign = this.e.textAlign; REAL.textBaseline = this.e.textBaseline; const r = REAL.measureText(t); REAL.restore(); return r; }
+  isPointInPath(...a) { return false; }
+  drawFocusIfNeeded() {}
+  // -- caminho
+  beginPath() { this.nc = 0; this.semLote = false; }
+  // (os comandos do caminho num banco reaproveitado: um objeto e a matriz da vez por comando, sem criar nada por quadro)
+  _n(op) { let c = this.cam[this.nc]; if (!c) c = this.cam[this.nc] = { op: "", a: [], m: [0, 0, 0, 0, 0, 0] }; const m = this.e.m, cm = c.m; c.op = op; c.a.length = 0; cm[0] = m[0]; cm[1] = m[1]; cm[2] = m[2]; cm[3] = m[3]; cm[4] = m[4]; cm[5] = m[5]; this.nc++; return c.a; }
+  _c(op, a) { const v = this._n(op); for (let i = 0; i < a.length; i++) v.push(a[i]); }
+  _cam() { const l = []; for (let i = 0; i < this.nc; i++) { const c = this.cam[i]; l.push({ op: c.op, a: c.a.slice(), m: c.m.slice() }); } return l; }
+  moveTo(x, y) { if (isFinite(x) && isFinite(y)) this._n("moveTo").push(x, y); }
+  lineTo(x, y) { if (isFinite(x) && isFinite(y)) this._n("lineTo").push(x, y); }
+  closePath() { this._n("closePath"); }
+  quadraticCurveTo(a, b, c, d) { this._c("quadraticCurveTo", [a, b, c, d]); }
+  bezierCurveTo(a, b, c, d, e, f) { this._c("bezierCurveTo", [a, b, c, d, e, f]); }
+  rect(x, y, w, h) { this._n("rect").push(x, y, w, h); }
+  arc(x, y, r, a0, a1, anti = false) { if (r < 0) throw new DOMException("raio", "IndexSizeError"); const v = this._n("arc"); v.push(x, y, r, r, 0, a0, a1, !!anti); }
+  ellipse(x, y, rx, ry, rot, a0, a1, anti = false) { if (rx < 0 || ry < 0) throw new DOMException("raio", "IndexSizeError"); const v = this._n("ellipse"); v.push(x, y, rx, ry, rot, a0, a1, !!anti); }
+  arcTo(...a) { this._c("arcTo", a); this.semLote = true; }
+  roundRect(...a) { this._c("roundRect", a); this.semLote = true; }
+  // -- o 2D de verdade, para o que o lote não faz (o palco vai antes para a tela, na ordem)
+  quebrar(motivo, op) {
+    L.st.quebras++; L.st.motivos[motivo] = (L.st.motivos[motivo] || 0) + 1;
+    if (alvo !== 0) { L.st.perdidos++; return; }
+    descarregarPalco(false);
+    if (this.e.clip) refazerClip(this.e.clip);
+    const g = REAL, s = this.e; g.save();
+    try {
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      if (s.clip) { g.beginPath(); for (const c of s.clip.cam) repetir(g, c); g.clip(s.clip.regra ? "evenodd" : "nonzero"); }
+      g.setTransform(s.m[0], s.m[1], s.m[2], s.m[3], s.m[4], s.m[5]);
+      g.globalAlpha = s.alfa; g.globalCompositeOperation = s.compS; g.filter = s.filtro; g.shadowBlur = s.sombraBlur; g.shadowColor = s.sombraS; g.shadowOffsetX = s.sombraX; g.shadowOffsetY = s.sombraY;
+      g.imageSmoothingEnabled = s.suave; g.imageSmoothingQuality = s.qual;
+      g.fillStyle = s.fill instanceof Degrade ? s.fill.paraReal(g) : s.fillS; g.strokeStyle = s.stroke instanceof Degrade ? s.stroke.paraReal(g) : s.strokeS;
+      g.lineWidth = s.lw; g.lineCap = s.cap; g.lineJoin = s.join; g.miterLimit = s.miter; g.setLineDash(s.dash); g.lineDashOffset = s.dashO;
+      g.font = s.font; g.textAlign = s.textAlign; g.textBaseline = s.textBaseline;
+      g.beginPath(); for (let i = 0; i < this.nc; i++) repetir(g, this.cam[i]);
+      g.setTransform(s.m[0], s.m[1], s.m[2], s.m[3], s.m[4], s.m[5]);
+      op(g);
+    } catch (e) { console.error("lote, no 2D:", motivo, e); }
+    finally { g.restore(); }
+  }
+  // -- desenhos
+  drawImage(s, a1, a2, a3, a4, a5, a6, a7, a8) {
+    if (!s) throw new TypeError("drawImage: sem imagem");
+    const n = arguments.length;
+    let iw, ih;
+    if (s.__lote) { iw = s.width; ih = s.height; } else if (s instanceof HTMLImageElement) { if (!s.complete) return; iw = s.naturalWidth; ih = s.naturalHeight; } else { iw = s.width | 0; ih = s.height | 0; }
+    if (!iw || !ih) return;
+    let sx, sy, sw, sh, dx, dy, dw, dh;
+    if (n <= 3) { sx = 0; sy = 0; sw = iw; sh = ih; dx = a1; dy = a2; dw = iw; dh = ih; }
+    else if (n <= 5) { sx = 0; sy = 0; sw = iw; sh = ih; dx = a1; dy = a2; dw = a3; dh = a4; }
+    else { sx = a1; sy = a2; sw = a3; sh = a4; dx = a5; dy = a6; dw = a7; dh = a8; }
+    if (!(isFinite(sx) && isFinite(sy) && isFinite(sw) && isFinite(sh) && isFinite(dx) && isFinite(dy) && isFinite(dw) && isFinite(dh))) return;
+    if (sw < 0) { sx += sw; sw = -sw; } if (sh < 0) { sy += sh; sh = -sh; } if (dw < 0) { dx += dw; dw = -dw; } if (dh < 0) { dy += dh; dh = -dh; }
+    if (!sw || !sh || !dw || !dh) return;
+    // (a parte da fonte fora da imagem não desenha: o destino encolhe na mesma proporção)
+    if (sx < 0) { const f = -sx / sw; dx += f * dw; dw -= f * dw; sw += sx; sx = 0; }
+    if (sy < 0) { const f = -sy / sh; dy += f * dh; dh -= f * dh; sh += sy; sy = 0; }
+    if (sx + sw > iw) { const f = (sx + sw - iw) / sw; dw -= f * dw; sw = iw - sx; }
+    if (sy + sh > ih) { const f = (sy + sh - ih) / sh; dh -= f * dh; sh = ih - sy; }
+    if (sw <= 0 || sh <= 0 || dw <= 0 || dh <= 0) return;
+    const st = this.e, fp = fpDe(st);
+    const real = () => this.quebrar("drawImage", g => g.drawImage(s, sx, sy, sw, sh, dx, dy, dw, dh));
+    if (st.comp < 0 || !fp.ok || st.alfa <= 0) { if (st.alfa > 0 && !s.__lote) real(); return; }
+    if (!fonte(s, sx, sy, sw, sh)) { if (!s.__lote && s !== L.canvas && !(s instanceof HTMLImageElement && !s.complete)) real(); return; }
+    L.st.imagens++;
+    const m = st.m, clip = !!st.clip;
+    cantos(m, dx, dy, dw, dh);
+    // a sombra (shadowBlur, com a cor e o deslocamento: na tela, sem a matriz) vai antes, borrada
+    if (st.sombraBlur > 0 && st.sombraC[3] > 0 || (st.sombraC[3] > 0 && (st.sombraX || st.sombraY))) {
+      const c = st.sombraC, a = c[3] * st.alfa, cp = [c[0] / 255 * a, c[1] / 255 * a, c[2] / 255 * a, a];
+      const F0 = Object.assign({}, FN); efeito(Math.max(0.01, st.sombraBlur / 2), 0, null, cp, st.comp, 1, clip, st.sombraX, st.sombraY); Object.assign(FN, F0);
+      cantos(m, dx, dy, dw, dh);
+    }
+    if (fp.sig > 0) { efeito(fp.sig, 1, fp.m ? fp : null, null, st.comp, st.alfa, clip, 0, 0); return; }
+    // o filtro de cor (matriz) só nas imagens sem tinta
+    const filtro = fp.m && !FN.tinta ? fp : null;
+    let kind = !st.suave ? 0 : 1;
+    if (kind && st.qual !== "low" && !FN.e.interna) {
+      const ex = Math.hypot(Q[2] - Q[0], Q[3] - Q[1]) / sw, ey = Math.hypot(Q[4] - Q[0], Q[5] - Q[1]) / sh;
+      if (Math.min(ex, ey) < L.mipAbaixo && mipDe(FN.e)) kind = 2;
+    }
+    prepara(0, filtro, clip, 0);
+    const u = unidade(FN.e, kind), sm = st.comp === 1 ? 128 : 0;
+    if (FN.tinta) { const t = FN.tinta, a = t[3] * st.alfa; cr = t[0] / 255 * a; cg = t[1] / 255 * a; cb = t[2] / 255 * a; ca = a; ct = 16 + u + sm; }
+    else { cr = cg = cb = ca = st.alfa; ct = u + sm; }
+    gz = -1; gw = -1;
+    vtx(Q[0], Q[1], FN.u0, FN.v0, 0, 0); vtx(Q[2], Q[3], FN.u1, FN.v0, 0, 0); vtx(Q[4], Q[5], FN.u0, FN.v1, 0, 0); vtx(Q[6], Q[7], FN.u1, FN.v1, 0, 0); nq++;
+  }
+  fillRect(x, y, w, h) {
+    if (!(isFinite(x) && isFinite(y) && isFinite(w) && isFinite(h)) || !w || !h) return;
+    if (w < 0) { x += w; w = -w; } if (h < 0) { y += h; h = -h; }
+    const st = this.e;
+    const fp = fpDe(st);
+    if (st.comp < 0 || !fp.ok || fp.m || fp.sig || (st.sombraC[3] > 0 && (st.sombraBlur > 0 || st.sombraX || st.sombraY))) return this.quebrar("fillRect", g => g.fillRect(x, y, w, h));
+    if (st.alfa <= 0) return;
+    if (!pintura(st.fill, st.alfa, st.m)) return this.quebrar("fillRect estilo", g => g.fillRect(x, y, w, h));
+    L.st.formas++;
+    // (o quadrilátero com 1 px de folga em volta: a borda suavizada pela cobertura do shader)
+    const m = st.m, ax = Math.hypot(m[0], m[1]) * w, ay = Math.hypot(m[2], m[3]) * h, eu = 1.5 / Math.max(1e-6, ax), ev = 1.5 / Math.max(1e-6, ay);
+    cantos(m, x - eu * w, y - ev * h, w * (1 + 2 * eu), h * (1 + 2 * ev));
+    const R = gFun ? [cr, cg, cb, ca, gz, gw, gFun] : null;
+    prepara(0, null, !!st.clip, 0);
+    if (R) { [cr, cg, cb, ca, gz, gw, gFun] = R; }
+    ct = 48 + (st.comp === 1 ? 128 : 0);
+    vtxP(Q[0], Q[1], -eu, -ev); vtxP(Q[2], Q[3], 1 + eu, -ev); vtxP(Q[4], Q[5], -eu, 1 + ev); vtxP(Q[6], Q[7], 1 + eu, 1 + ev); nq++;
+  }
+  fill(a, b) {
+    if (typeof Path2D !== "undefined" && a instanceof Path2D) return this.quebrar("fill(Path2D)", g => g.fill(a, b));
+    const regra = a === "evenodd" ? 1 : 0, st = this.e;
+    if (!this.nc || st.alfa <= 0) return;
+    const fp = fpDe(st);
+    if (this.semLote || st.comp < 0 || !fp.ok || fp.m || fp.sig || (st.sombraC[3] > 0 && (st.sombraBlur > 0 || st.sombraX || st.sombraY))) return this.quebrar("fill", g => g.fill(regra ? "evenodd" : "nonzero"));
+    const c0 = this.cam[0];
+    // a elipse inteira sozinha (a sombra, o brilho, a fumaça): um quadrilátero com a borda no shader
+    if (this.nc === 1 && (c0.op === "ellipse" || c0.op === "arc")) {
+      const [x, y, rx, ry, rot, a0, a1, anti] = c0.a;
+      if ((!anti && a1 - a0 >= 2 * Math.PI) || (anti && a0 - a1 >= 2 * Math.PI)) {
+        if (!rx || !ry) return;
+        if (!pintura(st.fill, st.alfa, st.m)) return this.quebrar("fill estilo", g => g.fill(regra ? "evenodd" : "nonzero"));
+        L.st.formas++;
+        const m = c0.m, co = Math.cos(rot), si = Math.sin(rot);
+        // (a matriz da elipse: m · translação(x, y) · rotação · escala(rx, ry))
+        const A = (m[0] * co + m[2] * si) * rx, B = (m[1] * co + m[3] * si) * rx, C = (-m[0] * si + m[2] * co) * ry, D = (-m[1] * si + m[3] * co) * ry, E = m[0] * x + m[2] * y + m[4], Fy = m[1] * x + m[3] * y + m[5];
+        const eu = 1 + 1.5 / Math.max(1e-6, Math.hypot(A, B)), ev = 1 + 1.5 / Math.max(1e-6, Math.hypot(C, D));
+        const R = gFun ? [cr, cg, cb, ca, gz, gw, gFun] : null;
+        prepara(0, null, !!st.clip, 0);
+        if (R) { [cr, cg, cb, ca, gz, gw, gFun] = R; }
+        ct = 32 + (st.comp === 1 ? 128 : 0);
+        const P = (u, v) => vtxP(A * u + C * v + E, B * u + D * v + Fy, u, v);
+        P(-eu, -ev); P(eu, -ev); P(-eu, ev); P(eu, ev); nq++;
+        return;
+      }
+    }
+    if (!pintura(st.fill, st.alfa, st.m)) return this.quebrar("fill estilo", g => g.fill(regra ? "evenodd" : "nonzero"));
+    const subs = achatar(this.cam, this.nc); if (!subs.length) return;
+    if (subs.length === 1 && convexo(subs[0].p)) {
+      L.st.formas++;
+      const R = [cr, cg, cb, ca, gz, gw, gFun], p = subs[0].p;
+      prepara(0, null, !!st.clip, 0);
+      [cr, cg, cb, ca, gz, gw, gFun] = R; ct = 64 + (st.comp === 1 ? 128 : 0);
+      for (let i = 2; i + 3 < p.length; i += 2) { if (nq >= MAXQ) { descarregar(); prepara(0, null, !!st.clip, 0); [cr, cg, cb, ca, gz, gw, gFun] = R; }
+        vtxP(p[0], p[1], 0, 0); vtxP(p[i], p[i + 1], 0, 0); vtxP(p[i + 2], p[i + 3], 0, 0); vtxP(p[i + 2], p[i + 3], 0, 0); nq++; }
+      return;
+    }
+    L.st.caminhos++;
+    const R = [cr, cg, cb, ca, gz, gw, gFun];
+    leques(subs); marcar(regra);
+    [cr, cg, cb, ca, gz, gw, gFun] = R;
+    cobrir(subs, st.comp, !!st.clip, regra ? 2 : 1);
+  }
+  stroke(a) {
+    if (typeof Path2D !== "undefined" && a instanceof Path2D) return this.quebrar("stroke(Path2D)", g => g.stroke(a));
+    const st = this.e;
+    if (!this.nc || st.alfa <= 0) return;
+    const fp = fpDe(st);
+    if (this.semLote || st.dash.length || st.comp < 0 || !fp.ok || fp.m || fp.sig || (st.sombraC[3] > 0 && (st.sombraBlur > 0 || st.sombraX || st.sombraY))) return this.quebrar("stroke", g => g.stroke());
+    if (!pintura(st.stroke, st.alfa, st.m)) return this.quebrar("stroke estilo", g => g.stroke());
+    const subs = achatar(this.cam, this.nc); if (!subs.length) return;
+    L.st.caminhos++;
+    const R = [cr, cg, cb, ca, gz, gw, gFun];
+    const T = tracar(subs, st, st.m); if (!T || !T.length) return;
+    // (o traço opaco: os triângulos direto no lote; a sobra onde eles se cruzam não muda a cor)
+    const umSeg = subs.length === 1 && subs[0].p.length === 4 && st.cap !== "round";   // (um segmento sem ponta redonda: um quadrilátero, sem sobra)
+    if ((!gFun && Math.abs(ca - 1) < 1e-6) || umSeg) {
+      nt = 0; L.st.caminhos--; L.st.formas++;
+      const m = st.m;
+      for (let i = 0; i < T.length; i += 6) {
+        prepara(0, null, !!st.clip, 0); [cr, cg, cb, ca, gz, gw, gFun] = R; ct = 64 + (st.comp === 1 ? 128 : 0);
+        const x0 = m[0] * T[i] + m[2] * T[i + 1] + m[4], y0 = m[1] * T[i] + m[3] * T[i + 1] + m[5], x1 = m[0] * T[i + 2] + m[2] * T[i + 3] + m[4], y1 = m[1] * T[i + 2] + m[3] * T[i + 3] + m[5], x2 = m[0] * T[i + 4] + m[2] * T[i + 5] + m[4], y2 = m[1] * T[i + 4] + m[3] * T[i + 5] + m[5];
+        vtxP(x0, y0, 0, 0); vtxP(x1, y1, 0, 0); vtxP(x2, y2, 0, 0); vtxP(x2, y2, 0, 0); nq++;
+      }
+      return;
+    }
+    marcar(3);
+    // (a caixa do traço: a dos pontos com a largura)
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; const m = st.m;
+    for (let i = 0; i < T.length; i += 2) { const x = m[0] * T[i] + m[2] * T[i + 1] + m[4], y = m[1] * T[i] + m[3] * T[i + 1] + m[5]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    [cr, cg, cb, ca, gz, gw, gFun] = R;
+    cobrir([{ p: [x0, y0, x1, y1] }], st.comp, !!st.clip, 1);
+  }
+  strokeRect(x, y, w, h) { const c = this.cam, n = this.nc; this.cam = []; this.nc = 0; this.rect(x, y, w, h); try { this.stroke(); } finally { this.cam = c; this.nc = n; } }
+  clearRect(x, y, w, h) { this.quebrar("clearRect", g => g.clearRect(x, y, w, h)); }
+  clip(a, b) {
+    if ((typeof Path2D !== "undefined" && a instanceof Path2D) || this.semLote) { L.st.perdidos++; return; }
+    if (this.e.clip) { L.st.perdidos++; L.st.motivos["clip dentro de clip"] = (L.st.motivos["clip dentro de clip"] || 0) + 1; return; }   // (o recorte dentro de outro: fica o de fora)
+    const c = { cam: this._cam(), regra: a === "evenodd" ? 1 : 0, subs: achatar(this.cam, this.nc) };
+    this.e.clip = c; refazerClip(c);
+  }
+  fillText(...a) { this.quebrar("fillText", g => g.fillText(...a)); }
+  strokeText(...a) { this.quebrar("strokeText", g => g.strokeText(...a)); }
+  putImageData(...a) { this.quebrar("putImageData", g => g.putImageData(...a)); }
+  getImageData(...a) { descarregarPalco(false); if (this.e.clip) refazerClip(this.e.clip); return REAL.getImageData(...a); }
+  createImageData(...a) { return REAL.createImageData(...a); }
+}
+// um comando do caminho de novo no canvas 2D de verdade (o arco foi guardado como elipse)
+function repetir(g, c) { const a = c.a; g.setTransform(c.m[0], c.m[1], c.m[2], c.m[3], c.m[4], c.m[5]); if (c.op === "arc") g.arc(a[0], a[1], a[2], a[5], a[6], a[7]); else g[c.op](...a); }
+// o recorte no bit 0x80 do estêncil (limpo no alvo inteiro antes: o recorte anterior pode ter deixado marcas)
+function refazerClip(c) {
+  descarregar();
+  estadoAlvo(); gl.stencilMask(0x80); gl.clearStencil(0); gl.clear(gl.STENCIL_BUFFER_BIT);
+  leques(c.subs); marcar(2);
+}
+// o objeto translúcido (translucido): desenhado numa camada da GPU e posto no palco com a transparência
+L.grupo = (ctx, alfa, caixa, desenho) => {
+  if (alvo !== 0) { desenho(); return; }
+  const m = ctx.e.m, folga = 40;
+  const x0 = Math.max(0, Math.floor(m[0] * (caixa[0] - folga) + m[4])), y0 = Math.max(0, Math.floor(m[3] * (caixa[1] - folga) + m[5]));
+  const x1 = Math.min(L.Wd, Math.ceil(m[0] * (caixa[2] + folga) + m[4])), y1 = Math.min(L.Hd, Math.ceil(m[3] * (caixa[3] + folga) + m[5]));
+  if (x1 <= x0 || y1 <= y0) return;
+  descarregar(); garantirGrupo();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fboG); gl.enable(gl.SCISSOR_TEST); gl.scissor(x0, L.Hd - y1, x1 - x0, y1 - y0);
+  gl.colorMask(true, true, true, true); gl.stencilMask(0xff); gl.clearColor(0, 0, 0, 0); gl.clearStencil(0); gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+  const clip0 = ctx.e.clip; ctx.e.clip = null; alvo = 1; ULT = null;
+  try { desenho(); }
+  finally { descarregar(); alvo = 0; ULT = null; ctx.e.clip = clip0; }
+  L.st.grupos++;
+  const st = ctx.e;
+  prepara(0, null, !!clip0, 0);
+  const u = unidade(entG, 0);
+  cr = cg = cb = ca = alfa; ct = u + (st.comp === 1 ? 128 : 0); gz = -1; gw = -1; gFun = null;
+  const u0 = x0 / L.Wd, u1 = x1 / L.Wd, v0 = 1 - y0 / L.Hd, v1 = 1 - y1 / L.Hd;
+  vtx(x0, y0, u0, v0, 0, 0); vtx(x1, y0, u1, v0, 0, 0); vtx(x0, y1, u0, v1, 0, 0); vtx(x1, y1, u1, v1, 0, 0); nq++;
+};
+// ---- o começo e o fim da lista
+L.ctx = new Ctx();
+L.comecar = real => {
+  if (!L.ligado || L.perdido) return null;
+  if (window.M3D && M3D.ativo) return null;
+  if (typeof P3D === "object" && P3D.ligado && P3D.render && !P3D.compartilhado) return null;    // (o atlas noutro contexto: o 2D de antes)
+  if (!L.contexto() || !montar()) return null;
+  conferirTamanho();
+  REAL = real; L.quadro++; L.st.quadros++; L.ativo = true;
+  if (L.compartilhado()) P3D.render.resetState();
+  limparPalco(); palcoUsado = false; L.palcoSujo = false; nq = 0; k = 0; uni.length = 0; alvo = 0; lCobre = 0; ULT = null; lutN = 0; lutGer++;
+  const c = L.ctx, e = c.e = estadoNovo(), t = real.getTransform();
+  c.np = 0; c.nc = 0; c.semLote = false;
+  e.m[0] = t.a; e.m[1] = t.b; e.m[2] = t.c; e.m[3] = t.d; e.m[4] = t.e; e.m[5] = t.f;
+  c.globalAlpha = real.globalAlpha; c.globalCompositeOperation = real.globalCompositeOperation; c.imageSmoothingEnabled = real.imageSmoothingEnabled; c.imageSmoothingQuality = real.imageSmoothingQuality;
+  c.fillStyle = typeof real.fillStyle === "string" ? real.fillStyle : "#000"; c.strokeStyle = typeof real.strokeStyle === "string" ? real.strokeStyle : "#000";
+  c.lineWidth = real.lineWidth; c.lineCap = real.lineCap; c.lineJoin = real.lineJoin; c.filter = real.filter; c.shadowBlur = real.shadowBlur; c.shadowColor = real.shadowColor; c.font = real.font;
+  return c;
+};
+L.terminar = () => {
+  try { descarregarPalco(true); }
+  finally {
+    L.ativo = false; soltarGL(); podar();
+    const g = REAL, e = L.ctx.e;                          // (o que a lista deixou no estado, como no 2D: o que vem depois pode contar com isso)
+    if (g) { try { g.globalAlpha = e.alfa; g.globalCompositeOperation = e.compS; g.imageSmoothingEnabled = e.suave; g.imageSmoothingQuality = e.qual; if (typeof e.fillS === "string") g.fillStyle = e.fillS; if (typeof e.strokeS === "string") g.strokeStyle = e.strokeS;
+      g.lineWidth = e.lw; g.lineCap = e.cap; g.lineJoin = e.join; g.filter = e.filtro; g.shadowBlur = e.sombraBlur; g.shadowColor = e.sombraS; g.font = e.font; } catch (er) {} }
+    REAL = null;
+  }
+};
+// ---- os objetos virtuais (no lote, a máscara da arma e a silhueta não passam por um canvas 2D)
+L.tinta = (s, sx, sy, sw, sh, c) => { const k2 = cor(c) || [0, 0, 0, 1]; return { __lote: "tinta", s, sx, sy, sw, sh, width: sw, height: sh, cor: k2 }; };
+L.regiao = (s, x0, y0, kx, ky, w, h) => ({ __lote: "regiao", s, x0, y0, kx, ky, width: w, height: h });
+
+// ---- D, parte 2: o FX3 no renderer dos bonecos. O FX3 vê um renderer do tamanho da tela (W × H, na densidade dele) que desenha
+// no palco (o pedaço de baixo do canvas único): o tamanho, a tesoura e a vista ficam presos ao palco; o tom (ACES) só vale
+// enquanto ele desenha (fxEntrar/fxSair: os bonecos do atlas sem o tom, como sempre)
+L.fxPode = () => L.fxJunto && L.compartilhado();
+L.fxRenderer = () => {
+  const r = P3D.render, Fx = L.fx = { pr: 1, w: Math.max(1, W), h: Math.max(1, H), tes: false, sc: [0, 0, 1, 1], tom: THREE.NoToneMapping, exp: 1, dentro: false, salvo: null };
+  const regiao = () => [Math.max(1, Math.floor(Fx.w * Fx.pr)), Math.max(1, Math.floor(Fx.h * Fx.pr))];
+  const tesoura = () => { const [a, b] = regiao(); let x = 0, y = 0, w = a, h = b;
+    if (Fx.tes) { const s = Fx.sc, x1 = Math.min(a, s[0] + s[2]), y1 = Math.min(b, s[1] + s[3]); x = Math.max(0, s[0]); y = Math.max(0, s[1]); w = Math.max(0, x1 - x); h = Math.max(0, y1 - y); }
+    r.setScissor(x, y, w, h); r.setScissorTest(true); };
+  const over = {
+    domElement: L.canvas,
+    setSize(w, h) { Fx.w = w; Fx.h = h; }, getSize(v) { return v.set(Fx.w, Fx.h); },
+    setPixelRatio(p) { Fx.pr = p; }, getPixelRatio() { return Fx.pr; },
+    getDrawingBufferSize(v) { const [a, b] = regiao(); return v.set(a, b); },
+    setScissorTest(v) { Fx.tes = !!v; if (!r.getRenderTarget()) tesoura(); else r.setScissorTest(v); },
+    setScissor(x, y, w, h) { if (x && x.isVector4) { y = x.y; w = x.z; h = x.w; x = x.x; } Fx.sc = [x * Fx.pr, y * Fx.pr, w * Fx.pr, h * Fx.pr]; if (!r.getRenderTarget()) tesoura(); },
+    setViewport(x, y, w, h) { if (x && x.isVector4) { y = x.y; w = x.z; h = x.w; x = x.x; } r.setViewport(x * Fx.pr, y * Fx.pr, w * Fx.pr, h * Fx.pr); },
+    setRenderTarget(rt, a, b) { r.setRenderTarget(rt, a, b); if (!rt) { const [w, h] = regiao(); r.setViewport(0, 0, w, h); tesoura(); } },
+  };
+  const ligadas = new Map();
+  return new Proxy(r, {
+    get(t, k2) { if (k2 in over) return over[k2]; const v = t[k2]; if (typeof v === "function") { let f = ligadas.get(k2); if (!f || f.__v !== v) { f = v.bind(t); f.__v = v; ligadas.set(k2, f); } return f; } return v; },
+    set(t, k2, v) { if (k2 === "toneMapping") { Fx.tom = v; if (Fx.dentro) t[k2] = v; return true; } if (k2 === "toneMappingExposure") { Fx.exp = v; if (Fx.dentro) t[k2] = v; return true; } t[k2] = v; return true; },
+  });
+};
+L.fxEntrar = () => {
+  const r = P3D.render, Fx = L.fx; if (!Fx || Fx.dentro) return;
+  Fx.dentro = true; Fx.salvo = { tom: r.toneMapping, exp: r.toneMappingExposure, au: r.autoClear };
+  r.toneMapping = Fx.tom; r.toneMappingExposure = Fx.exp;
+  if (L.palcoSujo) { r.setRenderTarget(null); r.setScissor(0, 0, L.Wd, L.Hd); r.setScissorTest(true); r.setClearColor(0x000000, 0); r.clear(true, true, true); L.palcoSujo = false; }   // (o que a lista deixou no palco)
+};
+L.fxSair = () => {
+  const r = P3D.render, Fx = L.fx; if (!Fx || !Fx.dentro) return;
+  const s = Fx.salvo; Fx.dentro = false;
+  r.toneMapping = s.tom; r.toneMappingExposure = s.exp; r.autoClear = s.au; r.setRenderTarget(null); r.setScissorTest(false);
+};
+L.fxEscala = () => L.fx ? L.fx.pr : 1;
+L.fxOy = () => L.ch - Math.max(1, Math.floor((L.fx ? L.fx.h * L.fx.pr : L.Hd)));
+L.fxTam = () => { const Fx = L.fx; return Fx ? [Math.max(1, Math.floor(Fx.w * Fx.pr)), Math.max(1, Math.floor(Fx.h * Fx.pr))] : [L.Wd, L.Hd]; };
+L.sujoGL = () => {};
+return L;
+})();
+window.LOTE = LOTE;
+// o tamanho do canvas dos bonecos: o atlas (lado × lado) e, no canvas único (LOTE), o palco embaixo dele
+function p3dTamanho() {
+  const p = P3D;
+  if (p.compartilhado) { const [cw, ch] = LOTE.tamanho(p.lado); p.render.setSize(cw, ch, false); p.altGL = ch; }
+  else { p.render.setSize(p.lado, p.lado, false); p.altGL = p.lado; }
+}
 // ---------------------------------------------------------------- o jogo em 3D (o padrão; ?2d=1 força os sprites)
 // Heróis, criaturas e NPCs são os modelos 3D (3d/<modelo>.glb, gravados do Unity com os mesmos movimentos dos sprites:
 // as mesmas animações, com os mesmos nomes, quadros e fps; Exportar3D/Exportar3DLote), desenhados pelo three.js com a
@@ -25008,7 +26079,10 @@ async function carregarP3d() {
     await carregarScript("https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/SkeletonUtils.js");
   } catch (e) { console.error("3d:", e); p.ligado = false; avisar("3D: não deu para carregar o three.js (ficam os sprites)"); return; }
   try {
-    p.render = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+    // (plano D, parte 2 e E: no canvas WebGL único do LOTE, com o palco embaixo do atlas; sem ele, um canvas próprio, como antes)
+    const lt = (LOTE.ligado || LOTE.fxJunto) ? LOTE.contexto() : null;
+    p.render = new THREE.WebGLRenderer(lt ? { canvas: lt.canvas, context: lt.gl, alpha: true, antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" } : { alpha: true, antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+    p.compartilhado = !!lt;
   } catch (e) { console.error("3d:", e); p.ligado = false; avisar("3D: sem WebGL (ficam os sprites)"); return; }
   p.render.setClearColor(0x000000, 0); p.render.outputEncoding = THREE.sRGBEncoding; p.render.autoClear = false;
   // o atlas e o maior pedaço de um boneco
@@ -25016,7 +26090,7 @@ async function carregarP3d() {
   // GPU do Chrome ia a 1,5 GB). Começa em 2048 (cabem ~90 bonecos do tamanho da tela do PC) e só cresce para 4096 quando
   // encher na qualidade cheia (zoom de perto, muita gente: ladoMax, prepararP3d)
   p.lado = 2048; p.ladoMax = 4096; p.maxCel = 640;
-  p.render.setPixelRatio(1); p.render.setSize(p.lado, p.lado, false);
+  p.render.setPixelRatio(1); p3dTamanho();
   const tela3d = p.render.domElement;
   tela3d.addEventListener("webglcontextlost", e => { e.preventDefault(); p.perdido = true; });
   tela3d.addEventListener("webglcontextrestored", () => { p.perdido = false; zerarAtlas3d(); });
@@ -25586,7 +26660,7 @@ function prepararP3d(t) {
   if (p.lado > ATLAS_BASE && !(window.M3D && M3D.ativo)) {
     const area = usar.reduce((n, i) => { const [w, h] = tam(i, 1); return n + (w + 2 * MARGEM_3D) * (h + 2 * MARGEM_3D) * (i.mascara ? 2 : 1); }, 0);
     p.folga = atlasFolga(area, p.folga || 0, dt);
-    if (p.folga >= ATLAS_ESPERA) { p.folga = 0; p.lado = ATLAS_BASE; p.render.setSize(p.lado, p.lado, false); zerarAtlas3d(); }
+    if (p.folga >= ATLAS_ESPERA) { p.folga = 0; p.lado = ATLAS_BASE; p3dTamanho(); zerarAtlas3d(); }
   }
   let cheio = p.qual < 1 && p.quadro % 180 === 0;                         // de vez em quando tenta voltar à qualidade cheia
   for (const i of usar) {
@@ -25595,7 +26669,7 @@ function prepararP3d(t) {
     if (!i.cel || i.cel.w !== w || i.cel.h !== h) { i.cel = alocar3d(w, h); i.valido = false; if (!i.cel) { cheio = true; break; } }
     if (i.mascara && (!i.celM || i.celM.w !== w || i.celM.h !== h)) { i.celM = alocar3d(w, h); if (!i.celM) { cheio = true; break; } }
   }
-  if (cheio && p.lado < p.ladoMax && !(window.M3D && M3D.ativo)) { p.lado = p.ladoMax; p.render.setSize(p.lado, p.lado, false); }   // (cresce antes de baixar a qualidade)
+  if (cheio && p.lado < p.ladoMax && !(window.M3D && M3D.ativo)) { p.lado = p.ladoMax; p3dTamanho(); }   // (cresce antes de baixar a qualidade)
   if (cheio) {
     // o atlas encheu: arruma tudo de novo, do mais alto para o mais baixo, baixando a resolução até caber
     usar.sort((a, b) => tam(b, 1)[1] - tam(a, 1)[1]);
@@ -25639,21 +26713,22 @@ function prepararP3d(t) {
 }
 // raio: a largura do traço em px do pedaço (0: sem traço, na máscara da arma)
 function pintarCel3d(cel, raiz, raio) {
-  const p = P3D, r = p.render, y = p.lado - cel.y - cel.h, m = MARGEM_3D;
+  const p = P3D, r = p.render, y = (p.altGL || p.lado) - cel.y - cel.h, m = MARGEM_3D;
   r.setScissorTest(true);
   r.setViewport(cel.x - m, y - m, cel.w + 2 * m, cel.h + 2 * m); r.setScissor(cel.x - m, y - m, cel.w + 2 * m, cel.h + 2 * m);
   r.clear(true, true, false);                                              // o pedaço e a margem dele
   r.setViewport(cel.x, y, cel.w, cel.h); r.setScissor(cel.x, y, cel.w, cel.h);
   raiz.visible = true; r.render(p.cena, p.cam); raiz.visible = false;
-  if (!raio || !p.matTraco) return;
+  if (!raio || !p.matTraco) { if (p.compartilhado) LOTE.celAoAtlas(cel); return; }   // (plano E: a textura do atlas que o lote lê, sem cópia para o 2D)
   // o traço: o pedaço vai para a textura (a posição de cópia não pode passar da borda do atlas) e volta com o traço
   // (o pedaço dos dragões passa do maxCel: uma textura maior, só para eles, na hora de copiar)
-  const grande = Math.max(cel.w, cel.h) > p.maxCel, T = grande ? 1536 : p.maxCel, fb = grande ? (p.fbTexG || (p.fbTexG = new THREE.FramebufferTexture(T, T, THREE.RGBAFormat))) : p.fbTex, gx = Math.min(cel.x, p.lado - T), gy = Math.min(y, p.lado - T), u = p.matTraco.uniforms;
+  const grande = Math.max(cel.w, cel.h) > p.maxCel, T = grande ? 1536 : p.maxCel, fb = grande ? (p.fbTexG || (p.fbTexG = new THREE.FramebufferTexture(T, T, THREE.RGBAFormat))) : p.fbTex, gx = Math.min(cel.x, p.lado - T), gy = Math.min(y, (p.altGL || p.lado) - T), u = p.matTraco.uniforms;
   u.tex.value = fb;
   r.copyFramebufferToTexture(new THREE.Vector2(gx, gy), fb);
   u.uv0.value.set((cel.x - gx) / T, (y - gy) / T); u.uv1.value.set((cel.x - gx + cel.w) / T, (y - gy + cel.h) / T);
   u.px.value.set(1 / T, 1 / T); u.raio.value = raio;
   r.render(p.cenaTraco, p.camTraco);
+  if (p.compartilhado) LOTE.tracoAoAtlas(cel);                         // (plano E: o mesmo passe também na textura do atlas)
 }
 // (R094) quanto as patas (os ossos mais baixos do modelo em pé) estão mais perto da câmera do atlas que o meio do corpo,
 // na pose de agora: > 0, o bicho caído mostra a barriga e as patas; < 0, mostra as costas (e parece em pé)
@@ -25757,6 +26832,9 @@ function mascaraHeroi3d() {
   const p = P3D, i = p.vale(viking);
   if (!i || !i.mascara || !i.celM || i.mascaraFeita === undefined) return null;
   const c = i.m.caixa, w = Math.round((c.esq + c.dir) * PX), h = Math.round((c.cima + c.baixo) * PX);
+  // (plano D, parte 2: no lote, a máscara é o próprio pedaço do atlas na GPU, sem a cópia para um canvas 2D)
+  if (cx.__lote && p.compartilhado) { const esf = []; esf[dirTela(viking.dir)] = [i.esfera || 0];
+    return { im: LOTE.regiao(p.render.domElement, i.celM.x, i.celM.y - i.celM.h, i.celM.w / w, i.celM.h / h, w, 2 * h), info: { w, h, px: c.esq * PX, py: c.cima * PX, mascara: true, esfera: esf } }; }
   const cv2 = p.cvMascara || (p.cvMascara = document.createElement("canvas"));
   if (cv2.width !== w || cv2.height !== 2 * h) { cv2.width = w; cv2.height = 2 * h; }
   const g = cv2.getContext("2d");
@@ -30849,7 +31927,7 @@ function trocarModo(ok) {
   const p = P3D;
   if (p.render) {
     if (ok) p.render.setSize(64, 64, false);                    // o atlas do 2D não é usado no mundo 3D (só na caverna)
-    else { p.render.setSize(p.lado, p.lado, false); zerarAtlas3d(); }
+    else { p3dTamanho(); zerarAtlas3d(); }
   }
   if (ok) { cam.x = viking.x; cam.y = viking.y; S.pitchEf = undefined; tAntes = 0; }
 }
@@ -30923,11 +32001,13 @@ function iniciarFx() {
   if (S.soFx) return S;
   if (S.pronto || S.ligado) return null;
   temporarios();
-  const cvs = document.createElement("canvas");
-  const r = new THREE.WebGLRenderer({ canvas: cvs, alpha: true, premultipliedAlpha: true, antialias: true, powerPreference: "high-performance", stencil: false });
+  // (plano D, parte 2: o renderer dos bonecos, no mesmo contexto: o FX3 desenha no palco do canvas único; LOTE.fxRenderer)
+  const junto = typeof LOTE === "object" && LOTE.fxPode() && P3D.render.capabilities.isWebGL2;
+  const cvs = junto ? LOTE.canvas : document.createElement("canvas");
+  const r = junto ? LOTE.fxRenderer() : new THREE.WebGLRenderer({ canvas: cvs, alpha: true, premultipliedAlpha: true, antialias: true, powerPreference: "high-performance", stencil: false });
   if (!r.capabilities.isWebGL2) { r.dispose(); throw new Error("sem WebGL2"); }
-  cvs.addEventListener("webglcontextlost", e => { e.preventDefault(); S.perdido = true; });
-  cvs.addEventListener("webglcontextrestored", () => { S.perdido = false; });
+  S.junto = junto;
+  if (!junto) { cvs.addEventListener("webglcontextlost", e => { e.preventDefault(); S.perdido = true; }); cvs.addEventListener("webglcontextrestored", () => { S.perdido = false; }); }
   r.setClearColor(0x000000, 0); r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05;
   r.setPixelRatio(1); r.setSize(Math.max(1, W), Math.max(1, H), false);
   S.render = r; S.canvas = cvs;
@@ -33475,7 +34555,7 @@ function bloom() {
   }
   // a camada 1 (efeitos, refino, brasas, lanternas) somada por cima, sem refazer a sombra
   const cam = S.camera; r.shadowMap.autoUpdate = false;
-  if (iso && corposIso.n) r.render(corposIso.cena, cam);                      // (os corpos tapam o brilho do que fica atrás deles)
+  if (iso && corposIso.n) corposDesenhar(r, cam);                             // (os corpos tapam o brilho do que fica atrás deles)
   cam.layers.set(1);
   r.setRenderTarget(B.rt[0]); r.render(S.cena, cam);
   cam.layers.set(0); r.shadowMap.autoUpdate = sm;
@@ -33606,7 +34686,7 @@ function corposEntram(bx) {
   const C = corposIso, p = P3D;
   C.n = 0; C.l.length = 0;
   if (!p || !p.inst || !p.cena) return;
-  if (!C.cena) { C.cena = new THREE.Scene(); C.cena.overrideMaterial = new THREE.MeshBasicMaterial({ colorWrite: false }); }
+  if (!C.cena && !S.junto) { C.cena = new THREE.Scene(); C.cena.overrideMaterial = new THREE.MeshBasicMaterial({ colorWrite: false }); }
   for (const i of p.inst.values()) {
     const o = i.dono;
     if (!o || !i.raiz || !i.valido || i.pedido !== p.quadro) continue;
@@ -33616,6 +34696,7 @@ function corposEntram(bx) {
   }
   C.l.sort((a, b) => a[0] - b[0]);
   if (C.l.length > CORPOS_MAX) C.l.length = CORPOS_MAX;
+  if (S.junto) { C.n = C.l.length; return; }            // (plano D, parte 2: os corpos ficam na cena do atlas: corposDesenhar)
   for (const [, i] of C.l) {
     if (!C.sup[C.n]) { C.sup[C.n] = new THREE.Group(); C.cena.add(C.sup[C.n]); }
     const g = C.sup[C.n];
@@ -33626,8 +34707,35 @@ function corposEntram(bx) {
 }
 function corposSaem() {
   const C = corposIso;
+  if (S.junto) { C.n = 0; return; }
   for (let k = 0; k < C.n; k++) { const i = C.l[k][1]; P3D.cena.add(i.raiz); i.raiz.visible = false; i.raiz.updateMatrixWorld(true); esqueletos(i); }
   C.n = 0;
+}
+// DESEMPENHO (plano D, parte 2, 03/11): no renderer dos bonecos (S.junto), cada corpo fica onde está na cena do atlas, na pose
+// deste quadro, e é a câmera que vai até ele (a do FX3 vista do corpo: G⁻¹·câmera, G = o lugar do corpo no mundo dos efeitos).
+// Os ossos não são refeitos (skeleton.frame = o quadro do renderer: o three.js acha que já fez) nem o corpo troca de cena.
+// Fora do renderer único, a cena dos corpos de antes
+const CAM_CORPO = { cam: null };
+function corposDesenhar(r, cam) {
+  const C = corposIso;
+  if (!S.junto) { r.render(C.cena, cam); return; }
+  const K = CAM_CORPO, p = P3D;
+  if (!K.cam) { K.cam = new THREE.OrthographicCamera(); K.cam.matrixAutoUpdate = false; K.cam.matrixWorldAutoUpdate = false; K.mat = new THREE.MeshBasicMaterial({ colorWrite: false }); K.G = new THREE.Matrix4(); K.p = new THREE.Vector3(); K.q = new THREE.Quaternion(); K.e = new THREE.Vector3(); K.y = new THREE.Vector3(0, 1, 0); }
+  const c = K.cam; c.projectionMatrix.copy(cam.projectionMatrix); c.projectionMatrixInverse.copy(cam.projectionMatrixInverse);
+  const om = p.cena.overrideMaterial, au = r.autoClear;
+  p.cena.overrideMaterial = K.mat; r.autoClear = false;
+  try {
+    for (let k = 0; k < C.n; k++) {
+      const i = C.l[k][1], o = i.dono;
+      K.p.set(o.x, alt(o.x, o.y), -o.y); K.q.setFromAxisAngle(K.y, -GIRO); K.e.setScalar((i.d && i.d.esc) || 1);
+      K.G.compose(K.p, K.q, K.e).invert();
+      c.matrixWorld.multiplyMatrices(K.G, cam.matrixWorld); c.matrixWorldInverse.copy(c.matrixWorld).invert();
+      if (!i.fxEsq) { i.fxEsq = []; i.raiz.traverse(q => { if (q.isSkinnedMesh && !i.fxEsq.includes(q.skeleton)) i.fxEsq.push(q.skeleton); }); }
+      for (const s2 of i.fxEsq) s2.frame = r.info.render.frame;
+      i.raiz.visible = true; r.render(p.cena, c); i.raiz.visible = false;
+      corposIso.desenhados = (corposIso.desenhados || 0) + 1;
+    }
+  } finally { p.cena.overrideMaterial = om; r.autoClear = au; }
 }
 const temAlgo = () => vivos.length || seguidos.size || PS.l.length || S.pNormal.l.length || (arma && arma.l.some(r => r.fita.pts.length > 1));
 function desenhar2d(t) {
@@ -33648,14 +34756,18 @@ function desenhar2d(t) {
   if (ativo() && temAlgo()) {
     const bx = FX_CAIXA.ligado && !ESTILO_TINTA ? caixaEfeitos() : null; FX_CAIXA.box = bx;
     corposEntram(bx);                                     // (plano D: depois da caixa, para deixar de fora os corpos longe dela)
+    if (S.junto) LOTE.fxEntrar();                         // (o tom dos efeitos só enquanto eles desenham no renderer dos bonecos)
     try {
       if (bx) { r.setScissorTest(true); r.setScissor(bx[0], H - bx[1] - bx[3], bx[2], bx[3]); }
       r.setRenderTarget(null); r.setClearColor(0x000000, 0); r.autoClear = true;
-      if (corposIso.n) r.render(corposIso.cena, S.camera); else r.clear(true, true, false);
+      if (S.junto) { r.clear(true, true, false); if (corposIso.n) corposDesenhar(r, S.camera); }
+      else if (corposIso.n) r.render(corposIso.cena, S.camera); else r.clear(true, true, false);
       r.autoClear = false; r.render(S.cena, S.camera); r.autoClear = true;
       bloom();
-    } finally { corposSaem(); r.setScissorTest(false); }
+    } finally { corposSaem(); r.setScissorTest(false); if (S.junto) LOTE.fxSair(); }
     if (ESTILO_TINTA) SUMIE.fx = S.canvas;               // (no Mundo de Tinta os efeitos entram no filtro, como pinceladas)
+    else if (S.junto) { const k = LOTE.fxEscala(), oy = LOTE.fxOy(), [fw, fh] = LOTE.fxTam();   // (o pedaço do palco no canvas único)
+      if (bx) cx.drawImage(S.canvas, bx[0] * k, oy + bx[1] * k, bx[2] * k, bx[3] * k, bx[0], bx[1], bx[2], bx[3]); else cx.drawImage(S.canvas, 0, oy, fw, fh, 0, 0, W, H); }
     else if (bx) { const k = S.canvas.width / W; cx.drawImage(S.canvas, bx[0] * k, bx[1] * k, bx[2] * k, bx[3] * k, bx[0], bx[1], bx[2], bx[3]); }
     else cx.drawImage(S.canvas, 0, 0, W, H);
   }
@@ -33710,7 +34822,8 @@ function iniciar() {
   PS = M3D.criarParticulas(1800, true); PS.mesh.layers.enable(1); PS.mesh.renderOrder = 13;
   montarBloom();
   pronto = true;
-  try { aquecerProgramas(); } catch (e) { console.error("fx3 aquecer:", e); }
+  if (S.junto) LOTE.fxEntrar();                         // (os programas com o tom dos efeitos: a chave do programa do three.js)
+  try { aquecerProgramas(); } catch (e) { console.error("fx3 aquecer:", e); } finally { if (S.junto) LOTE.fxSair(); }
 }
 // DESEMPENHO (R201, Logs/Desempenho/FPS_JOGO_TODO.md): o 1º uso de cada skill compilava 2 a 8 programas de shader no quadro
 // dela (o three.js lê o programa no 1º desenho: getProgramParameter espera o link; 30 a 110 ms parado). Aqui, no começo, um
@@ -33832,7 +34945,7 @@ embrulhar("explosaoChefe", ([x, y, r, h]) => {
 });
 return { get ativo() { return ativo(); }, get iso() { return iso; }, get aquecidos() { return aquecerProgramas.feitos || 0; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, caixa: FX_CAIXA, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; }, get bloomDaTela() { return B.daTela; }, set bloomDaTela(v) { B.daTela = !!v; },
          get stats() { return { vivos: vivos.length, seguidos: seguidos.size, particulas: PS ? PS.l.length : 0 }; },
-         corpos: { foraDaCaixa: corpoForaDaCaixa, entram: corposEntram, saem: corposSaem, get n() { return corposIso.n; }, corte: CORPOS_CORTE } };   // (plano D: para os testes, R232)
+         corpos: { foraDaCaixa: corpoForaDaCaixa, entram: corposEntram, saem: corposSaem, get n() { return corposIso.n; }, get desenhados() { return corposIso.desenhados || 0; }, get junto() { return !!(S && S.junto); }, corte: CORPOS_CORTE } };   // (plano D: para os testes, R232)
 })();
 </script>
 
@@ -35132,6 +36245,8 @@ return {
     "lista/corte": ["montarListaDesenho"], "transparência": ["quemPodeSumir", "caixaObjeto", "cobreAlguem", "translucido"],
     // (plano C: as buscas de rota e o campo de fluxo, à parte da simulação)
     "rotas/fluxo": ["acharCaminho", "fluxoMontar"],
+    // (plano E: o fim da lista em lote: o último lote para a GPU e o palco para o canvas 2D)
+    "lote WebGL2": ["LOTE.terminar"],
   };
   const PF = window.PERF = { q: [], js: [], gap: [], partes: {}, conta: { di: 0, ia: 0 }, gpuQ: [], sync: 0, syncMs: [], fimJs: 0, longos: [], heap: [] };
   // pilha: o tempo próprio de cada parte (a parte de dentro sai da de fora)
