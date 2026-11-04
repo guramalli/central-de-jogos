@@ -403,6 +403,26 @@
     details.livro { bottom: 168px; }
   }
   @media (prefers-reduced-motion: reduce) { #carregando .trilho i { transition: none; } }
+  /* (R235) a preparação ao entrar no mapa: um rolo de papel hanji no meio da noite, com o selo de cinabre, o nome do lugar a
+     pincel, a barra de nanquim e uma frase do mundo-pintura. Cobre o jogo (o mundo fica parado por baixo) e some sozinho */
+  #preparo { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: 16px; cursor: progress;
+    background: radial-gradient(110% 85% at 50% 46%, #2a2521 0%, #1E1B18 52%, #120f0c 100%); opacity: 1; transition: opacity 0.18s ease; }
+  #preparo.some { opacity: 0; }
+  #preparo .pp-rolo { position: relative; width: min(540px, 100%); box-sizing: border-box; padding: 34px 44px 28px; text-align: center; color: #1E1B18;
+    background: var(--b-fibra, none), radial-gradient(120% 80% at 50% 0%, #F3EAD6, transparent 70%), linear-gradient(#EFE4CC, #E8DCC0);
+    border: 3px solid #1E1B18; border-radius: 3px; box-shadow: inset 0 0 0 3px #EFE4CC, inset 0 0 0 4px #8C6A3A, 0 18px 44px rgba(0, 0, 0, 0.6); }
+  #preparo .pp-rolo::before, #preparo .pp-rolo::after { content: ""; position: absolute; left: -16px; right: -16px; height: 13px; border: 2px solid #120f0c; border-radius: 7px;
+    background: linear-gradient(#6b4f30, #3a2818 55%, #1a110a); box-shadow: 0 3px 6px rgba(0, 0, 0, 0.45); }
+  #preparo .pp-rolo::before { top: -10px; }
+  #preparo .pp-rolo::after { bottom: -10px; }
+  #preparo .pp-selo { position: absolute; top: 16px; right: 18px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 3px; transform: rotate(5deg);
+    background: #B8322A; color: #EFE4CC; font: 400 22px/1 var(--selo, serif); box-shadow: inset 0 0 0 2px rgba(239, 228, 204, 0.35); }
+  #preparo h2 { margin: 0 34px; font: 400 34px/1.15 var(--pincel, "Palatino Linotype", Georgia, serif); letter-spacing: 0.02em; }
+  #preparo .pp-sub { margin: 6px 0 20px; font: italic 15px/1.3 var(--corpo); color: #66594a; min-height: 1.3em; }
+  #preparo .pp-trilho { height: 10px; border: 2px solid #1E1B18; border-radius: 2px; background: #DDCFAE; overflow: hidden; }
+  #preparo .pp-trilho i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #1E1B18 0%, #2D4A6B 100%); transition: width 0.12s linear; }
+  #preparo .pp-frase { margin: 18px 4px 0; font: italic 16px/1.45 var(--corpo); color: #3a322a; min-height: 2.9em; }
+  @media (prefers-reduced-motion: reduce) { #preparo, #preparo .pp-trilho i { transition: none; } }
 
   /* ================================================================ janelas no estilo Metin2
      Painel de madeira escura com moldura dourada envelhecida (anéis de box-shadow), cantos ornamentados (SVG nos fundos,
@@ -2035,6 +2055,15 @@
 <div class="bau-aviso" id="bauAviso" role="status" hidden></div>
 
 <div id="carregando"><div><p>Afiando a espada…</p><div class="trilho"><i id="barra"></i></div><span id="carregandoTxt">0 / 0</span></div></div>
+<div id="preparo" role="status" aria-live="polite" hidden>
+  <div class="pp-rolo">
+    <span class="pp-selo" aria-hidden="true">印</span>
+    <h2 id="ppNome">Vale do Viking</h2>
+    <p class="pp-sub" id="ppSub"></p>
+    <div class="pp-trilho" aria-hidden="true"><i id="ppBarra"></i></div>
+    <p class="pp-frase" id="ppFrase"></p>
+  </div>
+</div>
 
 <script>
 // ---------------------------------------------------------------- arquivos com versão (DESEMPENHO, Logs/Desempenho)
@@ -7552,6 +7581,21 @@ function desenharChao() {
     }
   }
 }
+// (R235, a preparação ao entrar no mapa) os pedaços que desenharChao usaria com o zoom z e a câmera de agora (a tela e a volta de
+// 1 pedaço), sem os só de mar, do meio da tela para fora: [i, j, faixa]. A faixa é a do zoom de agora (a que o chão vai desenhar)
+function pedacosDaVista(z) {
+  const s = PX * z, larg = W / s, alt = H / (s * ACHATA), faixa = escFaixa(faixaZoom(zoom));
+  const [cu, cv0] = naVista(cam.x, cam.y), meio = (i, j) => daVista((i + 0.5) * PEDACO, (j + 0.5) * PEDACO);
+  const i0 = Math.floor((cu - larg / 2) / PEDACO) - 1, i1 = Math.floor((cu + larg / 2) / PEDACO) + 1;
+  const j0 = Math.floor((cv0 - alt / 2) / PEDACO) - 1, j1 = Math.floor((cv0 + alt / 2) / PEDACO) + 1;
+  const l = [];
+  for (let j = j1; j >= j0; j--) for (let i = i0; i <= i1; i++) {
+    const [mx, my] = meio(i, j);
+    if (borda(mx, my) > RAIO + (MAPA_CAM === MAPAS.montanha ? 26 : PEDACO + 3) && !altarNoPedaco(mx, my)) continue;
+    l.push([i, j, faixa, Math.hypot((i + 0.5) * PEDACO - cu, ((j + 0.5) * PEDACO - cv0) * ACHATA)]);
+  }
+  return l.sort((a, b) => a[3] - b[3]);
+}
 
 // ---------- o mar no estilo B (minhwa) ----------
 // Pintado como nas pinturas coreanas: faixas chapadas do raso (jade) ao fundo (índigo), linhas de corrente em nanquim
@@ -9031,7 +9075,11 @@ const SOMBRA_CAVALO = { n: 0 };
 function desenharCavaloEstabulo(h) {
   const [sx, sy] = tela(h.x - cam.x, h.y - cam.y), X = W / 2 + sx, Y = H / 2 + sy, z = zoom;
   sombraCavaloEstabulo(h, X, Y, z);
-  if (!desenharInst3d(h, X, Y, z)) desenharCavaloSprite("cavalo_" + h.aparencia, { cavalo: h.anim, tc: h.t }, X, Y, z, h.dir, true);
+  // (R235: nada de folha enquanto o modelo 3D do cavalo ainda vem, nem com ele pronto: cada folha tem 4096 × ~8.800 px, ~140 MB
+  //  na GPU, e o envio de cada uma travava o quadro por ~1 s com a CPU do usuário (3 vezes, uma por pelagem). Com o modelo pronto,
+  //  o 3D só falta para o cavalo fora da tela (a caixa dele fora da tela + 40 px, naTela3d), onde a lista ainda o desenhava pela
+  //  caixa folgada dos objetos: nada se via. Fica só a sombra até o modelo chegar, como as criaturas: modeloChegando)
+  if (!desenharInst3d(h, X, Y, z) && !modeloChegando("cavalo") && !P3D.pronto("cavalo")) desenharCavaloSprite("cavalo_" + h.aparencia, { cavalo: h.anim, tc: h.t }, X, Y, z, h.dir, true);
 }
 function foraCidade(x, y) {                     // (a estrada e o treino de fora da muralha: chão limpo)
   const c = CIDADE; if (!c || !c.fora) return false;
@@ -17845,6 +17893,7 @@ function passoProgresso(dt) {
       if (Math.hypot(cam.x - v.x, cam.y - v.y) > 60) { cam.x = v.x + CAM_ACIMA[0]; cam.y = v.y + CAM_ACIMA[1]; }
       tocar(lutaPerto() && v.espada !== "costas" ? "parado_armado" : "parado", false);
       criaturas.forEach(c => { if (!c.cfg.estatico) c.cacando = false; });
+      prepararChegada("renascer");                                     // (R235: o ponto seguro pode ser um lugar ainda não visto)
     }
   }
   // a vida e a mana voltam como no Metin2 (recuperarM2: a cada 3 s, pelo que o herói fez nos últimos 3 s) e as poções
@@ -18196,6 +18245,7 @@ function admTeleporte(d) {
   const z = zPiso(p[0], p[1]), [zx, zy] = z ? daVista(0, z * ALTURA / ACHATA) : [0, 0]; cam.x = p[0] + CAM_ACIMA[0] + zx; cam.y = p[1] + CAM_ACIMA[1] + zy;
   escurece = 0.5; prog.mapa = m.id; salvarProgresso(); jornadaAdmin("teleporte");
   avisar(`Teleporte: ${d.nome}`);
+  prepararChegada("teleporte");                                        // (R235)
   return true;
 }
 function admInvisivel(sim) {
@@ -22845,6 +22895,7 @@ function passoPortais(dt) {
     viagem = { p, t: 0 }; cartaoViagem = { nome: p.rotulo || dest.nome, sub: p.rotulo ? "" : dest.sub, niveis: p.rotulo ? null : dest.niveis };
     v.alvo = null; v.rota = null; selecao = null; mira = null; teclas.clear();
     som("vento", null, 0.7);
+    { const a = PORTAIS.find(q => q.id === p.para); if (a) preparoAntecipar(a.x + a.saida[0] * 3, a.y + a.saida[1] * 3); }   // (R235: a tela já no escurecer, se o lugar for novo)
     return;
   }
 }
@@ -22862,6 +22913,7 @@ function chegarPortal(p) {
   escurece = primeira ? 1.9 : 1.35;                                    // (fica escuro um instante e clareia: passoPassagens; na 1ª visita, mais, para a pintura do chão não aparecer)
   if (prog) { prog.mapa = dest.id; salvarProgresso(); }
   avisar(p.rotulo ? `Você desceu: ${p.rotulo}` : `Você chegou: ${dest.nome}${dest.sub ? ", " + dest.sub : ""}`);
+  prepararChegada("portal");                                           // (R235)
 }
 // ao carregar o personagem (abertura e troca de classe): ele volta ao ponto seguro do mapa salvo (prog.mapa); mapa
 // inválido ou ainda travado pelo nível, a Vila 1. Dentro de uma dungeon, fica onde está
@@ -23135,6 +23187,7 @@ function passoPassagens(dt) {
     { const aqui = idMapa(v.x, v.y); for (const c of criaturas) if (c.cacando && c.mapa && c.mapa !== aqui) { c.cacando = false; if (c.sopro) acabarSopro(c); } }   // (quem caçava ficou para trás: dorme sem caçar, e a barra do chefe não vem junto)
     const andar = p.vale && cavDe(v.x);
     avisar(andar ? `Você desceu: ${andar.nome}` : p.tipo === "buraco" || p.tipo === "desce" ? `Você desceu: ${p.nome}` : p.acima ? `Você subiu: ${p.nome}` : "De volta à superfície");
+    prepararChegada("caverna");                                        // (R235: a caverna, a dungeon, os andares do Vale e a volta à superfície)
     break;
   }
 }
@@ -25192,7 +25245,49 @@ function texDe(s) {
   L.st.envios++; L.st.mbEnviados += b / 1048576;
   return e;
 }
-function mipDe(e) { if (e.mip || e.interna) return !!e.mip; bindTmp(e.t); gl.generateMipmap(gl.TEXTURE_2D); e.mip = true; const b = Math.round(e.bytes / 3); e.bytes += b; bytes += b; return true; }
+// R235 (a preparação ao entrar no mapa): a imagem já decodificada fora da thread (createImageBitmap, pré-multiplicada, como o
+// UNPACK_PREMULTIPLY_ALPHA_WEBGL de texDe) vai para a textura da imagem de origem: o texImage2D de uma <img> que ainda não foi
+// decodificada decodifica na hora, na thread do jogo (as fatias dos prédios: 40 a 60 ms cada com a CPU do usuário). Depois,
+// texDe acha a textura pronta (o mesmo tamanho e a mesma versão)
+L.coleta = null;
+L.enviarBitmap = (s, bmp) => {
+  if (!L.contexto() || !montar() || L.perdido) return false;
+  const w = s.naturalWidth, h = s.naturalHeight;
+  if (!w || !h || bmp.width !== w || bmp.height !== h) return false;
+  let e = TEX.get(s);
+  if (e && e.ger === ger && !e.falhou && e.w === w && e.h === h) return true;
+  if (e && vivas.delete(e)) bytes -= e.bytes;
+  e = { t: gl.createTexture(), w: 0, h: 0, v: -1, mip: false, usado: 0, bytes: 0, ger, inv: false }; TEX.set(s, e); vivas.add(e);
+  bindTmp(e.t);
+  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+  gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0); gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0); gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
+  try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bmp); }
+  catch (er) { gl.deleteTexture(e.t); vivas.delete(e); TEX.delete(s); return false; }
+  const b = w * h * 4; bytes += b; e.bytes = b; e.w = w; e.h = h; e.v = s.__lv | 0; e.usado = L.quadro;
+  L.st.envios++; L.st.mbEnviados += b / 1048576; L.st.bitmaps = (L.st.bitmaps || 0) + 1;
+  return true;
+};
+// (para o teste R235) a mesma imagem pelos dois caminhos (a <img> como texDe e o bitmap como enviarBitmap), lidos de volta: a maior
+// diferença por canal e quantos bytes diferem mais de 2/255
+L.conferirEnvio = (s, bmp) => {
+  if (!L.contexto() || !montar()) return null;
+  const w = s.naturalWidth, h = s.naturalHeight, ler = fonteDe => {
+    const t = gl.createTexture(); bindTmp(t); gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fonteDe);
+    const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+    const px = new Uint8Array(w * h * 4); gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.deleteFramebuffer(f); gl.deleteTexture(t); return px;
+  };
+  try {
+    const a = ler(s), b = ler(bmp); let max = 0, n2 = 0;
+    for (let k = 0; k < a.length; k++) { const d = Math.abs(a[k] - b[k]); if (d > max) max = d; if (d > 2) n2++; }
+    return { max, n2, bytes: a.length };
+  } finally { if (L.compartilhado()) P3D.render.resetState(); }
+};
+function mipDe(e) { if (e.mip || e.interna) return !!e.mip; bindTmp(e.t); gl.generateMipmap(gl.TEXTURE_2D); e.mip = true; L.st.mips = (L.st.mips || 0) + 1; const b = Math.round(e.bytes / 3); e.bytes += b; bytes += b; return true; }
 function podar() {
   L.st.texturas = vivas.size; L.st.mb = Math.round(bytes / 1048576);
   if (bytes <= ORC) return;
@@ -25793,6 +25888,7 @@ class Ctx {
     const st = this.e, fp = fpDe(st);
     const real = () => this.quebrar("drawImage", g => g.drawImage(s, sx, sy, sw, sh, dx, dy, dw, dh));
     if (st.comp < 0 || !fp.ok || st.alfa <= 0) { if (st.alfa > 0 && !s.__lote) real(); return; }
+    if (L.coleta && s instanceof HTMLImageElement && !TEX.has(s)) { L.coleta.add(s); return; }   // (R235: o quadro de coleta da preparação só anota a imagem)
     if (!fonte(s, sx, sy, sw, sh)) { if (!s.__lote && s !== L.canvas && !(s instanceof HTMLImageElement && !s.complete)) real(); return; }
     L.st.imagens++;
     const m = st.m, clip = !!st.clip;
@@ -26193,6 +26289,32 @@ function pedirModelo3d(nome, prio) {
   if (!p.fila.includes(m)) p.fila.push(m);
   carregarFila3d();
 }
+// R235 (a preparação ao entrar no mapa): os programas de shader do modelo que acabou de chegar, antes do 1º desenho dele. Sem isso,
+// o 1º quadro em que a criatura nova aparecia compilava o material dela (120 a 320 ms com a CPU do usuário, medido). Um clone
+// escondido entra na cena, o renderer.compile pede os programas (com o checkShaderErrors desligado pelo FX3, o link corre em
+// paralelo, sem esperar) e o clone sai
+function aquecerModelo3d(m) {
+  const p = P3D;
+  if (!m || !m.ok || m.aquecido || !p.render || p.perdido || !p.cena || !THREE.SkeletonUtils) return false;
+  m.aquecido = true;
+  // (numa cena à parte com as mesmas luzes da dos bonecos: as luzes entram na chave do programa; na cena deles o compile
+  //  passaria por todos os bonecos escondidos)
+  if (!p.cenaAquece) { p.cenaAquece = new THREE.Scene(); for (const o of p.cena.children) if (o.isLight) p.cenaAquece.add(o.clone()); }
+  let raiz = null;
+  try {
+    raiz = THREE.SkeletonUtils.clone(m.base); p.cenaAquece.add(raiz); raiz.updateMatrixWorld(true); p.render.compile(p.cenaAquece, p.cam);
+    // (o herói: também a máscara do brilho da arma, que pinta o corpo com matOculto e a arma com matMascara: 2 programas que a
+    //  1ª Lâmina, o 1º refino aceso ou a 1ª Flecha de Fogo compilavam)
+    if (MASCARA_3D[m.nome] && p.matOculto) {
+      const ms = []; raiz.traverse(o => { if (o.isMesh) ms.push([o, o.material]); });
+      for (const mt of [p.matOculto, p.matMascara]) { for (const [o] of ms) o.material = mt; p.render.compile(p.cenaAquece, p.cam); }
+      for (const [o, m0] of ms) o.material = m0;
+    }
+  }
+  catch (e) { console.error("3d aquecer " + m.nome + ":", e); }
+  finally { if (raiz && raiz.parent) raiz.parent.remove(raiz); }
+  return true;
+}
 function carregarFila3d() {
   const p = P3D, max = 2;
   while (p.ativos < max && p.fila.length) {
@@ -26208,7 +26330,7 @@ async function abrirModelo3d(m) {
   try { gltf = await new Promise((ok, erro) => p.loader.load("3d/" + m.nome + ".glb", ok, undefined, erro)); }
   catch (e) { try { gltf = await abrirJson3d(m.nome); } catch (e2) {} }
   if (!gltf) { m.erro = "sem o glb"; return; }
-  try { await montarModelo3d(m, gltf); m.ok = true; }
+  try { await montarModelo3d(m, gltf); m.ok = true; aquecerModelo3d(m); }   // (R235: os programas antes do 1º desenho)
   catch (e) { console.error("3d " + m.nome + ":", e); m.erro = e.message; }
 }
 // a aparência escolhida na vitrine 3D: cor viva (saturação) 1,35, brilho 0,95 e sem contorno (CONTORNO_3D = false)
@@ -27531,6 +27653,7 @@ function entrarComClasse(c, op = {}) {
     abrirBolsa(true);
     avisarLongo(`${NOME_CLASSE[c]} criado! Abra o Baú do Iniciante na bolsa: clique direito ou dois cliques.`, 6500);
   } else avisar(`Bem-vindo de volta, ${prog.nome || NOME_CLASSE[c]}!`);
+  prepararChegada("entrar");                                           // (R235: a tela de preparação do lugar em que ele está)
 }
 // o personagem novo: nível 1, os atributos da classe e, na bolsa, só o Baú do Iniciante (sem arma na mão)
 function progressoIniciante(c) {
@@ -27698,6 +27821,7 @@ function entrarAprendiz(v, op = {}) {
   montarBarraSkills(); atualizarFicha(); desenharBolsa(); atualizarItensBarra(); desenharFerreiro();
   if (!salvo) { som("ui_aceitar", null, 0.8); abrirBolsa(true); avisarLongo("Aprendiz criado! Abra o Baú do Iniciante na bolsa: clique direito ou dois cliques.", 6500); }
   else avisar(`Bem-vindo de volta, ${prog.nome || "Aprendiz"}!`);
+  prepararChegada("entrar");                                           // (R235)
 }
 function entrarPersonagem(chave) {
   if (window.NUVEM && NUVEM.ehChave(chave)) return NUVEM.entrar(chave);         // (com conta, nuvem.js)
@@ -28165,6 +28289,7 @@ function confirmarClasse(c) {
   chatSistema(`A Guardiã do Altar confirmou a sua escolha: ${NOME_CLASSE[c]}.`, "nivel");
   chatSistema(`Dica: aperte P e clique na aba Skills para distribuir os seus ${p.pontosSkill || 0} pontos de skill (as skills começam no 0).`, "nivel");
   prog.dicaSkills = 1; salvarProgresso();                              // (no prog novo: o trocarClasse acima recarregou o save)
+  prepararChegada("altar");                                            // (R235: o modelo 3D e os efeitos da classe nova)
   return true;
 }
 // a conversa da Guardiã do Altar: abaixo do nível 5 manda voltar; depois mostra as classes da vocação e pede a confirmação
@@ -28602,8 +28727,270 @@ document.addEventListener("visibilitychange", () => {
     if (window.jogoPronto) { cancelAnimationFrame(LIMITE.raf); LIMITE.raf = requestAnimationFrame(laco); }   // (um laço só: o pedido de antes de esconder ainda estava na fila)
   }
 });
+// ---------------------------------------------------------------- a preparação ao entrar no mapa (R235, 04/11; Logs/Desempenho/FPS_JOGO_TODO.md, rodada 8)
+// Como nos MMORPGs (o usuário aprovou em 04/11, "Faça a 1"): o jogo preparava as coisas no quadro em que apareciam pela 1ª vez,
+// e chegar num lugar novo dava picos (medido com a CPU dele, 2,5×: os pedaços do chão pintados 1 por quadro, 25–60 ms cada quadro
+// no 1º segundo; o envio das imagens à GPU, 40–60 ms por fatia de prédio e até 3 s pela folha do cavalo do estábulo; a montagem
+// da Ilha de Daiyu, 400 ms; os programas da 1ª skill, ~100 ms). Agora, ao chegar (abrir o jogo, portal, caverna e dungeon,
+// renascer, teleporte, a classe nova do Altar), um rolo de papel cobre o jogo, o mundo fica parado e o que o 1º minuto ali vai
+// usar fica pronto antes, em fatias por quadro (a barra anda):
+//   1. os modelos 3D do herói, das criaturas a até 45 m e dos NPCs a até 30 m (e a arma e o cavalo) são pedidos, e a tela espera
+//      que cheguem (no máximo PREPARO.esperaModelos ms desde o começo);
+//   2. os pedaços do chão da vista do zoom de agora (e depois os do zoom 0,6, o mais afastado), do meio para fora;
+//   3. a grade de bytes das rotas em volta do herói (24 m) e o campo de fluxo;
+//   4. um quadro de coleta anota as imagens que o lote WebGL2 vai pedir; elas são decodificadas fora da thread
+//      (createImageBitmap) e enviadas à GPU (LOTE.enviarBitmap);
+//   5. quadros escondidos (o desenho de verdade, por baixo do papel) com o zoom 0,6 e com o de agora, com o ensaio dos efeitos
+//      (FX3.ensaiar: os programas dos efeitos, dos corpos e do bloom), que montam o atlas dos bonecos, o mato, a imagem do chão,
+//      as caixas da lista e os setores de sono; no fim, uma leitura de 1 px espera a GPU terminar.
+// A área (células de PREPARO.celula m) e a classe ficam marcadas: voltar a uma área preparada não mostra a tela (só os pedaços do
+// chão que faltarem, num instante). Passou de PREPARO.limite ms, o que falta (chão, imagens, rotas) segue em segundo plano, em
+// fatias de ~2 ms por quadro. ?preparo=0 desliga; no ?test=1, só com ?preparo=1
+const PREPARO = {
+  ligado: (() => { const q = new URLSearchParams(location.search).get("preparo"); return q === "1" || (q !== "0" && !MODO_TESTE); })(),
+  ativo: false, limite: 3000, reserva: 650, fatia: 40, fatiaFundo: 2, esperaModelos: 2200, celula: 32, raioMarca: 16, raioPronto: 6,
+  areas: new Set(), classes: new Set(), tarefas: [], fundo: [], t0: 0, motivo: "", ultimo: null, hist: [], cedo: 0, tEsc: 0,
+  pesoTotal: 1, pesoFeito: 0, parcial: 0, quadros: 0, imagens: 0, modelos: [], erros: 0, n: 0,
+};
+window.PREPARO = PREPARO;
+const PREPARO_FRASES = [
+  "O pincel ainda está molhado: as cores deste lugar estão secando.",
+  "Os deuses pintaram o mundo num grande biombo. Este painel acaba de ser desenrolado.",
+  "Cada rasgo na pintura leva a outra era. Segure firme enquanto a tinta assenta.",
+  "O Imugi partiu a pérola Yeouiju; cada pedaço caiu como uma Pedra Ghotin.",
+  "Onde uma Ghotin cai, a tinta negra escorre e a terra escurece em volta.",
+  "Um traço de nanquim de cada vez: o caminho vai aparecendo no papel.",
+  "Quem atravessa um rasgo chega com cheiro de tinta fresca nas roupas.",
+  "Nas montanhas, a neve é o papel que o pincel não tocou.",
+  "O vento mexe as folhas do biombo. Espere a pintura parar de tremer.",
+  "Os heróis de outras eras vieram pelos rasgos. Só a pérola reunida os leva de volta.",
+  "Até as criaturas desta pintura esperam a última pincelada para acordar.",
+  "O selo vermelho no canto diz que esta parte do mundo já foi pintada.",
+];
+function preparoChaves(x, y, r) {
+  const C = PREPARO.celula, id = idMapa(x, y), l = [];
+  for (let i = Math.floor((x - r) / C); i <= Math.floor((x + r) / C); i++) for (let j = Math.floor((y - r) / C); j <= Math.floor((y + r) / C); j++) l.push(id + ":" + i + "," + j);
+  return l;
+}
+const areaPreparada = (x, y) => preparoChaves(x, y, PREPARO.raioPronto).every(k => PREPARO.areas.has(k));
+// a câmera já no lugar dela (sem o deslizar de desenharQuadro), com a altura do piso
+function camNoAlvo() {
+  const v = viking, z = zPiso(v.x, v.y), [zx, zy] = z ? daVista(0, z * ALTURA / ACHATA) : [0, 0];
+  cam.x = v.x + CAM_ACIMA[0] + zx; cam.y = v.y + CAM_ACIMA[1] + zy;
+}
+function preparoLugar(x, y) {
+  if (naCaverna(x)) { const d = cavDe(x); return [(d && d.nome) || "Caverna", d && d.vale ? "o ninho dos dragões" : "debaixo da terra"]; }
+  const m = mapaDe(x, y), n = m.niveis;
+  return [m.nome || "", [m.sub, n ? `níveis ${n[0]}–${n[1]}` : ""].filter(Boolean).join(" · ")];
+}
+function preparoMostrar(nome, sub) {
+  const P = PREPARO, el = $("#preparo"); if (!el) return;
+  clearTimeout(P.tEsc);
+  if (el.hidden || el.classList.contains("some")) {                    // (uma frase por tela: a 1ª sorteada, depois na ordem)
+    const N = PREPARO_FRASES.length; P.fraseI = P.fraseI === undefined ? Math.floor(Math.random() * N) : (P.fraseI + 1) % N;
+    $("#ppFrase").textContent = PREPARO_FRASES[P.fraseI]; $("#ppBarra").style.width = "0%";
+  }
+  $("#ppNome").textContent = nome; $("#ppSub").textContent = sub;
+  el.hidden = false; el.classList.remove("some");
+}
+function preparoEsconder() {
+  const P = PREPARO, el = $("#preparo"); if (!el || el.hidden) return;
+  P.cedo = 0; el.classList.add("some");
+  clearTimeout(P.tEsc); P.tEsc = setTimeout(() => { if (!PREPARO.ativo && !PREPARO.cedo) el.hidden = true; }, 200);
+}
+// o portal: a tela aparece já no escurecer da viagem (a montagem do mapa novo, na 1ª visita, fica por baixo dela)
+function preparoAntecipar(x, y) {
+  const P = PREPARO;
+  if (!P.ligado || !window.jogoPronto || (window.M3D && M3D.ativo) || areaPreparada(x, y)) return;
+  const [n, s] = preparoLugar(x, y); P.cedo = performance.now(); preparoMostrar(n, s);
+}
+// começa a preparação para o lugar em que o herói está agora (motivo: "entrar", "portal", "caverna", "renascer", "teleporte",
+// "altar"); devolve se a tela apareceu
+function prepararChegada(motivo) {
+  const P = PREPARO;
+  try {
+    if (!P.ligado || !window.jogoPronto || (window.M3D && M3D.ativo) || editor.ativo || !viking) { if (P.cedo) preparoEsconder(); return false; }
+    const x = viking.x, y = viking.y, area = areaPreparada(x, y), heroi = P.classes.has(classe);
+    camNoAlvo(); if (!naCaverna(cam.x)) mapaDaCamera();
+    const faltam = area && heroi && !naCaverna(cam.x) ? pedacosDaVista(zoom).filter(([i, j, f]) => !pedacos.has(f + ":" + i + "," + j)).length : 0;
+    if (area && heroi && !faltam) { P.ultimo = { motivo, mapa: idMapa(x, y), tela: false, ms: 0 }; P.hist.push(P.ultimo); if (P.hist.length > 30) P.hist.shift(); if (P.cedo && !P.ativo) preparoEsconder(); return false; }
+    if (!P.ativo) { P.t0 = performance.now(); P.quadros = 0; P.imagens = 0; P.erros = 0; P.ms = {}; }
+    P.ativo = true; P.motivo = motivo; P.alvo = { x, y }; P.curto = area;
+    // as tarefas: [nome, gerador, peso, pode ir para o segundo plano]. Área já preparada: só o que falta (a classe nova do Altar: o
+    // modelo e os efeitos dela; os pedaços do chão que saíram da memória)
+    P.tarefas = area && heroi ? [["chao", preparoChao(zoom), 3, true], ["quadros", preparoQuadros(false), 2, false]]
+      : area ? [["modelos", preparoModelos(), 1, false], ["espera", preparoEsperaModelos(), 2, false], ["quadros", preparoQuadros(true), 3, false]]
+      : [["modelos", preparoModelos(), 1, false], ["chao", preparoChao(zoom), 4, true], ["rotas", preparoRotas(), 1, true], ["espera", preparoEsperaModelos(), 2, false],
+         ["imagens", preparoImagens(), 3, true], ["quadros", preparoQuadros(true), 4, false], ["chao06", preparoChao(ZOOM_MIN_2D), 2, true]];
+    P.tarefas = P.tarefas.map(([nome, g, peso, fundo]) => ({ nome, g, peso, fundo, t: 0 }));
+    P.pesoTotal = P.tarefas.reduce((a, t) => a + t.peso, 0); P.pesoFeito = 0; P.parcial = 0;
+    const [n, s] = preparoLugar(x, y); preparoMostrar(n, s);
+    P.cedo = 0;
+    return true;
+  } catch (e) { console.error("preparo:", e); P.ativo = false; P.erros++; preparoEsconder(); return false; }
+}
+// um quadro da preparação (o laço chama no lugar do passo e do desenho): até PREPARO.fatia ms de trabalho, na ordem
+function preparoQuadro(agora) {
+  const P = PREPARO, ini = performance.now();
+  try {
+    while (P.tarefas.length) {
+      const tf = P.tarefas[0], gasto = performance.now() - P.t0;
+      if (tf.fundo && gasto > P.limite - P.reserva) { P.fundo.push(tf); P.tarefas.shift(); P.pesoFeito += tf.peso; P.parcial = 0; continue; }   // (sem tempo: segue depois de mostrar o mapa)
+      if (gasto > P.limite + 400 && !tf.fundo) { P.tarefas.length = 0; break; }                                                          // (o teto: mostra o mapa assim mesmo)
+      const a = performance.now(); let r;
+      try { r = tf.g.next(); } catch (e) { console.error("preparo " + tf.nome + ":", e); P.erros++; r = { done: true }; }
+      tf.t += performance.now() - a;
+      if (r.done) { P.ms[tf.nome] = +tf.t.toFixed(1); P.tarefas.shift(); P.pesoFeito += tf.peso; P.parcial = 0; }
+      else if (r.value === 1) break;                                                                 // (esperando: o próximo quadro)
+      if (performance.now() - ini > P.fatia) break;
+    }
+  } catch (e) { console.error("preparo:", e); P.erros++; P.tarefas.length = 0; }
+  const b = $("#ppBarra"); if (b) b.style.width = Math.min(100, 100 * (P.pesoFeito + P.parcial * (P.tarefas[0] ? P.tarefas[0].peso : 0)) / P.pesoTotal).toFixed(1) + "%";
+  if (!P.tarefas.length) preparoFim();
+}
+function preparoFim() {
+  const P = PREPARO; if (!P.ativo) return;
+  P.ativo = false;
+  try { if (window.FX3 && FX3.ensaiando) FX3.ensaioFim(); } catch (e) {}
+  const { x, y } = P.alvo || viking;
+  for (const k of preparoChaves(x, y, P.raioMarca)) P.areas.add(k);
+  P.classes.add(classe);
+  if (!P.curto && P.doMapa && P.doMapa.length) { P.fundo.push({ nome: "mapa3d", g: preparoModelosMapa(), peso: 0, fundo: true, t: 0 }); }
+  P.ultimo = { motivo: P.motivo, mapa: idMapa(x, y), tela: true, curto: !!P.curto, ms: +(performance.now() - P.t0).toFixed(0), tarefas: P.ms, quadros: P.quadros, imagens: P.imagens,
+               modelos: P.modelos.length, modelosOk: P.modelos.filter(n => P3D.modelos[n] && P3D.modelos[n].ok).length, fundo: P.fundo.map(t => t.nome), erros: P.erros };
+  P.hist.push(P.ultimo); if (P.hist.length > 30) P.hist.shift();
+  escurece = Math.min(escurece, 0.6);                                   // (o mapa aparece logo, clareando)
+  antes = performance.now(); camNoAlvo();
+  FPS.n = 0; FPS.t0 = antes;                                            // (o contador de fps não conta o tempo da tela)
+  preparoEsconder();
+}
+// o segundo plano: o que passou do tempo da tela, em fatias pequenas por quadro, depois do desenho
+function preparoFundo() {
+  const P = PREPARO, ini = performance.now();
+  while (P.fundo.length && performance.now() - ini < P.fatiaFundo) {
+    const tf = P.fundo[0]; let r;
+    try { r = tf.g.next(); } catch (e) { console.error("preparo (fundo) " + tf.nome + ":", e); r = { done: true }; }
+    if (r.done) P.fundo.shift(); else if (r.value === 1) { P.fundo.push(P.fundo.shift()); break; }
+  }
+}
+// ---- as tarefas (geradores: yield 0 = fiz um pouco; yield 1 = esperando, até o próximo quadro)
+function* preparoModelos() {
+  const v = viking, l = new Map(), P = PREPARO;
+  const pede = (nome, d) => { if (!nome || !MODELOS_3D[nome]) return; l.set(nome, Math.min(d, l.has(nome) ? l.get(nome) : Infinity)); };
+  pede(classe, -1);
+  if (v.montado || (typeof cavaloEnt === "object" && cavaloEnt.ativo)) pede("cavalo", 0);
+  for (const c of criaturas) { if (c.cfg.estatico || c.morto) continue; const d = Math.hypot(c.x - v.x, c.y - v.y); if (d < 45) pede(modeloCriatura3d(c), d); }
+  for (const o of objetos) if (o.npc && (o.tipo === "ferreiro" || (o.tipo === "pessoa" && NPC_3D[o.nome]))) { const d = Math.hypot(o.x - v.x, o.y - v.y); if (d < 30) pede(o.tipo === "ferreiro" ? "ferreiro" : NPC_3D[o.nome], d); }
+  for (const h of (typeof ESTABULO === "object" ? ESTABULO.cavalos : [])) { const d = Math.hypot(h.x - v.x, h.y - v.y); if (d < 40) pede("cavalo", d); }
+  P.modelos = [...l.keys()]; P.pedidos = [...l.entries()];
+  // (as criaturas do mesmo mapa um pouco mais longe, até 90 m: vêm depois, em segundo plano, com os programas já pedidos)
+  const aqui = idMapa(v.x, v.y), mais = new Map();
+  for (const c of criaturas) { if (c.cfg.estatico || c.morto) continue; const n = modeloCriatura3d(c), d = Math.hypot(c.x - v.x, c.y - v.y); if (d >= 90 || l.has(n) || !MODELOS_3D[n] || (c.mapa !== undefined ? c.mapa !== aqui : idMapa(c.x, c.y) !== aqui)) continue; mais.set(n, Math.min(d, mais.get(n) ?? Infinity)); }
+  P.doMapa = [...mais.entries()];
+  if (P3D.ligado && P3D.loader) {
+    for (const [n, d] of l) pedirModelo3d(n, d);
+    try { arma3dDoHeroi(); } catch (e) {}
+    if (v.montado) try { carregarMontados3d(); } catch (e) {}
+  }
+}
+function* preparoEsperaModelos() {
+  const P = PREPARO, p = P3D;
+  if (!p.ligado) return;
+  for (;;) {
+    if (performance.now() - P.t0 > P.esperaModelos) return;           // (a rede: o resto chega com o jogo andando, como antes)
+    if (!p.loader || !p.render) { yield 1; continue; }                 // (o three.js ainda chegando)
+    let falta = 0;
+    for (const [n, d] of P.pedidos || []) { const m = p.modelos[n]; if (!m) { pedirModelo3d(n, d); falta++; } else if (!m.ok && !m.erro) falta++; }
+    P.parcial = P.modelos.length ? 1 - falta / P.modelos.length : 1;
+    if (!falta) return;
+    yield 1;
+  }
+}
+// (em segundo plano, depois da tela) os modelos das criaturas do mapa até 90 m, com prioridade baixa (depois dos de perto)
+function* preparoModelosMapa() {
+  const P = PREPARO, l = P.doMapa || [], t0 = performance.now();
+  if (!l.length || !P3D.ligado || !P3D.loader) return;
+  for (const [n, d] of l) pedirModelo3d(n, 100 + d);
+  while (performance.now() - t0 < 30000) {
+    let falta = 0;
+    for (const [n] of l) { const m = P3D.modelos[n]; if (m && m.ok) aquecerModelo3d(m); else if (m && !m.erro) falta++; }
+    if (!falta) return;
+    yield 1;
+  }
+}
+function* preparoChao(z) {
+  if (naCaverna(cam.x)) return;
+  mapaDaCamera();                                                      // (a câmera já está no lugar: prepararChegada)
+  const l = pedacosDaVista(z).filter(([i, j, f]) => !pedacos.has(f + ":" + i + "," + j)), P = PREPARO;
+  for (let k = 0; k < l.length; k++) {
+    const [i, j, f] = l[k], ch = f + ":" + i + "," + j;
+    P.parcial = k / l.length;
+    if (pedacos.has(ch) || MAPA_CAM !== mapaDe(cam.x, cam.y)) continue;
+    for (const [q, g] of PEDACO_EM_CURSO) if (g.mapa !== MAPA_CAM) PEDACO_EM_CURSO.delete(q);   // (os começados noutro mapa não servem)
+    if (PEDACO_EM_CURSO.size >= 8 && !PEDACO_EM_CURSO.has(ch)) { pedaco(i, j, f); yield 0; continue; }
+    while (!pedacoAosPoucos(i, j, f)) yield 0;                         // (um passo por vez: a máscara, a grama, o musgo, a terra...)
+    yield 0;
+  }
+  CHAO_IMG.sujo = true;
+}
+function* preparoRotas() {
+  if (!ROTA_OK.ligado) return;
+  const v = viking, M = ROTA_RUMO, R = Math.round(24 / PASSO_GRADE), n0 = ROTA_AQUECE;
+  Object.assign(M, { x: v.x, y: v.y, vx: 0, vy: 0, ok: true }); ROTA_OK.aq = null;   // (parado: o centro no herói)
+  try {
+    for (let k = 0; k < 4000; k++) { ROTA_AQUECE = PREPARO.ativo ? 600 : 80; rotaAquecer(); const A = ROTA_OK.aq; PREPARO.parcial = A ? Math.min(1, A.r / R) : 1; if (!A || A.r > R) break; ROTA_AQUECE = n0; yield 0; }
+  } finally { ROTA_AQUECE = n0; }
+  if (FLUXO.ligado) { fluxoMontar(); FLUXO.t = performance.now() / 1000; }
+}
+function* preparoImagens() {
+  const P = PREPARO;
+  if (!LOTE.ligado || typeof createImageBitmap !== "function" || !LOTE.contexto()) return;
+  // o quadro de coleta (com o zoom mais afastado: o que aparece com o zoom de agora também aparece nele)
+  LOTE.coleta = new Set();
+  let l;
+  try { preparoQuadroEscondido(Math.min(zoom, ZOOM_MIN_2D)); } finally { l = [...LOTE.coleta]; LOTE.coleta = null; }
+  P.imagens += l.length; yield 0;
+  const prontos = []; let pend = l.length;
+  for (const im of l) createImageBitmap(im, { premultiplyAlpha: "premultiply", colorSpaceConversion: "default" }).then(b => { prontos.push([im, b]); }, () => {}).finally(() => { pend--; });
+  let enviadas = 0;
+  try {
+    while (pend > 0 || prontos.length) {
+      if (!prontos.length) { yield 1; continue; }
+      const [im, b] = prontos.shift();
+      try { LOTE.enviarBitmap(im, b); } finally { b.close(); }
+      enviadas++; P.parcial = enviadas / Math.max(1, l.length);
+      yield 0;
+    }
+  } finally { for (const [, b] of prontos) b.close(); if (LOTE.compartilhado()) P3D.render.resetState(); }
+}
+// um quadro escondido: o desenho de verdade com o zoom z e a câmera no lugar (o papel cobre a tela)
+function preparoQuadroEscondido(z) {
+  const zv = zoom; zoom = z; camNoAlvo();
+  try { desenhar(performance.now() / 1000); PREPARO.quadros++; } finally { zoom = zv; }
+}
+function preparoEsperarGpu() {
+  const px = new Uint8Array(4);
+  for (const g of [LOTE.gl, VEGGL.gl]) { if (!g) continue; try { if (!g.isContextLost()) g.readPixels(0, 0, 1, 1, g.RGBA, g.UNSIGNED_BYTE, px); } catch (e) {} }
+}
+function* preparoQuadros(comEnsaio) {
+  const P = PREPARO, zs = zoom > ZOOM_MIN_2D + 0.01 ? [ZOOM_MIN_2D, zoom] : [zoom];
+  if (comEnsaio && window.FX3 && FX3.ensaiar) {
+    const v = viking, pts = [[v.x, v.y]];
+    for (const c of criaturas.filter(c => !c.morto && !c.cfg.estatico && Math.hypot(c.x - v.x, c.y - v.y) < 12).slice(0, 4)) pts.push([c.x, c.y]);
+    try { if (FX3.ensaiar(pts)) P.ensaiado = true; } catch (e) { console.error("preparo, ensaio:", e); }
+  }
+  try {
+    let k = 0;
+    for (const z of zs) for (let n = 0; n < 2; n++) { preparoQuadroEscondido(z); P.parcial = ++k / (zs.length * 2 + 1); preparoEsperarGpu(); yield 0; }
+  } finally { try { if (window.FX3 && FX3.ensaiando) FX3.ensaioFim(); } catch (e) {} }
+  preparoQuadroEscondido(zoom); preparoEsperarGpu();                   // (sem o ensaio: o atlas e o palco como o jogo vai continuar)
+}
+// (R235) com a tela de preparação, as teclas não chegam ao jogo (o mundo está parado por baixo)
+addEventListener("keydown", e => { if (PREPARO.ativo) { e.stopImmediatePropagation(); if (e.key !== "F5" && e.key !== "F12") e.preventDefault(); } }, true);
 function laco(agora) {
   if (LIMITE.escondido) return;                                   // (a aba escondida: o visibilitychange volta o laço)
+  if (PREPARO.ativo) { preparoQuadro(agora); antes = agora; LIMITE.raf = requestAnimationFrame(laco); return; }   // (R235: a preparação no lugar do passo e do desenho)
+  if (PREPARO.cedo && !PREPARO.ativo && !viagem && agora - PREPARO.cedo > 1500) preparoEsconder();               // (a tela antecipada sem preparação: some)
   if (MODO_TESTE && agora - antes < 33) { LIMITE.raf = requestAnimationFrame(laco); return; }   // 30 quadros por segundo
   if (!MODO_TESTE && !limiteDeixa(agora)) { LIMITE.raf = requestAnimationFrame(laco); return; }
   const dt = Math.min(0.05, (agora - antes) / 1000); antes = agora;
@@ -28612,7 +28999,9 @@ function laco(agora) {
   if (congela > 0) congela -= dt;                                 // hit-stop: o mundo para um instante no acerto
   else if (editor.ativo) passoEditor(dt);                           // editando: o jogo fica parado
   else if (!pausado && !SEL.aberta) passo(dt * veloc);             // (com a escolha de classe aberta, o mundo espera)
+  if (PREPARO.ativo) { LIMITE.raf = requestAnimationFrame(laco); return; }   // (R235: a preparação começou neste passo, num portal ou ao renascer: o desenho já é dela)
   if (!(window.MM && MM.cobre) && !SEL.aberta) desenhar(t);                        // (com o Mapa do Mundo aberto por cima, o jogo não é desenhado)
+  if (PREPARO.fundo.length) preparoFundo();                         // (R235: o que passou do tempo da tela, aos poucos)
   contarQuadro(agora);
   desenharOrbes(agora);
   LIMITE.raf = requestAnimationFrame(laco);
@@ -34849,6 +35238,64 @@ function aquecerProgramas() {
   aquecerProgramas.mats = [...mats, sp.material];      // (guardados: o three.js só apaga um programa quando o material dele é descartado)
   aquecerProgramas.feitos = (r.info.programs || []).length;
 }
+// R235 (a preparação ao entrar no mapa): o renderer.compile acima não acerta todas as chaves de programa do uso de verdade (as
+// passadas do bloom desenham em alvos de render, com outra codificação de saída; os corpos entram com o material de profundidade,
+// pela pele de cada modelo; a 1ª skill de cada classe ainda compilava 5 a 7 programas, ~100 ms com a CPU do usuário). O ensaio põe
+// um objeto minúsculo (2 cm) de cada material dos efeitos em cada ponto pedido (o herói e as criaturas em volta), mais um clarão,
+// uma faísca e uma fumaça, e os quadros escondidos da preparação desenham tudo como um efeito de verdade: os corpos na caixa, a
+// cena e o bloom, cada programa com a chave que o jogo vai pedir. ensaioFim tira tudo (as partículas também)
+let ensaio = null;
+function ensaiar(pts) {
+  if (QS.get("fx") === "0" || (window.M3D && M3D.ligado)) return false;
+  if (!pronto) { if (!(window.THREE && P3D.render && !P3D.perdido)) return false; iso = true; try { iniciar(); } catch (e) { console.error("fx3:", e); return false; } }
+  if (ensaio) ensaioFim();
+  const D = THREE.DoubleSide, N = THREE.NormalBlending, g = new THREE.PlaneGeometry(0.02, 0.02), bola = new THREE.SphereGeometry(0.01, 6, 4);
+  const extra = [new THREE.MeshBasicMaterial({ map: texBrilho, color: 0xffffff, transparent: true, opacity: 0.5, depthWrite: false, side: D }),
+    new THREE.MeshBasicMaterial({ map: texBrilho, color: 0xffffff, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending }),
+    new THREE.SpriteMaterial({ map: texBrilho, transparent: true, depthWrite: false, blending: N, toneMapped: false, fog: false })];
+  const mats = [...(aquecerProgramas.mats || []), ...extra];
+  const E = ensaio = { objs: [], extra, geos: [g, bola], vivo: true };
+  for (const [x, y] of pts) {
+    for (const m of mats) {
+      const o = m.isSpriteMaterial ? new THREE.Sprite(m) : new THREE.Mesh(m.side === D ? g : bola, m);
+      if (o.isSprite) o.scale.setScalar(0.02);
+      o.position.copy(P3(x, y, 0.9)); noGrupo(o, 12); E.objs.push(o);
+    }
+    const p = P3(x, y, 0.9); faisca(p, new THREE.Vector3(0, 0.01, 0), BRANCO(), 0.002, 0.2); fumaca(p, rgb(0.5, 0.5, 0.5), 1, { tam: 0.002, a: 0.01 });
+  }
+  if (pts.length) {
+    const [x, y] = pts[0], C = P3(x, y, 0.9), B = BRANCO();
+    E.clarao = clarao(C, 0.02, rgb(1, 1, 1), 0.3, { estrela: true }); luz(P3(x, y, 1), rgb(1, 1, 1), 0.01, 1, 0.3);
+    // (as peças de verdade dos efeitos, com a geometria e o material deles: o chão, a coluna, a meia-lua, a bolha, as chamas e os
+    //  espinhos instanciados; minúsculas e tiradas no fim. As chaves de programa que o compile acima não acertava saem daqui)
+    const fx = [], mesh = [];
+    try { fx.push(chao(x, y, 0.02, 0, B, B, 0.3)); } catch (e) {}
+    try { fx.push(coluna(x, y, 0.01, 0.02, B, 0.3)); } catch (e) {}
+    try { fx.push(meiaLua(C, new THREE.Vector3(0, 1, 0), new THREE.Vector3(1, 0, 0), 0.01, 0.02, 0.03, B, B, 0.3, 0)); } catch (e) {}
+    try { const m = bolha(B, 0.01); m.position.copy(C); mesh.push([m, "bolha"]); } catch (e) {}
+    try { const m = chamas(B, B); m.position.copy(C); m.scale.setScalar(0.01); mesh.push([m, "chamas"]); } catch (e) {}
+    try { const m = espinhosElipse(1, 0.01, 0.01, 0.01, 0.01, 0.002); m.position.copy(C); mesh.push([m, null]); E.extra.push(m.material); } catch (e) {}
+    try { const m = malhaCasca(B, 0.3); m.position.copy(C); m.scale.setScalar(0.01); mesh.push([m, null]); E.extra.push(m.material); } catch (e) {}
+    try { const o = orbe(B, 0.004); o.mover(C, 0.016); o.mover(C.clone().add(new THREE.Vector3(0.01, 0.005, 0)), 0.016); E.orbe = o; } catch (e) {}   // (o rastro em fita, o das armas e das magias)
+    E.fx = fx; E.mesh = mesh;
+  }
+  adicionar({ passo() { return E.vivo; }, fim() {} });
+  return true;
+}
+function ensaioFim() {
+  const E = ensaio; if (!E) return;
+  ensaio = null; E.vivo = false;
+  if (E.clarao) E.clarao.morto = true;
+  for (const f of E.fx || []) if (f) f.morto = true;                 // (o próximo passo do FX3 tira e devolve os materiais à reserva)
+  if (E.orbe) try { E.orbe.fim(); } catch (e) {}
+  for (const [m, tipo] of E.mesh || []) { grupo.remove(m); if (tipo) devolverMat(tipo, m.material); }
+  for (const o of E.objs) grupo.remove(o);
+  // (os materiais extras ficam guardados: descartar um material apagaria o programa que o ensaio acabou de compilar)
+  const guardados = aquecerProgramas.mats || (aquecerProgramas.mats = []);
+  guardados.push(...E.extra.filter(m => !guardados.includes(m)));
+  if (PS) PS.l.length = 0; if (S && S.pNormal) S.pNormal.l.length = 0;
+  luzes.length = 0;
+}
 function passo(dt, t) {
   if (QS.get("fx") === "0") return;
   if (!pronto) { try { iniciar(); } catch (e) { console.error("fx3:", e); QS.set("fx", "0"); return; } }
@@ -34943,7 +35390,7 @@ embrulhar("explosaoChefe", ([x, y, r, h]) => {
   clarao(P3(x, y, 0.6), r * 1.3, c, 0.22, { forca: 0.6 }); estouro(P3(x, y, 0.3), 22, c, 6, { sobe: 1, tam: 0.08, branco: 0.4 });
   fumaca(P3(x, y, 0.1), rgb(0.4, 0.35, 0.3), r > 2 ? 7 : 3, { r: r * 0.5, tam: 0.5, vel: 1, a: 0.4 }); luz(P3(x, y, 1), c, 4, 8, 0.3);
 });
-return { get ativo() { return ativo(); }, get iso() { return iso; }, get aquecidos() { return aquecerProgramas.feitos || 0; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, caixa: FX_CAIXA, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; }, get bloomDaTela() { return B.daTela; }, set bloomDaTela(v) { B.daTela = !!v; },
+return { get ativo() { return ativo(); }, get iso() { return iso; }, get aquecidos() { return aquecerProgramas.feitos || 0; }, ensaiar, ensaioFim, get ensaiando() { return !!ensaio; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, caixa: FX_CAIXA, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; }, get bloomDaTela() { return B.daTela; }, set bloomDaTela(v) { B.daTela = !!v; },
          get stats() { return { vivos: vivos.length, seguidos: seguidos.size, particulas: PS ? PS.l.length : 0 }; },
          corpos: { foraDaCaixa: corpoForaDaCaixa, entram: corposEntram, saem: corposSaem, get n() { return corposIso.n; }, get desenhados() { return corposIso.desenhados || 0; }, get junto() { return !!(S && S.junto); }, corte: CORPOS_CORTE } };   // (plano D: para os testes, R232)
 })();
