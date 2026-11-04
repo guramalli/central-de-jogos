@@ -282,9 +282,16 @@
   .minimapa .lugar b { font-family: var(--dados); font-weight: 400; color: var(--apagado); margin-left: 6px; }
   .minimapa .missao { width: 100%; box-sizing: border-box; padding: 3px 8px; color: #ffd23c; font-size: 13.5px; line-height: 1.3; text-align: left; }   /* o objetivo da missão */
   .minimapa .missao[hidden] { display: none !important; }
+  /* (04/11) as caçadas de nível abertas (no máximo 3), embaixo do objetivo, no mesmo estilo dele */
+  .minimapa .cacadas-lista { width: 100%; display: grid; gap: 3px; }
+  .minimapa .cacadas-lista[hidden] { display: none !important; }
+  .minimapa .cacadas-lista .lugar { box-sizing: border-box; padding: 3px 8px; color: #ffd23c; font-size: 13.5px; line-height: 1.3; text-align: left; }
+  .minimapa .cacadas-lista .lugar b { margin-left: 0; color: #f4e6c2; font-family: var(--dados); }
+  .minimapa .cacadas-lista .lugar.pronta { color: #9fe08a; }
   /* os primeiros passos: à esquerda, embaixo dos pergaminhos e acima do chat, sem cobrir o herói nem a bolsa */
   .guia { position: fixed; z-index: 3; left: 14px; top: 330px; width: 290px; box-sizing: border-box; padding: 10px 12px 12px; color: #1E1B18; background: #E8DCC0; border: 2px solid #1E1B18; border-radius: 3px; box-shadow: 0 0 0 1px #C9963E inset, 0 6px 16px rgba(0, 0, 0, 0.45); }
   .guia[hidden] { display: none; }
+  .guia.desviada { z-index: 1; opacity: 0.22; pointer-events: none; transition: opacity 0.15s; }   /* (R238: por baixo da janela aberta) */
   .guia header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .guia h2 { flex: 1; margin: 0; font-family: "Song Myung", "Nanum Myeongjo", "Palatino Linotype", Georgia, serif; font-size: 19px; font-weight: 400; }
   .guia #guiaConta { font-size: 13px; font-weight: 700; color: #8e2721; white-space: nowrap; }
@@ -1851,6 +1858,7 @@
   </div>
   <div class="lugar"><span id="miniLugar">Vale do Viking</span><b id="miniCoord">0, 0</b></div>
   <div class="lugar missao" id="missaoAtual" role="status" hidden></div>
+  <div class="cacadas-lista" id="cacadasLista" aria-label="Caçadas abertas" hidden></div>
 </aside>
 
 <!-- as quests ativas (tecla Q; R131): nome, objetivo, progresso e prêmio; clicar deixa a quest como a acompanhada -->
@@ -1917,6 +1925,7 @@
     <p>"Shenyang", "Ripples" e "Mountain Emperor" — Kevin MacLeod (incompetech.com), licença Creative Commons: By Attribution 4.0 (creativecommons.org/licenses/by/4.0/).</p>
     <p>"Views From Atop the Jade Kings Throne" e "RPG - Misty Mountains" — Hitctrl (opengameart.org), licença CC BY 3.0 (creativecommons.org/licenses/by/3.0/).</p>
     <p>"Dark Myst Mystery Asian Oriental Sad Mood" — szegvari (freesound.org), CC0.</p>
+    <p>"磅礴" (Pang Bo), a música do login e da criação de personagem — Music by Richard Guo (richardguo.itch.io).</p>
   </details>
   <details class="nota creditos-musica"><summary>Créditos da arte 3D</summary>
     <p>Cavalo de montaria: "Horse" (Animated Animal Pack) — Quaternius (quaternius.com, poly.pizza), CC0. As armaduras e a sela foram feitas para o Ghotin2.</p>
@@ -5886,9 +5895,14 @@ function tocarGravado(nome, onde, forca, atraso = 0) {
 // faixa (vai sendo baixado aos poucos, sem decodificar a música inteira na memória)
 const MUSICAS = { vila1: "sons/musicas/vila1.mp3", vila2: "sons/musicas/vila2.mp3", campo: "sons/musicas/campo.mp3",
   caverna: "sons/musicas/caverna.mp3", montanha: "sons/musicas/montanha.mp3", combate: "sons/musicas/combate.mp3",
-  daiyu: "sons/musicas/daiyu.mp3" };                               // (a Ilha de Daiyu: "Karst mountains", neolein, CC0; Tools/sons/musicas.py)
+  daiyu: "sons/musicas/daiyu.mp3",
+  menu: "sons/musicas/menu.mp3" };                                 // (04/11: a tela de login e a de criação: "磅礴" (Pang Bo), Richard Guo; Tools/sons/musicas.py)                               // (a Ilha de Daiyu: "Karst mountains", neolein, CC0; Tools/sons/musicas.py)
 const Mus = { faixas: {}, atual: null, quer: null, desde: 0, nivel: {} };
+// (04/11, o usuário: "na tela de criação do personagem, coloque outra musica... esta o som da vila, nao esta legal... tanto na
+// criação de login e senha quanto escolha de classe") com a porta da conta (#g2Porta) ou a escolha de personagem aberta: a "menu"
+const telaDeMenu = () => !!((typeof SEL === "object" && SEL.aberta) || (() => { const P = document.getElementById("g2Porta"); return P && !P.hidden; })());
 function regiaoMusica() {
+  if (telaDeMenu()) return "menu";
   const v = viking;
   if (criaturas.some(c => (c.cfg.chefe || c.cfg.chefeCaverna) && !c.morto && c.cacando && Math.hypot(c.x - v.x, c.y - v.y) < 16)) return "combate";
   if (naCaverna(v.x)) return "caverna";
@@ -6863,7 +6877,7 @@ const ALTAR = { U: -122.5, V: 0, z: 8, ilha: { rx: 22, ry: 17.5, cb: 1 }, esc: {
   lances: [[-9, 0], [-2.46, 4.9], [0.87, 4.9], [5, 8]], ponte: { b: -8.5, meia: 2.3, a0: 15, a1: 36, g0: 15.8, g1: 35.2, baixa: 2.66, perfil: [[0, 1.08], [1.8, 1], [3.5, 0.85], [5.3, 0.7], [6.5, 0.55], [8, 0.2], [9.4, 0.05], [10.5, 0]] }, npc: [0, 10.5],
   templo: { b: 16.2, meia: 3.9, b0: 14 }, ordem: ["viking", "guerreiro", "arqueiro", "ninja", "shura", "feiticeiro", "xama", "xama_dragao"] };
 // as artes da ilha, em deco_b/altar (Tools/deco3d/altar/render_tudo.py): o pé de cada uma na imagem e os px por metro
-const ALTAR_PECAS = {"templo":{"px":410.0,"py":598.6,"ppm":100},"ponte":{"px":1110.0,"py":608.3,"ppm":100},"ponte_frente":{"px":1110.0,"py":608.3,"ppm":100},"estatua_viking":{"px":95.0,"py":225.5,"ppm":100},"estatua_guerreiro":{"px":95.0,"py":192.4,"ppm":100},"estatua_arqueiro":{"px":95.0,"py":197.8,"ppm":100},"estatua_ninja":{"px":95.0,"py":174.0,"ppm":100},"estatua_shura":{"px":95.0,"py":193.8,"ppm":100},"estatua_feiticeiro":{"px":95.0,"py":189.4,"ppm":100},"estatua_xama":{"px":95.0,"py":190.4,"ppm":100},"ilha":{"px":629.5,"py":981,"ppm":38.1}};
+const ALTAR_PECAS = {"templo":{"px":410.0,"py":598.6,"ppm":100},"ponte":{"px":1110.0,"py":608.3,"ppm":100},"ponte_frente":{"px":1110.0,"py":608.3,"ppm":100},"estatua_viking":{"px":95.0,"py":225.5,"ppm":100},"estatua_guerreiro":{"px":95.0,"py":192.4,"ppm":100},"estatua_arqueiro":{"px":95.0,"py":197.8,"ppm":100},"estatua_ninja":{"px":95.0,"py":174.0,"ppm":100},"estatua_shura":{"px":95.0,"py":193.8,"ppm":100},"estatua_feiticeiro":{"px":95.0,"py":189.4,"ppm":100},"estatua_xama":{"px":95.0,"py":190.4,"ppm":100},"estatua_xama_dragao":{"px":95.0,"py":196.8,"ppm":100},"ilha":{"px":629.5,"py":981,"ppm":38.1}};
 const altarMundo = (a, b) => { const u = a + ALTAR.U, v = b + ALTAR.V; return [(u + v) * Math.SQRT1_2, (v - u) * Math.SQRT1_2]; };
 const altarLocal = (x, y) => [(x - y) * Math.SQRT1_2 - ALTAR.U, (x + y) * Math.SQRT1_2 - ALTAR.V];
 const naZonaAltar = (x, y) => x < -56.7 && y > 46.7 && x > -133.7 && y < 133.7;
@@ -7232,6 +7246,13 @@ function tomChao(x, y) {
   return l < 0.5 ? [12, 32, 10, (0.5 - l) * 0.55] : [255, 232, 150, (l - 0.5) * 0.32];
 }
 function mascarasDe(i, j) {
+  const m = mascaras.get(i + "," + j);
+  if (m) return m;
+  const g = mascarasPassos(i, j); let r; do r = g.next(); while (!r.done);
+  return r.value;
+}
+// (R236: as três máscaras do pedaço, uma por passo; as mesmas contas na mesma ordem, a de mascarasDe de uma vez)
+function* mascarasPassos(i, j) {
   const chave = i + "," + j;
   let m = mascaras.get(chave);
   if (m) return m;
@@ -7250,7 +7271,10 @@ function mascarasDe(i, j) {
     g.putImageData(d, 0, 0);
     return c;
   };
-  m = { musgo: fazer((x, y) => [0, 0, 0, pesoMusgo(x, y)]), terra: fazer((x, y) => [0, 0, 0, pesoTerra(x, y)]), tom: fazer(tomChao) };
+  const musgo = fazer((x, y) => [0, 0, 0, pesoMusgo(x, y)]); yield;
+  const terra = fazer((x, y) => [0, 0, 0, pesoTerra(x, y)]); yield;
+  const ja = mascaras.get(chave); if (ja) return ja;                   // (outro passo do mesmo lugar terminou antes: vale a dele)
+  m = { musgo, terra, tom: fazer(tomChao) };
   mascaras.set(chave, m);
   return m;
 }
@@ -7261,31 +7285,59 @@ function padraoChao(g, im, x0, y1, esc) {
 }
 function pintarChaoTextura(g, i, j, esc, cw, ch, caminho) { for (const _ of pintarChaoTexturaPassos(g, i, j, esc, cw, ch, caminho)); }
 // (R209: em passos, para pintar um pedaço fora da tela aos poucos, um passo por quadro: pedacoAosPoucos)
-function* pintarChaoTexturaPassos(g, i, j, esc, cw, ch, caminho) {
+// (R236: fatiado = pintado aos poucos pelo chaoFrente. A mistura podia ir em 3 passos (o desenho, a máscara, a cópia: o corte
+//  "mistura" de CORTES_CHAO) ou ser preparada antes ("previa"), num canvas só do pedaço (TMP_CHAO), mas as duas coisas mudavam
+//  1–2/255 em alguns bytes (até um canvas da mistura de outro tamanho muda 1/255: a amostra cai em outro lugar). Ficam desligadas:
+//  a mistura vai num passo só, no tmpChao de sempre, e o pedaço sai igual)
+const TMP_CHAO = [];
+function* pintarChaoTexturaPassos(g, i, j, esc, cw, ch, caminho, fatiado = false) {
   if (!contornoGrama) contornoGrama = pontosCosta(-2.8);
   const x0 = i * PEDACO, y1 = (j + 1) * PEDACO, m = mascarasDe(i, j), n = Math.round(PEDACO / MASC_C) + 2;
   // a máscara inteira (com a folga) esticada de modo que só o miolo caia no pedaço: o borrado emenda com o vizinho
   const fx = cw / (n - 2), fy = ch / (n - 2);
-  const porMascara = (c, desenho) => {
-    const t = tmpChao;
+  const t = tmpChao;                                                    // (R236: o de sempre também aos poucos: a mistura vai num passo só)
+  const porMascara = function* (c, desenho) {
     if (t.width < cw || t.height < ch) { t.width = Math.max(t.width, cw); t.height = Math.max(t.height, ch); }
     const tg = t.getContext("2d");
+    tg.setTransform(1, 0, 0, 1, 0, 0); tg.globalCompositeOperation = "source-over"; tg.clearRect(0, 0, cw, ch);
+    tg.save(); tg.beginPath(); tg.rect(0, 0, cw, ch); tg.clip();
+    desenho(tg);
+    if (fatiado && CORTES_CHAO.has("mistura")) yield;
+    tg.globalCompositeOperation = "destination-in"; tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = "high";
+    tg.drawImage(c, -fx, -fy, cw + 2 * fx, ch + 2 * fy);
+    tg.restore();
+    if (fatiado && CORTES_CHAO.has("mistura")) yield;
+    g.drawImage(t, 0, 0, cw, ch, 0, 0, cw, ch);
+  };
+  const musgo = tg => { tg.fillStyle = padraoChao(tg, TEX.musgo, x0, y1, esc); tg.fillRect(0, 0, cw, ch); };
+  const terra = tg => { tg.fillStyle = padraoChao(tg, TEX.terra, x0, y1, esc); tg.fillRect(0, 0, cw, ch); };
+  // (R236, "previa": pintado aos poucos, a mistura do musgo e a da terra são feitas antes, cada uma no seu canvas e num passo, sem
+  //  tocar no pedaço; no passo final só a cópia delas para o pedaço, na mesma ordem. O conteúdo de cada mistura sai de uma passada só,
+  //  como de uma vez, e no pedaço os desenhos não mudam de passada: igual byte a byte, conferido pelo R236)
+  const previa = fatiado && CORTES_CHAO.has("previa"), tM = previa && m.musgo && TEX.musgo ? (TMP_CHAO.pop() || document.createElement("canvas")) : null, tT = previa && m.terra && TEX.terra ? (TMP_CHAO.pop() || document.createElement("canvas")) : null;
+  const preparar = (tc, c, desenho) => {
+    if (tc.width < cw || tc.height < ch) { tc.width = Math.max(tc.width, cw); tc.height = Math.max(tc.height, ch); }
+    const tg = tc.getContext("2d");
     tg.setTransform(1, 0, 0, 1, 0, 0); tg.globalCompositeOperation = "source-over"; tg.clearRect(0, 0, cw, ch);
     tg.save(); tg.beginPath(); tg.rect(0, 0, cw, ch); tg.clip();
     desenho(tg);
     tg.globalCompositeOperation = "destination-in"; tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = "high";
     tg.drawImage(c, -fx, -fy, cw + 2 * fx, ch + 2 * fy);
     tg.restore();
-    g.drawImage(t, 0, 0, cw, ch, 0, 0, cw, ch);
   };
+  if (tM) { preparar(tM, m.musgo, musgo); yield; }
+  if (tT) { preparar(tT, m.terra, terra); yield; }
   g.save();
   caminho(contornoGrama, true); g.clip();
   g.fillStyle = padraoChao(g, TEX.grama, x0, y1, esc); g.fillRect(0, 0, cw, ch);
-  yield;
-  if (m.musgo && TEX.musgo) { porMascara(m.musgo, tg => { tg.fillStyle = padraoChao(tg, TEX.musgo, x0, y1, esc); tg.fillRect(0, 0, cw, ch); }); yield; }
-  if (m.terra && TEX.terra) { porMascara(m.terra, tg => { tg.fillStyle = padraoChao(tg, TEX.terra, x0, y1, esc); tg.fillRect(0, 0, cw, ch); }); yield; }
+  if (corteChao(fatiado, "grama")) yield;
+  if (tM) g.drawImage(tM, 0, 0, cw, ch, 0, 0, cw, ch);
+  else if (m.musgo && TEX.musgo) { yield* porMascara(m.musgo, musgo); if (corteChao(fatiado, "camadas")) yield; }
+  if (tT) g.drawImage(tT, 0, 0, cw, ch, 0, 0, cw, ch);
+  else if (m.terra && TEX.terra) { yield* porMascara(m.terra, terra); if (corteChao(fatiado, "camadas")) yield; }
   if (m.tom) { g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high"; g.drawImage(m.tom, -fx, -fy, cw + 2 * fx, ch + 2 * fy); }
   g.restore();
+  for (const q of [tM, tT]) if (q && TMP_CHAO.length < 4) TMP_CHAO.push(q);
 }
 
 // ---------- pedaços do chão ----------
@@ -7329,17 +7381,31 @@ function pedacoAosPoucos(i, j, esc) {
   const chave = esc + ":" + i + "," + j;
   if (pedacos.has(chave)) return true;
   let ger = PEDACO_EM_CURSO.get(chave);
-  if (!ger) { if (PEDACO_EM_CURSO.size >= 8) return false; ger = pedacoPassos(i, j, esc); ger.mapa = MAPA_CAM; PEDACO_EM_CURSO.set(chave, ger); }
+  if (!ger) { if (PEDACO_EM_CURSO.size >= 8) return false; ger = pedacoPassos(i, j, esc, chaoFrenteLigado()); ger.mapa = MAPA_CAM; PEDACO_EM_CURSO.set(chave, ger); }
   if (ger.mapa !== MAPA_CAM) { PEDACO_EM_CURSO.delete(chave); return false; }
   const r = ger.next();
   if (r.done) { PEDACO_EM_CURSO.delete(chave); return true; }
   return false;
 }
-function* pedacoPassos(i, j, esc) {
+// (R236: onde o pedaço pode ser cortado em passos quando pintado aos poucos pelo chaoFrente. A GPU fecha a passada no fim de cada
+//  quadro, e um corte entre dois desenhos com borda suave que caem nos mesmos pixels muda até 2/255 nessas bordas. Medido (o pedaço
+//  em passos, um por quadro, × de uma vez): na praça da Vila 1, qualquer corte depois das lajes ("ladrilhos", "lago", "piso",
+//  "detalhes", "altar") e a mistura em 3 passos ("mistura") mudavam bytes; em 35 pedaços da Hahoe, os cortes depois de cada camada
+//  de textura ("camadas", que o R209 já fazia: 2.620 bytes diferentes) e depois das texturas ("textura") também. Ficam só os que não
+//  mudam nenhum byte: as máscaras (na CPU) e o corte depois da grama ("grama"); o musgo, a terra, o tom e o resto vão num passo só.
+//  Preparar a mistura do musgo e a da terra num quadro antes, cada uma no seu canvas ("previa"), mudava ainda mais (6.805 bytes nos
+//  35 pedaços: o canvas copiado no mesmo quadro em que foi pintado não sai igual ao copiado depois). De uma vez, os passos não importam)
+const CORTES_CHAO = new Set(["grama"]);
+// (os passos do pintado aos poucos de antes, o R209 na volta da tela: as máscaras, a grama, cada camada, o resto; com o chão à frente
+//  desligado, o chão é o do publicado)
+const CORTES_R209 = new Set(["grama", "camadas"]);
+const corteChao = (fatiado, nome) => fatiado ? CORTES_CHAO.has(nome) : CORTES_R209.has(nome);
+function* pedacoPassos(i, j, esc, fatiado = false) {
   const chave = esc + ":" + i + "," + j;
   let c = pedacos.get(chave);
   if (c) return c;
-  mascarasDe(i, j); yield;                                              // (as máscaras do pedaço: um passo só delas)
+  if (fatiado) yield* mascarasPassos(i, j); else mascarasDe(i, j);       // (as máscaras: um passo; R236, aos poucos pelo chaoFrente, um passo para cada uma)
+  yield;
   // reaproveita um canvas de pedaço descartado (criar e jogar fora canvas o tempo todo fazia o navegador parar para limpar)
   const cw = Math.ceil(PEDACO * esc), ch = Math.ceil(PEDACO * esc * ACHATA);
   c = poolChao.find(q => q.width === cw && q.height === ch);
@@ -7362,7 +7428,8 @@ function* pedacoPassos(i, j, esc) {
   g.strokeStyle = "#bfa36d"; g.lineWidth = 0.9 * esc; g.stroke();
   }
   const pintado = !!TEX.grama;                                            // com as texturas: grama pintada, ladrilhos só na praça
-  if (pintado && MAPA_CAM !== MAPAS.daiyu && MAPA_CAM !== MAPAS.montanha) yield* pintarChaoTexturaPassos(g, i, j, esc, c.width, c.height, caminho);   // (Daiyu: o chão é o do mapa_daiyu.js)
+  if (pintado && MAPA_CAM !== MAPAS.daiyu && MAPA_CAM !== MAPAS.montanha) yield* pintarChaoTexturaPassos(g, i, j, esc, c.width, c.height, caminho, fatiado);   // (Daiyu: o chão é o do mapa_daiyu.js)
+  if (corteChao(fatiado, "textura")) yield;                    // (R236: o resto também em passos, na mesma ordem de sempre)
   const d = LADO / Math.SQRT2;
   const uMin = Math.floor((x0 + y1 - PEDACO) / d / 2) - 2, uMax = Math.ceil((x0 + PEDACO + y1) / d / 2) + 2;
   const vMin = Math.floor((y1 - PEDACO - x0 - PEDACO) / d / 2) - 2, vMax = Math.ceil((y1 - x0) / d / 2) + 2;
@@ -7380,6 +7447,7 @@ function* pedacoPassos(i, j, esc) {
     g.fillStyle = corChao(x, y, l); g.fill();
     g.strokeStyle = "rgba(28,18,12,0.12)"; g.lineWidth = 1; g.stroke();
   }
+  if (corteChao(fatiado, "ladrilhos")) yield;
   // lago: barranco, água, beira clara
   caminho(contornoLago(0.55), true); g.fillStyle = "#6f5a3c"; g.fill();
   caminho(contornoLago(0), true); g.fillStyle = ESTILO_B ? "#2D5570" : "#2f6d85"; g.fill();
@@ -7406,20 +7474,24 @@ function* pedacoPassos(i, j, esc) {
     for (const x of [p.x0, p.x1]) { const a = P(x, p.y0), b = P(x, p.y1); g.strokeStyle = "#4a2f18"; g.lineWidth = 0.14 * esc; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); }
   }
   }
+  if (corteChao(fatiado, "lago")) yield;
   pisoCidade(g, P, esc, mx0, mx1, my0, my1);                          // (o chão calçado da cidade, com ?cidade=1)
   pisoHahoe(g, P, esc, caminho, mx0, mx1, my0, my1);                  // (o rio, os arrozais e os terraços de chá da Vila Hahoe)
+  if (corteChao(fatiado, "piso")) yield;
   if (MAPA_CAM === MAPAS.daiyu) DAIYU.pintarPedaco(g, P, esc, x0, y1, c.width, c.height);   // (Daiyu: os platôs, as escadarias, a lava e o casco)
   if (MAPA_CAM === MAPAS.montanha) GELADA.pintarPedaco(g, P, esc, x0, y1, c.width, c.height);   // (Montanha Gelada: os patamares, as escadas, as fontes e o lago)
   // detalhes do chão: um ponto por célula de 0,8 m (os vizinhos também, para nada cortar na emenda)
   const C = MAPA_CAM === MAPAS.daiyu || MAPA_CAM === MAPAS.montanha ? 1e9 : 0.8;                     // (na Ilha de Daiyu, nenhum: o chão de baixo ficaria por cima dos platôs)
-  for (let ci = Math.floor((mx0 - 1) / C); ci <= Math.ceil((mx1 + 1) / C); ci++)
+  for (let ci = Math.floor((mx0 - 1) / C), nc = 0; ci <= Math.ceil((mx1 + 1) / C); ci++) {
+    if (++nc % 4 === 0 && corteChao(fatiado, "detalhes")) yield;                                          // (R236: de 4 em 4 colunas, na mesma ordem)
     for (let cj = Math.floor((my0 - 1) / C); cj <= Math.ceil((my1 + 1) / C); cj++) {
       const x = (ci + hash(ci, cj, 1)) * C, y = (cj + hash(ci, cj, 2)) * C;
       const [X, Y] = P(x, y);
       if (X < -esc || X > cw + esc || Y < -esc || Y > ch + esc) continue;      // (fora do pedaço, com a folga de 1 m)
       detalheChao(g, x, y, X, Y, esc, hash(ci, cj, 3), hash(ci, cj, 4));
     }
-  if (MAPA_CAM === MAPAS.vila1) altarPintar(g, P, esc, x0, y1, c.width, c.height);   // (R165: a ilha, a ponte, a escadaria e o patamar do Altar das Eras)
+  }
+  if (MAPA_CAM === MAPAS.vila1) { if (corteChao(fatiado, "altar")) yield; altarPintar(g, P, esc, x0, y1, c.width, c.height); }   // (R165: a ilha, a ponte, a escadaria e o patamar do Altar das Eras)
   pedacos.set(chave, c);
   // cabe o quanto der em ~60 MB: com zoom longe os pedaços são pequenos e cabem muitos
   const limite = Math.max(60, Math.min(400, Math.floor(120e6 / (c.width * c.height * 4))));
@@ -7555,6 +7627,7 @@ function desenharChao() {
     if (borda(mx, my) > RAIO + (MAPA_CAM === MAPAS.montanha ? 26 : PEDACO + 3) && !altarNoPedaco(mx, my)) continue;   // pedaço só de mar (na montanha, o patamar alto aparece bem acima do chão dele)
     let c = pedacos.get(faixa + ":" + i + "," + j);
     const naTela = i >= vi0 && i <= vi1 && j >= vj0 && j <= vj1;
+    if (!c && !naTela && pedacos.size && chaoFrenteLigado()) continue;   // (R236: fora da tela, quem pinta é o chaoFrente, com o orçamento dele)
     if (!c && !naTela && pedacos.size && PEDACO_AOS_POUCOS.ligado) { if (!aosPoucos) { aosPoucos = true; if (pedacoAosPoucos(i, j, faixa)) c = pedacos.get(faixa + ":" + i + "," + j); } if (!c) continue; }   // (fora da tela: um passo por quadro)
     if (!c && novos < PEDACOS_POR_QUADRO) { c = pedaco(i, j, faixa); novos++; }
     if (!c) {                                                           // ainda não pintado nesta faixa: o da faixa mais perto
@@ -7571,6 +7644,8 @@ function desenharChao() {
     cx.drawImage(c, W / 2 + (x0 - cu) * s, H / 2 - (y1 - cv0) * s * ACHATA, PEDACO * s + 0.6, PEDACO * s * ACHATA + 0.6);
   }
   if (CHAO_IMG.ligado) chaoImagem(s, faixa, cu, cv0);
+  if (!pausado && !(window.PREPARO && PREPARO.ativo)) rumoFrente();      // (o rumo do herói: o chão à frente, as construções e o mato)
+  if (chaoFrenteLigado()) { chaoFrente(faixa, cu, cv0); return; }   // (R236: o chão à frente do herói, com orçamento por quadro; ?chaofrente=1)
   // a cada 4 quadros sem pedaço novo: pinta um vizinho de fora da tela (andando, ele já está pronto quando aparecer)
   if (novos === 0 && ++quadrosLivres % 4 === 0) {
     for (let j = j1 + 1; j >= j0 - 1; j--) for (let i = i0 - 1; i <= i1 + 1; i++) {
@@ -7580,6 +7655,102 @@ function desenharChao() {
       pedacoAosPoucos(i, j, faixa); return;                               // (R209: aos poucos também)
     }
   }
+}
+// R236 (04/11, aprovado pelo usuário: "Pode fazer"; Logs/Desempenho/FPS_JOGO_TODO.md, rodada 9): o chão À FRENTE do herói. Andando
+// para fora da área preparada, os pedaços novos eram pintados 1 passo por quadro só quando já estavam na volta de 1 pedaço em
+// torno da tela (R209), e o que entrava na tela sem estar pronto era pintado de uma vez, no quadro em que aparecia. Agora, a cada
+// quadro, com um orçamento fixo (CHAO_FRENTE.orc ms de passos), os pedaços que vão entrar na vista são pintados antes, na ordem
+// em que vão aparecer: a vista de agora com a volta de 1 pedaço; depois a vista (com a volta) onde a câmera vai estar daqui a
+// 0,3 s, 0,6 s ... 2,8 s, pela velocidade do herói (a média dos últimos quadros); parado, a volta de 2 pedaços e a vista do zoom
+// 0,6 (o mais afastado). Os passos são os de sempre (pedacoPassos, agora mais miúdos: cada máscara, cada textura, o resto em
+// partes) e o pedaço sai igual byte a byte. A pintura de cada passo vai à GPU no fim do quadro em que foi feita (não no quadro em
+// que o pedaço entra na imagem única do R212). ?frente=0 desliga (o R209 de antes); no ?test=1, só com ?frente=1
+const CHAO_FRENTE = {
+  // (04/11: desligado por padrão. Medido contra o publicado: correndo, o chão passou de 4 ms em ~120 quadros na Vila 1 e ~265 na Hahoe
+  //  (o publicado: 0–2 e 62–75), e o JS do percurso subiu de 5,95 para 6,49 ms: pintar à frente pinta mais pedaços, e o último passo
+  //  de cada um (musgo, terra, tom e o resto juntos, para sair igual byte a byte) custa 5–12 ms. ?chaofrente=1 liga)
+  ligado: new URLSearchParams(location.search).get("chaofrente") === "1",
+  orc: 2.5, horiz: [0.3, 0.6, 1, 1.5, 2.1, 2.8], max: 70,
+  vx: 0, vy: 0, px: null, py: null, pt: 0, plano: [], k: 0, chave: "", tPlano: 0, um: null, custo: [], passoDe: new Map(), feitosQuadro: 0, feitos: [],
+  // (envio: o drawImage de 1 px de cada pedaço pronto num canvas à parte, para a pintura dele ir à GPU já nesse quadro. Medido: 0,3
+  //  a 0,5 ms, mas às vezes ~33 ms (o Chrome esperando a GPU para tirar a foto do canvas). Desligado: o Chrome manda a pintura de
+  //  cada canvas à GPU no fim do quadro em que ela foi feita, sem esperar)
+  envio: false, ref: [], refFeitos: new Map(),
+  passos: 0, prontos: 0, msQuadro: 0, msMax: 0, quadros: 0, msPlano: 0, msPasso: [0], msUm: 0,   // (as medidas: o pior plano, o pior passo [ms, nº, mapa], o pior envio)
+};
+// (o resto da rodada 9, ligado por padrão: as construções e as pontes que vão aparecer e o mato à frente; ?frente=0 desliga; no ?test=1, só com ?frente=1)
+const FRENTE_LIGADO = (() => { const q = new URLSearchParams(location.search).get("frente"); return q === "1" || (q !== "0" && !MODO_TESTE); })();
+function chaoFrenteLigado() { return CHAO_FRENTE.ligado && PEDACO_AOS_POUCOS.ligado && !pausado && !(window.PREPARO && PREPARO.ativo); }
+// (só mar, como em desenharChao: não se pinta)
+const pedacoSoMar = (i, j) => { const [mx, my] = daVista((i + 0.5) * PEDACO, (j + 0.5) * PEDACO); return borda(mx, my) > RAIO + (MAPA_CAM === MAPAS.montanha ? 26 : PEDACO + 3) && !altarNoPedaco(mx, my); };
+// a velocidade do herói (m/s, no mapa), a média dos últimos quadros; um salto (teleporte, portal) zera. Fica em CHAO_FRENTE.vx/vy:
+// o chão à frente, as construções e as pontes que vão aparecer e o mato usam
+function rumoFrente() {
+  const F = CHAO_FRENTE, agora = performance.now(), foco = editor.ativo ? editor.foco : viking;
+  if (F.px !== null) {
+    const dt = (agora - F.pt) / 1000;
+    if (dt > 0 && dt < 0.5) { const ix = (foco.x - F.px) / dt, iy = (foco.y - F.py) / dt;
+      if (Math.hypot(ix, iy) < 30) { const a = 1 - Math.exp(-dt / 0.3); F.vx += (ix - F.vx) * a; F.vy += (iy - F.vy) * a; } else F.vx = F.vy = 0; }
+  }
+  F.px = foco.x; F.py = foco.y; F.pt = agora;
+}
+function chaoFrente(faixa, cu, cv0) {
+  const F = CHAO_FRENTE, agora = performance.now();
+  // (para o teste R236: um pedaço pintado de uma vez aqui, no mesmo lugar do quadro em que o jogo de antes pintava os da tela)
+  if (F.ref.length) { const k = F.ref.shift(), [ff, ij] = k.split(":"), [i, j] = ij.split(",").map(Number); pedacos.delete(k); PEDACO_EM_CURSO.delete(k); F.refFeitos.set(k, pedaco(i, j, +ff)); }
+  // o plano: a lista dos pedaços que faltam, na ordem em que vão aparecer (refeito quando a câmera muda de pedaço, o rumo
+  // muda, o zoom muda ou a cada 250 ms)
+  const vel = Math.hypot(F.vx, F.vy), anda = vel > 0.6, [vu, vv] = anda ? naVista(F.vx, F.vy) : [0, 0];
+  const rumo = anda ? Math.round(Math.atan2(vv, vu) / (Math.PI / 8)) + ":" + Math.round(vel) : "p";
+  const chave = faixa + "|" + Math.floor(cu / PEDACO) + "|" + Math.floor(cv0 / PEDACO) + "|" + zoom + "|" + rumo + "|" + MAPA_CAM.id;
+  if (chave !== F.chave || agora - F.tPlano > 250) {
+    F.chave = chave; F.tPlano = agora; F.k = 0;
+    const l = [], vistos = new Set();
+    const vista = (uc, vc, z, volta, pri) => {
+      const s = PX * z, larg = W / s, alt = H / (s * ACHATA);
+      const i0 = Math.floor((uc - larg / 2) / PEDACO) - volta, i1 = Math.floor((uc + larg / 2) / PEDACO) + volta;
+      const j0 = Math.floor((vc - alt / 2) / PEDACO) - volta, j1 = Math.floor((vc + alt / 2) / PEDACO) + volta;
+      for (let j = j1; j >= j0; j--) for (let i = i0; i <= i1; i++) {
+        const k = faixa + ":" + i + "," + j; if (vistos.has(k)) continue; vistos.add(k);
+        if (pedacos.has(k) || pedacoSoMar(i, j)) continue;
+        l.push([i, j, pri + 1e-3 * Math.hypot((i + 0.5) * PEDACO - uc, ((j + 0.5) * PEDACO - vc) * ACHATA)]);
+      }
+    };
+    vista(cu, cv0, zoom, 1, 0);                                         // (a vista de agora e a volta de 1 pedaço: o que falta já)
+    if (anda) for (const t of F.horiz) vista(cu + vu * t, cv0 + vv * t, zoom, 1, t);
+    else { vista(cu, cv0, zoom, 2, 5); if (zoom > ZOOM_MIN_2D + 0.01) vista(cu, cv0, ZOOM_MIN_2D, 1, 6); }
+    F.plano = l.sort((a, b) => a[2] - b[2]).slice(0, F.max);
+    const dp = performance.now() - agora; if (dp > F.msPlano) F.msPlano = dp;
+  }
+  if (F.k >= F.plano.length) return;
+  // os passos, até o orçamento do quadro (o 1º sempre)
+  const t0 = performance.now(); F.feitosQuadro = 0;
+  if (F.passoDe.size > 64) F.passoDe.clear();
+  while (F.k < F.plano.length) {
+    const [i, j] = F.plano[F.k], ch = faixa + ":" + i + "," + j;
+    if (pedacos.has(ch)) { F.k++; continue; }
+    if (PEDACO_EM_CURSO.size >= 8 && !PEDACO_EM_CURSO.has(ch)) {          // (os começados que saíram do plano dão lugar)
+      const no = new Set(F.plano.slice(F.k).map(p => faixa + ":" + p[0] + "," + p[1]));
+      for (const q of PEDACO_EM_CURSO.keys()) if (!no.has(q)) { PEDACO_EM_CURSO.delete(q); break; }
+      if (PEDACO_EM_CURSO.size >= 8) break;
+    }
+    // (o próximo passo cabe no que sobra do orçamento? pelo custo do mesmo passo nos pedaços anteriores; o 1º do quadro sempre)
+    const np = F.passoDe.get(ch) || 0, prev = F.custo[np] || 1;
+    if (performance.now() - t0 > 0 && F.feitosQuadro && performance.now() - t0 + prev > F.orc) break;
+    const a = performance.now(), pronto = pedacoAosPoucos(i, j, faixa), dms = performance.now() - a;
+    if (dms > F.msPasso[0]) F.msPasso = [dms, np, MAPA_CAM.id];
+    F.custo[np] = F.custo[np] === undefined ? dms : F.custo[np] * 0.8 + dms * 0.2; F.passoDe.set(ch, np + 1); F.passos++; F.feitosQuadro++;
+    if (pronto) {
+      F.passoDe.delete(ch); F.prontos++; F.k++; F.feitos.push(ch); if (F.feitos.length > 60) F.feitos.shift();
+      const c = pedacos.get(ch);
+      if (c && F.envio) {                                               // (?: mandar a pintura dele à GPU já neste quadro; desligado, ver F.envio)
+        if (!F.um) { F.um = document.createElement("canvas"); F.um.width = F.um.height = 1; }
+        const a1 = performance.now(); F.um.getContext("2d").drawImage(c, 0, 0, 1, 1, 0, 0, 1, 1); const du = performance.now() - a1; if (du > F.msUm) F.msUm = du;
+      }
+    }
+    if (performance.now() - t0 >= F.orc) break;
+  }
+  const ms = performance.now() - t0; F.msQuadro = ms; F.quadros++; if (ms > F.msMax) F.msMax = ms;
 }
 // (R235, a preparação ao entrar no mapa) os pedaços que desenharChao usaria com o zoom z e a câmera de agora (a tela e a volta de
 // 1 pedaço), sem os só de mar, do meio da tela para fora: [i, j, faixa]. A faixa é a do zoom de agora (a que o chão vai desenhar)
@@ -8198,15 +8369,23 @@ function desenharPlanos(t) {
 // tabuleiro fica atrás do corrimão e quem está na margem da frente fica na frente dele
 const FRENTE_PONTE = new Map();
 function frenteDaPonte(o, v0, v, im, s, k) {
+  if (FRENTE_PONTE.has(im)) return FRENTE_PONTE.get(im);
+  const ger = frenteDaPontePassos(o, v0, v, im, s, k); let r; do r = ger.next(); while (!r.done);
+  return r.value;
+}
+// (R236: em passos de 24 colunas, a mesma conta; fonte = a imagem já decodificada fora da thread (createImageBitmap), quando a
+//  ponte é preparada antes de aparecer (frenteImagens). De uma vez, com a decodificação na hora: ~36 ms com a CPU dele)
+function* frenteDaPontePassos(o, v0, v, im, s, k, fonte = im) {
   const ch = im; if (FRENTE_PONTE.has(ch)) return FRENTE_PONTE.get(ch);
   const G = PONTE_GEO, w = im.width, h = im.height, c = document.createElement("canvas"); c.width = w; c.height = h;
-  const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(im, 0, 0);
+  const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(fonte, 0, 0);
   let d; try { d = g.getImageData(0, 0, w, h); } catch (e) { FRENTE_PONTE.set(ch, null); return null; }
   const px = d.data, vert = o.tipo === "ponte_v", q = s / k, R = q * Math.SQRT1_2, cis = vert ? G.cis : -G.cis;
   // (no desenho, sem o cisalhamento: x = PX ± ((l − dl) − (a − da))·R; y = PY − ((a − da) + (l − dl))·R·ACHATA − z·q·ALTURA − cis·(x − PX))
   const borda = (xs, l) => { const u = (xs - v.px) / R * (vert ? 1 : -1), a = (l - G.dl) + G.da - u;
     return v.py - ((a - G.da) + (l - G.dl)) * R * ACHATA - alturaPonte(a) * q * ALTURA - cis * (xs - v.px); };
   for (let xs = 0; xs < w; xs++) {
+    if (xs % 24 === 23) { yield; if (FRENTE_PONTE.has(ch)) return FRENTE_PONTE.get(ch); }   // (feita de uma vez no meio: vale a dela)
     const yf = borda(xs, -G.corr), yt = Math.max(yf - G.altCorr * q * ALTURA, borda(xs, G.corr) + 10);   // (acima de yt: o corrimão do fundo)
     for (let ys = 0; ys < h; ys++) {
       const i = (ys * w + xs) * 4, r = px[i], gg = px[i + 1], b = px[i + 2];
@@ -8308,6 +8487,35 @@ function montarCenario() {
 function linha(g, w) { g.strokeStyle = TINTA; g.lineWidth = w; g.lineJoin = "round"; g.lineCap = "round"; g.stroke(); }
 
 // ponto do mundo (x, y no chão, z de altura em m) na tela
+// R239 (04/11, bug do usuário: "arrume os efeitos quando voce esta no altar... eles estao aparecendo abaixo como se estivessem
+// bugados"). Os efeitos (as flechas, as magias, as marcas no chão, as brasas, as faíscas, os números e, nos efeitos 3D, cada ponto)
+// nasciam na altura do chão plano (z = 0) ou do chão EMBAIXO de cada ponto (zPiso no ponto, no FX3): no topo do Altar das Eras
+// (8 m) a flecha e o rastro dela apareciam ~540 px abaixo do herói (zoom 1), lá no mar e nas pedras, e o que passava da
+// balaustrada caía 8 m; nos patamares da Daiyu (até ~5 m), o mesmo. Agora a altura de base de um efeito no ponto (x, y) é a de
+// quem está perto dele: a média da altura do pé do herói e das criaturas a até 30 m dele, pesada por 1/(d² + 0,25), mais o chão
+// embaixo do ponto com o peso de quem está a 30 m. No chão plano (todos na mesma altura) dá a mesma altura de antes (0); perto do
+// herói no Altar, a do herói; a caminho de uma criatura lá embaixo, passa de uma à outra sem pular. ALTURA_FX.ligado = false: o
+// de antes (os efeitos 2D no chão plano e os 3D pelo chão embaixo de cada ponto)
+const ALTURA_FX = { ligado: true, q: -1, l: [], uni: null };
+function zEfeito(x, y) {
+  const R = ALTURA_FX;
+  if (R.q !== QUADRO_FX.n || !R.l.length) {
+    R.q = QUADRO_FX.n; R.l.length = 0; const v = typeof viking === "object" ? viking : null;
+    if (v) R.l.push([v.x, v.y, zPiso(v.x, v.y)]);
+    if (v && typeof criaturas !== "undefined") for (const c of criaturas) { if (c.morto || Math.abs(c.x - v.x) > 30 || Math.abs(c.y - v.y) > 30) continue; R.l.push([c.x, c.y, zPiso(c.x, c.y)]); if (R.l.length > 40) break; }
+    R.uni = R.l.length && R.l.every(e => Math.abs(e[2] - R.l[0][2]) < 1e-9) ? R.l[0][2] : null;
+  }
+  const zc = zPiso(x, y);
+  if (R.uni !== null && Math.abs(zc - R.uni) < 1e-9) return zc;          // (todos na mesma altura e o chão nela: a de antes, sem a conta)
+  let sw = 1 / 900, sz = zc / 900;
+  for (const e of R.l) { const dx = x - e[0], dy = y - e[1], w = 1 / (dx * dx + dy * dy + 0.25); sw += w; sz += w * e[2]; }
+  const z = sz / sw;
+  return Math.abs(z - zc) < 1e-9 ? zc : z;
+}
+const QUADRO_FX = { n: 0 };                                             // (conta os quadros: a lista de quem está perto, uma vez por quadro)
+// o ponto do efeito na tela: noMundo com a altura de base do efeito (zEfeito); ALTURA_FX desligado, o de antes
+function noMundoFx(x, y, z = 0) { return noMundo(x, y, z + (ALTURA_FX.ligado && !(window.M3D && M3D.ativo) ? zEfeito(x, y) : 0)); }
+const subirFx = (x, y) => ALTURA_FX.ligado && !(window.M3D && M3D.ativo) ? zEfeito(x, y) * PX * zoom * ALTURA : 0;   // (em px, para quem soma à mão)
 function noMundo(x, y, z = 0) { if (window.M3D && M3D.ativo) return M3D.noMundo(x, y, z); const [a, b] = tela(x - cam.x, y - cam.y); return [W / 2 + a, H / 2 + b - z * PX * zoom * ALTURA]; }
 // o viking está atrás deste retângulo da tela (então o que fica na frente dele fica translúcido)
 function cobreViking(x0, y0, x1, y1, ySul) { return cobreAlguem([x0, y0, x1, y1], ySul, quemSome); }
@@ -8368,9 +8576,27 @@ function vegDa(ci, cj) {
     }
     if (v) { v.pl = 0; v.vl = 0; v.pf = 0; v.vf = 0; v.tl = 0; v.tf = 0; v.ci = ci; v.cj = cj; v.alto = v.tipo === "capim" || v.tipo === "samambaia"; }
   }
-  if (vegCache.size > 40000) { vegCache.clear(); vegAtivas.clear(); VEG_CACHE_VEZ++; }
+  if (vegCache.size > 40000) { if (VEG_GPU.frente) vegPodar(); else { vegCache.clear(); vegAtivas.clear(); VEG_CACHE_VEZ++; } }   // (?frente=0: a limpeza de antes)
   vegCache.set(k, v);
   return v;
+}
+// R236 (rodada 9): o cache cheio era limpo inteiro, e o buffer do mato que estava sendo montado aos poucos (R216) deixava de valer
+// (VEG_CACHE_VEZ): correndo com o zoom 0,6, o quadro seguinte montava o buffer inteiro de uma vez, com todas as células novas
+// (~66 ms com a CPU do usuário, medido). Agora, cheio (40.000), saem as 12.000 células mais antigas (o Map guarda a ordem em que
+// entraram: as de onde o herói passou há mais tempo) que não estão perto da câmera (48 m) nem na caixa do buffer de agora, na do
+// que está sendo montado ou na do que se monta de uma vez; só se ainda sobrarem demais, a limpeza de antes
+let vegMontando = null;
+function vegPodar() {
+  const G = typeof VEG_GPU === "object" ? VEG_GPU : null, caixas = [G && G.caixa, G && G.prox && G.prox.caixa, vegMontando].filter(Boolean);
+  const ic = cam.x / VEG_C, jc = cam.y / VEG_C, R = 48 / VEG_C;
+  let saiu = 0, vistos = 0;
+  for (const [k, v] of vegCache) {
+    if (saiu >= 12000 || ++vistos > 30000) break;
+    const ci = Math.floor(k / 4194304) - 1048576, cj = k % 4194304 - 2097152;
+    if ((Math.abs(ci - ic) < R && Math.abs(cj - jc) < R) || caixas.some(c => ci >= c[0] && ci <= c[1] && cj >= c[2] && cj <= c[3])) continue;
+    vegCache.delete(k); if (v) vegAtivas.delete(v); saiu++;
+  }
+  if (vegCache.size > 36000) { vegCache.clear(); vegAtivas.clear(); VEG_CACHE_VEZ++; }
 }
 // quanto o vento empurra as pontas aqui (para a direita; negativo volta)
 function vento(x, y, t) {
@@ -8607,7 +8833,8 @@ function vegGLPintar(cels, t, s) {
 // senos do tempo (uniformes) e, por touceira, o empurrão (pl, pf) e se ela está na lista da profundidade (vegPerto). O shader faz
 // a mesma conta de vegMatriz (vento, inclinação, achatamento) e a projeção da tela. O buffer é refeito quando a vista sai da
 // caixa, o zoom ou a estação mudam. Com VEG_GPU.ligado = false (ou sem o programa), o caminho de antes (vegGLPintar)
-const VEG_GPU = { ligado: true, ok: null, chave: "", caixa: null, cels: [], n: 0, din: new Float32Array(0), prox: null, aosPoucos: true, montagens: 0, trocas: 0 };
+const VEG_GPU = { ligado: true, ok: null, chave: "", caixa: null, cels: [], n: 0, din: new Float32Array(0), prox: null, aosPoucos: true, montagens: 0, trocas: 0,
+  frente: CHAO_FRENTE.ligado, orc: 0.7 };   // (04/11: junto com o chão à frente, desligado por padrão: com ele o pior quadro do mato não caiu os 40% do R216)                                              // (R236: o seguinte começa antes e vai à frente; ?frente=0 é o de antes)
 function vegGpuIniciar() {
   if (!VEGGL.ok) return false;
   const gl = VEGGL.gl, sh = (tipo, fonte) => { const o = gl.createShader(tipo); gl.shaderSource(o, fonte); gl.compileShader(o); return o; };
@@ -8645,20 +8872,39 @@ precision mediump float; in vec2 uv; uniform sampler2D tx; out vec4 o; void main
 }
 // monta o buffer das células da caixa (com folga), na ordem da profundidade. Em passos (R216): uma fileira de células por
 // passo, a ordem num passo e os dados em lotes de 1.024 touceiras; vegGpuMontar faz tudo de uma vez
+// (R236: passos mais miúdos, de no máximo 32 células; a ordem pela profundidade sai de uma ordenação estável por fileira e da
+//  intercalação estável das fileiras, de 2.048 em 2.048: a mesma ordem da ordenação estável da lista inteira de antes, que era
+//  um passo só de 3 a 5 ms com a CPU dele)
 function* vegGpuMontarPassos(est, A, i0, i1, j0, j1) {
-  const cels = [];
+  const corridas = [];
   for (let j = j1; j >= j0; j--) {
+    const fil = [];
     for (let i = i0; i <= i1; i++) {
+      if (((i - i0) & 31) === 31) yield;
       const v = vegDa(i, j); if (!v) continue;
       if (est === 3 && !v.alto) continue;
       if (est === 2 && v.tipo === "flor" && (v.ci + v.cj) % 3) continue;
       if (!A.quadros[v.tipo][v.q]) continue;
       if (v.pv === undefined) v.pv = profV(v.x, v.y);
-      cels.push(v);
+      fil.push(v);
     }
+    if (fil.length) { fil.sort((a, b) => b.pv - a.pv); corridas.push(fil); }
     yield;
   }
-  cels.sort((a, b) => b.pv - a.pv); yield;
+  let rs = corridas, z0 = 0;
+  while (rs.length > 1) {
+    const nx = [];
+    for (let q = 0; q < rs.length; q += 2) {
+      if (q + 1 === rs.length) { nx.push(rs[q]); break; }
+      const a = rs[q], b = rs[q + 1], o = new Array(a.length + b.length); let x = 0, y = 0, z = 0;
+      while (x < a.length && y < b.length) { o[z++] = b[y].pv > a[x].pv ? b[y++] : a[x++]; if (++z0 % 2048 === 0) yield; }   // (empate: a da esquerda antes)
+      while (x < a.length) o[z++] = a[x++];
+      while (y < b.length) o[z++] = b[y++];
+      nx.push(o);
+    }
+    rs = nx;
+  }
+  const cels = rs[0] || []; yield;
   const n = cels.length, D = new Float32Array(n * 20);
   for (let k = 0; k < n; k++) {
     const v = cels[k], qd = A.quadros[v.tipo][v.q], o = k * 20, b1 = v.x * 0.45 + v.y * 0.28, b2 = v.x * 1.3 - v.y * 0.7, b3 = v.x * 0.06 - v.y * 0.03, b4 = v.x * 3;
@@ -8679,8 +8925,10 @@ function vegGpuUsar(r) {
   G.cels = r.cels; G.n = n; G.caixa = r.caixa;
 }
 function vegGpuMontar(est, A, i0, i1, j0, j1) {
-  const g = vegGpuMontarPassos(est, A, i0, i1, j0, j1); let r; do r = g.next(); while (!r.done);
-  vegGpuUsar(r.value); VEG_GPU.montagens++;
+  vegMontando = [i0, i1, j0, j1];
+  try { const g = vegGpuMontarPassos(est, A, i0, i1, j0, j1); let r; do r = g.next(); while (!r.done); vegGpuUsar(r.value); }
+  finally { vegMontando = null; }
+  VEG_GPU.montagens++;
 }
 function vegGpuPintar(t, s, mx0, mx1, my0, my1) {
   if (!VEG_GPU.ligado || !VEGGL.ok || (window.M3D && M3D.ativo)) return false;
@@ -8698,10 +8946,19 @@ function vegGpuPintar(t, s, mx0, mx1, my0, my1) {
     // montado aos poucos (até ~0,7 ms por quadro) e troca quando fica pronto, antes de a vista sair da caixa. Era montado
     // inteiro no quadro em que a vista saía (~6 ms aqui, ~15 ms com a CPU do usuário). O desenho é o mesmo: a caixa só
     // decide quais touceiras fora da tela vão no buffer, e a ordem das da tela não muda
-    if (!G.prox && (i0 - c[0] < f / 2 || c[1] - i1 < f / 2 || j0 - c[2] < f / 2 || c[3] - j1 < f / 2))
-      G.prox = { g: vegGpuMontarPassos(est, A, i0 - f, i1 + f, j0 - f, j1 + f), chave, vez: VEG_CACHE_VEZ };
+    // R236 (rodada 9): andando, o seguinte começa antes (a sobra NA DIREÇÃO em que o herói anda abaixo da folga inteira, e não da
+    // metade) e a caixa dele vai até meia folga para a frente (a vista continua dentro dela); o orçamento é VEG_GPU.orc ms. Com
+    // o zoom 0,6 correndo, o de antes não ficava pronto a tempo e o buffer era montado inteiro num quadro (~66 ms com a CPU dele).
+    // (VEG_GPU.orc: 0,7 ms, o de sempre; com 1,2 o pior quadro do mato ficou acima dos 60% do R216)
+    const fr = typeof CHAO_FRENTE === "object" && VEG_GPU.frente ? CHAO_FRENTE : null, vx = fr ? fr.vx : 0, vy = fr ? fr.vy : 0;
+    const sobra = Math.min(vx > 0.6 ? c[1] - i1 : vx < -0.6 ? i0 - c[0] : 1e9, vy > 0.6 ? c[3] - j1 : vy < -0.6 ? j0 - c[2] : 1e9);
+    if (!G.prox && (i0 - c[0] < f / 2 || c[1] - i1 < f / 2 || j0 - c[2] < f / 2 || c[3] - j1 < f / 2 || sobra < f)) {
+      const h = Math.floor(f / 2), si = Math.max(-h, Math.min(h, Math.round(vx * 0.5 / VEG_C))), sj = Math.max(-h, Math.min(h, Math.round(vy * 0.5 / VEG_C)));
+      const b = fr ? [i0 - f + si, i1 + f + si, j0 - f + sj, j1 + f + sj] : [i0 - f, i1 + f, j0 - f, j1 + f];
+      G.prox = { g: vegGpuMontarPassos(est, A, ...b), chave, vez: VEG_CACHE_VEZ, caixa: b };
+    }
     if (G.prox) {
-      const t0 = performance.now(); let r; do r = G.prox.g.next(); while (!r.done && performance.now() - t0 < 0.7);
+      const t0 = performance.now(), orc = fr ? G.orc : 0.7; let r; do r = G.prox.g.next(); while (!r.done && performance.now() - t0 < orc);
       if (r.done) { const q = G.prox, b = r.value.caixa; G.prox = null;
         if (q.chave === chave && q.vez === VEG_CACHE_VEZ && i0 >= b[0] && i1 <= b[1] && j0 >= b[2] && j1 <= b[3]) { vegGpuUsar(r.value); G.trocas++; } }
     }
@@ -9463,12 +9720,14 @@ function predImg(arq) {
 }
 // a máscara de opacidade de uma camada (1/8 da resolução), para saber se ela cobre alguém de verdade
 const PRED_MASC = {};
-function predMascara(im, arq0) {
+// (R236: fonte = a mesma imagem já decodificada fora da thread, createImageBitmap, quando a máscara é feita antes de a construção
+//  aparecer: frenteImagens. Desenhar a <img> num canvas da CPU decodificava a camada inteira na hora: 15 a 19 ms com a CPU dele)
+function predMascara(im, arq0, fonte = im) {
   const arq = arq0 + "@" + im.naturalWidth;                          // (a metade e a cheia têm cada uma a sua)
   if (PRED_MASC[arq] !== undefined) return PRED_MASC[arq];
   try {
     const w = Math.max(1, Math.ceil(im.naturalWidth / 8)), h = Math.max(1, Math.ceil(im.naturalHeight / 8)), c = document.createElement("canvas");
-    c.width = w; c.height = h; const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(im, 0, 0, w, h);
+    c.width = w; c.height = h; const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(fonte, 0, 0, w, h);
     const d = g.getImageData(0, 0, w, h).data, m = new Uint8Array(w * h);
     for (let i = 0; i < w * h; i++) m[i] = d[i * 4 + 3] > 140 ? 1 : 0;
     return (PRED_MASC[arq] = { w, h, m, k: w / im.naturalWidth });
@@ -13232,6 +13491,7 @@ function usarPocaoDe(tipo, chave) {
 function usarPocao(chave) { return usarPocaoDe("vida", chave); }
 // o golpe de uma criatura no personagem: a força dela, menos a defesa
 function golpeNoPersonagem(l) {
+  if (typeof CHEGADA === "object" && CHEGADA.aberta) return false;       // (a chegada do aprendiz aberta: o herói não leva golpe)
   if (status.bloqueio && Math.random() < status.bloqueio) {             // o escudo segurou o golpe
     numeros.push({ wx: viking.x, wy: viking.y, y: -150, vida: 0.9, txt: "Bloqueou!", contra: true }); som("metal", viking, 0.8);
     return false;
@@ -14313,6 +14573,7 @@ function posicionarJanela(j) {
   Object.assign(el.style, { position: "fixed", left: x + "px", top: y + "px", right: "auto", bottom: "auto", transform: "none", margin: "0", zIndex: "3" });
   if (["npcJan", "ferreiro", "janelas", "questsJan", "admin"].includes(j.id)) el.style.maxHeight = Math.max(200, innerHeight - y - 92 - 32) + "px";   // (R220: arrastada, cabe até a barra de baixo)
   if (j.id === "bolsa" || j.id === "armazem") realinharGrades();                     // (a grade de novo em pixel inteiro)
+  if (typeof guiaDesviar === "function") guiaDesviar();                              // (R238: arrastada para cima do guia)
 }
 function aplicarJanelas() {
   for (const j of JANELAS) {
@@ -14794,7 +15055,9 @@ function montarNpcs() {
   }
   setInterval(atualizarMissao, 700);                                 // (o objetivo embaixo do minimapa)
   $("#npcFechar").onclick = () => abrirNpc(null);
-  $("#npcMais").onclick = () => { if (!npcAberto) return; npcAberto.fala = (npcAberto.fala + 1) % npcAberto.dados.falas.length; desenharNpc(); };
+  $("#npcMais").onclick = () => { if (!npcAberto) return;
+    if (npcAberto.chegada) { if (npcAberto.fala >= npcAberto.dados.falas.length - 1) { abrirNpc(null); return; } npcAberto.fala++; desenharNpc(); return; }   // (a chegada do aprendiz: Continuar, no fim Entendi)
+    npcAberto.fala = (npcAberto.fala + 1) % npcAberto.dados.falas.length; desenharNpc(); };
   $("#npcLoja").addEventListener("pointermove", e => { const l = e.target.closest(".item-loja"); mostrarDica(l && l._item, e.clientX, e.clientY, l ? { preco: l._preco } : undefined); });
   $("#npcLoja").addEventListener("pointerleave", () => mostrarDica(null));
   $("#npcLoja").onclick = e => {
@@ -14812,12 +15075,18 @@ function montarNpcs() {
 }
 function abrirNpc(o) {
   if (o && o.dados.armazem) { abrirArmazem(true); return; }               // o Senhor do Armazém abre o armazém direto
+  if (npcAberto && npcAberto.chegada && npcAberto !== o) chegadaFechou();   // (a chegada do aprendiz fechando: o jogo volta)
+  if (!o) $("#npcMais").textContent = "Conversar mais";
   npcAberto = o; $("#npcJan").hidden = !o; janelaAbriu("npcJan", !!o);
   if (!o && $("#npcVenda")) { $("#npcVenda").remove(); vendaPendente = null; }
   if (o) { $("#npcResultado").hidden = true; abrirFerreiro(false); desenharNpc(); if (o.dados.loja && o.dados.loja.length) abrirBolsa(true); }   // (a loja abre a bolsa junto, como no Metin2)
 }
 function desenharNpc() {
   const o = npcAberto; if (!o) return;
+  if (o.chegada) {                                                         // (a chegada do aprendiz: o narrador, sem aspas nem loja)
+    $("#npcNome").textContent = o.dados.titulo; $("#npcFala").textContent = o.dados.falas[o.fala]; $("#npcLoja").innerHTML = "";
+    const b = $("#npcMais"); b.hidden = false; b.textContent = o.fala >= o.dados.falas.length - 1 ? "Entendi" : "Continuar"; return;
+  }
   if (o.estatua) return desenharFichaEstatua(o);                         // (R166: a ficha de uma estátua do altar)
   const n = o.dados;
   $("#npcNome").textContent = n.titulo || n.nome;
@@ -16037,8 +16306,10 @@ function ordemMissoes() {
 // aceitar uma missão (pela carta ou pelo NPC): ela passa a ser a acompanhada
 function aceitarMissao(id) {
   const M = MISSOES[id], s = estadoMissao(id); if (!M || s.etapa >= 0) return;
+  if (ehCacada(id) && cacadasAbertas().length >= CACADAS_MAX) { avisar(AVISO_CACADAS); return false; }   // (no máximo 3 caçadas abertas)
+  const dc = M.carta && dicaCartaEstado(); if (dc) dc.n++;                 // (R237: a dica vale até a 2ª quest de nível aceita)
   s.etapa = 0; s.n = 0; s.carta = 2; prog.missaoVista = id; salvarProgresso(); som("missao", null, 0.7);
-  avisarLongo(`Nova missão: ${M.nome}. ${M.etapas[0].alvo}`); atualizarMissao(); desenharCartas();
+  avisarLongo(`Nova missão: ${M.nome}. ${M.etapas[0].alvo}`); atualizarMissao(); desenharCartas(); dicaCarta();   // (R237: a seta some depois da 2ª)
 }
 // a marca na placa do NPC: "!" (tem missão para dar) ou "?" (a missão em andamento espera por ele)
 function marcaMissao(nome) {
@@ -16073,6 +16344,29 @@ function atualizarMissao() {
   const el = $("#missaoAtual"); if (!el) return;
   const t = textoMissao(); if (el.textContent !== t) el.textContent = t;
   el.hidden = !t;
+  desenharCacadasLista(t);
+}
+// (04/11, o usuário: as caçadas de nível, as quests de matar monstros que vêm no pergaminho e têm o botão Entregar, listadas no canto
+// direito como a quest ativa, com o progresso; só as aceitas; no máximo CACADAS_MAX abertas: com elas, o Aceitar de outra fica
+// bloqueado com um aviso; entregue, ela sai da lista). O estado é o das missões (prog.missoes: o save local e o da nuvem)
+const CACADAS_MAX = 3, AVISO_CACADAS = "Você já tem 3 caçadas abertas. Entregue uma para aceitar outra.";
+const ehCacada = id => !!(MISSOES[id] && entregaNoPergaminho(id));
+function cacadasAbertas() { return prog && missoesAtivas() ? Object.keys(MISSOES).filter(id => ehCacada(id) && !!etapaAtual(id)) : []; }
+let cacadasAssinatura = "";
+function desenharCacadasLista(tPrincipal = "") {
+  const box = $("#cacadasLista"); if (!box) return;
+  const l = cacadasAbertas().map(id => { const M = MISSOES[id], s = estadoMissao(id), e = etapaAtual(id), fim = fimDaQuest(id) === "receber";
+    const tot = M.etapas.slice(0, -1).reduce((a, q) => a + (q.qtd || 1), 0), feitas = M.etapas.slice(0, Math.min(s.etapa, M.etapas.length - 1)).reduce((a, q) => a + (q.qtd || 1), 0) + (fim ? 0 : s.n || 0);
+    return { id, nome: M.nome, fim, prog: fim ? `${tot}/${tot}` : `${Math.min(feitas, tot)}/${tot}`, alvo: e && e.matar ? e.alvo : "" }; });
+  const sig = l.map(q => q.id + ":" + q.prog + ":" + q.fim).join("|");
+  if (sig === cacadasAssinatura && box.hidden === !l.length) return;
+  cacadasAssinatura = sig; box.innerHTML = "";
+  for (const q of l) {
+    const d = document.createElement("div"); d.className = "lugar missao" + (q.fim ? " pronta" : ""); d.dataset.cacada = q.id;
+    d.textContent = `◆ ${q.nome}${q.fim ? ": pronta, entregue no pergaminho" : ""} `; const b = document.createElement("b"); b.textContent = q.prog; d.appendChild(b);
+    d.title = q.fim ? ALVO_PERGAMINHO : q.alvo; box.appendChild(d);
+  }
+  box.hidden = !l.length;
 }
 // onde fica o objetivo de agora: a criatura viva mais perto com o nome da etapa (ou o lugar dela; ondeH é um ponto local
 // da Vila Hahoe), o portal do mapa da etapa "chegar", o NPC com quem falar
@@ -16373,7 +16667,9 @@ function desenharCartas() {
       }`;
     document.head.appendChild(st);
     box = document.createElement("div"); box.id = "cartas"; box.setAttribute("aria-label", "Cartas de missão"); document.body.appendChild(box);
-    box.onclick = e => { const b = e.target.closest("[data-carta]"); if (b) { e.stopPropagation(); abrirCarta(b.dataset.carta); } };
+    box.onclick = e => { const b = e.target.closest("[data-carta]"); if (b) { e.stopPropagation();
+      const dc = dicaCartaEstado(); if (dc && !dc.cl.includes(b.dataset.carta)) { dc.cl.push(b.dataset.carta); salvarProgresso(); }   // (R237: a seta deste pergaminho não volta)
+      abrirCarta(b.dataset.carta); } };
     for (const ev of ["pointerdown", "mousedown"]) box.addEventListener(ev, e => e.stopPropagation());
   }
   // (as quests concluídas vêm primeiro: o limite da coluna nunca esconde um pergaminho de entrega)
@@ -16390,6 +16686,7 @@ function desenharCartas() {
     const c = document.createElement("canvas"); c.width = 44; c.height = 50; pintarPergaminho(c);
     b.appendChild(c); box.appendChild(b);
   }
+  dicaCarta();                                                          // (R237: a seta no 1º pergaminho de quest de nível)
 }
 const textoPremio = p => [p.exp ? `${p.exp.toLocaleString("pt-BR")} exp` : "", p.yang ? `${p.yang.toLocaleString("pt-BR")} Yang` : "",
   ...(p.itens || []).map(([c, q]) => (q > 1 ? `${q} × ` : "") + tipoItem(chaveDaClasse(c)).nome)].filter(Boolean).join(", ");
@@ -16457,11 +16754,81 @@ function abrirCarta(id) {
       j.querySelector("#cartaDe").textContent = `Carta de ${M.npc}, ${M.onde || ""} · ${M.tipo || ""}`;
       j.querySelector("#cartaTexto").textContent = M.oferta;
       j.querySelector("#cartaObj").textContent = `◆ ${M.etapas[0].alvo}`;
+      if (ehCacada(id) && cacadasAbertas().length >= CACADAS_MAX) { aceitar.disabled = true; aviso.hidden = false; aviso.textContent = AVISO_CACADAS; }   // (no máximo 3 caçadas abertas)
     }
   }
   j.hidden = false; janelaAbriu("cartaJan", true);
+  dicaCarta();                                                          // (R237: o Aceitar destacado nas primeiras)
 }
-function fecharCarta() { const j = document.getElementById("cartaJan"); if (j) { j.hidden = true; janelaAbriu("cartaJan", false); } cartaAberta = null; }
+function fecharCarta() { const j = document.getElementById("cartaJan"); if (j) { j.hidden = true; janelaAbriu("cartaJan", false); } cartaAberta = null; dicaCarta(); }
+// R237 (04/11, pedido do usuário: "nas primeiras quests que aparecerem de nível com o pergaminho, coloque algo apontando para ele...
+// para a pessoa identificar na primeira vez e ressalte o 'aceitar'"). Até o personagem aceitar a 1ª e a 2ª quest de nível: uma
+// seta de pincel (nanquim e cinabre, desenhada por código) pulsando ao lado do pergaminho, com o quadrinho "Uma quest nova!
+// Clique no pergaminho"; com a carta aberta, o Aceitar brilha (contorno de cinabre pulsando) e a seta aponta para ele. A seta do
+// pergaminho some ao clicar nele e não volta para aquela quest. Guardado no save do personagem (prog.dicaCarta = { n: quantas
+// aceitou com a dica, cl: as cartas já clicadas }); um save antigo que já aceitou alguma quest de nível não vê a dica. A seta e o
+// quadrinho não pegam o clique (pointer-events: none): nunca tapam um botão
+function dicaCartaEstado() {
+  if (!prog || !missoesAtivas() || (typeof CHEGADA === "object" && CHEGADA.aberta)) return null;
+  if (!prog.dicaCarta) {
+    const aceitas = Object.keys(MISSOES).filter(id => MISSOES[id].carta && (estadoMissao(id).etapa >= 0 || estadoMissao(id).carta === 2)).length;
+    prog.dicaCarta = { n: aceitas ? 2 : 0, cl: [] }; salvarProgresso();
+  }
+  return prog.dicaCarta.n < 2 ? prog.dicaCarta : null;
+}
+function desenharSetaDica(c) {                                         // (a seta de pincel apontando para a esquerda)
+  const g = c.getContext("2d"), w = c.width, h = c.height;
+  g.clearRect(0, 0, w, h); g.lineJoin = "round"; g.lineCap = "round";
+  g.beginPath(); g.moveTo(w * 0.06, h * 0.5); g.lineTo(w * 0.42, h * 0.1); g.quadraticCurveTo(w * 0.44, h * 0.3, w * 0.4, h * 0.34);
+  g.quadraticCurveTo(w * 0.72, h * 0.3, w * 0.95, h * 0.38); g.quadraticCurveTo(w * 0.9, h * 0.52, w * 0.96, h * 0.64);
+  g.quadraticCurveTo(w * 0.7, h * 0.7, w * 0.4, h * 0.66); g.quadraticCurveTo(w * 0.45, h * 0.72, w * 0.42, h * 0.9); g.closePath();
+  g.fillStyle = "#B8322A"; g.fill(); g.lineWidth = 2.6; g.strokeStyle = "#1E1B18"; g.stroke();
+  g.beginPath(); g.moveTo(w * 0.5, h * 0.42); g.quadraticCurveTo(w * 0.7, h * 0.4, w * 0.86, h * 0.45); g.lineWidth = 1.6; g.strokeStyle = "rgba(244, 230, 194, 0.75)"; g.stroke();
+}
+function dicaCarta() {
+  let d = document.getElementById("dicaCarta");
+  const est = dicaCartaEstado(), j = document.getElementById("cartaJan"), aceitar = j && document.getElementById("cartaAceitar");
+  const aberta = !!(j && !j.hidden && cartaAberta && MISSOES[cartaAberta] && MISSOES[cartaAberta].carta && !fimDaQuest(cartaAberta));
+  const alvoAceitar = est && aberta && aceitar && !aceitar.hidden && !aceitar.disabled ? aceitar : null;
+  let alvoCarta = null;
+  if (est && !(j && !j.hidden) && !SEL.aberta) for (const b of document.querySelectorAll("#cartas [data-carta]")) {
+    const id = b.dataset.carta; if (!MISSOES[id] || !MISSOES[id].carta || fimDaQuest(id) || est.cl.includes(id)) continue; alvoCarta = b; break; }
+  if (aceitar) aceitar.classList.toggle("dica", !!alvoAceitar);
+  if (!alvoAceitar && !alvoCarta) { if (d) d.hidden = true; return; }
+  if (!d) {
+    const st = document.createElement("style");
+    st.textContent = `#dicaCarta { position: fixed; z-index: 60; pointer-events: none; display: flex; align-items: center; gap: 4px; }
+      #dicaCarta canvas { width: 56px; height: 34px; animation: dicaSeta 0.9s ease-in-out infinite alternate; filter: drop-shadow(0 2px 3px rgba(12, 10, 8, 0.45)); }
+      #dicaCarta.dir { flex-direction: row-reverse; } #dicaCarta.dir canvas { transform: scaleX(-1); animation-name: dicaSetaDir; }
+      #dicaCarta .dica-txt { max-width: 190px; padding: 5px 9px; font: 600 13.5px/1.3 var(--b-texto, serif); color: #1E1B18; background: #F4E6C2; border: 2px solid #1E1B18; border-radius: 3px;
+        box-shadow: 3px 3px 0 #B8322A; white-space: normal; }
+      #dicaCarta .dica-txt b { color: #8E2721; }
+      @keyframes dicaSeta { from { transform: translateX(0); opacity: 0.85; } to { transform: translateX(-7px); opacity: 1; } }
+      @keyframes dicaSetaDir { from { transform: scaleX(-1) translateX(0); opacity: 0.85; } to { transform: scaleX(-1) translateX(-7px); opacity: 1; } }
+      #cartaAceitar.dica { position: relative; outline: 2px solid #B8322A; outline-offset: 2px; animation: dicaAceitar 0.9s ease-in-out infinite alternate; }
+      @keyframes dicaAceitar { from { box-shadow: 0 0 0 rgba(184, 50, 42, 0); outline-color: #B8322A; } to { box-shadow: 0 0 16px 3px rgba(243, 207, 90, 0.95); outline-color: #F3CF5A; } }`;
+    document.head.appendChild(st);
+    d = document.createElement("div"); d.id = "dicaCarta"; d.setAttribute("aria-hidden", "true");
+    const c = document.createElement("canvas"); c.width = 112; c.height = 68; desenharSetaDica(c);
+    const t = document.createElement("div"); t.className = "dica-txt";
+    d.append(c, t); document.body.appendChild(d);
+    addEventListener("resize", () => dicaCarta());
+  }
+  const t = d.querySelector(".dica-txt");
+  d.hidden = false;
+  if (!alvoAceitar && cruzaRect(alvoCarta.getBoundingClientRect(), janelasAbertasRects())) { d.hidden = true; return; }   // (R238: o pergaminho embaixo de uma janela)
+  if (alvoAceitar) {                                                    // (à esquerda do Aceitar, apontando para a direita)
+    d.className = "dir"; t.hidden = true;
+    const r = alvoAceitar.getBoundingClientRect();
+    d.style.left = Math.max(2, r.left - 64) + "px"; d.style.top = Math.round(r.top + r.height / 2 - 17) + "px";
+  } else {                                                              // (à direita do pergaminho, apontando para ele)
+    d.className = ""; t.hidden = false;
+    if (t.dataset.v !== "1") { t.innerHTML = "<b>Uma quest nova!</b> Clique no pergaminho"; t.dataset.v = "1"; }
+    const r = alvoCarta.getBoundingClientRect();
+    d.style.left = Math.round(r.right + 6) + "px"; d.style.top = Math.round(r.top + r.height / 2 - 17) + "px";
+  }
+  if (cruzaRect(d.getBoundingClientRect(), janelasAbertasRects(alvoAceitar ? "cartaJan" : null))) d.hidden = true;   // (R238: nunca por cima de uma janela)
+}
 // ---- o menu das quests ativas (tecla Q, R131): só redesenha quando algo muda
 let questsAssinatura = "";
 function linhasQuests() {
@@ -17643,6 +18010,7 @@ function abrirBolsa(sim = $("#bolsa").hidden) {
   if (typeof janelasSalvas === "object") { janelasSalvas.bolsa = { ...(janelasSalvas.bolsa || {}), aberta: sim }; salvarJanelas(); posicionarJanela(JANELAS[7]); }
   if (sim && editor.ativo) editorAbrir(false);
   if (sim) desenharBolsa();
+  guiaDesviar(); if (typeof dicaCarta === "function") dicaCarta();       // (R238)
 }
 function desenharBolsa() {
   if (!prog || $("#bolsa").hidden) return;
@@ -17841,6 +18209,38 @@ function iconeDrop(d) {
   const im = ICONES_ITEM[k];
   return im && (im instanceof HTMLCanvasElement || (im.complete && im.naturalWidth)) ? im : null;
 }
+// (04/11, o usuário: "quando um item cai no chão, deve subir dele uma faixa vertical de luz na cor da raridade, um iluminado
+// esvoaçante") o feixe de cada drop: uma faixa de luz somada (sem contorno, como os efeitos), que ondula devagar, com 3 partículas
+// leves subindo; os comuns bem discretos, os raros (dropRaro) mais fortes e mais altos. Fica enquanto o item está no chão e sai com
+// ele. O desenho são duas imagens prontas por cor (a faixa e o ponto), na lista da profundidade: vão no lote WebGL2 (o "lighter"
+// somado), sem conta por pixel; cada drop custa 4 drawImage. No ?test=1, só o estado (sem desenho)
+const FEIXE = { l: [], spr: {}, criados: 0, removidos: 0 };
+function feixeSprites(cor) {
+  let S = FEIXE.spr[cor]; if (S) return S;
+  const b = document.createElement("canvas"); b.width = 32; b.height = 160; const g = b.getContext("2d");
+  const gh = g.createLinearGradient(0, 0, 32, 0); gh.addColorStop(0, `rgba(${cor}, 0)`); gh.addColorStop(0.5, `rgba(${cor}, 1)`); gh.addColorStop(1, `rgba(${cor}, 0)`);
+  g.fillStyle = gh; g.fillRect(0, 0, 32, 160);
+  g.fillStyle = "rgba(255, 255, 255, 0.55)"; g.fillRect(14, 0, 4, 160);                   // (o miolo mais claro)
+  g.globalCompositeOperation = "destination-in"; const gv = g.createLinearGradient(0, 0, 0, 160); gv.addColorStop(0, "rgba(0,0,0,0)"); gv.addColorStop(0.55, "rgba(0,0,0,0.55)"); gv.addColorStop(1, "rgba(0,0,0,1)");
+  g.fillStyle = gv; g.fillRect(0, 0, 32, 160);
+  const p = document.createElement("canvas"); p.width = p.height = 16; const q = p.getContext("2d"), gr = q.createRadialGradient(8, 8, 0, 8, 8, 8);
+  gr.addColorStop(0, "rgba(255, 255, 255, 1)"); gr.addColorStop(0.35, `rgba(${cor}, 0.9)`); gr.addColorStop(1, `rgba(${cor}, 0)`); q.fillStyle = gr; q.fillRect(0, 0, 16, 16);
+  return (FEIXE.spr[cor] = S = { b, p });
+}
+function feixeDrop(d, X, Y0, u, k, t, cor) {
+  if (!d.feixe) { d.feixe = { fase: Math.random() * 6.28 }; FEIXE.criados++; }
+  if (MODO_TESTE) return;
+  const raro = dropRaro(d) || d.tipo === "yang" && (d.qtd || 0) >= 1000, S = feixeSprites(cor), f = d.feixe.fase;
+  const a = (raro ? 0.75 : 0.28) * k, h = (raro ? 120 : 70) * u, w = (raro ? 22 : 14) * u;
+  FEIXE.l.push({ y: 0, f: () => {
+    cx.save(); cx.globalCompositeOperation = "lighter";
+    // (a faixa em 4 trechos, cada um deslocado de lado pela onda: sobe ondulando)
+    for (let m = 0; m < 4; m++) { const dx = Math.sin(t * 1.6 + f + m * 0.9) * w * 0.18 * (m + 1) / 4;
+      cx.globalAlpha = a; cx.drawImage(S.b, 0, 160 - (m + 1) * 40, 32, 40, X - w / 2 + dx, Y0 - h * (m + 1) / 4, w, h / 4 + 0.5); }
+    for (let n = 0; n < 3; n++) { const v = ((t * 0.45 + f + n / 3) % 1 + 1) % 1, px = X + Math.sin(t * 2.3 + f * 3 + n * 2.1) * w * 0.35, py = Y0 - v * h * 0.95, r = (raro ? 5 : 3.5) * u * (1 - v * 0.5);
+      cx.globalAlpha = a * (1 - v) * 1.2; cx.drawImage(S.p, px - r, py - r, 2 * r, 2 * r); }
+    cx.restore(); } });
+}
 function desenharItens(t) {
   const u = Math.max(0.75, zoom);
   for (const d of drops) {
@@ -17851,6 +18251,7 @@ function desenharItens(t) {
     const g = cx.createRadialGradient(X, Y0, 0, X, Y0, 22 * u); g.addColorStop(0, `rgba(${cor}, 0.45)`); g.addColorStop(1, `rgba(${cor}, 0)`);
     cx.fillStyle = g; cx.beginPath(); cx.ellipse(X, Y0, 22 * u, 22 * u * ACHATA, 0, 0, 7); cx.fill();
     cx.globalCompositeOperation = "source-over"; cx.lineWidth = 1.5; cx.strokeStyle = TINTA;
+    feixeDrop(d, X, Y0, u, k, t, dropRaro(d) ? "255, 205, 80" : cor);   // (o feixe de luz: os raros dourados, os outros na cor do item)
     const ic = iconeDrop(d);
     // o nome em cima (desenhado com as outras placas, por cima de tudo)
     const nome = nomeDrop(d), raro = dropRaro(d), Yn = Y - 18 * u;
@@ -17912,7 +18313,7 @@ function passoProgresso(dt) {
     d.vida -= dt;
     if (!v.caido && Math.hypot(d.x - v.x, d.y - v.y) < 1.3 && pegarItem(d)) d.vida = 0;
   }
-  for (let i = drops.length - 1; i >= 0; i--) if (drops[i].vida <= 0) drops.splice(i, 1);
+  for (let i = drops.length - 1; i >= 0; i--) if (drops[i].vida <= 0) { if (drops[i].feixe) FEIXE.removidos++; drops.splice(i, 1); }   // (o feixe de luz sai junto)
   passoTrevas(dt);                                                   // as trevas das Ghotins e a maldição de quem está nelas
   // pedras Metin: defensores quando nascem; o bando chamado some depois de cair (não renasce)
   for (const l of criaturas) {
@@ -19831,7 +20232,7 @@ function desenharMagiasCriatura() {
     if (fx3()) continue;
     const [c0, c1, c2] = m.proj === "sombra" ? ["210, 160, 255", "120, 40, 200", "40, 0, 70"] : ["190, 255, 120", "60, 220, 60", "0, 120, 0"];
     m.rastro.forEach(([x, y], k) => {
-      const [X, Y] = noMundo(x, y), r = s * (0.2 - k * 0.022);
+      const [X, Y] = noMundoFx(x, y), r = s * (0.2 - k * 0.022);
       if (r <= 0) return;
       const g = cx.createRadialGradient(X, Y - alt, 0, X, Y - alt, r);
       g.addColorStop(0, `rgba(${c0}, ${0.9 - k * 0.11})`); g.addColorStop(0.5, `rgba(${c1}, ${0.5 - k * 0.06})`); g.addColorStop(1, `rgba(${c2}, 0)`);
@@ -19844,7 +20245,7 @@ function desenharMagiasCriatura() {
 // a mistura de luz das magias)
 function desenharFlechaCriatura(m, s, alt) {
   const v = Math.hypot(m.vx, m.vy) || 1, fx = m.vx / v, fy = m.vy / v, L = 0.75;
-  const [X0, Y0] = noMundo(m.x - fx * L, m.y - fy * L), [X1, Y1] = noMundo(m.x, m.y);
+  const [X0, Y0] = noMundoFx(m.x - fx * L, m.y - fy * L), [X1, Y1] = noMundoFx(m.x, m.y);
   cx.save(); cx.globalCompositeOperation = "source-over"; cx.lineCap = "round";
   cx.strokeStyle = "#6b4a2a"; cx.lineWidth = Math.max(1.5, s * 0.03); cx.beginPath(); cx.moveTo(X0, Y0 - alt); cx.lineTo(X1, Y1 - alt); cx.stroke();
   cx.strokeStyle = "#c8ccd4"; cx.lineWidth = Math.max(2, s * 0.045); cx.beginPath(); cx.moveTo(X1 - (X1 - X0) * 0.12, Y1 - alt - (Y1 - Y0) * 0.12); cx.lineTo(X1, Y1 - alt); cx.stroke();
@@ -19899,12 +20300,12 @@ function desenharFlechas() {
   for (const f of flechas) {
     if (f.atraso > 0) continue;
     if (f.veneno && !f.presa && !so3d) {                             // a venenosa: um brilho verde em volta da haste
-      const [px, py] = noMundo(f.x, f.y, f.z), g = cx.createRadialGradient(px, py, 0, px, py, s * 0.3);
+      const [px, py] = noMundoFx(f.x, f.y, f.z), g = cx.createRadialGradient(px, py, 0, px, py, s * 0.3);
       g.addColorStop(0, "rgba(160, 255, 110, 0.55)"); g.addColorStop(1, "rgba(60, 200, 40, 0)");
       cx.save(); cx.globalCompositeOperation = "lighter"; cx.fillStyle = g; cx.beginPath(); cx.arc(px, py, s * 0.3, 0, 7); cx.fill(); cx.restore();
     }
     if (f.fogo && !so3d) {                                           // a flecha pegando fogo: um clarão em volta da haste
-      const [gx, gy] = noMundo(f.x - f.dx * 0.3, f.y - f.dy * 0.3, f.z), r = s * 0.55;
+      const [gx, gy] = noMundoFx(f.x - f.dx * 0.3, f.y - f.dy * 0.3, f.z), r = s * 0.55;
       cx.save(); cx.globalCompositeOperation = "lighter";
       const g = cx.createRadialGradient(gx, gy, 0, gx, gy, r);
       g.addColorStop(0, "rgba(255, 230, 150, 0.9)"); g.addColorStop(0.4, "rgba(255, 120, 30, 0.55)"); g.addColorStop(1, "rgba(255, 50, 10, 0)");
@@ -19912,7 +20313,7 @@ function desenharFlechas() {
     }
     // o rastro: uma faixa de luz que afina e some, do arco até a flecha (dourada; verde na venenosa; laranja na de fogo)
     if (f.rastro && f.rastro.length > 1 && !so3d) {
-      const cor = f.veneno ? "150, 255, 110" : f.fogo ? "255, 150, 60" : "255, 236, 170", pts = f.rastro.map(([x, y, z]) => noMundo(x, y, z)), n = pts.length;
+      const cor = f.veneno ? "150, 255, 110" : f.fogo ? "255, 150, 60" : "255, 236, 170", pts = f.rastro.map(([x, y, z]) => noMundoFx(x, y, z)), n = pts.length;
       cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round";
       for (let k = 1; k < n; k++) {
         const a = k / n;
@@ -19923,8 +20324,8 @@ function desenharFlechas() {
       cx.beginPath(); pts.forEach(([x, y], k) => k ? cx.lineTo(x, y) : cx.moveTo(x, y)); cx.stroke();
       cx.restore();
     }
-    const [hx, hy] = noMundo(f.x, f.y, f.z), [tx, ty] = noMundo(f.x - f.dx * 0.82, f.y - f.dy * 0.82, f.z - f.dz * 0.82);
-    const [sx, sy] = noMundo(f.x - f.dx * 0.4, f.y - f.dy * 0.4, 0);
+    const [hx, hy] = noMundoFx(f.x, f.y, f.z), [tx, ty] = noMundoFx(f.x - f.dx * 0.82, f.y - f.dy * 0.82, f.z - f.dz * 0.82);
+    const [sx, sy] = noMundoFx(f.x - f.dx * 0.4, f.y - f.dy * 0.4, 0);
     cx.fillStyle = "rgba(20, 14, 10, 0.22)"; cx.beginPath(); cx.ellipse(sx, sy, s * 0.32, s * 0.05, 0, 0, 7); cx.fill();
     const ux = (hx - tx), uy = (hy - ty), L = Math.max(1e-3, Math.hypot(ux, uy)), ex = ux / L, ey = uy / L, nx = -ey, ny = ex, e = s * 0.055;
     cx.lineCap = "round";
@@ -20276,7 +20677,7 @@ function desenharSkillsArq(t) {
   // marca da chuva no chão
   if (chuva.marca > 0 && chuva.centro && !fx3()) {
     const c = chuva.alvo && !chuva.alvo.morto ? chuva.alvo : chuva.centro;
-    const [X, Y] = noMundo(c.x, c.y, 0), r = CHUVA_RAIO * s, a = Math.min(1, chuva.marca / 0.5);
+    const [X, Y] = noMundoFx(c.x, c.y, 0), r = CHUVA_RAIO * s, a = Math.min(1, chuva.marca / 0.5);
     cx.save(); cx.globalAlpha = 0.55 * a;
     cx.fillStyle = "rgba(230, 70, 50, 0.12)"; cx.beginPath(); cx.ellipse(X, Y, r, r * ACHATA, 0, 0, 7); cx.fill();
     cx.strokeStyle = "rgba(255, 120, 90, 0.8)"; cx.lineWidth = 2; cx.setLineDash([8, 6]); cx.lineDashOffset = -t * 30;
@@ -20300,14 +20701,14 @@ function desenharSkillsArq(t) {
   cx.save(); cx.globalCompositeOperation = "lighter";
   for (const b of brasas) {
     if (b.poeira) continue;
-    const [X, Y] = noMundo(b.x, b.y, b.z), a = b.vida / b.max, r = Math.max(1, b.tam * s * (0.6 + a));
+    const [X, Y] = noMundoFx(b.x, b.y, b.z), a = b.vida / b.max, r = Math.max(1, b.tam * s * (0.6 + a));
     cx.fillStyle = b.cor !== undefined ? `hsla(${b.cor}, 100%, ${Math.round(55 + 35 * a)}%, ${0.85 * a})` : `rgba(255, ${Math.round(110 + 120 * a)}, ${Math.round(40 * a)}, ${0.85 * a})`;
     cx.beginPath(); cx.arc(X, Y, r, 0, 7); cx.fill();
   }
   cx.restore();
   for (const b of brasas) {
     if (!b.poeira) continue;
-    const [X, Y] = noMundo(b.x, b.y, b.z), a = b.vida / b.max;
+    const [X, Y] = noMundoFx(b.x, b.y, b.z), a = b.vida / b.max;
     cx.fillStyle = `rgba(150, 125, 95, ${0.45 * a})`; cx.beginPath(); cx.arc(X, Y, b.tam * s * (1.6 - a), 0, 7); cx.fill();
   }
 }
@@ -20731,19 +21132,19 @@ function desenharMagiasChao(t) {
   const s = PX * zoom;
   if (meteoros.marca > 0 && meteoros.centro && !fx3()) {
     const c = meteoros.alvo && !meteoros.alvo.morto ? meteoros.alvo : meteoros.centro;
-    const [X, Y] = noMundo(c.x, c.y, 0), r = METEORO_RAIO * s, a = Math.min(1, meteoros.marca / 0.5);
+    const [X, Y] = noMundoFx(c.x, c.y, 0), r = METEORO_RAIO * s, a = Math.min(1, meteoros.marca / 0.5);
     cx.save(); cx.globalAlpha = 0.6 * a;
     cx.fillStyle = "rgba(255, 110, 40, 0.12)"; cx.beginPath(); cx.ellipse(X, Y, r, r * ACHATA, 0, 0, 7); cx.fill();
     cx.strokeStyle = "rgba(255, 150, 80, 0.85)"; cx.lineWidth = 2; cx.setLineDash([8, 6]); cx.lineDashOffset = -t * 30;
     cx.stroke(); cx.setLineDash([]); cx.restore();
   }
   for (const q of marcas) {
-    const [X, Y] = noMundo(q.x, q.y, 0), k = q.vida / q.max, r = q.r * s;
+    const [X, Y] = noMundoFx(q.x, q.y, 0), k = q.vida / q.max, r = q.r * s;
     cx.fillStyle = `rgba(28, 18, 22, ${0.35 * k})`; cx.beginPath(); cx.ellipse(X, Y, r, r * ACHATA, 0, 0, 7); cx.fill();
   }
   cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round"; cx.lineJoin = "round";
   for (const o of fx3() ? [] : ondas) {
-    const [X, Y] = noMundo(o.x, o.y, 0), dur = o.fogo ? 0.25 : 0.35, u = Math.min(1, o.t / dur), r = o.raio * s * (0.15 + 0.85 * suaveM(u));
+    const [X, Y] = noMundoFx(o.x, o.y, 0), dur = o.fogo ? 0.25 : 0.35, u = Math.min(1, o.t / dur), r = o.raio * s * (0.15 + 0.85 * suaveM(u));
     if (o.runas) { circuloDeRunas(o, X, Y, s, t); continue; }
     const a = Math.max(0, 1 - o.t / (o.fogo ? 0.45 : 0.9));
     if (a > 0) {
@@ -20759,7 +21160,7 @@ function desenharMagiasChao(t) {
     const ar = Math.max(0, 1 - o.t / 1.3), cresce = suaveM(o.t / 0.25);
     for (const k of o.rachas) {
       const len = k.comp * cresce, m = 0.5, mx = o.x + Math.cos(k.a) * len * m - Math.sin(k.a) * k.dobra * len * 0.3, my = o.y + Math.sin(k.a) * len * m + Math.cos(k.a) * k.dobra * len * 0.3;
-      const p0 = noMundo(o.x, o.y, 0), p1 = noMundo(mx, my, 0), p2 = noMundo(o.x + Math.cos(k.a) * len, o.y + Math.sin(k.a) * len, 0);
+      const p0 = noMundoFx(o.x, o.y, 0), p1 = noMundoFx(mx, my, 0), p2 = noMundoFx(o.x + Math.cos(k.a) * len, o.y + Math.sin(k.a) * len, 0);
       for (const [lw, cor] of [[5, `hsla(${o.cor}, 100%, 55%, ${0.35 * ar})`], [1.6, `hsla(${o.cor - 30}, 100%, 88%, ${0.9 * ar})`]]) {
         cx.strokeStyle = cor; cx.lineWidth = lw * zoom;
         cx.beginPath(); cx.moveTo(p0[0], p0[1]); cx.lineTo(p1[0], p1[1]); cx.lineTo(p2[0], p2[1]); cx.stroke();
@@ -20819,12 +21220,12 @@ function desenharMagias(t) {
   const s = PX * zoom;
   for (const m of magias) {
     if (m.atraso > 0) continue;
-    const meteoro = m.tipo === "meteoro", [X, Y] = noMundo(m.x, m.y, m.z), [sx, sy] = noMundo(m.x, m.y, 0);
+    const meteoro = m.tipo === "meteoro", [X, Y] = noMundoFx(m.x, m.y, m.z), [sx, sy] = noMundoFx(m.x, m.y, 0);
     const perto = meteoro ? 1 - Math.min(1, m.z / 9) : 1;
     cx.fillStyle = `rgba(20, 10, 24, ${0.12 + 0.2 * perto})`; cx.beginPath(); cx.ellipse(sx, sy, s * (meteoro ? 0.4 : 0.18) * (0.5 + 0.5 * perto), s * (meteoro ? 0.4 : 0.18) * (0.5 + 0.5 * perto) * ACHATA, 0, 0, 7); cx.fill();
     cx.save(); cx.globalCompositeOperation = "lighter";
     m.rastro.forEach((p, i) => {
-      const [qx, qy] = noMundo(p[0], p[1], p[2]), k = (i + 1) / m.rastro.length, r = s * (meteoro ? 0.26 : 0.13) * k;
+      const [qx, qy] = noMundoFx(p[0], p[1], p[2]), k = (i + 1) / m.rastro.length, r = s * (meteoro ? 0.26 : 0.13) * k;
       cx.fillStyle = `hsla(${m.cor}, 100%, 60%, ${0.28 * k})`; cx.beginPath(); cx.arc(qx, qy, r, 0, 7); cx.fill();
     });
     const r = s * (meteoro ? 0.5 : 0.3) * (1 + 0.08 * Math.sin(t * 30));
@@ -20840,7 +21241,7 @@ function desenharMagias(t) {
     const tl = o.t - p.atraso; if (tl <= 0) continue;
     const a = suaveM(tl / 0.1) * (1 - suaveM((tl - 0.85) / 0.55)) * (0.8 + 0.2 * Math.sin(t * 22 + p.fase)); if (a <= 0) continue;
     const alt = p.alt * (0.25 + 0.75 * suaveM(tl / 0.2)), px = o.x + Math.cos(p.a) * p.d, py = o.y + Math.sin(p.a) * p.d;
-    const [bx, by] = noMundo(px, py, 0), [, ty] = noMundo(px, py, alt), w = p.larg * s * (0.85 + 0.15 * Math.sin(t * 9 + p.fase));
+    const [bx, by] = noMundoFx(px, py, 0), [, ty] = noMundoFx(px, py, alt), w = p.larg * s * (0.85 + 0.15 * Math.sin(t * 9 + p.fase));
     const sat = p.cor ? 100 : 0, luz = p.cor ? 62 : 92;
     const g = cx.createLinearGradient(bx, by, bx, ty);
     g.addColorStop(0, `hsla(${p.cor}, ${sat}%, ${luz + 10}%, ${0.55 * a})`); g.addColorStop(0.45, `hsla(${p.cor}, ${sat}%, ${luz}%, ${0.32 * a})`); g.addColorStop(1, `hsla(${p.cor}, ${sat}%, ${luz}%, 0)`);
@@ -20856,7 +21257,7 @@ function desenharMagias(t) {
   // raios: um traço quebrado que muda de forma 30 vezes por segundo, com galhos e clarão na ponta
   cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round"; cx.lineJoin = "round";
   for (const r of relampagos) {
-    const k = r.vida / r.max, [ax, ay] = noMundo(r.a.x, r.a.y, r.a.z), [bx, by] = noMundo(r.b.x, r.b.y, r.b.z);
+    const k = r.vida / r.max, [ax, ay] = noMundoFx(r.a.x, r.a.y, r.a.z), [bx, by] = noMundoFx(r.b.x, r.b.y, r.b.z);
     const sem = r.semente + Math.floor(t * 30), n = 12, dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
     const pts = [[ax, ay]];
     for (let i = 1; i < n; i++) { const u = i / n, off = (acaso2(sem + i) - 0.5) * L * 0.24 * Math.sin(Math.PI * u); pts.push([ax + dx * u + nx * off, ay + dy * u + ny * off]); }
@@ -22798,8 +23199,8 @@ function desenharFogoSopro(t) {
 // a bola de fogo: chapada, com a cauda em círculos que diminuem
 function desenharBolaFogo(m, s, alt) {
   cx.save(); cx.globalCompositeOperation = "source-over";
-  for (let k = m.rastro.length - 1; k >= 1; k -= 2) { const [x, y] = m.rastro[k], [X, Y] = noMundo(x, y), r = s * 0.24 * (1 - k * 0.1); cx.fillStyle = k > 3 ? "#8E2721" : "#B8322A"; cx.beginPath(); cx.arc(X, Y - alt, r, 0, 7); cx.fill(); }
-  const [X, Y] = noMundo(m.x, m.y), R = s * 0.32, f = 1 + 0.08 * Math.sin(m.vida * 40);
+  for (let k = m.rastro.length - 1; k >= 1; k -= 2) { const [x, y] = m.rastro[k], [X, Y] = noMundoFx(x, y), r = s * 0.24 * (1 - k * 0.1); cx.fillStyle = k > 3 ? "#8E2721" : "#B8322A"; cx.beginPath(); cx.arc(X, Y - alt, r, 0, 7); cx.fill(); }
+  const [X, Y] = noMundoFx(m.x, m.y), R = s * 0.32, f = 1 + 0.08 * Math.sin(m.vida * 40);
   cx.fillStyle = "#B8322A"; cx.strokeStyle = "#1E1B18"; cx.lineWidth = Math.max(1.2, 2 * zoom); cx.beginPath(); cx.arc(X, Y - alt, R * f, 0, 7); cx.fill(); cx.stroke();
   cx.fillStyle = "#CF6A2A"; cx.beginPath(); cx.arc(X, Y - alt, R * 0.68 * f, 0, 7); cx.fill();
   cx.fillStyle = "#E9C46A"; cx.beginPath(); cx.arc(X - R * 0.1, Y - alt - R * 0.08, R * 0.34, 0, 7); cx.fill();
@@ -24516,7 +24917,7 @@ function desenharEncanto(X, Y, z, l, t) {
 
 // rastro do corte, faíscas, brasas e clarão (por cima de tudo)
 function desenharFaiscas() {
-  const z = zoom, ponto = (wx, wy, x, y) => { const [sx, sy] = tela(wx - cam.x, wy - cam.y); return [W / 2 + sx + x * z, H / 2 + sy + y * z]; };
+  const z = zoom, ponto = (wx, wy, x, y) => { const [sx, sy] = tela(wx - cam.x, wy - cam.y); return [W / 2 + sx + x * z, H / 2 + sy + y * z - subirFx(wx, wy)]; };   // (R239: na altura de quem está perto)
   cx.save();
   for (const f of faiscas) {
     if (f.tipo === "poeira") {
@@ -24609,17 +25010,20 @@ function desenharFaiscas() {
 }
 // números do dano subindo: contorno grosso, um "pop" ao nascer (cresce e assenta), o crítico maior e dourado e os
 // textos de estado (Envenenado, Atordoado, Queimando) na cor de cada um; cada número sai um pouco para o lado
+const ESC_DANO = 1.22;                                                  // (04/11: os números de dano 22% maiores)
 function desenharNumeros() {
-  const z = zoom, ponto = (wx, wy, x, y) => { const [sx, sy] = tela(wx - cam.x, wy - cam.y); return [W / 2 + sx + x * z, H / 2 + sy + y * z]; };
+  const z = zoom, ponto = (wx, wy, x, y) => { const [sx, sy] = tela(wx - cam.x, wy - cam.y); return [W / 2 + sx + x * z, H / 2 + sy + y * z - subirFx(wx, wy)]; };   // (R239: na altura de quem está perto)
   cx.save(); cx.textAlign = "center"; cx.lineJoin = "round";
   for (const n of numeros) {
     if (n.v0 === undefined) { n.v0 = n.vida; n.dx = n.status ? 0 : (Math.random() - 0.5) * 2; }
     const idade = n.v0 - n.vida, pop = idade < 0.1 ? 1 + 0.7 * (1 - idade / 0.1) : idade < 0.22 ? 1 - 0.1 * Math.sin((idade - 0.1) / 0.12 * Math.PI) : 1;
     const [x0, y] = ponto(n.wx, n.wy, 0, n.y), x = x0 + n.dx * idade * 22 * z, k = Math.min(1, n.vida / 0.35);
-    const est = n.status ? COR_STATUS[n.status] : null, tam = n.critico ? 30 : est ? 15 : n.forte ? 20 : n.exp ? 13 : 16;
+    // (04/11, o usuário: "texto do dano um pouco maior": os números de dano, o que o herói causa e o que recebe, ESC_DANO maiores; o
+    //  crítico na mesma proporção, continua o maior; o exp e os estados como eram)
+    const est = n.status ? COR_STATUS[n.status] : null, dano = !est && !n.exp, tam = (n.critico ? 30 : est ? 15 : n.forte ? 20 : n.exp ? 13 : 16) * (dano ? ESC_DANO : 1);
     cx.globalAlpha = k;
     cx.font = `${est ? "italic " : ""}700 ${Math.round(tam * z * pop)}px "Germania One", Georgia, serif`;
-    cx.lineWidth = (n.critico ? 6 : 4.5) * z; cx.strokeStyle = TINTA; cx.strokeText(n.txt, x, y);
+    cx.lineWidth = (n.critico ? 6 : 4.5) * z * (dano ? ESC_DANO : 1); cx.strokeStyle = TINTA; cx.strokeText(n.txt, x, y);
     if (n.critico) { const g = cx.createLinearGradient(0, y - tam * z * pop, 0, y); g.addColorStop(0, "#fff7c0"); g.addColorStop(1, "#ffa818"); cx.fillStyle = g; }
     else cx.fillStyle = est || (n.veneno ? "#9cff6a" : n.exp ? "#a9e6ff" : n.contra ? "#ff6b55" : n.forte ? "#ffb347" : "#fff1d6");
     cx.fillText(n.txt, x, y);
@@ -24778,6 +25182,7 @@ function desenharQuadro(t) {
   };
   // (a ordem pela profundidade da vista: com o giro, o fundo é o nordeste; ver profObj)
   const lista = montarListaDesenho(naTela, objeto, t), lote = LOTE.ligado ? LOTE.comecar(cx) : null;
+  if (FEIXE.l.length) { for (const f of FEIXE.l) lista.push(f); FEIXE.l.length = 0; }   // (os feixes dos drops: por cima, no lote)
   if (lote) { const real = cx; cx = lote; try { for (const o of lista) o.f(); } finally { cx = real; LOTE.terminar(); } }   // (plano E: a lista em lote no WebGL2)
   else for (const o of lista) o.f();
   if (naCaverna(cam.x)) desenharSilhuetaVale();     // (o herói atrás de um dragão, numa silhueta por cima dele)
@@ -25233,7 +25638,7 @@ function texDe(s) {
   const img = s instanceof HTMLImageElement, w = img ? s.naturalWidth : s.width, h = img ? s.naturalHeight : s.height;
   if (!w || !h || (img && !s.complete)) return null;
   const v = s.__lv | 0;
-  if (e && e.w === w && e.h === h && e.v === v && !s.__lgl) { e.usado = L.quadro; return e; }
+  if (e && e.w === w && e.h === h && e.v === v && !s.__lgl && !e.parcial) { e.usado = L.quadro; return e; }   // (R236: a enviada em faixas só vale inteira)
   if (!e) { e = { t: gl.createTexture(), w: 0, h: 0, v: -1, mip: false, usado: 0, bytes: 0, ger, inv: false }; TEX.set(s, e); vivas.add(e); }
   bindTmp(e.t);
   gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
@@ -25241,7 +25646,7 @@ function texDe(s) {
   gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0); gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0); gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
   try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, s); }
   catch (er) { e.falhou = true; return null; }                    // (uma imagem que o WebGL não aceita: fica no 2D)
-  const b = w * h * 4; bytes += b - e.bytes; e.bytes = b; e.w = w; e.h = h; e.v = v; e.mip = false; e.usado = L.quadro;
+  const b = w * h * 4; bytes += b - e.bytes; e.bytes = b; e.w = w; e.h = h; e.v = v; e.mip = false; e.usado = L.quadro; e.parcial = false;
   L.st.envios++; L.st.mbEnviados += b / 1048576;
   return e;
 }
@@ -25268,6 +25673,33 @@ L.enviarBitmap = (s, bmp) => {
   L.st.envios++; L.st.mbEnviados += b / 1048576; L.st.bitmaps = (L.st.bitmaps || 0) + 1;
   return true;
 };
+// (R236) a imagem já tem a textura dela no lote? (o envio antecipado das construções que vão aparecer: frenteImagens)
+L.temTex = s => { const e = TEX.get(s); return !!(e && e.ger === ger && !e.falhou && !e.parcial && e.w === (s.naturalWidth || s.width) && e.h === (s.naturalHeight || s.height)); };
+// (R236) o envio de uma camada em faixas, uma por quadro: o texImage2D da camada inteira, mesmo já decodificada (bitmap), custava
+// 25 a 34 ms num quadro com a CPU dele (a cópia de ~12 MB). A textura é criada vazia no tamanho da imagem e cada faixa (um bitmap
+// recortado do bitmap inteiro: os mesmos pixels) vai pelo texSubImage2D, com o mesmo modo de envio de texDe; só depois da última
+// ela vale (até lá texDe envia a imagem inteira, como antes). Devolve true quando a textura ficou inteira
+L.enviarFaixa = (s, bmp, y0) => {
+  if (!L.contexto() || !montar() || L.perdido) return false;
+  const w = s.naturalWidth, h = s.naturalHeight;
+  if (!w || !h || bmp.width !== w || y0 + bmp.height > h) return false;
+  let e = TEX.get(s);
+  if (e && e.ger === ger && !e.falhou && !e.parcial && e.w === w && e.h === h) return true;
+  if (!e || e.ger !== ger || !e.parcial || e.w !== w || e.h !== h) {
+    if (e && vivas.delete(e)) bytes -= e.bytes;
+    e = { t: gl.createTexture(), w, h, v: -1, mip: false, usado: 0, bytes: w * h * 4, ger, inv: false, parcial: true, faixas: new Map() }; TEX.set(s, e); vivas.add(e); bytes += e.bytes;
+    bindTmp(e.t); gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  } else bindTmp(e.t);
+  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+  gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0); gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0); gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
+  try { gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y0, gl.RGBA, gl.UNSIGNED_BYTE, bmp); }
+  catch (er) { gl.deleteTexture(e.t); vivas.delete(e); bytes -= e.bytes; TEX.delete(s); return false; }
+  e.faixas.set(y0, bmp.height); let n = 0; for (const a of e.faixas.values()) n += a;
+  if (n >= h) { e.parcial = false; e.faixas = null; e.v = s.__lv | 0; e.usado = L.quadro; L.st.envios++; L.st.mbEnviados += w * h * 4 / 1048576; L.st.faixas = (L.st.faixas || 0) + 1; return true; }
+  return false;
+};
 // (para o teste R235) a mesma imagem pelos dois caminhos (a <img> como texDe e o bitmap como enviarBitmap), lidos de volta: a maior
 // diferença por canal e quantos bytes diferem mais de 2/255
 L.conferirEnvio = (s, bmp) => {
@@ -25285,6 +25717,21 @@ L.conferirEnvio = (s, bmp) => {
     const a = ler(s), b = ler(bmp); let max = 0, n2 = 0;
     for (let k = 0; k < a.length; k++) { const d = Math.abs(a[k] - b[k]); if (d > max) max = d; if (d > 2) n2++; }
     return { max, n2, bytes: a.length };
+  } finally { if (L.compartilhado()) P3D.render.resetState(); }
+};
+// (para o teste R236) a textura que o envio em faixas deixou para a imagem s, lida de volta, contra a da <img> inteira (texDe)
+L.conferirFaixas = s => {
+  const e = TEX.get(s); if (!e || e.parcial || e.ger !== ger || !L.contexto() || !montar()) return null;
+  const w = e.w, h = e.h, ler = t => { const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+    const px = new Uint8Array(w * h * 4); gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.deleteFramebuffer(f); return px; };
+  try {
+    const t = gl.createTexture(); bindTmp(t); gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0); gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0); gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, s);
+    const a = ler(t), b = ler(e.t); gl.deleteTexture(t); let max = 0, n2 = 0;
+    for (let k = 0; k < a.length; k++) { const d = Math.abs(a[k] - b[k]); if (d > max) max = d; if (d > 2) n2++; }
+    return { max, n2, bytes: a.length, faixas: true };
   } finally { if (L.compartilhado()) P3D.render.resetState(); }
 };
 function mipDe(e) { if (e.mip || e.interna) return !!e.mip; bindTmp(e.t); gl.generateMipmap(gl.TEXTURE_2D); e.mip = true; L.st.mips = (L.st.mips || 0) + 1; const b = Math.round(e.bytes / 3); e.bytes += b; bytes += b; return true; }
@@ -27678,7 +28125,7 @@ const GUIA_PASSOS_APRENDIZ = GUIA_PASSOS.map(p => p[0] === "Vista o que ganhou" 
 const guiaPassos = () => prog && prog.vocacao ? GUIA_PASSOS_APRENDIZ : GUIA_PASSOS;
 let guiaFeito = null;
 function guiaDesenhar() {
-  const el = $("#guia"), g = prog && prog.guia, ver = !!g && !g.fim;
+  const el = $("#guia"), g = prog && prog.guia, ver = !!g && !g.fim && !CHEGADA.aberta;   // (a chegada do aprendiz primeiro)
   if (el.hidden === ver) el.hidden = !ver;
   if (!ver) { guiaFeito = null; return; }
   if (guiaFeito === g.passo) return; guiaFeito = g.passo;
@@ -27686,8 +28133,36 @@ function guiaDesenhar() {
   $("#guiaConta").textContent = `${Math.min(g.passo + 1, PASSOS.length)} de ${PASSOS.length}`;
   $("#guiaLista").innerHTML = PASSOS.map(([t, txt], k) => k < g.passo ? `<li class="feito">${t}</li>` : k === g.passo ? `<li class="agora"><b>${t}</b><p>${txt}</p></li>` : "").join("");
 }
+// (04/11, o usuário: "quando o jogo começar, logo que você aparecer no mapa como aprendiz abra uma caixa de diálogo explicando que
+// você chegou pelo biombo como aprendiz e existe um chamado da guardiã quando você ficar experiente o bastante para se tornar um
+// defensor da vila"). Uma vez por personagem (prog.chegadaVista, no save local e no da nuvem): na 1ª vez que o aprendiz aparece na
+// Vila 1, depois da tela de carregamento e com o herói parado. A caixa é a das conversas (#npcJan), com o narrador (sem busto),
+// Continuar e, no fim, Entendi; enquanto ela está aberta o herói não leva golpe (golpeNoPersonagem; pausar brigava com a pausa das
+// janelas da conta, R219) e os Primeiros passos e a seta da 1ª quest esperam. Quem já tem classe não vê. No ?test=1 não abre (CHEGADA.forcar liga, para a checagem)
+const CHEGADA = { aberta: false, forcar: false, pausadoAntes: false, t: 0,
+  falas: ["Você atravessou o rasgo do biombo e caiu dentro desta pintura. Por enquanto é só um esboço: um aprendiz de papel e nanquim, com uma espada de madeira.",
+          "O Imugi partiu a pérola Yeouiju. Os pedaços viraram as Pedras Ghotin, e as trevas se espalham em volta delas. A vila precisa de quem a defenda.",
+          "A Guardiã do Altar das Eras já sabe que você chegou. Quando você estiver experiente o bastante, ela vai chamar você para se tornar um defensor da vila. Até lá, treine e ajude os moradores."] };
+function chegadaPronta() {
+  if (!prog || classe !== "aprendiz" || prog.chegadaVista || CHEGADA.aberta) return false;
+  if (MODO_TESTE && !CHEGADA.forcar) return false;
+  if ((window.PREPARO && (PREPARO.ativo || PREPARO.cedo)) || SEL.aberta || (typeof INTRO === "object" && INTRO.aberta) || viagem || idMapa(viking.x, viking.y) !== "vila1") return false;
+  if (viking.alvo || viking.rota) { CHEGADA.t = 0; return false; }
+  return (CHEGADA.t += 1) >= 2;                                           // (parado por 2 passos do guia: ~0,6 s)
+}
+function abrirChegada() {
+  prog.chegadaVista = 1; salvarProgresso();
+  CHEGADA.aberta = true;                                                  // (sem pausar: a pausa é das janelas da conta; o herói só não leva golpe)
+  abrirNpc({ chegada: true, x: viking.x, y: viking.y, fala: 0, dados: { titulo: "Pelo rasgo do biombo", falas: CHEGADA.falas } });
+  guiaFeito = null; guiaDesenhar(); if (typeof dicaCarta === "function") dicaCarta();
+}
+function chegadaFechou() {
+  CHEGADA.aberta = false;
+  setTimeout(() => { guiaFeito = null; guiaDesenhar(); if (typeof dicaCarta === "function") { cartasAssinatura = ""; desenharCartas(); } }, 0);
+}
 // a cada 0,3 s, também com o jogo pausado (o Mapa do Mundo pausa)
 function passoGuia() {
+  if (chegadaPronta()) abrirChegada();
   const g = prog && prog.guia;
   const PASSOS = guiaPassos();
   if (g && !g.fim && PASSOS[g.passo] && PASSOS[g.passo][2](g)) {
@@ -27696,7 +28171,26 @@ function passoGuia() {
     else som("ui_aceitar", null, 0.5);
     salvarProgresso();
   }
-  guiaDesenhar();
+  guiaDesenhar(); guiaDesviar();
+}
+// R238 (04/11, bug do usuário: "quando a pessoa abre o inventario, o inventario esta ficando atras da dica e nao da para ver o bau do
+// iniciante... tente abrir o inventario do outro lado ou deixar a dica transparente"). Os Primeiros passos (z-index 3, depois da
+// bolsa no documento) ficavam por cima de qualquer janela que chegasse à esquerda da tela (o inventário arrastado para lá, uma
+// tela estreita, a loja empurrando a bolsa). Agora, quando o guia cruza uma janela aberta, ele se desvia: vai para baixo dela
+// (z-index 1), fica translúcido e não pega o clique; a janela aparece inteira e clicável. Fechou a janela (ou ela saiu de cima), o
+// guia volta. Vale também para a seta da carta (R237): por cima de uma janela, ela some
+const GUIA_JANELAS = ["bolsa", "armazem", "npcJan", "ferreiro", "ficha", "questsJan", "cartaJan", "jornada", "opcoes", "loja", "lojaJan"];
+function janelasAbertasRects(fora) {
+  const l = [];
+  for (const id of GUIA_JANELAS) { if (id === fora) continue; const e = document.getElementById(id); if (!e || e.hidden) continue; const b = e.getBoundingClientRect(); if (b.width > 0 && b.height > 0) l.push(b); }
+  return l;
+}
+const cruzaRect = (r, l) => l.some(b => r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top);
+function guiaDesviar() {
+  const el = document.getElementById("guia"); if (!el) return;
+  if (el.hidden) { el.classList.remove("desviada"); return; }
+  const r = el.getBoundingClientRect(), sim = cruzaRect(r, janelasAbertasRects());
+  if (el.classList.contains("desviada") !== sim) el.classList.toggle("desviada", sim);
 }
 function guiaAbrir(sim) { if (!prog) return; prog.guia = sim ? { passo: 0 } : { ...(prog.guia || {}), fim: true }; salvarProgresso(); guiaFeito = null; guiaDesenhar(); }
 function nascerNaVila() {
@@ -28429,7 +28923,7 @@ function montarAltar() {
   const ordem = ALTAR.ordem;
   ALTAR_ESTATUAS = ordem.map((c, k) => {                                 // (duas fileiras de 4, uma de cada lado, do fundo para a frente: a de trás pode cobrir a cerca do fundo, a da frente não encosta na cerca da frente)
     const lado = k < ordem.length / 2 ? -1 : 1, i = lado < 0 ? k : k - ordem.length / 2, [x, y] = altarMundo(lado * 8, 18.6 - i * 3.53);
-    const o = { tipo: "estatua_era", classe: c, x, y, r: 0.55, zChao: ALTAR.z, altar: true, coberta: c === "xama_dragao" };   // (a estátua dele ainda está por fazer)
+    const o = { tipo: "estatua_era", classe: c, x, y, r: 0.55, zChao: ALTAR.z, altar: true, coberta: false };                       // (04/11: a estátua do Xamã Dragão chegou; o pedestal coberto ficou para outra classe nova)
     objetos.push(o); return o;
   });
   { const [x, y] = altarMundo(0, ALTAR.templo.b); objetos.push({ tipo: "altar_arte", peca: "templo", x, y, r: 0, zChao: ALTAR.z, altar: true, arteM: 7 }); }
@@ -28873,6 +29367,113 @@ function preparoFundo() {
     if (r.done) P.fundo.shift(); else if (r.value === 1) { P.fundo.push(P.fundo.shift()); break; }
   }
 }
+// R236 (rodada 9): o que mais travava correndo para longe, depois do chão (o trace, CPU 2,5×, Hahoe com zoom 0,6): a 1ª vez de
+// cada construção na tela (a máscara de opacidade, predMascara, e o envio das camadas ao lote WebGL2, texDe: as duas decodificavam
+// a camada inteira na thread do jogo, 9 a 19 ms cada) e a 1ª vez de cada ponte (frenteDaPonte, ~36 ms). Agora, a cada 250 ms,
+// as construções e pontes que vão aparecer (a vista de agora e onde a câmera vai estar daqui a 0,8, 1,6 e 2,4 s, com 300 px de
+// folga) têm as camadas decodificadas fora da thread (createImageBitmap); depois, no máximo uma por quadro, a textura vai ao lote
+// (LOTE.enviarBitmap, a mesma do R235) e a máscara é feita do bitmap; a ponte, em passos de ~1,5 ms. Os modelos 3D das criaturas
+// não apareceram no trace (são pedidos a 45 m e já chegam aquecidos, R235)
+// (R236) o bitmap de uma <img> decodificado do arquivo (o cache do navegador), fora da thread do jogo; o tamanho tem de bater
+function bitmapDoArquivo(im, op) {
+  return fetch(im.currentSrc || im.src).then(r => r.blob()).then(bl => createImageBitmap(bl, op)).then(b => {
+    const w = op.resizeWidth || im.naturalWidth, h = op.resizeHeight || im.naturalHeight;
+    if (b.width !== w || b.height !== h) { b.close(); throw new Error("tamanho"); }
+    return b; });
+}
+const FRENTE_PONTE_FORA = new WeakSet();                                   // (as pontes que não dá para preparar antes)
+const FRENTE_IMG = { ligado: FRENTE_LIGADO, t: 0, ms: {}, enviadas: [], pend: new Set(), prontas: [], ponte: null, orcPonte: 1.5, envios: 0, mascaras: 0, pontes: 0, msMax: 0 };
+function frenteImagens() {
+  const FI = FRENTE_IMG;
+  if (!FI.ligado || pausado || PREPARO.ativo || naCaverna(cam.x) || (window.M3D && M3D.ativo) || typeof createImageBitmap !== "function") return;
+  const t0 = performance.now(), CF = CHAO_FRENTE;
+  try {
+    if (t0 - FI.t > 250) {
+      FI.t = t0;
+      const s = PX * zoom, pts = [[cam.x, cam.y]];
+      if (Math.hypot(CF.vx, CF.vy) > 0.6) for (const t of [0.8, 1.6, 2.4]) pts.push([cam.x + CF.vx * t, cam.y + CF.vy * t]);
+      const aparece = (x, y, x0, x1, y0, y1) => pts.some(([px, py]) => { const [a, b] = tela(x - px, y - py), X = W / 2 + a, Y = H / 2 + b; return X + x1 > -300 && X + x0 < W + 300 && Y + y1 > -300 && Y + y0 < H + 300; });
+      // (o bitmap sai do arquivo, decodificado fora da thread: o createImageBitmap da <img> decodificava a camada na thread do jogo,
+      //  45 a 150 ms numa varredura com a CPU dele, medido)
+      const decodificar = (im, extra) => { FI.pend.add(im);
+        bitmapDoArquivo(im, { premultiplyAlpha: "premultiply", colorSpaceConversion: "default" }).then(b => FI.prontas.push({ im, b, ...extra }), () => FI.pend.delete(im)); };
+      const lote = LOTE.ligado && !!LOTE.contexto();
+      for (const p of predInst) {                                       // (as construções: as camadas e as máscaras)
+        const d = p.d, cs = d.camadas, big = cs.c || cs.f || cs.a; if (!big) continue;
+        const kk = s / d.ppm, x0 = -(p.esp ? big.w - big.px : big.px) * kk, y0 = -big.py * kk;
+        if (!aparece(p.x, p.y, x0, x0 + big.w * kk, y0, y0 + big.h * kk)) continue;
+        const masc = d.entra ? ["b", "c"] : ["f"];
+        for (const [n, c] of Object.entries(cs)) {
+          const im = predImg(c.arq); if (!im) continue;
+          if (lote && !FI.pend.has(im) && !LOTE.temTex(im)) decodificar(im, { tex: true });
+          // (a máscara: o bitmap já reduzido a 1/8 fora da thread, com o filtro "low" do drawImage reduzido de antes)
+          const km = c.arq + "@" + im.naturalWidth;
+          if (masc.includes(n) && PRED_MASC[km] === undefined && !FI.pend.has(km)) {
+            const w = Math.max(1, Math.ceil(im.naturalWidth / 8)), h = Math.max(1, Math.ceil(im.naturalHeight / 8)); FI.pend.add(km);
+            bitmapDoArquivo(im, { resizeWidth: w, resizeHeight: h, resizeQuality: "low", premultiplyAlpha: "premultiply", colorSpaceConversion: "default" })
+              .then(b => FI.prontas.push({ im, b, arq: c.arq, km }), () => FI.pend.delete(km));
+          }
+        }
+      }
+      // (as pontes em arco da Hahoe, a frente do corrimão: todas as do mapa, da mais perto para a mais longe, uma de cada vez)
+      if (!FI.ponte && cam.y >= 350 && !FI.prontas.some(q => q.ponte)) {
+        // (da mais perto para a mais longe, até 45 m; a imagem da estação de cada uma, imagemEstacao, pode ser um canvas novo com o
+        //  filtro da estação, caro: uma por vez, e só a da ponte escolhida)
+        const l = [];
+        for (const o of objetos) { if (o.ponteH === undefined || o.frentePronta) continue; const dd = Math.hypot(o.x - cam.x, o.y - cam.y); if (dd < 45) l.push([dd, o]); }
+        l.sort((a, b) => a[0] - b[0]);
+        let melhor = null;
+        for (const [, o] of l) {
+          const p = PONTES_H[o.ponteH], v0 = varDeco(o); if (!p || !v0) { o.frentePronta = true; continue; }
+          const v = visDeco(o, v0); if (v.pasta !== "deco_b/") { o.frentePronta = true; continue; }
+          const im = imagemEstacao(v.arq, o.tipo, 0); if (!im || !(im.width > 0)) continue;
+          if (FRENTE_PONTE.has(im) || FRENTE_PONTE_FORA.has(im)) continue;
+          if (FI.pend.has(im)) break;
+          melhor = { o, v0, v, im }; break;
+        }
+        // (a ponte: o arquivo decodificado na CPU, createImageBitmap do blob; o bitmap da <img> pode ficar na GPU e lê-lo de volta
+        //  para o canvas da CPU custava ~100 ms. A variante da estação, um canvas, não é preparada: fica como antes)
+        if (melhor && melhor.im instanceof HTMLImageElement) { const { o, v0, v, im } = melhor; FI.pend.add(im);
+          if (im.decode && !im.__dec) { im.__dec = 1; im.decode().catch(() => {}); }   // (a imagem da ponte no chão: decodificada antes)
+          bitmapDoArquivo(im, { premultiplyAlpha: "premultiply", colorSpaceConversion: "default" })
+            .then(b => { if (b.width !== im.width || b.height !== im.height) { b.close(); throw 0; } FI.prontas.push({ im, b, ponte: { o, v0, v, s, k: kDeco(o, v0, v, s) } }); })
+            .catch(() => { FRENTE_PONTE_FORA.add(im); FI.pend.delete(im); }); }
+        else if (melhor) FRENTE_PONTE_FORA.add(melhor.im);
+      }
+    }
+    if (FI.t === t0) { const d = performance.now() - t0; FI.ms.scan = Math.max(FI.ms.scan || 0, d); }
+    // na thread do jogo, no máximo uma coisa por quadro: a ponte (passos de ~1,5 ms) antes das camadas
+    const ip = FI.prontas.findIndex(q => q.ponte);
+    if (FI.ponte) {
+      const P = FI.ponte, a = performance.now(); let r;
+      do r = P.g.next(); while (!r.done && performance.now() - a < FI.orcPonte);
+      if (r.done) { P.b.close(); FI.pend.delete(P.im); FI.ponte = null; FI.pontes++; }
+    } else if (ip >= 0) {
+      const q = FI.prontas.splice(ip, 1)[0], P = q.ponte;
+      FI.ponte = { g: frenteDaPontePassos(P.o, P.v0, P.v, q.im, P.s, P.k, q.b), b: q.b, im: q.im };
+    } else if (FI.prontas.length) {
+      const q = FI.prontas.shift();
+      const tq = performance.now();
+      if (q.faixa) {                                                    // (uma faixa da camada para o lote)
+        try { if (LOTE.ligado && LOTE.contexto() && !LOTE.temTex(q.im) && LOTE.enviarFaixa(q.im, q.b, q.y0)) { FI.envios++; FI.enviadas.push(q.im); if (FI.enviadas.length > 20) FI.enviadas.shift(); } if (LOTE.compartilhado()) P3D.render.resetState(); }
+        finally { q.b.close(); if (q.ultima) FI.pend.delete(q.im); }
+      } else {
+        let fica = false;
+        try {
+          if (q.km) { if (PRED_MASC[q.km] === undefined) { predMascara(q.im, q.arq, q.b); FI.mascaras++; } }
+          else if (q.tex && LOTE.ligado && LOTE.contexto() && !LOTE.temTex(q.im)) {   // (as faixas de ~1 MB, recortadas do bitmap inteiro)
+            const w = q.b.width, h = q.b.height, hs = Math.max(16, Math.ceil(262144 / w)), l = [];
+            for (let y = 0; y < h; y += hs) l.push(createImageBitmap(q.b, 0, y, w, Math.min(hs, h - y), { premultiplyAlpha: "premultiply", colorSpaceConversion: "default" }).then(b => ({ b, y })));
+            fica = true;
+            Promise.all(l).then(fs => { fs.forEach((f, k) => FI.prontas.push({ im: q.im, b: f.b, faixa: true, y0: f.y, ultima: k === fs.length - 1 })); }, () => FI.pend.delete(q.im)).finally(() => q.b.close());
+          }
+        } finally { if (!fica) { q.b.close(); FI.pend.delete(q.km || q.im); } }
+      }
+      const k = q.faixa ? "faixa" : "masc", d = performance.now() - tq; FI.ms[k] = Math.max(FI.ms[k] || 0, d);
+    }
+  } catch (e) { console.error("frente:", e); if (FI.ponte) { try { FI.ponte.b.close(); } catch (e2) {} FI.pend.delete(FI.ponte.im); FI.ponte = null; } }
+  const ms = performance.now() - t0; if (ms > FI.msMax) FI.msMax = ms;
+}
 // ---- as tarefas (geradores: yield 0 = fiz um pouco; yield 1 = esperando, até o próximo quadro)
 function* preparoModelos() {
   const v = viking, l = new Map(), P = PREPARO;
@@ -29000,8 +29601,10 @@ function laco(agora) {
   else if (editor.ativo) passoEditor(dt);                           // editando: o jogo fica parado
   else if (!pausado && !SEL.aberta) passo(dt * veloc);             // (com a escolha de classe aberta, o mundo espera)
   if (PREPARO.ativo) { LIMITE.raf = requestAnimationFrame(laco); return; }   // (R235: a preparação começou neste passo, num portal ou ao renascer: o desenho já é dela)
+  QUADRO_FX.n++;                                                    // (R239)
   if (!(window.MM && MM.cobre) && !SEL.aberta) desenhar(t);                        // (com o Mapa do Mundo aberto por cima, o jogo não é desenhado)
   if (PREPARO.fundo.length) preparoFundo();                         // (R235: o que passou do tempo da tela, aos poucos)
+  frenteImagens();                                                  // (R236: as construções e as pontes que vão aparecer)
   contarQuadro(agora);
   desenharOrbes(agora);
   LIMITE.raf = requestAnimationFrame(laco);
@@ -32446,7 +33049,8 @@ let texBrilho, texEstrela, geoColuna, geoChama, geoBolha, _v, _v2, _a, _b, _a2, 
 const vivos = [];                                   // os efeitos rodando: { passo(dt) → false quando acabou, fim() }
 const seguidos = new Map();                         // objeto do jogo (magia, flecha, raio, onda...) → o efeito que o segue
 const ativo = () => pronto && ligado;
-const alt = (x, y) => iso ? zPiso(x, y) : M3D.alturaEm(x, y);            // (no isométrico o chão é plano, menos as pontes e os pisos altos: R086)
+const alt = (x, y) => iso ? (ALT_REF.ligado ? altRef(x, y) : zPiso(x, y)) : M3D.alturaEm(x, y);   // (no isométrico o chão é plano, menos as pontes e os pisos altos: R086)
+const ALT_REF = ALTURA_FX, altRef = zEfeito;                           // (R239: a altura dos efeitos, zEfeito)
 const P3 = (x, y, z) => new THREE.Vector3(x, alt(x, y) + z, -y);           // ponto do jogo (altura acima do chão) na cena
 const hsl = (h, s = 1, l = 0.6) => new THREE.Color().setHSL((((h % 360) + 360) % 360) / 360, s, l);
 const rgb = (r, g, b) => new THREE.Color(r, g, b);
@@ -35046,6 +35650,19 @@ function caixaEfeitos() {
   if (c <= a || d <= b || (c - a) * (d - b) > 0.6 * W * H) return null;
   return [a, b, c - a, d - b];
 }
+// (para o teste R239) onde os efeitos vivos estão na tela: a média dos centros (objetos do grupo pela esfera, partículas vivas) pela
+// câmera do isométrico de agora, e quantos foram contados; com (px, py, raio), só os que estão a até raio m de (px, py) no mapa
+function centroEfeitos(px, py, raio = 1e9, antes = null) {
+  if (!S || !grupo || !iso) return null;
+  cameraIso(); const cam = S.camera, v = new THREE.Vector3(); let sx = 0, sy = 0, n = 0;
+  const pega = (x, y, z) => { if (px !== undefined && Math.hypot(x - px, -z - py) > raio) return; v.set(x, y, z).project(cam); sx += (v.x + 1) / 2 * W; sy += (1 - v.y) / 2 * H; n++; };
+  grupo.traverseVisible(o => { if (!(o.isMesh || o.isSprite || o.isPoints || o.isLine) || (antes && antes.has(o))) return; const g = o.geometry; if (g && !o.isSprite) g.computeBoundingSphere();   // (as fitas mudam a cada quadro: a esfera de agora)
+    if (g && g.boundingSphere && isFinite(g.boundingSphere.radius)) { v.copy(g.boundingSphere.center).applyMatrix4(o.matrixWorld); pega(v.x, v.y, v.z); } else { const e = o.matrixWorld.elements; pega(e[12], e[13], e[14]); } });
+  for (const sis of [PS, S.pNormal]) if (sis && sis.l) for (const q of sis.l) if (q.vida > 0 && !(antes && antes.has(q))) pega(q.x, q.y, q.z);
+  return n ? { x: sx / n, y: sy / n, n } : null;
+}
+// (para o teste R239) o que já está vivo agora (os objetos e as partículas): o centro depois conta só o que nasceu depois
+function efeitosAgora() { const a = new Set(); if (!S || !grupo) return a; grupo.traverse(o => a.add(o)); for (const sis of [PS, S.pNormal]) if (sis && sis.l) for (const q of sis.l) a.add(q); return a; }
 const corposIso = { cena: null, n: 0, l: [], sup: [] };
 const CORPOS_MAX = 10, CORPOS_RAIO = 16;
 let tIso = 0, nIso = 0, t0Iso = 0, _tamIso = null;
@@ -35390,7 +36007,7 @@ embrulhar("explosaoChefe", ([x, y, r, h]) => {
   clarao(P3(x, y, 0.6), r * 1.3, c, 0.22, { forca: 0.6 }); estouro(P3(x, y, 0.3), 22, c, 6, { sobe: 1, tam: 0.08, branco: 0.4 });
   fumaca(P3(x, y, 0.1), rgb(0.4, 0.35, 0.3), r > 2 ? 7 : 3, { r: r * 0.5, tam: 0.5, vel: 1, a: 0.4 }); luz(P3(x, y, 1), c, 4, 8, 0.3);
 });
-return { get ativo() { return ativo(); }, get iso() { return iso; }, get aquecidos() { return aquecerProgramas.feitos || 0; }, ensaiar, ensaioFim, get ensaiando() { return !!ensaio; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, caixa: FX_CAIXA, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; }, get bloomDaTela() { return B.daTela; }, set bloomDaTela(v) { B.daTela = !!v; },
+return { centroEfeitos, efeitosAgora, ALT_REF, get ativo() { return ativo(); }, get iso() { return iso; }, get aquecidos() { return aquecerProgramas.feitos || 0; }, ensaiar, ensaioFim, get ensaiando() { return !!ensaio; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, caixa: FX_CAIXA, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; }, get bloomDaTela() { return B.daTela; }, set bloomDaTela(v) { B.daTela = !!v; },
          get stats() { return { vivos: vivos.length, seguidos: seguidos.size, particulas: PS ? PS.l.length : 0 }; },
          corpos: { foraDaCaixa: corpoForaDaCaixa, entram: corposEntram, saem: corposSaem, get n() { return corposIso.n; }, get desenhados() { return corposIso.desenhados || 0; }, get junto() { return !!(S && S.junto); }, corte: CORPOS_CORTE } };   // (plano D: para os testes, R232)
 })();
