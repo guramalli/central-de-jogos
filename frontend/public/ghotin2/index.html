@@ -7646,9 +7646,10 @@ function desenharMarB(t) {
   for (let i = Math.floor((mx0 - deriva) / passo); i <= Math.ceil((mx1 - deriva) / passo); i++)
     for (let j = Math.floor(my0 / passo); j <= Math.ceil(my1 / passo); j++) {
       const x = (i + hash(i, j, 61)) * passo + deriva, y = (j + hash(i, j, 62)) * passo;
-      if (borda(x, y) < RAIO + 4.5) continue;
+      // (plano A, 03/11: o "aparece agora?" antes da borda da ilha: o mesmo desenho, ~metade das contas da borda)
       const k = Math.sin(t * (0.55 + hash(i, j, 63) * 0.35) + hash(i, j, 64) * 9);
       if (k < 0.05) continue;
+      if (borda(x, y) < RAIO + 4.5) continue;
       const a = Math.min(1, (k - 0.05) / 0.5), [px, py] = tela(x - cam.x, y - cam.y), X = W / 2 + px, Y = H / 2 + py;
       const r = s * (0.55 + 0.3 * hash(i, j, 65)) * (0.75 + 0.25 * k);
       cx.strokeStyle = `rgba(92, 128, 160, ${0.55 * a})`; cx.lineWidth = Math.max(1, s * 0.03);
@@ -7667,9 +7668,9 @@ function desenharMarB(t) {
     for (let i = Math.floor(mx0 / pb); i <= Math.ceil(mx1 / pb); i++)
       for (let j = Math.floor(my0 / pb); j <= Math.ceil(my1 / pb); j++) {
         const x = (i + hash(i, j, 71)) * pb, y = (j + hash(i, j, 72)) * pb;
-        if (borda(x, y) < RAIO + 1.5) continue;
         const k = Math.sin(t * (1.6 + hash(i, j, 73)) + hash(i, j, 74) * 40);
-        if (k < 0.94) continue;
+        if (k < 0.94) continue;                                           // (o brilho pisca: a borda só para os ~3% acesos agora)
+        if (borda(x, y) < RAIO + 1.5) continue;
         const a = (k - 0.94) / 0.06, [px, py] = tela(x - cam.x, y - cam.y), X = W / 2 + px, Y = H / 2 + py, l = s * 0.11 * a;
         cx.globalAlpha = sol * a * 0.9;
         cx.beginPath(); cx.moveTo(X - l, Y); cx.lineTo(X + l, Y); cx.moveTo(X, Y - l * 0.6); cx.lineTo(X, Y + l * 0.6); cx.stroke();
@@ -7796,8 +7797,20 @@ const borboletas = Array.from({ length: 14 }, (_, k) => {
   const c = [[-8, -14], [10, -16], [-14, -2], [20, -4], [-28, -18], [26, -20], [-6, -24]][k % 7];
   return { cx: c[0] + (hash(k, 6, 52) - 0.5) * 6, cy: c[1] + (hash(k, 7, 52) - 0.5) * 6, f: hash(k, 8, 52) * 9, cor: ["#f2d45c", "#f2f0e6", "#e08a4a", "#8cc0f0"][k % 4] };
 });
+// DESEMPENHO (plano de arquitetura B, 03/11): as listas dos objetos que a simulação visita a cada passo (os bonecos de treino e as
+// chaminés), na ordem de objetos, refeitas quando a lista de objetos muda (outra lista, outro tamanho, a colisão) e a cada
+// ~2 s. Antes, dois laços pelos ~2.000 objetos a cada quadro
+const OBJ_IDX = { arr: null, n: -1, gv: -1, q: 0, bonecos: [], chamines: [], fogosCaverna: [] };
+function objIndice() {
+  const I = OBJ_IDX;
+  if (I.arr !== objetos || I.n !== objetos.length || I.gv !== GRADE_V || ++I.q > 240) {
+    I.arr = objetos; I.n = objetos.length; I.gv = GRADE_V; I.q = 0; I.bonecos = []; I.chamines = []; I.fogosCaverna = [];
+    for (const o of objetos) { if (o.tipo === "boneco") I.bonecos.push(o); if (o.chamine) I.chamines.push(o); if ((o.tipo === "tocha" || o.tipo === "braseiro" || o.tipo === "fogueira") && o.caverna) I.fogosCaverna.push(o); }
+  }
+  return I;
+}
 function passoAmbiente(dt) {
-  for (const o of objetos) if (o.chamine && Math.random() < dt * 2)
+  for (const o of objIndice().chamines) if (o.chamine && Math.random() < dt * 2)
     fumaca.push({ x: o.chamine[0] + (Math.random() - 0.5) * 0.2, y: o.chamine[1], z: o.chamine[2], vida: 3 + Math.random() * 2, max: 5, r: 0.15, teto: true });
   if (Math.random() < dt * 3) fumaca.push({ x: FOGO.x, y: FOGO.y, z: 0.6, vida: 2.5, max: 2.5, r: 0.12 });
   for (const f of fumaca) { f.vida -= dt; f.z += dt * 0.55; f.x += dt * 0.25; f.r += dt * 0.18; }
@@ -8190,7 +8203,7 @@ function porNaGrade(o) {
   const x0 = o.ret ? o.x0 : o.x - m, x1 = o.ret ? o.x1 : o.x + m, y0 = o.ret ? o.y0 : o.y - m, y1 = o.ret ? o.y1 : o.y + m;
   for (let i = Math.floor((x0 - 0.5) / R); i <= Math.floor((x1 + 0.5) / R); i++)
     for (let j = Math.floor((y0 - 0.5) / R); j <= Math.floor((y1 + 0.5) / R); j++) {
-      const k = i + "," + j; if (!grade.has(k)) grade.set(k, []); grade.get(k).push(o);
+      const k = (i + 32768) * 65536 + (j + 32768); let c = grade.get(k); if (!c) grade.set(k, c = []); c.push(o);   // (plano C: a chave em número; o texto "i,j" a cada consulta do livre pesava)
     }
 }
 function vazio(x, y, dist) { return !objetos.some(o => !o.ret && Math.hypot(o.x - x, o.y - y) < dist + o.r); }
@@ -8805,8 +8818,11 @@ function caixaObjeto(o, X, Y, s) {
 function quemPodeSumir() {
   const s = PX * zoom, l = [];
   { const [X, Y] = noMundo(viking.x, viking.y, zPiso(viking.x, viking.y)); l.push({ y: profV(viking.x, viking.y), c: [X - s * 0.32, Y - s * 1.45, X + s * 0.32, Y] }); }
+  // (plano A: só as criaturas na área da tela da grade, com 20 m de folga; as de longe não cobrem nada desenhado. Sem a grade, todas)
+  const A = LISTA_G.ligado && LISTA_G.area && !(window.M3D && M3D.ativo) && !LISTA_G.conferir ? LISTA_G.area : null;
   for (const c of criaturas) {
     if (c.morto) continue;
+    if (A && (c.x < A[0] - 20 || c.x > A[1] + 20 || c.y < A[2] - 20 || c.y > A[3] + 20)) continue;
     const [X, Y] = noMundo(c.x, c.y, zPiso(c.x, c.y)), m = s * (c.cfg.anel || 0.5) * 0.8;
     l.push({ y: profV(c.x, c.y), c: [X - m, Y - c.cfg.barra * zoom * 0.85, X + m, Y] });
   }
@@ -19124,11 +19140,20 @@ const distTela = (dx, dy) => Math.hypot(dx * GIRO_C - dy * GIRO_S, (dx * GIRO_S 
 // resultado é o mesmo número. VIZ.conferir (os testes) faz as duas contas e conta as diferenças
 const VIZ = { ligado: true, cel: 4, folga: 1, mapa: new Map(), extras: [], n0: 0, rmax: 0, q: 0, montado: false, conferir: false, difs: 0, contas: 0, buf: [] };
 const vizChave = (i, j) => (i + 32768) * 65536 + (j + 32768);
+// DESEMPENHO (plano de arquitetura B, 03/11): a grade é montada só quando a 1ª criatura do passo pergunta pelos vizinhos (vizPronto:
+// num quadro em que ninguém pensa, nada), e só com as criaturas da área acordada (a da tela + o sono + 10 m: VIZ.area; as de
+// fora estão dormindo, longe de quem pergunta). Sem a área (no ?test=1, sem o sono), todas, como antes
+function vizPronto() {
+  const G = VIZ; if (G.montado) return true; if (!G.pendente) return false;
+  G.pendente = false; vizMontar(); return true;
+}
 function vizMontar() {
-  const G = VIZ; G.mapa.clear(); G.extras.length = 0; G.n0 = criaturas.length; G.rmax = 0; G.q++;
+  const G = VIZ, A = G.area; G.mapa.clear(); G.extras.length = 0; G.n0 = criaturas.length; G.rmax = 0; G.q++;
   for (let i = 0; i < criaturas.length; i++) {
-    const o = criaturas[i], r = o.cfg.raioBando ?? (o.cfg.raio || 0); if (r > G.rmax) G.rmax = r;
-    o._vi = i; o._vq = G.q; o._vx = o.x; o._vy = o.y; o._vExtra = false;
+    const o = criaturas[i]; o._vi = i;
+    if (A && (o.x < A[0] || o.x > A[1] || o.y < A[2] || o.y > A[3])) { o._vq = -1; continue; }
+    const r = o.cfg.raioBando ?? (o.cfg.raio || 0); if (r > G.rmax) G.rmax = r;
+    o._vq = G.q; o._vx = o.x; o._vy = o.y; o._vExtra = false;
     const k = vizChave(Math.floor(o.x / G.cel), Math.floor(o.y / G.cel)); let l = G.mapa.get(k); if (!l) G.mapa.set(k, l = []); l.push(o);
   }
   G.montado = true;
@@ -19162,7 +19187,7 @@ function criaturaLivre(l, x, y) {
     return d < lim && d < dist(o.x - l.x, o.y - l.y) - 1e-4;
   });
   let barrou;
-  if (VIZ.ligado && VIZ.montado) {
+  if (VIZ.ligado && vizPronto()) {
     // (a caixa da conta acima: até 1,5 × (1,1 + o raio dela + o maior raio do mapa) para cada lado)
     barrou = barrouEm(vizinhos(x, y, 1.5 * (1.1 + (l.cfg.raioBando ?? rl) + VIZ.rmax)));
     if (VIZ.conferir) { VIZ.contas++; if (barrou !== barrouEm(criaturas)) VIZ.difs++; }
@@ -19173,7 +19198,7 @@ function criaturaLivre(l, x, y) {
 // para longe dos vizinhos (mais forte quanto mais perto): somada ao rumo, espalha o bando em volta do alvo em vez de
 // fazer fila atrás do primeiro
 function separacao(l) {
-  if (VIZ.ligado && VIZ.montado) {
+  if (VIZ.ligado && vizPronto()) {
     // (distTela achata um eixo: no chão, o vizinho a m na tela pode estar até m / ACHATA longe)
     const r = (1.6 + (l.cfg.raioBando ?? (l.cfg.raio || 0)) + VIZ.rmax) / Math.min(1, ACHATA);
     if (!VIZ.conferir) return separacaoEm(l, vizinhos(l.x, l.y, r));
@@ -19256,15 +19281,15 @@ function passoCriatura(l, dt) {
       const dTela = distTela(dx, dy), [px, py] = separacao(l), apertado = dTela <= cfg.alcance * 0.95 && Math.hypot(px, py) > 0.3;   // (R167: o alcance também na tela: a roda em volta do herói é um círculo na tela)
       if (dTela > cfg.perto && !apertado) {
         vel = (d > 3 && cfg.galope ? cfg.galope : cfg.chega) * (l.furiaChefe ? 1.3 : 1) * (l.lento > 0 ? 0.7 : 1);   // (o chefe na fúria: mais rápido; 03/11: lento pelo Golpe Espiritual, −30 de movimento do Metin2)
-        if (retaLivre(l.x, l.y, viking.x, viking.y)) { mx = dx / d; my = dy / d; l.rota = null; }
-        else [mx, my] = rumo(l, viking.x, viking.y, dt);           // algo no meio: vai pela rota com desvio
+        if (retaLivreCriatura(l.x, l.y, viking.x, viking.y)) { mx = dx / d; my = dy / d; l.rota = null; }
+        else { const f = fluxoRumo(l); if (f) { [mx, my] = f; l.rota = null; } else [mx, my] = rumo(l, viking.x, viking.y, dt); }   // algo no meio: pelo campo de fluxo do herói (plano C) ou pela rota com desvio
         if (!mx && !my) { mx = dx / d; my = dy / d; }
         if (cfg.sopro && !cfg.chefe) { const r = vagaNoBando(l, mx, my, d); mx = r[0]; my = r[1]; vel *= r[2]; }   // (o bando em volta do herói, sem virar uma massa só)
-        const [sx, sy] = separacao(l), n = Math.hypot(mx + sx * 1.3, my + sy * 1.3) || 1;
+        const sx = px, sy = py, n = Math.hypot(mx + sx * 1.3, my + sy * 1.3) || 1;   // (plano B: a mesma separação de cima, no mesmo passo: era calculada 2 vezes)
         mx = (mx + sx * 1.3) / n; my = (my + sy * 1.3) / n;
       } else {
         // no alcance mas em cima de outro do bando: se ajeita para o lado, devagar
-        const [sx, sy] = separacao(l);
+        const sx = px, sy = py;
         if (Math.hypot(sx, sy) > 0.25) { vel = cfg.chega * 0.6; const n = Math.hypot(sx, sy); mx = sx / n; my = sy / n; }
         else if (cfg.sopro && !cfg.chefe) { const b = bandoVolta(l); if (b.n > 1 && Math.abs(b.t) > 0.15) { const u = Math.sign(b.t); vel = cfg.chega * 0.5; mx = -Math.sin(b.ang) * u; my = Math.cos(b.ang) * u; } }   // (já no alcance, dá a volta até abrir espaço)
       }
@@ -19289,7 +19314,7 @@ function passoCriatura(l, dt) {
       if (de < 0.2) { l.destino = null; l.espera = 1.5 + Math.random() * 3; }
       else {
         vel = cfg.passeio; mx = ex / de; my = ey / de;
-        if (!retaLivre(l.x, l.y, l.destino.x, l.destino.y)) { const [rx, ry] = rumo(l, l.destino.x, l.destino.y, dt); if (rx || ry) { mx = rx; my = ry; } }
+        if (!retaLivreCriatura(l.x, l.y, l.destino.x, l.destino.y)) { const [rx, ry] = rumo(l, l.destino.x, l.destino.y, dt); if (rx || ry) { mx = rx; my = ry; } }
       }
     }
   }
@@ -22398,11 +22423,36 @@ function alfaCostelaVale(o, caixa) {
   if (!criaturas.some(l => l.cfg.sopro && !l.morto && Math.abs(l.x - o.x) < 8 && Math.abs(l.y - o.y) < 8)) return 0.38;
   COSTELA_COBRE = true; return 0.72;
 }
+// o filtro SVG do fio do Vale (uma vez; null se o canvas não aceitar filtro por url). SIL_VALE.ligado = false: o de antes
+const SIL_VALE = { ligado: true, ok: undefined, usos: 0 };
+function silFiltroVale() {
+  const S0 = SIL_VALE; if (!S0.ligado) return false;
+  if (S0.ok === undefined) {
+    try {
+      const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
+      svg.setAttribute("width", "0"); svg.setAttribute("height", "0"); svg.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+      svg.innerHTML = '<filter id="silValeFio" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feMorphology in="SourceAlpha" operator="dilate" radius="1" result="a"/><feFlood flood-color="#EFE4CC"/><feComposite in2="a" operator="in"/></filter>';
+      document.body.appendChild(svg);
+      const g = document.createElement("canvas").getContext("2d"); g.filter = "url(#silValeFio)"; S0.ok = g.filter !== "none";
+    } catch (e) { S0.ok = false; }
+  }
+  if (S0.ok) S0.usos++;
+  return S0.ok;
+}
 function desenharSilhuetaVale() {
   const pelaCostela = COSTELA_COBRE; COSTELA_COBRE = false;
   if (!dragaoSobreHeroi() && !pelaCostela) return;
   const pose = poseHeroi(zoom); if (!pose) return;
-  const [sx, sy] = tela(viking.x - cam.x, viking.y - cam.y), X = W / 2 + sx, Y = H / 2 + sy - zPiso(viking.x, viking.y) * PX * zoom * ALTURA, w = Math.ceil(pose.w), h = Math.ceil(pose.h), c = silhuetaPose(pose, "#EFE4CC");
+  const [sx, sy] = tela(viking.x - cam.x, viking.y - cam.y), X = W / 2 + sx, Y = H / 2 + sy - zPiso(viking.x, viking.y) * PX * zoom * ALTURA, w = Math.ceil(pose.w), h = Math.ceil(pose.h);
+  // DESEMPENHO (plano de arquitetura D, parte 1, 03/11, aprovado): o fio sai direto da pose por um filtro SVG (alarga 1 px e pinta
+  // de #EFE4CC), sem pintar a silhueta num canvas à parte lendo o atlas WebGL (era onde a thread parava esperando a GPU)
+  if (silFiltroVale()) {
+    const q0 = cx.imageSmoothingQuality; cx.save(); cx.imageSmoothingQuality = "low";
+    cx.globalAlpha = 0.85; cx.filter = "url(#silValeFio)"; cx.drawImage(pose.src, pose.sx, pose.sy, pose.sw, pose.sh, X - pose.esq, Y - pose.cima, pose.w, pose.h);
+    cx.filter = "none"; cx.globalAlpha = 0.9; cx.drawImage(pose.src, pose.sx, pose.sy, pose.sw, pose.sh, X - pose.esq, Y - pose.cima, pose.w, pose.h);
+    cx.restore(); cx.imageSmoothingQuality = q0; return;
+  }
+  const c = silhuetaPose(pose, "#EFE4CC");
   cx.save(); cx.globalAlpha = 0.7;                                       // (o fio: 1 px)
   for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) cx.drawImage(c, 0, 0, w, h, X - pose.esq + ox, Y - pose.cima + oy, w, h);
   cx.globalAlpha = 0.9; cx.imageSmoothingQuality = "low"; cx.drawImage(pose.src, pose.sx, pose.sy, pose.sw, pose.sh, X - pose.esq, Y - pose.cima, pose.w, pose.h); cx.restore();
@@ -23171,7 +23221,7 @@ function luzDaCaverna(t) {
   const furo = (X, Y, r, a) => { const gr = g.createRadialGradient(X, Y, r * 0.12, X, Y, r); gr.addColorStop(0, `rgba(0, 0, 0, ${a})`); gr.addColorStop(1, "rgba(0, 0, 0, 0)"); g.fillStyle = gr; g.beginPath(); g.ellipse(X, Y, r, r * 0.78, 0, 0, 7); g.fill(); };
   const [vx, vy] = noMundo(viking.x, viking.y, 0.8);
   furo(vx, vy, 6.5 * s * (1 + 0.02 * Math.sin(t * 9)), 1);
-  for (const o of objetos) if ((o.tipo === "tocha" || o.tipo === "braseiro" || o.tipo === "fogueira") && o.caverna) { const [X, Y] = noMundo(o.x, o.y, 1.5); if (X > -s * 5 && X < W + s * 5 && Y > -s * 5 && Y < H + s * 5) furo(X, Y, 3.6 * s * (1 + 0.05 * Math.sin(t * 11 + o.x)), 0.85); }
+  for (const o of objIndice().fogosCaverna) if ((o.tipo === "tocha" || o.tipo === "braseiro" || o.tipo === "fogueira") && o.caverna) { const [X, Y] = noMundo(o.x, o.y, 1.5); if (X > -s * 5 && X < W + s * 5 && Y > -s * 5 && Y < H + s * 5) furo(X, Y, 3.6 * s * (1 + 0.05 * Math.sin(t * 11 + o.x)), 0.85); }
   for (const p of passagens) if (p.tipo === "escada" || p.tipo === "desce") { const [X, Y] = noMundo(p.x, p.y, 1.8); furo(X, Y, 2.6 * s, 0.7); }
   if (d && d.vale) luzDoVale(g, d, furo, s, t);                          // (a lava, o aviso do sopro no chão, o fogo e a bola de fogo clareiam)
   for (const m of magias) { const [X, Y] = noMundo(m.x, m.y, m.z); furo(X, Y, 1.6 * s, 0.8); }
@@ -23234,7 +23284,7 @@ function livre(x, y) {
   if (x < -350 && !GELADA.andavel(x, y)) return false;                 // (Montanha Gelada: as beiras, as fontes, as fendas e os marcos)
   if (!altarAndavel(x, y)) return false;                               // (R165: a mureta, a balaustrada e o que o patamar esconde)
   if (foraTabuleiro(x, y)) return false;                               // (R086: o corrimão e o vão da ponte)
-  const l = grade.get(Math.floor(x / 4) + "," + Math.floor(y / 4));
+  const l = grade.get((Math.floor(x / 4) + 32768) * 65536 + (Math.floor(y / 4) + 32768));
   if (!l) return true;
   for (const o of l) {
     if (o.ret) { if (x > o.x0 - 0.25 && x < o.x1 + 0.25 && y > o.y0 - 0.25 && y < o.y1 + 0.25) return false; }
@@ -23436,10 +23486,14 @@ function acharCaminhoRef(x0, y0, x1, y1, maxNos = 9000) {
 }
 // direção para seguir a rota até (x, y); refaz a rota quando o destino anda mais de 0,8 m ou quando trava meio segundo
 const ROTAS = { q: 0, quadro: -1, n: 0, adiadas: 0 };
+// DESEMPENHO (plano de arquitetura C, 03/11, aprovado): o teto de nós da busca: 600 para as criaturas (era 1.500) e 3.000 para o
+// herói (era 9.000). As buscas que não chegam (o alvo numa célula fechada) andavam o teto inteiro: 14–20 ms do herói e 11–13 ms
+// da criatura com a CPU do usuário. Sem chegar, a busca devolve o caminho até o ponto mais perto (como já fazia)
+const ROTA_NOS = { criatura: 600, heroi: 3000, heroiLonge: 9000 };
 let ROTAS_POR_QUADRO = 1;
 function rumo(ent, x, y, dt) {
   const r = ent.rota;
-  if (retaLivre(ent.x, ent.y, x, y)) { ent.rota = null; const d = Math.hypot(x - ent.x, y - ent.y); return d > 1e-4 ? [(x - ent.x) / d, (y - ent.y) / d] : [0, 0]; }
+  if (ent === viking ? retaLivre(ent.x, ent.y, x, y) : retaLivreCriatura(ent.x, ent.y, x, y)) { ent.rota = null; const d = Math.hypot(x - ent.x, y - ent.y); return d > 1e-4 ? [(x - ent.x) / d, (y - ent.y) / d] : [0, 0]; }
   // criaturas: busca curta (1.500 passos) e, sem caminho até o alvo, só tentam de novo 1,2 s depois (antes uma presa
   // atrás das árvores refazia a busca inteira a cada meio segundo, 16–28 ms cada)
   const criatura = ent !== viking;
@@ -23449,7 +23503,21 @@ function rumo(ent, x, y, dt) {
     // quadro seguinte com a rota que tinham (ou paradas, sem nenhuma). Antes, num bando, várias buscas caíam no mesmo quadro
     if (criatura && ROTAS.quadro === ROTAS.q && ROTAS.n >= ROTAS_POR_QUADRO) { ROTAS.adiadas++; if (!r || !r.pts.length) return [0, 0]; const [px, py] = r.pts[0], d0 = Math.hypot(px - ent.x, py - ent.y) || 1; return [(px - ent.x) / d0, (py - ent.y) / d0]; }
     if (criatura) { if (ROTAS.quadro !== ROTAS.q) { ROTAS.quadro = ROTAS.q; ROTAS.n = 0; } ROTAS.n++; }
-    const c = acharCaminho(ent.x, ent.y, x, y, criatura ? 1500 : 9000);
+    // (plano C, 03/11, aprovado: a busca com teto curto, como no TFS e no rAthena; sem chegar, o caminho até o ponto mais perto)
+    // (o herói: com o alvo numa célula fechada — rente a uma árvore, a um muro, a um NPC —, a busca nunca chegava e andava o teto
+    //  inteiro: era a de 14–20 ms. Agora ela vai até a célula boa mais perto do alvo, a até 1,5 m, com o teto longo de antes (as
+    //  buscas que chegam param cedo; o Altar e a Guardiã ficam longe); o resto do caminho até o ponto exato é a reta de sempre.
+    //  Sem célula boa perto, o teto curto)
+    let tx = x, ty = y, teto = criatura ? ROTA_NOS.criatura : ROTA_NOS.heroiLonge;
+    if (!criatura) {
+      const G = PASSO_GRADE, ci = Math.round(x / G), cj = Math.round(y / G);
+      if (!celOk(ci, cj)) {
+        let mel = null, md = 1e9;
+        for (let di = -3; di <= 3; di++) for (let dj = -3; dj <= 3; dj++) { const d = Math.hypot(ci + di - x / G, cj + dj - y / G); if (d < md && celOk(ci + di, cj + dj)) { md = d; mel = [(ci + di) * G, (cj + dj) * G]; } }
+        if (mel) { tx = mel[0]; ty = mel[1]; } else teto = ROTA_NOS.heroi;
+      }
+    }
+    const c = acharCaminho(ent.x, ent.y, tx, ty, teto);
     ent.rota = { x, y, pts: c.pts, t: 0, chega: c.chega };
     if (criatura) ent.rotaEspera = c.chega ? 0.3 : 1.2;
   }
@@ -23460,6 +23528,124 @@ function rumo(ent, x, y, dt) {
   if (!rota.pts.length) return [0, 0];
   const [px, py] = rota.pts[0], d = Math.hypot(px - ent.x, py - ent.y);
   return [(px - ent.x) / d, (py - ent.y) / d];
+}
+// ---------- DESEMPENHO (plano de arquitetura C, 03/11, aprovado): a visada e a perseguição sobre a grade de bytes das rotas ----------
+// A célula (i, j) de 0,5 m é boa? A mesma conta do A* (livre no centro e a 20 cm para os 4 lados), guardada na grade de bytes
+// (rotaCache, R221). A grade é pega uma vez por passo
+const CEL_OK = { q: -1, G: null, frias: 0 };
+function celOk(i, j) {
+  const C = CEL_OK; if (C.q !== ROTAS.q || !C.G) { C.G = rotaCache(); C.q = ROTAS.q; }
+  const GV = C.G.v, gm = C.G.ger << 1, k = (i + 2048) * 4096 + (j + 2048), c = GV[k];
+  if ((c & 254) === gm) return (c & 1) === 1;
+  C.frias++;
+  const G = PASSO_GRADE, x = i * G, y = j * G, v = livre(x, y) && livre(x + 0.2, y) && livre(x - 0.2, y) && livre(x, y + 0.2) && livre(x, y - 0.2);
+  if (ROTA_OK.ligado) GV[k] = gm | (v ? 1 : 0);
+  return v;
+}
+// a visada pela grade: anda célula a célula (DDA de Amanatides–Woo) e todas as do meio têm de ser boas (a do começo e a do fim
+// não contam: quem está rente a uma árvore ou a um muro fica numa célula "fechada"). Na quina exata, as duas do lado também
+// (não corta quina, como o A*). Era um livre() a cada 0,2 m
+function retaLivreGrade(x0, y0, x1, y1) {
+  const G = PASSO_GRADE, ax = x0 / G + 0.5, ay = y0 / G + 0.5, bx = x1 / G + 0.5, by = y1 / G + 0.5;
+  let i = Math.floor(ax), j = Math.floor(ay);
+  const ti = Math.floor(bx), tj = Math.floor(by), dx = bx - ax, dy = by - ay, si = dx > 0 ? 1 : -1, sj = dy > 0 ? 1 : -1;
+  const tdx = dx ? Math.abs(1 / dx) : Infinity, tdy = dy ? Math.abs(1 / dy) : Infinity;
+  let tmx = dx ? (dx > 0 ? i + 1 - ax : ax - i) * tdx : Infinity, tmy = dy ? (dy > 0 ? j + 1 - ay : ay - j) * tdy : Infinity;
+  for (let n = 0; n < 4096; n++) {
+    if (i === ti && j === tj) return true;
+    if (tmx < tmy - 1e-12) { tmx += tdx; i += si; }
+    else if (tmy < tmx - 1e-12) { tmy += tdy; j += sj; }
+    else {                                                                 // (a quina: as duas do lado)
+      if (!((i + si === ti && j === tj) || celOk(i + si, j)) || !((i === ti && j + sj === tj) || celOk(i, j + sj))) return false;
+      tmx += tdx; tmy += tdy; i += si; j += sj;
+    }
+    if (i === ti && j === tj) return true;
+    if (!celOk(i, j)) return false;
+  }
+  return true;
+}
+// a visada das criaturas: perto (até 1,5 m), a conta exata de antes (a grade não vê um muro entre duas células vizinhas);
+// mais longe, pela grade. FLUXO.ligado = false: a de antes sempre
+function retaLivreCriatura(x0, y0, x1, y1) {
+  if (!FLUXO.ligado || Math.abs(x1 - x0) + Math.abs(y1 - y0) < 1.5) return retaLivre(x0, y0, x1, y1);
+  return retaLivreGrade(x0, y0, x1, y1);
+}
+// O campo de fluxo (como o Supreme Commander 2 e a Red Blob Games): um Dijkstra a partir da célula do herói, numa janela de
+// FLUXO.R células para cada lado (custo 2 de lado e 3 na diagonal, sem cortar quina), refeito quando o herói muda de célula
+// (no máximo a cada 0,15 s). Todas as criaturas que caçam o herói sem visada descem o mesmo campo, em vez de cada uma fazer o
+// seu A*. As células que ainda não estão na grade de bytes entram até FLUXO.frias por montagem (as outras, na próxima; o
+// aquecimento das rotas, R214, já as deixa prontas em volta do herói)
+const FLUXO = { ligado: true, R: 32, q: -1, d: null, b: [[], [], [], []], ci: 0, cj: 0, t: -1e9, ok: false, incompleto: false, chave: "", ger: -1, frias: 120, montagens: 0, usos: 0, falhas: 0 };
+function fluxoMontar() {
+  const F = FLUXO, R = F.R, N = 2 * R + 1, G = PASSO_GRADE;
+  if (!F.d || F.d.length !== N * N) F.d = new Uint16Array(N * N);
+  const D = F.d; D.fill(65535);
+  const hi = Math.round(viking.x / G), hj = Math.round(viking.y / G); F.ci = hi; F.cj = hj; F.montagens++;
+  const RG = rotaCache(), GV = RG.v, gm = RG.ger << 1; F.ger = RG.ger; F.chave = ROTA_OK.chave;
+  let frias = 0, incompleto = false;
+  const ok = (wi, wj) => {                                              // (wi, wj: na janela)
+    const i = wi - R + hi, j = wj - R + hj, c = GV[(i + 2048) * 4096 + (j + 2048)];
+    if ((c & 254) === gm) return (c & 1) === 1;
+    if (frias >= F.frias) { incompleto = true; return false; }
+    frias++; return celOk(i, j);
+  };
+  const B = F.b; for (const b of B) b.length = 0;
+  const w0 = R * N + R; D[w0] = 0; B[0].push(w0);
+  for (let cur = 0, vazios = 0; vazios < 4; cur++) {
+    const b = B[cur & 3];
+    if (!b.length) { vazios++; continue; }
+    vazios = 0;
+    for (let k = 0; k < b.length; k++) {
+      const w = b[k]; if (D[w] !== cur) continue;                       // (entrada velha)
+      const wi = (w / N) | 0, wj = w - wi * N;
+      for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+        if (!di && !dj) continue;
+        const ni = wi + di, nj = wj + dj; if (ni < 0 || nj < 0 || ni >= N || nj >= N) continue;
+        const nd = cur + (di && dj ? 3 : 2), nw = ni * N + nj; if (D[nw] <= nd) continue;
+        if (!ok(ni, nj)) continue;
+        if (di && dj && (!ok(wi + di, wj) || !ok(wi, wj + dj))) continue;   // (não corta quina)
+        D[nw] = nd; B[nd & 3].push(nw);
+      }
+    }
+    b.length = 0;
+  }
+  F.incompleto = incompleto; F.ok = true;
+}
+// o campo do quadro: refeito se o herói mudou de célula, se a colisão mudou ou se a montagem anterior ficou sem células
+function fluxoAtual() {
+  const F = FLUXO, G = PASSO_GRADE, agora = performance.now() / 1000;
+  if (F.q === ROTAS.q) return F.ok;
+  F.q = ROTAS.q;
+  const mudou = !F.ok || Math.round(viking.x / G) !== F.ci || Math.round(viking.y / G) !== F.cj || F.incompleto || F.chave !== ROTA_OK.chave || F.ger !== ROTA_G.ger;
+  if (mudou && (agora - F.t >= 0.15 || !F.ok || F.chave !== ROTA_OK.chave || F.ger !== ROTA_G.ger)) { F.t = agora; fluxoMontar(); }
+  return F.ok;
+}
+// o rumo de quem caça o herói pelo campo: desce o campo até 8 células e mira na mais longe que dá para ver em linha reta. Sem
+// campo (fora da janela, numa ilha de células sem saída), null: fica o rumo de antes (o A*)
+function fluxoRumo(l) {
+  const F = FLUXO; if (!F.ligado || !fluxoAtual()) return null;
+  const R = F.R, N = 2 * R + 1, G = PASSO_GRADE, D = F.d;
+  let wi = Math.round(l.x / G) - F.ci + R, wj = Math.round(l.y / G) - F.cj + R;
+  if (wi < 1 || wj < 1 || wi >= N - 1 || wj >= N - 1) { F.falhas++; return null; }
+  let d = D[wi * N + wj], alvo = null;
+  for (let s = 0; s < 8 && d > 0; s++) {
+    let bi = -1, bj = -1, bd = d;
+    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+      if (!di && !dj) continue;
+      const ni = wi + di, nj = wj + dj; if (ni < 0 || nj < 0 || ni >= N || nj >= N) continue;
+      const nd = D[ni * N + nj]; if (nd >= bd) continue;
+      if (di && dj && d !== 65535 && (D[(wi + di) * N + wj] === 65535 || D[wi * N + wj + dj] === 65535)) continue;   // (não corta quina)
+      bd = nd; bi = ni; bj = nj;
+    }
+    if (bi < 0) break;
+    wi = bi; wj = bj; d = bd;
+    const x = (wi - R + F.ci) * G, y = (wj - R + F.cj) * G;
+    if (!alvo || retaLivreGrade(l.x, l.y, x, y)) alvo = [x, y]; else break;
+  }
+  if (!alvo) { F.falhas++; return null; }
+  const ex = alvo[0] - l.x, ey = alvo[1] - l.y, n = Math.hypot(ex, ey);
+  if (n < 1e-4) return null;
+  F.usos++; return [ex / n, ey / n];
 }
 
 // ---------- ver a colisão (tecla C ou o botão do livro) ----------
@@ -23731,6 +23917,30 @@ addEventListener("keydown", e => {
   }
 }, true);
 addEventListener("keyup", e => { if (e.key === "Shift") shiftDeuDash = false; }, true);
+const SONO = { ligado: true, margem: 12 }, ACORDADAS = { n: 0, dormindo: 0, ritmo: 0 };
+// (plano B, parte 2) o ritmo do pensar das criaturas na tela (em s entre dois pensares) e quem está nele neste passo
+const IA_RITMO = { ligado: true, noTeste: false, caca: 1 / 30, parada: 1 / 10, interp: true, lista: [], trocadas: [], passos: 0 };
+// o desenho mostra cada criatura do ritmo no meio do caminho entre o pensar de antes e o último (a fração do tempo que já
+// passou do período dela): a posição e o tempo da animação (se a animação não trocou). Se algo a moveu fora do pensar (um
+// empurrão, o Vórtice), fica onde está. iaVoltar devolve tudo no fim do desenho: a simulação nunca vê a posição mostrada
+function iaMostrar() {
+  const IR = IA_RITMO, T = IR.trocadas; T.length = 0;
+  if (!IR.interp) return 0;
+  for (const l of IR.lista) {
+    if (l._ix1 === undefined || l.x !== l._ix1 || l.y !== l._iy1 || l.morto) continue;
+    const a = Math.min(1, Math.max(0, l._iaAcc / (l._iaPer || 1)));
+    l._sx = l.x; l._sy = l.y; l._st = l.t;
+    l.x = l._ix0 + (l._ix1 - l._ix0) * a; l.y = l._iy0 + (l._iy1 - l._iy0) * a;
+    if (l.anim === l._ian1 && l._ian0 === l._ian1 && l.t === l._it1 && l._it1 >= l._it0) l.t = l._it0 + (l._it1 - l._it0) * a;
+    T.push(l);
+  }
+  return T.length;
+}
+function iaVoltar() {
+  const T = IA_RITMO.trocadas;
+  for (const l of T) { l.x = l._sx; l.y = l._sy; l.t = l._st; }
+  T.length = 0;
+}
 function passo(dt) {
   passoAmbiente(dt);
   if (ferreiroNpc && !$("#ferreiro").hidden && Math.hypot(ferreiroNpc.x - viking.x, ferreiroNpc.y - viking.y) > 4) abrirFerreiro(false);
@@ -23738,22 +23948,52 @@ function passo(dt) {
   if (armazemAberto() && !objetos.some(o => o.dados && o.dados.armazem && Math.hypot(o.x - viking.x, o.y - viking.y) <= 4)) abrirArmazem(false);   // (o armazém de qualquer vila)
   // as criaturas de outro mapa (ou de outra dungeon) dormem; as mortas continuam contando o tempo de voltar
   const mapaHeroi = idMapa(viking.x, viking.y);
-  if (VIZ.ligado) vizMontar();
-  ROTAS.q++;                                                           // (R211: as buscas de rota deste passo)
+  VIZ.montado = false; VIZ.pendente = VIZ.ligado;                      // (plano B: a grade dos vizinhos na 1ª pergunta do passo, vizPronto)
+  // DESEMPENHO (plano de arquitetura B, 03/11, aprovado): fora da área da tela (a da grade da lista, LISTA_G.area) mais SONO.margem
+  // metros, a criatura viva que não está caçando, provocada, agindo, nem é chefe ou Ghotin DORME: sem IA, sem andar, sem
+  // separar (como o setor sem jogador do Metin2). A margem passa da visão de todas (≤ 7 m, +4 caçando) a partir da borda da
+  // tela, então ninguém que poderia ver o herói dorme. Acorda sozinha quando a tela chega perto, ou ao ser provocada/atingida
+  // (cacando/provocado). As mortas seguem contando o renascer. No ?test=1, ninguém dorme
+  const AS = LISTA_G.area, dormir = SONO.ligado && !MODO_TESTE && AS && !(window.M3D && M3D.ativo), SM = SONO.margem;
+  VIZ.area = dormir ? [AS[0] - SM - 10, AS[1] + SM + 10, AS[2] - SM - 10, AS[3] + SM + 10] : null;
+  let acordadas = 0, dormindo = 0;
+  const IR = IA_RITMO, iaRitmo = IR.ligado && (!MODO_TESTE || IR.noTeste) && !(window.M3D && M3D.ativo); IR.lista.length = 0;
+  ROTAS.q++;                                                         // (R211: as buscas de rota deste passo)
   rotaAquecer();                                                       // (R214: o cache das rotas em volta do herói, aos poucos)
   for (const l of criaturas) if (l.morto || l.mapa === undefined || l.mapa === mapaHeroi) {
+    if (dormir && !l.morto && !l.cacando && !(l.provocado > 0) && !l.acao && !l.cfg.chefe && !l.cfg.estatico && (l.x < AS[0] - SM || l.x > AS[1] + SM || l.y < AS[2] - SM || l.y > AS[3] + SM)) { dormindo++; l.dormindo = true; continue; }
+    acordadas++; l.dormindo = false;
     // DESEMPENHO (Logs/Desempenho/REAL.md): as criaturas longe do herói (mais de 50 m somando x e y: fora da tela e da
     // visão de todas), vivas e sem caçar, andam em passos de 1/20 s (o dt somado), e não a cada quadro: a IA das ~220 do
     // mapa (o andar à toa, os vizinhos, as colisões) era ~15% do laço. Perto do herói, nada muda (nem no ?test=1)
-    if (!MODO_TESTE && !l.morto && !l.cacando && !l.cfg.chefe && !l.cfg.estatico && Math.abs(l.x - viking.x) + Math.abs(l.y - viking.y) > 50) {
+    // (plano B: e, acordada mas fora da área da tela, sem caçar, também em passos de 1/20 s: ninguém vê os saltos)
+    if (!MODO_TESTE && !l.morto && !l.cacando && !l.cfg.chefe && !l.cfg.estatico && (Math.abs(l.x - viking.x) + Math.abs(l.y - viking.y) > 50 || (dormir && (l.x < AS[0] || l.x > AS[1] || l.y < AS[2] || l.y > AS[3])))) {
       l.dtLonge = (l.dtLonge === undefined ? Math.random() * 0.05 : l.dtLonge) + dt;   // (a 1ª vez, uma fase qualquer: não andam todas no mesmo quadro)
       if (l.dtLonge < 0.05) continue;
       const d = l.dtLonge; l.dtLonge = 0; passoCriatura(l, d); vizAndou(l); continue;
     }
     if (l.dtLonge) { const d = l.dtLonge + dt; l.dtLonge = 0; passoCriatura(l, d); vizAndou(l); continue; }   // (voltou para perto: o tempo que faltava)
+    // DESEMPENHO (plano de arquitetura B, parte 2, 03/11, aprovado): o pensar agendado por criatura, como o Metin2 e o TFS. Na
+    // área da tela, quem luta (caçando, agindo, provocada, atordoada) pensa a IA_RITMO.caca (30 por segundo) e quem passeia ou
+    // está parada a IA_RITMO.parada (10 por segundo), cada uma com a sua fase (o trabalho se espalha pelos quadros, sem pico);
+    // no meio, nada. O desenho mostra a posição e o tempo da animação no meio do caminho entre o pensar de antes e o último
+    // (iaMostrar): o movimento segue liso, com um passo de atraso. Chefes, Ghotins, dragões e mortas seguem a cada quadro. No
+    // ?test=1, desligado (IA_RITMO.noTeste liga, para os testes dele)
+    if (iaRitmo && !l.morto && !l.manual && !l.cfg.chefe && !l.cfg.estatico && !l.cfg.chefeCaverna && !l.cfg.sopro) {
+      const per = l.cacando || l.acao || l.provocado > 0 || l.atordoado > 0 || l.canal > 0 ? IR.caca : IR.parada;
+      if (l._iaAcc === undefined) l._iaAcc = Math.random() * per;   // (a fase sorteada)
+      l._iaAcc += dt; l._iaPer = per; IR.lista.push(l);
+      if (l._iaAcc < per - 1e-6) continue;
+      const d = Math.min(0.1, l._iaAcc); l._iaAcc = 0; IR.passos++;
+      l._ix0 = l.x; l._iy0 = l.y; l._it0 = l.t; l._ian0 = l.anim;
+      passoCriatura(l, d); vizAndou(l);
+      l._ix1 = l.x; l._iy1 = l.y; l._it1 = l.t; l._ian1 = l.anim;
+      continue;
+    }
+    l._iaAcc = undefined; l._ix1 = undefined;
     passoCriatura(l, dt); vizAndou(l);
   }
-  VIZ.montado = false;
+  VIZ.montado = false; VIZ.pendente = false; ACORDADAS.n = acordadas; ACORDADAS.dormindo = dormindo; ACORDADAS.ritmo = IR.lista.length;
   passoGruposV1(dt);                                                   // (os grupos do Metin2 da Vila 1: corpos, órfãos e o renascer)
   passoCavalo(dt);                                                     // (o cavalo: montado, solto atrás do herói ou empinando)
   passoEstabulo(dt);                                                   // (os cavalos de enfeite do estábulo)
@@ -23998,11 +24238,14 @@ function passo(dt) {
     else if (v.fila) { const f = v.fila; v.fila = null; if (f === "vortice") iniciarVortice(); else if (f === "lamina_espiritual") tocar(f, true); else { mirarBoneco(); tocar(f, true); } }
     else { v.anim = v.espada === "armada" ? "parado_armado" : "parado"; v.t = 0; }
   }
-  // bonecos: mola do balanço e palha caindo
-  for (const o of objetos) if (o.tipo === "boneco") {
+  // bonecos: mola do balanço e palha caindo (plano B: pela lista própria dos bonecos, não pelos ~2.000 objetos; a palha só é
+  // refeita quando alguma acabou)
+  for (const o of objIndice().bonecos) {
     o.vel += (-o.inc * 70 - o.vel * 5) * dt; o.inc = Math.max(-35, Math.min(35, o.inc + o.vel * dt));
-    for (const p of o.palha) { p.x += p.vx * dt; p.y += p.vy * dt; p.vz -= 9 * dt; p.z = Math.max(0, p.z + p.vz * dt); p.vida -= dt; }
-    o.palha = o.palha.filter(p => p.vida > 0);
+    if (!o.palha.length) continue;
+    let acabou = false;
+    for (const p of o.palha) { p.x += p.vx * dt; p.y += p.vy * dt; p.vz -= 9 * dt; p.z = Math.max(0, p.z + p.vz * dt); p.vida -= dt; if (!(p.vida > 0)) acabou = true; }
+    if (acabou) o.palha = o.palha.filter(p => p.vida > 0);
   }
   tremor = Math.max(0, tremor - dt);
 }
@@ -24336,7 +24579,78 @@ function criaturaNaTela(l) {
   const e = Math.max(1, c.esc || 1, c.telaEsc || 1);                     // (telaEsc: os dragões passam da caixa de sempre: o rabo, as asas)
   return peNaTela(l.x, l.y, 2.5 * e, 2.5 * e + (c.barra || 0) * zoom / (PX * zoom), 80);
 }
+// a caixa do objeto no mapa (x0, x1, y0, y1) que decide se ele aparece na tela (naTela, em desenhar)
+function caixaMapaObj(o) {
+  const m = Math.max(1, o.r, o.arteM || 0, ESTRUT[o.tipo] || COLISAO_PADRAO[o.tipo] && DECO && DECO[o.tipo] && DECO[o.tipo][0].w / DECO[o.tipo][0].ppm > 3 ? 7 : 0);
+  const x0 = o.p ? o.p.x0 : o.ret ? Math.min(o.x0, o.x - m) : o.x - m, x1 = o.p ? o.p.x1 : o.ret ? Math.max(o.x1, o.x + m) : o.x + m;
+  const y0 = o.p ? o.p.y0 : o.ret ? o.y0 : o.y - m, y1 = o.p ? o.p.y1 : o.ret ? Math.max(o.y1, o.y + m) : o.y + m;
+  return [x0, x1, y0, y1];
+}
+// DESEMPENHO (plano de arquitetura A, 03/11, aprovado): os objetos do mapa (~2.000) numa grade de células de 8 m, cada um em
+// todas as células que a caixa dele cobre, com uma folga do tamanho dele (a caixa na tela é a dos 4 cantos projetados, maior
+// que a do mapa com o giro) mais 8 m (o que anda, como os moradores, entre duas montagens). Por quadro, só os objetos das
+// células da área da tela (a tela de volta para o mapa, com a mesma folga do naTela) passam pelo naTela, na ordem da lista
+// (o índice em objetos): a lista sai IGUAL à de antes, e a ordenação estável dá a mesma ordem. A grade é refeita quando a lista
+// de objetos muda (outra lista, outro tamanho ou a colisão) e a cada 240 quadros (~2 s). LISTA_G.conferir faz as duas contas e conta
+// as diferenças (os testes)
+const LISTA_G = { ligado: true, cel: new Map(), arr: null, n: -1, gv: -1, quadros: 0, C: 8, q: 0, conferir: false, difs: 0, contas: 0, cand: 0, montagens: 0 };
+function listaGradeMontar() {
+  const L = LISTA_G, C = L.C; L.cel.clear(); L.arr = objetos; L.n = objetos.length; L.gv = GRADE_V; L.quadros = 0; L.montagens++;
+  for (let k = 0; k < objetos.length; k++) {
+    const o = objetos[k]; o.__li = k;
+    if (PLANO.has(o.tipo)) continue;
+    const [x0, x1, y0, y1] = caixaMapaObj(o), e = 2 * ((x1 - x0) + (y1 - y0)) + 8;
+    const i0 = Math.floor((x0 - e) / C), i1 = Math.floor((x1 + e) / C), j0 = Math.floor((y0 - e) / C), j1 = Math.floor((y1 + e) / C);
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const k2 = (i + 32768) * 65536 + (j + 32768); let c = L.cel.get(k2); if (!c) L.cel.set(k2, c = []); c.push(o); }
+  }
+}
+// os objetos que podem aparecer: os das células da área da tela, sem repetir, na ordem da lista
+function listaGradeCandidatos() {
+  const L = LISTA_G, C = L.C, s = PX * zoom;
+  if (L.arr !== objetos || L.n !== objetos.length || L.gv !== GRADE_V || ++L.quadros > 240) listaGradeMontar();
+  // (a área do naTela na tela: x de −W/2 − s a W/2 + s; y de −H/2 − s a H/2 + s + 11·s, a altura dos objetos; de volta ao mapa)
+  const a0 = -W / 2 - s, a1 = W / 2 + s, b0 = -H / 2 - s, b1 = H / 2 + s + 11 * s;
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const [a, b] of [[a0, b0], [a1, b0], [a0, b1], [a1, b1]]) { const u = a / s, w = -b / (s * ACHATA), x = u * GIRO_C + w * GIRO_S + cam.x, y = -u * GIRO_S + w * GIRO_C + cam.y; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  const q = ++L.q, out = [];
+  for (let i = Math.floor(x0 / C); i <= Math.floor(x1 / C); i++) for (let j = Math.floor(y0 / C); j <= Math.floor(y1 / C); j++) {
+    const c = L.cel.get((i + 32768) * 65536 + (j + 32768)); if (!c) continue;
+    for (const o of c) if (o.__lq !== q) { o.__lq = q; out.push(o); }
+  }
+  out.sort((a, b) => a.__li - b.__li); L.cand = out.length;
+  L.area = [x0, x1, y0, y1];
+  return out;
+}
+// a lista de desenho do quadro, já na ordem da profundidade (quem está mais ao norte primeiro): os objetos na tela, o herói,
+// o cavalo, as construções, o mato alto, os portais, as pontes e as criaturas. (Função à parte para o ?perf=1 medir a parte
+// "lista/corte": montar e ordenar, sem os desenhos)
+function montarListaDesenho(naTela, objeto, t) {
+  const grade = LISTA_G.ligado && !(window.M3D && M3D.ativo), base = grade ? listaGradeCandidatos() : objetos;
+  const lista = base.filter(o => !PLANO.has(o.tipo) && naTela(o)).map(o => ({ y: profObj(o), f: () => objeto(o) }));
+  if (grade && LISTA_G.conferir) { const a = objetos.filter(o => !PLANO.has(o.tipo) && naTela(o)), b = base.filter(o => !PLANO.has(o.tipo) && naTela(o)); LISTA_G.contas++; if (a.length !== b.length || a.some((o, k) => o !== b[k])) LISTA_G.difs++; }
+  lista.push({ y: viking.montado ? profV(...apoioCavalo(cavaloEnt)) : profV(viking.x, viking.y), f: desenharViking });   // (R095: montado, pelo apoio do cavalo)
+  if (classe === "shura") lista.push({ y: profV(viking.x, viking.y) + 0.05, f: () => desenharShuraAtras(t) });   // (rodada 6: o clarão, a casca e a coluna atrás dele)
+  if (cavaloEnt.ativo && !viking.montado) lista.push({ y: profV(...apoioCavalo(cavaloEnt)), f: desenharCavaloSolto });   // (R095: empinado, os cascos de trás)
+  for (const h of ESTABULO.cavalos) if (Math.abs(h.x - cam.x) < 40 && Math.abs(h.y - cam.y) < 40 && peNaTela(h.x, h.y, 3.5, 2.6)) lista.push({ y: profV(h.x, h.y), f: () => desenharCavaloEstabulo(h) });   // (3,5 m para os lados: a sombra comprida do sol)
+  predLista(lista, t);                              // as construções em camadas (o kit modular: entra-se nelas)
+  vegLista(lista, t);                               // o mato alto perto de quem anda (na frente das pernas)
+  portaisLista(lista, t);                           // os portais entre os mapas (o portão, o redemoinho e o nome do destino)
+  pontesLista(lista);                               // o corrimão da frente das pontes (R086: na frente de quem está nelas)
+  if (MAPA_CAM === MAPAS.daiyu) DAIYU.picosLista(lista, cam);   // os Cinco Picos da Ilha de Daiyu (o fundo, na profundidade da base)
+  if (MAPA_CAM === MAPAS.montanha) { GELADA.extrasLista(lista, cam); GELADA.marcosLista(lista, cam, null, viking); }   // (Montanha Gelada: as nuvens na frente do penhasco, a névoa, o vapor e os marcos)
+  // (plano B: com a grade, só as criaturas da área da tela com 25 m de folga — os dragões e as Ghotins passam da caixa — chegam ao
+  //  teste da tela (as dormindo estão fora dela; uma posta na tela de repente aparece já). As Ghotins e os chefes, que o teste da
+  //  tela sempre aceita, como antes)
+  const A = grade && !LISTA_G.conferir ? LISTA_G.area : null, ax0 = A ? A[0] - 25 : -1e9, ax1 = A ? A[1] + 25 : 1e9, ay0 = A ? A[2] - 25 : -1e9, ay1 = A ? A[3] + 25 : 1e9;
+  for (const l of criaturas) if (Math.abs(l.x - cam.x) < 200 && Math.abs(l.y - cam.y) < 200 && ((l.x > ax0 && l.x < ax1 && l.y > ay0 && l.y < ay1) || l.cfg.estatico || l.cfg.chefe || l.cfg.chefeCaverna) && criaturaNaTela(l)) lista.push({ y: profV(l.x, l.y), f: () => desenharCriaturaComHeroi(l) });   // (as de outros mapas não; só as que aparecem)
+  return lista.sort((a, b) => b.y - a.y);
+}
+// (plano B, parte 2: o quadro é desenhado com as criaturas do ritmo na posição mostrada, e elas voltam no fim)
 function desenhar(t) {
+  const n = iaMostrar();
+  try { return desenharQuadro(t); } finally { if (n) iaVoltar(); }
+}
+function desenharQuadro(t) {
   if (window.M3D && M3D.quer()) return M3D.desenhar(t);   // ?mundo3d=1: o mundo em three.js (fora da caverna e do editor)
   cx.setTransform(dpr, 0, 0, dpr, 0, 0);
   // câmera segue o viking
@@ -24376,9 +24690,7 @@ function desenhar(t) {
   // só o que aparece na tela (objetos altos ou compridos usam a caixa inteira: muros, telhados, torres)
   const naTela = o => {
     if (o.caverna && (Math.abs(o.x - cam.x) > 40 || Math.abs(o.y - cam.y) > 40)) return false;   // (as pedras das dungeons: milhares, a maioria longe)
-    const m = Math.max(1, o.r, o.arteM || 0, ESTRUT[o.tipo] || COLISAO_PADRAO[o.tipo] && DECO && DECO[o.tipo] && DECO[o.tipo][0].w / DECO[o.tipo][0].ppm > 3 ? 7 : 0);
-    const x0 = o.p ? o.p.x0 : o.ret ? Math.min(o.x0, o.x - m) : o.x - m, x1 = o.p ? o.p.x1 : o.ret ? Math.max(o.x1, o.x + m) : o.x + m;
-    const y0 = o.p ? o.p.y0 : o.ret ? o.y0 : o.y - m, y1 = o.p ? o.p.y1 : o.ret ? Math.max(o.y1, o.y + m) : o.y + m;
+    const [x0, x1, y0, y1] = caixaMapaObj(o);
     // (com o giro, a caixa da tela sai dos quatro cantos)
     const [pa, pb] = tela(x0 - cam.x, y0 - cam.y), [qa, qb] = tela(x1 - cam.x, y1 - cam.y), [ra, rb] = tela(x1 - cam.x, y0 - cam.y), [ta, tb] = tela(x0 - cam.x, y1 - cam.y), alto = 11 * s;
     const a0 = Math.min(pa, qa, ra, ta), a1 = Math.max(pa, qa, ra, ta), b0 = Math.max(pb, qb, rb, tb), b1 = Math.min(pb, qb, rb, tb);
@@ -24396,19 +24708,7 @@ function desenhar(t) {
     else translucido(o.alfa, caixa, () => desenharObjeto(o, t));
   };
   // (a ordem pela profundidade da vista: com o giro, o fundo é o nordeste; ver profObj)
-  const lista = objetos.filter(o => !PLANO.has(o.tipo) && naTela(o)).map(o => ({ y: profObj(o), f: () => objeto(o) }));
-  lista.push({ y: viking.montado ? profV(...apoioCavalo(cavaloEnt)) : profV(viking.x, viking.y), f: desenharViking });   // (R095: montado, pelo apoio do cavalo)
-  if (classe === "shura") lista.push({ y: profV(viking.x, viking.y) + 0.05, f: () => desenharShuraAtras(t) });   // (rodada 6: o clarão, a casca e a coluna atrás dele)
-  if (cavaloEnt.ativo && !viking.montado) lista.push({ y: profV(...apoioCavalo(cavaloEnt)), f: desenharCavaloSolto });   // (R095: empinado, os cascos de trás)
-  for (const h of ESTABULO.cavalos) if (Math.abs(h.x - cam.x) < 40 && Math.abs(h.y - cam.y) < 40 && peNaTela(h.x, h.y, 3.5, 2.6)) lista.push({ y: profV(h.x, h.y), f: () => desenharCavaloEstabulo(h) });   // (3,5 m para os lados: a sombra comprida do sol)
-  predLista(lista, t);                              // as construções em camadas (o kit modular: entra-se nelas)
-  vegLista(lista, t);                               // o mato alto perto de quem anda (na frente das pernas)
-  portaisLista(lista, t);                           // os portais entre os mapas (o portão, o redemoinho e o nome do destino)
-  pontesLista(lista);                               // o corrimão da frente das pontes (R086: na frente de quem está nelas)
-  if (MAPA_CAM === MAPAS.daiyu) DAIYU.picosLista(lista, cam);   // os Cinco Picos da Ilha de Daiyu (o fundo, na profundidade da base)
-  if (MAPA_CAM === MAPAS.montanha) { GELADA.extrasLista(lista, cam); GELADA.marcosLista(lista, cam, null, viking); }   // (Montanha Gelada: as nuvens na frente do penhasco, a névoa, o vapor e os marcos)
-  for (const l of criaturas) if (Math.abs(l.x - cam.x) < 200 && Math.abs(l.y - cam.y) < 200 && criaturaNaTela(l)) lista.push({ y: profV(l.x, l.y), f: () => desenharCriaturaComHeroi(l) });   // (as de outros mapas não; só as que aparecem)
-  lista.sort((a, b) => b.y - a.y).forEach(o => o.f());
+  for (const o of montarListaDesenho(naTela, objeto, t)) o.f();
   if (naCaverna(cam.x)) desenharSilhuetaVale();     // (o herói atrás de um dragão, numa silhueta por cima dele)
   desenharTrevasChao(0.5);                          // (o véu das trevas por cima do mato alto e de quem está nelas)
   desenharShura2d(t);                               // (a caveira do Medo do shura e o crânio das criaturas com medo)
@@ -25208,10 +25508,15 @@ function pedidos3d(agora) {
     else pedirModelo3d("cavalo", 0);
   }
   // as criaturas (as pedras Metin ficam como estão)
+  // (plano B: com o modelo já vindo, quem está longe da área da tela — a do quadro anterior, com 25 m de folga — não passa pelo
+  //  teste da tela)
+  const A = LISTA_G.ligado && LISTA_G.area && !(window.M3D && M3D.ativo) ? LISTA_G.area : null;
   for (const c of criaturas) {
     if (c.cfg.estatico) continue;
+    if (A && c.m3dOk && !c.cfg.chefe && !c.cfg.chefeCaverna && (c.x < A[0] - 25 || c.x > A[1] + 25 || c.y < A[2] - 25 || c.y > A[3] + 25)) continue;
     const nome = modeloCriatura3d(c), m = p.modelos[nome];
     if (!m || !m.ok) { if (!m || (!m.erro && !m.carregando)) { const d = longe(c.x, c.y); if (d < 45) pedirModelo3d(nome, d); } continue; }
+    c.m3dOk = true;
     const esc = c.cfg.esc || 1;
     if (!naTela(c.x, c.y, m, esc)) continue;
     const k = c.piscar > 0 ? Math.min(1, c.piscar / 0.15) : 0;
@@ -25498,6 +25803,7 @@ function silhuetaPose(pose, cor) {
 // A sombra do herói: a silhueta deitada no chão para o lado contrário do sol (de manhã para a esquerda, ao meio-dia
 // curta e para baixo, à tarde para a direita), mais fraca com chuva e só a mancha dos pés à noite, na caverna e dentro
 // das casas. Por baixo, a mancha escura dos pés (o contato com o chão)
+const SOMBRA_DIRETA = { ligado: true };
 function sombraHeroi(X, Y, z) {
   if (window.M3D && M3D.ativo) return;
   if (ESTILO_TINTA) { sombraTinta(X, Y, PX * z * 0.36); return; }
@@ -25511,6 +25817,17 @@ function sombraHeroi(X, Y, z) {
   if (!pose) return;
   const th = Math.PI * (1 - Math.min(1, Math.max(0, (h - 6) / 12.5))), L = 0.32 + 0.7 * Math.abs(Math.cos(th));
   const Dx = Math.cos(th) * L, Dy = Math.max(0.12, Math.sin(th)) * 0.42 * L;
+  // DESEMPENHO (plano de arquitetura D, parte 1, 03/11, aprovado): a sombra sai direto da pose (o pedaço do atlas 3D ou a folha),
+  // escurecida pelo filtro (brightness 0), sem pintar a silhueta num canvas à parte (uma troca de alvo e uma cópia a menos por
+  // quadro). A cor fica preta a 42% em vez do marrom rgb(24, 18, 12) a 42% (até ~10/255). SOMBRA_DIRETA.ligado = false: a de antes
+  if (SOMBRA_DIRETA.ligado) {
+    const q0 = cx.imageSmoothingQuality; cx.save();
+    cx.globalAlpha = 0.42 * forca; cx.imageSmoothingQuality = "low";
+    cx.filter = `brightness(0) blur(${Math.max(0.5, 0.9 * z).toFixed(1)}px)`;
+    cx.translate(X, Y); cx.transform(1, 0, -Dx, -Dy, 0, 0);
+    cx.drawImage(pose.src, pose.sx, pose.sy, pose.sw, pose.sh, -pose.esq, -pose.cima, pose.w, pose.h);
+    cx.restore(); cx.imageSmoothingQuality = q0; return;
+  }
   const sil = silhuetaPose(pose, "rgb(24, 18, 12)");
   cx.save();
   cx.globalAlpha = 0.42 * forca;
@@ -33275,7 +33592,17 @@ function esqueletos(i) {
   if (!i.fxEsq) { i.fxEsq = []; i.raiz.traverse(o => { if (o.isSkinnedMesh && !i.fxEsq.includes(o.skeleton)) i.fxEsq.push(o.skeleton); }); }
   for (const s of i.fxEsq) s.frame = -1;
 }
-function corposEntram() {
+// DESEMPENHO (plano de arquitetura D, 03/11): com o recorte (bx, a caixa dos efeitos na tela, R213), o corpo cuja caixa na tela
+// não toca a caixa dos efeitos não entra: fora do recorte nada é desenhado, então a profundidade dele não muda nenhum pixel, e
+// ele não troca de cena nem refaz os ossos no outro renderer. CORPOS_CORTE.ligado = false: todos, como antes
+const CORPOS_CORTE = { ligado: true, fora: 0 };
+function corpoForaDaCaixa(i, bx) {
+  const o = i.dono, c = i.m && i.m.caixa; if (!c || c.esq === undefined) return false;
+  const s0 = PX * zoom, s = s0 * ((i.d && i.d.esc) || 1), z = o.y < -350 && typeof DAIYU === "object" ? DAIYU.z(o.x, o.y) : o.x < -350 && typeof GELADA === "object" ? GELADA.z(o.x, o.y) : naZonaAltar(o.x, o.y) ? altarZ(o.x, o.y) : 0;
+  const [X, Y0] = noMundo(o.x, o.y, 0), Y = Y0 - z * s0 * ALTURA, M = 24;
+  return X + c.dir * s + M < bx[0] || X - c.esq * s - M > bx[0] + bx[2] || Y + c.baixo * s + M < bx[1] || Y - c.cima * s - M > bx[1] + bx[3];
+}
+function corposEntram(bx) {
   const C = corposIso, p = P3D;
   C.n = 0; C.l.length = 0;
   if (!p || !p.inst || !p.cena) return;
@@ -33283,6 +33610,7 @@ function corposEntram() {
   for (const i of p.inst.values()) {
     const o = i.dono;
     if (!o || !i.raiz || !i.valido || i.pedido !== p.quadro) continue;
+    if (bx && CORPOS_CORTE.ligado && corpoForaDaCaixa(i, bx)) { CORPOS_CORTE.fora++; continue; }
     const d = Math.hypot(o.x - cam.x, o.y - cam.y);
     if (d < CORPOS_RAIO) C.l.push([o === viking ? -1 : d, i]);
   }
@@ -33318,8 +33646,8 @@ function desenhar2d(t) {
   cameraIso();
   passo(dt, t);
   if (ativo() && temAlgo()) {
-    corposEntram();
     const bx = FX_CAIXA.ligado && !ESTILO_TINTA ? caixaEfeitos() : null; FX_CAIXA.box = bx;
+    corposEntram(bx);                                     // (plano D: depois da caixa, para deixar de fora os corpos longe dela)
     try {
       if (bx) { r.setScissorTest(true); r.setScissor(bx[0], H - bx[1] - bx[3], bx[2], bx[3]); }
       r.setRenderTarget(null); r.setClearColor(0x000000, 0); r.autoClear = true;
@@ -33503,7 +33831,8 @@ embrulhar("explosaoChefe", ([x, y, r, h]) => {
   fumaca(P3(x, y, 0.1), rgb(0.4, 0.35, 0.3), r > 2 ? 7 : 3, { r: r * 0.5, tam: 0.5, vel: 1, a: 0.4 }); luz(P3(x, y, 1), c, 4, 8, 0.3);
 });
 return { get ativo() { return ativo(); }, get iso() { return iso; }, get aquecidos() { return aquecerProgramas.feitos || 0; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, caixa: FX_CAIXA, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; }, get bloomDaTela() { return B.daTela; }, set bloomDaTela(v) { B.daTela = !!v; },
-         get stats() { return { vivos: vivos.length, seguidos: seguidos.size, particulas: PS ? PS.l.length : 0 }; } };
+         get stats() { return { vivos: vivos.length, seguidos: seguidos.size, particulas: PS ? PS.l.length : 0 }; },
+         corpos: { foraDaCaixa: corpoForaDaCaixa, entram: corposEntram, saem: corposSaem, get n() { return corposIso.n; }, corte: CORPOS_CORTE } };   // (plano D: para os testes, R232)
 })();
 </script>
 
@@ -34799,8 +35128,12 @@ return {
     "bonecos 3D": ["prepararP3d"], "efeitos 3D (FX3)": ["FX3.desenhar2d"], "luz/noite/clima": ["desenharAmbiente", "desenharClima", "desenharLuzDoDia", "desenharRaios", "luzDaCaverna"],
     "sopro/vale": ["desenharFogoSopro", "desenharPrimeiroPlanoVale", "desenharSilhuetaVale"], "magias 2D": ["desenharMagias", "desenharFlechas", "desenharMagiasCriatura", "desenharSkillsArq", "desenharFaiscas", "desenharShura2d", "desenharFuligem"],
     "minimapa": ["desenharMinimapa"], "Daiyu": ["DAIYU.desenharNevoa", "DAIYU.desenharBrasas"], "sons": ["passoSonsAmbiente", "passoMusica"],
+    // (03/11, plano de arquitetura: os ~3 ms sem dono) montar e ordenar a lista de desenho; e a transparência de quem cobre alguém
+    "lista/corte": ["montarListaDesenho"], "transparência": ["quemPodeSumir", "caixaObjeto", "cobreAlguem", "translucido"],
+    // (plano C: as buscas de rota e o campo de fluxo, à parte da simulação)
+    "rotas/fluxo": ["acharCaminho", "fluxoMontar"],
   };
-  const PF = window.PERF = { q: [], js: [], gap: [], partes: {}, conta: { di: 0 }, gpuQ: [], sync: 0, syncMs: [], fimJs: 0, longos: [], heap: [] };
+  const PF = window.PERF = { q: [], js: [], gap: [], partes: {}, conta: { di: 0, ia: 0 }, gpuQ: [], sync: 0, syncMs: [], fimJs: 0, longos: [], heap: [] };
   // pilha: o tempo próprio de cada parte (a parte de dentro sai da de fora)
   const pilha = [];
   const embrulha = (f, nome) => function (...a) { const p = { t: agora(), f: 0 }; pilha.push(p); try { return f.apply(this, a); } finally { pilha.pop(); const d = agora() - p.t; PF.partes[nome] = (PF.partes[nome] || 0) + d - p.f; if (pilha.length) pilha[pilha.length - 1].f += d; } };
@@ -34811,6 +35144,11 @@ return {
   // o placas[] (nomes e barras): embrulhadas quando entram
   if (window.placas) { const pu = placas.push; placas.push = function (...fs) { return pu.apply(this, fs.map(f => typeof f === "function" ? embrulha(f, "placas") : f)); }; }
   const di = CanvasRenderingContext2D.prototype.drawImage; CanvasRenderingContext2D.prototype.drawImage = function (...a) { PF.conta.di++; return di.apply(this, a); };
+  // (quantas criaturas pensaram: as chamadas de passoCriatura por quadro)
+  if (typeof window.passoCriatura === "function") { const pc = window.passoCriatura; window.passoCriatura = function (...a) { PF.conta.ia++; return pc.apply(this, a); }; }
+  // as criaturas: vivas, no mapa da câmera, na tela; e, com o sono (plano B), acordadas e dormindo
+  PF.criaturas = () => { let mapa = 0, tela = 0, vivas = 0; for (const l of criaturas) { if (l.morto) continue; vivas++; if (typeof mapaDe === "function" && mapaDe(l.x, l.y) === MAPA_CAM) mapa++; if (criaturaNaTela(l)) tela++; }
+    const ac = typeof ACORDADAS === "object" ? ` · acordadas ${ACORDADAS.n} · dormindo ${ACORDADAS.dormindo} · no ritmo ${ACORDADAS.ritmo || 0}` : ""; return `criaturas ${vivas} vivas · ${mapa} no mapa · ${tela} na tela${ac}`; };
   // GPU dos canvas WebGL: uma consulta TIME_ELAPSED em volta de cada render() do three.js
   const consultas = [];
   function timerEm(r, nome) {
@@ -34858,14 +35196,16 @@ return {
     //  o menor intervalo, a metade, o terço e o quarto dele em que 95% dos intervalos caem a 0,3 ms de um múltiplo. Se todos
     //  os quadros levam 2 batidas, dá a metade do monitor: por isso o "~")
     const hz = PF.estimarHz(PF.raf);
-    return { q, js, gap, partes, gpuTxt, hz, n, di: PF.conta.di / n, sync: est(PF.syncMs) };
+    // (o que o JS do quadro gastou fora de todas as partes com nome)
+    const soma = partes.reduce((s, [, v]) => s + v, 0); partes.push(["(sem parte)", Math.max(0, js.m - soma)]); partes.sort((a, b) => b[1] - a[1]);
+    return { q, js, gap, partes, gpuTxt, hz, n, di: PF.conta.di / n, ia: PF.conta.ia / n, sync: est(PF.syncMs) };
   }
   PF.estimarHz = l => {
     const qs = l.slice().sort((a, b) => a - b), p5 = qs[Math.floor(qs.length * 0.05)] || 0;
     let T = p5; for (let k = 1; k <= 4; k++) { const t = p5 / k; if (t < 2.7) break; const bons = qs.filter(d => Math.abs(d / t - Math.round(d / t)) * t < 0.3).length; if (bons >= 0.95 * qs.length) { T = t; break; } }
     return T ? Math.round(1000 / T) : 0;
   };
-  function zera() { PF.raf = []; PF.q = []; PF.js = []; PF.gap = []; PF.partes = {}; PF.conta.di = 0; PF.gpuQ = []; PF.longos = []; }
+  function zera() { PF.raf = []; PF.q = []; PF.js = []; PF.gap = []; PF.partes = {}; PF.conta.di = 0; PF.conta.ia = 0; PF.gpuQ = []; PF.longos = []; }
   let t0 = agora();
   setInterval(() => {
     const r = resumo();
@@ -34876,7 +35216,8 @@ return {
       `monitor ~${r.hz} Hz · limite ${LIMITE.fps || "sem"} · ${W}x${H} dpr ${dpr} · zoom ${zoom.toFixed(2)}\n` +
       `GPU WebGL (ms/quadro): ${r.gpuTxt}\n` + (PF.sync ? `CPU+GPU do quadro: ${r.sync.m.toFixed(2)} ms\n` : "") +
       `drawImage ${r.di.toFixed(0)} · criaturas na tela ${vivas} · FX3 ${fx.vivos || 0}/${fx.particulas || 0}\n` +
-      r.partes.slice(0, 8).map(([k, v]) => `  ${k.padEnd(17)} ${v.toFixed(2)} ms`).join("\n");
+      `${PF.criaturas()} · IA ${r.ia.toFixed(0)}/quadro\n` +
+      r.partes.slice(0, 10).map(([k, v]) => `  ${k.padEnd(17)} ${v.toFixed(2)} ms`).join("\n");
     if (agora() - t0 > 2000 && !PF.coletando) { zera(); t0 = agora(); }
   }, 500);
   document.getElementById("perfGpu").onclick = () => { PF.sync = 1; PF.syncMs = []; setTimeout(() => { PF.sync = 0; }, 5000); };
@@ -34893,7 +35234,8 @@ return {
       `fps ${(1000 / r.q.m).toFixed(0)} · 1% pior ${(1000 / r.q.pior).toFixed(0)} · quadro ${r.q.m.toFixed(1)} ms (p99 ${r.q.p99.toFixed(1)})`,
       `JS ${r.js.m.toFixed(2)} ms (p99 ${r.js.p99.toFixed(1)}) · espera ${r.gap.m.toFixed(2)} ms · GPU WebGL ${r.gpuTxt}`,
       `drawImage/quadro ${r.di.toFixed(0)} · criaturas ${criaturas.filter(l => !l.morto && criaturaNaTela(l)).length} · FX3 ${JSON.stringify(window.FX3 && FX3.stats || {})} · heap ${hm}`,
-      `partes: ${r.partes.slice(0, 10).map(([k, v]) => `${k} ${v.toFixed(2)}`).join(" · ")}`,
+      `${PF.criaturas()} · IA ${r.ia.toFixed(1)}/quadro`,
+      `partes: ${r.partes.slice(0, 14).map(([k, v]) => `${k} ${v.toFixed(2)}`).join(" · ")}`,
       `quadros > 50 ms: ${PF.longos.length}${PF.longos.length ? " (" + PF.longos.slice(0, 8).join(", ") + ")" : ""}`].join("\n");
     PF.ultimoRelatorio = txt; ta.value = txt; ta.hidden = false;
     b.disabled = false; b.textContent = "medir 10 s"; bc.disabled = false; bc.textContent = "copiar relatório";
