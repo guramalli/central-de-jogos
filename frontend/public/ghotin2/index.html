@@ -1589,7 +1589,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.78 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.80 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -5161,6 +5161,8 @@ V.teleportar = function (id) {
   V.ultimo = { id, custo };
   return true;
 };
+// (o modelo "armazem" não leva tinta: com ela o NPC vira "sem arma" e o renderInst3d procura as malhas da arma, que esse modelo não
+// tem; o quadro inteiro parava de desenhar os objetos. A roupa deles fica nas cores do 2D)
 // os 8 moradores novos (seção 2.4) e as falas novas do Guarda Baek, sobre a lista de antes (npcsHahoe)
 V.npcs = function (lista) {
   const baek = lista.find(n => n.nome === "Guarda Baek"); if (baek) baek.falas = V.FALAS_BAEK;
@@ -5182,7 +5184,7 @@ V.npcs = function (lista) {
     { nome: "Mestre Deok", titulo: "Mestre Deok do Palco", x: 4.6, y: -3.6, modelo: "feiticeiro", tinta: [0.2, 0.2, 0.26],
       cores: { roupa: "#EFE4CC", calca: "#2D4A6B", pele: "#e8c4a0", cabelo: "#d8d0c0", barba: "#d8d0c0" },
       falas: ["Eram as nossas máscaras. Agora são elas que usam a trupe.", "O palco ao sul está quebrado. Um dia a festa volta para esta praça."] },
-    { nome: "Ancião Ryu", x: -1.2, y: 9, modelo: "armazem", tinta: [0.3, 0.2, 0.06],
+    { nome: "Ancião Ryu", x: -1.2, y: 9, modelo: "armazem",
       cores: { roupa: "#C9963E", calca: "#3a2a1c", pele: "#e0b896", cabelo: "#e8e4dc", barba: "#e8e4dc" },
       falas: ["Fui o chefe desta aldeia quando o rio ainda era só rio. Agora os clãs cercam a curva.", "Cada clã quer uma coisa da tinta. Nenhum deles quer o que a tinta quer."] },
     { nome: "Mascate Bok", x: -27, y: 3, modelo: "arqueiro", tinta: [0.24, 0.16, 0.08], loja: pocoes,
@@ -5196,7 +5198,7 @@ V.npcs = function (lista) {
     { nome: "Kkachi", titulo: "Kkachi, a Pega", x: 2.5, y: 40, modelo: "ninja", tinta: [0.015, 0.015, 0.02],
       cores: { roupa: "#1E1B18", calca: "#EFE4CC", pele: "#e8c4a0", cabelo: "#1E1B18" },
       falas: ["O tigre se acha rei porque ninguém riu dele ainda. Vamos rir juntos?", "Da fortaleza eu vejo tudo. O Capitão não vê nem o próprio rabo pintado."] },
-    { nome: "Barqueiro Do-hyun", x: 86, y: -40, modelo: "armazem", tinta: [0.03, 0.06, 0.14],
+    { nome: "Barqueiro Do-hyun", x: 86, y: -40, modelo: "armazem",
       cores: { roupa: "#2D4A6B", calca: "#1E1B18", pele: "#e0b896", cabelo: "#2a1e16", barba: "#2a1e16" },
       falas: ["A tinta da seita desce até a foz. O meu barco ficou preto até a linha d'água.", "O rasgo da Ilha de Daiyu fica ali, ao lado do cais. Só abre para quem passou do nível 45."] },
   ];
@@ -5235,6 +5237,9 @@ V.passo = function (dt) {
   if (!(V.tMarca > 0)) { V.tMarca = 1; const id = idMapa(viking.x, viking.y); if (MAPAS[id] && !(prog.visitou && prog.visitou[id])) (prog.visitou || (prog.visitou = {}))[id] = 1; }
   V.tMarca -= dt;
   if (!MAPAS.hahoe.montado) return;
+  // a imagem do minimapa e do Mapa do Mundo (3,4× a de antes, ~450 ms de uma vez): pintada em fatias de 4 ms por quadro desde a
+  // montagem, por trás da tela de preparo; o minimapa mostra o que já está pronto
+  { const H = MAPAS.hahoe; if (!H.mini) H.mini = baseIlha(H, true); if (H.mini.continuar && !H.mini.pronto) H.mini.continuar(4); }
   if (!V.amb) V.amb = objetos.filter(o => o.npc && o.mapa === "hahoe" && o.dados && o.dados.rota);
   for (const o of V.amb) {
     const R = o.dados.rota, s = o.amb || (o.amb = { i: 0, sentido: 1, espera: 0 });
@@ -7433,7 +7438,17 @@ function borda(x, y) { if (y > 350) return bordaMapa(MAPAS.hahoe, x, y); if (y <
 const pesoMonte = (x, y) => x < -350 ? 1 : 0;
 const pesoVale = (x, y) => y < -350 || (HAHOE2 && y > 350) ? 0 : liso((x - VALE_X) / 8) * (1 - pesoMonte(x, y));   // (a ponta leste da Ilha de Daiyu não é o vale)
 function praca(x, y) { if (y > 350) return Math.hypot(x - PRACA_H.x, y - PRACA_H.y) < PRACA_H.r; return (!(CIDADE && CIDADE.treino) && Math.hypot(x - PRACA.x, y - PRACA.y) < PRACA.r) || ruaCidade(x, y); }   // (com ?cidade=1, as vias da cidade; o treino vai para o lado)   // (com ?cidade=1, as ruas de pedra também)
-function estrada(x, y) { for (const e of ESTRADAS) if (distLinha(x, y, e) < (e.meia || 0.8) + (ruido2(x * 0.7, y * 0.7) - 0.5) * 0.35) return true; return false; }
+function estrada(x, y) {
+  if (HAHOE2) {                                                         // (a Hahoe nova: a caixa de cada trilha antes da conta, o mesmo resultado; o minimapa 3,4× maior pergunta muito)
+    for (const e of ESTRADAS) {
+      const b = e.caixa || (e.caixa = (() => { const m = (e.meia || 0.8) + 0.5; let a = Infinity, c = -Infinity, d = Infinity, f = -Infinity; for (const [px, py] of e) { a = Math.min(a, px); c = Math.max(c, px); d = Math.min(d, py); f = Math.max(f, py); } return [a - m, c + m, d - m, f + m]; })());
+      if (x < b[0] || x > b[1] || y < b[2] || y > b[3]) continue;
+      if (distLinha(x, y, e) < (e.meia || 0.8) + (ruido2(x * 0.7, y * 0.7) - 0.5) * 0.35) return true;
+    }
+    return false;
+  }
+  for (const e of ESTRADAS) if (distLinha(x, y, e) < (e.meia || 0.8) + (ruido2(x * 0.7, y * 0.7) - 0.5) * 0.35) return true; return false;
+}
 const trilha = estrada;
 const raioLago = a => LAGO.r + Math.sin(a * 3) * 0.5 + Math.sin(a * 7) * 0.25;
 function lago(x, y, folga = 0) { if (y > 350) return rioH(x, y, folga); const dx = x - LAGO.x, dy = (y - LAGO.y) * 1.15; return Math.hypot(dx, dy) < raioLago(Math.atan2(dy, dx)) + folga; }   // (na Vila Hahoe, o "lago" é o rio: margens, juncos e vitórias-régias vêm junto)
@@ -7691,6 +7706,11 @@ function distClareira(x, y) {
                                ...NOVOS_BANDOS.filter(([, gx]) => gx < VALE_X && gx > -350).map(([, gx, gy, , e]) => [gx, gy, e ? e + 3 : 0]),   // (já na escala nova)
                                ...HAHOE_BANDOS.map(([, gx, gy, , e]) => [gx, gy, e ? e + 3 : 0]), ...(HAHOE2 ? VILA2.clareiras(HAHOE) : [])];                                  // (a Vila Hahoe)
   let m = y > 350 ? Math.hypot(x - HV.x, y - HV.y) - HV.r : Math.hypot(x - VILA.x, y - (VILA.y + 4)) - VILA.r;   // a vila também é campo aberto
+  if (HAHOE2) {                                                         // (a Hahoe nova: só as clareiras do mapa do ponto; com 96 grupos a mais, o minimapa e a mata ficavam lentos)
+    const L = clareiras.porMapa || (clareiras.porMapa = { h: clareiras.filter(c => c[1] > 350), o: clareiras.filter(c => c[1] <= 350) });
+    for (const [cx0, cy0, extra] of y > 350 ? L.h : L.o) m = Math.min(m, Math.hypot(x - cx0, y - cy0) - CLAREIRA_R - extra);
+    return m;
+  }
   for (const [cx0, cy0, extra] of clareiras) m = Math.min(m, Math.hypot(x - cx0, y - cy0) - CLAREIRA_R - extra);
   return m;
 }
@@ -9674,6 +9694,7 @@ function caixaObjeto(o, X, Y, s) {
     case "tronco": return [X - s * 0.72, Y - s * 0.4, X + s * 0.72, Y];
     case "barril": case "caixote": return [X - s * 0.4, Y - s * 0.75, X + s * 0.4, Y];
     case "forja": return [X - s * 0.8, Y - s * 2.2, X + s * 0.8, Y];
+    case "forja_pintada": { const L = FORJA_PINTADA.larg * s / 2; return [X - L, Y - L * 2 * 0.98, X + L, Y]; }
     case "ferreiro": return [X - s * 0.4, Y - s * 1.7, X + s * 0.9, Y];
     case "pessoa": return [X - s * 0.4, Y - s * 1.7, X + s * 0.4, Y];
     case "tocha": case "bandeira": case "estandarte": return [X - s * 0.3, Y - s * 2.2, X + s * 0.3, Y];
@@ -10204,6 +10225,8 @@ function montarCidade() {
     if (n) { n.x = x; n.y = y; n.dentroPredio = true; if (n.casa) n.casa = { x, y }; }
   }
   for (let i = objetos.length - 1; i >= 0; i--) if (objetos[i].tipo === "ferraria" || objetos[i].tipo === "forja") objetos.splice(i, 1);
+  // (R270) a forja pintada ao lado do Ferreiro (a leste e um pouco ao fundo: atrás dele, sob o telhado da ferraria)
+  if (ferreiroNpc && !objetos.some(o => o.tipo === "forja_pintada")) { const F = FORJA_PINTADA, o = { tipo: "forja_pintada", x: ferreiroNpc.x + F.dx, y: ferreiroNpc.y + F.dy, r: 0.85, cidade: true }; objetos.push(o); porNaGrade(o); imgForjaPintada(); ferreiroNpc.forjaOeste = F.dx < 0; }
   if (c.treino) {                                  // (os bonecos, as runas e a fogueira do treino: para o lado, longe do eixo)
     const { de, para, r } = c.treino, dx = para[0] - de[0], dy = para[1] - de[1];
     for (const o of objetos) if (["boneco", "runa", "fogueira"].includes(o.tipo) && !o.caverna && Math.hypot(o.x - de[0], o.y - de[1]) < r) { o.x += dx; o.y += dy; o.cidade = true; delete o._circ; }
@@ -10776,6 +10799,7 @@ function desenharObjeto(o, t) {
     }
     g.stroke(); g.shadowBlur = 0;
   } else if (o.tipo === "forja") { desenharForja(o, X, Y, s, lw, t);
+  } else if (o.tipo === "forja_pintada") { desenharForjaPintada(o, X, Y, s, t);
   } else if (o.tipo === "ferreiro") { desenharFerreiroNpc(o, X, Y, s, lw, t);
   } else if (o.tipo === "pessoa") { desenharPessoa(o, X, Y - zPiso(o.x, o.y) * PX * zoom * ALTURA, s, lw, t);
   } else if (o.tipo === "fogueira") {
@@ -15019,10 +15043,26 @@ const NOME_ITEM = { conselho: "Conselho do Eremita", yang: "Yang", pedra: "Pedra
 const MINI_PX = 2, MINI_RAIOS = [14, 24, 40];
 let miniRaio = 1, miniBase = null, miniProx = 0;
 const miniCavernas = {};
-function pintarBase(x0, y0, x1, y1, cor) {
+function pintarBase(x0, y0, x1, y1, cor, fatias = false) {
   const w = Math.ceil((x1 - x0) * MINI_PX), h = Math.ceil((y1 - y0) * MINI_PX), c = document.createElement("canvas");
   c.width = w; c.height = h;
   const g = c.getContext("2d"), im = g.createImageData(w, h), d = im.data;
+  // (a Hahoe nova, 3,4× maior: a imagem é pintada em fatias de linhas, alguns ms por quadro do minimapa; continuar(ms) segue e
+  //  diz se acabou; sem ms, termina de uma vez, para o Mapa do Mundo. O que falta pintar fica transparente)
+  if (fatias) {
+    let j = 0; const b = { c, x0, y1, pronto: false };
+    b.continuar = (ms = Infinity) => {
+      const t0 = performance.now(), j0 = j;
+      while (j < h && performance.now() - t0 < ms) {
+        for (let i = 0; i < w; i++) { const x = x0 + (i + 0.5) / MINI_PX, y = y1 - (j + 0.5) / MINI_PX, k = (j * w + i) * 4, [r, gg, bb] = cor(x, y); d[k] = r; d[k + 1] = gg; d[k + 2] = bb; d[k + 3] = 255; }
+        j++;
+      }
+      if (j > j0) g.putImageData(im, 0, 0, 0, j0, w, j - j0);
+      if (j >= h && !b.pronto) { b.pronto = true; if (b.fim) b.fim(); }
+      return b.pronto;
+    };
+    return b;
+  }
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
     const x = x0 + (i + 0.5) / MINI_PX, y = y1 - (j + 0.5) / MINI_PX, k = (j * w + i) * 4, [r, gg, b] = cor(x, y);
     d[k] = r; d[k + 1] = gg; d[k + 2] = b; d[k + 3] = 255;
@@ -15030,7 +15070,7 @@ function pintarBase(x0, y0, x1, y1, cor) {
   g.putImageData(im, 0, 0);
   return { c, x0, y1 };
 }
-function baseIlha(mp = MAPAS.vila1) {
+function baseIlha(mp = MAPAS.vila1, fatias = false) {
   const R = mp.raio + 8, v1 = mp === MAPAS.vila1, C = { x0: Math.min(CAIXA_V1.x0, altarMundo(0, 0)[0] - 36), x1: CAIXA_V1.x1, y0: CAIXA_V1.y0, y1: Math.max(CAIXA_V1.y1, altarMundo(0, 0)[1] + 34) };   // (R165: com a ilha do Altar das Eras)      // (a Vila 1: a caixa da costa, com o vale, a montanha e as Terras do Sul; os outros mapas, a ilha deles)
   const b = pintarBase(...(v1 ? [C.x0 - 8, C.y0 - 8, C.x1 + 8, C.y1 + 8] : [mp.ox - R, mp.oy - R, mp.ox + R, mp.oy + R]), (x, y) => {
     const bd = borda(x, y);
@@ -15050,14 +15090,17 @@ function baseIlha(mp = MAPAS.vila1) {
     if (estrada(x, y)) return [176, 150, 104];
     if (floresta(x, y)) return [52, 92, 40];
     return distClareira(x, y) < 0 ? [112, 150, 66] : [92, 134, 56];
-  });
-  // árvores soltas e pedras: pontinhos escuros
-  const g = b.c.getContext("2d");
-  for (const o of objetos) {
-    const cor = o.tipo === "arvore" || o.tipo === "pinheiro" ? "#28461f" : o.tipo === "pedra" ? "#6d6a62" : null;
-    if (!cor || naCaverna(o.x) || mapaDe(o.x, o.y) !== mp) continue;
-    g.fillStyle = cor; g.fillRect((o.x - b.x0) * MINI_PX - 1, (b.y1 - o.y) * MINI_PX - 1, 2, 2);
-  }
+  }, fatias);
+  // árvores soltas e pedras: pontinhos escuros (na pintura em fatias, no fim dela)
+  const pontinhos = () => {
+    const g = b.c.getContext("2d");
+    for (const o of objetos) {
+      const cor = o.tipo === "arvore" || o.tipo === "pinheiro" ? "#28461f" : o.tipo === "pedra" ? "#6d6a62" : null;
+      if (!cor || naCaverna(o.x) || mapaDe(o.x, o.y) !== mp) continue;
+      g.fillStyle = cor; g.fillRect((o.x - b.x0) * MINI_PX - 1, (b.y1 - o.y) * MINI_PX - 1, 2, 2);
+    }
+  };
+  if (b.continuar) b.fim = pontinhos; else pontinhos();
   return b;
 }
 function baseCaverna(d) {
@@ -15071,7 +15114,8 @@ function chaoDoMapaPronto() {
   let x = viking.x, y = viking.y;
   if (naCaverna(x)) { const d = cavDe(x); if (!d || !d.saida) return; x = d.saida.x; y = d.saida.y; }
   const mp = mapaDe(x, y);
-  if (mp === MAPAS.vila1) { if (!miniBase) miniBase = baseIlha(); } else if (!mp.mini) mp.mini = baseIlha(mp);
+  if (mp === MAPAS.vila1) { if (!miniBase) miniBase = baseIlha(); } else if (!mp.mini) mp.mini = baseIlha(mp, HAHOE2 && mp === MAPAS.hahoe);
+  if (mp.mini && mp.mini.continuar && !mp.mini.pronto) mp.mini.continuar(6);   // (a Hahoe nova: em fatias de 6 ms)
 }
 function desenharMinimapa(agora) {
   const el = $("#minimapa");
@@ -15082,7 +15126,8 @@ function desenharMinimapa(agora) {
   if (cav && !dun) return;
   const mp = mapaDe(viking.x, viking.y), v1 = mp === MAPAS.vila1;   // (cada mapa com a imagem dele; a da Vila 1 é a miniBase de sempre)
   if (!cav && v1 && !miniBase) miniBase = baseIlha();
-  if (!cav && !v1 && !mp.mini) mp.mini = baseIlha(mp);
+  if (!cav && !v1 && !mp.mini) mp.mini = baseIlha(mp, HAHOE2 && mp === MAPAS.hahoe);
+  if (!cav && !v1 && mp.mini.continuar && !mp.mini.pronto) mp.mini.continuar(6);   // (a Hahoe nova: em fatias de 6 ms por quadro do minimapa)
   if (dun && !miniCavernas[dun.id]) miniCavernas[dun.id] = baseCaverna(dun);
   // (R250) o canvas tem o dobro de pixels do tamanho na tela (164 px): os pontinhos e o contorno ficam nítidos, também girados
   // com a câmera; desenha-se em 164 de largura com a escala K
@@ -15349,7 +15394,7 @@ function pecaEscolhida() { const l = pecasDoFerreiro(); return l.find(p => p.id 
 // (R181: o acessório não tem defesa; o refino dele sobe o atributo base, baseAcess)
 function efeitoRef(p, r) {
   if (p.joia) return efeitoJoia(tipoItem(p.id.chave).joia.tipo, r).replace(/^.*: /, "efeito ");
-  if (p.arma) { const [lo, hi] = ataqueArma(r, p.tier, p.desenho, p.rara); return `ataque ${lo}-${hi} (+${Math.round((bonusArma(r, p.tier, p.rara) - 1) * 100)}%)`; }   // (R258: o mín.–máx. do Metin2)
+  if (p.arma) { const [lo, hi] = valorAtaqueArma(r, p.tier, p.desenho, p.rara); return `valor de ataque ${lo}-${hi}`; }   // (R271: como no Metin2, só o valor de ataque, sem a Força em %)   // (R258: o mín.–máx. do Metin2)
   const a = atribPeca(p.slot, p.tier, r);
   return a.base ? a.base.map(textoBonusM2).join(" · ") : `defesa +${a.defesa}` + (PECAS[p.slot].extra === "vel" ? ` · velocidade +${a.extra}%` : "") + (a.bloq ? ` · bloqueio +${a.bloq}%` : "");   // (36.12: nas botas o refino sobe a velocidade; no elmo do 60, o bloqueio)
 }
@@ -15574,13 +15619,36 @@ function desenharForja(o, X, Y, s, lw, t) {
   g.fillStyle = "#6d675e"; g.beginPath(); g.rect(X + e * 0.25, Y - e * 2.1, e * 0.42, e * 0.9); g.fill(); linha(g, lw);
   for (let k = 0; k < 3; k++) { const u = (t * 0.35 + k / 3) % 1; g.fillStyle = `rgba(90, 86, 82, ${0.35 * (1 - u)})`; g.beginPath(); g.arc(X + e * 0.46 + Math.sin(u * 6 + k) * e * 0.12, Y - e * (2.2 + u * 1.4), e * (0.12 + u * 0.22), 0, 7); g.fill(); }
 }
+// R270 (05/11, o usuário: "faça a pedra de forja do ferreiro"): na Vila 1, a forja pintada (deco_b/forja_ferreiro.webp: a lareira de pedra
+// com o telhadinho, as brasas e o fogo, a bigorna num toco, o fole e o balde), no lugar da bigorna cinza desenhada por código: a oeste do
+// Ferreiro (a leste, sob a ferraria, o telhado a cobria), com a bigorna da arte do lado dele, e ele martela virado para ela. É um objeto da cidade (montarCidade), sólido (COLISAO forja_pintada), na ordem de
+// profundidade (atrás do Ferreiro: não o tapa) e translúcido quando alguém passa atrás; o fogo pulsa (a luz somada da forja) e solta faíscas
+const FORJA_PINTADA = { arq: "deco_b/forja_ferreiro.webp", larg: 2.5, fogo: [0.502, 0.452], dx: -1.0, dy: 1.9, im: null, ok: false };   // (a noroeste do Ferreiro: atrás dele na profundidade, fora do telhado da ferraria, que a cobria; ele se vira para ela)
+function imgForjaPintada() {
+  const F = FORJA_PINTADA;
+  if (!F.im) { F.im = new Image(); F.im.onload = () => { F.ok = true; }; F.im.src = typeof VERSOES !== "undefined" && VERSOES.com ? VERSOES.com(F.arq) : F.arq; }
+  return F.ok ? F.im : null;
+}
+function desenharForjaPintada(o, X, Y, s, t) {
+  const im = imgForjaPintada(); if (!im) return;
+  const F = FORJA_PINTADA, w = F.larg * s, h = w * im.naturalHeight / im.naturalWidth, g = cx;
+  sombra(X, Y, w * 0.42);
+  g.drawImage(im, X - w / 2, Y - h * 0.97, w, h);                       // (a bigorna, do lado direito da arte, fica do lado do Ferreiro)
+  const fx = X + (F.fogo[0] - 0.5) * w, fy = Y - h * 0.97 + F.fogo[1] * h, p = 0.75 + 0.25 * Math.sin(t * 9 + o.x) * Math.sin(t * 5.3);
+  g.save(); g.globalCompositeOperation = "lighter";
+  const luz = g.createRadialGradient(fx, fy, 0, fx, fy, w * 0.42); luz.addColorStop(0, `rgba(255, 150, 60, ${0.42 * p})`); luz.addColorStop(1, "rgba(255, 110, 40, 0)");
+  g.fillStyle = luz; g.beginPath(); g.arc(fx, fy, w * 0.42, 0, 7); g.fill(); g.restore();
+  if (Math.random() < 0.015) faiscasForja(fx, fy - h * 0.05, s * 0.6);   // (de vez em quando, as faíscas das brasas)
+}
 function desenharFerreiroNpc(o, X, Y, s, lw, t) {
   const g = cx, e = s;
-  // a bigorna na frente dele
-  const ax = X + e * 0.62, ay = Y + e * 0.05;
+  // a bigorna na frente dele (na Vila 1 com a forja pintada, a bigorna é a dela: R270)
+  const ax = X + e * 0.62 * (o.forjaOeste ? -1 : 1), ay = Y + e * 0.05;
+  if (!(o === ferreiroNpc && objetos.some(q => q.tipo === "forja_pintada") && FORJA_PINTADA.ok)) {
   sombra(ax, ay, e * 0.35);
   g.fillStyle = "#4a4d55"; g.beginPath(); g.rect(ax - e * 0.12, ay - e * 0.32, e * 0.24, e * 0.32); g.fill(); linha(g, lw);
   g.fillStyle = "#5d616b"; poligono(g, [[ax - e * 0.34, ay - e * 0.46], [ax + e * 0.26, ay - e * 0.46], [ax + e * 0.4, ay - e * 0.38], [ax + e * 0.18, ay - e * 0.32], [ax - e * 0.22, ay - e * 0.32]]); g.fill(); linha(g, lw);
+  }
   // o ferreiro: botas, avental de couro, camisa de mangas arregaçadas, careca e barba ruiva, martelando
   sombra(X, Y, e * 0.32);
   if (desenharInst3d(o, X, Y, zoom)) {
@@ -18058,7 +18126,7 @@ function tipoItem(chave) {
     return { nome: m[0] + (P.classes ? ` (${P.classes.map(c => NOME_CLASSE[c]).join("/")})` : ""), desc: "", h: P.h, peca: PECAS[slot] ? slot : "elmo", tier: +t, usar: it => equiparPeca(it) }; }
   if (chave.startsWith("arma:")) { const { classe: c, tier, rara } = armaDaChave(chave), a = ARMAS[c];
     if (rara) return { nome: ARMAS_RARAS[c].nome, desc: `Arma rara da Capital Bestial, só para ${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[tier]}. ${LORE_RARA}`, h: a.desenho === "adagas" ? 1 : 2, arma: true, tier, rara: true, fixos: ARMAS_RARAS[c].bon, desenho: "rara:" + desenhoArma(c), usar: it => equiparArma(it) };   // (R259)
-    return { nome: ARMAS_TIER[c][tier], desc: `Arma só para ${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[tier]} (Força dos golpes +${Math.round((bonusArma(0, tier) - 1) * 100)}% no +0). Clique direito para equipar; o Ferreiro da praça melhora até +9.`, h: a.desenho === "adagas" ? 1 : 2, arma: true, tier, desenho: desenhoArma(c), usar: it => equiparArma(it) }; }
+    return { nome: ARMAS_TIER[c][tier], desc: `Arma só para ${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[tier]} (valor de ataque ${valorAtaqueArma(0, tier, desenhoArma(c)).join(" - ")} no +0). Clique direito para equipar; o Ferreiro da praça melhora até +9.`, h: a.desenho === "adagas" ? 1 : 2, arma: true, tier, desenho: desenhoArma(c), usar: it => equiparArma(it) }; }
   if (chave.startsWith("livro:")) { const n = chave.slice(6), c = classeDaSkill(n);
     return { nome: "Livro: " + n, desc: `Skill ${c ? "do " + NOME_CLASSE[c] : ""}. Ensina de Mestre (M1) até Grão-Mestre: no M1 basta 1 leitura certa, no M2 são 2, e assim até 10 no M10 (55 ao todo). Cada leitura acerta 35% das vezes, custa 20.000 de EXP e, certa ou errada, a mesma skill só lê de novo depois de 18 a 30 h (ou na hora, com um Conselho do Eremita). ${ondeCaiRaro()}`, h: 1, usar: () => lerLivro(n), desenho: "livro@" + n }; }
   if (BIO_ITENS && BIO_ITENS[chave]) return BIO_ITENS[chave];          // (os da pesquisa do Mukseon)
@@ -19004,12 +19072,14 @@ function htmlDica(it, extra = {}) {
   linha(bon.length || t.rara ? "nome bonus" : "nome", temRef ? `${nomeBaseItem(it.chave)}+${it.ref || 0}` : t.nome);
   if (req) { esp(); linha(prog && prog.nivel < req ? "nivel falta" : "nivel", `Nível necessário: ${req}`); }
   if (t.arma) {
-    const r = it.ref || 0, k = bonusArma(r, t.tier, t.rara), [lo, hi] = ataqueArma(r, t.tier, t.desenho, t.rara);
-    esp(); linha("atq", `Ataque: ${lo} - ${hi}`);
-    linha("fixo", `Força dos golpes: +${Math.round((k - 1) * 100)}%`);
+    // (R271, 05/11, o usuário: "a questao da força dos golpes nas armas, nao haviamos discutido para retirar?" e "os valores de ataque precisam
+    //  ser superiores para valer ainda a força do item"): como no Metin2, a arma mostra só o Valor de ataque, sem a Força em %. O número é o
+    //  ataque efetivo da arma (ataqueArma: o golpe básico × a força dela), o que entra no dano: entre modelos e +, as proporções do Metin2
+    const r = it.ref || 0, [lo, hi] = valorAtaqueArma(r, t.tier, t.desenho, t.rara);
+    esp(); linha("atq", `Valor de ataque: ${lo} - ${hi}`);
     for (const b of t.fixos || []) linha("fixo", textoBonusM2(b));       // (R259: os % da arma rara, que não mudam com o refino)
     // (R258) o próximo degrau do refino, como no Ferreiro: o ataque e a força do +N+1
-    if (r < REF_MAX) { const [l2, h2] = ataqueArma(r + 1, t.tier, t.desenho, t.rara); linha("cinza", `No +${r + 1}: Ataque ${l2} - ${h2} · Força +${Math.round((bonusArma(r + 1, t.tier, t.rara) - 1) * 100)}%`); }
+    if (r < REF_MAX) { const [l2, h2] = valorAtaqueArma(r + 1, t.tier, t.desenho, t.rara); linha("cinza", `No +${r + 1}: Valor de ataque ${l2} - ${h2}`); }
   }
   if (t.peca && PECAS[t.peca].acess) { esp(); for (const b of baseAcess(t.peca, t.tier, it.ref || 0)) linha("fixo", textoBonusM2(b)); }
   else if (t.peca) {
@@ -19136,6 +19206,14 @@ function ataqueM2(ref, tier, rara) { const a = rara ? M2_ARMA_RARA : M2_ARMA[tie
 function bonusArma(ref, tier, rara) { if (ref === null || ref === undefined) return FORCA_PUNHO; const [lo, hi] = ataqueM2(ref, tier, rara); return FORCA_PUNHO + FATOR_ATAQUE * (lo + hi) / 2; }
 // o "Ataque: mín - máx" da dica e do Ferreiro (o golpe básico do desenho vezes a Força da arma)
 function ataqueArma(ref, tier, desenho, rara) { rara = rara || /^rara:/.test(String(desenho)); const k = bonusArma(ref || 0, tier, rara), [lo, hi] = GOLPE_BASICO[String(desenho).replace(/^rara:/, "").replace(/^sombria$/, "espada")] || [9, 13]; return [Math.round(lo * k), Math.round(hi * k)]; }
+// R271 (05/11, o usuário: "os valores de ataque precisam ser superiores para valer ainda a força do item, mas a porcentagem de ataque deve
+// ser removida"): o Valor de ataque que a arma MOSTRA (a dica, o Ferreiro, a loja) é o ataque efetivo dela, ataqueArma (o golpe básico × a
+// força real da arma, a mesma conta do dano), vezes um fator único de escala, ESCALA_VALOR_ATAQUE. Com 4, a Espada +0 mostra 36–56 (o
+// Metin2: 13–15) e a do 62 +9 148–212 (o Metin2: 137–173), na proporção da força real (3,9×); e ~4 é o quanto o nível, o atributo e os
+// bônus de um herói alto multiplicam o golpe, então o número fica perto do dano que aparece na tela. O dano não muda: a conta continua
+// no bonusArma (Logs/Balanceamento/REFINO_METIN2.md, "Valor de ataque")
+const ESCALA_VALOR_ATAQUE = 4;
+function valorAtaqueArma(ref, tier, desenho, rara) { return ataqueArma(ref, tier, desenho, rara).map(v => Math.round(v * ESCALA_VALOR_ATAQUE)); }
 // (sem o modelo: o da arma na mão, rara ou não)
 function nomeArma(ref, tier, c = classe, rara = false) {
   if (tier === undefined) { tier = prog && prog.arma ? prog.arma.tier : 0; rara = !!(prog && prog.arma && prog.arma.rara); }
@@ -19474,8 +19552,11 @@ function desenharItens(t) {
     feixeDrop(d, X, Y0, u, k, t, dropRaro(d) ? "255, 205, 80" : cor);   // (o feixe de luz: os raros dourados, os outros na cor do item)
     const ic = iconeDrop(d);
     // o nome em cima (desenhado com as outras placas, por cima de tudo)
-    const nome = nomeDrop(d), Yn = Y - 18 * u;
-    placasItem.push({ d, nome, X, Y: Yn, k });                            // (R266: a etiqueta de papel, por cima das placas das criaturas)
+    // (R266 revertido em 05/11 a pedido do usuário: "acaba ocultando o efeito dos drops raros, volte ao anterior": o nome volta ao texto da
+    //  v0.77, sem etiqueta, e o feixe da raridade fica à vista)
+    const nome = nomeDrop(d), raro = dropRaro(d), Yn = Y - 18 * u;
+    placas.push(() => { cx.save(); cx.globalAlpha = k; cx.font = FONTE_PLACA; cx.textAlign = "center"; cx.lineJoin = "round"; cx.lineWidth = 3; cx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+      cx.strokeText(nome, X, Yn); cx.fillStyle = d.tipo === "yang" ? "#f2c84a" : raro ? "#ffd25a" : "#f2ead8"; cx.fillText(nome, X, Yn); cx.restore(); });
     if (ic) {                                                               // o ícone pintado, deitado um pouco e com sombra
       const h = 26 * u, w = h * (ic.naturalWidth || ic.width) / (ic.naturalHeight || ic.height);   // (os ícones do atlas são canvas: sem naturalWidth)
       cx.fillStyle = "rgba(20, 14, 10, 0.3)"; cx.beginPath(); cx.ellipse(X, Y0, w * 0.45, w * 0.45 * ACHATA * 0.5, 0, 0, 7); cx.fill();
@@ -19778,8 +19859,8 @@ function admDesenhar() {
   $("#admSelo").textContent = temRef ? "+" + ref : "";
   const brilho = t.arma && { 7: "brilho dourado", 8: "brilho violeta", 9: "brilho vermelho-fogo" }[ref];
   let info = yang ? "Dinheiro: vai direto para a carteira." : t.desc || "";
-  if (t.arma) { const [lo, hi] = ataqueArma(ref, t.tier, t.desenho, t.rara);
-    info = `Ataque ${lo}-${hi} · Força dos golpes +${Math.round((bonusArma(ref, t.tier, t.rara) - 1) * 100)}%${(t.fixos || []).map(b => " · " + textoBonusM2(b)).join("")}${brilho ? " · " + brilho : " · brilha do +7 em diante"}`; }
+  if (t.arma) { const [lo, hi] = valorAtaqueArma(ref, t.tier, t.desenho, t.rara);
+    info = `Valor de ataque ${lo}-${hi}${(t.fixos || []).map(b => " · " + textoBonusM2(b)).join("")}${brilho ? " · " + brilho : " · brilha do +7 em diante"}`; }
   if (t.peca) info = descPeca(t.peca, t.tier, ref) + (PECAS[t.peca].classes ? ` · só ${PECAS[t.peca].classes.map(c => NOME_CLASSE[c]).join("/")}` : "");
   $("#admNome").firstChild.textContent = temRef ? `${t.nome} +${ref}` : t.nome;
   $("#admDesc").textContent = info;
@@ -20265,7 +20346,7 @@ function atualizarFicha() {
   $("#fVida").style.width = (100 * Math.max(0, viking.vida) / status.vidaMax) + "%"; $("#fVidaTxt").textContent = `${Math.max(0, Math.round(viking.vida))} / ${status.vidaMax}`;
   $("#fMana").style.width = (100 * Math.max(0, viking.mana || 0) / status.manaMax) + "%"; $("#fManaTxt").textContent = `${Math.round(viking.mana || 0)} / ${status.manaMax}`;
   const atq = Math.round(status.ataque * 100), red = Math.round(100 - 10000 / (100 + status.defesa)), [atqMin, atqMax] = ataqueBasico();
-  $("#fAtaque").textContent = atqMin === atqMax ? String(atqMin) : `${atqMin}–${atqMax}`; $("#fAtaque").title = `O dano do ataque básico, antes da defesa da criatura. Força dos golpes: ${atq}% (nível, ${pr.toUpperCase()}, refino e bônus)`;
+  $("#fAtaque").textContent = atqMin === atqMax ? String(atqMin) : `${atqMin}–${atqMax}`; $("#fAtaque").title = `O valor de ataque: o dano do ataque básico, antes da defesa da criatura (a arma e o refino, o nível, ${pr.toUpperCase()} e os bônus)`;
   $("#fDefesa").textContent = status.defesa; $("#fDefesa").title = `Defesa ${status.defesa}: −${red}% do dano recebido`;
   // os Atributos de combate do vídeo, em 2 colunas, só com o que existe no jogo: não há velocidade de ataque, de conjuração
   // nem taxa de acerto (as criaturas não têm esquiva), e o movimento não tem teto; no lugar deles, o crítico, a esquiva e a redução
@@ -20279,7 +20360,7 @@ function atualizarFicha() {
     .map(([a, v, t]) => `<div title="${t}"><span>${a}</span><b class="fx-cx">${v}</b></div>`).join("");
   $("#fStats").innerHTML = [["Bloqueio", Math.round((status.bloqueio || 0) * 100) + "%", "Chance de o escudo segurar um golpe"],
     ["Stamina", (DASH.cheia / (status.dashFator || 1)).toFixed(1).replace(".", ",") + " s", "O tempo para encher a stamina (VIT)"],
-    ["Força dos golpes", atq + "%", "O multiplicador de todo o dano (nível, atributo, refino e bônus)"]]
+    ["Multiplicador do dano", atq + "%", "O quanto todo o dano é multiplicado (nível, atributo, a arma e o refino, e os bônus)"]]
     .map(([a, v, t]) => `<span title="${t}">${a}</span><b class="fx-cx" title="${t}">${v}</b>`).join("");
   $("#fDerivados").innerHTML = [["Contra monstros", "+" + Math.round((status.monstros || 0) * 100) + "%", "Dano a mais contra criaturas (bônus dos itens e Jóia Monstruosa)"],
     ["Perfurante", Math.round((status.perfurante || 0) * 100) + "%", "Chance de o golpe ignorar a defesa da criatura (Jóia do Ataque Perfurante, colar e bracelete)"],
@@ -22584,50 +22665,7 @@ function barrinha(X, y, larg, alt, k, cores, clara = null, nome = null) {
 }
 // as placas são desenhadas depois de tudo (como no Metin2, ficam por cima das árvores)
 const placas = [];
-// R266 (05/11, o usuário: "os itens dropados precisam de alguma diferença em relacao aos nomes das criaturas, porque as vezes voce acaba
-// nao vendo"): o nome do item no chão é uma etiqueta de papel com contorno de nanquim, a borda e o losango na cor da raridade e o "+N"
-// em destaque; vai numa lista à parte, desenhada DEPOIS das placas das criaturas (fica por cima delas). As criaturas continuam iguais
-const placasItem = [];
-function desenharPlacas() {
-  for (const f of placas) f(); placas.length = 0;
-  // (as etiquetas que se encostam sobem, uma acima da outra, como a pilha de nomes do Metin2: a mais perto da câmera fica embaixo)
-  const feitas = []; placasItem.sort((a, b) => b.Y - a.Y);
-  cx.save(); cx.font = FONTE_PLACA;
-  for (const e of placasItem) {
-    const w = cx.measureText(e.nome).width + 32, h = 19; let y = e.Y;
-    for (let k = 0; k < 8; k++) { const bate = feitas.find(f => Math.abs(f.X - e.X) < (f.w + w) / 2 && Math.abs(f.Y - y) < h); if (!bate) break; y = bate.Y - h; }
-    feitas.push({ X: e.X, Y: y, w }); e.Yf = y;
-  }
-  cx.restore();
-  for (const e of placasItem) etiquetaDrop(e.d, e.nome, e.X, e.Yf, e.k);
-  ETIQUETAS.ultimas = placasItem.map(e => ({ nome: e.nome, X: e.X, Y: e.Yf, cor: corRaridadeDrop(e.d) }));
-  placasItem.length = 0;
-}
-const ETIQUETAS = { ultimas: [] };                                       // (as do último quadro: o R266 confere)
-// a cor da raridade do drop: o comum na pedra, o refinado (+1 a +4) em jade, o raro (dropRaro) em ouro, o +7 ou mais e a arma rara em cinabre; o Gold em ouro
-function corRaridadeDrop(d) {
-  const ref = d.ref || 0, rara = d.tipo === "arma" && /rara/.test(d.chave || "");
-  return rara || ref >= 7 ? "#B8322A" : dropRaro(d) || d.tipo === "yang" ? "#C9963E" : ref > 0 ? "#3E7A5C" : "#8C8A80";
-}
-function etiquetaDrop(d, nome, X, Y, k = 1) {
-  const cor = corRaridadeDrop(d), m = / (\+\d+)(?= \(|$)/.exec(nome), base = m ? nome.slice(0, m.index) : nome, mais = m ? " " + m[1] : "", resto = m ? nome.slice(m.index + m[0].length) : "";
-  cx.save(); cx.globalAlpha = k; cx.font = FONTE_PLACA; cx.textBaseline = "middle"; cx.textAlign = "left";
-  const wb = cx.measureText(base).width, wm = mais ? cx.measureText(mais).width : 0, wr = resto ? cx.measureText(resto).width : 0;
-  const los = 9, pad = 6, w = los + 4 + wb + wm + wr + pad * 2, h = 17, x0 = Math.round(X - w / 2), y0 = Math.round(Y - h / 2 - 4);
-  cx.fillStyle = "rgba(30, 27, 24, 0.35)"; cx.fillRect(x0 + 2, y0 + 2, w, h);                       // (a sombra)
-  cx.fillStyle = "rgba(239, 228, 204, 0.95)"; cx.fillRect(x0, y0, w, h);                            // (o papel)
-  cx.lineWidth = 2; cx.strokeStyle = cor; cx.strokeRect(x0 + 1, y0 + 1, w - 2, h - 2);              // (a borda na cor da raridade)
-  cx.lineWidth = 1; cx.strokeStyle = "#1E1B18"; cx.strokeRect(x0 - 0.5, y0 - 0.5, w + 1, h + 1);    // (o nanquim)
-  const lx = x0 + pad + los / 2, ly = y0 + h / 2;                                                    // o losango na frente
-  cx.beginPath(); cx.moveTo(lx, ly - los / 2); cx.lineTo(lx + los / 2, ly); cx.lineTo(lx, ly + los / 2); cx.lineTo(lx - los / 2, ly); cx.closePath();
-  cx.fillStyle = cor; cx.fill(); cx.strokeStyle = "#1E1B18"; cx.stroke();
-  let tx = x0 + pad + los + 4, ty = ly + 0.5;
-  cx.fillStyle = "#1E1B18"; cx.fillText(base, tx, ty); tx += wb;
-  if (mais) { cx.fillStyle = cor === "#8C8A80" ? "#3E7A5C" : cor; cx.fillText(mais, tx, ty); tx += wm; }
-  if (resto) { cx.fillStyle = "#1E1B18"; cx.fillText(resto, tx, ty); }
-  cx.restore();
-  return { x0, y0, w, h, cor };
-}
+function desenharPlacas() { for (const f of placas) f(); placas.length = 0; }   // (R266 revertido: só as placas; as etiquetas de papel dos itens saíram)
 function barraVida(l, X, Ytopo) {
   const cfg = l.cfg, larg = 46, alt = 6, y = Ytopo - 10, k = Math.max(0, l.vida) / cfg.vida, kv = Math.max(0, l.vidaVista) / cfg.vida;
   const sobe = l.acao === "levantar" ? Math.max(0, 1 - l.t * 2) : 0;       // o esqueleto levantando: a barra aparece aos poucos
@@ -25367,6 +25405,7 @@ const COLISAO_PADRAO = {
   cabeca_tartaruga: { r: 0, dx: 0, dy: 0 }, fumarola: { r: 0.3, dx: 0, dy: 0 },
   portao_quina: { r: 0, dx: 0, dy: 0 }, palicada_diag: { r: 0, dx: 0, dy: 0 },   // (revisão da Daiyu, rodada 1: o recinto em losango da Fortaleza)                    // (os enfeites da vila: só no mundo 3D, sem colisão)
 };
+Object.assign(COLISAO_PADRAO, { forja_pintada: { r: 0.85, dx: 0.15, dy: 0.25 } });   // (R270: a forja pintada do Ferreiro da Vila 1)
 Object.assign(COLISAO_PADRAO, { santuario_raposa: { r: 2.6, dx: 0, dy: 0.2 }, pedra_neve: { r: 0.5, dx: 0, dy: 0 }, bloco_gelo: { r: 0.55, dx: 0, dy: 0 }, osso: { r: 0, dx: 0, dy: 0 }, tenda_expedicao: { r: 0, dx: 0, dy: 0 }, menir: { r: 0, dx: 0, dy: 0 }, doltap: { r: 0, dx: 0, dy: 0 }, hongsalmun: { r: 0, dx: 0, dy: 0 }, caverna_yeti: { r: 0, dx: 0, dy: 0 } });   // (a Montanha Gelada: mapa_montanha.js)
 COLISAO_PADRAO.vale_peca = { r: 1, dx: 0, dy: 0 };                     // (as peças do Vale: o raio é o esc de cada uma)
 const NOME_TIPO = { arvore: "árvore", pinheiro: "pinheiro", arbusto: "arbusto", pedra: "pedra", tronco: "tronco", toco: "toco", runa: "pedra rúnica",
@@ -28759,8 +28798,8 @@ function animNpc3d(o, nome, m, agora) {
   const vale = a => { const i = a && m.info[a.nome]; return i && agora - a.t0 < i.quadros / i.fps; };
   if (nome === "ferreiro") {
     // martelando na bigorna (a leste dele) sem parar; no refino, o sucesso ou a falha (ferreiroMartela) e volta a martelar
-    if (vale(o.a3d)) return [o.a3d.nome, agora - o.a3d.t0, angDir3d(0)];
-    return ["martelando", agora, angDir3d(0)];
+    if (vale(o.a3d)) return [o.a3d.nome, agora - o.a3d.t0, angDir3d(o.forjaOeste ? 4 : 0)];
+    return ["martelando", agora, angDir3d(o.forjaOeste ? 4 : 0)];        // (R270: com a forja pintada a oeste, virado para ela)
   }
   // a guarda e o guarda real batem continência quando alguém chega perto; o do armazém atende quando abre o armazém;
   // os outros viram para quem está perto (o do armazém não: o baú faz parte do modelo dele e girava junto)
@@ -38516,6 +38555,7 @@ function chaoLeve() {
   const mp = est.mapa || MAPAS.vila1;
   if (mp === MAPAS.vila1) { if (!miniBase) miniBase = baseIlha(); return miniBase; }
   if (!mp.mini) mp.mini = baseIlha(mp);
+  if (mp.mini.continuar && !mp.mini.pronto) mp.mini.continuar();      // (a Hahoe nova pintada em fatias: o Mapa do Mundo termina de uma vez)
   return mp.mini;
 }
 function garantirBase() {
