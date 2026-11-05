@@ -854,6 +854,15 @@
   .fx-topo { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; }
   .fx-retrato { width: 64px; height: 72px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--jan-poco-borda); border-radius: 2px; background: var(--jan-poco); box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6); }
   .fx-retrato svg { display: block; width: 100%; height: 100%; }
+  /* (R267, 05/11, o usuário: "deve ser colocada a miniatura do personagem ali no lugar daquele desenho"; e "retire o desenho de trás") o busto
+     da seleção da classe (selecao/busto_<classe>.webp, o 1º quadro da folha de 10 × 5), sozinho; sem a imagem, o fundo neutro do quadro; o aprendiz, o corpo dele */
+  .fx-retrato { position: relative; }
+  .fx-busto { position: absolute; inset: 0; background-repeat: no-repeat; background-size: 800px auto; background-position: -9px -3px; }
+  .fx-busto.aprendiz { background-size: 118px auto; background-position: -27px -1px; }
+  /* (R267: a honra acima do nome; o nome só para leitura, definido na criação) */
+  .fx-honra { font-size: 11px; color: var(--ouro, #C9963E); letter-spacing: 0.02em; }
+  .fx-honra i { font-style: normal; color: #C9963E; margin-right: 2px; }
+  .fx-nome { font-size: 14px; color: var(--texto); padding: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .fx-id { display: grid; gap: 6px; min-width: 0; }
   .ficha .ficha-nome { grid-template-columns: auto 1fr; gap: 6px; }
   .ficha .ficha-nome input { width: 100%; box-sizing: border-box; min-width: 0; }
@@ -1580,7 +1589,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.77 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.78 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -1654,7 +1663,8 @@
     <div class="fx-topo">
       <div class="fx-retrato" id="fRetrato" aria-hidden="true"></div>
       <div class="fx-id">
-        <label class="ficha-nome"><span>Nome</span><input id="fNome" maxlength="16" autocomplete="off" spellcheck="false"></label>
+        <span class="fx-honra" id="fHonra" title="A honra: sobe derrotando criaturas do seu nível e paga a leitura das Pedras da Alma"></span>
+        <div class="ficha-nome"><span>Nome</span><b class="fx-nome" id="fNome"></b></div>
         <span class="fx-classe" id="fClasse"></span>
       </div>
     </div>
@@ -4824,7 +4834,7 @@ V.R = 115;
 V.rCosta = a => 115 - (Math.sin(a * 4 + 0.7) * 3 + Math.sin(a * 9 + 2) * 1.2 + Math.sin(a * 2 + 0.3) * 2.5);
 // o rio: nasce na cachoeira (noroeste), desce pelo oeste, contorna a vila por baixo e sai a leste até a foz (sudeste)
 V.RIO = [[-54, 76], [-48, 62], [-40, 48], [-34, 34], [-34, 18], [-34, 2], [-31, -14], [-22, -27], [-10, -33.5], [0, -34],
-         [12, -32], [24, -25], [32, -13], [34, 0], [35, 10], [42, 16], [55, 16], [66, 12], [76, 2], [86, -10], [96, -22], [108, -36]];
+         [12, -32], [24, -25], [32, -13], [34, 0], [35, 10], [42, 16], [55, 16], [66, 12], [76, 2], [86, -10], [96, -22], [108, -36], [118, -46]];   // (o último já no mar: a foz chega à costa)
 V.largRio = xl => 6 + Math.max(0, xl - 70) * 0.12;                   // 6 m; abre perto da foz
 // as 4 pontes (o tipo: "ponte" corre de oeste a leste, onde o rio corre N–S; "ponte_v" de sul a norte). O index.html acha
 // cada uma no ponto do rio mais perto do alvo (perto), para o tabuleiro cair atravessado na água (R086)
@@ -4894,11 +4904,12 @@ V.zonaDe = function (lx, ly) {
   for (const z of V.ZONAS) if (z.a1 > 360 ? (a >= z.a0 || a <= z.a1 - 360) : (a >= z.a0 && a < z.a1)) return z;
   return V.ZONAS[0];
 };
-// o nome do lugar (fora da vila: o index.html já respondeu "Vila Hahoe" dentro do HV)
+// o nome do lugar: os lugares com nome, a vila dentro da curva, a beira do rio e a zona
 V.nomeRegiao = function (lx, ly) {
   let m = null, dm = Infinity;
   for (const l of V.LUGARES) { const d = Math.hypot(lx - l.x, ly - l.y) / l.r; if (d < dm) { dm = d; m = l; } }
   if (dm < 1) return m.nome;
+  if (Math.hypot(lx - 3, ly - 2) < 31) return "Vila Hahoe";          // (o HV: a vila dentro da curva; os Terraços, na ponta norte dela, têm nome)
   if (Math.hypot(lx, ly) < 40) return "Beira do Rio";
   return V.zonaDe(lx, ly).nome;
 };
@@ -5102,7 +5113,7 @@ V.montarCentro = function (ctx) {
   }
   // a Caixa do Correio (um enfeite com fala; vira o correio quando o login guardar na nuvem)
   const [cx, cy] = pH(-5.4, 4.4);                                  // (fora da base do armazém: o que encosta num prédio do kit some)
-  const caixa = Object.assign(completarDecoracao({ tipo: "caixotes", x: cx, y: cy, esc: 0.62 }), { mapa: "hahoe", npc: true, nome: "Caixa do Correio",
+  const caixa = Object.assign(completarDecoracao({ tipo: "caixotes", x: cx, y: cy, esc: 0.62 }), { mapa: "hahoe", npc: true, fala: 0, nome: "Caixa do Correio",
     dados: { nome: "Caixa do Correio", correio: true, falas: ["As cartas chegam quando o login guardar na nuvem. Por enquanto, a caixa espera.", "Um selo de cera com o tigre da Capital... quem mandaria carta daquele lado do rio?"] } });
   objetos.push(caixa);
 };
@@ -5621,6 +5632,8 @@ G.VILA2 = V;
     if (per.classe === c && (per.classe !== "aprendiz" || per.vocacao === V)) { const f = g("carregarProgresso"); if (typeof f === "function") f(); }
     if (per.classe === "aprendiz") g("entrarAprendiz")(per.vocacao, op.novo ? { novo: true, nome: per.nome } : { nome: per.nome });
     else g("entrarComClasse")(per.classe);
+    // (R267: o nome é o da conta, dado na criação; um save com outro nome volta ao da conta, e o servidor só grava o nome no POST /personagens)
+    { const p = g("prog"); if (p && per.nome && p.nome !== per.nome) p.nome = per.nome; }
   }
   function notaInicio(t) { const n = el("inNota"); if (n) n.textContent = t; }
   async function esperarMundo(nota) {
@@ -7418,7 +7431,7 @@ const altarNoPedaco = (x, y) => { if (!naZonaAltar(x, y)) return false; const [a
 function borda(x, y) { if (y > 350) return bordaMapa(MAPAS.hahoe, x, y); if (y < -350) return bordaMapa(MAPAS.daiyu, x, y); if (x < -350) return bordaMapa(MAPAS.montanha, x, y); const b = bordaV1(x, y); return naZonaAltar(x, y) ? Math.min(b, bordaAltar(x, y)) : b; }   // (a Vila Hahoe, em (0, 700): bordaMapa)
 // quanto este ponto é montanha (1 no mapa da Montanha Gelada, 0 nos outros) e quanto é vale (0 na ilha, 1 na península)
 const pesoMonte = (x, y) => x < -350 ? 1 : 0;
-const pesoVale = (x, y) => y < -350 ? 0 : liso((x - VALE_X) / 8) * (1 - pesoMonte(x, y));   // (a ponta leste da Ilha de Daiyu não é o vale)
+const pesoVale = (x, y) => y < -350 || (HAHOE2 && y > 350) ? 0 : liso((x - VALE_X) / 8) * (1 - pesoMonte(x, y));   // (a ponta leste da Ilha de Daiyu não é o vale)
 function praca(x, y) { if (y > 350) return Math.hypot(x - PRACA_H.x, y - PRACA_H.y) < PRACA_H.r; return (!(CIDADE && CIDADE.treino) && Math.hypot(x - PRACA.x, y - PRACA.y) < PRACA.r) || ruaCidade(x, y); }   // (com ?cidade=1, as vias da cidade; o treino vai para o lado)   // (com ?cidade=1, as ruas de pedra também)
 function estrada(x, y) { for (const e of ESTRADAS) if (distLinha(x, y, e) < (e.meia || 0.8) + (ruido2(x * 0.7, y * 0.7) - 0.5) * 0.35) return true; return false; }
 const trilha = estrada;
@@ -7582,8 +7595,8 @@ const ZONAS_H = HAHOE2 ? VILA2.zonas(HAHOE) : [
   { nome: "Cais dos Pescadores", x: 7, y: -27, r: 5 },
 ].map(z => ({ ...z, x: HAHOE.ox + z.x, y: HAHOE.oy + z.y }));
 function nomeRegiaoHahoe(x, y) {
+  if (HAHOE2) return VILA2.nomeRegiao(x - HAHOE.ox, y - HAHOE.oy);    // (a Hahoe nova: os lugares com nome, a vila, a beira do rio e as zonas)
   if (Math.hypot(x - HV.x, y - HV.y) < HV.r) return "Vila Hahoe";
-  if (HAHOE2) return VILA2.nomeRegiao(x - HAHOE.ox, y - HAHOE.oy);    // (as zonas e os lugares da Hahoe nova)
   let m = null, dm = Infinity;
   for (const z of ZONAS_H) { const d = Math.hypot(x - z.x, y - z.y) / z.r; if (d < dm) { dm = d; m = z; } }
   return dm < 1.3 ? m.nome : "Vila Hahoe";
@@ -7663,7 +7676,7 @@ function pisoHahoe(g, P, esc, caminho, mx0, mx1, my0, my1) {
 // a mata (fbm alto), menos perto da praça e nas clareiras dos bandos: lá dentro é campo aberto e a mata volta aos poucos
 // na beirada (o limiar sobe perto da clareira)
 function floresta(x, y) {
-  if (x > VALE_X - 4 || x < -350) return false;                         // o vale e a montanha são abertos
+  if ((x > VALE_X - 4 && !(HAHOE2 && y > 350)) || x < -350) return false;   // o vale e a montanha são abertos (a ponta leste da Hahoe nova não é o vale)
   const c = distClareira(x, y);
   if (c < 0) return false;
   return fbm(x * kV1(x, y) * 0.07 + 3, y * kV1(x, y) * 0.07 - 2) > 0.55 + 0.2 * Math.max(0, 1 - c / 5) && Math.hypot(x - PRACA.x, y - PRACA.y) > 10 && (!COM_CASTELO || retArred(x, y, FOSSO) > 4);
@@ -13217,8 +13230,10 @@ const NOME_CLASSE = { viking: "Viking", arqueiro: "Arqueiro", feiticeiro: "Feiti
 function desenharPlacaJogador(X, Y, z) {
   if (!prog || viking.caido) return;
   const topo = topoPlacaHeroi(), y = (window.M3D && M3D.ativo ? M3D.acima(viking, topo * z) : Y - topo * z) - 4;
-  barrinha(X, y, 56, 5, viking.vida / status.vidaMax, ["#ee6a50", "#a8261a"]);
-  barrinha(X, y + 7, 56, 4, viking.mana / status.manaMax, ["#7cc2ff", "#2a5fc0"]);
+  // (R268, 05/11, o usuário: "a barra acima do jogador nao esta sendo pintada da cor mais leve": a parte clara da poção também aqui, a pé e montado)
+  const v = viking, bv = v.baldeVida > 0 ? v.baldeVida : 0, bm = v.baldeMana > 0 ? v.baldeMana : 0;
+  barrinha(X, y, 56, 5, v.vida / status.vidaMax, ["#ee6a50", "#a8261a"], [(v.vida + bv) / status.vidaMax, ["#ffc8bc", "#f0907e"]], "vida");
+  barrinha(X, y + 7, 56, 4, (v.mana || 0) / status.manaMax, ["#7cc2ff", "#2a5fc0"], [((v.mana || 0) + bm) / status.manaMax, ["#dcefff", "#94c6f6"]], "mana");
   placaNome(X, y - 6, prog.nivel, prog.nome || NOME_CLASSE[classe], "#ffffff");
   const hon = honraDe();
   if (hon.titulo) {                                                    // (R164: o título de honra, em cima do nome)
@@ -17036,6 +17051,7 @@ function dicaDoCanto(q) {
 }
 function abrirQuestDoCanto(q) {
   if (!q || !prog) return;
+  setaDeNovo(q);                                                         // (R264: a seta dela volta)
   som("ui_clique", null, 0.5);
   if (q.startsWith("npc:")) { const M = MISSOES[q.slice(4)]; if (M) avisar(`${M.nome}: fale com ${M.npc}, ${M.onde || "no Templo do Céu (fim da avenida)"}`); return; }
   if (MISSOES[q] && etapaAtual(q) && fimDaQuest(q) === "receber") { abrirCarta(q); return; }
@@ -17217,12 +17233,34 @@ function desenharSetaMarca(t) {
 // quando não há nenhuma, o NPC, o portal no caminho) e com a distância. Some a menos de SETA_QUEST.perto m do alvo. O rumo:
 // em linha reta quando ela está livre; senão, pela rota do A* (rumoAte, a mesma da marca do mapa), com o alvo arredondado
 // a 4 m (um lobo andando não refaz a rota) e refeita no máximo a cada 1,5 s
-const SETA_QUEST = { rota: null, rumo: null, prox: 0, refez: 0, dist: 0, alvo: null, perto: 10, some: 3 };
+const SETA_QUEST = { rota: null, rumo: null, prox: 0, refez: 0, dist: 0, alvo: null, perto: 10, some: 3, usar: 12, etapa: null, base: null };
+// R264 (05/11, o usuário: "ela deve mostrar pelo menos os primeiros mobs, depois nao precisa ficar apontando para os proximos"). Nas
+// etapas de matar várias criaturas e nas caçadas, a seta leva só até os primeiros alvos: ela é "usada" (prog.setaUsada, no save)
+// quando o herói mata o 1º alvo da etapa depois de ela aparecer, ou chega a SETA_QUEST.usar m de um alvo, e não volta para os
+// próximos dessa etapa. Volta numa etapa nova, numa quest nova (outra chave) ou pelo clique na quest no canto (R249, setaDeNovo).
+// Nas etapas de um alvo só (falar com o NPC, quebrar uma Ghotin, chegar a um portal), fica como era
 function ondeAcompanhada() {
+  const S = SETA_QUEST; S.etapa = null;
   if (!prog || !missoesAtivas()) return null;
-  if (prog.missaoVista === "cacada" && cacadaAtiva()) { const q = ondeCacada(); if (q) return q; }
-  for (const id of ordemMissoes()) { if (!etapaAtual(id)) break; const q = ondeDaMissao(id); if (q) return q; }   // (só as em andamento: a acompanhada primeiro)
+  if (prog.missaoVista === "cacada" && cacadaAtiva()) { const q = ondeCacada(); if (q) { const c = cacadaEstado(); S.etapa = { chave: "cacada:" + c.n, multi: true, feito: c.a + c.b }; return q; } }
+  for (const id of ordemMissoes()) {                                    // (só as em andamento: a acompanhada primeiro)
+    const e = etapaAtual(id); if (!e) break;
+    const q = ondeDaMissao(id);
+    if (q) { const s = estadoMissao(id); S.etapa = { chave: id + ":" + s.etapa, multi: !!e.matar && (e.qtd || 1) > 1, feito: s.n || 0 }; return q; }
+  }
   return null;
+}
+// a seta desta etapa já levou o herói aos primeiros alvos: não aponta mais (guardado no save; só as 30 últimas etapas)
+function setaUsar(chave) {
+  const U = prog.setaUsada || (prog.setaUsada = {}); U[chave] = 1;
+  const ks = Object.keys(U); if (ks.length > 30) for (const k of ks.slice(0, ks.length - 30)) delete U[k];
+  SETA_QUEST.rumo = SETA_QUEST.rota = null; SETA_QUEST.base = null; salvarProgresso();
+}
+// (R249 + R264) o clique na quest do canto devolve a seta dela
+function setaDeNovo(q) {
+  if (!prog || !prog.setaUsada) return;
+  const ch = q === "cacada" ? "cacada:" + cacadaEstado().n : MISSOES[q] ? q + ":" + estadoMissao(q).etapa : null;
+  if (ch && prog.setaUsada[ch]) { delete prog.setaUsada[ch]; SETA_QUEST.base = null; SETA_QUEST.prox = 0; salvarProgresso(); }
 }
 function passoSetaQuest(dt) {
   const S = SETA_QUEST, v = viking; S.refez -= dt;
@@ -17230,10 +17268,22 @@ function passoSetaQuest(dt) {
   S.prox = 0.2;
   const q = ondeAcompanhada(), a0 = q && pontoNoCaminho(q[0], q[1]);
   if (!a0) { S.rumo = S.rota = S.alvo = null; return; }
+  const E = S.etapa;                                                    // (R264: as etapas de vários alvos)
+  if (E && E.multi) {
+    if (prog.setaUsada && prog.setaUsada[E.chave]) { S.rumo = S.rota = S.alvo = null; return; }
+    if (S.base && S.base.chave === E.chave && E.feito > S.base.feito) { setaUsar(E.chave); return; }
+    if (!S.base || S.base.chave !== E.chave) S.base = { chave: E.chave, feito: E.feito };
+  }
   S.alvo = a0; S.dist = Math.hypot(a0[0] - v.x, a0[1] - v.y);
-  if (S.dist < S.perto) { S.rumo = null; return; }
-  if (retaLivreGrade(v.x, v.y, a0[0], a0[1])) { S.rota = null; S.rumo = [(a0[0] - v.x) / S.dist, (a0[1] - v.y) / S.dist]; return; }
-  const a = [Math.round(a0[0] / 4) * 4, Math.round(a0[1] / 4) * 4], d0 = S.dist;
+  if (E && E.multi && S.dist < S.usar) { setaUsar(E.chave); return; }
+  // R269 (05/11, o usuário: "a seta que leva de volta a guardiã apos reunir as gotas esta se perdendo, deve ser por conta da escadaria"): o
+  // alvo no alto (a Guardiã no topo do Altar, a 8 m; a estátua) estava a menos de SETA_QUEST.perto m na planta já no meio da escadaria, e a
+  // seta sumia ali; e a reta "livre" na planta cortava o morro. Com o alvo mais de 0,4 m acima ou abaixo do herói, a seta segue a rota do A*
+  // (a escadaria), com o alvo exato, e só some no mesmo patamar dele
+  const alto = Math.abs(zPiso(a0[0], a0[1]) - zPiso(v.x, v.y)) > 0.4; S.alto = alto;
+  if (S.dist < S.perto && !alto) { S.rumo = null; return; }
+  if (!alto && retaLivreGrade(v.x, v.y, a0[0], a0[1])) { S.rota = null; S.rumo = [(a0[0] - v.x) / S.dist, (a0[1] - v.y) / S.dist]; return; }
+  const a = alto ? [a0[0], a0[1]] : [Math.round(a0[0] / 4) * 4, Math.round(a0[1] / 4) * 4], d0 = S.dist;
   rumoAte(S, a); S.dist = d0;
   if (S.refez > 0.8) S.refez = 1.5;                                   // (acabou de refazer: a próxima, só daqui a 1,5 s)
 }
@@ -17241,7 +17291,7 @@ function passoSetaQuest(dt) {
 function desenharSetaQuest(t) {
   const S = SETA_QUEST, v = viking, u = S.rumo;
   if (!u || v.caido || (classe === "ninja" && NINJA.esconder.buff > 0)) return;
-  const al = Math.max(0, Math.min(1, (S.dist - S.perto) / S.some)); if (al <= 0) return;
+  const al = S.alto ? 1 : Math.max(0, Math.min(1, (S.dist - S.perto) / S.some)); if (al <= 0) return;   // (R269: o alvo no alto, a seta inteira até o patamar dele)
   const z = zPiso(v.x, v.y), nx = -u[1], ny = u[0], r0 = 1.2 + 0.12 * Math.sin(t * 4.5), L = 1.7, larg = 1.15;
   const P = (X, Y) => { const a = r0 + L * (0.96 - X) / 0.9, b = (0.5 - Y) * larg; return noMundo(v.x + u[0] * a + nx * b, v.y + u[1] * a + ny * b, z); };
   const M = (X, Y) => { const p = P(X, Y); cx.moveTo(p[0], p[1]); }, Li = (X, Y) => { const p = P(X, Y); cx.lineTo(p[0], p[1]); };
@@ -19424,9 +19474,8 @@ function desenharItens(t) {
     feixeDrop(d, X, Y0, u, k, t, dropRaro(d) ? "255, 205, 80" : cor);   // (o feixe de luz: os raros dourados, os outros na cor do item)
     const ic = iconeDrop(d);
     // o nome em cima (desenhado com as outras placas, por cima de tudo)
-    const nome = nomeDrop(d), raro = dropRaro(d), Yn = Y - 18 * u;
-    placas.push(() => { cx.save(); cx.globalAlpha = k; cx.font = FONTE_PLACA; cx.textAlign = "center"; cx.lineJoin = "round"; cx.lineWidth = 3; cx.strokeStyle = "rgba(0, 0, 0, 0.9)";
-      cx.strokeText(nome, X, Yn); cx.fillStyle = d.tipo === "yang" ? "#f2c84a" : raro ? "#ffd25a" : "#f2ead8"; cx.fillText(nome, X, Yn); cx.restore(); });
+    const nome = nomeDrop(d), Yn = Y - 18 * u;
+    placasItem.push({ d, nome, X, Y: Yn, k });                            // (R266: a etiqueta de papel, por cima das placas das criaturas)
     if (ic) {                                                               // o ícone pintado, deitado um pouco e com sombra
       const h = 26 * u, w = h * (ic.naturalWidth || ic.width) / (ic.naturalHeight || ic.height);   // (os ícones do atlas são canvas: sem naturalWidth)
       cx.fillStyle = "rgba(20, 14, 10, 0.3)"; cx.beginPath(); cx.ellipse(X, Y0, w * 0.45, w * 0.45 * ACHATA * 0.5, 0, 0, 7); cx.fill();
@@ -19883,30 +19932,9 @@ function montarAdmin() {
 // HP/MP/Ataque/Defesa e os atributos de combate), Skills (dois grupos, a grade 3 × 4 de cada metade, as passivas), Ações
 // (arrastáveis para a barra) e Quests (as missões do jogo com o estado de cada uma). As abas ficam embaixo
 let fichaSk = null, fichaRetrato = "";
-// o retrato: um busto a nanquim com a marca de cada classe (o elmo de chifres, o capuz e o arco, o chapéu de bico, a máscara)
-function retratoFicha(c) {
-  const N = "#1E1B18", P = "#EFE4CC", olhos = `<path d="M27 30.5h3.2M33.8 30.5H37" stroke="${N}" stroke-width="1.5" stroke-linecap="round"/>`;
-  const marca = {
-    viking: `<path d="M23 33q9 15 18 0q-1 9-9 11q-8-2-9-11z" fill="#8C6A3A" stroke="${N}" stroke-width="1.3"/>${olhos}
-      <path d="M21.5 27.5q0-13.5 10.5-13.5t10.5 13.5z" fill="#8C8A80" stroke="${N}" stroke-width="1.8"/><path d="M21 27.5h22" stroke="${N}" stroke-width="2.6" stroke-linecap="round"/>
-      <path d="M32 14v13" stroke="${N}" stroke-width="1.2" opacity=".6"/><path d="M22.5 22.5q-9-2-10.5-12q5 6 11.5 6.5M41.5 22.5q9-2 10.5-12q-5 6-11.5 6.5" fill="${P}" stroke="${N}" stroke-width="1.6" stroke-linejoin="round"/>`,
-    arqueiro: `<path d="M51 14q13 24-1 50" fill="none" stroke="#8C6A3A" stroke-width="2.6"/><path d="M51 14l-1 50" stroke="${N}" stroke-width=".9"/>
-      <path d="M18.5 46q-4-27 13.5-33q17.5 6 13.5 33q-5-7-13.5-7t-13.5 7z" fill="#2F5D3A" stroke="${N}" stroke-width="1.8" stroke-linejoin="round"/>
-      <ellipse cx="32" cy="31" rx="8.6" ry="10" fill="${P}" stroke="${N}" stroke-width="1.6"/>${olhos}<path d="M23.5 25q8.5-7 17 0" fill="none" stroke="${N}" stroke-width="2"/>`,
-    feiticeiro: `<path d="M24 34q8 20 16 0q1 13-8 18q-9-5-8-18z" fill="#F8F2E4" stroke="${N}" stroke-width="1.4"/>${olhos}
-      <path d="M22.5 21.5q4-10 19-20q-4 11 0 20z" fill="#2D4A6B" stroke="${N}" stroke-width="1.8" stroke-linejoin="round"/>
-      <ellipse cx="32" cy="22" rx="16" ry="3.6" fill="#2D4A6B" stroke="${N}" stroke-width="1.8"/><circle cx="33" cy="13" r="2" fill="#C9963E"/>`,
-    ninja: `<path d="M22 28.5q0-14.5 10-14.5t10 14.5z" fill="${N}"/><path d="M22.5 31q9.5 3 19 0q-1 10-9.5 10.5q-8.5-.5-9.5-10.5z" fill="${N}"/>
-      <path d="M27 29.5h3.2M33.8 29.5H37" stroke="${N}" stroke-width="1.5" stroke-linecap="round"/><path d="M21.6 25.5h20.8" stroke="#B8322A" stroke-width="2.4"/>
-      <path d="M42 25.5q6 .5 10-4.5M42 26.5q6 3.5 11 1.5" fill="none" stroke="#B8322A" stroke-width="1.8" stroke-linecap="round"/>`,
-  };
-  marca.guerreiro = marca.viking;
-  const capa = { viking: "#B8322A", guerreiro: "#B8322A", arqueiro: "#2F5D3A", feiticeiro: "#2D4A6B", ninja: N, xama: "#3E7A5C", xama_dragao: "#B8322A", shura: "#2a0b3f" }[c] || "#B8322A";
-  return `<svg viewBox="0 0 64 72" aria-hidden="true"><circle cx="32" cy="31" r="25" fill="#C9963E" opacity=".2"/>
-    <path d="M7 72q1-23 25-26q24 3 25 26z" fill="${capa}" fill-opacity=".85" stroke="${N}" stroke-width="2" stroke-linejoin="round"/>
-    <path d="M24 49l8 8 8-8" fill="none" stroke="${P}" stroke-width="2"/><path d="M28 40h8v7h-8z" fill="${P}" stroke="${N}" stroke-width="1.5"/>
-    <ellipse cx="32" cy="30" rx="9.5" ry="11" fill="${P}" stroke="${N}" stroke-width="1.9"/>${marca[c] || marca.viking}</svg>`;
-}
+// (R267) o busto da classe (o mesmo da tela de seleção, o 1º quadro) ou o corpo do aprendiz
+const retratoBusto = c => `<div class="fx-busto${c === "aprendiz" ? " aprendiz" : ""}" style="background-image:url(selecao/${c === "aprendiz" ? "aprendiz" : "busto_" + c}.webp)"></div>`;
+// (R267: o desenho de antes do retrato, o busto a nanquim com o elmo de chifres, saiu; o retrato é o retratoBusto)
 // as ações básicas (os botões do canto), que também vão para a barra de atalhos como "acao:<id>"
 // ---- os números de cada skill por nível (Logs/Skills/PEDIDO_JANELA_E_DICA.md, 29/10; refeita em 03/11 com o sistema do
 // Metin2, Logs/Skills/FASE1_METIN2.md): a dica com o nível atual e o próximo. Nas skills do Metin2 (SKILL_M2) tudo sai da
@@ -20199,7 +20227,7 @@ function abrirFicha(sim = $("#ficha").hidden) {
   $("#ficha").hidden = !sim; janelaAbriu("ficha", sim);
   if (typeof janelasSalvas === "object") { janelasSalvas.ficha = { ...(janelasSalvas.ficha || {}), aberta: sim }; salvarJanelas(); posicionarJanela(JANELAS[8]); }
   if (sim && editor.ativo) editorAbrir(false);
-  if (sim) atualizarFicha();
+  if (sim) { atualizarFicha(); if (typeof vitaisAntes === "string") { vitaisAntes = ""; atualizarVitais(); } }   // (as barras da ficha, com a parte clara da poção, já ao abrir)
   // (03/11) depois do Altar, na 1ª vez que a ficha abre com pontos de skill sobrando: a aba Skills brilha até ser clicada
   // (sem ler o fichaPag: a ficha pode abrir na carga da página, pelas janelas salvas, antes de o "let fichaPag" existir)
   const ab = document.querySelector('#fAbas [data-pag="skills"]'), pg = document.querySelector('#ficha .ficha-pag[data-pag="skills"]'), naSkills = !!pg && !pg.hidden;
@@ -20211,8 +20239,9 @@ function atualizarFicha() {
   if (!prog || $("#ficha").hidden) return;
   const nomeClasse = NOME_CLASSE[classe] || "Personagem", fmt = v => v.toLocaleString("pt-BR"), max = prog.nivel >= NIVEL_MAX;
   $("#fTitulo").textContent = "Personagem";
-  if (fichaRetrato !== classe) { fichaRetrato = classe; $("#fRetrato").innerHTML = retratoFicha(classe); }
-  if (document.activeElement !== $("#fNome")) { $("#fNome").value = prog.nome || ""; $("#fNome").placeholder = nomeClasse; }
+  if (fichaRetrato !== classe) { fichaRetrato = classe; $("#fRetrato").innerHTML = retratoBusto(classe); }   // (R267: só o busto da classe; o desenho de antes saiu. Sem a imagem, o fundo do quadro)
+  $("#fNome").textContent = prog.nome || nomeClasse;                     // (R267: só leitura; o nome vem da criação)
+  { const h = honraDe(); $("#fHonra").innerHTML = `<i>◆</i>Honra ${h.pontos.toLocaleString("pt-BR")}${h.titulo ? ` · <span style="color:${h.cor}">${h.titulo}</span>` : ""}`; }
   const pr = ATRIB_PRINCIPAL[classe];
   $("#fClasse").innerHTML = `${nomeClasse} <small>· atributo principal ${pr.toUpperCase()}</small>`;
   // ---- Status: nível, experiência, próximo nível (a exp que este nível pede)
@@ -20359,7 +20388,6 @@ function montarFicha() {
   $("#fFechar").onclick = () => abrirFicha(false);
   $("#bAtrib").onclick = () => abrirFichaPag("atrib");
   $("#bSkills").onclick = () => abrirFichaPag("skills");
-  $("#fNome").onchange = e => { prog.nome = e.target.value.trim().slice(0, 16); salvarProgresso(); };
   $("#fAtrib").onclick = e => {
     const b = e.target.closest("[data-atrib]"); if (!b || prog.pontos <= 0) return;
     const k = b.dataset.atrib, n = Math.min(e.ctrlKey ? 10 : 1, prog.pontos, ATRIB_MAX - prog.atrib[k]); if (n <= 0) return;
@@ -22541,16 +22569,65 @@ function placaNome(X, y, nivel, nome, corNome, corNivel = "#f3cf5a") {
   cx.strokeText(nome, x0 + wl, y); cx.fillStyle = corNome; cx.fillText(nome, x0 + wl, y);
   cx.restore();
 }
-function barrinha(X, y, larg, alt, k, cores) {
+// (R268) clara: [k, [cor de cima, cor de baixo]], a parte clara da poção (até (atual + reservatório)/máx), por baixo da viva, como nas barras de baixo (R244)
+const BARRINHA = { ultima: {} };                                         // (a última desenhada de cada uma: o R244 confere)
+function barrinha(X, y, larg, alt, k, cores, clara = null, nome = null) {
   k = Math.max(0, Math.min(1, k));
   cx.fillStyle = "rgba(0, 0, 0, 0.85)"; cx.fillRect(X - larg / 2 - 1, y - 1, larg + 2, alt + 2);
   cx.fillStyle = "#1c1410"; cx.fillRect(X - larg / 2, y, larg, alt);
+  const kc = clara ? Math.max(k, Math.min(1, clara[0])) : k;
+  if (clara && kc > k) { const gc = cx.createLinearGradient(0, y, 0, y + alt); gc.addColorStop(0, clara[1][0]); gc.addColorStop(1, clara[1][1]); cx.save(); cx.globalAlpha *= 0.8; cx.fillStyle = gc; cx.fillRect(X - larg / 2, y, larg * kc, alt); cx.restore(); }
+  if (nome) BARRINHA.ultima[nome] = { k, clara: kc, larg };
   const g = cx.createLinearGradient(0, y, 0, y + alt); g.addColorStop(0, cores[0]); g.addColorStop(1, cores[1]);
   cx.fillStyle = g; cx.fillRect(X - larg / 2, y, larg * k, alt);
   cx.fillStyle = "rgba(255, 255, 255, 0.22)"; cx.fillRect(X - larg / 2, y, larg * k, Math.max(1, alt / 3));
 }
 // as placas são desenhadas depois de tudo (como no Metin2, ficam por cima das árvores)
 const placas = [];
+// R266 (05/11, o usuário: "os itens dropados precisam de alguma diferença em relacao aos nomes das criaturas, porque as vezes voce acaba
+// nao vendo"): o nome do item no chão é uma etiqueta de papel com contorno de nanquim, a borda e o losango na cor da raridade e o "+N"
+// em destaque; vai numa lista à parte, desenhada DEPOIS das placas das criaturas (fica por cima delas). As criaturas continuam iguais
+const placasItem = [];
+function desenharPlacas() {
+  for (const f of placas) f(); placas.length = 0;
+  // (as etiquetas que se encostam sobem, uma acima da outra, como a pilha de nomes do Metin2: a mais perto da câmera fica embaixo)
+  const feitas = []; placasItem.sort((a, b) => b.Y - a.Y);
+  cx.save(); cx.font = FONTE_PLACA;
+  for (const e of placasItem) {
+    const w = cx.measureText(e.nome).width + 32, h = 19; let y = e.Y;
+    for (let k = 0; k < 8; k++) { const bate = feitas.find(f => Math.abs(f.X - e.X) < (f.w + w) / 2 && Math.abs(f.Y - y) < h); if (!bate) break; y = bate.Y - h; }
+    feitas.push({ X: e.X, Y: y, w }); e.Yf = y;
+  }
+  cx.restore();
+  for (const e of placasItem) etiquetaDrop(e.d, e.nome, e.X, e.Yf, e.k);
+  ETIQUETAS.ultimas = placasItem.map(e => ({ nome: e.nome, X: e.X, Y: e.Yf, cor: corRaridadeDrop(e.d) }));
+  placasItem.length = 0;
+}
+const ETIQUETAS = { ultimas: [] };                                       // (as do último quadro: o R266 confere)
+// a cor da raridade do drop: o comum na pedra, o refinado (+1 a +4) em jade, o raro (dropRaro) em ouro, o +7 ou mais e a arma rara em cinabre; o Gold em ouro
+function corRaridadeDrop(d) {
+  const ref = d.ref || 0, rara = d.tipo === "arma" && /rara/.test(d.chave || "");
+  return rara || ref >= 7 ? "#B8322A" : dropRaro(d) || d.tipo === "yang" ? "#C9963E" : ref > 0 ? "#3E7A5C" : "#8C8A80";
+}
+function etiquetaDrop(d, nome, X, Y, k = 1) {
+  const cor = corRaridadeDrop(d), m = / (\+\d+)(?= \(|$)/.exec(nome), base = m ? nome.slice(0, m.index) : nome, mais = m ? " " + m[1] : "", resto = m ? nome.slice(m.index + m[0].length) : "";
+  cx.save(); cx.globalAlpha = k; cx.font = FONTE_PLACA; cx.textBaseline = "middle"; cx.textAlign = "left";
+  const wb = cx.measureText(base).width, wm = mais ? cx.measureText(mais).width : 0, wr = resto ? cx.measureText(resto).width : 0;
+  const los = 9, pad = 6, w = los + 4 + wb + wm + wr + pad * 2, h = 17, x0 = Math.round(X - w / 2), y0 = Math.round(Y - h / 2 - 4);
+  cx.fillStyle = "rgba(30, 27, 24, 0.35)"; cx.fillRect(x0 + 2, y0 + 2, w, h);                       // (a sombra)
+  cx.fillStyle = "rgba(239, 228, 204, 0.95)"; cx.fillRect(x0, y0, w, h);                            // (o papel)
+  cx.lineWidth = 2; cx.strokeStyle = cor; cx.strokeRect(x0 + 1, y0 + 1, w - 2, h - 2);              // (a borda na cor da raridade)
+  cx.lineWidth = 1; cx.strokeStyle = "#1E1B18"; cx.strokeRect(x0 - 0.5, y0 - 0.5, w + 1, h + 1);    // (o nanquim)
+  const lx = x0 + pad + los / 2, ly = y0 + h / 2;                                                    // o losango na frente
+  cx.beginPath(); cx.moveTo(lx, ly - los / 2); cx.lineTo(lx + los / 2, ly); cx.lineTo(lx, ly + los / 2); cx.lineTo(lx - los / 2, ly); cx.closePath();
+  cx.fillStyle = cor; cx.fill(); cx.strokeStyle = "#1E1B18"; cx.stroke();
+  let tx = x0 + pad + los + 4, ty = ly + 0.5;
+  cx.fillStyle = "#1E1B18"; cx.fillText(base, tx, ty); tx += wb;
+  if (mais) { cx.fillStyle = cor === "#8C8A80" ? "#3E7A5C" : cor; cx.fillText(mais, tx, ty); tx += wm; }
+  if (resto) { cx.fillStyle = "#1E1B18"; cx.fillText(resto, tx, ty); }
+  cx.restore();
+  return { x0, y0, w, h, cor };
+}
 function barraVida(l, X, Ytopo) {
   const cfg = l.cfg, larg = 46, alt = 6, y = Ytopo - 10, k = Math.max(0, l.vida) / cfg.vida, kv = Math.max(0, l.vidaVista) / cfg.vida;
   const sobe = l.acao === "levantar" ? Math.max(0, 1 - l.t * 2) : 0;       // o esqueleto levantando: a barra aparece aos poucos
@@ -26586,7 +26663,7 @@ function desenharFaiscas() {
 function yAcimaPlaca(l, y) { const b = l && l.cfg && l.cfg.barra; return b > 0 ? Math.min(y, -b - 30) : y; }
 const topoPlacaHeroi = () => ({ viking: 168, arqueiro: 152, feiticeiro: 196 }[classe] || 160);
 const ESC_TEXTO = 1.22;                                                 // (04/11: os números de dano 22% maiores; hoje, os avisos que vão junto: "Bloqueou!", "Nível 12!"...)
-const ESC_DANO = 1.56;                                                  // (05/11, "aumente mais os números dos danos": +28% sobre o 1,22, só os números)
+const ESC_DANO = 1.8, NUM_BRANCO = 19.5;                               // (05/11, "aumente mais os números dos danos": 1,56; R265, 05/11, "o tamanho do texto do dano em branco ainda esta muito pequeno": 1,8, e o número comum (o branco que o herói causa e o recebido) na base 19,5 em vez de 16: 35 px; o crítico 54 px, ainda o maior)
 function desenharNumeros() {
   const z = zoom, ponto = (wx, wy, x, y) => { const [sx, sy] = tela(wx - cam.x, wy - cam.y); return [W / 2 + sx + x * z, H / 2 + sy + y * z - subirFx(wx, wy)]; };   // (R239: na altura de quem está perto)
   cx.save(); cx.textAlign = "center"; cx.lineJoin = "round";
@@ -26598,7 +26675,7 @@ function desenharNumeros() {
     //  crítico na mesma proporção, continua o maior; o exp e os estados como eram)
     //  (05/11: o número em si, o que o herói causa e o que recebe, ESC_DANO; os avisos em texto ficam no ESC_TEXTO de 04/11)
     const est = n.status ? COR_STATUS[n.status] : null, dano = !est && !n.exp, num = dano && /^[−+-]?\s?\d/.test(n.txt), esc = num ? ESC_DANO : dano ? ESC_TEXTO : 1;
-    const tam = (n.critico ? 30 : est ? 15 : n.forte ? 20 : n.exp ? 13 : 16) * esc;
+    const tam = (n.critico ? 30 : est ? 15 : n.forte ? 21 : n.exp ? 13 : num ? NUM_BRANCO : 16) * esc;
     cx.globalAlpha = k;
     cx.font = `${est ? "italic " : ""}700 ${Math.round(tam * z * pop)}px "Germania One", Georgia, serif`;
     cx.lineWidth = (n.critico ? 6 : 4.5) * z * esc; cx.strokeStyle = TINTA; cx.strokeText(n.txt, x, y);
@@ -26770,7 +26847,7 @@ function desenharQuadro(t) {
   desenharFuligem();                                // (a fuligem das amaldiçoadas, por cima delas)
   if (MAPA_CAM === MAPAS.daiyu && typeof DAIYU === "object") DAIYU.desenharNevoa(t);   // (a névoa vulcânica constante e as brasas da Ilha de Daiyu)
   // (com os efeitos 3D, as placas e barras vão depois deles e do escuro da noite: ficam por cima, como no mundo 3D)
-  if (!(fx3() && FX3.iso) && !ESTILO_TINTA) { for (const f of placas) f(); placas.length = 0; }   // (na tinta, depois do filtro)
+  if (!(fx3() && FX3.iso) && !ESTILO_TINTA) desenharPlacas();   // (na tinta, depois do filtro)
   if (ESTILO_TINTA) respingosTinta(t, true);        // (os respingos ainda no ar)
   desenharFlechas(); desenharMagiasCriatura();
   desenharSkillsArq(t);
@@ -26786,8 +26863,7 @@ function desenharQuadro(t) {
   desenharFogoSopro(t);                             // (o sopro dos dragões: chapado, por cima do escuro)
   if (window.FX3) FX3.desenhar2d(t);                // os efeitos 3D (FX3) por cima do mundo, depois do escuro da noite (brilham)
   if (ESTILO_TINTA) filtroTinta(t);                  // o Mundo de Tinta: o mundo inteiro (e os efeitos) vira nanquim e aguada
-  for (const f of placas) f();
-  placas.length = 0;
+  desenharPlacas();
   if (ESTILO_TINTA) desenharNumeros();               // (os números do dano por cima, fora do filtro)
   desenhar.tAnt = t;
   cx.restore();
@@ -35004,8 +35080,7 @@ function desenharSobre(t, dt) {
     const alto = o.tipo === "ferreiro" ? 1.85 : o.dados && o.dados.lanca ? 2.45 : 1.95, y = acima(o, alto * PX * zoom);
     placas.push(() => placaNpc(p[0], y, o.nome));
   }
-  for (const f of placas) f();
-  placas.length = 0;
+  desenharPlacas();
   desenharMinimapa(performance.now());
   desenharColisao();
   desenharClima(t, dt);
