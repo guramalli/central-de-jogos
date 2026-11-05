@@ -1420,5 +1420,25 @@
    192,
    142
   ]
- }
+ },
+ "sombria": "itens_b/sombria_0.webp",
+ "sombria:1": "itens_b/sombria_1.webp",
+ "sombria:2": "itens_b/sombria_2.webp",
+ "sombria:3": "itens_b/sombria_3.webp",
+ "sombria:4": "itens_b/sombria_4.webp",
+ "sombria:5": "itens_b/sombria_5.webp",
+ "sombria:6": "itens_b/sombria_6.webp",
+ "rara:sombria": "itens_b/rara_sombria.webp",
+ "bio:essencia:lagrima": "itens_b/ess_lagrima.webp",
+ "bio:essencia:brasa": "itens_b/ess_brasa.webp",
+ "bio:essencia:moeda": "itens_b/ess_moeda.webp",
+ "bio:essencia:olho": "itens_b/ess_olho.webp",
+ "bio:essencia:selo": "itens_b/ess_selo.webp",
+ "bio:essencia:coracao": "itens_b/ess_coracao.webp",
+ "bio:essencia:inveja": "itens_b/ess_inveja.webp",
+ "bio:essencia:filacterio": "itens_b/ess_filacterio.webp",
+ "bio:presa": "itens_b/bio_presa.webp",
+ "bio:garra": "itens_b/bio_garra.webp",
+ "bio:dente": "itens_b/bio_dente.webp",
+ "leque": "itens_b/leque_0.webp"
 }
