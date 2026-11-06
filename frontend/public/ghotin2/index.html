@@ -230,7 +230,9 @@
   .aviso-tela {
     position: fixed; z-index: 3; left: 50%; transform: translateX(-50%); bottom: 190px;
     padding: 6px 12px; border-radius: 6px; background: var(--painel); border: 1px solid var(--sangue); color: var(--texto); font-size: 13px; pointer-events: none;
+    max-width: min(720px, 46vw); text-align: center;               /* (06/11: o aviso da quest, maior, quebra a linha no meio da tela, longe do mapa e da lista do canto) */
   }
+  .aviso-tela.quest { font-size: 15px; line-height: 1.35; padding: 7px 14px; }   /* (06/11, o usuário: "aumente levemente o tamanho do texto": 13 → 15 px) */
   .rodape .barra-skills { display: grid; grid-template-columns: repeat(10, 54px); gap: 5px; }
   @media (max-width: 1300px) { .rodape .barra-skills { grid-template-columns: repeat(10, 44px); } .slot { width: 44px; height: 44px; } }
   .slot .qtd-slot { position: absolute; right: 3px; bottom: 1px; font-family: var(--dados); font-size: 11px; color: #fff; text-shadow: 0 1px 2px #000; }
@@ -367,6 +369,9 @@
   .ref-custo .falta { color: #ff7a5a; }
   .ref-custo .ok { color: #9fe08a; }
   .ferreiro label { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+  .ref-conf { z-index: 8; top: 150px; }                                 /* (R296: a janela da Bênção, por cima da bolsa) */
+  .ref-item.sem-item { grid-template-columns: 1fr; } .ref-item.sem-item canvas { display: none; }   /* (R297: o Ferreiro sem item explica) */
+  .item-inv.na-mao, .eq.na-mao { opacity: 0.35; }                       /* (R295: o item preso no cursor, apagado no lugar dele) */
   .ferreiro .botoes { display: flex; gap: 8px; flex-wrap: wrap; }
   .ferreiro .botoes .grande { flex: 1; color: var(--ouro); font-family: var(--display); font-size: 17px; }
   .ref-resultado { margin: 0; padding: 6px 8px; border-radius: 4px; font-size: 14px; text-align: center; }
@@ -1479,6 +1484,17 @@
   .rodape .medidor { flex: none; height: 15px; border-radius: 2px; background: #070605; border: 1px solid #8C6A3A; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9); box-sizing: border-box; }
   .rodape .medidor span { font-size: 10px; line-height: 13px; font-weight: 600; }
   .rodape .medidor.vida i { background: linear-gradient(#e2513a, #B8322A 55%, #7e1c14); }
+  /* (R290, 06/11: só na interface) a vida baixa: --vp é o pulso do coração (0 a 1), --vk a força (0 a 1); abaixo de 25%, mais forte */
+  .rodape .vitais { position: relative; }
+  .rodape.vida-baixa .medidor.vida { border-color: #e2513a; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 calc(3px + 7px * var(--vp, 0)) calc(1px * var(--vp, 0)) rgba(226, 64, 44, calc(0.35 + 0.55 * var(--vp, 0))); }
+  .rodape.vida-baixa .medidor.vida i { filter: brightness(calc(1 + 0.45 * var(--vp, 0))); }
+  .rodape.vida-critica .medidor.vida { box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 calc(5px + 11px * var(--vp, 0)) calc(2px * var(--vp, 0)) rgba(240, 52, 36, calc(0.55 + 0.45 * var(--vp, 0))); }
+  .coracao-vida { position: absolute; z-index: 3; left: calc(100% - 4px); top: -2px; width: 16px; height: 15px; fill: #B8322A; stroke: #1E1B18; stroke-width: 1.4; pointer-events: none; transform-origin: 50% 60%;
+    transform: scale(calc(1 + 0.28 * var(--vp, 0))); filter: drop-shadow(0 0 calc(2px + 4px * var(--vp, 0)) rgba(240, 60, 40, calc(0.4 + 0.5 * var(--vp, 0)))); }
+  .coracao-vida[hidden] { display: none; } .coracao-vida svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .rodape.vida-critica .coracao-vida { fill: #e2513a; transform: scale(calc(1.08 + 0.4 * var(--vp, 0))); }
+  .rodape.vida-baixa .rp-nivel { box-shadow: 0 0 0 calc(2px + 2px * var(--vp, 0)) rgba(184, 50, 42, calc(0.45 + 0.5 * var(--vp, 0))), 0 0 calc(4px + 8px * var(--vp, 0)) rgba(226, 64, 44, calc(0.3 + 0.5 * var(--vp, 0))); }
+  .rodape.vida-critica .rp-nivel { box-shadow: 0 0 0 calc(3px + 3px * var(--vp, 0)) rgba(226, 52, 36, calc(0.6 + 0.4 * var(--vp, 0))), 0 0 calc(6px + 12px * var(--vp, 0)) rgba(240, 60, 40, calc(0.45 + 0.5 * var(--vp, 0))); }
   .rodape .medidor.mana i { background: linear-gradient(#6aa8e6, #3566a3 55%, #22406b); }
   .rodape .medidor.stamina { height: 6px; }
   .rodape .medidor.stamina i { width: 100%; background: linear-gradient(#f6da8e, var(--rp-ocre) 60%, #8a6420); transition: width 0.12s linear; }
@@ -1603,7 +1619,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.84 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.85 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -1868,6 +1884,7 @@
     <button class="rp-nivel" id="bFicha" title="Personagem (P)"><small>Nv</small><b id="vNivel">1</b><span class="selo-pontos" id="vPontos" hidden></span></button>
     <div class="vitais" id="vitais">
       <div class="medidor vida" title="Vida (HP)"><b class="ganho" id="vVidaG"></b><i id="vVida"></i><span id="vVidaTxt"></span></div>
+      <span class="coracao-vida" id="vCoracao" aria-hidden="true" hidden><svg viewBox="0 0 20 18"><path d="M10 17 C4 12 1 9 1 5.4 1 2.9 3 1 5.4 1 7.3 1 8.9 2 10 3.7 11.1 2 12.7 1 14.6 1 17 1 19 2.9 19 5.4 19 9 16 12 10 17 Z"/></svg></span>
       <div class="medidor mana" title="Mana (SP)"><b class="ganho" id="vManaG"></b><i id="vMana"></i><span id="vManaTxt"></span></div>
       <div class="medidor stamina" title="Stamina (o dash do Shift gasta 1/3)"><i id="vStam"></i></div>
     </div>
@@ -1949,9 +1966,17 @@
     <div class="nomes"><strong id="ferNome">—</strong><span id="ferDe"></span></div>
   </div>
   <div class="ref-custo" id="ferCusto"></div>
-  <label id="ferBencaoLinha"><input type="checkbox" id="ferBencao"> <span id="ferBencaoTxt">Usar Pergaminho da Bênção</span></label>
   <div class="botoes"><button class="grande" id="ferMelhorar">Melhorar</button><button id="ferComprar" hidden>Comprar arma +0</button></div>
   <p class="ref-resultado" id="ferResultado" role="status" hidden></p>
+</aside>
+<!-- R296: o refino com o Pergaminho da Bênção (o pergaminho solto em cima da arma ou da peça da bolsa): ver abrirRefinoBencao() -->
+<aside class="ferreiro ref-conf" id="refConf" hidden role="alertdialog" aria-labelledby="rcTit">
+  <header><h2 id="rcTit">Pergaminho da Bênção</h2><button id="rcFechar" aria-label="Fechar">Fechar</button></header>
+  <p class="fala">Refina com a chance do Ferreiro. Se falhar, a peça volta um + e não quebra. O pergaminho é gasto nos dois casos.</p>
+  <div class="ref-item"><canvas id="rcIcone" width="40" height="120" aria-hidden="true"></canvas><div class="nomes"><strong id="rcNome">—</strong><span id="rcDe"></span></div></div>
+  <div class="ref-custo" id="rcCusto"></div>
+  <div class="botoes"><button class="grande" id="rcSim">Refinar</button><button id="rcNao">Cancelar</button></div>
+  <p class="ref-resultado" id="rcResultado" role="status" hidden></p>
 </aside>
 
 <aside class="bolsa armazem" id="armazem" hidden aria-label="Armazém">
@@ -2179,6 +2204,12 @@ const VERSOES = { mapa: null, info3d: null, pronto: null };
   window.Audio.prototype = AudioOrig.prototype;
   VERSOES.pronto = fetchOrig("versoes.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.arquivos) { VERSOES.mapa = j.arquivos; VERSOES.info3d = j.info3d || null; } }).catch(() => {});
 })();
+// R294 (06/11, o usuário: "o som que escolhi para tocar na tela de escolha não está funcionando"): o navegador só deixa tocar som
+// depois de um gesto (clique ou tecla). O som ligava no pointerdown e no keydown do jogo, mas com a porta da conta aberta o nuvem.js
+// segura todas as teclas antes do jogo (stopImmediatePropagation): quem apertava Enter no "Jogar" (o botão já vem com o foco) ou
+// entrava com a senha e o Enter chegava à lista de personagens sem som nenhum. Este ouvinte nasce ANTES do nuvem.js (e da intro e da
+// preparação, que também seguram teclas): o 1º clique ou tecla da página liga o som e começa a música da tela (somGesto)
+for (const ev of ["pointerdown", "keydown"]) addEventListener(ev, () => { if (typeof somGesto === "function") somGesto(); }, true);
 </script>
 <script>
 // ================================================================ a Ilha de Daiyu (岱輿, "a Ilha à Deriva"), 45–70
@@ -3698,6 +3729,8 @@ D.desenharNevoa = function () {};
 // −1 se a arte não carregou
 Object.assign(D, { PONTE, pontesGeo, naPonte, alturaPonte });
 D.naPonteMundo = (x, y, folga = 0) => { const [u, v] = vistaDe(x, y); return naPonte(u, v, folga); };
+// (R300) o ponto está na trilha de cinza pisada (1,8 m de largura)? Para a poeira dos pés
+D.naTrilha = (x, y) => { const [u, v] = vistaDe(x, y); return TRILHAS.some(t => t.some((q, k) => k && distSegV(u, v, ...t[k - 1], ...q) < 0.9)); };
 D.naLava = (x, y, m = 0) => { const [u, v] = vistaDe(x, y); return distLava(u, v) < -m; };   // (o leito, sem a margem; m: só o que está a mais de m m da beira)
 D.ponteAlfa = (x, y) => {
   const im = imPonte(); if (!im || typeof document === "undefined") return -1;
@@ -5003,10 +5036,18 @@ V.GG = {
 V.conta = function () {
   const tam = gg => V.GG[gg].grupos.reduce((s, g) => s + V.GRUPOS[g].length, 0) / V.GG[gg].grupos.length;
   const nosGrupos = Math.round(V.PONTOS.reduce((s, [gg]) => s + tam(gg), 0)), borda = V.BANDOS.reduce((s, b) => s + b[3], 0);
-  return { grupos: V.PONTOS.length, nosGrupos, borda, ghotins: 5, total: nosGrupos + borda + 5 };
+  return { grupos: V.PONTOS.length, nosGrupos, borda, ghotins: 14, total: nosGrupos + borda + 14 };   // (R302: 2 + 3 + 3 + 3 + 3 pedras)
 };
 // as áreas das Ghotins (seção 4.1; a horda e a marca da Capital mudam na etapa 4)
-V.GHOTINS = { metin5: [[-72, 16], [-66, -16]], metin6: [[-42, -54], [-18, -62]], metin7: [[30, -62], [54, -52]], metin8: [[64, -30], [72, 30]], metin9: [[54, 60], [-4, 70]] };
+// (R302, 06/11, Logs/Mapas/GHOTINS_METIN2.md 3.3) 4 áreas por tipo, uma zona por clã; as 2 primeiras são as de antes (os ids do editor são
+// pela posição), as 2 novas no fim. Em m de DESENHO (raio 115): o escalar() as leva ao raio 163
+V.GHOTINS = {
+  metin5: [[-72, 16], [-66, -16], [-70.1, -36.2], [-86.4, -13.3]],
+  metin6: [[-42, -54], [-18, -62], [-6.8, -77.2], [-38.2, -35.6]],
+  metin7: [[30, -62], [54, -52], [13.7, -73.3], [38.2, -35.6]],
+  metin8: [[64, -30], [72, 30], [52.4, -17.5], [86.4, 13.3]],
+  metin9: [[54, 60], [-4, 70], [24.6, 51.7], [50.2, 38.3]],
+};
 // as clareiras (distClareira): os pontos dos grupos abrem campo na mata, como os da Vila 1 (7 m)
 V.clareiras = H => V.PONTOS.map(([, x, y]) => [H.ox + x, H.oy + y, -2]);
 
@@ -6609,6 +6650,8 @@ const Mus = { faixas: {}, atual: null, quer: null, desde: 0, nivel: {} };
 // (04/11, o usuário: "na tela de criação do personagem, coloque outra musica... esta o som da vila, nao esta legal... tanto na
 // criação de login e senha quanto escolha de classe") com a porta da conta (#g2Porta) ou a escolha de personagem aberta: a "menu"
 const telaDeMenu = () => !!((typeof SEL === "object" && SEL.aberta) || (() => { const P = document.getElementById("g2Porta"); return P && !P.hidden; })());
+// (R293) fora do jogo de verdade: o mundo carregando, a porta da conta, a lista de personagens, a criação, a intro ou a preparação
+const foraDoJogo = () => !window.jogoPronto || telaDeMenu() || (typeof INTRO === "object" && INTRO.aberta) || !!(window.PREPARO && (PREPARO.ativo || PREPARO.cedo));
 function regiaoMusica() {
   if (telaDeMenu()) return "menu";
   const v = viking;
@@ -6631,8 +6674,15 @@ function musica() {                                   // (liga/desliga: o passoM
   if (!(Som.musicaLigada && Som.ligado)) for (const a of Object.values(Mus.faixas)) a.pause();
   else if (Mus.atual) faixaMusica(Mus.atual).play().catch(() => {});
 }
+// R294: o gesto (o ouvinte do começo da página, antes do nuvem.js) liga o som e retoma a faixa da tela, se o navegador barrou o play()
+// de antes do gesto (o passoMusica escolhe a faixa sem esperar o som ligar: num site que o navegador já deixa tocar, ela começa sozinha)
+function somGesto() {
+  somIniciar();
+  if (MODO_TESTE || !(Som.musicaLigada && Som.ligado) || !Mus.atual) return;
+  const a = Mus.faixas[Mus.atual]; if (a && a.paused) a.play().catch(() => {});
+}
 function passoMusica(dt, agora) {
-  if (MODO_TESTE || !Som.ctx || typeof viking === "undefined") return;
+  if (MODO_TESTE || typeof viking === "undefined") return;
   const r = regiaoMusica();
   if (r !== Mus.quer) { Mus.quer = r; Mus.desde = agora; }
   if (Mus.atual !== Mus.quer && (agora - Mus.desde > 1.5 || !Mus.atual)) {
@@ -13266,12 +13316,17 @@ function chatLinha(sim) {
 }
 let avisoAte = 0;
 let avisoFixoAte = 0;                              // (um aviso que não pode ser coberto até esta hora: a dica do P depois do Altar; os outros vão só ao chat)
+// (06/11, o usuário: "a caixa de diálogo das informações das quests está desaparecendo muito rápido da tela, aumente levemente o tamanho
+// do texto e deixe um pouco mais de tempo na tela"): os avisos de quest (aceitar, progresso, etapa, concluir, entregar, caçadas, as
+// pesquisas do Mukseon, os Primeiros passos) ficam o DOBRO do tempo na tela e com o texto de 15 px (era 13); os outros avisos, como antes
+function avisoDeQuest(txt) { return tipoDoAviso(txt) === "missao" || /ca[çc]ada|pesquisa|aceitou: \d+\/\d+|Primeiros passos/i.test(txt); }
 function avisar(txt) {
   const tc = tipoDoAviso(txt); if (tc) chatSistema(txt, tc);
   if (performance.now() < avisoFixoAte) { if (!tc) chatSistema(txt, "aviso"); return; }
-  const el = $("#avisoTela"); el.textContent = txt; el.hidden = false;
-  avisoAte = performance.now() + 1500;
-  setTimeout(() => { if (performance.now() >= avisoAte) el.hidden = true; }, 1550);
+  const q = avisoDeQuest(txt), ms = q ? 3000 : 1500;
+  const el = $("#avisoTela"); el.textContent = txt; el.hidden = false; el.classList.toggle("quest", q);
+  avisoAte = performance.now() + ms;
+  setTimeout(() => { if (performance.now() >= avisoAte) el.hidden = true; }, ms + 50);
 }
 // (só o ataque básico usa: as skills saem sem alvo selecionado, para a frente ou para a criatura mais perto)
 function exigeAlvo() {
@@ -13593,6 +13648,27 @@ function fatorDifNivel(dif) {                       // dif = nível da criatura 
   const t = { [-2]: 0.98, [-3]: 0.96, [-4]: 0.94, [-5]: 0.92, [-6]: 0.9, [-7]: 0.85, [-8]: 0.8, [-9]: 0.7, [-10]: 0.5, [-11]: 0.3, [-12]: 0.2, [-13]: 0.1, [-14]: 0.05 };
   return t[dif] !== undefined ? t[dif] : 0.01;
 }
+// R301 (06/11, o usuário: "dependendo do level do personagem ele não consegue mais dropar itens em Ghotins de level muito mais baixo";
+// a proposta aprovada, Logs/Balanceamento/DROP_POR_NIVEL_METIN2.md, com as 4 decisões dele): como no Metin2, a CHANCE de todo drop é
+// multiplicada pela tabela da diferença de nível (aiPercentByDeltaLev, constants.cpp), dif = nível da criatura − o seu: a coluna comum
+// para a criatura comum, o bando e a Pedra Ghotin (o !IsStone() do servidor); a de chefe para o chefe de mapa e o da caverna. 16 níveis
+// acima ou mais: 0 (a wiki; o código para em 1% no −15); acima da criatura, até 180%. Uma vez por morte, a sorte do servidor: 1 em
+// 50.000 soma +1000 e 1 em 10.000 soma +500 à %, sem olhar o nível. A QUANTIDADE (yang, poções) não muda. Vale para itens, livros,
+// Jóias, Pedras Espirituais e a chance do yang; não para o item de quest, os itens da pesquisa do Mukseon por fase, o baú do chefe
+// da dungeon (decisão do usuário: sem redução) nem o soltarItens em si (a bolsa cheia). Em grupo (quando existir), vale o nível de
+// quem deu mais dano, como no Metin2 (DistributeExp: pkChrMostAttacked)
+const DROP_NIVEL_COMUM = [1, 5, 10, 20, 30, 50, 70, 80, 85, 90, 92, 94, 96, 98, 100, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 180];
+const DROP_NIVEL_CHEFE = [1, 3, 5, 7, 15, 30, 60, 90, 91, 92, 93, 94, 95, 97, 99, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 180];
+const DROP_NIVEL = { ligado: true, sorte: true, zeroAbaixo: -16 };      // (os testes que contam queda desligam: testesPvm)
+function fatorDrop(l, nivelHeroi = prog && prog.nivel) {               // quantas vezes a chance normal (0 a 1,8; com a sorte, até 11,8)
+  if (!prog || !DROP_NIVEL.ligado || !l || !l.cfg) return 1;
+  const dif = (l.cfg.nivel || 1) - (nivelHeroi || 1);
+  const t = (defChefe(l) || l.cfg.chefeCaverna) && !l.cfg.estatico ? DROP_NIVEL_CHEFE : DROP_NIVEL_COMUM;
+  const base = dif <= DROP_NIVEL.zeroAbaixo ? 0 : t[Math.max(0, Math.min(30, dif + 15))];
+  const sorte = !DROP_NIVEL.sorte ? 0 : Math.random() < 1 / 50000 ? 1000 : Math.random() < 1 / 10000 ? 500 : 0;
+  return (base + sorte) / 100;
+}
+const chanceDrop = (p, F) => Math.random() < p * F;                    // (uma chance já multiplicada; a garantida é chanceDrop(1, F))
 // (cfg.expMult: o papel da criatura; a de "tanque", que demora mais para cair, dá mais)
 function expDe(l) {
   const n = l.cfg.nivel || 1, base = expBase(n) * (l.cfg.expMult || 1);
@@ -14337,27 +14413,30 @@ function morrerJogador() {
 }
 function morreuCriatura(l) {
   jornadaCriatura(l);
+  const F = fatorDrop(l);                                              // (R301: uma vez por morte, com a sorte)
   // (o chefe de mapa: até 40% de um nível, acima do teto comum de 20%)
   if (prog) { if (defChefe(l)) ganharExp(Math.min(expDe(l), EXP_NIVEL[prog.nivel] * 0.4), l, true); else ganharExp(expDe(l) * (status.exp && Math.random() < status.exp ? 2 : 1), l); }
-  if (l.cfg.estatico) metinQuebrou(l);
-  else if (defChefe(l)) { chefeMorreu(l); bauChefeCaiu(l); }        // (R253: o da dungeon destranca o baú)
+  if (l.cfg.estatico) metinQuebrou(l, F);
+  else if (defChefe(l)) { chefeMorreu(l, F); bauChefeCaiu(l); }     // (R253: o da dungeon destranca o baú)
   else if (l.cfg.chefeCaverna) {
     // (R254: livro, Pedra Espiritual e Pedra da Alma só das Ghotins, como no Metin2; o baú do chefe da dungeon, R253, segue dando)
-    const itens = [{ tipo: "pocao", qtd: 3 }, { tipo: "pocaoMana", qtd: 2 },
-                   { tipo: "yang", qtd: Math.round(yangNivel(l.cfg.nivel) * (60 + Math.random() * 40)) }];
-    if (Math.random() < 0.5) itens.push({ tipo: "bencao" });
-    itens.push(itemDoNivel(l.cfg.nivel));
-    if (Math.random() < 0.25) itens.push(armaDoNivel(l.cfg.nivel, bonusDeDrop("arma", 2)));
-    if (Math.random() < 0.3) itens.push({ tipo: Math.random() < 0.5 ? "encantar" : "mudar" });
-    soltarItens(l, itens);
+    const itens = [];                                                  // (R301: as garantidas e as chances pela tabela de chefe)
+    if (chanceDrop(1, F)) itens.push({ tipo: "pocao", qtd: 3 });
+    if (chanceDrop(1, F)) itens.push({ tipo: "pocaoMana", qtd: 2 });
+    if (chanceDrop(1, F)) itens.push({ tipo: "yang", qtd: Math.round(yangNivel(l.cfg.nivel) * (60 + Math.random() * 40)) });
+    if (chanceDrop(0.5, F)) itens.push({ tipo: "bencao" });
+    if (chanceDrop(1, F)) itens.push(itemDoNivel(l.cfg.nivel));
+    if (chanceDrop(0.25, F)) itens.push(armaDoNivel(l.cfg.nivel, bonusDeDrop("arma", 2)));
+    if (chanceDrop(0.3, F)) itens.push({ tipo: Math.random() < 0.5 ? "encantar" : "mudar" });
+    if (itens.length) soltarItens(l, itens);
     avisar(`${l.cfg.nome} caiu! Volta em ${Math.round(l.cfg.renasce)} s`);
   }
-  else if (Math.random() < (l.horda ? 0.05 : 0.03) * (l.cfg.dropMult || 1)) soltarItens(l, [itemDoNivel(l.cfg.nivel || 1)]);   // (dropMult: as amaldiçoadas, TREVAS)
-  else if (Math.random() < (l.horda ? 0.12 : 0.06) * (l.cfg.dropMult || 1)) soltarItens(l, [{ tipo: Math.random() < 0.5 ? "pocao" : "pocaoMana", qtd: 1 }]);
-  else if (Math.random() < 0.4 * (l.cfg.dropMult || 1)) soltarItens(l, [{ tipo: "yang", qtd: Math.round(yangNivel(l.cfg.nivel || 1) * (6 + Math.random() * 6) * (l.cfg.expMult || 1)) }]);
-  if (l.cfg.capitalBestial) { const q = quedaCapitalBestial(l); if (q.length) soltarItens(l, q); }   // (R259: desligada até a área existir)
+  else if (Math.random() < (l.horda ? 0.05 : 0.03) * (l.cfg.dropMult || 1) * F) soltarItens(l, [itemDoNivel(l.cfg.nivel || 1)]);   // (dropMult: as amaldiçoadas, TREVAS; F: R301)
+  else if (Math.random() < (l.horda ? 0.12 : 0.06) * (l.cfg.dropMult || 1) * F) soltarItens(l, [{ tipo: Math.random() < 0.5 ? "pocao" : "pocaoMana", qtd: 1 }]);
+  else if (Math.random() < 0.4 * (l.cfg.dropMult || 1) * F) soltarItens(l, [{ tipo: "yang", qtd: Math.round(yangNivel(l.cfg.nivel || 1) * (6 + Math.random() * 6) * (l.cfg.expMult || 1)) }]);
+  if (l.cfg.capitalBestial) { const q = quedaCapitalBestial(l); if (q.length) soltarItens(l, q); }   // (R259: desligada até a área existir; R301: quando ligar, multiplicar as chances por F)
   if (l.horda) { l.renascer = 999; l.sumir = 0; }
-  bioDrop(l);                                        // (a pesquisa do Mukseon: o item do bicho dela, a essência, o Elixir e o Incenso)
+  bioDrop(l, F);                                     // (a pesquisa do Mukseon: o item do bicho dela, a essência, o Elixir e o Incenso; R301: o F só no Elixir e no Incenso)
   missaoMorte(l);                                    // (a etapa "derrote N ..." da missão; por último: o aviso dela fica na tela)
 }
 // o yang que cai sobe com o nível de quem o solta: igual ao nível até o 10 e mais rápido depois (×2 no 30, ×4 no 70),
@@ -14378,20 +14457,28 @@ const METINS = [
   // (R245, 05/11: "precisamos de mais ghotins espalhadas pelo mapa") qtd: quantas do tipo ficam vivas ao mesmo tempo, cada uma
   // renascendo sozinha, nunca a menos de GHOTIN_ENTRE m de outra. As áreas novas (as do fim de cada lista, em metros do
   // mundo) ficam nos campos andáveis, fora da cidade e a mais de 30 m do portal
-  { tipo: "metin1", nome: "Ghotin da Tristeza", nivel: 5, vida: 900, cor: "#ff5a3a", horda: "lobo", qtd: 3, regioes: [...[[24, -18], [-28, 6], [28, 16], [-26, 22]].map(noMapa), [0, 72], [-36, -48], [84, 0]] },
+  // (R302, 06/11, o usuário: "quero que existam mais ghotins na vila 2 e na vila 1... áreas específicas onde elas costumam cair na mesma
+  // faixa de nível"; a proposta aprovada, Logs/Mapas/GHOTINS_METIN2.md): na Vila 1, 12 pedras (3 + 3 + 6, como as 12 do Yongan do Metin2),
+  // cada tipo nas áreas da faixa de caça do nível dele. As áreas antigas ficam na mesma posição da lista (os ids do editor, g:<tipo>:<i>,
+  // são pela posição): as duas da Batalha que caíam na faixa dos Javalis foram trocadas no lugar; as novas entram no fim
+  { tipo: "metin1", nome: "Ghotin da Tristeza", nivel: 5, vida: 900, cor: "#ff5a3a", horda: "lobo", qtd: 3, regioes: [...[[24, -18], [-28, 6], [28, 16], [-26, 22]].map(noMapa), [0, 72], [-36, -48], [84, 0],
+    [-38, -75], [38.6, -63], [102, 29]] },                            // (R302: os Javalis, 41–57 m da muralha)
   // (a da Batalha nos Campos dos Javalis e nas Matas dos Ursos, com os Javalis Rubros; a da Ganância no Juramento Branco,
   // com os soldados: as Metins do Metin2 chamam os bichos da região delas)
-  { tipo: "metin2", nome: "Ghotin da Batalha", nivel: 10, vida: 1600, cor: "#f2b544", horda: "javali_rubro", qtd: 2, regioes: [[-63.0,-117.6],[39.2,-145.6],[140.0,19.6],[24,-90],[96,-12]] },   // (as Matas dos Ursos e o fundo do Vale Vermelho)
-  { tipo: "metin3", nome: "Ghotin da Ganância", nivel: 15, vida: 2600, cor: "#4fd08a", horda: "soldado_jb", qtd: 2, regioes: [[-42.0,-182.0],[33.6,-173.6],[-5.6,-190.4],[-72,-160],[-12,-152]] },   // (o Juramento Branco, perto do portal)
+  { tipo: "metin2", nome: "Ghotin da Batalha", nivel: 10, vida: 1600, cor: "#f2b544", horda: "javali_rubro", qtd: 3, regioes: [[-63.0,-117.6],[39.2,-145.6],[140.0,19.6],[17,-108],[152,-35],
+    [-19, -124], [70, -122], [-90, -98]] },                           // (as Matas dos Ursos e o fundo do Vale Vermelho, 86–124 m; R302: a 4ª e a 5ª eram [24,-90] e [96,-12], nos Javalis)
+  { tipo: "metin3", nome: "Ghotin da Ganância", nivel: 15, vida: 2600, cor: "#4fd08a", horda: "soldado_jb", qtd: 6, regioes: [[-42.0,-182.0],[33.6,-173.6],[-5.6,-190.4],[-72,-160],[-12,-152],
+    [-37, -162], [54.6, -157], [10.5, -198]] },                       // (o Juramento Branco, 130–181 m; R302: a do fim a 40 m do portal, para o círculo de 12 m ficar a 28 m ou mais dele; a proposta tinha [8,4; −203], a 36 m, e a pedra caía a 24 m)
   // a da Sombra (45, com os orcs) é da Ilha de Daiyu, que ainda não é um mapa jogável: não nasce em lugar nenhum por
   // enquanto (as áreas dela, locais da ilha, ficam em regioesDaiyu)
   { tipo: "metin4", mapa: "daiyu", nome: "Ghotin da Sombra", nivel: 45, vida: 22000, defesa: 54, cor: "#8a4dff", horda: "orc_negro", regioes: [], regioesDaiyu: [[-14, 6], [-2, -12], [6, 12], [14, 2], [-4, 6]] },
-  // as da Vila Hahoe (mapa: criadas na 1ª visita, criarMetins("hahoe")): uma por zona, no nível dela e com a horda dela
-  { tipo: "metin5", mapa: "hahoe", nome: "Ghotin Negra", nivel: 20, vida: 7450, defesa: 24, cor: "#e0483a", horda: "tigre", regioes: (HAHOE2 ? VILA2.GHOTINS.metin5 : [[-50, 20], [-48, -14]]).map(p => pH(...p)) },
-  { tipo: "metin6", mapa: "hahoe", nome: "Ghotin Negra", nivel: 25, vida: 10000, defesa: 30, cor: "#e0483a", horda: "bandido", regioes: (HAHOE2 ? VILA2.GHOTINS.metin6 : [[10, 46], [25, 40]]).map(p => pH(...p)) },
-  { tipo: "metin7", mapa: "hahoe", nome: "Ghotin da Escuridão", nivel: 30, vida: 13000, defesa: 36, cor: "#5a6cff", horda: "zumbi", regioes: (HAHOE2 ? VILA2.GHOTINS.metin7 : [[41, -10], [35, -24]]).map(p => pH(...p)) },
-  { tipo: "metin8", mapa: "hahoe", nome: "Ghotin da Inveja", nivel: 35, vida: 15500, defesa: 42, cor: "#3ec46a", horda: "fantasma", regioes: (HAHOE2 ? VILA2.GHOTINS.metin8 : [[-18, -40], [-5, -48]]).map(p => pH(...p)) },
-  { tipo: "metin9", mapa: "hahoe", nome: "Ghotin da Alma", nivel: 40, vida: 18500, defesa: 48, cor: "#e8d27a", horda: "golem", regioes: (HAHOE2 ? VILA2.GHOTINS.metin9 : [[-30, 38], [-22, 46]]).map(p => pH(...p)) },
+  // as da Vila Hahoe (mapa: criadas na 1ª visita, criarMetins("hahoe")): uma zona por clã, no nível dela e com a horda dela (R302: na Hahoe
+  // nova 14 pedras, 2 + 3 + 3 + 3 + 3, em 4 áreas cada, VILA2.GHOTINS; na de hoje, 2 de cada nas 2 áreas de antes)
+  { tipo: "metin5", mapa: "hahoe", nome: "Ghotin Negra", nivel: 20, vida: 7450, defesa: 24, cor: "#e0483a", horda: "tigre", qtd: 2, regioes: (HAHOE2 ? VILA2.GHOTINS.metin5 : [[-50, 20], [-48, -14]]).map(p => pH(...p)) },
+  { tipo: "metin6", mapa: "hahoe", nome: "Ghotin Negra", nivel: 25, vida: 10000, defesa: 30, cor: "#e0483a", horda: "bandido", qtd: HAHOE2 ? 3 : 2, regioes: (HAHOE2 ? VILA2.GHOTINS.metin6 : [[10, 46], [25, 40]]).map(p => pH(...p)) },
+  { tipo: "metin7", mapa: "hahoe", nome: "Ghotin da Escuridão", nivel: 30, vida: 13000, defesa: 36, cor: "#5a6cff", horda: "zumbi", qtd: HAHOE2 ? 3 : 2, regioes: (HAHOE2 ? VILA2.GHOTINS.metin7 : [[41, -10], [35, -24]]).map(p => pH(...p)) },
+  { tipo: "metin8", mapa: "hahoe", nome: "Ghotin da Inveja", nivel: 35, vida: 15500, defesa: 42, cor: "#3ec46a", horda: "fantasma", qtd: HAHOE2 ? 3 : 2, regioes: (HAHOE2 ? VILA2.GHOTINS.metin8 : [[-18, -40], [-5, -48]]).map(p => pH(...p)) },
+  { tipo: "metin9", mapa: "hahoe", nome: "Ghotin da Alma", nivel: 40, vida: 18500, defesa: 48, cor: "#e8d27a", horda: "golem", qtd: HAHOE2 ? 3 : 2, regioes: (HAHOE2 ? VILA2.GHOTINS.metin9 : [[-30, 38], [-22, 46]]).map(p => pH(...p)) },
 ];
 // as da Ilha de Daiyu (mapa_daiyu.js): as áreas da Sombra (metin4) e as três novas, Firmeza 50, Diabo 55 e Queda 60
 { const [sombra, ...novas] = DAIYU.ghotins(); Object.assign(METINS.find(m => m.tipo === "metin4"), { regioes: sombra.regioes }); METINS.push(...novas); }
@@ -14399,8 +14486,11 @@ METINS.push(...GELADA.ghotins());                                     // (as da 
 // (R288, 05/11, o usuário: "as ghotins nao estao chamando hordas") o teto das hordas é POR PEDRA (HORDA_MAX: os 3 defensores e as 4
 // ondas de 3) e não mais do mundo inteiro: com as várias pedras por tipo (R245), os 3 defensores de cada uma das 7 da Vila 1 já
 // passavam do teto de 14 do mundo, e nenhuma onda nascia. Os defensores de uma pedra são 3 no máximo (renascendo, ela só completa
-// os que faltam, sem acumular); HORDA_MAX_MUNDO segura o total de hordas vivas (as conjuradas também)
-const LIMIARES_HORDA = [0.8, 0.6, 0.4, 0.2], HORDA_MAX = 15, HORDA_MAX_MUNDO = 60;
+// os que faltam, sem acumular). (R302, 06/11) o teto do total de hordas vivas é POR MAPA, pelas pedras vivas do mapa: 3 defensores de
+// cada uma e mais 30 (duas pedras em luta ao mesmo tempo); só contam as hordas daquele mapa. Com as 12 da Vila 1 e as 14 da Hahoe, o
+// teto de 60 do mundo inteiro (o de antes) voltava a cortar os defensores e as ondas (o R288 de novo)
+const LIMIARES_HORDA = [0.8, 0.6, 0.4, 0.2], HORDA_MAX = 15;
+const hordaMaxMapa = pedras => 3 * pedras + 30;
 // ---- as trevas da Ghotin (Logs/Historia/ENREDO.md). Cada pedra tem tamanho e raio de trevas pelo nível; em volta dela o
 // chão fica escuro (nanquim de borda suave) e as criaturas comuns que estão dentro do raio ficam AMALDIÇOADAS: uma aura
 // negra em volta e mais força. Quebrar a pedra desfaz as trevas e tira a maldição (e quem sai do raio também perde).
@@ -14434,16 +14524,28 @@ function libertar(l) {
 let trevasConta = 0;
 // (Montanha Gelada: as trevas ficam no patamar da pedra, como o disco desenhado; nos outros mapas, todo o círculo)
 function mesmoPatamar(a, p) { return p.x >= -350 || GELADA.nivel(a.x, a.y) === GELADA.nivel(p.x, p.y); }
+// DESEMPENHO (R308, 06/11, Logs/Desempenho/GHOTINS_CUSTO.md): a conferência da maldição passava por todas as criaturas do mundo
+// (até ~1.500 com a Hahoe nova) contra todas as pedras vivas de todos os mapas, 4× por segundo, e o esmaecer por todas as
+// criaturas a cada quadro. Agora: o esmaecer só nas pedras (a lista delas, refeita quando o número de criaturas muda); a
+// conferência só com as pedras a até TREVAS_PERTO.pedras m do herói e as criaturas acordadas a até TREVAS_PERTO.criaturas m
+// (a que dorme, fora da tela + 12 m, não muda de lugar: fica como estava e é conferida quando acorda, antes de aparecer).
+// A conta de dentro/fora é a mesma (o quadrado da distância antes do hypot, que dá o mesmo resultado)
+const TREVAS_PERTO = { ligado: true, pedras: 130, criaturas: 100 };
+let trevasPedrasLista = [], trevasPedrasN = -1, trevasPedrasVez = 0;
 function passoTrevas(dt, agora = false) {
-  for (const l of criaturas) if (l.cfg.estatico) {
+  if (trevasPedrasN !== criaturas.length || ++trevasPedrasVez > 30 || !TREVAS_PERTO.ligado) { trevasPedrasN = criaturas.length; trevasPedrasVez = 0; trevasPedrasLista = criaturas.filter(c => c.cfg.estatico); }
+  for (const l of trevasPedrasLista) {
     const alvo = l.morto ? 0 : 1; l.trevas = l.trevas === undefined ? alvo : l.trevas + Math.sign(alvo - l.trevas) * Math.min(Math.abs(alvo - l.trevas), dt / TREVAS.sobe);
   }
   trevasConta -= dt; if (trevasConta > 0 && !agora) return; trevasConta = 0.25;
-  const pedras = criaturas.filter(c => c.cfg.estatico && !c.morto);
+  const TP = TREVAS_PERTO, perto = TP.ligado, vx = viking.x, vy = viking.y;
+  const pedras = criaturas.filter(c => c.cfg.estatico && !c.morto && (!perto || (Math.abs(c.x - vx) < TP.pedras && Math.abs(c.y - vy) < TP.pedras)));
   for (const l of criaturas) {
     if (l.morto || l.remover || !podeMaldicao(l)) continue;
+    if (perto && (l.dormindo || Math.abs(l.x - vx) > TP.criaturas || Math.abs(l.y - vy) > TP.criaturas)) continue;
     let dentro = null;
-    for (const p of pedras) { const d = Math.hypot(l.x - p.x, l.y - p.y), r = raioTrevas(p.cfg); if ((d < r || (l.maldita === p && d < r + TREVAS.folga)) && mesmoPatamar(l, p)) { dentro = p; break; } }
+    for (const p of pedras) { const r = raioTrevas(p.cfg) + TREVAS.folga, ex = l.x - p.x, ey = l.y - p.y; if (ex > r || ex < -r || ey > r || ey < -r) continue;
+      const d = Math.hypot(ex, ey), r0 = raioTrevas(p.cfg); if ((d < r0 || (l.maldita === p && d < r0 + TREVAS.folga)) && mesmoPatamar(l, p)) { dentro = p; break; } }
     if (dentro && !l.cfg.maldita) amaldicoar(l, dentro);
     else if (dentro) l.maldita = dentro;
     else if (l.cfg.maldita) libertar(l);
@@ -14494,37 +14596,50 @@ const raioPedraNoChao = cfg => { const i = cfg.M.animacoes.parado; return i.w / 
 const corComBranco = (hex, k) => { const n = parseInt(hex.slice(1), 16), m = v => Math.round(v + (255 - v) * k); return [m(n >> 16), m((n >> 8) & 255), m(n & 255)]; };
 // as runas da pedra pintada: as linhas finas e claras (a luminância menos a abertura dela), longe do contorno. As arestas claras das lascas também são
 // linhas finas e claras, então cada grupo é comparado com a maior linha da pedra (a runa principal): a cor em volta, a saturação dela e a luz (R142)
-function mascaraDaArte(arte) {
+// (R306, 06/11) em passos (generator: yield a cada linha), para o brilho ficar pronto aos poucos no tempo ocioso; mascaraDaArte e
+// brilhoGhotin correm os passos de uma vez: o mesmo resultado, byte a byte
+function correrPassos(g) { let r; while (!(r = g.next()).done); return r.value; }
+function mascaraDaArte(arte) { return correrPassos(mascaraDaArtePassos(arte)); }
+function* mascaraDaArtePassos(arte) {
   const W = arte.naturalWidth || arte.width, H = arte.naturalHeight || arte.height, c = document.createElement("canvas"); c.width = W; c.height = H;
   const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(arte, 0, 0);
   const im = g.getImageData(0, 0, W, H), d = im.data, n = W * H, L = new Uint8Array(n), A = new Uint8Array(n);
   for (let k = 0; k < n; k++) { const a = d[k * 4 + 3] > 128; A[k] = a ? 255 : 0; L[k] = a ? 0.3 * d[k * 4] + 0.59 * d[k * 4 + 1] + 0.11 * d[k * 4 + 2] : 0; }
-  const passa = (o, r, max) => {                                      // (uma janela quadrada de raio r, nas duas direções)
+  yield;
+  const passa = function* (o, r, max) {                              // (uma janela quadrada de raio r, nas duas direções)
     let a = o;
     for (const [dx, dy, m1, m2] of [[1, W, W, H], [W, 1, H, W]]) {
       const b = new Uint8Array(n);
-      for (let q = 0; q < m2; q++) for (let p = 0; p < m1; p++) {
-        let v = max ? 0 : 255;
-        for (let e = Math.max(0, p - r), f = Math.min(m1 - 1, p + r); e <= f; e++) { const u = a[e * dx + q * dy]; if (max ? u > v : u < v) v = u; }
-        b[p * dx + q * dy] = v;
+      for (let q = 0; q < m2; q++) {
+        for (let p = 0; p < m1; p++) {
+          let v = max ? 0 : 255;
+          for (let e = Math.max(0, p - r), f = Math.min(m1 - 1, p + r); e <= f; e++) { const u = a[e * dx + q * dy]; if (max ? u > v : u < v) v = u; }
+          b[p * dx + q * dy] = v;
+        }
+        yield;
       }
       a = b;
     }
     return a;
   };
-  const aberta = passa(passa(L, 4, false), 4, true), dentro = passa(A, 3, false), M = new Uint8Array(n), BM = GHOTIN_BRILHO.mascara;
-  for (let k = 0; k < n; k++) { const v = (L[k] - aberta[k] - 38) / 30; M[k] = dentro[k] && v > 0 ? Math.min(1, v) * 255 : 0; }
+  const a1 = yield* passa(L, 4, false), aberta = yield* passa(a1, 4, true), dentro = yield* passa(A, 3, false), M = new Uint8Array(n), BM = GHOTIN_BRILHO.mascara;
+  for (let k = 0; k < n; k++) { if ((k & 32767) === 32767) yield; const v = (L[k] - aberta[k] - 38) / 30; M[k] = dentro[k] && v > 0 ? Math.min(1, v) * 255 : 0; }
+  yield;
   const visto = new Uint8Array(n), pilha = [], grupos = [];
   for (let k = 0; k < n; k++) {
+    if ((k & 4095) === 0) yield;
     if (visto[k] || M[k] < 110) continue;
     const grupo = []; pilha.push(k); visto[k] = 1;
-    while (pilha.length) { const q = pilha.pop(); grupo.push(q); for (const v of [q - 1, q + 1, q - W, q + W, q - W - 1, q - W + 1, q + W - 1, q + W + 1]) if (v >= 0 && v < n && !visto[v] && M[v] >= 110) { visto[v] = 1; pilha.push(v); } }
+    while (pilha.length) { if ((grupo.length & 2047) === 2047) yield; const q = pilha.pop(); grupo.push(q); for (const v of [q - 1, q + 1, q - W, q + W, q - W - 1, q - W + 1, q + W - 1, q + W + 1]) if (v >= 0 && v < n && !visto[v] && M[v] >= 110) { visto[v] = 1; pilha.push(v); } }
     if (grupo.length < BM.min) for (const q of grupo) M[q] = 0; else grupos.push(grupo);
   }
   // a ficha de cada grupo: o tom e a saturação em volta (a runa tem um halo de cor; a lasca é pedra clara) e a luz
-  const fichas = grupos.map(grupo => {
-    let sx = 0, sy = 0, sL = 0; const sats = [];
+  yield;
+  const fichas = [];
+  for (const grupo of grupos) {
+    let sx = 0, sy = 0, sL = 0, conta = 0; const sats = [];
     for (const q of grupo) {
+      if ((++conta & 1023) === 0) yield;
       sL += L[q];
       for (const v of [q, q - 2, q + 2, q - 2 * W, q + 2 * W, q - 3, q + 3, q - 3 * W, q + 3 * W]) {
         if (v < 0 || v >= n || !A[v]) continue;
@@ -14534,10 +14649,15 @@ function mascaraDaArte(arte) {
         sx += Math.cos(h) * s; sy += Math.sin(h) * s; sats.push(s);
       }
     }
-    sats.sort((a, b) => b - a);
-    const topo = sats.slice(0, Math.max(1, sats.length >> 2));
-    return { grupo, n: grupo.length, h: Math.atan2(sy, sx), s: topo.reduce((a, b) => a + b, 0) / topo.length, l: sL / grupo.length };
-  }).sort((a, b) => b.n - a.n);
+    yield;
+    // (a média do quarto mais saturado: em Float64Array, que ordena muito mais rápido que a lista; somada do maior para o menor,
+    //  na mesma ordem de antes: o mesmo número)
+    const sa = Float64Array.from(sats); sa.sort();
+    const nt = Math.max(1, sa.length >> 2); let soma = 0; for (let i = sa.length - 1; i >= sa.length - nt; i--) soma += sa[i];
+    fichas.push({ grupo, n: grupo.length, h: Math.atan2(sy, sx), s: soma / nt, l: sL / grupo.length });
+    yield;
+  }
+  fichas.sort((a, b) => b.n - a.n);
   const ref = fichas[0];
   for (const f of fichas) {
     const dh = Math.abs(Math.atan2(Math.sin(f.h - ref.h), Math.cos(f.h - ref.h)));
@@ -14545,32 +14665,39 @@ function mascaraDaArte(arte) {
   }
   // (o pó: o que é fraco só fica encostado numa linha que ficou)
   const forte = new Uint8Array(n); for (let k = 0; k < n; k++) forte[k] = M[k] >= 110 ? 255 : 0;
-  const perto = passa(forte, 2, true); for (let k = 0; k < n; k++) if (!perto[k]) M[k] = 0;
+  const perto = yield* passa(forte, 2, true); for (let k = 0; k < n; k++) if (!perto[k]) M[k] = 0;
   for (let k = 0; k < n; k++) { d[k * 4] = d[k * 4 + 1] = d[k * 4 + 2] = 255; d[k * 4 + 3] = M[k]; }
   g.putImageData(im, 0, 0);
   return c;
 }
 function brilhoGhotin(cfg) {
   if (cfg.brilho) return cfg.brilho;
+  return (cfg.brilho = correrPassos(brilhoGhotinPassos(cfg)));
+}
+function* brilhoGhotinPassos(cfg) {
   const info = cfg.M.animacoes.parado, im = cfg.spr.parado[0], w = info.w, h = info.h, B = GHOTIN_BRILHO, m = B.margem;
   // as runas: a máscara (branca), e a cor dela por cima; o halo são as mesmas runas, um pouco mais largas, chapadas
   const mk = (l, a) => { const c = document.createElement("canvas"); c.width = l; c.height = a; return c; };
   const masc = mk(w, h), gm = masc.getContext("2d");
-  if (cfg.arteGhotin) { gm.imageSmoothingQuality = "high"; gm.drawImage(mascaraDaArte(cfg.arteGhotin), 0, 0, w, h); }
+  if (cfg.arteGhotin) { const mA = yield* mascaraDaArtePassos(cfg.arteGhotin); gm.imageSmoothingQuality = "high"; gm.drawImage(mA, 0, 0, w, h); yield; }
   else tracarRunasMetin(gm, "#fff", false);
   const pinta = cor => { const c = mk(w, h), g = c.getContext("2d"); g.drawImage(masc, 0, 0); g.globalCompositeOperation = "source-in"; g.fillStyle = cor; g.fillRect(0, 0, w, h); return c; };
   const corR = cfg.corRuna || cfg.cor, [r1, g1, b1] = corComBranco(corR, 0.3), runa = pinta(`rgb(${r1}, ${g1}, ${b1})`), base = pinta(corR), halo = mk(w, h), gh = halo.getContext("2d");   // (corRuna: as runas de outra cor que a aura)
+  yield;
   const nc = parseInt(corR.slice(1), 16); gh.globalAlpha = 0.35 * Math.min(1, 127 / (0.3 * (nc >> 16) + 0.59 * ((nc >> 8) & 255) + 0.11 * (nc & 255))); for (let k = 0; k < 8; k++) { const a = k / 8 * 6.2832; gh.drawImage(base, Math.cos(a) * 2.4, Math.sin(a) * 2.4); }
+  yield;
   // a aura: a distância ao contorno (2 passadas), cortada em camadas de cor chapada, com a borda ondulada e um fio de nanquim
   const AW = w + m * 2, AH = h + m * 2, DIST = new Float32Array(AW * AH).fill(1e6), ga = mk(w, h).getContext("2d", { willReadFrequently: true }); ga.drawImage(im, 0, 0);
   const alfa = ga.getImageData(0, 0, w, h).data;
+  yield;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (alfa[(y * w + x) * 4 + 3] > 96) DIST[(y + m) * AW + x + m] = 0;
   const viz = (k, p) => { if (p < DIST[k]) DIST[k] = p; };
-  for (let y = 1; y < AH - 1; y++) for (let x = 1; x < AW - 1; x++) { const k = y * AW + x; viz(k, DIST[k - 1] + 1); viz(k, DIST[k - AW] + 1); viz(k, DIST[k - AW - 1] + 1.414); viz(k, DIST[k - AW + 1] + 1.414); }
-  for (let y = AH - 2; y > 0; y--) for (let x = AW - 2; x > 0; x--) { const k = y * AW + x; viz(k, DIST[k + 1] + 1); viz(k, DIST[k + AW] + 1); viz(k, DIST[k + AW + 1] + 1.414); viz(k, DIST[k + AW - 1] + 1.414); }
+  for (let y = 1; y < AH - 1; y++) { for (let x = 1; x < AW - 1; x++) { const k = y * AW + x; viz(k, DIST[k - 1] + 1); viz(k, DIST[k - AW] + 1); viz(k, DIST[k - AW - 1] + 1.414); viz(k, DIST[k - AW + 1] + 1.414); } if ((y & 7) === 0) yield; }
+  for (let y = AH - 2; y > 0; y--) { for (let x = AW - 2; x > 0; x--) { const k = y * AW + x; viz(k, DIST[k + 1] + 1); viz(k, DIST[k + AW] + 1); viz(k, DIST[k + AW + 1] + 1.414); viz(k, DIST[k + AW - 1] + 1.414); } if ((y & 7) === 0) yield; }
   const aura = mk(AW, AH), gA = aura.getContext("2d"), saida = gA.createImageData(AW, AH), o = saida.data, chao = info.py + m;
   const cores = B.aura.map(([, , , br]) => corComBranco(cfg.cor, br)), semente = (cfg.nivel || 1) * 7.3;
   for (let y = 0; y < AH; y++) for (let x = 0; x < AW; x++) {
+    if (x === 0 && (y & 3) === 0) yield;
     const k = y * AW + x, dd = DIST[k]; if (dd <= 0 || dd > 40) continue;
     const n = ruido2(x * 0.05 + semente, y * 0.05 - semente);
     let rA = 0, rC = cores[2], feito = false;
@@ -14584,7 +14711,7 @@ function brilhoGhotin(cfg) {
     else { o[k * 4] = rC[0]; o[k * 4 + 1] = rC[1]; o[k * 4 + 2] = rC[2]; o[k * 4 + 3] = rA * 255; }
   }
   gA.putImageData(saida, 0, 0);
-  return (cfg.brilho = { aura, runa, halo, masc, apaga: pinta("#17181d"), m, AW, AH });
+  return { aura, runa, halo, masc, apaga: pinta("#17181d"), m, AW, AH };
 }
 // a aura atrás da pedra (antes do sprite) e as runas acesas (depois): o ritmo é o da 1ª faixa dos veios
 function desenharAuraGhotin(l, X, Y, z, t) {
@@ -14624,31 +14751,36 @@ function furarGhotins(g) {
 // faixa): cada faixa vira uma imagem pronta, na escala da tela, com o brilho e o fio juntos (alfa = (0,42·brilho + fio) / 1,42),
 // e a cada quadro é desenhada com a opacidade × 1,42 (em duas passadas quando passa de 1). O resultado é o mesmo (só o
 // arredondamento do alfa em 8 bits e o lugar inteiro do pixel). Chamado com o cx no círculo de raio 1 da pedra (desenharTrevasChao)
-const VEIOS_K = 1.42;
+// (R309, 06/11, Logs/Desempenho/GHOTINS_CUSTO.md: "Veios em meia resolução", aprovado) as 4 imagens de cada pedra eram do tamanho do
+// disco na tela (de 4 MB na pedra de nível 5 a 16–20 MB nas de nível 30 e 40, 16 a 79 MB com 3 a 5 pedras perto). Agora são feitas
+// em VEIOS_RES da escala (0,5: um quarto da memória e dos pixels a pintar) e esticadas de volta no desenho, com suavização: o fio
+// de 2,4 px fica um pouco mais macio (o antes e depois em Midia/antes_depois). A imagem só é refeita quando a escala muda (o
+// zoom), a pedra quebra ou volta; R309 confere
+const VEIOS_K = 1.42, VEIOS_RES = { k: 0.5, refeitas: 0 };
 function veiosDaCache(l, t, px) {
-  const faixas = veiosDe(l), m = cx.getTransform(), ch = [m.a, m.b, m.c, m.d].map(v => v.toFixed(3)).join() + "|" + px.toFixed(3) + "|" + l.cfg.cor;
+  const faixas = veiosDe(l), m = cx.getTransform(), K = VEIOS_RES.k, ch = [m.a, m.b, m.c, m.d].map(v => v.toFixed(3)).join() + "|" + px.toFixed(3) + "|" + l.cfg.cor + "|" + K;
   let V = l.veiosCache;
   if (!V || V.chave !== ch || V.de !== faixas) {
     const cs = V && V.de === faixas ? V.faixas.map(f => f.c) : [];
-    V = l.veiosCache = { chave: ch, de: faixas, faixas: [] };
-    const ex = Math.hypot(m.a, m.c), ey = Math.hypot(m.b, m.d), pad = 8;
+    V = l.veiosCache = { chave: ch, de: faixas, faixas: [] }; VEIOS_RES.refeitas++;
+    const ex = Math.hypot(m.a, m.c) * K, ey = Math.hypot(m.b, m.d) * K, pad = Math.ceil(8 * K);
     for (let f = 0; f < faixas.length; f++) {
       const rf = Math.min(1.05, (f + 1) / faixas.length * 0.95 + 0.15);  // (a faixa f: os traços até esta distância do miolo, com folga)
       const ox = Math.ceil(rf * ex + pad), oy = Math.ceil(rf * ey + pad), c = cs[f] || document.createElement("canvas");
       c.width = 2 * ox; c.height = 2 * oy;
       const g = c.getContext("2d");
-      g.setTransform(m.a, m.b, m.c, m.d, ox, oy); g.globalCompositeOperation = "lighter"; g.strokeStyle = l.cfg.cor; g.lineCap = "round"; g.lineJoin = "round";
+      g.setTransform(m.a * K, m.b * K, m.c * K, m.d * K, ox, oy); g.globalCompositeOperation = "lighter"; g.strokeStyle = l.cfg.cor; g.lineCap = "round"; g.lineJoin = "round";
       g.globalAlpha = 0.42 / VEIOS_K; g.lineWidth = 7 / px; g.stroke(faixas[f]);
       g.globalAlpha = 1 / VEIOS_K; g.lineWidth = 2.4 / px; g.stroke(faixas[f]);
       V.faixas.push({ c, ox, oy });
     }
   }
   V.usado = performance.now();
-  cx.save(); cx.setTransform(1, 0, 0, 1, 0, 0); cx.globalCompositeOperation = "lighter";
+  cx.save(); cx.setTransform(1, 0, 0, 1, 0, 0); cx.globalCompositeOperation = "lighter"; cx.imageSmoothingEnabled = true;
   const X = Math.round(m.e), Y = Math.round(m.f);
   for (let f = 0; f < V.faixas.length; f++) {
     const u = pulsoVeio(t, f), a = (0.08 + 0.92 * u * u) * l.trevas * (1 - f * 0.12), q = V.faixas[f];
-    for (let A = a * VEIOS_K; A > 0.002; A -= 1) { cx.globalAlpha = Math.min(1, A); cx.drawImage(q.c, X - q.ox, Y - q.oy); }
+    for (let A = a * VEIOS_K; A > 0.002; A -= 1) { cx.globalAlpha = Math.min(1, A); if (K === 1) cx.drawImage(q.c, X - q.ox, Y - q.oy); else cx.drawImage(q.c, X - q.ox / K, Y - q.oy / K, q.c.width / K, q.c.height / K); }
     VEIOS_DESENHOS.n++;
   }
   cx.restore();
@@ -14769,6 +14901,19 @@ function criarMetins(soMapa = "vila1") {
   for (const m of METINS) {
     if ((m.mapa || "vila1") !== soMapa) continue;                     // (as de um mapa novo: na 1ª visita a ele)
     if (!TIPOS[m.horda]) m.horda = soMapa === "vila1" ? m.horda : "lobo";   // (a horda sem modelo: os lobos)
+    TIPOS[m.tipo] = cfgGhotin(m);
+    // (R306) o brilho pronto do tempo ocioso; o começado termina aqui; sem nenhum, é feito aqui (a pedra fora da tela não é mais
+    // desenhada, R304: o 1º desenho dela cairia no meio do jogo). Na chegada a um mapa novo, fica embaixo da tela de preparação
+    TIPOS[m.tipo].brilho = brilhoDaLista(m, TIPOS[m.tipo]);
+    for (let k = 0; k < (m.qtd || 1); k++) {                          // (R245: qtd pedras vivas do tipo ao mesmo tempo; cada uma renasce sozinha)
+      const [x, y] = lugarMetin(TIPOS[m.tipo]);
+      criaturas.push(novaCriatura(m.tipo, x, y));
+    }
+  }
+}
+// a ficha (TIPOS) de uma Ghotin da lista METINS: a mesma a cada chamada (o brilho pronto antes, R306, sai igual ao feito nela)
+function cfgGhotin(m) {
+  {
     // a pedra pintada (deco_b/metin_*.webp: as 15, na ordem de METINS; R137), redesenhada na escala dos sprites (84 px/m); sem ela, a desenhada por código
     const pintada = DECO && DECO.metin && DECO.metin[METINS.indexOf(m)], imp = pintada && DECO_IMG[pintada.arq];
     let im = spriteMetin(m.corRuna || m.cor), info = { quadros: 1, fps: 1, laco: true, acerto: -1, w: 150, h: 212, px: 75, py: 200 };
@@ -14778,15 +14923,59 @@ function criarMetins(soMapa = "vila1") {
       info = { quadros: 1, fps: 1, laco: true, acerto: -1, w, h, px: Math.round(pintada.px * k), py: Math.round(pintada.py * k) };
     }
     const esc = escGhotin(m.nivel);                                    // (a pedra de nível maior é maior: TREVAS)
-    TIPOS[m.tipo] = { nome: m.nome, nivel: m.nivel, raca: "pedra", altura: 120 * esc, material: "osso", vida: m.vida, defesa: m.defesa, visao: 0, perto: 0.5, alcance: 0, ataque: "parado", esc,
+    return { nome: m.nome, nivel: m.nivel, raca: "pedra", altura: 120 * esc, material: "osso", vida: m.vida, defesa: m.defesa, visao: 0, perto: 0.5, alcance: 0, ataque: "parado", esc,
       galope: 0, chega: 0, passeio: 0, renasce: 60, sombra: 0.7 * esc, barra: info.py * esc + 20, anel: 0.95 * esc, raio: 0.6 * esc, estatico: true, cor: m.cor, corRuna: m.corRuna, horda: m.horda, regioes: m.regioes,
       M: { animacoes: { parado: info, dano: { ...info, laco: false }, morte: { ...info, laco: false } } },
       spr: { parado: Array(8).fill(im), dano: Array(8).fill(im), morte: Array(8).fill(im) }, arteGhotin: imp || null };
-    for (let k = 0; k < (m.qtd || 1); k++) {                          // (R245: qtd pedras vivas do tipo ao mesmo tempo; cada uma renasce sozinha)
-      const [x, y] = lugarMetin(TIPOS[m.tipo]);
-      criaturas.push(novaCriatura(m.tipo, x, y));
-    }
   }
+}
+// ---- (R306, 06/11, Logs/Desempenho/GHOTINS_CUSTO.md) o brilho das Ghotins pronto no tempo ocioso. O 1º desenho de cada tipo fazia
+// a máscara das runas e a aura (39 a 88 ms por tipo com a CPU do usuário; 250 a 330 ms dos 5 tipos da Hahoe na tela de preparação).
+// Depois de o jogo abrir, os tipos dos mapas ainda não criados são feitos aos poucos (brilhoGhotinPassos, BRILHO_PRE.fatia ms por
+// quadro, no fim do laço, como o preparoFundo), na ordem dos mapas; criarMetins usa o pronto (m.brilhoPronto) ou termina o começado.
+// (o requestIdleCallback quase não era chamado com o jogo rodando: 18 ms em 8 s)
+const BRILHO_PRE = { ligado: true, noTeste: false, fatia: 1.5, folga: 6, pulados: 0, ordem: ["hahoe", "montanha", "daiyu", "vila1"], feitos: 0, ms: 0, maiorFatia: 0, ativo: false };
+function brilhoDaLista(m, cfg) {
+  if (m.brilhoPronto) return m.brilhoPronto;
+  if (m.brilhoPassos) { const b = correrPassos(m.brilhoPassos); m.brilhoPassos = null; return (m.brilhoPronto = b); }
+  return brilhoGhotin(cfg);
+}
+function brilhoProximo() {
+  BRILHO_PRE.esperando = false;
+  for (const mapa of BRILHO_PRE.ordem) for (const m of METINS) {
+    if ((m.mapa || "vila1") !== mapa || m.brilhoPronto) continue;
+    const t = TIPOS[m.tipo];
+    if (t && t.estatico && t.brilho) continue;                          // (o mapa já criado: a ficha dele tem o brilho)
+    const pintada = DECO && DECO.metin && DECO.metin[METINS.indexOf(m)], im = pintada && DECO_IMG[pintada.arq];
+    if (pintada && !im) continue;                                       // (a arte ainda não chegou: fica para depois)
+    // (a arte decodificada antes, fora do quadro: o 1º drawImage dela decodificava no meio da fatia, 16 ms)
+    if (im && !m.arteDecodificada) { if (!m.decodificando) { m.decodificando = true; (im.decode ? im.decode() : Promise.resolve()).catch(() => {}).then(() => { m.arteDecodificada = true; }); } BRILHO_PRE.esperando = true; continue; }
+    return m;
+  }
+  return null;
+}
+// um pedaço do trabalho: até ms milissegundos; devolve false quando não sobra nada
+function brilhoPrePasso(ms = BRILHO_PRE.fatia) {
+  const t0 = performance.now();
+  while (performance.now() - t0 < ms) {
+    let m = BRILHO_PRE.atual;
+    if (m && (m.brilhoPronto || !m.brilhoPassos)) m = BRILHO_PRE.atual = null;   // (terminado no criarMetins)
+    if (!m) { m = brilhoProximo(); if (!m) break; BRILHO_PRE.atual = m; m.brilhoPassos = brilhoGhotinPassos(cfgGhotin(m)); }
+    const r = m.brilhoPassos.next();
+    if (r.done) { m.brilhoPronto = r.value; m.brilhoPassos = null; BRILHO_PRE.atual = null; BRILHO_PRE.feitos++; }
+  }
+  const d = performance.now() - t0; BRILHO_PRE.ms += d; BRILHO_PRE.maiorFatia = Math.max(BRILHO_PRE.maiorFatia, d);
+  return !!(BRILHO_PRE.atual || brilhoProximo() || BRILHO_PRE.esperando);
+}
+function brilhoPreComecar() {
+  if (BRILHO_PRE.ligado && !(MODO_TESTE && !BRILHO_PRE.noTeste)) BRILHO_PRE.ativo = true;
+}
+// (só no quadro com folga: o laço até aqui abaixo de BRILHO_PRE.folga ms; o maior passo leva ~8 ms com a CPU do usuário, e o quadro
+//  com ele fica abaixo de 25 ms. O R235 pegou quadros acima de 25 ms no 1º minuto com a fatia em todo quadro)
+function brilhoPreQuadro(ini) {
+  const gasto = ini ? performance.now() - ini : 0;
+  if (gasto > BRILHO_PRE.folga) { BRILHO_PRE.pulados++; return; }
+  if (!brilhoPrePasso(Math.min(BRILHO_PRE.fatia, BRILHO_PRE.folga - gasto))) BRILHO_PRE.ativo = false;
 }
 const METIN_AREA = 12, METIN_QUEDA = 1.1;           // raio das áreas (m) e quanto a queda dura (s)
 // (R142) o que está no chão onde a pedra ficaria: as peças do cenário (pelo pé delas), as construções e os portais. Devolve a peça, ou null
@@ -14819,9 +15008,15 @@ function distGhotins(x, y, eu) {
 }
 // um ponto sorteado nas áreas do tipo (eu: a própria pedra, que não conta na distância). Sem lugar longe das outras em
 // 240 sorteios, fica com o mais longe delas; sem chão nenhum, o centro da 1ª área
-function lugarMetin(cfg, eu) {
+// (R307, 06/11, Logs/Desempenho/GHOTINS_CUSTO.md) em passos: a pedra quebrada sorteia o lugar da próxima queda aos poucos
+// (LUGAR_METIN.porQuadro sorteios por quadro, passoTocaMetin) durante o renascer (40 a 120 s), e não mais no quadro da quebra
+// (13 a 16 ms com a CPU do usuário). lugarMetin corre os passos de uma vez: os mesmos sorteios, na mesma ordem
+const LUGAR_METIN = { porQuadro: 20, emPassos: true };
+function lugarMetin(cfg, eu) { return correrPassos(lugarMetinPassos(cfg, eu, Infinity)); }
+function* lugarMetinPassos(cfg, eu, porPasso = LUGAR_METIN.porQuadro) {
   let melhor = null, dm = -1;
   for (let k = 0; k < 240; k++) {
+    if (k && k % porPasso === 0) yield;
     const [cx0, cy0] = cfg.regioes[Math.floor(Math.random() * cfg.regioes.length)], a = Math.random() * 7, r = METIN_AREA * Math.sqrt(Math.random());   // (sqrt: espalhado por igual na área inteira)
     const x = cx0 + Math.cos(a) * r, y = cy0 + Math.sin(a) * r;
     if (!chaoDeGhotin(x, y, cfg)) continue;
@@ -14831,6 +15026,12 @@ function lugarMetin(cfg, eu) {
   }
   return melhor || cfg.regioes[0];
 }
+// um passo do sorteio da pedra quebrada; terminar = de uma vez (a queda chegou antes do fim)
+function passoTocaMetin(l, terminar = false) {
+  const g = l.tocaPassos; if (!g) return;
+  let r = g.next(); while (terminar && !r.done) r = g.next();
+  if (r.done) { const [x, y] = r.value; l.toca = { x, y }; l.tocaPassos = null; }
+}
 // a Vila 1 cria as pedras antes das barracas e das construções (que chegam depois, com o kit): quem ficou em cima de uma peça é sorteado de novo. Quem está em chão livre fica onde está
 function assentarGhotins() {
   for (const l of criaturas) {
@@ -14839,10 +15040,15 @@ function assentarGhotins() {
   }
 }
 function chamarHorda(l, n, cacando) {
-  let minhas = 0, defensores = 0, todas = 0;
-  for (const c of criaturas) if (c.horda && !c.morto) { todas++; if (c.hordaDe === l) { minhas++; if (c.defensor) defensores++; } }
+  let minhas = 0, defensores = 0, todas = 0, pedras = 0;
+  const mapa = idMapa(l.x, l.y);
+  for (const c of criaturas) {
+    if (c.morto) continue;
+    if (c.horda) { if (c.hordaDe === l) { minhas++; if (c.defensor) defensores++; } if (idMapa(c.x, c.y) === mapa) todas++; }
+    else if (c.cfg.estatico && c.cfg.regioes && idMapa(c.x, c.y) === mapa) pedras++;
+  }
   if (!cacando) n = Math.min(n, 3 - defensores);
-  n = Math.min(n, HORDA_MAX - minhas, HORDA_MAX_MUNDO - todas);
+  n = Math.min(n, HORDA_MAX - minhas, hordaMaxMapa(Math.max(1, pedras)) - todas);   // (R302: o teto do mapa)
   for (let k = 0; k < n; k++) {
     const a = Math.random() * 7, x = l.x + Math.cos(a) * 1.9, y = l.y + Math.sin(a) * 1.9;
     const cfgH = TIPOS[l.cfg.horda];
@@ -14864,8 +15070,42 @@ function passoFumacaMetin(l, dt) {
   for (let i = f.length - 1; i >= 0; i--) if (f[i].vida <= 0) f.splice(i, 1);
 }
 function corRgb(hex) { const n = parseInt(hex.slice(1), 16); return `${n >> 16}, ${(n >> 8) & 255}, ${n & 255}`; }
+// DESEMPENHO (R305, 06/11, Logs/Desempenho/GHOTINS_CUSTO.md): cada partícula pedia um degradê novo e 3 textos rgba a cada
+// quadro (~37 por pedra, em 2 passadas: ~480 a 1.000 objetos por quadro, e quadros de 7 a 15 ms de coleta de lixo dentro da
+// fumaça). Agora o degradê é uma imagem pronta por cor (o mesmo degradê radial, no raio R, cortado pela mesma elipse), uma
+// por deslocamento da elipse (o sin(giro) em 9 passos), desenhada com a opacidade da partícula: a mesma nuvem (a diferença é
+// o arredondamento do alfa e do passo do deslocamento; R305 mede). soNoMapa: só a fumaça das pedras do mapa da câmera anda.
+// desenharFumacaMetinRef é o jeito de antes (a referência do teste)
+const FUMACA_GHOTIN = { pronta: true, soNoMapa: true, noTeste: false, R: 48, passos: 9, sprites: new Map() };
+function fumacaSprite(cor, i) {
+  const F = FUMACA_GHOTIN, chave = cor + "|" + i;
+  let c = F.sprites.get(chave);
+  if (c) return c;
+  const R = F.R, rgb = corRgb(cor), dx = (i / ((F.passos - 1) / 2) - 1) * R * 0.15;
+  c = document.createElement("canvas"); c.width = c.height = 2 * R;
+  const g = c.getContext("2d"), gr = g.createRadialGradient(R, R, 0, R, R, R);
+  gr.addColorStop(0, `rgba(${rgb}, 0.32)`); gr.addColorStop(0.55, `rgba(${rgb}, 0.16)`); gr.addColorStop(1, `rgba(${rgb}, 0)`);
+  g.fillStyle = gr; g.beginPath(); g.ellipse(R + dx, R, R, R * 0.85, 0, 0, 7); g.fill();
+  F.sprites.set(chave, c);
+  return c;
+}
 function desenharFumacaMetin(l, frente) {
-  if (MODO_TESTE) return;
+  if (MODO_TESTE && !FUMACA_GHOTIN.noTeste) return;
+  if (!l.fumaca || !l.fumaca.length) return;
+  if (!FUMACA_GHOTIN.pronta) return desenharFumacaMetinRef(l, frente);
+  const s = PX * zoom, F = FUMACA_GHOTIN, meio = (F.passos - 1) / 2, cor = l.cfg.cor, zp = l.x < -350 ? zPiso(l.x, l.y) : 0;
+  const fr = frente || (window.M3D && M3D.ativo) ? GHOTIN_BRILHO.fumacaFrente : 1, a0 = cx.globalAlpha;
+  cx.save(); cx.imageSmoothingEnabled = true;
+  for (const q of l.fumaca) {
+    if ((q.y < l.y) !== frente) continue;                           // as de trás antes da pedra, as da frente depois
+    const [X, Y] = noMundo(q.x, q.y, q.z + zp), k = Math.min(1, q.vida / q.max * 1.6) * Math.min(1, (q.max - q.vida) / 0.4), r = q.r * s, a = k * fr;
+    if (!(a > 0) || r <= 0) continue;
+    cx.globalAlpha = a0 * a;
+    cx.drawImage(fumacaSprite(cor, Math.round((Math.sin(q.giro) + 1) * meio)), X - r, Y - r, 2 * r, 2 * r);
+  }
+  cx.restore();
+}
+function desenharFumacaMetinRef(l, frente) {
   if (!l.fumaca || !l.fumaca.length) return;
   const s = PX * zoom, rgb = corRgb(l.cfg.cor);
   cx.save();
@@ -14884,7 +15124,7 @@ function metinApanhou(l) {
   const f = l.vida / l.cfg.vida;
   while (l.ondasHorda < LIMIARES_HORDA.length && f <= LIMIARES_HORDA[l.ondasHorda]) { l.ondasHorda++; chamarHorda(l, 3, true); avisar(`${l.cfg.nome} chamou uma horda!`); }
 }
-function metinQuebrou(l) {
+function metinQuebrou(l, F = fatorDrop(l)) {                        // (R301: F, a tabela comum, como a pedra do Metin2)
   for (let k = 0; k < 30; k++) { const a = Math.random() * 7, v = 1 + Math.random() * 3; brasas.push({ x: l.x, y: l.y, z: 0.3 + Math.random() * 1.5, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 1 + Math.random() * 3, vida: 0.8, max: 0.8, tam: 0.1, poeira: true }); }
   ondas.push({ x: l.x, y: l.y, t: 0, raio: 2.2, cor: matizDe(l.cfg.cor), fogo: true, pilares: [], rachas: [] });
   tremor = Math.max(tremor, 0.4);
@@ -14892,21 +15132,22 @@ function metinQuebrou(l) {
   // chances subiram: livro 0,7 + 0,25 → 0,9 + 0,45 (0,95 → 1,35 por pedra), Pedra da Alma 0,1 → 0,2, Pedra Espiritual 0,4 → 0,6.
   // As contas por hora estão no Logs/Regressao/BUGS.md, R254)
   const itens = [];
-  if (Math.random() < 0.9) itens.push(livroQualquer());
-  if (Math.random() < 0.45) itens.push(livroQualquer());
-  if (Math.random() < 0.2) itens.push({ tipo: "alma" });
-  if (Math.random() < 0.15) itens.push({ tipo: Math.random() < 0.5 ? "encantar" : "mudar" });
-  itens.push({ tipo: "pocao", qtd: 1 + Math.floor(Math.random() * 2) });
-  itens.push({ tipo: "pocaoMana", qtd: 1 + Math.floor(Math.random() * 2) });
-  itens.push({ tipo: "yang", qtd: Math.round(yangNivel(l.cfg.nivel) * 40 * (0.8 + Math.random() * 0.4)) });
-  if (Math.random() < 0.6) itens.push({ tipo: "pedra" });
-  if (Math.random() < 0.2) itens.push({ tipo: "bencao" });
-  if (Math.random() < 0.5) itens.push(pecaDoNivel(l.cfg.nivel));
-  if (Math.random() < 0.25) itens.push(acessorioDoNivel(l.cfg.nivel));   // (as Metins soltam acessórios, como no Metin2)
-  if (Math.random() < 0.08) itens.push(armaDoNivel(l.cfg.nivel, bonusDeDrop("arma", 2)));   // (às vezes a arma do nível dela)
-  itens.push(...joiasDaMetin(l.cfg.nivel));                         // (as Jóias: JOIAS_METIN, raras abaixo do 25)
-  soltarItens(l, itens);
-  l.toca =(([x, y]) => ({ x, y }))(lugarMetin(l.cfg, l));               // volta em outro lugar da região
+  if (chanceDrop(0.9, F)) itens.push(livroQualquer());
+  if (chanceDrop(0.45, F)) itens.push(livroQualquer());
+  if (chanceDrop(0.2, F)) itens.push({ tipo: "alma" });
+  if (chanceDrop(0.15, F)) itens.push({ tipo: Math.random() < 0.5 ? "encantar" : "mudar" });
+  if (chanceDrop(1, F)) itens.push({ tipo: "pocao", qtd: 1 + Math.floor(Math.random() * 2) });
+  if (chanceDrop(1, F)) itens.push({ tipo: "pocaoMana", qtd: 1 + Math.floor(Math.random() * 2) });
+  if (chanceDrop(1, F)) itens.push({ tipo: "yang", qtd: Math.round(yangNivel(l.cfg.nivel) * 40 * (0.8 + Math.random() * 0.4)) });
+  if (chanceDrop(0.6, F)) itens.push({ tipo: "pedra" });
+  if (chanceDrop(0.2, F)) itens.push({ tipo: "bencao" });
+  if (chanceDrop(0.5, F)) itens.push(pecaDoNivel(l.cfg.nivel));
+  if (chanceDrop(0.25, F)) itens.push(acessorioDoNivel(l.cfg.nivel));   // (as Metins soltam acessórios, como no Metin2)
+  if (chanceDrop(0.08, F)) itens.push(armaDoNivel(l.cfg.nivel, bonusDeDrop("arma", 2)));   // (às vezes a arma do nível dela)
+  itens.push(...joiasDaMetin(l.cfg.nivel, F));                      // (as Jóias: JOIAS_METIN, raras abaixo do 25)
+  if (itens.length) soltarItens(l, itens);
+  if (LUGAR_METIN.emPassos) l.tocaPassos = lugarMetinPassos(l.cfg, l);   // volta em outro lugar da região (R307: sorteado aos poucos, passoTocaMetin)
+  else l.toca = (([x, y]) => ({ x, y }))(lugarMetin(l.cfg, l));
   l.defensores = false; l.ondasHorda = 0;                            // ao renascer, chama defensores e hordas de novo
   desfazerTrevas(l);                                                 // (as trevas da área se desfazem; a maldição sai)
   avisar(`${l.cfg.nome} quebrou! As trevas se desfazem`);
@@ -14998,6 +15239,76 @@ function explosaoChefe(x, y, r, cor) {
   if (naCaverna(x) && cavDe(x) && cavDe(x).vale) return;              // (idem: eram estas as bolinhas rosa)
   for (let k = 0; k < 14; k++) { const a = Math.random() * 7, v = 1 + Math.random() * 2.5; brasas.push({ x, y, z: 0.2, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 1 + Math.random() * 2, vida: 0.7, max: 0.7, tam: 0.08, cor }); }
 }
+// ---------------------------------------------------------------- R300 (06/11, o usuário: "é possível colocar uma poeira subindo atrás do
+// personagem quando ele anda no caminho de areia?"; depois: "o personagem só corre, não anda"). Nos caminhos de terra (a terra batida da
+// Vila 1, as trilhas da Vila Hahoe e da Montanha, a trilha de cinza pisada da Daiyu), o herói em movimento solta pequenas nuvens dos pés,
+// atrás dele: sobem um pouco, se abrem e somem em 0,6 s. Uma intensidade só (a da corrida); montado sai das patas, um pouco maior. Na grama,
+// parado, na caverna: nada. No estilo do cenário (minhwa): manchas chapadas na cor da areia, um pouco mais clara, translúcidas, sem luz
+// somada e sem contorno. Barato: 3 desenhos prontos por cor (POEIRA.spr), no máximo POEIRA.max nuvens, e desligada nos gráficos Baixo e no
+// ?test=1 (POEIRA.forcar liga, para o teste). Desenhada no chão, antes de quem fica em pé (desenharQuadro)
+const POEIRA = { parts: [], max: 36, acum: 0, ultX: null, ultY: null, pe: 0, forcar: false, criadas: 0, spr: {},
+  COR: { vila1: "#F2E8D0", hahoe: "#EEE2C6", montanha: "#ECEAE4", daiyu: null }, TAXA: 13, TAXA_MONTADO: 16, VIDA: 0.6 };   // (as cores: a terra de cada chão, clareada para o papel)
+// o chão em (x, y) é caminho de terra? Devolve a cor da poeira dele (ou null)
+function poeiraNoChao(x, y) {
+  if (naCaverna(x)) return null;
+  const m = mapaDe(x, y);
+  if (m === MAPAS.daiyu) return typeof DAIYU === "object" && DAIYU.naTrilha && DAIYU.naTrilha(x, y) ? (POEIRA.COR.daiyu || (POEIRA.COR.daiyu = clarearHex(DAIYU.TOM ? DAIYU.TOM.chao2 : "#B8B2A8", 0.35))) : null;
+  if (m === MAPAS.vila1) {
+    if (praca(x, y)) return null;                                       // (a praça e as ruas são de pedra)
+    const d = typeof terraDados === "object" && terraDados;
+    return (d && campoTerra(d, x, y) < 0) || estrada(x, y) ? POEIRA.COR.vila1 : null;
+  }
+  return estrada(x, y) ? POEIRA.COR[m.id] || POEIRA.COR.vila1 : null;
+}
+function clarearHex(h, k) { const n = parseInt(h.slice(1), 16), c = i => Math.round(((n >> i) & 255) + (255 - ((n >> i) & 255)) * k); return "#" + [16, 8, 0].map(i => c(i).toString(16).padStart(2, "0")).join(""); }
+// os 3 desenhos de uma cor: 3 a 4 manchas redondas chapadas, juntas, na cor (a transparência vem no desenho de cada nuvem)
+function poeiraSprites(cor) {
+  if (POEIRA.spr[cor]) return POEIRA.spr[cor];
+  const l = [];
+  for (let k = 0; k < 3; k++) {
+    const c = document.createElement("canvas"); c.width = 64; c.height = 40; const g = c.getContext("2d");
+    g.fillStyle = cor;
+    const n = 3 + (k % 2);
+    for (let q = 0; q < n; q++) { const a = q / n * 6.283 + k, r = 9 + ((q * 7 + k * 3) % 5); g.beginPath(); g.ellipse(32 + Math.cos(a) * 10, 22 + Math.sin(a) * 6, r, r * 0.72, 0, 0, 7); g.fill(); }
+    g.beginPath(); g.ellipse(32, 22, 14, 10, 0, 0, 7); g.fill();
+    l.push(c);
+  }
+  return POEIRA.spr[cor] = l;
+}
+function poeiraLigada() { return (POEIRA.forcar || !MODO_TESTE) && GRAF.nivel !== "baixo"; }
+// a cada quadro: o herói andou neste quadro? No caminho, solta nuvens atrás (pela distância andada, não pelo tempo: parado não sai nada)
+function passoPoeira(dt) {
+  const P = POEIRA, v = viking;
+  for (const p of P.parts) { p.t += dt; p.x += p.dx * dt; p.y += p.dy * dt; p.z += p.vz * dt; p.vz *= Math.max(0, 1 - 2.5 * dt); }
+  for (let i = P.parts.length - 1; i >= 0; i--) if (P.parts[i].t >= P.VIDA) P.parts.splice(i, 1);
+  if (!poeiraLigada() || !v) { P.ultX = null; return; }
+  const ux = P.ultX === null ? 0 : v.x - P.ultX, uy = P.ultX === null ? 0 : v.y - P.ultY; P.ultX = v.x; P.ultY = v.y;
+  const d = Math.hypot(ux, uy), vel = dt > 0 ? d / dt : 0;
+  if (vel < 1.2 || vel > 25 || v.caido) { P.acum = 0; return; }       // (parado, empurrado devagar ou um salto de lugar: nada)
+  const cor = poeiraNoChao(v.x, v.y); if (!cor) { P.acum = 0; return; }
+  const mont = !!v.montado, fx = ux / d, fy = uy / d;
+  P.acum += dt * (mont ? P.TAXA_MONTADO : P.TAXA);
+  while (P.acum >= 1) {
+    P.acum -= 1; P.pe ^= 1;
+    if (P.parts.length >= P.max) P.parts.shift();                       // (o teto: a mais velha sai)
+    const lado = (P.pe ? 1 : -1) * (mont ? 0.28 : 0.13) + (Math.random() - 0.5) * 0.08, atras = (mont ? 0.55 : 0.22) + Math.random() * 0.12;
+    const esc = (0.5 + Math.random() * 0.16) * (mont ? 1.4 : 1);
+    P.parts.push({ x: v.x - fx * atras - fy * lado, y: v.y - fy * atras + fx * lado, z: 0.02, vz: 0.55 + Math.random() * 0.25, dx: -fx * 0.45 + (Math.random() - 0.5) * 0.3, dy: -fy * 0.45 + (Math.random() - 0.5) * 0.3,
+      t: 0, esc, cor, k: Math.floor(Math.random() * 3), mont });
+    P.criadas++;
+  }
+}
+function desenharPoeira() {
+  const P = POEIRA; if (!P.parts.length) return;
+  const s = PX * zoom;
+  cx.save();
+  for (const p of P.parts) {
+    const u = p.t / P.VIDA, [X, Y] = noMundoFx(p.x, p.y, p.z), w = p.esc * s * (0.6 + 1.2 * u), h = w * 0.62;
+    cx.globalAlpha = 0.62 * (1 - u) ** 0.8 * (u < 0.12 ? u / 0.12 : 1);         // (entra rápido, some devagar)
+    cx.drawImage(poeiraSprites(p.cor)[p.k], X - w / 2, Y - h * 0.7, w, h);
+  }
+  cx.restore();
+}
 function poeiraChefe(x, y, n, v0 = 1) {
   if (naCaverna(x) && cavDe(x) && cavDe(x).vale) return;              // (no Vale, o fogo é chapado: sem as bolinhas translúcidas)
   for (let k = 0; k < n; k++) { const a = Math.random() * 7, v = v0 * (1 + Math.random() * 2.5); brasas.push({ x, y, z: 0.05, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 0.6 + Math.random() * 1.4, vida: 0.9, max: 0.9, tam: 0.12, poeira: true }); }
@@ -15014,9 +15325,9 @@ function chefeNasceu(l) {
   if (Math.hypot(viking.x - l.x, viking.y - l.y) < 20) tremor = Math.max(tremor, 0.4);
 }
 // caiu: o baú, o lugar da próxima vez (já sorteado na área) e quanto falta
-function chefeMorreu(l) {
+function chefeMorreu(l, F = fatorDrop(l)) {
   const dc = defChefe(l);
-  soltarItens(l, dropsChefe(l));
+  { const it = dropsChefe(l, F); if (it.length) soltarItens(l, it); }
   for (let i = ataquesChefe.length - 1; i >= 0; i--) if (ataquesChefe[i].de === l) ataquesChefe.splice(i, 1);
   if (l.cfg.sopro) explosaoVale(l.x, l.y, 3.4);
   else ondas.push({ x: l.x, y: l.y, t: 0, raio: 2.8, cor: dc.cor, fogo: true, pilares: [], rachas: rachasChefe(2.8) });
@@ -15033,14 +15344,18 @@ function bonusChefe(parte, tier) {
   return l;
 }
 function pecaDeChefe(nivel) { const p = pecaDoNivel(nivel), [, parte, tier] = p.chave.split(":"); p.bon = bonusChefe(parte, +tier); return p; }
-function dropsChefe(l) {
-  const n = l.cfg.nivel || 1, itens = [pecaDeChefe(n), { tipo: Math.random() < 0.5 ? "encantar" : "mudar" },
-    { tipo: "pocao", qtd: 5 }, { tipo: "pocaoMana", qtd: 4 }, { tipo: "yang", qtd: Math.round(yangNivel(n) * (150 + Math.random() * 100)) }];
-  if (Math.random() < 0.6) itens.push({ tipo: "bencao" });
-  if (Math.random() < 0.5) itens.push(pecaDeChefe(n));
-  if (Math.random() < 0.5) itens.push(acessorioDoNivel(n, undefined, true));
-  if (Math.random() < 0.35) itens.push(armaDoNivel(n, bonusChefe("arma", 2)));
-  itens.push(...joiasDoChefe(l));                                    // (as Jóias: do Lobo Alfa em diante; +3/+4 no Nove Caudas e no Chefe Orc)
+function dropsChefe(l, F = fatorDrop(l)) {                           // (R301: F, a tabela de chefe)
+  const n = l.cfg.nivel || 1, itens = [];
+  if (chanceDrop(1, F)) itens.push(pecaDeChefe(n));
+  if (chanceDrop(1, F)) itens.push({ tipo: Math.random() < 0.5 ? "encantar" : "mudar" });
+  if (chanceDrop(1, F)) itens.push({ tipo: "pocao", qtd: 5 });
+  if (chanceDrop(1, F)) itens.push({ tipo: "pocaoMana", qtd: 4 });
+  if (chanceDrop(1, F)) itens.push({ tipo: "yang", qtd: Math.round(yangNivel(n) * (150 + Math.random() * 100)) });
+  if (chanceDrop(0.6, F)) itens.push({ tipo: "bencao" });
+  if (chanceDrop(0.5, F)) itens.push(pecaDeChefe(n));
+  if (chanceDrop(0.5, F)) itens.push(acessorioDoNivel(n, undefined, true));
+  if (chanceDrop(0.35, F)) itens.push(armaDoNivel(n, bonusChefe("arma", 2)));
+  itens.push(...joiasDoChefe(l, F));                                    // (as Jóias: do Lobo Alfa em diante; +3/+4 no Nove Caudas e no Chefe Orc)
   return itens;
 }
 // o golpe de uma mecânica: o do chefe, mult vezes mais forte (na fúria, golpeNoPersonagem soma os 30%)
@@ -15584,7 +15899,7 @@ function custoRefino(a) {
   const req = a.arma ? NIVEIS_ARMA[a.tier || 0] : (PECAS[a.slot] ? PECAS[a.slot].modelos[a.tier || 0][1] : 1);
   return refinoDo(req, a.ref);
 }
-let ferEscolha = "arma";                // "arma", "eq:<parte>" ou o item da bolsa
+let ferEscolha = null;                  // o item da janela do Ferreiro (R297: o item da bolsa levado até ele); "arma" e "eq:<parte>" ficam para os testes
 // o que dá para levar ao ferreiro: a arma na mão, as peças vestidas e as armas e peças da bolsa
 function pecasDoFerreiro() {
   if (!prog) return [];
@@ -15599,18 +15914,16 @@ function pecasDoFerreiro() {
     l.push({ id: it, rotulo: `Bolsa: ${t.peca ? PECAS[t.peca].nome : "arma"} +${it.ref || 0}`, ref: it.ref || 0, arma: t.arma, slot: t.peca, tier: t.tier, rara: !!t.rara, desenho: t.arma && ARMAS[dona].desenho,
              nome: r => t.arma ? nomeArma(r, t.tier, dona, t.rara) : nomePeca(t.peca, t.tier, r), icone: (g, r) => t.arma ? iconeArma(g, (t.rara ? "rara:" : "") + desenhoArma(dona), 40, 120, r, t.tier) : iconePeca(g, t.peca, t.tier, 40, PECAS[t.peca].h * 40),
              mudar: r => { if (r === null) prog.inv.splice(prog.inv.indexOf(it), 1); else { it.ref = r; it.jo = semPartidas(it.jo); } }, dica: () => it }); }
-  // as Jóias +3: o Ferreiro sobe para +4 (150 mil yang, 1 Pedra Espiritual, 30%; na falha a Jóia some, ou fica +3 com a bênção)
-  for (const it of prog.inv) { const t = tipoItem(it.chave); if (!t.joia || t.joia.grau !== 3) continue;
-    const tipo = t.joia.tipo;
-    l.push({ id: it, joia: true, rotulo: `Jóia: ${JOIAS[tipo].nome.replace(/^Jóia /, "")} +3`, ref: 3, nome: r => nomeJoia(tipo, r), icone: (g, r) => { g.save(); g.translate(0, 40); iconeItem(g, `joia:${tipo}:${r}`, 40, 40); g.restore(); },
-             mudar: r => { if (r === 3) return; removerItem(it.chave, 1); if (r === 4) adicionarItem(`joia:${tipo}:4`, 1); }, dica: () => ({ chave: it.chave, qtd: 1 }) }); }
+  // (R303, 06/11: sem refino de Jóia, como a Gameforge de hoje; antes o Ferreiro subia a +3 para +4)
   return l;
 }
-function abrirFerreiro(sim = $("#ferreiro").hidden) {
+function abrirFerreiro(sim = $("#ferreiro").hidden, item = null) {
   $("#ferreiro").hidden = !sim; janelaAbriu("ferreiro", sim);
-  if (sim) { const l = pecasDoFerreiro(); ferEscolha = l.length ? l[0].id : "arma"; $("#ferResultado").hidden = true; desenharFerreiro(); }
+  // (R297) como no Metin2: a janela é a do refino do item levado até ele (o clique no item da bolsa e depois no Ferreiro); sem item,
+  // ele explica como faz. A lista de itens de antes saiu
+  if (sim) { ferEscolha = item && pecasDoFerreiro().some(p => p.id === item) ? item : null; $("#ferResultado").hidden = true; desenharFerreiro(); }
 }
-function pecaEscolhida() { const l = pecasDoFerreiro(); return l.find(p => p.id === ferEscolha) || null; }
+function pecaEscolhida() { if (ferEscolha === null) return null; const l = pecasDoFerreiro(); return l.find(p => p.id === ferEscolha) || null; }
 // o que melhora com o refino: ataque da arma ou defesa da peça
 // (R181: o acessório não tem defesa; o refino dele sobe o atributo base, baseAcess)
 function efeitoRef(p, r) {
@@ -15619,78 +15932,122 @@ function efeitoRef(p, r) {
   const a = atribPeca(p.slot, p.tier, r);
   return a.base ? a.base.map(textoBonusM2).join(" · ") : `defesa +${a.defesa}` + (PECAS[p.slot].extra === "vel" ? ` · velocidade +${a.extra}%` : "") + (a.bloq ? ` · bloqueio +${a.bloq}%` : "");   // (36.12: nas botas o refino sobe a velocidade; no elmo do 60, o bloqueio)
 }
+// a linha "+3 → +4 · o efeito" e o custo, iguais na janela do Ferreiro e na da Bênção
+function textoDeRefino(a) { return `<span class="seta">+${a.ref} → </span><b>+${a.ref + 1}</b> · ${efeitoRef(a, a.ref)} → ${a.slot && PECAS[a.slot] && PECAS[a.slot].acess ? efeitoRef(a, a.ref + 1) : efeitoRef(a, a.ref + 1).replace(/^[a-zçã ]+/i, "")}`; }
+function custoDeRefino(a, seFalhar) {
+  const r = custoRefino(a), temP = contarItem("pedra");
+  const linha = (nome, preciso, tenho, txt) => `<span>${nome}</span><b class="${tenho >= preciso ? "ok" : "falta"}">${txt}</b>`;
+  return `<span>Chance de sucesso</span><b>${Math.round(r.chance * 100)}%</b>` +
+    linha("Yang", r.yang, prog.yang, `${r.yang.toLocaleString("pt-BR")} (tem ${prog.yang.toLocaleString("pt-BR")})`) +
+    (r.pedra ? linha("Pedra Espiritual", r.pedra, temP, `${r.pedra} (tem ${temP})`) : "") +
+    `<span>Se falhar</span><b class="falta">${seFalhar}</b>`;
+}
+const podeRefinar = a => { const r = custoRefino(a); return prog.yang >= r.yang && contarItem("pedra") >= (r.pedra || 0); };
 function desenharFerreiro() {
   if (!prog || $("#ferreiro").hidden) return;
-  const l = pecasDoFerreiro();
-  $("#ferArmas").innerHTML = l.map((p, k) => `<button data-fer="${k}" aria-pressed="${p.id === ferEscolha}">${p.rotulo}</button>`).join("");
-  $("#ferArmas").hidden = l.length < 2;
+  $("#ferArmas").innerHTML = ""; $("#ferArmas").hidden = true;
   const a = pecaEscolhida(), cv2 = $("#ferIcone"), g = cv2.getContext("2d");
   $("#ferComprar").hidden = !!prog.arma || classe === "aprendiz"; $("#ferComprar").textContent = `Comprar ${ARMAS[classe].nome} +0 (${ARMA_NOVA} Yang)`;
   $("#ferComprar").disabled = prog.yang < ARMA_NOVA;
   g.clearRect(0, 0, 40, 120);
   if (!a) {
-    $("#ferNome").textContent = "Nada para melhorar"; $("#ferDe").textContent = "Traga uma arma ou uma peça de equipamento.";
-    $("#ferCusto").innerHTML = ""; $("#ferMelhorar").disabled = true; $("#ferBencaoLinha").hidden = true;
+    $("#ferFala").textContent = `"Traga a peça até mim. Mas cuidado: se o refino falhar, ela quebra!"`;
+    $("#ferNome").textContent = "Como refinar";
+    $("#ferDe").textContent = "Na bolsa, clique na arma ou na peça (ela fica presa no cursor) e depois clique em mim. O que está vestido, tire antes.";
+    $("#ferCusto").innerHTML = ""; $("#ferMelhorar").hidden = true; $("#ferItem").classList.add("sem-item");
     return;
   }
+  $("#ferItem").classList.remove("sem-item"); $("#ferMelhorar").hidden = false;
+  $("#ferFala").textContent = `"Vamos ver essa peça. Se o refino falhar, ela quebra: quer mesmo?"`;
   a.icone(g, a.ref);
   $("#ferNome").textContent = a.nome(a.ref);
   if (a.ref >= (a.joia ? JOIA_GRAU_MAX : REF_MAX)) {
     $("#ferDe").textContent = "No máximo (+9): não dá para melhorar mais.";
-    $("#ferCusto").innerHTML = ""; $("#ferMelhorar").disabled = true; $("#ferBencaoLinha").hidden = true;
+    $("#ferCusto").innerHTML = ""; $("#ferMelhorar").disabled = true;
     return;
   }
-  const r = custoRefino(a), temP = contarItem("pedra"), temB = contarItem("bencao");
-  $("#ferDe").innerHTML = `<span class="seta">+${a.ref} → </span><b>+${a.ref + 1}</b> · ${efeitoRef(a, a.ref)} → ${a.slot && PECAS[a.slot] && PECAS[a.slot].acess ? efeitoRef(a, a.ref + 1) : efeitoRef(a, a.ref + 1).replace(/^[a-zçã ]+/i, "")}`;
-  const linha = (nome, preciso, tenho, txt) => `<span>${nome}</span><b class="${tenho >= preciso ? "ok" : "falta"}">${txt}</b>`;
-  $("#ferCusto").innerHTML = `<span>Chance de sucesso</span><b>${Math.round(r.chance * 100)}%</b>` +
-    linha("Yang", r.yang, prog.yang, `${r.yang.toLocaleString("pt-BR")} (tem ${prog.yang.toLocaleString("pt-BR")})`) +
-    (r.pedra ? linha("Pedra Espiritual", r.pedra, temP, `${r.pedra} (tem ${temP})`) : "") +
-    `<span>Se falhar</span><b class="falta">${a.joia ? ($("#ferBencao").checked && temB ? "a Jóia fica +3" : "a Jóia some") : $("#ferBencao").checked && temB ? `volta para +${Math.max(0, a.ref - 1)}` : `${a.arma ? "a arma" : "a peça"} quebra`}</b>`;
-  $("#ferBencaoLinha").hidden = false;
-  $("#ferBencao").disabled = !temB; if (!temB) $("#ferBencao").checked = false;
-  $("#ferBencaoTxt").textContent = `Usar Pergaminho da Bênção (tem ${temB})`;
-  $("#ferMelhorar").disabled = prog.yang < r.yang || temP < (r.pedra || 0);
+  $("#ferDe").innerHTML = textoDeRefino(a);
+  $("#ferCusto").innerHTML = custoDeRefino(a, a.joia ? "a Jóia some" : `${a.arma ? "a arma" : "a peça"} quebra`);
+  $("#ferMelhorar").disabled = !podeRefinar(a);
 }
-// o refino: cobra, sorteia e conta o resultado (sucesso: +1; falha: quebra, ou −1 com a bênção)
-function refinar() {
-  const a = pecaEscolhida(); if (!a || a.ref >= (a.joia ? JOIA_GRAU_MAX : REF_MAX)) return;
-  const r = custoRefino(a), bencao = $("#ferBencao").checked && contarItem("bencao") > 0;
-  if (prog.yang < r.yang || contarItem("pedra") < (r.pedra || 0)) return;
+// o refino, igual no Ferreiro e na Bênção (como o Metin2, DoRefine e DoRefineWithScroll): cobra o yang e as pedras sempre, sorteia a
+// chance do + (a Bênção usa a mesma do Ferreiro) e conta o resultado. Sucesso: +1. Falha no Ferreiro: a peça quebra (some). Falha com a
+// Bênção: volta um + (no +0 fica +0; a Jóia fica +3) e nunca quebra. O pergaminho é gasto em qualquer caso
+function executarRefino(a, bencao) {
+  if (!a || a.ref >= (a.joia ? JOIA_GRAU_MAX : REF_MAX) || !podeRefinar(a)) return null;
+  const r = custoRefino(a);
   prog.yang -= r.yang; if (r.pedra) removerItem("pedra", r.pedra); if (bencao) removerItem("bencao", 1);
   const deu = Math.random() < r.chance, antes = a.ref, nomeAntes = a.nome(antes);
   const novo = deu ? antes + 1 : bencao ? (a.joia ? antes : Math.max(0, antes - 1)) : null;
   a.mudar(novo);
-  if (novo === null || !pecasDoFerreiro().some(p => p.id === ferEscolha)) { const l = pecasDoFerreiro(); ferEscolha = l.length ? l[0].id : "arma"; }
-  const res = $("#ferResultado");
-  res.hidden = false; res.className = "ref-resultado " + (deu ? "sucesso" : "falhou");
-  res.textContent = deu ? `Sucesso! ${a.nome(novo)}` : novo === null ? `Falhou... ${nomeAntes} ${a.joia ? "se desfez" : "quebrou"}.` : `Falhou, mas a bênção salvou: ${a.joia ? "a Jóia ficou +3" : `voltou para +${novo}`}.`;
-  chatSistema(deu ? `Refino bem-sucedido: ${a.nome(novo)}.` : res.textContent, deu ? "refino" : "falha", deu && novo >= 7);
-  $("#ferFala").textContent = deu ? `"Ficou uma beleza. ${novo >= 7 ? "Poucos têm uma peça assim!" : "Volte quando quiser mais."}"` : novo === null ? `"Que azar... o metal não aguentou."` : `"Por pouco! A bênção segurou o metal."`;
-  ferreiroMartela(deu); som("moeda", null, 0.6);
+  const txt = deu ? `Sucesso! ${a.nome(novo)}` : novo === null ? `Falhou... ${nomeAntes} ${a.joia ? "se desfez" : "quebrou"}.`
+    : novo === antes ? `Falhou, mas a bênção salvou: ${a.joia ? "a Jóia ficou +3" : `continua +${novo}`}.` : `Falhou, mas a bênção salvou: voltou para +${novo}.`;
+  chatSistema(deu ? `Refino bem-sucedido: ${a.nome(novo)}.` : txt, deu ? "refino" : "falha", deu && novo >= 7);
+  som("moeda", null, 0.6);
   setTimeout(() => som(deu ? "ui_aceitar" : "refino_falha", null, 1), 450);   // o resultado, depois das marteladas
+  return { deu, novo, antes, txt };
+}
+// o refino no Ferreiro: o item da janela
+function refinar() {
+  const a = pecaEscolhida(), R = executarRefino(a, false); if (!R) return;
+  if (R.novo === null || !pecasDoFerreiro().some(p => p.id === ferEscolha)) ferEscolha = null;
+  const res = $("#ferResultado");
+  res.hidden = false; res.className = "ref-resultado " + (R.deu ? "sucesso" : "falhou"); res.textContent = R.txt;
+  ferreiroMartela(R.deu);
   depoisDaArma();
+  $("#ferFala").textContent = R.deu ? `"Ficou uma beleza. ${R.novo >= 7 ? "Poucos têm uma peça assim!" : "Volte quando quiser mais."}"` : `"Que azar... o metal não aguentou."`;
+}
+// R296 (06/11, o usuário: "quero alterar a maneira que o pergaminho da bênção é usado, veja como é feita a mecânica de colocar joias
+// nas armas lá... quero que seja igual"). Como no Metin2: o pergaminho preso no cursor (o clique nele) é solto em cima da arma, da peça
+// ou da Jóia +3 da bolsa; abre a janela do refino com a chance (a do Ferreiro), o yang e as pedras (os mesmos) e o que acontece se
+// falhar (volta um +, não quebra); Refinar sorteia e mostra o resultado ali mesmo. A caixa "Usar Pergaminho da Bênção" do Ferreiro saiu
+const REF_BENCAO = { a: null };
+function pedirRefinoBencao(perg, alvo) {
+  const a = pecasDoFerreiro().find(p => p.id === alvo); if (!a) return false;
+  soltarMao();
+  if (a.ref >= (a.joia ? JOIA_GRAU_MAX : REF_MAX)) { avisar("Esse item já está no máximo: não dá para melhorar mais"); som("ui_negar"); return true; }
+  abrirRefinoBencao(a);
+  return true;
+}
+function abrirRefinoBencao(a) {
+  const J = $("#refConf");
+  REF_BENCAO.a = a;
+  if (!a) { J.hidden = true; janelaAbriu("refConf", false); return; }
+  J.hidden = false; janelaAbriu("refConf", true);
+  const g = $("#rcIcone").getContext("2d"); g.clearRect(0, 0, 40, 120); a.icone(g, a.ref);
+  $("#rcNome").textContent = a.nome(a.ref);
+  $("#rcDe").innerHTML = textoDeRefino(a);
+  $("#rcCusto").innerHTML = custoDeRefino(a, a.joia ? "a Jóia fica +3 (não some)" : a.ref === 0 ? "continua +0 (não quebra)" : `volta para +${a.ref - 1} (não quebra)`) +
+    `<span>Pergaminho da Bênção</span><b class="ok">1 (tem ${contarItem("bencao")})</b>`;
+  $("#rcSim").hidden = false; $("#rcSim").disabled = !podeRefinar(a) || !contarItem("bencao"); $("#rcNao").textContent = "Cancelar";
+  $("#rcResultado").hidden = true;
+}
+function confirmarRefinoBencao() {
+  const a = REF_BENCAO.a; if (!a || !contarItem("bencao")) return null;
+  const R = executarRefino(a, true); if (!R) return null;
+  const res = $("#rcResultado"); res.hidden = false; res.className = "ref-resultado " + (R.deu ? "sucesso" : "falhou"); res.textContent = R.txt;
+  $("#rcSim").hidden = true; $("#rcNao").textContent = "Fechar"; REF_BENCAO.a = null;
+  som("magia_buff", viking, 0.6);
+  depoisDaArma(); atualizarItensBarra();
+  return R;
 }
 function comprarArma() {
   if (!prog || prog.yang < ARMA_NOVA) { som("ui_negar"); return; }
   if (!prog.arma) { prog.yang -= ARMA_NOVA; prog.arma = { ref: 0 }; }
   else { if (adicionarItem("arma:" + classe, 1, { ref: 0 })) { avisar("A bolsa está cheia"); som("ui_negar"); return; } prog.yang -= ARMA_NOVA; }
   som("moeda", null, 0.8);
-  ferEscolha = "arma"; $("#ferResultado").hidden = true;
+  $("#ferResultado").hidden = true;
   depoisDaArma(`Comprou: ${nomeArma(0)}`);
 }
 function montarFerreiro() {
   $("#ferFechar").onclick = () => abrirFerreiro(false);
   $("#ferMelhorar").onclick = refinar;
   $("#ferComprar").onclick = comprarArma;
-  $("#ferBencao").onchange = desenharFerreiro;
+  $("#rcSim").onclick = () => confirmarRefinoBencao(); $("#rcNao").onclick = () => abrirRefinoBencao(null); $("#rcFechar").onclick = () => abrirRefinoBencao(null);   // (R296: a janela da Bênção)
+  $("#rcIcone").addEventListener("pointermove", e => { const a = REF_BENCAO.a; mostrarDica(a && a.dica ? a.dica() : null, e.clientX, e.clientY); });
+  $("#rcIcone").addEventListener("pointerleave", () => mostrarDica(null));
   $("#ferIcone").addEventListener("pointermove", e => { const a = pecaEscolhida(); mostrarDica(a && a.dica ? a.dica() : null, e.clientX, e.clientY); });   // (a dica do Metin2)
   $("#ferIcone").addEventListener("pointerleave", () => mostrarDica(null));
-  $("#ferArmas").onclick = e => {
-    const b = e.target.closest("[data-fer]"); if (!b) return;
-    const p = pecasDoFerreiro()[+b.dataset.fer]; if (p) ferEscolha = p.id;
-    $("#ferResultado").hidden = true; desenharFerreiro();
-  };
 }
 // a forja e o ferreiro na praça (desenhados por código até chegar o modelo 3D do ferreiro)
 let ferreiroNpc = null;
@@ -16417,7 +16774,6 @@ function passoCavalo(dt) {
 function desenharMontado(X, Y, z) {
   sombraCavalo(cavaloEnt, X, Y, z);                                    // (R095: no empinar, embaixo das patas de trás)
   const agora = performance.now() / 1000, Ys = Y - zSela() * PX * z * ALTURA;   // (R261: o corpo do herói, na altura da sela)
-  desenharAlertaVida(X, Y, z, Ys - 0.5 * PX * z * ALTURA);             // (R290: a vida baixa, montado)
   desenharFuria(X, Ys, z, agora, false); desenharVortice(X, Ys, z, agora, false); desenharBuffsMago(X, Ys, z, agora);
   const em3d = desenharInst3d(viking, X, Y, z);
   if (!em3d) desenharCavaloSprite("montado_" + (classe === "xama_dragao" ? "xama" : classe), montadoAnim(), X, Y, z, viking.dir, false);
@@ -16962,7 +17318,7 @@ const MISSOES = {
         fala: "A pedra fica onde o chão escurece." },
       { falar: "Guarda Baek", entregar: "Relatar ao Guarda", alvo: "Volte ao Guarda Baek",
         fala: "Tome esta Jóia. Encaixe-a na roupa: corre-se melhor com ela.",
-        premio: { exp: 165000, yang: 15750, itens: [["joia:aceleracao:1", 1], ["bencao", 1]] } },
+        premio: { exp: 165000, yang: 15750, itens: [["joia:aceleracao:0", 1], ["bencao", 1]] } },
     ],
   },
   nv21: {
@@ -17298,8 +17654,9 @@ const missoesAtivas = () => !!prog && CIDADE_LIGADA && (npcMissaoOk || (npcMissa
 function avisarLongo(txt, ms = 4500, fixo = false) {
   const tc = tipoDoAviso(txt); if (tc) chatSistema(txt, tc);
   if (!fixo && performance.now() < avisoFixoAte) { if (!tc) chatSistema(txt, "aviso"); return; }
+  const q = avisoDeQuest(txt); if (q && !fixo) ms *= 2;     // (06/11: o aviso da quest, o dobro do tempo)
   if (fixo) avisoFixoAte = performance.now() + ms;
-  const el = $("#avisoTela"); el.textContent = txt; el.hidden = false; avisoAte = performance.now() + ms;
+  const el = $("#avisoTela"); el.textContent = txt; el.hidden = false; el.classList.toggle("quest", q); avisoAte = performance.now() + ms;
   setTimeout(() => { if (performance.now() >= avisoAte) el.hidden = true; }, ms + 50);
 }
 // os itens da classe nos prêmios: roupaClasse:t (a roupa desta classe no modelo t) e armaClasse:t (a arma)
@@ -17673,7 +18030,8 @@ function rumoAte(S, a) {
   let r = S.rota;
   if (r && (r.x !== a[0] || r.y !== a[1])) r = null;
   if (r) { while (r.pts.length > 1 && retaLivre(v.x, v.y, r.pts[1][0], r.pts[1][1])) r.pts.shift(); if (r.pts.length && (Math.hypot(r.pts[0][0] - v.x, r.pts[0][1] - v.y) < 0.5 || !retaLivre(v.x, v.y, r.pts[0][0], r.pts[0][1]))) { if (r.pts.length === 1 || S.refez <= 0) r = null; } }
-  if ((!r || !r.pts.length) && S.refez <= 0) { r = S.rota = { x: a[0], y: a[1], pts: acharCaminho(v.x, v.y, a[0], a[1], 6000).pts }; S.refez = 0.8; }
+  // (R310) o ponto em outro mapa: sem busca (a do A* andava o teto a cada 0,8 s); as células frias por busca com o teto do herói
+  if ((!r || !r.pts.length) && S.refez <= 0) { const outro = ASTAR_CORTE.ligado && idMapa(v.x, v.y) !== idMapa(a[0], a[1]); r = S.rota = { x: a[0], y: a[1], pts: outro ? [] : acharCaminho(v.x, v.y, a[0], a[1], 6000, ASTAR_CORTE.ligado ? ROTA_NOS.heroiFrias : Infinity).pts }; S.refez = 0.8; }
   const q = r && r.pts[0] || a, d = Math.hypot(q[0] - v.x, q[1] - v.y);
   if (d > 1e-3) S.rumo = [(q[0] - v.x) / d, (q[1] - v.y) / d];
 }
@@ -17711,9 +18069,8 @@ function desenharSetaMarca(t) {
 // acompanhada: a seta de pincel (a do 1º pergaminho, R237) em ouro com contorno de nanquim, deitada no chão em volta do
 // herói, apontando para o objetivo de agora (ondeDaMissao: a criatura viva mais perto, a área de nascimento da Ghotin
 // quando não há nenhuma, o NPC, o portal no caminho) e com a distância. Some a menos de SETA_QUEST.perto m do alvo. O rumo:
-// em linha reta quando ela está livre; senão, pela rota do A* (rumoAte, a mesma da marca do mapa), com o alvo arredondado
-// a 4 m (um lobo andando não refaz a rota) e refeita no máximo a cada 1,5 s
-const SETA_QUEST = { rota: null, rumo: null, prox: 0, refez: 0, dist: 0, alvo: null, perto: 10, some: 3, usar: 12, etapa: null, base: null };
+// sempre a reta até o objetivo (06/11: sem a rota do A*). Desde 06/11 o desenho são as pegadas de tinta (desenharSetaQuest)
+const SETA_QUEST = { rota: null, rumo: null, prox: 0, refez: 0, dist: 0, alvo: null, perto: 10, some: 3, usar: 12, etapa: null, base: null, pegadas: null, laco: null };
 // R264 (05/11, o usuário: "ela deve mostrar pelo menos os primeiros mobs, depois nao precisa ficar apontando para os proximos"). Nas
 // etapas de matar várias criaturas e nas caçadas, a seta leva só até os primeiros alvos: ela é "usada" (prog.setaUsada, no save)
 // quando o herói mata o 1º alvo da etapa depois de ela aparecer, ou chega a SETA_QUEST.usar m de um alvo, e não volta para os
@@ -17762,29 +18119,64 @@ function passoSetaQuest(dt) {
   // (a escadaria), com o alvo exato, e só some no mesmo patamar dele
   const alto = Math.abs(zPiso(a0[0], a0[1]) - zPiso(v.x, v.y)) > 0.4; S.alto = alto;
   if (S.dist < S.perto && !alto) { S.rumo = null; return; }
-  if (!alto && retaLivreGrade(v.x, v.y, a0[0], a0[1])) { S.rota = null; S.rumo = [(a0[0] - v.x) / S.dist, (a0[1] - v.y) / S.dist]; return; }
-  const a = alto ? [a0[0], a0[1]] : [Math.round(a0[0] / 4) * 4, Math.round(a0[1] / 4) * 4], d0 = S.dist;
-  rumoAte(S, a); S.dist = d0;
-  if (S.refez > 0.8) S.refez = 1.5;                                   // (acabou de refazer: a próxima, só daqui a 1,5 s)
+  // (06/11, o usuário: "o cálculo de onde a seta deve apontar deve ser sem contar os obstáculos, assim ela não fica alternando o tempo todo...
+  // ela deve apontar única e exclusivamente na direção do objetivo") sempre a reta até o objetivo, sem a rota do A*
+  S.rota = null; if (S.dist > 1e-3) S.rumo = [(a0[0] - v.x) / S.dist, (a0[1] - v.y) / S.dist];
 }
-// o desenho da seta (as curvas da desenharSetaDica, com a ponta para a frente): L de comprimento e larg de largura, em m
+// (06/11, o usuário escolheu a opção D do esboço, Midia/esbocos/seta_quest_opcoes.jpg) a seta da quest virou PEGADAS DE TINTA: de 6 a
+// 8 pegadas de nanquim chapadas no chão, à frente do herói, rumo ao objetivo, uma depois da outra (pé esquerdo e direito alternados,
+// achatadas na vista), e somem na ordem em que apareceram. O laço recomeça a cada PEGADAS.ciclo s, sempre do lugar em que o herói está
+// no começo do laço: as pegadas não andam com ele. O rumo é SEMPRE a reta até o objetivo, sem contar os obstáculos (o usuário: "ela deve
+// apontar única e exclusivamente na direção do objetivo"): passam por cima de muros e escadas. Na ponta, a plaquinha de papel com a
+// distância. Barato: um desenho de pegada (feito uma vez) posto no plano do chão e esmaecido por alfa. No ?test=1, só o estado (S.pegadas)
+const PEGADAS = { n: 7, de: 1.0, ate: 5.0, ciclo: 1.5, entra: 0.6, fica: 0.55, sai: 0.35, comp: 0.52, larg: 0.3, lado: 0.16, spr: null, TINTA: "#1e1b18", PAPEL: "#f2e6c8" };
+function sprPegada() {
+  if (PEGADAS.spr) return PEGADAS.spr;
+  const c = document.createElement("canvas"); c.width = 96; c.height = 44; const g = c.getContext("2d");
+  g.fillStyle = PEGADAS.TINTA;
+  g.beginPath(); g.ellipse(40, 22, 30, 15, 0, 0, 7); g.fill();                         // (a sola, com a frente para a direita)
+  g.beginPath(); g.ellipse(12, 22, 11, 11, 0, 0, 7); g.fill();                          // (o calcanhar)
+  for (const [x, y, r] of [[78, 9, 6.5], [85, 19, 5.5], [85, 29, 5], [79, 37, 4.5]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }   // (os dedos)
+  return (PEGADAS.spr = c);
+}
+// o estado das pegadas deste quadro: o lugar e o alfa de cada uma (S.pegadas), e a plaquinha
+function pegadasDaSeta(t) {
+  const S = SETA_QUEST, v = viking, P = PEGADAS, u = S.rumo;
+  if (!u || v.caido || (classe === "ninja" && NINJA.esconder.buff > 0)) { S.pegadas = null; S.laco = null; return null; }
+  const al = S.alto ? 1 : Math.max(0, Math.min(1, (S.dist - S.perto) / S.some)); if (al <= 0) { S.pegadas = null; return null; }
+  if (!S.laco || t - S.laco.t0 >= P.ciclo || t < S.laco.t0) S.laco = { t0: t, x: v.x, y: v.y, u: [u[0], u[1]], z: zPiso(v.x, v.y) };   // (o laço novo sai de onde o herói está agora)
+  const L = S.laco, tau = t - L.t0, l = [];
+  for (let i = 0; i < P.n; i++) {
+    const a = P.de + (P.ate - P.de) * i / (P.n - 1), t0 = P.entra * i / (P.n - 1), dt = tau - t0;
+    const alfa = dt < 0 ? 0 : dt < 0.08 ? dt / 0.08 : dt < 0.08 + P.fica ? 1 : Math.max(0, 1 - (dt - 0.08 - P.fica) / P.sai);
+    const lado = (i % 2 ? 1 : -1) * P.lado, nx = -L.u[1], ny = L.u[0];
+    l.push({ x: L.x + L.u[0] * a + nx * lado, y: L.y + L.u[1] * a + ny * lado, a: alfa * al, esq: !(i % 2) });
+  }
+  const pa = P.ate + 0.85;
+  S.pegadas = { l, u: L.u, z: L.z, placa: { x: L.x + L.u[0] * pa, y: L.y + L.u[1] * pa, txt: Math.round(S.dist) + " m", a: al } };
+  return S.pegadas;
+}
 function desenharSetaQuest(t) {
-  const S = SETA_QUEST, v = viking, u = S.rumo;
-  if (!u || v.caido || (classe === "ninja" && NINJA.esconder.buff > 0)) return;
-  const al = S.alto ? 1 : Math.max(0, Math.min(1, (S.dist - S.perto) / S.some)); if (al <= 0) return;   // (R269: o alvo no alto, a seta inteira até o patamar dele)
-  const z = zPiso(v.x, v.y), nx = -u[1], ny = u[0], r0 = 1.2 + 0.12 * Math.sin(t * 4.5), L = 1.7, larg = 1.15;
-  const P = (X, Y) => { const a = r0 + L * (0.96 - X) / 0.9, b = (0.5 - Y) * larg; return noMundo(v.x + u[0] * a + nx * b, v.y + u[1] * a + ny * b, z); };
-  const M = (X, Y) => { const p = P(X, Y); cx.moveTo(p[0], p[1]); }, Li = (X, Y) => { const p = P(X, Y); cx.lineTo(p[0], p[1]); };
-  const Q = (a, b, c, d) => { const p = P(a, b), q = P(c, d); cx.quadraticCurveTo(p[0], p[1], q[0], q[1]); };
-  cx.save(); cx.globalAlpha = al; cx.lineJoin = "round"; cx.lineCap = "round";
-  const [ax, ay] = P(0.96, 0.5), [bx, by] = P(0.06, 0.5), g = cx.createLinearGradient(ax, ay, bx, by);
-  g.addColorStop(0, "#8E5F16"); g.addColorStop(0.55, "#D69A2E"); g.addColorStop(1, "#F2C75C");
-  cx.beginPath(); M(0.06, 0.5); Li(0.42, 0.1); Q(0.44, 0.3, 0.4, 0.34); Q(0.72, 0.3, 0.95, 0.38); Q(0.9, 0.52, 0.96, 0.64); Q(0.7, 0.7, 0.4, 0.66); Q(0.45, 0.72, 0.42, 0.9); cx.closePath();
-  cx.fillStyle = g; cx.fill(); cx.lineWidth = Math.max(2, 2.6 * zoom); cx.strokeStyle = "#1E1B18"; cx.stroke();
-  cx.beginPath(); M(0.5, 0.42); Q(0.7, 0.4, 0.86, 0.45); cx.lineWidth = Math.max(1.2, 1.6 * zoom); cx.strokeStyle = "rgba(255, 246, 220, 0.8)"; cx.stroke();
-  cx.font = "700 " + Math.round(Math.max(15, 14 * zoom)) + "px 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif"; cx.textAlign = "center"; cx.textBaseline = "middle";
-  const [TX, TY] = noMundo(v.x + u[0] * (r0 + L + 0.6), v.y + u[1] * (r0 + L + 0.5), z), txt = Math.round(S.dist) + " m";
-  cx.lineWidth = 3.5; cx.strokeStyle = "rgba(20, 14, 8, 0.9)"; cx.strokeText(txt, TX, TY); cx.fillStyle = "#F6D98C"; cx.fillText(txt, TX, TY);
+  const E = pegadasDaSeta(t); if (!E || MODO_TESTE) return;
+  const P = PEGADAS, im = sprPegada(), u = E.u, z = E.z;
+  cx.save(); const base = cx.getTransform();
+  for (const p of E.l) {
+    if (p.a <= 0.01) continue;
+    // o plano do chão em volta da pegada: o eixo x da figura vai para a frente (u) e o y para o lado, em px por metro
+    const [X, Y] = noMundo(p.x, p.y, z), [fx, fy] = noMundo(p.x + u[0], p.y + u[1], z), [sx, sy] = noMundo(p.x - u[1] * (p.esq ? 1 : -1), p.y + u[0] * (p.esq ? 1 : -1), z);
+    cx.globalAlpha = 0.9 * p.a;
+    cx.setTransform(base); cx.transform(fx - X, fy - Y, sx - X, sy - Y, X, Y);
+    cx.drawImage(im, -P.comp / 2, -P.larg / 2, P.comp, P.larg);
+  }
+  cx.setTransform(base);
+  // a plaquinha de papel com contorno de tinta, na ponta das pegadas
+  const pl = E.placa, [TX, TY] = noMundo(pl.x, pl.y, z);
+  cx.globalAlpha = pl.a;
+  cx.font = "700 " + Math.round(Math.max(13, 13 * zoom)) + "px 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif"; cx.textAlign = "center"; cx.textBaseline = "middle";
+  const w = cx.measureText(pl.txt).width + 14, h = Math.round(Math.max(13, 13 * zoom)) + 8;
+  cx.fillStyle = P.PAPEL; cx.strokeStyle = P.TINTA; cx.lineWidth = Math.max(1.6, 1.8 * zoom); cx.lineJoin = "round";
+  cx.beginPath(); cx.moveTo(TX - w / 2 + 2, TY - h / 2); cx.lineTo(TX + w / 2, TY - h / 2 + 1); cx.lineTo(TX + w / 2 - 1, TY + h / 2); cx.lineTo(TX - w / 2, TY + h / 2 - 1); cx.closePath(); cx.fill(); cx.stroke();
+  cx.fillStyle = P.TINTA; cx.fillText(pl.txt, TX, TY + 1);
   cx.restore();
 }
 // (R203) os pontinhos das quests (no lugar das estrelas, como os NPCs de quest piscando no mapa do Metin2; o desenho é
@@ -18062,8 +18454,12 @@ function fecharCarta() { const j = document.getElementById("cartaJan"); if (j) {
 // pergaminho some ao clicar nele e não volta para aquela quest. Guardado no save do personagem (prog.dicaCarta = { n: quantas
 // aceitou com a dica, cl: as cartas já clicadas }); um save antigo que já aceitou alguma quest de nível não vê a dica. A seta e o
 // quadrinho não pegam o clique (pointer-events: none): nunca tapam um botão
+// R293 (06/11, o usuário: "uma quest está aparecendo antes de entrar no jogo"): o mundo carrega por baixo da porta da conta com o
+// personagem padrão, e a seta nascia ali (por cima da porta, z-index 60) e ficava na lista de personagens, porque nada a recalculava ao
+// abrir a lista. Agora ela só existe com o jogo rodando (foraDoJogo: porta, lista, criação, intro, preparação), sem tocar no save do
+// personagem de baixo, e o laço a recalcula quando o jogo aparece ou some (vigiaDica): a quest pendente mostra a seta depois de entrar
 function dicaCartaEstado() {
-  if (!prog || !missoesAtivas() || (typeof CHEGADA === "object" && CHEGADA.aberta)) return null;
+  if (foraDoJogo() || !prog || !missoesAtivas() || (typeof CHEGADA === "object" && CHEGADA.aberta)) return null;
   if (!prog.dicaCarta) {
     const aceitas = Object.keys(MISSOES).filter(id => MISSOES[id].carta && (estadoMissao(id).etapa >= 0 || estadoMissao(id).carta === 2)).length;
     prog.dicaCarta = { n: aceitas ? 2 : 0, cl: [] }; salvarProgresso();
@@ -18079,6 +18475,8 @@ function desenharSetaDica(c) {                                         // (a set
   g.fillStyle = "#B8322A"; g.fill(); g.lineWidth = 2.6; g.strokeStyle = "#1E1B18"; g.stroke();
   g.beginPath(); g.moveTo(w * 0.5, h * 0.42); g.quadraticCurveTo(w * 0.7, h * 0.4, w * 0.86, h * 0.45); g.lineWidth = 1.6; g.strokeStyle = "rgba(244, 230, 194, 0.75)"; g.stroke();
 }
+let dicaFora = null;
+function vigiaDica() { const f = foraDoJogo(); if (f !== dicaFora) { dicaFora = f; dicaCarta(); } }   // (R293: a cada quadro, só lê; recalcula na troca)
 function dicaCarta() {
   let d = document.getElementById("dicaCarta");
   const est = dicaCartaEstado(), j = document.getElementById("cartaJan"), aceitar = j && document.getElementById("cartaAceitar");
@@ -18229,7 +18627,7 @@ var BIO_ITENS = (() => {
     r[B.item] = { nome: nomes[i][0], desc: `${nomes[i][1]} ${NOME_MUKSEON_TITULO} estuda isto (${B.titulo}): entregue um por vez a ele.`, h: 1, desenho: "bio:" + nomes[i][2], bio: true };
     r[B.essencia] = { nome: ess[i][0], desc: `A essência da pesquisa (${B.titulo}). Leve-a a ${NOME_MUKSEON_TITULO}.`, h: 1, desenho: "bio:essencia:" + ess[i][1] + ":" + ess[i][2], bio: true };
   });
-  r.elixir_bio = { nome: "Elixir do Pesquisador", desc: `Na próxima entrega a ${NOME_MUKSEON}, a chance de o item ser aceito sobe de 60% para 90%. Ele o gasta na conversa.`, h: 1, desenho: "bio:elixir" };
+  r.elixir_bio = { nome: "Elixir do Pesquisador", desc: `Beba (clique direito) antes de entregar a ${NOME_MUKSEON}: a próxima entrega sobe de 60% para 90% de chance de ser aceita. Só se gasta quando você escolhe usar.`, h: 1, desenho: "bio:elixir", usar: () => bioBeberElixir() };
   // (a missão do biombo) a gota da pérola que as Pedras Ghotin perto da Vila 1 deixam cair; item de missão, não se vende
   r.tinta_yeouiju = { nome: "Tinta da Yeouiju", desc: "Uma gota da pérola partida, ainda morna da Pedra Ghotin. A Guardiã do Altar precisa de três para costurar o rasgo do biombo.", h: 1, desenho: "bio:tinta" };
   r.incenso_bio = { nome: "Incenso do Rasgo", desc: `Queimado diante de ${NOME_MUKSEON}, zera a espera da próxima entrega.`, h: 1, desenho: "bio:incenso" };
@@ -18240,11 +18638,11 @@ ITENS_MISSAO.add("tinta_yeouiju");       // (os da pesquisa não se vendem)
 var BIO_ULTIMA = null;                              // (a última entrega: { ok, chance }, para os testes)
 function bioDe() { if (!prog) return { m: 0, fase: "nova", aceitos: 0, prox: 0, bonus: {} }; return prog.bio || (prog.bio = { m: 0, fase: "nova", aceitos: 0, prox: 0, bonus: {} }); }
 // o que cai para a pesquisa: o item do bicho dela e a essência do alvo forte; o Elixir e o Incenso das Ghotin e dos chefes
-function bioDrop(l) {
+function bioDrop(l, F = 1) {
   if (!prog) return;
   const b = bioDe(), B = BIO[b.m], nome = l.cfg.nome, itens = [];
-  if (l.cfg.estatico) { if (Math.random() < 0.03) itens.push({ tipo: "elixir_bio", qtd: 1 }); if (Math.random() < 0.03) itens.push({ tipo: "incenso_bio", qtd: 1 }); }
-  else if (l.cfg.chefeCaverna || defChefe(l)) { if (Math.random() < 0.25) itens.push({ tipo: "incenso_bio", qtd: 1 }); }
+  if (l.cfg.estatico) { if (chanceDrop(0.03, F)) itens.push({ tipo: "elixir_bio", qtd: 1 }); if (chanceDrop(0.03, F)) itens.push({ tipo: "incenso_bio", qtd: 1 }); }   // (R301: o Elixir e o Incenso pela tabela)
+  else if (l.cfg.chefeCaverna || defChefe(l)) { if (chanceDrop(0.25, F)) itens.push({ tipo: "incenso_bio", qtd: 1 }); }
   if (B && prog.nivel >= B.nivel) {
     if (b.fase === "coletar" && B.de.includes(nome) && Math.random() < (l.cfg.maldita ? BIO_DROP_MALDITA : BIO_DROP)) itens.push({ tipo: B.item, qtd: 1 });
     if (b.fase === "essencia" && B.essDe[nome] && !contarItem(B.essencia) && !drops.some(d => d.tipo === B.essencia && d.vida > 0) && Math.random() < B.essDe[nome]) itens.push({ tipo: B.essencia, qtd: 1 });
@@ -18272,13 +18670,24 @@ function bioAceitar() {
   b.fase = "coletar"; b.aceitos = 0; b.prox = 0; b.carta = 2; salvarProgresso(); som("missao", null, 0.7);
   avisarLongo(`Nova pesquisa: ${B.titulo}. Traga ${B.qtd} × ${tipoItem(B.item).nome} a ${NOME_MUKSEON}.`); atualizarMissao(); desenharCartas(); if (npcAberto) desenharNpc();
 }
-// entrega um item (com o Elixir, se pedir e tiver): devolve true se foi aceito
+// R298: beber o Elixir (da bolsa ou na conversa): vale para a próxima entrega (b.elixir), como o "drink_drug" do Metin2
+function bioBeberElixir() {
+  const b = bioDe();
+  if (b.elixir) { avisar(`O Elixir já está fazendo efeito: a próxima entrega a ${NOME_MUKSEON} tem ${Math.round(BIO_CHANCE_ELIXIR * 100)}%`); som("ui_negar"); return false; }
+  if (!contarItem("elixir_bio")) { avisar("Você não tem o Elixir do Pesquisador"); som("ui_negar"); return false; }
+  removerItem("elixir_bio", 1); b.elixir = 1; som("magia_buff", viking, 0.6);
+  avisar(`Elixir bebido: a próxima entrega a ${NOME_MUKSEON} tem ${Math.round(BIO_CHANCE_ELIXIR * 100)}% de chance`);
+  salvarProgresso(); desenharBolsa(); atualizarItensBarra(); if (npcAberto) desenharNpc();
+  return true;
+}
+// entrega um item: devolve true se foi aceito. Com comElixir, bebe um antes (se ainda não bebeu); sem, usa só o que já foi bebido (R298)
 function bioEntregar(comElixir) {
   const b = bioDe(), B = BIO[b.m]; if (!B || b.fase !== "coletar") return false;
   if (Date.now() < b.prox) { avisar(`${NOME_MUKSEON} ainda está lendo a última: volte em ${textoEspera(b.prox - Date.now())}`); som("ui_negar"); return false; }
   if (!contarItem(B.item)) { avisar(`Você não tem ${tipoItem(B.item).nome}`); som("ui_negar"); return false; }
-  const elixir = !!comElixir && contarItem("elixir_bio") > 0, chance = elixir ? BIO_CHANCE_ELIXIR : BIO_CHANCE;
-  removerItem(B.item, 1); if (elixir) removerItem("elixir_bio", 1);
+  if (comElixir && !b.elixir && contarItem("elixir_bio")) { removerItem("elixir_bio", 1); b.elixir = 1; }
+  const elixir = !!b.elixir, chance = elixir ? BIO_CHANCE_ELIXIR : BIO_CHANCE;
+  removerItem(B.item, 1); b.elixir = 0;                                // (o efeito vale para uma entrega, aceita ou não)
   const ok = Math.random() < chance;
   BIO_ULTIMA = { ok, chance };
   b.prox = Date.now() + B.espera * 60000;
@@ -18324,10 +18733,11 @@ function bioNaConversa(o) {
   else if (b.fase === "coletar") {
     const tem = contarItem(B.item), falta = b.prox - Date.now(), elix = contarItem("elixir_bio"), inc = contarItem("incenso_bio");
     fala = falta > 0 ? `Ainda estou lendo a última. Volte em ${textoEspera(falta)}.` : tem ? "Mostre. Devagar: a tinta foge da pressa." : `Traga-me ${tipoItem(B.item).nome}. Caem de ${B.de.join(", ")}; dos amaldiçoados, mais.`;
-    const bt = [["Entregar", () => bioEntregar(false), !tem || falta > 0]];
-    if (elix) bt.push([`Com o Elixir (${elix})`, () => bioEntregar(true), !tem || falta > 0]);
+    const pc = c => Math.round(c * 100) + "%", bebido = !!b.elixir;
+    const bt = [[`Entregar (${pc(bebido ? BIO_CHANCE_ELIXIR : BIO_CHANCE)}${bebido ? ", com o Elixir bebido" : ""})`, () => bioEntregar(false), !tem || falta > 0]];
+    if (elix && !bebido) bt.push([`Beber o Elixir e entregar (${pc(BIO_CHANCE_ELIXIR)}; tem ${elix})`, () => bioEntregar(true), !tem || falta > 0]);
     if (inc && falta > 0) bt.push([`Queimar o Incenso (${inc})`, () => bioIncenso()]);
-    quadroConversa(B.titulo, `Aceitos ${b.aceitos}/${B.qtd} · na bolsa: ${tem}${falta > 0 ? ` · próxima em ${textoEspera(falta)}` : ""} · chance ${Math.round(BIO_CHANCE * 100)}% (${Math.round(BIO_CHANCE_ELIXIR * 100)}% com o Elixir) · ${premioBio(B)}`, bt, cor);
+    quadroConversa(B.titulo, `Aceitos ${b.aceitos}/${B.qtd} · na bolsa: ${tem}${falta > 0 ? ` · próxima em ${textoEspera(falta)}` : ""} · chance ${pc(BIO_CHANCE)} sem o Elixir, ${pc(BIO_CHANCE_ELIXIR)} com ele${bebido ? " (já bebido: vale na próxima entrega)" : elix ? ` (tem ${elix}: só se gasta se você escolher)` : ""} · ${premioBio(B)}`, bt, cor);
   } else {
     const tem = contarItem(B.essencia);
     fala = tem ? "Essa é a essência. Dê-me, e a tinta que eu li fica com você para sempre." : `Agora a essência: a ${tipoItem(B.essencia).nome}. Cai de ${Object.keys(B.essDe).join(" ou ")}.`;
@@ -18471,6 +18881,7 @@ function lerArmazem() { if (armazem) return armazem; try { armazem = JSON.parse(
 function salvarArmazem() { try { localStorage.setItem((window.NUVEM && NUVEM.chaveArmazem()) || ARM_CHAVE, JSON.stringify(armazem)); } catch (e) {} }
 function armazemAberto() { return !$("#armazem").hidden; }
 function abrirArmazem(sim = $("#armazem").hidden) {
+  if (!sim && MAO.de === "arm") cancelarMao();
   $("#armazem").hidden = !sim; janelaAbriu("armazem", sim);
   if (sim) { lerArmazem(); abrirBolsa(true); desenharArmazem(); }
 }
@@ -18521,6 +18932,7 @@ function botaoItem(it, G = geoGrade()) {
   b.appendChild(c);
   if (it.qtd > 1 || t.arma || t.peca) { const q = document.createElement("b"); q.textContent = t.arma || t.peca ? "+" + (it.ref || 0) : it.qtd; b.appendChild(q); }
   b._item = it;                                                      // (o nome e o resto: a dica do Metin2, mostrarDica)
+  if (typeof MAO === "object" && MAO.it === it) b.classList.add("na-mao");   // (R295: o que está preso no cursor fica apagado no lugar)
   return b;
 }
 
@@ -18554,7 +18966,7 @@ function tipoItem(chave) {
     return { nome: m[0] + (P.classes ? ` (${P.classes.map(c => NOME_CLASSE[c]).join("/")})` : ""), desc: "", h: P.h, peca: PECAS[slot] ? slot : "elmo", tier: +t, usar: it => equiparPeca(it) }; }
   if (chave.startsWith("arma:")) { const { classe: c, tier, rara } = armaDaChave(chave), a = ARMAS[c];
     if (rara) return { nome: ARMAS_RARAS[c].nome, desc: `Arma rara da Capital Bestial, só para ${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[tier]}. ${LORE_RARA}`, h: a.desenho === "adagas" ? 1 : 2, arma: true, tier, rara: true, fixos: ARMAS_RARAS[c].bon, desenho: "rara:" + desenhoArma(c), usar: it => equiparArma(it) };   // (R259)
-    return { nome: ARMAS_TIER[c][tier], desc: `Arma só para ${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[tier]} (valor de ataque ${valorAtaqueArma(0, tier, desenhoArma(c)).join(" - ")} no +0). Clique direito para equipar; o Ferreiro da praça melhora até +9.`, h: a.desenho === "adagas" ? 1 : 2, arma: true, tier, desenho: desenhoArma(c), usar: it => equiparArma(it) }; }
+    return { nome: ARMAS_TIER[c][tier], desc: `Arma só para ${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[tier]} (valor de ataque ${valorAtaqueArma(0, tier, desenhoArma(c)).join(" - ")} no +0). Clique direito para equipar; o Ferreiro da praça melhora até +9 (leve-a até ele: clique nela e depois no Ferreiro).`, h: a.desenho === "adagas" ? 1 : 2, arma: true, tier, desenho: desenhoArma(c), usar: it => equiparArma(it) }; }
   if (chave.startsWith("livro:")) { const n = chave.slice(6), c = classeDaSkill(n);
     return { nome: "Livro: " + n, desc: `Skill ${c ? "do " + NOME_CLASSE[c] : ""}. Ensina de Mestre (M1) até Grão-Mestre: no M1 basta 1 leitura certa, no M2 são 2, e assim até 10 no M10 (55 ao todo). Cada leitura acerta 35% das vezes, custa 20.000 de EXP e, certa ou errada, a mesma skill só lê de novo depois de 18 a 30 h (ou na hora, com um Conselho do Eremita). ${ondeCaiRaro()}`, h: 1, usar: () => lerLivro(n), desenho: "livro@" + n }; }
   if (BIO_ITENS && BIO_ITENS[chave]) return BIO_ITENS[chave];          // (os da pesquisa do Mukseon)
@@ -18569,7 +18981,8 @@ function tipoItem(chave) {
     encantar: { nome: "Objeto Encantado", desc: "Arraste sobre uma arma ou peça na bolsa: acrescenta um bônus (até 5).", h: 1, desenho: "encantar" },
     mudar: { nome: "Mudar Bônus", desc: "Arraste sobre uma arma ou peça na bolsa: sorteia de novo todos os bônus dela.", h: 1, desenho: "mudar" },
     alma: { nome: "Pedra da Alma", desc: "Leva uma skill que já é Grão-Mestre (G1) até o G10 e ao Perfeito (P). Cada pedra pode falhar (a chance cai de 1/3 a 1/20 a cada grau), gasta honra (1.000 a 5.500; na falha, de 1/3 a 1/2 disso) e a mesma skill só lê outra depois de 8 a 12 h. Use na ficha (P). " + ondeCaiRaro(), h: 1, desenho: "alma" },
-    bencao: { nome: "Pergaminho da Bênção", desc: "No Ferreiro: se o refino falhar, a arma perde só um nível em vez de quebrar. No encaixe de uma Jóia que falha, salva a Jóia.", h: 1, desenho: "bencao" },
+    bencao: { nome: "Pergaminho da Bênção", desc: "Clique nele e depois na arma ou na peça da bolsa: refina com a chance e o custo do Ferreiro, e se falhar a peça volta um + em vez de quebrar.", h: 1, desenho: "bencao",
+              usar: () => avisar("Clique no pergaminho e depois na arma ou na peça da bolsa que quer refinar") },   // (R296)
     bau_iniciante: { nome: "Baú do Iniciante", desc: "Presente de boas-vindas para quem começa a jornada. Clique direito (ou dois cliques) para abrir.", h: 1,
                      usar: it => abrirBauIniciante(it), desenho: "bau_iniciante", conteudo: () => kitIniciante().map(k => (k.qtd > 1 ? `${k.qtd} × ` : "") + nomeItem(k)) },
     retrato_cavalo: { nome: "Retrato do Cavalo", desc: "Chama o seu cavalo (ou manda embora; também Ctrl+B). Ctrl+G monta e desmonta. Do nível 11 do cavalo ele ataca montado; no 11 e no 21 ganha armadura.", h: 1,
@@ -18880,7 +19293,7 @@ function quedaCapitalBestial(l, tab = QUEDA_CAPITAL_BESTIAL, forcar = false) {
   const q = l.cfg.chefeCapital ? tab.chefe : l.cfg.estatico ? tab.ghotin : tab.criatura, mult = l.horda ? 2 : 1, it = [];
   if (Math.random() < q.armaRara * mult) { const a = armaRaraDeQueda(l.cfg.chefeCapital ? bonusChefe("arma", 2) : undefined); if (a) it.push(a); }
   if (Math.random() < (q.bencao || 0) * mult) it.push({ tipo: "bencao" });
-  if (q.joia && Math.random() < q.joia) it.push(sortearJoia([[2, 100]], ["animal"]));   // (as feras: a de Forte contra Animais pesa 2×)
+  if (q.joia && Math.random() < q.joia) it.push(sortearJoia([[2, 100]], ["animal", "humano"]));   // (as feras e os clãs: as de Animais e Semi-humanos pesam 2×)
   return it;
 }
 function tierArmaDoNivel(nivel) { let t = 0; NIVEIS_ARMA.forEach((n, k) => { if (nivel >= n) t = k; }); return t; }
@@ -19396,23 +19809,28 @@ function somaBonus(semBio) {
 // ---------- Jóias: as pedras dos buracos da arma e da roupa (as "Spirit Stones" do Metin2; Logs/Pesquisa/METIN2_ATRIBUTOS_JOIAS.md, D e F) ----------
 // A arma tem 1 a 3 buracos pelo modelo (1, 1, 2, 2, 3, 3, 3) e a roupa também (1 até o modelo do 22, 2 nos do 30 e 38, 3 do
 // 46 em diante); elmo, botas e escudo não têm. Arrasta-se a Jóia sobre o item NA BOLSA: 30% de chance (a do Metin2). Na
-// falha, a Jóia se perde e o buraco fica com uma Pedra Partida (ocupado, sem efeito), a não ser que haja um Pergaminho da
-// Bênção na bolsa: ele é gasto e a Jóia volta. Duas Jóias iguais não entram no mesmo item. O Pergaminho da Correção tira a
-// última Jóia e a devolve; o refino no Ferreiro limpa as Pedras Partidas. Graus +0 a +4; o Ferreiro sobe a +3 para +4.
+// falha, a Jóia se perde e o buraco fica com uma Pedra Partida (ocupado, sem efeito; 06/11: a Bênção não salva mais, como no
+// Metin2). Duas Jóias iguais não entram no mesmo item. O Pergaminho da Correção tira a última Jóia e a devolve; o refino no
+// Ferreiro limpa as Pedras Partidas. Graus +0 a +4, sem +5 e sem refino de Jóia (R303: como a Gameforge de hoje).
 // No item: jo = [null (vazio) | "x" (Pedra Partida) | [tipo, grau]]; o item salvo sem o campo ganha os buracos pelo modelo.
-// Não há PvP: as Jóias contra classes do Metin2 ficam de fora; no lugar delas, as contra raça (cada criatura tem uma).
+// R303 (06/11, o usuário: "vamos alterar os bônus das joias, no metin2 eram diferentes"; a proposta aprovada, Logs/Balanceamento/
+// JOIAS_METIN2.md): os valores são os do Metin2 (a wiki da Gameforge), com a defesa na nossa escala (1 do Metin2 = 2,8, a do refino).
+// Não há PvP: as 5 Jóias contra classe do Metin2 viram 5 contra raça (Animal, Morto-vivo, Orc, Demônio e Semi-humano), com a curva
+// delas (5/8/12/17/25%). O valor é lido da tabela na hora (somaJoias): os saves antigos valem os números novos sem migrar nada
 const JOIAS = {
   critico: { nome: "Jóia do Golpe Mortal", parte: "arma", rot: "Chance de golpe crítico", pct: true, val: [1, 2, 3, 5, 8], cor: "#d8343a" },
   perfurante: { nome: "Jóia do Ataque Perfurante", parte: "arma", rot: "Chance de Perfurar", pct: true, val: [1, 2, 3, 5, 8], cor: "#3a3c44" },
   monstros: { nome: "Jóia Monstruosa", parte: "arma", rot: "Bônus contra monstros", pct: true, val: [1, 2, 3, 5, 8], cor: "#2f9a4a" },
-  resfriamento: { nome: "Jóia do Resfriamento", parte: "arma", rot: "Recarga das habilidades", pct: true, menos: true, val: [3, 5, 8, 12, 16], cor: "#7fd4f0" },
-  morto_vivo: { nome: "Jóia do Morto-vivo", parte: "arma", raca: "morto_vivo", rot: "Bônus contra Mortos-vivos", pct: true, val: [3, 5, 8, 12, 17], cor: "#8a5ad0" },
-  animal: { nome: "Jóia do Animal", parte: "arma", raca: "animal", rot: "Bônus contra Animais", pct: true, val: [3, 5, 8, 12, 17], cor: "#e8862a" },
-  orc: { nome: "Jóia do Orc", parte: "arma", raca: "orc", rot: "Bônus contra Orcs", pct: true, val: [3, 5, 8, 12, 17], cor: "#8a5a32" },
+  resfriamento: { nome: "Jóia do Resfriamento", parte: "arma", rot: "Recarga das habilidades", pct: true, menos: true, val: [5, 8, 12, 17, 25], cor: "#7fd4f0" },
+  morto_vivo: { nome: "Jóia do Morto-vivo", parte: "arma", raca: "morto_vivo", rot: "Bônus contra Mortos-vivos", pct: true, val: [5, 8, 12, 17, 25], cor: "#8a5ad0" },
+  animal: { nome: "Jóia do Animal", parte: "arma", raca: "animal", rot: "Bônus contra Animais", pct: true, val: [5, 8, 12, 17, 25], cor: "#e8862a" },
+  orc: { nome: "Jóia do Orc", parte: "arma", raca: "orc", rot: "Bônus contra Orcs", pct: true, val: [5, 8, 12, 17, 25], cor: "#8a5a32" },
+  demonio: { nome: "Jóia do Demônio", parte: "arma", raca: "demonio", rot: "Bônus contra Demônios", pct: true, val: [5, 8, 12, 17, 25], cor: "#b02a6a" },   // (R303: nova)
+  humano: { nome: "Jóia do Semi-humano", parte: "arma", raca: "humano", rot: "Bônus contra Semi-humanos", pct: true, val: [5, 8, 12, 17, 25], cor: "#c8a070" },   // (R303: nova)
   vitalidade: { nome: "Jóia da Vitalidade", parte: "roupa", rot: "PV máx.", val: [50, 100, 150, 200, 300], cor: "#e8508a" },
   magia: { nome: "Jóia da Magia", parte: "roupa", rot: "PM máx.", val: [30, 60, 90, 120, 150], cor: "#2a56c8" },
-  defesa: { nome: "Jóia da Defesa", parte: "roupa", rot: "Defesa", val: [4, 8, 12, 20, 30], cor: "#e0b830" },
-  aceleracao: { nome: "Jóia da Aceleração", parte: "roupa", rot: "Velocidade de movimento", pct: true, val: [2, 4, 6, 9, 12], cor: "#9ad040" },
+  defesa: { nome: "Jóia da Defesa", parte: "roupa", rot: "Defesa", val: [6, 11, 17, 28, 42], cor: "#e0b830" },   // (R303: os +2/4/6/10/15 do Metin2 × 2,8)
+  aceleracao: { nome: "Jóia da Aceleração", parte: "roupa", rot: "Velocidade de movimento", pct: true, val: [5, 10, 15, 20, 30], cor: "#9ad040" },
   evasao: { nome: "Jóia da Evasão", parte: "roupa", rot: "Chance de bloquear golpe corpo a corpo", pct: true, val: [1, 2, 3, 5, 8], cor: "#26b0a4" },
   esquiva: { nome: "Jóia da Esquiva", parte: "roupa", rot: "Chance de esquivar flechas e magias", pct: true, val: [1, 2, 3, 5, 8], cor: "#e8ecf4" },
 };
@@ -19471,10 +19889,7 @@ function usarJoia(j, alvo) {
   if (Math.random() < CHANCE_JOIA) {
     jo[i] = [tipo, grau]; removerItem(j.chave, 1);
     avisar(`${nomeJoia(tipo, grau)} encaixada! ${efeitoJoia(tipo, grau)}`); som("ui_aceitar", null, 1); som("magia_buff", viking, 0.8);
-  } else if (contarItem("bencao")) {
-    removerItem("bencao", 1);
-    avisar(`A Jóia não encaixou, mas o Pergaminho da Bênção a salvou (${nomeJoia(tipo, grau)} voltou)`); som("refino_falha", null, 0.8);
-  } else {
+  } else {                                                              // (06/11, o usuário: "Tirar, igual Metin2": a Bênção não salva mais a Jóia; no Metin2, 30% e, na falha, a pedra quebrada no buraco)
     jo[i] = "x"; removerItem(j.chave, 1);
     avisar(`A Jóia se partiu: o buraco ficou com uma Pedra Partida`); som("refino_falha", null, 1);
   }
@@ -19496,34 +19911,34 @@ const JOIAS_METIN = [
   [5, 0.03, [[0, 100]], ["vitalidade", "defesa"]],
   [10, 0.05, [[0, 100]], ["critico", "vitalidade"]],
   [15, 0.08, [[0, 100]], ["animal", "defesa"]],
-  [20, 0.12, [[0, 90], [1, 10]], ["perfurante", "critico"]],
+  [20, 0.12, [[0, 90], [1, 10]], ["perfurante", "humano"]],
   [25, 0.30, [[0, 70], [1, 30]], ["vitalidade", "critico"]],
   [30, 0.35, [[0, 50], [1, 40], [2, 10]], ["morto_vivo", "esquiva"]],
   [35, 0.40, [[0, 35], [1, 40], [2, 25]], ["morto_vivo", "magia"]],
-  [40, 0.45, [[0, 20], [1, 40], [2, 30], [3, 10]], ["resfriamento", "defesa"]],
+  [40, 0.45, [[0, 20], [1, 40], [2, 30], [3, 10]], ["resfriamento", "demonio"]],
   [45, 0.50, [[1, 35], [2, 40], [3, 25]], ["orc", "perfurante"]],
   [50, 0.50, [[1, 20], [2, 40], [3, 35], [4, 5]], ["defesa", "evasao"]],
-  [55, 0.55, [[1, 15], [2, 35], [3, 40], [4, 10]], ["critico", "monstros"]],
+  [55, 0.55, [[1, 15], [2, 35], [3, 40], [4, 10]], ["critico", "demonio"]],
   [60, 0.55, [[2, 30], [3, 50], [4, 20]], ["orc", "aceleracao"]],
   [65, 0.60, [[2, 25], [3, 50], [4, 25]], ["perfurante", "vitalidade"]],
   [70, 0.60, [[2, 20], [3, 50], [4, 30]], ["critico", "resfriamento"]],
 ];
 function linhaJoiasMetin(nivel) { let l = null; for (const x of JOIAS_METIN) if (nivel >= x[0]) l = x; return l; }
-function joiasDaMetin(nivel) {
+function joiasDaMetin(nivel, F = 1) {
   const l = linhaJoiasMetin(nivel); if (!l) return [];
   const r = [];
-  if (Math.random() < l[1]) r.push(sortearJoia(l[2], l[3]));
-  if (nivel >= 25 && Math.random() < 0.04) r.push({ tipo: "correcao" });   // (raro: o Pergaminho da Correção, das do 25 em diante)
+  if (chanceDrop(l[1], F)) r.push(sortearJoia(l[2], l[3]));
+  if (nivel >= 25 && chanceDrop(0.04, F)) r.push({ tipo: "correcao" });   // (raro: o Pergaminho da Correção, das do 25 em diante)
   return r;
 }
 // o chefe: do Lobo Alfa (22) em diante, 50% de uma Jóia do grau das Metins do nível dele; o Nove Caudas e o Chefe Orc
 // dão uma +3 ou +4 garantida (o papel da Bruxa do Gelo Suprema do Metin2). Os chefes das dungeons não dão
-function joiasDoChefe(l) {
+function joiasDoChefe(l, F = 1) {
   const n = l.cfg.nivel || 1, chave = l.cfg.chaveChefe || l.tipo;
-  if (chave === "nove_caudas" || chave === "orc_chefe") return [sortearJoia([[3, 50], [4, 50]], chave === "orc_chefe" ? ["orc"] : [])];
+  if (chave === "nove_caudas" || chave === "orc_chefe") return chanceDrop(1, F) ? [sortearJoia([[3, 50], [4, 50]], chave === "orc_chefe" ? ["orc"] : ["demonio"])] : [];
   if (n < 22 || String(chave).startsWith("dg_")) return [];
-  const r = []; if (Math.random() < 0.5) r.push(sortearJoia(linhaJoiasMetin(Math.max(25, n))[2]));
-  if (Math.random() < 0.1) r.push({ tipo: "correcao" });
+  const r = []; if (chanceDrop(0.5, F)) r.push(sortearJoia(linhaJoiasMetin(Math.max(25, n))[2]));
+  if (chanceDrop(0.1, F)) r.push({ tipo: "correcao" });
   return r;
 }
 
@@ -19579,7 +19994,7 @@ function htmlDica(it, extra = {}) {
     esp(); linha("fixo", efeitoJoia(t.joia.tipo, t.joia.grau));
     if (t.joia.grau < JOIA_GRAU_MAX) linha("cinza", `No +${JOIA_GRAU_MAX}: ${efeitoJoia(t.joia.tipo, JOIA_GRAU_MAX).replace(/^.*: /, "")}`);
     esp(); linha("cinza", `Encaixa em: ${J.parte === "arma" ? "Arma" : "Roupa (armadura, traje ou manto)"}`);
-    if (J.raca) linha("cinza", `${{ morto_vivo: "Mortos-vivos", animal: "Animais", orc: "Orcs" }[J.raca]}: ${criaturasDaRaca(J.raca).join(", ")}`);
+    if (J.raca) linha("cinza", `${{ morto_vivo: "Mortos-vivos", animal: "Animais", orc: "Orcs", demonio: "Demônios", humano: "Semi-humanos" }[J.raca]}: ${criaturasDaRaca(J.raca).join(", ")}`);
   }
   for (const b of bon) linha("bon", textoBonusM2(b));
   if (temRef) {
@@ -19776,6 +20191,7 @@ function migrarBolsa() {
   delete prog.pocoes; delete prog.pocoesMana; delete prog.livros; delete prog.especiais;
 }
 function abrirBolsa(sim = $("#bolsa").hidden) {
+  if (!sim && typeof MAO === "object" && MAO.it && !MAO.ferreiro) cancelarMao();   // (R295: a bolsa fechou com o item na mão: ele volta)
   $("#bolsa").hidden = !sim; janelaAbriu("bolsa", sim);
   if (typeof janelasSalvas === "object") { janelasSalvas.bolsa = { ...(janelasSalvas.bolsa || {}), aberta: sim }; salvarJanelas(); posicionarJanela(JANELAS[7]); }
   if (sim && editor.ativo) editorAbrir(false);
@@ -19892,13 +20308,13 @@ function montarBolsa() {
   grade.addEventListener("dblclick", e => { const b = e.target.closest(".item-inv"); if (b) usarEDica(b._item, e); });
   grade.addEventListener("pointermove", e => {
     const b = e.target.closest(".item-inv");
-    if (!b || arrastoItem) { dica.hidden = true; return; }
+    if (!b || arrastoItem || MAO.it) { dica.hidden = true; return; }
     mostrarDica(b._item, e.clientX, e.clientY, lojaAberta() ? { venda: ITENS_MISSAO.has(b._item.chave) ? 0 : precoVenda(b._item) } : undefined);   // (a dica no formato do Metin2: htmlDica; com a loja aberta, o preço de venda)
   });
   // a arma e as peças vestidas: a mesma dica (com as Jóias delas)
   const dicaEquip = (el, e) => {
     const slot = el.id === "eqArma" ? "arma" : el.dataset.peca, ch = prog && chaveDoEquip(slot), o = slot === "arma" ? prog.arma : prog.equip[slot];
-    if (!ch || !o || arrastoItem) { dica.hidden = true; return; }
+    if (!ch || !o || arrastoItem || MAO.it) { dica.hidden = true; return; }
     mostrarDica({ chave: ch, ref: o.ref || 0, bon: o.bon || [], jo: o.jo, qtd: 1, equipado: true }, e.clientX, e.clientY);
   };
   for (const el of document.querySelectorAll(".esp-eq")) {             // (R286) os espaços especiais: o clique direito guarda; a dica
@@ -19911,7 +20327,7 @@ function montarBolsa() {
   grade.addEventListener("pointerdown", e => {
     const b = e.target.closest(".item-inv"); if (!b || e.button > 0) return;
     arrastoItem = { it: b._item, el: b, x: e.clientX, y: e.clientY, moveu: false, fantasma: null };
-    b.setPointerCapture(e.pointerId);
+    try { b.setPointerCapture(e.pointerId); } catch (er) {}
   });
   grade.addEventListener("pointermove", e => {
     const a = arrastoItem; if (!a) return;
@@ -19925,7 +20341,7 @@ function montarBolsa() {
   const soltar = e => {
     const a = arrastoItem; arrastoItem = null; if (!a) return;
     if (a.fantasma) a.fantasma.remove();
-    if (!a.moveu) return;
+    if (!a.moveu) { if (!MAO.it && prog.inv.includes(a.it)) { pegarNaMao(a.it, "bolsa", a.el); moverMao(e.clientX, e.clientY); } return; }   // (R295: o clique sem arrastar prende o item no cursor)
     const el = document.elementFromPoint(e.clientX, e.clientY);
     if (el && el.closest && el.closest("#npcJan") && lojaAberta()) { venderItem(a.it); return; }   // (arrastado para a loja: vende)
     // na barra de atalhos: vira atalho (só o que tem uso)
@@ -19953,6 +20369,142 @@ function montarBolsa() {
   };
   grade.addEventListener("pointerup", soltar);
   grade.addEventListener("pointercancel", () => { if (arrastoItem && arrastoItem.fantasma) arrastoItem.fantasma.remove(); arrastoItem = null; });
+}
+
+// ---------------------------------------------------------------- o item preso no cursor (R295, 06/11, o usuário: "quando você clicasse em
+// um item, ele ficasse selecionado sem ter que ficar segurando o mouse... para trocar entre uma página e outra do inventário, ele clica no
+// item, clica no número do inventário depois clica no slot"). Como no Metin2 (Logs/Inventario/METIN2_CLIQUE.md): o 1º clique num item
+// (sem arrastar) o prende no cursor, com o ícone acompanhando o mouse; o clique num espaço solta (ou troca, junta a pilha, usa o
+// pergaminho, a Jóia ou a Bênção em cima do outro); o clique no número da página troca a página com o item ainda preso; o Esc ou o botão
+// direito devolvem o item ao lugar. Vale para a bolsa, o equipamento (clicar no espaço vestido prende a peça; soltar na bolsa tira; uma
+// peça da bolsa solta no espaço dela veste), a barra de atalhos, a loja (vende), o armazém e o Ferreiro (clicar nele leva o item: R297).
+// O arrastar de antes continua valendo. Não há "jogar no chão" no jogo: o clique no mundo devolve o item.
+// MAO.de: "bolsa" (it é o item da bolsa), "arm" (do armazém) ou "equip" (slot: "arma", a parte da peça ou "esp<n>")
+const MAO = { it: null, de: null, slot: null, fantasma: null, x: 0, y: 0, ferreiro: null, engole: 0, cancelou: 0 };
+function pegarNaMao(it, de, el, slot = null) {
+  soltarMao();
+  MAO.it = it; MAO.de = de; MAO.slot = slot; MAO.ferreiro = null;
+  const cv0 = el && el.querySelector("canvas");
+  if (cv0) {
+    const f = cv0.cloneNode(); f.getContext("2d").drawImage(cv0, 0, 0);
+    f.className = "slot-fantasma mao-fantasma"; f.style.width = cv0.style.width || cv0.width + "px"; f.style.height = cv0.style.height || cv0.height + "px";
+    document.body.appendChild(f); MAO.fantasma = f; moverMao(MAO.x, MAO.y);
+  }
+  if (el) el.classList.add("na-mao");
+  document.documentElement.classList.add("cur-arrasto"); CURSOR.arrasto = true;
+  $("#dicaItem").hidden = true; som("ui_clique", null, 0.5);
+}
+function moverMao(x, y) { MAO.x = x; MAO.y = y; const f = MAO.fantasma; if (f) { f.style.left = (x - f.offsetWidth / 2) + "px"; f.style.top = (y - Math.min(f.offsetHeight, CEL) / 2) + "px"; } }
+function soltarMao() {
+  if (MAO.fantasma) MAO.fantasma.remove();
+  MAO.it = null; MAO.de = null; MAO.slot = null; MAO.fantasma = null; MAO.ferreiro = null;
+  for (const e of document.querySelectorAll(".na-mao")) e.classList.remove("na-mao");
+  document.documentElement.classList.remove("cur-arrasto"); CURSOR.arrasto = false;
+}
+// devolve o item ao lugar (o Esc, o botão direito, o clique no mundo, fechar a janela de onde ele veio)
+function cancelarMao() { if (!MAO.it) return; soltarMao(); som("ui_fechar", null, 0.4); }
+// a célula da grade debaixo do ponteiro
+function celulaDa(grade, cx, cy) { const r = grade.getBoundingClientRect(), G = geoGrade(); return { x: Math.floor((cx - r.left) / G.cel), y: Math.floor((cy - r.top) / G.cel) }; }
+// o item da bolsa solto numa célula da bolsa: muda de lugar, troca com um do mesmo tamanho, junta a pilha, ou usa o pergaminho, a
+// Jóia ou a Bênção em cima do outro (o mesmo do arrastar). Devolve true se tratou (a mão solta)
+function largarNaBolsa(it, x, y) {
+  if (x < 0 || x >= INV_COLS || y < 0 || y >= INV_LINS) return false;
+  const h = tipoItem(it.chave).h, aba = abaBolsa;
+  if (!ocupado(aba, x, y, h, it)) { Object.assign(it, { aba, x, y }); }
+  else {
+    const outro = prog.inv.find(o => o !== it && o.aba === aba && o.x === x && y >= o.y && y < o.y + tipoItem(o.chave).h);
+    if (!outro) return false;
+    if ((it.chave === "encantar" || it.chave === "mudar") && parteDoItem(outro)) { usarPergaminhoBonus(it, outro); return true; }
+    if ((it.chave.startsWith("joia:") || it.chave === "correcao") && usarJoia(it, outro)) return true;
+    if (it.chave === "bencao" && pedirRefinoBencao(it, outro)) return true;   // (R296: a Bênção em cima da arma ou da peça)
+    if (outro.chave === it.chave && outro.qtd < PILHA_MAX && !tipoItem(it.chave).arma && !tipoItem(it.chave).peca) { const k = Math.min(it.qtd, PILHA_MAX - outro.qtd); outro.qtd += k; it.qtd -= k; if (it.qtd <= 0) prog.inv.splice(prog.inv.indexOf(it), 1); }
+    else if (tipoItem(outro.chave).h === h) { const p = { aba: it.aba, x: it.x, y: it.y }; Object.assign(it, { aba: outro.aba, x: outro.x, y: outro.y }); Object.assign(outro, p); }
+    else return false;
+  }
+  salvarProgresso(); desenharBolsa(); atualizarItensBarra();
+  return true;
+}
+// o clique com o item na mão: onde caiu. Devolve true se o clique foi usado (não chega ao resto da página)
+function maoClique(e) {
+  const el = e.target && e.target.closest ? e.target : null; if (!el) return false;
+  const aba = el.closest("#abasBolsa [data-aba]"), abaA = el.closest("#abasArm [data-aba]");
+  if (aba) { abaBolsa = +aba.dataset.aba; desenharBolsa(); return true; }               // (troca a página com o item ainda preso)
+  if (abaA) { abaArm = +abaA.dataset.aba; desenharArmazem(); return true; }
+  const it = MAO.it, de = MAO.de, slot = MAO.slot;
+  if ((de === "bolsa" && !prog.inv.includes(it)) || (de === "arm" && !(armazem && armazem.inv.includes(it)))) { soltarMao(); return true; }   // (gasto ou movido enquanto estava na mão: a poção usada pelo atalho)
+  const fim = () => { soltarMao(); som("drop", null, 0.4); };
+  if (el.closest("#gradeInv")) {
+    const { x, y } = celulaDa($("#gradeInv"), e.clientX, e.clientY);
+    if (de === "bolsa") { if (largarNaBolsa(it, x, y) && MAO.it === it) fim(); return true; }
+    if (de === "arm") {                                                   // (do armazém para a bolsa, no espaço clicado se couber)
+      const h = tipoItem(it.chave).h;
+      if (x >= 0 && x < INV_COLS && y >= 0 && y < INV_LINS && !ocupado(abaBolsa, x, y, h, null)) { armazem.inv.splice(armazem.inv.indexOf(it), 1); prog.inv.push({ ...it, aba: abaBolsa, x, y }); salvarArmazem(); salvarProgresso(); desenharBolsa(); desenharArmazem(); atualizarItensBarra(); }
+      else retirarDoArmazem(it);
+      fim(); return true;
+    }
+    if (de === "equip") {                                                 // (tira a peça vestida para o espaço clicado)
+      const antes = new Set(prog.inv);
+      if (slot === "arma") tirarArma(); else if (slot.startsWith("esp")) tirarEspecial(slot.slice(3)); else tirarPeca(slot);
+      const novo = prog.inv.find(o => !antes.has(o));
+      if (novo && x >= 0 && x < INV_COLS && y >= 0 && y < INV_LINS && !ocupado(abaBolsa, x, y, tipoItem(novo.chave).h, novo)) { Object.assign(novo, { aba: abaBolsa, x, y }); salvarProgresso(); desenharBolsa(); }
+      fim(); return true;
+    }
+  }
+  if (el.closest("#gradeArm") && armazemAberto()) {
+    const { x, y } = celulaDa($("#gradeArm"), e.clientX, e.clientY), h = tipoItem(it.chave).h, livre = x >= 0 && x < INV_COLS && y >= 0 && y < INV_LINS && !ocupado(abaArm, x, y, h, de === "arm" ? it : null, armazem.inv);
+    if (de === "bolsa") { if (livre) { prog.inv.splice(prog.inv.indexOf(it), 1); armazem.inv.push({ ...it, aba: abaArm, x, y }); salvarArmazem(); salvarProgresso(); desenharBolsa(); desenharArmazem(); atualizarItensBarra(); atualizarFicha(); } else guardarNoArmazem(it); }
+    else if (de === "arm" && livre) { Object.assign(it, { aba: abaArm, x, y }); salvarArmazem(); desenharArmazem(); }
+    fim(); return true;
+  }
+  const bs = el.closest("#barraSkills .slot");
+  if (bs) {
+    if (de === "bolsa") { if (!tipoItem(it.chave).usar) avisar("Esse item não tem uso para virar atalho"); else { ordemBarra[+bs.dataset.slot] = "item:" + it.chave; salvarOrdem(); montarBarraSkills(); } }
+    fim(); return true;
+  }
+  const eq = el.closest("#eqArma, .peca-eq, .esp-eq");
+  if (eq) {
+    const alvo = eq.id === "eqArma" ? "arma" : eq.dataset.peca || "esp" + eq.dataset.esp;
+    if (de === "bolsa") {
+      const serve = alvo.startsWith("esp") ? it.chave.startsWith("esp:") : slotDoItem(it) === alvo;
+      if (serve) { soltarMao(); usarEDica(it, e); return true; }
+      avisar("Esse item não vai nesse espaço"); som("ui_negar"); return true;
+    }
+    fim(); return true;                                                  // (a peça vestida de volta no lugar dela)
+  }
+  if (el.closest("#npcJan") && lojaAberta()) { if (de === "bolsa") { soltarMao(); venderItem(it); } else { avisar(de === "equip" ? "Itens equipados não podem ser vendidos." : "Leve o item para a bolsa antes de vender"); cancelarMao(); } return true; }
+  if (el.closest("#bolsa, #armazem, #ferreiro, #npcJan, .rodape, #ficha")) return true;   // (outro lugar das janelas: o item continua preso)
+  return false;
+}
+function montarMao() {
+  addEventListener("pointermove", e => { if (MAO.it) moverMao(e.clientX, e.clientY); else { MAO.x = e.clientX; MAO.y = e.clientY; } }, { passive: true });
+  addEventListener("pointerdown", e => {
+    MAO.engole = 0;                                                       // (o clique engolido é só o deste toque)
+    if (!MAO.it) return;
+    if (e.button === 2) { cancelarMao(); MAO.cancelou = performance.now(); e.preventDefault(); e.stopPropagation(); return; }
+    if (e.button !== 0 || e.target === cv) return;                        // (o mundo: o clique no Ferreiro leva o item; ver o pointerdown do cv)
+    if (maoClique(e)) { MAO.engole = performance.now(); e.preventDefault(); e.stopPropagation(); }
+  }, true);
+  addEventListener("contextmenu", e => { if (performance.now() - MAO.cancelou < 800) { MAO.cancelou = 0; e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+  addEventListener("click", e => { if (performance.now() - MAO.engole < 800) { MAO.engole = 0; e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+  addEventListener("keydown", e => { if (MAO.it && e.key === "Escape") { cancelarMao(); e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+  // o clique simples (sem arrastar) no equipamento vestido prende a peça; no armazém, o item
+  for (const el of [$("#eqArma"), ...document.querySelectorAll(".peca-eq"), ...document.querySelectorAll(".esp-eq")]) el.addEventListener("click", e => {
+    if (MAO.it || !prog) return;
+    const slot = el.id === "eqArma" ? "arma" : el.dataset.peca || "esp" + el.dataset.esp, ch = slot.startsWith("esp") ? (prog.equip[slot] ? "esp:" + prog.equip[slot].id : null) : chaveDoEquip(slot);
+    if (!ch) return;
+    pegarNaMao({ chave: ch, qtd: 1 }, "equip", el, slot); moverMao(e.clientX, e.clientY);
+  });
+  $("#gradeArm").addEventListener("click", e => { if (MAO.it) return; const b = e.target.closest(".item-inv"); if (b) { pegarNaMao(b._item, "arm", b); moverMao(e.clientX, e.clientY); } });
+}
+// R297: o item da mão levado ao Ferreiro (o clique no NPC no mundo): só da bolsa, como no Metin2 (o vestido, tire antes); ele anda até lá
+// com o item preso e, ao chegar, abre a janela do refino daquele item
+function maoNoFerreiro(npc) {
+  const it = MAO.it;
+  if (MAO.de !== "bolsa") { avisar("O Ferreiro só refina o que está na bolsa: tire o item antes"); som("ui_negar"); cancelarMao(); return false; }
+  if (!pecasDoFerreiro().some(p => p.id === it)) { avisar("O Ferreiro não refina esse item"); som("ui_negar"); cancelarMao(); return false; }
+  MAO.ferreiro = npc;
+  const [fx, fy] = daVista(-0.3, -1.1); viking.alvo = { x: npc.x + fx, y: npc.y + fy, npc }; viking.rota = null; viking.alvo.correr = Math.hypot(viking.alvo.x - viking.x, viking.alvo.y - viking.y) > 4;
+  return true;
 }
 
 // o que é raro faz um som próprio ao cair: livros, a Pedra da Alma, a Bênção e o que já vem refinado (+5 ou mais)
@@ -20112,8 +20664,12 @@ function passoProgresso(dt) {
   for (let i = drops.length - 1; i >= 0; i--) if (drops[i].vida <= 0) { if (drops[i].feixe) FEIXE.removidos++; drops.splice(i, 1); }   // (o feixe de luz sai junto)
   passoTrevas(dt);                                                   // as trevas das Ghotins e a maldição de quem está nelas
   // pedras Metin: defensores quando nascem; o bando chamado some depois de cair (não renasce)
+  // (R305: a fumaça só anda nas pedras do mapa da câmera; as dos outros mapas ficam paradas como estão e seguem na volta.
+  //  R307: o lugar da próxima queda, sorteado aos poucos enquanto a pedra quebrada espera)
+  const mapaFumaca = MAPA_CAM;
   for (const l of criaturas) {
-    if (l.cfg.estatico) passoFumacaMetin(l, dt);
+    if (l.cfg.estatico && (!FUMACA_GHOTIN.soNoMapa || mapaDe(l.x, l.y) === mapaFumaca)) passoFumacaMetin(l, dt);
+    if (l.tocaPassos) passoTocaMetin(l);
     if (l.cfg.estatico && !l.morto && !l.defensores) { l.defensores = true; chamarHorda(l, 3, false); }
     if (l.horda && l.morto) { l.sumir = (l.sumir || 0) + dt; if (l.sumir > 2.5) l.remover = true; }
   }
@@ -21527,6 +22083,7 @@ function passoCriatura(l, dt) {
     // renasce na toca, mas não na cara do jogador: com ele a menos de RENASCE_LONGE da toca, espera mais um pouco
     if (l.renascer <= 0 && !cfg.estatico && !l.horda && Math.hypot(viking.x - l.toca.x, viking.y - l.toca.y) < RENASCE_LONGE) l.renascer = 1.5;
     // a pedra Metin cai do céu antes de voltar: METIN_QUEDA s de queda (desenhada em desenharCriatura) e o baque
+    if (l.renascer <= 0 && cfg.estatico && l.tocaPassos) passoTocaMetin(l, true);   // (R307: o lugar ainda sorteando: termina antes da queda)
     if (l.renascer <= 0 && cfg.estatico && !(l.caindo > 0)) { l.caindo = METIN_QUEDA; l.renascer = METIN_QUEDA; som("meteoro_queda", l.toca, 0.7); }
     if (l.renascer <= 0) {
       if (cfg.estatico) {
@@ -23377,6 +23934,7 @@ cv.addEventListener("pointermove", e => {
 });
 cv.addEventListener("pointerleave", () => aplicarCursor("normal"));
 cv.addEventListener("pointerdown", e => {
+  if (MAO.it && e.button === 0) { const r = cv.getBoundingClientRect(), n = npcNoClique(e.clientX - r.left, e.clientY - r.top); if (n && n.tipo === "ferreiro") maoNoFerreiro(n); else cancelarMao(); return; }   // (R295/R297: com o item na mão, o Ferreiro o recebe; o resto do mundo o devolve)
   if (!M || viking.caido || editor.ativo || CENA.ativa) return;          // (na cena, o clique não move o herói)
   limparPendentes(viking);                                          // ordem nova: o golpe ou a skill que esperava a corrida cai
   if (mira) {                                                       // mirando uma skill de área: o clique escolhe o lugar
@@ -23410,6 +23968,12 @@ cv.addEventListener("pointerdown", e => {
   if (criatura) selecao = criatura;
   viking.alvo.correr = Math.hypot(viking.alvo.x - viking.x, viking.alvo.y - viking.y) > 4;   // longe: vai correndo
 });
+// (R297) o NPC sob o ponteiro (a mesma caixa do clique de falar), para o item da mão levado ao Ferreiro
+function npcNoClique(px, py) {
+  const pk = window.M3D && M3D.ativo ? M3D.pegar(px, py) : null; if (pk) return pk.npc || null;
+  const pm = doPonteiro(px, py), naV = o => naVista(pm.x - o.x, pm.y - o.y);
+  return objetos.find(o => { if (!o.npc) return false; const [du, dv0] = naV(o), dv = dv0 - (naZonaAltar(o.x, o.y) ? 0 : zPiso(o.x, o.y)) * ALTURA / ACHATA; return Math.abs(du) < 0.6 && dv > -0.4 && dv < 2.4; }) || null;
+}
 // criatura sob o ponteiro: dentro da caixa do quadro desenhado (com folga), a mais perto dos pés
 function criaturaNoClique(px, py) {
   let melhor = null, dm = Infinity;
@@ -23562,7 +24126,16 @@ function fecharMapaOriginal() {
 // as aprovadas (o texto do "Copiar mudanças", colado aqui por mapa); com ?editor=1, as do navegador (localStorage, por mapa) vêm depois
 // delas. Sem operação nenhuma e sem ?editor=1, nada disto roda (nem os ids são dados)
 const EDITOR_MAPAS = /[?&]editor=1/.test(location.search);
-const MAPA_EDITADO_FIXO = {};                                          // { "<mapa>": [operações] } (vila1, hahoe, hahoe2, montanha, daiyu, cav:<id>)
+const MAPA_EDITADO_FIXO = {                                            // { "<mapa>": [operações] } (vila1, hahoe, hahoe2, montanha, daiyu, cav:<id>)
+  // (06/11, a 1ª edição do usuário no editor, Logs/Mapas/edicoes/2026-11-06_vila1.json: o barril, o Senhor do Armazém, o prédio do
+  // armazém e a forja pintada girada 180°)
+  vila1: [
+    {"op": "mudar", "id": "d:barril:87:-358", "cat": "deco", "x": 8.85, "y": -35.34},
+    {"op": "mudar", "id": "n:Senhor do Armazém", "cat": "npc", "x": 9.84, "y": -11.03},
+    {"op": "mudar", "id": "b:armazem_v2:135:-145", "cat": "predio", "x": 14.39, "y": -12.68},
+    {"op": "mudar", "id": "d:forja_pintada:231:20", "cat": "deco", "giro": 180, "esp": false, "x": 23.27, "y": 2.16},
+  ],
+};
 const EDM_CHAVE = "mapaEditor1:";                                      // + o mapa: as operações deste navegador (só com ?editor=1)
 const EDM_NATUREZA = new Set(["arvore", "pinheiro", "pinheiro_daiyu", "arbusto", "arbusto_flor", "pedra", "pedra_neve", "basalto", "bloco_gelo", "osso", "tronco", "toco", "bambu"]);
 const EDM_OBJ_X = new Set(["estatua_era", "altar_arte", "porta_chefe", "bau_chefe"]);   // (objetos que não são decoração, mas aparecem no mapa)
@@ -23896,8 +24469,10 @@ const DUNGEONS = [
     bandos: [[1, "rato", 8], [2, "rato", 7], [4, "rato", 8]],   // (R252: o salão do Rato Rei, a sala 3, só com ele)
     chefe: { sala: 3, base: "rato", nome: "Rato Rei", esc: 2.1, vida: 3800, nivel: 7, dano: 34, renasce: 540 } },
   { id: "aranhas", nome: "Toca das Aranhas", x: 400, y: 0, x0: -8, x1: 36, y0: -14, y1: 18, buraco: [23.5, -52.5],   // (na beira do ninho da Aranha Gigante, ~8 m dele)
-    salas: [{ x: 0, y: 0, r: 4 }, { x: 11, y: 7, r: 5.5 }, { x: 13, y: -6, r: 5 }, { x: 24, y: 9, r: 5 }, { x: 28, y: -3, r: 7.5 }],
-    tuneis: [[0, 0, 11, 7, 2.4], [0, 0, 13, -6, 2.4], [11, 7, 24, 9, 2.2], [13, -6, 28, -3, 2.6], [24, 9, 28, -3, 2.2]],
+    // (R299: a sala 3 era encostada no salão da Rainha, a 0,2 m dele: sem o túnel entre os dois, o chão das duas se tocava e virava uma
+    // 2ª entrada. Ela foi 2 m para o noroeste, com rocha entre as duas)
+    salas: [{ x: 0, y: 0, r: 4 }, { x: 11, y: 7, r: 5.5 }, { x: 13, y: -6, r: 5 }, { x: 22, y: 10, r: 5 }, { x: 28, y: -3, r: 7.5 }],
+    tuneis: [[0, 0, 11, 7, 2.4], [0, 0, 13, -6, 2.4], [11, 7, 22, 10, 2.2], [13, -6, 28, -3, 2.6], [22, 10, 28, -3, 2.2]],
     tema: { piso: "rgba(14, 22, 16, 0.55)", escuro: 0.9, mini: [74, 82, 68], teias: true },
     bandos: [[1, "aranhinha", 3], [2, "aranhinha", 3], [3, "aranhinha", 3]],
     chefe: { sala: 4, base: "aranha", nome: "Aranha Rainha", esc: 1.25, vida: 9000, nivel: 15, dano: 96, renasce: 540 } },
@@ -23953,7 +24528,28 @@ DUNGEONS.forEach((d, n) => {
   d.tuneis = d.tuneis.map(t => t.map(v => v * E));
   if (d.chefe && d.chefe.salao) d.chefe.salao *= E;
   d.bandos = d.bandos.map(([k, t, q]) => [k, t, Math.max(q, Math.round(q * ESC_CAV * ESC_CAV))]);   // (a área cresce ESC_CAV²)
+  umaEntradaNoSalao(d);
 });
+// R299 (06/11, o usuário, na Toca das Aranhas: "deixe apenas uma porta para acesso à aranha boss, porque quando ela fica posicionada na
+// parte de cima para entrar para a caverna fica completamente fora de posição... ela sempre tem que ficar na frente da entrada e o mapa do
+// boss para cima em relação a ela"). A causa: o salão do chefe de cada dungeon era ligado por DOIS túneis (o desenho em anel), e o
+// montarPortasChefe põe uma porta em cada túnel que chega nele; em todas as 5 dungeons com chefe havia 2 portas, e uma delas ficava de
+// lado ou com o salão para baixo na tela. Agora o salão tem uma entrada só: fica o túnel em que, na vista de sempre (giro de 45°), o
+// salão aparece mais para cima a partir da porta; os outros que chegavam nele saem do mapa (as salas do outro lado continuam ligadas
+// pelos outros túneis). d.tuneisFechados guarda os que saíram (os testes e o arco do Ninho)
+function umaEntradaNoSalao(d) {
+  const ch = d.chefe, s = ch && d.salas[ch.sala]; if (!s) return;
+  const S0 = Math.SQRT1_2, C0 = Math.SQRT1_2;                           // (a direção "para cima" da tela no giro de 45°: x·sen + y·cos)
+  const chegam = d.tuneis.map((t, i) => ({ t, i })).filter(({ t: [ax, ay, bx, by] }) => Math.hypot(ax - s.x, ay - s.y) < 0.01 || Math.hypot(bx - s.x, by - s.y) < 0.01);
+  if (chegam.length < 2) return;
+  const subida = ({ t: [ax, ay, bx, by] }) => { const ehA = Math.hypot(ax - s.x, ay - s.y) < 0.01, fx = ehA ? bx : ax, fy = ehA ? by : ay; return -((s.x - fx) * S0 + (s.y - fy) * C0) / Math.hypot(s.x - fx, s.y - fy); };   // (menor: o salão mais para cima, visto da porta)
+  chegam.sort((a, b) => subida(a) - subida(b));
+  const fora = new Set(chegam.slice(1).map(c => c.i));
+  d.tuneisAntes = d.tuneis;
+  d.tuneisFechados = d.tuneis.filter((_, i) => fora.has(i));
+  d.tuneis = d.tuneis.filter((_, i) => !fora.has(i));
+  if (d.geo0) d.geo0.tuneis = d.geo0.tuneis.filter((_, i) => !fora.has(i));
+}
 const CAV = DUNGEONS[0];                    // a primeira (para quem ainda fala só "da caverna")
 const passagens = [];                   // buracos e escadas: { tipo, x, y, para: { x, y }, nome }
 let escurece = 0;
@@ -24151,7 +24747,7 @@ function ligarAndarVale(d) {
 }
 // ---------------------------------------------------------------- a porta e o baú do chefe (lista 36 do usuário, 05/11: R252 e R253)
 // Em cada dungeon com chefe (as 4 cavernas da Vila 1 e o Ninho do Vale dos Dragões), o chefe fica sozinho no salão do fundo,
-// atrás de uma porta em cada túnel que chega nele (no 1º trecho do túnel com rocha dos dois lados). Fechada, ela barra todo
+// atrás da porta do único túnel que chega nele (R299: umaEntradaNoSalao; no 1º trecho do túnel com rocha dos dois lados). Fechada, ela barra todo
 // mundo; o herói abre com um clique (05/11: sem a caixa de confirmação; as folhas giram para dentro), e quem não quiser passa longe.
 // As criaturas comuns nunca atravessam (nem caçam quem está do outro lado), o chefe não sai e, com o herói fora do salão (saiu
 // ou caiu), a porta fecha e o chefe volta a ficar sozinho, de vida cheia e sem o bando que chamou (as salas de chefe das
@@ -24675,7 +25271,7 @@ function pecasVale(d, por, noChao) {
     d.pontes = feitas;
   }
   if (T === "ninho") {                                                   // (o arco de costelas anuncia o salão, nos 2 túneis que chegam a ele; só os pés colidem)
-    for (const [ax, ay, bx, by] of d.tuneis.slice(-2)) { const x = d.x + ax + (bx - ax) * 0.33, y = d.y + ay + (by - ay) * 0.33; objetos.push({ tipo: "vale_peca", peca: "arco", x, y, r: 0, esc: 1, tam: 1, caverna: true }); }
+    for (const [ax, ay, bx, by] of (d.tuneisAntes || d.tuneis).slice(-2).filter(t => d.tuneis.includes(t))) { const x = d.x + ax + (bx - ax) * 0.33, y = d.y + ay + (by - ay) * 0.33; objetos.push({ tipo: "vale_peca", peca: "arco", x, y, r: 0, esc: 1, tam: 1, caverna: true }); }
   }
 }
 // ---- as peças, por código: minhwa (cores chapadas da paleta, contorno de nanquim), desenhadas uma vez num canvas
@@ -26369,7 +26965,12 @@ function astarCap(n) {
   ASTAR.cap = c; ASTAR.gi = new Int32Array(c); ASTAR.gj = new Int32Array(c); ASTAR.gg = new Float64Array(c); ASTAR.de = new Int32Array(c);
   ASTAR.hf = new Float64Array(c * 8 + 16); ASTAR.hn = new Int32Array(c * 8 + 16);
 }
-function acharCaminho(x0, y0, x1, y1, maxNos = 9000) {
+// (R310, 06/11) maxFrias: no máximo tantas células ainda fora do cache (cada uma são 5 livre(); a busca do herói que não chega e
+// anda o teto de 9.000 nós por um lugar ainda não visto calculava até ~32 mil delas: 36 a 199 ms num quadro com a CPU do usuário).
+// Passou do teto, a busca para ali e devolve cortou: true (sem guardar no memo). As células que ela viu ficam no cache, e a mesma
+// busca no quadro seguinte vai mais longe: em poucos quadros ela termina com o MESMO caminho da busca inteira (as células são as
+// mesmas). O herói espera parado esses quadros (rumo), em vez de um quadro de até 200 ms
+function acharCaminho(x0, y0, x1, y1, maxNos = 9000, maxFrias = Infinity) {
   const G = PASSO_GRADE, ci = v => Math.round(v / G), chave = (i, j) => (i + 2048) * 4096 + (j + 2048);
   const si = ci(x0), sj = ci(y0), ti = ci(x1), tj = ci(y1);
   const h = (i, j) => { const dx = Math.abs(i - ti), dy = Math.abs(j - tj); return (dx + dy + (Math.SQRT2 - 2) * Math.min(dx, dy)) * G; };
@@ -26378,9 +26979,12 @@ function acharCaminho(x0, y0, x1, y1, maxNos = 9000) {
   if (MM.ger !== RG.ger || MM.chave !== ROTA_OK.chave) { MM.m.clear(); MM.ger = RG.ger; MM.chave = ROTA_OK.chave; }
   const kMemo = ((si + 2048) * 4096 + (sj + 2048)) * 16777216 + (ti + 2048) * 4096 + (tj + 2048) + "|" + maxNos, memo = MM.ligado && ROTA_OK.ligado ? MM.m.get(kMemo) : undefined;
   if (memo) { MM.usos++; return astarEncurtar(memo.cel, memo.chega, x0, y0, x1, y1); }
+  let frias = 0, cortou = false;
   const ok = (i, j) => {
     const k = chave(i, j), c = GV[k];
     if ((c & 254) === gm) return (c & 1) === 1;
+    if (frias >= maxFrias) { cortou = true; return false; }
+    frias++;
     const x = i * G, y = j * G, v = livre(x, y) && livre(x + 0.2, y) && livre(x - 0.2, y) && livre(x, y + 0.2) && livre(x, y - 0.2); GV[k] = gm | (v ? 1 : 0);
     return v;
   };
@@ -26401,7 +27005,7 @@ function acharCaminho(x0, y0, x1, y1, maxNos = 9000) {
       for (;;) { const a = 2 * i + 1, b = a + 1; let m = i; if (a < hl && HF[a] < HF[m]) m = a; if (b < hl && HF[b] < HF[m]) m = b; if (m === i) break; const tf = HF[m]; HF[m] = HF[i]; HF[i] = tf; const tn = HN[m]; HN[m] = HN[i]; HN[i] = tn; i = m; } } };
   const s0 = novo(si, sj, 0, -1); poe(si, sj, chave(si, sj), s0); push(h(si, sj), s0);
   let mi = si, mj = sj, mh = h(si, sj), mn = s0, nos = 0;
-  while (hl && nos++ < maxNos) {
+  while (hl && nos++ < maxNos && !cortou) {
     pop(); const n = topN, ni = A.gi[n], nj = A.gj[n], gn = A.gg[n];
     if (topF > gn + h(ni, nj) + 1e-6) continue;                      // entrada velha na fila
     const hn = h(ni, nj);
@@ -26422,6 +27026,8 @@ function acharCaminho(x0, y0, x1, y1, maxNos = 9000) {
   // volta do melhor nó até o começo e encurta em retas
   const pts = []; for (let q = mn, guarda = 0; guarda < 20000 && q >= 0; guarda++) { pts.push([A.gi[q], A.gj[q]]); q = A.de[q]; }
   pts.reverse();
+  ASTAR_CORTE.ultima = { frias, cortou, nos };
+  if (cortou) { ASTAR_CORTE.cortes++; return { pts: [], chega: false, cortou: true }; }
   if (MM.ligado && ROTA_OK.ligado) { if (MM.m.size > 512) MM.m.clear(); MM.m.set(kMemo, { cel: pts, chega: mh === 0 }); }
   return astarEncurtar(pts, mh === 0, x0, y0, x1, y1);
 }
@@ -26491,7 +27097,10 @@ const ROTAS = { q: 0, quadro: -1, n: 0, adiadas: 0 };
 // DESEMPENHO (plano de arquitetura C, 03/11, aprovado): o teto de nós da busca: 600 para as criaturas (era 1.500) e 3.000 para o
 // herói (era 9.000). As buscas que não chegam (o alvo numa célula fechada) andavam o teto inteiro: 14–20 ms do herói e 11–13 ms
 // da criatura com a CPU do usuário. Sem chegar, a busca devolve o caminho até o ponto mais perto (como já fazia)
-const ROTA_NOS = { criatura: 600, heroi: 3000, heroiLonge: 9000 };
+const ROTA_NOS = { criatura: 600, heroi: 3000, heroiLonge: 9000, heroiFrias: 2000 };
+// (R310) o corte das buscas do herói: as células frias por busca (heroiFrias) e o alvo em outro mapa (não há caminho a pé entre os
+// mapas nem para as cavernas: a busca andava o teto inteiro a cada meio segundo de herói parado)
+const ASTAR_CORTE = { ligado: true, cortes: 0, outroMapa: 0, ultima: null };
 let ROTAS_POR_QUADRO = 1;
 function rumo(ent, x, y, dt) {
   const r = ent.rota;
@@ -26519,8 +27128,10 @@ function rumo(ent, x, y, dt) {
         if (mel) { tx = mel[0]; ty = mel[1]; } else teto = ROTA_NOS.heroi;
       }
     }
-    const c = acharCaminho(ent.x, ent.y, tx, ty, teto);
-    ent.rota = { x, y, pts: c.pts, t: 0, chega: c.chega };
+    // (R310) o herói com o alvo em outro mapa (o outro lado de um portal, uma caverna): sem busca, fica onde está
+    if (!criatura && ASTAR_CORTE.ligado && idMapa(ent.x, ent.y) !== idMapa(tx, ty)) { ASTAR_CORTE.outroMapa++; ent.rota = { x, y, pts: [], t: 0, chega: false, outroMapa: true }; return [0, 0]; }
+    const c = acharCaminho(ent.x, ent.y, tx, ty, teto, !criatura && ASTAR_CORTE.ligado ? ROTA_NOS.heroiFrias : Infinity);
+    ent.rota = { x, y, pts: c.pts, t: 0, chega: c.chega, cortou: c.cortou };   // (cortou: sem pontos, a busca continua no quadro seguinte)
     if (criatura) ent.rotaEspera = c.chega ? 0.3 : 1.2;
   }
   const rota = ent.rota;
@@ -27055,7 +27666,7 @@ function passo(dt) {
     else if (!v.caido && !v.golpeCorrida && (!v.acao || (lutaPerto() && corteCombo(v.acao) !== undefined && !v.fila))) { if (!v.acao) v.dir = dirDe(dx, dy); atacar(); }
   } else if (!mx && !my && v.alvo && v.alvo.npc && Math.hypot(v.alvo.npc.x - v.x, v.alvo.npc.y - v.y) < 2.2) {
     const npc = v.alvo.npc; v.dir = dirDe(npc.x - v.x, npc.y - v.y); v.alvo = null;   // chegou: conversa (ou o ferreiro)
-    if (npc.tipo === "ferreiro") { ferreiroNpc = npc; abrirNpc(null); abrirFerreiro(true); } else abrirNpc(npc);   // (o ferreiro da vila em que se está)
+    if (npc.tipo === "ferreiro") { ferreiroNpc = npc; abrirNpc(null); const it = MAO.ferreiro === npc ? MAO.it : null; if (it) soltarMao(); abrirFerreiro(true, it); } else abrirNpc(npc);   // (R297: o item levado na mão abre o refino dele)   // (o ferreiro da vila em que se está)
   } else if (!mx && !my && v.alvo) {
     const dx = v.alvo.x - v.x, dy = v.alvo.y - v.y, d = Math.hypot(dx, dy);
     let parar = v.alvo.boneco ? (distante() ? alcanceDist() - 1 : 1.3) : 0.12;
@@ -27594,9 +28205,20 @@ function peNaTela(x, y, larg, alto, extraPx = 0) {
   const [sx, sy] = tela(x - cam.x, y - cam.y), s = PX * zoom, X = W / 2 + sx, Y = H / 2 + sy - (y < -350 ? DAIYU.z(x, y) * s * ALTURA : x < -350 ? GELADA.z(x, y) * s * ALTURA : naZonaAltar(x, y) ? altarZ(x, y) * s * ALTURA : 0);
   return X > -larg * s - extraPx && X < W + larg * s + extraPx && Y > -s * 1.2 - extraPx && Y - alto * s - extraPx < H;
 }
+// DESEMPENHO (R304, 06/11, Logs/Desempenho/GHOTINS_CUSTO.md): a Ghotin era "sempre na tela", e as 10 a 14 pedras do mapa eram
+// desenhadas em todo quadro (a fumaça, o corpo, a aura, as runas e a barra): ~0,19 ms cada uma fora da tela, 1,4 a 2,7 ms por
+// quadro. Agora entra só com a caixa dela na tela: larg/alto cobrem a fumaça (sobe até ~6 m, abre até ~2,7 m do pé) e a
+// aura, com GHOTIN_CORTE.folga px; a que está caindo do céu (o rastro sai da toca, bem acima) e o mundo 3D seguem sempre
+const GHOTIN_CORTE = { ligado: true, larg: 3.5, alto: 7.5, folga: 120 };
+function ghotinNaTela(l) {
+  if (!GHOTIN_CORTE.ligado || (l.morto && l.caindo > 0) || (window.M3D && M3D.ativo)) return true;
+  const e = Math.max(1, l.cfg.esc || 1);
+  return peNaTela(l.x, l.y, GHOTIN_CORTE.larg * e, GHOTIN_CORTE.alto * e, GHOTIN_CORTE.folga);
+}
 function criaturaNaTela(l) {
   const c = l.cfg;
-  if (c.estatico || c.chefe || c.chefeCaverna) return true;                // (as Ghotins caindo do céu, a fumaça, os chefes: sempre)
+  if (c.estatico) return ghotinNaTela(l);
+  if (c.chefe || c.chefeCaverna) return true;                            // (os chefes: sempre)
   const e = Math.max(1, c.esc || 1, c.telaEsc || 1);                     // (telaEsc: os dragões passam da caixa de sempre: o rabo, as asas)
   return peNaTela(l.x, l.y, 2.5 * e, 2.5 * e + (c.barra || 0) * zoom / (PX * zoom), 80);
 }
@@ -27706,6 +28328,7 @@ function desenharQuadro(t) {
   desenharMagiasChao(t);
   desenharMira(t);
   desenharItens(t);
+  desenharPoeira();                                 // (R300: a poeira dos caminhos, no chão, antes de quem fica em pé)
   if (ESTILO_TINTA) respingosTinta(t, false);       // (Mundo de Tinta: as manchas de tinta e sangue já caídas no chão)
   prepararP3d(t);                                   // os bonecos em 3D vão para o atlas antes (cada um no seu lugar da ordem)
   // tudo por profundidade (quem está mais ao norte fica atrás)
@@ -27756,7 +28379,6 @@ function desenharQuadro(t) {
   desenharFogoSopro(t);                             // (o sopro dos dragões: chapado, por cima do escuro)
   if (window.FX3) FX3.desenhar2d(t);                // os efeitos 3D (FX3) por cima do mundo, depois do escuro da noite (brilham)
   if (ESTILO_TINTA) filtroTinta(t);                  // o Mundo de Tinta: o mundo inteiro (e os efeitos) vira nanquim e aguada
-  desenharVinhetaVida();                            // (R290: as bordas avermelhadas abaixo de 25% de vida)
   desenharPlacas();
   if (ESTILO_TINTA) desenharNumeros();               // (os números do dano por cima, fora do filtro)
   desenhar.tAnt = t;
@@ -27928,12 +28550,11 @@ function quadrosFogo() {
   return l;
 }
 
-// ---- (R290, 05/11) o ALERTA DE VIDA BAIXA (o usuário escolheu a sugestão): de 50% de vida para baixo, uma luz vermelha em volta do
-// herói e uma mancha de luz no chão, sob os pés, pulsando como um coração (0,8 Hz a 50%, 1,8 Hz perto de 0, mais forte quanto menos
-// vida); abaixo de 25%, também as bordas da tela avermelhadas, finas, no mesmo pulso; e uma batida grave baixinha (o som de efeitos,
-// mudo com o som desligado). Histerese de 2% nas duas faixas, para não piscar. Como os outros efeitos: luz somada, sem contorno de
-// nanquim, só drawImage de sprites prontos (o lote desenha). Vale a pé e montado. No ?test=1 só o estado (sem desenho e sem som)
-const ALERTA_VIDA = { liga: 0.5, forte: 0.25, hist: 0.02, ativo: false, vinheta: false, fase: 0, pulso: 0, k: 0, hz: 0, spr: null, vin: null, vinTam: "" };
+// ---- (R290, 05/11; 06/11 só na interface) o ALERTA DE VIDA BAIXA: de 50% de vida para baixo, pulsando como um coração (0,8 Hz a 50%,
+// 1,8 Hz perto de 0, mais forte quanto menos vida), na barra de vida, num coração ao lado dela e no círculo do nível (alertaVidaUI);
+// abaixo de 25%, mais forte; e uma batida grave baixinha (o som de efeitos, mudo com o som desligado). Histerese de 2% nas duas faixas,
+// para não piscar. Vale a pé e montado, e apaga ao cair. A luz no corpo, a mancha no chão e as bordas da tela saíram (06/11, o usuário)
+const ALERTA_VIDA = { liga: 0.5, forte: 0.25, hist: 0.02, ativo: false, vinheta: false, fase: 0, pulso: 0, k: 0, hz: 0 };   // (vinheta: a faixa de baixo de 25%, "crítica")
 function passoAlertaVida(dt) {
   const A = ALERTA_VIDA, v = viking, f = status.vidaMax ? Math.max(0, v.vida) / status.vidaMax : 1;
   if (v.caido || f <= 0) { A.ativo = A.vinheta = false; }
@@ -27941,7 +28562,7 @@ function passoAlertaVida(dt) {
     A.ativo = A.ativo ? f < A.liga + A.hist : f < A.liga;
     A.vinheta = A.ativo && (A.vinheta ? f < A.forte + A.hist : f < A.forte);
   }
-  if (!A.ativo) { A.fase = 0; A.pulso = 0; A.k = 0; return; }
+  if (!A.ativo) { A.fase = 0; A.pulso = 0; A.k = 0; alertaVidaUI(); return; }
   A.k = Math.max(0, Math.min(1, (A.liga - f) / A.liga));              // (0 a 50% de vida, 1 no fim)
   A.hz = 0.8 + 1.0 * A.k;
   const f0 = A.fase; A.fase = (A.fase + dt * A.hz) % 1;
@@ -27949,36 +28570,19 @@ function passoAlertaVida(dt) {
   const b = (c, l) => Math.exp(-Math.pow((A.fase - c) / l, 2));
   A.pulso = Math.min(1, b(0.06, 0.06) + 0.65 * b(0.27, 0.06));
   if (A.fase < f0 && !MODO_TESTE) som("passo_gigante", null, 0.1 + 0.12 * A.k);   // (a batida, baixinha)
+  alertaVidaUI();
 }
-// o sprite da luz (um disco macio vermelho, feito uma vez) e o da vinheta (as bordas, refeito quando a tela muda de tamanho)
-function sprLuzVida() {
-  const A = ALERTA_VIDA; if (A.spr) return A.spr;
-  const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-  gr.addColorStop(0, "rgba(255, 70, 50, 1)"); gr.addColorStop(0.45, "rgba(230, 40, 30, 0.55)"); gr.addColorStop(1, "rgba(200, 20, 20, 0)");
-  g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return (A.spr = c);
-}
-function sprVinhetaVida() {
-  const A = ALERTA_VIDA, tam = W + "x" + H; if (A.vin && A.vinTam === tam) return A.vin;
-  const w = Math.max(64, Math.round(W / 4)), h = Math.max(64, Math.round(H / 4)), c = document.createElement("canvas"); c.width = w; c.height = h;
-  const g = c.getContext("2d"), gr = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.42, w / 2, h / 2, Math.hypot(w, h) / 2);
-  gr.addColorStop(0, "rgba(160, 10, 10, 0)"); gr.addColorStop(0.55, "rgba(170, 14, 12, 0.35)"); gr.addColorStop(1, "rgba(190, 18, 14, 0.85)");
-  g.fillStyle = gr; g.fillRect(0, 0, w, h); A.vinTam = tam; return (A.vin = c);
-}
-// atrás do herói: a mancha no chão (X, Y: os pés) e a luz em volta do corpo (Yc: o meio do corpo; montado, na sela)
-function desenharAlertaVida(X, Y, z, Yc) {
-  const A = ALERTA_VIDA; if (!A.ativo || MODO_TESTE) return;
-  const s = PX * z, im = sprLuzVida(), a = (0.22 + 0.5 * A.k) * (0.35 + 0.65 * A.pulso);
-  cx.save(); cx.globalCompositeOperation = "lighter";
-  const r = s * (0.95 + 0.25 * A.pulso);
-  cx.globalAlpha = Math.min(1, a); cx.drawImage(im, X - r, Y - r * ACHATA, r * 2, r * 2 * ACHATA);
-  const rw = s * (0.62 + 0.1 * A.pulso), rh = s * (1.25 + 0.12 * A.pulso);
-  cx.globalAlpha = Math.min(1, a * 0.75); cx.drawImage(im, X - rw, Yc - rh, rw * 2, rh * 2);
-  cx.restore();
-}
-// as bordas da tela, abaixo de 25% (por cima do mundo e por baixo da interface, que é HTML)
-function desenharVinhetaVida() {
-  const A = ALERTA_VIDA; if (!A.vinheta || MODO_TESTE) return;
-  cx.save(); cx.globalAlpha = Math.min(1, (0.3 + 0.35 * A.k) * (0.45 + 0.55 * A.pulso)); cx.drawImage(sprVinhetaVida(), 0, 0, W, H); cx.restore();
+// (06/11, o usuário escolheu "só na interface") a vida baixa só no HTML: a barra de vida pisca em vermelho num brilho que pulsa, o
+// coração pequeno ao lado dela bate no mesmo ritmo e o círculo do nível ganha a moldura vermelha pulsando; abaixo de 25%, mais forte
+// (o ritmo já acelera com menos vida). O pulso vai para o CSS em --vp (0 a 1) e a força em --vk; as classes no #rodape ligam e desligam
+// (vida-baixa, vida-critica). Nada é desenhado no mundo. Vale também no ?test=1 (é só o estado no HTML; sem som)
+function alertaVidaUI() {
+  const A = ALERTA_VIDA, r = document.getElementById("rodape"); if (!r) return;
+  if (r.classList.contains("vida-baixa") !== A.ativo) r.classList.toggle("vida-baixa", A.ativo);
+  if (r.classList.contains("vida-critica") !== A.vinheta) r.classList.toggle("vida-critica", A.vinheta);
+  const c = document.getElementById("vCoracao"); if (c && c.hidden === A.ativo) c.hidden = !A.ativo;
+  if (!A.ativo) return;
+  r.style.setProperty("--vp", A.pulso.toFixed(3)); r.style.setProperty("--vk", A.k.toFixed(3));
 }
 function desenharFuria(X, Y, z, t, frente) {
   if (!FX || fx3()) return;
@@ -30125,7 +30729,6 @@ function desenharViking() {
   desenharSetaMarca(performance.now() / 1000);
   if (v.montado) { desenharMontado(X, Y, z); return; }                 // (montado: o cavalo com o herói preso ao Assento)
   sombraHeroi(X, Y, z);
-  desenharAlertaVida(X, Y, z, Y - 0.9 * PX * z * ALTURA);              // (R290: a vida baixa)
   const em3d = !!P3D.vale(v), querFolha = em3d ? nivelFuria(performance.now() / 1000) > 0 : true;   // (folhas sob demanda: o herói pede a da pose enquanto o modelo chega)
   // (a xamã no 2D: a folha "_oposto" para o lado de lá da câmera, a mesma regra do 3D, animXama3d, pela direção dela)
   let folhaN = nomeAnim;
@@ -32320,14 +32923,15 @@ function* preparoQuadros(comEnsaio) {
 addEventListener("keydown", e => { if (PREPARO.ativo) { e.stopImmediatePropagation(); if (e.key !== "F5" && e.key !== "F12") e.preventDefault(); } }, true);
 function laco(agora) {
   if (LIMITE.escondido) return;                                   // (a aba escondida: o visibilitychange volta o laço)
+  vigiaDica();                                                      // (R293: a seta da quest só com o jogo na tela)
   if (SOLTAR_DEPOIS.length) soltarPendentes();                     // (R292: os canvas do chão que saíram no quadro passado)
   if (PREPARO.ativo) { preparoQuadro(agora); antes = agora; LIMITE.raf = requestAnimationFrame(laco); return; }   // (R235: a preparação no lugar do passo e do desenho)
   if (PREPARO.cedo && !PREPARO.ativo && !viagem && agora - PREPARO.cedo > 1500) preparoEsconder();               // (a tela antecipada sem preparação: some)
   if (MODO_TESTE && agora - antes < 33) { LIMITE.raf = requestAnimationFrame(laco); return; }   // 30 quadros por segundo
   if (!MODO_TESTE && !limiteDeixa(agora)) { LIMITE.raf = requestAnimationFrame(laco); return; }
   const dt = Math.min(0.05, (agora - antes) / 1000); antes = agora;
-  const t = agora / 1000;
-  passoTempo(dt); passoClima(dt); passoChaoClima(dt); passoSonsAmbiente(dt); passoMusica(dt, performance.now() / 1000);
+  const t = agora / 1000, iniLaco = performance.now();
+  passoTempo(dt); passoClima(dt); passoChaoClima(dt); passoSonsAmbiente(dt); passoMusica(dt, performance.now() / 1000); passoPoeira(dt);   // (R300: a poeira dos caminhos)
   if (!CENA.manual) cenaPasso(dt);                                   // (as cenas com faixas: o chamado do nível 5, o Altar, o rasgo)
   if (congela > 0) congela -= dt;                                 // hit-stop: o mundo para um instante no acerto
   else if (editor.ativo) passoEditor(dt);                           // editando: o jogo fica parado
@@ -32336,6 +32940,7 @@ function laco(agora) {
   QUADRO_FX.n++;                                                    // (R239)
   if (!(window.MM && MM.cobre) && !SEL.aberta) desenhar(t);                        // (com o Mapa do Mundo aberto por cima, o jogo não é desenhado)
   if (PREPARO.fundo.length) preparoFundo();                         // (R235: o que passou do tempo da tela, aos poucos)
+  else if (BRILHO_PRE.ativo) brilhoPreQuadro(iniLaco);              // (R306: o brilho das Ghotins dos outros mapas, aos poucos, nos quadros com folga)
   frenteImagens();                                                  // (R236: as construções e as pontes que vão aparecer)
   contarQuadro(agora);
   if (LENTIDAO.ligado) vigiaLentidao(agora);                        // (R292: a queda sustentada do FPS)
@@ -32983,7 +33588,7 @@ else if (SELECAO_NO_INICIO) { if (introNaPrimeira()) abrirIntro({ aoFim: () => a
 carregar().then(() => {
   montarCenario(); carregarMapa(); montarCriaturas(); montarPainel(); montarEditor();
   carregarP3d();
-  prepararMana(); carregarProgresso(); montarChat(); montarCursores(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarAltar(); montarArmazem(); montarTempo(); montarFicha(); montarBolsa(); montarBarraSkills(); montarMinimapa(); montarMenu(); montarAdmin(); montarJornada(); montarJanelas();
+  prepararMana(); carregarProgresso(); montarChat(); montarCursores(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarAltar(); montarArmazem(); montarTempo(); montarFicha(); montarBolsa(); montarMao(); montarBarraSkills(); montarMinimapa(); montarMenu(); montarAdmin(); montarJornada(); montarJanelas();
   fecharMapaOriginal();
   classeDoInicio();                                   // (a última classe jogada)
   PRED_CARREGANDO.then(montarPredios).then(() => { edmAplicarMapa("vila1"); for (const d of DUNGEONS) if (!d.vale) edmAplicarMapa("cav:" + d.id); if (EDITOR_MAPAS && ADMIN) carregarEditorMapas().catch(e => console.error("editor_mapas.js:", e)); });   // (as construções em camadas; R289: as mudanças do editor de mapas, e o editor com ?editor=1)
@@ -32991,6 +33596,7 @@ carregar().then(() => {
   fpsLigar(FPS.ligado);
   grafBloom();                                      // (o nível de gráfico: o bloom)
   assentarGhotins();
+  brilhoPreComecar();                               // (R306: o brilho das Ghotins dos outros mapas, aos poucos no tempo ocioso)
   window.jogoPronto = true;
   LIMITE.raf = requestAnimationFrame(laco);
 }).catch(e => { console.error("carregar:", e); $("#carregando p").textContent = "Não deu para carregar os sprites"; $("#carregandoTxt").textContent = (e && e.message) || String(e); });
