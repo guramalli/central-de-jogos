@@ -243,9 +243,12 @@
   }
   .bolsa header { display: flex; justify-content: space-between; align-items: center; }
   .bolsa h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 18px; color: var(--ouro); }
+  /* (R272) o − e o + do tamanho da bolsa, no título, antes do fechar */
+  .bolsa header .tam-bolsa { display: flex; gap: 3px; margin-left: auto; margin-right: 6px; }
+  :root .bolsa header .tam-bolsa button:not(.item-inv) { width: 22px; height: 22px; padding: 0; font-size: 15px; line-height: 1; }
   /* a janela tem a largura da grade (desenharBolsa põe --larg-bolsa); as linhas e os quadros são pintados num canvas em
      pixels de tela inteiros (fundoGrade), e as cores vêm destas variáveis */
-  .bolsa:not(.armazem) { width: var(--larg-bolsa, 200px); }
+  .bolsa:not(.armazem) { width: var(--larg-bolsa, 200px); min-width: 214px; }   /* (R272: no tamanho menor, o título com o −, o + e o fechar cabe) */
   .equip { position: relative; display: grid; justify-content: center; padding: 8px 0; border: 1px solid #5a4424; border-radius: 4px; background: radial-gradient(circle at 50% 45%, #3a2c1c, #18110b); }
   .equip-grade { position: relative; width: 181px; height: 157px;
     --q-fundo: rgba(10, 7, 4, 0.55); --q-linha: #7a5a2c; --q-luz: rgba(255, 220, 150, 0.08); --q-borda: #7a5a2c; --q-fantasma: rgba(201, 178, 138, 0.3); }
@@ -352,8 +355,6 @@
   .ferreiro h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 20px; color: var(--ouro); }
   .ferreiro .fala { margin: 0; font-size: 13px; line-height: 1.45; color: var(--texto); font-style: italic; }
   .ferreiro .armas { display: flex; gap: 6px; flex-wrap: wrap; }
-  .porta-chefe { width: min(320px, calc(100% - 32px)); top: 140px; text-align: center; }
-  .porta-chefe h2 { font-size: 22px; } .porta-chefe .botoes { display: flex; gap: 10px; justify-content: center; } .porta-chefe .botoes button { min-width: 96px; padding: 6px 14px; font-size: 14px; }
   .ferreiro .armas button { padding: 3px 8px; font-size: 12px; }
   .ferreiro .armas button[aria-pressed="true"] { border-color: var(--ouro); background: var(--ouro); color: #1a1209; }
   .ref-item { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; padding: 8px; border: 1px solid #5a4424; border-radius: 4px; background: rgba(10, 7, 4, 0.6); }
@@ -1589,7 +1590,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.80 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.81 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -1625,7 +1626,7 @@
 </div>
 
 <aside class="bolsa" id="bolsa" hidden aria-label="Inventário">
-  <header><h2>Inventário</h2><button id="bolsaFechar" aria-label="Fechar o inventário">Fechar</button></header>
+  <header><h2>Inventário</h2><span class="tam-bolsa"><button id="bolsaMenos" type="button" aria-label="Diminuir o inventário" title="Diminuir o inventário">−</button><button id="bolsaMais" type="button" aria-label="Aumentar o inventário" title="Aumentar o inventário">+</button></span><button id="bolsaFechar" aria-label="Fechar o inventário">Fechar</button></header>
   <div class="equip" aria-label="Equipamento (clique direito tira e põe na bolsa)">
     <!-- como no Metin2: espaços quadrados do mesmo tamanho dos da bolsa, numa grade de 5 colunas (as mesmas colunas da bolsa)
          × 4 linhas, por cima do boneco escuro: joias e arma à esquerda e à direita, elmo na cabeça, roupa no peito, botas
@@ -3216,7 +3217,7 @@ function pintarLava(g, Pz, esc, z, pl) {
   for (const { path } of polis) { g.strokeStyle = COR.nanquim; g.lineWidth = Math.max(1, 0.06 * esc); g.stroke(path); }
   for (const ps of PASSAGENS) pintarPonte(g, Pz, esc, z, ps);
   g.restore();
-  // a cascata: onde o braço sai do platô, a lava cai pela beira até o chão de baixo, com o vapor em volutas
+  // a cascata: onde o braço sai do platô, a lava cai pela beira até o chão de baixo
   for (const { L, P } of polis) {
     if (L === LAVA[0]) continue;
     let fim = null;
@@ -3228,7 +3229,8 @@ function pintarLava(g, Pz, esc, z, pl) {
     g.strokeStyle = COR.cinabre; g.lineWidth = Math.max(1, 0.22 * esc);
     g.beginPath(); for (let k = 1; k < 3; k++) { const t = k / 3, pa = Pz(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, z), pb = Pz(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, 0); g.moveTo(...pa); g.quadraticCurveTo(pa[0] + (k - 1.5) * 0.3 * esc, (pa[1] + pb[1]) / 2, pb[0], pb[1]); } g.stroke();
     g.beginPath(); q.forEach((p, k) => k ? g.lineTo(...p) : g.moveTo(...p)); g.closePath(); g.strokeStyle = COR.nanquim; g.lineWidth = Math.max(1, 0.05 * esc); g.stroke();
-    const pv = Pz(fim.u, fim.v - 0.4, 0.2); voluta(g, pv[0], pv[1], 0.75 * esc, fim.s + L.sem, "#E4D8C2", "rgba(30,27,24,0.7)", Math.max(1, 0.04 * esc), 1);
+    // (05/11, o usuário: "retire essas nuvens que ficaram soltas nos cantos do rio de lava": a voluta creme pintada no chão aqui ficava
+    // parada e cortada na borda do pedaço do chão. O vapor da lava fica só o animado, desenharFumaca)
   }
 }
 // o canal de lava viva (rodada 3): não é mais uma fita contínua no meio do leito (de noite lia como "a linha central de
@@ -4829,13 +4831,21 @@ try { ligado = /[?&]hahoe2=1(&|#|$)/.test(G.location ? G.location.search : ""); 
 G.HAHOE2 = ligado;                                                   // (a chave: os ganchos do index.html perguntam a ela)
 
 const V = {};
+// (05/11, o usuário: "antes de colocá-los [os clãs], precisaremos aumentar a vila hahoe em 2x", 2× a ÁREA) os dados abaixo foram desenhados
+// para o raio 115; viram o raio 163 por um mapeamento radial (o mesmo do Logs/Mapas/vila2/esquema_vila2.py): até RI m do centro (a vila
+// dentro da curva e o rio em volta dela) nada muda; de RI para fora, a distância ao centro cresce K vezes. Os lugares (a fortaleza, a
+// aldeia, o pântano, os arrozais, o porto) andam com o meio deles e não mudam de tamanho. V.E: ponto; V.Er: raio; V.Ei: o inverso
+V.R0 = 115; V.RI = 37; V.K = (163 - 37) / (115 - 37);
+V.Er = r => r <= V.RI ? r : V.RI + (r - V.RI) * V.K;
+V.E = (x, y) => { const r = Math.hypot(x, y); if (r <= V.RI) return [x, y]; const f = V.Er(r) / r; return [x * f, y * f]; };
+V.Ei = (x, y) => { const r = Math.hypot(x, y); if (r <= V.RI) return [x, y]; const f = (V.RI + (r - V.RI) / V.K) / r; return [x * f, y * f]; };
 // ---------------------------------------------------------------- a planta
-V.R = 115;
-V.rCosta = a => 115 - (Math.sin(a * 4 + 0.7) * 3 + Math.sin(a * 9 + 2) * 1.2 + Math.sin(a * 2 + 0.3) * 2.5);
+V.R = 163;   // (05/11: 2× a área; era 115, VILA2.E)
+V.rCosta = a => 163 - (Math.sin(a * 4 + 0.7) * 3 + Math.sin(a * 9 + 2) * 1.2 + Math.sin(a * 2 + 0.3) * 2.5);
 // o rio: nasce na cachoeira (noroeste), desce pelo oeste, contorna a vila por baixo e sai a leste até a foz (sudeste)
 V.RIO = [[-54, 76], [-48, 62], [-40, 48], [-34, 34], [-34, 18], [-34, 2], [-31, -14], [-22, -27], [-10, -33.5], [0, -34],
          [12, -32], [24, -25], [32, -13], [34, 0], [35, 10], [42, 16], [55, 16], [66, 12], [76, 2], [86, -10], [96, -22], [108, -36], [118, -46]];   // (o último já no mar: a foz chega à costa)
-V.largRio = xl => 6 + Math.max(0, xl - 70) * 0.12;                   // 6 m; abre perto da foz
+V.largRio = xl => 6 + Math.max(0, xl - 100) * 0.1;                   // 6 m; abre perto da foz (05/11: a foz mais longe, na Hahoe 2×)
 // as 4 pontes (o tipo: "ponte" corre de oeste a leste, onde o rio corre N–S; "ponte_v" de sul a norte). O index.html acha
 // cada uma no ponto do rio mais perto do alvo (perto), para o tabuleiro cair atravessado na água (R086)
 V.PONTES = [["Ponte de Pedra do Oeste", "ponte", -34, 3], ["Ponte do Sul", "ponte_v", 0, -34],
@@ -4915,26 +4925,26 @@ V.nomeRegiao = function (lx, ly) {
 };
 // a lista ZONAS_H do jogo (em m do mundo): os lugares e o meio de cada zona
 V.zonas = function (H) {
-  const meio = V.ZONAS.map(z => { const a = ((z.a0 + z.a1) / 2) * Math.PI / 180; return { nome: z.nome, x: Math.cos(a) * 70, y: Math.sin(a) * 70, r: 30 }; });
+  const meio = V.ZONAS.map(z => { const a = ((z.a0 + z.a1) / 2) * Math.PI / 180, rr = V.Er(70); return { nome: z.nome, x: Math.cos(a) * rr, y: Math.sin(a) * rr, r: 42 }; });
   const nomes = new Set(V.LUGARES.map(l => l.nome));
   return [...V.LUGARES, ...meio.filter(z => !nomes.has(z.nome))].map(z => ({ ...z, x: H.ox + z.x, y: H.oy + z.y }));
 };
 
 // ---------------------------------------------------------------- as criaturas
-// a borda (etapa 1, provisório até a etapa 3): os bichos e os mortos-vivos de hoje, onde a lore deles cabe (seção 2.6).
-// O Capitão Dokkaebi fica no trono da fortaleza até o Capitão da Capital Bestial chegar (etapa 4); os bandidos, no
-// Acampamento até o clã deles (etapa 3)
+// a borda (seção 2.6): os bichos e os mortos-vivos de hoje, onde a lore deles cabe. O Capitão Dokkaebi fica no trono da
+// fortaleza até o Capitão da Capital Bestial chegar (etapa 4). Os bandidos soltos do Acampamento saíram na etapa 3 (eles
+// agora são o clã da Estrada, nos grupos h_03 e h_04); o Chefe dos Bandidos fica, no fim da estrada
 V.BANDOS = [
   ["urso_negro", -94, 30, 3, 2.2], ["tigre", -100, 8, 3, 2.2], ["tigre", -98, -16, 3, 2.2], ["lobo_alfa", -96, 22, 1],
   ["zumbi", -14, -100, 4, 2.5], ["fantasma", 14, -100, 3, 2.5], ["lich", 0, -94, 1],
   ["golem", -76, 54, 3, 2.5], ["golem", -26, 92, 3, 2.5],
-  ["bandido", -40, -70, 4, 3], ["bandido_arqueiro", -20, -70, 3, 2.5], ["chefe_bandido", -30, -82, 1],
+  ["chefe_bandido", -30, -82, 1],
   ["capitao_dokkaebi", 23, 83, 1],
 ];
-// os 96 pontos dos grupos dos clãs (Logs/Mapas/vila2/vila2_pontos.json, conjunto h_NN, x, y), para a etapa 3.
+// os 199 pontos dos grupos dos clãs (Logs/Mapas/vila2/vila2_pontos.json, conjunto h_NN, x, y; já no raio 163, sem passar pelo V.E).
 // A conta (05/11, o pedido do usuário: "o mesmo número de criaturas ou mais que a Vila 1"): a Vila 1 tem 430 vivas; a
 // Hahoe fica com 96 grupos × 4,4 em média = 419, mais 23 da borda, 3 chefes e 5 Ghotins = 450
-V.PONTOS = [["01",-64.9,-27.6],["01",-65.8,8.4],["01",-63.0,-6.6],["01",-46.9,-26.4],["01",-49.9,20.1],["01",-41.8,-14.3],["01",-55.4,-15.5],["01",-60.8,18.5],["01",-55.1,-34.0],["01",-69.9,-16.7],["01",-56.3,30.2],["02",-76.4,29.6],["02",-71.4,-43.8],["02",-76.0,-7.0],["02",-94.7,43.9],["02",-85.5,6.7],["02",-79.6,-54.5],["02",-80.6,-23.1],["02",-89.3,-30.9],["02",-87.0,-43.0],["02",-77.1,16.6],["02",-87.5,-5.3],["03",-43.7,-41.4],["03",-27.4,-62.1],["03",-38.1,-52.3],["03",-19.4,-45.7],["03",-13.4,-64.7],["03",-32.5,-34.9],["03",-4.2,-57.4],["03",-2.9,-68.4],["04",-39.7,-78.0],["04",-70.7,-69.7],["04",-38.9,-66.1],["04",-63.0,-60.5],["04",-56.7,-71.5],["04",-16.0,-87.4],["04",-50.8,-91.1],["04",-27.1,-95.5],["04",-53.1,-53.9],["04",-38.6,-97.3],["05",31.3,-58.5],["05",33.0,-42.0],["05",9.3,-54.3],["05",49.5,-47.1],["05",41.3,-29.6],["05",15.2,-67.0],["05",58.4,-37.0],["05",13.6,-44.1],["05",21.9,-51.7],["06",64.4,-47.7],["06",58.9,-70.6],["06",74.3,-76.4],["06",39.4,-91.0],["06",26.1,-80.8],["06",48.1,-77.2],["06",51.6,-87.7],["06",32.8,-70.4],["06",57.7,-58.5],["06",87.6,-59.0],["07",56.6,-19.0],["07",45.8,4.5],["07",63.6,30.3],["07",45.5,-15.3],["07",67.4,-9.4],["07",67.9,-22.1],["07",58.8,4.2],["07",52.0,29.7],["08",92.6,10.3],["08",96.9,24.8],["08",80.0,19.0],["08",73.0,-36.2],["08",85.0,34.1],["08",74.3,42.3],["08",99.4,-2.7],["08",80.8,-47.1],["08",88.2,47.6],["09",30.4,35.7],["09",50.9,57.6],["09",61.8,42.6],["09",-2.3,55.1],["09",-7.4,75.3],["09",-0.1,43.7],["09",60.1,75.8],["09",3.7,101.6],["09",19.8,39.0],["09",48.8,72.2],["09",9.2,50.4],["09",-8.5,97.8],["09",-14.9,83.7],["09",50.0,93.1],["09",63.5,58.9],["10",14.8,78.5],["10",35.8,75.8],["10",34.9,84.2],["10",10.2,87.5],["10",10.8,70.2]]
+V.PONTOS = [["01",-83.8,-35.7],["01",-83.6,10.6],["01",-78.9,-8.2],["01",-55.7,-31.4],["01",-67.8,-8.1],["01",-57.5,18.9],["01",-48.0,27.1],["01",-84.7,24.7],["01",-70.7,-28.5],["01",-45.6,-15.6],["01",-66.3,-43.6],["01",-37.9,-26.4],["01",-91.2,-17.2],["01",-73.8,20.2],["01",-57.5,-19.0],["01",-60.5,30.7],["01",-44.7,12.3],["01",-77.8,-45.0],["01",-69.3,8.7],["01",-43.8,-3.8],["01",-70.7,37.9],["01",-84.3,37.3],["01",-92.3,-5.4],["02",-115.3,-0.7],["02",-122.5,13.7],["02",-100.7,-41.1],["02",-93.1,53.3],["02",-101.1,-26.7],["02",-107.8,-13.0],["02",-108.0,8.2],["02",-141.2,-3.9],["02",-119.2,52.3],["02",-123.2,-28.5],["02",-104.0,-64.1],["02",-102.6,24.4],["02",-144.4,38.1],["02",-96.6,8.2],["02",-85.8,-53.1],["02",-126.0,-68.3],["02",-118.7,-47.9],["02",-134.8,-41.0],["02",-146.5,20.8],["02",-135.8,58.4],["02",-108.1,36.3],["02",-128.4,-6.2],["02",-118.9,28.1],["03",-12.3,-43.9],["03",-35.5,-70.0],["03",-16.7,-78.6],["03",-25.6,-49.5],["03",-53.5,-61.0],["03",-25.3,-60.6],["03",-53.6,-49.7],["03",-8.7,-65.6],["03",-30.9,-35.6],["03",-46.1,-74.2],["03",-1.7,-85.1],["03",-37.0,-56.9],["03",-39.7,-42.9],["03",-64.7,-54.5],["03",-3.8,-55.5],["03",-34.9,-82.6],["03",-15.1,-55.2],["03",-12.9,-89.1],["04",-51.3,-110.0],["04",-89.5,-92.3],["04",-72.2,-109.0],["04",-81.4,-76.1],["04",-76.0,-126.8],["04",-57.1,-141.8],["04",-6.4,-104.7],["04",-87.2,-115.7],["04",-36.4,-131.9],["04",-14.0,-151.8],["04",-90.2,-104.7],["04",-106.6,-85.0],["04",-71.6,-92.9],["04",-63.8,-121.3],["04",-66.5,-76.4],["04",-23.7,-100.7],["04",4.0,-148.8],["04",-49.5,-94.9],["04",-73.8,-64.7],["04",-66.8,-133.6],["04",-53.7,-127.0],["05",42.1,-36.3],["05",38.5,-68.4],["05",58.5,-52.0],["05",25.1,-62.1],["05",8.1,-69.6],["05",44.9,-48.4],["05",22.3,-77.9],["05",66.7,-41.7],["05",14.2,-52.9],["05",38.8,-80.9],["05",54.4,-34.4],["05",21.8,-38.8],["05",69.5,-56.1],["05",61.7,-64.9],["05",50.2,-69.3],["05",16.7,-87.6],["05",32.5,-53.9],["05",5.9,-45.4],["05",36.7,-26.3],["06",62.8,-91.8],["06",116.8,-98.0],["06",17.0,-111.2],["06",43.2,-137.0],["06",63.2,-80.2],["06",5.7,-113.3],["06",20.9,-125.6],["06",73.7,-134.0],["06",128.3,-90.1],["06",62.0,-129.9],["06",86.9,-101.3],["06",88.2,-63.9],["06",33.7,-117.7],["06",102.1,-104.7],["06",51.6,-81.4],["06",112.3,-83.5],["06",88.6,-113.5],["06",100.0,-65.7],["06",93.4,-76.3],["06",75.2,-77.8],["06",15.0,-99.7],["07",79.1,28.1],["07",89.1,-6.3],["07",66.4,30.7],["07",62.2,-21.3],["07",45.5,-7.2],["07",76.7,-0.4],["07",83.3,-38.1],["07",49.3,-19.0],["07",53.5,5.3],["07",79.6,-21.5],["07",63.7,-2.1],["07",73.5,-31.2],["07",71.3,40.7],["07",82.7,39.0],["07",51.8,29.4],["07",88.9,-28.5],["07",76.6,-47.3],["08",115.8,13.9],["08",136.9,-74.8],["08",145.0,-1.6],["08",135.7,-59.2],["08",105.9,54.8],["08",123.8,70.1],["08",106.1,-49.8],["08",112.1,37.8],["08",122.2,51.9],["08",141.8,17.8],["08",102.6,-36.5],["08",141.6,-20.3],["08",114.0,26.8],["08",118.2,-64.1],["08",126.2,3.5],["08",136.6,50.8],["08",130.7,14.5],["08",103.7,15.7],["08",101.5,32.7],["09",26.8,28.0],["09",27.9,65.2],["09",72.9,94.5],["09",-5.4,103.8],["09",-25.4,100.0],["09",50.2,59.4],["09",30.6,143.9],["09",92.7,55.2],["09",107.0,71.6],["09",117.8,80.1],["09",7.8,55.1],["09",-9.5,69.7],["09",39.6,27.7],["09",57.1,106.8],["09",-1.8,90.7],["09",-29.0,148.2],["09",82.9,79.4],["09",37.3,43.2],["09",-18.2,112.2],["09",80.8,61.7],["09",59.9,89.8],["09",48.2,86.2],["09",83.3,112.1],["09",58.3,133.5],["09",7.8,66.4],["09",109.6,94.0],["09",17.4,129.5],["09",7.0,113.8],["09",-22.9,136.5],["09",71.8,129.7],["09",65.2,59.8],["09",3.7,43.2],["09",22.5,43.8],["09",-7.7,40.1],["10",43.3,110.5],["10",20.1,106.2],["10",41.7,100.1],["10",18.2,115.5]]
   .map(([n, x, y]) => ["h_" + n, x, y]);
 // os grupos dos clãs (o 1º é o líder) e os conjuntos, para a etapa 3. Cada grupo tem 1 membro a mais que o desenho de
 // 05/11 (a conta da Vila 1); a média dos 2 grupos de cada conjunto é a do esquema_vila2.py (TAM_GG)
@@ -4986,11 +4996,92 @@ V.clareiras = H => V.PONTOS.map(([, x, y]) => [H.ox + x, H.oy + y, -2]);
 // ---------------------------------------------------------------- a lista de spawns editada (o MOBS_FIXO e o navegador)
 // Uma lista com a Hahoe de antes (os 16 bandos soltos, todos a menos de 58 m do centro) perde tudo o que é da Hahoe e
 // ganha a lista nova; o resto (as edições da Vila 1, da Montanha e da Daiyu) fica. A chave mobsEditados4 não muda
-V.velha = (SPAWNS, H) => SPAWNS.some(s => s.y > 350 && !s.gg && Math.hypot(s.x - H.ox, s.y - H.oy) < 58);
-V.migrarSpawns = function (SPAWNS, bandos, H) {
+// (etapa 3) e a lista da etapa 1, só com a borda (nenhum grupo dos clãs na Hahoe), também é trocada: ganha os 96 grupos
+V.velha = (SPAWNS, H) => SPAWNS.some(s => s.y > 350 && !s.gg && Math.hypot(s.x - H.ox, s.y - H.oy) < 58) || !SPAWNS.some(s => s.y > 350 && s.gg && V.GG[s.gg]);
+V.migrarSpawns = function (SPAWNS, bandos, H, grupos = typeof G.hahoeGrupos === "function" ? G.hahoeGrupos() : []) {
   if (!V.velha(SPAWNS, H)) return SPAWNS;
-  return [...SPAWNS.filter(s => s.y <= 350), ...bandos.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 }))];
+  return [...SPAWNS.filter(s => s.y <= 350), ...bandos.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 })), ...grupos.map(s => ({ ...s }))];
 };
+
+// ---------------------------------------------------------------- os 5 clãs (etapa 3; seção 3 do desenho)
+// Os 20 tipos, do jeito do Juramento Branco: o modelo 3D do bandido (o comum), do arqueiro (o de longe e o mago) ou do chefe
+// (o tanque), com a roupa girada para a cor do clã (roupa3d), o tamanho (esc) e a tinta do sprite de reserva. Os números são
+// os da curva do NIVEL70.md (seção 7: a criatura comum do nível × o papel); o FATOR_VIDA, o FATOR_DANO_FAIXA e o FORCA_COMUM
+// entram por cima no jogo, como em toda criatura. O tanque é o líder agressivo do grupo (vê o herói e põe o grupo na luta);
+// o que tem "chama" (m) puxa também os grupos cujo líder está a até essa distância (provocarGrupoV1, no máximo 1 vez a cada
+// V.CHAMA_T s, com a fala do clã)
+V.CHAMA_T = 20;
+const PAPEL = {
+  comum: { bases: ["bandido", "goblin"], voz: "bandido" },
+  longe: { bases: ["bandido_arqueiro", "bandido", "goblin"], voz: "bandido_arqueiro" },
+  mago: { bases: ["bandido_arqueiro", "bandido", "goblin"], voz: "bandido_arqueiro", v: { perto: 5.5, alcance: 7.5, magia: true, projetil: "sombra" } },
+  tanque: { bases: ["chefe_bandido", "bandido", "goblin"], voz: "bandido", v: { expMult: 1.5, agressivo: true } },
+};
+// [tipo, papel, nome, nível, vida, dano, defesa, esc, roupa3d, tinta, extra]
+V.CLAS = [
+  // Milícia do Arrozal (18–25), Z1
+  ["lavrador_milicia", "comum", "Lavrador da Milícia", 18, 450, 110, 14, 0.92, [0.79, 0.64, 0.32], "#d8c48a"],
+  ["arqueira_milicia", "longe", "Arqueira da Milícia", 20, 420, 143, 10, 0.9, [0.43, 0.6, 0.29], "#b8cc90"],
+  ["forcado_milicia", "comum", "Miliciano do Forcado", 22, 600, 154, 18, 1.0, [0.79, 0.59, 0.24], "#d8b070"],
+  ["capita_milicia", "tanque", "Capitã da Milícia", 24, 1160, 224, 35, 0.95, [0.24, 0.48, 0.36], "#a8d0b8", { chama: 14 }],
+  // Bandidos da Estrada (26–32), Z2 (o bandido e o arqueiro de hoje sobem de nível: V.SOBE)
+  ["bandido_veterano", "comum", "Bandido Veterano", 29, 910, 247, 23, 1.08, [0.36, 0.25, 0.16], "#a08060"],
+  ["tenente_estrada", "tanque", "Lugar-tenente da Estrada", 31, 1710, 346, 45, 0.95, [0.6, 0.24, 0.18], "#d89080", { chama: 14 }],
+  // Clã da Máscara (30–36), Z3
+  ["dancarino_mascara", "comum", "Dançarino Mascarado", 30, 960, 261, 24, 0.95, [0.94, 0.89, 0.8], "#eee4cc"],
+  ["tambor_mascara", "mago", "Tocador do Tambor", 32, 790, 365, 13, 0.95, [0.18, 0.29, 0.42], "#9fb0d0"],
+  ["mascara_nobre", "tanque", "Máscara do Nobre", 34, 1960, 404, 49, 1.0, [0.72, 0.2, 0.16], "#f0c0a8", { chama: 14 }],
+  ["mascara_risonha", "comum", "Máscara Risonha", 36, 1250, 356, 29, 0.9, [0.79, 0.59, 0.24], "#e8d090", { rapida: 1.15 }],
+  // Seita do Veneno de Tinta (35–42), Z4
+  ["novico_tinta", "comum", "Noviço da Tinta", 35, 1200, 339, 28, 0.95, [0.12, 0.11, 0.1], "#6a6a70"],
+  ["envenenador", "longe", "Envenenador", 37, 1040, 411, 18, 0.95, [0.18, 0.36, 0.23], "#90b098"],
+  ["sacerdotisa_tinta", "mago", "Sacerdotisa da Tinta", 39, 1050, 511, 16, 0.92, [0.1, 0.2, 0.16], "#70907c"],
+  ["mestre_tonel", "tanque", "Mestre do Tonel", 41, 2570, 556, 59, 1.05, [0.23, 0.26, 0.31], "#8a92a0", { chama: 14 }],
+  // Guarda da Capital Bestial (38–45), Z5 (capitalBestial: a marca da QUEDA_CAPITAL_BESTIAL, que fica desligada até a etapa 4)
+  ["soldado_capital", "comum", "Soldado da Capital", 38, 1350, 391, 30, 1.05, [0.72, 0.2, 0.16], "#e09080", { capitalBestial: true }],
+  ["arqueira_capital", "longe", "Arqueira da Capital", 40, 1160, 469, 19, 1.0, [0.79, 0.59, 0.24], "#e8c890", { capitalBestial: true }],
+  ["lanceiro_tigre", "tanque", "Lanceiro Tigre", 42, 2670, 580, 60, 1.1, [0.7, 0.45, 0.15], "#d8a868", { capitalBestial: true }],
+  ["porta_estandarte", "comum", "Porta-Estandarte", 44, 1690, 503, 35, 1.0, [0.8, 0.22, 0.16], "#f0a090", { capitalBestial: true, agressivo: true, chama: 18, base: "chefe_bandido" }],
+];
+// o bandido, o arqueiro e o chefe de hoje sobem de nível (só os números: os nomes ficam para as quests)
+V.SOBE = { bandido: { nivel: 26, vida: 770, dano: 205, defesa: 21 }, bandido_arqueiro: { nivel: 27, vida: 650, dano: 241, defesa: 13 },
+           chefe_bandido: { nivel: 32, vida: 48700, dano: 730, defesa: 38 } };
+V.REGIAO_CHEFE_BANDIDO = "no Acampamento da Estrada da Vila Hahoe";
+// a fala do "chama", por líder
+V.FALA_CHAMA = {
+  capita_milicia: "A Capitã bate o gongo da colheita: a milícia vem!",
+  tenente_estrada: "O Lugar-tenente assobia: a estrada inteira levanta!",
+  mascara_nobre: "A Máscara do Nobre ri, e o tambor chama a trupe!",
+  mestre_tonel: "O Mestre do Tonel bate a concha: a seita acorda!",
+  porta_estandarte: "O Porta-Estandarte ergue o tigre: a Capital inteira marcha!",
+};
+// o filtro do sprite de reserva pela tinta (o matiz dela a partir do sépia, que fica perto de 35°)
+const filtroDe = hex => {
+  const r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  let h = 0; if (d > 0) h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return `sepia(0.7) hue-rotate(${Math.round(h * 60 - 35)}deg) saturate(${(0.6 + d * 2).toFixed(2)}) brightness(${(0.7 + l * 0.6).toFixed(2)})`;
+};
+// cria os 20 tipos e sobe o bandido (uma vez; no index.html, criarClasHahoe, com a chave). Devolve quantos tipos criou
+V.criarClas = function (TIPOS, variante, renasce, VOZ, CHEFES) {
+  if (!V.subiu && TIPOS.bandido) { for (const [t, v] of Object.entries(V.SOBE)) if (TIPOS[t]) Object.assign(TIPOS[t], v); V.subiu = true; }   // (a vida nova ≠ vidaFatorada: o fator entra de novo)
+  if (CHEFES && CHEFES.chefe_bandido) CHEFES.chefe_bandido.regiao = V.REGIAO_CHEFE_BANDIDO;
+  let n = 0;
+  for (const [t, papel, nome, nivel, vida, dano, defesa, esc, roupa3d, tinta, extra = {}] of V.CLAS) {
+    if (TIPOS[t]) continue;
+    const P = PAPEL[papel], bases = extra.base ? [extra.base, ...P.bases] : P.bases, b = bases.find(k => TIPOS[k] && TIPOS[k].M); if (!b) continue;
+    const { base, rapida, ...resto } = extra, B = TIPOS[b];
+    const v = { raca: B.raca, nome, nivel, vida, dano, defesa, esc, roupa3d, tinta, filtro2d: filtroDe(tinta), ...(P.v || {}), ...resto };
+    if (rapida) Object.assign(v, { chega: (B.chega || 2) * rapida, vAndar: (B.vAndar || 1) * rapida });
+    if (V.FALA_CHAMA[t]) v.falaChama = V.FALA_CHAMA[t];
+    TIPOS[t] = variante(b, { ...v, chefe: false, chefeCaverna: false, conjura: 0, renasce, clan: true });
+    if (VOZ && !VOZ[t]) VOZ[t] = { ...VOZ[P.voz] };
+    n++;
+  }
+  return n;
+};
+// o papel de cada tipo (o teste)
+V.papelDe = t => { const l = V.CLAS.find(c => c[0] === t); return l ? l[1] : null; };
 
 // ---------------------------------------------------------------- o chão novo (dentro do pisoHahoe, recortado pela costa)
 // as poças de tinta do Pântano, o pátio de lajes da fortaleza e o palco quebrado da Aldeia do Talchum
@@ -5079,7 +5170,7 @@ V.montar = function (ctx) {
   }
   // o Desfiladeiro: pedras grandes soltas (o lugar dos veios, quando houver mineração)
   for (let k = 0; k < 14; k++) {
-    const a = (110 + 36 * ((k * 0.618) % 1)) * Math.PI / 180, r = 64 + 34 * ((k * 0.381 + 0.2) % 1), lx = Math.cos(a) * r, ly = Math.sin(a) * r, [x, y] = pH(lx, ly);
+    const a = (110 + 36 * ((k * 0.618) % 1)) * Math.PI / 180, r = 64 + 34 * ((k * 0.381 + 0.2) % 1), [lx, ly] = V.E(Math.cos(a) * r, Math.sin(a) * r), [x, y] = pH(lx, ly);
     if (Math.hypot(lx - V.PORTAIS.monte[0], ly - V.PORTAIS.monte[1]) < 6 || Math.hypot(lx - V.GRUTA[0], ly - V.GRUTA[1]) < 5) continue;
     ctx.por({ tipo: "pedra", x, y, r: 0.5, esc: 1.2 + ((k * 0.7) % 1) * 1.2, forma: Array.from({ length: 7 }, (_, q) => 0.75 + 0.35 * (((k + 1) * (q + 3) * 0.137) % 1)) });
   }
@@ -5198,7 +5289,7 @@ V.npcs = function (lista) {
     { nome: "Kkachi", titulo: "Kkachi, a Pega", x: 2.5, y: 40, modelo: "ninja", tinta: [0.015, 0.015, 0.02],
       cores: { roupa: "#1E1B18", calca: "#EFE4CC", pele: "#e8c4a0", cabelo: "#1E1B18" },
       falas: ["O tigre se acha rei porque ninguém riu dele ainda. Vamos rir juntos?", "Da fortaleza eu vejo tudo. O Capitão não vê nem o próprio rabo pintado."] },
-    { nome: "Barqueiro Do-hyun", x: 86, y: -40, modelo: "armazem",
+    { nome: "Barqueiro Do-hyun", x: V.E(86, -40)[0], y: V.E(86, -40)[1], modelo: "armazem",
       cores: { roupa: "#2D4A6B", calca: "#1E1B18", pele: "#e0b896", cabelo: "#2a1e16", barba: "#2a1e16" },
       falas: ["A tinta da seita desce até a foz. O meu barco ficou preto até a linha d'água.", "O rasgo da Ilha de Daiyu fica ali, ao lado do cais. Só abre para quem passou do nível 45."] },
   ];
@@ -5258,6 +5349,29 @@ V.passo = function (dt) {
   }
 };
 
+// ---------------------------------------------------------------- (05/11) a Hahoe 2×: os dados do raio 115 vão para o 163 (V.E)
+(function escalar() {
+  const E = V.E, ponto = q => E(q[0], q[1]), anda = (o, cx, cy) => { const [ex, ey] = E(cx, cy); return [ex - cx, ey - cy]; };
+  V.RIO = V.RIO.map(ponto);
+  V.PONTES = V.PONTES.map(([n, t, x, y]) => [n, t, ...E(x, y)]);
+  V.TRILHAS = V.TRILHAS.map(t => t.map(q => typeof q === "string" ? q : ponto(q)));
+  { const [dx, dy] = anda(null, -72, 0), A = V.ARROZAIS; Object.assign(A, { x0: A.x0 + dx, x1: A.x1 + dx, y0: A.y0 + dy, y1: A.y1 + dy }); }
+  { const F = V.FORTE, [dx, dy] = anda(null, 23, 80); Object.assign(F, { x0: F.x0 + dx, x1: F.x1 + dx, y0: F.y0 + dy, y1: F.y1 + dy, portao: [F.portao[0] + dx, F.portao[1] + dy], trono: [F.trono[0] + dx, F.trono[1] + dy] });
+    V.KIT = V.KIT.map(([id, x, y]) => id === "templo_v1" ? [id, x + dx, y + dy] : [id, x, y]); }
+  { const A = V.ALDEIA, [dx, dy] = anda(null, A.x, A.y); A.x += dx; A.y += dy; A.palco = [A.palco[0] + dx, A.palco[1] + dy, A.palco[2] + dx, A.palco[3] + dy];
+    V.KIT = V.KIT.map(([id, x, y]) => id === "templo_v1" ? [id, x, y] : [id, x + dx, y + dy]); }
+  { const P = V.PANTANO, [dx, dy] = anda(null, P.x, P.y); P.x += dx; P.y += dy; P.pocas = P.pocas.map(([x, y, r]) => [x + dx, y + dy, r]); }
+  for (const o of [V.PORTO, V.ACAMP, V.RUINAS]) { const [x, y] = E(o.x, o.y); o.x = x; o.y = y; }
+  V.CACHOEIRA = V.RIO[0]; V.GRUTA = ponto(V.GRUTA);
+  for (const k of ["v1", "monte", "daiyu"]) V.PORTAIS[k] = ponto(V.PORTAIS[k]);
+  V.LUGARES = V.LUGARES.map(l => { const [x, y] = E(l.x, l.y); return { ...l, x, y, r: Math.hypot(l.x, l.y) > V.RI ? l.r * 1.2 : l.r }; });
+  V.BANDOS = V.BANDOS.map(([t, x, y, ...r]) => t === "capitao_dokkaebi" ? [t, V.FORTE.trono[0], V.FORTE.trono[1], ...r] : [t, ...E(x, y), ...r]);
+  for (const k of Object.keys(V.GHOTINS)) V.GHOTINS[k] = V.GHOTINS[k].map(ponto);
+  // o bambu e o pinhal são regiões do desenho de antes: a pergunta volta pelo inverso
+  const bambu0 = V.bambu, pinhal0 = V.pinhal, CACH0 = [-54, 76];
+  V.bambu = (lx, ly) => bambu0(...V.Ei(lx, ly));
+  V.pinhal = (lx, ly) => { const [x, y] = V.Ei(lx, ly); return Math.hypot(x - CACH0[0], y - CACH0[1]) < 22 || (angDe(x, y) > 105 && angDe(x, y) < 150 && Math.hypot(x, y) > 60); };
+})();
 G.VILA2 = V;
 })(typeof window !== "undefined" ? window : globalThis);
 
@@ -5396,7 +5510,7 @@ G.VILA2 = V;
   function marcaAtual() {
     const p = g("prog");
     if (!E.slot || !p || !p.atrib || E.trocando) return null;
-    return JSON.stringify(p) + "|" + (LS.get("barra_" + E.slot.chave) || "");
+    return JSON.stringify(p) + "|" + (LS.get("barra_" + E.slot.chave) || "") + "|" + g("classe");   // (a classe também: ela vai no resumo)
   }
   function resumoDe(p) {
     const mapa = String(p.mapa || "").toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 40);
@@ -5432,15 +5546,27 @@ G.VILA2 = V;
 
   // ---------------------------------------------------------------- o aviso do canto: Salvando… / Salvo ✓ 16:42
   let avisoT = 0;
-  function aviso(estado, txt) {
+  function aviso(estado, txt, ms = 15000) {
     montar();
     const a = el("g2Salvo"); if (!a) return;
     clearTimeout(avisoT);
-    a.hidden = false; a.classList.remove("some", "erro", "ok");
+    a.hidden = false; a.classList.remove("some", "erro", "ok", "longo");
     if (estado === "salvando") a.textContent = "Salvando…";
     else if (estado === "ok") { a.classList.add("ok"); a.textContent = `Salvo ✓ ${hora(Date.now())}`; avisoT = setTimeout(() => a.classList.add("some"), 6000); }
-    else { a.classList.add("erro"); a.textContent = txt || "Sem conexão: salvo neste computador"; avisoT = setTimeout(() => a.classList.add("some"), 15000); }
+    else { a.classList.add("erro"); if (txt && txt.length > 60) a.classList.add("longo"); a.textContent = txt || "Sem conexão: salvo neste computador"; avisoT = setTimeout(() => a.classList.add("some"), ms); }
     a.dataset.estado = estado;
+  }
+  // a conta recusou o save (400 save_invalido / resumo_invalido): o motivo do servidor, legível, 30 s no alto e no chat do
+  // sistema (uma vez por motivo). (05/11: antes era só "A conta recusou este save", sem dizer por quê)
+  let recusaChat = "";
+  function avisoRecusa(r) {
+    let m = String((r.j && r.j.error) || "o servidor não disse o motivo").trim().replace(/\.+$/, "");
+    m = m.charAt(0).toLowerCase() + m.slice(1);
+    if (/^versaoBase/.test(m)) m = "a versão do save não é válida";
+    const txt = `A conta recusou o save: ${m}. Ele continua salvo neste computador.`;
+    aviso("erro", txt, 30000);
+    if (txt !== recusaChat) { recusaChat = txt; try { const f = g("chatSistema"); if (typeof f === "function") f(txt, "aviso"); } catch (e) {} }
+    return txt;
   }
 
   // ---------------------------------------------------------------- o envio (um por vez, na fila)
@@ -5479,17 +5605,20 @@ G.VILA2 = V;
     });
   }
   async function enviarPersonagem(txt, mc, motivo) {
-    const pac = JSON.parse(txt), dados = await comprimir(txt);
+    // (o espaço e o resumo (a classe) são os da hora em que o pacote foi lido, ANTES da compressão: durante o await o jogo
+    // pode trocar de personagem ou de classe, e o pacote de um iria com o espaço ou a classe do outro)
+    const pac = JSON.parse(txt), sl = E.slot, resumo = resumoDe(pac.prog);
+    const dados = await comprimir(txt);
+    if (E.slot !== sl) return "trocou";
     if (dados.length > CFG.dadosMax) { aviso("erro", "Personagem grande demais para a conta: salvo neste computador"); return "grande"; }
-    const sl = E.slot;
-    const r = await pedir("PUT", `/personagens/${sl.espaco}`, { corpo: { dados, versaoBase: sl.versao, sessao: E.sessao, resumo: resumoDe(pac.prog), salvoEm: salvoEmNovo(), fechando: false } });
+    const r = await pedir("PUT", `/personagens/${sl.espaco}`, { corpo: { dados, versaoBase: sl.versao, sessao: E.sessao, resumo, salvoEm: salvoEmNovo(), fechando: false } });
     if (E.slot !== sl) return "trocou";
     if (r.ok) {
       sl.versao = r.j.versao; S.ultimoTxt = mc;
       if (marcaAtual() === mc) LS.del(chavePend(sl.chave)); else marcarPendente();
       const it = E.lista.find(p => p.espaco === sl.espaco);
-      if (it) Object.assign(it, resumoDe(pac.prog), { versao: r.j.versao, atualizadoEm: r.j.atualizadoEm });
-      sl.classe = resumoDe(pac.prog).classe;
+      if (it) Object.assign(it, resumo, { versao: r.j.versao, atualizadoEm: r.j.atualizadoEm });
+      sl.classe = resumo.classe;
       return "ok";
     }
     return tratarErro(r, "personagem", motivo);
@@ -5510,7 +5639,10 @@ G.VILA2 = V;
       case "rapido": S.proxTentativa = Date.now() + 1000 * Math.max(1, +r.j.tenteEmS || 10); S.imediato = S.imediato || motivo || "rapido"; return "rapido";
       case "grande_demais": aviso("erro", "Grande demais para a conta: salvo neste computador"); return "grande";
       case "nao_encontrado": E.apagado = true; aviso("erro", "Este personagem não está mais na conta: salvo só neste computador"); return "apagado";
-      case "save_invalido": case "resumo_invalido": console.warn("[nuvem] o servidor recusou o save:", r.j); aviso("erro", "A conta recusou este save: salvo neste computador"); return "invalido";
+      case "save_invalido": case "resumo_invalido":
+        console.warn("[nuvem] o servidor recusou o save:", JSON.stringify(r.j));
+        avisoRecusa(r); S.proxTentativa = Date.now() + CFG.intervaloMs;   // (o mesmo envio seria recusado de novo: espera o próximo ciclo)
+        return "invalido";
       case "token_invalido": case "banido": return "token";
       default: return "rede";   // (rede, 503, 500, tempo esgotado)
     }
@@ -5549,7 +5681,10 @@ G.VILA2 = V;
       const mc = marcaAtual();
       if (mc && mc !== S.ultimoTxt) {
         marcarPendente();
-        if (!S.pronto || S.pronto.marca !== mc) { const txt = pacoteTxt(); S.pronto = { marca: mc, dados: await comprimir(txt), resumo: resumoDe(JSON.parse(txt).prog), chave: E.slot && E.slot.chave }; }
+        if (!S.pronto || S.pronto.marca !== mc) {   // (o resumo e a chave antes do await, como no enviarPersonagem)
+          const txt = pacoteTxt(), resumo = resumoDe(JSON.parse(txt).prog), chave = E.slot && E.slot.chave, dados = await comprimir(txt);
+          S.pronto = { marca: mc, dados, resumo, chave };
+        }
       }
       const ct = comumTxt();
       if (ct != null && ct !== S.comum.ultimoTxt) {
@@ -6245,6 +6380,7 @@ G.VILA2 = V;
   .g2-salvo.ok { color: #c8eab8; border-color: rgba(120, 190, 120, 0.65); }
   .g2-salvo.erro { color: #ffcdb2; border-color: rgba(194, 85, 47, 0.85); }
   .g2-salvo.some { opacity: 0; }
+  .g2-salvo.longo { white-space: normal; max-width: 560px; }   /* (a recusa com o motivo: em até 3 linhas) */
   :root.modo-admin .g2-salvo { top: 6px; left: 50%; transform: translateX(-50%); }   /* (no admin, o alto à esquerda tem o título e os botões) */
   @media (max-width: 980px) { .g2-corpo { grid-template-columns: minmax(0, 1fr); } .g2-rank { max-height: none; } }
   `;
@@ -7468,7 +7604,7 @@ function noCastelo(x, y, folga = 0) { return COM_CASTELO && dentroRet(x, y, CAST
 // (montarMapa: árvores, construções, NPCs, bandos e Metins). Os portais (PORTAIS) ligam os mapas.
 const MAPAS = {
   vila1: { id: "vila1", nome: "Vale do Viking", sub: "a cidade e os arredores", niveis: [1, 15], ox: 0, oy: 0, raio: RAIO * ESC_V1, montado: true },
-  hahoe: { id: "hahoe", nome: "Vila Hahoe", sub: "da Curva do Rio", niveis: [15, 45], ox: 0, oy: 700, raio: HAHOE2 ? 115 : 62, montado: false },   // (a Hahoe nova: mapa_hahoe.js, atrás da chave ?hahoe2=1)
+  hahoe: { id: "hahoe", nome: "Vila Hahoe", sub: "da Curva do Rio", niveis: [15, 45], ox: 0, oy: 700, raio: HAHOE2 ? VILA2.R : 62, montado: false },   // (a Hahoe nova: mapa_hahoe.js, atrás da chave ?hahoe2=1)
   // a Montanha Gelada (42–50; o portal fica no Desfiladeiro da Vila Hahoe): o centro em (−700, 0), ver MONTE_X
   montanha: { id: "montanha", nome: "Montanha Gelada", sub: "o passo do Desfiladeiro", niveis: [42, 50], ox: -700, oy: 0, raio: 46, montado: false },
 };
@@ -7524,7 +7660,7 @@ const RIO_H = (() => {
 })();
 // a distância (m) até a beira do rio (negativa = dentro d'água), numa grade de 0,5 m feita uma vez (o caminho e a
 // colisão perguntam milhares de vezes por segundo), com interpolação entre as células
-const RIO_C = 0.5, RIO_N = HAHOE2 ? 500 : 300, RIO_J = RIO_N * RIO_C / 2;   // (a janela: ±75 m, ou ±125 m na Hahoe nova)
+const RIO_C = 0.5, RIO_N = HAHOE2 ? 720 : 300, RIO_J = RIO_N * RIO_C / 2;   // (a janela: ±75 m, ou ±180 m na Hahoe nova, 2× a área: a foz vai a x 170)
 function margemRio(x, y) {
   let g = RIO_H.grade;
   if (!g) {
@@ -7586,7 +7722,7 @@ function foraTabuleiro(x, y) { const p = ponteEm(x, y); return !!p && Math.abs(a
 // com o píer entrando no rio)
 const HV = { x: HAHOE.ox + 3, y: HAHOE.oy + 2, r: HAHOE2 ? 31 : 17 };   // (na Hahoe nova, a vila toda dentro da curva)
 const PRACA_H = { x: HAHOE.ox + 2, y: HAHOE.oy - 0.5, r: 5.2 };
-const CAIS_H = (() => { let m = RIO_H.pts[0], dm = Infinity; for (const p of RIO_H.pts) { const x = p[0] - HAHOE.ox, y = p[1] - HAHOE.oy; if (HAHOE2 ? (y > 0 || y < -40 || x < 70) : (y > -12 || y < -30)) continue; const d = Math.abs(x - (HAHOE2 ? 88 : 7)); if (d < dm) { dm = d; m = p; } } return { x: m[0], y: m[1] - RIO_H.larg(m[1], m[0]) / 2 - 0.5 }; })();   // (na Hahoe nova, no Porto da Foz)
+const CAIS_H = (() => { let m = RIO_H.pts[0], dm = Infinity; for (const p of RIO_H.pts) { const x = p[0] - HAHOE.ox, y = p[1] - HAHOE.oy; if (HAHOE2 ? (y > VILA2.PORTO.y + 25 || y < VILA2.PORTO.y - 25 || x < VILA2.PORTO.x - 30) : (y > -12 || y < -30)) continue; const d = Math.abs(x - (HAHOE2 ? VILA2.PORTO.x - 2 : 7)); if (d < dm) { dm = d; m = p; } } return { x: m[0], y: m[1] - RIO_H.larg(m[1], m[0]) / 2 - 0.5 }; })();   // (na Hahoe nova, no Porto da Foz)
 // os terraços de chá (uma elipse ao norte da vila, local) e os arrozais (canteiros a oeste, do outro lado da ponte)
 const TERRACOS_H = { x: 7, y: 30, rx: 12, ry: 7.5 }, ARROZAIS_H = HAHOE2 ? VILA2.ARROZAIS : { x0: -57, x1: -35, y0: -24, y1: -4 };
 const emTerracos = (x, y) => ((x - HAHOE.ox - TERRACOS_H.x) / TERRACOS_H.rx) ** 2 + ((y - HAHOE.oy - TERRACOS_H.y) / TERRACOS_H.ry) ** 2 < 1;
@@ -7633,7 +7769,7 @@ function mapaDaCamera() {
 // taipas e mudas em fileira), os terraços de chá (muros baixos de pedra e as touceiras redondas em fileiras), as poças do
 // brejo e o rio (barranco, água índigo, a beira jade e o nanquim, como o lago da Vila 1), recortado pela costa
 function pisoHahoe(g, P, esc, caminho, mx0, mx1, my0, my1) {
-  const J = HAHOE2 ? 125 : 85;                                         // (a caixa do mapa: ±85 m, ou ±125 m na Hahoe nova)
+  const J = HAHOE2 ? 175 : 85;                                         // (a caixa do mapa: ±85 m, ou ±175 m na Hahoe nova, 2× a área)
   if (my1 < HAHOE.oy - J || my0 > HAHOE.oy + J) return;
   const dentro = (x0, x1, y0, y1) => mx1 > x0 - 1 && mx0 < x1 + 1 && my1 > y0 - 1 && my0 < y1 + 1;
   const ret = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
@@ -7677,7 +7813,7 @@ function pisoHahoe(g, P, esc, caminho, mx0, mx1, my0, my1) {
   }
   // o rio
   const RC = RIO_H.cont, cont = d => RC[d] || (RC[d] = RIO_H.contorno(d));
-  if (HAHOE2 ? mx1 > HAHOE.ox - 70 && mx0 < HAHOE.ox + 125 && my1 > HAHOE.oy - 50 && my0 < HAHOE.oy + 90 : mx1 > HAHOE.ox - 40 && mx0 < HAHOE.ox + 35) {
+  if (HAHOE2 ? mx1 > HAHOE.ox - 95 && mx0 < HAHOE.ox + 185 && my1 > HAHOE.oy - 85 && my0 < HAHOE.oy + 125 : mx1 > HAHOE.ox - 40 && mx0 < HAHOE.ox + 35) {
     caminho(cont(0.6), true); g.fillStyle = "#6f5a3c"; g.fill();
     caminho(cont(0), true); g.fillStyle = ESTILO_B ? "#2D5570" : "#2f6d85"; g.fill();
     caminho(cont(-0.6), true); g.strokeStyle = ESTILO_B ? "rgba(62, 122, 92, 0.8)" : "rgba(120, 190, 205, 0.5)"; g.lineWidth = 0.6 * esc; g.stroke();
@@ -10226,7 +10362,7 @@ function montarCidade() {
   }
   for (let i = objetos.length - 1; i >= 0; i--) if (objetos[i].tipo === "ferraria" || objetos[i].tipo === "forja") objetos.splice(i, 1);
   // (R270) a forja pintada ao lado do Ferreiro (a leste e um pouco ao fundo: atrás dele, sob o telhado da ferraria)
-  if (ferreiroNpc && !objetos.some(o => o.tipo === "forja_pintada")) { const F = FORJA_PINTADA, o = { tipo: "forja_pintada", x: ferreiroNpc.x + F.dx, y: ferreiroNpc.y + F.dy, r: 0.85, cidade: true }; objetos.push(o); porNaGrade(o); imgForjaPintada(); ferreiroNpc.forjaOeste = F.dx < 0; }
+  if (ferreiroNpc && !objetos.some(o => o.tipo === "forja_pintada")) { const F = FORJA_PINTADA, o = { tipo: "forja_pintada", x: ferreiroNpc.x + F.dx, y: ferreiroNpc.y + F.dy, r: 0.85, cidade: true }; objetos.push(o); porNaGrade(o); imgForjaPintada(); ferreiroNpc.forjaOeste = F.dx < 0; ferreiroNpc.dirForja = F.dir; ferreiroNpc.dProf = F.dProf; }   // (dProf: ele fica atrás da linha do toco, mas é desenhado na frente da forja, com o martelo por cima da bigorna)
   if (c.treino) {                                  // (os bonecos, as runas e a fogueira do treino: para o lado, longe do eixo)
     const { de, para, r } = c.treino, dx = para[0] - de[0], dy = para[1] - de[1];
     for (const o of objetos) if (["boneco", "runa", "fogueira"].includes(o.tipo) && !o.caverna && Math.hypot(o.x - de[0], o.y - de[1]) < r) { o.x += dx; o.y += dy; o.cidade = true; delete o._circ; }
@@ -13254,17 +13390,14 @@ const NOME_CLASSE = { viking: "Viking", arqueiro: "Arqueiro", feiticeiro: "Feiti
 function desenharPlacaJogador(X, Y, z) {
   if (!prog || viking.caido) return;
   const topo = topoPlacaHeroi(), y = (window.M3D && M3D.ativo ? M3D.acima(viking, topo * z) : Y - topo * z) - 4;
-  // (R268, 05/11, o usuário: "a barra acima do jogador nao esta sendo pintada da cor mais leve": a parte clara da poção também aqui, a pé e montado)
-  const v = viking, bv = v.baldeVida > 0 ? v.baldeVida : 0, bm = v.baldeMana > 0 ? v.baldeMana : 0;
-  barrinha(X, y, 56, 5, v.vida / status.vidaMax, ["#ee6a50", "#a8261a"], [(v.vida + bv) / status.vidaMax, ["#ffc8bc", "#f0907e"]], "vida");
-  barrinha(X, y + 7, 56, 4, (v.mana || 0) / status.manaMax, ["#7cc2ff", "#2a5fc0"], [((v.mana || 0) + bm) / status.manaMax, ["#dcefff", "#94c6f6"]], "mana");
-  placaNome(X, y - 6, prog.nivel, prog.nome || NOME_CLASSE[classe], "#ffffff");
+  // (R282, 05/11, o usuário: "retire as barras de hp e mana de cima dos personagens e deixe a honra") sem as barrinhas de vida e mana
+  // em cima do herói (as de baixo e a da ficha ficam, com a parte clara da poção); o título de honra em cima do nick, e o nick na cor
+  // da honra. Os monstros e os chefes continuam com as barras e os nomes sempre à vista
   const hon = honraDe();
-  if (hon.titulo) {                                                    // (R164: o título de honra, em cima do nome)
-    cx.save(); cx.font = "700 12px 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif"; cx.textAlign = "center"; cx.textBaseline = "middle"; cx.lineJoin = "round";
-    cx.lineWidth = 3; cx.strokeStyle = "rgba(10, 8, 6, 0.9)"; cx.strokeText(hon.titulo, X, y - 21); cx.fillStyle = hon.cor; cx.fillText(hon.titulo, X, y - 21); cx.restore();
-  }
-  if (viking.balao) desenharBalao(X, y - (hon.titulo ? 36 : 22));      // (a fala do chat)
+  placaNome(X, y + 6, prog.nivel, prog.nome || NOME_CLASSE[classe], hon.cor);
+  cx.save(); cx.font = "700 12px 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif"; cx.textAlign = "center"; cx.textBaseline = "middle"; cx.lineJoin = "round";
+  cx.lineWidth = 3; cx.strokeStyle = "rgba(10, 8, 6, 0.9)"; cx.strokeText(hon.titulo, X, y - 10); cx.fillStyle = hon.cor; cx.fillText(hon.titulo, X, y - 10); cx.restore();
+  if (viking.balao) desenharBalao(X, y - 25);                          // (a fala do chat)
 }
 function rotuloCriatura(l) { return `Lv. ${l.cfg.nivel || 1} ${l.cfg.nome}`; }
 // a cor do "Lv." da criatura pela diferença para o herói (o quanto ela vale de exp, fatorDifNivel): cinza bem abaixo
@@ -15502,9 +15635,11 @@ function montarValeOrcs(por) {
     const o = DECO ? completarDecoracao({ tipo, x, y, ...extra }) : { tipo, x, y, r: 0.5, ...extra };
     if (temColisao(o)) por(o); else objetos.push(o);
   };
-  // o monumento: a pedra gigante, quatro pedras rúnicas em volta e braseiros acesos entre elas
+  // o monumento: no meio, quatro pedras rúnicas em volta e braseiros acesos entre elas. (R273, 05/11, o usuário: "aqui foi feito para existir
+  // um monumento, mas no lugar existe uma pedra deformada": era a pedra de musgo das pedras soltas, var 3, esticada 5,2× e deformada; agora é
+  // uma peça de monumento: a estátua do guardião no pedestal (a das Ruínas), 1,15×, até a arte própria do monumento chegar)
   const M0 = MONUMENTO;
-  por({ tipo: "pedra", x: M0.x, y: M0.y, r: 2.3, esc: 5.2, var: 3, forma: [1, 0.95, 1.05, 1, 0.9, 1.08, 1], monumento: true });
+  { const o = { tipo: "estatua", x: M0.x, y: M0.y, esc: 1.15, monumento: true }; por(DECO ? completarDecoracao(o) : { ...o, r: 0.8 }); }
   [[0, 3.6], [3.4, 0.4], [0, -3.4], [-3.4, 0.4]].forEach(([dx, dy], q) => por({ tipo: "runa", x: M0.x + dx, y: M0.y + dy, r: 0.35, fase: q, alt: 1.6, esc: 0.95 }));
   [[2.6, 2.8], [-2.6, 2.8], [2.6, -2.6], [-2.6, -2.6]].forEach(([dx, dy]) => por({ tipo: "braseiro", x: M0.x + dx, y: M0.y + dy, r: 0.4 }));
   VALE_BANDOS.forEach(([tipo, x, y], k) => {
@@ -15623,7 +15758,17 @@ function desenharForja(o, X, Y, s, lw, t) {
 // com o telhadinho, as brasas e o fogo, a bigorna num toco, o fole e o balde), no lugar da bigorna cinza desenhada por código: a oeste do
 // Ferreiro (a leste, sob a ferraria, o telhado a cobria), com a bigorna da arte do lado dele, e ele martela virado para ela. É um objeto da cidade (montarCidade), sólido (COLISAO forja_pintada), na ordem de
 // profundidade (atrás do Ferreiro: não o tapa) e translúcido quando alguém passa atrás; o fogo pulsa (a luz somada da forja) e solta faíscas
-const FORJA_PINTADA = { arq: "deco_b/forja_ferreiro.webp", larg: 2.5, fogo: [0.502, 0.452], dx: -1.0, dy: 1.9, im: null, ok: false };   // (a noroeste do Ferreiro: atrás dele na profundidade, fora do telhado da ferraria, que a cobria; ele se vira para ela)
+// (05/11, a forja chapada: a lareira sob o telhado verde à esquerda e a bigorna escura num toco à direita e embaixo, 486 × 420 px. A
+// escala é a da de antes, 0,00584 m por pixel: a bigorna fica com ~0,9 m e o topo dela a ~0,77 m do chão. "bigorna" é o meio do topo dela na
+// imagem, onde o martelo bate. O Ferreiro fica onde a cidade o põe; a forja vai para (dx, dy) dele: assim ele fica encostado na bigorna, à
+// direita dela na tela, virado para ela (forjaOeste), e o martelo da animação (0,62 m à frente e 0,43 m acima dos pés, na tela) desce no topo)
+const FORJA_PINTADA = { arq: "deco_b/forja_ferreiro.webp", larg: 2.84, fogo: [0.508, 0.49], bigorna: [0.813, 0.686], toco: [0.802, 0.948], dx: -1.337, dy: 0.754, dir: 5, dProf: 0.6, im: null, ok: false };
+// o pé do toco da bigorna no chão (m do mundo), pela imagem: a vista girada (tela) ao contrário, com z = 0
+function bigornaForja(o) {
+  const F = FORJA_PINTADA, w = F.larg, h = w * 420 / 486, sx = (F.toco[0] - 0.5) * w, sy = -h * 0.97 + F.toco[1] * h;   // (em m da tela, a partir do pé da imagem)
+  const u = sx, v = -sy / ACHATA;                                       // (u: para a direita da tela; v: para o fundo)
+  return { x: o.x + u * GIRO_C + v * GIRO_S, y: o.y - u * GIRO_S + v * GIRO_C };
+}   // (a noroeste do Ferreiro: atrás dele na profundidade, fora do telhado da ferraria, que a cobria; ele se vira para ela)
 function imgForjaPintada() {
   const F = FORJA_PINTADA;
   if (!F.im) { F.im = new Image(); F.im.onload = () => { F.ok = true; }; F.im.src = typeof VERSOES !== "undefined" && VERSOES.com ? VERSOES.com(F.arq) : F.arq; }
@@ -15639,6 +15784,7 @@ function desenharForjaPintada(o, X, Y, s, t) {
   const luz = g.createRadialGradient(fx, fy, 0, fx, fy, w * 0.42); luz.addColorStop(0, `rgba(255, 150, 60, ${0.42 * p})`); luz.addColorStop(1, "rgba(255, 110, 40, 0)");
   g.fillStyle = luz; g.beginPath(); g.arc(fx, fy, w * 0.42, 0, 7); g.fill(); g.restore();
   if (Math.random() < 0.015) faiscasForja(fx, fy - h * 0.05, s * 0.6);   // (de vez em quando, as faíscas das brasas)
+  F.tela = [X + (F.bigorna[0] - 0.5) * w, Y - h * 0.97 + F.bigorna[1] * h];   // (o topo da bigorna na tela, neste quadro: as faíscas do martelo)
 }
 function desenharFerreiroNpc(o, X, Y, s, lw, t) {
   const g = cx, e = s;
@@ -15656,7 +15802,11 @@ function desenharFerreiroNpc(o, X, Y, s, lw, t) {
     const i = P3D.inst.get(o), mi = i && i.m.json && i.m.json.animacoes.martelando;
     if (i && i.anim === "martelando" && mi) {
       const qq = Math.floor((performance.now() / 1000 % (mi.quadros / mi.fps)) * mi.fps);
-      if (qq !== o.q3d && (mi.acertos || [mi.acerto]).includes(qq)) faiscasForja(ax, ay - e * 0.48, s);
+      if (qq !== o.q3d && (mi.acertos || [mi.acerto]).includes(qq)) {
+        const F = FORJA_PINTADA, naForja = F.ok && F.tela && o.forjaOeste !== undefined;   // (na forja pintada: no topo da bigorna dela)
+        faiscasForja(naForja ? F.tela[0] : ax, naForja ? F.tela[1] : ay - e * 0.48, s);
+        if (Math.hypot(o.x - viking.x, o.y - viking.y) < 9) som("metal", o, 0.18);   // (o tinido baixo, só de perto; no ?test=1 o som() é mudo)
+      }
       o.q3d = qq;
     }
     placas.push(() => { placaNpc(X, Y - e * 1.85, o.nome); });
@@ -16074,11 +16224,19 @@ function passoCavalo(dt) {
   if (v.montado) {
     e.ativo = true; e.x = v.x; e.y = v.y; e.dir = v.dir; v.montT = (v.montT || 0) + dt;
     if (e.tEmp >= 0) return;
-    if (mov > 0.5 && mov < 20 && !v.acao) {
+    // (05/11, Logs/Cavalo/TRANCO_GALOPE.md, R281) andando por cliques, o herói chega ao ponto e fica parado alguns quadros até
+    // o clique seguinte: o cavalo ia para "parado" e voltava ao galope no quadro 0 (as patas de trás pulavam para trás).
+    // Uma parada curta (até 0,25 s) segura o galope na mesma fase, sem avançar (os cascos não escorregam), e o passo segue
+    // de onde estava
+    const anda = mov > 0.5 && mov < 20 && !v.acao;
+    e.parou = anda ? 0 : (e.parou || 0) + dt;
+    if (anda || (e.anim === "correndo" && !v.acao && e.parou < 0.25)) {
       if (e.anim !== "correndo") { e.anim = "correndo"; e.t = 0; }
-      e.t += dt * mov / CAVALO.galope;
-      e.dist = (e.dist || 0) + mov * dt;
-      while (e.dist >= 10) { e.dist -= 10; ganharExpCavalo(1); }
+      if (anda) {
+        e.t += dt * mov / CAVALO.galope;
+        e.dist = (e.dist || 0) + mov * dt;
+        while (e.dist >= 10) { e.dist -= 10; ganharExpCavalo(1); }
+      }
     } else { if (e.anim !== "parado") { e.anim = "parado"; e.t = 0; } e.t += dt; }
     return;
   }
@@ -16211,6 +16369,89 @@ function montarCavaleiro3d(i, r) {
   const dur = mm.quadros / mm.fps;
   a.time = mm.laco ? ((r.t % dur) + dur) % dur : Math.max(0, Math.min(r.t, dur - 1e-3));
   c.mixer.update(0);
+  if (!/ataque/.test(r.anim)) armaMontadaFixa(c);                      // (05/11: parado e galopando, a arma numa pose fixa ao lado, fora do cavalo)
+}
+// (05/11, o usuário: "quase todos os personagens quando estão montados estao bugados, ou o cajado esta atravessando o corpo, ou o arco fica
+// virando, o machado girando, o leque virando.... quando esta montado, deixe a arma segurando em posicao normal ao lado do corpo para fora do
+// corpo do cavalo"). As peças da arma (os nós peca_* do "personagem") vinham do clipe montado, girando no galope. Montado (parado e
+// galopando; o golpe montado fica com o clipe), cada peça fica numa pose FIXA no espaço do cavaleiro (que vai preso ao Assento: só o sobe e
+// desce do galope a move): a empunhadura ao lado do quadril, do lado da mão dela, ARMA_MONTADA.lado m para fora (fora do flanco do cavalo),
+// e a peça apontada para baixo, para trás e para fora (a lâmina, o machado, as adagas, o leque) ou em pé (o arco e o cajado). O braço da
+// mão dela alcança a empunhadura (IK de 2 ossos, o cotovelo para fora e para trás). Os eixos (cima, frente, lado) saem dos ossos do próprio
+// cavaleiro (o quadril, a espinha e os ombros), então vale para os esqueletos de todas as classes. window.ARMA_MONTADA_LIVRE = true: o de antes
+const ARMA_MONTADA = { lado: 0.56, baixo: 0.02, frente: 0.06, emPe: /arco|cajado|esfera/, pecas: /^peca_(espada|machado|arco|corda|flecha|adaga|cajado|esfera|leque|lamina|foice)/ };   // (pecas: só as da arma; a xamã modular tem a roupa em peca_*)
+function eixosCavaleiro(c) {
+  const ac = re => { let o = null; c.raiz.traverse(b => { if (!o && b.isBone && re.test(b.name)) o = b; }); return o; };
+  const braco = L => { const re = s => new RegExp(L + "_?" + s + "$", "i"); return { up: ac(re("(upperarm|arm)")), lo: ac(re("(lowerarm|forearm)")), mao: ac(re("hand")) }; };
+  return { hips: ac(/hips$/i), spine: ac(/spine$/i) || ac(/spine/i), ombroE: ac(/left_?shoulder$/i), ombroD: ac(/right_?shoulder$/i), e: braco("left"), d: braco("right") };
+}
+function prepararArmaMontada(c) {
+  const T = THREE, pers = c.raiz.getObjectByName("personagem") || c.raiz, E = eixosCavaleiro(c);
+  if (!E.hips || !E.spine || !E.ombroE || !E.ombroD || !E.e.mao || !E.d.mao) return { l: [] };
+  c.raiz.updateMatrixWorld(true);
+  const inv = new T.Matrix4().copy(pers.matrixWorld).invert(), loc = o => o.getWorldPosition(new T.Vector3()).applyMatrix4(inv);
+  const hips = loc(E.hips), cima = loc(E.spine).sub(hips).normalize(), lado = loc(E.ombroD).sub(loc(E.ombroE));   // (lado: para a direita do cavaleiro)
+  lado.addScaledVector(cima, -lado.dot(cima)).normalize();
+  const frente = new T.Vector3().crossVectors(lado, cima).normalize();
+  if (frente.dot(loc(E.d.mao).sub(hips).add(loc(E.e.mao).sub(hips))) < 0) frente.negate();   // (as mãos ficam na frente do quadril)
+  const pecas = []; c.raiz.traverse(o => { if (ARMA_MONTADA.pecas.test(o.name) && o.parent === pers) pecas.push(o); });
+  // cada peça: a mão mais perto, o eixo comprido (do ponto da mão para a ponta) e o ponto da mão na peça (no espaço dela)
+  const info = pecas.map(o => {
+    const esc = o.scale.clone(); if (Math.min(Math.abs(esc.x), Math.abs(esc.y), Math.abs(esc.z)) < 1e-3) esc.set(1, 1, 1);   // (o clipe esconde a peça com a escala 0 em alguns quadros)
+    const esc0 = o.scale.clone(); o.scale.copy(esc); o.updateMatrixWorld(true);
+    const oi = new T.Matrix4().copy(o.matrixWorld).invert(), box = new T.Box3();
+    o.traverse(m => { if (m.isMesh && m.geometry) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox.clone().applyMatrix4(new T.Matrix4().copy(m.matrixWorld).premultiply(oi))); } });
+    if (box.isEmpty()) { o.scale.copy(esc0); return null; }
+    const tam = box.getSize(new T.Vector3()), k = tam.x >= tam.y && tam.x >= tam.z ? "x" : tam.y >= tam.z ? "y" : "z";
+    const naPeca = b => b.getWorldPosition(new T.Vector3()).applyMatrix4(oi);
+    const mE = naPeca(E.e.mao), mD = naPeca(E.d.mao), dist = v => v.clone().clamp(box.min, box.max).distanceTo(v);
+    const ld = dist(mD) <= dist(mE) ? "d" : "e", pega = (ld === "d" ? mD : mE).clone().clamp(box.min, box.max);
+    const fim = Math.abs(pega[k] - box.min[k]) > Math.abs(pega[k] - box.max[k]) ? box.min[k] : box.max[k];
+    const eixo = new T.Vector3(); eixo[k] = Math.sign(fim - pega[k]) || 1;
+    o.scale.copy(esc0); o.updateMatrixWorld(true);
+    return { o, lado: ld, pega, eixo, tam: tam[k] * esc.x, q0: o.quaternion.clone(), p0: o.position.clone(), esc };
+  }).filter(Boolean);
+  // a peça principal de cada mão (a maior) dá a pose; as outras da mesma mão (o cabo, a esfera do cajado) vão presas a ela
+  const l = [];
+  for (const ld of ["d", "e"]) {
+    const da = info.filter(i => i.lado === ld); if (!da.length) continue;
+    const pr = da.reduce((a, b) => b.tam > a.tam ? b : a), sg = ld === "d" ? 1 : -1, emPe = da.some(i => ARMA_MONTADA.emPe.test(i.o.name));
+    const pega = hips.clone().addScaledVector(lado, sg * ARMA_MONTADA.lado).addScaledVector(cima, -ARMA_MONTADA.baixo).addScaledVector(frente, ARMA_MONTADA.frente);
+    const dir = emPe ? cima.clone() : cima.clone().multiplyScalar(-1).addScaledVector(frente, -0.4).addScaledVector(lado, sg * 0.3).normalize();
+    const eixoAgora = pr.eixo.clone().applyQuaternion(pr.q0).normalize(), qt = new T.Quaternion().setFromUnitVectors(eixoAgora, dir).multiply(pr.q0);
+    const pt = pega.clone().sub(pr.pega.clone().multiply(pr.esc).applyQuaternion(qt));
+    const m0 = new T.Matrix4().compose(pr.p0, pr.q0, pr.esc), delta = new T.Matrix4().compose(pt, qt, pr.esc).multiply(m0.invert());
+    for (const i of da) {
+      const mi = new T.Matrix4().compose(i.p0, i.q0, i.esc).premultiply(delta), p = new T.Vector3(), q = new T.Quaternion(), e = new T.Vector3(); mi.decompose(p, q, e);
+      l.push({ o: i.o, p, q, e });
+    }
+    l.push({ ik: E[ld], pega, pers, polo: lado.clone().multiplyScalar(sg).addScaledVector(frente, -0.6).normalize() });
+  }
+  return { l, cima, frente, lado };
+}
+// o braço de 2 ossos até o alvo (no espaço do personagem): gira o de cima para o cotovelo novo e o de baixo para o alvo
+function ikBraco(b, alvoL, poloL, pers) {
+  const T = THREE, { up, lo, mao } = b; if (!up || !lo || !mao) return;
+  pers.updateMatrixWorld(true);
+  const A = up.getWorldPosition(new T.Vector3()), B = lo.getWorldPosition(new T.Vector3()), C = mao.getWorldPosition(new T.Vector3());
+  const alvo = alvoL.clone().applyMatrix4(pers.matrixWorld), poloW = poloL.clone().transformDirection(pers.matrixWorld);
+  const l1 = A.distanceTo(B), l2 = B.distanceTo(C), AT = alvo.clone().sub(A); let d = AT.length(); if (d < 1e-4 || l1 < 1e-4 || l2 < 1e-4) return;
+  d = Math.min(d, (l1 + l2) * 0.999); AT.normalize();
+  const cosA = Math.max(-1, Math.min(1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d))), lat = poloW.clone().addScaledVector(AT, -poloW.dot(AT)).normalize();
+  const B2 = A.clone().addScaledVector(AT, l1 * cosA).addScaledVector(lat, l1 * Math.sqrt(1 - cosA * cosA));
+  const gira = (osso, de, para) => {
+    const q = new T.Quaternion().setFromUnitVectors(de.normalize(), para.normalize()), pw = osso.parent.getWorldQuaternion(new T.Quaternion()), ow = osso.getWorldQuaternion(new T.Quaternion());
+    osso.quaternion.copy(pw.invert().multiply(q.multiply(ow))); osso.updateMatrixWorld(true);
+  };
+  gira(up, B.clone().sub(A), B2.clone().sub(A));
+  const B3 = lo.getWorldPosition(new T.Vector3()), C3 = mao.getWorldPosition(new T.Vector3());
+  gira(lo, C3.sub(B3), alvo.clone().sub(B3));
+}
+function armaMontadaFixa(c) {
+  if (typeof THREE === "undefined" || window.ARMA_MONTADA_LIVRE) return;
+  const P = c.armaFixa || (c.armaFixa = prepararArmaMontada(c));
+  for (const r of P.l) if (r.o) { r.o.position.copy(r.p); r.o.quaternion.copy(r.q); r.o.scale.copy(r.e); }
+  for (const r of P.l) if (r.ik) ikBraco(r.ik, r.pega, r.polo, r.pers);
 }
 
 // ---------------------------------------------------------------- missões
@@ -16939,10 +17180,14 @@ function cumprirEtapa(id) {
 }
 // ---- a honra (R164; o sistema de honra do Metin2, só a parte positiva, porque ainda não há PvP): cada criatura derrotada dá 1 ponto, se ela não
 // estiver mais de 10 níveis abaixo do herói. Os títulos aparecem em cima do nome e somam na chance de drop dobrado. prog.honra
-const HONRA_MAX = 20000, HONRA_TITULOS = [[12000, "Admirável", 5, "#ffd98a"], [8000, "Nobre", 4, "#f2c14e"], [4000, "Íntegro", 2, "#a8e6c0"], [1000, "Valioso", 1, "#bfe3ff"]];
+// (05/11, o usuário: "vamos fazer o sistema de honra com as cores e já colocando o nome acima do nick do jogador", a tabela do Metin2)
+// pontos → título e a cor do nome: 12000–20000 Admirável, 8000 Nobre, 4000 Íntegro, 1000 Valioso (azuis) e 0–999 Civil (branco). O
+// título vai em cima do nick e o nick na cor da honra; a mesma tabela vale na ficha. [pontos mínimos, título, % de drop (R164), cor]
+const HONRA_AZUL = "#7cc4ff";
+const HONRA_MAX = 20000, HONRA_TITULOS = [[12000, "Admirável", 5, HONRA_AZUL], [8000, "Nobre", 4, HONRA_AZUL], [4000, "Íntegro", 2, HONRA_AZUL], [1000, "Valioso", 1, HONRA_AZUL], [0, "Civil", 0, "#ffffff"]];
 function honraDe(p = prog) {
-  const pontos = (p && p.honra) || 0, t = HONRA_TITULOS.find(x => pontos >= x[0]);
-  return { pontos, titulo: t ? t[1] : "", drop: t ? t[2] : 0, cor: t ? t[3] : "#ffffff" };
+  const pontos = Math.min(HONRA_MAX, (p && p.honra) || 0), t = HONRA_TITULOS.find(x => pontos >= x[0]);
+  return { pontos, titulo: t[1], drop: t[2], cor: t[3] };
 }
 function honraMorte(l) {
   if (!prog || !l.cfg || l.cfg.boneco || (l.cfg.nivel || 1) < prog.nivel - 10) return;
@@ -18117,7 +18362,21 @@ function botaoItem(it, G = geoGrade()) {
 // de lá, se couber); arrastando para a barra, vira atalho; clique direito (ou dois cliques) usa.
 // CEL: o lado do espaço em px lógicos (o Metin2 usa 32); na tela ele vira um número inteiro de pixels (geoGrade)
 const INV_COLS = 5, INV_LINS = 9, INV_ABAS = 4, PILHA_MAX = 200;
-let CEL = 32;                                                          // (R246: eram 36; 28 nas telas com menos de 760 px de altura, geoGrade)
+let CEL = 32;
+// (R272, 05/11, o usuário: "a opção de aumentar ou diminuir a janela do inventario nao esta funcionando": não havia nenhuma; o tamanho era fixo)
+// o − e o + no título da bolsa trocam o lado do espaço (e com ele o equipamento e o armazém) entre estes tamanhos; 0 = o automático
+// (32, ou 28 nas telas baixas). Fica salvo neste navegador (BOLSA_TAM_CHAVE)
+const TAM_BOLSA = [24, 28, 32, 36, 40, 44], BOLSA_TAM_CHAVE = "bolsaCel";
+let bolsaCel = (() => { try { const v = +localStorage.getItem(BOLSA_TAM_CHAVE); return TAM_BOLSA.includes(v) ? v : 0; } catch (e) { return 0; } })();
+function mudarTamBolsa(passo) {
+  const atual = bolsaCel || (innerHeight < 760 ? 28 : 32), i = Math.max(0, Math.min(TAM_BOLSA.length - 1, TAM_BOLSA.indexOf(atual) + passo));
+  bolsaCel = TAM_BOLSA[i];
+  try { localStorage.setItem(BOLSA_TAM_CHAVE, String(bolsaCel)); } catch (e) {}
+  desenharBolsa(); desenharArmazem();
+  if (janelasSalvas.bolsa && janelasSalvas.bolsa.x !== undefined) posicionarJanela(JANELAS.find(j => j.id === "bolsa"));   // (arrastada: continua dentro da tela)
+  const b = $("#bolsaMenos"), m = $("#bolsaMais"); if (b) b.disabled = i === 0; if (m) m.disabled = i === TAM_BOLSA.length - 1;
+  return bolsaCel;
+}                                                          // (R246: eram 36; 28 nas telas com menos de 760 px de altura, geoGrade)
 let abaBolsa = 0;
 // h = quantos espaços o item ocupa na bolsa, em pé: arco, espada, machado e cajado 2; adagas 1; armadura 2; escudo,
 // elmo e botas 1; o resto 1
@@ -18144,7 +18403,7 @@ function tipoItem(chave) {
     bencao: { nome: "Pergaminho da Bênção", desc: "No Ferreiro: se o refino falhar, a arma perde só um nível em vez de quebrar. No encaixe de uma Jóia que falha, salva a Jóia.", h: 1, desenho: "bencao" },
     bau_iniciante: { nome: "Baú do Iniciante", desc: "Presente de boas-vindas para quem começa a jornada. Clique direito (ou dois cliques) para abrir.", h: 1,
                      usar: it => abrirBauIniciante(it), desenho: "bau_iniciante", conteudo: () => kitIniciante().map(k => (k.qtd > 1 ? `${k.qtd} × ` : "") + nomeItem(k)) },
-    retrato_cavalo: { nome: "Retrato do Cavalo", desc: "Chama o seu cavalo (ou manda embora). Ctrl+G monta e desmonta. Do nível 11 do cavalo ele ataca montado; no 11 e no 21 ganha armadura.", h: 1,
+    retrato_cavalo: { nome: "Retrato do Cavalo", desc: "Chama o seu cavalo (ou manda embora; também Ctrl+B). Ctrl+G monta e desmonta. Do nível 11 do cavalo ele ataca montado; no 11 e no 21 ganha armadura.", h: 1,
                       usar: () => chamarCavalo(), desenho: "retrato_cavalo" },
     conselho: { nome: "Conselho do Eremita", desc: "Tira a espera (18 a 30 h) para ler o próximo livro de uma skill, 1 por vez. Clique direito (ou dois cliques), ou use na ficha (P).", h: 1, usar: () => usarConselho(), desenho: "conselho" },
     correcao: { nome: "Pergaminho da Correção", desc: "Arraste sobre uma arma ou roupa na bolsa: tira a última Jóia encaixada e a devolve para a bolsa.", h: 1, desenho: "correcao" },
@@ -18222,7 +18481,7 @@ function pintarItem(g, chave, w, h, b) {
 // ---- a grade da bolsa (e do armazém e do equipamento) em pixels de tela: o espaço tem CEL px lógicos arredondados para
 // um número inteiro de pixels de tela (celD), as linhas têm 1 pixel de tela por unidade de densidade, e o canto da
 // grade cai num pixel inteiro (alinharPixel). Assim as linhas, os quadros e os ícones batem exatos em qualquer densidade
-function geoGrade() { CEL = innerHeight < 760 ? 28 : 32; const d = dprTela(), celD = Math.round(CEL * d), lw = Math.max(1, Math.round(d)); return { d, celD, lw, cel: celD / d }; }
+function geoGrade() { CEL = bolsaCel || (innerHeight < 760 ? 28 : 32); const d = dprTela(), celD = Math.round(CEL * d), lw = Math.max(1, Math.round(d)); return { d, celD, lw, cel: celD / d }; }
 // desloca o elemento (com "translate", sem mexer no layout) para o canto dele cair num pixel inteiro da tela
 function alinharPixel(el) {
   if (!el || !el.isConnected) return;
@@ -19395,6 +19654,7 @@ function montarBolsa() {
   $("#eqArma").addEventListener("contextmenu", e => { e.preventDefault(); tirarArma(); });
   for (const el of document.querySelectorAll(".peca-eq")) el.addEventListener("contextmenu", e => { e.preventDefault(); tirarPeca(el.dataset.peca); });
   $("#bolsaFechar").onclick = () => abrirBolsa(false);
+  $("#bolsaMenos").onclick = () => mudarTamBolsa(-1); $("#bolsaMais").onclick = () => mudarTamBolsa(1);   // (R272)
   $("#abasBolsa").onclick = e => { const b = e.target.closest("[data-aba]"); if (b) { abaBolsa = +b.dataset.aba; desenharBolsa(); } };
   const grade = $("#gradeInv"), dica = $("#dicaItem");
   grade.addEventListener("contextmenu", e => { e.preventDefault(); const b = e.target.closest(".item-inv"); if (!b) return; if (armazemAberto()) guardarNoArmazem(b._item); else if (lojaAberta()) venderItem(b._item); else usarEDica(b._item, e); });
@@ -20322,7 +20582,7 @@ function atualizarFicha() {
   $("#fTitulo").textContent = "Personagem";
   if (fichaRetrato !== classe) { fichaRetrato = classe; $("#fRetrato").innerHTML = retratoBusto(classe); }   // (R267: só o busto da classe; o desenho de antes saiu. Sem a imagem, o fundo do quadro)
   $("#fNome").textContent = prog.nome || nomeClasse;                     // (R267: só leitura; o nome vem da criação)
-  { const h = honraDe(); $("#fHonra").innerHTML = `<i>◆</i>Honra ${h.pontos.toLocaleString("pt-BR")}${h.titulo ? ` · <span style="color:${h.cor}">${h.titulo}</span>` : ""}`; }
+  { const h = honraDe(); $("#fHonra").innerHTML = `<i>◆</i>Honra ${h.pontos.toLocaleString("pt-BR")}${h.titulo ? ` · <span style="color:${h.cor === HONRA_AZUL ? "#2D6AA8" : "inherit"}">${h.titulo}</span>` : ""}`; }   // (no papel da ficha, o azul da honra mais escuro; o Civil na cor do texto)
   const pr = ATRIB_PRINCIPAL[classe];
   $("#fClasse").innerHTML = `${nomeClasse} <small>· atributo principal ${pr.toUpperCase()}</small>`;
   // ---- Status: nível, experiência, próximo nível (a exp que este nível pede)
@@ -20437,7 +20697,7 @@ function atualizarFicha() {
   } else $("#fSkInfo").innerHTML = classe === "aprendiz" ? `<span class="sk-nome"><b>As skills chegam com a classe</b></span><span class="sk-aviso">No nível ${NIVEL_ALTAR}, suba ao Altar das Eras, na ilha a oeste da Vila 1. Os seus pontos de skill ficam guardados até lá.</span>` : "";
   const travado = l => l.map(([nome, dica]) => `<div class="fx-trava" title="${nome}: ${dica} (em breve)">${CADEADO}<i>${nome}</i></div>`).join("");
   // as Skills comuns (Standard Skills do Metin2): só as que existem no jogo (montar, o dash e o combo)
-  const comuns = [["montar", "Montar", CAVALO_LIBERADO ? "Ctrl+G: monta e desmonta do cavalo" : "Montar: o Cavalariço Doyun, no estábulo, dá o cavalo (nível 15)"],
+  const comuns = [["montar", "Montar", CAVALO_LIBERADO ? "Ctrl+G: monta e desmonta do cavalo; Ctrl+B: chama o cavalo ou manda embora" : "Montar: o Cavalariço Doyun, no estábulo, dá o cavalo (nível 15)"],
     ["dash", "Dash", `Shift: um avanço rápido de 2,5 m, com rastro; gasta 1/3 da stamina, que recarrega em ${(DASH.cheia / (status.dashFator || 1)).toFixed(1).replace(".", ",").replace(",0", "")} s`], ["atacar", "Combo", "Os golpes do ataque básico emendam um no outro"]];
   $("#fPassivas").className = "fx-comuns";
   $("#fPassivas").innerHTML = comuns.map(([id, nome, dica]) => `<div class="fx-comum" title="${dica}"><canvas width="80" height="80" data-comum="${id}" aria-label="${nome}"></canvas><i>${nome}</i></div>`).join("");
@@ -20637,6 +20897,7 @@ const GG_V1 = {
   v1_08: { nome: "Soldados do Juramento Branco", m2: "a1_08", tempo: 60, grupos: ["soldados", "arqueira_soldados", "arqueiras_soldados"] },
   v1_10: { nome: "Capitãs do Juramento Branco", m2: "a1_10", tempo: 60, grupos: ["capita_soldados", "capita_arqueiras", "arqueira_soldados"] },
 };
+if (HAHOE2) { Object.assign(GRUPOS_M2, VILA2.GRUPOS); Object.assign(GG_V1, VILA2.GG); }   // (etapa 3: os grupos e conjuntos dos 5 clãs da Hahoe nova, mapa_hahoe.js)
 // os pontos (conjunto, x, y): 80 grupos (a Vila 1 maior, 02/11/2026), ~18 por hectare de caça, no mínimo 21 m um do outro,
 // fora da água, da praia, das estradas, dos buracos, do ninho e da chegada do portal. Por faixa: 22 Cães, 25 Javalis, 19 Ursos e
 // 14 do Juramento Branco; as Capitãs (as mais fortes, agressivas) nos cinco pontos mais perto do portal
@@ -20651,6 +20912,9 @@ const V1_PONTOS = [
   ["v1_10", -54, -191.8], ["v1_10", 8.4, -203], ["v1_10", -42, -211.4], ["v1_10", -29, -186.1], ["v1_10", -10.2, -217.6]];
 // o tipo mais forte e o tamanho maior de um conjunto (a cor e o "×n" do Mapa do Mundo)
 function tiposGG(gg) { return [...new Set(GG_V1[gg].grupos.flatMap(g => GRUPOS_M2[g]))]; }
+// (etapa 3) os 96 grupos dos clãs da Hahoe nova (VILA2.PONTOS), como spawns. Só depois dos tipos dos clãs existirem (o tipo do
+// spawn é o mais forte do conjunto); sem a chave, nenhum
+function hahoeGrupos() { return HAHOE2 ? VILA2.PONTOS.map(([gg, x, y]) => spawnGrupoV1(gg, ...pH(x, y))) : []; }
 function spawnGrupoV1(gg, x, y) {
   const ts = tiposGG(gg), nv = t => (TIPOS[t] && TIPOS[t].nivel) || 0;
   return { tipo: ts.reduce((a, b) => nv(b) > nv(a) ? b : a), x, y, n: Math.max(...GG_V1[gg].grupos.map(g => GRUPOS_M2[g].length)), r: GRUPO_RAIO, gg };
@@ -20709,13 +20973,19 @@ function nomeRegiao(x, y) {
 // (mobsEditados1 era a Vila 1 de antes, com os orcs no vale, e mobsEditados2 a Vila 1 pequena, com o portal a leste:
 // ficam para trás)
 const MOBS_CHAVE = "mobsEditados4";
-const MOBS_FIXO = {"versao":1,"spawns":[{"tipo":"aranha","x":42.56,"y":-104.44,"n":1,"r":1.6},{"tipo":"cao_selvagem","x":-53.2,"y":61.6,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":58.8,"y":60.35,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":17.2,"y":-43.7,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":19.6,"y":75.6,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":63,"y":-8.4,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":-72,"y":40.8,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":-33,"y":77.1,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":43.4,"y":77.9,"n":3,"r":4,"gg":"v1_01"},{"tipo":"lobo_faminto","x":61.5,"y":20.4,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":61.2,"y":-36,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-29.1,"y":-50.1,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-65.8,"y":15.4,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-71,"y":-17.8,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-8.4,"y":79.8,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-49.3,"y":-36.6,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":78.4,"y":42,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":85.4,"y":8.4,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":40,"y":-39.7,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":61.5,"y":-57.5,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-4.3,"y":-47.2,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-81.5,"y":0.9,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":78.5,"y":-23.3,"n":3,"r":4,"gg":"v1_02"},{"tipo":"javali_selvagem","x":38.6,"y":-62.9,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-20.4,"y":-89.2,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-91,"y":-67.2,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-56,"y":-93.8,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":71.8,"y":-90.2,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":5.3,"y":-66.5,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-57.4,"y":-61.6,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":35.2,"y":-87.6,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":99.7,"y":-26.8,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":102.2,"y":29.4,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":111.4,"y":0.5,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":126.8,"y":-25.6,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-38,"y":-74.9,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-36,"y":-104,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-72,"y":-78.7,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":84.5,"y":-45.1,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":121.3,"y":40.3,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":5.1,"y":-88,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":122.6,"y":18.8,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":52.5,"y":-101,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-17.1,"y":-68,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":114,"y":-42.9,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":54.2,"y":-77.7,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-6.9,"y":-105.8,"n":3,"r":4,"gg":"v1_03"},{"tipo":"esqueleto","x":-78.4,"y":-42,"n":3,"r":4,"gg":"v1_cripta"},{"tipo":"javali_rubro","x":-19,"y":-123.7,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":17.2,"y":-107.8,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-89.6,"y":-97.9,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":70,"y":-121.8,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":141.4,"y":31.9,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-20.5,"y":-146.6,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":27.4,"y":-149,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":163.1,"y":19.6,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-69.8,"y":-113.1,"n":3,"r":4,"gg":"v1_04"},{"tipo":"urso_negro","x":-81,"y":-134.6,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":8.5,"y":-132.7,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-44.8,"y":-131.6,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":36.4,"y":-128.8,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":152.2,"y":-35.4,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":157.7,"y":-4.7,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-58.3,"y":-149,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-95.4,"y":-118.6,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":169.5,"y":-22.6,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":142.4,"y":10.5,"n":3,"r":4,"gg":"v1_06"},{"tipo":"arqueira_jb","x":-37.3,"y":-162.4,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":28.45,"y":-187.3,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":54.6,"y":-156.8,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":-6.4,"y":-173,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":-77.4,"y":-163.1,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":2.6,"y":-153.5,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":47.4,"y":-177.5,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":-57.2,"y":-170.5,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":18,"y":-168.4,"n":4,"r":4,"gg":"v1_08"},{"tipo":"capita_jb","x":-54,"y":-191.8,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":8.4,"y":-203,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-42,"y":-211.4,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-29,"y":-186.1,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-10.2,"y":-217.6,"n":4,"r":4,"gg":"v1_10"},{"tipo":"golem","x":-722.63,"y":-39.6,"n":2,"r":2},{"tipo":"golem","x":-710.25,"y":-41.37,"n":3,"r":2.5},{"tipo":"golem","x":-699.29,"y":-30.41,"n":3,"r":2.5},{"tipo":"golem","x":-708.13,"y":-20.86,"n":3,"r":2.5},{"tipo":"golem","x":-716.62,"y":-8.13,"n":4,"r":3},{"tipo":"golem","x":-731.11,"y":-2.83,"n":3,"r":2.5},{"tipo":"golem","x":-686.92,"y":-36.42,"n":2,"r":2},{"tipo":"escorpiao","x":-718.38,"y":22.63,"n":3,"r":2.5},{"tipo":"escorpiao","x":-708.84,"y":5.3,"n":3,"r":2.5},{"tipo":"escorpiao","x":-698.23,"y":1.77,"n":3,"r":2.5},{"tipo":"escorpiao","x":-690.45,"y":-8.84,"n":3,"r":2.5},{"tipo":"escorpiao","x":-682.68,"y":-22.27,"n":2,"r":2},{"tipo":"yeti","x":-673.13,"y":-1.41,"n":3,"r":2.5},{"tipo":"yeti","x":-681.62,"y":7.78,"n":3,"r":2.5},{"tipo":"yeti","x":-691.16,"y":13.08,"n":3,"r":2.5},{"tipo":"yeti","x":-698.59,"y":24.04,"n":2,"r":2},{"tipo":"nove_caudas","x":-672.78,"y":25.81,"n":1,"r":1.6},{"tipo":"urso_negro","x":-50,"y":717,"n":3,"r":2.2},{"tipo":"tigre","x":-50,"y":688,"n":3,"r":2.2},{"tipo":"tigre","x":-41,"y":681,"n":2,"r":2},{"tipo":"lobo_alfa","x":-46,"y":730,"n":1,"r":1.6},{"tipo":"bandido","x":11,"y":744,"n":4,"r":3},{"tipo":"bandido_arqueiro","x":21,"y":747,"n":3,"r":2.5},{"tipo":"chefe_bandido","x":17,"y":750,"n":1,"r":1.6},{"tipo":"zumbi","x":41,"y":694,"n":4,"r":2.5},{"tipo":"zumbi","x":45,"y":680,"n":3,"r":2.5},{"tipo":"fantasma","x":-21,"y":663,"n":3,"r":2.5},{"tipo":"zumbi","x":-4,"y":652,"n":3,"r":2.5},{"tipo":"fantasma","x":-26,"y":652,"n":2,"r":2},{"tipo":"lich","x":-14,"y":655,"n":1,"r":1.6},{"tipo":"golem","x":-34,"y":735,"n":3,"r":2.5},{"tipo":"golem","x":-19,"y":749,"n":2,"r":2},{"tipo":"capitao_dokkaebi","x":-26,"y":744,"n":1,"r":1.6},{"tipo":"orc_negro","x":-42.43,"y":-724.04,"n":4,"r":3},{"tipo":"orc_negro","x":-23.33,"y":-741.72,"n":4,"r":3},{"tipo":"orc_negro","x":-28.99,"y":-728.99,"n":3,"r":2.5},{"tipo":"orc_elite","x":-33.23,"y":-702.12,"n":4,"r":3},{"tipo":"orc_elite","x":-2.83,"y":-731.11,"n":4,"r":3},{"tipo":"orc_mago","x":-16.97,"y":-716.97,"n":3,"r":2.5},{"tipo":"orc_mago","x":-25.46,"y":-683.03,"n":3,"r":2.5},{"tipo":"orc_elite","x":16.97,"y":-725.46,"n":4,"r":3},{"tipo":"orc_gigante","x":-2.83,"y":-680.2,"n":2,"r":2},{"tipo":"orc_elite","x":-7.07,"y":-667.47,"n":4,"r":3},{"tipo":"orc_gigante","x":6.36,"y":-662.52,"n":2,"r":2.2},{"tipo":"orc_mago","x":11.31,"y":-656.16,"n":3,"r":2.2},{"tipo":"orc_gigante","x":19.8,"y":-702.83,"n":2,"r":2},{"tipo":"orc_mago","x":32.53,"y":-707.07,"n":3,"r":2.5},{"tipo":"orc_gigante","x":37.48,"y":-693.64,"n":2,"r":2.2},{"tipo":"orc_elite","x":43.84,"y":-687.27,"n":3,"r":2},{"tipo":"orc_gigante","x":19.09,"y":-669.59,"n":1,"r":1.6},{"tipo":"orc_gigante","x":30.41,"y":-680.91,"n":1,"r":1.6},{"tipo":"orc_mago","x":22.63,"y":-663.23,"n":2,"r":1.5},{"tipo":"orc_mago","x":33.59,"y":-681.97,"n":2,"r":1.5},{"tipo":"orc_chefe","x":23.33,"y":-676.67,"n":1,"r":1.6},{"tipo":"lobo_faminto","x":-38.41,"y":-44.38,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-16.66,"y":-50.72,"n":3,"r":4,"gg":"v1_02"},{"tipo":"cao_selvagem","x":28.56,"y":-31.89,"n":3,"r":4,"gg":"v1_01"},{"tipo":"lobo_faminto","x":48.54,"y":-29.13,"n":3,"r":4,"gg":"v1_02"},{"tipo":"javali_selvagem","x":27.93,"y":-68.72,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-5.37,"y":-70.55,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-7.44,"y":-93.1,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_rubro","x":21.12,"y":-120.66,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":22.72,"y":-133.76,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-9.44,"y":-127.84,"n":3,"r":4,"gg":"v1_04"},{"tipo":"urso_negro","x":-41.07,"y":-123.63,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-53.89,"y":-128.08,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-84.01,"y":-122.19,"n":3,"r":4,"gg":"v1_06"},{"tipo":"javali_selvagem","x":-67.81,"y":-89.73,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-45.84,"y":-96.63,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-65.62,"y":-56.54,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-76.3,"y":-54.55,"n":3,"r":4,"gg":"v1_03"},{"tipo":"cao_selvagem","x":46.75,"y":59.74,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":37.3,"y":67.4,"n":3,"r":4,"gg":"v1_01"},{"tipo":"lobo_faminto","x":73.05,"y":13.81,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":53.95,"y":2.62,"n":3,"r":4,"gg":"v1_02"},{"tipo":"javali_selvagem","x":99.45,"y":-37.53,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":114.67,"y":-30.18,"n":3,"r":4,"gg":"v1_03"},{"tipo":"urso_negro","x":160.38,"y":-28.35,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":148.89,"y":21.07,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":170.63,"y":-0.87,"n":3,"r":4,"gg":"v1_06"},{"tipo":"javali_rubro","x":157.02,"y":29.71,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_selvagem","x":114.92,"y":29.27,"n":3,"r":4,"gg":"v1_03"},{"tipo":"lobo_faminto","x":84.12,"y":32.19,"n":3,"r":4,"gg":"v1_02"},{"tipo":"capita_jb","x":-1.05,"y":-210.36,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":1.31,"y":-192.58,"n":4,"r":4,"gg":"v1_10"},{"tipo":"arqueira_jb","x":39.94,"y":-184.4,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":58.49,"y":-143.62,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":47.35,"y":-148.06,"n":4,"r":4,"gg":"v1_08"},{"tipo":"javali_rubro","x":59.48,"y":-124.1,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-22.13,"y":-159.32,"n":3,"r":4,"gg":"v1_04"},{"tipo":"capita_jb","x":-28.64,"y":-196.83,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-38.85,"y":-183.65,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-42.15,"y":-196.24,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-62.93,"y":-181.99,"n":4,"r":4,"gg":"v1_10"},{"tipo":"javali_selvagem","x":26.67,"y":-88.98,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":62.99,"y":-76.63,"n":3,"r":4,"gg":"v1_03"},{"tipo":"lobo_faminto","x":-68.34,"y":-4.31,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-57.56,"y":3.04,"n":3,"r":4,"gg":"v1_02"},{"tipo":"cao_selvagem","x":-48.35,"y":34.82,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":-45.38,"y":21.8,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":-54.83,"y":44.17,"n":3,"r":4,"gg":"v1_01"},{"tipo":"lobo_faminto","x":-76.39,"y":25.27,"n":3,"r":4,"gg":"v1_02"}]};
+// (05/11, a lista que o usuário editou no admin e colou, Logs/Mobs/mobs_colado_2026-11-05.json: 212 spawns, a Hahoe de hoje com 45 grupos)
+// virou o MOBS_FIXO. A lista do navegador igual à aprovada de antes (ou à nova) é limpa, e quem a tem passa a ver a nova sem perder
+// nada; uma editada diferente fica (as edições dele). A assinatura: FNV-1a do tipo, x, y, n, r e gg de cada spawn, em ordem
+const MOBS_FIXO_ANTIGOS = [2667198462];
+function assinaturaSpawns(m) { const t = m.spawns.map(s => [s.tipo, +s.x, +s.y, s.n, s.r, s.gg || ""].join(",")).join(";"); let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h; }
+const MOBS_FIXO = {"versao":1,"spawns":[{"tipo":"aranha","x":42.56,"y":-104.44,"n":1,"r":1.6},{"tipo":"cao_selvagem","x":-53.2,"y":61.6,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":58.8,"y":60.35,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":17.2,"y":-43.7,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":19.6,"y":75.6,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":63,"y":-8.4,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":-72,"y":40.8,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":-33,"y":77.1,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":43.4,"y":77.9,"n":3,"r":4,"gg":"v1_01"},{"tipo":"lobo_faminto","x":61.5,"y":20.4,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":61.2,"y":-36,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-29.1,"y":-50.1,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-65.8,"y":15.4,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-71,"y":-17.8,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-8.4,"y":79.8,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-49.3,"y":-36.6,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":78.4,"y":42,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":85.4,"y":8.4,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":40,"y":-39.7,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":61.5,"y":-57.5,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-4.3,"y":-47.2,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-81.5,"y":0.9,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":78.5,"y":-23.3,"n":3,"r":4,"gg":"v1_02"},{"tipo":"javali_selvagem","x":38.6,"y":-62.9,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-20.4,"y":-89.2,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-91,"y":-67.2,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-56,"y":-93.8,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":71.8,"y":-90.2,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":5.3,"y":-66.5,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-57.4,"y":-61.6,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":35.2,"y":-87.6,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":99.7,"y":-26.8,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":102.2,"y":29.4,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":111.4,"y":0.5,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":126.8,"y":-25.6,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-38,"y":-74.9,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-36,"y":-104,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-72,"y":-78.7,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":84.5,"y":-45.1,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":121.3,"y":40.3,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":5.1,"y":-88,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":122.6,"y":18.8,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":52.5,"y":-101,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-17.1,"y":-68,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":114,"y":-42.9,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":54.2,"y":-77.7,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-6.9,"y":-105.8,"n":3,"r":4,"gg":"v1_03"},{"tipo":"esqueleto","x":-78.4,"y":-42,"n":3,"r":4,"gg":"v1_cripta"},{"tipo":"javali_rubro","x":-19,"y":-123.7,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":17.2,"y":-107.8,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-89.6,"y":-97.9,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":70,"y":-121.8,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":141.4,"y":31.9,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-20.5,"y":-146.6,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":27.4,"y":-149,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":163.1,"y":19.6,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-69.8,"y":-113.1,"n":3,"r":4,"gg":"v1_04"},{"tipo":"urso_negro","x":-81,"y":-134.6,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":8.5,"y":-132.7,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-44.8,"y":-131.6,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":36.4,"y":-128.8,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":152.2,"y":-35.4,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":157.7,"y":-4.7,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-58.3,"y":-149,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-95.4,"y":-118.6,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":169.5,"y":-22.6,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":142.4,"y":10.5,"n":3,"r":4,"gg":"v1_06"},{"tipo":"arqueira_jb","x":-37.3,"y":-162.4,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":28.45,"y":-187.3,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":54.6,"y":-156.8,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":-6.4,"y":-173,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":-77.4,"y":-163.1,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":2.6,"y":-153.5,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":47.4,"y":-177.5,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":-57.2,"y":-170.5,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":18,"y":-168.4,"n":4,"r":4,"gg":"v1_08"},{"tipo":"capita_jb","x":-54,"y":-191.8,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":8.4,"y":-203,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-42,"y":-211.4,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-29,"y":-186.1,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-10.2,"y":-217.6,"n":4,"r":4,"gg":"v1_10"},{"tipo":"golem","x":-722.63,"y":-39.6,"n":2,"r":2},{"tipo":"golem","x":-710.25,"y":-41.37,"n":3,"r":2.5},{"tipo":"golem","x":-699.29,"y":-30.41,"n":3,"r":2.5},{"tipo":"golem","x":-708.13,"y":-20.86,"n":3,"r":2.5},{"tipo":"golem","x":-716.62,"y":-8.13,"n":4,"r":3},{"tipo":"golem","x":-731.11,"y":-2.83,"n":3,"r":2.5},{"tipo":"golem","x":-686.92,"y":-36.42,"n":2,"r":2},{"tipo":"escorpiao","x":-718.38,"y":22.63,"n":3,"r":2.5},{"tipo":"escorpiao","x":-708.84,"y":5.3,"n":3,"r":2.5},{"tipo":"escorpiao","x":-698.23,"y":1.77,"n":3,"r":2.5},{"tipo":"escorpiao","x":-690.45,"y":-8.84,"n":3,"r":2.5},{"tipo":"escorpiao","x":-682.68,"y":-22.27,"n":2,"r":2},{"tipo":"yeti","x":-673.13,"y":-1.41,"n":3,"r":2.5},{"tipo":"yeti","x":-681.62,"y":7.78,"n":3,"r":2.5},{"tipo":"yeti","x":-691.16,"y":13.08,"n":3,"r":2.5},{"tipo":"yeti","x":-698.59,"y":24.04,"n":2,"r":2},{"tipo":"nove_caudas","x":-672.78,"y":25.81,"n":1,"r":1.6},{"tipo":"urso_negro","x":-55.27,"y":719.79,"n":3,"r":2.2},{"tipo":"tigre","x":-50,"y":688,"n":3,"r":2.2},{"tipo":"tigre","x":-41,"y":681,"n":2,"r":2},{"tipo":"lobo_alfa","x":-46,"y":730,"n":1,"r":1.6},{"tipo":"bandido","x":-9.5,"y":734.75,"n":4,"r":3},{"tipo":"bandido_arqueiro","x":-2.19,"y":742.9,"n":3,"r":2.5},{"tipo":"chefe_bandido","x":17,"y":750,"n":1,"r":1.6},{"tipo":"zumbi","x":41,"y":694,"n":4,"r":2.5},{"tipo":"zumbi","x":49.49,"y":687.59,"n":3,"r":2.5},{"tipo":"fantasma","x":-21,"y":663,"n":3,"r":2.5},{"tipo":"zumbi","x":-7.56,"y":649.68,"n":3,"r":2.5},{"tipo":"fantasma","x":-26,"y":652,"n":2,"r":2},{"tipo":"lich","x":-14,"y":655,"n":1,"r":1.6},{"tipo":"golem","x":-34,"y":735,"n":3,"r":2.5},{"tipo":"golem","x":-19,"y":749,"n":2,"r":2},{"tipo":"capitao_dokkaebi","x":-26,"y":744,"n":1,"r":1.6},{"tipo":"orc_negro","x":-42.43,"y":-724.04,"n":4,"r":3},{"tipo":"orc_negro","x":-23.33,"y":-741.72,"n":4,"r":3},{"tipo":"orc_negro","x":-28.99,"y":-728.99,"n":3,"r":2.5},{"tipo":"orc_elite","x":-33.23,"y":-702.12,"n":4,"r":3},{"tipo":"orc_elite","x":-2.83,"y":-731.11,"n":4,"r":3},{"tipo":"orc_mago","x":-16.97,"y":-716.97,"n":3,"r":2.5},{"tipo":"orc_mago","x":-25.46,"y":-683.03,"n":3,"r":2.5},{"tipo":"orc_elite","x":16.97,"y":-725.46,"n":4,"r":3},{"tipo":"orc_gigante","x":-2.83,"y":-680.2,"n":2,"r":2},{"tipo":"orc_elite","x":-7.07,"y":-667.47,"n":4,"r":3},{"tipo":"orc_gigante","x":6.36,"y":-662.52,"n":2,"r":2.2},{"tipo":"orc_mago","x":11.31,"y":-656.16,"n":3,"r":2.2},{"tipo":"orc_gigante","x":19.8,"y":-702.83,"n":2,"r":2},{"tipo":"orc_mago","x":32.53,"y":-707.07,"n":3,"r":2.5},{"tipo":"orc_gigante","x":37.48,"y":-693.64,"n":2,"r":2.2},{"tipo":"orc_elite","x":43.84,"y":-687.27,"n":3,"r":2},{"tipo":"orc_gigante","x":19.09,"y":-669.59,"n":1,"r":1.6},{"tipo":"orc_gigante","x":30.41,"y":-680.91,"n":1,"r":1.6},{"tipo":"orc_mago","x":22.63,"y":-663.23,"n":2,"r":1.5},{"tipo":"orc_mago","x":33.59,"y":-681.97,"n":2,"r":1.5},{"tipo":"orc_chefe","x":23.33,"y":-676.67,"n":1,"r":1.6},{"tipo":"lobo_faminto","x":-38.41,"y":-44.38,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-16.66,"y":-50.72,"n":3,"r":4,"gg":"v1_02"},{"tipo":"cao_selvagem","x":31.06,"y":-36.22,"n":3,"r":4,"gg":"v1_01"},{"tipo":"lobo_faminto","x":53.31,"y":-33.55,"n":3,"r":4,"gg":"v1_02"},{"tipo":"javali_selvagem","x":27.93,"y":-68.72,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-5.37,"y":-70.55,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-7.44,"y":-93.1,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_rubro","x":21.12,"y":-120.66,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":22.72,"y":-133.76,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-9.44,"y":-127.84,"n":3,"r":4,"gg":"v1_04"},{"tipo":"urso_negro","x":-41.07,"y":-123.63,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-53.89,"y":-128.08,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":-84.01,"y":-122.19,"n":3,"r":4,"gg":"v1_06"},{"tipo":"javali_selvagem","x":-67.81,"y":-89.73,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-45.84,"y":-96.63,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-65.62,"y":-56.54,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":-76.3,"y":-54.55,"n":3,"r":4,"gg":"v1_03"},{"tipo":"cao_selvagem","x":50.25,"y":63.31,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":37.3,"y":67.4,"n":3,"r":4,"gg":"v1_01"},{"tipo":"lobo_faminto","x":73.05,"y":13.81,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":59.32,"y":1.44,"n":3,"r":4,"gg":"v1_02"},{"tipo":"javali_selvagem","x":99.45,"y":-37.53,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":114.67,"y":-30.18,"n":3,"r":4,"gg":"v1_03"},{"tipo":"urso_negro","x":160.38,"y":-28.35,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":148.89,"y":21.07,"n":3,"r":4,"gg":"v1_06"},{"tipo":"urso_negro","x":170.63,"y":-0.87,"n":3,"r":4,"gg":"v1_06"},{"tipo":"javali_rubro","x":157.02,"y":29.71,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_selvagem","x":114.92,"y":29.27,"n":3,"r":4,"gg":"v1_03"},{"tipo":"lobo_faminto","x":84.12,"y":32.19,"n":3,"r":4,"gg":"v1_02"},{"tipo":"capita_jb","x":-1.05,"y":-210.36,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":1.31,"y":-192.58,"n":4,"r":4,"gg":"v1_10"},{"tipo":"arqueira_jb","x":39.94,"y":-184.4,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":58.49,"y":-143.62,"n":4,"r":4,"gg":"v1_08"},{"tipo":"arqueira_jb","x":47.35,"y":-148.06,"n":4,"r":4,"gg":"v1_08"},{"tipo":"javali_rubro","x":59.48,"y":-124.1,"n":3,"r":4,"gg":"v1_04"},{"tipo":"javali_rubro","x":-22.13,"y":-159.32,"n":3,"r":4,"gg":"v1_04"},{"tipo":"capita_jb","x":-28.64,"y":-196.83,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-38.85,"y":-183.65,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-42.15,"y":-196.24,"n":4,"r":4,"gg":"v1_10"},{"tipo":"capita_jb","x":-62.93,"y":-181.99,"n":4,"r":4,"gg":"v1_10"},{"tipo":"javali_selvagem","x":26.67,"y":-88.98,"n":3,"r":4,"gg":"v1_03"},{"tipo":"javali_selvagem","x":62.99,"y":-76.63,"n":3,"r":4,"gg":"v1_03"},{"tipo":"lobo_faminto","x":-68.34,"y":-4.31,"n":3,"r":4,"gg":"v1_02"},{"tipo":"lobo_faminto","x":-57.56,"y":3.04,"n":3,"r":4,"gg":"v1_02"},{"tipo":"cao_selvagem","x":-55.28,"y":37.69,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":-55.25,"y":23.42,"n":3,"r":4,"gg":"v1_01"},{"tipo":"cao_selvagem","x":-55.27,"y":44.4,"n":3,"r":4,"gg":"v1_01"},{"tipo":"lobo_faminto","x":-76.39,"y":25.27,"n":3,"r":4,"gg":"v1_02"},{"tipo":"zumbi","x":41.13,"y":681.86,"n":3,"r":2.5},{"tipo":"zumbi","x":51.04,"y":678.14,"n":3,"r":2.5},{"tipo":"zumbi","x":42.22,"y":671.94,"n":3,"r":2.5},{"tipo":"zumbi","x":49.19,"y":697.82,"n":3,"r":2.5},{"tipo":"tigre","x":-48.04,"y":678.68,"n":2,"r":2},{"tipo":"tigre","x":-33.86,"y":684.41,"n":2,"r":2},{"tipo":"tigre","x":-41.21,"y":690.45,"n":2,"r":2},{"tipo":"fantasma","x":-10,"y":663,"n":3,"r":2.5},{"tipo":"fantasma","x":-5.35,"y":660.06,"n":3,"r":2.5},{"tipo":"fantasma","x":-20.07,"y":651.23,"n":3,"r":2.5},{"tipo":"zumbi","x":1.73,"y":651.69,"n":3,"r":2.5},{"tipo":"bandido","x":1.33,"y":733.46,"n":4,"r":3},{"tipo":"bandido","x":-17.2,"y":713.72,"n":4,"r":3},{"tipo":"bandido","x":-17.09,"y":723.58,"n":4,"r":3},{"tipo":"bandido","x":-6.44,"y":714.77,"n":4,"r":3},{"tipo":"bandido","x":-5.99,"y":725.02,"n":4,"r":3},{"tipo":"golem","x":-26.56,"y":737.48,"n":3,"r":2.5},{"tipo":"golem","x":-31.98,"y":727.72,"n":3,"r":2.5},{"tipo":"golem","x":-34.77,"y":744.76,"n":3,"r":2.5},{"tipo":"urso_negro","x":-56.8,"y":710.03,"n":3,"r":2.2},{"tipo":"urso_negro","x":-50.27,"y":704.14,"n":3,"r":2.2},{"tipo":"urso_negro","x":-49.78,"y":714.21,"n":3,"r":2.2},{"tipo":"bandido_arqueiro","x":8.22,"y":743.72,"n":3,"r":2.5},{"tipo":"bandido_arqueiro","x":29.03,"y":738.82,"n":3,"r":2},{"tipo":"bandido_arqueiro","x":32.36,"y":731.21,"n":3,"r":2},{"tipo":"bandido_arqueiro","x":37.67,"y":738,"n":3,"r":2},{"tipo":"bandido_arqueiro","x":23.66,"y":730.62,"n":3,"r":2},{"tipo":"bandido_arqueiro","x":28.15,"y":723.59,"n":3,"r":2},{"tipo":"bandido_arqueiro","x":37.8,"y":724.06,"n":3,"r":2}]};
 let SPAWNS = null, SPAWNS_ORIGINAL = null;
 function spawnsOriginais() {
   return [...GRUPOS.map(([t, x, y, n, e]) => { const [X, Y] = noMapa([x, y]); return { tipo: t, x: X, y: Y, n, r: e || 1.6 }; }),   // na escala nova do mapa
           ...V1_PONTOS.map(([gg, x, y]) => spawnGrupoV1(gg, x, y)),
           ...NOVOS_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 })),
           ...HAHOE_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 })),
+          ...hahoeGrupos(),
           ...DAIYU_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 }))];
 }
 // uma lista editada de antes da Vila Hahoe (sem nenhum spawn lá): os bandos que foram para a Vila Hahoe saem da Vila 1, e
@@ -20735,7 +21005,11 @@ function spawnsTexto() { const r2 = v => Math.round(v * 100) / 100; return { ver
 function carregarSpawns() {
   SPAWNS_ORIGINAL = spawnsOriginais();
   SPAWNS = (MOBS_FIXO && spawnsValidos(MOBS_FIXO)) || SPAWNS_ORIGINAL.map(s => ({ ...s }));
-  try { const m = spawnsValidos(JSON.parse(localStorage.getItem(MOBS_CHAVE))); if (m) SPAWNS = m; } catch (e) {}
+  try {
+    const bruta = JSON.parse(localStorage.getItem(MOBS_CHAVE)), h = bruta && bruta.spawns ? assinaturaSpawns(bruta) : null;
+    if (h !== null && (MOBS_FIXO_ANTIGOS.includes(h) || h === assinaturaSpawns(MOBS_FIXO))) localStorage.removeItem(MOBS_CHAVE);   // (igual a uma aprovada: a nova vale)
+    else { const m = spawnsValidos(bruta); if (m) SPAWNS = m; }
+  } catch (e) {}
   migrarSpawnsHahoe();
   if (HAHOE2) SPAWNS = VILA2.migrarSpawns(SPAWNS, HAHOE_BANDOS, HAHOE);   // (a lista com a Hahoe de antes ganha a nova; o resto das edições fica)
   // (uma lista editada de antes da Ilha de Daiyu: entram os bandos dela)
@@ -20776,16 +21050,18 @@ function porSpawns(soMapa) {
 // ---- os grupos do Metin2 na Vila 1 (V1_PONTOS): nascer, voltar e lutar juntos
 const GRUPOS_V1 = [];             // { s (o spawn), gg (o conjunto), membros (o líder é o 0), espera (s até nascer de novo; null: vivo) }
 // um lugar bom para um bicho do grupo: terra firme e livre, fora da água, da praia, da cidade e do treino
-function lugarBomV1(x, y) { return livre(x, y) && !agua(x, y) && !praia(x, y) && !praca(x, y) && distCidadeV1(x, y) > 8 && mapaDe(x, y) === MAPAS.vila1 && !naCaverna(x); }
+// (etapa 3: também os grupos dos clãs da Hahoe nova, mp = MAPAS.hahoe, fora da vila de dentro da curva)
+function lugarBomV1(x, y, mp = MAPAS.vila1) { return livre(x, y) && !agua(x, y) && !praia(x, y) && !praca(x, y) && (mp === MAPAS.vila1 ? distCidadeV1(x, y) > 8 : Math.hypot(x - HV.x, y - HV.y) > HV.r) && mapaDe(x, y) === mp && !naCaverna(x); }
 function nascerGrupoV1(g) {
   const nomes = g.gg.grupos, comp = GRUPOS_M2[nomes[Math.floor(Math.random() * nomes.length)]].filter(t => TIPOS[t]);
   if (!comp.length) return;
+  const mp = mapaDe(g.s.x, g.s.y), lugarBom = (x, y) => lugarBomV1(x, y, mp);   // (o mapa do ponto: a Vila 1 ou a Hahoe nova)
   // o líder: um ponto sorteado no círculo do ponto (não na cara do herói, a não ser no começo)
   let lx = g.s.x, ly = g.s.y, achou = false;
   for (let k = 0; k < 40 && !achou; k++) {
     const a = Math.random() * 6.283, r = g.s.r * Math.sqrt(Math.random());
     lx = g.s.x + Math.cos(a) * r; ly = g.s.y + Math.sin(a) * r;
-    achou = lugarBomV1(lx, ly) && (!g.membros.length || Math.hypot(viking.x - lx, viking.y - ly) > RENASCE_LONGE);
+    achou = lugarBom(lx, ly) && (!g.membros.length || Math.hypot(viking.x - lx, viking.y - ly) > RENASCE_LONGE);
   }
   if (!achou && g.membros.length) { g.espera = 1.5; return; }          // (o herói em cima do ponto: tenta de novo daqui a pouco)
   if (!achou) { lx = g.s.x; ly = g.s.y; }
@@ -20799,9 +21075,9 @@ function nascerGrupoV1(g) {
       let ok = false;
       for (let k = 0; k < 16 && !ok; k++) {
         x = px + (Math.random() * 2 - 1) * passo(); y = py + (Math.random() * 2 - 1) * passo();
-        ok = lugarBomV1(x, y) && g.membros.every(o => Math.hypot(o.x - x, o.y - y) > 1.3);
+        ok = lugarBom(x, y) && g.membros.every(o => Math.hypot(o.x - x, o.y - y) > 1.3);
       }
-      if (!ok) for (let k = 1; k < 12; k++) { const a = k * 2.4; x = px + Math.cos(a) * (1.4 + k * 0.2); y = py + Math.sin(a) * (1.4 + k * 0.2); if (lugarBomV1(x, y)) break; }
+      if (!ok) for (let k = 1; k < 12; k++) { const a = k * 2.4; x = px + Math.cos(a) * (1.4 + k * 0.2); y = py + Math.sin(a) * (1.4 + k * 0.2); if (lugarBom(x, y)) break; }
     }
     const c = novaCriatura(tipo, x, y); Object.assign(c, { spawn: true, grupo: g, semVolta: true, lider: i === 0 });
     g.membros.push(c); criaturas.push(c); px = x; py = y;
@@ -20817,6 +21093,7 @@ function passoGruposV1(dt) {
     if (sai) { criaturas.splice(i, 1); if (selecao === c) selecao = null; if (viking.alvo && viking.alvo.criatura === c) viking.alvo = null; }
   }
   for (const g of GRUPOS_V1) {
+    if (g.chamaT > 0) g.chamaT -= dt;                                  // (o "chama" do líder: de novo só depois de CHAMA_T s)
     const lider = g.membros[0];
     if (lider && !lider.morto) continue;
     if (g.espera === null) g.espera = GRUPO_CORPO + Math.random() * g.gg.tempo;
@@ -20827,6 +21104,26 @@ function passoGruposV1(dt) {
 function provocarGrupoV1(l, t) {
   l.provocado = Math.max(l.provocado || 0, t);
   if (l.grupo) for (const m of l.grupo.membros) if (m !== l && !m.morto) m.provocado = Math.max(m.provocado || 0, t);
+  if (l.grupo && l.grupo.membros[0] && l.grupo.membros[0].cfg.chama) chamarVizinhosV1(l.grupo);   // (etapa 3: o líder que chama)
+}
+// (etapa 3, a Hahoe nova) "O capitão que chama": quando o grupo de um líder com cfg.chama (m) entra na luta, os grupos cujo
+// líder está a até chama m dele entram também (provocados por 8 s, e perseguem até GRUPO_PERSEGUE + chama m do herói), com a
+// fala do clã. No máximo uma vez a cada CHAMA_T s; o grupo chamado também fica CHAMA_T s sem chamar (sem corrente pela zona)
+const CHAMA_T = 20;
+function chamarVizinhosV1(g) {
+  const L = g.membros[0], ch = L && !L.morto && L.cfg.chama;
+  if (!ch || g.chamaT > 0) return 0;
+  g.chamaT = CHAMA_T;
+  let n = 0;
+  for (const o of GRUPOS_V1) {
+    const m = o.membros[0];
+    if (o === g || !m || m.morto || Math.abs(m.x - L.x) > ch || Math.abs(m.y - L.y) > ch || Math.hypot(m.x - L.x, m.y - L.y) > ch) continue;
+    o.chamaT = Math.max(o.chamaT || 0, CHAMA_T);
+    for (const c of o.membros) if (!c.morto) { c.provocado = Math.max(c.provocado || 0, 8); c.persegue = GRUPO_PERSEGUE + ch; }
+    n++;
+  }
+  if (n && L.cfg.falaChama && Math.hypot(L.x - viking.x, L.y - viking.y) < 30) avisar(L.cfg.falaChama);
+  return n;
 }
 // as criaturas novas da Vila 1 (as do Metin2 que o jogo ainda não tinha): variantes das que existem, com outra tinta e
 // outro tamanho (sem modelo novo), e os números pela curva do NIVEL70.md do 1 ao 15 (vida ≈ 18,3 × nível^1,078 e golpe ≈
@@ -20850,11 +21147,15 @@ function criarVariantesV1() {
   V("arqueira_jb", ["bandido_arqueiro", "bandido", "goblin"], { nome: "Arqueira do Juramento Branco", nivel: 14, vida: 252, dano: 82, defesa: 7, esc: 0.92, roupa3d: [0.9, 0.93, 1], tinta: "#e8eefc", filtro2d: "grayscale(0.6) brightness(1.4) hue-rotate(10deg)" });
   V("capita_jb", ["chefe_bandido", "bandido", "goblin"], { nome: "Capitã do Juramento Branco", nivel: 15, vida: 576, dano: 100, defesa: 22, expMult: 1.5, esc: 0.95, agressivo: true, roupa3d: [0.95, 0.9, 0.75], tinta: "#f4ead0", filtro2d: "grayscale(0.4) sepia(0.3) brightness(1.35)" });
 }
+// (etapa 3, a Hahoe nova, com a chave) os 20 tipos dos 5 clãs, a voz deles, e o bandido (26), o arqueiro (27) e o Chefe dos
+// Bandidos (32) mais fortes; sem a chave, nada muda (mapa_hahoe.js, VILA2.criarClas)
+function criarClasHahoe() { if (HAHOE2) VILA2.criarClas(TIPOS, variante, RENASCE_COMUM, VOZ_NOVAS, CHEFES_MAPA); }
 function montarCriaturas() {
   criarOrcs();
   criarDragoes();
   criarCriaturasHahoe();
   criarVariantesV1();
+  criarClasHahoe();
   if (!SPAWNS) carregarSpawns();
   porSpawns();
 }
@@ -21010,8 +21311,8 @@ function passoCriatura(l, dt) {
     const escondido = SESSAO_ADM.invisivel || CENA.semAlvo || (NINJA.esconder.buff > 0 && classe === "ninja" && d > 1.2) || viking.folgaVale > 0 || outroLadoDaPorta(l);   // (R252: do outro lado da porta do chefe, ninguém caça; folgaVale: quem acaba de sair da caverna; R151)
     // (os grupos do Metin2 não atacam sozinhos, menos a Capitã: só depois de um golpe num deles ou de um deles caçar,
     // e a luta dura até o herói ficar a GRUPO_PERSEGUE m)
-    if (l.provocado > 0) l.provocado -= dt;
-    const passivo = l.semVolta && !cfg.agressivo, provocado = l.provocado > 0 && d < GRUPO_PERSEGUE;
+    if (l.provocado > 0) l.provocado -= dt; else if (l.persegue) l.persegue = 0;   // (persegue: o grupo chamado pelo líder, chamarVizinhosV1)
+    const passivo = l.semVolta && !cfg.agressivo, provocado = l.provocado > 0 && d < (l.persegue || GRUPO_PERSEGUE);
     l.cacando = criaturasAtacam && !viking.caido && !escondido && !(l.voltando > 0) && (passivo ? provocado : d < cfg.visao || (l.cacando && d < cfg.visao + 4) || provocado);
     if (l.cacando && l.semVolta) provocarGrupoV1(l, 1.5);              // (caçando, chama o grupo inteiro)
     if (l.cacando && !antes) vozCriatura(l, "ve");
@@ -22106,7 +22407,7 @@ function brilhoCajado(im, q, info, X, Y, z, t) {
   }
   cx.shadowColor = `hsl(${h}, 100%, 60%)`;
   let m = mascaraLamina(im, q, info, `hsl(${h}, 100%, 58%)`);
-  cx.globalAlpha = Math.min(1, 0.6 * pulso); cx.shadowBlur = 14 * z; cx.drawImage(m, x, y, w, hh);
+  cx.globalAlpha = Math.min(1, 0.6 * pulso); cx.shadowBlur = 14 * z * HALO_MONTADO().b; cx.drawImage(m, x, y, w, hh);
   cx.shadowBlur = 0; cx.globalAlpha = Math.min(1, 0.45 * pulso);
   m = mascaraLamina(im, q, info, `hsl(${h + 20}, 100%, 88%)`); cx.drawImage(m, x, y, w, hh);
   cx.restore();
@@ -22777,7 +23078,10 @@ addEventListener("keydown", e => {
   // o atalho escondido do modo admin (Ctrl + Alt + Shift + A): liga e desliga, e fica lembrado neste navegador
   if (k === "a" && e.ctrlKey && e.altKey && e.shiftKey) { e.preventDefault(); if (!e.repeat) avisar(modoAdmin(!ADMIN) ? "Modo admin ligado" : "Modo admin desligado"); return; }
   // Ctrl+G: monta e desmonta do cavalo (como no Metin2; o Ctrl não deixa abrir o admin nem o "procurar" do navegador)
-  if (k === "g" && e.ctrlKey && !e.altKey) { e.preventDefault(); if (!e.repeat && !editor.ativo && CAVALO_LIBERADO) alternarMontaria(); return; }
+  if (k === "g" && e.ctrlKey && !e.altKey) { e.preventDefault(); if (!e.repeat && !editor.ativo && CAVALO_LIBERADO && cavaloDe().tem) alternarMontaria(); return; }
+  // Ctrl+B (05/11, o usuário: "ctrl+b invoca e manda o cavalo embora"): chama o cavalo ou manda embora (desmonta antes). Só com o cavalo;
+  // o Ctrl tira o "favoritos" do navegador; no chat (um campo de texto) não chega aqui
+  if (k === "b" && e.ctrlKey && !e.altKey && !e.shiftKey) { e.preventDefault(); if (!e.repeat && !editor.ativo && CAVALO_LIBERADO && cavaloDe().tem) chamarCavalo(); return; }
   if (e.shiftKey && !e.ctrlKey && !e.altKey && /^Digit[1-4]$/.test(e.code) && !editor.ativo) { e.preventDefault(); const p = +e.code[5] - 1; if (!e.repeat && p < PAGINAS_BARRA.length) trocarPaginaBarra(p); return; }
   if (k === "m" && e.ctrlKey && !e.altKey) { e.preventDefault(); if (!e.repeat) { somIniciar(); somAlternar(); } return; }
   if (k === "enter" && !e.repeat && !editor.ativo && !e.ctrlKey && !e.altKey) { e.preventDefault(); chatLinha(true); return; }   // (o chat)
@@ -22793,7 +23097,7 @@ addEventListener("keydown", e => {
   if (k === "b" && !e.ctrlKey && !e.altKey && !e.repeat) { somIniciar(); somAlternar(); }   // (no ?mundo3d=1 o B gira a câmera: lá vale o Ctrl+M)
   if (k === "y" && !e.repeat) contornoAlternar();
   if (k === "n" && !e.repeat) { somIniciar(); musicaAlternar(); }
-  if (k === "t" && !e.repeat && ADMIN) trocarClasse({ aprendiz: "viking", viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "guerreiro", guerreiro: "xama", xama: "xama_dragao", xama_dragao: "shura", shura: "viking" }[classe]);
+  if (k === "t" && !e.repeat && ADMIN) trocaDeTeste({ aprendiz: "viking", viking: "arqueiro", arqueiro: "feiticeiro", feiticeiro: "ninja", ninja: "guerreiro", guerreiro: "xama", xama: "xama_dragao", xama_dragao: "shura", shura: "viking" }[classe]);
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
   if (e.repeat && !["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"].includes(k)) return;
   if (!e.repeat && ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) limparPendentes(viking);   // ordem nova de movimento
@@ -23463,14 +23767,14 @@ function ligarAndarVale(d) {
 // ---------------------------------------------------------------- a porta e o baú do chefe (lista 36 do usuário, 05/11: R252 e R253)
 // Em cada dungeon com chefe (as 4 cavernas da Vila 1 e o Ninho do Vale dos Dragões), o chefe fica sozinho no salão do fundo,
 // atrás de uma porta em cada túnel que chega nele (no 1º trecho do túnel com rocha dos dois lados). Fechada, ela barra todo
-// mundo; o herói abre com um clique e a confirmação ("Enfrentar o Rato Rei?", Entrar/Voltar), e quem não quiser passa longe.
+// mundo; o herói abre com um clique (05/11: sem a caixa de confirmação; as folhas giram para dentro), e quem não quiser passa longe.
 // As criaturas comuns nunca atravessam (nem caçam quem está do outro lado), o chefe não sai e, com o herói fora do salão (saiu
 // ou caiu), a porta fecha e o chefe volta a ficar sozinho, de vida cheia e sem o bando que chamou (as salas de chefe das
 // dungeons do Metin2). No salão, o baú trancado: abre uma vez por derrota do chefe (bauChefeItens) e fecha quando ele renasce.
 // O salão (d.salaChefe) é o chão que se alcança do meio dele sem passar por uma porta, numa grade de 0,5 m. A porta e o baú são
 // desenhados por código, na paleta do minhwa (BIBLIA_B.md): pilares de cinabre, folhas de jade com o taegeuk, a viga de índigo
 // com o dancheong em ocre e papel, o telhado de ardósia e duas lanternas acesas
-const PORTA_CHEFE = { objs: [], dlg: null, dlgD: null, pend: null, aberturas: 0, baus: 0 };
+const PORTA_CHEFE = { objs: [], pend: null, aberturas: 0, baus: 0 };
 const PORTA_ESP = 0.45, PORTA_CEL = 0.5;
 const COR_PORTA = { nanquim: "#1E1B18", papel: "#EFE4CC", cin: "#B8322A", cin2: "#8E2721", jade: "#3E7A5C", jade2: "#2F5D3A", indigo: "#2D4A6B", ocre: "#C9963E", pedra: "#8C8A80", ard: "#3B4250", ard2: "#2A2F3A" };
 const altPorta = p => p.larg > 5 ? 4.6 : 2.7;
@@ -23491,7 +23795,13 @@ function dentroSalaChefe(d, x, y) {
   return false;
 }
 // (livre: a porta fechada barra; aberta, só o herói passa. criaturaLivre barra as criaturas, aberta ou fechada)
-function portaChefeBarra(x, y, criatura) { const d = cavDe(x); return !!(d && d.portas && d.portas.length && (criatura || !d.portaAberta) && naPortaChefe(d, x, y)); }
+function portaChefeBarra(x, y, criatura) {
+  const d = cavDe(x); if (!(d && d.portas && d.portas.length)) return false;
+  if (criatura || !d.portaAberta) return naPortaChefe(d, x, y);
+  // aberta: só o vão da moldura passa (p.meiaVao, do desenho); fora dele, as pedras dos lados (05/11, a porta em camadas)
+  for (const p of d.portas) { if (!(p.meiaVao < p.meia)) continue; const dx = x - p.x, dy = y - p.y, al = dx * p.ux + dy * p.uy, lat = Math.abs(dx * p.uy - dy * p.ux); if (al > -PORTA_ESP && al < PORTA_ESP && lat > p.meiaVao && lat < p.meia + 0.4) return true; }
+  return false;
+}
 // a criatura e o herói em lados diferentes da porta: ela não caça (a comum de fora, o chefe de dentro)
 function outroLadoDaPorta(l) {
   if (!naCaverna(l.x)) return false;
@@ -23551,7 +23861,7 @@ function abrirPortaChefe(d, clique) {
   d.portaAberta = true; d.esteveDentro = false; GRADE_V++;                 // (GRADE_V: as rotas guardadas valem de novo)
   if (clique) { PORTA_CHEFE.aberturas++; som("bau", d.portas[0], 0.7); for (const p of d.portas) poeiraChefe(p.x, p.y, 10, 0.5); }
 }
-function fecharPortaChefe(d) { if (!d.portaAberta) return; d.portaAberta = false; d.esteveDentro = false; GRADE_V++; }
+function fecharPortaChefe(d) { if (!d.portaAberta) return; d.portaAberta = false; d.esteveDentro = false; GRADE_V++; if (d.portas.some(p => Math.hypot(p.x - viking.x, p.y - viking.y) < 14)) som("bau", d.portas[0], 0.5); }
 // o herói fora do salão: o chefe fica sozinho, de vida cheia, na fase 1 e sem o bando que chamou
 function chefeSozinho(c) {
   const ferido = c.vida < c.cfg.vida || c.fase > 1 || c.furiaChefe;
@@ -23578,7 +23888,6 @@ function passoPortasChefe() {
     if (d.portaAberta && !dentro && !naPorta && (d.esteveDentro || !aqui || d.portas.every(p => Math.hypot(p.x - v.x, p.y - v.y) > 10))) fecharPortaChefe(d);
     const c = d.chefeVivo; if (c && !c.morto && !dentro) chefeSozinho(c);
   }
-  if (P.dlgD && (P.dlgD !== dv || v.caido || P.dlgD.portas.every(p => Math.hypot(p.x - v.x, p.y - v.y) > 6))) fecharDialogoPorta();
   const q = P.pend;
   if (q) {
     const dd = Math.hypot(v.x - q.x, v.y - q.y);
@@ -23607,7 +23916,7 @@ const artigoChefeDg = d => ((d.chefeVivo && defChefe(d.chefeVivo)) || {}).artigo
 function acaoPortaChefe(o) {
   const d = o.dungeon, nome = nomeChefeDg(d), art = artigoChefeDg(d);
   viking.dir = dirDe(o.x - viking.x, o.y - viking.y);
-  if (o.tipo === "porta_chefe") { if (!d.portaAberta) dialogoPortaChefe(d); return; }
+  if (o.tipo === "porta_chefe") { if (!d.portaAberta) abrirPortaChefe(d, true); return; }   // (05/11, o usuário: "você deveria apertar para abrir e nao aparecer um dialogo": o clique abre)
   if (d.bauAberto) { avisar(`O baú está vazio: ele se enche de novo quando ${art} ${nome} voltar`); return; }
   if (!d.bauLiberado) { avisar(`O baú está trancado: derrote ${art} ${nome} para abrir`); som("ui_negar"); return; }
   d.bauLiberado = false; d.bauAberto = true; o.tAberto = performance.now(); PORTA_CHEFE.baus++;
@@ -23633,21 +23942,6 @@ function bauChefeItens(n) {
 // o chefe da dungeon caiu: o baú destranca (uma abertura); renasceu: o baú fecha e tranca de novo
 function bauChefeCaiu(l) { const d = DUNGEONS.find(q => q.chefeVivo === l); if (d && d.bau) { d.bauLiberado = true; d.bauAberto = false; } }
 function bauChefeVoltou(l) { const d = DUNGEONS.find(q => q.chefeVivo === l); if (d) { d.bauLiberado = false; d.bauAberto = false; } }
-function dialogoPortaChefe(d) {
-  let q = PORTA_CHEFE.dlg;
-  if (!q) {
-    q = PORTA_CHEFE.dlg = document.createElement("aside"); q.id = "portaChefe"; q.className = "ferreiro porta-chefe"; q.hidden = true;
-    q.setAttribute("role", "alertdialog"); q.setAttribute("aria-label", "A porta do chefe");
-    q.innerHTML = `<h2></h2><p class="fala"></p><div class="botoes"><button data-v="sim">Entrar</button><button data-v="nao">Voltar</button></div>`;
-    q.onclick = e => { const b = e.target.closest("[data-v]"); if (!b) return; const dd = PORTA_CHEFE.dlgD; fecharDialogoPorta(); if (b.dataset.v === "sim" && dd) abrirPortaChefe(dd, true); };
-    document.body.appendChild(q);
-  }
-  const c = d.chefeVivo, nome = nomeChefeDg(d), art = artigoChefeDg(d), ele = art === "a" ? "ela" : "ele";
-  q.querySelector("h2").textContent = c && c.morto ? `Entrar na sala ${art === "a" ? "da" : "do"} ${nome}?` : `Enfrentar ${art} ${nome}?`;
-  q.querySelector(".fala").textContent = c && c.morto ? `${nome} já caiu e volta mais tarde. A porta fecha quando você sair.` : `Nível ${(c && c.cfg.nivel) || d.chefe.nivel}. Se você sair, a porta fecha e ${ele} volta de vida cheia.`;
-  PORTA_CHEFE.dlgD = d; q.hidden = false; janelaAbriu("portaChefe", true);
-}
-function fecharDialogoPorta() { const q = PORTA_CHEFE.dlg; if (q && !q.hidden) { q.hidden = true; janelaAbriu("portaChefe", false); } PORTA_CHEFE.dlgD = null; }
 // as lanternas da porta e o baú destrancado clareiam a caverna (luzDaCaverna)
 function luzPortaChefe(d, furo, s, t) {
   for (const o of PORTA_CHEFE.objs) {
@@ -23656,12 +23950,16 @@ function luzPortaChefe(d, furo, s, t) {
     else if (d.bauLiberado || (o.tAberto && performance.now() - o.tAberto < 4000)) { const [X, Y] = noMundo(o.x, o.y, 0.6); furo(X, Y, 2.4 * s, 0.75); }
   }
 }
-// ---- o desenho da porta: TUDO passa por desenharPortaChefe (o único lugar). A arte nova (36.4b: o portal entalhado na rocha,
-// Logs/Cavernas/PORTA_CHEFE_PEDIDO.md) entra só pondo as imagens no build: PORTA_ARTE.arq diz os arquivos (fechada e aberta,
-// fundo transparente, a base do portal no pé da imagem); se o versoes.json listar os dois, a imagem toma o lugar do desenho
-// por código, sem mexer na lógica (a passagem, o clique, a caixa e as luzes ficam iguais). Sem os arquivos, o desenho por código.
-// base: a fração da altura da imagem onde fica o chão; larg: a largura da imagem em relação à boca da porta
-const PORTA_ARTE = { arq: { fechada: "deco_b/porta_chefe_fechada.webp", aberta: "deco_b/porta_chefe_aberta.webp" }, base: 0.94, larg: 1.45, altMax: 8, im: null };
+// ---- o desenho da porta: TUDO passa por desenharPortaChefe (o único lugar). A arte em camadas (05/11, o usuário: "deveria abrir a porta, e
+// quando ela abrir existir a animacao da abertura... não ela abrir e deixar um espaço roxo dentro... precisa ter transparencia"): a moldura
+// (o arco de pedra com a corda, os talismãs e as 2 lanternas; a abertura do arco é transparente) e as duas folhas soltas, na mesma escala
+// (deco_b/porta_chefe_*.webp, 609 × 420 a moldura). Desenha-se o que está atrás (o salão de verdade, já no chão), as folhas e a moldura por
+// cima. Abrindo (~0,9 s), cada folha gira pela dobradiça para dentro: encolhe na largura (cos) e a ponta solta sobe um pouco na tela
+// (o fundo); aberta, o vão fica transparente, só com uma luz roxa fraca somada saindo do salão. Sem os arquivos, o desenho por código.
+// base: a fração da altura da moldura onde fica o chão; larg: a largura da moldura em relação à boca da porta; altMax: a altura máxima
+// (m; na boca larga do Ninho, os lados que sobram são pedras por código); folhas: [x da dobradiça, topo, largura, altura] em px da moldura
+const PORTA_ARTE = { arq: { moldura: "deco_b/porta_chefe_moldura.webp", esq: "deco_b/porta_chefe_folha_esq.webp", dir: "deco_b/porta_chefe_folha_dir.webp" },
+  W: 609, H: 420, base: 0.985, larg: 2.2, altMax: 4.4, altMaxGrande: 6.5, vao: [300, 280, 125], folhas: { esq: [109, 29, 191, 390], dir: [493, 28, 193, 391] }, giro: 1.35, dura: 0.9, im: null };
 // (a boca larga) a rocha dos lados do portal, por código, nas cores da pedra da arte: blocos irregulares com contorno de nanquim
 // e veios de ocre, mais baixos para fora (o monte de pedra que continua até a parede). x0 → x1: do portal para fora, em px
 function rochaPortaChefe(lado, x0, x1, hh, semente) {
@@ -23682,28 +23980,52 @@ function rochaPortaChefe(lado, x0, x1, hh, semente) {
   }
   cx.restore();
 }
-function artePortaChefe(aberta) {
+function artePortaChefe() {
   const A = PORTA_ARTE;
   if (!A.im) {
     A.im = {};
-    if (VERSOES.mapa && VERSOES.mapa[A.arq.fechada] && VERSOES.mapa[A.arq.aberta])
+    if (VERSOES.mapa && Object.values(A.arq).every(a => VERSOES.mapa[a]))
       for (const [k, arq] of Object.entries(A.arq)) { const im = new Image(); im.onload = () => { A.im[k] = im; }; im.src = VERSOES.com ? VERSOES.com(arq) : arq; }
   }
-  return A.im[aberta ? "aberta" : "fechada"] || null;
+  return A.im.moldura && A.im.esq && A.im.dir ? A.im : null;
+}
+// quanto a porta está aberta (0 fechada, 1 aberta), andando para d.portaAberta em PORTA_ARTE.dura s (só o desenho; a passagem é a lógica)
+function aberturaPorta(d) {
+  const agora = performance.now(), dt = Math.min(1, (agora - (d._tAb || agora)) / 1000), alvo = d.portaAberta ? 1 : 0; d._tAb = agora;
+  if (d.portaAb === undefined) d.portaAb = alvo;
+  d.portaAb = alvo > d.portaAb ? Math.min(alvo, d.portaAb + dt / PORTA_ARTE.dura) : Math.max(alvo, d.portaAb - dt / PORTA_ARTE.dura);
+  const u = d.portaAb; return u * u * (3 - 2 * u);                        // (suave no começo e no fim)
 }
 function desenharPortaChefe(o, t) {
   const p = o.porta, s = PX * zoom, nx = -p.uy, ny = p.ux, h = altPorta(p), mm = p.meia + (p.larg > 5 ? 0.6 : 0.34) * 0.4;
   const P = (a, z, al = 0) => noMundo(p.x + nx * a + p.ux * al, p.y + ny * a + p.uy * al, z);
-  const im = artePortaChefe(!!o.dungeon.portaAberta);
-  if (im) {
-    // a imagem de pé, no meio da boca, da largura dela na tela (espelhada quando a porta corre para o outro lado)
-    // (05/11, a arte nova: na boca larga do Ninho a imagem inteira ficava com ~19 de altura, maior que a tela; a altura para em
-    // altMax e os lados que sobram são a rocha da borda da própria imagem, esticada até a parede, desenhada antes do portal)
-    const [ax, ay] = P(-mm, 0), [bx, by] = P(mm, 0), [mx, my] = P(0, 0), w = Math.max(Math.abs(bx - ax), s * mm) * PORTA_ARTE.larg;
-    const hh = Math.min(w * im.height / im.width, s * PORTA_ARTE.altMax), w2 = hh * im.width / im.height, y0 = -hh * PORTA_ARTE.base;
+  const ims = artePortaChefe(), ab = aberturaPorta(o.dungeon);
+  if (ims) {
+    // a moldura de pé, no meio da boca, da largura dela na tela (espelhada quando a porta corre para o outro lado). Na boca larga do Ninho
+    // a altura para em altMax e os lados que sobram são pedras por código, desenhadas antes
+    const A = PORTA_ARTE, [ax, ay] = P(-mm, 0), [bx, by] = P(mm, 0), [mx, my] = P(0, 0), w = Math.max(Math.abs(bx - ax), s * mm) * A.larg;
+    const hh = Math.min(w * A.H / A.W, s * (p.larg > 5 ? A.altMaxGrande : A.altMax)), w2 = hh * A.W / A.H, k = w2 / A.W, x0 = -w2 / 2, y0 = -hh * A.base;
+    // (o vão da moldura, em m ao longo da porta: aberta, o herói passa só por ele; as pedras dos lados barram. A boca na tela mede |bx − ax|)
+    { const mv = Math.min(p.meia, A.vao[2] * k / Math.max(1e-3, Math.abs(bx - ax) / (2 * mm))); if (!(Math.abs((p.meiaVao || 0) - mv) < 0.05)) { p.meiaVao = mv; GRADE_V++; } }   // (GRADE_V: as rotas guardadas de novo)
     cx.save(); cx.translate(mx, my); if ((bx - ax) * (by - ay) < 0) cx.scale(-1, 1);
-    if (w > w2 * 1.02) for (const lado of [-1, 1]) rochaPortaChefe(lado, w2 / 2 * 0.86, w / 2, hh, (p.x * 7 + p.y * 13) | 0);
-    cx.drawImage(im, -w2 / 2, y0, w2, hh); cx.restore();
+    if (w > w2 * 1.02) for (const lado of [-1, 1]) rochaPortaChefe(lado, w2 / 2 * 0.9, w / 2, hh, (p.x * 7 + p.y * 13) | 0);
+    // aberta: a luz roxa fraca do salão, somada, no vão
+    if (ab > 0.02) {
+      const [vx, vy, vr] = A.vao, X = x0 + vx * k, Y = y0 + vy * k, R = vr * k * 1.2, g = cx.createRadialGradient(X, Y, 0, X, Y, R);
+      g.addColorStop(0, `rgba(150, 90, 220, ${0.22 * ab})`); g.addColorStop(1, "rgba(150, 90, 220, 0)");
+      cx.save(); cx.globalCompositeOperation = "lighter"; cx.fillStyle = g; cx.fillRect(X - R, Y - R, 2 * R, 2 * R); cx.restore();
+    }
+    // as folhas, cada uma girando pela dobradiça (a esquerda pela borda esquerda, a direita pela direita)
+    const th = ab * A.giro, c = Math.cos(th), sn = Math.sin(th);
+    if (c > 0.04) for (const [lado, nome] of [[-1, "esq"], [1, "dir"]]) {
+      const [hx, ty, fw, fh] = A.folhas[nome], im = ims[nome];
+      cx.save();
+      cx.transform(c, lado < 0 ? -sn * 0.28 : sn * 0.28, 0, 1, x0 + hx * k, y0 + ty * k);   // (a ponta solta vai para o fundo: sobe na tela)
+      cx.drawImage(im, lado < 0 ? 0 : -fw * k, 0, fw * k, fh * k);
+      cx.restore();
+    }
+    cx.drawImage(ims.moldura, x0, y0, w2, hh);
+    cx.restore();
   } else desenharPortaChefeCodigo(o, t);
   // a caixa do clique (no mínimo 48 px de largura)
   const pts = [P(-mm - 0.6, 0), P(mm + 0.6, 0), P(-mm - 0.6, h + 1.3), P(mm + 0.6, h + 1.3)], xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
@@ -24909,12 +25231,27 @@ function pontoSeguro(m) {
   return [x, y];
 }
 // monta um mapa na 1ª visita (a tela está escura); devolve se montou agora
+// (05/11, o usuário: "retire 50% das arvores, pedras e demais sprites de ambientação do mapa também, tanto dos orcs, quanto da montanha
+// e da vila 2") na 1ª visita, depois da montagem: metade da decoração sem função (as árvores, os pinheiros, o bambu, os arbustos, as
+// pedras, os basaltos, os blocos de gelo, os ossos, os troncos e os tocos) sai, por um sorteio fixo pela posição de cada uma (espalhado,
+// sem buracos). Fica o que tem função: as construções, as pontes, os portais, os marcos (os dólmens, os menires, os hareubang), as peças
+// de quest e o monumento. A Vila 1 não muda. ?decocheia=1 desliga (para medir o antes)
+const DECO_CORTE = new Set(["arvore", "pinheiro", "pinheiro_daiyu", "bambu", "arbusto", "arbusto_flor", "pedra", "pedra_neve", "basalto", "bloco_gelo", "osso", "tronco", "toco"]);
+const decoCortada = o => { const h = Math.sin(o.x * 12.9898 + o.y * 78.233) * 43758.5453; return h - Math.floor(h) < 0.5; };
+function cortarDecoracao(id) {
+  if (id === "vila1" || /[?&]decocheia=1/.test(location.search)) return 0;
+  let n = 0;
+  for (let i = objetos.length - 1; i >= 0; i--) { const o = objetos[i]; if (o.mapa !== id || !DECO_CORTE.has(o.tipo) || o.monumento || o.quest || o.marco) continue; if (decoCortada(o)) { objetos.splice(i, 1); n++; } }
+  if (n) refazerGrade();
+  MAPAS[id].decoCortada = n; return n;
+}
 function montarMapa(id) {
   const m = MAPAS[id]; if (!m || m.montado) return false;
   m.montado = true;
   if (id === "hahoe") { montarHahoe(); const p = PORTAIS.find(q => q.id === "hahoe_daiyu"); if (p) { abrirEspaco(p.x - 4, p.y - 4, p.x + 4, p.y + 4); refazerGrade(); } }
   if (id === "montanha") montarMontanha();
   if (id === "daiyu") montarDaiyu();
+  cortarDecoracao(id);                                                 // (metade da decoração sem função: a Hahoe, a Montanha e a Daiyu)
   assentarGhotins();
   return true;
 }
@@ -24989,6 +25326,77 @@ function portaisLista(lista, t) {
   for (const p of PORTAIS) if (Math.abs(p.x - cam.x) < 40 && Math.abs(p.y - cam.y) < 40) lista.push({ y: profV(p.x, p.y), f: () => desenharPortal(p, t) });
 }
 const PORTAL_IMG = {};
+// ---- o Portal B (05/11, o escolhido pelo usuário; Tools/deco3d/portal/INTEGRAR.md): o pórtico do Tripo (pilares de madeira vermelha sobre
+// bases de pedra, mísulas dancheong, telhado de telhas escuras e 3 degraus), fotografado na câmera do jogo. Desenha-se o fundo (a peça
+// inteira, com o vão transparente), o redemoinho dentro do vão e a frente (o que fica à frente do plano dos pilares). Vale para TODOS
+// os portais da lista PORTAIS. px/py: o centro dos degraus no chão; vao: o retângulo do vão na imagem (px da imagem cheia, 160 px/m;
+// a pasta meio/ tem a metade, como predios/meio). Os pilares são sólidos (pilaresPortais), a ~1,25 m do centro na direção da tela
+const PORTAL_B = { pasta: "deco_b/portal/", ppm: 160, px: 403.0, py: 660.9, vao: { x: 232.3, y: 263.0, w: 334.9, h: 269.4 }, pilar: 1.25, rPilar: 0.3, plano: 0.2, img: {} };
+function imgPortalB(n) {
+  const meio = zoom * (dpr || 1) <= 1.08, k = (meio ? "m:" : "c:") + n;
+  let im = PORTAL_B.img[k];
+  if (!im) { im = PORTAL_B.img[k] = new Image(); im.decoding = "async"; im.escala = meio ? 0.5 : 1; const arq = PORTAL_B.pasta + (meio ? "meio/" : "") + n + ".webp"; im.src = typeof VERSOES !== "undefined" && VERSOES.com ? VERSOES.com(arq) : arq; }
+  return im.complete && im.naturalWidth ? im : null;
+}
+// o redemoinho no vão: camadas prontas (feitas uma vez por cor de destino, em canvas de 256 px) girando em velocidades e sentidos
+// diferentes, achatadas como um funil visto de lado e respirando em profundidade; só o miolo dourado é luz somada. 5 drawImage, sem
+// filtro, sem caminho nem degradê por quadro (o lote WebGL2 desenha tudo)
+const SPR_REDEMOINHO = {};
+function sprRedemoinho(c) {
+  const chave = c[0]; if (SPR_REDEMOINHO[chave]) return SPR_REDEMOINHO[chave];
+  const N = 256, novo = () => { const k = document.createElement("canvas"); k.width = k.height = N; return [k, k.getContext("2d")]; };
+  const hex = (h, a) => { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
+  // a base: o fundo do vão, nanquim índigo-escuro, mais claro no meio, a borda de baixo esfumada (a névoa nasce do piso)
+  const [base, gb] = novo();
+  let gr = gb.createRadialGradient(N / 2, N * 0.55, 0, N / 2, N * 0.55, N * 0.7); gr.addColorStop(0, "#2D3A5C"); gr.addColorStop(1, "#1E1B2A");
+  gb.fillStyle = gr; gb.fillRect(0, 0, N, N);
+  gr = gb.createLinearGradient(0, N * 0.72, 0, N); gr.addColorStop(0, "rgba(239, 228, 204, 0)"); gr.addColorStop(1, "rgba(239, 228, 204, 0.28)"); gb.fillStyle = gr; gb.fillRect(0, N * 0.72, N, N * 0.28);
+  gb.fillStyle = hex(c[0], 0.18); gb.fillRect(0, 0, N, N);                 // (um tom da cor do destino: os portais continuam diferentes)
+  // os braços em espiral (a nuvem yeongi enrolada), com a borda macia e o fim em alfa zero (o círculo não precisa de recorte)
+  const bracos = (n, cor, alfa, larg, giro0) => {
+    const [k, g] = novo(); g.translate(N / 2, N / 2); g.lineCap = "round";
+    for (let b = 0; b < n; b++) for (let i = 0; i < 46; i++) {
+      const u = i / 45, a = giro0 + b * 6.283 / n + u * 4.2, r = N * 0.08 + u * N * 0.4, w = larg * (1 - u * 0.6) * N;
+      g.globalAlpha = alfa * Math.sin(Math.PI * Math.min(1, u * 1.15)) * (u < 0.92 ? 1 : (1 - u) / 0.08);
+      g.fillStyle = cor; g.beginPath(); g.arc(Math.cos(a) * r, Math.sin(a) * r, w / 2, 0, 7); g.fill();
+    }
+    return k;
+  };
+  const nanquim = bracos(3, "#1c120c", 0.5, 0.11, 0), indigo = bracos(4, "#2D4A6B", 0.42, 0.07, 0.785), veu = bracos(2, "#EFE4CC", 0.16, 0.045, 1.6);
+  { const g = veu.getContext("2d"); g.globalCompositeOperation = "source-atop"; g.fillStyle = hex(c[0], 0.2); g.fillRect(0, 0, N, N); }
+  const [brilho, gl] = novo();
+  gr = gl.createRadialGradient(N / 2, N / 2, 0, N / 2, N / 2, N / 2); gr.addColorStop(0, "rgba(255, 246, 220, 0.95)"); gr.addColorStop(0.3, "rgba(242, 196, 107, 0.6)"); gr.addColorStop(1, "rgba(242, 196, 107, 0)");
+  gl.fillStyle = gr; gl.fillRect(0, 0, N, N);
+  return (SPR_REDEMOINHO[chave] = { base, nanquim, indigo, veu, brilho });
+}
+const REDEMOINHO_B = { quadros: 0, ultimo: 0 };                          // (o estado, para os testes: ?test=1 não desenha)
+function redemoinhoB(g, x, y, w, h, t, c, trava) {
+  REDEMOINHO_B.quadros++; REDEMOINHO_B.ultimo = t;
+  if (MODO_TESTE) return;
+  const S = sprRedemoinho(c), cx0 = x + w / 2, cy0 = y + h * 0.52, rx = w * 0.62, ry = h * 0.6;
+  g.save(); g.globalAlpha = trava ? 0.35 : 1; g.drawImage(S.base, x, y, w, h); g.restore();
+  if (trava) return;                                                     // (travado: só o fundo, bem apagado, sem redemoinho)
+  const camada = (im, vel, esc, alfa) => { g.save(); g.globalAlpha = alfa; g.translate(cx0, cy0); g.scale(rx, ry); g.rotate(t * vel); g.scale(esc, esc); g.drawImage(im, -1, -1, 2, 2); g.restore(); };
+  const ida = Math.sin(t * 0.8);                                         // (o vai-e-vem de profundidade: as camadas respiram ao contrário)
+  camada(S.indigo, 0.35, 1.05 + 0.04 * ida, 0.8);
+  camada(S.nanquim, -0.6, 0.95 - 0.05 * ida, 0.9);
+  camada(S.veu, 1.1, 0.75 + 0.06 * ida, 0.6);
+  g.save(); g.globalCompositeOperation = "lighter"; g.globalAlpha = 0.55 + 0.25 * (0.5 + 0.5 * Math.sin(t * 2.2));
+  g.drawImage(S.brilho, cx0 - rx * 0.45, cy0 - ry * 0.45, rx * 0.9, ry * 0.9); g.restore();
+}
+// os pilares de todos os portais (a arte fica sempre de frente para a câmera: os pilares vão na direção da tela), para o livre()
+let PILARES_PORTAIS = null;
+function pilaresPortais() {
+  if (PILARES_PORTAIS && PILARES_PORTAIS.n === PORTAIS.length) return PILARES_PORTAIS.l;
+  const ux = GIRO_C, uy = -GIRO_S, fx = GIRO_S, fy = GIRO_C, l = [];   // (u: para a direita da tela; f: para o fundo)
+  for (const p of PORTAIS) for (const lado of [-1, 1]) l.push([p.x + ux * lado * PORTAL_B.pilar + fx * PORTAL_B.plano, p.y + uy * lado * PORTAL_B.pilar + fy * PORTAL_B.plano]);
+  PILARES_PORTAIS = { n: PORTAIS.length, l }; return l;
+}
+function noPilarPortal(x, y) {
+  const r = PORTAL_B.rPilar;
+  for (const [px, py] of pilaresPortais()) if (Math.abs(x - px) < r && Math.abs(y - py) < r && Math.hypot(x - px, y - py) < r) return true;
+  return false;
+}
 function imgPortal(cor, apagado) {
   const n = `portal_${cor}${apagado ? "_apagado" : ""}`;
   let e = PORTAL_IMG[n];
@@ -25026,6 +25434,16 @@ function desenharPortal(p, t) {
   if (X < -s * 4 || X > W + s * 4 || Y < -s * 1.5 || Y > H + s * 5) return;
   const trava = !!prog && prog.nivel < p.nivelMin, c = PORTAL_COR[p.cor] || PORTAL_COR.vila, pul = 0.5 + 0.5 * Math.sin(t * 3);
   const yb = Y - 0.42 * h, hw = 1.3 * s, pw = 0.3 * s, ph = 2.75 * h, yt = yb - ph;   // o pé dos pilares, a meia largura, os pilares
+  // (05/11) o Portal B: o fundo, o redemoinho no vão e a frente por cima; a placa do destino no alto do telhado
+  const fundoB = imgPortalB("portal_b"), frenteB = imgPortalB("portal_b_frente");
+  if (fundoB) {
+    const k = s / (PORTAL_B.ppm * fundoB.escala), x0 = X - PORTAL_B.px * fundoB.escala * k, y0 = Y - PORTAL_B.py * fundoB.escala * k, v = PORTAL_B.vao, e = fundoB.escala * k;
+    g.drawImage(fundoB, x0, y0, fundoB.naturalWidth * k, fundoB.naturalHeight * k);
+    redemoinhoB(g, x0 + v.x * e, y0 + v.y * e, v.w * e, v.h * e, t, c, trava);
+    if (frenteB) g.drawImage(frenteB, x0, y0, frenteB.naturalWidth * k, frenteB.naturalHeight * k);
+    placas.push(() => placaPortal(X, y0 - 14, p, trava));
+    return;
+  }
   g.save(); g.lineJoin = "round"; g.lineCap = "round";
   // a marca no chão: a elipse clara que pulsa (como a da escada da dungeon)
   g.strokeStyle = trava ? "rgba(140, 138, 128, 0.55)" : `rgba(239, 228, 204, ${0.35 + 0.4 * pul})`; g.lineWidth = Math.max(1.5, s * 0.04);
@@ -25179,7 +25597,7 @@ function montarHahoe() {
   for (const [dx, dy, e] of [[-4.2, 3.6, 2.6], [4.0, 3.9, 2.4], [-6.4, 0.2, 1.9], [6.2, -0.4, 1.7], [0.2, 5.6, 3.0], [-2.2, 7.4, 2.2], [3.2, 7.0, 2.0], [-8.5, 4.5, 1.6]])
     por({ tipo: "pedra", x: nx + dx, y: ny + dy, r: 0.38 * e, esc: e, forma: Array.from({ length: 7 }, (_, k) => 0.8 + 0.3 * hash(k, dx * 10 | 0, 190)) });
   // pedras soltas pelos campos e na beira do rio
-  for (let k = 0, n = 0; k < (HAHOE2 ? 2400 : 900) && n < (HAHOE2 ? 150 : 60); k++) {
+  for (let k = 0, n = 0; k < (HAHOE2 ? 4800 : 900) && n < (HAHOE2 ? 300 : 60); k++) {
     const a = hash(k, 1, 192) * 6.283, rr = 6 + hash(k, 2, 192) * (HAHOE.raio - 8), x = HAHOE.ox + Math.cos(a) * rr, y = HAHOE.oy + Math.sin(a) * rr;
     if (borda(x, y) > RAIO - 1 || praca(x, y) || estrada(x, y) || agua(x, y) || naPonteH(x, y) || emTerracos(x, y) || !vazio(x, y, 1.2) || distClareira(x, y) < -2 || Math.hypot(x - HV.x, y - HV.y) < HV.r) continue;
     por({ tipo: "pedra", x, y, r: 0.4, esc: 0.5 + hash(k, 3, 192) * 0.8, forma: Array.from({ length: 7 }, (_, q) => 0.75 + 0.35 * hash(k, q, 193)) }); n++;
@@ -25405,7 +25823,7 @@ const COLISAO_PADRAO = {
   cabeca_tartaruga: { r: 0, dx: 0, dy: 0 }, fumarola: { r: 0.3, dx: 0, dy: 0 },
   portao_quina: { r: 0, dx: 0, dy: 0 }, palicada_diag: { r: 0, dx: 0, dy: 0 },   // (revisão da Daiyu, rodada 1: o recinto em losango da Fortaleza)                    // (os enfeites da vila: só no mundo 3D, sem colisão)
 };
-Object.assign(COLISAO_PADRAO, { forja_pintada: { r: 0.85, dx: 0.15, dy: 0.25 } });   // (R270: a forja pintada do Ferreiro da Vila 1)
+Object.assign(COLISAO_PADRAO, { forja_pintada: { r: 0.85, dx: 0.35, dy: 0.4 } });   // (a lareira da forja chapada: o meio da base dela)   // (R270: a forja pintada do Ferreiro da Vila 1)
 Object.assign(COLISAO_PADRAO, { santuario_raposa: { r: 2.6, dx: 0, dy: 0.2 }, pedra_neve: { r: 0.5, dx: 0, dy: 0 }, bloco_gelo: { r: 0.55, dx: 0, dy: 0 }, osso: { r: 0, dx: 0, dy: 0 }, tenda_expedicao: { r: 0, dx: 0, dy: 0 }, menir: { r: 0, dx: 0, dy: 0 }, doltap: { r: 0, dx: 0, dy: 0 }, hongsalmun: { r: 0, dx: 0, dy: 0 }, caverna_yeti: { r: 0, dx: 0, dy: 0 } });   // (a Montanha Gelada: mapa_montanha.js)
 COLISAO_PADRAO.vale_peca = { r: 1, dx: 0, dy: 0 };                     // (as peças do Vale: o raio é o esc de cada uma)
 const NOME_TIPO = { arvore: "árvore", pinheiro: "pinheiro", arbusto: "arbusto", pedra: "pedra", tronco: "tronco", toco: "toco", runa: "pedra rúnica",
@@ -25436,6 +25854,7 @@ function livre(x, y) {
   if (x < -350 && !GELADA.andavel(x, y)) return false;                 // (Montanha Gelada: as beiras, as fontes, as fendas e os marcos)
   if (!altarAndavel(x, y)) return false;                               // (R165: a mureta, a balaustrada e o que o patamar esconde)
   if (foraTabuleiro(x, y)) return false;                               // (R086: o corrimão e o vão da ponte)
+  if (noPilarPortal(x, y)) return false;                               // (05/11: os pilares do Portal B; o vão fica livre)
   const l = grade.get((Math.floor(x / 4) + 32768) * 65536 + (Math.floor(y / 4) + 32768));
   if (!l) return true;
   for (const o of l) {
@@ -26218,6 +26637,9 @@ function passo(dt) {
   }
   const dashou = passoDash(v, dt);                                     // (o dash do Shift: ele mesmo anda o herói)
   if (dashou) { mx = 0; my = 0; }
+  // (05/11, o usuário: "quando o cavalo empina, ele nao deve se mover") empinando ao montar, o herói montado fica no lugar; o clique de andar
+  // fica guardado (v.alvo) e ele sai quando o cavalo termina
+  if (v.montado && cavaloEnt.tEmp >= 0) { mx = 0; my = 0; }
   const len = Math.hypot(mx, my); if (len) { mx /= len; my /= len; }
   const porAlvo = len > 0 && !!v.alvo;
   if (porAlvo) [mx, my] = contornar(v, v.x, v.y, mx, my);
@@ -26993,8 +27415,9 @@ function brilhoLamina(im, q, info, X, Y, z, t) {
   if (ac < 1 && br) {
     cx.shadowColor = br.sombra;
     let m = mascaraLamina(im, q, info, br.forte);
-    cx.globalAlpha = 0.5 * pulso * (1 - ac); cx.shadowBlur = 20 * z; cx.drawImage(m, x, y, w, h);
-    cx.globalAlpha = 0.75 * pulso * (1 - ac); cx.shadowBlur = 7 * z; cx.drawImage(m, x, y, w, h);
+    const K = HALO_MONTADO();                                                  // (montado: o halo colado na lâmina)
+    cx.globalAlpha = 0.5 * pulso * (1 - ac) * K.a; cx.shadowBlur = 20 * z * K.b; cx.drawImage(m, x, y, w, h);
+    cx.globalAlpha = 0.75 * pulso * (1 - ac); cx.shadowBlur = 7 * z * K.b; cx.drawImage(m, x, y, w, h);
     cx.shadowBlur = 0; cx.globalAlpha = 0.6 * (1 - ac);
     m = mascaraLamina(im, q, info, br.claro); cx.drawImage(m, x, y, w, h);
   }
@@ -27021,19 +27444,24 @@ function brilhoLamina(im, q, info, X, Y, z, t) {
 }
 // arco encantado: a forma exata do arco borrada em verde-jade, mais forte enquanto ele puxa a corda; no tiro certeiro
 // o verde vira fogo enquanto a flecha esquenta. Onde o corpo cobre o arco não há brilho (a máscara já vem recortada)
+// (05/11, bug do usuário em vídeo: o arqueiro +9 montado com "uma coluna de fogo da altura do cavaleiro e do cavalo"). Montado, a arma
+// fica na frente do corpo do cavaleiro e do pescoço do cavalo (o arco de pé na mão, de perfil vira uma reta da cabeça à barriga do cavalo):
+// o halo largo da pose a pé (18 px × zoom), somado por cima do corpo inteiro, virava uma coluna de fogo. Montado, o halo fica colado no
+// contorno da arma: a borda larga com 0,35 da largura e menos força (o R261 mede a área acesa perto do tamanho da arma)
+const HALO_MONTADO = () => viking.montado ? { b: 0.35, a: 0.55 } : { b: 1, a: 1 };
 function brilhoArco(im, q, info, X, Y, z, t) {
   if (!info.mascara || classe !== "arqueiro") return;
   const f = forcaArco(), pulso = (0.8 + 0.14 * Math.sin(t * 5) + 0.06 * Math.sin(t * 17)) * (1 + 0.5 * f);
   const fogo = viking.anim === "certeiro" ? f : 0, br = brilhoRef();
   if (!br && fogo <= 0.01) return;
-  const x = X - info.px * z, y = Y - info.py * z, w = info.w * z, h = info.h * z;
+  const x = X - info.px * z, y = Y - info.py * z, w = info.w * z, h = info.h * z, K = HALO_MONTADO();
   cx.save(); cx.globalCompositeOperation = "lighter";
   for (const [cor, sombraCor, peso] of [[br ? br.forte : "#000", br ? br.sombra : "#000", br ? 1 - fogo : 0], ["#ff6a1a", "rgba(255, 90, 20, 1)", fogo]]) {
     if (peso <= 0.01) continue;
     cx.shadowColor = sombraCor;
     const m = mascaraLamina(im, q, info, cor);
-    cx.globalAlpha = 0.5 * pulso * peso; cx.shadowBlur = 18 * z; cx.drawImage(m, x, y, w, h);
-    cx.globalAlpha = 0.7 * pulso * peso; cx.shadowBlur = 6 * z; cx.drawImage(m, x, y, w, h);
+    cx.globalAlpha = 0.5 * pulso * peso * K.a; cx.shadowBlur = 18 * z * K.b; cx.drawImage(m, x, y, w, h);
+    cx.globalAlpha = 0.7 * pulso * peso; cx.shadowBlur = 6 * z * K.b; cx.drawImage(m, x, y, w, h);
   }
   cx.shadowBlur = 0; cx.globalAlpha = Math.min(1, 0.55 * pulso);
   cx.drawImage(mascaraLamina(im, q, info, fogo > 0.5 || !br ? "#ffe0b0" : br.claro), x, y, w, h);
@@ -28798,8 +29226,9 @@ function animNpc3d(o, nome, m, agora) {
   const vale = a => { const i = a && m.info[a.nome]; return i && agora - a.t0 < i.quadros / i.fps; };
   if (nome === "ferreiro") {
     // martelando na bigorna (a leste dele) sem parar; no refino, o sucesso ou a falha (ferreiroMartela) e volta a martelar
-    if (vale(o.a3d)) return [o.a3d.nome, agora - o.a3d.t0, angDir3d(o.forjaOeste ? 4 : 0)];
-    return ["martelando", agora, angDir3d(o.forjaOeste ? 4 : 0)];        // (R270: com a forja pintada a oeste, virado para ela)
+    const dirF = o.dirForja !== undefined ? o.dirForja : o.forjaOeste ? 4 : 0;   // (na forja chapada: o NO, de perfil para a esquerda da tela, de frente para a bigorna)
+    if (vale(o.a3d)) return [o.a3d.nome, agora - o.a3d.t0, angDir3d(dirF)];
+    return ["martelando", agora, angDir3d(dirF)];        // (R270: com a forja pintada a oeste, virado para ela)
   }
   // a guarda e o guarda real batem continência quando alguém chega perto; o do armazém atende quando abre o armazém;
   // os outros viram para quem está perto (o do armazém não: o baú faz parte do modelo dele e girava junto)
@@ -29295,16 +29724,22 @@ function chipsDepuracao(v, q, info) {
 }
 
 // ---------------------------------------------------------------- painel
+// (05/11, o "A conta recusou este save": com a conta ligada, a troca de classe de teste do admin trocava a classe do personagem da conta, e o
+// servidor recusa, porque a classe só muda no Altar) a tecla T e os botões de classe do admin não trocam com a conta ligada
+function trocaDeTeste(c) {
+  if (window.NUVEM && NUVEM.ativo && NUVEM.ativo()) { avisar("Com conta, a classe só muda no Altar (saia da conta para testar classes)"); return false; }
+  trocarClasse(c); return true;
+}
 function montarPainel() {
   montarBotoesAnim();
-  $("#cViking").onclick = () => trocarClasse("viking");
-  $("#cArqueiro").onclick = () => trocarClasse("arqueiro");
-  $("#cFeiticeiro").onclick = () => trocarClasse("feiticeiro");
-  $("#cNinja").onclick = () => trocarClasse("ninja");
-  $("#cXama").onclick = () => trocarClasse("xama");
-  $("#cXamaDragao").onclick = () => trocarClasse("xama_dragao");
-  $("#cShura").onclick = () => trocarClasse("shura");
-  $("#cGuerreiro").onclick = () => trocarClasse("guerreiro");
+  $("#cViking").onclick = () => trocaDeTeste("viking");
+  $("#cArqueiro").onclick = () => trocaDeTeste("arqueiro");
+  $("#cFeiticeiro").onclick = () => trocaDeTeste("feiticeiro");
+  $("#cNinja").onclick = () => trocaDeTeste("ninja");
+  $("#cXama").onclick = () => trocaDeTeste("xama");
+  $("#cXamaDragao").onclick = () => trocaDeTeste("xama_dragao");
+  $("#cShura").onclick = () => trocaDeTeste("shura");
+  $("#cGuerreiro").onclick = () => trocaDeTeste("guerreiro");
   montarPainelResto();
 }
 function montarBotoesAnim() {
@@ -38286,7 +38721,9 @@ embrulhar("explosaoChefe", ([x, y, r, h]) => {
 });
 // (R261, para os testes) a ponta de cada peça da arma que o brilho 3D do refino usa, em px da tela
 function armaTela() { const a = pecasArma(); if (!a) return []; return a.l.map(r => { const w = noMundoHeroi(r.ponta.clone().applyMatrix4(r.m.matrixWorld)); return noMundo(w.x, -w.z, w.y); }); }
-return { centroEfeitos, efeitosAgora, ALT_REF, armaTela, P3Teste: () => { const a = P3(viking.x, viking.y, 1.2).y, b = P3(viking.x, viking.y, 0.03).y, h = alt(viking.x, viking.y); return { corpo: +(a - h - 1.2).toFixed(3), chao: +(b - h - 0.03).toFixed(3) }; }, get ativo() { return ativo(); }, get iso() { return iso; }, get aquecidos() { return aquecerProgramas.feitos || 0; }, ensaiar, ensaioFim, get ensaiando() { return !!ensaio; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, caixa: FX_CAIXA, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; }, get bloomDaTela() { return B.daTela; }, set bloomDaTela(v) { B.daTela = !!v; },
+// (05/11, para o R261 com a arma montada fixa) a peça inteira na tela, da base à ponta (a ponta pode ficar atrás do cavalo)
+function armaSegTela() { const a = pecasArma(); if (!a) return []; return a.l.map(r => { const t = v => { const w = noMundoHeroi(v.clone().applyMatrix4(r.m.matrixWorld)); return noMundo(w.x, -w.z, w.y); }; return [t(r.base), t(r.ponta)]; }); }
+return { centroEfeitos, efeitosAgora, ALT_REF, armaTela, armaSegTela, P3Teste: () => { const a = P3(viking.x, viking.y, 1.2).y, b = P3(viking.x, viking.y, 0.03).y, h = alt(viking.x, viking.y); return { corpo: +(a - h - 1.2).toFixed(3), chao: +(b - h - 0.03).toFixed(3) }; }, get ativo() { return ativo(); }, get iso() { return iso; }, get aquecidos() { return aquecerProgramas.feitos || 0; }, ensaiar, ensaioFim, get ensaiando() { return !!ensaio; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, caixa: FX_CAIXA, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; }, get bloomDaTela() { return B.daTela; }, set bloomDaTela(v) { B.daTela = !!v; },
          get stats() { return { vivos: vivos.length, seguidos: seguidos.size, particulas: PS ? PS.l.length : 0 }; },
          corpos: { foraDaCaixa: corpoForaDaCaixa, entram: corposEntram, saem: corposSaem, get n() { return corposIso.n; }, get desenhados() { return corposIso.desenhados || 0; }, get junto() { return !!(S && S.junto); }, corte: CORPOS_CORTE } };   // (plano D: para os testes, R232)
 })();
