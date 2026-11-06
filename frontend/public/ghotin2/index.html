@@ -756,6 +756,19 @@
   /* (R196, 03/11: "arrume os textos das classes") o quadro com o desenho da classe (o Altar e as estátuas): o desenho à esquerda, o
      título numa linha e o texto em largura normal à direita, e os botões embaixo, à direita (antes eles dividiam a linha com o texto,
      que ficava numa coluna de uma ou duas palavras) */
+  /* (R287, 05/11) a loja no padrão do Metin2: abas por categoria e uma grade de ícones (como a bolsa), o preço na dica e num rótulo
+     pequeno; o item de outra classe apagado; a confirmação dos caros na própria janela */
+  #npcLoja .loja-abas { display: flex; flex-wrap: wrap; gap: 3px; margin: 2px 0 6px; }
+  #npcLoja .loja-abas button { padding: 2px 8px; font-size: 13px; }
+  #npcLoja .loja-grade { position: relative; margin: 0 auto 6px; background: rgba(30, 27, 24, 0.12); border: 1px solid rgba(30, 27, 24, 0.55); border-radius: 3px;
+    background-image: linear-gradient(rgba(30, 27, 24, 0.22) 1px, transparent 1px), linear-gradient(90deg, rgba(30, 27, 24, 0.22) 1px, transparent 1px); background-size: 38px 38px; }
+  #npcLoja .loja-item { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; }
+  #npcLoja .loja-item:hover { outline: 2px solid #C9963E; outline-offset: -2px; }
+  #npcLoja .loja-item canvas { display: block; width: 100%; height: 100%; }
+  #npcLoja .loja-item .preco-mini { position: absolute; right: 1px; bottom: 0; font: 700 10px/1.1 Tahoma, Verdana, sans-serif; color: #f3cf5a; text-shadow: 0 1px 2px #000, 0 0 2px #000; pointer-events: none; }
+  #npcLoja .loja-item.outra canvas { opacity: 0.4; filter: grayscale(0.6); }
+  #npcLoja .loja-item.sem-yang .preco-mini { color: #ff7a64; }
+  #npcLoja .loja-conf { display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; margin: 0 0 6px; padding: 4px 6px; border: 1px solid #8E2721; border-radius: 3px; }
   #npcLoja .item-loja.com-retrato { grid-template-columns: 112px minmax(0, 1fr); align-items: start; column-gap: 12px; row-gap: 8px; padding: 8px 10px; }
   #npcLoja .item-loja.com-retrato > :first-child { grid-row: 1 / span 2; align-self: end; }
   #npcLoja .item-loja.com-retrato img { display: block; width: 112px; height: 150px; object-fit: contain; object-position: center bottom; }
@@ -1590,7 +1603,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.81 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.82 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -1648,6 +1661,9 @@
       <div class="eq peca-eq" data-peca="escudo" data-c="4" data-r="1"></div>
       <div class="eq peca-eq" data-peca="pulso" data-c="4" data-r="2"></div>
       <div class="eq peca-eq" data-peca="botas" data-c="2" data-r="3"></div>
+      <!-- (R286, 05/11) os 2 espaços especiais, um de cada lado da bota: só itens do tipo "especial" (as Sandálias da Pressa) -->
+      <div class="eq esp-eq" data-esp="1" data-c="1" data-r="3"></div>
+      <div class="eq esp-eq" data-esp="2" data-c="3" data-r="3"></div>
     </div>
   </div>
   <div class="abas-bolsa" role="tablist" aria-label="Abas da bolsa" id="abasBolsa"></div>
@@ -1869,7 +1885,7 @@
   </div>
   <div class="rp-dir">
     <button type="button" class="rp-bt" id="bAtrib" title="Personagem e atributos (P)" aria-label="Personagem e atributos"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4" fill="currentColor"/><path d="M4 21c0-4.6 3.6-8 8-8s8 3.4 8 8z" fill="currentColor"/></svg><span class="selo-pontos" id="atribPontos" hidden></span></button>
-    <button type="button" class="rp-bt" id="bSkills" title="Skills" aria-label="Skills"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 6.4 6.9.5-5.3 4.4 1.7 6.7L12 16.4 6.1 20l1.7-6.7L2.5 8.9l6.9-.5z" fill="currentColor"/></svg></button>
+    <button type="button" class="rp-bt" id="bSkills" title="Skills" aria-label="Skills"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 6.4 6.9.5-5.3 4.4 1.7 6.7L12 16.4 6.1 20l1.7-6.7L2.5 8.9l6.9-.5z" fill="currentColor"/></svg><span class="selo-pontos" id="skillPontos" hidden></span></button>
     <button type="button" class="rp-bt" id="bBolsa" title="Inventário (I)" aria-label="Inventário"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 7V5.5a3.5 3.5 0 0 1 7 0V7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 8.2 7.3 4.6c1.5-.9 3-.5 4.7.6 1.7-1.1 3.2-1.5 4.7-.6L15 8.2z" fill="currentColor"/><path d="M8.6 9.4h6.8c3.3 2.2 5.4 5.6 5.1 8.9-.2 2-1.9 3.3-4.3 3.3H7.8c-2.4 0-4.1-1.3-4.3-3.3-.3-3.3 1.8-6.7 5.1-8.9z" fill="currentColor"/><path d="M8.2 9.4h7.6" stroke="var(--rp-fundo-ic, #2a1b10)" stroke-width="1.6" stroke-linecap="round"/></svg></button>
     <nav class="menu-jogo" id="menuJogo" aria-label="Menu do jogo">
   <div class="menu-leque" id="menuLeque" hidden>
@@ -5330,7 +5346,7 @@ V.passo = function (dt) {
   if (!MAPAS.hahoe.montado) return;
   // a imagem do minimapa e do Mapa do Mundo (3,4× a de antes, ~450 ms de uma vez): pintada em fatias de 4 ms por quadro desde a
   // montagem, por trás da tela de preparo; o minimapa mostra o que já está pronto
-  { const H = MAPAS.hahoe; if (!H.mini) H.mini = baseIlha(H, true); if (H.mini.continuar && !H.mini.pronto) H.mini.continuar(4); }
+  { const H = MAPAS.hahoe; if (!H.mini) H.mini = baseIlha(H, true); if (H.mini.continuar && !H.mini.pronto) H.mini.continuar(2); }   // (05/11, a Hahoe 2×: 2 ms por quadro; com 4, a pintura levava o quadro a ~35 ms na CPU lenta)
   if (!V.amb) V.amb = objetos.filter(o => o.npc && o.mapa === "hahoe" && o.dados && o.dados.rota);
   for (const o of V.amb) {
     const R = o.dados.rota, s = o.amb || (o.amb = { i: 0, sentido: 1, espera: 0 });
@@ -10371,17 +10387,12 @@ function montarCidade() {
     if (Math.hypot(FOGO.x - de[0], FOGO.y - de[1]) < r) { FOGO.x += dx; FOGO.y += dy; fumaca.length = 0; }
     abrirEspaco(para[0] - 7, para[1] - 6, para[0] + 7, para[1] + 6);
   }
-  // os NPCs das barracas com modelo 3D como os outros (antes eram bonecos desenhados por código)
-  Object.assign(NPC_3D, { "Alquimista Runa": "ninja", "Armeiro Bjorn": "guerreiro", "Feirante Hilda": "arqueiro" });
-  // (a roupa tingida para uma cor da paleta, em linear: jade, índigo, ocre)
-  // (o Armeiro e a Feirante sem tingir: a barba ruiva e o couro deles caem na faixa da roupa e não saem limpos)
-  Object.assign(NPC_TINTA, { "Alquimista Runa": [0.048, 0.195, 0.107], "Armeiro Bjorn": null, "Feirante Hilda": null });
-  // o Sumo-Sacerdote do Templo do Céu: o modelo do feiticeiro, a túnica tingida de ocre (o dourado do telhado do templo)
-  NPC_3D["Sumo-Sacerdote Haneul"] = "feiticeiro"; NPC_TINTA["Sumo-Sacerdote Haneul"] = [0.584, 0.305, 0.048];
-  // o Cavalariço do estábulo: o modelo da Alquimista (ninja) com a roupa tingida de couro (marrom do ocre)
-  NPC_3D["Cavalariço Doyun"] = "ninja"; NPC_TINTA["Cavalariço Doyun"] = [0.30, 0.13, 0.035];
-  // o Mukseon (no salão do Templo e na Vila Hahoe): o modelo do feiticeiro, a túnica tingida de cinza de nanquim (a aguada)
-  NPC_3D["Mukseon"] = "feiticeiro"; NPC_TINTA["Mukseon"] = [0.02, 0.02, 0.024];
+  // (05/11, Logs/Arte/npcs/INTEGRAR.md) os NPCs da Vila 1 com modelo próprio (Tripo, animados com parado e atendendo): as barracas, o
+  // templo, o estábulo e o Mukseon. Sem tinta (o semArma é "o.nome in NPC_TINTA": as chaves deles saíram)
+  Object.assign(NPC_3D, { "Alquimista Runa": "runa", "Armeiro Bjorn": "bjorn", "Feirante Hilda": "hilda" });
+  NPC_3D["Sumo-Sacerdote Haneul"] = "haneul";
+  NPC_3D["Cavalariço Doyun"] = "doyun";
+  NPC_3D["Mukseon"] = "mukseon";
   for (const o of c.objetos || []) objetos.push(Object.assign(completarDecoracao(o), { cidade: true }));
   montarEstabulo();                                // (o estábulo da saída sul: o curral, o Cavalariço e os cavalos)
   // os bandos a menos de 9 m (+ o espalhamento) da cidade vão para fora, para longe do centro dela
@@ -13396,7 +13407,7 @@ function desenharPlacaJogador(X, Y, z) {
   const hon = honraDe();
   placaNome(X, y + 6, prog.nivel, prog.nome || NOME_CLASSE[classe], hon.cor);
   cx.save(); cx.font = "700 12px 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif"; cx.textAlign = "center"; cx.textBaseline = "middle"; cx.lineJoin = "round";
-  cx.lineWidth = 3; cx.strokeStyle = "rgba(10, 8, 6, 0.9)"; cx.strokeText(hon.titulo, X, y - 10); cx.fillStyle = hon.cor; cx.fillText(hon.titulo, X, y - 10); cx.restore();
+  cx.lineWidth = 3; cx.strokeStyle = "rgba(10, 8, 6, 0.9)"; cx.strokeText(hon.titulo, X, y - 10); cx.fillStyle = hon.cor; cx.globalAlpha = 0.9; cx.fillText(hon.titulo, X, y - 10); cx.restore();   // (o título um pouco mais suave que o nick)
   if (viking.balao) desenharBalao(X, y - 25);                          // (a fala do chat)
 }
 function rotuloCriatura(l) { return `Lv. ${l.cfg.nivel || 1} ${l.cfg.nome}`; }
@@ -15183,14 +15194,16 @@ function pintarBase(x0, y0, x1, y1, cor, fatias = false) {
   // (a Hahoe nova, 3,4× maior: a imagem é pintada em fatias de linhas, alguns ms por quadro do minimapa; continuar(ms) segue e
   //  diz se acabou; sem ms, termina de uma vez, para o Mapa do Mundo. O que falta pintar fica transparente)
   if (fatias) {
-    let j = 0; const b = { c, x0, y1, pronto: false };
+    let j = 0, i0 = 0; const b = { c, x0, y1, pronto: false };
+    // (05/11, a Hahoe 2×: a linha tem ~1.400 px e passava sozinha do orçamento; a fatia para no meio da linha, a cada 96 px)
     b.continuar = (ms = Infinity) => {
       const t0 = performance.now(), j0 = j;
       while (j < h && performance.now() - t0 < ms) {
-        for (let i = 0; i < w; i++) { const x = x0 + (i + 0.5) / MINI_PX, y = y1 - (j + 0.5) / MINI_PX, k = (j * w + i) * 4, [r, gg, bb] = cor(x, y); d[k] = r; d[k + 1] = gg; d[k + 2] = bb; d[k + 3] = 255; }
-        j++;
+        const i1 = Math.min(w, i0 + 96);
+        for (let i = i0; i < i1; i++) { const x = x0 + (i + 0.5) / MINI_PX, y = y1 - (j + 0.5) / MINI_PX, k = (j * w + i) * 4, [r, gg, bb] = cor(x, y); d[k] = r; d[k + 1] = gg; d[k + 2] = bb; d[k + 3] = 255; }
+        if (i1 >= w) { j++; i0 = 0; } else i0 = i1;
       }
-      if (j > j0) g.putImageData(im, 0, 0, 0, j0, w, j - j0);
+      if (j > j0 || i0 > 0) g.putImageData(im, 0, 0, 0, j0, w, j - j0 + (i0 > 0 ? 1 : 0));
       if (j >= h && !b.pronto) { b.pronto = true; if (b.fim) b.fim(); }
       return b.pronto;
     };
@@ -15260,7 +15273,7 @@ function desenharMinimapa(agora) {
   const mp = mapaDe(viking.x, viking.y), v1 = mp === MAPAS.vila1;   // (cada mapa com a imagem dele; a da Vila 1 é a miniBase de sempre)
   if (!cav && v1 && !miniBase) miniBase = baseIlha();
   if (!cav && !v1 && !mp.mini) mp.mini = baseIlha(mp, HAHOE2 && mp === MAPAS.hahoe);
-  if (!cav && !v1 && mp.mini.continuar && !mp.mini.pronto) mp.mini.continuar(6);   // (a Hahoe nova: em fatias de 6 ms por quadro do minimapa)
+  if (!cav && !v1 && mp.mini.continuar && !mp.mini.pronto) mp.mini.continuar(3);   // (a Hahoe nova: em fatias de 3 ms por quadro do minimapa; eram 6, e na Hahoe 2× o quadro pesava)
   if (dun && !miniCavernas[dun.id]) miniCavernas[dun.id] = baseCaverna(dun);
   // (R250) o canvas tem o dobro de pixels do tamanho na tela (164 px): os pontinhos e o contorno ficam nítidos, também girados
   // com a câmera; desenha-se em 164 de largura com a escala K
@@ -15901,12 +15914,30 @@ function montarNpcs() {
   $("#npcMais").onclick = () => { if (!npcAberto) return;
     if (npcAberto.chegada) { if (npcAberto.fala >= npcAberto.dados.falas.length - 1) { abrirNpc(null); return; } npcAberto.fala++; desenharNpc(); return; }   // (a chegada do aprendiz: Continuar, no fim Entendi)
     npcAberto.fala = (npcAberto.fala + 1) % npcAberto.dados.falas.length; desenharNpc(); };
-  $("#npcLoja").addEventListener("pointermove", e => { const l = e.target.closest(".item-loja"); mostrarDica(l && l._item, e.clientX, e.clientY, l ? { preco: l._preco } : undefined); });
+  $("#npcLoja").addEventListener("pointermove", e => { const l = e.target.closest(".item-loja, .loja-item"); mostrarDica(l && l._item, e.clientX, e.clientY, l ? { preco: l._preco, semComparar: true } : undefined); });
+  // (R287) comprar na grade: clique direito ou duplo clique; os caros pedem confirmação na própria janela
+  $("#npcLoja").addEventListener("contextmenu", e => { const l = e.target.closest(".loja-item"); if (!l) return; e.preventDefault(); pedirCompraLoja(+l.dataset.k); });
+  $("#npcLoja").addEventListener("dblclick", e => { const l = e.target.closest(".loja-item"); if (l) pedirCompraLoja(+l.dataset.k); });
   $("#npcLoja").addEventListener("pointerleave", () => mostrarDica(null));
   $("#npcLoja").onclick = e => {
     const rb = e.target.closest("[data-recompra]"); if (rb && npcAberto) { recomprar(+rb.dataset.recompra); return; }
+    const ab = e.target.closest("[data-aba-loja]"); if (ab) { LOJA_UI.aba = ab.dataset.abaLoja; LOJA_UI.conf = null; desenharNpc(); return; }
+    const cf = e.target.closest("[data-conf]"); if (cf) { const k = LOJA_UI.conf; LOJA_UI.conf = null; if (cf.dataset.conf === "sim" && k !== null) comprarDaLoja(k); else desenharNpc(); return; }
     const b = e.target.closest("[data-compra]"); if (!b || !npcAberto) return;
-    const [chave, preco] = npcAberto.dados.loja[+b.dataset.compra], res = $("#npcResultado");
+    comprarDaLoja(+b.dataset.compra);
+  };
+}
+// (R287) a compra: os caros (10.000 Yang ou mais) pedem confirmação na própria janela
+const LOJA_UI = { aba: null, conf: null, dono: null, CARO: 10000 };
+function pedirCompraLoja(k) {
+  if (!npcAberto || !npcAberto.dados.loja) return;
+  const [, preco] = npcAberto.dados.loja[k];
+  if (preco >= LOJA_UI.CARO && LOJA_UI.conf !== k) { LOJA_UI.conf = k; desenharNpc(); return; }
+  LOJA_UI.conf = null; comprarDaLoja(k);
+}
+function comprarDaLoja(k) {
+  {
+    const [chave, preco] = npcAberto.dados.loja[k], res = $("#npcResultado");
     res.hidden = false;
     if (prog.yang < preco) { res.className = "ref-resultado falhou"; res.textContent = "Yang insuficiente."; som("ui_negar"); return; }
     const t = tipoItem(chave);
@@ -15914,15 +15945,39 @@ function montarNpcs() {
     prog.yang -= preco; som("moeda", null, 0.8);
     res.className = "ref-resultado sucesso"; res.textContent = `Comprou: ${t.nome}`;
     salvarProgresso(); desenharBolsa(); atualizarFicha(); atualizarItensBarra(); desenharNpc();
-  };
+  }
 }
+// (R287) a aba de cada item da loja: as armas (todas as classes juntas, as da sua primeiro e as outras apagadas), as armaduras,
+// o elmo/escudo/botas, os acessórios e o resto
+function abaLoja(chave) {
+  const t = tipoItem(chave);
+  if (t.arma) return "armas";
+  if (t.peca) { const sl = slotDa(t.peca); return PECAS[t.peca].acess ? "acess" : sl === "armadura" ? "armadura" : "pecas"; }
+  return "itens";
+}
+const NOME_ABA_LOJA = { armas: "Armas", armadura: "Armaduras", pecas: "Elmos, escudos e botas", acess: "Acessórios", itens: "Itens" };
+const LOJA_CEL = 38;
 function abrirNpc(o) {
   if (o && o.dados.armazem) { abrirArmazem(true); return; }               // o Senhor do Armazém abre o armazém direto
   if (npcAberto && npcAberto.chegada && npcAberto !== o) chegadaFechou();   // (a chegada do aprendiz fechando: o jogo volta)
   if (!o) $("#npcMais").textContent = "Conversar mais";
   npcAberto = o; $("#npcJan").hidden = !o; janelaAbriu("npcJan", !!o);
   if (!o && $("#npcVenda")) { $("#npcVenda").remove(); vendaPendente = null; }
-  if (o) { $("#npcResultado").hidden = true; abrirFerreiro(false); desenharNpc(); if (o.dados.loja && o.dados.loja.length) abrirBolsa(true); }   // (a loja abre a bolsa junto, como no Metin2)
+  if (o) { $("#npcResultado").hidden = true; abrirFerreiro(false); desenharNpc(); if (o.dados.loja && o.dados.loja.length) { abrirBolsa(true); lojaAoLadoDaBolsa(); } }   // (a loja abre a bolsa junto, como no Metin2)
+  else lojaAoLadoDaBolsa(true);
+}
+// (R287) a loja abre AO LADO da bolsa (para arrastar da bolsa e vender): se as duas se cruzam, a conversa vai para a esquerda da bolsa.
+// A conversa arrastada pelo jogador (janelasSalvas.npcJan) fica onde ele pôs; ao fechar, volta ao meio
+function lojaAoLadoDaBolsa(voltar) {
+  const j = $("#npcJan"), b = $("#bolsa");
+  if (janelasSalvas.npcJan && janelasSalvas.npcJan.x !== undefined) return;
+  if (j._aoLado) { j.style.left = ""; j.style.transform = ""; j._aoLado = false; }
+  if (voltar || j.hidden || b.hidden) return;
+  const rj = j.getBoundingClientRect(), rb = b.getBoundingClientRect();
+  if (rj.right <= rb.left + 1 || rj.left >= rb.right - 1 || rj.bottom <= rb.top || rj.top >= rb.bottom) return;
+  const x = rb.left - rj.width - 8 >= 8 ? rb.left - rj.width - 8 : rb.right + 8 + rj.width <= innerWidth - 8 ? rb.right + 8 : null;
+  if (x === null) return;                                                  // (a tela não cabe as duas lado a lado)
+  j.style.left = Math.round(x) + "px"; j.style.transform = "none"; j._aoLado = true;
 }
 function desenharNpc() {
   const o = npcAberto; if (!o) return;
@@ -15935,7 +15990,39 @@ function desenharNpc() {
   $("#npcNome").textContent = n.titulo || n.nome;
   $("#npcFala").textContent = `"${n.falas[o.fala % n.falas.length]}"`;
   const loja = $("#npcLoja"); loja.innerHTML = "";
+  // (R287) a loja no padrão do Metin2: abas por categoria e a grade de ícones (5 colunas, os itens altos ocupam 1 × 2), o preço na dica
+  // e num rótulo pequeno; comprar com o clique direito ou dois cliques
+  if ((n.loja || []).length) {
+    if (LOJA_UI.dono !== o) { LOJA_UI.dono = o; LOJA_UI.conf = null; LOJA_UI.aba = abaLoja(n.loja[0][0]); }
+    const abas = [...new Set(n.loja.map(([c]) => abaLoja(c)))];
+    if (!abas.includes(LOJA_UI.aba)) LOJA_UI.aba = abas[0];
+    if (abas.length > 1) { const ab = document.createElement("div"); ab.className = "loja-abas";
+      ab.innerHTML = abas.map(a => `<button type="button" data-aba-loja="${a}" aria-pressed="${a === LOJA_UI.aba}">${NOME_ABA_LOJA[a]}</button>`).join(""); loja.appendChild(ab); }
+    if (LOJA_UI.conf !== null && n.loja[LOJA_UI.conf]) { const [cc, pp] = n.loja[LOJA_UI.conf], cf = document.createElement("div"); cf.className = "loja-conf";
+      cf.innerHTML = `<span>Comprar <b>${tipoItem(cc).nome}</b> por ${pp.toLocaleString("pt-BR")} Yang?</span><button type="button" data-conf="sim">Comprar</button><button type="button" data-conf="nao">Não</button>`; loja.appendChild(cf); }
+    const COLS = 5, ocup = [], cabe = (x, y, h) => { for (let j = y; j < y + h; j++) if ((ocup[j] || [])[x]) return false; return true; };
+    const grade = document.createElement("div"); grade.className = "loja-grade"; let linhas = 0;
+    const serve = ch => { const t = tipoItem(ch); return t.arma ? armaDaChave(ch).classe === classe : t.peca ? pecaServe(t.peca) : true; };
+    const daAba = [...n.loja.entries()].filter(([, [ch]]) => abaLoja(ch) === LOJA_UI.aba).sort((a, b) => serve(b[1][0]) - serve(a[1][0]));   // (as que servem primeiro)
+    for (const [k, [chave, preco]] of daAba) {
+      const t = tipoItem(chave), h = Math.max(1, Math.round(t.h || 1));
+      let px = 0, py = 0; for (let y = 0, ok = false; !ok; y++) for (let x = 0; x < COLS && !ok; x++) if (cabe(x, y, h)) { px = x; py = y; ok = true; }
+      for (let j = py; j < py + h; j++) { ocup[j] = ocup[j] || []; ocup[j][px] = true; } linhas = Math.max(linhas, py + h);
+      const b = document.createElement("button"); b.type = "button"; b.className = "loja-item"; b.dataset.k = k;
+      Object.assign(b.style, { left: px * LOJA_CEL + 1 + "px", top: py * LOJA_CEL + 1 + "px", width: LOJA_CEL - 2 + "px", height: h * LOJA_CEL - 2 + "px" });
+      const c = document.createElement("canvas"); c.width = 72; c.height = 72 * h; const g = c.getContext("2d");
+      if (t.arma) iconeArma(g, t.desenho, 72, 72 * h, 0, t.tier); else if (t.peca) iconePeca(g, t.peca, t.tier, 72, 72 * h); else iconeItem(g, t.desenho, 72, 72 * h);
+      const dona = t.arma ? armaDaChave(chave).classe : null, outra = (t.arma && dona !== classe) || (t.peca && !pecaServe(t.peca));
+      if (outra) b.classList.add("outra"); if (prog.yang < preco) b.classList.add("sem-yang");
+      const pm = document.createElement("span"); pm.className = "preco-mini"; pm.textContent = preco >= 10000 ? Math.round(preco / 1000) + "k" : preco.toLocaleString("pt-BR");
+      b.setAttribute("aria-label", `${t.nome}: ${preco.toLocaleString("pt-BR")} Yang${outra && dona ? ` (Para ${NOME_CLASSE[dona]})` : ""}. Clique direito ou dois cliques compra`);
+      b.append(c, pm); grade.appendChild(b); b._item = { chave, ref: 0, bon: [], qtd: 1 }; b._preco = preco;
+    }
+    Object.assign(grade.style, { width: COLS * LOJA_CEL + "px", height: Math.max(3, linhas) * LOJA_CEL + "px" }); loja.appendChild(grade);
+    const dicaL = document.createElement("p"); dicaL.className = "nota"; dicaL.textContent = "Clique direito (ou dois cliques) compra; o preço está na dica."; loja.appendChild(dicaL);
+  }
   for (const [k, [chave, preco]] of (n.loja || []).entries()) {
+    if (true) continue;                                                     // (R287: as linhas de antes deram lugar à grade de cima)
     const t = tipoItem(chave), linha = document.createElement("div"); linha.className = "item-loja";
     const c = document.createElement("canvas"); c.width = 40; c.height = 40;
     if (t.arma) iconeArma(c.getContext("2d"), t.desenho, 40, 40, 0, t.tier); else if (t.peca) iconePeca(c.getContext("2d"), t.peca, t.tier, 40, 40 * Math.min(1, PECAS[t.peca].h)); else iconeItem(c.getContext("2d"), t.desenho, 40, 40);
@@ -17181,13 +17268,16 @@ function cumprirEtapa(id) {
 // ---- a honra (R164; o sistema de honra do Metin2, só a parte positiva, porque ainda não há PvP): cada criatura derrotada dá 1 ponto, se ela não
 // estiver mais de 10 níveis abaixo do herói. Os títulos aparecem em cima do nome e somam na chance de drop dobrado. prog.honra
 // (05/11, o usuário: "vamos fazer o sistema de honra com as cores e já colocando o nome acima do nick do jogador", a tabela do Metin2)
-// pontos → título e a cor do nome: 12000–20000 Admirável, 8000 Nobre, 4000 Íntegro, 1000 Valioso (azuis) e 0–999 Civil (branco). O
-// título vai em cima do nick e o nick na cor da honra; a mesma tabela vale na ficha. [pontos mínimos, título, % de drop (R164), cor]
-const HONRA_AZUL = "#7cc4ff";
-const HONRA_MAX = 20000, HONRA_TITULOS = [[12000, "Admirável", 5, HONRA_AZUL], [8000, "Nobre", 4, HONRA_AZUL], [4000, "Íntegro", 2, HONRA_AZUL], [1000, "Valioso", 1, HONRA_AZUL], [0, "Civil", 0, "#ffffff"]];
+// pontos → título e a cor do nome. Os títulos são nossos, no tema "vila e biombo" (05/11, a escolha do usuário), e cada faixa tem a
+// sua cor, da paleta do jogo (BIBLIA_B) clareada para ler sobre o chão de dia e de noite, longe do amarelo do "Lv." e das cores dos nomes
+// dos monstros: 0–999 Forasteiro (papel), 1000 Conhecido (jade), 4000 Defensor (índigo), 8000 Protetor da Vila (ocre), 12000–20000
+// Herói do Biombo (cinabre). O título vai em cima do nick e o nick na cor da honra; a ficha usa a cor escura da mesma faixa (no papel).
+// [pontos mínimos, título, % de drop (R164), cor no mundo, cor na ficha]
+const HONRA_MAX = 20000, HONRA_TITULOS = [[12000, "Herói do Biombo", 5, "#F2867A", "#B8322A"], [8000, "Protetor da Vila", 4, "#D9A35B", "#8E6420"],
+  [4000, "Defensor", 2, "#86AEE0", "#2D4A8B"], [1000, "Conhecido", 1, "#7FC29B", "#2F6B4C"], [0, "Forasteiro", 0, "#EFE4CC", ""]];
 function honraDe(p = prog) {
   const pontos = Math.min(HONRA_MAX, (p && p.honra) || 0), t = HONRA_TITULOS.find(x => pontos >= x[0]);
-  return { pontos, titulo: t[1], drop: t[2], cor: t[3] };
+  return { pontos, titulo: t[1], drop: t[2], cor: t[3], corFicha: t[4] };
 }
 function honraMorte(l) {
   if (!prog || !l.cfg || l.cfg.boneco || (l.cfg.nivel || 1) < prog.nivel - 10) return;
@@ -17768,6 +17858,7 @@ function desenharCartas() {
       #cartaJan .carta-premio { font-weight: 400; color: #3a2a1c; padding: 4px 7px; background: rgba(184, 146, 60, 0.2); border: 1px solid rgba(30, 20, 10, 0.5); border-radius: 2px; }
       #cartaJan .carta-aviso { margin: 0; padding: 4px 7px; font-size: 12.5px; line-height: 1.35; font-weight: 600; color: #8e2721; border-left: 3px solid #8e2721; }
       #fDerivados .fx-cx.larga { grid-column: 2 / -1; }
+      #fDerivados .fx-cx.honra { font-size: 11px; letter-spacing: -0.01em; padding: 2px 3px; }   /* (R172: "Protetor da Vila · 11.999" cabe) */
       #fDerivados .fx-cx.pesquisa { grid-column: 2 / -1; text-align: left; padding: 2px 6px; white-space: normal; height: auto; font-size: 11px; line-height: 15px; }
       #cartaJan .selo { font-size: 13.5px; color: #3f3528; font-style: italic; }
       #fQuests .fx-quest.vista { outline: 1px solid #f3cf5a; outline-offset: 1px; }
@@ -18381,6 +18472,7 @@ let abaBolsa = 0;
 // h = quantos espaços o item ocupa na bolsa, em pé: arco, espada, machado e cajado 2; adagas 1; armadura 2; escudo,
 // elmo e botas 1; o resto 1
 function tipoItem(chave) {
+  if (chave.startsWith("esp:")) { const E = ESPECIAIS[chave.slice(4)]; if (E) return { ...E, h: 1, especial: true, usar: it => equiparEspecial(it) }; }   // (R286)
   if (chave.startsWith("peca:")) { const [, slot, t] = chave.split(":"), P = PECAS[slot] || PECAS.elmo, m = P.modelos[+t] || P.modelos[0];
     return { nome: m[0] + (P.classes ? ` (${P.classes.map(c => NOME_CLASSE[c]).join("/")})` : ""), desc: "", h: P.h, peca: PECAS[slot] ? slot : "elmo", tier: +t, usar: it => equiparPeca(it) }; }
   if (chave.startsWith("arma:")) { const { classe: c, tier, rara } = armaDaChave(chave), a = ARMAS[c];
@@ -18519,6 +18611,7 @@ function iconeItem(g, desenho, w = 40, h = 40) {
   if (tamP) { iconeItem(g, tamP[1], w, h); marcaTamanho(g, tamP[2], w, h); return; }   // (R184: o frasco de sempre com a marca do tamanho)
   if (desenho && desenho.startsWith("joia:")) { iconeJoia(g, desenho, w, h); return; }
   if (desenho && desenho.startsWith("bio:")) { iconeBio(g, desenho, w, h); return; }
+  if (desenho === "esp:sandalias" && !ICONES_ITEM[desenho]) { iconeSandalias(g, w, h); return; }   // (R286: por código, até o pintado)
   if (desenho && desenho.startsWith("livro@")) { iconeItem(g, "livro", w, h); placaSkill(g, desenho.slice(6), w, h); return; }   // (R260: o livro com o ícone da skill)
   if (desenho === "joia_partida" && !ICONES_ITEM[desenho]) { iconeJoia(g, desenho, w, h); return; }
   if (pintarItem(g, desenho, w, h)) return;
@@ -19038,6 +19131,51 @@ function iconePeca(g, slot, tier, w, h) {
   else if (slot === "escudo") { g.beginPath(); g.moveTo(X, 6 * u); g.lineTo(X + 15 * u, 12 * u); g.quadraticCurveTo(X + 15 * u, 56 * u, X, 74 * u); g.quadraticCurveTo(X - 15 * u, 56 * u, X - 15 * u, 12 * u); g.closePath(); g.fill(); g.stroke();
     g.fillStyle = tier >= 2 ? "#e0b240" : "#6d675e"; g.beginPath(); g.arc(X, 34 * u, 5 * u, 0, 7); g.fill(); g.stroke(); }
 }
+// ---- (R286, 05/11) os itens ESPECIAIS (os "itens únicos" do Metin2): dois espaços no equipamento, um de cada lado da bota, que só
+// aceitam itens deste tipo (chave "esp:<id>"). Ficam em prog.equip.esp1 e esp2 ({ id }), vão no save (local e nuvem) com o resto do
+// equip e somam na ficha (somaEquip). Logs/Balanceamento/ITENS_ESPECIAIS.md
+// As Sandálias da Pressa: o primeiro, a velocidade de movimento (a homenagem discreta às botas da pressa de outro jogo: o nome, o
+// visual e o texto são nossos; os números, propostos, a confirmar com o usuário: ITENS_ESPECIAIS.md)
+const ESPECIAIS = {
+  sandalias_pressa: { nome: "Sandálias da Pressa", vel: 20, desenho: "esp:sandalias",
+    desc: "Sandálias de palha (jipsin) com fitas de vento: velocidade de movimento +20% enquanto calçadas num espaço especial. Dizem que um andarilho de outra pintura chegou pelo rasgo com sandálias assim, sempre com pressa." },
+};
+const ESP_SLOTS = ["esp1", "esp2"];
+function equiparEspecial(it) {
+  if (!prog) return;
+  const id = it.chave.slice(4), E = ESPECIAIS[id]; if (!E) return;
+  const i = prog.inv.indexOf(it); if (i < 0) return;
+  prog.equip = prog.equip || {};
+  const slot = ESP_SLOTS.find(k => !prog.equip[k]) || "esp1", velho = prog.equip[slot];
+  prog.inv.splice(i, 1);
+  if (velho) prog.inv.push({ chave: "esp:" + velho.id, qtd: 1, aba: it.aba, x: it.x, y: it.y });
+  prog.equip[slot] = { id };
+  som("equipar", null, 0.9); depoisDaArma(`Vestiu: ${E.nome}`);
+}
+function tirarEspecial(n) {
+  const slot = "esp" + n, e = prog && prog.equip && prog.equip[slot]; if (!e) return;
+  const l = lugarLivre(1); if (!l) { avisar("A bolsa está cheia"); som("ui_negar"); return; }
+  prog.inv.push({ chave: "esp:" + e.id, qtd: 1, ...l }); prog.equip[slot] = null;
+  som("equipar", null, 0.6); depoisDaArma(`${(ESPECIAIS[e.id] || {}).nome || "Item especial"} guardado na bolsa`);
+}
+// o ícone por código (até o pintado chegar): o par de sandálias de palha trançada, com as fitas de vento azuis e um brilho leve
+function iconeSandalias(g, w, h) {
+  g.clearRect(0, 0, w, h);
+  const u = Math.min(w, h) / 40, X = w / 2, Y = h / 2 + 2;
+  const brilho = g.createRadialGradient(X, Y + 6 * u, 0, X, Y + 6 * u, 16 * u); brilho.addColorStop(0, "rgba(160, 210, 255, 0.45)"); brilho.addColorStop(1, "rgba(160, 210, 255, 0)");
+  g.fillStyle = brilho; g.fillRect(0, 0, w, h);
+  g.lineWidth = 1.4 * u / 1.2; g.strokeStyle = "#1E1B18"; g.lineJoin = "round";
+  for (const [dx, rot] of [[-6.5, -0.18], [6.5, 0.18]]) {
+    g.save(); g.translate(X + dx * u, Y + 2 * u); g.rotate(rot);
+    g.fillStyle = "#C9A25E"; g.beginPath(); g.ellipse(0, 0, 5 * u, 12 * u, 0, 0, 7); g.fill(); g.stroke();
+    g.strokeStyle = "rgba(110, 76, 34, 0.75)"; g.lineWidth = 0.9 * u;
+    for (let k = -9; k <= 9; k += 3) { g.beginPath(); g.moveTo(-4 * u, k * u); g.lineTo(4 * u, k * u + 1.2 * u); g.stroke(); }
+    g.strokeStyle = "#8E6420"; g.lineWidth = 1.4 * u; g.beginPath(); g.moveTo(-4 * u, -7 * u); g.quadraticCurveTo(0, -12 * u, 4 * u, -7 * u); g.stroke();
+    g.restore();
+  }
+  g.strokeStyle = "#5FA8E8"; g.lineWidth = 1.6 * u; g.lineCap = "round";
+  for (const [x0, y0, s] of [[-14, -8, 1], [12, -12, -1], [-12, 10, 1]]) { g.beginPath(); g.moveTo(X + x0 * u, Y + y0 * u); g.bezierCurveTo(X + (x0 + 6 * s) * u, Y + (y0 - 5) * u, X + (x0 + 10 * s) * u, Y + (y0 + 4) * u, X + (x0 + 15 * s) * u, Y + (y0 - 2) * u); g.stroke(); }
+}
 // veste uma peça da bolsa (a que estava no lugar volta para a bolsa)
 function equiparPeca(it) {
   if (!prog) return;
@@ -19064,6 +19202,7 @@ function tirarPeca(slot) {
 function somaEquip() {
   const r = { defesa: 0, vida: 0, mana: 0, vel: 0, bloqueio: 0 };
   if (!prog || !prog.equip) return r;
+  for (const k of ESP_SLOTS) { const q = prog.equip[k], E = q && ESPECIAIS[q.id]; if (E && E.vel) r.vel += E.vel; }   // (R286: os itens especiais)
   for (const slot of ORDEM_PECAS) { const e = prog.equip[slot], pc = pecaEquipada(slot); if (!e || !pecaServe(pc) || PECAS[pc].acess) continue; const a = atribPeca(pc, e.tier, e.ref); r.defesa += a.defesa; r[PECAS[pc].extra] += a.extra; r.vel += a.mov || 0; r.bloqueio += a.bloq || 0; }
   return r;
 }
@@ -19328,6 +19467,7 @@ function htmlDica(it, extra = {}) {
   if (t.arma) { req = NIVEIS_ARMA[t.tier || 0]; dona = armaDaChave(it.chave).classe; serve = dona === classe; }
   if (t.peca) { req = PECAS[t.peca].modelos[t.tier][1]; serve = pecaServe(t.peca); }
   if (extra.preco !== undefined) { linha("preco", `Preço: ${extra.preco.toLocaleString("pt-BR")} Yang`); esp(); }
+  if (extra.semComparar && !serve) { linha("nivel falta", dona ? `Para ${NOME_CLASSE[dona]}` : `Para ${(PECAS[t.peca].classes || []).map(c => NOME_CLASSE[c]).join(", ")}`); esp(); }   // (R287: na loja, de quem é)
   linha(bon.length || t.rara ? "nome bonus" : "nome", temRef ? `${nomeBaseItem(it.chave)}+${it.ref || 0}` : t.nome);
   if (req) { esp(); linha(prog && prog.nivel < req ? "nivel falta" : "nivel", `Nível necessário: ${req}`); }
   if (t.arma) {
@@ -19370,7 +19510,7 @@ function htmlDica(it, extra = {}) {
   }
   if (t.conteudo) { esp(); linha("cls-t", "[ Conteúdo ]"); for (const c of t.conteudo()) linha("fixo", c); }
   const desc = t.rara ? LORE_RARA + " Clique direito para equipar; o Ferreiro melhora até +9." : t.arma ? "Clique direito para equipar; o Ferreiro melhora até +9." : t.peca ? "Clique direito para vestir; o Ferreiro melhora até +9." : t.desc;
-  if (desc) { esp(); linha("desc", desc); }
+  if (desc) { esp(); linha("desc", extra.semComparar && (t.arma || t.peca) ? desc.replace(/Clique direito para (equipar|vestir); /, "Clique direito (ou dois cliques) compra; ") : desc); }   // (R287: na loja, o clique compra)
   if ((it.qtd || 1) > 1) linha("desc", `Quantidade: ${it.qtd}`);
   if (extra.venda !== undefined) { esp(); linha("preco", extra.venda ? `Vende por: ${extra.venda.toLocaleString("pt-BR")} Yang` : "Item de missão: não se vende"); }
   return { html: L.join(""), nao: !serve };
@@ -19427,7 +19567,7 @@ function mostrarDica(it, x, y, extra) {
   const d = $("#dicaItem");
   d._skill = null;
   if (!it) { d.hidden = true; return; }
-  const eq = !it.equipado ? itemEquipadoDo(slotDoItem(it)) : null;
+  const eq = !it.equipado && !(extra && extra.semComparar) ? itemEquipadoDo(slotDoItem(it)) : null;   // (R287: na loja, sem a 2ª dica "Equipado")
   const chave = JSON.stringify([it.chave, it.ref, it.bon, it.jo, it.qtd, extra, prog && prog.nivel, eq]);
   if (d._chave !== chave || d.hidden) {
     const { html, nao } = htmlDica(it, extra);
@@ -19608,6 +19748,12 @@ function desenharEquip(G = geoGrade()) {
       el.title = ""; el.setAttribute("aria-label", `${nomePeca(pc, e.tier, e.ref)}: clique direito guarda na bolsa`);
     } else { fantasmaEquip(g, `peca:${pc}:0`, ...el._tam, k.fantasma); el.title = `${PECAS[pc].nome}: clique direito numa peça da bolsa para vestir`; el.setAttribute("aria-label", `${PECAS[pc].nome} (vazio)`); }
   }
+  for (const el of box.querySelectorAll(".esp-eq")) {                   // (R286) os espaços especiais
+    const e = prog.equip && prog.equip["esp" + el.dataset.esp], E = e && ESPECIAIS[e.id], [c, g] = novo(el); el.appendChild(c);
+    if (E) { iconeItem(g, E.desenho, ...el._tam); el.title = ""; el.setAttribute("aria-label", `${E.nome}: clique direito guarda na bolsa`); }
+    else { g.save(); g.globalAlpha = 0.35; g.strokeStyle = k.fantasma; g.lineWidth = 1.5; const [w2, h2] = el._tam; g.beginPath(); g.arc(w2 / 2, h2 / 2, Math.min(w2, h2) * 0.22, 0, 7); g.stroke(); g.restore();
+      el.title = "Espaço especial: só itens especiais (clique direito num deles na bolsa)"; el.setAttribute("aria-label", "Espaço especial (vazio)"); }
+  }
 }
 // o fantasma do espaço vazio, como no Metin2: a forma do item em nanquim bem aguado (do ícone pintado), ou, para as
 // joias que ainda não existem, um desenho simples a traço
@@ -19670,6 +19816,11 @@ function montarBolsa() {
     if (!ch || !o || arrastoItem) { dica.hidden = true; return; }
     mostrarDica({ chave: ch, ref: o.ref || 0, bon: o.bon || [], jo: o.jo, qtd: 1, equipado: true }, e.clientX, e.clientY);
   };
+  for (const el of document.querySelectorAll(".esp-eq")) {             // (R286) os espaços especiais: o clique direito guarda; a dica
+    el.addEventListener("contextmenu", e => { e.preventDefault(); tirarEspecial(el.dataset.esp); });
+    el.addEventListener("pointermove", e => { const q = prog && prog.equip && prog.equip["esp" + el.dataset.esp]; if (!q || arrastoItem) { dica.hidden = true; return; } mostrarDica({ chave: "esp:" + q.id, qtd: 1, equipado: true }, e.clientX, e.clientY); });
+    el.addEventListener("pointerleave", () => { dica.hidden = true; });
+  }
   for (const el of [$("#eqArma"), ...document.querySelectorAll(".peca-eq")]) { el.addEventListener("pointermove", e => dicaEquip(el, e)); el.addEventListener("pointerleave", () => { dica.hidden = true; }); }
   grade.addEventListener("pointerleave", () => { dica.hidden = true; });
   grade.addEventListener("pointerdown", e => {
@@ -19894,7 +20045,7 @@ let vitaisAntes = "";
 function atualizarVitais() {
   if (!prog) return;
   const exp = prog.nivel >= NIVEL_MAX ? 1 : prog.exp / EXP_NIVEL[prog.nivel];
-  const chave = [Math.round(DASH.stamina * 100), Math.round(viking.vida), status.vidaMax, Math.round(viking.mana || 0), status.manaMax, Math.round(viking.baldeVida || 0), Math.round(viking.baldeMana || 0), prog.nivel, prog.exp, ...Object.keys(POCOES).map(contarItem), prog.pontos].join();
+  const chave = [Math.round(DASH.stamina * 100), Math.round(viking.vida), status.vidaMax, Math.round(viking.mana || 0), status.manaMax, Math.round(viking.baldeVida || 0), Math.round(viking.baldeMana || 0), prog.nivel, prog.exp, ...Object.keys(POCOES).map(contarItem), prog.pontos, prog.pontosSkill].join();   // (R284: o selo das skills)
   if (chave === vitaisAntes) return;
   vitaisAntes = chave;
   $("#vNivel").textContent = prog.nivel;
@@ -19918,6 +20069,8 @@ function atualizarVitais() {
   }
   $("#vPontos").hidden = !prog.pontos; $("#vPontos").textContent = "+" + prog.pontos;
   $("#atribPontos").hidden = !prog.pontos; $("#atribPontos").textContent = "+" + prog.pontos;
+  // (R284, 05/11, o usuário: "quando upar de level e receber ponto de skill, deixe o numero no botão de skill no canto direito inferior")
+  { const ps = Math.max(0, prog.pontosSkill || 0), sp = $("#skillPontos"); sp.hidden = !ps; sp.textContent = String(ps); $("#bSkills").title = ps ? `Skills: ${ps} ${ps === 1 ? "ponto" : "pontos"} para gastar` : "Skills"; }
   $("#bFicha").title = prog.pontos ? `Personagem (P): ${prog.pontos} pontos para distribuir` : "Personagem (P)";
 }
 
@@ -20094,6 +20247,7 @@ function admListaItens() {
   grupos.push(["Armas raras (Capital Bestial)", Object.keys(ARMAS_RARAS).filter(c => ARMAS[c]).map(c => [chaveArma(c, TIER_RARA, true), `${ARMAS_RARAS[c].nome} (${NOME_CLASSE[c]}, nível ${NIVEIS_ARMA[TIER_RARA]})`])]);
   for (const [slot, P] of Object.entries(PECAS))
     grupos.push([P.nome + (P.classes ? " · " + P.classes.map(c => NOME_CLASSE[c]).join("/") : ""), P.modelos.map((m, t) => [`peca:${slot}:${t}`, `${m[0]} (nível ${m[1]})`])]);
+  grupos.push(["Itens especiais", Object.keys(ESPECIAIS).map(k => ["esp:" + k, ESPECIAIS[k].nome])]);   // (R286)
   grupos.push(["Consumíveis e materiais", [...Object.keys(POCOES), "bau_iniciante", "pedra", "encantar", "mudar", "alma", "bencao", "correcao", "conselho"].map(k => [k, tipoItem(k).nome])]);
   grupos.push(["Jóias (de arma)", Object.keys(JOIAS).filter(t => JOIAS[t].parte === "arma").flatMap(t => JOIAS[t].val.map((_, g) => [`joia:${t}:${g}`, nomeJoia(t, g)]))]);
   grupos.push(["Jóias (de roupa)", Object.keys(JOIAS).filter(t => JOIAS[t].parte === "roupa").flatMap(t => JOIAS[t].val.map((_, g) => [`joia:${t}:${g}`, nomeJoia(t, g)]))]);
@@ -20582,7 +20736,7 @@ function atualizarFicha() {
   $("#fTitulo").textContent = "Personagem";
   if (fichaRetrato !== classe) { fichaRetrato = classe; $("#fRetrato").innerHTML = retratoBusto(classe); }   // (R267: só o busto da classe; o desenho de antes saiu. Sem a imagem, o fundo do quadro)
   $("#fNome").textContent = prog.nome || nomeClasse;                     // (R267: só leitura; o nome vem da criação)
-  { const h = honraDe(); $("#fHonra").innerHTML = `<i>◆</i>Honra ${h.pontos.toLocaleString("pt-BR")}${h.titulo ? ` · <span style="color:${h.cor === HONRA_AZUL ? "#2D6AA8" : "inherit"}">${h.titulo}</span>` : ""}`; }   // (no papel da ficha, o azul da honra mais escuro; o Civil na cor do texto)
+  { const h = honraDe(); $("#fHonra").innerHTML = `<i>◆</i>Honra ${h.pontos.toLocaleString("pt-BR")}${h.titulo ? ` · <span style="color:${h.corFicha || "inherit"}">${h.titulo}</span>` : ""}`; }   // (no papel da ficha, a cor escura da faixa; o Forasteiro na cor do texto)
   const pr = ATRIB_PRINCIPAL[classe];
   $("#fClasse").innerHTML = `${nomeClasse} <small>· atributo principal ${pr.toUpperCase()}</small>`;
   // ---- Status: nível, experiência, próximo nível (a exp que este nível pede)
@@ -20631,10 +20785,10 @@ function atualizarFicha() {
     ["Resfriamento", "−" + Math.round((status.resfriamento || 0) * 100) + "%", "Recarga das skills mais curta (Jóia do Resfriamento e colar; no máximo 50%)"],
     ["Regeneração PV · PM", `+${status.regenVida || 0}/+${status.regenMana || 0}%`, "A vida e a mana que voltam a cada 3 s, a mais (bônus do colar e do elmo)"],
     ["Absorção PV · PM", `${status.absorveVida || 0}/${status.absorveMana || 0}%`, "Em 1 de cada 10 golpes normais, essa parte do dano volta como vida / mana (bônus da armadura, do bracelete, do colar e do elmo)"],
-    ["Honra", `${honraDe().titulo || "Sem título"} · ${Math.floor(honraDe().pontos).toLocaleString("pt-BR")}`, `Cada criatura derrotada dá 1 ponto, se não estiver mais de 10 níveis abaixo de você. Valioso 1.000 (+1% de drop), Íntegro 4.000 (+2%), Nobre 8.000 (+4%) e Admirável 12.000 (+5%)`],
+    ["Honra", `${honraDe().titulo || "Sem título"} · ${Math.floor(honraDe().pontos).toLocaleString("pt-BR")}`, `Cada criatura derrotada dá 1 ponto, se não estiver mais de 10 níveis abaixo de você. Conhecido 1.000 (+1% de drop), Defensor 4.000 (+2%), Protetor da Vila 8.000 (+4%) e Herói do Biombo 12.000 (+5%)`],
     ["EXP · Yang · Drop", [status.exp, status.yang, status.drop].map(v => Math.round((v || 0) * 100)).join("/") + "%", "Chance de EXP dobrada, de yang dobrado e de drop dobrado (adicionais do colar, do bracelete e dos brincos)"],
     ["Pesquisa", resumoBio(true), `Atributos permanentes das pesquisas de ${NOME_MUKSEON_TITULO} (${Math.min(bioDe().m, BIO.length)} de ${BIO.length}): ${resumoBio()}`]]
-    .map(([a, v, t]) => { const larga = ["Evasão · Esquiva", "Honra", "EXP · Yang · Drop", "Pesquisa", "Regeneração PV · PM", "Absorção PV · PM"].includes(a); return `<span title="${t}"${larga ? ' style="grid-column: 1"' : ""}>${a}</span><b class="fx-cx${larga ? " larga" : ""}${a === "Pesquisa" ? " pesquisa" : ""}" title="${t}">${v}</b>`; }).join("");
+    .map(([a, v, t]) => { const larga = ["Evasão · Esquiva", "Honra", "EXP · Yang · Drop", "Pesquisa", "Regeneração PV · PM", "Absorção PV · PM"].includes(a); return `<span title="${t}"${larga ? ' style="grid-column: 1"' : ""}>${a}</span><b class="fx-cx${larga ? " larga" : ""}${a === "Pesquisa" ? " pesquisa" : ""}${a === "Honra" ? " honra" : ""}" title="${t}">${v}</b>`; }).join("");
   const lb = Object.entries(somaBonus(true)).map(([t, v]) => BONUS[t] ? BONUS[t].nome(v) : "").filter(Boolean);
   for (const [t, v] of Object.entries(somaJoias())) if (JOIAS[t]) lb.push(`${JOIAS[t].rot} ${JOIAS[t].menos ? "−" : "+"}${v}${JOIAS[t].pct ? "%" : ""} (Jóias)`);
   $("#fEquipNota").textContent = `${prog.arma ? nomeArma(prog.arma.ref) : "Sem arma (punhos)"} · ${lb.length ? lb.join(" · ") : "nenhum bônus nos itens"}`;
@@ -25547,7 +25701,7 @@ LOJA_HAHOE.push(["correcao", 25000]);                    // o Pergaminho da Corr
 function npcsHahoe() {
   const alq = NPCS.find(n => n.nome === "Alquimista Runa");
   const lista = [
-    { nome: "Mukseon", titulo: "Mukseon, o Imortal da Tinta", x: 8.2, y: -3.0, modelo: "feiticeiro", tinta: [0.02, 0.02, 0.024], bio: true, cajado: true,
+    { nome: "Mukseon", titulo: "Mukseon, o Imortal da Tinta", x: 8.2, y: -3.0, modelo: "mukseon", bio: true,
       cores: { roupa: "#1e1b18", calca: "#2d4a6b", pele: "#e8c4a0", cabelo: "#e8e4dc", barba: "#e8e4dc" },
       falas: ["(a fala da pesquisa: bioNaConversa põe no lugar desta)", "O rio carrega a tinta das pedras até o mar. Eu sigo o rio.", "No Templo do Céu ou aqui, ao lado do chá da Seo: a pesquisa é a mesma."] },
     { nome: "Velho Gong do Armazém", x: -8, y: 2.6, modelo: "armazem", armazem: true, cores: { roupa: "#3E7A5C", calca: "#2D4A6B", pele: "#e0b896", cabelo: "#d8d0c0", barba: "#e8e4dc" },
@@ -28723,6 +28877,7 @@ const MODELOS_3D = {
   dragao: {}, senhor_dragoes: {}, dragao_anciao: {},                    // (os dois últimos só depois de chegarem; até lá, o cfg aponta o verde: modelo3d)
   cavalo: {},                                  // (o cavalo de montaria: Logs/Cavalo; o herói montado vai preso ao nó "Assento")
   ferreiro: {}, guarda: {}, guarda_real: {}, armazem: {},
+  runa: {}, bjorn: {}, hilda: {}, guardia: {}, haneul: {}, mukseon: {}, doyun: {},   // (05/11: os NPCs da Vila 1 com modelo próprio)
 };
 // os moradores da vila que têm modelo (os outros continuam desenhados por código)
 const NPC_3D = { "Guarda Real": "guarda_real", "Guarda Sigrid": "guarda", "Senhor do Armazém": "armazem" };
@@ -28978,10 +29133,10 @@ const GLSL_COR_3D = `
     diffuseColor.rgb = clamp(mix(vec3(l), c, s) * BRILHO, 0.0, 1.0); }`;
 function toon3d(map, cor, side) {
   const m = new THREE.MeshToonMaterial({ map, color: cor, gradientMap: P3D.faixas, side });
-  m.userData.uPedra = { value: 0 }; m.userData.uMatiz = { value: 0 }; m.userData.uRoupa = { value: new THREE.Vector3(1, 1, 1) }; m.userData.uVerde = { value: 0 };
+  m.userData.uPedra = { value: 0 }; m.userData.uMatiz = { value: 0 }; m.userData.uRoupa = { value: new THREE.Vector3(1, 1, 1) }; m.userData.uVerde = { value: 0 }; m.userData.uClareia = { value: 0 };
   m.onBeforeCompile = sh => {
-    sh.uniforms.uPedra = m.userData.uPedra; sh.uniforms.uMatiz = m.userData.uMatiz; sh.uniforms.uRoupa = m.userData.uRoupa; sh.uniforms.uVerde = m.userData.uVerde;
-    sh.fragmentShader = "uniform float uPedra; uniform float uMatiz; uniform vec3 uRoupa; uniform float uVerde;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>" +
+    sh.uniforms.uPedra = m.userData.uPedra; sh.uniforms.uMatiz = m.userData.uMatiz; sh.uniforms.uRoupa = m.userData.uRoupa; sh.uniforms.uVerde = m.userData.uVerde; sh.uniforms.uClareia = m.userData.uClareia;
+    sh.fragmentShader = "uniform float uPedra; uniform float uMatiz; uniform vec3 uRoupa; uniform float uVerde; uniform float uClareia;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>" +
       // a cor viva puxa menos os tons de pele (laranja-rosado), senão rosto e mãos ficam alaranjados
       `${GLSL_COR_3D.replace(/SAT/g, COR_3D.sat.toFixed(2)).replace(/BRILHO/g, COR_3D.brilho.toFixed(2))}` + GLSL_PEDRA + GLSL_MATIZ_ROUPA + GLSL_VERDE_DRAGAO);
   };
@@ -29002,8 +29157,11 @@ const GLSL_MATIZ_ROUPA = `
     float l = dot(c, vec3(0.299, 0.587, 0.114));
     // (só a roupa: tons saturados, nem escuros (cabelo, barba, couro) nem claros, e nada de pele)
     float k = (1.0 - pele) * smoothstep(0.3, 0.45, (mx - mn) / max(mx, 1e-3)) * smoothstep(0.035, 0.06, l) * (1.0 - smoothstep(0.4, 0.55, l));
-    vec3 alvo = uRoupa * (l / max(dot(uRoupa, vec3(0.299, 0.587, 0.114)), 1e-3));
-    diffuseColor.rgb = mix(c, clamp(alvo, 0.0, 1.0), k * uMatiz); }`;
+    // (05/11, os clãs da Hahoe nova: uClareia leva a roupa para perto da luminância da cor pedida, senão o vermelho escuro do bandido
+    //  continuava escuro e os clãs liam como bandidos; 0 nos outros: o Juramento Branco e os NPCs ficam como estão)
+    float lr = dot(uRoupa, vec3(0.299, 0.587, 0.114)), l2 = mix(l, lr * 0.85, uClareia);
+    vec3 alvo = uRoupa * (l2 / max(lr, 1e-3));
+    diffuseColor.rgb = mix(c, clamp(alvo, 0.0, 1.0), k * mix(uMatiz, 1.0, uClareia)); }`;
 // o contorno: uma casca por trás, empurrada pela normal (no corpo, depois da pele; nas peças duras, na malha)
 function casca3d(pele) {
   const t = new THREE.MeshBasicMaterial({ color: 0x1a1014, side: THREE.BackSide });
@@ -29232,7 +29390,7 @@ function animNpc3d(o, nome, m, agora) {
   }
   // a guarda e o guarda real batem continência quando alguém chega perto; o do armazém atende quando abre o armazém;
   // os outros viram para quem está perto (o do armazém não: o baú faz parte do modelo dele e girava junto)
-  const perto = d < 3.2 && !v.caido, aberto = nome === "armazem" && armazemAberto();
+  const perto = d < 3.2 && !v.caido, aberto = nome === "armazem" ? armazemAberto() : npcAberto === o;   // (05/11: os NPCs com "atendendo" fazem o gesto ao abrir a conversa)
   if (perto && !o.perto3d && m.clips.saudando) o.a3d = { nome: "saudando", t0: agora };
   if (aberto && !o.aberto3d && m.clips.atendendo) o.a3d = { nome: "atendendo", t0: agora };
   o.perto3d = perto; o.aberto3d = aberto;
@@ -29290,7 +29448,7 @@ function pedidos3d(agora) {
     const esc = c.cfg.esc || 1;
     if (!naTela(c.x, c.y, m, esc)) continue;
     const k = c.piscar > 0 ? Math.min(1, c.piscar / 0.15) : 0;
-    l.push({ dono: c, m, anim: c.anim, t: c.t, info: c.cfg.M && c.cfg.M.animacoes[c.anim], ang: c.angFino !== undefined ? angMapa3d(c.angFino) : angDir3d(c.dir), esc, emis: [0.75 * k + (c.furiaChefe && c.cfg.sopro ? 0.07 : 0), 0.12 * k + (c.furiaChefe && c.cfg.sopro ? 0.012 : 0), 0.06 * k], tinta: c.cfg.tinta, roupa: c.cfg.roupa3d, morto: c.morto, celMax: c.cfg.celMax, verde: c.cfg.roupaVerde,
+    l.push({ dono: c, m, anim: c.anim, t: c.t, info: c.cfg.M && c.cfg.M.animacoes[c.anim], ang: c.angFino !== undefined ? angMapa3d(c.angFino) : angDir3d(c.dir), esc, emis: [0.75 * k + (c.furiaChefe && c.cfg.sopro ? 0.07 : 0), 0.12 * k + (c.furiaChefe && c.cfg.sopro ? 0.012 : 0), 0.06 * k], tinta: c.cfg.tinta, roupa: c.cfg.roupa3d, clareia: c.cfg.clan ? 0.6 : 0, morto: c.morto, celMax: c.cfg.celMax, verde: c.cfg.roupaVerde,
              perto: !c.morto && (c.cacando || !!c.acao) && longe(c.x, c.y) < P3D_PERTO });   // lutando colado no herói: anima em todo quadro
   }
   // os NPCs com modelo (o ferreiro e os moradores de NPC_3D)
@@ -29479,7 +29637,7 @@ function renderInst3d(i, clip, tempo) {
     mat.emissive.setRGB(d.emis[0] * ke, d.emis[1] * ke, d.emis[2] * ke);
     mat.color.copy(mat.userData.cor); if (tinta) mat.color.multiply(tinta);
     if (mat.userData.uPedra) mat.userData.uPedra.value = d.pedra || 0;
-    if (mat.userData.uMatiz) { mat.userData.uVerde.value = d.verde ? 1 : 0; mat.userData.uMatiz.value = d.roupa && !d.verde ? 0.85 : 0; if (d.roupa) mat.userData.uRoupa.value.set(d.roupa[0], d.roupa[1], d.roupa[2]); }
+    if (mat.userData.uMatiz) { mat.userData.uVerde.value = d.verde ? 1 : 0; mat.userData.uMatiz.value = d.roupa && !d.verde ? 0.85 : 0; if (d.roupa) mat.userData.uRoupa.value.set(d.roupa[0], d.roupa[1], d.roupa[2]); if (mat.userData.uClareia) mat.userData.uClareia.value = d.clareia || 0; }
   }
   const c = m.caixa;
   p.cam.left = -c.esq; p.cam.right = c.dir; p.cam.top = c.cima; p.cam.bottom = -c.baixo; p.cam.updateProjectionMatrix();
@@ -31069,7 +31227,7 @@ function montarAltar() {
   // o verde e as lanternas da ilha (os mesmos modelos do cenário)
   for (const [t, a, b, e] of [["pinheiro", -17.5, -5, 1.25], ["pinheiro", -13.5, -10.5, 1.05], ["arvore", 18.5, 3, 1.15], ["pinheiro", 17.5, 8, 1.2], ["arbusto", -6.5, -12.5, 0.9], ["arbusto", 8, -12, 0.85], ["arbusto", -11, -11.5, 0.9], ["pedra", -18, 2, 1.1], ["pedra", 14, -12.5, 0.9], ["bambu", -18.5, 6, 1], ["bambu", -19.5, -1, 1]]) por(t, a, b, { esc: e, r: t === "pedra" ? 0.45 : 0.35, tom: 0, forma: t === "pedra" ? Array.from({ length: 7 }, (_, k) => 0.8 + hash(k, a * 10, 77) * 0.3) : undefined });
   for (const [a, b] of [[-4.7, ALTAR.esc.b0 - 1.2], [4.7, ALTAR.esc.b0 - 1.2]]) por("lanterna", a, b);
-  NPC_3D[NOME_GUARDIA] = "xama"; NPC_TINTA[NOME_GUARDIA] = [0.048, 0.195, 0.107];
+  NPC_3D[NOME_GUARDIA] = "guardia";                                    // (05/11: o modelo próprio, sem tinta)
   { const n = objetos.find(o => o.npc && o.nome === NOME_GUARDIA); if (n) n.dentroPredio = true; }   // (o lugar dela é o alto da escadaria: a cidade não a move)
   refazerGrade();
 }
@@ -32462,7 +32620,7 @@ const DECO_3D = {
   entrada: ["caverna", "@caverna"], metin: ["metin", "@metin"], lanterna: ["lanterna"], bambu: ["bambu"],
 };
 // os moradores desenhados por código ganham um modelo de personagem (com a tinta da roupa deles)
-const NPC_MUNDO = { "Alquimista Runa": ["feiticeiro", "#c9a8ff"], "Armeiro Bjorn": ["ferreiro", "#b8c4d8"], "Feirante Hilda": ["armazem", "#ffb38a"], "Cavalariço Doyun": ["armazem", "#d8b070"] };
+const NPC_MUNDO = {};   // (05/11: a Runa, o Bjorn, a Hilda e o Doyun passaram para o NPC_3D, com o modelo próprio)
 // o tamanho de cada modelo no mundo: alt = altura em m (vezes o "Tamanho" do objeto), larg = a largura da base do
 // desenho (construções: o modelo ocupa o retângulo de colisão), comp = comprimento em m (muro, ponte)
 const MEDIDA_3D = {
