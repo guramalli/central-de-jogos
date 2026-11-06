@@ -1603,7 +1603,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.82 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.84 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -1661,9 +1661,10 @@
       <div class="eq peca-eq" data-peca="escudo" data-c="4" data-r="1"></div>
       <div class="eq peca-eq" data-peca="pulso" data-c="4" data-r="2"></div>
       <div class="eq peca-eq" data-peca="botas" data-c="2" data-r="3"></div>
-      <!-- (R286, 05/11) os 2 espaços especiais, um de cada lado da bota: só itens do tipo "especial" (as Sandálias da Pressa) -->
-      <div class="eq esp-eq" data-esp="1" data-c="1" data-r="3"></div>
-      <div class="eq esp-eq" data-esp="2" data-c="3" data-r="3"></div>
+      <!-- (R286, 05/11) os 2 espaços especiais: só itens do tipo "especial" (as Sandálias da Pressa). O usuário: "separe os 2 novos slots,
+           coloque abaixo do bracelete e da arma": um na coluna da arma, embaixo dela; o outro na do bracelete, embaixo dele; a bota sozinha -->
+      <div class="eq esp-eq" data-esp="1" data-c="0" data-r="3"></div>
+      <div class="eq esp-eq" data-esp="2" data-c="4" data-r="3"></div>
     </div>
   </div>
   <div class="abas-bolsa" role="tablist" aria-label="Abas da bolsa" id="abasBolsa"></div>
@@ -5059,6 +5060,15 @@ V.CLAS = [
   ["lanceiro_tigre", "tanque", "Lanceiro Tigre", 42, 2670, 580, 60, 1.1, [0.7, 0.45, 0.15], "#d8a868", { capitalBestial: true }],
   ["porta_estandarte", "comum", "Porta-Estandarte", 44, 1690, 503, 35, 1.0, [0.8, 0.22, 0.16], "#f0a090", { capitalBestial: true, agressivo: true, chama: 18, base: "chefe_bandido" }],
 ];
+// (06/11) o corpo-base de cada tipo (Logs/Arte/claes/INTEGRAR.md: soldado de cutelo, arqueiro de arco curto, maníaco de duas foices,
+// gigante de clava). Sem o glb do corpo (ou sem 3D), o tipo cai na base de hoje do papel (o bandido, o arqueiro, o chefe)
+V.CORPO = {
+  lavrador_milicia: "soldado", arqueira_milicia: "arqueiro", forcado_milicia: "maniaco", capita_milicia: "gigante",
+  bandido_veterano: "soldado", tenente_estrada: "gigante",
+  dancarino_mascara: "maniaco", tambor_mascara: "arqueiro", mascara_nobre: "gigante", mascara_risonha: "soldado",
+  novico_tinta: "soldado", envenenador: "arqueiro", sacerdotisa_tinta: "maniaco", mestre_tonel: "gigante",
+  soldado_capital: "soldado", arqueira_capital: "arqueiro", lanceiro_tigre: "gigante", porta_estandarte: "maniaco",
+};
 // o bandido, o arqueiro e o chefe de hoje sobem de nível (só os números: os nomes ficam para as quests)
 V.SOBE = { bandido: { nivel: 26, vida: 770, dano: 205, defesa: 21 }, bandido_arqueiro: { nivel: 27, vida: 650, dano: 241, defesa: 13 },
            chefe_bandido: { nivel: 32, vida: 48700, dano: 730, defesa: 38 } };
@@ -5085,12 +5095,13 @@ V.criarClas = function (TIPOS, variante, renasce, VOZ, CHEFES) {
   let n = 0;
   for (const [t, papel, nome, nivel, vida, dano, defesa, esc, roupa3d, tinta, extra = {}] of V.CLAS) {
     if (TIPOS[t]) continue;
-    const P = PAPEL[papel], bases = extra.base ? [extra.base, ...P.bases] : P.bases, b = bases.find(k => TIPOS[k] && TIPOS[k].M); if (!b) continue;
-    const { base, rapida, ...resto } = extra, B = TIPOS[b];
+    const P = PAPEL[papel], corpo = V.CORPO[t] && "cla_" + V.CORPO[t], bases = [...(corpo ? [corpo] : []), ...(extra.base ? [extra.base] : []), ...P.bases], b = bases.find(k => TIPOS[k] && TIPOS[k].M); if (!b) continue;
+    const { base, rapida, ...resto } = extra, B = TIPOS[b], novo = b.startsWith("cla_");
+    if (novo && papel === "mago") Object.assign(resto, { magia: true });   // (no corpo do arqueiro, o "mago" solta a sombra pelo tiro)
     const v = { raca: B.raca, nome, nivel, vida, dano, defesa, esc, roupa3d, tinta, filtro2d: filtroDe(tinta), ...(P.v || {}), ...resto };
     if (rapida) Object.assign(v, { chega: (B.chega || 2) * rapida, vAndar: (B.vAndar || 1) * rapida });
     if (V.FALA_CHAMA[t]) v.falaChama = V.FALA_CHAMA[t];
-    TIPOS[t] = variante(b, { ...v, chefe: false, chefeCaverna: false, conjura: 0, renasce, clan: true });
+    TIPOS[t] = variante(b, { ...v, ...(novo ? { esc: esc * (b === "cla_gigante" ? 0.92 : 1) } : {}), chefe: false, chefeCaverna: false, conjura: 0, renasce, clan: true, corpo: novo ? b : null });
     if (VOZ && !VOZ[t]) VOZ[t] = { ...VOZ[P.voz] };
     n++;
   }
@@ -6504,7 +6515,7 @@ function grafAplicar(nivel, salvar = true) {
   const res0 = GRAF.res, mato0 = GRAF.mato;
   Object.assign(GRAF, GRAF_NIVEIS[nivel], { nivel });
   if (salvar) try { localStorage.setItem("graficos", nivel); } catch (e) {}
-  if (GRAF.res !== res0 && W) { ajustar(); clearTimeout(grafAplicar.t); grafAplicar.t = setTimeout(() => { if (window.LOTE && LOTE.podarVelhas) LOTE.podarVelhas(); }, 2000); }   // (o canvas na resolução nova: o chão é repintado; as texturas da antiga saem do lote)
+  if (GRAF.res !== res0 && W) { ajustar("graficos"); clearTimeout(grafAplicar.t); grafAplicar.t = setTimeout(() => { if (window.LOTE && LOTE.podarVelhas) LOTE.podarVelhas(); }, 2000); }   // (o canvas na resolução nova: o chão é repintado; as texturas da antiga saem do lote)
   if (GRAF.mato !== mato0 && typeof VEG_GPU === "object") { VEG_GPU.chave = ""; VEG_GPU.prox = null; }   // (o buffer do mato montado de novo)
   if (!GRAF.petalas && typeof vegParticulas === "object") vegParticulas.length = 0;
   grafBloom();
@@ -7966,9 +7977,41 @@ function tomChao(x, y) {
   const l = fbm(x * 0.05 + 50, y * 0.05 - 30);
   return l < 0.5 ? [12, 32, 10, (0.5 - l) * 0.55] : [255, 232, 150, (l - 0.5) * 0.32];
 }
+// R292 (06/11): as máscaras não tinham limite: três canvas de 26×26 por pedaço visitado, que nunca saíam (de 1.200 para ~4.000
+// canvas vivos em 30 min de exploração; QUEDA_FPS_PARTIDA_LONGA.md). Agora em dois níveis:
+//  - os canvas, num LRU de MASC_MAX lugares: o que sai solta os canvas na hora (width = 0) e a textura deles no lote;
+//  - os pixels de cada uma (o ImageData, 2,7 KB), num LRU maior, MASC_DADOS_MAX lugares: o pedaço repintado depois (o chão volta
+//    a um lugar já visto) remonta os canvas dos pixels guardados, sem refazer as contas (o R236 corre em volta da Vila 1 contando
+//    com isso). O canvas remontado sai igual ao de antes, byte a byte (o mesmo putImageData), e uma refeita também (R292).
+// (m.uso: um pedaço sendo pintado aos poucos segura a dele entre os passos; uma presa que sai do cache não é zerada, fica para o GC)
+const MASC_MAX = 256, MASC_DADOS_MAX = 2048, MASC_DADOS = new Map();
+function tocarMascara(chave, m) { mascaras.delete(chave); mascaras.set(chave, m); }
+function soltarMascara(m) { if (!m || m.uso > 0) return; for (const c of [m.musgo, m.terra, m.tom]) soltarCanvas(c); m.solta = true; }
+function limitarMascaras() {
+  while (mascaras.size > MASC_MAX) { const k = mascaras.keys().next().value, m = mascaras.get(k); mascaras.delete(k); soltarMascara(m); }
+  while (MASC_DADOS.size > MASC_DADOS_MAX) MASC_DADOS.delete(MASC_DADOS.keys().next().value);
+}
+function soltarMascaras() { for (const m of mascaras.values()) soltarMascara(m); mascaras.clear(); MASC_DADOS.clear(); }
+// os canvas de volta dos pixels guardados (null: não há)
+function mascaraDosDados(chave) {
+  const d = MASC_DADOS.get(chave); if (!d) return null;
+  MASC_DADOS.delete(chave); MASC_DADOS.set(chave, d);
+  const tela = im => { if (!im) return null; const c = document.createElement("canvas"); c.width = im.width; c.height = im.height; c.getContext("2d").putImageData(im, 0, 0); return c; };
+  const m = { musgo: tela(d[0]), terra: tela(d[1]), tom: tela(d[2]), dosDados: true };
+  mascaras.set(chave, m); limitarMascaras(); MASC_DADOS_ST.remontadas++;
+  return m;
+}
+const MASC_DADOS_ST = { remontadas: 0, feitas: 0 };
+// (R292) um canvas que saiu de um cache: a textura dele sai do lote já (não espera o ORC) e a memória sai sem esperar o GC
+function soltarCanvas(c) { if (!c) return; if (window.LOTE && LOTE.soltar) LOTE.soltar(c); c.width = c.height = 0; }
+// (os do chão podem ter entrado num lote deste quadro: saem no começo do próximo, pelo laço)
+const SOLTAR_DEPOIS = [];
+function soltarNoProximo(c) { if (c && !SOLTAR_DEPOIS.includes(c)) SOLTAR_DEPOIS.push(c); }
+function soltarPendentes() { while (SOLTAR_DEPOIS.length) { const c = SOLTAR_DEPOIS.pop(); if (!poolChao.includes(c) && ![...pedacos.values()].includes(c)) soltarCanvas(c); } }
 function mascarasDe(i, j) {
-  const m = mascaras.get(i + "," + j);
-  if (m) return m;
+  const chave = i + "," + j, m = mascaras.get(chave);
+  if (m) { tocarMascara(chave, m); return m; }
+  const md = mascaraDosDados(chave); if (md) return md;
   const g = mascarasPassos(i, j); let r; do r = g.next(); while (!r.done);
   return r.value;
 }
@@ -7976,7 +8019,8 @@ function mascarasDe(i, j) {
 function* mascarasPassos(i, j) {
   const chave = i + "," + j;
   let m = mascaras.get(chave);
-  if (m) return m;
+  if (m) { tocarMascara(chave, m); return m; }
+  m = mascaraDosDados(chave); if (m) return m;
   const x0 = i * PEDACO, y1 = (j + 1) * PEDACO, n = Math.round(PEDACO / MASC_C) + 2;
   const fazer = f => {
     const c = document.createElement("canvas"); c.width = c.height = n;
@@ -7989,14 +8033,16 @@ function* mascarasPassos(i, j) {
       if (w > 0.01) algum = true;
     }
     if (!algum) return null;
-    g.putImageData(d, 0, 0);
+    g.putImageData(d, 0, 0); c.__dados = d;
     return c;
   };
   const musgo = fazer((x, y) => [0, 0, 0, pesoMusgo(x, y)]); yield;
   const terra = fazer((x, y) => [0, 0, 0, pesoTerra(x, y)]); yield;
-  const ja = mascaras.get(chave); if (ja) return ja;                   // (outro passo do mesmo lugar terminou antes: vale a dele)
+  const ja = mascaras.get(chave); if (ja) { soltarMascara({ musgo, terra }); return ja; }   // (outro passo do mesmo lugar terminou antes: vale a dele)
   m = { musgo, terra, tom: fazer(tomChao) };
-  mascaras.set(chave, m);
+  MASC_DADOS.set(chave, [m.musgo, m.terra, m.tom].map(c => c ? c.__dados : null)); MASC_DADOS_ST.feitas++;
+  for (const c of [m.musgo, m.terra, m.tom]) if (c) delete c.__dados;
+  mascaras.set(chave, m); limitarMascaras();
   return m;
 }
 function padraoChao(g, im, x0, y1, esc) {
@@ -8014,6 +8060,8 @@ const TMP_CHAO = [];
 function* pintarChaoTexturaPassos(g, i, j, esc, cw, ch, caminho, fatiado = false) {
   if (!contornoGrama) contornoGrama = pontosCosta(-2.8);
   const x0 = i * PEDACO, y1 = (j + 1) * PEDACO, m = mascarasDe(i, j), n = Math.round(PEDACO / MASC_C) + 2;
+  m.uso = (m.uso | 0) + 1;                                              // (R292: presa enquanto este pedaço é pintado, mesmo aos poucos)
+  try {
   // a máscara inteira (com a folga) esticada de modo que só o miolo caia no pedaço: o borrado emenda com o vizinho
   const fx = cw / (n - 2), fy = ch / (n - 2);
   const t = tmpChao;                                                    // (R236: o de sempre também aos poucos: a mistura vai num passo só)
@@ -8059,6 +8107,7 @@ function* pintarChaoTexturaPassos(g, i, j, esc, cw, ch, caminho, fatiado = false
   if (m.tom) { g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high"; g.drawImage(m.tom, -fx, -fy, cw + 2 * fx, ch + 2 * fy); }
   g.restore();
   for (const q of [tM, tT]) if (q && TMP_CHAO.length < 4) TMP_CHAO.push(q);
+  } finally { m.uso--; }
 }
 
 // ---------- pedaços do chão ----------
@@ -8220,8 +8269,15 @@ function* pedacoPassos(i, j, esc, fatiado = false) {
     const k = pedacos.keys().next().value, velho = pedacos.get(k);
     pedacos.delete(k);
     if (poolChao.length < 24) poolChao.push(velho);
+    else soltarNoProximo(velho);                                        // (R292: o que não cabe no reaproveitamento solta o canvas e a textura)
   }
   return c;
+}
+// (R292) no lugar dos pedacos.clear(): os pedaços vão para o reaproveitamento (até 24) e os outros soltam o canvas e a textura do
+// lote no começo do próximo quadro; os que estavam sendo pintados aos poucos são esquecidos, como antes
+function limparPedacos() {
+  for (const c of pedacos.values()) { if (poolChao.length < 24 && !poolChao.includes(c)) poolChao.push(c); else soltarNoProximo(c); }
+  pedacos.clear(); PEDACO_EM_CURSO.clear(); CHAO_IMG.sujo = true;
 }
 
 // chão do castelo: pátio de lajes, salas de tábuas, cozinha de pedra, tapete vermelho e tapetes
@@ -10400,7 +10456,7 @@ function montarCidade() {
     const [a, b, e, f] = c.caixa, mx = (a + b) / 2, my = (e + f) / 2, dist = (x, y) => Math.hypot(Math.max(a - x, 0, x - b), Math.max(e - y, 0, y - f));
     let mudou = false;
     for (const s of SPAWNS) {
-      const m = (s.n === 1 || /alfa|chefe/.test(s.tipo) ? 16 : 10) + (s.r || 0); if (dist(s.x, s.y) >= m) continue;
+      const m = (s.n === 1 || /alfa|chefe/.test(s.tipo) ? 16 : 10) + (s.r || 0); if (s.editado || dist(s.x, s.y) >= m) continue;   // (R289: o que o editor de mapas pôs fica onde ele pôs)
       let vx = s.x - mx, vy = s.y - my; const L = Math.hypot(vx, vy) || 1; vx /= L; vy /= L;
       for (let k = 0; k < 200 && dist(s.x, s.y) < m; k++) { s.x += vx * 0.5; s.y += vy * 0.5; }
       mudou = true;
@@ -10408,7 +10464,7 @@ function montarCidade() {
     if (mudou) remontarSpawns();
   }
   refazerGrade();
-  pedacos.clear(); PEDACO_EM_CURSO.clear(); CHAO_IMG.sujo = true; miniBase = null;
+  limparPedacos(); miniBase = null;                                   // (R292: soltando os canvas)
 }
 async function carregarPredios() {
   if (!PREDIOS_LIGADO) return;
@@ -10518,7 +10574,7 @@ function predLimpar() {
   if (!predInst.length) return;
   for (let i = objetos.length - 1; i >= 0; i--) {
     const o = objetos[i];
-    if (!DECORACAO.includes(o.tipo) || o.caverna || o.cidade) continue;
+    if (!DECORACAO.includes(o.tipo) || o.caverna || o.cidade || o.editado) continue;   // (R289: o que o editor de mapas pôs ou moveu fica)
     if (CIDADE && CIDADE.treino && ["boneco", "runa", "fogueira"].includes(o.tipo) && Math.hypot(o.x - CIDADE.treino.de[0], o.y - CIDADE.treino.de[1]) < CIDADE.treino.r) continue;   // (o treino muda de lugar: montarCidade)
     if (predInst.some(p => o.x > p.base[0] - 0.8 && o.x < p.base[1] + 0.8 && o.y > p.base[2] - 1.6 && o.y < p.base[3] + 0.8)) objetos.splice(i, 1);
     else if (CIDADE && !o.cidade && ["arvore", "pinheiro", "arbusto", "pedra", "tronco", "toco"].includes(o.tipo) && (foraCidade(o.x, o.y) || foraCidade(o.x + 1, o.y) || foraCidade(o.x - 1, o.y))) objetos.splice(i, 1);
@@ -13381,6 +13437,18 @@ const RACA_TIPO = { lobo: "animal", javali: "animal", rato: "animal", aranha: "a
   orc: "orc", orc_bravo: "orc", orc_feiticeiro: "orc", goblin: "humano", bandido: "humano", bandido_arqueiro: "humano", chefe_bandido: "humano",
   golem: "pedra", nove_caudas: "demonio", dragao: "demonio", senhor_dragoes: "demonio", dragao_anciao: "demonio" };
 for (const [t, r] of Object.entries(RACA_TIPO)) { if (TIPOS[t]) TIPOS[t].raca = r; if (NOVAS[t]) NOVAS[t].raca = r; }
+// (etapa 3 da Hahoe nova, com a chave: os 4 corpos-base dos clãs, Logs/Arte/claes/INTEGRAR.md; os 18 tipos dos clãs são variantes deles,
+//  com a faixa e a bandana vermelhas tingidas na cor do clã pela roupa3d/uClareia. As velocidades: Logs/CriaturasNovas/velocidades.txt)
+if (HAHOE2) Object.assign(NOVAS, {
+  cla_soldado: { nome: "Soldado do Clã", nivel: 26, vida: 770, dano: 205, defesa: 21, material: "carne", altura: 95, barra: 175, sombra: 0.42, anel: 0.5, raio: 0.3, raca: "humano",
+    visao: 7.5, perto: 1.5, alcance: 2.0, ataque: "golpe", galope: 0, chega: 2.0, passeio: 0.8, vAndar: 1.313, alvoZ: 1.1, somAcerto: "corte", reserva: { base: ["bandido", "goblin"], esc: 1 } },
+  cla_arqueiro: { nome: "Arqueiro do Clã", nivel: 27, vida: 650, dano: 241, defesa: 13, material: "carne", altura: 92, barra: 172, sombra: 0.42, anel: 0.5, raio: 0.3, raca: "humano",
+    visao: 9, perto: 6, alcance: 8, ataque: "tiro", magia: true, projetil: "flecha", galope: 0, chega: 1.9, passeio: 0.8, vAndar: 1.287, alvoZ: 1.1, somAcerto: "flecha_acerta", reserva: { base: ["bandido_arqueiro", "goblin"], esc: 1 } },
+  cla_maniaco: { nome: "Maníaco do Clã", nivel: 28, vida: 800, dano: 230, defesa: 20, material: "carne", altura: 90, barra: 170, sombra: 0.42, anel: 0.5, raio: 0.3, raca: "humano",
+    visao: 7.5, perto: 1.5, alcance: 2.0, ataque: "golpe", galope: 0, chega: 2.2, passeio: 0.8, vAndar: 1.359, alvoZ: 1.05, somAcerto: "corte", reserva: { base: ["bandido", "goblin"], esc: 1 } },
+  cla_gigante: { nome: "Gigante do Clã", nivel: 31, vida: 1700, dano: 340, defesa: 44, material: "carne", altura: 118, barra: 200, sombra: 0.6, anel: 0.78, raio: 0.42, raca: "humano",
+    visao: 8, perto: 1.7, alcance: 2.4, ataque: "golpe", galope: 0, chega: 1.8, passeio: 0.6, vAndar: 1.221, alvoZ: 1.4, somAcerto: "cortePesado", reserva: { base: ["chefe_bandido", "goblin"], esc: 1.1 } },
+});
 for (const [t, c] of Object.entries(NOVAS)) TIPOS[t] = { ...c, so3d: true, M: null, spr: {} };
 // a reserva (sem o glb): a variante da base que existir, com o ataque, as animações e o tamanho dela
 function reservaNova(t) {
@@ -14328,7 +14396,11 @@ const METINS = [
 // as da Ilha de Daiyu (mapa_daiyu.js): as áreas da Sombra (metin4) e as três novas, Firmeza 50, Diabo 55 e Queda 60
 { const [sombra, ...novas] = DAIYU.ghotins(); Object.assign(METINS.find(m => m.tipo === "metin4"), { regioes: sombra.regioes }); METINS.push(...novas); }
 METINS.push(...GELADA.ghotins());                                     // (as da Montanha Gelada: Geada 42, Vapor 44 e Silêncio 46; sempre no fim, DECO.metin usa o índice)
-const LIMIARES_HORDA = [0.8, 0.6, 0.4, 0.2], HORDA_MAX = 14;
+// (R288, 05/11, o usuário: "as ghotins nao estao chamando hordas") o teto das hordas é POR PEDRA (HORDA_MAX: os 3 defensores e as 4
+// ondas de 3) e não mais do mundo inteiro: com as várias pedras por tipo (R245), os 3 defensores de cada uma das 7 da Vila 1 já
+// passavam do teto de 14 do mundo, e nenhuma onda nascia. Os defensores de uma pedra são 3 no máximo (renascendo, ela só completa
+// os que faltam, sem acumular); HORDA_MAX_MUNDO segura o total de hordas vivas (as conjuradas também)
+const LIMIARES_HORDA = [0.8, 0.6, 0.4, 0.2], HORDA_MAX = 15, HORDA_MAX_MUNDO = 60;
 // ---- as trevas da Ghotin (Logs/Historia/ENREDO.md). Cada pedra tem tamanho e raio de trevas pelo nível; em volta dela o
 // chão fica escuro (nanquim de borda suave) e as criaturas comuns que estão dentro do raio ficam AMALDIÇOADAS: uma aura
 // negra em volta e mais força. Quebrar a pedra desfaz as trevas e tira a maldição (e quem sai do raio também perde).
@@ -14767,12 +14839,15 @@ function assentarGhotins() {
   }
 }
 function chamarHorda(l, n, cacando) {
-  if (criaturas.filter(c => c.horda && !c.morto).length >= HORDA_MAX) return;
+  let minhas = 0, defensores = 0, todas = 0;
+  for (const c of criaturas) if (c.horda && !c.morto) { todas++; if (c.hordaDe === l) { minhas++; if (c.defensor) defensores++; } }
+  if (!cacando) n = Math.min(n, 3 - defensores);
+  n = Math.min(n, HORDA_MAX - minhas, HORDA_MAX_MUNDO - todas);
   for (let k = 0; k < n; k++) {
     const a = Math.random() * 7, x = l.x + Math.cos(a) * 1.9, y = l.y + Math.sin(a) * 1.9;
     const cfgH = TIPOS[l.cfg.horda];
     const c = novaCriatura(cfgH.base || l.cfg.horda, livre(x, y) ? x : l.x + 1, livre(x, y) ? y : l.y, cfgH);
-    c.horda = true; c.cacando = cacando && criaturasAtacam; c.toca = { x: l.x, y: l.y };
+    c.horda = true; c.cacando = cacando && criaturasAtacam; c.toca = { x: l.x, y: l.y }; c.hordaDe = l; c.defensor = !cacando;   // (R288: de que pedra é)
     criaturas.push(c);
     for (let q = 0; q < 6; q++) brasas.push({ x: c.x, y: c.y, z: 0.05, vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2, vz: 0.5 + Math.random(), vida: 0.6, max: 0.6, tam: 0.09, poeira: true });
   }
@@ -15660,11 +15735,12 @@ function montarValeOrcs(por) {
     pôe("fogueira", x + 0.4, y + 2.6, { var: k % 2 });
     if (DECO && DECO.caixotes) pôe("caixotes", x + 3.2, y + 3, {});
   });
+  let sem = 20261105; const sv = () => { sem = sem + 0x6D2B79F5 | 0; let t = Math.imul(sem ^ sem >>> 15, 1 | sem); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };   // (R289: com semente; antes, Math.random, outro lugar a cada carga)
   for (let k = 0; k < 900 && objetos.filter(o => o.vale).length < 40; k++) {
-    const x = VALE_X + 4 + Math.random() * (VALE_E * ESC_V1 + 2), y = (Math.random() - 0.5) * 98;
+    const x = VALE_X + 4 + sv() * (VALE_E * ESC_V1 + 2), y = (sv() - 0.5) * 98;
     if (borda(x, y) > RAIO - 3 || !vazio(x, y, 2.2) || estrada(x, y) || Math.hypot(x - MONUMENTO.x, y - MONUMENTO.y) < 15 || VALE_BANDOS.some(([, bx, by, , e]) => Math.hypot(x - bx, y - by) < (e || 2) + 3)) continue;
-    const r = Math.random();
-    if (r < 0.6) por({ tipo: "pedra", x, y, r: 0.4, esc: entre(0.7, 1.6), forma: Array.from({ length: 7 }, () => entre(0.75, 1.1)), vale: true });
+    const r = sv();
+    if (r < 0.6) por({ tipo: "pedra", x, y, r: 0.4, esc: 0.7 + sv() * 0.9, forma: Array.from({ length: 7 }, () => entre(0.75, 1.1)), vale: true });
     else if (r < 0.8) por({ tipo: "toco", x, y, r: 0.3, vale: true });
     else por({ tipo: "tronco", x, y, r: 0.45, vale: true });
   }
@@ -15697,7 +15773,7 @@ function montarMontanha() {
   porSpawns("montanha");
   criarMetins("montanha");
   GELADA.preaquecer();
-  pedacos.clear(); PEDACO_EM_CURSO.clear(); CHAO_IMG.sujo = true; mascaras.clear(); MONTANHA.mini = null;
+  limparPedacos(); soltarMascaras(); MONTANHA.mini = null;            // (R292: soltando os canvas)
 }
 // a Ilha de Daiyu (mapa_daiyu.js): a grade do relevo, a decoração (com a altura do chão em zChao), a Sumi do posto
 // avançado, os bandos e as Ghotins
@@ -15711,7 +15787,7 @@ function montarDaiyu() {
   porSpawns("daiyu");
   criarMetins("daiyu");
   montarVale();                                                       // (o Vale dos Dragões: a entrada no pé do Monte Daiyu e os 3 andares)
-  pedacos.clear(); PEDACO_EM_CURSO.clear(); CHAO_IMG.sujo = true; mascaras.clear(); MAPAS.daiyu.mini = null;
+  limparPedacos(); soltarMascaras(); MAPAS.daiyu.mini = null;         // (R292: soltando os canvas)
 }
 // ruínas antigas em volta da entrada da Cripta e o píer no lago (muralha e torres ficam só no editor)
 function montarMarcos() {
@@ -16341,6 +16417,7 @@ function passoCavalo(dt) {
 function desenharMontado(X, Y, z) {
   sombraCavalo(cavaloEnt, X, Y, z);                                    // (R095: no empinar, embaixo das patas de trás)
   const agora = performance.now() / 1000, Ys = Y - zSela() * PX * z * ALTURA;   // (R261: o corpo do herói, na altura da sela)
+  desenharAlertaVida(X, Y, z, Ys - 0.5 * PX * z * ALTURA);             // (R290: a vida baixa, montado)
   desenharFuria(X, Ys, z, agora, false); desenharVortice(X, Ys, z, agora, false); desenharBuffsMago(X, Ys, z, agora);
   const em3d = desenharInst3d(viking, X, Y, z);
   if (!em3d) desenharCavaloSprite("montado_" + (classe === "xama_dragao" ? "xama" : classe), montadoAnim(), X, Y, z, viking.dir, false);
@@ -16805,12 +16882,12 @@ const MISSOES = {
     ],
   },
   nv15: {
-    nome: "A Capitã de Branco", npc: "Sumo-Sacerdote Haneul", aceitar: "Aceitar a missão", nivelMin: 15, carta: true, tipo: "Missão de nível 15", onde: "no Templo do Céu (fim da avenida da Vila 1)",
-    oferta: "As capitãs do Juramento Branco alimentam as Ghotins da Ganância nas terras do acampamento. Derrube três delas e quebre uma pedra: o portal para a Vila Hahoe precisa ficar livre.",
+    nome: "O Capitão de Branco", npc: "Sumo-Sacerdote Haneul", aceitar: "Aceitar a missão", nivelMin: 15, carta: true, tipo: "Missão de nível 15", onde: "no Templo do Céu (fim da avenida da Vila 1)",
+    oferta: "Os capitães do Juramento Branco alimentam as Ghotins da Ganância nas terras do acampamento. Derrube três deles e quebre uma pedra: o portal para a Vila Hahoe precisa ficar livre.",
     fim: "O caminho para a Curva do Rio está aberto. Lá as máscaras falam e a tinta corre com a água. Vá quando estiver pronto.",
     etapas: [
-      { matar: "Capitã do Juramento Branco", qtd: 3, onde: [8.4, -203], alvo: "Derrote 3 Capitãs do Juramento Branco",
-        fala: "As capitãs atacam quem chega perto. Vá com a vida cheia." },
+      { matar: "Capitão do Juramento Branco", qtd: 3, onde: [8.4, -203], alvo: "Derrote 3 Capitães do Juramento Branco",
+        fala: "Os capitães atacam quem chega perto. Vá com a vida cheia." },
       { matar: "Ghotin da Ganância", qtd: 1, onde: [-5.6, -190.4], alvo: "Quebre uma Ghotin da Ganância nas terras do Juramento Branco (siga a seta)",
         fala: "A pedra chama os soldados. Quebre-a e o acampamento perde a fé." },
       { falar: "Sumo-Sacerdote Haneul", entregar: "Contar ao Sumo-Sacerdote", alvo: "Volte ao Sumo-Sacerdote Haneul",
@@ -18120,8 +18197,8 @@ var BIO = [
   { nivel: 10, titulo: "A Pesquisa da Tinta II", item: "bio_cerda_javali", qtd: 8, de: ["Javali Rubro", "Javali Selvagem"], espera: 10,
     essencia: "bio_essencia_2", essDe: { "Ghotin da Batalha": 0.3 }, premio: { ataque: 3 },
     oferta: "Os javalis rubros ficaram vermelhos de tinta, não de sangue. As cerdas deles guardam a fúria da Ghotin da Batalha. Quero oito, e depois a brasa da própria pedra." },
-  { nivel: 15, titulo: "A Pesquisa da Tinta III", item: "bio_insignia_jb", qtd: 10, de: ["Soldado do Juramento Branco", "Arqueira do Juramento Branco", "Capitã do Juramento Branco"], espera: 15,
-    essencia: "bio_essencia_3", essDe: { "Ghotin da Ganância": 0.3, "Capitã do Juramento Branco": 0.05 }, premio: { defesa: 15 },
+  { nivel: 15, titulo: "A Pesquisa da Tinta III", item: "bio_insignia_jb", qtd: 10, de: ["Soldado do Juramento Branco", "Arqueira do Juramento Branco", "Capitão do Juramento Branco"], espera: 15,
+    essencia: "bio_essencia_3", essDe: { "Ghotin da Ganância": 0.3, "Capitão do Juramento Branco": 0.05 }, premio: { defesa: 15 },
     oferta: "O Juramento Branco pinta uma pedra negra no selo. Não é enfeite: é tinta da Ghotin da Ganância, e ela muda quem a carrega. Traga-me dez insígnias." },
   { nivel: 20, titulo: "A Pesquisa da Tinta IV", item: "bio_garra_tigre", qtd: 10, de: ["Tigre"], espera: 20,
     essencia: "bio_essencia_4", essDe: { "Ghotin Negra": 0.3 }, premio: { vida: 200 },
@@ -18711,6 +18788,14 @@ const BRILHO_REF = {
   9: { forte: "#ff2a12", sombra: "rgba(255, 36, 14, 1)", claro: "#ffb8a0", rgb: "255, 40, 25", luz: "255, 205, 195", hue: 8 },
 };
 function brilhoRef() { return prog && prog.arma ? BRILHO_REF[prog.arma.ref] || null : null; }
+// (R291, 05/11, o usuário: "quero deixar os golpes dos personagens com as cores das armas se estiverem +7 +8 ou +9" e depois "os efeitos das
+// skills nao precisa mudar") SÓ o ataque básico de cada classe pega a cor do refino da arma na mão: o rastro do golpe (a fita da arma e o
+// clarão do acerto), a flecha comum do Arqueiro e a bola do Feiticeiro. As skills ficam como estão. É um tingimento: a cor principal vira
+// a do refino e o miolo/borda fica o claro dele (a forma e a luz somada de cada efeito não mudam). Lido a cada golpe, flecha ou bola: a
+// troca ou o refino da arma valem na hora. window.VFX_COR_REFINO = false desliga (para comparar)
+const ANIM_BASICO = /^(golpe\d|sacar_golpe)/;
+const animBasica = a => ANIM_BASICO.test(a) || (classe === "feiticeiro" && a === "bola");   // (a bola é o ataque básico do Feiticeiro)
+function corRefinoBasico() { return window.VFX_COR_REFINO === false ? null : brilhoRef(); }
 // livros: caem de todas as classes (o viking acha livros do arqueiro e do feiticeiro também; 03/11: o guerreiro tem os dele, do Guerreiro Mental)
 function todasAsSkills() { return [...SKILLS_VIKING, ...SKILLS_GUERREIRO, ...SKILLS_ARQUEIRO, ...SKILLS_FEITICEIRO, ...SKILLS_NINJA, ...SKILLS_XAMA, ...SKILLS_DRAGAO, ...SKILLS_SHURA].map(sk => sk.nome); }
 function classeDaSkill(nome) { for (const [c, l] of [["viking", SKILLS_VIKING], ["guerreiro", SKILLS_GUERREIRO], ["arqueiro", SKILLS_ARQUEIRO], ["feiticeiro", SKILLS_FEITICEIRO], ["ninja", SKILLS_NINJA], ["xama", SKILLS_XAMA], ["xama_dragao", SKILLS_DRAGAO], ["shura", SKILLS_SHURA]]) if (l.some(s => s.nome === nome)) return c; return null; }
@@ -20999,8 +21084,8 @@ const GRUPOS = [["aranha", 19, -50, 1]];
 // ponto sorteado dentro de GRUPO_RAIO m do ponto e cada membro a 3–5 m do anterior (o SpawnGroup do Metin2). O grupo só
 // volta quando o LÍDER cai: o corpo some em GRUPO_CORPO s e o grupo novo nasce até "tempo" s depois (o regen_event do
 // Metin2 roda a cada "tempo" s); os que sobraram do grupo velho viram órfãos e somem depois de ORFAO_T s sem lutar. Os
-// bichos não atacam sozinhos (no Metin2 só o Tigre Branco e a Capitã do Juramento Branco são agressivos): um golpe em um
-// deles, ou a Capitã vendo o herói, põe o GRUPO INTEIRO na luta, que dura enquanto o herói estiver a menos de
+// bichos não atacam sozinhos (no Metin2 só o Tigre Branco e o Capitão do Juramento Branco são agressivos): um golpe em um
+// deles, ou o Capitão vendo o herói, põe o GRUPO INTEIRO na luta, que dura enquanto o herói estiver a menos de
 // GRUPO_PERSEGUE m (o Metin2 desiste a 40 m, com a visão de 20 m; aqui a visão é de ~7 m, então 16 m)
 // As faixas contam a distância à muralha da cidade (V1_CAIXA, a caixa do cidade.json), do portão sul até o portal da Vila
 // Hahoe, na ponta do cabo das Terras do Sul (V1_PORTAL, o ponto da Vila 1 mais longe da cidade): Campos dos Cães (15–41 m,
@@ -21049,12 +21134,12 @@ const GG_V1 = {
   v1_04: { nome: "Javalis Rubros", m2: "a1_04", tempo: 30, grupos: ["rubros", "rubro_selvagens"] },
   v1_06: { nome: "Ursos", m2: "a1_06", tempo: 40, grupos: ["ursos", "negro_ursos"] },
   v1_08: { nome: "Soldados do Juramento Branco", m2: "a1_08", tempo: 60, grupos: ["soldados", "arqueira_soldados", "arqueiras_soldados"] },
-  v1_10: { nome: "Capitãs do Juramento Branco", m2: "a1_10", tempo: 60, grupos: ["capita_soldados", "capita_arqueiras", "arqueira_soldados"] },
+  v1_10: { nome: "Capitães do Juramento Branco", m2: "a1_10", tempo: 60, grupos: ["capita_soldados", "capita_arqueiras", "arqueira_soldados"] },
 };
 if (HAHOE2) { Object.assign(GRUPOS_M2, VILA2.GRUPOS); Object.assign(GG_V1, VILA2.GG); }   // (etapa 3: os grupos e conjuntos dos 5 clãs da Hahoe nova, mapa_hahoe.js)
 // os pontos (conjunto, x, y): 80 grupos (a Vila 1 maior, 02/11/2026), ~18 por hectare de caça, no mínimo 21 m um do outro,
 // fora da água, da praia, das estradas, dos buracos, do ninho e da chegada do portal. Por faixa: 22 Cães, 25 Javalis, 19 Ursos e
-// 14 do Juramento Branco; as Capitãs (as mais fortes, agressivas) nos cinco pontos mais perto do portal
+// 14 do Juramento Branco; os Capitães (os mais fortes, agressivos) nos cinco pontos mais perto do portal
 const V1_PONTOS = [
   ["v1_01", -53.2, 61.6], ["v1_01", 58.8, 60.2], ["v1_01", 17.2, -43.7], ["v1_01", 19.6, 75.6], ["v1_01", 63, -8.4], ["v1_01", -72, 40.8], ["v1_01", -33, 77.1], ["v1_01", 43.4, 77.9],
   ["v1_02", 61.5, 20.4], ["v1_02", 61.2, -36], ["v1_02", -29.1, -50.1], ["v1_02", -65.8, 15.4], ["v1_02", -71, -17.8], ["v1_02", -8.4, 79.8], ["v1_02", -49.3, -36.6], ["v1_02", 78.4, 42], ["v1_02", 85.4, 8.4], ["v1_02", 40, -39.7], ["v1_02", 61.5, -57.5], ["v1_02", -4.3, -47.2], ["v1_02", -81.5, 0.9], ["v1_02", 78.5, -23.3],
@@ -21174,6 +21259,7 @@ function carregarSpawns() {
   if (SPAWNS.some(s => s.tipo === "nove_caudas" && Math.abs(s.x + 700) < 0.01 && Math.abs(s.y + 3) < 0.01)) { SPAWNS = SPAWNS.filter(s => s.x >= -350); SPAWNS.push(...MONTE_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 }))); }
   // (um chefe de mapa novo do código que a lista editada ainda não tem, como o Nove Caudas, entra mesmo assim)
   for (const s of SPAWNS_ORIGINAL) if (CHEFES_MAPA[s.tipo] && !SPAWNS.some(o => o.tipo === s.tipo)) SPAWNS.push({ ...s });
+  edmAplicarCriaturas();                                               // (R289: as mudanças do editor de mapas nos grupos e nas Ghotins)
 }
 function salvarSpawns() { try { localStorage.setItem(MOBS_CHAVE, JSON.stringify(spawnsTexto())); } catch (e) {} }
 // os lugares de cada criatura de um spawn: um bando pequeno fica numa roda; um grande se espalha em espiral pelo campo
@@ -21282,7 +21368,7 @@ function chamarVizinhosV1(g) {
 // as criaturas novas da Vila 1 (as do Metin2 que o jogo ainda não tinha): variantes das que existem, com outra tinta e
 // outro tamanho (sem modelo novo), e os números pela curva do NIVEL70.md do 1 ao 15 (vida ≈ 18,3 × nível^1,078 e golpe ≈
 // 5,33 × nível: o Lobo 3 tem 60/16 e o Urso Negro 14, 310/71; a defesa é a padrão, 0,8 × nível). A Arqueira é "longe"
-// (×0,8 de vida, ×1,1 de golpe, ×0,6 de defesa) e a Capitã é "tanque" (×1,7, ×1,25, ×1,8 e ×1,5 de exp) e agressiva. O
+// (×0,8 de vida, ×1,1 de golpe, ×0,6 de defesa) e o Capitão é "tanque" (×1,7, ×1,25, ×1,8 e ×1,5 de exp) e agressivo. O
 // Juramento Branco usa os modelos dos bandidos com a roupa girada para um cinza claro (roupa3d: o mesmo matiz da roupa
 // dos NPCs, GLSL_MATIZ_ROUPA; a tinta só escurece e não deixaria o vermelho branco)
 function criarVariantesV1() {
@@ -21299,7 +21385,7 @@ function criarVariantesV1() {
   V("urso", ["urso_negro", "javali", "lobo"], { nome: "Urso", nivel: 12, vida: 267, dano: 64, defesa: 10, esc: 0.86, tinta: "#d8a878", filtro2d: "sepia(0.7) saturate(1.6) brightness(1.35)" });
   V("soldado_jb", ["bandido", "goblin"], { nome: "Soldado do Juramento Branco", nivel: 13, vida: 291, dano: 69, defesa: 10, esc: 0.95, roupa3d: [0.86, 0.89, 0.95], tinta: "#e2e8f6", filtro2d: "grayscale(0.6) brightness(1.35)" });
   V("arqueira_jb", ["bandido_arqueiro", "bandido", "goblin"], { nome: "Arqueira do Juramento Branco", nivel: 14, vida: 252, dano: 82, defesa: 7, esc: 0.92, roupa3d: [0.9, 0.93, 1], tinta: "#e8eefc", filtro2d: "grayscale(0.6) brightness(1.4) hue-rotate(10deg)" });
-  V("capita_jb", ["chefe_bandido", "bandido", "goblin"], { nome: "Capitã do Juramento Branco", nivel: 15, vida: 576, dano: 100, defesa: 22, expMult: 1.5, esc: 0.95, agressivo: true, roupa3d: [0.95, 0.9, 0.75], tinta: "#f4ead0", filtro2d: "grayscale(0.4) sepia(0.3) brightness(1.35)" });
+  V("capita_jb", ["chefe_bandido", "bandido", "goblin"], { nome: "Capitão do Juramento Branco", nivel: 15, vida: 576, dano: 100, defesa: 22, expMult: 1.5, esc: 0.95, agressivo: true, roupa3d: [0.95, 0.9, 0.75], tinta: "#f4ead0", filtro2d: "grayscale(0.4) sepia(0.3) brightness(1.35)" });
 }
 // (etapa 3, a Hahoe nova, com a chave) os 20 tipos dos 5 clãs, a voz deles, e o bandido (26), o arqueiro (27) e o Chefe dos
 // Bandidos (32) mais fortes; sem a chave, nada muda (mapa_hahoe.js, VILA2.criarClas)
@@ -21463,7 +21549,7 @@ function passoCriatura(l, dt) {
     const antes = l.cacando;
     if (l.voltando > 0) l.voltando -= dt;
     const escondido = SESSAO_ADM.invisivel || CENA.semAlvo || (NINJA.esconder.buff > 0 && classe === "ninja" && d > 1.2) || viking.folgaVale > 0 || outroLadoDaPorta(l);   // (R252: do outro lado da porta do chefe, ninguém caça; folgaVale: quem acaba de sair da caverna; R151)
-    // (os grupos do Metin2 não atacam sozinhos, menos a Capitã: só depois de um golpe num deles ou de um deles caçar,
+    // (os grupos do Metin2 não atacam sozinhos, menos o Capitão: só depois de um golpe num deles ou de um deles caçar,
     // e a luta dura até o herói ficar a GRUPO_PERSEGUE m)
     if (l.provocado > 0) l.provocado -= dt; else if (l.persegue) l.persegue = 0;   // (persegue: o grupo chamado pelo líder, chamarVizinhosV1)
     const passivo = l.semVolta && !cfg.agressivo, provocado = l.provocado > 0 && d < (l.persegue || GRUPO_PERSEGUE);
@@ -21934,7 +22020,7 @@ function soltarFlecha() {
   // (o Tiro Concentrado é o Tiro Duplo do Metin2: floor(2 + 6k) flechas, de 2 a 9, e o dano da fórmula dividido entre elas)
   const nRajada = esp === "rajada" ? flechasConcentrado(kSkill("Tiro Concentrado")) : 0, porFlecha = nRajada ? danoSkill("Tiro Concentrado") / nRajada : 0;
   if (esp === "rajada") { for (let k = 0; k < nRajada; k++) flechas.push(nova({ atraso: k * 0.09, fonte: "Tiro Concentrado", dano: porFlecha })); }
-  else flechas.push(nova(esp === "veneno" ? { veneno: true, fonte: "Flecha Venenosa" } : {}));
+  else flechas.push(nova(esp === "veneno" ? { veneno: true, fonte: "Flecha Venenosa" } : { refino: corRefinoBasico() }));   // (R291: a comum, na cor do refino)
   som("arco", v);
   if (esp === "rajada") for (let k = 1; k < nRajada; k++) setTimeout(() => som("arco", v, 0.7), k * 90);
 }
@@ -22703,7 +22789,8 @@ function queimar(x, y, r) { marcas.push({ x, y, r, vida: 4, max: 4 }); if (marca
 // bola arcana
 function soltarBola() {
   const o = esferaNoMundo(), v = viking, ang = -v.dir * Math.PI / 4;
-  magias.push({ tipo: "bola", x: o.x, y: o.y, z: o.z, dx: Math.cos(ang), dy: Math.sin(ang), dz: 0, alvo: alvoDaFlecha(), vida: 1.4, rastro: [], cor: corEsfera(performance.now() / 1000) });
+  const br = corRefinoBasico();                                         // (R291: o ataque básico na cor do refino +7/+8/+9)
+  magias.push({ tipo: "bola", x: o.x, y: o.y, z: o.z, dx: Math.cos(ang), dy: Math.sin(ang), dz: 0, alvo: alvoDaFlecha(), vida: 1.4, rastro: [], cor: br ? br.hue : corEsfera(performance.now() / 1000), refino: br ? br.forte : null });
   som("arcano", v, 1);
 }
 function estouroBola(m) {
@@ -23243,6 +23330,7 @@ addEventListener("keydown", e => {
   if (iSlot >= 0 && !editor.ativo) { e.preventDefault(); if (!e.repeat) usarSlot(iSlot); return; }
   if (k === "o" && !e.repeat && (ADMIN || editor.ativo)) { editorAbrir(!editor.ativo); return; }
   if (editor.ativo) {                                                // no editor, o teclado é só da câmera e da escolhida
+    if (window.EDMX && EDMX.tecla(e, k)) return;                       // (R289: os atalhos do editor de mapas)
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) { e.preventDefault(); editor.teclas.add(k); }
     if (k === "delete" || k === "backspace") { e.preventDefault(); editorApagar(); }
     if (k === "escape") { editor.sel = null; editor.pondo = null; editorPainel(); editorAviso(""); }
@@ -23451,7 +23539,7 @@ function carregarMapa() {
   porEnfeitesVila();
   mapaOriginal = mapaAtual(); mapaOriginal.colisao = JSON.parse(JSON.stringify(COLISAO_PADRAO));
   if (MAPA_FIXO && aplicarMapa(MAPA_FIXO)) mapaSalvoAplicado = MAPA_FIXO;
-  try { const m = JSON.parse(localStorage.getItem(MAPA_CHAVE) || localStorage.getItem(MAPA_CHAVE_ANTIGA)); if (m && aplicarMapa(m)) mapaSalvoAplicado = m; } catch (e) {}
+  if (!EDITOR_MAPAS) try { const m = JSON.parse(localStorage.getItem(MAPA_CHAVE) || localStorage.getItem(MAPA_CHAVE_ANTIGA)); if (m && aplicarMapa(m)) mapaSalvoAplicado = m; } catch (e) {}   // (R289: com ?editor=1, não)
   espacosAbertos = []; decoDoCarregar = new Set(objetos);
 }
 // no fim da abertura: o que veio depois do mapa (as ruínas, a ferraria, o píer, e as árvores tiradas para eles) entra no
@@ -23465,11 +23553,153 @@ function fecharMapaOriginal() {
   if (mapaSalvoAplicado) aplicarMapa(mapaSalvoAplicado);
 }
 
+// ---- (R289, 05/11) o EDITOR DE MAPAS: o que fica sempre no jogo (o editor em si, a tela, o mouse e os botões, está no editor_mapas.js,
+// que só é carregado com ?editor=1 no admin; Logs/Mapas/EDITOR.md). O usuário: "quero que você crie um sistema onde todos os mapas são
+// colocados com todos os mobs, arvores, assets, tudo que existir no mapa para que eu possa avaliar, trocar de posição, retirar, duplicar,
+// adicionar mobs". As mudanças de cada mapa são uma LISTA DE OPERAÇÕES ({ op: "mudar" | "remover" | "adicionar", id, cat, ... }) sobre os
+// ids estáveis do que o mapa monta (a decoração, os NPCs e os objetos pelo tipo e pela posição de nascença; os prédios pelo lugar; os
+// portais pelo id; os grupos de criaturas pela lista de spawns; as áreas das Ghotins pelo tipo e pela ordem). MAPA_EDITADO_FIXO guarda
+// as aprovadas (o texto do "Copiar mudanças", colado aqui por mapa); com ?editor=1, as do navegador (localStorage, por mapa) vêm depois
+// delas. Sem operação nenhuma e sem ?editor=1, nada disto roda (nem os ids são dados)
+const EDITOR_MAPAS = /[?&]editor=1/.test(location.search);
+const MAPA_EDITADO_FIXO = {};                                          // { "<mapa>": [operações] } (vila1, hahoe, hahoe2, montanha, daiyu, cav:<id>)
+const EDM_CHAVE = "mapaEditor1:";                                      // + o mapa: as operações deste navegador (só com ?editor=1)
+const EDM_NATUREZA = new Set(["arvore", "pinheiro", "pinheiro_daiyu", "arbusto", "arbusto_flor", "pedra", "pedra_neve", "basalto", "bloco_gelo", "osso", "tronco", "toco", "bambu"]);
+const EDM_OBJ_X = new Set(["estatua_era", "altar_arte", "porta_chefe", "bau_chefe"]);   // (objetos que não são decoração, mas aparecem no mapa)
+const EDM = { feitos: new Set(), criaturasFeitas: false };
+function edmMapaKey(id) { return id === "hahoe" && HAHOE2 ? "hahoe2" : id; }
+function edmMapaDe(x, y) {
+  if (naCaverna(x)) {                                                  // (a dungeon mais perto pelo meio dela)
+    let m = null, dm = 1e9;
+    for (const d of DUNGEONS) { const dd = Math.abs(x - (d.x + (d.x0 + d.x1) / 2)) + Math.abs(y - (d.y + (d.y0 + d.y1) / 2)) * 0.5; if (dd < dm) { dm = dd; m = d; } }
+    return m ? "cav:" + m.id : "cav";
+  }
+  return edmMapaKey(mapaDe(x, y).id);
+}
+function edmOpsLocais(mapa) { if (!EDITOR_MAPAS || !ADMIN) return []; try { const l = JSON.parse(localStorage.getItem(EDM_CHAVE + mapa)); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
+function edmOps(mapa) { return [...(MAPA_EDITADO_FIXO[mapa] || []), ...edmOpsLocais(mapa)]; }
+function edmTemOps() { if (EDITOR_MAPAS && ADMIN) return true; for (const k in MAPA_EDITADO_FIXO) if (MAPA_EDITADO_FIXO[k] && MAPA_EDITADO_FIXO[k].length) return true; return false; }
+// a categoria de um objeto do cenário (null: não entra no editor)
+function edmCatObj(o) { return o.npc ? "npc" : DECORACAO.includes(o.tipo) ? (EDM_NATUREZA.has(o.tipo) ? "natureza" : "deco") : EDM_OBJ_X.has(o.tipo) ? "obj" : null; }
+// os ids dos objetos de um mapa, na hora em que ele fica pronto (antes de qualquer mudança): o tipo e a posição de nascença em dm;
+// os NPCs pelo nome; repetidos ganham #2, #3 na ordem da lista
+function edmIdsObjetos(mapa) {
+  const usados = new Set();
+  for (const o of objetos) if (o._id) usados.add(o._id);
+  for (const o of objetos) {
+    if (o._id || !edmCatObj(o) || edmMapaDe(o.x, o.y) !== mapa) continue;
+    const base = o.npc ? "n:" + o.nome : (DECORACAO.includes(o.tipo) ? "d:" : "o:") + o.tipo + ":" + Math.round(o.x * 10) + ":" + Math.round(o.y * 10);
+    let id = base, k = 1; while (usados.has(id)) id = base + "#" + (++k);
+    usados.add(id); o._id = id;
+  }
+}
+function edmIdsPredios() { if (typeof PRED_LUGARES === "undefined") return; const u = new Set(PRED_LUGARES.map(l => l._id).filter(Boolean)); for (const l of PRED_LUGARES) { if (l._id) continue; const b = "b:" + l.id + ":" + Math.round(l.x * 10) + ":" + Math.round(l.y * 10); let id = b, k = 1; while (u.has(id)) id = b + "#" + (++k); u.add(id); l._id = id; } }
+// mudar um objeto do cenário: a posição (com o retângulo das estruturas e a colisão), o giro, o desenho, o espelho e o tamanho. O que
+// o desenho sorteava pela posição (o modelo e o espelho) fica preso no de antes, para a peça não trocar de cara ao mover
+function edmMudarObj(o, c) {
+  if (c.x !== undefined && c.y !== undefined) {
+    const l = listaDeco(o); if (l && o.var === undefined) o.var = indiceDeco(o, l);
+    if (o.esp === undefined && !SEM_ESPELHO.has(o.tipo)) o.esp = hash(Math.round(o.x * 10), Math.round(o.y * 10), 32) < 0.5;
+    const dx = c.x - o.x, dy = c.y - o.y; o.x = c.x; o.y = c.y;
+    if (o.ret && o.x0 !== undefined) { o.x0 += dx; o.x1 += dx; o.y0 += dy; o.y1 += dy; }
+    if (o.chamine) { o.chamine[0] += dx; o.chamine[1] += dy; }
+  }
+  for (const k of ["giro", "var", "esp", "esc"]) if (c[k] !== undefined) o[k] = c[k];
+  o.editado = true; delete o._circ;
+}
+function edmNovoObj(op) {
+  const { op: _o, id, cat, tipo, x, y, ...resto } = op;
+  if (!COLISAO_PADRAO[tipo]) return null;
+  const o = completarDecoracao({ ...resto, tipo, x, y });
+  o._id = id; o.editado = true;
+  const m = edmMapaDe(x, y); if (m.startsWith("cav")) o.caverna = true; else if (m !== "vila1") o.mapa = mapaDe(x, y).id;
+  return o;
+}
+// um prédio do kit: o lugar (PRED_LUGARES) e a construção posta (predInst) andam juntos
+function edmPredioInst(l) { return typeof predInst !== "undefined" ? predInst.find(p => p.id === l.id && p.x === l.x && p.y === l.y) : null; }
+function edmMudarPredio(l, c) {
+  const p = edmPredioInst(l); if (p) predInst.splice(predInst.indexOf(p), 1);
+  if (c.x !== undefined) { l.x = c.x; l.y = c.y; }
+  if (p && KIT_PREDIOS) predAdicionar(l);
+}
+function edmRemoverPredio(l) { const p = edmPredioInst(l); if (p) predInst.splice(predInst.indexOf(p), 1); const i = PRED_LUGARES.indexOf(l); if (i >= 0) PRED_LUGARES.splice(i, 1); }
+function edmPredioMudou() { if (typeof vegCache !== "undefined") { vegCache.clear(); vegAtivas.clear(); } if (typeof predInst !== "undefined") PRED_ALTOS = predInst.filter(p => p.d.escada && p.d.piso); }
+// aplica as operações de um mapa no que já está montado (objetos, prédios e portais). Os grupos de criaturas e as Ghotins vão antes,
+// na lista de spawns (edmAplicarCriaturas)
+function edmAplicarMapa(mapa, ops = edmOps(mapa)) {
+  if (!EDITOR_MAPAS && !ops.length) return 0;
+  if (!EDM.feitos.has(mapa)) { EDM.feitos.add(mapa); edmIdsObjetos(mapa); edmIdsPredios(); }
+  if (!ops.length) return 0;
+  const porId = new Map(); for (const o of objetos) if (o._id) porId.set(o._id, o);
+  let n = 0, pred = false;
+  for (const q of ops) {
+    if (q.cat === "spawn" || q.cat === "ghotin") continue;
+    if (q.cat === "portal") { const p = PORTAIS.find(r => "p:" + r.id === q.id); if (p && q.op === "mudar" && q.x !== undefined) { p.x = q.x; p.y = q.y; n++; } continue; }
+    if (q.cat === "predio") {
+      if (typeof PRED_LUGARES === "undefined") continue;
+      pred = true; const l = PRED_LUGARES.find(r => r._id === q.id);
+      if (q.op === "adicionar" && !l) { const nl = { id: q.tipo, x: q.x, y: q.y, _id: q.id, ...(mapa !== "vila1" && !mapa.startsWith("cav") ? { mapa: mapaDe(q.x, q.y).id } : {}) }; PRED_LUGARES.push(nl); if (predProntos && KIT_PREDIOS) predAdicionar(nl); n++; }
+      else if (l && q.op === "mudar") { edmMudarPredio(l, q); n++; }
+      else if (l && q.op === "remover") { edmRemoverPredio(l); n++; }
+      continue;
+    }
+    const o = porId.get(q.id);
+    if (q.op === "adicionar" && !o) { const no = edmNovoObj(q); if (no) { objetos.push(no); porId.set(q.id, no); n++; } }
+    else if (o && q.op === "mudar") { edmMudarObj(o, q); n++; }
+    else if (o && q.op === "remover") { const i = objetos.indexOf(o); if (i >= 0) objetos.splice(i, 1); porId.delete(q.id); n++; }
+  }
+  if (pred) edmPredioMudou();
+  refazerGrade();
+  return n;
+}
+// os grupos de criaturas (SPAWNS) e as áreas das Ghotins (METINS): os ids na lista de antes das mudanças e as operações de todos os
+// mapas, antes de as criaturas e as pedras nascerem
+function edmIdsCriaturas() {
+  const u = new Set();
+  for (const s of SPAWNS) { if (s._id) { u.add(s._id); continue; } const b = "s:" + s.tipo + ":" + Math.round(s.x * 10) + ":" + Math.round(s.y * 10); let id = b, k = 1; while (u.has(id)) id = b + "#" + (++k); u.add(id); s._id = id; }
+  for (const m of METINS) if (!m._ids) m._ids = m.regioes.map((_, i) => "g:" + m.tipo + ":" + i);
+}
+function edmAplicarCriaturas(todas) {
+  if (!edmTemOps()) return 0;
+  if (!EDM.criaturasFeitas) { EDM.criaturasFeitas = true; edmIdsCriaturas(); }
+  const mapas = todas || new Set([...Object.keys(MAPA_EDITADO_FIXO), ...(EDITOR_MAPAS ? Object.keys(localStorage).filter(k => k.startsWith(EDM_CHAVE)).map(k => k.slice(EDM_CHAVE.length)) : [])]);
+  let n = 0;
+  for (const mapa of mapas) for (const q of edmOps(mapa)) n += edmAplicarOpCriatura(q);
+  return n;
+}
+function edmAplicarOpCriatura(q) {
+  if (q.cat === "spawn") {
+    const s = SPAWNS.find(r => r._id === q.id);
+    if (q.op === "adicionar" && !s && TIPOS[q.tipo]) { SPAWNS.push({ tipo: q.tipo, x: q.x, y: q.y, n: q.n || 1, r: q.r || 1.6, ...(q.gg && GG_V1[q.gg] ? { gg: q.gg } : {}), _id: q.id, editado: true }); return 1; }
+    if (s && q.op === "mudar") { s.editado = true; for (const k of ["x", "y", "n", "r"]) if (q[k] !== undefined) s[k] = q[k]; if (q.gg !== undefined) { if (q.gg && GG_V1[q.gg]) s.gg = q.gg; else delete s.gg; } return 1; }
+    if (s && q.op === "remover") { SPAWNS.splice(SPAWNS.indexOf(s), 1); return 1; }
+    return 0;
+  }
+  if (q.cat === "ghotin") {
+    const m = METINS.find(r => r._ids && r._ids.includes(q.id)) || (q.op === "adicionar" ? METINS.find(r => r.tipo === q.tipo) : null); if (!m) return 0;
+    if (!m._ids) m._ids = m.regioes.map((_, i) => "g:" + m.tipo + ":" + i);
+    const i = m._ids.indexOf(q.id);
+    if (q.op === "adicionar" && i < 0) { m.regioes.push([q.x, q.y]); m._ids.push(q.id); return 1; }
+    if (i >= 0 && q.op === "mudar") { m.regioes[i] = [q.x, q.y]; return 1; }
+    if (i >= 0 && q.op === "remover" && m.regioes.length > 1) { m.regioes.splice(i, 1); m._ids.splice(i, 1); return 1; }   // (a última área fica: a pedra precisa de um lugar)
+  }
+  return 0;
+}
+
+// o editor de mapas: no build ele vem embutido como texto (<script type="text/plain" id="editorMapasFonte">, o build.py), e só vira código
+// com ?editor=1; na página de teste (Tools), o arquivo editor_mapas.js ao lado
+function carregarEditorMapas() {
+  if (window.EDMX) return Promise.resolve();
+  const f = document.getElementById("editorMapasFonte");
+  if (f) { const e = document.createElement("script"); e.textContent = f.textContent; document.head.appendChild(e); return Promise.resolve(); }
+  return carregarScript("editor_mapas.js");
+}
 function editorAbrir(sim) {
   if (sim && !ADMIN) return;                                           // (o editor de mapa é do admin)
   editor.ativo = sim; editor.sel = null; editor.pondo = null; editor.arrasto = null; editor.teclas.clear();
   editor.foco = { x: cam.x - CAM_ACIMA[0], y: cam.y - CAM_ACIMA[1] };
-  $("#editor").hidden = !sim; $("#bEditor").setAttribute("aria-pressed", sim);
+  $("#editor").hidden = !sim || !!window.EDMX; $("#bEditor").setAttribute("aria-pressed", sim);
+  if (window.EDMX) EDMX.abrir(sim);                                    // (R289: o editor de mapas, com ?editor=1)
   if (sim) $("#ficha").hidden = true;
   teclas.clear(); viking.alvo = null; viking.rota = null;
   editorPainel();
@@ -23552,7 +23782,7 @@ function montarEditor() {
   };
   cv.addEventListener("contextmenu", e => { if (editor.ativo) e.preventDefault(); });
   cv.addEventListener("pointerdown", e => {
-    if (!editor.ativo) return;
+    if (!editor.ativo || window.EDMX) return;
     const p = pontoNoMapa(e);
     if (e.button === 2 || e.button === 1) { editor.arrasto = { tipo: "camera", px: p.px, py: p.py, fx: editor.foco.x, fy: editor.foco.y }; cv.setPointerCapture(e.pointerId); return; }
     // a borda do círculo da escolhida: arrastar muda o raio do tipo
@@ -23567,7 +23797,7 @@ function montarEditor() {
     if (alvo) { editor.arrasto = { tipo: "mover", o: alvo, dx: alvo.x - p.x, dy: alvo.y - p.y }; cv.setPointerCapture(e.pointerId); }
   });
   cv.addEventListener("pointermove", e => {
-    if (!editor.ativo) return;
+    if (!editor.ativo || window.EDMX) return;
     const p = pontoNoMapa(e); editor.mouse = p;
     const a = editor.arrasto; if (!a) return;
     if (a.tipo === "camera") { const [dx, dy] = daVista((p.px - a.px) / (PX * zoom), -(p.py - a.py) / (PX * zoom * ACHATA)); editor.foco.x = a.fx - dx; editor.foco.y = a.fy - dy; }
@@ -23590,6 +23820,7 @@ function passoEditor(dt) {
 // por cima de tudo: o círculo de cada decoração na tela, a escolhida em dourado com a folga do corpo, e a fantasma do que vai pôr
 function desenharEditor() {
   if (!editor.ativo) return;
+  if (window.EDMX) { placas.push(() => EDMX.desenhar()); return; }    // (R289: com as placas, no fim do quadro: por cima do palco do lote e do FX3)
   const s = PX * zoom;
   for (const o of objetos) {
     if (!DECORACAO.includes(o.tipo)) continue;
@@ -25407,6 +25638,8 @@ function montarMapa(id) {
   if (id === "daiyu") montarDaiyu();
   cortarDecoracao(id);                                                 // (metade da decoração sem função: a Hahoe, a Montanha e a Daiyu)
   assentarGhotins();
+  edmAplicarMapa(edmMapaKey(id));                                      // (R289: as mudanças do editor de mapas)
+  if (id === "daiyu") for (const d of DUNGEONS) if (d.vale) edmAplicarMapa("cav:" + d.id);   // (os andares do Vale montam com a Daiyu)
   return true;
 }
 function passoPortais(dt) {
@@ -25465,14 +25698,58 @@ function chegarPortal(p) {
 // inválido ou ainda travado pelo nível, a Vila 1. Dentro de uma dungeon, fica onde está
 function entrarNoMapaSalvo() {
   if (!prog || naCaverna(viking.x)) return;
+  const volta = lerRecarga();                                          // (R292: o "Salvar e recarregar" do aviso de lentidão)
+  if (volta && MAPAS[volta.mapa]) prog.mapa = volta.mapa;
   let m = MAPAS[prog.mapa] || MAPAS.vila1;
   const p = PORTAIS.find(q => q.destino === m.id);
   if (m !== MAPAS.vila1 && p && prog.nivel < p.nivelMin) m = MAPAS.vila1;
   prog.mapa = m.id;
-  if (mapaDe(viking.x, viking.y) === m) return;
-  montarMapa(m.id);
-  [viking.x, viking.y] = pontoSeguro(m);
+  if (mapaDe(viking.x, viking.y) !== m) {
+    montarMapa(m.id);
+    [viking.x, viking.y] = pontoSeguro(m);
+    cam.x = viking.x + CAM_ACIMA[0]; cam.y = viking.y + CAM_ACIMA[1];
+  }
+  if (volta && volta.mapa === m.id) voltarDaRecarga(volta);
+}
+// R292: o lugar para a volta do "Salvar e recarregar": o mapa e o ponto do herói; numa caverna ou dungeon, a entrada dela (o
+// ponto da superfície onde se sai dela, achado de novo na volta: o buraco das cavernas da Vila 1 é sorteado a cada sessão)
+function lugarDaRecarga() {
+  let x = viking.x, y = viking.y, cav = null;
+  if (naCaverna(x)) {
+    const d = cavDe(x); cav = d ? DUNGEONS.indexOf(d) : null;
+    const s = d && saidaDaDungeon(d);
+    if (s) [x, y] = s; else [x, y] = pontoSeguro(MAPAS[prog && prog.mapa] || MAPAS.vila1);
+  }
+  return { mapa: mapaDe(x, y).id, x: +x.toFixed(2), y: +y.toFixed(2), cav };
+}
+// a saída de uma dungeon para a superfície (o Vale: a boca na Ilha de Daiyu; as da Vila 1: ao lado do buraco)
+function saidaDaDungeon(d) {
+  if (d.vale) return VALE.boca && VALE.boca.volta ? [VALE.boca.volta.x, VALE.boca.volta.y] : null;
+  const p = passagens.find(q => q.dungeon === d && q.tipo === "escada" && !q.direta && q.para && !naCaverna(q.para.x));
+  return p ? [p.para.x, p.para.y] : null;
+}
+// o lugar guardado (uma vez: é apagado ao ler; vale só para o personagem que recarregou e por RECARGA_MS)
+function lerRecarga() {
+  let r = null;
+  try { r = JSON.parse(sessionStorage.getItem(RECARGA_CHAVE) || "null"); } catch (e) {}
+  if (!r || r.chave !== chaveSave()) return null;
+  try { sessionStorage.removeItem(RECARGA_CHAVE); } catch (e) {}
+  return Date.now() - r.t < RECARGA_MS ? r : null;
+}
+function voltarDaRecarga(r, depois = false) {
+  let x = r.x, y = r.y;
+  const d = r.cav !== null && r.cav !== undefined ? DUNGEONS[r.cav] : null;
+  if (d) {
+    const s = saidaDaDungeon(d);
+    if (s) [x, y] = s;
+    else if (!depois) setTimeout(() => { const v = LENTIDAO.voltou; if (saidaDaDungeon(d) && v && Math.hypot(viking.x - v.x, viking.y - v.y) < 0.5) voltarDaRecarga(r, true); }, 0);   // (na abertura as cavernas são montadas logo depois do progresso)
+  }
+  if (!Number.isFinite(x) || !Number.isFinite(y) || mapaDe(x, y).id !== r.mapa || naCaverna(x)) return false;
+  if (!livre(x, y)) { let achou = false; for (let k = 1; k <= 24 && !achou; k++) for (let a = 0; a < 12 && !achou; a++) { const px = x + Math.cos(a / 12 * 6.283) * k * 0.25, py = y + Math.sin(a / 12 * 6.283) * k * 0.25; if (livre(px, py)) { x = px; y = py; achou = true; } } }
+  Object.assign(viking, { x, y, alvo: null, rota: null });
   cam.x = viking.x + CAM_ACIMA[0]; cam.y = viking.y + CAM_ACIMA[1];
+  LENTIDAO.voltou = { mapa: r.mapa, x: +x.toFixed(2), y: +y.toFixed(2), cav: r.cav };
+  return true;
 }
 // os portais na ordem de desenho (com a profundidade do pé deles)
 function portaisLista(lista, t) {
@@ -25788,7 +26065,7 @@ function montarHahoe() {
   // os bandos (os spawns da Vila Hahoe) e as pedras Metin dela
   porSpawns("hahoe");
   criarMetins("hahoe");
-  pedacos.clear(); PEDACO_EM_CURSO.clear(); CHAO_IMG.sujo = true; mascaras.clear(); HAHOE.mini = null;
+  limparPedacos(); soltarMascaras(); HAHOE.mini = null;               // (R292: soltando os canvas)
 }
 // o chefe da Vila Hahoe, por enquanto pintado sobre o goblin (a malha própria do Dokkaebi está na fila do projeto)
 function criarCriaturasHahoe() {
@@ -26669,6 +26946,7 @@ function iaVoltar() {
 }
 function passo(dt) {
   passoAmbiente(dt);
+  passoAlertaVida(dt);                                                 // (R290)
   passoPortasChefe();                                                  // (R252: a porta e o salão do chefe)
   if (ferreiroNpc && !$("#ferreiro").hidden && Math.hypot(ferreiroNpc.x - viking.x, ferreiroNpc.y - viking.y) > 4) abrirFerreiro(false);
   if (npcAberto && Math.hypot(npcAberto.x - viking.x, npcAberto.y - viking.y) > (npcAberto.estatua ? 18 : 4)) abrirNpc(null);
@@ -27478,6 +27756,7 @@ function desenharQuadro(t) {
   desenharFogoSopro(t);                             // (o sopro dos dragões: chapado, por cima do escuro)
   if (window.FX3) FX3.desenhar2d(t);                // os efeitos 3D (FX3) por cima do mundo, depois do escuro da noite (brilham)
   if (ESTILO_TINTA) filtroTinta(t);                  // o Mundo de Tinta: o mundo inteiro (e os efeitos) vira nanquim e aguada
+  desenharVinhetaVida();                            // (R290: as bordas avermelhadas abaixo de 25% de vida)
   desenharPlacas();
   if (ESTILO_TINTA) desenharNumeros();               // (os números do dano por cima, fora do filtro)
   desenhar.tAnt = t;
@@ -27649,6 +27928,58 @@ function quadrosFogo() {
   return l;
 }
 
+// ---- (R290, 05/11) o ALERTA DE VIDA BAIXA (o usuário escolheu a sugestão): de 50% de vida para baixo, uma luz vermelha em volta do
+// herói e uma mancha de luz no chão, sob os pés, pulsando como um coração (0,8 Hz a 50%, 1,8 Hz perto de 0, mais forte quanto menos
+// vida); abaixo de 25%, também as bordas da tela avermelhadas, finas, no mesmo pulso; e uma batida grave baixinha (o som de efeitos,
+// mudo com o som desligado). Histerese de 2% nas duas faixas, para não piscar. Como os outros efeitos: luz somada, sem contorno de
+// nanquim, só drawImage de sprites prontos (o lote desenha). Vale a pé e montado. No ?test=1 só o estado (sem desenho e sem som)
+const ALERTA_VIDA = { liga: 0.5, forte: 0.25, hist: 0.02, ativo: false, vinheta: false, fase: 0, pulso: 0, k: 0, hz: 0, spr: null, vin: null, vinTam: "" };
+function passoAlertaVida(dt) {
+  const A = ALERTA_VIDA, v = viking, f = status.vidaMax ? Math.max(0, v.vida) / status.vidaMax : 1;
+  if (v.caido || f <= 0) { A.ativo = A.vinheta = false; }
+  else {
+    A.ativo = A.ativo ? f < A.liga + A.hist : f < A.liga;
+    A.vinheta = A.ativo && (A.vinheta ? f < A.forte + A.hist : f < A.forte);
+  }
+  if (!A.ativo) { A.fase = 0; A.pulso = 0; A.k = 0; return; }
+  A.k = Math.max(0, Math.min(1, (A.liga - f) / A.liga));              // (0 a 50% de vida, 1 no fim)
+  A.hz = 0.8 + 1.0 * A.k;
+  const f0 = A.fase; A.fase = (A.fase + dt * A.hz) % 1;
+  // a batida do coração: o "tum" e o "tá" logo depois, cada um um pulso curto
+  const b = (c, l) => Math.exp(-Math.pow((A.fase - c) / l, 2));
+  A.pulso = Math.min(1, b(0.06, 0.06) + 0.65 * b(0.27, 0.06));
+  if (A.fase < f0 && !MODO_TESTE) som("passo_gigante", null, 0.1 + 0.12 * A.k);   // (a batida, baixinha)
+}
+// o sprite da luz (um disco macio vermelho, feito uma vez) e o da vinheta (as bordas, refeito quando a tela muda de tamanho)
+function sprLuzVida() {
+  const A = ALERTA_VIDA; if (A.spr) return A.spr;
+  const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, "rgba(255, 70, 50, 1)"); gr.addColorStop(0.45, "rgba(230, 40, 30, 0.55)"); gr.addColorStop(1, "rgba(200, 20, 20, 0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return (A.spr = c);
+}
+function sprVinhetaVida() {
+  const A = ALERTA_VIDA, tam = W + "x" + H; if (A.vin && A.vinTam === tam) return A.vin;
+  const w = Math.max(64, Math.round(W / 4)), h = Math.max(64, Math.round(H / 4)), c = document.createElement("canvas"); c.width = w; c.height = h;
+  const g = c.getContext("2d"), gr = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.42, w / 2, h / 2, Math.hypot(w, h) / 2);
+  gr.addColorStop(0, "rgba(160, 10, 10, 0)"); gr.addColorStop(0.55, "rgba(170, 14, 12, 0.35)"); gr.addColorStop(1, "rgba(190, 18, 14, 0.85)");
+  g.fillStyle = gr; g.fillRect(0, 0, w, h); A.vinTam = tam; return (A.vin = c);
+}
+// atrás do herói: a mancha no chão (X, Y: os pés) e a luz em volta do corpo (Yc: o meio do corpo; montado, na sela)
+function desenharAlertaVida(X, Y, z, Yc) {
+  const A = ALERTA_VIDA; if (!A.ativo || MODO_TESTE) return;
+  const s = PX * z, im = sprLuzVida(), a = (0.22 + 0.5 * A.k) * (0.35 + 0.65 * A.pulso);
+  cx.save(); cx.globalCompositeOperation = "lighter";
+  const r = s * (0.95 + 0.25 * A.pulso);
+  cx.globalAlpha = Math.min(1, a); cx.drawImage(im, X - r, Y - r * ACHATA, r * 2, r * 2 * ACHATA);
+  const rw = s * (0.62 + 0.1 * A.pulso), rh = s * (1.25 + 0.12 * A.pulso);
+  cx.globalAlpha = Math.min(1, a * 0.75); cx.drawImage(im, X - rw, Yc - rh, rw * 2, rh * 2);
+  cx.restore();
+}
+// as bordas da tela, abaixo de 25% (por cima do mundo e por baixo da interface, que é HTML)
+function desenharVinhetaVida() {
+  const A = ALERTA_VIDA; if (!A.vinheta || MODO_TESTE) return;
+  cx.save(); cx.globalAlpha = Math.min(1, (0.3 + 0.35 * A.k) * (0.45 + 0.55 * A.pulso)); cx.drawImage(sprVinhetaVida(), 0, 0, W, H); cx.restore();
+}
 function desenharFuria(X, Y, z, t, frente) {
   if (!FX || fx3()) return;
   const n = nivelFuria(t);
@@ -28014,6 +28345,13 @@ function mipDe(e) { if (e.mip || e.interna) return !!e.mip; bindTmp(e.t); gl.gen
 // (05/11, os níveis de gráfico) a resolução nova deixa para trás as texturas da antiga (os pedaços do chão, as placas...), que só
 // sairiam passando do ORC: depois de várias trocas o quadro ia a 40–70 ms. As que não são usadas há q quadros saem já
 L.podarVelhas = (q = 30) => { for (const e of [...vivas]) if (!e.interna && L.quadro - e.usado > q) { gl.deleteTexture(e.t); vivas.delete(e); bytes -= e.bytes; e.ger = -1; } L.st.mb = Math.round(bytes / 1048576); };
+// (R292) a textura de um canvas que saiu de um cache do jogo (o chão, as máscaras): sai já, sem esperar passar do ORC. Devolve se havia
+L.soltar = s => {
+  const e = s && TEX.get(s); if (!e) return false;
+  TEX.delete(s);
+  if (vivas.delete(e)) { if (gl && e.ger === ger && !e.interna) gl.deleteTexture(e.t); bytes -= e.bytes; }
+  e.ger = -1; L.st.soltas = (L.st.soltas || 0) + 1; return true;
+};
 function podar() {
   L.st.texturas = vivas.size; L.st.mb = Math.round(bytes / 1048576);
   if (bytes <= ORC) return;
@@ -28873,6 +29211,7 @@ const MODELOS_3D = {
   viking: {}, arqueiro: {}, feiticeiro: {}, ninja: {}, guerreiro: {}, xama: {}, xama_dragao: {}, shura: {}, aprendiz: {},
   lobo: {}, javali: {}, rato: {}, aranha: {}, goblin: {}, esqueleto: {}, orc: {}, orc_bravo: {}, orc_feiticeiro: {},
   urso_negro: {}, tigre: {}, lobo_alfa: {}, bandido: {}, bandido_arqueiro: {}, chefe_bandido: {}, zumbi: {}, fantasma: {}, lich: {},
+  ...(HAHOE2 ? { cla_soldado: {}, cla_arqueiro: {}, cla_maniaco: {}, cla_gigante: {} } : {}),   // (etapa 3, com a chave: os 4 corpos dos clãs)
   golem: {}, escorpiao: {}, yeti: {}, nove_caudas: {},
   dragao: {}, senhor_dragoes: {}, dragao_anciao: {},                    // (os dois últimos só depois de chegarem; até lá, o cfg aponta o verde: modelo3d)
   cavalo: {},                                  // (o cavalo de montaria: Logs/Cavalo; o herói montado vai preso ao nó "Assento")
@@ -29133,10 +29472,10 @@ const GLSL_COR_3D = `
     diffuseColor.rgb = clamp(mix(vec3(l), c, s) * BRILHO, 0.0, 1.0); }`;
 function toon3d(map, cor, side) {
   const m = new THREE.MeshToonMaterial({ map, color: cor, gradientMap: P3D.faixas, side });
-  m.userData.uPedra = { value: 0 }; m.userData.uMatiz = { value: 0 }; m.userData.uRoupa = { value: new THREE.Vector3(1, 1, 1) }; m.userData.uVerde = { value: 0 }; m.userData.uClareia = { value: 0 };
+  m.userData.uPedra = { value: 0 }; m.userData.uMatiz = { value: 0 }; m.userData.uRoupa = { value: new THREE.Vector3(1, 1, 1) }; m.userData.uVerde = { value: 0 }; m.userData.uClareia = { value: 0 }; m.userData.uSoVermelho = { value: 0 };
   m.onBeforeCompile = sh => {
-    sh.uniforms.uPedra = m.userData.uPedra; sh.uniforms.uMatiz = m.userData.uMatiz; sh.uniforms.uRoupa = m.userData.uRoupa; sh.uniforms.uVerde = m.userData.uVerde; sh.uniforms.uClareia = m.userData.uClareia;
-    sh.fragmentShader = "uniform float uPedra; uniform float uMatiz; uniform vec3 uRoupa; uniform float uVerde; uniform float uClareia;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>" +
+    sh.uniforms.uPedra = m.userData.uPedra; sh.uniforms.uMatiz = m.userData.uMatiz; sh.uniforms.uRoupa = m.userData.uRoupa; sh.uniforms.uVerde = m.userData.uVerde; sh.uniforms.uClareia = m.userData.uClareia; sh.uniforms.uSoVermelho = m.userData.uSoVermelho;
+    sh.fragmentShader = "uniform float uPedra; uniform float uMatiz; uniform vec3 uRoupa; uniform float uVerde; uniform float uClareia; uniform float uSoVermelho;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>" +
       // a cor viva puxa menos os tons de pele (laranja-rosado), senão rosto e mãos ficam alaranjados
       `${GLSL_COR_3D.replace(/SAT/g, COR_3D.sat.toFixed(2)).replace(/BRILHO/g, COR_3D.brilho.toFixed(2))}` + GLSL_PEDRA + GLSL_MATIZ_ROUPA + GLSL_VERDE_DRAGAO);
   };
@@ -29157,6 +29496,8 @@ const GLSL_MATIZ_ROUPA = `
     float l = dot(c, vec3(0.299, 0.587, 0.114));
     // (só a roupa: tons saturados, nem escuros (cabelo, barba, couro) nem claros, e nada de pele)
     float k = (1.0 - pele) * smoothstep(0.3, 0.45, (mx - mn) / max(mx, 1e-3)) * smoothstep(0.035, 0.06, l) * (1.0 - smoothstep(0.4, 0.55, l));
+    // (06/11, os 4 corpos novos dos clãs: só a faixa e a bandana VERMELHAS viram a cor do clã; o cânhamo, o couro e a pele ficam como são)
+    k *= mix(1.0, smoothstep(2.0, 2.8, c.r / max(max(c.g, c.b), 1e-3)) * (1.0 - smoothstep(0.2, 0.34, abs(c.g - c.b) / max(c.r, 1e-3))), uSoVermelho);   // (o vermelho puro: o couro e o marrom, mais alaranjados, ficam)
     // (05/11, os clãs da Hahoe nova: uClareia leva a roupa para perto da luminância da cor pedida, senão o vermelho escuro do bandido
     //  continuava escuro e os clãs liam como bandidos; 0 nos outros: o Juramento Branco e os NPCs ficam como estão)
     float lr = dot(uRoupa, vec3(0.299, 0.587, 0.114)), l2 = mix(l, lr * 0.85, uClareia);
@@ -29448,7 +29789,7 @@ function pedidos3d(agora) {
     const esc = c.cfg.esc || 1;
     if (!naTela(c.x, c.y, m, esc)) continue;
     const k = c.piscar > 0 ? Math.min(1, c.piscar / 0.15) : 0;
-    l.push({ dono: c, m, anim: c.anim, t: c.t, info: c.cfg.M && c.cfg.M.animacoes[c.anim], ang: c.angFino !== undefined ? angMapa3d(c.angFino) : angDir3d(c.dir), esc, emis: [0.75 * k + (c.furiaChefe && c.cfg.sopro ? 0.07 : 0), 0.12 * k + (c.furiaChefe && c.cfg.sopro ? 0.012 : 0), 0.06 * k], tinta: c.cfg.tinta, roupa: c.cfg.roupa3d, clareia: c.cfg.clan ? 0.6 : 0, morto: c.morto, celMax: c.cfg.celMax, verde: c.cfg.roupaVerde,
+    l.push({ dono: c, m, anim: c.anim, t: c.t, info: c.cfg.M && c.cfg.M.animacoes[c.anim], ang: c.angFino !== undefined ? angMapa3d(c.angFino) : angDir3d(c.dir), esc, emis: [0.75 * k + (c.furiaChefe && c.cfg.sopro ? 0.07 : 0), 0.12 * k + (c.furiaChefe && c.cfg.sopro ? 0.012 : 0), 0.06 * k], tinta: c.cfg.corpo ? null : c.cfg.tinta, roupa: c.cfg.roupa3d, clareia: c.cfg.clan ? 0.6 : 0, soVermelho: c.cfg.corpo ? 1 : 0,   /* (06/11: no corpo novo do clã, sem a tinta no corpo inteiro: só a faixa vermelha muda) */ morto: c.morto, celMax: c.cfg.celMax, verde: c.cfg.roupaVerde,
              perto: !c.morto && (c.cacando || !!c.acao) && longe(c.x, c.y) < P3D_PERTO });   // lutando colado no herói: anima em todo quadro
   }
   // os NPCs com modelo (o ferreiro e os moradores de NPC_3D)
@@ -29637,7 +29978,7 @@ function renderInst3d(i, clip, tempo) {
     mat.emissive.setRGB(d.emis[0] * ke, d.emis[1] * ke, d.emis[2] * ke);
     mat.color.copy(mat.userData.cor); if (tinta) mat.color.multiply(tinta);
     if (mat.userData.uPedra) mat.userData.uPedra.value = d.pedra || 0;
-    if (mat.userData.uMatiz) { mat.userData.uVerde.value = d.verde ? 1 : 0; mat.userData.uMatiz.value = d.roupa && !d.verde ? 0.85 : 0; if (d.roupa) mat.userData.uRoupa.value.set(d.roupa[0], d.roupa[1], d.roupa[2]); if (mat.userData.uClareia) mat.userData.uClareia.value = d.clareia || 0; }
+    if (mat.userData.uMatiz) { mat.userData.uVerde.value = d.verde ? 1 : 0; mat.userData.uMatiz.value = d.roupa && !d.verde ? 0.85 : 0; if (d.roupa) mat.userData.uRoupa.value.set(d.roupa[0], d.roupa[1], d.roupa[2]); if (mat.userData.uClareia) mat.userData.uClareia.value = d.clareia || 0; if (mat.userData.uSoVermelho) mat.userData.uSoVermelho.value = d.soVermelho || 0; }
   }
   const c = m.caixa;
   p.cam.left = -c.esq; p.cam.right = c.dir; p.cam.top = c.cima; p.cam.bottom = -c.baixo; p.cam.updateProjectionMatrix();
@@ -29784,6 +30125,7 @@ function desenharViking() {
   desenharSetaMarca(performance.now() / 1000);
   if (v.montado) { desenharMontado(X, Y, z); return; }                 // (montado: o cavalo com o herói preso ao Assento)
   sombraHeroi(X, Y, z);
+  desenharAlertaVida(X, Y, z, Y - 0.9 * PX * z * ALTURA);              // (R290: a vida baixa)
   const em3d = !!P3D.vale(v), querFolha = em3d ? nivelFuria(performance.now() / 1000) > 0 : true;   // (folhas sob demanda: o herói pede a da pose enquanto o modelo chega)
   // (a xamã no 2D: a folha "_oposto" para o lado de lá da câmera, a mesma regra do 3D, animXama3d, pela direção dela)
   let folhaN = nomeAnim;
@@ -31472,15 +31814,107 @@ function montarJornada() {
 }
 
 // ---------------------------------------------------------------- laço
-function ajustar() {
-  dpr = Math.min(devicePixelRatio || 1, 2) * GRAF.res;               // (o nível de gráfico: no Alto, res = 1)
-  W = innerWidth; H = innerHeight;
-  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-  camada.width = cv.width; camada.height = cv.height;
+// R292 (06/11, Logs/Desempenho/QUEDA_FPS_PARTIDA_LONGA.md): a queda do FPS na partida longa vinha depois de realocar o canvas da
+// tela (o resize → ajustar) com a página pesada. Agora:
+//  - cada ajustar fica registrado (a hora, o tamanho em CSS, o de antes e o de depois em pixels, o devicePixelRatio e se realocou):
+//    as últimas AJUSTE_TELA.max ficam em AJUSTE_TELA.lista, para o ?perf=1 e o aviso de lentidão (item 34 da FILA);
+//  - o resize espera o fim do gesto (AJUSTE_TELA.espera ms depois do último evento: arrastar a borda dispara dezenas deles);
+//  - cv, a camada e o chão só são refeitos se o tamanho em PIXELS mudou de verdade (o chão também se a densidade dele mudou).
+// (AJUSTE_TELA.medir: o tamanho da janela; o teste R292 troca por um de mentira)
+const AJUSTE_TELA = { lista: [], max: 12, espera: 250, t: 0, n: 0, realocou: 0, pedidos: 0, medir: () => [innerWidth, innerHeight, devicePixelRatio || 1] };
+function ajustar(motivo = "inicio") {
+  const A = AJUSTE_TELA, [w, h, dprNav] = A.medir();
+  const d = Math.min(dprNav || 1, 2) * GRAF.res;                     // (o nível de gráfico: no Alto, res = 1)
+  const pw = Math.round(w * d), ph = Math.round(h * d), de = cv.width + "x" + cv.height;
+  const realoca = cv.width !== pw || cv.height !== ph || camada.width !== pw || camada.height !== ph;
+  const faixa0 = W ? escFaixa(faixaZoom(zoom)) : 0, mudou = W !== w || H !== h || dpr !== d;
+  dpr = d; W = w; H = h;
+  A.n++; if (realoca) A.realocou++;
+  A.lista.push({ t: performance.now(), hora: new Date().toLocaleTimeString("pt-BR"), motivo, css: w + "x" + h, de, para: pw + "x" + ph, dpr: +(+dprNav).toFixed(3), res: GRAF.res, realocou: realoca });
+  if (A.lista.length > A.max) A.lista.shift();
+  if (realoca) { cv.width = pw; cv.height = ph; camada.width = pw; camada.height = ph; }
   if (W < 640 && zoom === 1) zoom = 0.8;
-  pedacos.clear(); PEDACO_EM_CURSO.clear(); CHAO_IMG.sujo = true;                                                      // a densidade da tela pode ter mudado
+  if (realoca || escFaixa(faixaZoom(zoom)) !== faixa0) limparPedacos();   // a densidade da tela pode ter mudado
+  else if (mudou) CHAO_IMG.sujo = true;
+  if (realoca || mudou) dispatchEvent(new Event("ajustou"));         // (quem depende de W/H/dpr: o mundo 3D)
 }
-addEventListener("resize", ajustar);
+addEventListener("resize", () => { const A = AJUSTE_TELA; A.pedidos++; clearTimeout(A.t); A.t = setTimeout(() => { A.t = 0; ajustar("resize"); }, A.espera); });
+// (R292) os ajustes em texto: o ?perf=1 e o aviso de lentidão
+function ajustesTexto(linhas = 1) {
+  const A = AJUSTE_TELA, l = A.lista; if (!l.length) return "ajustes da tela: nenhum";
+  const agora = performance.now(), f = a => `há ${Math.round((agora - a.t) / 1000)} s (${a.hora}, ${a.motivo}): ${a.de} → ${a.para} · ${a.css} css · dpr ${a.dpr}${a.realocou ? "" : " · sem realocar"}`;
+  return `ajustes da tela: ${A.n} (realocou ${A.realocou}, resize ${A.pedidos})\n` + l.slice(-linhas).reverse().map(a => "  " + f(a)).join("\n");
+}
+// R292 (4): a queda sustentada do FPS. Depois da queda nada dentro da página traz o FPS de volta (só recarregar), então o jogo
+// percebe e oferece "Salvar e recarregar", voltando ao mesmo mapa e ao mesmo lugar (lugarDaRecarga / voltarDaRecarga).
+// Cada segundo de quadros desenhados vira uma amostra; a referência é a média das amostras boas dos últimos minutos (hist, até
+// histMax s, ao menos minHist s). Lenta = abaixo de frac × referência, por segBaixo s seguidos, com a referência de ao menos
+// minRef fps ("depois de já ter estado alto"). Não contam: a preparação do mapa, o portal, o escurecer da caverna, a escolha
+// de classe, a intro, o editor, a aba escondida e os segundos com um quadro parado (> 1,5 s), mais calmoMs depois de cada um.
+// O aviso some sozinho se o FPS volta (6 s seguidos acima de 70%); o × esconde por dispensaMs. Desligado no ?test=1 (o teste força)
+const LENTIDAO = { ligado: !MODO_TESTE, frac: 0.4, segBaixo: 8, minRef: 30, minHist: 60, histMax: 240, calmoMs: 10000, dispensaMs: 600000,
+  t0: 0, n: 0, hist: [], baixo: 0, bom: 0, calmoAte: 0, aviso: false, avisos: 0, dispensado: -1e12, ultimo: null, el: null, recarregando: false,
+  aoRecarregar: () => location.reload() };
+function lentidaoOcupado() {
+  return document.hidden || LIMITE.escondido || PREPARO.ativo || PREPARO.cedo || !!viagem || escurece > 0.02 || SEL.aberta || INTRO.aberta || editor.ativo || !window.jogoPronto || salvarTravado;
+}
+// um quadro desenhado (agora: o carimbo do laço; o teste chama com carimbos de mentira)
+function vigiaLentidao(agora) {
+  const L = LENTIDAO;
+  if (lentidaoOcupado()) { L.calmoAte = agora + L.calmoMs; L.t0 = 0; L.baixo = 0; return; }
+  if (!L.t0) { L.t0 = agora; L.n = 0; return; }
+  L.n++;
+  const d = agora - L.t0; if (d < 1000) return;
+  const fps = L.n * 1000 / d; L.t0 = agora; L.n = 0;
+  if (d > 1500) { L.calmoAte = agora + L.calmoMs; L.baixo = 0; return; }   // (um quadro parado: um carregamento, um alerta do navegador)
+  if (agora < L.calmoAte) return;
+  const ref = L.hist.length >= L.minHist ? L.hist.reduce((s, v) => s + v, 0) / L.hist.length : 0;
+  L.ultimo = { fps: +fps.toFixed(1), ref: +ref.toFixed(1), baixo: L.baixo };
+  if (ref >= L.minRef && fps < ref * L.frac) {
+    L.baixo++; L.bom = 0;
+    if (L.baixo >= L.segBaixo && !L.aviso && agora - L.dispensado > L.dispensaMs) avisoLentidao(true, fps, ref);
+    return;                                                             // (os segundos lentos não entram na referência)
+  }
+  L.baixo = 0;
+  L.hist.push(fps); if (L.hist.length > L.histMax) L.hist.shift();
+  if (L.aviso && ref && fps >= ref * 0.7 && ++L.bom >= 6) avisoLentidao(false);
+}
+function avisoLentidao(sim, fps, ref) {
+  const L = LENTIDAO;
+  if (!L.el) {
+    const el = L.el = document.createElement("div"); el.id = "avisoLento"; el.hidden = true; el.setAttribute("role", "status");
+    el.style.cssText = "position:fixed;z-index:60;top:64px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;border-radius:5px;" +
+      "background:rgba(20,16,12,.88);border:1px solid rgba(201,150,62,.65);color:#EFE4CC;font:600 13.5px/1.3 var(--corpo,sans-serif);box-shadow:0 2px 8px rgba(0,0,0,.45);white-space:nowrap";
+    el.innerHTML = `<span><span id="avisoLentoTxt">O jogo ficou lento. Salvar e recarregar?</span><small id="avisoLentoDiag" style="display:block;font-weight:400;font-size:11px;opacity:.6"></small></span>` +
+      `<button id="avisoLentoSim" type="button" style="font:600 13px var(--corpo,sans-serif);padding:4px 10px;cursor:pointer;border-radius:4px;border:1px solid rgba(201,150,62,.8);background:#6b4a1c;color:#fff4dc">Salvar e recarregar</button>` +
+      `<button id="avisoLentoNao" type="button" aria-label="Fechar" title="Agora não" style="font:14px/1 sans-serif;padding:3px 7px;cursor:pointer;border:0;background:transparent;color:#cdbf9f">×</button>`;
+    document.body.appendChild(el);
+    el.querySelector("#avisoLentoSim").onclick = () => salvarERecarregar();
+    el.querySelector("#avisoLentoNao").onclick = () => { L.dispensado = performance.now(); avisoLentidao(false); };
+  }
+  L.aviso = sim; L.bom = 0; L.el.hidden = !sim;
+  if (sim) {
+    L.avisos++;
+    const a = AJUSTE_TELA.lista[AJUSTE_TELA.lista.length - 1];
+    L.el.querySelector("#avisoLentoDiag").textContent = `${Math.round(fps)} fps (o normal era ${Math.round(ref)})` + (a ? ` · último ajuste da tela há ${Math.round((performance.now() - a.t) / 1000)} s (${a.para}, dpr ${a.dpr})` : "");
+    L.registro = { quando: new Date().toLocaleTimeString("pt-BR"), fps: Math.round(fps), ref: Math.round(ref), ajustes: AJUSTE_TELA.lista.slice(-4).map(x => ({ ...x })) };
+    try { console.warn("[Ghotin2] FPS caiu:", JSON.stringify(L.registro)); } catch (e) {}
+  }
+}
+// "Salvar e recarregar": o save de sempre (no navegador e, com conta, a nuvem já), o mapa e o lugar para a volta (sessionStorage:
+// só este recarregamento, nunca o F5 comum) e o recarregar
+const RECARGA_CHAVE = "g2_recarga_lugar", RECARGA_MS = 5 * 60000;
+async function salvarERecarregar() {
+  const L = LENTIDAO; if (L.recarregando) return false; L.recarregando = true;
+  const b = L.el && L.el.querySelector("#avisoLentoSim"); if (b) { b.disabled = true; b.textContent = "Salvando..."; }
+  const lugar = lugarDaRecarga();
+  try { sessionStorage.setItem(RECARGA_CHAVE, JSON.stringify({ ...lugar, chave: chaveSave(), t: Date.now() })); } catch (e) {}
+  if (prog && lugar) prog.mapa = lugar.mapa;
+  salvarProgresso(); salvarArmazem(); try { if (typeof jornadaSalvar === "function") jornadaSalvar(); } catch (e) {}
+  try { if (window.NUVEM && NUVEM.ativo && NUVEM.ativo()) await Promise.race([NUVEM.salvarAgora("recarregar"), new Promise(r => setTimeout(r, 8000))]); } catch (e) {}
+  L.aoRecarregar();
+  return true;
+}
 
 let antes = performance.now();
 const FPS = { ligado: (() => { try { return localStorage.getItem("fps") !== "0"; } catch (e) { return true; } })(), n: 0, t0: performance.now(), el: null };
@@ -31886,6 +32320,7 @@ function* preparoQuadros(comEnsaio) {
 addEventListener("keydown", e => { if (PREPARO.ativo) { e.stopImmediatePropagation(); if (e.key !== "F5" && e.key !== "F12") e.preventDefault(); } }, true);
 function laco(agora) {
   if (LIMITE.escondido) return;                                   // (a aba escondida: o visibilitychange volta o laço)
+  if (SOLTAR_DEPOIS.length) soltarPendentes();                     // (R292: os canvas do chão que saíram no quadro passado)
   if (PREPARO.ativo) { preparoQuadro(agora); antes = agora; LIMITE.raf = requestAnimationFrame(laco); return; }   // (R235: a preparação no lugar do passo e do desenho)
   if (PREPARO.cedo && !PREPARO.ativo && !viagem && agora - PREPARO.cedo > 1500) preparoEsconder();               // (a tela antecipada sem preparação: some)
   if (MODO_TESTE && agora - antes < 33) { LIMITE.raf = requestAnimationFrame(laco); return; }   // 30 quadros por segundo
@@ -31903,6 +32338,7 @@ function laco(agora) {
   if (PREPARO.fundo.length) preparoFundo();                         // (R235: o que passou do tempo da tela, aos poucos)
   frenteImagens();                                                  // (R236: as construções e as pontes que vão aparecer)
   contarQuadro(agora);
+  if (LENTIDAO.ligado) vigiaLentidao(agora);                        // (R292: a queda sustentada do FPS)
   desenharOrbes(agora);
   LIMITE.raf = requestAnimationFrame(laco);
 }
@@ -32550,7 +32986,7 @@ carregar().then(() => {
   prepararMana(); carregarProgresso(); montarChat(); montarCursores(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarAltar(); montarArmazem(); montarTempo(); montarFicha(); montarBolsa(); montarBarraSkills(); montarMinimapa(); montarMenu(); montarAdmin(); montarJornada(); montarJanelas();
   fecharMapaOriginal();
   classeDoInicio();                                   // (a última classe jogada)
-  PRED_CARREGANDO.then(montarPredios);              // (as construções em camadas, com ?predios=1)
+  PRED_CARREGANDO.then(montarPredios).then(() => { edmAplicarMapa("vila1"); for (const d of DUNGEONS) if (!d.vale) edmAplicarMapa("cav:" + d.id); if (EDITOR_MAPAS && ADMIN) carregarEditorMapas().catch(e => console.error("editor_mapas.js:", e)); });   // (as construções em camadas; R289: as mudanças do editor de mapas, e o editor com ?editor=1)
   $("#carregando").hidden = true;
   fpsLigar(FPS.ligado);
   grafBloom();                                      // (o nível de gráfico: o bloom)
@@ -34861,7 +35297,7 @@ function ligarEntrada() {
     // PageUp / PageDown inclinam em passos de 8° (R e F já são do jogo: levantar e a Fúria)
     else if (k === "pageup" || k === "pagedown") { S.pitchAlvo = Math.max(PITCH_MIN, Math.min(PITCH_MAX, S.pitchAlvo + (k === "pageup" ? 8 : -8) * GRAU)); e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
-  addEventListener("resize", () => { if (S.render) S.render.setSize(W, H, false); });
+  addEventListener("ajustou", () => { if (S.render) S.render.setSize(W, H, false); });   // (R292: depois do ajustar, que espera o fim do gesto)
 }
 function medirGesto() {
   const [a, b] = [...toques.values()];
@@ -36270,10 +36706,11 @@ function chamas(cor, cor2) {
 // as cores de cada classe: [corpo do rastro, borda] (o refino pinta a borda; a Lâmina Espiritual e a Fúria mandam)
 const COR_CLASSE = { viking: [[1, 0.94, 0.72], [1, 0.72, 0.2]], guerreiro: [[1, 0.5, 0.12], [1, 0.88, 0.45]], ninja: [[0.3, 0.9, 1], [0.85, 1, 1]],
                      arqueiro: [[0.4, 1, 0.4], [0.9, 1, 0.75]], feiticeiro: [[0.62, 0.36, 1], [0.55, 0.78, 1]], xama: [[0.32, 0.48, 1], [0.8, 0.88, 1]], xama_dragao: [[1, 0.55, 0.2], [1, 0.9, 0.55]], shura: [[0.64, 0.14, 0.99], [1, 0.23, 0.82]] };
-function corGolpe() {
+function corGolpe(basico) {
   if (azul()) return [rgb(0.25, 0.55, 1), rgb(0.8, 0.95, 1)];
   if (classe === "shura" && SHURA.lamina.buff > 0) return [rgb(0.93, 0.96, 1), rgb(1, 1, 1)];   // (rodada 6: o rastro branco da Lâmina Encantada)
   if (furia.buff > 0 && lutaPerto()) return [rgb(1, 0.35, 0.08), rgb(1, 0.85, 0.35)];
+  if (basico && !(triplo.restam > 0) && !vortice.ativo) { const bb = corRefinoBasico(); if (bb) return [new THREE.Color(bb.claro), new THREE.Color(bb.forte)]; }   // (R291: o miolo no claro do refino, a borda no forte, como a fita da classe)
   const c = COR_CLASSE[classe] || COR_CLASSE.viking, br = brilhoRef();
   return [rgb(...c[0]), br ? new THREE.Color(br.forte) : rgb(...c[1])];
 }
@@ -36281,7 +36718,7 @@ const peito = o => P3(o.x, o.y, typeof alturaAlvo === "function" && o !== viking
 // o acerto: estrela de luz e estilhaços no sentido do golpe; o herói apanhando: um clarão vermelho curto
 function acerto(alvo, material) {
   if (alvo === viking) { clarao(peito(viking), 1, rgb(1, 0.22, 0.12), 0.14); estouro(peito(viking), 6, rgb(1, 0.3, 0.15), 4, { tam: 0.05 }); return; }
-  const p = peito(alvo), [c1, c2] = corGolpe(), dx = alvo.x - viking.x, dy = alvo.y - viking.y, d = Math.hypot(dx, dy) || 1;
+  const p = peito(alvo), [c1, c2] = corGolpe(animBasica(viking.anim)), dx = alvo.x - viking.x, dy = alvo.y - viking.y, d = Math.hypot(dx, dy) || 1;
   const dir = new THREE.Vector3(dx / d, 0.35, -dy / d).normalize();
   clarao(p, 1.0, c2, 0.15, { estrela: true, forca: 0.85 });
   estouro(p, 12, c1, 6.5, { dir, abre: 0.9, tam: 0.06, vida: 0.3, branco: 0.6 });
@@ -36363,7 +36800,7 @@ function pecasArma() {
 }
 function passoArma(dt) {
   const a = pecasArma(); if (!a) return;
-  const golpe = GOLPE.test(viking.anim) && !viking.caido, [c1, c2] = corGolpe(), meio = classe === "ninja" ? 0.32 : classe === "feiticeiro" ? 0.7 : 0.3;
+  const golpe = GOLPE.test(viking.anim) && !viking.caido, [c1, c2] = corGolpe(animBasica(viking.anim)), meio = classe === "ninja" ? 0.32 : classe === "feiticeiro" ? 0.7 : 0.3;
   const br = brilhoRef(), luzArma = azul() ? rgb(0.35, 0.7, 1) : br ? new THREE.Color(br.forte) : null;
   const ox = iso ? viking.x : 0, oz = iso ? -viking.y : 0, oy = iso ? zPiso(viking.x, viking.y) : 0;   // (no isométrico o corpo do atlas fica na origem)
   // (no isométrico com o giro da vista, o corpo do atlas está girado GIRO a mais: as peças voltam para o giro do mapa)
@@ -36382,6 +36819,7 @@ function passoArma(dt) {
       // o ninja: o miolo ciano saturado (o da classe a 100%, não perto do branco), a borda clara, e por baixo um contorno escuro
       // um pouco mais largo (da base um pouco antes até um pouco além da ponta), em mistura normal: separa a fita do chão claro
       if (!azul() && !brilhoRef()) { r.fita.u.uCor.value.setRGB(0, 0.78, 1); r.fita.u.uCor2.value.setRGB(0.55, 1, 1); }
+      else if (!azul() && !corRefinoBasico()) { r.fita.u.uCor.value.setRGB(0, 0.78, 1); }   // (R291: com a chave desligada, o miolo ciano de antes)
       r.fita.u.uForca.value *= 1.3;
       if (r.contorno) {
         if (ok && corta) r.contorno.lamina(_v.copy(r.base).lerp(r.ponta, meio - 0.06).applyMatrix4(W).add(_v2.set(ox, 0, oz)), _a.copy(r.base).lerp(r.ponta, 1.12).applyMatrix4(W).add(_v2.set(ox, 0, oz)));
@@ -36415,7 +36853,8 @@ function passoFlechas3(dt) {
   for (const f of flechas) {
     if (f.atraso > 0) continue;
     const e = seguir(f, () => {
-      const cor = f.fogo ? [rgb(1, 0.42, 0.06), rgb(1, 0.92, 0.6)] : f.veneno ? [rgb(0.5, 1, 0.15), rgb(0.92, 1, 0.6)] : f.chuva || f.sobe ? [rgb(1, 0.82, 0.4), rgb(1, 1, 0.9)] : [rgb(0.3, 1, 0.42), rgb(0.88, 1, 0.85)];
+      const cor = f.fogo ? [rgb(1, 0.42, 0.06), rgb(1, 0.92, 0.6)] : f.veneno ? [rgb(0.5, 1, 0.15), rgb(0.92, 1, 0.6)] : f.chuva || f.sobe ? [rgb(1, 0.82, 0.4), rgb(1, 1, 0.9)]
+                : f.refino ? [new THREE.Color(f.refino.forte), new THREE.Color(f.refino.claro)] : [rgb(0.3, 1, 0.42), rgb(0.88, 1, 0.85)];   // (R291: a comum, na cor do refino)
       const e = { cor, fita: new Fita(26, cor[0], cor[1], "linha", { dur: f.fogo ? 0.32 : 0.2 }), cab: sprite(texBrilho, cor[0], f.fogo ? 1.1 : 0.45) };
       e.fim = () => { grupo.remove(e.cab); devolverMat("sprite", e.cab.material); e.fita.soltar(); };
       return e;
@@ -38881,7 +39320,7 @@ embrulhar("explosaoChefe", ([x, y, r, h]) => {
 function armaTela() { const a = pecasArma(); if (!a) return []; return a.l.map(r => { const w = noMundoHeroi(r.ponta.clone().applyMatrix4(r.m.matrixWorld)); return noMundo(w.x, -w.z, w.y); }); }
 // (05/11, para o R261 com a arma montada fixa) a peça inteira na tela, da base à ponta (a ponta pode ficar atrás do cavalo)
 function armaSegTela() { const a = pecasArma(); if (!a) return []; return a.l.map(r => { const t = v => { const w = noMundoHeroi(v.clone().applyMatrix4(r.m.matrixWorld)); return noMundo(w.x, -w.z, w.y); }; return [t(r.base), t(r.ponta)]; }); }
-return { centroEfeitos, efeitosAgora, ALT_REF, armaTela, armaSegTela, P3Teste: () => { const a = P3(viking.x, viking.y, 1.2).y, b = P3(viking.x, viking.y, 0.03).y, h = alt(viking.x, viking.y); return { corpo: +(a - h - 1.2).toFixed(3), chao: +(b - h - 0.03).toFixed(3) }; }, get ativo() { return ativo(); }, get iso() { return iso; }, get aquecidos() { return aquecerProgramas.feitos || 0; }, ensaiar, ensaioFim, get ensaiando() { return !!ensaio; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, caixa: FX_CAIXA, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; }, get bloomDaTela() { return B.daTela; }, set bloomDaTela(v) { B.daTela = !!v; },
+return { centroEfeitos, efeitosAgora, ALT_REF, armaTela, armaSegTela, corGolpeTeste: b => corGolpe(b).map(c => "#" + c.getHexString()), P3Teste: () => { const a = P3(viking.x, viking.y, 1.2).y, b = P3(viking.x, viking.y, 0.03).y, h = alt(viking.x, viking.y); return { corpo: +(a - h - 1.2).toFixed(3), chao: +(b - h - 0.03).toFixed(3) }; }, get ativo() { return ativo(); }, get iso() { return iso; }, get aquecidos() { return aquecerProgramas.feitos || 0; }, ensaiar, ensaioFim, get ensaiando() { return !!ensaio; }, get fps() { return iso && S && S.stats ? S.stats.fps : undefined; }, passo, bloom, flare, desenhar2d, FL, caixa: FX_CAIXA, get bloomLigado() { return B.ok && B.ligado; }, set bloomLigado(v) { B.ligado = !!v; }, get bloomDaTela() { return B.daTela; }, set bloomDaTela(v) { B.daTela = !!v; },
          get stats() { return { vivos: vivos.length, seguidos: seguidos.size, particulas: PS ? PS.l.length : 0 }; },
          corpos: { foraDaCaixa: corpoForaDaCaixa, entram: corposEntram, saem: corposSaem, get n() { return corposIso.n; }, get desenhados() { return corposIso.desenhados || 0; }, get junto() { return !!(S && S.junto); }, corte: CORPOS_CORTE } };   // (plano D: para os testes, R232)
 })();
@@ -39744,7 +40183,7 @@ function aplicarNoJogo() {
     refazerGrade();
     if (window.M3D && M3D.S) { M3D.S.decoSuja = true; if (M3D.refazerChao) M3D.refazerChao(!est.mudouTerreno); }
     miniBase = null;
-    if (est.mudouTerreno) { mascaras.clear(); pedacos.clear(); PEDACO_EM_CURSO.clear(); CHAO_IMG.sujo = true; }
+    if (est.mudouTerreno) { soltarMascaras(); limparPedacos(); }      // (R292: soltando os canvas)
   }
   est.mudouMobs = est.mudouDeco = est.mudouTerreno = false;
 }
@@ -40271,6 +40710,7 @@ return {
       `GPU WebGL (ms/quadro): ${r.gpuTxt}\n` + (PF.sync ? `CPU+GPU do quadro: ${r.sync.m.toFixed(2)} ms\n` : "") +
       `drawImage ${r.di.toFixed(0)} · criaturas na tela ${vivas} · FX3 ${fx.vivos || 0}/${fx.particulas || 0}\n` +
       `${PF.criaturas()} · IA ${r.ia.toFixed(0)}/quadro\n` +
+      (typeof ajustesTexto === "function" ? ajustesTexto(2) + "\n" : "") +   // (R292: as trocas de tamanho do canvas)
       r.partes.slice(0, 10).map(([k, v]) => `  ${k.padEnd(17)} ${v.toFixed(2)} ms`).join("\n");
     if (agora() - t0 > 2000 && !PF.coletando) { zera(); t0 = agora(); }
   }, 500);
@@ -40290,7 +40730,9 @@ return {
       `drawImage/quadro ${r.di.toFixed(0)} · criaturas ${criaturas.filter(l => !l.morto && criaturaNaTela(l)).length} · FX3 ${JSON.stringify(window.FX3 && FX3.stats || {})} · heap ${hm}`,
       `${PF.criaturas()} · IA ${r.ia.toFixed(1)}/quadro`,
       `partes: ${r.partes.slice(0, 14).map(([k, v]) => `${k} ${v.toFixed(2)}`).join(" · ")}`,
-      `quadros > 50 ms: ${PF.longos.length}${PF.longos.length ? " (" + PF.longos.slice(0, 8).join(", ") + ")" : ""}`].join("\n");
+      `quadros > 50 ms: ${PF.longos.length}${PF.longos.length ? " (" + PF.longos.slice(0, 8).join(", ") + ")" : ""}`,
+      ...(typeof ajustesTexto === "function" ? [ajustesTexto(AJUSTE_TELA.max)] : []),   // (R292: as últimas trocas de tamanho do canvas)
+      ...(typeof LENTIDAO === "object" && LENTIDAO.registro ? [`aviso de lentidão: ${JSON.stringify({ ...LENTIDAO.registro, ajustes: undefined })}`] : [])].join("\n");
     PF.ultimoRelatorio = txt; ta.value = txt; ta.hidden = false;
     b.disabled = false; b.textContent = "medir 10 s"; bc.disabled = false; bc.textContent = "copiar relatório";
   };
@@ -40303,6 +40745,501 @@ return {
     b.textContent = ok ? "copiado ✓" : "selecione o texto e Ctrl+C"; PF.copiado = ok;
   };
 })();
+</script>
+
+<script type="text/plain" id="editorMapasFonte">
+// ================================================================ EDITOR DE MAPAS (R289, 05/11/2026; manual: Logs/Mapas/EDITOR.md)
+// Só é carregado com ?editor=1 no admin (o index.html o pede depois das construções; sem a chave, este arquivo nem chega). O que
+// fica sempre no jogo (os ids estáveis e as operações por mapa, edmAplicarMapa/edmAplicarCriaturas, o MAPA_EDITADO_FIXO) está no
+// index.html, perto do editor antigo. A tecla O abre e fecha; o jogo pausa (o passo do editor só move a câmera) e as criaturas
+// nascem de novo, paradas, nos pontos de nascimento.
+//   Escolher: clique (o contorno e a etiqueta aparecem ao passar o mouse). Arrastar move. Delete retira. Ctrl+D duplica.
+//   R gira (espelha no 2D, e o giro vai para o 3D). V troca o desenho. Ctrl+Z / Ctrl+Y desfazem e refazem. M: o mapa inteiro.
+//   G: a grade de 10 m. Esc: solta a escolha (ou a peça da paleta). WASD e o botão direito arrastando: a câmera.
+// Cada mudança vira uma operação ({ op, id, cat, ... }) no localStorage do mapa (EDM_CHAVE + mapa) e é aplicada na hora.
+// "Copiar mudanças" junta as operações de todos os mapas num JSON único, para virar o MAPA_EDITADO_FIXO.
+(() => {
+"use strict";
+if (window.EDMX) return;
+const CATS = {
+  spawn: { nome: "Criaturas", cor: "#E0483A" }, ghotin: { nome: "Ghotins (áreas)", cor: "#B07CFF" }, natureza: { nome: "Árvores e pedras", cor: "#5FBF7A" },
+  deco: { nome: "Decoração", cor: "#E8B04A" }, predio: { nome: "Prédios", cor: "#6FA0E8" }, npc: { nome: "NPCs", cor: "#F4EAD0" },
+  portal: { nome: "Portais", cor: "#5FD8E8" }, obj: { nome: "Estátuas e objetos", cor: "#C8C0B0" },
+};
+const X = window.EDMX = {
+  ativo: false, mapa: "vila1", sel: null, hover: null, pondo: null, arrasto: null, grade: false, visao: false, versao: 0,
+  filtros: Object.fromEntries(Object.keys(CATS).map(k => [k, true])), desfazer: [], refazer: [], lista: null, listaV: -1, listaMapa: null,
+};
+const $e = id => document.getElementById(id);
+const novoId = () => "a:" + Date.now().toString(36) + Math.floor(Math.random() * 46656).toString(36);
+const r2 = v => Math.round(v * 100) / 100;
+const nomeCriatura = t => (TIPOS[t] && TIPOS[t].nome) || t;
+const zDe = (x, y) => (x < -350 || y < -350) ? zPiso(x, y) : 0;
+const naTela = (x, y, z = 0) => noMundo(x, y, z || zDe(x, y));
+const mapasLista = () => [["vila1", "Vale do Viking (Vila 1)"], ["hahoe", HAHOE2 ? "Vila Hahoe (a nova, ?hahoe2=1)" : "Vila Hahoe"], ["montanha", "Montanha Gelada"], ["daiyu", "Ilha de Daiyu"],
+  ...DUNGEONS.map(d => ["cav:" + d.id, "Caverna: " + (d.nome || d.id)])];
+
+// ---------------------------------------------------------------- as operações (localStorage por mapa)
+function opsDe(mapa) { try { const l = JSON.parse(localStorage.getItem(EDM_CHAVE + mapa)); return Array.isArray(l) ? l : []; } catch (e) { return []; } }   // (o editor lê sempre; o jogo só aplica com ?editor=1)
+function salvarOps(mapa, l) { try { if (l.length) localStorage.setItem(EDM_CHAVE + mapa, JSON.stringify(l)); else localStorage.removeItem(EDM_CHAVE + mapa); } catch (e) {} }
+// registra uma operação, juntando com as de antes do mesmo id (o "mudar" entra no "adicionar"; retirar o que foi adicionado apaga os dois)
+function registrar(mapa, op) {
+  const L = opsDe(mapa);
+  if (op.op === "mudar") {
+    const a = L.find(q => q.id === op.id && (q.op === "adicionar" || q.op === "mudar"));
+    if (a) { const { op: _o, id, cat, ...c } = op; Object.assign(a, c); } else L.push(op);
+  } else if (op.op === "remover") {
+    const ia = L.findIndex(q => q.id === op.id && q.op === "adicionar");
+    for (let i = L.length - 1; i >= 0; i--) if (L[i].id === op.id && L[i].op === "mudar") L.splice(i, 1);
+    if (ia >= 0) L.splice(L.findIndex(q => q.id === op.id && q.op === "adicionar"), 1); else L.push(op);
+  } else L.push(op);
+  salvarOps(mapa, L);
+}
+// uma ação: o que fazer, o que desfazer e a operação; desfazer volta o objeto e a lista de operações de antes
+function agir(ent, fazer, desfazer, op) {
+  const mapa = X.mapa, antes = JSON.stringify(opsDe(mapa));
+  fazer(); registrar(mapa, op); mudou();
+  X.desfazer.push({ mapa, antes, depois: JSON.stringify(opsDe(mapa)), fazer, desfazer }); X.refazer.length = 0;
+  if (X.desfazer.length > 200) X.desfazer.shift();
+}
+function desfazerUm() {
+  const a = X.desfazer.pop(); if (!a) { aviso("Nada para desfazer."); return; }
+  a.desfazer(); salvarOps(a.mapa, JSON.parse(a.antes)); X.refazer.push(a); X.sel = null; mudou(); aviso("Desfeito.");
+}
+function refazerUm() {
+  const a = X.refazer.pop(); if (!a) { aviso("Nada para refazer."); return; }
+  a.fazer(); salvarOps(a.mapa, JSON.parse(a.depois)); X.desfazer.push(a); X.sel = null; mudou(); aviso("Refeito.");
+}
+function mudou() { X.versao++; painel(); }
+
+// ---------------------------------------------------------------- o que está no mapa (as entidades)
+function garantirIds() {
+  edmIdsObjetos(X.mapa); edmIdsPredios();
+  if (!EDM.criaturasFeitas) { EDM.criaturasFeitas = true; edmIdsCriaturas(); }
+  for (const s of SPAWNS) if (!s._id) s._id = novoId();
+  for (const m of METINS) if (!m._ids) m._ids = m.regioes.map((_, i) => "g:" + m.tipo + ":" + i);
+}
+function entidades() {
+  if (X.lista && X.listaV === X.versao && X.listaMapa === X.mapa) return X.lista;
+  garantirIds();
+  const m = X.mapa, L = [];
+  for (const o of objetos) { const c = edmCatObj(o); if (!c || !o._id || edmMapaDe(o.x, o.y) !== m) continue; L.push({ cat: c, id: o._id, ref: o, nome: o.npc ? o.nome : (NOME_TIPO[o.tipo] || o.tipo.replace(/_/g, " ")), tipo: o.tipo }); }
+  if (typeof PRED_LUGARES !== "undefined") for (const l of PRED_LUGARES) if (l._id && edmMapaDe(l.x, l.y) === m) L.push({ cat: "predio", id: l._id, ref: l, nome: "prédio: " + l.id.replace(/_/g, " "), tipo: l.id });
+  for (const p of PORTAIS) if (edmMapaDe(p.x, p.y) === m) L.push({ cat: "portal", id: "p:" + p.id, ref: p, nome: "portal para " + ((MAPAS[p.destino] || {}).nome || p.destino), tipo: p.id });
+  for (const s of SPAWNS) if (edmMapaDe(s.x, s.y) === m) L.push({ cat: "spawn", id: s._id, ref: s, nome: `${nomeCriatura(s.tipo)} ×${s.n}${CHEFES_MAPA[s.tipo] ? " (chefe)" : ""}`, tipo: s.tipo });
+  for (const g of METINS) g.regioes.forEach(([x, y], i) => { if (edmMapaDe(x, y) === m) L.push({ cat: "ghotin", id: g._ids[i], ref: g, nome: g.nome + " (área)", tipo: g.tipo }); });
+  X.lista = L; X.listaV = X.versao; X.listaMapa = m; return L;
+}
+function pos(e) {
+  if (e.cat === "ghotin") { const i = e.ref._ids.indexOf(e.id); const r = e.ref.regioes[i] || [0, 0]; return { x: r[0], y: r[1] }; }
+  return { x: e.ref.x, y: e.ref.y };
+}
+function raio(e) { return e.cat === "spawn" ? e.ref.r : e.cat === "ghotin" ? METIN_AREA : e.cat === "portal" ? 1.6 : 0; }
+const visivel = e => X.filtros[e.cat];
+// a caixa da entidade na tela (para escolher e para o contorno): [x0, y0, x1, y1]
+function caixa(e) {
+  const s = PX * zoom, { x, y } = pos(e), [X0, Y0] = naTela(x, y);
+  if (e.cat === "natureza" || e.cat === "deco" || e.cat === "obj") { const b = DECORACAO.includes(e.ref.tipo) && caixaObjeto(e.ref, X0, Y0, s); return b || [X0 - 0.4 * s, Y0 - s, X0 + 0.4 * s, Y0]; }
+  if (e.cat === "npc") return [X0 - 0.45 * s, Y0 - 2.0 * s * ALTURA, X0 + 0.45 * s, Y0 + 0.1 * s];
+  if (e.cat === "predio") { const p = edmPredioInst(e.ref); if (p) { const [a, b, c, d] = p.base, P = [naTela(a, c), naTela(b, c), naTela(a, d), naTela(b, d)]; return [Math.min(...P.map(q => q[0])), Math.min(...P.map(q => q[1])) - 2.5 * s, Math.max(...P.map(q => q[0])), Math.max(...P.map(q => q[1]))]; } return [X0 - s, Y0 - 2 * s, X0 + s, Y0]; }
+  if (e.cat === "portal") return [X0 - 1.6 * s, Y0 - 3.6 * s * ALTURA, X0 + 1.6 * s, Y0 + 0.5 * s];
+  const r = e.cat === "ghotin" ? 2 : Math.max(1.1, Math.min(raio(e), 3));       // (o grupo: o meio, até 3 m; a área da Ghotin: 2 m do meio)
+  return [X0 - r * s, Y0 - r * s * ACHATA, X0 + r * s, Y0 + r * s * ACHATA];
+}
+// a entidade sob o ponteiro: a menor caixa que o contém (a árvore vence o círculo do grupo em volta dela)
+function noPonto(px, py) {
+  let melhor = null, am = Infinity;
+  for (const e of entidades()) {
+    if (!visivel(e)) continue;
+    const b = caixa(e); if (px < b[0] || px > b[2] || py < b[1] || py > b[3]) continue;
+    const a = (b[2] - b[0]) * (b[3] - b[1]) * (e.cat === "ghotin" ? 4 : e.cat === "spawn" ? 2 : 1);
+    if (a < am) { am = a; melhor = e; }
+  }
+  return melhor;
+}
+
+// ---------------------------------------------------------------- mudar, retirar, duplicar, pôr
+function aplicarCampos(e, c) {
+  if (e.cat === "spawn") { e.ref.editado = true; for (const k of ["x", "y", "n", "r"]) if (c[k] !== undefined) e.ref[k] = c[k]; remontarSpawns(); return; }
+  if (e.cat === "ghotin") { const i = e.ref._ids.indexOf(e.id); if (i >= 0 && c.x !== undefined) { e.ref.regioes[i] = [c.x, c.y]; reposicionarPedras(e.ref); } return; }
+  if (e.cat === "portal") { if (c.x !== undefined) { e.ref.x = c.x; e.ref.y = c.y; } return; }
+  if (e.cat === "predio") { edmMudarPredio(e.ref, c); edmPredioMudou(); refazerGrade(); return; }
+  edmMudarObj(e.ref, c); refazerGrade();
+}
+function reposicionarPedras(m) { for (const l of criaturas) if (l.tipo === m.tipo && !l.morto && l.cfg.regioes) { const [x, y] = lugarMetin(l.cfg, l); l.x = x; l.y = y; l.toca = { x, y }; l.veios = null; } }
+// os valores de agora (para o desfazer): o que o desenho sorteava pela posição (o giro 0, o espelho e o desenho) entra explícito
+function campos(e, ks) {
+  const o = {}, r = e.ref;
+  for (const k of ks) {
+    if (k === "x" || k === "y") o[k] = r2(pos(e)[k]);
+    else if (k === "giro") o.giro = r.giro || 0;
+    else if (k === "esp") o.esp = r.esp !== undefined ? r.esp : hash(Math.round(r.x * 10), Math.round(r.y * 10), 32) < 0.5;
+    else if (k === "var") { const l = listaDeco(r); o.var = r.var !== undefined ? r.var : l ? indiceDeco(r, l) : 0; }
+    else if (r[k] !== undefined) o[k] = r[k];
+  }
+  return o;
+}
+function mudar(e, novo) {
+  const velho = campos(e, Object.keys(novo));
+  agir(e, () => aplicarCampos(e, novo), () => aplicarCampos(e, velho), { op: "mudar", id: e.id, cat: e.cat, ...novo });
+}
+function retirar(e) {
+  if (!e) return;
+  if (e.cat === "portal") { aviso("Os portais só mudam de lugar (sem eles, os mapas ficam sem saída)."); return; }
+  if (e.cat === "ghotin" && e.ref.regioes.length <= 1) { aviso("A última área de uma Ghotin fica: a pedra precisa de um lugar."); return; }
+  let volta;
+  if (e.cat === "spawn") { const i = SPAWNS.indexOf(e.ref); volta = () => { SPAWNS.splice(Math.min(i, SPAWNS.length), 0, e.ref); remontarSpawns(); }; agir(e, () => { SPAWNS.splice(SPAWNS.indexOf(e.ref), 1); remontarSpawns(); }, volta, { op: "remover", id: e.id, cat: e.cat }); }
+  else if (e.cat === "ghotin") { const i = e.ref._ids.indexOf(e.id), xy = e.ref.regioes[i]; agir(e, () => { const j = e.ref._ids.indexOf(e.id); e.ref.regioes.splice(j, 1); e.ref._ids.splice(j, 1); reposicionarPedras(e.ref); }, () => { e.ref.regioes.splice(i, 0, xy); e.ref._ids.splice(i, 0, e.id); reposicionarPedras(e.ref); }, { op: "remover", id: e.id, cat: e.cat }); }
+  else if (e.cat === "predio") agir(e, () => { edmRemoverPredio(e.ref); edmPredioMudou(); refazerGrade(); }, () => { PRED_LUGARES.push(e.ref); if (KIT_PREDIOS && predProntos) predAdicionar(e.ref); edmPredioMudou(); refazerGrade(); }, { op: "remover", id: e.id, cat: e.cat });
+  else agir(e, () => { const i = objetos.indexOf(e.ref); if (i >= 0) objetos.splice(i, 1); refazerGrade(); }, () => { objetos.push(e.ref); refazerGrade(); }, { op: "remover", id: e.id, cat: e.cat });
+  aviso(`Retirado: ${e.nome}`); X.sel = null; mudou();
+}
+const CAMPOS_DECO = ["esc", "tom", "flor", "alt", "fase", "forma", "cor", "var", "esp", "neve", "giro", "modelo"];
+// põe uma entidade nova (da paleta ou de um duplicar); devolve a entidade (já escolhida)
+function por(cat, tipo, x, y, extra = {}) {
+  const id = novoId(); let op = { op: "adicionar", id, cat, tipo, x: r2(x), y: r2(y), ...extra }, ref = null, fazer, desfazer;
+  if (cat === "spawn") {
+    if (!TIPOS[tipo]) return null;
+    op = { ...op, n: extra.n || 3, r: extra.r || 2.5, ...(extra.gg ? { gg: extra.gg } : {}) };
+    ref = { tipo, x: op.x, y: op.y, n: op.n, r: op.r, ...(extra.gg ? { gg: extra.gg } : {}), _id: id, editado: true };
+    fazer = () => { SPAWNS.push(ref); remontarSpawns(); }; desfazer = () => { const i = SPAWNS.indexOf(ref); if (i >= 0) SPAWNS.splice(i, 1); remontarSpawns(); };
+  } else if (cat === "ghotin") {
+    ref = METINS.find(m => m.tipo === tipo); if (!ref) return null;
+    fazer = () => { ref.regioes.push([op.x, op.y]); ref._ids.push(id); reposicionarPedras(ref); }; desfazer = () => { const i = ref._ids.indexOf(id); if (i >= 0) { ref.regioes.splice(i, 1); ref._ids.splice(i, 1); } reposicionarPedras(ref); };
+  } else if (cat === "predio") {
+    if (!KIT_PREDIOS || !KIT_PREDIOS[tipo]) return null;
+    ref = { id: tipo, x: op.x, y: op.y, _id: id, ...(X.mapa !== "vila1" && !X.mapa.startsWith("cav") ? { mapa: mapaDe(x, y).id } : {}) };
+    fazer = () => { PRED_LUGARES.push(ref); if (predProntos) predAdicionar(ref); edmPredioMudou(); refazerGrade(); }; desfazer = () => { edmRemoverPredio(ref); edmPredioMudou(); refazerGrade(); };
+  } else {
+    if (!COLISAO_PADRAO[tipo]) return null;
+    ref = edmNovoObj(op); if (!ref) return null;
+    fazer = () => { objetos.push(ref); refazerGrade(); }; desfazer = () => { const i = objetos.indexOf(ref); if (i >= 0) objetos.splice(i, 1); refazerGrade(); };
+  }
+  agir(null, fazer, desfazer, op);
+  const e = entidades().find(q => q.id === id); X.sel = e || null; painel(); return e;
+}
+function duplicar(e) {
+  if (!e) return;
+  if (e.cat === "npc" || e.cat === "portal") { aviso("NPCs e portais não se duplicam."); return; }
+  const { x, y } = pos(e), dx = 1.5, dy = -0.8;
+  let n;
+  if (e.cat === "spawn") n = por("spawn", e.ref.tipo, x + 3, y - 1.5, { n: e.ref.n, r: e.ref.r, ...(e.ref.gg ? { gg: e.ref.gg } : {}) });
+  else if (e.cat === "ghotin") n = por("ghotin", e.ref.tipo, x + METIN_AREA, y);
+  else if (e.cat === "predio") n = por("predio", e.ref.id, x + 8, y - 4);
+  else { const extra = {}; for (const k of CAMPOS_DECO) if (e.ref[k] !== undefined) extra[k] = Array.isArray(e.ref[k]) ? [...e.ref[k]] : e.ref[k]; const l = listaDeco(e.ref); if (l && extra.var === undefined) extra.var = indiceDeco(e.ref, l); n = por(e.cat === "natureza" ? "natureza" : "deco", e.ref.tipo, x + dx, y + dy, extra); }
+  if (n) aviso(`Duplicado: ${e.nome}`);
+}
+function girar(e) {
+  if (!e || !["natureza", "deco", "obj"].includes(e.cat)) { aviso("Só a decoração gira."); return; }
+  const o = e.ref, esp0 = o.esp !== undefined ? o.esp : hash(Math.round(o.x * 10), Math.round(o.y * 10), 32) < 0.5;
+  mudar(e, { giro: ((o.giro || 0) + 90) % 360, ...(SEM_ESPELHO.has(o.tipo) ? {} : { esp: !esp0 }) });
+  aviso(SEM_ESPELHO.has(o.tipo) ? "Girado (o giro aparece no mundo 3D; esta peça não espelha no 2D)." : "Girado (no 2D, espelhado).");
+}
+function variar(e) {
+  const l = e && ["natureza", "deco", "obj"].includes(e.cat) && listaDeco(e.ref); if (!l) { aviso("Esta peça tem um desenho só."); return; }
+  mudar(e, { var: (indiceDeco(e.ref, l) + 1) % l.length }); aviso(`Desenho ${(e.ref.var % l.length) + 1} de ${l.length}`);
+}
+
+// ---------------------------------------------------------------- a tela: o desenho por cima do mapa
+function texto(t, x, y, cor, fundo = "rgba(20, 16, 12, 0.82)") {
+  cx.font = "600 12px Tahoma, Verdana, sans-serif"; const w = cx.measureText(t).width + 8;
+  cx.fillStyle = fundo; cx.fillRect(x - w / 2, y - 16, w, 16); cx.fillStyle = cor; cx.textAlign = "center"; cx.textBaseline = "middle"; cx.fillText(t, x, y - 8);
+}
+function contorno(e, cor, larg) {
+  const b = caixa(e); cx.save(); cx.strokeStyle = cor; cx.lineWidth = larg; cx.setLineDash(e === X.sel ? [] : [5, 3]);
+  if (e.cat === "spawn" || e.cat === "ghotin" || e.cat === "portal") { const { x, y } = pos(e); circuloNoChao(x, y, raio(e), cor, false, larg); }
+  else cx.strokeRect(b[0], b[1], b[2] - b[0], b[3] - b[1]);
+  cx.restore();
+}
+X.desenhar = function () {
+  if (!X.ativo) return;
+  const s = PX * zoom, L = entidades();
+  cx.save();
+  if (X.grade) desenharGrade(s);
+  for (const e of L) {
+    if (!visivel(e)) continue;
+    const { x, y } = pos(e), [Xs, Ys] = naTela(x, y), cor = CATS[e.cat].cor;
+    if (Xs < -400 || Xs > W + 400 || Ys < -400 || Ys > H + 400) continue;
+    if (e.cat === "spawn") { circuloNoChao(x, y, e.ref.r, cor, true, 1.6); cx.fillStyle = cor; cx.beginPath(); cx.arc(Xs, Ys, 4, 0, 7); cx.fill(); if (zoom > 0.55) texto(e.nome, Xs, Ys - 6, cor); }
+    else if (e.cat === "ghotin") { circuloNoChao(x, y, METIN_AREA, "rgba(176, 124, 255, 0.55)", true, 1.2); cx.fillStyle = cor; cx.beginPath(); cx.moveTo(Xs, Ys - 7); cx.lineTo(Xs + 6, Ys); cx.lineTo(Xs, Ys + 7); cx.lineTo(Xs - 6, Ys); cx.fill(); if (zoom > 0.55) texto(e.nome, Xs, Ys - 9, cor); }
+    else if (e.cat === "portal") { circuloNoChao(x, y, 1.6, cor, true, 1.6); }
+    else if (e.cat === "predio") { const p = edmPredioInst(e.ref); if (p) { const [a, b, c, d] = p.base, P = [naTela(a, c), naTela(b, c), naTela(b, d), naTela(a, d)]; cx.strokeStyle = cor; cx.lineWidth = 1.3; cx.setLineDash([6, 4]); cx.beginPath(); P.forEach(([u, v], i) => i ? cx.lineTo(u, v) : cx.moveTo(u, v)); cx.closePath(); cx.stroke(); cx.setLineDash([]); } }
+    else { cx.fillStyle = cor; cx.strokeStyle = "rgba(20, 16, 12, 0.9)"; cx.lineWidth = 1.5; cx.beginPath(); cx.arc(Xs, Ys, e.cat === "npc" ? 5.5 : 4, 0, 7); cx.fill(); cx.stroke(); }   // (o pé de cada peça: um ponto com contorno, que se vê no mato)
+  }
+  if (X.hover && X.hover !== X.sel && visivel(X.hover)) { contorno(X.hover, "#fff3c8", 1.6); const b = caixa(X.hover); texto(`${X.hover.nome} · ${X.hover.id}`, (b[0] + b[2]) / 2, b[1] - 2, "#fff3c8"); }
+  if (X.sel) { contorno(X.sel, "#ffd27a", 2.6); const b = caixa(X.sel); texto(`${X.sel.nome} · ${X.sel.id}`, (b[0] + b[2]) / 2, b[1] - 2, "#ffd27a"); }
+  if (X.pondo && editor.mouse) { const [u, v] = naTela(editor.mouse.x, editor.mouse.y); circuloNoChao(editor.mouse.x, editor.mouse.y, X.pondo.cat === "spawn" ? 2.5 : X.pondo.cat === "ghotin" ? METIN_AREA : 0.6, "rgba(140, 220, 255, 0.95)", true, 2); texto("pôr: " + X.pondo.nome, u, v - 8, "#9fe0ff"); }
+  cx.restore();
+};
+function desenharGrade(s) {
+  const c = [doPonteiro(0, 0), doPonteiro(W, 0), doPonteiro(0, H), doPonteiro(W, H)];
+  const x0 = Math.floor(Math.min(...c.map(p => p.x)) / 10) * 10, x1 = Math.max(...c.map(p => p.x)), y0 = Math.floor(Math.min(...c.map(p => p.y)) / 10) * 10, y1 = Math.max(...c.map(p => p.y));
+  cx.strokeStyle = "rgba(255, 255, 255, 0.28)"; cx.lineWidth = 1;
+  for (let x = x0; x <= x1; x += 10) { const [a, b] = naTela(x, y0), [c2, d] = naTela(x, y1); cx.beginPath(); cx.moveTo(a, b); cx.lineTo(c2, d); cx.stroke(); }
+  for (let y = y0; y <= y1; y += 10) { const [a, b] = naTela(x0, y), [c2, d] = naTela(x1, y); cx.beginPath(); cx.moveTo(a, b); cx.lineTo(c2, d); cx.stroke(); }
+}
+
+// ---------------------------------------------------------------- o mouse no mapa
+function ponto(ev) { const r = cv.getBoundingClientRect(), px = ev.clientX - r.left, py = ev.clientY - r.top; return { px, py, ...doPonteiro(px, py) }; }
+cv.addEventListener("pointerdown", ev => {
+  if (!X.ativo || X.visao) return;
+  const p = ponto(ev);
+  if (ev.button === 2 || ev.button === 1) { X.arrasto = { tipo: "camera", px: p.px, py: p.py, fx: editor.foco.x, fy: editor.foco.y }; cv.setPointerCapture(ev.pointerId); return; }
+  if (X.pondo) { const n = por(X.pondo.cat, X.pondo.tipo, p.x, p.y); aviso(n ? `Posto: ${X.pondo.nome}` : "Não deu para pôr isto aqui."); return; }
+  const e = noPonto(p.px, p.py);
+  X.sel = e; painel();
+  if (e) { const q = pos(e); X.arrasto = { tipo: "mover", e, dx: q.x - p.x, dy: q.y - p.y, x0: q.x, y0: q.y }; cv.setPointerCapture(ev.pointerId); }
+  else { X.arrasto = { tipo: "camera", px: p.px, py: p.py, fx: editor.foco.x, fy: editor.foco.y }; cv.setPointerCapture(ev.pointerId); }
+});
+cv.addEventListener("pointermove", ev => {
+  if (!X.ativo || X.visao) return;
+  const p = ponto(ev); editor.mouse = p;
+  const a = X.arrasto;
+  if (!a) { X.hover = noPonto(p.px, p.py); cv.style.cursor = X.hover ? "pointer" : ""; return; }
+  if (a.tipo === "camera") { const [dx, dy] = daVista((p.px - a.px) / (PX * zoom), -(p.py - a.py) / (PX * zoom * ACHATA)); editor.foco.x = a.fx - dx; editor.foco.y = a.fy - dy; return; }
+  // movendo: o objeto anda junto (a operação e o desfazer entram ao soltar)
+  const x = p.x + a.dx, y = p.y + a.dy, e = a.e; a.mudou = true;
+  if (e.cat === "spawn" || e.cat === "portal") { e.ref.x = x; e.ref.y = y; }
+  else if (e.cat === "ghotin") { const i = e.ref._ids.indexOf(e.id); e.ref.regioes[i] = [x, y]; }
+  else if (e.cat === "predio") edmMudarPredio(e.ref, { x, y });
+  else edmMudarObj(e.ref, { x, y });
+  painelSel();
+});
+const soltar = () => {
+  const a = X.arrasto; X.arrasto = null; if (!a || a.tipo !== "mover" || !a.mudou) return;
+  const e = a.e, q = pos(e), novo = { x: r2(q.x), y: r2(q.y) }, velho = { x: r2(a.x0), y: r2(a.y0) };
+  aplicarCampos(e, velho);                                            // (volta, para a ação fazer de verdade e guardar o desfazer)
+  mudar(e, novo); aviso(`Movido: ${e.nome} para ${novo.x.toFixed(1)}, ${novo.y.toFixed(1)}`);
+};
+cv.addEventListener("pointerup", soltar); cv.addEventListener("pointercancel", soltar);
+
+// ---------------------------------------------------------------- o teclado (o index chama EDMX.tecla antes do editor antigo)
+X.tecla = function (ev, k) {
+  if (!X.ativo) return false;
+  const ctrl = ev.ctrlKey || ev.metaKey;
+  if (ctrl && k === "z" && !ev.shiftKey) { ev.preventDefault(); desfazerUm(); return true; }
+  if (ctrl && (k === "y" || (k === "z" && ev.shiftKey))) { ev.preventDefault(); refazerUm(); return true; }
+  if (ctrl && k === "d") { ev.preventDefault(); duplicar(X.sel); return true; }
+  if (k === "delete" || k === "backspace") { ev.preventDefault(); retirar(X.sel); return true; }
+  if (ev.repeat) return ["r", "v", "m", "g"].includes(k);
+  if (k === "r" && !ctrl) { girar(X.sel); return true; }
+  if (k === "v" && !ctrl) { variar(X.sel); return true; }
+  if (k === "m" && !ctrl) { visaoInteira(!X.visao); return true; }
+  if (k === "g" && !ctrl) { X.grade = !X.grade; painel(); return true; }
+  if (k === "escape") { ev.preventDefault(); if (X.visao) visaoInteira(false); else { X.sel = null; X.pondo = null; painel(); aviso(""); } return true; }
+  return false;                                                       // (WASD e as setas: a câmera do editor de antes)
+};
+
+// ---------------------------------------------------------------- abrir, trocar de mapa
+X.abrir = function (sim) {
+  X.ativo = sim; $e("edmPainel").hidden = !sim; X.sel = X.hover = X.pondo = null; X.arrasto = null;
+  document.body.classList.toggle("edm-aberto", sim);                 // (o livro de teste e as dicas do canto saem da frente)
+  if (!sim) { visaoInteira(false); cv.style.cursor = ""; return; }
+  X.mapa = edmMapaDe(viking.x, viking.y); garantirIds(); X.versao++;
+  remontarSpawns();                                                   // (as criaturas paradas nos pontos de nascimento)
+  painel(); aviso("Editor de mapas: clique para escolher, arraste para mover. M: o mapa inteiro.");
+};
+function irPara(mapa) {
+  let x, y;
+  if (mapa.startsWith("cav:")) {
+    const d = DUNGEONS.find(q => "cav:" + q.id === mapa); if (!d) return;
+    if (d.vale) montarMapa("daiyu");
+    const s0 = (d.salas || [])[0] || { x: 0, y: 0 }; x = d.x + s0.x; y = d.y + s0.y;
+  } else {
+    const id = mapa === "hahoe2" ? "hahoe" : mapa; montarMapa(id);
+    [x, y] = pontoSeguro(MAPAS[id]); if (prog) { prog.mapa = id; salvarProgresso(); }
+  }
+  Object.assign(viking, { x, y, alvo: null, rota: null }); editor.foco = { x, y };
+  X.mapa = edmMapaDe(x, y); X.sel = null; garantirIds(); X.versao++; remontarSpawns(); painel();
+  aviso("Você está em: " + (mapasLista().find(([k]) => k === mapa || (k === "hahoe" && mapa === "hahoe2")) || [, mapa])[1]);
+}
+
+// ---------------------------------------------------------------- a visão do mapa inteiro (M): os pontos de tudo, a grade, o clique leva lá
+function limitesMapa() {
+  const L = entidades(); let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const e of L) { const { x, y } = pos(e), r = raio(e); x0 = Math.min(x0, x - r); x1 = Math.max(x1, x + r); y0 = Math.min(y0, y - r); y1 = Math.max(y1, y + r); }
+  const id = X.mapa === "hahoe2" ? "hahoe" : X.mapa, M = MAPAS[id];
+  if (M && M.rCosta) for (let k = 0; k < 72; k++) { const a = k / 72 * 6.283, r = M.rCosta(a), x = M.ox + Math.cos(a) * r, y = M.oy + Math.sin(a) * r; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  if (!isFinite(x0)) { x0 = viking.x - 50; x1 = viking.x + 50; y0 = viking.y - 50; y1 = viking.y + 50; }
+  return [x0 - 5, x1 + 5, y0 - 5, y1 + 5];
+}
+function visaoInteira(sim) {
+  X.visao = sim; const c = $e("edmVisao"); c.hidden = !sim; $e("edmVisaoBt").setAttribute("aria-pressed", sim); if (!sim) return;
+  desenharVisao();
+}
+function desenharVisao() {
+  const c = $e("edmVisao"), r = c.getBoundingClientRect(); c.width = Math.round(r.width); c.height = Math.round(r.height);
+  const g = c.getContext("2d"), [x0, x1, y0, y1] = limitesMapa(), k = Math.min((c.width - 40) / (x1 - x0), (c.height - 40) / (y1 - y0));
+  const ox = (c.width - (x1 - x0) * k) / 2, oy = (c.height - (y1 - y0) * k) / 2, T = (x, y) => [ox + (x - x0) * k, oy + (y1 - y) * k];   // (o norte em cima)
+  X.visaoT = { x0, y1, k, ox, oy };
+  g.fillStyle = "#EFE4CC"; g.fillRect(0, 0, c.width, c.height);
+  const id = X.mapa === "hahoe2" ? "hahoe" : X.mapa, M = MAPAS[id];
+  if (M && M.rCosta) { g.fillStyle = "#D9CBA6"; g.strokeStyle = "#1E1B18"; g.lineWidth = 1.5; g.beginPath(); for (let q = 0; q <= 180; q++) { const a = q / 180 * 6.283, rr = M.rCosta(a), [u, v] = T(M.ox + Math.cos(a) * rr, M.oy + Math.sin(a) * rr); q ? g.lineTo(u, v) : g.moveTo(u, v); } g.fill(); g.stroke(); }
+  const passo = X.grade ? 10 : 50; g.strokeStyle = X.grade ? "rgba(30, 27, 24, 0.18)" : "rgba(30, 27, 24, 0.1)"; g.lineWidth = 1;
+  for (let x = Math.ceil(x0 / passo) * passo; x < x1; x += passo) { const [u] = T(x, 0); g.beginPath(); g.moveTo(u, 0); g.lineTo(u, c.height); g.stroke(); }
+  for (let y = Math.ceil(y0 / passo) * passo; y < y1; y += passo) { const [, v] = T(0, y); g.beginPath(); g.moveTo(0, v); g.lineTo(c.width, v); g.stroke(); }
+  for (const e of entidades()) {
+    if (!visivel(e)) continue;
+    const { x, y } = pos(e), [u, v] = T(x, y); g.fillStyle = CATS[e.cat].cor; g.strokeStyle = "rgba(30, 27, 24, 0.7)";
+    if (e.cat === "spawn" || e.cat === "ghotin") { g.globalAlpha = 0.28; g.beginPath(); g.arc(u, v, Math.max(3, raio(e) * k), 0, 7); g.fill(); g.globalAlpha = 1; g.beginPath(); g.arc(u, v, 3.2, 0, 7); g.fill(); g.stroke(); }
+    else if (e.cat === "predio" || e.cat === "portal" || e.cat === "npc") { g.fillRect(u - 3.5, v - 3.5, 7, 7); g.strokeRect(u - 3.5, v - 3.5, 7, 7); }
+    else { g.beginPath(); g.arc(u, v, 1.8, 0, 7); g.fill(); }
+  }
+  const [hu, hv] = T(editor.foco.x, editor.foco.y); g.strokeStyle = "#B8322A"; g.lineWidth = 2; g.beginPath(); g.arc(hu, hv, 9, 0, 7); g.stroke();
+  g.fillStyle = "#1E1B18"; g.font = "600 13px Tahoma, Verdana, sans-serif"; g.textAlign = "left"; g.textBaseline = "top";
+  g.fillText(`${(mapasLista().find(([q]) => q === X.mapa || (q === "hahoe" && X.mapa === "hahoe2")) || [, X.mapa])[1]} · grade de ${passo} m · clique para ir · M ou Esc fecham`, 12, 10);
+}
+function cliqueVisao(ev) {
+  const t = X.visaoT; if (!t) return;
+  const r = ev.target.getBoundingClientRect(), u = ev.clientX - r.left, v = ev.clientY - r.top, x = t.x0 + (u - t.ox) / t.k, y = t.y1 - (v - t.oy) / t.k;
+  editor.foco = { x, y }; visaoInteira(false); aviso(`Câmera em ${x.toFixed(0)}, ${y.toFixed(0)}`);
+}
+
+// ---------------------------------------------------------------- o painel
+function aviso(t) { const a = $e("edmAviso"); if (a) a.textContent = t; }
+function contagens() {
+  const L = entidades(), por = {}, zonas = new Map(), tipos = new Map();
+  for (const e of L) {
+    const c = por[e.cat] || (por[e.cat] = { n: 0, bichos: 0 }); c.n++;
+    if (e.cat === "spawn") {
+      c.bichos += e.ref.n;
+      const z = typeof nomeRegiao === "function" ? nomeRegiao(e.ref.x, e.ref.y) : "—", q = zonas.get(z) || { grupos: 0, bichos: 0 }; q.grupos++; q.bichos += e.ref.n; zonas.set(z, q);
+    }
+    const tk = CATS[e.cat].nome + ": " + (e.cat === "spawn" ? nomeCriatura(e.tipo) : e.cat === "ghotin" ? e.ref.nome : e.cat === "npc" ? "NPC" : String(e.tipo).replace(/_/g, " "));
+    tipos.set(tk, (tipos.get(tk) || 0) + (e.cat === "spawn" ? e.ref.n : 1));
+  }
+  return { por, zonas, tipos };
+}
+const escH2 = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function painel() {
+  if (!$e("edmPainel")) return;
+  const C = contagens();
+  $e("edmFiltros").innerHTML = Object.entries(CATS).map(([k, c]) => {
+    const q = C.por[k] || { n: 0, bichos: 0 };
+    return `<label><input type="checkbox" data-filtro="${k}" ${X.filtros[k] ? "checked" : ""}><i style="background:${c.cor}"></i>${c.nome} <b>${q.n}${k === "spawn" ? ` (${q.bichos})` : ""}</b></label>`;
+  }).join("") + `<label><input type="checkbox" id="edmGrade" ${X.grade ? "checked" : ""}> Grade de 10 m (G)</label>`;
+  $e("edmZonas").innerHTML = `<table><tr><th>Zona</th><th>Grupos</th><th>Bichos</th></tr>${[...C.zonas].sort((a, b) => b[1].bichos - a[1].bichos).map(([z, q]) => `<tr><td>${escH2(z)}</td><td>${q.grupos}</td><td>${q.bichos}</td></tr>`).join("")}</table>
+    <table><tr><th>Tipo</th><th>Qtd.</th></tr>${[...C.tipos].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([t, n]) => `<tr><td>${escH2(t)}</td><td>${n}</td></tr>`).join("")}</table>`;
+  $e("edmMapa").value = X.mapa === "hahoe2" ? "hahoe" : X.mapa;
+  $e("edmDesfazer").disabled = !X.desfazer.length; $e("edmRefazer").disabled = !X.refazer.length;
+  const n = Object.keys(localStorage).filter(k => k.startsWith(EDM_CHAVE)).reduce((a, k) => a + opsDe(k.slice(EDM_CHAVE.length)).length, 0);
+  $e("edmCopiar").textContent = `Copiar mudanças (${n})`;
+  painelSel(); paleta();
+  if (X.visao) desenharVisao();
+}
+function painelSel() {
+  const e = X.sel, box = $e("edmSel"); box.hidden = !e; if (!e) return;
+  const { x, y } = pos(e);
+  $e("edmSelNome").textContent = e.nome; $e("edmSelId").textContent = `${CATS[e.cat].nome} · ${e.id} · ${x.toFixed(1)}, ${y.toFixed(1)}`;
+  const sp = e.cat === "spawn"; $e("edmGrupo").hidden = !sp;
+  if (sp) { $e("edmN").value = e.ref.n; $e("edmR").value = e.ref.r; $e("edmGG").textContent = e.ref.gg ? `grupo do Metin2: ${e.ref.gg}` : ""; }
+  const deco = ["natureza", "deco", "obj"].includes(e.cat);
+  $e("edmGirar").disabled = !deco; $e("edmVariar").disabled = !deco || !listaDeco(e.ref); $e("edmDuplicar").disabled = e.cat === "npc" || e.cat === "portal"; $e("edmRetirar").disabled = e.cat === "portal";
+}
+// a paleta: todas as criaturas, as peças de decoração, os prédios do kit e as áreas das Ghotins
+function itensPaleta(aba) {
+  if (aba === "spawn") return Object.keys(TIPOS).filter(t => !TIPOS[t].estatico && (TIPOS[t].M || TIPOS[t].spr || TIPOS[t].base)).sort((a, b) => (TIPOS[a].nivel || 0) - (TIPOS[b].nivel || 0)).map(t => ({ cat: "spawn", tipo: t, nome: `${nomeCriatura(t)} · ${TIPOS[t].nivel || "?"}` }));
+  if (aba === "deco") return DECORACAO.map(t => ({ cat: EDM_NATUREZA.has(t) ? "natureza" : "deco", tipo: t, nome: NOME_TIPO[t] || t.replace(/_/g, " ") }));
+  if (aba === "predio") return KIT_PREDIOS ? Object.keys(KIT_PREDIOS).filter(k => !k.startsWith("B_")).sort().map(k => ({ cat: "predio", tipo: k, nome: k.replace(/_/g, " ") })) : [];
+  return METINS.map(m => ({ cat: "ghotin", tipo: m.tipo, nome: `${m.nome} · ${m.nivel}` }));
+}
+let abaPaleta = "spawn";
+function paleta() {
+  const busca = ($e("edmBusca").value || "").toLowerCase(), l = itensPaleta(abaPaleta).filter(i => !busca || i.nome.toLowerCase().includes(busca) || i.tipo.includes(busca));
+  for (const b of document.querySelectorAll("#edmAbas button")) b.setAttribute("aria-pressed", b.dataset.aba === abaPaleta);
+  $e("edmLista").innerHTML = l.slice(0, 300).map(i => `<button type="button" data-por="${i.cat}|${i.tipo}" aria-pressed="${!!(X.pondo && X.pondo.tipo === i.tipo && X.pondo.cat === i.cat)}">${escH2(i.nome)}</button>`).join("") || "<p>Nada com esse nome.</p>";
+}
+async function copiarMudancas() {
+  const mapas = {};
+  for (const k of Object.keys(localStorage)) if (k.startsWith(EDM_CHAVE)) { const l = opsDe(k.slice(EDM_CHAVE.length)); if (l.length) mapas[k.slice(EDM_CHAVE.length)] = l; }
+  const txt = JSON.stringify({ versao: 1, jogo: "Ghotin2", tipo: "mudancas_mapa", data: new Date().toISOString(), mapas });
+  X.ultimoTexto = txt;
+  try { await navigator.clipboard.writeText(txt); aviso(`Mudanças copiadas (${(txt.length / 1024).toFixed(1)} KB, ${Object.keys(mapas).length} mapa(s)): cole na conversa.`); }
+  catch (e) { const t = $e("edmTexto"); t.hidden = false; t.value = txt; t.focus(); t.select(); aviso("Não deu para copiar sozinho: o texto está selecionado na caixa, copie com Ctrl+C."); }
+  return txt;
+}
+X.copiarMudancas = copiarMudancas;
+function descartarMapa() {
+  const b = $e("edmDescartar");
+  if (!b._conf || performance.now() - b._conf > 3000) { b._conf = performance.now(); b.textContent = "Clique de novo para descartar"; aviso("Isso apaga as mudanças deste mapa guardadas neste navegador."); return; }
+  b._conf = 0; b.textContent = "Descartar as deste mapa"; salvarOps(X.mapa, []); X.desfazer.length = X.refazer.length = 0;
+  aviso("Mudanças deste mapa apagadas. Recarregue a página (F5) para ver o mapa sem elas."); painel();
+}
+
+// ---------------------------------------------------------------- monta o painel e a tela da visão (CSS próprio, no papel e nanquim)
+function montar() {
+  const css = document.createElement("style");
+  css.textContent = `
+  #edmPainel { position: fixed; z-index: 60; left: 12px; top: 64px; width: 316px; max-height: calc(100vh - 170px); overflow-y: auto; padding: 10px 12px; box-sizing: border-box;
+    background: #EFE4CC; color: #1E1B18; border: 2px solid #1E1B18; border-radius: 4px; box-shadow: 0 8px 22px rgba(0,0,0,0.45); font: 13px/1.35 Tahoma, Verdana, sans-serif; }
+  #edmPainel h2 { margin: 0 0 6px; font-size: 17px; display: flex; justify-content: space-between; align-items: center; }
+  #edmPainel h3 { margin: 10px 0 4px; font-size: 13px; color: #8E2721; }
+  #edmPainel button { font: 12px Tahoma, Verdana, sans-serif; padding: 3px 7px; margin: 0 3px 3px 0; background: #F7EFDC; border: 1px solid #1E1B18; border-radius: 3px; cursor: pointer; color: #1E1B18; }
+  #edmPainel button[aria-pressed="true"] { background: #3E7A5C; color: #fff; }
+  #edmPainel button:disabled { opacity: 0.4; cursor: default; }
+  #edmPainel select, #edmPainel input[type=search], #edmPainel input[type=number] { font: 12px Tahoma, Verdana, sans-serif; padding: 2px 4px; border: 1px solid #1E1B18; background: #fff; color: #1E1B18; height: auto; min-height: 22px; }
+  #edmPainel select { width: calc(100% - 40px); }
+  #edmFiltros label { display: flex; align-items: center; gap: 5px; margin: 1px 0; }
+  #edmFiltros i { display: inline-block; width: 10px; height: 10px; border: 1px solid #1E1B18; border-radius: 50%; }
+  #edmFiltros b { margin-left: auto; font-weight: 600; }
+  #edmLista { max-height: 150px; overflow-y: auto; border: 1px solid rgba(30,27,24,0.4); padding: 4px; background: rgba(255,255,255,0.35); }
+  #edmZonas table { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 11.5px; }
+  #edmZonas th { text-align: left; border-bottom: 1px solid #1E1B18; } #edmZonas td:nth-child(n+2), #edmZonas th:nth-child(n+2) { text-align: right; }
+  #edmSel { border: 1px solid #C9963E; padding: 6px; margin-top: 6px; background: rgba(201,150,62,0.12); }
+  #edmSelId { font-size: 11px; color: #5a4a30; word-break: break-all; }
+  #edmTexto { width: 100%; height: 70px; font: 11px monospace; }
+  #edmAviso { min-height: 16px; font-size: 12px; color: #2D4A8B; margin: 6px 0 0; }
+  body.edm-aberto #livro, body.edm-aberto .dica-carta, body.edm-aberto #dicaCarta { display: none !important; }
+  #edmVisao { position: fixed; z-index: 59; left: 340px; top: 64px; width: calc(100vw - 356px); height: calc(100vh - 160px); border: 2px solid #1E1B18; border-radius: 4px; cursor: crosshair; }`;
+  document.head.appendChild(css);
+  const p = document.createElement("aside"); p.id = "edmPainel"; p.hidden = true; p.setAttribute("aria-label", "Editor de mapas");
+  p.innerHTML = `<h2>Editor de mapas <button type="button" id="edmFechar">Fechar (O)</button></h2>
+    <div><select id="edmMapa" aria-label="Mapa">${mapasLista().map(([k, n]) => `<option value="${k}">${escH2(n)}</option>`).join("")}</select> <button type="button" id="edmIr">Ir</button>
+      <button type="button" id="edmVisaoBt" aria-pressed="false">Mapa inteiro (M)</button></div>
+    <div><button type="button" id="edmDesfazer">Desfazer (Ctrl+Z)</button><button type="button" id="edmRefazer">Refazer (Ctrl+Y)</button></div>
+    <div id="edmSel" hidden><b id="edmSelNome"></b><div id="edmSelId"></div>
+      <div id="edmGrupo" hidden>Quantos <input type="number" id="edmN" min="1" max="40" step="1" style="width:52px"> Raio (m) <input type="number" id="edmR" min="0.3" max="15" step="0.5" style="width:58px"> <small id="edmGG"></small></div>
+      <div><button type="button" id="edmGirar">Girar (R)</button><button type="button" id="edmVariar">Variação (V)</button><button type="button" id="edmDuplicar">Duplicar (Ctrl+D)</button><button type="button" id="edmRetirar">Retirar (Del)</button></div></div>
+    <h3>Adicionar (escolha e clique no chão)</h3>
+    <div id="edmAbas"><button type="button" data-aba="spawn">Criaturas</button><button type="button" data-aba="deco">Enfeites e peças</button><button type="button" data-aba="predio">Prédios</button><button type="button" data-aba="ghotin">Ghotins</button></div>
+    <input type="search" id="edmBusca" placeholder="Procurar…" aria-label="Procurar na paleta" style="width:100%;box-sizing:border-box;margin:3px 0">
+    <div id="edmLista"></div>
+    <h3>O que aparece (e quantos neste mapa)</h3><div id="edmFiltros"></div>
+    <details><summary>Contagem por zona e por tipo</summary><div id="edmZonas"></div></details>
+    <h3>Mandar as mudanças</h3>
+    <div><button type="button" id="edmCopiar">Copiar mudanças</button><button type="button" id="edmDescartar">Descartar as deste mapa</button></div>
+    <textarea id="edmTexto" hidden aria-label="Mudanças em texto"></textarea>
+    <p id="edmAviso" role="status"></p>`;
+  document.body.appendChild(p);
+  const v = document.createElement("canvas"); v.id = "edmVisao"; v.hidden = true; v.setAttribute("aria-label", "O mapa inteiro"); document.body.appendChild(v);
+  v.addEventListener("click", cliqueVisao);
+  $e("edmFechar").onclick = () => editorAbrir(false);
+  $e("edmIr").onclick = () => irPara($e("edmMapa").value === "hahoe" && HAHOE2 ? "hahoe2" : $e("edmMapa").value);
+  $e("edmVisaoBt").onclick = () => visaoInteira(!X.visao);
+  $e("edmDesfazer").onclick = desfazerUm; $e("edmRefazer").onclick = refazerUm;
+  $e("edmGirar").onclick = () => girar(X.sel); $e("edmVariar").onclick = () => variar(X.sel);
+  $e("edmDuplicar").onclick = () => duplicar(X.sel); $e("edmRetirar").onclick = () => retirar(X.sel);
+  $e("edmN").onchange = ev => { const e = X.sel; if (e && e.cat === "spawn") mudar(e, { n: Math.max(1, Math.min(40, Math.round(+ev.target.value || 1))) }); };
+  $e("edmR").onchange = ev => { const e = X.sel; if (e && e.cat === "spawn") mudar(e, { r: Math.max(0.3, Math.min(15, +ev.target.value || 1.6)) }); };
+  $e("edmAbas").onclick = ev => { const b = ev.target.closest("[data-aba]"); if (b) { abaPaleta = b.dataset.aba; paleta(); } };
+  $e("edmBusca").oninput = paleta;
+  $e("edmLista").onclick = ev => {
+    const b = ev.target.closest("[data-por]"); if (!b) return;
+    const [cat, tipo] = b.dataset.por.split("|"), item = itensPaleta(abaPaleta).find(i => i.cat === cat && i.tipo === tipo);
+    X.pondo = X.pondo && X.pondo.tipo === tipo && X.pondo.cat === cat ? null : item; X.sel = null; paleta(); painelSel();
+    aviso(X.pondo ? `Clique no chão para pôr: ${item.nome} (Esc para parar)` : "");
+  };
+  $e("edmFiltros").onchange = ev => { const f = ev.target.dataset.filtro; if (f) X.filtros[f] = ev.target.checked; if (ev.target.id === "edmGrade") X.grade = ev.target.checked; X.hover = null; painel(); };
+  $e("edmCopiar").onclick = copiarMudancas; $e("edmDescartar").onclick = descartarMapa;
+  // (os campos do painel não mandam o teclado para o jogo)
+  p.addEventListener("keydown", ev => { if (["INPUT", "SELECT", "TEXTAREA"].includes(ev.target.tagName)) ev.stopPropagation(); });
+}
+montar();
+X.irPara = irPara; X.entidades = entidades; X.por = por; X.retirar = retirar; X.duplicar = duplicar; X.mudar = mudar; X.girar = girar; X.variar = variar;
+X.desfazerUm = desfazerUm; X.refazerUm = refazerUm; X.visaoInteira = visaoInteira; X.opsDe = opsDe; X.CATS = CATS;
+if (editor.ativo) X.abrir(true);
+})();
+
 </script>
 
 </body>
