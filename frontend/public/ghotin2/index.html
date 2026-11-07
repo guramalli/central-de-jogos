@@ -1676,7 +1676,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.86 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.87 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -6661,7 +6661,7 @@ const B_DIRETO = new Set(["entrada", "metin", "fogo", "escada", "lanterna", "bam
 const Som = { ctx: null, saida: null, ruido: null, ligado: true, volume: 0.7, arq: null, buf: {}, musica: null, musicaLigada: true };
 // volumes do menu de opções (0 a 1): o geral vale para tudo; a música, os efeitos (golpes, magias, criaturas), o ambiente
 // (natureza, chuva, fogueira) e a interface (janelas e cliques) têm cada um o seu
-const VOL_PADRAO = { geral: 1, musica: 0.6, efeitos: 1, ambiente: 1, interface: 1 };
+const VOL_PADRAO = { geral: 1, musica: 0.6, efeitos: 1, ambiente: 1, interface: 1, vozes: 1 };   // (vozes: os gritos das skills, v0.87; ganho VOZ_GANHO)
 Som.vol = { ...VOL_PADRAO };
 try {
   Som.ligado = localStorage.getItem("som") !== "0"; Som.musicaLigada = localStorage.getItem("musica") !== "0";
@@ -6675,6 +6675,7 @@ function aplicarVolumes() {
   if (Som.saida) Som.saida.gain.value = Som.ligado ? Som.volume * Som.vol.geral : 0;
   if (Som.efG) Som.efG.gain.value = Som.vol.efeitos;
   if (Som.uiG) Som.uiG.gain.value = Som.vol.interface;
+  if (Som.vozG) Som.vozG.gain.value = Som.vol.vozes * VOZ_GANHO;   // (as vozes das skills: 1 na barra = ~1,6 de ganho)
   if (typeof Amb !== "undefined" && Amb.saida) Amb.saida.gain.value = AMB_VOL * Som.vol.ambiente;
   // (a música: o volume de cada faixa é posto a cada quadro no passoMusica)
 }
@@ -6778,6 +6779,44 @@ function musicaAlternar() {
   const b = $("#bMusica"); b.setAttribute("aria-pressed", Som.musicaLigada); b.textContent = Som.musicaLigada ? "música ligada" : "música desligada";
   musica(); mostrarOpcoes();
 }
+// ---- as vozes das skills (v0.87, R335; o usuário, 07/11: "Ficou mto bom o audio, pode colocar"; Logs/Vozes/INTEGRAR_VOZES.md):
+// cada classe grita na língua da sua era; por enquanto só o Viking, em nórdico antigo ("muito agressivo", sons/vozes/, do
+// Logs/Vozes/viking_muito_agressivo). skill → [arquivo, quantos gritos]; 0 = um arquivo só (o Corte Triplo: a contagem
+// "Einn! Tveir! Þrír!", presa aos 3 cortes). Só nas 5 skills (nunca no golpe comum), 40% de chance por uso, 1,5 s no mínimo
+// entre duas falas, o grito sorteado entre os da skill (nunca o mesmo duas vezes seguidas). Voz.log guarda cada decisão
+// (os testes leem; no MODO_TESTE nada toca, como o som())
+const VOZES = { viking: { "Fúria": ["furia", 2], "Vórtice": ["vortice", 3], "Lâmina Espiritual": ["lamina", 3], "Corte Triplo": ["triplo_contagem", 0], "Investida": ["investida", 2] } };
+const VOZ_CHANCE = 0.4, VOZ_INTERVALO = 1500, VOZ_GANHO = 1.6;   // (no ganho 1, a voz empatava ou ficava abaixo do Vórtice e do Corte Triplo)
+const Voz = { buf: {}, ultima: {}, desde: -1e9, log: [] };
+const nomesVoz = (cl, slug, q) => q ? Array.from({ length: q }, (_, n) => `${cl}_${slug}_${n + 1}`) : [`${cl}_${slug}`];
+async function carregarVozes(cl) {
+  const m = VOZES[cl]; if (!m || !Som.ctx) return;
+  for (const [slug, q] of Object.values(m)) for (const k of nomesVoz(cl, slug, q)) {
+    if (Voz.buf[k]) continue;
+    const arq = `sons/vozes/${k}.mp3`;
+    try { Voz.buf[k] = await Som.ctx.decodeAudioData(await (await fetch(VERSOES.com ? VERSOES.com(arq) : arq)).arrayBuffer()); } catch (e) {}
+  }
+}
+// a voz de uma skill: decide (classe, chance, intervalo, o grito) e toca; atraso em s (o Corte Triplo com a espada nas costas: o
+// 1º golpe é o sacar_golpe, que corta 94 ms mais tarde). Devolve o grito escolhido, ou null
+function vozSkill(nomeSkill, atraso = 0) {
+  if (classe !== "viking") return null;                                 // (o iniciarVortice serve também ao guerreiro do machado)
+  const [slug, q] = (VOZES[classe] || {})[nomeSkill] || []; if (!slug) return null;
+  const agora = performance.now();
+  if (agora - Voz.desde < VOZ_INTERVALO) { Voz.log.push({ skill: nomeSkill, t: agora, toca: false, por: "intervalo" }); return null; }
+  if (Math.random() >= VOZ_CHANCE) { Voz.log.push({ skill: nomeSkill, t: agora, toca: false, por: "chance" }); return null; }
+  const ks = nomesVoz(classe, slug, q);
+  let i = Math.floor(Math.random() * ks.length);
+  if (ks.length > 1 && ks[i] === Voz.ultima[slug]) i = (i + 1) % ks.length;   // (nunca a mesma duas vezes seguidas)
+  Voz.ultima[slug] = ks[i]; Voz.desde = agora;
+  Voz.log.push({ skill: nomeSkill, t: agora, toca: true, grito: ks[i], atraso });
+  if (Voz.log.length > 400) Voz.log.splice(0, 200);
+  if (!MODO_TESTE && Som.ctx && Som.ligado && Som.ctx.state === "running" && Voz.buf[ks[i]]) {
+    const f = Som.ctx.createBufferSource(); f.buffer = Voz.buf[ks[i]];
+    f.connect(Som.vozG || Som.saida); f.start(Som.ctx.currentTime + 0.005 + atraso);
+  }
+  return ks[i];
+}
 function somIniciar() {
   if (Som.ctx) { if (Som.ctx.state === "suspended") Som.ctx.resume(); return; }
   const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
@@ -6787,11 +6826,12 @@ function somIniciar() {
     Som.saida = c.createGain(); Som.saida.connect(comp); comp.connect(c.destination);
     Som.efG = c.createGain(); Som.efG.connect(Som.saida);              // efeitos (golpes, magias, criaturas)
     Som.uiG = c.createGain(); Som.uiG.connect(Som.saida);              // interface (janelas, cliques)
+    Som.vozG = c.createGain(); Som.vozG.connect(Som.saida);            // vozes (os gritos das skills, v0.87)
     aplicarVolumes();
     const n = c.sampleRate * 2, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
     for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
     Som.ruido = b;
-    carregarSons(); carregarAmbiente();
+    carregarSons(); carregarAmbiente(); carregarVozes(classe);
     musica();
   } catch (e) { Som.ctx = null; }
 }
@@ -11009,6 +11049,163 @@ function desenharChama(o, v, X, Y, s, t, k) {
   const q = quadroChama(t, o, f.quadros), h = s * alt * (0.96 + 0.08 * Math.sin(t * 9 + o.x)), kk = h / f.h, w = f.w * kk;
   cx.drawImage(im, q * f.w, 0, f.w, f.h, X - f.px * kk, fy - f.py * kk, w, h);
 }
+// ---------- as peças soltas: os panos ao vento e o que fica pendurado (v0.87, 07/11, R331 a R333) ----------
+// O usuário (07/11): "essa bandeira, ela poderia estar tremulando, tem o bonequinho de treino na saída da Vila 1, que poderia ter a
+// faixinha tremulando também. Alguns desses itens que aparecem, eu gostaria que eles tivessem um pouquinho mais de movimento."
+// Sem arte nova: para cada pintura com partes soltas, SOLTOS diz em px da imagem (medido nela, com a grade de 10 px) o pedaço que se mexe
+// e onde ele fica preso. Uma vez por imagem (SOLTOS_CACHE, pela própria imagem: a de neve e a de tom têm cada uma a sua), a pintura vira
+// a base (sem o pedaço; com o buraco remendado pelos vizinhos da mesma linha quando há algo atrás dele, remendo) e o pedaço num canvas só
+// dele. A cada quadro, e só para o que está na tela, o pedaço é desenhado em fatias:
+//   colunas: fatias verticais; o deslocamento cresce da coluna presa (presa: o x do mastro ou do nó; lado: de onde ela fica) para a ponta,
+//            numa onda que anda da parte presa para a ponta. estica: a fatia estica a partir do topo (a bandeira, que também fica presa na
+//            travessa de cima); sem estica, a fatia inteira desliza (a faixa do boneco)
+//   linhas:  fatias horizontais, presas em cima (os estandartes pendurados): o deslocamento para o lado cresce para baixo
+//   pendulo: o pedaço inteiro gira pelo ponto piv (as lanternas, os talismãs, a borla; o tufo de palha do boneco, preso embaixo)
+// cor: só os pixels daquela cor no retângulo (escuro: a faixa; vermelho: o pano vermelho e o contorno de nanquim dele); poli: só dentro do
+// polígono. amp: px da imagem na ponta (graus no pêndulo); hz: o ritmo; ondas: quantas ondas cabem do preso à ponta. Cada peça tem fase e
+// ritmo próprios (o hash do lugar), e a rajada é a mesma do vento das árvores (vento()); nas cavernas, sem rajada e com metade da força.
+// O movimento é curto e sem sombra nem degradê (Tools/deco3d/estilo/BIBLIA_B.md: cores chapadas)
+const SOLTO_BANDEIRA = [{ modo: "colunas", ret: [58, 24, 206, 223], presa: 58, lado: "esq", estica: true, amp: 7, hz: 0.7, ondas: 1.1 }];
+const SOLTOS = {
+  "bandeira_bandeiras_lanterna_0.webp": SOLTO_BANDEIRA, "bandeira_bandeiras_lanterna_1.webp": SOLTO_BANDEIRA, "bandeira_bandeiras_lanterna_2.webp": SOLTO_BANDEIRA,
+  // o boneco de treino: a faixa da cabeça (as duas pontas soltas à esquerda, presas no nó, x 76) e o tufo de palha de cima (preso na amarra)
+  "boneco_bonecos_0.webp": [{ modo: "colunas", ret: [0, 24, 76, 100], presa: 76, lado: "dir", amp: 5, hz: 0.85, ondas: 1.3, cor: "escuro" },
+                            { modo: "pendulo", ret: [77, 0, 132, 31], piv: [104, 31], amp: 2.2, hz: 0.45 }],
+  "boneco_bonecos_1.webp": [{ modo: "pendulo", ret: [62, 0, 138, 33], piv: [100, 34], amp: 2.2, hz: 0.45 }],
+  // a lanterna de papel pendurada no varão da carroça do mercado
+  "carroca_mercado_0.webp": [{ modo: "pendulo", ret: [42, 150, 89, 246], piv: [65, 136], amp: 4, hz: 0.5 }],
+  // a barraca do mercado: o estandarte pendurado no braço da direita e a borla vermelha do poste da esquerda (na frente do poste: remendo)
+  "barraca_mercado_0.webp": [{ modo: "linhas", ret: [421, 166, 464, 266], amp: 4, hz: 0.55, ondas: 0.6 },
+                             { modo: "pendulo", ret: [5, 177, 27, 232], piv: [19, 177], amp: 5, hz: 0.6, cor: "vermelho", remendo: true }],
+  // a loja: o estandarte pendurado no braço da esquerda
+  "barraca_loja_0.webp": [{ modo: "linhas", poli: [[14, 133], [45, 148], [45, 197], [14, 182]], amp: 3.5, hz: 0.55, ondas: 0.6 }],
+  // a tenda dos orcs: o estandarte esfarrapado da travessa (a madeira da tenda, embaixo à esquerda, fica de fora do polígono)
+  "tenda_orc_daiyu_tenda_0.webp": [{ modo: "linhas", poli: [[387, 74], [505, 100], [552, 240], [552, 300], [471, 300], [471, 264], [387, 228]], amp: 6, hz: 0.6, ondas: 0.9 }],
+  // a lanterna da raposa (lago da Montanha): é de pedra e fica parada; as pontas do lenço vermelho da raposa balançam (remendo: o corpo atrás)
+  "lanterna_raposa_bandeiras_lanterna_0.webp": [{ modo: "pendulo", ret: [66, 52, 92, 102], piv: [78, 55], amp: 5, hz: 0.6, cor: "vermelho", remendo: true }],
+  // a porta do chefe (a moldura, PORTA_ARTE): os três talismãs de papel pendurados na corda, abaixo dela (a corda e o topo deles ficam)
+  "porta_chefe_moldura.webp": [{ modo: "pendulo", ret: [206, 134, 256, 182], piv: [230, 128], amp: 3, hz: 0.4 },
+                               { modo: "pendulo", ret: [285, 141, 331, 193], piv: [306, 137], amp: 3, hz: 0.42 },
+                               { modo: "pendulo", ret: [362, 128, 406, 185], piv: [385, 123], amp: 3, hz: 0.38 }],
+};
+const SOLTOS_CACHE = new WeakMap(), SOLTOS_EST = { feitas: 0, quadros: 0, tPrep: -1 };   // (feitas: imagens preparadas; quadros: peças animadas; tPrep: o quadro da última preparação)
+function soltoNome(arq) { const i = arq.lastIndexOf("/"); return i < 0 ? arq : arq.slice(i + 1); }
+// a máscara de cor de um pedaço (1 = se mexe): escuro, a faixa de pano escuro (a palha é clara); vermelho, o pano vermelho e o nanquim
+// que encosta nele (sem o contorno, o vermelho sairia de dentro do traço)
+function soltoMascara(p, d, w, h) {
+  const m = new Uint8Array(w * h), lum = i => 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];
+  for (let i = 0; i < w * h; i++) {
+    const q = i * 4; if (d[q + 3] < 20) continue;
+    if (p.cor === "escuro") m[i] = lum(q) < 125 ? 1 : 0;
+    else if (p.cor === "vermelho") m[i] = d[q] > 120 && d[q] > d[q + 1] + 55 && d[q] > d[q + 2] + 50 ? 2 : 0;
+    else m[i] = 1;
+  }
+  if (p.cor === "vermelho") {                                             // (o nanquim a até 2 px do vermelho)
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x; if (m[i] || d[i * 4 + 3] < 20 || lum(i * 4) > 80) continue;
+      let perto = false;
+      for (let dy = -2; dy <= 2 && !perto; dy++) for (let dx = -2; dx <= 2; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < w && yy < h && m[yy * w + xx] === 2) { perto = true; break; } }
+      if (perto) m[i] = 1;
+    }
+    for (let i = 0; i < m.length; i++) if (m[i]) m[i] = 1;
+  }
+  return m;
+}
+function soltoDentro(poli, x, y) {                                       // (ponto no polígono: par-ímpar)
+  let c = false;
+  for (let i = 0, j = poli.length - 1; i < poli.length; j = i++) { const [xi, yi] = poli[i], [xj, yj] = poli[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; }
+  return c;
+}
+// prepara uma imagem uma vez: a base sem os pedaços e cada pedaço num canvas (os limites dele em px da imagem)
+function soltoPreparar(im, lista) {
+  const W0 = im.naturalWidth || im.width, H0 = im.naturalHeight || im.height;
+  const base = document.createElement("canvas"); base.width = W0; base.height = H0;
+  const gb = base.getContext("2d", { willReadFrequently: true }); gb.drawImage(im, 0, 0);
+  const pecas = [];
+  for (const p of lista) {
+    const r = p.poli ? [Math.min(...p.poli.map(q => q[0])), Math.min(...p.poli.map(q => q[1])), Math.max(...p.poli.map(q => q[0])), Math.max(...p.poli.map(q => q[1]))] : p.ret;
+    const x0 = Math.max(0, Math.floor(r[0])), y0 = Math.max(0, Math.floor(r[1])), x1 = Math.min(W0, Math.ceil(r[2])), y1 = Math.min(H0, Math.ceil(r[3])), w = x1 - x0, h = y1 - y0;
+    if (w < 2 || h < 2) continue;
+    const dado = gb.getImageData(x0, y0, w, h), d = dado.data, m = soltoMascara(p, d, w, h);
+    if (p.poli) for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (m[y * w + x] && !soltoDentro(p.poli, x0 + x + 0.5, y0 + y + 0.5)) m[y * w + x] = 0;
+    const pc = document.createElement("canvas"); pc.width = w; pc.height = h;
+    const gp = pc.getContext("2d"), dp = gp.createImageData(w, h);
+    // (o pêndulo: as 2 linhas do lado preso ficam também na base, por baixo do pedaço; sem elas, o corte antisserrilhado vira um fio claro)
+    const fica = p.modo === "pendulo" ? (p.piv[1] < y0 + h / 2 ? y => y < 2 : y => y >= h - 2) : () => false;
+    for (let i = 0; i < w * h; i++) if (m[i]) { for (let c = 0; c < 4; c++) dp.data[i * 4 + c] = d[i * 4 + c]; if (!fica(Math.floor(i / w))) d[i * 4 + 3] = 0; else m[i] = 0; }
+    gp.putImageData(dp, 0, 0);
+    if (p.remendo) for (let y = 0; y < h; y++) {                         // (o buraco: a cor dos vizinhos da linha, de um lado ao outro)
+      for (let x = 0; x < w; x++) {
+        if (!m[y * w + x]) continue;
+        let xb = x; while (xb + 1 < w && m[y * w + xb + 1]) xb++;
+        const a = x - 1 >= 0 && d[(y * w + x - 1) * 4 + 3] > 200 ? (y * w + x - 1) * 4 : -1, b = xb + 1 < w && d[(y * w + xb + 1) * 4 + 3] > 200 ? (y * w + xb + 1) * 4 : -1;
+        if (a >= 0 && b >= 0) for (let q = x; q <= xb; q++) { const f = (q - x + 1) / (xb - x + 2), i = (y * w + q) * 4; for (let c = 0; c < 3; c++) d[i + c] = d[a + c] * (1 - f) + d[b + c] * f; d[i + 3] = 255; }
+        x = xb;
+      }
+    }
+    gb.putImageData(dado, x0, y0);
+    pecas.push({ p, c: pc, x0, y0, w, h });
+  }
+  SOLTOS_EST.feitas++;
+  // (a base foi lida e escrita na CPU, willReadFrequently: desenhada assim a cada quadro, ela subiria para a placa toda vez; a cópia
+  // num canvas comum fica na placa)
+  const fim = document.createElement("canvas"); fim.width = W0; fim.height = H0; fim.getContext("2d").drawImage(base, 0, 0);
+  return { base: fim, pecas };
+}
+// a força do vento numa peça: a onda dela (fase e ritmo pelo lugar) e a rajada do vento das árvores
+function soltoOnda(p, o, t, u, fase, ritmo) {
+  const w = 2 * Math.PI * p.hz * ritmo * t - 2 * Math.PI * (p.ondas || 0) * u + fase;
+  return Math.sin(w) + 0.25 * Math.sin(2.3 * w + 1.3 * fase);
+}
+// desenha a imagem com os pedaços soltos se mexendo, na escala k a partir de (ox, oy) (o canto da imagem na tela, como o drawImage).
+// Devolve false quando a imagem não tem pedaços soltos (quem chamou desenha a imagem como sempre)
+function desenharSoltos(g, im, arq, ox, oy, k, o, t) {
+  const lista = SOLTOS[soltoNome(arq)]; if (!lista || !im) return false;
+  let prep = SOLTOS_CACHE.get(im);
+  if (!prep) {
+    // (uma preparação por quadro, no máximo: na chegada a um mapa com várias peças, as outras saem paradas até a vez delas)
+    if (SOLTOS_EST.tPrep === t) return false;
+    SOLTOS_EST.tPrep = t;
+    try { prep = soltoPreparar(im, lista); } catch (e) { prep = { base: null, pecas: [] }; } SOLTOS_CACHE.set(im, prep);
+  }
+  if (!prep.base) return false;
+  const W0 = prep.base.width, H0 = prep.base.height;
+  // na tela? (a caixa da imagem com a transformação de agora; fora dela ou pequena demais, a pintura parada)
+  const T = g.getTransform(), cxs = [ox, ox + W0 * k], cys = [oy, oy + H0 * k];
+  let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
+  for (const x of cxs) for (const y of cys) { const X = T.a * x + T.c * y + T.e, Y = T.b * x + T.d * y + T.f; a0 = Math.min(a0, X); a1 = Math.max(a1, X); b0 = Math.min(b0, Y); b1 = Math.max(b1, Y); }
+  const largT = g.canvas ? g.canvas.width : W, altT = g.canvas ? g.canvas.height : H;
+  const naTela = a1 > 0 && a0 < largT && b1 > 0 && b0 < altT && (a1 - a0) > 14;
+  if (!naTela) { g.drawImage(im, ox, oy, W0 * k, H0 * k); return true; }
+  g.drawImage(prep.base, ox, oy, W0 * k, H0 * k);
+  const hx = Math.round((o.x || 0) * 10), hy = Math.round((o.y || 0) * 10), fase = hash(hx, hy, 611) * 6.283, ritmo = 0.85 + 0.3 * hash(hx, hy, 612);
+  const cav = !!o.caverna || naCaverna(o.x || 0), raj = cav ? 0 : Math.pow(Math.max(0, Math.sin(t * 0.45 + (o.x || 0) * 0.06 - (o.y || 0) * 0.03)), 4);
+  const forca = (cav ? 0.5 : 1) * (0.75 + 0.6 * raj);
+  for (const q of prep.pecas) {
+    const p = q.p, P = q.c;
+    if (p.modo === "pendulo") {
+      const [px, py] = p.piv, ang = (p.amp * forca * soltoOnda(p, o, t, 0, fase, ritmo) + p.amp * 0.4 * raj) * Math.PI / 180;
+      g.save(); g.translate(ox + px * k, oy + py * k); g.rotate(ang); g.drawImage(P, (q.x0 - px) * k, (q.y0 - py) * k, q.w * k, q.h * k); g.restore();
+    } else if (p.modo === "colunas") {
+      const cw = Math.max(2, Math.ceil(2.4 / k)), L = p.lado === "esq" ? q.x0 + q.w - p.presa : p.presa - q.x0;
+      for (let sx = 0; sx < q.w; sx += cw) {
+        const ww = Math.min(cw, q.w - sx), xm = q.x0 + sx + ww / 2, u = Math.max(0, Math.min(1, (p.lado === "esq" ? xm - p.presa : p.presa - xm) / L));
+        const dy = p.amp * Math.pow(u, 1.2) * (forca * soltoOnda(p, o, t, u, fase, ritmo) - 0.35 * raj);
+        if (p.estica) g.drawImage(P, sx, 0, ww, q.h, ox + (q.x0 + sx) * k, oy + q.y0 * k, ww * k + 0.6, (q.h + dy) * k);
+        else g.drawImage(P, sx, 0, ww, q.h, ox + (q.x0 + sx) * k, oy + (q.y0 + dy) * k, ww * k + 0.6, q.h * k);
+      }
+    } else {                                                              // linhas: presas em cima
+      const ch = Math.max(2, Math.ceil(2.4 / k));
+      for (let sy = 0; sy < q.h; sy += ch) {
+        const hh = Math.min(ch, q.h - sy), v = (sy + hh / 2) / q.h, dx = p.amp * Math.pow(v, 1.1) * (forca * soltoOnda(p, o, t, v, fase, ritmo) + 0.4 * raj);
+        g.drawImage(P, 0, sy, q.w, hh, ox + (q.x0 + dx) * k, oy + (q.y0 + sy) * k, q.w * k, hh * k + 0.6);
+      }
+    }
+  }
+  if (!o._solto) o._solto = { n: 0, t: 0 };
+  o._solto.n++; o._solto.t = t; SOLTOS_EST.quadros++;
+  return true;
+}
 function desenharDecoSprite(o, v0, X, Y, s, t) {
   const v = visDeco(o, v0), diag = v !== v0;                              // (diag: a peça renderizada na diagonal, já com a sombra dela)
   const im0 = o.caverna && v.pasta !== "deco_b/" ? imagemEscura(v.arq) : imagemEstacao(v.arq, o.tipo, o.neve || (o.monte && o.tipo === "pedra") ? 3 : 0), k = kDeco(o, v0, v, s), w = v.w * k, h = v.h * k;
@@ -11027,7 +11224,7 @@ function desenharDecoSprite(o, v0, X, Y, s, t) {
   if (ehB && o.cisalha) cx.transform(1, o.cisalha, 0, 1, 0, -o.cisalha * X);
   if (espelho) { cx.translate(X, 0); cx.scale(-1, 1); cx.translate(-X, 0); }
   if (ehB && o.recorte) { cx.beginPath(); o.recorte.forEach(([u, q], i) => cx[i ? "lineTo" : "moveTo"](X - (v.px - u) * k, Y - (v.py - q) * k)); cx.closePath(); cx.clip(); }
-  cx.drawImage(im, X - v.px * k, Y - v.py * k, w, h);
+  if (!desenharSoltos(cx, im, v.arq, X - v.px * k, Y - v.py * k, k, o, t)) cx.drawImage(im, X - v.px * k, Y - v.py * k, w, h);   // (v0.87: os panos e o que fica pendurado se mexem)
   cx.restore();
   if (ESTRUT[o.tipo]) efeitosEstrutura(o, v, X - v.px * k, Y - v.py * k, w, h, t);
   if (o.tipo === "runa") {                                            // as runas do totem pulsam
@@ -11400,8 +11597,9 @@ function desenharMobilia(o, X, Y, s, lw, t) {
   } else if (o.tipo === "estandarte") {
     const h = 3.0 * e * ALTURA;
     g.fillStyle = "#3a2a1a"; g.fillRect(X - e * 0.5, Y - h, e, e * 0.06);
-    g.fillStyle = o.cor; poligono(g, [[X - e * 0.4, Y - h], [X + e * 0.4, Y - h], [X + e * 0.4, Y - h * 0.35], [X, Y - h * 0.25], [X - e * 0.4, Y - h * 0.35]]); g.fill(); linha(g, lw);
-    g.fillStyle = "#e8c860"; g.beginPath(); g.moveTo(X, Y - h * 0.85); g.lineTo(X + e * 0.18, Y - h * 0.6); g.lineTo(X, Y - h * 0.45); g.lineTo(X - e * 0.18, Y - h * 0.6); g.closePath(); g.fill();
+    const bl = Math.sin(t * 1.7 + o.x * 0.9) * e * 0.07, bm = bl * 0.45;   // (v0.87: o pano pendurado balança, a barra de cima parada)
+    g.fillStyle = o.cor; poligono(g, [[X - e * 0.4, Y - h], [X + e * 0.4, Y - h], [X + e * 0.4 + bl, Y - h * 0.35], [X + bl, Y - h * 0.25], [X - e * 0.4 + bl, Y - h * 0.35]]); g.fill(); linha(g, lw);
+    g.fillStyle = "#e8c860"; g.beginPath(); g.moveTo(X + bm * 0.3, Y - h * 0.85); g.lineTo(X + e * 0.18 + bm, Y - h * 0.6); g.lineTo(X + bm * 1.3, Y - h * 0.45); g.lineTo(X - e * 0.18 + bm, Y - h * 0.6); g.closePath(); g.fill();
   } else if (o.tipo === "estante") {
     const h = 1.9 * e * ALTURA;
     g.fillStyle = "#5e3c1e"; g.fillRect(X - e * 0.45, Y - h, e * 0.9, h); g.strokeStyle = TINTA; g.lineWidth = lw; g.strokeRect(X - e * 0.45, Y - h, e * 0.9, h);
@@ -11776,6 +11974,7 @@ function usarFuria() {
   if (furia.recarga > 0 || !podeSkill()) return;
   viking.fila = null;
   tocar(viking.espada === "armada" ? "furia_armado" : "furia", true);
+  vozSkill("Fúria");                                                   // (o grito antes da explosão)
 }
 
 function explosaoFuria() {
@@ -11825,7 +12024,7 @@ function iniciarVortice() {
   // (o guerreiro do machado: giro_entra → giro → giro_sai, a entrada e a saída com uma volta inteira cada; o laço é o "giro")
   vortice.ativo = true; vortice.restam = VORTICE_VOLTAS - (vorticeGuerreiro() ? 2 : 1); vortice.recarga = recargaSkill("Vórtice"); vortice.t = 0;
   tocar(M.animacoes.giro_entra ? "giro_entra" : "giro", true);
-  som("vortice", viking);
+  som("vortice", viking); vozSkill("Vórtice");
 }
 function passoVortice(dt) {
   vortice.recarga = Math.max(0, vortice.recarga - dt);
@@ -11858,7 +12057,7 @@ function usarLamina() {
 function acenderLamina() {
   espiritual.buff = duraBuff("Lâmina Espiritual"); espiritual.recarga = recargaSkill("Lâmina Espiritual"); espiritual.desde = 0;
   espiritual.valor = valorM2("Lâmina Espiritual", "atq");
-  som("espiritual", viking);
+  som("espiritual", viking); vozSkill("Lâmina Espiritual");
   const l = laminaAtual();
   if (l) {
     for (let k = 0; k < 40; k++) {
@@ -21435,7 +21634,7 @@ function abrirFichaPag(pag) {
 function abrirSkills() { fichaAba("skills"); abrirFicha(true); }
 // ---------------------------------------------------------------- opções (Esc ou o menu do canto)
 // Som ligado, música, volume geral e de cada tipo de som, contorno, fps. Os mesmos botões do painel de informações (B, N, Y)
-const VOL_NOMES = [["geral", "Volume geral"], ["musica", "Música"], ["efeitos", "Efeitos (golpes, magias, criaturas)"], ["ambiente", "Ambiente (natureza, chuva, fogo)"], ["interface", "Interface (janelas e cliques)"]];
+const VOL_NOMES = [["geral", "Volume geral"], ["musica", "Música"], ["efeitos", "Efeitos (golpes, magias, criaturas)"], ["ambiente", "Ambiente (natureza, chuva, fogo)"], ["interface", "Interface (janelas e cliques)"], ["vozes", "Vozes (gritos das skills)"]];
 function abrirOpcoes(sim = $("#opcoes").hidden) {
   $("#opcoes").hidden = !sim; janelaAbriu("opcoes", sim);
   if (sim) { somIniciar(); mostrarOpcoes(); }
@@ -22978,9 +23177,10 @@ function usarTriplo() {
   viking.combo = 0; viking.fila = null;
   triplo.restam = 3; triplo.recarga = recargaSkill("Corte Triplo");
   mirarBoneco();
-  tocar(viking.espada === "costas" ? "sacar_golpe" : "golpe1", true);
+  const nasCostas = viking.espada === "costas";
+  tocar(nasCostas ? "sacar_golpe" : "golpe1", true);
   viking.fila = "golpe2";
-  som("furia_carga", viking, 0.4);
+  som("furia_carga", viking, 0.4); vozSkill("Corte Triplo", nasCostas ? 0.094 : 0);   // (a contagem inteira, uma vez: com a espada nas costas o 1º corte vem 94 ms depois)
 }
 function alvoDaInvestida() {
   const a = viking.alvo, o = (a && (a.criatura || a.boneco)) || selecao;
@@ -23001,7 +23201,7 @@ function usarInvestida() {
   Object.assign(investida, { ativa: true, feito: 0, bateu: false, alvo: o, prox: 0 });
   investida.recarga = recargaSkill("Investida");
   tocar(animInvestida(), true);
-  som("furia_carga", viking, 0.6);
+  som("furia_carga", viking, 0.6); vozSkill("Investida");
 }
 function passoInvestida(dt) {
   triplo.recarga = Math.max(0, triplo.recarga - dt); investida.recarga = Math.max(0, investida.recarga - dt);
@@ -24347,6 +24547,7 @@ function trocarClasse(nova, voc = null) {
   for (const [id, c] of [["#cViking", "viking"], ["#cArqueiro", "arqueiro"], ["#cFeiticeiro", "feiticeiro"], ["#cNinja", "ninja"], ["#cGuerreiro", "guerreiro"], ["#cXama", "xama"], ["#cXamaDragao", "xama_dragao"], ["#cShura", "shura"]]) $(id).setAttribute("aria-pressed", classe === c);
   $("#titulo").textContent = "Campo de Treino do " + NOME_CLASSE[classe];
   SKILLS = skillsDaClasse(classe);
+  carregarVozes(classe);                                              // (v0.87: as vozes da classe nova)
   montarBarraSkills();
   chuva.recarga = 0; chuva.marca = 0; certeiro.recarga = 0; brasas.length = 0; queimando.clear();
   pes.buff = 0; pes.recarga = 0; pes.desde = -1; pes.vultos.length = 0; pes.riscos.length = 0;
@@ -25304,6 +25505,19 @@ function montarDungeon(d) {
       d.teias.push({ x, y, r: 0.9 + hash(k, q, 71) * 0.9, giro: hash(q, k, 72) * 3 });
     }
   });
+  // (v0.87, R334; o usuário, 07/11: "tem pontos que está muito escuro"): os túneis não tinham luz nenhuma além da do herói; agora uma
+  // tocha a cada ~6 m, alternando as paredes, longe das bocas das salas (a da porta do chefe fica livre)
+  if (!d.vale) for (const [ax, ay, bx, by, lg] of d.tuneis) {
+    const L = Math.hypot(bx - ax, by - ay); if (L < 1) continue;
+    const ux = (bx - ax) / L, uy = (by - ay) / L, raio = (x, y) => (d.salas.find(c => Math.hypot(c.x - x, c.y - y) < 0.01) || { r: 0 }).r;
+    let a0 = raio(ax, ay) + 1.2, a1 = L - raio(bx, by) - 1.2;
+    if (a1 - a0 < 1.5) a0 = a1 = L / 2;                                    // (o túnel curto, quase só a emenda das salas: uma tocha no meio)
+    const n = Math.max(1, Math.round((a1 - a0) / 6)), off = Math.max(0.5, lg / 2 - 0.55);
+    for (let q = 0; q < n; q++) {
+      const sq = a0 + (a1 - a0) * (q + 0.5) / n, lado = q % 2 ? 1 : -1, x = d.x + ax + ux * sq - uy * off * lado, y = d.y + ay + uy * sq + ux * off * lado;
+      if (pisoCaverna(x, y) && livre(x, y)) por({ tipo: "tocha", x, y, r: 0.14, caverna: true, tunel: true });
+    }
+  }
   // os bandos e o chefe no salão do fundo
   const povoar = (cfg, tipo, c, n, raio) => {
     for (let q = 0; q < n; q++) for (let t = 0; t < 30; t++) {
@@ -25662,7 +25876,7 @@ function desenharPortaChefe(o, t) {
       cx.drawImage(im, lado < 0 ? 0 : -fw * k, 0, fw * k, fh * k);
       cx.restore();
     }
-    cx.drawImage(ims.moldura, x0, y0, w2, hh);
+    if (!desenharSoltos(cx, ims.moldura, A.arq.moldura, x0, y0, k, o, t)) cx.drawImage(ims.moldura, x0, y0, w2, hh);   // (v0.87: os talismãs balançam)
     cx.restore();
   } else desenharPortaChefeCodigo(o, t);
   // a caixa do clique (no mínimo 48 px de largura)
@@ -25720,7 +25934,7 @@ function desenharPortaChefeCodigo(o, t) {
   // as lanternas acesas, penduradas na viga
   const rl = s * (grande ? 0.17 : 0.12);
   for (const lado of [-1, 1]) {
-    const a = lado * p.meia * 0.55, topo = P(a, h + 0.15), [lx, ly] = P(a, h - 0.5);
+    const a = lado * p.meia * 0.55, topo = P(a, h + 0.15), [lx0, ly] = P(a, h - 0.5), lx = lx0 + Math.sin(t * 2.6 + lado * 1.7 + p.x) * rl * 0.35;   // (v0.87: balançam presas na viga)
     reta(topo, [lx, ly - rl * 1.3], C.nanquim, lw * 0.8);
     g.save(); g.globalCompositeOperation = "lighter"; const gr = g.createRadialGradient(lx, ly, 0, lx, ly, rl * 4); gr.addColorStop(0, `rgba(255, 190, 100, ${0.32 + 0.05 * Math.sin(t * 9 + lado)})`); gr.addColorStop(1, "rgba(255, 190, 100, 0)");
     g.fillStyle = gr; g.beginPath(); g.arc(lx, ly, rl * 4, 0, 7); g.fill(); g.restore();
@@ -27502,16 +27716,24 @@ function pisoDaCaverna(d) {
   return c;
 }
 // o escuro: tudo apagado, menos em volta do personagem, das tochas e das magias
+// (v0.87, R334; o usuário, 07/11: "eu gostaria de ter um pouquinho mais de luz nas cavernas... tem pontos que está muito escuro"): a causa
+// era o luzCav nunca ser limpo: o véu de cada quadro (source-over) somava ao do quadro anterior e, fora das luzes, chegava a opaco em poucos
+// quadros (o escuro do tema, 0,86–0,90, valia na prática 1,0: o chão longe do herói saía preto). Agora o canvas é limpo a cada quadro, o
+// véu é veu × o escuro do tema mas nunca passa de teto (as 4 da Vila 1 ficam em 0,62; o Vale, 0,44–0,50, fica com o dele), o círculo do
+// herói vai de 6,5 m para heroi m (meio: a força a meio raio, para o claro não cair logo), as tochas de 3,6 m para tocha m, e os túneis
+// ganharam tochas (montarDungeon). Os números de antes e depois: Logs/Mapas/LUZ_CAVERNAS.md
+const LUZ_CAV = { veu: 1, teto: 0.62, heroi: 9, tocha: 4.2, meio: 0.7 };
 function luzDaCaverna(t) {
   if (luzCav.width !== cv.width || luzCav.height !== cv.height) { luzCav.width = cv.width; luzCav.height = cv.height; }
   const g = luzCav.getContext("2d"), s = PX * zoom;
-  const d = cavDe(cam.x), escuro = d ? d.tema.escuro : 0.88;
-  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "source-over"; g.fillStyle = `rgba(4, 3, 8, ${escuro})`; g.fillRect(0, 0, luzCav.width, luzCav.height);
+  const d = cavDe(cam.x), escuro = Math.min(LUZ_CAV.teto, (d ? d.tema.escuro : 0.88) * LUZ_CAV.veu);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, luzCav.width, luzCav.height);   // (v0.87: sem limpar, o véu de cada quadro somava ao do anterior e ficava opaco fora das luzes)
+  g.globalCompositeOperation = "source-over"; g.fillStyle = `rgba(4, 3, 8, ${escuro})`; g.fillRect(0, 0, luzCav.width, luzCav.height);
   g.setTransform(cx.getTransform()); g.globalCompositeOperation = "destination-out";
-  const furo = (X, Y, r, a) => { const gr = g.createRadialGradient(X, Y, r * 0.12, X, Y, r); gr.addColorStop(0, `rgba(0, 0, 0, ${a})`); gr.addColorStop(1, "rgba(0, 0, 0, 0)"); g.fillStyle = gr; g.beginPath(); g.ellipse(X, Y, r, r * 0.78, 0, 0, 7); g.fill(); };
+  const furo = (X, Y, r, a) => { const gr = g.createRadialGradient(X, Y, r * 0.12, X, Y, r); gr.addColorStop(0, `rgba(0, 0, 0, ${a})`); gr.addColorStop(0.5, `rgba(0, 0, 0, ${a * LUZ_CAV.meio})`); gr.addColorStop(1, "rgba(0, 0, 0, 0)"); g.fillStyle = gr; g.beginPath(); g.ellipse(X, Y, r, r * 0.78, 0, 0, 7); g.fill(); };
   const [vx, vy] = noMundo(viking.x, viking.y, 0.8);
-  furo(vx, vy, 6.5 * s * (1 + 0.02 * Math.sin(t * 9)), 1);
-  for (const o of objIndice().fogosCaverna) if ((o.tipo === "tocha" || o.tipo === "braseiro" || o.tipo === "fogueira") && o.caverna) { const [X, Y] = noMundo(o.x, o.y, 1.5); if (X > -s * 5 && X < W + s * 5 && Y > -s * 5 && Y < H + s * 5) furo(X, Y, 3.6 * s * (1 + 0.05 * Math.sin(t * 11 + o.x)), 0.85); }
+  furo(vx, vy, LUZ_CAV.heroi * s * (1 + 0.02 * Math.sin(t * 9)), 1);
+  for (const o of objIndice().fogosCaverna) if ((o.tipo === "tocha" || o.tipo === "braseiro" || o.tipo === "fogueira") && o.caverna) { const [X, Y] = noMundo(o.x, o.y, 1.5); if (X > -s * 5 && X < W + s * 5 && Y > -s * 5 && Y < H + s * 5) furo(X, Y, LUZ_CAV.tocha * s * (1 + 0.05 * Math.sin(t * 11 + o.x)), 0.85); }
   for (const p of passagens) if (p.tipo === "escada" || p.tipo === "desce") { const [X, Y] = noMundo(p.x, p.y, 1.8); furo(X, Y, 2.6 * s, 0.7); }
   if (d && d.portas) luzPortaChefe(d, furo, s, t);                      // (R252: as lanternas da porta do chefe)
   if (d && d.vale) luzDoVale(g, d, furo, s, t);                          // (a lava, o aviso do sopro no chão, o fogo e a bola de fogo clareiam)
