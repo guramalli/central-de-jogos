@@ -1676,7 +1676,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.88 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.89 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -6790,12 +6790,28 @@ function musicaAlternar() {
   musica(); mostrarOpcoes();
 }
 // ---- as vozes das skills (v0.87, R335; o usuário, 07/11: "Ficou mto bom o audio, pode colocar"; Logs/Vozes/INTEGRAR_VOZES.md):
-// cada classe grita na língua da sua era; por enquanto só o Viking, em nórdico antigo ("muito agressivo", sons/vozes/, do
+// cada classe grita na língua da sua era; por enquanto o Viking, em nórdico antigo ("muito agressivo", sons/vozes/, do
 // Logs/Vozes/viking_muito_agressivo). skill → [arquivo, quantos gritos]; 0 = um arquivo só (o Corte Triplo: a contagem
 // "Einn! Tveir! Þrír!", presa aos 3 cortes). Só nas 5 skills (nunca no golpe comum), 40% de chance por uso, 1,5 s no mínimo
 // entre duas falas, o grito sorteado entre os da skill (nunca o mesmo duas vezes seguidas). Voz.log guarda cada decisão
 // (os testes leem; no MODO_TESTE nada toca, como o som())
-const VOZES = { viking: { "Fúria": ["furia", 2], "Vórtice": ["vortice", 3], "Lâmina Espiritual": ["lamina", 3], "Corte Triplo": ["triplo_contagem", 0], "Investida": ["investida", 2] } };
+// (07/11, R342) o Feiticeiro, em latim (Logs/Vozes/FEITICEIRO_ROTEIRO.md; o usuário: "as do feiticeiro esta perfeito"): 2 gritos em
+// cada uma das 6 skills da Magia Negra, ditos no usarNegra, quando a skill é lançada
+// (07/11, R344) as outras 6 classes, aprovadas na enquete (todas as skills; Logs/Vozes/VOZES_CLASSES.md, cada uma com o tratamento
+// próprio): o Guerreiro em latim, o Arqueiro em cazaque, o Ninja em japonês (o Esconder sussurrado, no mesmo ganho: medido, sai
+// tão alto quanto os gritos e ~10 dB acima do vento da skill), a Xamã Relâmpago, o Xamã Dragão e o Shura em coreano. 2 gritos
+// por skill, ditos no usar* de cada classe quando a skill é lançada; o Invocar Relâmpago é um arquivo só ("천둥아… 내려라!"),
+// tocado no início da skill, com o 2º grito em 1,31 s, em cima do 2º raio (XAMA.depois), como a contagem do Corte Triplo
+const VOZES = {
+  viking: { "Fúria": ["furia", 2], "Vórtice": ["vortice", 3], "Lâmina Espiritual": ["lamina", 3], "Corte Triplo": ["triplo_contagem", 0], "Investida": ["investida", 2] },
+  feiticeiro: { "Golpe das Trevas": ["trevas", 2], "Golpe de Chama": ["chama", 2], "Espírito de Fogo": ["espirito", 2], "Proteção das Trevas": ["protecao", 2], "Golpe Espiritual": ["espiritual", 2], "Orbe das Trevas": ["orbe", 2] },
+  guerreiro: { "Técnica Cortante": ["tecnica", 2], "Impacto Terrestre": ["impacto", 2], "Tremor": ["tremor", 2], "Defesa Superior": ["defesa", 2], "Disparo de Energia": ["disparo", 2] },
+  arqueiro: { "Flecha Venenosa": ["venenosa", 2], "Flecha de Fogo": ["fogo", 2], "Tiro Concentrado": ["concentrado", 2], "Chuva de Flechas": ["chuva", 2], "Passos Leves": ["passos", 2] },
+  ninja: { "Punhalada Surpresa": ["punhalada", 2], "Acrobacia": ["acrobacia", 2], "Avanço Ágil": ["avanco", 2], "Veneno de Serpente": ["veneno", 2], "Esconder": ["esconder", 2] },
+  xama: { "Tiro Relâmpago": ["tiro", 2], "Invocar Relâmpago": ["invocar_sequencia", 0], "Garra do Relâmpago": ["garra", 2], "Cura": ["cura", 2], "Redemoinho": ["redemoinho", 2], "Aumentar Ataque": ["ataque", 2] },
+  xama_dragao: { "Talismã Voador": ["talisma", 2], "Tiro de Dragão": ["tiro", 2], "Rugido do Dragão": ["rugido", 2], "Bênção": ["bencao", 2], "Refletir": ["refletir", 2], "Ajuda do Dragão": ["ajuda", 2] },
+  shura: { "Lâmina Encantada": ["lamina", 2], "Turbilhão do Dragão": ["turbilhao", 2], "Medo": ["medo", 2], "Golpe Sombrio": ["sombrio", 2], "Aura Negra": ["aura", 2], "Dissipar Magia": ["dissipar", 2] },
+};
 const VOZ_CHANCE = 0.4, VOZ_INTERVALO = 1500, VOZ_GANHO = 1.6;   // (no ganho 1, a voz empatava ou ficava abaixo do Vórtice e do Corte Triplo)
 const Voz = { buf: {}, ultima: {}, desde: -1e9, log: [] };
 const nomesVoz = (cl, slug, q) => q ? Array.from({ length: q }, (_, n) => `${cl}_${slug}_${n + 1}`) : [`${cl}_${slug}`];
@@ -6810,7 +6826,7 @@ async function carregarVozes(cl) {
 // a voz de uma skill: decide (classe, chance, intervalo, o grito) e toca; atraso em s (o Corte Triplo com a espada nas costas: o
 // 1º golpe é o sacar_golpe, que corta 94 ms mais tarde). Devolve o grito escolhido, ou null
 function vozSkill(nomeSkill, atraso = 0) {
-  if (classe !== "viking") return null;                                 // (o iniciarVortice serve também ao guerreiro do machado)
+  // (só as classes do VOZES e só as skills dela: o iniciarVortice serve também ao guerreiro do machado, que não tem voz)
   const [slug, q] = (VOZES[classe] || {})[nomeSkill] || []; if (!slug) return null;
   const agora = performance.now();
   if (agora - Voz.desde < VOZ_INTERVALO) { Voz.log.push({ skill: nomeSkill, t: agora, toca: false, por: "intervalo" }); return null; }
@@ -7005,6 +7021,7 @@ const SOM_INTERVALO = {
   nivel: [0, 1500], pocao: [0, 300], morte_jogador: [0, 3000], refino_falha: [0, 500], magia_buff: [0, 400], arcano: [0, 60],
   arcano_carga: [0, 200], furia_carga: [0, 300], vento: [0, 150], grunhido: [700, 250], gemido: [1500, 300], rosnado: [2500, 400],
   uivo: [8000, 3000], aranha: [1500, 400], carne: [0, 50], corte: [0, 60], estalo: [0, 80], gelo: [0, 150], gelo_quebra: [0, 400],
+  bola_disparo: [0, 60], bola_acerto: [0, 60], disparo_fogo: [0, 60], disparo_veneno: [0, 60],   // (R343: os do arcano, trocados)
 };
 const somPorFonte = new WeakMap();
 let somQualquer = -1e9;                       // quando tocou o último som de interface (o clique de botão não soma em cima)
@@ -7037,6 +7054,7 @@ const SOM_RESERVA = {
   pocao: "arcano", morte_jogador: "gemido", refino_falha: "osso",
   rato: "mordida", esqueleto_grito: "chocalho", passo_gigante: "passo", magia_fogo: "arcano", magia_raio: "trovao", meteoro_queda: "vento",
   meteoro: "furia_explosao", erupcao: "terra", veneno: "arcano", metin_golpe: "osso", metin_quebra: "desmorona", moeda: "estalo", drop: "estalo",
+  bola_disparo: "arcano", bola_acerto: "arcano", disparo_fogo: "arcano", disparo_veneno: "arcano",
 };
 
 // ---------------------------------------------------------------- sons do lugar (ambiente)
@@ -11807,12 +11825,12 @@ function revelarNinja() { if (NINJA.esconder.buff > 0) { NINJA.esconder.buff = 0
 function usarPunhalada() {
   if (NINJA.punhalada.recarga > 0 || !podeSkillNinja()) return;
   mirarBoneco(); NINJA.punhalada.recarga = recargaSkill("Punhalada Surpresa");
-  viking.fila = null; viking.golpeNinja = "punhalada"; tocar(animN("punhalada", "golpe3"), true); som("adaga", viking, 1.2);
+  viking.fila = null; viking.golpeNinja = "punhalada"; tocar(animN("punhalada", "golpe3"), true); som("adaga", viking, 1.2); vozSkill("Punhalada Surpresa");   // (R344)
 }
 function usarAcrobacia() {
   if (NINJA.acrobacia.recarga > 0 || !podeSkillNinja()) return;
   mirarBoneco(); const a = NINJA.acrobacia; a.recarga = recargaSkill("Acrobacia"); a.ativa = true; a.feito = 0; a.tique = 0; a.golpes.clear(); a.primeira = null;
-  viking.fila = null; tocar(animN("acrobacia", "giro"), true); som("giro", viking, 1);
+  viking.fila = null; tocar(animN("acrobacia", "giro"), true); som("giro", viking, 1); vozSkill("Acrobacia");
 }
 function usarAvancoAgil() {
   if (NINJA.avanco.recarga > 0 || !podeSkillNinja()) return;
@@ -11826,19 +11844,20 @@ function usarAvancoAgil() {
   else { const ang = -v.dir * Math.PI / 4; dx = Math.cos(ang); dy = Math.sin(ang); a.alvo = null; }
   const n = Math.hypot(dx, dy) || 1;
   Object.assign(a, { ativo: true, dx: dx / n, dy: dy / n, resta: a.alvo ? Math.min(SKILL_M2["Avanço Ágil"].alcance, Math.max(0, n - 1.2)) : 6, recarga: recargaSkill("Avanço Ágil") });   // (até 8 m: o alcance 800 do Metin2)
-  v.dir = dirDe(a.dx, a.dy); v.fila = null; tocar(animN("avanco", M.animacoes.investida ? "investida" : "correndo_armado"), true); som("vento", v, 1);
+  v.dir = dirDe(a.dx, a.dy); v.fila = null; tocar(animN("avanco", M.animacoes.investida ? "investida" : "correndo_armado"), true); som("vento", v, 1); vozSkill("Avanço Ágil");
 }
 function usarVenenoSerpente() {
   if (NINJA.veneno.recarga > 0 || !podeSkillNinja()) return;
   mirarBoneco(); NINJA.veneno.recarga = recargaSkill("Veneno de Serpente");
-  viking.fila = null; viking.golpeNinja = "veneno"; tocar(animN("veneno", "golpe2"), true); som("arcano", viking, 0.8);
+  viking.fila = null; viking.golpeNinja = "veneno"; tocar(animN("veneno", "golpe2"), true); som("disparo_veneno", viking, 0.8); vozSkill("Veneno de Serpente");   // (R343: era o "arcano" do Feiticeiro)
 }
 function usarEsconder() {
   if (classe !== "ninja" || NINJA.esconder.recarga > 0 || viking.caido) return;
   NINJA.esconder.recarga = recargaSkill("Esconder"); NINJA.esconder.buff = duraBuff("Esconder"); NINJA.esconder.k = kSkill("Esconder");
   for (const l of criaturas) if (l.cacando) { l.cacando = false; l.voltando = 3; }
   for (let k = 0; k < 20; k++) { const a = Math.random() * 7, w = 0.5 + Math.random(); brasas.push({ x: viking.x, y: viking.y, z: 0.2 + Math.random() * 1.2, vx: Math.cos(a) * w, vy: Math.sin(a) * w, vz: 0.4 + Math.random(), vida: 0.6, max: 0.6, tam: 0.07, poeira: true }); }
-  som("vento", viking, 0.8); avisar(`Escondido: a Punhalada Surpresa sai +${Math.floor(SKILL_M2["Esconder"].bonus(NINJA.esconder.k))}% mais forte`);
+  som("vento", viking, 0.8); vozSkill("Esconder");                  // (R344: o sussurro "Kage ni… / Shinobe…")
+  avisar(`Escondido: a Punhalada Surpresa sai +${Math.floor(SKILL_M2["Esconder"].bonus(NINJA.esconder.k))}% mais forte`);
   if (M.animacoes.esconder && !viking.acao) tocar("esconder", true);
 }
 // o acerto da Punhalada (todos à frente, até 2,6 m) e do Veneno de Serpente (a nuvem no alvo)
@@ -12223,7 +12242,7 @@ function usarXama(anim, obj, recarga, nome) {
   }
   obj.recarga = recarga;
   tocar(anim, true);
-  som("arcano_carga", v, 0.8);
+  som("arcano_carga", v, 0.8); vozSkill(nome);                        // (R344: a Xamã e o Xamã Dragão; o Invocar, a sequência inteira aqui, no início)
 }
 // sem os efeitos 3D (?2d=1, ?fx=0, sem WebGL2), o desenho simples do jogo: raios, ondas e faíscas. Com eles, só o FX3 desenha (passoRelampago3, passoDragao3)
 function efeitoSimples() { return !fx3(); }
@@ -12263,7 +12282,7 @@ function soltarXama(nome) {
     // a rajada: reta a 30 m/s até 8 m, atravessando (até 10 alvos, 2 acertos)
     const p = pontaLeque(), dx = A ? a.x - v.x : fx, dy = A ? a.y - v.y : fy, n = Math.hypot(dx, dy) || 1;
     XAMA.dragoes.push({ x: p.x, y: p.y, z: p.z, dx: dx / n, dy: dy / n, andou: 0, atingidos: new Set() });
-    som("fogo", v, 1); som("arcano", v, 0.7); tremor = Math.max(tremor, 0.12);
+    som("fogo", v, 1); som("disparo_fogo", v, 0.7); tremor = Math.max(tremor, 0.12);   // (R343: era o "arcano")
   } else if (nome === "rugido_dragao") {
     rugidoXama(SKILL_M2["Rugido do Dragão"].raio, 1);
     XAMA.depois.push({ anim: nome, t: v.t + 0.55, f: () => rugidoXama(SKILL_M2["Rugido do Dragão"].raio * 1.1, 0.6) });   // (o 2º tempo vem com a onda clara do efeito; só o desenho)
@@ -12546,8 +12565,9 @@ function usarShura(anim, obj, recarga) {
   obj.recarga = recarga;
   if (anim === "turbilhao") SHURA.turbilhao.atingidos = new Set();
   tocar(anim, true);
-  som(anim === "turbilhao" ? "vortice" : anim === "lamina_encantada" ? "espiritual" : "arcano_carga", v, 0.8);
+  som(anim === "turbilhao" ? "vortice" : anim === "lamina_encantada" ? "espiritual" : "arcano_carga", v, 0.8); vozSkill(NOME_SHURA[anim]);   // (R344)
 }
+const NOME_SHURA = { lamina_encantada: "Lâmina Encantada", turbilhao: "Turbilhão do Dragão", medo: "Medo", golpe_sombrio: "Golpe Sombrio", aura_negra: "Aura Negra", dissipar_magia: "Dissipar Magia" };
 const SHURA_COR = { breu: 275, roxo: 272, violeta: 282, magenta: 318, fogo: 18 };
 function soltarShura(nome) {
   const v = viking, ang = -v.dir * Math.PI / 4, fx = Math.cos(ang), fy = Math.sin(ang), F = SHURA.fx;
@@ -12898,7 +12918,7 @@ function usarNegra(anim, obj, nome) {
   }
   obj.recarga = recargaSkill(nome);
   tocar(anim, true);
-  som("arcano_carga", v, 0.8);
+  som("arcano_carga", v, 0.8); vozSkill(nome);                        // (R342: o grito em latim quando a skill é lançada)
 }
 // o ponto onde o projétil cai: o alvo vivo (onde ele estiver quando chegar) ou 5 m à frente
 function pontoNegra(A) { const v = viking, ang = -v.dir * Math.PI / 4; return A && !A.morto ? { x: A.x, y: A.y } : { x: v.x + Math.cos(ang) * 5, y: v.y + Math.sin(ang) * 5 }; }
@@ -12917,7 +12937,7 @@ function soltarNegra(nome) {
   else if (nome === "golpe_espiritual") {
     // (Spirit Strike do Metin2: a chance de deixar lento, (333 + 300k)/10 %, −30 de movimento por 10 + 10k s; não pega em quem já está lento)
     projetil("Golpe Espiritual", l => { if (!l.morto && !(l.lento > 0) && Math.random() * 100 < valorM2("Golpe Espiritual", "lento")) deixarLento(l, valorM2("Golpe Espiritual", "lentoSeg")); });
-    som("arcano", v, 0.9);
+    som("bola_disparo", v, 0.9);                                      // (R343: era o "arcano")
   } else if (nome === "orbe_trevas") { projetil("Orbe das Trevas", null, 0); som("meteoro", v, 0.7); tremor = Math.max(tremor, 0.16); }   // (o orbe sai no salto e chega no pouso: o acerto)
   else if (nome === "golpe_chama") {
     // (Flame Strike do Metin2: em volta dele, 5 m, até 15, o mais perto inteiro e os outros a 80%)
@@ -13110,7 +13130,7 @@ function usarGuerreiro(anim, obj, nome) {
   } else if (anim !== "defesa_superior") mirarBoneco();
   obj.recarga = recargaSkill(nome);
   v.fila = null; tocar(anim, true);
-  som(anim === "defesa_superior" ? "magia_buff" : anim === "tecnica_cortante" ? "espiritual" : "giro", v, 0.7);
+  som(anim === "defesa_superior" ? "magia_buff" : anim === "tecnica_cortante" ? "espiritual" : "giro", v, 0.7); vozSkill(nome);   // (R344: em latim)
 }
 // os golpes das skills do guerreiro: em volta do ponto (x, y), até max criaturas, a mais perto inteira e as outras × viz; o
 // dano é físico (ferir, com a defesa da criatura), vem do herói e empurra um pouco (o chefe, no máximo 0,4 m). depois(l): o efeito extra
@@ -23660,13 +23680,13 @@ function usarVenenosa() {
   if (venenosa.recarga > 0 || !podeSkillArq()) return;
   const alvo = alvoDaSkill(ALCANCE_ARCO + 3); if (alvo) viking.dir = dirDe(alvo.x - viking.x, alvo.y - viking.y);
   venenosa.recarga = recargaSkill("Flecha Venenosa"); viking.tiroEspecial = "veneno";
-  tocar("atirar", true); somPuxada();
+  tocar("atirar", true); somPuxada(); vozSkill("Flecha Venenosa");   // (R344: em cazaque)
 }
 function usarConcentrado() {
   if (concentrado.recarga > 0 || !podeSkillArq()) return;
   const alvo = alvoDaSkill(ALCANCE_ARCO + 3); if (alvo) viking.dir = dirDe(alvo.x - viking.x, alvo.y - viking.y);
   concentrado.recarga = recargaSkill("Tiro Concentrado"); viking.tiroEspecial = "rajada";
-  tocar("atirar", true); somPuxada();
+  tocar("atirar", true); somPuxada(); vozSkill("Tiro Concentrado");
 }
 function atordoar(l, seg) {
   if (l.morto || l.cfg.estatico) return;
@@ -23734,7 +23754,7 @@ function lancarChuva(x, y) {
   chuva.marca = 2.6;
   chuva.recarga = recargaSkill("Chuva de Flechas"); chuva.atingidos = new Set();
   tocar("chuva", true);
-  som("arco_puxa", v, 1.2);
+  som("arco_puxa", v, 1.2); vozSkill("Chuva de Flechas");             // (R344: no clique da mira, quando a chuva é lançada; abrir a mira não fala)
 }
 function soltarChuva() {
   const v = viking;
@@ -23780,7 +23800,7 @@ function usarCerteiro() {
   if (alvo) v.dir = dirDe(alvo.x - v.x, alvo.y - v.y);
   certeiro.recarga = recargaSkill("Flecha de Fogo");
   tocar("certeiro", true);
-  som("flecha_saca", v, 0.35);
+  som("flecha_saca", v, 0.35); vozSkill("Flecha de Fogo");
 }
 function soltarCerteiro() {
   const v = viking, ang = -v.dir * Math.PI / 4, fx = Math.cos(ang), fy = Math.sin(ang);
@@ -23828,7 +23848,7 @@ const pes = { buff: 0, recarga: 0, desde: -1, vultos: [], riscos: [], prox: 0, a
 function usarPesLeves() {
   if (viking.caido || classe !== "arqueiro" || pes.recarga > 0) return;
   pes.buff = duraBuff("Passos Leves"); pes.recarga = recargaSkill("Passos Leves"); pes.k = kSkill("Passos Leves"); pes.desde = 0;
-  som("vento", viking, 1.1);
+  som("vento", viking, 1.1); vozSkill("Passos Leves");
   for (let k = 0; k < 14; k++) {                                      // poeira saindo dos pés em roda
     const a = k / 14 * Math.PI * 2, v = 1.6 + Math.random() * 1.2;
     brasas.push({ x: viking.x, y: viking.y, z: 0.05, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 0.3 + Math.random() * 0.6, vida: 0.6, max: 0.6, tam: 0.08, poeira: true });
@@ -24120,7 +24140,9 @@ function conjurar() {
   if (viking.recargaTiro > 0) return;
   mirarBoneco();
   tocar("bola", true);
-  som("arcano_carga", viking, 0.6);
+  // (R343, 07/11, o usuário: "Precisamos urgentemente mudar esse audio de ataque basico do feiticeiro... É pessimo") sem a
+  // carga: o arcano_carga (1,1 s) era mais longo que o intervalo entre bolas (~1 s) e emendava; o som do ataque é o
+  // bola_disparo, no lançamento (soltarBola), e o bola_acerto no alvo: a "Chama azul" que ele escolheu (opção 3, Tools/sons/ataque_basico)
 }
 function podeSkillMago() {
   if (viking.caido || classe !== "feiticeiro") return false;
@@ -24253,7 +24275,7 @@ function soltarBola() {
   const o = esferaNoMundo(), v = viking, ang = -v.dir * Math.PI / 4;
   const br = corRefinoBasico();                                         // (R291: o ataque básico na cor do refino +7/+8/+9)
   magias.push({ tipo: "bola", x: o.x, y: o.y, z: o.z, dx: Math.cos(ang), dy: Math.sin(ang), dz: 0, alvo: alvoDaFlecha(), vida: 1.4, rastro: [], cor: br ? br.hue : corEsfera(performance.now() / 1000), refino: br ? br.forte : null });
-  som("arcano", v, 1);
+  som("bola_disparo", v, 1);                                            // (R343: era o "arcano")
 }
 function estouroBola(m) {
   m.feita = true;
@@ -24387,7 +24409,7 @@ function passoMagias(dt) {
       if (a && (a.morto || a.acao === "levantar")) m.alvo = null;
       if (m.alvo) {
         const ex = a.x - m.x, ey = a.y - m.y, ez = alturaAlvo(a) - m.z, d = Math.hypot(ex, ey, ez);
-        if (d < BOLA_VEL * dt + 0.3) { estouroBola(m); acertoMagico(a, 18 + Math.floor(Math.random() * 8), 0, true); som("arcano", a, 0.5); continue; }   // (o dano da bola era 12–17: o feiticeiro ficava 30% abaixo das outras classes num alvo só, NIVEL70.md)
+        if (d < BOLA_VEL * dt + 0.3) { estouroBola(m); acertoMagico(a, 18 + Math.floor(Math.random() * 8), 0, true); som("bola_acerto", a, 0.5); continue; }   // (o dano da bola era 12–17: o feiticeiro ficava 30% abaixo das outras classes num alvo só, NIVEL70.md)
         m.dx = ex / d; m.dy = ey / d; m.dz = ez / d;
       }
       m.x += m.dx * BOLA_VEL * dt; m.y += m.dy * BOLA_VEL * dt; m.z += m.dz * BOLA_VEL * dt;
