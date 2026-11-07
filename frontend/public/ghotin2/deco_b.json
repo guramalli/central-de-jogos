@@ -1589,5 +1589,105 @@
    "base": 4.8,
    "fator": 1
   }
+ ],
+ "lapide": [
+  {
+   "arq": "lapide_cripta_teias_0.webp",
+   "w": 123,
+   "h": 225,
+   "px": 54.2,
+   "py": 213.8,
+   "ppm": 150.0,
+   "base": 0.76,
+   "fator": 0.87
+  },
+  {
+   "arq": "lapide_cripta_teias_1.webp",
+   "w": 159,
+   "h": 188,
+   "px": 65.3,
+   "py": 174.4,
+   "ppm": 150.0,
+   "base": 1.03,
+   "fator": 1.18
+  },
+  {
+   "arq": "lapide_cripta_teias_2.webp",
+   "w": 158,
+   "h": 180,
+   "px": 78.5,
+   "py": 169.2,
+   "ppm": 150.0,
+   "base": 0.87,
+   "fator": 1.0
+  }
+ ],
+ "teia": [
+  {
+   "arq": "teia_cripta_teias_0.webp",
+   "w": 360,
+   "h": 242,
+   "px": 180.0,
+   "py": 121.0,
+   "ppm": 150.0,
+   "base": 1.53,
+   "fator": 1.16,
+   "chao": true
+  },
+  {
+   "arq": "teia_cripta_teias_1.webp",
+   "w": 420,
+   "h": 228,
+   "px": 210.0,
+   "py": 114.0,
+   "ppm": 150.0,
+   "base": 1.1,
+   "fator": 0.84,
+   "chao": true
+  }
+ ],
+ "bandeira": [
+  {
+   "arq": "bandeira_bandeiras_lanterna_0.webp",
+   "w": 205,
+   "h": 390,
+   "px": 43.3,
+   "py": 378.3,
+   "ppm": 150.0,
+   "base": 0.58,
+   "fator": 1.0
+  },
+  {
+   "arq": "bandeira_bandeiras_lanterna_1.webp",
+   "w": 205,
+   "h": 390,
+   "px": 43.2,
+   "py": 378.3,
+   "ppm": 150.0,
+   "base": 0.58,
+   "fator": 1.0
+  },
+  {
+   "arq": "bandeira_bandeiras_lanterna_2.webp",
+   "w": 206,
+   "h": 390,
+   "px": 43.4,
+   "py": 378.3,
+   "ppm": 150.0,
+   "base": 0.58,
+   "fator": 1.0
+  }
+ ],
+ "lanterna_raposa": [
+  {
+   "arq": "lanterna_raposa_bandeiras_lanterna_0.webp",
+   "w": 114,
+   "h": 225,
+   "px": 54.0,
+   "py": 216.0,
+   "ppm": 150.0,
+   "base": 0.7,
+   "fator": 1.0
+  }
  ]
 }
