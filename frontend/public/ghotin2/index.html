@@ -1676,7 +1676,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.87 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.88 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -2089,6 +2089,7 @@
   <label><input type="checkbox" id="oFps"> Contador de quadros por segundo (fps)</label>
   <label class="o-limite">Limite de quadros <select id="oLimite" aria-label="Limite de quadros por segundo"><option value="30">30 por segundo</option><option value="60">60 por segundo</option><option value="0">sem limite</option></select></label>
   <label class="o-limite" title="Médio e Baixo: menos resolução, menos mato e efeitos mais leves, para PC fraco. Vale na hora.">Gráficos <select id="oGraficos" aria-label="Qualidade dos gráficos"><option value="alto">Alto</option><option value="medio">Médio</option><option value="baixo">Baixo (PC fraco)</option></select></label>
+  <label class="o-limite" title="A inclinação da câmera. A Baixa mostra o mundo mais de lado e mais longe. Vale na hora e fica salva.">Vista <select id="oVista" aria-label="Vista da câmera"><option value="normal">Normal (37°)</option><option value="baixa">Baixa (22°)</option></select></label>
   <div class="linha"><button id="opcoesPadrao">Volumes padrão</button></div>
   <h3>Personagem</h3>
   <div class="linha"><button id="oNovoPersonagem">Personagens…</button><button id="oGuia">Primeiros passos</button><button id="oJornada">Estatísticas da jornada</button><button id="oHistoria">Ver a história</button></div>
@@ -2580,7 +2581,9 @@ const altJogo = () => typeof ALTURA === "number" ? ALTURA : 0.8, achJogo = () =>
 // monta a grade (uma vez, na 1ª visita: ~30 ms). opc.vdir: o fundo da tela no mapa (para o teste com giro 0)
 function montarGrade(opc = {}) {
   const NN = N * N, Z = new Float32Array(NN), FL = new Uint8Array(NN), NV = new Uint8Array(NN);
-  const ALT = opc.altura || altJogo(), ACH = opc.achata || achJogo();
+  // (a vista Baixa, 22°, 07/11: a grade é sempre a da vista Normal, 37°; o chão escondido atrás de um platô, F_OCULTO, não muda
+  //  com a vista escolhida no menu, e o que se anda é o mesmo nas duas. O clique, corrigirClique, segue a vista de agora)
+  const ALT = opc.altura || 0.8, ACH = opc.achata || 0.6;
   // 1. os níveis por linhas de varredura (os contornos passados para o mapa local)
   const local = PLATOS.map(p => p.pts.map(([u, v]) => localDeVista(u, v)));
   for (let j = 0; j < N; j++) {
@@ -2633,6 +2636,8 @@ function montarGrade(opc = {}) {
   return D;
 }
 D.montarGrade = montarGrade;
+// (a vista Baixa, 22°, 07/11: o index.html chama ao trocar a vista; os picos do fundo são pintados com a altura da vista, ALTURA)
+D.vistaMudou = function () { for (const p of PICOS) p._c = null; };
 
 // ---------------------------------------------------------------- consultas (coordenadas do mundo)
 const pronta = () => { if (!D.pronta) montarGrade(); return true; };   // (a grade sai na 1ª pergunta, se a montagem não a fez antes)
@@ -4094,7 +4099,7 @@ function zRampa(u, v) { let z = -1; for (const r of RAMPAS) { if (Math.abs(u - r
 function vdirMundo() { if (typeof daVista === "function") { const d = daVista(0, 1); return [d[0], d[1]]; } return [R2, R2]; }
 const altJogo = () => typeof ALTURA === "number" ? ALTURA : 0.8, achJogo = () => typeof ACHATA === "number" ? ACHATA : 0.6;
 function montarGrade(opc = {}) {
-  const NN = N * N, Z = new Float32Array(NN), FL = new Uint8Array(NN), NV = new Uint8Array(NN), ALT = opc.altura || altJogo(), ACH = opc.achata || achJogo();
+  const NN = N * N, Z = new Float32Array(NN), FL = new Uint8Array(NN), NV = new Uint8Array(NN), ALT = opc.altura || 0.8, ACH = opc.achata || 0.6;   // (a vista Baixa, 22°: a grade é sempre a da Normal, 37°; o que se anda não muda com a vista)
   const local = PLATOS.map(p => p.pts.map(([u, v]) => localDeVista(u, v)));
   for (let j = 0; j < N; j++) {
     const ly = -EXT + (j + 0.5) * CEL;
@@ -4141,6 +4146,8 @@ function montarGrade(opc = {}) {
   return D;
 }
 D.montarGrade = montarGrade;
+// (a vista Baixa, 22°, 07/11: o index.html chama ao trocar a vista; os picos do fundo são pintados com a altura da vista, ALTURA)
+D.vistaMudou = function () { for (const p of PICOS) p._c = null; };
 const pronta = () => { if (!D.pronta) montarGrade(); return true; };
 const celula = (x, y) => { const i = Math.floor((x - OX + EXT) / CEL), j = Math.floor((y - OY + EXT) / CEL); return i < 0 || j < 0 || i >= N || j >= N ? -1 : j * N + i; };
 D.celula = celula;
@@ -6602,7 +6609,10 @@ let semente = 11;
 const acaso = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
 const entre = (a, b) => a + (b - a) * acaso();
 const suave = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
-const ACHATA = 0.6;                       // a mesma inclinação dos sprites: o chão aparece com 60% da altura
+let ACHATA = 0.6;                         // a mesma inclinação dos sprites: o chão aparece com 60% da altura (a vista Baixa, 22°: 0,375; muda em vistaAplicar)
+// a vista escolhida no menu de Opções (07/11/2026, Logs/Camera/ASSETS_22.md, "Fase 2"): "normal" (37°) ou "baixa" (22°). O resto (a troca, as
+// artes de 22° em giro22/, o chão guardado por vista) fica no bloco "a vista" perto do laço do jogo
+const VISTA = { nome: "normal", pintarTudo: false };
 const TINTA = "#1c120c";                  // a linha de nanquim dos sprites
 
 let M = null, SPR = {}, PX = 84;          // manifest, imagens por animação e direção, pixels por metro
@@ -7570,7 +7580,7 @@ async function carregar() {
         // não tinham desenho (lanterna, bambu, tocha, barril, caixote) entram em DECO. O que faltar fica o de antes
         if (GIRO_DIAG && ESTILO_B) try {
           const b = await (await fetch("deco_b.json")).json(); dg = dg || {};
-          for (const [k, vs] of Object.entries(b)) { for (const v of vs) v.pasta = "deco_b/"; if (d[k] && !B_DIRETO.has(k)) dg[k] = vs; else d[k] = vs; }
+          for (const [k, vs] of Object.entries(b)) { vs.forEach((v, i) => { v.pasta = "deco_b/"; v.iB = i; }); if (d[k] && !B_DIRETO.has(k)) dg[k] = vs; else d[k] = vs; }   // (iB: a variante, para a foto de 22° do giro22.json, deco22)
         } catch (e) {}
         // (sem o giro, o mundo 3D: de tudo o que é do estilo B, só as 15 pinturas das Ghotins, que lá viram cartões; R142)
         if (!GIRO_DIAG && ESTILO_B) try { const b = await (await fetch("deco_b.json")).json(); if (b.metin) d.metin = b.metin.map(v => ({ ...v, pasta: "deco_b/" })); } catch (e) {}
@@ -7652,7 +7662,7 @@ async function carregar() {
 // bichinhos são desenhados a cada quadro. Dentro da muralha os telhados somem e o interior aparece.
 // Chão em metros: x para o leste (direita), y para o norte (para cima na tela).
 const RAIO = 67, LADO = 1.25;                // a ilha: 1,6× a primeira (mais espaço entre os bandos); o raio da parte redonda (as Terras do Sul, o vale e a montanha somam em extraCosta)
-const ALTURA = 0.8;                       // 1 m de altura sobe 0,8 m na tela (câmera a 37°); o chão achata 0,6 (ACHATA)
+let ALTURA = 0.8;                         // 1 m de altura sobe 0,8 m na tela (câmera a 37°); o chão achata 0,6 (ACHATA) (a vista Baixa, 22°: 0,927; vistaAplicar)
 const PRACA = { x: 0, y: -9, r: 4.6 };    // campo de treino
 const LAGO = { x: -21, y: -10, r: 4.6 };
 const FOGO = { x: 4.4, y: -6.2 };
@@ -8555,7 +8565,8 @@ function chaoImagem(s, faixa, cu, cv0) {
 const PEDACOS_POR_QUADRO = 1, FAIXAS = [88 / PX];
 function desenharChao() {
   const s = PX * zoom, larg = W / s, alt = H / (s * ACHATA), faixa = escFaixa(faixaZoom(zoom));
-  let novos = pedacos.size ? 0 : -1e9;                                  // no começo pinta tudo de uma vez
+  let novos = pedacos.size && !VISTA.pintarTudo ? 0 : -1e9;            // no começo pinta tudo de uma vez (e na 1ª vez de uma vista: VISTA)
+  VISTA.pintarTudo = false;
   // (os pedaços são quadrados da vista, de u/v: com o giro eles continuam retângulos da tela, emendados como antes)
   const [cu, cv0] = naVista(cam.x, cam.y), meio = (i, j) => daVista((i + 0.5) * PEDACO, (j + 0.5) * PEDACO);
   const i0 = Math.floor((cu - larg / 2) / PEDACO) - 1, i1 = Math.floor((cu + larg / 2) / PEDACO) + 1;
@@ -8776,7 +8787,7 @@ const MAR_PARADO = { mx: 0, my: 0, folgaM: 0, camadas: {}, feitas: 0 };
 function marParado(nome, pinta) {
   const P = MAR_PARADO, s = PX * zoom;
   P.mx = Math.round(W * 0.3); P.my = Math.round(H * 0.3); P.folgaM = Math.max(P.mx / s, P.my / (s * ACHATA)) + 1;
-  const chave = [zoom, GIRO_C, GIRO_S, W, H, dpr, MAPA_CAM.ox, MAPA_CAM.oy].join("|");
+  const chave = [zoom, GIRO_C, GIRO_S, W, H, dpr, MAPA_CAM.ox, MAPA_CAM.oy, ACHATA].join("|");   // (ACHATA: a vista Baixa, 22°, refaz o mar)
   let L = P.camadas[nome], dx = 0, dy = 0;
   if (L && L.chave === chave) [dx, dy] = tela(L.cx - cam.x, L.cy - cam.y);
   if (!L || L.chave !== chave || Math.abs(dx) > P.mx - 2 || Math.abs(dy) > P.my - 2) {
@@ -9321,7 +9332,7 @@ function* frenteDaPontePassos(o, v0, v, im, s, k, fonte = im) {
   const G = PONTE_GEO, w = im.width, h = im.height, c = document.createElement("canvas"); c.width = w; c.height = h;
   const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(fonte, 0, 0);
   let d; try { d = g.getImageData(0, 0, w, h); } catch (e) { FRENTE_PONTE.set(ch, null); return null; }
-  const px = d.data, vert = o.tipo === "ponte_v", q = s / k, R = q * Math.SQRT1_2, cis = vert ? G.cis : -G.cis;
+  const px = d.data, vert = o.tipo === "ponte_v", q = s / k, R = q * Math.SQRT1_2, cis = v.v22 ? 0 : vert ? G.cis : -G.cis;   // (a foto de 22° da vista Baixa: sem o cisalhamento da pintura)
   // (no desenho, sem o cisalhamento: x = PX ± ((l − dl) − (a − da))·R; y = PY − ((a − da) + (l − dl))·R·ACHATA − z·q·ALTURA − cis·(x − PX))
   const borda = (xs, l) => { const u = (xs - v.px) / R * (vert ? 1 : -1), a = (l - G.dl) + G.da - u;
     return v.py - ((a - G.da) + (l - G.dl)) * R * ACHATA - alturaPonte(a) * q * ALTURA - cis * (xs - v.px); };
@@ -9343,8 +9354,8 @@ function pontesLista(lista) {
   for (const o of objetos) {
     if (o.ponteH === undefined) continue;
     const p = PONTES_H[o.ponteH], v0 = varDeco(o); if (!p || !v0) continue;
-    const v = visDeco(o, v0); if (v.pasta !== "deco_b/") continue;
-    const [sx, sy] = tela(o.x - cam.x, o.y - cam.y), X = W / 2 + sx, Y = H / 2 + sy;
+    const v = visDeco(o, v0); if (v.pasta !== "deco_b/" && !v.v22) continue;   // (a vista Baixa: a foto de 22° também tem o corrimão da frente)
+    const [sx, sy] = tela(o.x - cam.x, o.y - cam.y), X = W / 2 + sx, Y = H / 2 + sy, cis = v.v22 ? 0 : o.cisalha || 0;
     if (X < -s * 9 || X > W + s * 9 || Y < -s * 6 || Y > H + s * 8) continue;
     const im = imagemEstacao(v.arq, o.tipo, 0), k = kDeco(o, v0, v, s), m = frenteDaPonte(o, v0, v, im, s, k); if (!m) continue;
     const vert = p.tipo === "ponte_v", N = 12, a0 = -G.fim - 2, da = (2 * G.fim + 4) / N;
@@ -9356,7 +9367,7 @@ function pontesLista(lista) {
       lista.push({ y: profV(bx, by), x0: Math.min(xa, xb), x1: Math.max(xa, xb), f: () => {   // (x0..x1: as colunas da fatia na tela)
         cx.save();
         cx.beginPath(); cx.rect(Math.min(xa, xb), -H, Math.abs(xb - xa), H * 3); cx.clip();
-        cx.transform(1, o.cisalha || 0, 0, 1, 0, -(o.cisalha || 0) * X);
+        cx.transform(1, cis, 0, 1, 0, -cis * X);
         cx.drawImage(m, X - v.px * k, Y - v.py * k, v.w * k, v.h * k);
         cx.restore();
       } });
@@ -10648,16 +10659,25 @@ let PRED_SEM_MEIO = false, PRED_MEIO = null;              // (PRED_MEIO: a pasta
 function predImg(arq) {
   if (PRED_MEIO === null) { PRED_MEIO = "?"; fetch("predios/meio/" + arq, { method: "HEAD" }).then(r => { PRED_MEIO = r.ok; PRED_SEM_MEIO = !r.ok; }, () => { PRED_MEIO = false; PRED_SEM_MEIO = true; }); }
   if (PRED_MEIO === "?") return null;
-  const meio = !PRED_SEM_MEIO && zoom * (dpr || 1) <= 1.08, k = (meio ? "m:" : "c:") + arq;
+  const meio = !PRED_SEM_MEIO && zoom * (dpr || 1) <= 1.08 && !(arq.startsWith("giro22/") && !arq.startsWith("giro22/predios/")), k = (meio ? "m:" : "c:") + arq;   // (a vista Baixa: o estábulo do Tripo, giro22/deco_b/, não tem metade)
   let im = PRED_IMG[k];
   if (!im) {
     im = PRED_IMG[k] = new Image(); im.decoding = "async"; im.escala = meio ? 0.5 : 1;
     if (meio) im.onerror = () => { PRED_SEM_MEIO = true; for (const c of Object.keys(PRED_IMG)) if (c.startsWith("m:")) delete PRED_IMG[c]; };
-    im.src = (meio ? "predios/meio/" : "predios/") + arq;
+    im.src = arq.startsWith("giro22/") ? (meio ? arq.replace("giro22/predios/", "giro22/predios/meio/") : arq) : (meio ? "predios/meio/" : "predios/") + arq;   // (a vista Baixa: o arq do giro22.json já vem com giro22/predios/)
   }
   if (im.complete && im.naturalWidth) return im;
   const outra = PRED_IMG[(meio ? "c:" : "m:") + arq];                 // (trocou o zoom: a outra fica até esta chegar)
   return outra && outra.complete && outra.naturalWidth ? outra : null;
+}
+// a ficha de uma construção na vista de agora: na Baixa (22°), as camadas de giro22/giro22.json (as mesmas chaves a, b, b2, c, m_*, f;
+// o arq já com giro22/predios/) e o ppm de lá; o resto (paredes, planta, luzes, lanterna, móveis, porta, dentro) é em metros e fica.
+// Sem a foto de 22°, a de sempre (errada, mas visível)
+function predDVista(id, d) {
+  const g = VISTA.nome === "baixa" && VISTA.g22 && VISTA.g22.predios && VISTA.g22.predios[id];
+  if (!g || !g.camadas) return d;
+  if (!d._d22) d._d22 = { ...d, ppm: g.ppm, camadas: g.camadas, entra: !!d.entra && !!g.camadas.a, vista: "baixa" };
+  return d._d22;
 }
 // a máscara de opacidade de uma camada (1/8 da resolução), para saber se ela cobre alguém de verdade
 const PRED_MASC = {};
@@ -10694,11 +10714,11 @@ function predAdicionar(l) {
   const M = (lx, ly) => l.esp ? [l.x + ly, l.y + lx] : [l.x + lx, l.y + ly];
   const R = r => { const [a, b] = M(r[0], r[2]), [c, e] = M(r[1], r[3]); return [Math.min(a, c), Math.max(a, c), Math.min(b, e), Math.max(b, e)]; };
   const rets = [...(d.paredes || []), ...(d.rets || []), ...Object.values(d.moveis || {}).map(m => m.ret)];
-  const p = { ...l, d, M, planta: R(d.planta), base: R(d.base), dentro: d.dentro ? R(d.dentro) : null, k: 0, alfa: 1,
+  const p = { ...l, d: predDVista(l.id, d), d37: d, M, planta: R(d.planta), base: R(d.base), dentro: d.dentro ? R(d.dentro) : null, k: 0, alfa: 1,   // (d: as camadas da vista de agora; d37, a ficha de sempre: vistaAplicar troca)
     paredes: rets.map(r => { const [x0, x1, y0, y1] = R(r); return { tipo: "parede_predio", x: (x0 + x1) / 2, y: (y0 + y1) / 2, x0, x1, y0, y1, r: 0, ret: true, predio: true }; }),
     moveis: Object.entries(d.moveis || {}).map(([n, m]) => ({ cam: "m_" + n, pos: M(m.x, m.y) })) };
   predInst.push(p);
-  for (const c of Object.values(d.camadas)) predImg(c.arq);
+  for (const c of Object.values(p.d.camadas)) predImg(c.arq);
   if (l.npc) { const n = objetos.find(o => o.tipo === "pessoa" && o.nome === l.npc[0]); if (n) { [n.x, n.y] = M(l.npc[1], l.npc[2]); n.dentroPredio = true; } }
 }
 function montarPredios() {
@@ -10994,7 +11014,29 @@ function varDeco(o) {
 // a peça vista na diagonal (giro de 45°, deco_diag.json): a do mesmo modelo que o mundo 3D usaria (M3D.DECO_3D) e,
 // nas que giram à toa lá (natureza), uma das voltas renderizadas; a colisão, a base e o retângulo continuam os da
 // variação de sempre (v). Sem a peça diagonal, fica a de sempre
-function visDeco(o, v) {
+// (a vista Baixa, 22°: a peça do estilo B com foto de 22° em giro22.json → deco vira a foto, deco22; as outras ficam)
+function visDeco(o, v) { const r = visDeco0(o, v); return VISTA.nome === "baixa" && r ? deco22(o.tipo, r) : r; }
+// a foto de 22° de uma variante do estilo B (giro22.json → deco[tipo][variante], o modelo do Tripo feito da pintura): o arq, o pé
+// (px, py), o tamanho e o ppm de lá; o resto (base, fator, sombra, a colisão) é o da pintura. Sem a foto, ou até ela chegar, a pintura
+const DECO22_PEDIDO = new Set();
+function deco22(tipo, v) {
+  if (v.v22 || v.pasta !== "deco_b/" || v.iB === undefined) return v;
+  if (v._v22 === undefined) {
+    const L = VISTA.g22 && VISTA.g22.deco && VISTA.g22.deco[tipo], g = L && L[v.iB];
+    if (!VISTA.g22) return v;
+    v._v22 = g ? { ...v, arq: g.arq, pasta: "giro22/", px: g.px, py: g.py, w: g.w, h: g.h, ppm: g.ppm, v22: true, de: v } : null;
+  }
+  if (!v._v22) return v;
+  if (!DECO_IMG[v._v22.arq]) { deco22Carregar(v._v22.arq); return v; }
+  return v._v22;
+}
+function deco22Carregar(arq) {
+  if (DECO_IMG[arq] || DECO22_PEDIDO.has(arq)) return;
+  DECO22_PEDIDO.add(arq); const im = new Image(); im.decoding = "async"; im.onerror = () => console.error("giro22: sem a foto", arq);
+  im.onload = () => { const pronta = () => { DECO_IMG[arq] = im; }; if (im.decode) im.decode().then(pronta, pronta); else pronta(); };   // (decodificada fora da thread antes de entrar)
+  im.src = arq;
+}
+function visDeco0(o, v) {
   const l = DECO_DIAG && v && DECO_DIAG[o.tipo];
   if (!l) return v;
   if (o._vd && o._vdDe === v) return o._vd;
@@ -11207,9 +11249,10 @@ function desenharSoltos(g, im, arq, ox, oy, k, o, t) {
   return true;
 }
 function desenharDecoSprite(o, v0, X, Y, s, t) {
-  const v = visDeco(o, v0), diag = v !== v0;                              // (diag: a peça renderizada na diagonal, já com a sombra dela)
-  const im0 = o.caverna && v.pasta !== "deco_b/" ? imagemEscura(v.arq) : imagemEstacao(v.arq, o.tipo, o.neve || (o.monte && o.tipo === "pedra") ? 3 : 0), k = kDeco(o, v0, v, s), w = v.w * k, h = v.h * k;
-  const im1 = o.tom < 0 && v.pasta === "deco_b/" ? imagemTom(im0, v.arq, o.tom) : im0;   // (Daiyu: o tom de cada basalto)
+  const v = visDeco(o, v0), diag = (v.v22 ? v.de : v) !== v0;           // (diag: a peça renderizada na diagonal, já com a sombra dela; a foto de 22° vale como a pintura dela)
+  const deB = v.pasta === "deco_b/" || !!v.v22;                           // (do estilo B: a pintura ou a foto de 22° dela)
+  const im0 = o.caverna && !deB ? imagemEscura(v.arq) : imagemEstacao(v.arq, o.tipo, o.neve || (o.monte && o.tipo === "pedra") ? 3 : 0), k = kDeco(o, v0, v, s), w = v.w * k, h = v.h * k;
+  const im1 = o.tom < 0 && deB ? imagemTom(im0, v.arq, o.tom) : im0;   // (Daiyu: o tom de cada basalto)
   const im = o.caverna && (o.tipo === "costela" || o.tipo === "osso") ? ossoVale(im1, o.tipo) : im1;   // (no Vale: sem musgo, sem pinheiro, sem neve)
   if ((!diag || !v.sombra) && !o.semSombra) sombra(X, Y, Math.max(0.3, v0.base * 0.42) * s * escDeco(o));   // (semSombra: a pegada pintada no chão, Ilha de Daiyu)
   const balanca = o.tipo === "arvore" || o.tipo === "pinheiro" ? 0.05 : o.tipo === "arbusto" ? 0.09 : 0;
@@ -16560,7 +16603,26 @@ function imgForjaPintada() {
   if (!F.im) { F.im = new Image(); F.im.onload = () => { F.ok = true; }; F.im.src = typeof VERSOES !== "undefined" && VERSOES.com ? VERSOES.com(F.arq) : F.arq; }
   return F.ok ? F.im : null;
 }
+// a vista Baixa, 22°: a foto de 22° da forja do Tripo (o modelo feito desta pintura: giro22.json → tripo.forja; px/py = o pé, fogo e
+// bigorna em px da foto), como no teste paralelo (Tools/viking/giro). Devolve false sem a foto (fica a pintura)
+const FORJA22 = { im: null };
+function desenharForja22(o, X, Y, s, t) {
+  const e = VISTA.nome === "baixa" && VISTA.g22 && VISTA.g22.tripo && VISTA.g22.tripo.forja; if (!e) return false;
+  if (!FORJA22.im) { FORJA22.im = new Image(); FORJA22.im.src = e.arq; }
+  const im = FORJA22.im; if (!im.complete || !im.naturalWidth) return false;
+  const k = s / e.ppm, w = e.w * k, h = e.h * k, g = cx, x0 = X - e.px * k, y0 = Y - e.py * k;
+  sombra(X, Y, FORJA_PINTADA.larg * s * 0.42);
+  g.drawImage(im, x0, y0, w, h);
+  const fx = x0 + e.fogo[0] * k, fy = y0 + e.fogo[1] * k, p = 0.75 + 0.25 * Math.sin(t * 9 + o.x) * Math.sin(t * 5.3);
+  g.save(); g.globalCompositeOperation = "lighter";
+  const luz = g.createRadialGradient(fx, fy, 0, fx, fy, 0.9 * s); luz.addColorStop(0, `rgba(255, 150, 60, ${0.3 * p})`); luz.addColorStop(1, "rgba(255, 110, 40, 0)");   // (mais fraca que a da pintura: a pedra do Tripo é clara e lavava)
+  g.fillStyle = luz; g.beginPath(); g.arc(fx, fy, 0.9 * s, 0, 7); g.fill(); g.restore();
+  if (Math.random() < 0.015) faiscasForja(fx, fy - 0.1 * s, s * 0.6);
+  FORJA_PINTADA.tela = [x0 + e.bigorna[0] * k, y0 + e.bigorna[1] * k];
+  return true;
+}
 function desenharForjaPintada(o, X, Y, s, t) {
+  if (desenharForja22(o, X, Y, s, t)) return;
   const im = imgForjaPintada(); if (!im) return;
   const F = FORJA_PINTADA, w = F.larg * s, h = w * im.naturalHeight / im.naturalWidth, g = cx;
   sombra(X, Y, w * 0.42);
@@ -21642,7 +21704,7 @@ function abrirOpcoes(sim = $("#opcoes").hidden) {
 function mostrarOpcoes() {
   const j = document.getElementById("opcoes");
   if (!j || j.hidden) return;
-  $("#oSom").checked = Som.ligado; $("#oMusica").checked = Som.musicaLigada; $("#oContorno").checked = contornoLigado; $("#oBorda").checked = bordaLigada(); $("#oFps").checked = FPS.ligado; $("#oLimite").value = String(LIMITE.fps); $("#oGraficos").value = GRAF.nivel;
+  $("#oSom").checked = Som.ligado; $("#oMusica").checked = Som.musicaLigada; $("#oContorno").checked = contornoLigado; $("#oBorda").checked = bordaLigada(); $("#oFps").checked = FPS.ligado; $("#oLimite").value = String(LIMITE.fps); $("#oGraficos").value = GRAF.nivel; vistaMostrarOpcao();
   for (const [k] of VOL_NOMES) {
     const i = j.querySelector(`input[data-vol="${k}"]`); if (!i) continue;
     i.value = Som.vol[k]; i.closest(".vol").querySelector("output").textContent = Math.round(100 * Som.vol[k]) + "%";
@@ -21663,6 +21725,7 @@ function montarOpcoes() {
   $("#oFps").onchange = e => fpsLigar(e.target.checked);
   $("#oLimite").onchange = e => limiteQuadros(e.target.value);
   $("#oGraficos").onchange = e => { if (grafAplicar(e.target.value)) avisar(`Gráficos: ${GRAF.nome}`); };
+  $("#oVista").onchange = e => { vistaEscolher(e.target.value); e.target.blur(); };   // (a vista: Normal, 37°, ou Baixa, 22°)
   $("#oBorda").onchange = e => { try { localStorage.setItem("borda", e.target.checked ? "leve" : "0"); } catch (x) {} montarBordaEmb(); };
   $("#opcoesPadrao").onclick = () => { Som.vol = { ...VOL_PADRAO }; aplicarVolumes(); salvarVolumes(); mostrarOpcoes(); };
   $("#opcoesFechar").onclick = () => abrirOpcoes(false);
@@ -25812,6 +25875,16 @@ function arteBau() {
   }
   return A.im.trancado && A.im.destrancado && A.im.aberto ? A.im : null;
 }
+// a vista Baixa, 22°: as fotos de 22° dos 3 estados (giro22.json → tripo.bau_*), com o pé e o ppm delas. null até chegarem
+const BAU22 = { im: null, larg: 1.0 };
+function arteBau22() {
+  const T = VISTA.nome === "baixa" && VISTA.g22 && VISTA.g22.tripo; if (!T || !T.bau_trancado) return null;
+  if (!BAU22.im) {
+    BAU22.im = {}; Object.assign(BAU22, { ppm: T.bau_trancado.ppm, px: T.bau_trancado.px, py: T.bau_trancado.py, w: T.bau_trancado.w, h: T.bau_trancado.h });
+    for (const k of ["trancado", "destrancado", "aberto"]) { const im = new Image(); im.onload = () => { BAU22.im[k] = im; }; im.src = T["bau_" + k].arq; }
+  }
+  return BAU22.im.trancado && BAU22.im.destrancado && BAU22.im.aberto ? BAU22.im : null;
+}
 // (a boca larga) a rocha dos lados do portal, por código, nas cores da pedra da arte: blocos irregulares com contorno de nanquim
 // e veios de ocre, mais baixos para fora (o monte de pedra que continua até a parede). x0 → x1: do portal para fora, em px
 function rochaPortaChefe(lado, x0, x1, hh, semente) {
@@ -25956,9 +26029,9 @@ function desenharBauChefe(o, t) {
     g.save(); g.globalCompositeOperation = "lighter"; const gr = g.createRadialGradient(X, Y - hb * 0.6, 0, X, Y - hb * 0.6, e * 2.4);
     gr.addColorStop(0, `rgba(240, 190, 90, ${k})`); gr.addColorStop(1, "rgba(240, 190, 90, 0)"); g.fillStyle = gr; g.beginPath(); g.arc(X, Y - hb * 0.6, e * 2.4, 0, 7); g.fill(); g.restore();
   }
-  const ims = arteBau();
+  const ims22 = arteBau22(), ims = ims22 || arteBau();                   // (a vista Baixa: as fotos de 22°, quando chegarem)
   if (ims) {                                                             // (07/11, R330: a arte do Tripo; a sombra e o brilho de cima ficam)
-    const A = BAU_ARTE, im = aberto ? ims.aberto : solto ? ims.destrancado : ims.trancado, k = 2 * e / (A.ppm * A.larg);   // (1 m = 2e px)
+    const A = ims22 ? BAU22 : BAU_ARTE, im = aberto ? ims.aberto : solto ? ims.destrancado : ims.trancado, k = 2 * e / (A.ppm * A.larg);   // (1 m = 2e px)
     const X0 = X + kx * 0.5, Y0 = Y - ky * 0.5;                          // (o centro do chão da caixa por código: a imagem pousa no mesmo lugar)
     g.drawImage(im, X0 - A.px * k, Y0 - A.py * k, A.w * k, A.h * k);
     if (solto && !aberto) for (let n = 0; n < 3; n++) {                  // destrancado: as faíscas subindo (as de sempre)
@@ -26033,12 +26106,27 @@ function mascaraDoVale(d, im, w, h, ppm) {
 }
 // ---- as peças que o Tripo pode trocar (VALE_SLOTS; caminho: Tools/deco3d/vale/encaixar.py): cada uma funciona sozinha por código e,
 // se vale_arte.json listar a imagem dela, a imagem entra no lugar. A lista é lida na 1ª visita à ilha; sem o arquivo, nada muda
-const VALE_ARTE = {};
+// (a vista Baixa, 22°: VALE_ARTE é a de 37°, VALE_ARTE37, com as fotos de 22° do giro22.json → tripo.vale_<peça> por cima, VALE_ARTE22;
+//  valeArteMontar refaz a lista na troca. O tesouro não tem foto de 22°: fica o recorte de 37°)
+const VALE_ARTE = {}, VALE_ARTE37 = {}, VALE_ARTE22 = {};
+function valeArteMontar() {
+  for (const k of Object.keys(VALE_ARTE)) delete VALE_ARTE[k];
+  Object.assign(VALE_ARTE, VALE_ARTE37); if (VISTA.nome === "baixa") Object.assign(VALE_ARTE, VALE_ARTE22);
+}
+function carregarArteVale22() {
+  const T = VISTA.g22 && VISTA.g22.tripo; if (!T || carregarArteVale22.feito) return; carregarArteVale22.feito = true;
+  for (const [k, a] of Object.entries(T)) {
+    if (!k.startsWith("vale_")) continue;
+    const n = k.slice(5), im = new Image(); im.decoding = "async";
+    im.onload = () => { const pronta = () => { VALE_ARTE22[n] = { ...a, c: im, arte: true }; valeArteMontar(); }; if (im.decode) im.decode().then(pronta, pronta); else pronta(); };
+    im.src = a.arq;
+  }
+}
 function carregarArteVale() {
   if (!VERSOES.mapa || !VERSOES.mapa["vale_arte.json"]) return;
   fetch("vale_arte.json").then(r => r.ok ? r.json() : null).then(j => {
     if (!j) return;
-    for (const [n, a] of Object.entries(j)) { const im = new Image(); im.onload = () => { const pronta = () => { VALE_ARTE[n] = { ...a, c: im, arte: true }; }; if (im.decode) im.decode().then(pronta, pronta); else pronta(); }; im.src = VERSOES.com ? VERSOES.com(a.arq) : a.arq; }
+    for (const [n, a] of Object.entries(j)) { const im = new Image(); im.onload = () => { const pronta = () => { VALE_ARTE37[n] = { ...a, c: im, arte: true }; valeArteMontar(); }; if (im.decode) im.decode().then(pronta, pronta); else pronta(); }; im.src = VERSOES.com ? VERSOES.com(a.arq) : a.arq; }
   }).catch(() => {});
 }
 // a parede: a rocha em fila contínua na beira de trás (com a 2ª fila, mais escura, atrás dela) e baixa e esparsa na beira da frente,
@@ -27243,12 +27331,15 @@ const PORTAL_IMG = {};
 // os portais da lista PORTAIS. px/py: o centro dos degraus no chão; vao: o retângulo do vão na imagem (px da imagem cheia, 160 px/m;
 // a pasta meio/ tem a metade, como predios/meio). Os pilares são sólidos (pilaresPortais), a ~1,25 m do centro na direção da tela
 const PORTAL_B = { pasta: "deco_b/portal/", ppm: 160, px: 403.0, py: 660.9, vao: { x: 232.3, y: 263.0, w: 334.9, h: 269.4 }, pilar: 1.25, rPilar: 0.3, plano: 0.2, img: {} };
-function imgPortalB(n) {
-  const meio = zoom * (dpr || 1) <= 1.08, k = (meio ? "m:" : "c:") + n;
+function imgPortalB(n, v22 = !!portalB22()) {
+  const meio = zoom * (dpr || 1) <= 1.08, k = (meio ? "m:" : "c:") + (v22 ? "22:" : "") + n;
   let im = PORTAL_B.img[k];
-  if (!im) { im = PORTAL_B.img[k] = new Image(); im.decoding = "async"; im.escala = meio ? 0.5 : 1; const arq = PORTAL_B.pasta + (meio ? "meio/" : "") + n + ".webp"; im.src = typeof VERSOES !== "undefined" && VERSOES.com ? VERSOES.com(arq) : arq; }
-  return im.complete && im.naturalWidth ? im : null;
+  if (!im) { im = PORTAL_B.img[k] = new Image(); im.decoding = "async"; im.escala = meio ? 0.5 : 1; im.v22 = v22; const arq = (v22 ? "giro22/tripo/" : PORTAL_B.pasta) + (meio ? "meio/" : "") + n + ".webp"; im.src = typeof VERSOES !== "undefined" && VERSOES.com ? VERSOES.com(arq) : arq; }
+  if (im.complete && im.naturalWidth) return im;
+  return v22 ? imgPortalB(n, false) : null;                              // (a vista Baixa: até a foto de 22° chegar, a de 37°; im.v22 diz qual veio)
 }
+// a vista Baixa, 22°: o pé, o ppm e o vão da foto de 22° (giro22.json → tripo.portal_b); null na Normal
+function portalB22() { const g = VISTA.nome === "baixa" && VISTA.g22 && VISTA.g22.tripo && VISTA.g22.tripo.portal_b; return g ? { ppm: g.ppm, px: g.px, py: g.py, vao: g.vao } : null; }
 // o redemoinho no vão: camadas prontas (feitas uma vez por cor de destino, em canvas de 256 px) girando em velocidades e sentidos
 // diferentes, achatadas como um funil visto de lado e respirando em profundidade; só o miolo dourado é luz somada. 5 drawImage, sem
 // filtro, sem caminho nem degradê por quadro (o lote WebGL2 desenha tudo)
@@ -27359,9 +27450,10 @@ function desenharPortal(p, t) {
     }
   }
   // (05/11) o Portal B: o fundo, o redemoinho no vão e a frente por cima; a placa do destino no alto do telhado
-  const fundoB = imgPortalB("portal_b"), frenteB = imgPortalB("portal_b_frente");
+  const fundoB = imgPortalB("portal_b"), frenteB0 = fundoB && imgPortalB("portal_b_frente", fundoB.v22), frenteB = frenteB0 && frenteB0.v22 === fundoB.v22 ? frenteB0 : null;
   if (fundoB) {
-    const k = s / (PORTAL_B.ppm * fundoB.escala), x0 = X - PORTAL_B.px * fundoB.escala * k, y0 = Y - PORTAL_B.py * fundoB.escala * k, v = PORTAL_B.vao, e = fundoB.escala * k;
+    const PB = (fundoB.v22 && portalB22()) || PORTAL_B;                  // (a vista Baixa: as medidas da foto de 22°)
+    const k = s / (PB.ppm * fundoB.escala), x0 = X - PB.px * fundoB.escala * k, y0 = Y - PB.py * fundoB.escala * k, v = PB.vao, e = fundoB.escala * k;
     g.drawImage(fundoB, x0, y0, fundoB.naturalWidth * k, fundoB.naturalHeight * k);
     redemoinhoB(g, x0 + v.x * e, y0 + v.y * e, v.w * e, v.h * e, t, c, trava);
     if (frenteB) g.drawImage(frenteB, x0, y0, frenteB.naturalWidth * k, frenteB.naturalHeight * k);
@@ -27599,7 +27691,7 @@ function desenharPassagens(t) {
     const [X, Y] = noMundo(p.x, p.y, p.zChao || 0);
     if (X < -s * 3 || X > W + s * 3 || Y < -s * 3 || Y > H + s * 3) continue;
     if (p.vale || p.tipo === "desce") { desenharPassagemVale(p, X, Y, s, t); continue; }   // (a boca do rasgo e o buraco com lava)
-    const ent = p.tipo === "buraco" && DECO && DECO.entrada && DECO.entrada[DUNGEONS.indexOf(p.dungeon)];
+    const ent0 = p.tipo === "buraco" && DECO && DECO.entrada && DECO.entrada[DUNGEONS.indexOf(p.dungeon)], ent = ent0 && VISTA.nome === "baixa" ? deco22("entrada", ent0) : ent0;   // (a vista Baixa: a foto de 22°)
     if (ent && DECO_IMG[ent.arq]) {
       const k = s / ent.ppm;
       cx.drawImage(DECO_IMG[ent.arq], X - ent.px * k, Y - ent.py * k, ent.w * k, ent.h * k);
@@ -27616,7 +27708,7 @@ function desenharPassagens(t) {
       for (let k = 0; k < 3; k++) { const yy = Y - s * (0.32 - k * 0.16); cx.beginPath(); cx.moveTo(X - s * 0.16, yy); cx.lineTo(X + s * 0.16, yy); cx.stroke(); }
     } else if (DECO && DECO.escada && DECO_IMG[DECO.escada[0].arq]) {
       // a escada de volta (estilo B): os degraus de pedra subindo para a luz, com a luz de cima e uma marca no pé dela
-      const e = DECO.escada[0], k = s / e.ppm, pul = 0.5 + 0.5 * Math.sin(t * 3);
+      const e = VISTA.nome === "baixa" ? deco22("escada", DECO.escada[0]) : DECO.escada[0], k = s / e.ppm, pul = 0.5 + 0.5 * Math.sin(t * 3);   // (a vista Baixa: a foto de 22°)
       const g = cx.createRadialGradient(X, Y - s * 2.2, 0, X, Y - s * 2.2, s * 2.2); g.addColorStop(0, "rgba(255, 236, 190, 0.32)"); g.addColorStop(1, "rgba(255, 236, 190, 0)");
       if (p.dungeon && p.dungeon.vale) sombraChapadaVale(X, Y, 1.2 * s, s);    // (no Vale: a sombra chapada, sem o clarão de degradê)
       else { cx.fillStyle = g; cx.beginPath(); cx.arc(X, Y - s * 2.2, s * 2.2, 0, 7); cx.fill(); }
@@ -30792,7 +30884,7 @@ async function carregarP3d() {
   const sol = new THREE.DirectionalLight(ESTILO_PINTADO ? 0xffe0b0 : 0xffffff, ESTILO_TINTA ? 1.5 : ESTILO_PINTADO ? 1.0 : 0.75); sol.position.set(-1.2, 2.4, 1.6); p.cena.add(sol);
   // as matrizes de cada boneco são atualizadas só quando ele é renderizado (a cena tem todos, escondidos)
   p.cena.updateMatrixWorld(true); p.cena.matrixWorldAutoUpdate = false;
-  const k = 37 * Math.PI / 180;
+  const k = (VISTA.nome === "baixa" ? 22 : 37) * Math.PI / 180;         // (a vista Baixa, 22°: camera3dNaVista troca depois)
   p.cam = new THREE.OrthographicCamera(-2, 2, 3, -1, 0.1, 60);
   p.cam.position.set(0, Math.sin(k) * 20, Math.cos(k) * 20); p.cam.lookAt(0, 0, 0);
   // (no Mundo de Tinta a faixa da sombra é bem mais escura: o lado da sombra vira outra aguada)
@@ -31131,10 +31223,10 @@ async function caixa3d(m) {
   if (m.json) for (const a of Object.values(m.json.animacoes)) if (a.w > 0) {
     tem = true; c.esq = Math.max(c.esq, a.px); c.dir = Math.max(c.dir, a.w - a.px); c.cima = Math.max(c.cima, a.py); c.baixo = Math.max(c.baixo, a.h - a.py);
   }
-  if (tem) { const k = 1.04 / PX; return { esq: c.esq * k, dir: c.dir * k, cima: c.cima * k, baixo: c.baixo * k }; }
+  if (tem) { const k = 1.04 / PX; return { esq: c.esq * k, dir: c.dir * k, cima: c.cima * k * 1.15, baixo: c.baixo * k }; }   // (+15% em cima: na vista Baixa, 22°, o boneco fica mais alto na tela)
   const b = new THREE.Box3().setFromObject(m.base), alto = Math.max(0.3, b.max.y);
   const r = Math.max(Math.hypot(b.max.x, b.max.z), Math.hypot(b.min.x, b.min.z), alto * 0.6) * 1.15;
-  return { esq: r, dir: r, cima: alto * 0.8 + r * 0.6 + 0.1, baixo: r * 0.6 + 0.1 };
+  return { esq: r, dir: r, cima: alto * 0.93 + r * 0.6 + 0.1, baixo: r * 0.6 + 0.1 };   // (alto · 0,93 cabe também na vista Baixa, onde 1 m sobe 0,927)
 }
 // o ângulo do modelo (olha para +Z, que na tela é o sul) para uma das 8 direções do jogo (0 = leste, 2 = sul...)
 function angDir3d(d) { return Math.atan2(Math.cos(-d * Math.PI / 4), -Math.sin(-d * Math.PI / 4)); }
@@ -31530,7 +31622,7 @@ function renderInst3d(i, clip, tempo) {
     if (eo) {
       const w = eo.getWorldPosition(new THREE.Vector3()), e = new THREE.Vector3();
       eo.getWorldScale(e);
-      if (e.x > 1e-3) i.esfera = [w.x * PX, -(w.y * 0.8 - w.z * 0.6) * PX];
+      if (e.x > 1e-3) i.esfera = [w.x * PX, -(w.y * ALTURA - w.z * ACHATA) * PX];
     }
     i.mascaraFeita = p.quadro;
   }
@@ -33067,7 +33159,14 @@ function altarPintar(g, P, esc, x0, y1, cw, ch) {
   g.restore();
 }
 // as artes da ilha: carregam na 1ª vez que a câmera chega perto. A colina e a ponte vão logo acima do chão; o templo, as estátuas e o guarda-corpo da frente da ponte, na ordem dos objetos
+const ALTAR_PECAS22 = {};                                                  // (a vista Baixa: as fotos de 22° do giro22.json → tripo)
 function altarPeca(n) {
+  const g = VISTA.nome === "baixa" && VISTA.g22 && VISTA.g22.tripo && VISTA.g22.tripo[n];
+  if (g) {
+    const q = ALTAR_PECAS22[n] || (ALTAR_PECAS22[n] = { px: g.px, py: g.py, ppm: g.ppm, im: null, ok: false });
+    if (!q.im) { q.im = new Image(); q.im.onload = () => { q.ok = true; }; q.im.src = g.arq; }
+    if (q.ok) return q;                                                   // (até a foto chegar, a de 37°)
+  }
   const q = ALTAR_PECAS[n];
   if (!q.im) { q.im = new Image(); q.im.onload = () => { q.ok = true; }; const arq = `deco_b/altar/${n}.webp`; q.im.src = VERSOES.com ? VERSOES.com(arq) : arq; }
   return q.ok ? q : null;
@@ -33078,7 +33177,25 @@ function altarArteChao() {
   { const [mx, my] = altarMundo(10, 0); if (Math.hypot(mx - cam.x, my - cam.y) > 90) return; }
   const s = PX * zoom, P = ALTAR.ponte, po = altarPeca("ponte"), il = altarPeca("ilha");
   if (po) { const [X, Y] = noMundo(...altarMundo((P.a0 + P.a1) / 2, P.b), -P.baixa); altarDesenha(po, po.im, X, Y, s); }
-  if (il) { const [X, Y] = noMundo(...altarMundo(0, ALTAR.esc.b0)); altarDesenha(il, il.im, X, Y, s); }
+  if (il) { const [X, Y] = noMundo(...altarMundo(0, ALTAR.esc.b0)); if (VISTA.nome === "baixa") altarIlha22(il, X, Y, s); else altarDesenha(il, il.im, X, Y, s); }
+}
+// a vista Baixa, 22°: a ilha (a pintura do ChatGPT, de 37°, sem foto de 22°) refeita por faixas horizontais: cada linha da pintura é um
+// ponto do eixo da escadaria (o chão, os lances, o patamar no alto e a cerca do fundo), e vai para onde esse ponto fica a 22°. Na de
+// 37°: y = 0,6·(b − b0) + 0,8·z; na de 22°: 0,375·(b − b0) + 0,927·z (m acima do pé da escada). As encostas dos lados vão juntas
+function altarY22(y) {
+  const E = ALTAR.esc, T = ALTAR.topo, L = ALTAR.lances, z = ALTAR.z, nos = [[-5, 0]];
+  for (const [b, zz] of [[E.b0, 0], ...L.slice(1).map(([bb, zz2]) => [bb, zz2]), [T.b0, z], [T.b1, z]]) nos.push([b, zz]);
+  const p = nos.map(([b, zz]) => b === -5 ? [-5 * 0.6, -5 * 0.375] : [0.6 * (b - E.b0) + 0.8 * zz, 0.375 * (b - E.b0) + 0.927 * zz]);
+  for (let k = 1; k < p.length; k++) if (y <= p[k][0]) { const [a0, b0] = p[k - 1], [a1, b1] = p[k]; return b0 + (b1 - b0) * (y - a0) / Math.max(1e-6, a1 - a0); }
+  const [a1, b1] = p[p.length - 1]; return b1 + (y - a1) * 0.927 / 0.8;  // (acima do patamar: a cerca do fundo, em pé)
+}
+function altarIlha22(q, X, Y, s) {
+  const im = q.im, k = s / q.ppm, N = 48, h = im.height, w = im.width;
+  for (let n = 0; n < N; n++) {
+    const r0 = h * n / N, r1 = h * (n + 1) / N, y0 = (q.py - r0) / q.ppm, y1 = (q.py - r1) / q.ppm;
+    const t0 = Y - altarY22(y0) * s, t1 = Y - altarY22(y1) * s;
+    cx.drawImage(im, 0, r0, w, r1 - r0, X - q.px * k, t0, w * k, t1 - t0 + 0.6);
+  }
 }
 let ALTAR_ESTATUAS = [];
 function altarAcesa(c) { return classe === "aprendiz" ? !!VOCACOES[VOCACAO] && VOCACOES[VOCACAO].classes.includes(c) : c === classe; }
@@ -33682,7 +33799,7 @@ function frenteImagens() {
         let melhor = null;
         for (const [, o] of l) {
           const p = PONTES_H[o.ponteH], v0 = varDeco(o); if (!p || !v0) { o.frentePronta = true; continue; }
-          const v = visDeco(o, v0); if (v.pasta !== "deco_b/") { o.frentePronta = true; continue; }
+          const v = visDeco(o, v0); if (v.pasta !== "deco_b/" && !v.v22) { o.frentePronta = true; continue; }
           const im = imagemEstacao(v.arq, o.tipo, 0); if (!im || !(im.width > 0)) continue;
           if (FRENTE_PONTE.has(im) || FRENTE_PONTE_FORA.has(im)) continue;
           if (FI.pend.has(im)) break;
@@ -33843,6 +33960,194 @@ function* preparoQuadros(comEnsaio) {
   } finally { try { if (window.FX3 && FX3.ensaiando) FX3.ensaioFim(); } catch (e) {} }
   preparoQuadroEscondido(zoom); preparoEsperarGpu();                   // (sem o ensaio: o atlas e o palco como o jogo vai continuar)
 }
+// ---------------------------------------------------------------- a vista: Normal (37°) ou Baixa (22°) (07/11/2026, fase 2 da câmera baixa)
+// O usuário (07/11): "vamos implementar a camera 22 no jogo todo, mas ela só modificara em um botão no menu do jogo, onde você
+// escolherá em qual vista vai jogar." Logs/Camera/ASSETS_22.md (as artes da fase 1 e, no fim, a fase 2) e TESTE_GIRO90.md (etapa 2:
+// o teste paralelo em Tools/viking/giro, de onde vieram a projeção, a troca suave e o chão por vista; o arrasto do botão direito NÃO veio).
+//  - Opções → Imagem → "Vista": Normal (37°) ou Baixa (22°), guardada no navegador ("vista"). O jogo abre na Normal; ?vista=baixa na
+//    URL passa por cima (fotos e testes; o ?test=1 ignora o que está guardado). Sem tecla e sem arrasto.
+//  - A inclinação: o chão achata sen(i) e 1 m de altura sobe cos(i): ACHATA e ALTURA 0,6 e 0,8 (a de sempre, 36,87°) ou 0,375 e 0,927.
+//  - As artes de 22° (Tools/deco3d/giro22 → giro22/ no build, com o acabamento C): giro22/giro22.json, lido na 1ª troca. As construções
+//    (predDVista: as mesmas camadas, então entrar nas casas e as luzes da noite funcionam igual), o estilo B com modelo novo (deco22), as
+//    peças do Tripo (o Altar, o Portal B, o baú, o Vale, a forja, a estátua do Imugi, o estábulo). O que não tem foto fica com a de 37°.
+//  - A troca suave: um véu (o quadro de antes e o de agora, esticados na vertical em volta do herói, como o chão) por 0,38 s. O chão é
+//    guardado por vista (os pedaços pintados; as máscaras são em metros e servem às duas); com as Opções abertas, o chão da outra vista é
+//    pintado aos poucos, um passo a cada 2 quadros, e a troca não trava. O guardado da outra vista sai 60 s depois da troca.
+//  - Os mapas com relevo (Daiyu, Montanha): a grade do que se anda é sempre a de 37°; os picos do fundo são repintados (vistaMudou).
+//    As cavernas: o chão pronto é guardado por vista.
+//  - Fora do giro de 45° (o mundo 3D, ?giro=0, o Mundo de Tinta) a opção não aparece.
+const VISTA_INC = { normal: 36.87, baixa: 22 };
+const vistaAchata = n => n === "baixa" ? Math.sin(22 * Math.PI / 180) : 0.6, vistaAltura = n => n === "baixa" ? Math.cos(22 * Math.PI / 180) : 0.8;
+Object.assign(VISTA, { g22: null, g22Pedido: null, caches: {}, pisos: {}, trocas: 0, log: [], pre: { quadro: 0, passos: 0, feito: "" },
+  veu: { el: null, foto: null, fotoA: 0, fotoAch: 0.6, de: 0.6, para: 0.6, ach: 0.6, t0: 0, dur: 380, ativo: false }, trocando: null, tTroca: 0 });
+const vistaPode = () => GIRO_DIAG && !(window.M3D && M3D.ativo);
+// a escolha guardada (ou a da URL); no ?test=1 só a da URL
+function vistaGuardada() {
+  const q = new URLSearchParams(location.search).get("vista"); if (q === "baixa" || q === "normal") return q;
+  if (MODO_TESTE) return "normal";
+  try { return localStorage.getItem("vista") === "baixa" ? "baixa" : "normal"; } catch (e) { return "normal"; }
+}
+function vistaCarregar22() {
+  if (VISTA.g22) return Promise.resolve(VISTA.g22);
+  if (!VISTA.g22Pedido) VISTA.g22Pedido = fetch("giro22/giro22.json").then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(j => { VISTA.g22 = j; return j; }, e => { console.error("giro22/giro22.json:", e); VISTA.g22Pedido = null; return null; });
+  return VISTA.g22Pedido;
+}
+// as camadas de 22° das construções perto da câmera, pedidas antes da troca (sem elas, a construção some até a foto chegar)
+function vistaPreCarregar(nome) {
+  const ims = [];
+  if (nome !== "baixa" || !VISTA.g22) return ims;
+  for (const p of predInst) {
+    if (Math.hypot(p.x - cam.x, p.y - cam.y) > 45) continue;
+    const g = VISTA.g22.predios && VISTA.g22.predios[p.id]; if (!g) continue;
+    for (const c of Object.values(g.camadas)) { predImg(c.arq); const im = PRED_IMG[(zoom * (dpr || 1) <= 1.08 && !PRED_SEM_MEIO && c.arq.startsWith("giro22/predios/") ? "m:" : "c:") + c.arq]; if (im) ims.push(im); }
+  }
+  for (const o of objetos) if (o.tipo && Math.hypot(o.x - cam.x, o.y - cam.y) < 45 && VISTA.g22.deco && VISTA.g22.deco[o.tipo]) for (const g of VISTA.g22.deco[o.tipo]) if (g) deco22Carregar(g.arq);
+  return ims;
+}
+// o chão: os pedaços pintados de uma vista (a chave dos pedaços não tem a inclinação)
+function vistaGuardarChao(nome) { VISTA.caches[nome] = { p: [...pedacos.entries()], e: [...PEDACO_EM_CURSO.entries()], t: performance.now() }; pedacos.clear(); PEDACO_EM_CURSO.clear(); }
+function vistaVoltarChao(nome) { const c = VISTA.caches[nome]; if (!c) return; for (const [k, v] of c.p) pedacos.set(k, v); for (const [k, v] of c.e) PEDACO_EM_CURSO.set(k, v); delete VISTA.caches[nome]; }
+function vistaPoe(nome) { VISTA.nome = nome; ACHATA = vistaAchata(nome); ALTURA = vistaAltura(nome); }
+// a câmera do atlas dos bonecos (P3D) na inclinação da vista; o atlas é refeito
+function camera3dNaVista() {
+  if (typeof P3D !== "object" || !P3D || !P3D.cam) return;
+  const k = (VISTA.nome === "baixa" ? 22 : 37) * Math.PI / 180;           // (a de sempre: os 37° com que o atlas nasce)
+  P3D.cam.position.set(0, Math.sin(k) * 20, Math.cos(k) * 20); P3D.cam.lookAt(0, 0, 0); P3D.cam.updateMatrixWorld(true);
+  if (typeof zerarAtlas3d === "function") zerarAtlas3d();
+}
+// a troca na hora (sem véu): a inclinação, o chão guardado, as fichas das construções e os caches que dependem dela
+function vistaAplicar(nome) {
+  if (nome === VISTA.nome || !VISTA_INC[nome]) return false;
+  const de = VISTA.nome;
+  vistaGuardarChao(de); vistaPoe(nome); vistaVoltarChao(nome);
+  CHAO_IMG.sujo = true; CHAO_FRENTE.plano = []; CHAO_FRENTE.chave = ""; VISTA.pintarTudo = true; VISTA.pre.feito = "";
+  if (typeof passoArma === "function") passoArma.rg = null;
+  camera3dNaVista();
+  for (const p of predInst) p.d = predDVista(p.id, p.d37 || p.d);
+  // as cavernas: o chão pronto (achatado pela inclinação) de cada vista, só o da caverna onde a câmera está
+  for (const d of DUNGEONS) if (d.piso) { VISTA.pisos[de] = { d, piso: d.piso, vivo: d.vivo, luz: d.luz }; d.piso = null; }
+  const pg = VISTA.pisos[nome]; if (pg && naCaverna(cam.x) && cavDe(cam.x) === pg.d) { pg.d.piso = pg.piso; pg.d.vivo = pg.vivo; pg.d.luz = pg.luz; } delete VISTA.pisos[nome];
+  for (const M of [typeof DAIYU === "object" ? DAIYU : null, typeof GELADA === "object" ? GELADA : null]) if (M && M.vistaMudou) M.vistaMudou();
+  for (const o of objetos) if (o.ponteH !== undefined) o.frentePronta = false;   // (o corrimão da frente das pontes da Hahoe: o da foto da vista)
+  if (typeof VEG_GPU === "object") { VEG_GPU.chave = ""; VEG_GPU.prox = null; }
+  valeArteMontar(); if (nome === "baixa") carregarArteVale22();
+  VISTA.trocas++; VISTA.tTroca = performance.now(); VISTA.log.push({ de, para: nome, t: VISTA.tTroca }); if (VISTA.log.length > 50) VISTA.log.shift();
+  return true;
+}
+// a troca pedida (o menu): carrega as artes de 22° (e as camadas da tela) e troca, com o véu (suave) ou na hora. Devolve uma promessa
+async function vistaTrocar(nome, suave = true) {
+  if (!VISTA_INC[nome] || !vistaPode()) return false;
+  if (VISTA.trocando) await VISTA.trocando;
+  if (nome === VISTA.nome) return false;
+  const fazer = async () => {
+    if (nome === "baixa" && !(await vistaCarregar22())) return false;
+    const ims = vistaPreCarregar(nome), t0 = performance.now();
+    while (ims.some(im => !im.complete) && performance.now() - t0 < 2500) await new Promise(r => setTimeout(r, 40));
+    await Promise.race([Promise.all(ims.map(im => im.decode ? im.decode().catch(() => {}) : 0)), new Promise(r => setTimeout(r, 1500))]);   // (decodificadas fora da thread: o 1º quadro não para para isso)
+    if (nome === VISTA.nome) return false;
+    if (suave && cv.width && !SEL.aberta) { veuVistaLigar(); veuVistaFoto(); }
+    const de = ACHATA;
+    if (!vistaAplicar(nome)) return false;
+    if (suave && VISTA.veu.el && VISTA.veu.el.style.display !== "none") Object.assign(VISTA.veu, { de, para: ACHATA, ach: de, t0: performance.now(), ativo: true });
+    vistaMostrarOpcao();
+    return true;
+  };
+  VISTA.trocando = fazer().finally(() => { VISTA.trocando = null; });
+  return VISTA.trocando;
+}
+// a escolha do menu: guarda e troca
+function vistaEscolher(nome) {
+  if (!VISTA_INC[nome]) return;
+  try { localStorage.setItem("vista", nome); } catch (e) {}
+  vistaTrocar(nome, true).then(ok => { if (ok && !MODO_TESTE) avisar(nome === "baixa" ? "Vista baixa (22°)" : "Vista normal (37°)"); });
+}
+function vistaMostrarOpcao() {
+  const s = document.getElementById("oVista"); if (!s) return;
+  s.value = VISTA.nome; const l = s.closest("label"); if (l) l.hidden = !vistaPode();
+}
+// ---- o véu da troca: o quadro de agora (já na vista nova) e o de antes, esticados na vertical em volta do herói até a inclinação
+// que se vê (ach vai de uma à outra em dur ms); o de antes some no caminho
+function veuVistaLigar() {
+  const V = VISTA.veu;
+  if (!V.el) { const v = document.createElement("canvas"); v.id = "vistaVeu"; v.setAttribute("aria-hidden", "true"); v.style.cssText = "position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none;"; cv.after(v); V.el = v; V.foto = document.createElement("canvas"); }
+  if (V.el.width !== cv.width || V.el.height !== cv.height) { V.el.width = cv.width; V.el.height = cv.height; }
+  V.el.style.display = "block";
+}
+function veuVistaFoto() { const V = VISTA.veu, f = V.foto; f.width = cv.width; f.height = cv.height; f.getContext("2d").drawImage(cv, 0, 0); V.fotoAch = ACHATA; V.fotoA = 1; }
+function veuVistaQuadro(agora) {
+  const V = VISTA.veu; if (!V.el || V.el.style.display === "none") return;
+  const p = V.ativo ? Math.min(1, (agora - V.t0) / V.dur) : 1, q = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+  V.ach = V.de + (V.para - V.de) * q; V.fotoA = 1 - q;
+  if (p >= 1) { V.ativo = false; V.el.style.display = "none"; return; }
+  const g = V.el.getContext("2d"), k = cv.width / W, [px, py] = noMundo(viking.x, viking.y, 0);
+  const T = a => { g.setTransform(k, 0, 0, k, 0, 0); g.translate(px, py); g.scale(1, V.ach / a); g.translate(-px, -py); };
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.fillStyle = "#2a251f"; g.fillRect(0, 0, V.el.width, V.el.height);
+  g.imageSmoothingEnabled = true;
+  T(ACHATA); g.drawImage(cv, 0, 0, W, H);                                // (o de agora)
+  if (V.fotoA > 0) { T(V.fotoAch); g.globalAlpha = V.fotoA; g.drawImage(V.foto, 0, 0, W, H); g.globalAlpha = 1; }
+}
+// ---- o chão da outra vista, aos poucos, com as Opções abertas (quem abre o menu pode trocar): a inclinação e os pedaços trocados só
+// durante um passo de um pedaço
+function vistaComOutra(nome, fn) {
+  const de = VISTA.nome;
+  vistaGuardarChao(de); vistaPoe(nome); vistaVoltarChao(nome);
+  try { return fn(); } finally { vistaGuardarChao(nome); vistaPoe(de); vistaVoltarChao(de); }
+}
+function vistaPrePintar() {
+  const P = VISTA.pre, op = document.getElementById("opcoes");
+  if (!op || op.hidden || !vistaPode() || VISTA.veu.ativo || VISTA.trocando || naCaverna(cam.x) || PREPARO.ativo) return;
+  const outra = VISTA.nome === "baixa" ? "normal" : "baixa", chave = [Math.round(cam.x / 3), Math.round(cam.y / 3), zoom.toFixed(2), outra, MAPA_CAM.ox].join("|");
+  if (outra === "baixa" && !VISTA.g22) { vistaCarregar22(); return; }
+  const agora = performance.now(); if (agora - (P.tImg || 0) > 300) { P.tImg = agora; vistaPreImagens(outra); }
+  if (P.feito === chave) return;
+  // (passos de um pedaço, até ~4 ms por quadro: o menu aberto por ~2 s já basta para a tela inteira)
+  const t0 = performance.now(), fez = vistaComOutra(outra, () => {
+    const faixa = escFaixa(faixaZoom(zoom)), s = PX * zoom, [cu, cv0] = naVista(cam.x, cam.y), larg = W / s, alt = H / (s * ACHATA);
+    const i0 = Math.floor((cu - larg / 2) / PEDACO), i1 = Math.floor((cu + larg / 2) / PEDACO), j0 = Math.floor((cv0 - alt / 2) / PEDACO), j1 = Math.floor((cv0 + alt / 2) / PEDACO);
+    let algum = false;
+    for (let j = j1; j >= j0; j--) for (let i = i0; i <= i1; i++) {
+      if (performance.now() - t0 > 4) return true;
+      if (pedacos.has(faixa + ":" + i + "," + j) || pedacoSoMar(i, j)) continue;
+      algum = true; const k = faixa + ":" + i + "," + j; while (!pedacos.has(k) && performance.now() - t0 <= 4) { const ok = pedacoAosPoucos(i, j, faixa); P.passos++; if (!ok && !PEDACO_EM_CURSO.has(k)) return true; }   // (sem lugar para começar: no próximo quadro)
+    }
+    return algum;
+  });
+  if (!fez) P.feito = chave;
+}
+// as camadas das construções perto, na outra vista: decodificadas fora da thread e postas na fila do R236 (FRENTE_IMG: a textura do lote
+// e a máscara de opacidade, uma por quadro, frenteImagens). Sem isso, o 1º quadro da vista nova fazia as duas na thread do jogo (~25 ms)
+function vistaPreImagens(outra) {
+  if (outra === "baixa" && VISTA.g22.deco) for (const o of objetos) { const L = VISTA.g22.deco[o.tipo]; if (L && Math.abs(o.x - cam.x) < 40 && Math.abs(o.y - cam.y) < 40) for (const g of L) if (g) deco22Carregar(g.arq); }   // (as fotos do estilo B perto)
+  const FI = FRENTE_IMG; if (!FI.ligado || typeof createImageBitmap !== "function") return;
+  const lote = typeof LOTE === "object" && LOTE.ligado && !!LOTE.contexto();
+  for (const p of predInst) {
+    if (Math.hypot(p.x - cam.x, p.y - cam.y) > 40) continue;
+    const g = outra === "baixa" && VISTA.g22.predios && VISTA.g22.predios[p.id], d0 = p.d37 || p.d;
+    const d = outra === "baixa" ? (g ? { camadas: g.camadas, entra: !!d0.entra && !!g.camadas.a } : null) : d0; if (!d) continue;
+    const masc = d.entra ? ["b", "c"] : ["f"];
+    for (const [n, c] of Object.entries(d.camadas)) {
+      const im = predImg(c.arq); if (!im || !im.complete || !im.naturalWidth) continue;
+      if (lote && !FI.pend.has(im) && !LOTE.temTex(im)) { FI.pend.add(im); bitmapDoArquivo(im, { premultiplyAlpha: "premultiply", colorSpaceConversion: "default" }).then(b => FI.prontas.push({ im, b, tex: true }), () => FI.pend.delete(im)); }
+      const km = c.arq + "@" + im.naturalWidth;
+      if (masc.includes(n) && PRED_MASC[km] === undefined && !FI.pend.has(km)) {
+        const w = Math.max(1, Math.ceil(im.naturalWidth / 8)), h = Math.max(1, Math.ceil(im.naturalHeight / 8)); FI.pend.add(km);
+        bitmapDoArquivo(im, { resizeWidth: w, resizeHeight: h, resizeQuality: "low", premultiplyAlpha: "premultiply", colorSpaceConversion: "default" }).then(b => FI.prontas.push({ im, b, arq: c.arq, km }), () => FI.pend.delete(km));
+      }
+    }
+  }
+}
+// o chão guardado da outra vista sai 60 s depois da troca (com as Opções fechadas): a memória de uma vista só
+function vistaSoltarOutra(agora) {
+  const op = document.getElementById("opcoes");
+  for (const [nome, c] of Object.entries(VISTA.caches)) {
+    if (nome === VISTA.nome || agora - c.t < 60000 || (op && !op.hidden)) continue;
+    for (const [, cv2] of c.p) { if (poolChao.length < 24 && !poolChao.includes(cv2)) poolChao.push(cv2); else soltarNoProximo(cv2); }
+    delete VISTA.caches[nome];
+  }
+}
+// (o jogo abre na Normal; com a Baixa guardada, troca na hora assim que as artes chegarem)
+function vistaInicial() { if (vistaGuardada() === "baixa" && vistaPode()) vistaTrocar("baixa", false); vistaMostrarOpcao(); }
 // (R235) com a tela de preparação, as teclas não chegam ao jogo (o mundo está parado por baixo)
 addEventListener("keydown", e => { if (PREPARO.ativo) { e.stopImmediatePropagation(); if (e.key !== "F5" && e.key !== "F12") e.preventDefault(); } }, true);
 function laco(agora) {
@@ -33863,6 +34168,8 @@ function laco(agora) {
   if (PREPARO.ativo) { LIMITE.raf = requestAnimationFrame(laco); return; }   // (R235: a preparação começou neste passo, num portal ou ao renascer: o desenho já é dela)
   QUADRO_FX.n++;                                                    // (R239)
   if (!(window.MM && MM.cobre) && !SEL.aberta) desenhar(t);                        // (com o Mapa do Mundo aberto por cima, o jogo não é desenhado)
+  if (VISTA.veu.el && VISTA.veu.el.style.display !== "none") veuVistaQuadro(performance.now());   // (a vista: o véu da troca, o chão da outra vista aos poucos e a memória dela)
+  vistaPrePintar(); if (VISTA.trocas) vistaSoltarOutra(agora);
   if (PREPARO.fundo.length) preparoFundo();                         // (R235: o que passou do tempo da tela, aos poucos)
   else if (BRILHO_PRE.ativo) brilhoPreQuadro(iniLaco);              // (R306: o brilho das Ghotins dos outros mapas, aos poucos, nos quadros com folga)
   frenteImagens();                                                  // (R236: as construções e as pontes que vão aparecer)
@@ -34515,7 +34822,7 @@ carregar().then(() => {
   prepararMana(); carregarProgresso(); montarChat(); montarCursores(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarAltar(); montarArmazem(); montarLoja(); montarTempo(); montarFicha(); montarBolsa(); montarMao(); montarBarraSkills(); montarMinimapa(); montarMenu(); montarAdmin(); montarJornada(); montarJanelas();
   fecharMapaOriginal();
   classeDoInicio();                                   // (a última classe jogada)
-  PRED_CARREGANDO.then(montarPredios).then(() => { edmAplicarMapa("vila1"); for (const d of DUNGEONS) if (!d.vale) edmAplicarMapa("cav:" + d.id); if (EDITOR_MAPAS && ADMIN) carregarEditorMapas().catch(e => console.error("editor_mapas.js:", e)); });   // (as construções em camadas; R289: as mudanças do editor de mapas, e o editor com ?editor=1)
+  PRED_CARREGANDO.then(montarPredios).then(() => { edmAplicarMapa("vila1"); for (const d of DUNGEONS) if (!d.vale) edmAplicarMapa("cav:" + d.id); if (EDITOR_MAPAS && ADMIN) carregarEditorMapas().catch(e => console.error("editor_mapas.js:", e)); vistaInicial(); });   // (as construções em camadas; R289: as mudanças do editor de mapas, e o editor com ?editor=1)
   $("#carregando").hidden = true;
   fpsLigar(FPS.ligado);
   grafBloom();                                      // (o nível de gráfico: o bloom)
@@ -40509,7 +40816,7 @@ function cameraIso() {
   const c = S.camera, s = PX * zoom, D = 120;
   c.left = -W / (2 * s); c.right = W / (2 * s); c.top = H / (2 * s); c.bottom = -H / (2 * s); c.near = 1; c.far = 600; c.updateProjectionMatrix();
   // (com o giro, a câmera fica do lado oposto ao fundo da vista: no sudoeste para o giro de 45°)
-  c.position.set(cam.x - GIRO_S * 0.8 * D, 0.6 * D, -cam.y + GIRO_C * 0.8 * D); c.lookAt(cam.x, 0, -cam.y); c.updateMatrixWorld();
+  c.position.set(cam.x - GIRO_S * ALTURA * D, ACHATA * D, -cam.y + GIRO_C * ALTURA * D); c.lookAt(cam.x, 0, -cam.y); c.updateMatrixWorld();   // (pela inclinação da vista de agora: 37° ou 22°)
 }
 // skeleton.frame: o renderer só refaz os ossos uma vez por quadro dele, e os dois renderers (atlas e efeitos) contam
 // quadros diferentes: -1 obriga a refazer (aqui, com o corpo no mundo, e de volta no atlas, com ele na origem)
