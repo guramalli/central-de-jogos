@@ -1457,12 +1457,14 @@
   :root:not(.modo-admin) .so-admin { display: none !important; }
   :root.modo-admin .so-jogador { display: none !important; }
   h1.logo-titulo { line-height: 0; }
-  .logo-jogo { display: block; width: 150px; height: auto; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6)); pointer-events: none; user-select: none; -webkit-user-drag: none; }
+  .logo-jogo { display: block; width: 110px; height: auto; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6)); pointer-events: none; user-select: none; -webkit-user-drag: none; }
   @media (max-width: 640px) { .logo-jogo { width: 92px; } }
   /* (05/11) a versão ao lado do logo: um selo pequeno de papel e nanquim, o "alpha" em cinabre. Fica fora do fluxo (não cresce
      o logo nem empurra nada); o build troca a marca pela versão (0.<publicações + 1>), e sem build o JS mostra "dev" */
+  /* (08/11, o usuário: "diminua o simbolo do ghotin2... e coloque o alpha embaixo") o logo de 150 para 110 px e o selo embaixo dele,
+     no centro (era ao lado, à direita) */
   h1.logo-titulo { position: relative; width: fit-content; }
-  .versao-jogo { position: absolute; left: calc(100% + 4px); bottom: 14px; line-height: 1; white-space: nowrap; pointer-events: none; user-select: none;
+  .versao-jogo { display: table; margin: 1px auto 0; line-height: 1; white-space: nowrap; pointer-events: none; user-select: none;
     font: 600 11px var(--dados); letter-spacing: 0.02em; color: #EFE4CC; background: rgba(30, 27, 24, 0.82); border: 1px solid #8a6a36;
     border-radius: 2px; padding: 3px 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); }
   .versao-jogo b { font-weight: 700; color: #E0503E; }
@@ -1676,7 +1678,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.89 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.90 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -12918,7 +12920,7 @@ function usarNegra(anim, obj, nome) {
   }
   obj.recarga = recargaSkill(nome);
   tocar(anim, true);
-  som("arcano_carga", v, 0.8); vozSkill(nome);                        // (R342: o grito em latim quando a skill é lançada)
+  vozSkill(nome);                                                      // (R342: o grito em latim quando a skill é lançada; 08/11, R348: sem o "arcano_carga" de antes, que tocava junto com a voz)
 }
 // o ponto onde o projétil cai: o alvo vivo (onde ele estiver quando chegar) ou 5 m à frente
 function pontoNegra(A) { const v = viking, ang = -v.dir * Math.PI / 4; return A && !A.morto ? { x: A.x, y: A.y } : { x: v.x + Math.cos(ang) * 5, y: v.y + Math.sin(ang) * 5 }; }
@@ -13635,8 +13637,8 @@ const CURSOR = { tipo: "normal", t: 0, arrasto: false };
 function cursorNoCampo(px, py) {
   if (editor.ativo || mira) return "normal";
   const c = criaturaNoClique(px, py); if (c && !c.morto) return "ataque";
-  const pm = doPonteiro(px, py), naV = o => naVista(pm.x - o.x, pm.y - o.y);
-  if (objetos.some(o => { if (!o.npc) return false; const [du, dv0] = naV(o), dv = dv0 - zPiso(o.x, o.y) * ALTURA / ACHATA; return Math.abs(du) < 0.6 && dv > -0.4 && dv < 2.4; })) return "npc";
+  const pm = doPonteiro(px, py);
+  if (objetos.some(o => npcNoPonto(o, pm.x, pm.y))) return "npc";   // (R347: a mesma caixa do clique, na altura da vista)
   if (drops.some(d => Math.hypot(d.x - pm.x, d.y - pm.y) < 0.75)) return "pegar";
   if (typeof PORTA_CHEFE === "object" && portaChefeNoClique(px, py)) return "npc";   // (R252/R253: a porta e o baú do chefe)
   if (typeof PORTAIS !== "undefined" && PORTAIS.some(p => Math.hypot(p.x - pm.x, p.y - pm.y) < 1.8)) return "portal";
@@ -15533,8 +15535,9 @@ function metinQuebrou(l, F = fatorDrop(l)) {                        // (R301: F,
   // chances subiram: livro 0,7 + 0,25 → 0,9 + 0,45 (0,95 → 1,35 por pedra), Pedra da Alma 0,1 → 0,2, Pedra Espiritual 0,4 → 0,6.
   // As contas por hora estão no Logs/Regressao/BUGS.md, R254)
   const itens = [];
-  if (chanceDrop(0.9, F)) itens.push(livroQualquer());
-  if (chanceDrop(0.45, F)) itens.push(livroQualquer());
+  // (08/11, R346, o usuário: "a ghotin não podem derrubar 2 livros nunca, apenas 1 por vez... mesmo com a luva de drop") um livro
+  // no máximo: as duas chances de antes viram uma só (~0,95 por pedra; com as Luvas do Dokkaebi, 1)
+  if (chanceDrop(0.9, F) || chanceDrop(0.45, F)) itens.push(livroQualquer());
   if (chanceDrop(0.2, F)) itens.push({ tipo: "alma" });
   if (chanceDrop(0.15, F)) itens.push({ tipo: Math.random() < 0.5 ? "encantar" : "mudar" });
   if (chanceDrop(1, F)) itens.push({ tipo: "pocao", qtd: 1 + Math.floor(Math.random() * 2) });
@@ -15552,6 +15555,14 @@ function metinQuebrou(l, F = fatorDrop(l)) {                        // (R301: F,
   // (07/11, R315: o DistributeExp do Metin2) a metade da EXP das criaturas da horda que ficou guardada na pedra vai para quem a quebra
   if (prog && l.expHorda > 0) ganharExp(l.expHorda, l);
   l.expHorda = 0;
+  // (08/11, R345) a pedra caiu: os defensores e as ondas dela que ainda estavam vivos morrem junto, sem EXP nem drop (a parte deles
+  // já veio na expHorda) e sem contar na missão
+  for (const c of criaturas) {
+    if (c.morto || !c.horda || c.hordaDe !== l) continue;
+    criaturaAcao(c, "morte"); c.morto = true; c.vida = 0; c.envenenadoM2 = false; c.cacando = false; c.renascer = 999; c.sumir = 0;
+    for (let q = 0; q < 6; q++) brasas.push({ x: c.x, y: c.y, z: 0.05, vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2, vz: 0.5 + Math.random(), vida: 0.6, max: 0.6, tam: 0.09, poeira: true });
+  }
+  if (selecao && selecao.morto) selecao = null;
   l.defensores = false; l.ondasHorda = 0;                            // ao renascer, chama defensores e hordas de novo
   desfazerTrevas(l);                                                 // (as trevas da área se desfazem; a maldição sai)
   avisar(`${l.cfg.nome} quebrou! As trevas se desfazem`);
@@ -16938,9 +16949,6 @@ function precoVenda(it) {
   }
   return Math.max(1, Math.round(un)) * (it.qtd || 1);
 }
-function itemValioso(it) {
-  return (it.ref || 0) >= 4 || (it.bon || []).length > 0 || (it.jo || []).some(x => Array.isArray(x)) || nivelDoItem(it) > 30 || !!tipoItem(it.chave).joia;
-}
 const lojaAberta = () => !!(npcAberto && npcAberto.dados && npcAberto.dados.loja && npcAberto.dados.loja.length && !$("#npcJan").hidden);
 // vende (ou explica por que não): "vendido", "confirmar" (valioso, espera o sim), "equipado", "missao", "sem loja"
 function venderItem(it, confirmado = false) {
@@ -16950,7 +16958,9 @@ function venderItem(it, confirmado = false) {
   if (ITENS_MISSAO.has(it.chave)) { nao("Itens de missão não podem ser vendidos."); return "missao"; }
   if (LOJA_SEM_REVENDA.has(it.chave)) { nao("Os itens da Loja do Dokkaebi não se vendem."); return "loja"; }   // (07/11)
   const preco = precoVenda(it), nome = nomeItem(it) + ((it.qtd || 1) > 1 ? ` ×${it.qtd}` : "");
-  if (itemValioso(it) && !confirmado) { pedirConfirmacaoVenda(it, nome, preco); return "confirmar"; }
+  // (08/11, R350, o usuário: "veja como era a venda no metin2... implemente igual") como o SellAttachedItem do Metin2: toda venda pergunta
+  // "Deseja vender ... por ... Yang?", do item preso no cursor solto na janela da loja (e do clique direito e do arrasto); antes só os valiosos
+  if (!confirmado) { pedirConfirmacaoVenda(it, nome, preco); return "confirmar"; }
   vendaPendente = null; $("#npcVenda") && $("#npcVenda").remove();
   prog.inv.splice(prog.inv.indexOf(it), 1);
   prog.yang += preco; som("moeda", null, 0.9);
@@ -16966,7 +16976,7 @@ function pedirConfirmacaoVenda(it, nome, preco) {
   vendaPendente = it;
   let q = $("#npcVenda"); if (q) q.remove();
   q = document.createElement("div"); q.id = "npcVenda"; q.className = "venda-conf"; q.setAttribute("role", "alertdialog");
-  q.innerHTML = `<p>Vender <b></b> por <b class="preco"></b>?</p><div class="botoes"><button data-v="sim">Vender</button><button data-v="nao">Cancelar</button></div>`;
+  q.innerHTML = `<p>Deseja vender <b></b> por <b class="preco"></b>?</p><div class="botoes"><button data-v="sim">Vender</button><button data-v="nao">Cancelar</button></div>`;
   q.querySelector("b").textContent = nome; q.querySelector(".preco").textContent = preco.toLocaleString("pt-BR") + " Yang";
   q.onclick = e => { const b = e.target.closest("[data-v]"); if (!b) return; const alvo = vendaPendente; q.remove(); vendaPendente = null; if (b.dataset.v === "sim" && alvo) venderItem(alvo, true); };
   $("#npcLoja").before(q);
@@ -18493,7 +18503,7 @@ function desenharSetaMarca(t) {
 // herói, apontando para o objetivo de agora (ondeDaMissao: a criatura viva mais perto, a área de nascimento da Ghotin
 // quando não há nenhuma, o NPC, o portal no caminho) e com a distância. Some a menos de SETA_QUEST.perto m do alvo. O rumo:
 // sempre a reta até o objetivo (06/11: sem a rota do A*). Desde 06/11 o desenho são as pegadas de tinta (desenharSetaQuest)
-const SETA_QUEST = { rota: null, rumo: null, prox: 0, refez: 0, dist: 0, alvo: null, perto: 10, some: 3, usar: 12, etapa: null, base: null, pegadas: null, laco: null };
+const SETA_QUEST = { rota: null, rumo: null, prox: 0, refez: 0, dist: 0, alvo: null, perto: 10, some: 3, usar: 12, etapa: null, base: null, fio: null };
 // R264 (05/11, o usuário: "ela deve mostrar pelo menos os primeiros mobs, depois nao precisa ficar apontando para os proximos"). Nas
 // etapas de matar várias criaturas e nas caçadas, a seta leva só até os primeiros alvos: ela é "usada" (prog.setaUsada, no save)
 // quando o herói mata o 1º alvo da etapa depois de ela aparecer, ou chega a SETA_QUEST.usar m de um alvo, e não volta para os
@@ -18546,54 +18556,45 @@ function passoSetaQuest(dt) {
   // ela deve apontar única e exclusivamente na direção do objetivo") sempre a reta até o objetivo, sem a rota do A*
   S.rota = null; if (S.dist > 1e-3) S.rumo = [(a0[0] - v.x) / S.dist, (a0[1] - v.y) / S.dist];
 }
-// (06/11, o usuário escolheu a opção D do esboço, Midia/esbocos/seta_quest_opcoes.jpg) a seta da quest virou PEGADAS DE TINTA: de 6 a
+// (de 06/11 a 08/11, trocadas pelo fio vermelho logo abaixo) (06/11, o usuário escolheu a opção D do esboço, Midia/esbocos/seta_quest_opcoes.jpg) a seta da quest virou PEGADAS DE TINTA: de 6 a
 // 8 pegadas de nanquim chapadas no chão, à frente do herói, rumo ao objetivo, uma depois da outra (pé esquerdo e direito alternados,
 // achatadas na vista), e somem na ordem em que apareceram. O laço recomeça a cada PEGADAS.ciclo s, sempre do lugar em que o herói está
 // no começo do laço: as pegadas não andam com ele. O rumo é SEMPRE a reta até o objetivo, sem contar os obstáculos (o usuário: "ela deve
 // apontar única e exclusivamente na direção do objetivo"): passam por cima de muros e escadas. Na ponta, a plaquinha de papel com a
 // distância. Barato: um desenho de pegada (feito uma vez) posto no plano do chão e esmaecido por alfa. No ?test=1, só o estado (S.pegadas)
-const PEGADAS = { n: 7, de: 1.0, ate: 5.0, ciclo: 1.5, entra: 0.6, fica: 0.55, sai: 0.35, comp: 0.52, larg: 0.3, lado: 0.16, spr: null, TINTA: "#1e1b18", PAPEL: "#f2e6c8" };
-function sprPegada() {
-  if (PEGADAS.spr) return PEGADAS.spr;
-  const c = document.createElement("canvas"); c.width = 96; c.height = 44; const g = c.getContext("2d");
-  g.fillStyle = PEGADAS.TINTA;
-  g.beginPath(); g.ellipse(40, 22, 30, 15, 0, 0, 7); g.fill();                         // (a sola, com a frente para a direita)
-  g.beginPath(); g.ellipse(12, 22, 11, 11, 0, 0, 7); g.fill();                          // (o calcanhar)
-  for (const [x, y, r] of [[78, 9, 6.5], [85, 19, 5.5], [85, 29, 5], [79, 37, 4.5]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }   // (os dedos)
-  return (PEGADAS.spr = c);
-}
-// o estado das pegadas deste quadro: o lugar e o alfa de cada uma (S.pegadas), e a plaquinha
-function pegadasDaSeta(t) {
-  const S = SETA_QUEST, v = viking, P = PEGADAS, u = S.rumo;
-  if (!u || v.caido || (classe === "ninja" && NINJA.esconder.buff > 0)) { S.pegadas = null; S.laco = null; return null; }
-  const al = S.alto ? 1 : Math.max(0, Math.min(1, (S.dist - S.perto) / S.some)); if (al <= 0) { S.pegadas = null; return null; }
-  if (!S.laco || t - S.laco.t0 >= P.ciclo || t < S.laco.t0) S.laco = { t0: t, x: v.x, y: v.y, u: [u[0], u[1]], z: zPiso(v.x, v.y) };   // (o laço novo sai de onde o herói está agora)
-  const L = S.laco, tau = t - L.t0, l = [];
-  for (let i = 0; i < P.n; i++) {
-    const a = P.de + (P.ate - P.de) * i / (P.n - 1), t0 = P.entra * i / (P.n - 1), dt = tau - t0;
-    const alfa = dt < 0 ? 0 : dt < 0.08 ? dt / 0.08 : dt < 0.08 + P.fica ? 1 : Math.max(0, 1 - (dt - 0.08 - P.fica) / P.sai);
-    const lado = (i % 2 ? 1 : -1) * P.lado, nx = -L.u[1], ny = L.u[0];
-    l.push({ x: L.x + L.u[0] * a + nx * lado, y: L.y + L.u[1] * a + ny * lado, a: alfa * al, esq: !(i % 2) });
+// (08/11, R349, o usuário escolheu a opção D: "fio vermelho") as pegadas viraram um FIO DE CINABRE: sai dos pés do herói e vai na
+// reta até o objetivo (o mesmo rumo de antes, sem contar os obstáculos), deitado no chão, com uma ondinha que corre e tracejado com
+// contorno de nanquim andando para o lado do objetivo. Acompanha o herói a cada quadro (as pegadas ficavam no lugar do laço). A
+// plaquinha com a distância fica no fio, perto do herói. Termina no objetivo (ou FIO.max m adiante; a tela corta o resto). No
+// ?test=1, só o estado (S.fio)
+const FIO = { de: 0.7, max: 60, passo: 0.35, onda: 0.13, ondaK: 1.6, ondaV: 2.2, placa: 4.2, traco: 14, vao: 9, anda: 40, alfa: 0.45, alfaTinta: 0.25, COR: "#c2341f", TINTA: "#1e1b18", PAPEL: "#f2e6c8" };
+// o estado do fio deste quadro: os pontos no chão (S.fio.pts), o alfa e a plaquinha
+function fioDaSeta(t) {
+  const S = SETA_QUEST, v = viking, F = FIO, u = S.rumo;
+  if (!u || v.caido || (classe === "ninja" && NINJA.esconder.buff > 0)) { S.fio = null; return null; }
+  const al = S.alto ? 1 : Math.max(0, Math.min(1, (S.dist - S.perto) / S.some)); if (al <= 0) { S.fio = null; return null; }
+  const ate = Math.min(S.dist, F.max), nx = -u[1], ny = u[0], pts = [];
+  for (let a = F.de; a <= ate + 1e-6; a += F.passo) {
+    const lado = F.onda * Math.sin(a * F.ondaK - t * F.ondaV) * Math.min(1, (a - F.de) / 1.5) * Math.min(1, (ate - a) / 1.5 + 0.2);   // (a onda nasce e morre nas pontas)
+    pts.push({ x: v.x + u[0] * a + nx * lado, y: v.y + u[1] * a + ny * lado, a });
   }
-  const pa = P.ate + 0.85;
-  S.pegadas = { l, u: L.u, z: L.z, placa: { x: L.x + L.u[0] * pa, y: L.y + L.u[1] * pa, txt: Math.round(S.dist) + " m", a: al } };
-  return S.pegadas;
+  const pa = Math.min(F.placa, Math.max(F.de, ate - 0.5));
+  S.fio = { pts, u: [u[0], u[1]], z: zPiso(v.x, v.y), de: F.de, ate, a: al, placa: { x: v.x + u[0] * pa, y: v.y + u[1] * pa, txt: Math.round(S.dist) + " m", a: al } };
+  return S.fio;
 }
 function desenharSetaQuest(t) {
-  const E = pegadasDaSeta(t); if (!E || MODO_TESTE) return;
-  const P = PEGADAS, im = sprPegada(), u = E.u, z = E.z;
-  cx.save(); const base = cx.getTransform();
-  for (const p of E.l) {
-    if (p.a <= 0.01) continue;
-    // o plano do chão em volta da pegada: o eixo x da figura vai para a frente (u) e o y para o lado, em px por metro
-    const [X, Y] = noMundo(p.x, p.y, z), [fx, fy] = noMundo(p.x + u[0], p.y + u[1], z), [sx, sy] = noMundo(p.x - u[1] * (p.esq ? 1 : -1), p.y + u[0] * (p.esq ? 1 : -1), z);
-    cx.globalAlpha = 0.9 * p.a;
-    cx.setTransform(base); cx.transform(fx - X, fy - Y, sx - X, sy - Y, X, Y);
-    cx.drawImage(im, -P.comp / 2, -P.larg / 2, P.comp, P.larg);
-  }
-  cx.setTransform(base);
-  // a plaquinha de papel com contorno de tinta, na ponta das pegadas
-  const pl = E.placa, [TX, TY] = noMundo(pl.x, pl.y, z);
+  const E = fioDaSeta(t); if (!E || MODO_TESTE || E.pts.length < 2) return;
+  const F = FIO, z = E.z;
+  cx.save();
+  cx.beginPath();
+  E.pts.forEach((p, i) => { const [X, Y] = noMundo(p.x, p.y, z); if (i) cx.lineTo(X, Y); else cx.moveTo(X, Y); });
+  // o traço de nanquim por baixo e o cinabre por cima, no mesmo tracejado, andando para o objetivo
+  cx.lineCap = "round"; cx.lineJoin = "round"; cx.setLineDash([F.traco * zoom, F.vao * zoom]); cx.lineDashOffset = -t * F.anda * zoom;
+  cx.globalAlpha = F.alfaTinta * E.a; cx.strokeStyle = F.TINTA; cx.lineWidth = Math.max(4.5, 5 * zoom); cx.stroke();   // (08/11, o usuário: "quero algo mais transparente": 0,75 → 0,25 e 1 → 0,45)
+  cx.globalAlpha = F.alfa * E.a; cx.strokeStyle = F.COR; cx.lineWidth = Math.max(2.4, 2.8 * zoom); cx.stroke();
+  cx.setLineDash([]);
+  // a plaquinha de papel com contorno de tinta, no fio
+  const P = F, pl = E.placa, [TX, TY] = noMundo(pl.x, pl.y, z);
   cx.globalAlpha = pl.a;
   cx.font = "700 " + Math.round(Math.max(13, 13 * zoom)) + "px 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif"; cx.textAlign = "center"; cx.textBaseline = "middle";
   const w = cx.measureText(pl.txt).width + 14, h = Math.round(Math.max(13, 13 * zoom)) + 8;
@@ -24889,7 +24890,7 @@ cv.addEventListener("pointerdown", e => {
   { const est = !criatura && !pk && altarEstatuaNoClique(e.clientX - r.left, e.clientY - r.top); if (est) { abrirEstatua(est); return; } }   // (R166: a estátua abre a ficha)
   // (o clique no corpo do NPC e do boneco: a caixa na tela, medida na vista; o lugar de falar fica na frente dele na tela)
   const naV = o => naVista(x - o.x, y - o.y);
-  const npc = !criatura && (pk ? pk.npc : objetos.find(o => { if (!o.npc) return false; const [du, dv0] = naV(o), dv = dv0 - (naZonaAltar(o.x, o.y) ? 0 : zPiso(o.x, o.y)) * ALTURA / ACHATA; return Math.abs(du) < 0.6 && dv > -0.4 && dv < 2.4; }));   // (no piso alto, o corpo mais acima; no altar, altarClique já tirou a altura)
+  const npc = !criatura && (pk ? pk.npc : objetos.find(o => npcNoPonto(o, x, y)));   // (R347: a altura do corpo na vista)
   if (npc) { const [fx, fy] = daVista(-0.3, -1.1); viking.alvo = { x: npc.x + fx, y: npc.y + fy, npc }; viking.rota = null; viking.alvo.correr = Math.hypot(viking.alvo.x - viking.x, viking.alvo.y - viking.y) > 4; return; }
   const boneco = !criatura && (pk ? pk.boneco : objetos.find(o => { if (o.tipo !== "boneco") return false; const [du, dv] = naV(o); return Math.hypot(du, dv - 0.6) < 0.6; }));
   viking.alvo = criatura ? { x: criatura.x, y: criatura.y, criatura } : boneco ? { x: boneco.x, y: boneco.y, boneco } : { x, y };
@@ -24898,10 +24899,19 @@ cv.addEventListener("pointerdown", e => {
   viking.alvo.correr = Math.hypot(viking.alvo.x - viking.x, viking.alvo.y - viking.y) > 4;   // longe: vai correndo
 });
 // (R297) o NPC sob o ponteiro (a mesma caixa do clique de falar), para o item da mão levado ao Ferreiro
+// (08/11, R347) o corpo do NPC na tela, medido na vista: dos pés (−0,4) até a altura do boneco e um pouco acima da cabeça. Era um
+// teto fixo de 2,4 (a altura de 37°: 1,85 m × ALTURA / ACHATA = 2,47); na vista Baixa (22°) o boneco sobe 4,6 e o clique só pegava
+// das pernas para baixo, e o item na mão não chegava ao Ferreiro
+const altoNpc = o => o.tipo === "ferreiro" ? 1.85 : o.dados && o.dados.lanca ? 2.45 : 1.95;
+function npcNoPonto(o, x, y) {
+  if (!o.npc) return false;
+  const [du, dv0] = naVista(x - o.x, y - o.y), dv = dv0 - (naZonaAltar(o.x, o.y) ? 0 : zPiso(o.x, o.y)) * ALTURA / ACHATA;   // (no piso alto, o corpo mais acima; no altar, altarClique já tirou a altura)
+  return Math.abs(du) < 0.6 && dv > -0.4 && dv < (altoNpc(o) + 0.25) * ALTURA / ACHATA;
+}
 function npcNoClique(px, py) {
   const pk = window.M3D && M3D.ativo ? M3D.pegar(px, py) : null; if (pk) return pk.npc || null;
-  const pm = doPonteiro(px, py), naV = o => naVista(pm.x - o.x, pm.y - o.y);
-  return objetos.find(o => { if (!o.npc) return false; const [du, dv0] = naV(o), dv = dv0 - (naZonaAltar(o.x, o.y) ? 0 : zPiso(o.x, o.y)) * ALTURA / ACHATA; return Math.abs(du) < 0.6 && dv > -0.4 && dv < 2.4; }) || null;
+  const pm = doPonteiro(px, py);
+  return objetos.find(o => npcNoPonto(o, pm.x, pm.y)) || null;
 }
 // criatura sob o ponteiro: dentro da caixa do quadro desenhado (com folga), a mais perto dos pés
 function criaturaNoClique(px, py) {
