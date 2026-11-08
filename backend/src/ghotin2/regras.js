@@ -105,18 +105,26 @@ export function confereDados(dados) {
 }
 
 // o resumo que vai para a lista e o ranking. `classeAtual`/`vocacao`: as do banco (a classe só muda de aprendiz para
-// uma classe da vocação, no Altar)
+// uma classe da vocação, no Altar). A recusa diz o campo e o motivo legível: o jogo mostra "A conta recusou o save: <motivo>"
+export const NOME_CLASSE = { viking: "Viking", guerreiro: "Guerreiro", arqueiro: "Arqueiro", ninja: "Ninja", feiticeiro: "Feiticeiro", shura: "Shura",
+  xama: "Xamã Relâmpago", xama_dragao: "Xamã Dragão", aprendiz: "Aprendiz" }; // (NOME_CLASSE do index.html)
+const nomeClasse = (c) => NOME_CLASSE[c] || String(c).slice(0, 24);
 export function confereResumo(r, { classeAtual, vocacao } = {}) {
-  const ruim = (erro) => ({ erro, codigo: "resumo_invalido" });
-  if (!r || typeof r !== "object") return ruim("Resumo do personagem ausente.");
-  if (!inteiro(r.nivel, 1, LIMITES.nivelAceito)) return ruim("Nível inválido.");
-  if (!inteiro(r.exp, 0, LIMITES.expAceita)) return ruim("EXP inválida.");
+  const ruim = (erro, campo) => ({ erro, codigo: "resumo_invalido", campo });
+  if (!r || typeof r !== "object") return ruim("Resumo do personagem ausente.", "resumo");
+  if (!inteiro(r.nivel, 1, LIMITES.nivelAceito)) return ruim(`Nível inválido (${String(r.nivel).slice(0, 12)}).`, "nivel");
+  if (!inteiro(r.exp, 0, LIMITES.expAceita)) return ruim(`EXP inválida (${String(r.exp).slice(0, 14)}).`, "exp");
   let mapa = null;
-  if (r.mapa != null) { if (typeof r.mapa !== "string" || !RE_MAPA.test(r.mapa)) return ruim("Mapa inválido."); mapa = r.mapa; }
+  if (r.mapa != null) { if (typeof r.mapa !== "string" || !RE_MAPA.test(r.mapa)) return ruim("Mapa inválido.", "mapa"); mapa = r.mapa; }
   let classe = classeAtual;
   if (r.classe != null && r.classe !== classeAtual) {
     const podeTrocar = classeAtual === "aprendiz" && CLASSES.includes(r.classe) && r.classe !== "aprendiz" && (!vocacao || VOCACOES[vocacao]?.includes(r.classe));
-    if (!podeTrocar) return ruim("Classe inválida.");
+    if (!podeTrocar) {
+      // (a classe só muda uma vez: de aprendiz para uma da vocação, no Altar. O resto é a troca de teste do admin ou uma aba velha)
+      const daVocacao = classeAtual === "aprendiz" && CLASSES.includes(r.classe) && r.classe !== "aprendiz";
+      return ruim(daVocacao ? `Classe inválida (${nomeClasse(r.classe)} não é da vocação deste aprendiz).`
+        : `Classe inválida (o save é de ${nomeClasse(r.classe)}, e este personagem é ${nomeClasse(classeAtual)} na conta).`, "classe");
+    }
     classe = r.classe;
   }
   return { ok: true, nivel: r.nivel, exp: r.exp, mapa, classe };

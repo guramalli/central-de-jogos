@@ -218,7 +218,13 @@ test("salvar e carregar: versão, 10 s entre saves, fechando, versão antiga, ta
   assert.equal(altar.status, 200);
   assert.equal((await s.pede("GET", "/personagens/0", { token: tk })).corpo.personagem.classe, "guerreiro");
   anda(11_000);
-  assert.equal((await salva(s, { token: tk, ses, versaoBase: 4, resumo: { nivel: 5, exp: 0, classe: "viking" } })).corpo.codigo, "resumo_invalido", "depois do Altar a classe não muda");
+  const troca = await salva(s, { token: tk, ses, versaoBase: 4, resumo: { nivel: 5, exp: 0, classe: "viking" } });
+  assert.equal(troca.corpo.codigo, "resumo_invalido", "depois do Altar a classe não muda");
+  // (05/11: o motivo legível, que o jogo mostra; a classe da conta vai junto)
+  assert.equal(troca.corpo.error, "Classe inválida (o save é de Viking, e este personagem é Guerreiro na conta).");
+  assert.equal(troca.corpo.campo, "classe"); assert.equal(troca.corpo.classeConta, "guerreiro");
+  // uma aba velha (versão de antes, ainda com a classe de antes): a escolha "Dois saves", e não a recusa
+  assert.equal((await salva(s, { token: tk, ses, versaoBase: 3, resumo: { nivel: 5, exp: 0, classe: "aprendiz" } })).corpo.codigo, "versao_antiga");
   assert.equal((await salva(s, { token: tk, ses, espaco: 2, versaoBase: 0 })).corpo.codigo, "nao_encontrado");
 });
 

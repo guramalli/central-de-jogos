@@ -315,9 +315,10 @@ export function criaRotasGhotin2({
       if (!(await sessaoConfere(id, b.sessao))) return SESSAO_TOMADA;
       const p = await vivo(id, espaco);
       if (!p) return { status: 404, codigo: "nao_encontrado", error: "Esse espaço está vazio." };
-      const rs = R.confereResumo(b.resumo, { classeAtual: p.classe, vocacao: p.vocacao });
-      if (!rs.ok) return { status: 400, codigo: rs.codigo, error: rs.erro };
+      // (a versão antes do resumo: uma aba ou um computador que ficou para trás recebe a escolha "Dois saves", e não a recusa)
       if (b.versaoBase !== p.versao) return { status: 409, codigo: "versao_antiga", error: "A conta tem um save mais novo deste personagem.", extra: { versao: p.versao, nivel: p.nivel, atualizadoEm: p.atualizadoEm } };
+      const rs = R.confereResumo(b.resumo, { classeAtual: p.classe, vocacao: p.vocacao });
+      if (!rs.ok) return { status: 400, codigo: rs.codigo, error: rs.erro, extra: { campo: rs.campo, classeConta: p.classe } };
       const gravadoEm = p.versao > 0 ? new Date(p.atualizadoEm).getTime() : null;
       const dec = guarda.decide(chave, ordem, gravadoEm);
       if (!dec.ok) return dec.velho

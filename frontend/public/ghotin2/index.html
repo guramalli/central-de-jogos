@@ -401,6 +401,12 @@
   :root #npcJan > #npcLoja { flex: 0 1 auto; min-height: 72px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding-right: 3px; }
   .venda-conf { margin: 6px 0; padding: 8px 10px; border: 1px solid #a8823e; border-radius: 4px; background: var(--jan-poco, rgba(10, 7, 4, 0.7)); font-size: 13px; box-shadow: 0 0 0 1px rgba(168, 130, 62, 0.35) inset; }
   .venda-conf p { margin: 0 0 6px; } .venda-conf .botoes { display: flex; gap: 6px; }
+  /* (08/11, o usuário: "coloque o botão de confirmar a venda... para fora da janela, no centro da página... com o valor e sim ou nao") */
+  .janelas.venda-centro { top: 50%; transform: translate(-50%, -50%); z-index: 40; width: min(330px, calc(100% - 32px)); gap: 12px; padding: 16px 18px; text-align: center; }
+  .venda-centro p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--texto); }
+  .venda-centro .preco { display: block; margin-top: 4px; font-size: 19px; color: var(--ouro); }
+  .venda-centro .botoes { display: flex; gap: 12px; justify-content: center; }
+  .venda-centro .botoes button { min-width: 96px; padding: 6px 14px; font-size: 15px; }
   .loja small { display: block; color: var(--apagado); font-size: 11px; }
   .alca-janela { position: fixed; z-index: 5; border: 2px dashed var(--ouro); border-radius: 6px; background: rgba(224, 168, 74, 0.12); cursor: move; touch-action: none;
     display: flex; align-items: flex-start; justify-content: center; }
@@ -1678,7 +1684,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.90 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.91 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -6387,6 +6393,9 @@ G.VILA2 = V;
     const msg = t => { const m = el("g2ModalMsg"); if (m) m.textContent = t; };
     M.querySelectorAll("[data-i]").forEach(b => b.onclick = () => botoes[+b.dataset.i][1](b, msg));
     if (aoMontar) aoMontar(M);
+    // (08/11, R351, o usuário: "nao consigo clicar em nenhum dos 2", a escolha dos dois saves) a tela dos personagens (#inicio), a escolha
+    // da classe e a intro deixam inerte tudo o que não é delas, e o g2Modal junto: aberto por cima delas, ele aparecia mas não pegava o clique
+    M.inert = false;
     for (const x of document.body.children) if (x !== M && x.tagName !== "SCRIPT" && !x.inert) { x.inert = true; modalInertes.push(x); }
     pausar(true); som("ui_negar", 0.5);
     setTimeout(() => { const b = M.querySelector("button"); if (b) b.focus({ preventScroll: true }); }, 30);
@@ -6543,7 +6552,7 @@ G.VILA2 = V;
     chaveArmazem: () => (ativo() ? chaveArm() : null),
     logado, ativo, ehChave, lista, notaLista, progAtivo, entrar, apagar, criarNoNovo, porta,
     // o resto (as Opções, os testes)
-    salvarAgora, sair, abrirPorta, fecharPorta, carregarRanking,
+    salvarAgora, sair, abrirPorta, fecharPorta, carregarRanking, escolherVersao,
     config: o => Object.assign(CFG, o || {}),
     diag: () => ({ api: API, logado: logado(), conta: E.conta && E.conta.usuario, slot: E.slot && { ...E.slot }, sessao: E.sessao, tomada: E.tomada, conflito: E.conflito,
       tokenRuim: E.tokenRuim, imediato: S.imediato, espera: Math.max(0, S.proxTentativa - Date.now()), lista: E.lista.map(p => ({ ...p })), falhas: S.falhas, proxTentativa: S.proxTentativa, comumVersao: S.comum.versao,
@@ -16975,11 +16984,13 @@ function venderItem(it, confirmado = false) {
 function pedirConfirmacaoVenda(it, nome, preco) {
   vendaPendente = it;
   let q = $("#npcVenda"); if (q) q.remove();
-  q = document.createElement("div"); q.id = "npcVenda"; q.className = "venda-conf"; q.setAttribute("role", "alertdialog");
-  q.innerHTML = `<p>Deseja vender <b></b> por <b class="preco"></b>?</p><div class="botoes"><button data-v="sim">Vender</button><button data-v="nao">Cancelar</button></div>`;
-  q.querySelector("b").textContent = nome; q.querySelector(".preco").textContent = preco.toLocaleString("pt-BR") + " Yang";
+  // (08/11) uma janela própria no centro da tela, fora da conversa do vendedor: a pergunta com o valor e Sim / Não
+  q = document.createElement("div"); q.id = "npcVenda"; q.className = "janelas venda-centro"; q.setAttribute("role", "alertdialog"); q.setAttribute("aria-label", "Confirmar a venda");
+  q.innerHTML = `<p>Deseja vender <b></b>?</p><p class="preco"></p><div class="botoes"><button data-v="sim">Sim</button><button data-v="nao">Não</button></div>`;
+  q.querySelector("b").textContent = nome; q.querySelector(".preco").textContent = "por " + preco.toLocaleString("pt-BR") + " Yang";
   q.onclick = e => { const b = e.target.closest("[data-v]"); if (!b) return; const alvo = vendaPendente; q.remove(); vendaPendente = null; if (b.dataset.v === "sim" && alvo) venderItem(alvo, true); };
-  $("#npcLoja").before(q);
+  document.body.appendChild(q);
+  setTimeout(() => { const b = q.querySelector("[data-v=sim]"); if (b && q.isConnected) b.focus({ preventScroll: true }); }, 30);
 }
 function recomprar(k) {
   const r = RECOMPRA[k], res = $("#npcResultado"); if (!r) return;
