@@ -1684,7 +1684,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.93 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.94 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -2100,7 +2100,7 @@
   <label class="o-limite" title="A inclinação da câmera. A Baixa mostra o mundo mais de lado e mais longe. Vale na hora e fica salva.">Vista <select id="oVista" aria-label="Vista da câmera"><option value="normal">Normal (37°)</option><option value="baixa">Baixa (22°)</option></select></label>
   <div class="linha"><button id="opcoesPadrao">Volumes padrão</button></div>
   <h3>Personagem</h3>
-  <div class="linha"><button id="oNovoPersonagem">Personagens…</button><button id="oGuia">Primeiros passos</button><button id="oJornada">Estatísticas da jornada</button><button id="oHistoria">Ver a história</button></div>
+  <div class="linha"><button id="oNovoPersonagem">Personagens…</button><button id="oGuia">Primeiros passos</button><button id="oTutorial">Rever tutorial</button><button id="oJornada">Estatísticas da jornada</button><button id="oHistoria">Ver a história</button></div>
   <p class="nota">Abre a escolha de classe. Os personagens que você já tem continuam salvos.</p>
   <p class="nota">Esc abre e fecha este menu. Tudo fica salvo neste navegador.</p>
   <details class="nota creditos-musica"><summary>Créditos das músicas</summary>
@@ -14077,7 +14077,7 @@ function expDe(l) {
 }
 function progressoNovo(c) {
   return { nivel: 1, exp: 0, pontos: 0, atribPago: 0, atrib: { ...ATRIB_INICIAL[c] }, skills: {}, skillsM2: 1, skillsZero: 1, magiaNegra: 1, armaMagica: 1, guerreiroMental: 1, yang: 0, leituraAte: 0, nome: "", pontosSkill: PONTOS_SKILL_NIVEL, skillNivel1: 1, leitura: {}, arma: { ref: 0 }, equip: { elmo: null, armadura: null, botas: null, escudo: null },
-           pocoesM2: 1, escalaM2: 1, ataqueM2: 1, inv: [{ chave: "pocao", qtd: 3, aba: 0, x: 0, y: 0 }, { chave: "pocaoMana", qtd: 3, aba: 0, x: 1, y: 0 }] };
+           pocoesM2: 1, escalaM2: 1, ataqueM2: 1, bonusParte: 1, roupaFeiticeiro: 1, inv: [{ chave: "pocao", qtd: 3, aba: 0, x: 0, y: 0 }, { chave: "pocaoMana", qtd: 3, aba: 0, x: 1, y: 0 }] };
 }
 // skills que mudaram de nome (os níveis, livros, esperas, a barra e o armazém salvos com o nome antigo vêm junto)
 // (03/11) o Feiticeiro da Magia Negra: cada skill do sistema antigo passa o nível, os livros e as Pedras da Alma lidos, a espera
@@ -14232,7 +14232,9 @@ function carregarProgresso() {
   migrarPocoes(prog);                                                  // (03/11, R184: as poções de 40% viram os tamanhos fixos, sem perda)
   migrarEscalaM2(prog);                                                // (08/11, R365: os adicionais e o Mukseon na escala do Metin2, uma vez só)
   migrarAtaqueM2(prog);                                                // (09/11, R372: o Ataque % vira o fixo do Metin2 e a Defesa antiga ÷ 2,8, uma vez só)
-  for (const ch of ["avisoMagiaNegra", "avisoGuerreiro"]) if (prog[ch] && !salvarTravado) { const txt = prog[ch]; delete prog[ch]; setTimeout(() => { avisarLongo(txt, 9000); chatSistema(txt, "nivel"); }, 1700); }   // (03/11: a troca das skills do feiticeiro, do shura e do guerreiro)
+  migrarRoupaFeiticeiro(prog);                                         // (09/11, R384: o feiticeiro com a Túnica dele, armadura_feiticeiro, uma vez só)
+  migrarBonusDaParte(prog);                                            // (09/11, R383: o adicional que a peça não pode ter, como o HP no escudo, vira um permitido do mesmo grau, uma vez só)
+  for (const ch of ["avisoMagiaNegra", "avisoGuerreiro", "avisoBonusParte"]) if (prog[ch] && !salvarTravado) { const txt = prog[ch]; delete prog[ch]; setTimeout(() => { avisarLongo(txt, 9000); chatSistema(txt, "nivel"); }, 1700); }   // (03/11: a troca das skills do feiticeiro, do shura e do guerreiro)
   recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
   entrarNoMapaSalvo();                                                // (de volta ao mapa em que estava: prog.mapa)
   jornadaCarregar();                                                  // (as Estatísticas da jornada deste personagem)
@@ -14285,6 +14287,7 @@ function recalcularStatus() {
   status.veneno = b.veneno || 0; status.atordoar = b.atordoar || 0; status.lentidao = b.lentidao || 0;
   status.resMagia = Math.min(0.9, (b.resMagia || 0) / 100); status.refletir = (b.refletir || 0) / 100; status.pedras = (b.pedras || 0) / 100;
   status.regenVida = b.regenVida || 0; status.regenMana = b.regenMana || 0; status.absorveVida = b.absorveVida || 0; status.absorveMana = b.absorveMana || 0;   // (03/11: em %, como no Metin2)
+  status.roubaMana = b.roubaMana || 0;                                 // (09/11, R387: a Chance de roubar MP, o MANA_BURN_PCT, em %)
   // (09/11, R368) a defesa do Metin2 (ComputeBattlePoints): nível + VIT ÷ 1,25 + as peças (a defesa do item_proto + 2 × o refino, sem o
   // × 2,8 de antes) + a Jóia da Defesa e o adicional Defesa (DEF_GRADE_BONUS). A Proteção Mágica: nível + (3 × INT + VIT) ÷ 3 + metade
   // da armadura (o MAGIC_DEF_GRADE). O golpe recebido é o ataque − a defesa (golpeNoPersonagem)
@@ -14967,6 +14970,76 @@ function migrarAtaqueM2(p) {
   if (p.equip) for (const e of Object.values(p.equip)) if (e && e.bon) migrarBonusAtaqueM2(e.bon);
   return true;
 }
+// R383 (09/11, o usuário: "no metin2 escudos nao davam hp, e percebi que tem um escudo com adicional de hp, reveja"). O HP não vinha de
+// nenhum sorteio de hoje: até a v0.85 (06/11) o escudo sorteava ["bloqueio", "defesa", "vida", "for"] (e o elmo, as botas, a arma e as
+// roupas tinham listas nossas, com Mana, INT, Crítico, Defesa, Forte contra monstros, Ataque...). A v0.86 (07/11) trocou as listas
+// pelas do item_attr do Metin2, mas deixou os itens de antes como estavam ("os saves não mudam"), e a escala do Metin2 (08/11, R365)
+// multiplicou o HP velho por 2,5. Este conserto, uma vez só (a marca bonusParte; o armazém com a dele, em lerArmazem): todo adicional
+// que a peça não pode ter (fora do BONUS_DA_PARTE dela, repetido no item ou igual a um fixo dele) vira um que ela pode ter, no MESMO
+// degrau (1 a 5; o valor guardado vai ao degrau mais perto, o de cima no empate) e sem repetir os do item. O tipo novo sai pelo peso do
+// Metin2, com um sorteio fixo pela chave e pelos adicionais do item: carregar 2 vezes dá o mesmo resultado. Ninguém perde adicional
+function degrauDoBonus(t, v) {
+  const n = BONUS[t] && BONUS[t].niveis; if (!n || typeof v !== "number") return 1;
+  let k = 0; for (let i = 1; i < 5; i++) if (Math.abs(n[i] - v) <= Math.abs(n[k] - v)) k = i;
+  return k + 1;
+}
+function sorteioFixo(txt) { let h = 2166136261; for (let i = 0; i < txt.length; i++) { h ^= txt.charCodeAt(i); h = Math.imul(h, 16777619); } return () => { h = h + 0x6D2B79F5 | 0; let t = Math.imul(h ^ h >>> 15, 1 | h); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+// troca, no próprio bon, os adicionais que a parte não pode ter; devolve [[de, para]] (para os avisos)
+function corrigirBonusDaParte(bon, parte, tier, chave) {
+  const lista = BONUS_DA_PARTE[parte]; if (!Array.isArray(bon) || !lista || !bon.length) return [];
+  const fx = fixosDoItem(parte, tier, chave), ficam = new Set();
+  const ruim = bon.map(b => { const t = Array.isArray(b) ? b[0] : null, r = !lista.includes(t) || fx.includes(t) || ficam.has(t); if (!r) ficam.add(t); return r; });
+  if (!ruim.some(Boolean)) return [];
+  const rnd = sorteioFixo(`${chave}|${JSON.stringify(bon)}`), trocas = [];
+  for (let i = 0; i < bon.length; i++) if (ruim[i]) {
+    const de = Array.isArray(bon[i]) ? bon[i] : [null, 0], grau = degrauDoBonus(de[0], de[1]);
+    const livres = lista.filter(t => !ficam.has(t) && !fx.includes(t)); if (!livres.length) continue;   // (não acontece: a menor lista tem 7 tipos e o item, até 5)
+    let s = rnd() * livres.reduce((a, t) => a + BONUS[t].peso, 0), t = livres[livres.length - 1];
+    for (const x of livres) { s -= BONUS[x].peso; if (s < 0) { t = x; break; } }
+    const para = [t, BONUS[t].niveis[grau - 1]]; ficam.add(t); trocas.push([de, para]); bon[i] = para;
+  }
+  return trocas;
+}
+// os itens de uma lista (a bolsa ou o armazém): a parte pela chave
+function corrigirItensBonusDaParte(lista, trocas = []) {
+  for (const it of lista || []) {
+    if (!it || !Array.isArray(it.bon) || !it.bon.length) continue;
+    let pa = null; try { pa = parteDoItem(it); } catch (e) {}
+    if (pa) for (const [de, para] of corrigirBonusDaParte(it.bon, pa[0], pa[1], it.chave)) trocas.push([it.chave, de, para]);
+  }
+  return trocas;
+}
+function migrarBonusDaParte(p) {
+  if (!p || p.bonusParte) return null;
+  p.bonusParte = 1;
+  const trocas = corrigirItensBonusDaParte(p.inv);
+  if (p.arma && Array.isArray(p.arma.bon)) { const ch = chaveArma(classe, p.arma.tier || 0, p.arma.rara); for (const [de, para] of corrigirBonusDaParte(p.arma.bon, "arma", 2 + (p.arma.tier || 0), ch)) trocas.push([ch, de, para]); }
+  if (p.equip) for (const [slot, e] of Object.entries(p.equip)) {
+    if (!e || !Array.isArray(e.bon) || !e.bon.length) continue;
+    const peca = e.peca || (slot === "armadura" ? ROUPA_DA_CLASSE[classe] || "armadura_guerreiro" : slot); if (!PECAS[peca]) continue;
+    const ch = `peca:${peca}:${e.tier || 0}`;
+    for (const [de, para] of corrigirBonusDaParte(e.bon, peca, e.tier || 0, ch)) trocas.push([ch, de, para]);
+  }
+  if (trocas.length) p.avisoBonusParte = textoTrocasBonus(trocas);
+  return trocas;
+}
+function textoTrocasBonus(trocas) {
+  const um = ([ch, [t, v], [t2, v2]]) => { let n = ch; try { n = tipoItem(ch).nome; } catch (e) {} return `${n}: ${BONUS[t] ? BONUS[t].nome(v) : "um adicional antigo"} → ${BONUS[t2].nome(v2)}`; };
+  return `Regra dos adicionais: ${trocas.length === 1 ? "um adicional que a peça não pode ter foi trocado" : trocas.length + " adicionais que as peças não podem ter foram trocados"} por um que ela pode ter, do mesmo grau. ${trocas.slice(0, 6).map(um).join("; ")}${trocas.length > 6 ? "; ..." : ""}.`;
+}
+// R384 (09/11, a decisão do usuário: "os itens do feiticeiro terão que seguir o padrão do sura, porém adaptados para cajado"): a roupa do
+// feiticeiro tem a chave dela (armadura_feiticeiro, a linha da Malha do Sura com "Túnica"); a armadura_mago fica com os nomes das xamãs.
+// O save de antes do feiticeiro: a roupa vestida e as da bolsa (eram dele) passam para a chave nova, com o modelo, o refino, os
+// adicionais e as Jóias. As do armazém (que é de todos) ficam como estão, e o feiticeiro continua vestindo a armadura_mago: ninguém
+// perde nada. Uma vez só (a marca roupaFeiticeiro)
+function migrarRoupaFeiticeiro(p) {
+  if (!p || p.roupaFeiticeiro) return false;
+  p.roupaFeiticeiro = 1;
+  if (classe !== "feiticeiro") return false;
+  const e = p.equip && p.equip.armadura; if (e && e.peca === "armadura_mago") e.peca = "armadura_feiticeiro";
+  for (const it of p.inv || []) if (it && typeof it.chave === "string" && it.chave.startsWith("peca:armadura_mago:")) it.chave = "peca:armadura_feiticeiro:" + it.chave.split(":")[2];
+  return true;
+}
 function recuperarM2(v) {
   const vm = status.vidaMax, mm = status.manaMax;
   if ((v.mana || 0) < mm) {                                            // (o DistributeSP vem antes e não depende da vida cheia)
@@ -14995,6 +15068,16 @@ function absorverM2(l, dano) {
     const q = Math.floor(Math.min(dano, cur) * status.absorveMana / 100);
     if (q > 0 && cur >= q) viking.mana = Math.min(status.manaMax, (viking.mana || 0) + q);
   }
+}
+// (09/11, R387, o pedido "pode colocar apenas roubar mp") a Chance de roubar MP: o APPLY_MANA_BURN_PCT do Metin2 ("%d%% chance to rob
+// SP"), o bloco "상대방의 마나를 없앤다" do CHARACTER::Damage (char_battle.cpp): só no golpe normal (corpo a corpo e flecha, nunca na skill),
+// number(1, 100) <= valor, e o alvo perde 50 de SP (PointChange(POINT_SP, -50)); lá quem bate não ganha nada. Aqui a criatura não tem
+// mana (como no absorverM2), então os 50 que ela perderia vêm para o herói, até o MP máximo: a única adaptação (quanto: 50 do Metin2)
+const ROUBA_MANA_M2 = { quanto: 50 };
+function roubarManaM2() {
+  if (!(status.roubaMana > 0) || !(Math.random() * 100 < status.roubaMana)) return 0;
+  const antes = viking.mana || 0; viking.mana = Math.min(status.manaMax, antes + ROUBA_MANA_M2.quanto);
+  return viking.mana - antes;
 }
 function drenarBaldes(v) {
   if (v.baldeVida > 0) { if (v.vida >= status.vidaMax) v.baldeVida = 0; else { const q = Math.min(v.baldeVida, status.vidaMax * REGEN_M2.balde); v.vida = Math.min(status.vidaMax, v.vida + q); v.baldeVida -= q; } }
@@ -16107,7 +16190,7 @@ function passoChefe(l, dt) {
   if (l.fase >= 3 && !l.furiaChefe && !(l.semBuff > 0)) { l.furiaChefe = true; som("rugido_chefe", l, 0.8); }
   if (l.investindo) { passoInvestidaChefe(l, dt); return; }
   if (l.canal > 0) { l.canal -= dt; return; }
-  if (!l.cacando || viking.caido || !criaturasAtacam || SESSAO_ADM.invisivel || CENA.semAlvo) return;
+  if (!l.cacando || viking.caido || !criaturasAtacam || SESSAO_ADM.invisivel || CENA.semAlvo || (TUT && TUT.aberto)) return;   // (R386)
   const d = Math.hypot(viking.x - l.x, viking.y - l.y), mecs = dc.mecs.slice(0, l.fase);
   if (l.furiaChefe) l.recarga = Math.max(0, l.recarga - dt * 0.4);   // (na fúria, os golpes comuns também vêm mais rápido)
   if (mecs.includes("horda") && (l.tHorda = (l.tHorda || 0) - dt) <= 0) { l.tHorda = 25; chamarLacaios(l, dc); }
@@ -17041,8 +17124,8 @@ const NPCS = [
            ["peca:brinco:0", 300], ["peca:colar:0", 300], ["peca:pulso:0", 300], ["peca:brinco:1", 1500], ["peca:colar:1", 1500], ["peca:pulso:1", 1500]] },
   { nome: "Armeiro Bjorn", dx: -6.5, dy: -3.1, cores: { roupa: "#6a6f78", calca: "#3a2a1c", pele: "#d9a882", cabelo: "#8a4a22", barba: "#8a4a22" },
     falas: ["Couro para quem está começando, ferro para quem já sangrou nas cavernas.", "O escudo bloqueia um golpe de vez em quando. Não confie a vida a ele.", "O ferreiro refina o que eu vendo. Eu só vendo.", "Tenho a arma de toda vocação. Leve a de um amigo, se quiser: só a mão certa a empunha."],
-    loja: [...LOJA_ARMAS, ["peca:elmo:0", 150], ["peca:botas:0", 150], ["peca:escudo:0", 250], ["peca:armadura_guerreiro:0", 400], ["peca:armadura_leve:0", 400], ["peca:armadura_mago:0", 400],
-           ["peca:elmo:1", 1400], ["peca:botas:1", 1400], ["peca:escudo:1", 2200], ["peca:armadura_guerreiro:1", 3600], ["peca:armadura_leve:1", 3600], ["peca:armadura_mago:1", 3600]] },
+    loja: [...LOJA_ARMAS, ["peca:elmo:0", 150], ["peca:botas:0", 150], ["peca:escudo:0", 250], ["peca:armadura_guerreiro:0", 400], ["peca:armadura_leve:0", 400], ["peca:armadura_mago:0", 400], ["peca:armadura_feiticeiro:0", 400],
+           ["peca:elmo:1", 1400], ["peca:botas:1", 1400], ["peca:escudo:1", 2200], ["peca:armadura_guerreiro:1", 3600], ["peca:armadura_leve:1", 3600], ["peca:armadura_mago:1", 3600], ["peca:armadura_feiticeiro:1", 3600]] },
   { nome: "Feirante Hilda", dx: -6.5, dy: 0.9, cores: { roupa: "#b8553a", calca: "#5a3a22", pele: "#f0c8a8", cabelo: "#e0b040", lenco: "#e8e0c8" },
     falas: ["Maçãs, cenouras, couves! Tudo da horta do vale.", "Os ratos andam roubando os sacos de grão. Vêm de um buraco logo fora do portão sul!", "Meu marido foi caçar javalis no leste e voltou mancando."] },
   { nome: "Guarda Real", dx: 0, dy: 6.6, cores: { roupa: "#2c3e78", calca: "#2a2a40", pele: "#e0b896", cabelo: "#5a3a22", elmo: "#b8bec8" }, lanca: true,
@@ -19249,7 +19332,7 @@ function fecharCarta() { const j = document.getElementById("cartaJan"); if (j) {
 // abrir a lista. Agora ela só existe com o jogo rodando (foraDoJogo: porta, lista, criação, intro, preparação), sem tocar no save do
 // personagem de baixo, e o laço a recalcula quando o jogo aparece ou some (vigiaDica): a quest pendente mostra a seta depois de entrar
 function dicaCartaEstado() {
-  if (foraDoJogo() || !prog || !missoesAtivas() || (typeof CHEGADA === "object" && CHEGADA.aberta)) return null;
+  if (foraDoJogo() || !prog || !missoesAtivas() || (typeof CHEGADA === "object" && CHEGADA.aberta) || tutorialSegura()) return null;   // (R386: nem com o tutorial)
   if (!prog.dicaCarta) {
     const aceitas = Object.keys(MISSOES).filter(id => MISSOES[id].carta && (estadoMissao(id).etapa >= 0 || estadoMissao(id).carta === 2)).length;
     prog.dicaCarta = { n: aceitas ? 2 : 0, cl: [] }; salvarProgresso();
@@ -20088,6 +20171,7 @@ let armazem = null, abaArm = 0;
 function lerArmazem() { if (armazem) return armazem; try { armazem = JSON.parse(localStorage.getItem((window.NUVEM && NUVEM.chaveArmazem()) || ARM_CHAVE)); } catch (e) {} if (!armazem || !Array.isArray(armazem.inv)) armazem = { inv: [], yang: 0, pocoesM2: 1, escalaM2: 1 }; renomearItens(armazem.inv);
   if (!armazem.escalaM2) { armazem.escalaM2 = 1; migrarItensEscalaM2(armazem.inv); }   // (08/11, R365: os adicionais guardados antes da escala do Metin2)
   if (!armazem.ataqueM2) { armazem.ataqueM2 = 1; migrarItensAtaqueM2(armazem.inv); }   // (09/11, R372: o Ataque % e a Defesa antiga)
+  if (!armazem.bonusParte) { armazem.bonusParte = 1; const tr = corrigirItensBonusDaParte(armazem.inv); if (tr.length && typeof chatSistema === "function") setTimeout(() => chatSistema(textoTrocasBonus(tr).replace("Regra dos adicionais:", "Regra dos adicionais (armazém):"), "nivel"), 1800); }   // (09/11, R383: o HP no escudo e os outros fora da peça; o sorteio fixo dá o mesmo resultado se não for salvo)
   if (!armazem.pocoesM2) { armazem.pocoesM2 = 1; converterPocoesAntigas(armazem.inv, (prog && status.vidaMax) || 1000, (prog && status.manaMax) || 500); }   // (R184: as poções guardadas antes dos tamanhos)
   return armazem; }
 function salvarArmazem() { try { localStorage.setItem((window.NUVEM && NUVEM.chaveArmazem()) || ARM_CHAVE, JSON.stringify(armazem)); } catch (e) {} }
@@ -20436,7 +20520,7 @@ function classeDaSkill(nome) { for (const [c, l] of [["viking", SKILLS_VIKING], 
 function ondeCaiRaro() { return "Cai só das Pedras Ghotin (e, às vezes, do baú dos chefes das cavernas)."; }
 function livroQualquer() { const l = todasAsSkills(); return { tipo: "livro", nome: l[Math.floor(Math.random() * l.length)] }; }
 // as armas (uma por classe), desenhadas em pé num espaço de 1 × 3
-const ARMAS = { aprendiz: { nome: "Espada de Treino", desenho: "treino" }, viking: { nome: "Espada", desenho: "espada" }, arqueiro: { nome: "Arco", desenho: "arco" }, feiticeiro: { nome: "Espada", desenho: "cajado" }, ninja: { nome: "Adaga", desenho: "adagas" }, guerreiro: { nome: "Gládio", desenho: "machado" }, xama: { nome: "Leque", desenho: "leque" }, xama_dragao: { nome: "Leque", desenho: "leque" }, shura: { nome: "Espada", desenho: "espada", icone: "sombria" } };   // (08/11: o modelo 0 com o nome do Metin2 BR, como o ARMAS_TIER)
+const ARMAS = { aprendiz: { nome: "Espada de Treino", desenho: "treino" }, viking: { nome: "Espada", desenho: "espada" }, arqueiro: { nome: "Arco", desenho: "arco" }, feiticeiro: { nome: "Cajado", desenho: "cajado" }, ninja: { nome: "Adaga", desenho: "adagas" }, guerreiro: { nome: "Machado", desenho: "machado" }, xama: { nome: "Leque", desenho: "leque" }, xama_dragao: { nome: "Leque", desenho: "leque" }, shura: { nome: "Espada", desenho: "espada", icone: "sombria" } };   // (08/11: o modelo 0 com o nome do Metin2 BR, como o ARMAS_TIER)
 // o desenho do ÍCONE da arma da classe (R260: o shura tem as lâminas dele, "sombria"; o "desenho" continua o da espada, que
 // escolhe o modelo 3D e o golpe básico)
 function desenhoArma(c) { const a = ARMAS[c] || ARMAS.viking; return a.icone || a.desenho; }
@@ -20464,13 +20548,17 @@ const ATAQUE_TIER = M2_ARMA.map((_, t) => +(bonusArma(0, t) / bonusArma(0, 0)).t
 const ARMAS_TIER = {
   aprendiz: Array(7).fill("Espada de Treino"),
   // (08/11) os nomes do Metin2 BR (o guia oficial da Ongame, 2007): a espada de uma mão no viking, no shura e no feiticeiro (os três
-  // usam espada no Metin2: o Guerreiro Corporal, a Arma Mágica e a Magia Negra; o feiticeiro leva o nome da espada sobre a arte do cajado),
+  // usam espada no Metin2: o Guerreiro Corporal, a Arma Mágica e a Magia Negra; até 09/11 o feiticeiro levava o nome da espada sobre a arte do cajado),
   // a de duas mãos no guerreiro, as adagas no ninja, os arcos no arqueiro e os leques nas xamãs
   viking: ["Espada", "Cimitarra", "Espada Orc", "Espada Bastarda", "Espada Sangrenta", "Espada do Mago Voador", "Espada Minguante"],
-  guerreiro: ["Gládio", "Guisarme", "Alabarda Militar", "Alabarda", "Picador Glacial", "Lâmina da Salvação", "Matadora de Leões"],
+  // (09/11, R384, a "regra do feiticeiro" que o usuário escolheu para o guerreiro: o nome da arma de haste do Metin2 com "Machado" no
+  // lugar do substantivo, porque ele segura um machado; nos que eram só o substantivo, um qualificativo: a Guisarme tem gancho, a Alabarda é longa)
+  guerreiro: ["Machado", "Machado Ganchudo", "Machado Militar", "Machado Longo", "Machado Glacial", "Machado da Salvação", "Matador de Leões"],
   arqueiro: ["Arco", "Arco de Cavalgada", "Arco Bronzeado", "Arco da Ruína Negra", "Arco Espinhoso", "Arco do Unicórnio", "Arco Asa Gigante"],
-  feiticeiro: ["Espada", "Cimitarra", "Espada Orc", "Espada Bastarda", "Espada Sangrenta", "Espada do Mago Voador", "Espada Minguante"],
-  ninja: ["Adaga", "Adaga Tesoura", "Faca Sortuda", "Faca Fenina", "Punho Demoníaco", "Costela Afiada", "Chakram"],
+  // (09/11, R384, o usuário: "os itens do feiticeiro terão que seguir o padrão do sura, porém adaptados para cajado") a linha do Sura com
+  // "Cajado" no lugar de "Espada"; a Cimitarra vira o Cajado Curvo (a escolha dele)
+  feiticeiro: ["Cajado", "Cajado Curvo", "Cajado Orc", "Cajado Bastardo", "Cajado Sangrento", "Cajado do Mago Voador", "Cajado Minguante"],
+  ninja: ["Adaga", "Adaga Tesoura", "Faca Sortuda", "Faca Fenina", "Punho Demoníaco", "Costela Afiada", "Adagas Chakram"],   // (09/11, R384: o ninja segura duas adagas)
   xama: ["Leque", "Leque do Pavão", "Leque de Pedra", "Leque do Oceano", "Leque do Fênix", "Leque da Fúria", "Leque do Sol Negro"],
   xama_dragao: ["Leque", "Leque do Pavão", "Leque de Pedra", "Leque do Oceano", "Leque do Fênix", "Leque da Fúria", "Leque do Sol Negro"],
   shura: ["Espada", "Cimitarra", "Espada Orc", "Espada Bastarda", "Espada Sangrenta", "Espada do Mago Voador", "Espada Minguante"],
@@ -20491,7 +20579,7 @@ const ARMAS_RARAS = {
   arqueiro: { nome: "Arco de Chifre", bon: [["medio", 32], ["skill", 8], ["monstros", 10]] },
   ninja: { nome: "Punhal da Folha Negra", bon: [["medio", 30], ["skill", 10], ["monstros", 10]] },
   shura: { nome: "Espada Plenilúnia", bon: [["medio", 22], ["skill", 18], ["monstros", 10]] },
-  feiticeiro: { nome: "Espada Plenilúnia", bon: [["medio", 12], ["skill", 24], ["monstros", 10]] },
+  feiticeiro: { nome: "Cajado Plenilúnio", bon: [["medio", 12], ["skill", 24], ["monstros", 10]] },
   xama: { nome: "Leque Vento de Outono", bon: [["medio", 12], ["skill", 22], ["monstros", 10]] },
   xama_dragao: { nome: "Leque Vento de Outono", bon: [["medio", 12], ["skill", 22], ["monstros", 10]] },
 };
@@ -20740,6 +20828,15 @@ const PECAS = {
     modelos: [["Túnica Azul", 1, 12, 0], ["Túnica Turquesa", 8, 21, 0], ["Túnica Dourada", 14, 29, 0],
               ["Túnica Amorosa", 22, 38, 0], ["Túnica de Seda Negra", 30, 47, 0], ["Túnica Solar", 38, 55, 0],
               ["Túnica Moral", 46, 64, 0], ["Túnica do Sonhador", 54, 72, 0], ["Manto do Dragão Celeste", 62, 81, 0]] },
+  // (09/11, R384, o usuário: "os itens do feiticeiro terão que seguir o padrão do sura, porém adaptados para cajado") a roupa só do
+  // feiticeiro: a linha da Malha do Sura (o guia da Ongame) com "Túnica" no lugar de "Malha"; o do 62 fica "Manto do Dragão Celeste" até o
+  // nome BR ser confirmado. Os números são os da armadura_mago (a mesma defesa da linha), e o modelo 3D da roupa é o de sempre. Os ícones
+  // (o itens_b.json): os modelos 2, 3, 4, 6 e 7 com a arte nova (09/11, aprovada); o 0, o 1, o 5 e o 8 com os de hoje do feiticeiro
+  armadura_feiticeiro: { nome: "Túnica", slot: "armadura", classes: ["feiticeiro"], h: 2, extra: null, cor: [["#8a6a4a", "#5a4430"], ["#5a3a8a", "#2a1a4a"], ["#a02020", "#4a0a0a"],
+      ["#3a6a5a", "#183a2e"], ["#2a3a7a", "#10183a"], ["#c8c8e0", "#5a5a8a"], ["#4a3a8a", "#1a1040"], ["#e06a2a", "#7a2a0a"], ["#2a8aa8", "#0a3a5a"]],
+    modelos: [["Túnica Fúnebre", 1, 12, 0], ["Túnica Mágica", 8, 21, 0], ["Túnica Azarada", 14, 29, 0],
+              ["Túnica Tigre Fantasma", 22, 38, 0], ["Túnica do Ying-Yang", 30, 47, 0], ["Misticismo Negro", 38, 55, 0],
+              ["Túnica Nebulosa", 46, 64, 0], ["Túnica Rosto Fantasma", 54, 72, 0], ["Manto do Dragão Celeste", 62, 81, 0]] },
   elmo: { nome: "Elmo", h: 1, extra: null, modelos: [["Elmo Tradicional", 1, 5, 0], ["Elmo Tradicional", 8, 5, 0], ["Elmo de Ferro", 14, 9, 0],
     ["Elmo de Ferro", 22, 9, 0], ["Elmo de Ferro", 30, 9, 0], ["Sallet Fantasma", 38, 13, 0], ["Sallet Fantasma", 46, 13, 0], ["Elmo da Tartaruga Negra", 54, 17, 0], ["Elmo do Rei de Longbo", 62, 17, 0]] },
   botas: { nome: "Botas", h: 1, extra: "vel", modelos: [["Sapatos de Bambu", 1, 1, 2], ["Sapatos de Pele Animal", 8, 2, 2], ["Sapatos de Couro", 14, 2, 2],
@@ -20799,7 +20896,7 @@ function acessorioDoNivel(nivel, slot = ACESSORIOS[Math.floor(Math.random() * 3)
 // o que cai das criaturas: 1 em 4 é um acessório, o resto uma peça de roupa
 function itemDoNivel(nivel) { return Math.random() < 0.25 ? acessorioDoNivel(nivel) : pecaDoNivel(nivel); }
 const ORDEM_PECAS = ["elmo", "armadura", "botas", "escudo"];                // os espaços do equipamento (roupa; os acessórios à parte)
-const ROUPA_DA_CLASSE = { aprendiz: "armadura_guerreiro", viking: "armadura_guerreiro", arqueiro: "armadura_leve", ninja: "armadura_leve", feiticeiro: "armadura_mago", guerreiro: "armadura_guerreiro", xama: "armadura_mago", xama_dragao: "armadura_mago", shura: "armadura_guerreiro" };
+const ROUPA_DA_CLASSE = { aprendiz: "armadura_guerreiro", viking: "armadura_guerreiro", arqueiro: "armadura_leve", ninja: "armadura_leve", feiticeiro: "armadura_feiticeiro", guerreiro: "armadura_guerreiro", xama: "armadura_mago", xama_dragao: "armadura_mago", shura: "armadura_guerreiro" };
 function slotDa(peca) { return (PECAS[peca] && PECAS[peca].slot) || peca; }
 function pecaEquipada(slot) { const e = prog && prog.equip && prog.equip[slot]; return e ? (e.peca || (slot === "armadura" ? ROUPA_DA_CLASSE[classe] : slot)) : null; }
 function pecaServe(peca) { const c = PECAS[peca] && PECAS[peca].classes; return !c || c.includes(classe); }
@@ -20816,7 +20913,7 @@ const NOME_EXTRA = { vel: n => `Velocidade de Movimento +${n}%` };
 // o FATOR DE CONVERSÃO da defesa: 1 ponto de defesa do Metin2 = 2,8 da nossa. (36.12, complemento, o usuário: "Igual ao
 // Metin2") A armadura, o traje e o manto do mesmo nível dão a mesma defesa, como as quatro armaduras de lá (item_proto e
 // wiki: a do 9 é 21 → 75 no guerreiro, no ninja, no sura e no xamã); antes o traje levava 0,74 e o manto 0,48
-const FATOR_DEFESA = 1, ROUPA_CLASSE = { armadura_guerreiro: 1, armadura_leve: 1, armadura_mago: 1 };
+const FATOR_DEFESA = 1, ROUPA_CLASSE = { armadura_guerreiro: 1, armadura_leve: 1, armadura_mago: 1, armadura_feiticeiro: 1 };
 // (36.12, complemento) o que a armadura e o escudo TIRAM da velocidade de movimento, em %, o APPLY_MOV_SPEED do item do
 // Metin2 do mesmo patamar (armadura do 0, 9, 18, 26, 34, 42, 48, 54 e 61; escudo do 0, 21, 41 e 61). Não muda com o refino,
 // como lá. E o elmo do 60 do Metin2 dá Bloqueio 1% no +0 e +1% por + (até 10% no +9): o nosso elmo dos modelos 7 e 8
@@ -20863,7 +20960,7 @@ function iconePeca(g, slot, tier, w, h) {
   gr.addColorStop(0, c2); gr.addColorStop(0.5, c1); gr.addColorStop(1, c2);
   g.fillStyle = gr; g.strokeStyle = "#140c06"; g.lineWidth = 1.6; g.lineJoin = "round";
   const pol = pts => { g.beginPath(); pts.forEach(([x, y], k) => k ? g.lineTo(x * u, y * u) : g.moveTo(x * u, y * u)); g.closePath(); g.fill(); g.stroke(); };
-  if (slot === "armadura_mago") { pol([[14, 6], [26, 6], [30, 14], [34, 70], [6, 70], [10, 14]]); g.strokeStyle = "rgba(255,220,140,0.6)"; g.beginPath(); g.moveTo(X, 12 * u); g.lineTo(X, 68 * u); g.stroke(); }
+  if (slot === "armadura_mago" || slot === "armadura_feiticeiro") { pol([[14, 6], [26, 6], [30, 14], [34, 70], [6, 70], [10, 14]]); g.strokeStyle = "rgba(255,220,140,0.6)"; g.beginPath(); g.moveTo(X, 12 * u); g.lineTo(X, 68 * u); g.stroke(); }
   else if (slot.startsWith("armadura")) { pol([[8, 10], [16, 6], [24, 6], [32, 10], [34, 30], [28, 32], [28, 70], [12, 70], [12, 32], [6, 30]]); g.strokeStyle = "rgba(0,0,0,0.35)"; g.beginPath(); g.moveTo(X, 10 * u); g.lineTo(X, 68 * u); g.stroke(); }
   else if (slot === "elmo") { g.beginPath(); g.arc(X, 22 * u, 13 * u, Math.PI, 0); g.lineTo(X + 13 * u, 32 * u); g.lineTo(X - 13 * u, 32 * u); g.closePath(); g.fill(); g.stroke(); if (tier) { g.fillStyle = "#140c06"; g.fillRect(X - 9 * u, 22 * u, 18 * u, 3 * u); } }
   else if (slot === "botas") { pol([[13, 6], [24, 6], [24, 24], [34, 28], [34, 34], [11, 34], [12, 22]]); }
@@ -20949,9 +21046,9 @@ function somaEquip() {
 // uma peça que cai: o modelo do nível de quem a soltou (o melhor que o nível alcança)
 function pecaDoNivel(nivel) {
   // a roupa que cai é, na maioria das vezes, a da classe de quem está jogando (às vezes a de outra, para o armazém)
-  const roupas = ["armadura_guerreiro", "armadura_leve", "armadura_mago"];
+  const roupas = ["armadura_guerreiro", "armadura_leve", "armadura_mago", "armadura_feiticeiro"];   // (09/11, R384: a Túnica do feiticeiro)
   let slot = ORDEM_PECAS[Math.floor(Math.random() * ORDEM_PECAS.length)];
-  if (slot === "armadura") slot = classe === "aprendiz" ? "elmo" : Math.random() < 0.7 ? ROUPA_DA_CLASSE[classe] : roupas[Math.floor(Math.random() * 3)];   // (R165: nem roupa de classe)
+  if (slot === "armadura") slot = classe === "aprendiz" ? "elmo" : Math.random() < 0.7 ? ROUPA_DA_CLASSE[classe] : roupas[Math.floor(Math.random() * roupas.length)];   // (R165: nem roupa de classe)
   let tier = 0; PECAS[slot].modelos.forEach(([, n], k) => { if (nivel >= n) tier = k; });
   return { tipo: "peca", chave: `peca:${slot}:${tier}`, ref: refinoDeQueda(), bon: bonusDeDrop(slot, tier) };
 }
@@ -20973,7 +21070,7 @@ function refinoDeQueda() { let s = Math.random() * 100; for (const [r, p] of REF
 //    atributos 2/4/6/8/12 (eram 200/400/600/600/800, 4/8/12/20/32 e 1/3/4/5/8); o Ataque da armadura fica em %, 1/2/3/5/8 (o
 //    Ghotin2 ainda não tem ataque fixo: o golpe e a defesa do Metin2 são de um pacote separado);
 //  - um adicional não repete outro do item nem o fixo dele (o atributo base do acessório, os % da arma rara: fixosDoItem).
-// Os cortes declarados (sem alvo num jogo sem PvP ou sem elemento): as 6 defesas contra armas, roubar PM, as imunidades, as
+// Os cortes declarados (sem alvo num jogo sem PvP ou sem elemento): as 6 defesas contra armas, as imunidades, as
 // resistências a fogo/raio/vento e a resistência a veneno; Forte contra Esotéricos (não há criatura dessa raça). O "Forte contra
 // monstros" sai do sorteio (no Metin2 é do 6º/7º) e a Defesa crua (4–40) sai (não existe nos normais do Metin2): os dois ficam só
 // para os itens que já os têm (os saves não mudam). A Rapidez de feitiço é a Recarga das habilidades −% de antes.
@@ -20994,6 +21091,7 @@ const BONUS = {
   animal: { nome: v => `Bônus contra Animais +${v}%`, niveis: [2, 4, 6, 10, 20], peso: 35 }, orc: { nome: v => `Bônus contra Orcs +${v}%`, niveis: [2, 4, 6, 10, 20], peso: 35 },
   morto_vivo: { nome: v => `Bônus contra Mortos-vivos +${v}%`, niveis: [2, 4, 6, 10, 20], peso: 35 }, demonio: { nome: v => `Bônus contra Demônios +${v}%`, niveis: [2, 4, 6, 10, 20], peso: 35 },
   absorveVida: { nome: v => `Chance de absorver HP +${v}%`, niveis: [1, 2, 3, 5, 10], peso: 50, max: 10 }, absorveMana: { nome: v => `Chance de absorver MP +${v}%`, niveis: [1, 2, 3, 5, 10], peso: 50, max: 10 },
+  roubaMana: { nome: v => `Chance de roubar MP +${v}%`, niveis: [1, 2, 3, 5, 10], peso: 18 },   // (09/11, R387: o MANA_BURN_PCT do item_attr, prob 18; roubarManaM2)
   bloqueio: { nome: v => `Chance de bloquear Ataque Físico +${v}%`, niveis: [2, 4, 6, 10, 15], peso: 10 },
   esquiva: { nome: v => `Chance de esquivar Flechas +${v}%`, niveis: [2, 4, 6, 10, 15], peso: 10 },   // (o "evitar flechas" do Metin2; também o atributo base do colar)
   resMagia: { nome: v => `Resistência contra Magia +${v}%`, niveis: [2, 4, 6, 10, 15], peso: 25 },
@@ -21012,13 +21110,13 @@ const BONUS_ARMADURA = ["vida", "resfriamento", "absorveVida", "absorveMana", "r
 const RACAS_BONUS = ["humano", "animal", "orc", "morto_vivo", "demonio"];
 const BONUS_DA_PARTE = {
   arma: ["for", "int", "vit", "dex", "resfriamento", "veneno", "atordoar", "lentidao", "critico", "perfurante", ...RACAS_BONUS],
-  armadura_guerreiro: BONUS_ARMADURA, armadura_leve: BONUS_ARMADURA, armadura_mago: BONUS_ARMADURA,
+  armadura_guerreiro: BONUS_ARMADURA, armadura_leve: BONUS_ARMADURA, armadura_mago: BONUS_ARMADURA, armadura_feiticeiro: BONUS_ARMADURA,
   elmo: ["rapidez", "regenVida", "regenMana", "veneno", ...RACAS_BONUS, "absorveMana", "esquiva", "resMagia"],
   botas: ["mana", "vida", "rapidez", "atordoar", "lentidao", "critico", "esquiva", "exp", "yang"],
   escudo: ["for", "int", "vit", "dex", ...RACAS_BONUS, "bloqueio", "refletir", "exp", "yang"],
-  pulso: ["mana", "vida", "perfurante", ...RACAS_BONUS, "absorveVida", "resMagia", "drop"],
+  pulso: ["mana", "vida", "perfurante", ...RACAS_BONUS, "absorveVida", "roubaMana", "resMagia", "drop"],   // (R387: + a Chance de roubar MP, wrist e ear)
   colar: ["mana", "vida", "regenVida", "regenMana", "atordoar", "critico", "perfurante", "absorveMana", "exp", "yang"],
-  brinco: ["velocidade", ...RACAS_BONUS, "drop"],
+  brinco: ["velocidade", ...RACAS_BONUS, "roubaMana", "drop"],
 };
 const BONUS_MAX = 5, BONUS_REFORCO_MAX = 4;
 // as tabelas do degrau (lv1 a lv5, em %) pela origem: o Reforço (aiItemAddAttributePercent), o Encantamento (tmpChangeProb) e o
@@ -21246,8 +21344,10 @@ const ROT_BONUS = { vida: "HP Máximo", mana: "MP Máximo", vit: "Vitalidade", i
   drop: "Taxa de Drop", esquiva: "Chance de esquivar Flechas", resfriamento: "Velocidade de Skill",
   regenVida: "Regeneração de HP", regenMana: "Regeneração de MP", absorveVida: "Chance de absorver HP", absorveMana: "Chance de absorver MP",
   rapidez: "Velocidade de ataque", veneno: "Chance de Envenenar oponente", atordoar: "Chance de Atordoar oponente", lentidao: "Chance de causar Lentidão", resMagia: "Resistência contra Magia",
-  refletir: "Reflete Ataques Físicos" };   // (07/11: os do item_attr do Metin2 que faltavam)   // (03/11: os da recuperação e da absorção)
-const PCT_BONUS = new Set(["medio", "skill", "critico", "monstros", "bloqueio", "velocidade", "perfurante", "humano", "animal", "orc", "morto_vivo", "demonio", "exp", "yang", "drop", "esquiva", "resfriamento", "regenVida", "regenMana", "absorveVida", "absorveMana", "rapidez", "veneno", "atordoar", "lentidao", "resMagia", "refletir"]);
+  refletir: "Reflete Ataques Físicos",
+  // (09/11, R387) o cliente BR diz "Chance de reduzir MP do oponente" (TOOLTIP_APPLY_MANA_BURN_PCT), o efeito do PvP; aqui o MP vem para o herói
+  roubaMana: "Chance de roubar MP" };   // (07/11: os do item_attr do Metin2 que faltavam)   // (03/11: os da recuperação e da absorção)
+const PCT_BONUS = new Set(["medio", "skill", "critico", "monstros", "bloqueio", "velocidade", "perfurante", "humano", "animal", "orc", "morto_vivo", "demonio", "exp", "yang", "drop", "esquiva", "resfriamento", "regenVida", "regenMana", "absorveVida", "absorveMana", "roubaMana", "rapidez", "veneno", "atordoar", "lentidao", "resMagia", "refletir"]);
 const textoBonusM2 = ([t, v]) => ROT_BONUS[t] ? `${ROT_BONUS[t]}: +${v}${PCT_BONUS.has(t) ? "%" : ""}` : "";
 // (08/11) o nome de cada adicional nos avisos e na nota do equipamento: o mesmo do cliente BR, sem os dois-pontos
 for (const [t, b] of Object.entries(BONUS)) if (ROT_BONUS[t]) b.nome = v => `${ROT_BONUS[t]} +${v}${PCT_BONUS.has(t) ? "%" : ""}`;
@@ -22744,6 +22844,7 @@ function atualizarFicha() {
     ["Vel. de Skill", "+" + Math.round((status.resfriamento || 0) * 100) + "%", "Velocidade de Skill: a recarga das skills mais curta (Jóia do Resfriamento e colar; no máximo 50%)"],
     ["Regeneração HP · MP", `+${status.regenVida || 0}/+${status.regenMana || 0}%`, "O HP e o MP que voltam a cada 3 s, a mais (bônus do colar, dos brincos, do bracelete e do elmo)"],
     ["Absorver HP · MP", `${status.absorveVida || 0}/${status.absorveMana || 0}%`, "Chance de absorver HP / MP: em 1 de cada 10 golpes normais, essa parte do dano volta como HP / MP (bônus da armadura, do bracelete, do colar e do elmo)"],
+    ["Roubar MP", `${status.roubaMana || 0}%`, "Chance de roubar MP: em cada golpe normal (não nas skills), essa chance de tirar 50 de MP da criatura para você (bônus do bracelete e dos brincos)"],   // (09/11, R387)
     ["Honra", `${honraDe().titulo || "Sem título"} · ${Math.floor(honraDe().pontos).toLocaleString("pt-BR")}`, `Cada criatura derrotada dá 1 ponto, se não estiver mais de 10 níveis abaixo de você. Conhecido 1.000 (+1% de drop), Defensor 4.000 (+2%), Protetor da Vila 8.000 (+4%) e Herói do Biombo 12.000 (+5%)`],
     ["EXP · Gold · Drop", [status.exp, status.yang, status.drop].map(v => Math.round((v || 0) * 100)).join("/") + "%", "Experiência bônus, Gold bônus e Taxa de Drop (adicionais do colar, do bracelete e dos brincos)"],
     ["Pesquisa", resumoBio(true), `Atributos permanentes das pesquisas de ${NOME_MUKSEON_TITULO} (${Math.min(bioDe().m, BIO.length)} de ${BIO.length}): ${resumoBio()}`]]
@@ -23562,7 +23663,7 @@ function passoCriatura(l, dt) {
     const dx = viking.x - l.x, dy = viking.y - l.y, d = Math.hypot(dx, dy);
     const antes = l.cacando;
     if (l.voltando > 0) l.voltando -= dt;
-    const escondido = SESSAO_ADM.invisivel || CENA.semAlvo || (NINJA.esconder.buff > 0 && classe === "ninja" && d > 1.2) || viking.folgaVale > 0 || outroLadoDaPorta(l);   // (R252: do outro lado da porta do chefe, ninguém caça; folgaVale: quem acaba de sair da caverna; R151)
+    const escondido = SESSAO_ADM.invisivel || CENA.semAlvo || (TUT && TUT.aberto) || (NINJA.esconder.buff > 0 && classe === "ninja" && d > 1.2) || viking.folgaVale > 0 || outroLadoDaPorta(l);   // (R252: do outro lado da porta do chefe, ninguém caça; folgaVale: quem acaba de sair da caverna; R151)
     // (os grupos do Metin2 não atacam sozinhos, menos o Capitão: só depois de um golpe num deles ou de um deles caçar,
     // e a luta dura até o herói ficar a GRUPO_PERSEGUE m)
     if (l.provocado > 0) l.provocado -= dt; else if (l.persegue) l.persegue = 0;   // (persegue: o grupo chamado pelo líder, chamarVizinhosV1)
@@ -23794,6 +23895,7 @@ function feridoPor(l) {
   // hit-stop de 0,06 s por golpe, com um bando batendo, segurava o herói várias vezes por segundo), não apaga a fila de comandos e
   // só toca a reação de dano com ele parado; andando, ele sente o golpe (o tremor, o flash e o som) sem perder o passo
   if (typeof CENA === "object" && CENA.semAlvo) return;                 // (a cena do Altar: nada fere o herói)
+  if (TUT && TUT.aberto) return;                                        // (R386: com o tutorial aberto, também não)
   feridas++; tremor = 0.22; viking.ferido = 0.3;
   som(NOVAS[l.tipo] ? NOVAS[l.tipo].somAcerto : l.tipo === "lobo" || l.tipo === "rato" ? "mordida" : l.tipo === "goblin" ? "palha" : "carne", viking); som("grunhido", viking, 0.8);
   impacto(viking, 64, "golpeViking", 0);
@@ -24017,6 +24119,7 @@ function ferir(l, dano, dx, dy, empurra, semReacao = false) {
     if (classe === "ninja" && NINJA.esconder.buff > 0) NINJA.esconder.buff = 0;
     dano = Math.max(1, Math.round(dano * fatorClasse()));   // (09/11, a fase 2: o fator de classe em PvM, FATOR_CLASSE)
     if (!fonteDano && (status.absorveVida > 0 || status.absorveMana > 0)) absorverM2(l, dano);   // (03/11: a Absorção de PV/PM, só no golpe normal)
+    if (!fonteDano && status.roubaMana > 0) roubarManaM2();               // (09/11, R387: a Chance de roubar MP, só no golpe normal)
   }
   const d = Math.max(1e-3, Math.hypot(dx, dy));
   // (a Lâmina Encantada do shura, a do Metin2: rouba 10k% do dano em 80% dos golpes normais; o valor de ataque já entrou acima)
@@ -28171,7 +28274,7 @@ const LUGARES_H = [
 // caem (dos bichos, das Metins e dos chefes do nível delas), NIVEL70.md
 const LOJA_HAHOE = [14, 22, 30].flatMap((n, k) => {
   const t = k + 2, preco = [[4000, 6300, 10300], [9000, 14000, 23000], [16000, 25000, 41000]][k];
-  return [[`peca:elmo:${t}`, preco[0]], [`peca:botas:${t}`, preco[0]], [`peca:escudo:${t}`, preco[1]], [`peca:armadura_guerreiro:${t}`, preco[2]], [`peca:armadura_leve:${t}`, preco[2]], [`peca:armadura_mago:${t}`, preco[2]]];
+  return [[`peca:elmo:${t}`, preco[0]], [`peca:botas:${t}`, preco[0]], [`peca:escudo:${t}`, preco[1]], [`peca:armadura_guerreiro:${t}`, preco[2]], [`peca:armadura_leve:${t}`, preco[2]], [`peca:armadura_mago:${t}`, preco[2]], [`peca:armadura_feiticeiro:${t}`, preco[2]]];
 });
 LOJA_HAHOE.push(["correcao", 25000]);                    // a Escritura da Remoção (tira a última Jóia de uma arma ou roupa)
 // os moradores: os mesmos serviços da Vila 1 (o ferreiro, o armazém compartilhado, a loja de poções e a de peças, o
@@ -33070,6 +33173,7 @@ function entrarComClasse(c, op = {}) {
     // (09/11, R378) o herói nasce com a classe: a vocação fica guardada como a da classe (prog.vocacao: a chegada pelo rasgo, a missão do
     // biombo) e o nome vem da tela nova (op.nome)
     prog = progressoIniciante(c); prog.vocacao = vocacaoDaClasse(c); if (op.nome) prog.nome = op.nome;
+    prog.tutorial = 0; prog.tutorialAtrib = 0;                         // (R386: o tutorial do começo e o do 1º ponto de atributo, a ver)
     recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
     nascerNaVila();
     jornada = jornadaNova(true);                                       // (as Estatísticas da jornada começam do zero)
@@ -33104,7 +33208,7 @@ const GUIA_PASSOS = [
 const guiaPassos = () => GUIA_PASSOS;                                 // (R380: a lista do aprendiz, com o passo do Altar, saiu)
 let guiaFeito = null;
 function guiaDesenhar() {
-  const el = $("#guia"), g = prog && prog.guia, ver = !!g && !g.fim && !CHEGADA.aberta;   // (a chegada pelo rasgo primeiro)
+  const el = $("#guia"), g = prog && prog.guia, ver = !!g && !g.fim && !CHEGADA.aberta && !tutorialSegura();   // (o tutorial e a chegada pelo rasgo primeiro)
   if (el.hidden === ver) el.hidden = !ver;
   if (!ver) { guiaFeito = null; return; }
   if (guiaFeito === g.passo) return; guiaFeito = g.passo;
@@ -33125,6 +33229,7 @@ const CHEGADA = { aberta: false, forcar: false, pausadoAntes: false, t: 0,
 function chegadaPronta() {
   if (!prog || !prog.vocacao || classe === "aprendiz" || prog.chegadaVista || CHEGADA.aberta) return false;
   if (MODO_TESTE && !CHEGADA.forcar) return false;
+  if (tutorialSegura()) { CHEGADA.t = 0; return false; }                // (R386: o tutorial do começo vem antes)
   if ((window.PREPARO && (PREPARO.ativo || PREPARO.cedo)) || SEL.aberta || (typeof INTRO === "object" && INTRO.aberta) || viagem || idMapa(viking.x, viking.y) !== "vila1") return false;
   if (viking.alvo || viking.rota) { CHEGADA.t = 0; return false; }
   return (CHEGADA.t += 1) >= 2;                                           // (parado por 2 passos do guia: ~0,6 s)
@@ -33141,6 +33246,7 @@ function chegadaFechou() {
 }
 // a cada 0,3 s, também com o jogo pausado (o Mapa do Mundo pausa)
 function passoGuia() {
+  tutorialVigiar();                                                       // (R386: o tutorial do começo, antes da chegada)
   if (chegadaPronta()) abrirChegada();
   const g = prog && prog.guia;
   const PASSOS = guiaPassos();
@@ -33172,6 +33278,300 @@ function guiaDesviar() {
   if (el.classList.contains("desviada") !== sim) el.classList.toggle("desviada", sim);
 }
 function guiaAbrir(sim) { if (!prog) return; prog.guia = sim ? { passo: 0 } : { ...(prog.guia || {}), fim: true }; salvarProgresso(); guiaFeito = null; guiaDesenhar(); }
+// ---- o TUTORIAL do começo (09/11, R386, Logs/FILA.md 49 k; o usuário: "logo que a pessoa entrar, a primeira coisa que vai acontecer é
+// ter um tutorial. A tela inteira vai ficar mais escura, apenas o ponto onde está sendo mostrado vai ficar claro"). Um véu escuro por
+// cima de tudo, também do jogo em 3D (#tutVeu, z-index 70), com um recorte (clip-path evenodd) em volta do ponto mostrado: o botão de
+// verdade aparece claro e pega o clique; fora dele o clique cai no véu e não chega ao jogo. Um tracejado de ouro anda em volta do recorte
+// (#tutTraco, SVG, sem pegar o clique) e a caixa de papel ao lado (#tutCaixa) tem o título, uma frase, "Próximo" e "Pular tutorial" (o
+// Esc também pula; as outras teclas não chegam ao jogo). O recorte acompanha a janela e o tamanho da tela a cada quadro. Os passos seguem
+// o começo do jogo, um por botão da barra de baixo; o das skills espera a pessoa abrir a janela, pôr o ponto de verdade e então mostra a
+// barra de atalhos. Aberto, o herói não leva golpe e as criaturas não caçam (feridoPor e a caça leem TUT.aberto).
+// As marcas ficam no save do personagem (o local e o da nuvem, que leva o progresso inteiro): prog.tutorial (0: a ver; 1: visto ou
+// pulado) e prog.tutorialAtrib (0: o destaque do 1º ponto de atributo a ver; 1: feito ou pulado). Só o personagem novo
+// (entrarComClasse) nasce com as duas no 0: os saves de antes não têm nenhuma e não veem nada sozinhos ("Rever tutorial", nas Opções,
+// serve para todos). A ordem do herói novo: a tela de preparação, o tutorial, a chegada pelo rasgo (chegadaPronta espera) e os
+// Primeiros passos. O do atributo abre na 1ª vez que o herói tem ponto de atributo, com o tutorial do começo já fechado. No ?test=1
+// não abre sozinho (TUT.forcar liga); ?tutorial=0 é a chave dos testes do modo jogador que criam personagem e não são deste: eles
+// pulam o tutorial, que continua no jogo
+var TUT = { aberto: false, modo: null, i: 0, forcar: false, t: 0, base: null, antes: null, raf: 0, dom: null, sig: "", rever: false,
+  param: new URLSearchParams(location.search).get("tutorial") };
+function tutorialLigado() { return !!TUT && TUT.param !== "0" && (!MODO_TESTE || TUT.forcar); }
+// (o tutorial aberto, ou o do começo esperando a vez: a chegada, os Primeiros passos e a seta da carta esperam)
+function tutorialSegura() { return !!TUT && (TUT.aberto || (!!prog && prog.tutorial === 0 && tutorialLigado())); }
+const tutEl = id => document.getElementById(id);
+const tutFicha = pag => { const f = tutEl("ficha"); return !!f && !f.hidden && fichaPag === pag; };
+// a skill que o tutorial mostra na barra: a que ganhou o ponto agora; senão a 1ª aprendida; senão a 1ª da classe
+function tutSkill() {
+  const a = (TUT.antes && TUT.antes.skills) || {};
+  return SKILLS.find(s => nivelSkill(s.nome) > (a[s.nome] || 0)) || SKILLS.find(s => nivelSkill(s.nome) > 0) || SKILLS[0] || null;
+}
+// o herói na tela (os pés, a placa do nome) e, com fio, o começo do fio vermelho da quest (até 5 m): retângulos da janela, em px,
+// arredondados a 8 px para a caixa não tremer com a ondinha do fio
+function tutRetMundo(pts, acima) {
+  const c = document.getElementById("campo"); if (!c || !prog || viking.caido) return null;
+  const r = c.getBoundingClientRect(), k = r.width / (W || r.width), z = zPiso(viking.x, viking.y);
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x, y] of pts) { const [X, Y] = noMundo(x, y, z), cx = r.left + X * k, cy = r.top + Y * k; x0 = Math.min(x0, cx); x1 = Math.max(x1, cx); y0 = Math.min(y0, cy); y1 = Math.max(y1, cy); }
+  if (!isFinite(x0)) return null;
+  const lado = 64 * zoom * k, topo = acima * zoom * k, q = v => Math.round(v / 8) * 8;
+  return { left: q(x0 - lado), top: q(y0 - topo), right: q(x1 + lado), bottom: q(y1 + 22 * k) };
+}
+const tutRetHeroi = () => tutRetMundo([[viking.x, viking.y]], topoPlacaHeroi() + 30);
+function tutRetFio() {
+  const f = SETA_QUEST.fio; if (!f || !f.pts || f.pts.length < 2) return null;
+  return tutRetMundo([[viking.x, viking.y], ...f.pts.filter(p => p.a <= 5).map(p => [p.x, p.y])], topoPlacaHeroi() + 30);
+}
+function tutTeclaSkill(sk) { const i = sk ? ordemBarra.indexOf(sk.nome) : -1; return i >= 0 ? ROTULO_TECLA(TECLAS_BARRA[i]) : ""; }
+const TUT_PASSOS = {
+  comeco: [
+    { id: "boas", titulo: () => `Bem-vindo, ${escH(prog.nome || NOME_CLASSE[classe] || "herói")}!`, alvo: () => [tutRetHeroi()],
+      texto: "Este é você. Antes de sair pela vila, veja onde fica cada coisa na barra de baixo. São poucos passos, e você pode pular quando quiser." },
+    { id: "vida", titulo: "HP e MP", alvo: () => [tutEl("vitais"), tutEl("orbesExp")],
+      texto: "A barra vermelha é o seu <b>HP</b>, a vida. A azul é o <b>MP</b>, a mana que as skills gastam. <kbd>R</kbd> e <kbd>X</kbd> bebem as poções. As bolinhas ao lado enchem com a EXP: cheias, você sobe de nível." },
+    { id: "skills", titulo: "Skills", alvo: () => [tutEl("bSkills")], espera: () => tutFicha("skills"),
+      texto: () => (prog.pontosSkill || 0) > 0 ? `Você já tem <b>${prog.pontosSkill} ${prog.pontosSkill === 1 ? "ponto" : "pontos"} de skill</b> (o número no botão). Clique na estrela para abrir as suas skills.`
+        : "Cada nível novo dá <b>1 ponto de skill</b>. Clique na estrela para abrir as suas skills." },
+    { id: "skillPonto", titulo: "Ponha o ponto", alvo: () => [tutEl("fSkills"), tutEl("fSkInfo")], evitar: () => [tutEl("ficha")],
+      espera: () => (prog.pontosSkill || 0) < TUT.base.pontosSkill, semEspera: () => !TUT.base.pontosSkill, volta: () => !tutFicha("skills"),
+      texto: () => TUT.base.pontosSkill ? "Clique no <b>+</b> ao lado de uma skill. O 1º ponto ensina a skill; cada nível novo traz mais 1 ponto."
+        : "Quando houver ponto, um <b>+</b> aparece ao lado de cada skill. O 1º ponto ensina a skill; cada nível novo traz mais 1." },
+    { id: "skillBarra", titulo: "Use a skill", ao: () => { abrirFicha(false); const sk = tutSkill(); if (sk && sk.el && sk.el.classList.contains("fora")) trocarPaginaBarra(paginaBarra + 1); },
+      alvo: () => { const sk = tutSkill(); return [sk && sk.el && !sk.el.classList.contains("fora") ? sk.el : tutEl("barraSkills")]; },
+      texto: () => { const sk = tutSkill(), t = tutTeclaSkill(sk);
+        return `${sk ? `<b>${escH(sk.nome)}</b> já está na barra de atalhos` : "As skills ficam na barra de atalhos"}${t ? `, na tecla <kbd>${t}</kbd>` : ""}. Perto de uma criatura, aperte a tecla ou clique no ícone para usar. Para trocar de lugar, arraste o ícone da janela de skills até a barra.`; } },
+    { id: "atrib", titulo: "Atributos", alvo: () => [tutEl("bAtrib")],
+      texto: () => `Aqui ficam a sua ficha e os <b>pontos de atributo</b>. A cada nível chegam 3, um em cada uma das 3 primeiras bolinhas de EXP, e um número aparece no botão. ${(prog.pontos || 0) > 0 ? `Agora você tem <b>${prog.pontos}</b> para dar.` : "No nível 1 ainda não há ponto para dar."} O principal do ${NOME_CLASSE[classe] || "herói"} é <b>${SIGLA_ATRIB[ATRIB_PRINCIPAL[classe]] || "FOR"}</b>.` },
+    { id: "quests", titulo: "Quests",
+      alvo: () => { const l = []; const c = tutEl("cartas"); if (c && c.children.length) l.push(c); const m = tutEl("missaoAtual"); if (m && !m.hidden) { l.push(m); l.push(tutRetFio()); } return l.some(Boolean) ? l : [tutEl("minimapa")]; },
+      texto: () => SETA_QUEST.fio && tutEl("missaoAtual") && !tutEl("missaoAtual").hidden
+        ? "A quest que você acompanha fica embaixo do minimapa, e o <b>fio vermelho</b> no chão leva até o objetivo. As novas chegam como <b>cartas</b>: o pergaminho na esquerda da tela. A tecla <kbd>Q</kbd> mostra todas."
+        : "As quests chegam como <b>cartas</b> (o pergaminho na esquerda da tela) ou pelos moradores; embaixo do minimapa aparece a da vez. Aceite uma, e um <b>fio vermelho</b> no chão leva até o objetivo. A tecla <kbd>Q</kbd> mostra as suas." },
+    { id: "loja", titulo: "Loja do Dokkaebi", alvo: () => [tutEl("bLoja")],
+      texto: "A loja vende poções, tintas, pergaminhos e reforços por <b>Gold</b>, o dinheiro que as criaturas e as quests dão. A tecla <kbd>Z</kbd> também abre." },
+    { id: "bolsa", titulo: "Inventário", alvo: () => [tutEl("bBolsa")],
+      texto: () => `A bolsa (<kbd>I</kbd>) guarda os seus itens e o equipamento. Clique direito num item para usar ou vestir.${contarItem("bau_iniciante") ? " O <b>Baú do Iniciante</b> já está lá dentro, com a arma e a roupa." : ""}` },
+    { id: "mapa", titulo: "Minimapa", alvo: () => { const m = tutEl("minimapa"), a = m && m.querySelector(".aro"); return [a || m]; },
+      texto: "Mostra o que está à sua volta. Clique nele, ou aperte <kbd>M</kbd>, para abrir o Mapa do Mundo e marcar um lugar." },
+    { id: "menu", titulo: "Menu", alvo: () => [tutEl("menuBotao")],
+      texto: "Aqui estão o Mapa do Mundo, as Quests, as janelas, o som e as opções. Este tutorial volta em <b>Opções e som → Rever tutorial</b>." },
+    { id: "fim", titulo: "Boa caçada!", botao: "Começar",
+      texto: () => contarItem("bau_iniciante") ? "Abra o Baú do Iniciante na bolsa, vista a arma e a roupa e saia da vila. Os <b>Primeiros passos</b>, à esquerda, mostram o que fazer em seguida."
+        : "Agora é com você. Os <b>Primeiros passos</b> e as cartas mostram o que fazer em seguida." },
+  ],
+  // (o 1º ponto de atributo: só o botão e a ficha, e espera a pessoa pôr o ponto)
+  atrib: [
+    { id: "atribAbrir", titulo: "Ponto de atributo!", alvo: () => [tutEl("bAtrib")], espera: () => tutFicha("atrib"),
+      texto: () => `Você ganhou <b>${prog.pontos} ${prog.pontos === 1 ? "ponto" : "pontos"} de atributo</b>. Clique no botão para abrir a ficha e distribuir.` },
+    { id: "atribPor", titulo: "Distribua", alvo: () => [tutEl("fAtrib")], evitar: () => [tutEl("ficha")],
+      espera: () => (prog.pontos || 0) < TUT.base.pontos, semEspera: () => !TUT.base.pontos, volta: () => !tutFicha("atrib"),
+      texto: () => `Clique no <b>+</b> de um atributo. <b>${SIGLA_ATRIB[ATRIB_PRINCIPAL[classe]] || "FOR"}</b> é o principal do ${NOME_CLASSE[classe] || "herói"} e sobe o seu dano; <b>VIT</b> dá mais HP e <b>INT</b>, mais MP.` },
+    { id: "atribFim", titulo: "Pronto!", alvo: () => [tutEl("fAtrib")], evitar: () => [tutEl("ficha")], botao: "Entendi",
+      texto: "Cada nível traz mais 3 pontos. <kbd>Ctrl</kbd> + clique no <b>+</b> põe 10 de uma vez." },
+  ],
+};
+const tutLista = () => TUT_PASSOS[TUT.modo] || [];
+const tutPasso = () => tutLista()[TUT.i] || null;
+const tutVal = v => typeof v === "function" ? v() : v;
+const tutSemEspera = P => !!P.semEspera && !!P.semEspera();
+function tutDom() {
+  if (TUT.dom) return TUT.dom;
+  const st = document.createElement("style");
+  st.textContent = `
+  #tutVeu { position: fixed; inset: 0; z-index: 70; background: rgba(10, 8, 6, 0.72); cursor: default; touch-action: none; }
+  #tutTraco { position: fixed; left: 0; top: 0; z-index: 71; pointer-events: none; overflow: visible; }
+  #tutTraco .tut-sombra { fill: none; stroke: rgba(30, 27, 24, 0.95); stroke-width: 7; }
+  #tutTraco .tut-formiga { fill: none; stroke: #F3CF5A; stroke-width: 3; stroke-dasharray: 12 8; stroke-linecap: round; animation: tutFormiga 0.9s linear infinite; }
+  #tutTraco .tut-brilho { fill: none; stroke: rgba(243, 207, 90, 0.35); stroke-width: 9; animation: tutBrilho 1.1s ease-in-out infinite alternate; }
+  @keyframes tutFormiga { to { stroke-dashoffset: -40; } }
+  @keyframes tutBrilho { from { opacity: 0.15; } to { opacity: 0.9; } }
+  #tutCaixa { position: fixed; left: 0; top: 0; z-index: 72; width: min(360px, calc(100vw - 24px)); box-sizing: border-box; padding: 11px 14px 12px;
+    color: #1E1B18; background: #F4E6C2; border: 2px solid #1E1B18; border-radius: 3px; font-family: var(--corpo);
+    box-shadow: 0 0 0 1px #C9963E inset, 4px 4px 0 #B8322A, 0 12px 28px rgba(0, 0, 0, 0.55); animation: tutEntra 0.22s ease-out; }
+  @keyframes tutEntra { from { opacity: 0; transform: translateY(6px); } }
+  #tutCaixa header { display: flex; align-items: baseline; gap: 10px; margin: 0 0 7px; padding: 0 0 5px; border-bottom: 1.5px solid rgba(30, 27, 24, 0.3); }
+  #tutCaixa h2 { flex: 1; margin: 0; font-family: "Song Myung", "Nanum Myeongjo", "Palatino Linotype", Georgia, serif; font-size: 21px; font-weight: 400; color: #1E1B18; }
+  #tutConta { font: 700 12.5px/1 var(--dados, monospace); color: #8E2721; white-space: nowrap; }
+  #tutTexto { margin: 0; font-size: 15px; line-height: 1.45; font-weight: 500; }
+  #tutTexto b { color: #8E2721; }
+  #tutCaixa kbd { display: inline-block; padding: 0 5px; font: 700 12.5px/18px var(--dados, monospace); color: #F5EBD3; background: #1E1B18; border-radius: 3px; }
+  #tutEspera { display: flex; align-items: center; gap: 7px; margin: 9px 0 0; font-size: 13.5px; font-weight: 700; color: #8E2721; }
+  #tutEspera[hidden] { display: none; }
+  #tutEspera i { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #B8322A; animation: tutBrilho 0.8s ease-in-out infinite alternate; }
+  #tutCaixa .tut-botoes { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 11px; }
+  #tutCaixa .tut-botoes button { min-width: 0; margin: 0; border-radius: 3px; cursor: pointer; box-shadow: none; text-shadow: none; }
+  #tutPular { padding: 4px 8px; font: 600 13px/1.2 var(--corpo); color: #3F3528; background: rgba(30, 27, 24, 0.05); border: 1.5px solid rgba(30, 27, 24, 0.45); }
+  #tutPular kbd { margin-left: 3px; font-size: 11px; line-height: 15px; }
+  #tutPular:hover, #tutPular:focus-visible { color: #B8322A; border-color: #B8322A; background: rgba(184, 50, 42, 0.08); outline: none; }
+  #tutProx { padding: 7px 18px; font: 600 15px/1.2 var(--corpo); color: #FFF4DC; background: #B8322A; border: 2px solid #1E1B18; }
+  #tutProx[hidden] { display: none; }
+  #tutProx:hover, #tutProx:focus-visible { background: #C8443A; outline: 2px solid #C9963E; outline-offset: 1px; }
+  @media (prefers-reduced-motion: reduce) { #tutTraco .tut-formiga, #tutTraco .tut-brilho, #tutEspera i, #tutCaixa { animation: none; } }`;
+  document.head.appendChild(st);
+  const veu = document.createElement("div"); veu.id = "tutVeu"; veu.setAttribute("aria-hidden", "true");
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.id = "tutTraco"; svg.setAttribute("aria-hidden", "true");
+  const cx = document.createElement("section"); cx.id = "tutCaixa"; cx.setAttribute("role", "dialog"); cx.setAttribute("aria-label", "Tutorial"); cx.setAttribute("aria-describedby", "tutTexto");
+  cx.innerHTML = `<header><h2 id="tutTitulo"></h2><span id="tutConta"></span></header><p id="tutTexto" aria-live="polite"></p><p id="tutEspera" hidden><i></i>Clique no ponto destacado</p>` +
+    `<div class="tut-botoes"><button type="button" id="tutPular">Pular tutorial<kbd>Esc</kbd></button><button type="button" id="tutProx">Próximo</button></div>`;
+  for (const e of [veu, svg, cx]) { e.setAttribute("hidden", ""); document.body.appendChild(e); }   // (o svg não tem a propriedade hidden: o atributo)
+  // (o clique fora do recorte cai no véu e morre aqui: nada chega ao jogo, nem a rodinha do zoom)
+  for (const ev of ["pointerdown", "pointerup", "mousedown", "mouseup", "click", "dblclick", "contextmenu", "wheel", "touchstart"]) veu.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
+  for (const ev of ["pointerdown", "mousedown", "contextmenu", "wheel"]) cx.addEventListener(ev, e => e.stopPropagation());
+  cx.querySelector("#tutPular").onclick = () => tutorialFechar(true);
+  cx.querySelector("#tutProx").onclick = () => tutorialProximo();
+  addEventListener("resize", () => { if (TUT.aberto) { TUT.sig = ""; tutAtualizar(); } });
+  TUT.dom = { veu, svg, cx }; return TUT.dom;
+}
+// o Esc pula; o Enter e o Espaço passam (quando há "Próximo"); as outras teclas não chegam ao jogo (o F5 e o F12 seguem)
+addEventListener("keydown", e => {
+  if (!TUT || !TUT.aberto) return;
+  const k = e.key;
+  if (k === "F5" || k === "F12") return;
+  e.stopImmediatePropagation();
+  if (k === "Tab") return;
+  e.preventDefault();
+  if (e.repeat) return;
+  if (k === "Escape") tutorialFechar(true);
+  else if (k === "Enter" || k === " ") { if (document.activeElement && document.activeElement.id === "tutPular") tutorialFechar(true); else tutorialProximo(); }
+}, true);
+// os retângulos do recorte: os alvos visíveis do passo, com folga, os vizinhos (até 16 px) juntos num só
+function tutRetangulos(P) {
+  const W = innerWidth, H = innerHeight, F = 6, l = [];
+  for (const el of (P.alvo ? P.alvo() : []).filter(Boolean)) {
+    const solto = !el.getBoundingClientRect;                              // (um retângulo da janela: o herói e o fio, tutRetMundo)
+    if (!solto && (el.hidden || el.closest("[hidden]"))) continue;
+    const b = solto ? { left: el.left, top: el.top, right: el.right, bottom: el.bottom, width: el.right - el.left, height: el.bottom - el.top } : el.getBoundingClientRect();
+    if (b.width < 1 || b.height < 1) continue;
+    const x0 = Math.max(2, b.left - F), y0 = Math.max(2, b.top - F), x1 = Math.min(W - 2, b.right + F), y1 = Math.min(H - 2, b.bottom + F);
+    if (x1 - x0 > 2 && y1 - y0 > 2) l.push({ x0, y0, x1, y1 });
+  }
+  for (let junta = true; junta;) {
+    junta = false;
+    for (let a = 0; a < l.length && !junta; a++) for (let b = a + 1; b < l.length && !junta; b++) {
+      const A = l[a], B = l[b];
+      if (A.x0 - 16 < B.x1 && B.x0 - 16 < A.x1 && A.y0 - 16 < B.y1 && B.y0 - 16 < A.y1) { l[a] = { x0: Math.min(A.x0, B.x0), y0: Math.min(A.y0, B.y0), x1: Math.max(A.x1, B.x1), y1: Math.max(A.y1, B.y1) }; l.splice(b, 1); junta = true; }
+    }
+  }
+  return l;
+}
+const tutN = v => Math.round(v * 10) / 10;
+function tutRetRedondo(r, k) {
+  const { x0, y0, x1, y1 } = r, R = Math.min(k, (x1 - x0) / 2, (y1 - y0) / 2);
+  return `M${tutN(x0 + R)} ${tutN(y0)}H${tutN(x1 - R)}A${tutN(R)} ${tutN(R)} 0 0 1 ${tutN(x1)} ${tutN(y0 + R)}V${tutN(y1 - R)}A${tutN(R)} ${tutN(R)} 0 0 1 ${tutN(x1 - R)} ${tutN(y1)}` +
+    `H${tutN(x0 + R)}A${tutN(R)} ${tutN(R)} 0 0 1 ${tutN(x0)} ${tutN(y1 - R)}V${tutN(y0 + R)}A${tutN(R)} ${tutN(R)} 0 0 1 ${tutN(x0 + R)} ${tutN(y0)}Z`;
+}
+// a cada quadro (e a cada passo do guia): o passo se cumpriu, voltou, ou o recorte mudou de lugar
+function tutAtualizar() {
+  if (!TUT.aberto) return;
+  const P = tutPasso(); if (!P) return;
+  if (P.volta && P.volta()) { tutIr(TUT.i - 1); return; }
+  if (P.espera && !tutSemEspera(P) && P.espera()) { som("ui_aceitar", null, 0.5); tutIr(TUT.i + 1); return; }
+  const W = innerWidth, H = innerHeight, R = tutRetangulos(P), D = TUT.dom;
+  const ev = (P.evitar ? P.evitar() : []).filter(e => e && !e.hidden).map(e => e.getBoundingClientRect()).map(b => ({ x0: b.left, y0: b.top, x1: b.right, y1: b.bottom }));
+  const sig = [W, H, TUT.modo, TUT.i, ...R.map(r => [r.x0, r.y0, r.x1, r.y1].map(Math.round).join(",")), ...ev.map(r => [r.x0, r.y0].map(Math.round).join(","))].join("|");
+  if (sig === TUT.sig) return; TUT.sig = sig; TUT.recortes = R;
+  D.veu.style.clipPath = R.length ? `path(evenodd, "M0 0H${W}V${H}H0Z ${R.map(r => tutRetRedondo(r, 9)).join(" ")}")` : "none";
+  D.svg.setAttribute("width", W); D.svg.setAttribute("height", H); D.svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  D.svg.innerHTML = R.map(r => { const a = `x="${tutN(r.x0)}" y="${tutN(r.y0)}" width="${tutN(r.x1 - r.x0)}" height="${tutN(r.y1 - r.y0)}" rx="9"`;
+    return `<rect class="tut-brilho" ${a}/><rect class="tut-sombra" ${a}/><rect class="tut-formiga" ${a}/>`; }).join("");
+  // a caixa: perto do recorte, sem cobrir nenhum recorte nem a janela do passo; sem recorte, no meio da tela
+  const cx = D.cx, w = cx.offsetWidth, h = cx.offsetHeight, M = 12, G = 20;
+  let x = (W - w) / 2, y = Math.max(M, H * 0.42 - h / 2);
+  if (R.length) {
+    const U = { x0: Math.min(...R.map(r => r.x0)), y0: Math.min(...R.map(r => r.y0)), x1: Math.max(...R.map(r => r.x1)), y1: Math.max(...R.map(r => r.y1)) };
+    const T = ev.length ? { x0: Math.min(U.x0, ...ev.map(r => r.x0)), y0: Math.min(U.y0, ...ev.map(r => r.y0)), x1: Math.max(U.x1, ...ev.map(r => r.x1)), y1: Math.max(U.y1, ...ev.map(r => r.y1)) } : U;
+    const cxU = (U.x0 + U.x1) / 2, cyU = (U.y0 + U.y1) / 2, prende = (a, b, c) => Math.max(b, Math.min(c, a));
+    const op = {
+      cima: [cxU - w / 2, U.y0 - G - h], baixo: [cxU - w / 2, U.y1 + G],
+      esq: [T.x0 - G - w, cyU - h / 2], dir: [T.x1 + G, cyU - h / 2],
+    };
+    const ordem = ev.length ? (T.x0 > W - T.x1 ? ["esq", "dir", "cima", "baixo"] : ["dir", "esq", "cima", "baixo"]) : cyU > H * 0.55 ? ["cima", cxU > W / 2 ? "esq" : "dir", "baixo"] : ["baixo", cxU > W / 2 ? "esq" : "dir", "cima"];
+    const cruza = (px, py) => [...R, ...ev].some(r => px < r.x1 && px + w > r.x0 && py < r.y1 && py + h > r.y0);
+    // (e, com recortes espalhados pela tela, os lugares fixos de reserva: embaixo do meio, em cima, nos lados)
+    op.r1 = [W / 2 - w / 2, H * 0.68 - h / 2]; op.r2 = [W / 2 - w / 2, H * 0.16]; op.r3 = [W * 0.27 - w / 2, H * 0.45 - h / 2]; op.r4 = [W * 0.73 - w / 2, H * 0.45 - h / 2];
+    let achou = null;
+    for (const k of [...ordem, "r1", "r2", "r3", "r4"]) { const px = prende(op[k][0], M, W - w - M), py = prende(op[k][1], M, H - h - M); if (!cruza(px, py)) { achou = [px, py]; break; } }
+    if (!achou) achou = [prende(op[ordem[0]][0], M, W - w - M), prende(op[ordem[0]][1], M, H - h - M)];
+    [x, y] = achou;
+  }
+  cx.style.left = Math.round(x) + "px"; cx.style.top = Math.round(y) + "px";
+}
+function tutQuadro() { TUT.raf = 0; if (!TUT.aberto) return; tutAtualizar(); TUT.raf = requestAnimationFrame(tutQuadro); }
+function tutIr(n) {
+  const L = tutLista();
+  if (n >= L.length) { tutorialFechar(false); return; }
+  TUT.i = Math.max(0, n); TUT.sig = "";
+  const P = L[TUT.i], D = TUT.dom;
+  TUT.base = { pontosSkill: prog.pontosSkill || 0, pontos: prog.pontos || 0 };
+  if (P.ao) P.ao();
+  D.cx.querySelector("#tutTitulo").innerHTML = tutVal(P.titulo);
+  D.cx.querySelector("#tutTexto").innerHTML = tutVal(P.texto);
+  D.cx.querySelector("#tutConta").textContent = `${TUT.i + 1} de ${L.length}`;
+  const espera = !!P.espera && !tutSemEspera(P), prox = D.cx.querySelector("#tutProx");
+  D.cx.querySelector("#tutEspera").hidden = !espera; prox.hidden = espera;
+  prox.textContent = P.botao || (TUT.i === L.length - 1 ? "Começar" : "Próximo");
+  D.cx.querySelector("#tutPular").firstChild.textContent = TUT.modo === "atrib" ? "Pular" : "Pular tutorial";
+  D.cx.style.animation = "none"; void D.cx.offsetWidth; D.cx.style.animation = "";
+  if (!espera) prox.focus({ preventScroll: true }); else if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  tutAtualizar();
+}
+function tutorialProximo() {
+  if (!TUT.aberto) return;
+  const P = tutPasso(); if (!P || (P.espera && !tutSemEspera(P))) return;   // (o passo que espera a pessoa não passa no Próximo nem no Enter)
+  som("ui_clique", null, 0.6); tutIr(TUT.i + 1);
+}
+function tutorialAbrir(modo = "comeco", op = {}) {
+  if (!TUT || TUT.aberto || !prog || !TUT_PASSOS[modo]) return false;
+  const D = tutDom();
+  TUT.aberto = true; TUT.modo = modo; TUT.rever = !!op.rever; TUT.t = 0;
+  TUT.antes = { skills: { ...(prog.skills || {}) } };
+  teclas.clear(); mira = null;
+  Object.assign(viking, { alvo: null, rota: null, fila: null });           // (o herói para onde está)
+  for (const c of criaturas) if (c.cacando && !(c.cfg && c.cfg.estatico)) { c.cacando = false; c.destino = null; }   // (as criaturas largam o herói)
+  if (npcAberto) abrirNpc(null);
+  if (cartaAberta) fecharCarta();
+  abrirMenu(false); abrirOpcoes(false); abrirQuests(false); abrirLoja(false);
+  if (modo === "comeco") { abrirBolsa(false); abrirFicha(false); }
+  for (const e of [D.veu, D.svg, D.cx]) e.removeAttribute("hidden");
+  guiaFeito = null; guiaDesenhar(); dicaCarta();
+  som("ui_aceitar", null, 0.5);
+  tutIr(0);
+  if (!TUT.raf) TUT.raf = requestAnimationFrame(tutQuadro);
+  return true;
+}
+function tutorialFechar(pulou) {
+  if (!TUT || !TUT.aberto) return;
+  const modo = TUT.modo, D = TUT.dom;
+  TUT.aberto = false; TUT.modo = null; TUT.sig = ""; TUT.t = 0;
+  if (TUT.raf) cancelAnimationFrame(TUT.raf); TUT.raf = 0;
+  for (const e of [D.veu, D.svg, D.cx]) e.setAttribute("hidden", ""); D.veu.style.clipPath = ""; D.svg.innerHTML = "";
+  if (prog) { if (modo === "atrib") prog.tutorialAtrib = 1; else prog.tutorial = 1; salvarProgresso(); }
+  if (modo === "comeco") {
+    abrirFicha(false);
+    if (pulou) avisar("Tutorial pulado. Ele volta em Opções e som → Rever tutorial.");
+    else som("missao", null, 0.6);
+    if (contarItem("bau_iniciante")) abrirBolsa(true);                  // (como antes: a bolsa aberta com o baú, para os Primeiros passos)
+  } else if (pulou) avisar("Os pontos de atributo ficam na ficha (P).");
+  CHEGADA.t = 0; guiaFeito = null; guiaDesenhar(); cartasAssinatura = ""; desenharCartas(); dicaCarta();
+}
+// "Rever tutorial", nas Opções: qualquer personagem, na hora (fica marcado como visto de novo ao fechar)
+function tutorialRever() {
+  if (!prog || TUT.aberto || foraDoJogo()) return false;
+  return tutorialAbrir("comeco", { rever: true });
+}
+// a cada 0,3 s (passoGuia): abre o do começo para o herói novo, depois da tela de preparação e com o jogo livre; o do atributo, na 1ª vez
+// que houver ponto, com o do começo já fechado. Espera 2 passos (~0,6 s) com tudo livre, como a chegada
+function tutorialVigiar() {
+  if (!TUT) return;
+  if (TUT.aberto) { tutAtualizar(); return; }
+  if (!prog || !window.jogoPronto || !tutorialLigado()) { TUT.t = 0; return; }
+  const comeco = prog.tutorial === 0, atrib = !comeco && prog.tutorialAtrib === 0 && prog.tutorial === 1 && (prog.pontos || 0) > 0;
+  if (!comeco && !atrib) { TUT.t = 0; return; }
+  const ocupado = foraDoJogo() || SEL.aberta || (typeof CENA === "object" && CENA.ativa) || viagem || viking.caido || classe === "aprendiz" || (window.MM && MM.aberto)
+    || (atrib && (npcAberto || CHEGADA.aberta || cartaAberta || DASH.ativo || lojaAberta2() || lojaAberta() || armazemAberto() || (MAO && MAO.it) || !$("#opcoes").hidden));   // (o do atributo espera a loja, o armazém e o item na mão)
+  if (ocupado) { TUT.t = 0; return; }
+  if ((TUT.t += 1) < 2) return;
+  tutorialAbrir(comeco ? "comeco" : "atrib");
+}
 function nascerNaVila() {
   montarMapa("vila1"); prog.mapa = "vila1";
   [viking.x, viking.y] = pontoSeguro(MAPAS.vila1);
@@ -34176,6 +34576,7 @@ function montarJornada() {
   $("#jorCopiar").onclick = copiarJornada;
   $("#oJornada").onclick = () => { abrirOpcoes(false); abrirJornada(true); };
   $("#oGuia").onclick = () => { abrirOpcoes(false); guiaAbrir(true); };
+  $("#oTutorial").onclick = () => { abrirOpcoes(false); tutorialRever(); };   // (R386: o tutorial do começo, de novo, para qualquer personagem)
   $("#guiaFechar").onclick = () => guiaAbrir(false);
   setInterval(passoGuia, 300);
   $("#fJornada").onclick = () => abrirJornada();
