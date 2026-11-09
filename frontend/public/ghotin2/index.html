@@ -1233,7 +1233,7 @@
   /* ---- "Novo personagem" (R183; 03/11 a versão SÓ COM BUSTOS, aprovada: "A tela de criacao ficou sensacional"; rascunho em
      Logs/CriacaoPersonagem/rascunho_bustos): sobre o último quadro da introdução (o terraço do Templo do Céu com o biombo rasgado),
      o painel de pergaminho à esquerda e, no centro, os dois bustos respirando da vocação, cada um na sua "janela da lua"; embaixo,
-     os selos das 4 vocações entre as setas. Aqui se escolhe só a VOCAÇÃO: a classe se escolhe no Altar, no nível 5 */
+     os selos das 4 vocações entre as setas. (09/11, R378: sem o aprendiz) o clique num dos dois bustos escolhe a CLASSE, e o herói nasce com ela */
   .inicio.novo { overflow: hidden; padding: 0; }
   .inicio.novo::before, .inicio.novo > :not(.np) { display: none; }
   .sel-classe > .np { position: fixed; inset: 0; }
@@ -1684,7 +1684,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.92 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.93 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -2215,14 +2215,14 @@
     <section class="np-painel" aria-labelledby="npVoc">
       <div class="np-historia" id="npHistoria" title="Clique para mostrar tudo" aria-live="polite"></div>
       <div class="np-pagina"><span id="npPag">1 / 2</span><button type="button" class="np-bt" id="npAtras">Atrás</button><button type="button" class="np-bt" id="npSeguinte">Seguinte</button></div>
-      <h3 class="np-sub">As duas eras <em>escolha no Altar</em></h3>
+      <h3 class="np-sub">As duas eras <em>escolha a sua classe</em></h3>
       <ul class="np-classes" id="npClasses"></ul>
-      <h3 class="np-sub" id="npAtribTit">Atributos iniciais <em>aprendiz</em></h3>
+      <h3 class="np-sub" id="npAtribTit">Atributos iniciais <em>Viking</em></h3>
       <div class="np-atrib" id="npAtrib"></div>
       <div class="np-nome"><label for="npNome">Nome</label><input id="npNome" maxlength="16" autocomplete="off" spellcheck="false" placeholder="o nome do seu herói"></div>
       <p class="np-aviso" id="npAviso" role="status"></p>
       <div class="np-acoes" id="npAcoes"><button type="button" class="np-bt" id="npVoltar">Voltar</button><button type="button" class="np-criar" id="npCriar">Criar</button></div>
-      <p class="np-nota" id="npNota">Aqui você escolhe só a <b>vocação</b> e começa como <b>aprendiz</b>. A classe se escolhe no Altar das Eras, no nível 5.</p>
+      <p class="np-nota" id="npNota">Clique num dos dois heróis para escolher a <b>classe</b>. Ele nasce na Vila 1 com a arma, a roupa e as skills dela, e já tem <b>1 ponto de skill</b> no nível 1.</p>
     </section>
     <nav class="np-selos" id="npSelos" aria-label="Vocações"></nav>
     <button type="button" class="np-seta" id="npAnt" aria-label="Vocação anterior"><svg viewBox="0 0 82 60" aria-hidden="true">
@@ -2232,7 +2232,7 @@
       <path class="placa" d="M14 6h54l10 24-10 24H14L4 30z"/><path class="filete" d="M17 10h48l8 20-8 20H17L9 30z"/>
       <path class="ponta" d="M50 13c-3 0-7 3-14 9l-10 7c-1 1-1 2 0 3l11 8c6 5 10 8 13 8 2 0 3-2 1-4l-12-11c-1-1-1-2 0-3l12-12c2-2 1-5-1-5z"/></svg></button>
     <div class="np-cartao" id="npCartao" role="tooltip" hidden></div>
-    <p class="np-dica" id="npDica"><kbd>←</kbd> <kbd>→</kbd> trocam a vocação · clique num herói para ver o papel e os atributos dele · passe o mouse numa skill para ler o que ela faz · a classe se escolhe no Altar, no nível 5</p>
+    <p class="np-dica" id="npDica"><kbd>←</kbd> <kbd>→</kbd> trocam a vocação · clique num herói para escolher a classe dele · passe o mouse numa skill para ler o que ela faz</p>
   </div>
   <div class="sc-baixo">
     <div class="sc-acoes">
@@ -5545,7 +5545,7 @@ G.VILA2 = V;
 //  - com conta: a lista e a criação usam os 4 espaços da conta (a classe pode repetir); o armazém e o mapa explorado
 //    são os da conta. O 1º login começa do zero (decisão do usuário, 03/11: nada sobe do navegador);
 //  - o SAVE AUTOMÁTICO: o jogo continua gravando no navegador como sempre; daqui sai uma cópia para a conta no máximo a
-//    cada 30 s (só se mudou) e na hora ao subir de nível, trocar de mapa, escolher a classe no Altar, voltar à lista,
+//    cada 30 s (só se mudou) e na hora ao subir de nível, trocar de mapa, trocar de classe (o aprendiz antigo), voltar à lista,
 //    sair e fechar a aba (keepalive, até 60 mil caracteres). Um envio por vez. Sem internet, guarda e tenta de novo;
 //  - o aviso no canto: "Salvando…" → "Salvo ✓ 16:42" (ou "Sem conexão: salvo neste computador");
 //  - a sessão tomada (outro computador entrou) com "Jogar aqui", e a escolha entre o save da conta e o deste computador.
@@ -5927,8 +5927,8 @@ G.VILA2 = V;
     const c = g("classe"), V = g("VOCACAO");
     // (trocarClasse não recarrega quando a classe é a mesma: aqui o personagem do espaço é lido de novo)
     if (per.classe === c && (per.classe !== "aprendiz" || per.vocacao === V)) { const f = g("carregarProgresso"); if (typeof f === "function") f(); }
-    if (per.classe === "aprendiz") g("entrarAprendiz")(per.vocacao, op.novo ? { novo: true, nome: per.nome } : { nome: per.nome });
-    else g("entrarComClasse")(per.classe);
+    // (09/11, R378: o aprendiz saiu do jogo; o espaço "aprendiz" escolhe a classe antes, em entrar)
+    g("entrarComClasse")(per.classe, op.novo ? { novo: true, nome: per.nome } : op.convertido ? { convertido: true } : {});
     // (R267: o nome é o da conta, dado na criação; um save com outro nome volta ao da conta, e o servidor só grava o nome no POST /personagens)
     { const p = g("prog"); if (p && per.nome && p.nome !== per.nome) p.nome = per.nome; }
   }
@@ -5956,7 +5956,7 @@ G.VILA2 = V;
       const daConta = r.j.dados ? JSON.parse(await descomprimir(r.j.dados)) : null;
       // o pendente: o que este computador gravou e a conta ainda não recebeu
       const pend = LS.json(chavePend(ch)), local = lerPacoteLocal(ch);
-      let usar = daConta, versaoBase = sv.versao, subir = !daConta;
+      let usar = daConta, versaoBase = sv.versao, subir = !daConta, convertido = false;
       if (pend && local) {
         if (sv.versao === pend.versaoBase) { usar = local; subir = true; }   // (a conta não andou: o daqui sobe agora)
         else if (pend.fechandoCompleto && sv.versao === pend.fechando) usar = daConta;   // (o envio do fechamento chegou)
@@ -5968,21 +5968,31 @@ G.VILA2 = V;
       }
       LS.del(chavePend(ch));
       gravarPacoteLocal(ch, usar);
+      // (09/11, R381) o espaço de um aprendiz (o aprendiz saiu do jogo): escolhe uma das classes da vocação, e o save vira o da classe
+      // (o nível, a EXP, os itens e o Gold ficam). Sobe já: o servidor aceita a troca de aprendiz para uma classe da vocação dele
+      if (sv.classe === "aprendiz") {
+        const p0 = LS.json("progresso_" + ch);
+        const c = await g("escolherClasseAntiga")({ nome: sv.nome, nivel: (p0 && p0.nivel) || sv.nivel || 1, vocacao: sv.vocacao });
+        if (!c) { notaInicio(notaLista()); return; }
+        if (p0 && p0.atrib) { g("converterAprendizSave")(p0, c); LS.set("progresso_" + ch, JSON.stringify(p0)); }
+        sv.classe = c; if (!sv.vocacao) sv.vocacao = g("vocacaoDaClasse")(c);
+        subir = true; convertido = true;
+      }
       const rc = await puxarComum();
       if (!rc.ok) { notaInicio(msgErro(rc)); return; }
       await esperarMundo(notaInicio);
       Object.assign(per, sv);
       E.trocando = true;
       ativar({ ...sv, versao: versaoBase });
-      entrarNoJogo(sv);
+      entrarNoJogo(sv, { convertido });
       E.trocando = false;
       S.comum.ultimoTxt = S.comum.ultimoTxt == null ? null : comumTxt();
       S.ultimoTxt = subir ? null : marcaAtual(); vigiaAgora();
       if (subir) S.imediato = "entrou";
     } finally { E.ocupado = false; E.trocando = false; }
   }
-  // Criar (na tela "Novo personagem"): o aprendiz da vocação num espaço livre da conta
-  function criarNoNovo(v) {
+  // Criar (na tela "Novo personagem"): o herói da classe c num espaço livre da conta (R378: com a vocação da classe)
+  function criarNoNovo(c) {
     if (E.ocupado) return null;
     const campo = el("npNome"), avisoN = el("npAviso"), bt = el("npCriar");
     const n = g("limparNome")(campo.value), erro = g("validarNome")(n);
@@ -5997,7 +6007,7 @@ G.VILA2 = V;
         await despedir();
         const s = await novaSessao();
         if (!s.ok) { avisoN.textContent = msgErro(s); return; }
-        const r = await pedir("POST", "/personagens", { corpo: { nome: n, classe: "aprendiz", vocacao: v, sessao: E.sessao } });
+        const r = await pedir("POST", "/personagens", { corpo: { nome: n, classe: c, vocacao: g("vocacaoDaClasse")(c), sessao: E.sessao } });
         if (!r.ok) { avisoN.textContent = msgErro(r); som("ui_negar"); return; }
         const per = r.j.personagem, ch = chaveDe(per.espaco);
         E.lista = E.lista.filter(p => p.espaco !== per.espaco).concat(per).sort((a, b) => a.espaco - b.espaco);
@@ -6045,7 +6055,7 @@ G.VILA2 = V;
     return E.lista.map(x => {
       const aqui = E.slot && E.slot.espaco === x.espaco && p && !E.trocando, c = aqui ? (g("classe") || x.classe) : x.classe;
       return { chave: chaveDe(x.espaco), classe: c, vocacao: x.vocacao, nome: x.nome, nivel: aqui ? p.nivel || 1 : x.nivel || 1, mapa: aqui ? p.mapa : x.mapa,
-               titulo: c === "aprendiz" ? "Aprendiz · " + nomeVocacao(x.vocacao) : nomeClasse(c), img: c === "aprendiz" ? "aprendiz" : c };
+               titulo: c === "aprendiz" ? "Escolha a classe · " + nomeVocacao(x.vocacao) : nomeClasse(c), img: c === "aprendiz" ? "aprendiz" : c };   // (R381: o aprendiz antigo)
     });
   }
   const notaLista = () => `Conta ${E.conta.nome}: ${E.lista.length} de ${E.max} personagens. Tudo é salvo na conta, sozinho.`;
@@ -6091,7 +6101,7 @@ G.VILA2 = V;
     try {
       gravarPacoteLocal(sl.chave, pac); sl.versao = sv.versao; sl.classe = sv.classe;
       travarSave(true);
-      if (sv.classe !== g("classe") || (sv.classe === "aprendiz" && sv.vocacao !== g("VOCACAO"))) g("trocarClasse")(sv.classe, sv.classe === "aprendiz" ? sv.vocacao : null);
+      if (sv.classe !== g("classe") && sv.classe !== "aprendiz") g("trocarClasse")(sv.classe);   // (R381: um save de aprendiz não volta a ser aprendiz aqui)
       else g("carregarProgresso")();
     } finally { travarSave(false); E.trocando = false; E.conflito = false; }
     for (const f of ["montarBarraSkills", "atualizarFicha", "desenharBolsa", "atualizarItensBarra", "desenharFerreiro"]) try { g(f)(); } catch (e) {}
@@ -6143,8 +6153,9 @@ G.VILA2 = V;
   }
 
   // ---------------------------------------------------------------- a PORTA (a página inicial do jogo)
-  const CLASSES_RANK = ["viking", "guerreiro", "arqueiro", "ninja", "feiticeiro", "shura", "xama", "xama_dragao", "aprendiz"];
-  // o selo de cada classe no ranking: o carimbo e a cor da vocação, como na tela "Novo personagem" (北 影 闇 龍; 印 o aprendiz)
+  // (R378: o filtro do aprendiz saiu; o aprendiz antigo que ainda não entrou continua na lista "Todas", com o selo 印)
+  const CLASSES_RANK = ["viking", "guerreiro", "arqueiro", "ninja", "feiticeiro", "shura", "xama", "xama_dragao"];
+  // o selo de cada classe no ranking: o carimbo e a cor da vocação, como na tela "Novo personagem" (北 影 闇 龍; 印 o aprendiz antigo)
   const SELO = { viking: ["北", "#C9963E"], guerreiro: ["北", "#C9963E"], arqueiro: ["影", "#3E7A5C"], ninja: ["影", "#3E7A5C"], feiticeiro: ["闇", "#B8322A"], shura: ["闇", "#B8322A"],
     xama: ["龍", "#2D4A6B"], xama_dragao: ["龍", "#2D4A6B"], aprendiz: ["印", "#8C8A80"] };
   let portaCb = null, portaInertes = [], rankFiltro = "", rankPedido = 0;
@@ -7522,7 +7533,7 @@ async function carregar() {
   try { const r = await fetch("xama.json"); if (r.ok) MX = await r.json(); } catch (e) { MX = null; }   // (a xamã: Logs/Xama/exportacao)
   try { const r = await fetch("xama_dragao.json"); if (r.ok) MXD = await r.json(); } catch (e) { MXD = null; }   // (o Xamã Dragão: Logs/XamaHomem/saida)
   try { const r = await fetch("shura.json"); if (r.ok) MS = await r.json(); } catch (e) { MS = null; }  // (o shura: Logs/Shura/exportacao)
-  try { const r = await fetch("aprendiz.json"); if (r.ok) MP = await r.json(); } catch (e) { MP = null; }  // (o aprendiz, R165: Tools/aprendiz/pintar.py)
+  MP = null;   // (09/11, R378: o aprendiz saiu do jogo; o aprendiz.json e os sprites ficam no build, mas não são mais carregados)
   MV = M; SPRV = SPR;
   PX = M.pxPorMetro;
   const nomes = Object.keys(M.animacoes);
@@ -7781,7 +7792,11 @@ const extraCosta = a => {
          arcoCosta(a, LOBO_A, LOBO_W, LOBO_E) + arcoCosta(a, CABO_A, CABO_W, CABO_E);
 };
 // (R165) o Altar das Eras: as medidas, em m, em volta do meio da ilha, nas coordenadas (a, b) da vista de 45° (ver altarPintar). lances: [b, altura] da escadaria
-const NIVEL_ALTAR = 5, NOME_GUARDIA = "Guardiã do Altar";
+const NIVEL_ALTAR = 5, NOME_GUARDIA = "Guardiã do Altar";   // (o NIVEL_ALTAR fica só para a conta dos saves de antes, R379)
+// (09/11, R380) as falas da Guardiã, sem a escolha da classe: uma por conversa, e o "Conversar mais" passa à seguinte
+const FALAS_GUARDIA = ["Estas estátuas guardam as eras de onde vieram os heróis desta pintura. A sua também está aqui.",
+  "Cada rasgo do biombo deixou passar um herói, e também um pouco das trevas. A pérola Yeouiju precisa de quem junte os pedaços.",
+  "O Imugi partiu a pérola, mas a pintura ainda respira. Enquanto houver traço firme como o seu, ela não se apaga."];
 const VOCACOES = {
   norte: { nome: "Guerreiros do Norte", classes: ["viking", "guerreiro"], frase: "Corpo a corpo: a espada que abre caminho ou o machado que segura o bando." },
   caca: { nome: "Caçadores das Sombras", classes: ["arqueiro", "ninja"], frase: "Rápidos: as flechas de longe ou as adagas de perto." },
@@ -13937,8 +13952,13 @@ const ATRIB_PRINCIPAL = { viking: "for", arqueiro: "dex", feiticeiro: "int", nin
 // (o aprendiz usa os da primeira classe da vocação; ao confirmar, os iniciais passam a ser os da classe escolhida: R165)
 Object.defineProperty(ATRIB_INICIAL, "aprendiz", { get: () => ATRIB_INICIAL[(VOCACOES[VOCACAO] || VOCACOES.norte).classes[0]] });
 Object.defineProperty(ATRIB_PRINCIPAL, "aprendiz", { get: () => ATRIB_PRINCIPAL[(VOCACOES[VOCACAO] || VOCACOES.norte).classes[0]] });
-// o acerto fino de cada classe no ataque (a simulação do NIVEL70.md deixa as cinco a menos de 25% da média)
-const FATOR_CLASSE = { aprendiz: 1, viking: 0.92, arqueiro: 1.06, feiticeiro: 1.12, ninja: 1.1, guerreiro: 0.88, xama: 1.08, xama_dragao: 1.08, shura: 0.96 };
+// (09/11, a fase 2 do balanceamento entre as classes, Logs/Balanceamento/CLASSES_REFERENCIA.md; a decisão do usuário: "Meio caminho", com a meta
+// de 0,72 a 1,32 do tempo médio na pedra) o fator de classe em PvM: não existe no Metin2. Encolhe a distância de lá entre as classes na pedra sem
+// trocar a ordem (o viking e o feiticeiro continuam os mais rápidos). Vale no golpe e nas skills contra criaturas, pedras e chefes (no ferir); o
+// reflexo (Refletir, Aura Negra) fica de fora. Os números saíram da pedra medida no jogo (os consertos com o fator 1, a raiz do fator que iguala),
+// acertados para a meta: a proposta (viking 0,85, arqueiro 1,1, xamã 1,05, shura 0,95) deixava o viking a 0,66 e o shura a 1,44 da média
+const FATOR_CLASSE = { aprendiz: 1, viking: 0.8, guerreiro: 1, arqueiro: 1.15, ninja: 1.05, feiticeiro: 0.9, xama: 1.1, xama_dragao: 1.1, shura: 1.05 };
+function fatorClasse() { return FATOR_CLASSE[classe] || 1; }
 // (08/11, a escala do Metin2, Logs/Balanceamento/ESCALA_METIN2.md, R360) o HP-base de cada classe: o JobInitialPoints do Metin2
 // (constants.cpp): guerreiro 600, ninja 650, sura 650, shaman 700. O viking e o guerreiro são o Guerreiro; o arqueiro e o ninja, o
 // Ninja; o feiticeiro e o shura, o Sura; as xamãs, a Shaman. Por nível, a média dos 36 a 44 de lá (40), sem sorteio, como na mana
@@ -14056,7 +14076,7 @@ function expDe(l) {
   return base * (defChefe(l) ? 15 : l.cfg.chefe ? 5 : 1) * (l.cfg.estatico ? 6 : 1) * (l.horda ? 0.6 : 1) * fatorDifNivel(n - prog.nivel);
 }
 function progressoNovo(c) {
-  return { nivel: 1, exp: 0, pontos: 0, atribPago: 0, atrib: { ...ATRIB_INICIAL[c] }, skills: {}, skillsM2: 1, skillsZero: 1, magiaNegra: 1, armaMagica: 1, guerreiroMental: 1, yang: 0, leituraAte: 0, nome: "", pontosSkill: 0, leitura: {}, arma: { ref: 0 }, equip: { elmo: null, armadura: null, botas: null, escudo: null },
+  return { nivel: 1, exp: 0, pontos: 0, atribPago: 0, atrib: { ...ATRIB_INICIAL[c] }, skills: {}, skillsM2: 1, skillsZero: 1, magiaNegra: 1, armaMagica: 1, guerreiroMental: 1, yang: 0, leituraAte: 0, nome: "", pontosSkill: PONTOS_SKILL_NIVEL, skillNivel1: 1, leitura: {}, arma: { ref: 0 }, equip: { elmo: null, armadura: null, botas: null, escudo: null },
            pocoesM2: 1, escalaM2: 1, ataqueM2: 1, inv: [{ chave: "pocao", qtd: 3, aba: 0, x: 0, y: 0 }, { chave: "pocaoMana", qtd: 3, aba: 0, x: 1, y: 0 }] };
 }
 // skills que mudaram de nome (os níveis, livros, esperas, a barra e o armazém salvos com o nome antigo vêm junto)
@@ -14200,6 +14220,7 @@ function carregarProgresso() {
     for (const [k, v] of Object.entries(prog.skills || {})) if (v > 10) prog.skills[k] = N_MESTRE + (v - 11);   // M antigo → M novo
     prog.pontosSkill = (prog.nivel - 1) * PONTOS_SKILL_NIVEL; prog.leitura = {};
   }
+  migrarSkillNivel1(prog);                                             // (09/11, R379: 1 ponto de skill já no nível 1, uma vez só)
   if (prog.arma === undefined) prog.arma = { ref: 0 };                 // todo personagem começa com a arma +0 na mão
   if (!prog.equip) prog.equip = { elmo: null, armadura: null, botas: null, escudo: null };
   migrarRoupas(prog);
@@ -14297,8 +14318,21 @@ function ganharExp(qtd, de, semTeto) {          // (semTeto: a recompensa de mis
   pagarAtributos();
   salvarProgresso(); atualizarFicha();
 }
-// (R165) quem nasceu aprendiz (prog.vocacao): 0 até o nível 4, 4 ao chegar ao 5 e 1 por nível depois; os outros, a regra de sempre
-function pontosSkillDoNivel(n) { return prog && prog.vocacao ? (n < NIVEL_ALTAR ? 0 : n === NIVEL_ALTAR ? 4 : 1) : PONTOS_SKILL_NIVEL; }
+// (09/11, R379; o usuário: "ele poderá distribuir pontos de skill desde o primeiro level") 1 ponto de skill no nível 1 e +1 a cada
+// nível: no nível n, n pontos ao todo. Saem os 4 no nível 5 e o "nada antes do 5" do aprendiz (R165)
+function pontosSkillDoNivel(n) { return PONTOS_SKILL_NIVEL; }
+// quanto a regra de antes tinha dado no nível n: quem nasceu aprendiz (prog.vocacao), 0 até o 4 e n − 1 do 5 em diante; os outros, n − 1
+const pontosSkillAntigos = (n, vocacao) => vocacao && n < NIVEL_ALTAR ? 0 : Math.max(0, n - 1);
+// o save de antes desta regra (sem prog.skillNivel1) ganha a diferença: os disponíveis passam a ser o total novo (n) menos o que ele já
+// gastou. Ninguém perde ponto: quem tinha mais do que a conta pede fica com o que tinha
+function migrarSkillNivel1(p) {
+  if (!p || p.skillNivel1) return 0;
+  p.skillNivel1 = 1;
+  const n = Math.max(1, p.nivel || 1), mais = Math.max(0, n * PONTOS_SKILL_NIVEL - pontosSkillAntigos(n, p.vocacao));
+  p.pontosSkill = (p.pontosSkill || 0) + mais;
+  if (mais && !salvarTravado) setTimeout(() => { const t = `Regra nova das skills: os pontos começam no nível 1. Você recebeu ${mais} ponto(s) de skill. Abra a ficha (P), aba Skills.`; avisarLongo(t, 8000); chatSistema(t, "nivel"); }, 1500);
+  return mais;
+}
 function subiuNivel(novos = 0) {
   recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
   ondas.push({ x: viking.x, y: viking.y, t: 0, raio: 2, cor: 45, fogo: true, pilares: [], rachas: [] });
@@ -14307,10 +14341,7 @@ function subiuNivel(novos = 0) {
   numeros.push({ wx: viking.x, wy: viking.y, y: -190, vida: 2, txt: "Nível " + prog.nivel + "!", critico: true });
   const ganhoSkill = pontosSkillDoNivel(prog.nivel);
   prog.pontosSkill = (prog.pontosSkill || 0) + ganhoSkill;
-  const chamado = classe === "aprendiz" && prog.nivel >= NIVEL_ALTAR && !prog.chamadoVisto;   // (a cena do nível 5: quem fala é a Guardiã; o aviso fica curto)
-  if (chamado) agendarChamado();
-  if (classe === "aprendiz") avisar(`Nível ${prog.nivel}! ${novos ? `+${novos} de atributo` : ""}${novos && ganhoSkill ? " e " : ""}${ganhoSkill ? `+${ganhoSkill} de skill` : ""}${chamado ? "" : prog.nivel >= NIVEL_ALTAR ? ": vá ao Altar das Eras escolher a sua classe" : ": abra a ficha (P)"}`);
-  else avisar(`Nível ${prog.nivel}! ${novos ? `+${novos} de atributo e ` : ""}+${ganhoSkill} de skill: abra a ficha (P)`);
+  avisar(`Nível ${prog.nivel}! ${novos ? `+${novos} de atributo e ` : ""}+${ganhoSkill} de skill: abra a ficha (P)`);
   chatSistema(`Você subiu para o nível ${prog.nivel}!`, "nivel", true);
   chatSistema(`Pontos de status disponíveis: ${prog.pontos}. Pontos de skill: ${prog.pontosSkill}.`, "nivel");
 }
@@ -14355,7 +14386,7 @@ function multSkill(nome) { return usaM2(nome) ? 1 : 1 + 0.8125 * (kSkill(nome) -
 function duraSkill(nome) { return 1 + 0.40625 * (kSkill(nome) - K_SKILL[1]); }
 // o nosso golpe normal: a média do dano-base do ataque básico de cada classe (GOLPE_BASICO), antes do ataque do herói
 const GOLPE_NOSSO = { viking: 11, guerreiro: 11, ninja: 11 * DANO_NINJA, arqueiro: 12.5, xama: 11, xama_dragao: 11, shura: 11, feiticeiro: 21.5, aprendiz: 11 };
-const JOB_M2 = { viking: "guerreiro", guerreiro: "guerreiro", shura: "guerreiro", ninja: "ninja", arqueiro: "ninja", xama: "xama", xama_dragao: "xama", feiticeiro: "xama" };
+const JOB_M2 = { viking: "guerreiro", guerreiro: "guerreiro", shura: "guerreiro", ninja: "ninja", arqueiro: "ninja", xama: "xama", xama_dragao: "xama", feiticeiro: "guerreiro" };   // (09/11: o feiticeiro é o Sura da Magia Negra, 2 × FOR, como no ComputeBattlePoints)
 // o golpe normal do Metin2 (o atk de ComputeBattlePoints, sem arma)
 function atkM2(a, lv) {
   const j = JOB_M2[classe] || "guerreiro";
@@ -14504,7 +14535,7 @@ function faixaSkillNoAlvo(nome, l, mult = 1) {
     if (tipo === "magia") d = bonusContraM2(l, Math.trunc(d));
     if (tipo === "corpo") d -= def;
     d = Math.max(0, d) * (100 - resistM2(l.cfg, tipo === "magia" ? "magia" : tipo === "flecha" ? "arco" : linha)) / 100 * (1 + (status.danoSkill || 0));
-    return Math.max(1, Math.round(d));
+    return Math.max(1, Math.round(d * fatorClasse()));   // (09/11, a fase 2: com o fator de classe, como no ferir)
   });
 }
 // um número do Metin2 em unidades de dano (o fogo contínuo): desde a fase B, o próprio número
@@ -17041,7 +17072,7 @@ const NPCS = [
   // (R165) a Guardiã do Altar, no alto da escadaria, com o modelo da xamã em outra pintura (0 crédito): montarAltar
   { nome: NOME_GUARDIA, dx: altarMundo(...ALTAR.npc)[0] - VILA.x, dy: altarMundo(...ALTAR.npc)[1] - VILA.y, altar: true,
     cores: { roupa: "#3E7A5C", calca: "#2D4A6B", pele: "#e8c4a0", cabelo: "#1E1B18", lenco: "#EFE4CC" },
-    falas: ["As estátuas guardam as eras de onde os heróis vieram. Quem sobe até aqui escolhe a sua."] },
+    falas: FALAS_GUARDIA },                                                // (R380: sem "quem sobe até aqui escolhe a sua")
   { nome: "Mukseon", titulo: "Mukseon, o Imortal da Tinta", dx: -1.3, dy: 31.4, soCidade: true, cajado: true, bio: true,
     cores: { roupa: "#1e1b18", calca: "#2d4a6b", pele: "#e8c4a0", cabelo: "#e8e4dc", barba: "#e8e4dc" },
     falas: ["(a fala da pesquisa: bioNaConversa põe no lugar desta)", "A tinta não mata os bichos: ela os reescreve. Eu só leio o que ela escreveu.",
@@ -17196,7 +17227,7 @@ function desenharNpc() {
     }
   }
   $("#npcMais").hidden = n.falas.length < 2;
-  if (n.altar) altarNaConversa(o);                  // (R165: a Guardiã do Altar: a escolha da classe)
+  if (n.altar) altarNaConversa(o);                  // (a Guardiã do Altar: desde 09/11, R380, só as falas e a missão do biombo)
   else missaoNaConversa(o);                         // (a missão: a fala dela e o quadro com o objetivo e o botão)
   if (n.bio) bioNaConversa(o);                      // (o Mukseon: a pesquisa da tinta)
   cavaloNaConversa(o);                              // (o Cavalariço: o exame do cavalo nos níveis 10 e 20)
@@ -17783,15 +17814,9 @@ const MISSOES = {
         premio: { exp: 9000, yang: 2500, itens: [["bencao", 1], ["peca:elmo:1", 1]] } },
     ],
   },
-  // (R165) o Altar das Eras: a carta do nível 5, só para o aprendiz. O pontinho do Mapa do Mundo vai à Guardiã; a conversa dela (altarNaConversa) cumpre a quest
-  altar: {
-    nome: "O Altar das Eras", npc: NOME_GUARDIA, aceitar: "Aceitar a missão", nivelMin: NIVEL_ALTAR, get carta() { return classe === "aprendiz"; }, soAprendiz: true, tipo: "Missão do nível 5", onde: "no alto da escadaria, na ilha a oeste da Vila 1",
-    oferta: "Aprendiz, a pintura já conhece o seu traço. Atravesse a ponte de pedra a oeste do vale, suba a escadaria do Altar das Eras e fale comigo: as estátuas guardam as eras de onde os heróis vieram. Lá você escolhe a sua classe e recebe as skills.",
-    fim: "As eras reconheceram você.",
-    etapas: [{ falar: NOME_GUARDIA, alvo: "Suba ao Altar das Eras, na ilha a oeste da Vila 1, e fale com a Guardiã", fala: "A pedra reconhece você.", premio: { itens: [["pocao", 5], ["pocaoMana", 5]] } }],
-  },
-  // "O biombo rasgado" (Logs/Historia/MISSAO_BIOMBO.md, aprovada em 04/11: "pode ir assim"): a Guardiã dá no fim da cena do Altar (a fala A4),
-  // só a quem nasceu aprendiz e já tem classe (soVocacao). As Pedras Ghotin perto da Vila 1 deixam cair a Tinta da Yeouiju (coletarMorte,
+  // (09/11, R380) a missão "O Altar das Eras" (a carta do nível 5 do aprendiz, que mandava escolher a classe) saiu com o aprendiz
+  // "O biombo rasgado" (Logs/Historia/MISSAO_BIOMBO.md, aprovada em 04/11: "pode ir assim"): a Guardiã dá no alto da escadaria, do nível 5,
+  // a quem chegou pelo rasgo (prog.vocacao: quem nasceu pela tela nova; antes do R378 dava no fim da cena do Altar, a fala A4). As Pedras Ghotin perto da Vila 1 deixam cair a Tinta da Yeouiju (coletarMorte,
   // garantida até 3); a entrega leva o herói com ela ao rasgo onde ele chegou (iniciarCenaRasgo), que ela costura (prog.rasgoFechado)
   biombo: {
     nome: "O biombo rasgado", npc: NOME_GUARDIA, aceitar: "Aceitar a missão", nivelMin: NIVEL_ALTAR, soVocacao: true, tipo: "Missão da Guardiã", onde: "no alto da escadaria do Altar das Eras, na ilha a oeste da Vila 1",
@@ -18420,7 +18445,7 @@ const MISSOES = {
 const CAVALO_LIBERADO = true || ADMIN || new URLSearchParams(location.search).has("cavalo");
 if (!CAVALO_LIBERADO) delete MISSOES.cavalo;
 function estadoMissao(id) { const m = prog.missoes || (prog.missoes = {}); return m[id] || (m[id] = { etapa: -1, n: 0 }); }
-const nivelMissaoOk = M => (!M.nivelMin || (prog && prog.nivel >= M.nivelMin)) && !(M.soAprendiz && classe !== "aprendiz") && !(M.soVocacao && (classe === "aprendiz" || !prog || !prog.vocacao)) && !(classe === "aprendiz" && M.nivelMin > NIVEL_ALTAR);   // (R165: as cartas acima do 5 esperam a escolha)
+const nivelMissaoOk = M => (!M.nivelMin || (prog && prog.nivel >= M.nivelMin)) && !(M.soVocacao && (!prog || !prog.vocacao));   // (R380: sem as travas do aprendiz, que seguravam as cartas acima do 5)
 const matarConta = (e, nome) => [].concat(e.matar).includes(nome);
 function etapaAtual(id) { const s = estadoMissao(id), M = MISSOES[id]; return s.etapa >= 0 && s.etapa < M.etapas.length ? M.etapas[s.etapa] : null; }
 // (as missões só existem na cidade: o Sumo-Sacerdote mora no templo dela)
@@ -18516,7 +18541,7 @@ function cacadaDo(n) {
 }
 function cacadaEstado() { return prog.cacada || (prog.cacada = { n: 2, a: 0, b: 0 }); }
 // a caçada de agora (null: terminou a cadeia, ou o nível ainda não chegou)
-function cacadaAtiva() { if (!prog || !missoesAtivas()) return null; const s = cacadaEstado(); return s.n <= CACADA_FIM && prog.nivel >= s.n && !(classe === "aprendiz" && s.n > NIVEL_ALTAR) ? cacadaDo(s.n) : null; }
+function cacadaAtiva() { if (!prog || !missoesAtivas()) return null; const s = cacadaEstado(); return s.n <= CACADA_FIM && prog.nivel >= s.n ? cacadaDo(s.n) : null; }   // (R380: a caçada não espera mais a escolha da classe)
 const cacadaAlvo = q => { const s = cacadaEstado(); return `${q.a} ${s.a}/${q.qa}, ${q.b} ${s.b}/${q.qb}`; };
 function textoCacada() { const q = cacadaAtiva(); return q ? `◆ Caçada do nível ${q.n}: ${cacadaAlvo(q)}` : ""; }
 function cacadaMorte(l) {
@@ -19030,7 +19055,6 @@ function passoCartas() {
   const novas = [];
   for (const id in MISSOES) {
     const M = MISSOES[id]; if (!M.carta || !nivelMissaoOk(M)) continue;
-    if (id === "altar" && cenaChamadoPendente()) continue;              // (com o chamado do nível 5 agendado, quem anuncia é a cena)
     const s = estadoMissao(id); if (s.etapa >= 0 || s.carta || M.nivelMin < prog.nivel - CARTAS_JANELA) continue;
     s.carta = 1; novas.push(M.nome);
   }
@@ -22785,7 +22809,7 @@ function atualizarFicha() {
     $("#fSkInfo").innerHTML = `<span class="sk-nome"><b>${sk.nome}</b><i class="sk-grau grau-${grau(n)}">${rotuloNivelSkill(n)}</i></span>${acao}` +
       `<span class="sk-linha">${sk.mana ? `${sk.mana} mana` : "sem mana"}${i >= 0 ? ` · tecla <kbd>${ROTULO_TECLA(TECLAS_BARRA[i])}</kbd>` : " · fora da barra"}</span>` +
       `<small>${usaM2(sk.nome) ? `poder ${Math.round(kSkill(sk.nome) * 100)}% (k ${numBR(kSkill(sk.nome), 2)})` : `efeito +${Math.round((multSkill(sk.nome) - 1) * 100)}%`}${info ? " · " + info : ""}${espera && n >= N_MESTRE ? ` · ler de novo em ${textoEspera(espera)}` : ""}</small>`;
-  } else $("#fSkInfo").innerHTML = classe === "aprendiz" ? `<span class="sk-nome"><b>As skills chegam com a classe</b></span><span class="sk-aviso">No nível ${NIVEL_ALTAR}, suba ao Altar das Eras, na ilha a oeste da Vila 1. Os seus pontos de skill ficam guardados até lá.</span>` : "";
+  } else $("#fSkInfo").innerHTML = "";   // (R380: saiu o aviso do aprendiz, "as skills chegam com a classe")
   const travado = l => l.map(([nome, dica]) => `<div class="fx-trava" title="${nome}: ${dica} (em breve)">${CADEADO}<i>${nome}</i></div>`).join("");
   // as Skills comuns (Standard Skills do Metin2): só as que existem no jogo (montar, o dash e o combo)
   const comuns = [["montar", "Montar", CAVALO_LIBERADO ? "Ctrl+G: monta e desmonta do cavalo; Ctrl+B: chama o cavalo ou manda embora" : "Montar: o Cavalariço Doyun, no estábulo, dá o cavalo (nível 15)"],
@@ -23930,7 +23954,9 @@ function acertaCriaturas(giro) {
     if (m2 && n >= S.alvos) break;
     algum = true; acertos++; n++;
     const base = m2 ? danoSkill(fonte) / (fonte === "Vórtice" ? VORTICE_VOLTAS : 1) : (11 * furiaDobra() + espiritualSoma()) * forte * fatorNinja();   // (09/11: o sorteio é o da arma do Metin2, no ferir)
-    comFonte(fonte, () => ferir(l, base, dx, dy, fatorNinja() < 1 ? EMPURRA_NINJA : 0.45));
+    // (09/11, a fase 2 do balanceamento: medido no boneco, o combo da xamã empurrava o bicho 0,45 m por golpe e o golpe3 e o golpe4 caíam fora do
+    // alcance (68% dos golpes acertavam; preso no lugar, 100%): as duas xamãs empurram como o ninja. O shura acertava 97% e não muda)
+    comFonte(fonte, () => ferir(l, base, dx, dy, fatorNinja() < 1 || (ehXama() && !fonte) ? EMPURRA_NINJA : 0.45));
   }
   return algum;
 }
@@ -23989,7 +24015,7 @@ function ferir(l, dano, dx, dy, empurra, semReacao = false) {
     }
     // (o Esconder: no sistema do Metin2 o bônus é só da Punhalada Surpresa, e qualquer golpe tira o ninja do esconderijo)
     if (classe === "ninja" && NINJA.esconder.buff > 0) NINJA.esconder.buff = 0;
-    dano = Math.max(1, Math.round(dano));
+    dano = Math.max(1, Math.round(dano * fatorClasse()));   // (09/11, a fase 2: o fator de classe em PvM, FATOR_CLASSE)
     if (!fonteDano && (status.absorveVida > 0 || status.absorveMana > 0)) absorverM2(l, dano);   // (03/11: a Absorção de PV/PM, só no golpe normal)
   }
   const d = Math.max(1e-3, Math.hypot(dx, dy));
@@ -24030,6 +24056,10 @@ const INTERVALO_TIRO = { arqueiro: 0.55, feiticeiro: 0.7 };   // depois de um di
 // o combo da xamã (golpe1 a golpe4): o valor BASE, fiel ao Metin2; o usuário disse que essa velocidade vai subir depois (R145)
 // um ritmo por golpe, para os acertos caírem nos 0,53 / 0,99 / 1,44 / 1,92 s do Metin2 no tempo que o jogador vê, com a pausa em cada acerto (R145)
 const RITMO_COMBO_XAMA = { golpe1: 1, golpe2: 1, golpe3: 1, golpe4: 1 };   // (os dois xamãs: os clipes já vêm no tempo do vídeo; a emenda de cada golpe vem do json)
+// (09/11, a fase 2 do balanceamento entre as classes, Logs/Balanceamento/CLASSES_REFERENCIA.md; o usuário: "Sim, com gifs") o ritmo do golpe normal,
+// como no Metin2: a adaga dá 2 golpes no tempo de 1 de espada (GET_ATTACK_SPEED ÷ 2; antes 1,3), o guerreiro sem a penalidade da arma de duas
+// mãos (comentada no char_skill.cpp; antes 0,92) e o combo do shura no ritmo da espada (antes 1: 4 golpes em 2,8 s). Os clipes não mudam
+const RITMO_GOLPE_CLASSE = { ninja: 1.6, guerreiro: 1, shura: 1.25 };
 const RITMO_CAST = { atirar: RITMO_TIRO, chuva: 2.4, certeiro: 1.8, bola: 2, raio: 1.6, terra: 1.5, lamina_espiritual: 1.3, furia: 1.25, furia_armado: 1.25 };
 const CORTA_ANDANDO = new Set(["atirar", "chuva", "certeiro", "bola", "raio", "terra", "lamina_espiritual", "furia", "furia_armado",
   "golpe_trevas", "golpe_chama", "espirito_fogo", "protecao_trevas", "golpe_espiritual", "orbe_trevas",   // (03/11: as da Magia Negra, no tempo do vídeo: depois que a magia sai, andar corta o resto, como nas do feiticeiro de antes)
@@ -27817,10 +27847,6 @@ function passoPortais(dt) {
     if (d > 0.9 || p.armado === false || (v.passou || 0) > 0) continue;
     p.armado = false;                                                  // (só vale de novo depois de sair de 2 m)
     const dest = MAPAS[p.destino];
-    if (classe === "aprendiz") {                                       // (R165: antes de escolher a classe, ninguém sai da Vila 1)
-      PORTAL_AVISO.n++; PORTAL_AVISO.txt = `O portal para ${dest.nome} só abre depois da escolha: suba ao Altar das Eras, na ilha a oeste da Vila 1, ${prog.nivel < NIVEL_ALTAR ? `a partir do nível ${NIVEL_ALTAR}` : "e fale com a Guardiã"}.`;
-      avisar(PORTAL_AVISO.txt); som("ui_negar"); return;
-    }
     if (prog && prog.nivel < p.nivelMin) {
       PORTAL_AVISO.n++; PORTAL_AVISO.txt = `O portal para ${dest.nome} ainda está fechado: volte no nível ${p.nivelMin}.`;
       avisar(PORTAL_AVISO.txt); som("ui_negar"); return;
@@ -29367,7 +29393,7 @@ function passo(dt) {
   // o andar, o arrancar e o parar tocam no ritmo da passada (parando, o mesmo de quando andava)
   const rAndar = Math.min((andando ? vel : VELOCIDADE * furiaVelMov() * velPes()) / M.andar, CADENCIA_MAX * (pes.buff > 0 || XAMA.redemoinho.buff > 0 ? 1.3 : 1));
   const esperaParar = !andando && !v.acao && classe === "viking" && v.anim === "correndo_armado";   // (segue no ritmo da corrida)
-  const ritmo = v.acao && v.acao.startsWith("correr_para_guarda") ? 2 : /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando && !esperaParar ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] * conjuraRedemoinho(v.anim) : ANIMS_XAMA.has(v.anim) ? conjuraRedemoinho(v.anim) : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? furiaVelAtq() : golpeia && classe === "ninja" ? 1.3 : golpeia && classe === "guerreiro" ? 0.92 : ehXama() && /^golpe[1-4]$/.test(v.anim) ? RITMO_COMBO_XAMA[v.anim] : 1) * (vortice.ativo ? 1.35 : 1)
+  const ritmo = v.acao && v.acao.startsWith("correr_para_guarda") ? 2 : /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando && !esperaParar ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] * conjuraRedemoinho(v.anim) : ANIMS_XAMA.has(v.anim) ? conjuraRedemoinho(v.anim) : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? furiaVelAtq() : golpeia && (classe === "ninja" || classe === "guerreiro") ? RITMO_GOLPE_CLASSE[classe] : golpeia && classe === "shura" && /^golpe\d/.test(v.anim) ? RITMO_GOLPE_CLASSE.shura : ehXama() && /^golpe[1-4]$/.test(v.anim) ? RITMO_COMBO_XAMA[v.anim] : 1) * (vortice.ativo ? 1.35 : 1)
               : v.anim.startsWith("correndo") ? Math.min(vel / M.correr, CORRIDA_MAX * (pes.buff > 0 || XAMA.redemoinho.buff > 0 ? 1.3 : 1) * (status.velEquip || 1)) : 1;
   // (07/11, R321: a Rapidez de ataque dos adicionais, o ATT_SPEED do Metin2: o golpe normal e o tiro básico mais rápidos)
   // (08/11, R367: com a Velocidade de Ataque fixa da arma, o ritmo-base é dividido por 1,22: a Espada +0, 22%, fica igual a antes)
@@ -32539,7 +32565,7 @@ function chipsDepuracao(v, q, info) {
 // (05/11, o "A conta recusou este save": com a conta ligada, a troca de classe de teste do admin trocava a classe do personagem da conta, e o
 // servidor recusa, porque a classe só muda no Altar) a tecla T e os botões de classe do admin não trocam com a conta ligada
 function trocaDeTeste(c) {
-  if (window.NUVEM && NUVEM.ativo && NUVEM.ativo()) { avisar("Com conta, a classe só muda no Altar (saia da conta para testar classes)"); return false; }
+  if (window.NUVEM && NUVEM.ativo && NUVEM.ativo()) { avisar("Com conta, a classe do personagem não muda (saia da conta para testar classes)"); return false; }
   trocarClasse(c); return true;
 }
 function montarPainel() {
@@ -32955,6 +32981,7 @@ function abrirSelecao(op = {}) {
 }
 function fecharSelecao() {
   if (!SEL.aberta) return;
+  if (typeof ESCOLHA_ANTIGA === "object" && ESCOLHA_ANTIGA.ok) soltarEscolhaAntiga(null);   // (R381: a escolha da classe do save antigo, sem escolher)
   SEL.aberta = false; salvarTravado = false;
   $("#selClasse").hidden = true; $("#inicio").hidden = true; SEL.inicio = false;
   NOVO.parar(); $("#inicio").classList.remove("novo");                    // (os bustos das vocações param de desenhar, R183)
@@ -33038,8 +33065,12 @@ function entrarComClasse(c, op = {}) {
   const salvo = op.novo ? null : window.NUVEM && NUVEM.ativo() ? NUVEM.progAtivo() : progressoSalvoDe(c);                 // (op.novo: começar do zero, mesmo já tendo personagem)
   salvarTravado = true;                                                // (o personagem que estava na tela não é regravado)
   if (c !== classe) trocarClasse(c);
+  else if (op.convertido) carregarProgresso();                         // (R381: o save antigo convertido nesta mesma classe)
   if (!salvo) {
-    prog = progressoIniciante(c); recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
+    // (09/11, R378) o herói nasce com a classe: a vocação fica guardada como a da classe (prog.vocacao: a chegada pelo rasgo, a missão do
+    // biombo) e o nome vem da tela nova (op.nome)
+    prog = progressoIniciante(c); prog.vocacao = vocacaoDaClasse(c); if (op.nome) prog.nome = op.nome;
+    recalcularStatus(); viking.vida = status.vidaMax; viking.mana = status.manaMax;
     nascerNaVila();
     jornada = jornadaNova(true);                                       // (as Estatísticas da jornada começam do zero)
   }
@@ -33050,7 +33081,8 @@ function entrarComClasse(c, op = {}) {
     som("ui_aceitar", null, 0.8);
     abrirBolsa(true);
     avisarLongo(`${NOME_CLASSE[c]} criado! Abra o Baú do Iniciante na bolsa: clique direito ou dois cliques.`, 6500);
-  } else avisar(`Bem-vindo de volta, ${prog.nome || NOME_CLASSE[c]}!`);
+  } else if (op.convertido) dicaClasseNova(c);                          // (R381: o save antigo que acabou de ganhar a classe)
+  else avisar(`Bem-vindo de volta, ${prog.nome || NOME_CLASSE[c]}!`);
   prepararChegada("entrar");                                           // (R235: a tela de preparação do lugar em que ele está)
 }
 // o personagem novo: nível 1, os atributos da classe e, na bolsa, só o Baú do Iniciante (sem arma na mão)
@@ -33066,17 +33098,13 @@ const GUIA_PASSOS = [
   ["Aceite uma quest", "Clique no <b>pergaminho</b> à esquerda da tela e em <b>Aceitar</b>. <kbd>Q</kbd> mostra as suas quests.", () => Object.keys(MISSOES).some(id => etapaAtual(id))],
   ["Veja o mapa", "Aperte <kbd>M</kbd>. Os pontinhos que piscam são as suas quests (ouro: quest nova; verde: entregar; azul: o objetivo). <b>Clique num lugar</b> e uma seta no chão leva até ele.", () => !!(window.MM && MM.aberto) || !!prog.marcaMapa],
   ["Derrote uma criatura", "Saia da cidade, <b>clique numa criatura</b> ou aperte <kbd>Espaço</kbd>, e ela é atacada até cair.", () => prog.exp > 0 || prog.nivel > 1],
-  ["Abra a sua ficha", "Aperte <kbd>P</kbd>. Cada bolinha de EXP cheia dá um ponto de atributo, e cada nível, um de skill. <kbd>R</kbd> e <kbd>X</kbd> usam as poções.", () => !$("#ficha").hidden],
+  ["Abra a sua ficha", "Aperte <kbd>P</kbd>. Cada bolinha de EXP cheia dá um ponto de atributo, e cada nível, um de skill: o 1º você já tem, gaste na aba <b>Skills</b>. <kbd>R</kbd> e <kbd>X</kbd> usam as poções.", () => !$("#ficha").hidden],
   ["Dê um dash", "Aperte <kbd>Shift</kbd> para um avanço rápido, bom para fugir de um golpe.", () => !!DASH.ativo],
 ];
-// (R165) a lista de quem nasceu aprendiz: o passo 2 pede só a arma, a ficha explica o nível 5 e um passo novo no fim manda ao altar
-const GUIA_PASSOS_APRENDIZ = GUIA_PASSOS.map(p => p[0] === "Vista o que ganhou" ? ["Vista a arma de treino", "Dê um <b>clique direito</b> na espada de madeira, na bolsa.", () => !!prog.arma]
-  : p[0] === "Abra a sua ficha" ? [p[0], "Aperte <kbd>P</kbd>. Cada bolinha de EXP cheia dá um ponto de atributo. As skills chegam no <b>nível 5</b>, com a classe. <kbd>R</kbd> e <kbd>X</kbd> usam as poções.", p[2]] : p).concat([
-  ["Vá ao Altar das Eras", "No <b>nível 5</b>, siga o pontinho que pisca no mapa (<kbd>M</kbd>) até a ilha a oeste, suba a escadaria e fale com a Guardiã para escolher a sua classe.", () => classe !== "aprendiz"]]);
-const guiaPassos = () => prog && prog.vocacao ? GUIA_PASSOS_APRENDIZ : GUIA_PASSOS;
+const guiaPassos = () => GUIA_PASSOS;                                 // (R380: a lista do aprendiz, com o passo do Altar, saiu)
 let guiaFeito = null;
 function guiaDesenhar() {
-  const el = $("#guia"), g = prog && prog.guia, ver = !!g && !g.fim && !CHEGADA.aberta;   // (a chegada do aprendiz primeiro)
+  const el = $("#guia"), g = prog && prog.guia, ver = !!g && !g.fim && !CHEGADA.aberta;   // (a chegada pelo rasgo primeiro)
   if (el.hidden === ver) el.hidden = !ver;
   if (!ver) { guiaFeito = null; return; }
   if (guiaFeito === g.passo) return; guiaFeito = g.passo;
@@ -33084,18 +33112,18 @@ function guiaDesenhar() {
   $("#guiaConta").textContent = `${Math.min(g.passo + 1, PASSOS.length)} de ${PASSOS.length}`;
   $("#guiaLista").innerHTML = PASSOS.map(([t, txt], k) => k < g.passo ? `<li class="feito">${t}</li>` : k === g.passo ? `<li class="agora"><b>${t}</b><p>${txt}</p></li>` : "").join("");
 }
-// (04/11, o usuário: "quando o jogo começar, logo que você aparecer no mapa como aprendiz abra uma caixa de diálogo explicando que
-// você chegou pelo biombo como aprendiz e existe um chamado da guardiã quando você ficar experiente o bastante para se tornar um
-// defensor da vila"). Uma vez por personagem (prog.chegadaVista, no save local e no da nuvem): na 1ª vez que o aprendiz aparece na
-// Vila 1, depois da tela de carregamento e com o herói parado. A caixa é a das conversas (#npcJan), com o narrador (sem busto),
-// Continuar e, no fim, Entendi; enquanto ela está aberta o herói não leva golpe (golpeNoPersonagem; pausar brigava com a pausa das
-// janelas da conta, R219) e os Primeiros passos e a seta da 1ª quest esperam. Quem já tem classe não vê. No ?test=1 não abre (CHEGADA.forcar liga, para a checagem)
+// (04/11, o usuário: "quando o jogo começar, logo que você aparecer no mapa [...] abra uma caixa de diálogo explicando que você chegou
+// pelo biombo"). Uma vez por personagem (prog.chegadaVista, no save local e no da nuvem): na 1ª vez que o herói aparece na Vila 1,
+// depois da tela de carregamento e com o herói parado. A caixa é a das conversas (#npcJan), com o narrador (sem busto), Continuar e,
+// no fim, Entendi; enquanto ela está aberta o herói não leva golpe (golpeNoPersonagem; pausar brigava com a pausa das janelas da conta,
+// R219) e os Primeiros passos e a seta da 1ª quest esperam. (09/11, R378: sem o aprendiz) vale para todo herói que nasceu pela tela
+// nova (prog.vocacao), já com a classe; os personagens de antes dela não veem. No ?test=1 não abre (CHEGADA.forcar liga, para a checagem)
 const CHEGADA = { aberta: false, forcar: false, pausadoAntes: false, t: 0,
-  falas: ["Você atravessou o rasgo do biombo e caiu dentro desta pintura. Por enquanto é só um esboço: um aprendiz de papel e nanquim, com uma espada de madeira.",
+  falas: ["Você atravessou o rasgo do biombo e caiu dentro desta pintura. O traço ainda é novo, mas a arma da sua era veio junto.",
           "O Imugi partiu a pérola Yeouiju. Os pedaços viraram as Pedras Ghotin, e as trevas se espalham em volta delas. A vila precisa de quem a defenda.",
-          "A Guardiã do Altar das Eras já sabe que você chegou. Quando você estiver experiente o bastante, ela vai chamar você para se tornar um defensor da vila. Até lá, treine e ajude os moradores."] };
+          "A Guardiã do Altar das Eras, na ilha a oeste da vila, já sabe que você chegou. Ajude os moradores e fique mais forte: quando estiver pronto, ela vai precisar de você."] };
 function chegadaPronta() {
-  if (!prog || classe !== "aprendiz" || prog.chegadaVista || CHEGADA.aberta) return false;
+  if (!prog || !prog.vocacao || classe === "aprendiz" || prog.chegadaVista || CHEGADA.aberta) return false;
   if (MODO_TESTE && !CHEGADA.forcar) return false;
   if ((window.PREPARO && (PREPARO.ativo || PREPARO.cedo)) || SEL.aberta || (typeof INTRO === "object" && INTRO.aberta) || viagem || idMapa(viking.x, viking.y) !== "vila1") return false;
   if (viking.alvo || viking.rota) { CHEGADA.t = 0; return false; }
@@ -33154,7 +33182,7 @@ function nascerNaVila() {
 // na abertura do jogo: entra com a última classe jogada (sem gravar por cima o personagem que veio de carregarProgresso)
 function classeDoInicio() {
   const k = (() => { try { return localStorage.getItem("classe") || ""; } catch (e) { return ""; } })();
-  if (k.startsWith("aprendiz_") && !INICIO_NOVO && !SELECAO_NO_INICIO && SELECAO_REGRA && progressoAprendizDe(k.slice(9))) { const a = salvarTravado; salvarTravado = true; try { trocarClasse("aprendiz", k.slice(9)); } finally { salvarTravado = a; } return; }   // (R165)
+  if (k.startsWith("aprendiz_")) return;                                // (R381: o save antigo de aprendiz escolhe a classe na lista, ao entrar)
   const c = classeSalva();
   if (!c || c === classe || INICIO_NOVO || SELECAO_NO_INICIO || !SELECAO_REGRA || !progressoSalvoDe(c)) return;
   const antes = salvarTravado; salvarTravado = true;
@@ -33195,20 +33223,65 @@ function montarSelecao() {
 }
 montarSelecao();
 
-// ---------------------------------------------------------------- o aprendiz e a tela inicial (R165; Logs/Vocacoes/DESENHO_ALTAR_APRENDIZ.md)
-// Quem nasce pela tela nova é um aprendiz: corpo a corpo, sem skills, com a arma de treino e a vocação guardada (prog.vocacao). No nível 5 ele
-// sobe ao Altar das Eras (na ilha a oeste da Vila 1) e escolhe uma das classes da vocação. O save fica em progresso_aprendiz_<vocacao> e, ao
-// confirmar, vira progresso_<classe>. Quem já tem classe segue como está (sem prog.vocacao, a regra de pontos de sempre)
+// ---------------------------------------------------------------- a tela inicial (R165) e os saves antigos de aprendiz (R381)
+// (09/11, R378; o usuário: "A pessoa já vai nascer com a profissão e a vocação que escolheu") o herói nasce com a classe, escolhida na tela
+// "Novo personagem" (NOVO), e a vocação fica guardada como a da classe (prog.vocacao). O aprendiz saiu do jogo. O save antigo de aprendiz
+// (progresso_aprendiz_<vocação> neste navegador, ou o espaço da conta com a classe "aprendiz") aparece na lista e, ao Entrar, escolhe uma das
+// 2 classes da vocação guardada (sem vocação, as 8): converterAprendizSave mantém o nível, a EXP, os itens e o Gold, a espada de treino vira
+// a arma da classe do nível dele e os pontos de skill ficam no total novo (n no nível n), já que o aprendiz não tinha onde gastar
 function vocacaoDaClasse(c) { return Object.keys(VOCACOES).find(k => VOCACOES[k].classes.includes(c)) || null; }
 function classeOcupada(c) { if (window.NUVEM && NUVEM.logado()) return false; return !!progressoSalvoDe(c); }   // (com conta, a classe pode repetir)
 function vocacaoLivre(v) { return VOCACOES[v].classes.some(c => !classeOcupada(c)); }
+const ehVocacao = v => typeof v === "string" && Object.prototype.hasOwnProperty.call(VOCACOES, v);
 function progressoAprendizDe(v) { if (window.NUVEM && NUVEM.logado()) return null; try { const p = JSON.parse(localStorage.getItem("progresso_aprendiz_" + v)); return p && p.atrib ? p : null; } catch (e) { return null; } }
+// a vocação de um save de aprendiz: a do save ou a da chave (progresso_aprendiz_<v>); fora das 4, nenhuma
+const vocacaoDoAprendiz = (v, p) => ehVocacao(p && p.vocacao) ? p.vocacao : ehVocacao(v) ? v : null;
+// os saves de aprendiz deste navegador (sem conta): toda chave progresso_aprendiz_<algo>, também a de vocação perdida
+function aprendizesSalvos() {
+  if (window.NUVEM && NUVEM.logado()) return [];
+  const l = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i) || "", m = /^progresso_(aprendiz_[A-Za-z0-9_]*)$/.exec(k);
+      if (!m || /_antes_da_conta$/.test(k)) continue;
+      let p = null; try { p = JSON.parse(localStorage.getItem(k)); } catch (e) {}
+      if (p && p.atrib) l.push({ chave: m[1], p, vocacao: vocacaoDoAprendiz(m[1].slice(9), p) });
+    }
+  } catch (e) {}
+  const ordem = Object.keys(VOCACOES);
+  return l.sort((a, b) => (a.vocacao ? ordem.indexOf(a.vocacao) : 9) - (b.vocacao ? ordem.indexOf(b.vocacao) : 9) || (a.chave < b.chave ? -1 : 1));
+}
+// as classes que o save antigo pode escolher: as 2 da vocação (sem vocação, as 8); neste navegador, as que já têm personagem ficam
+// apagadas (e, se as 2 da vocação já têm, aparecem as 8, para nada se perder)
+function classesParaAprendiz(v) {
+  const base = ehVocacao(v) ? VOCACOES[v].classes : CLASSES_SELECAO;
+  if (base.some(c => !classeOcupada(c))) return base;
+  return CLASSES_SELECAO;
+}
+// o save de aprendiz (o objeto do localStorage) vira o da classe c. Uma vez só (devolve o mesmo objeto)
+function converterAprendizSave(p, c) {
+  const v0 = ehVocacao(p.vocacao) ? p.vocacao : null, n = Math.max(1, p.nivel || 1), tier = tierArmaDoNivel(n);
+  const ini0 = ATRIB_INICIAL[(VOCACOES[v0] || VOCACOES.norte).classes[0]], ini1 = ATRIB_INICIAL[c];   // (o aprendiz tinha os iniciais da 1ª classe da vocação)
+  p.atrib = p.atrib || {};
+  for (const k of ORDEM_ATRIB) p.atrib[k] = ini1[k] + ((p.atrib[k] === undefined ? ini0[k] : p.atrib[k]) - ini0[k]);   // (os pontos que ele distribuiu continuam valendo)
+  if (p.arma) p.arma = { ...p.arma, tier };                            // (a espada de treino na mão: a arma da classe do nível dele, com o refino e os adicionais)
+  for (const it of p.inv || []) if (/^arma:aprendiz(:|$)/.test(it.chave || "")) it.chave = chaveArma(c, tier);   // (e as que estão na bolsa)
+  p.equip = p.equip || {};
+  if (!p.equip.armadura) p.equip.armadura = { peca: ROUPA_DA_CLASSE[c] || "armadura_guerreiro", tier: 0, ref: 0, bon: [] };   // (a roupa e o elmo do kit da classe)
+  if (!p.equip.elmo) p.equip.elmo = { peca: "elmo", tier: 0, ref: 0, bon: [] };
+  p.skills = {}; p.skillsZero = 1;                                     // (as skills começam no 0; os pontos as ensinam)
+  p.pontosSkill = Math.max(p.pontosSkill || 0, n * PONTOS_SKILL_NIVEL); p.skillNivel1 = 1;   // (R379: o total novo; o aprendiz não gastava nenhum)
+  p.vocacao = v0 || vocacaoDaClasse(c);
+  p.chamadoVisto = 1; p.chegadaVista = 1; p.dicaSkills = 1;
+  if (p.missoes) delete p.missoes.altar;                               // (a missão do Altar saiu do jogo, R380)
+  return p;
+}
 // os personagens deste navegador (a lista da tela inicial; com o login, ela vem da conta)
 function listaPersonagens() {
   if (window.NUVEM && NUVEM.logado()) return NUVEM.lista();                     // (com conta: os 4 espaços da conta, nuvem.js)
   const l = [];
   for (const c of CLASSES_SELECAO) { const p = progressoSalvoDe(c); if (p) l.push({ chave: c, classe: c, nome: p.nome || NOME_CLASSE[c], titulo: NOME_CLASSE[c], nivel: p.nivel || 1, mapa: p.mapa, img: c }); }
-  for (const v of Object.keys(VOCACOES)) { const p = progressoAprendizDe(v); if (p) l.push({ chave: "aprendiz_" + v, classe: "aprendiz", vocacao: v, nome: p.nome || "Aprendiz", titulo: "Aprendiz · " + VOCACOES[v].nome, nivel: p.nivel || 1, mapa: p.mapa, img: "aprendiz" }); }
+  for (const a of aprendizesSalvos()) l.push({ chave: a.chave, classe: "aprendiz", vocacao: a.vocacao, nome: a.p.nome || "Herói", titulo: "Escolha a classe" + (a.vocacao ? " · " + VOCACOES[a.vocacao].nome : ""), nivel: a.p.nivel || 1, mapa: a.p.mapa, img: "aprendiz" });
   return l;
 }
 function apagarPersonagem(chave) {
@@ -33225,12 +33298,36 @@ function abrirInicio(op = {}) {
   for (const el of document.body.children) if (el.id !== "inicio" && el.tagName !== "SCRIPT" && !el.inert) { el.inert = true; SEL.inertes.push(el); }
   desenharInicio(listaPersonagens().length ? "lista" : "novo");
 }
+// (R381) a escolha da classe do save antigo: os cartões das classes no lugar da lista. Devolve a classe escolhida (null: voltou)
+var ESCOLHA_ANTIGA = { ok: null, info: null };                          // (var: o fecharSelecao, mais acima, olha antes de este bloco rodar)
+function escolherClasseAntiga(info) {
+  return new Promise(ok => {
+    const f = ESCOLHA_ANTIGA.ok; ESCOLHA_ANTIGA.ok = ok; ESCOLHA_ANTIGA.info = info || {};
+    if (f) f(null);
+    desenharInicio("classe");
+  });
+}
+function soltarEscolhaAntiga(c) { const f = ESCOLHA_ANTIGA.ok; ESCOLHA_ANTIGA.ok = null; if (f) f(c); }
+function desenharEscolhaAntiga() {
+  const I = ESCOLHA_ANTIGA.info, corpo = $("#inCorpo"), n = Math.max(1, I.nivel || 1), cs = classesParaAprendiz(I.vocacao);
+  $("#inTitulo").textContent = "Escolha a classe";
+  $("#inNovo").hidden = true; $("#inLista").hidden = false; $("#inVoltar").hidden = true;
+  $("#inNota").textContent = `${I.nome || "O seu herói"} (nível ${n}) ainda não tem classe. O nível, a EXP, os itens e o Gold ficam; a espada de treino vira a arma da classe, e os ${n * PONTOS_SKILL_NIVEL} pontos de skill ficam para gastar.`;
+  corpo.className = "ic-corpo ic-lista ic-escolha";
+  corpo.innerHTML = cs.map(c => { const oc = classeOcupada(c), inf = INFO_CLASSE[c];
+    return `<article class="ic-perso" data-escolha="${c}"><figure><img src="selecao/${c}.webp" alt="" decoding="async"></figure>` +
+      `<div class="ic-txt"><h3>${escH(NOME_CLASSE[c])}</h3><p>${escH(inf.papel)}${oc ? " · já existe neste navegador" : ""}</p><p class="ic-nv">Dificuldade: ${escH(NOME_DIF[inf.dif])}</p></div>` +
+      `<div class="ic-botoes"><button type="button" class="sc-escolher" data-classe="${c}"${oc ? " disabled" : ""}>Escolher</button></div></article>`; }).join("");
+  setTimeout(() => { const b = corpo.querySelector("button:not([disabled])"); if (SEL.aberta && b) b.focus({ preventScroll: true }); }, 40);
+}
 function desenharInicio(aba) {
+  if (aba !== "classe" && ESCOLHA_ANTIGA.ok) soltarEscolhaAntiga(null);   // (saiu da escolha sem escolher)
   SEL.aba = aba;
   // (R183) "Novo personagem" são os bustos das vocações (NOVO), por cima de tudo; a lista continua nos cartões
   $("#inicio").classList.toggle("novo", aba === "novo");
   if (aba === "novo") { $("#inCorpo").innerHTML = ""; NOVO.abrir(); return; }
   NOVO.parar();
+  if (aba === "classe") { desenharEscolhaAntiga(); return; }
   const lista = listaPersonagens(), corpo = $("#inCorpo");
   $("#inTitulo").textContent = "Seus personagens";
   $("#inNovo").hidden = false; $("#inLista").hidden = true;
@@ -33251,35 +33348,37 @@ function inicioEntrar(f) {
   })().finally(() => { SEL.escolhendo = null; });
   return SEL.escolhendo;
 }
-// entra com o aprendiz da vocação v: o que já existe continua; o novo nasce na Vila 1 só com o baú
-function entrarAprendiz(v, op = {}) {
-  const salvo = op.novo ? null : window.NUVEM && NUVEM.ativo() ? NUVEM.progAtivo() : progressoAprendizDe(v);
-  salvarTravado = true;
-  trocarClasse("aprendiz", v);
-  if (!salvo) {
-    prog = progressoIniciante("aprendiz"); prog.vocacao = v; if (op.nome) prog.nome = op.nome; recalcularStatus();   // (o nome vem da tela nova, R183) viking.vida = status.vidaMax; viking.mana = status.manaMax;
-    nascerNaVila();
-    jornada = jornadaNova(true);
-  }
-  fecharSelecao(); salvarTravado = false;
-  salvarProgresso(); jornadaSalvar(); lembrarClasse("aprendiz");
-  montarBarraSkills(); atualizarFicha(); desenharBolsa(); atualizarItensBarra(); desenharFerreiro();
-  if (!salvo) { som("ui_aceitar", null, 0.8); abrirBolsa(true); avisarLongo("Aprendiz criado! Abra o Baú do Iniciante na bolsa: clique direito ou dois cliques.", 6500); }
-  else avisar(`Bem-vindo de volta, ${prog.nome || "Aprendiz"}!`);
-  prepararChegada("entrar");                                           // (R235)
+// (R381) Entrar com um save antigo de aprendiz deste navegador: a escolha da classe, a conversão e a entrada (devolve a promessa, para os testes)
+async function entrarAprendizAntigo(chave) {
+  let p = null; try { p = JSON.parse(localStorage.getItem("progresso_" + chave)); } catch (e) {}
+  if (!p || !p.atrib) return null;
+  const c = await escolherClasseAntiga({ nome: p.nome, nivel: p.nivel || 1, vocacao: vocacaoDoAprendiz(chave.slice(9), p) });
+  if (!c || !SEL.aberta || classeOcupada(c)) return null;
+  converterAprendizSave(p, c);
+  try {
+    localStorage.setItem("progresso_" + c, JSON.stringify(p));
+    const jn = localStorage.getItem("jornada_" + chave); if (jn) localStorage.setItem("jornada_" + c, jn);
+    localStorage.removeItem("progresso_" + chave); localStorage.removeItem("jornada_" + chave);
+    if (localStorage.getItem("classe") === chave) localStorage.setItem("classe", c);
+  } catch (e) {}
+  som("ui_aceitar", null, 0.7);
+  return inicioEntrar(() => entrarComClasse(c, { convertido: true }));
 }
 function entrarPersonagem(chave) {
   if (window.NUVEM && NUVEM.ehChave(chave)) return NUVEM.entrar(chave);         // (com conta, nuvem.js)
-  if (chave.startsWith("aprendiz_")) entrarAprendiz(chave.slice(9));
-  else entrarComClasse(chave);
+  if (chave.startsWith("aprendiz_")) return entrarAprendizAntigo(chave);
+  entrarComClasse(chave);
 }
 function montarInicio() {
   $("#inNovo").onclick = () => { desenharInicio("novo"); som("ui_clique", null, 0.6); };
   $("#inLista").onclick = () => { desenharInicio("lista"); som("ui_clique", null, 0.6); };
   $("#inVoltar").onclick = () => fecharSelecao();
   $("#inCorpo").onclick = e => {
-    const en = e.target.closest("[data-entrar]"), ap = e.target.closest("[data-apagar]");
-    if (en) { const k = en.dataset.entrar; if (k === chaveSave() && SEL.deMenu && !SEL.semVolta) { fecharSelecao(); return; } inicioEntrar(() => entrarPersonagem(k)); }
+    const en = e.target.closest("[data-entrar]"), ap = e.target.closest("[data-apagar]"), es = e.target.closest("[data-classe]");
+    if (es) { if (!es.disabled) { soltarEscolhaAntiga(es.dataset.classe); som("ui_clique", null, 0.6); } return; }
+    if (en) { const k = en.dataset.entrar; if (k === chaveSave() && SEL.deMenu && !SEL.semVolta) { fecharSelecao(); return; }
+      if (k.startsWith("aprendiz_") && !(window.NUVEM && NUVEM.ehChave(k))) { entrarAprendizAntigo(k); return; }   // (R381: a escolha vem antes)
+      inicioEntrar(() => entrarPersonagem(k)); }
     else if (ap) {
       // (o 1º clique pede confirmação, o 2º, em até 4 s, apaga)
       const k = ap.dataset.apagar, p = listaPersonagens().find(q => q.chave === k);
@@ -33294,12 +33393,11 @@ montarInicio();
 // "A tela de criacao ficou sensacional"; rascunho em Logs/CriacaoPersonagem/rascunho_bustos)
 // Sobre o quadro 9 da introdução (o terraço do Templo do Céu com o biombo rasgado), os dois bustos respirando da vocação, cada um
 // na sua "janela da lua" (um portal fixo; na troca, os bustos saem por um lado e entram pelo outro, e o halo muda para a cor da
-// vocação). Embaixo, os selos das 4 vocações entre as setas; ← → também trocam. Aqui se escolhe SÓ A VOCAÇÃO (o usuário, 03/11:
-// "la ele vai escolher o tipo apenas, so dentro do jogo vai escolher a especificacao"): o mouse num busto (ou na lista) o acende e
-// mostra no painel o papel e os atributos que a classe terá no Altar; o clique só o deixa destacado (não escolhe nada). A classe
-// se escolhe no Altar das Eras, no nível 5. O painel de pergaminho tem o texto da vocação letra por letra (Atrás / Seguinte; o
-// clique mostra tudo), as duas classes com o papel e a dificuldade, as barras (as do aprendiz; com uma classe apontada, as do
-// Altar), o nome (3 a 16 letras, números e espaço), Voltar e Criar.
+// vocação). Embaixo, os selos das 4 vocações entre as setas; ← → também trocam. (09/11, R378; o usuário: "A pessoa já vai nascer com
+// a profissão e a vocação que escolheu") o clique num busto (ou na lista) ESCOLHE A CLASSE: a 1ª da vocação já vem escolhida, e o
+// mouse num busto o acende e mostra o papel e os atributos dele. O painel de pergaminho tem o texto da vocação letra por letra
+// (Atrás / Seguinte; o clique mostra tudo), as duas classes com o papel e a dificuldade, as barras da classe escolhida (ou da
+// apontada), o nome (3 a 16 letras, números e espaço), Voltar e Criar (o herói nasce com a classe, as skills dela e 1 ponto de skill).
 // Os BUSTOS: selecao/busto_<classe>.webp, a folha LEVE (Tools/midia/bustos_webp.py: 480 × 560, só a ida da respiração, tocada em
 // ida e volta) e selecao/bustos.json com o formato de cada folha (w, h, colunas, n, fps, modo). Pede só os da vocação da vez e
 // das duas vizinhas. Busto que falta (fora do versoes.json, ou que não carregou) vira a silhueta "busto em produção".
@@ -33402,12 +33500,12 @@ const NOVO = (() => {
     VOCACOES[v].classes.forEach((c, i) => {
       const inf = INFO_CLASSE[c], oc = classeOcupada(c), fig = document.createElement("figure");
       fig.className = "np-retrato"; fig.tabIndex = 0; fig.setAttribute("role", "button"); fig.dataset.c = c;
-      fig.setAttribute("aria-label", `${NOME_CLASSE[c]}${oc ? " (já existe)" : ""}: ver o papel e os atributos no Altar. A classe se escolhe no Altar, no nível ${NIVEL_ALTAR}`);
+      fig.setAttribute("aria-label", `${NOME_CLASSE[c]}${oc ? " (já existe)" : ""}: escolher esta classe`);
       fig.innerHTML = `<canvas></canvas><figcaption>${NOME_CLASSE[c]}${oc ? "<small>já existe</small>" : ""}` +
         `<span class="np-dif" title="Dificuldade: ${NOME_DIF[inf.dif]}">${[1, 2, 3].map(n => `<u class="${n <= inf.dif ? "on" : ""}"></u>`).join("")}</span></figcaption>`;
       // as skills da classe: os selinhos embaixo da placa (fora da figura, que é um botão: cada selinho é um botão com foco próprio)
       const sks = document.createElement("div");
-      sks.className = "np-sks"; sks.dataset.c = c; sks.setAttribute("role", "group"); sks.setAttribute("aria-label", `Skills do ${NOME_CLASSE[c]} (no Altar, no nível ${NIVEL_ALTAR})`);
+      sks.className = "np-sks"; sks.dataset.c = c; sks.setAttribute("role", "group"); sks.setAttribute("aria-label", `Skills do ${NOME_CLASSE[c]}`);
       sks.innerHTML = skillsDaClasse(c).map(sk => `<button type="button" class="np-sk" data-sk="${escH(sk.nome)}" aria-label="${escH(sk.nome)}" aria-describedby="npCartao"><canvas aria-hidden="true"></canvas></button>`).join("");
       const r = { c, i, fig, sks, cv: fig.querySelector("canvas"), q: -1, luz: 0, frente: 0 };
       fig.addEventListener("mouseenter", () => olhar(c));
@@ -33547,9 +33645,9 @@ const NOVO = (() => {
     cartaoDe = null; const ca = $("#npCartao"); if (ca) ca.hidden = true;
   }
 
-  // ---- olhar (mouse num busto ou na lista) e destacar (clique: o 2º clique solta). Nenhum dos dois escolhe a classe
+  // ---- olhar (mouse num busto ou na lista) e destacar (o clique ESCOLHE a classe, R378; o 2º clique não solta: sempre há uma escolhida)
   function olhar(c) { if (olhando === c) return; olhando = c; mostrarAtrib(olhando || destacado); marcarClasses(); }
-  function destacar(c) { destacado = destacado === c ? null : c; mostrarAtrib(olhando || destacado); marcarClasses(); }
+  function destacar(c) { if (!c || !VOCACOES[ORDEM[sel]].classes.includes(c)) return; const mudou = destacado !== c; destacado = c; mostrarAtrib(olhando || destacado); marcarClasses(); if (mudou) estadoBotoes(); }
   function marcarClasses() { for (const li of document.querySelectorAll("#npClasses li")) { li.classList.toggle("np-olhando", li.dataset.c === (olhando || destacado)); li.classList.toggle("np-destacado", li.dataset.c === destacado); } }
 
   // ---- o painel
@@ -33562,24 +33660,21 @@ const NOVO = (() => {
     $("#npClasses").innerHTML = V.classes.map(c => { const inf = INFO_CLASSE[c], oc = classeOcupada(c);
       return `<li data-c="${c}"${oc ? ` class="np-ocupada" title="Já existe um ${NOME_CLASSE[c]} neste navegador"` : ""}><i aria-hidden="true"></i><div><b>${NOME_CLASSE[c]}${oc ? "<small>já existe</small>" : ""}</b><small>${inf.papel}</small></div>` +
         `<span class="np-dif" role="img" aria-label="Dificuldade ${NOME_DIF[inf.dif]}" title="Dificuldade: ${NOME_DIF[inf.dif]}">${[1, 2, 3].map(n => `<u class="${n <= inf.dif ? "on" : ""}"></u>`).join("")}</span></li>`; }).join("");
-    olhando = null; destacado = null; mostrarAtrib(null);
+    olhando = null; destacado = V.classes.find(c => !classeOcupada(c)) || V.classes[0]; mostrarAtrib(destacado); marcarClasses();   // (R378: uma classe já vem escolhida, a 1ª livre)
     pedirBustos();
     TX.v = v; TX.pag = 0; TX.t0 = agora(); TX.tudo = false; TX.ultimo = "";
     estadoBotoes();
   }
-  // Criar: o aprendiz novo; "Entrar · Nv X" quando já há aprendiz desta vocação; "Sem vaga" quando as duas classes já têm personagem
+  // Criar: o herói da classe escolhida (R378); "Entrar · Nv X" quando esta classe já tem personagem neste navegador (um por classe)
   function estadoBotoes() {
-    const v = ORDEM[sel], ap = progressoAprendizDe(v), livre = vocacaoLivre(v), b = $("#npCriar"), nome = $("#npNome");
+    const c = destacado || VOCACOES[ORDEM[sel]].classes[0], ja = !(window.NUVEM && NUVEM.logado()) && progressoSalvoDe(c), b = $("#npCriar"), nome = $("#npNome");
     $("#npAviso").textContent = "";
-    if (ap) {
-      b.textContent = `Entrar · Nv ${ap.nivel || 1}`; b.disabled = false; nome.disabled = true; nome.value = ap.nome || "Aprendiz";
-      $("#npNota").innerHTML = `Você já tem um <b>aprendiz</b> desta vocação (nível ${ap.nivel || 1}): entre com ele para continuar. A classe se escolhe no Altar das Eras, no nível ${NIVEL_ALTAR}.`;
-    } else if (!livre) {
-      b.textContent = "Sem vaga"; b.disabled = true; nome.disabled = true; nome.value = "";
-      $("#npNota").innerHTML = "As duas classes desta vocação <b>já têm personagem</b> neste navegador.";
+    if (ja) {
+      b.textContent = `Entrar · Nv ${ja.nivel || 1}`; b.disabled = false; nome.disabled = true; nome.value = ja.nome || NOME_CLASSE[c];
+      $("#npNota").innerHTML = `Você já tem um <b>${NOME_CLASSE[c]}</b> neste navegador (nível ${ja.nivel || 1}): entre com ele para continuar, ou escolha o outro herói.`;
     } else {
-      b.textContent = "Criar"; b.disabled = false; nome.disabled = false; nome.value = nomeDigitado;
-      $("#npNota").innerHTML = `Aqui você escolhe só a <b>vocação</b> e começa como <b>aprendiz</b>. A classe se escolhe no Altar das Eras, no nível ${NIVEL_ALTAR}.`;
+      b.textContent = `Criar ${NOME_CLASSE[c]}`; b.disabled = false; nome.disabled = false; nome.value = nomeDigitado;
+      $("#npNota").innerHTML = `Clique num dos dois heróis para escolher a <b>classe</b>. O ${NOME_CLASSE[c]} nasce na Vila 1 com a arma, a roupa e as skills dele, e já tem <b>1 ponto de skill</b> no nível 1.`;
     }
     const vt = podeVoltar(); $("#npVoltar").hidden = !vt; $("#npAcoes").classList.toggle("np-so", !vt);
   }
@@ -33590,10 +33685,11 @@ const NOVO = (() => {
     if (listaPersonagens().length) { som("ui_clique", null, 0.6); desenharInicio("lista"); }
     else if (SEL.deMenu && !SEL.semVolta) fecharSelecao();
   }
-  // as barras: as do aprendiz da vocação (as da 1ª classe, R165); com uma classe apontada, as que ela terá no Altar
+  // as barras: as da classe apontada pelo mouse ou, sem ela, as da escolhida (R378)
   function mostrarAtrib(c) {
-    const v = ORDEM[sel], a = ATRIB_INICIAL[c || VOCACOES[v].classes[0]], pr = ATRIB_PRINCIPAL[c || VOCACOES[v].classes[0]];
-    $("#npAtribTit").innerHTML = c ? `Atributos no Altar <em>${NOME_CLASSE[c]}</em>` : "Atributos iniciais <em>aprendiz</em>";
+    const v = ORDEM[sel]; c = c || destacado || VOCACOES[v].classes[0];
+    const a = ATRIB_INICIAL[c], pr = ATRIB_PRINCIPAL[c];
+    $("#npAtribTit").innerHTML = `Atributos iniciais <em>${NOME_CLASSE[c]}</em>`;
     const el = $("#npAtrib");
     if (!el.children.length) el.innerHTML = ORDEM_ATRIB.map(k => `<span data-k="${k}" title="${NOME_ATRIB[k]}">${SIGLA_ATRIB[k]}</span><i style="--cor:${COR_ATRIB[k]}" role="img"><b></b></i><em></em>`).join("");
     for (const k of ORDEM_ATRIB) {
@@ -33619,17 +33715,16 @@ const NOVO = (() => {
   }
   function atras() { if (TX.pag > 0) { TX.pag--; TX.t0 = agora(); TX.tudo = true; } }
 
-  // ---- Criar (devolve a promessa de inicioEntrar, para os testes): nasce o aprendiz da VOCAÇÃO; o busto destacado não conta
+  // ---- Criar (devolve a promessa de inicioEntrar, para os testes): nasce o herói da CLASSE escolhida, com as skills dela (R378)
   function criar() {
     if (!ativo || SEL.escolhendo) return SEL.escolhendo || null;
-    const v = ORDEM[sel];
-    if (window.NUVEM && NUVEM.logado()) return NUVEM.criarNoNovo(v);              // (com conta, nuvem.js)
-    if (progressoAprendizDe(v)) return inicioEntrar(() => entrarAprendiz(v));
-    if (!vocacaoLivre(v)) return null;
+    const c = destacado || VOCACOES[ORDEM[sel]].classes[0];
+    if (window.NUVEM && NUVEM.logado()) return NUVEM.criarNoNovo(c);              // (com conta, nuvem.js)
+    if (progressoSalvoDe(c)) return inicioEntrar(() => entrarComClasse(c));      // (já existe neste navegador: entra com ele)
     const n = limparNome($("#npNome").value), erro = validarNome(n);
     $("#npAviso").textContent = erro;
     if (erro) { $("#npNome").focus({ preventScroll: true }); som("ui_negar"); return null; }
-    return inicioEntrar(() => entrarAprendiz(v, { novo: true, nome: n }));
+    return inicioEntrar(() => entrarComClasse(c, { novo: true, nome: n }));
   }
   // as teclas chegam pelo tratador da tela (montarSelecao), que as segura antes do jogo (e antes dos elementos)
   function tecla(e) {
@@ -33653,7 +33748,7 @@ const NOVO = (() => {
     $("#npSelos").addEventListener("click", e => { const b = e.target.closest(".np-selo-voc"); if (b) irPara(+b.dataset.k); });
     $("#npAnt").onclick = () => trocar(-1);
     $("#npProx").onclick = () => trocar(1);
-    $("#npDica").innerHTML = `<kbd>←</kbd> <kbd>→</kbd> trocam a vocação · clique num herói para ver o papel e os atributos dele · passe o mouse numa skill para ler o que ela faz · a classe se escolhe no Altar, no nível ${NIVEL_ALTAR}`;
+    $("#npDica").innerHTML = `<kbd>←</kbd> <kbd>→</kbd> trocam a vocação · clique num herói para escolher a classe dele · passe o mouse numa skill para ler o que ela faz`;
     $("#npHistoria").onclick = () => { TX.tudo = true; };
     $("#npSeguinte").onclick = seguinte;
     $("#npAtras").onclick = atras;
@@ -33696,67 +33791,10 @@ const NOVO = (() => {
     esquecerBustos() { for (const k of Object.keys(BUS)) delete BUS[k]; formatosP = null; for (const p of pares) for (const r of p.rs) r.q = -1; if (ativo) pedirBustos(); },
     mostrarTudo() { TX.tudo = true; } };
 })();
-// ---- a escolha no altar: o modelo, as skills, a arma e a roupa inicial passam a ser os da classe; nível, EXP, Gold, bolsa, quests e pontos ficam
-// (cena do nível 5) op.cena: a troca escondida pela tinta; os efeitos, o nome e a dica do P ficam por conta da cena (iniciarCenaAltar)
-function confirmarClasse(c, op = {}) {
-  if (!podeConfirmar(c)) return false;
-  const v = VOCACAO, p = prog, ini0 = { ...ATRIB_INICIAL.aprendiz }, ini1 = ATRIB_INICIAL[c], { x, y, dir } = viking;
-  for (const k of ORDEM_ATRIB) p.atrib[k] = ini1[k] + (p.atrib[k] - ini0[k]);   // (os pontos que ele distribuiu continuam valendo)
-  p.inv = (p.inv || []).filter(it => !(it.chave || "").startsWith("arma:aprendiz"));
-  p.arma = { ref: 0, bon: [], tier: 0 };
-  p.equip = p.equip || {};
-  p.equip.armadura = { peca: ROUPA_DA_CLASSE[c] || "armadura_guerreiro", tier: 0, ref: 0, bon: [] };
-  if (!p.equip.elmo) p.equip.elmo = { peca: "elmo", tier: 0, ref: 0, bon: [] };
-  p.skills = {}; p.skillsZero = 1;                                      // (03/11: na classe nova todas as skills começam em 0; os pontos as ensinam)
-  const m = p.missoes || (p.missoes = {}); m.altar = { ...(m.altar || {}), etapa: MISSOES.altar.etapas.length, n: 0, carta: 2 };
-  if (npcAberto) abrirNpc(null);
-  salvarTravado = true;
-  try {
-    if (window.NUVEM && NUVEM.ativo()) localStorage.setItem("progresso_" + chaveSave(), JSON.stringify(p));   // (com conta: o mesmo espaço, nuvem.js)
-    else {
-    localStorage.setItem("progresso_" + c, JSON.stringify(p));
-    const jn = localStorage.getItem("jornada_aprendiz_" + v); if (jn) localStorage.setItem("jornada_" + c, jn);
-    localStorage.removeItem("progresso_aprendiz_" + v); localStorage.removeItem("jornada_aprendiz_" + v);
-    }
-  } catch (e) {}
-  trocarClasse(c);
-  salvarTravado = false;
-  Object.assign(viking, { x, y, dir, alvo: null, rota: null });
-  salvarProgresso(); jornadaSalvar(); lembrarClasse(c);
-  montarBarraSkills(); atualizarFicha(); desenharBolsa(); atualizarItensBarra(); desenharFerreiro();
-  if (op.cena) { pagarMissao(MISSOES.altar.etapas[0].premio); prog.dicaSkills = 1; salvarProgresso(); return true; }
-  ondas.push({ x, y, t: 0, raio: 3, cor: 45, fogo: true, pilares: [], rachas: [] });
-  for (let k = 0; k < 60; k++) { const a = Math.random() * 7, w = 0.4 + Math.random() * 1.4; brasas.push({ x: x + Math.cos(a) * 0.5, y: y + Math.sin(a) * 0.4, z: Math.random() * 1.8, vx: Math.cos(a) * w, vy: Math.sin(a) * w, vz: 1.5 + Math.random() * 2.5, vida: 1.2, max: 1.2, tam: 0.06, cor: 46 + Math.random() * 10 }); }
-  pagarMissao(MISSOES.altar.etapas[0].premio);
-  som("nivel", viking, 1.1);
-  numeros.push({ wx: x, wy: y, y: -190, vida: 2.4, txt: NOME_CLASSE[c] + "!", critico: true });
-  // (03/11, o usuário: "assim que voce escolher a sua vocação no altar, de a dica de apertar P e depois em skills para distribuir os
-  // pontos") o aviso fica 10 s, a dica vai ao chat e, na 1ª vez que a ficha abrir com pontos sobrando, a aba Skills brilha
-  dicaClasseNova(c);                                                   // (no prog novo: o trocarClasse acima recarregou o save)
-  prepararChegada("altar");                                            // (R235: o modelo 3D e os efeitos da classe nova)
-  return true;
-}
-// a conversa da Guardiã do Altar: abaixo do nível 5 manda voltar; depois mostra as classes da vocação e pede a confirmação
-function altarNaConversa(o) {
-  const fala = t => { $("#npcFala").textContent = `"${t}"`; };
-  if (classe !== "aprendiz") { fala(`Você já escolheu o seu caminho, ${NOME_CLASSE[classe]}. Veja: a pedra guarda todos os heróis que vieram pelos rasgos.`); missaoNaConversa(o); return; }   // (a missão do biombo é dela)
-  if (prog.nivel < NIVEL_ALTAR) { fala(`Ainda não, aprendiz. Treine no vale e volte no nível ${NIVEL_ALTAR}: então a pedra vai reconhecer a sua era.`); quadroConversa("Altar das Eras", `A escolha abre no nível ${NIVEL_ALTAR}. Você está no nível ${prog.nivel}.`); return; }
-  const V = VOCACOES[VOCACAO];
-  if (o.altarEscolha && V.classes.includes(o.altarEscolha) && !classeOcupada(o.altarEscolha)) {
-    const c = o.altarEscolha, inf = INFO_CLASSE[c];
-    fala(`Então a sua era é a de ${NOME_CLASSE[c]}? Pense bem: esta escolha não se desfaz.`);
-    const pts = prog.pontosSkill || 0;
-    quadroConversa(`Ser ${NOME_CLASSE[c]}?`, `${inf.frase} Você recebe a arma e a roupa da classe. As skills começam no 0: ${pts ? `os seus ${pts} pontos servem para aprendê-las` : "cada nível dá um ponto para aprendê-las"}. O nível, a EXP, o Gold e a bolsa ficam.`,
-      [["Confirmar", () => { o.altarEscolha = null; if (!iniciarCenaAltar(c)) confirmarClasse(c); }], ["Voltar", () => { o.altarEscolha = null; desenharNpc(); }]], "#B8322A", `selecao/${c}.webp`);
-    return;
-  }
-  fala(`A pedra reconhece você. ${V.nome}: duas eras chamam, mas só uma será a sua. Qual delas?`);
-  for (const c of V.classes) {
-    const oc = classeOcupada(c);
-    quadroConversa(NOME_CLASSE[c], oc ? `Você já tem um ${NOME_CLASSE[c]} neste navegador, e cada navegador guarda um personagem por classe.` : `${INFO_CLASSE[c].papel}. ${INFO_CLASSE[c].frase}`,
-      [["Escolher", () => { o.altarEscolha = c; desenharNpc(); som("ui_clique", null, 0.6); }, oc]], oc ? "#8C8A80" : "#ffd23c", `selecao/${c}.webp`);
-  }
-}
+// (09/11, R380; o usuário: "não vamos ter mais a questão do level 5 para escolher") a Guardiã do Altar não troca mais a classe: o
+// confirmarClasse, a carta "O Altar das Eras", o chamado e a cena da transformação saíram com o aprendiz. Ela fica no alto da escadaria
+// com as falas curtas da história (FALAS_GUARDIA, nos dados dela) e é ela quem dá a missão "O biombo rasgado" (do nível 5, a quem chegou pelo rasgo)
+function altarNaConversa(o) { missaoNaConversa(o); }
 
 // ---------------------------------------------------------------- o Altar das Eras (Logs/Vocacoes): a ilha a oeste da Vila 1, a ponte, a escadaria e o patamar
 // A geometria fica em coordenadas locais (a, b): a para a direita da tela, b para o fundo dela (a vista de 45°), com a origem no meio da ilha. Como na
@@ -33891,7 +33929,7 @@ function altarIlha22(q, X, Y, s) {
   }
 }
 let ALTAR_ESTATUAS = [];
-function altarAcesa(c) { return classe === "aprendiz" ? !!VOCACOES[VOCACAO] && VOCACOES[VOCACAO].classes.includes(c) : c === classe; }
+function altarAcesa(c) { return c === classe; }
 function montarAltar() {
   for (let i = objetos.length - 1; i >= 0; i--) { const o = objetos[i]; if (!o.npc && !o.caverna && DECORACAO.includes(o.tipo) && naZonaAltar(o.x, o.y) && bordaAltar(o.x, o.y) < RAIO + 1) objetos.splice(i, 1); }
   const T = ALTAR.topo, por = (tipo, a, b, extra = {}) => { const [x, y] = altarMundo(a, b), o = completarDecoracao({ tipo, x, y, ...extra }); o.altar = true; objetos.push(o); return o; };
@@ -33947,7 +33985,7 @@ function desenharFichaEstatua(o) {
   $("#npcNome").textContent = o.dados.titulo; $("#npcLoja").innerHTML = ""; $("#npcMais").hidden = true;
   const inf = INFO_CLASSE[c], V = Object.values(VOCACOES).find(v => v.classes.includes(c));
   $("#npcFala").textContent = q.coberta ? `Um pano cobre esta pedra: a estátua ainda está sendo esculpida. Uma das eras dos ${V.nome}.` : `Uma das eras dos ${V.nome}.`;
-  const sua = classe === "aprendiz" && altarAcesa(c) ? ` A sua vocação pode escolher esta era, a partir do nível ${NIVEL_ALTAR}, falando com a ${NOME_GUARDIA}.` : "";
+  const sua = c === classe ? " Esta é a sua era." : "";
   quadroConversa(NOME_CLASSE[c], `${inf.papel}. ${inf.frase} Dificuldade: ${NOME_DIF[inf.dif]}.${sua}`, [], "#ffd23c", `selecao/${c}.webp`);
 }
 function desenharArteAltar(o, X, Y, s) {
@@ -34874,11 +34912,9 @@ function laco(agora) {
 
 ajustar();
 // ---------------------------------------------------------------- as cenas com faixas de cinema (Logs/Historia/CENA_NIVEL5.md, aprovada em 04/11: "A cena esta otima
-// assim"; e Logs/Historia/MISSAO_BIOMBO.md, "pode ir assim"). Três cenas no mesmo controle (CENA):
-//   "chamado": no nível 5 do aprendiz, a Guardiã chama (o mundo pausa; "Ir ao Altar agora" ou "Depois"), uma vez por personagem (prog.chamadoVisto);
-//   "altar":   o Confirmar da Guardiã: a estátua acende, o rolo desce no corredor do meio, o herói anda até ele, a tinta cobre o corpo, a classe
-//              troca escondida (confirmarClasse com { cena: true }) e a tinta escorre; no fim, a dica do P e a missão "O biombo rasgado";
-//   "rasgo":   a entrega das 3 Tintas da Yeouiju: a Guardiã vai com o herói até o rasgo onde o aprendiz chegou à Vila 1 e o costura (prog.rasgoFechado).
+// assim"; e Logs/Historia/MISSAO_BIOMBO.md, "pode ir assim"). (09/11, R380) o "chamado" do nível 5 e a cena "altar" (a troca de classe na
+// frente da estátua) saíram com o aprendiz; fica uma cena no controle (CENA):
+//   "rasgo":   a entrega das 3 Tintas da Yeouiju: a Guardiã vai com o herói até o rasgo onde ele chegou à Vila 1 e o costura (prog.rasgoFechado).
 // Cada cena é um gerador: ele devolve quanto esperar (segundos), "fala" (o texto inteiro e um clique), "escolha" (um botão) ou uma
 // condição. O relógio é o do jogo (cenaPasso, no laço; a aba escondida para tudo); no ?test=1 os tempos andam 10× (CENA.rapido) e o
 // teste pode dirigir sozinho (CENA.manual). O Pular e o Esc só existem do 2º personagem em diante (alguém da lista já passou pelo Altar).
@@ -34888,17 +34924,7 @@ var CENA = { ativa: null, t: 0, m: {}, gen: null, espera: 0, restante: 0, clicou
 // a chave das cenas: ?cena=0 desliga o chamado e a cena do Altar (o Confirmar troca a classe na hora, como antes); os testes no modo
 // jogador que mexem no nível de um aprendiz (as dicas e a nuvem) abrem com ela. A missão do biombo e o rasgo não dependem dela
 const CENA_LIGADA = new URLSearchParams(location.search).get("cena") !== "0";
-const CENA_FALAS = {
-  chamado: ["{nome}, você me ouve? Sou a Guardiã do Altar das Eras. Você chegou pelo rasgo como um esboço, só papel e nanquim, mas o seu traço ficou firme.",
-    "Pedras Ghotin caíram em volta da vila. Onde cada uma bate no chão, a terra escurece e as criaturas ficam mais fortes e cruéis.",
-    "As trevas se espalham pelo vale, e o biombo continua rasgado. Uma espada de madeira não vai segurar o que atravessa esses rasgos.",
-    "{vocacao} Venha ao Altar das Eras, na ilha a oeste. Uma das pinturas está esperando por você."],
-  vocacao: { norte: "Ouço aço batendo em duas eras diferentes.", caca: "Duas eras de caçadores já conhecem o seu passo.",
-    trevas: "Duas eras que sabem domar a tinta negra querem você.", dragao: "O fôlego do dragão, o desta pintura, chama você." },
-  a1: "Então é esta a sua era. Fique diante da pintura e deixe a tinta reconhecer você.",
-  a2: "Não tenha medo do nanquim. Todo herói desta galeria um dia foi só um traço.",
-  a3: "Agora você tem cor. As Ghotin esperam lá embaixo, e o biombo continua rasgado. Um dia vou precisar que você o feche.",
-  a4: "E esse dia é hoje. O rasgo por onde você chegou continua aberto no meio da Vila 1, e só a tinta da própria pérola o costura. Quebre as Pedras Ghotin perto da vila e me traga três gotas da Tinta da Yeouiju.",
+const CENA_FALAS = {                                                    // (R380: as falas do chamado e da transformação no Altar saíram com o aprendiz)
   r1: "Três gotas da pérola. É o bastante para uma costura. Venha comigo até o rasgo.",
   r2: "Aqui está ele. O papel desta pintura ainda lembra o formato de quem atravessou.",
   r3: "Um ponto para cada gota. Segure firme: a pintura não gosta de ser costurada.",
@@ -34913,7 +34939,7 @@ const c01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const cenaMovReduzido = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } };
 // do 2º personagem em diante (alguém deste navegador ou desta conta já passou pelo Altar): Pular e Esc
 function cenaPodePular() { try { return listaPersonagens().some(p => p.classe && p.classe !== "aprendiz" && p.chave !== chaveSave()); } catch (e) { return false; } }
-function cenaFala(t) { return t.replace("{nome}", (prog && prog.nome) || "Aprendiz").replace("{vocacao}", CENA_FALAS.vocacao[VOCACAO] || ""); }
+function cenaFala(t) { return t.replace("{nome}", (prog && prog.nome) || NOME_CLASSE[classe] || "herói").replace("{vocacao}", ""); }
 
 // ---- a página: as faixas, a vinheta, a caixa da fala com o busto, os botões, o título grande e o Pular
 function cenaDom() {
@@ -35061,14 +35087,6 @@ function cenaVigiar(dt) {
     if (npc && Math.hypot(npc.x - viking.x, npc.y - viking.y) < 6) { viking.dir = dirDe(npc.x - viking.x, npc.y - viking.y); abrirNpc(npc); }
     return;
   }
-  if (cenaChamadoPendente()) {
-    const agora = performance.now();
-    if (!C.agendado) C.agendado = agora + 1000;
-    if (agora < C.agendado || ocupado || npcAberto || (window.MM && MM.aberto)) return;
-    const caca = criaturas.some(l => l.cacando && !l.morto && !l.cfg.estatico);
-    if (caca && agora < C.agendado + 15000) return;                     // (espera a luta acabar, no máximo 15 s)
-    C.agendado = 0; abrirChamado(); return;
-  }
   if ((C.rasgoT = (C.rasgoT || 0) + dt) > 0.3) {                        // (a etapa 3 aberta, depois de sair no meio da cena: chegar perto do rasgo a recomeça)
     C.rasgoT = 0;
     const e = MISSOES.biombo && prog.missoes && prog.missoes.biombo ? etapaAtual("biombo") : null;
@@ -35077,46 +35095,7 @@ function cenaVigiar(dt) {
   }
 }
 
-// ---- cena A: o chamado
-function cenaChamadoPendente() {
-  if (!CENA_LIGADA || !prog || classe !== "aprendiz" || prog.chamadoVisto || prog.nivel < NIVEL_ALTAR || CENA.ativa) return false;
-  return !MODO_TESTE || CENA.forcar;
-}
-// (o subiuNivel do 5: 2,5 s depois da coluna dourada)
-function agendarChamado() { if (cenaChamadoPendente()) CENA.agendado = performance.now() + 2500; }
-function abrirChamado() {
-  cenaAbrir("chamado", (function* () {
-    som("vento", null, 0.35);
-    yield 0.6;
-    cenaZoom(true);
-    yield 1.2;
-    som("espiritual", null, 0.45);
-    for (const f of CENA_FALAS.chamado) { cenaDizer(f); yield "fala"; }
-    cenaBotoes([["Ir ao Altar agora", () => { CENA.escolha = "ir"; }, true], ["Depois", () => { CENA.escolha = "depois"; }]]);
-    const esc = yield "escolha";
-    chamadoEscolheu(esc === "ir" ? "ir" : "depois");
-    if (esc === "ir") yield 0.55;                                        // (as faixas fecham até o meio, como um corte de filme)
-  })(), { pausa: true, pular: () => {                                  // (o Pular: vai direto aos botões, com o texto inteiro)
-    const C = CENA; if (C.espera === "escolha") return;
-    C.texto = cenaFala(CENA_FALAS.chamado[3]); C.letras = C.texto.length; cenaEscrever(); cenaDom().querySelector(".cn-caixa").classList.add("vis");
-    C.gen = (function* () { cenaBotoes([["Ir ao Altar agora", () => { CENA.escolha = "ir"; }, true], ["Depois", () => { CENA.escolha = "depois"; }]]); const esc = yield "escolha"; chamadoEscolheu(esc === "ir" ? "ir" : "depois"); if (esc === "ir") yield 0.55; })();
-    cenaAvancar(); } });
-}
-// o fim do chamado: o "visto" só é gravado no botão (quem fecha a página antes vê de novo)
-function chamadoEscolheu(esc) {
-  prog.chamadoVisto = 1;
-  if (estadoMissao("altar").etapa < 0) aceitarMissao("altar"); else salvarProgresso();
-  if (esc === "ir") {
-    som("ui_aceitar", null, 0.7);
-    cenaDom().classList.add("corte");
-    CENA.aoFim = () => {
-      const [x, y] = altarMundo(0, 7);
-      if (teleporteSeguro(x, y)) { const npc = objetos.find(o => o.npc && o.nome === NOME_GUARDIA); if (npc) viking.dir = dirDe(npc.x - viking.x, npc.y - viking.y); CENA.abrirGuardia = 1; }
-    };
-  } else {
-    CENA.aoFim = () => avisarLongo("Siga o pontinho no mapa (M) até o Altar das Eras.", 6000);
-  }
-}
+// (R380) a cena A, o chamado do nível 5 do aprendiz, saiu com ele
 // o teleporte sem a trava do admin (o admTeleporte usa o mesmo miolo): o chão livre mais perto, as criaturas largam o herói, a
 // câmera vai junto e a tela de preparação cobre a chegada (semPreparo: a cena do rasgo, que já é coberta pelas faixas)
 function teleporteSeguro(x, y, op = {}) {
@@ -35136,69 +35115,14 @@ function teleporteSeguro(x, y, op = {}) {
   return true;
 }
 
-// ---- cena B: a transformação no Altar
-function podeConfirmar(c) { return classe === "aprendiz" && !!prog && prog.nivel >= NIVEL_ALTAR && !!VOCACOES[VOCACAO] && VOCACOES[VOCACAO].classes.includes(c) && !classeOcupada(c); }
-function iniciarCenaAltar(c) {
-  if (!CENA_LIGADA || !podeConfirmar(c) || (window.M3D && M3D.ativo) || viking.montado) return false;   // (no ?mundo3d=1, a troca de sempre)
-  const est = ALTAR_ESTATUAS.find(o => o.classe === c); if (!est) return false;
-  const [ea, eb] = altarLocal(est.x, est.y), ra = Math.sign(ea) * 4.4, [rx, ry] = altarMundo(ra, eb), alvo = admChaoLivre(...altarMundo(ra, eb - 0.45)) || altarMundo(ra, eb - 0.45);
-  const img = new Image(); img.decoding = "async"; img.src = cenaPintura(c);
-  const bio = cenaBiomboPecas(c);                                      // (o biombo da classe, 05/11; o rolo antigo fica de reserva)
-  let trocou = false;
-  const trocar = () => { if (trocou) return; trocou = true; const xy = [viking.x, viking.y, viking.dir]; confirmarClasse(c, { cena: true }); Object.assign(viking, { x: xy[0], y: xy[1], dir: xy[2], alvo: null, rota: null }); };
-  const fim = () => { trocar(); dicaClasseNova(c); if (estadoMissao("biombo").etapa < 0 && nivelMissaoOk(MISSOES.biombo)) aceitarMissao("biombo"); };
-  cenaAbrir("altar", (function* () {
-    const C = CENA;
-    Object.assign(viking, { alvo: null, rota: null, acao: null });
-    yield 0.3;
-    cenaDizer(CENA_FALAS.a1);
-    yield 0.2;
-    C.est = { o: est }; C.m.est = C.t; C.camPara = [rx, ry]; som("magia_buff", est, 0.8);         // (a estátua acende: o brilho somado sobe, o selo gira no chão)
-    ondas.push({ x: est.x, y: est.y, t: 0, raio: 1.6, cor: 45, fogo: true, pilares: [], rachas: [] });
-    yield 1.5;
-    C.rolo = { x: rx, y: ry, z: ALTAR.z, img, bio, classe: c }; C.m.rolo = C.t;   // (o fio de luz e o biombo entra fechado; ou o rolo desce)
-    som("vento", null, 0.5); som("arcano_carga", null, 0.35);
-    yield BIOMBO_T.pousa;
-    som("arrasto", null, 0.55);                                          // (o biombo pousa no chão)
-    for (let k = 0; k < 4; k++) {                                        // (um painel por vez: o papel e a madeira da junta)
-      yield k ? BIOMBO_T.passo : BIOMBO_T.abre - BIOMBO_T.pousa;
-      som("ui_abrir", null, 0.75); som("estalo", null, 0.3);
-    }
-    cenaDizer(CENA_FALAS.a2);                                            // (aos 4 s, como antes: o último painel ainda se abre)
-    viking.alvo = { x: alvo[0], y: alvo[1], correr: false }; viking.rota = null;   // (anda sozinho até o biombo)
-    yield 7 - 2 - BIOMBO_T.abre - 3 * BIOMBO_T.passo;
-    Object.assign(viking, { x: alvo[0], y: alvo[1], alvo: null, rota: null, dir: dirDe(rx - alvo[0], ry - alvo[1]) });
-    tocar(classe === "aprendiz" ? "parado" : "parado", false);
-    C.tinta = (C.rolo.modo || (C.rolo.modo = cenaBiomboPronto(C.rolo.bio) ? "biombo" : "rolo")) === "biombo" ? { fonte: C.t, t0: C.t + 0.7, dur: 1.3 } : { t0: C.t };   // (o biombo: escorre 0,7 s até os pés; e sobe pelo corpo)
-    som("vortice", viking, 0.45);
-    yield 2;
-    trocar(); C.m.vazio = C.t;                                           // (o corpo todo preto: a classe troca; a figura sai da pintura)
-    const t9 = C.t; yield () => cenaModeloPronto() || C.t - t9 > 3;
-    if (!cenaModeloPronto()) prepararChegada("altar");                   // (não chegou em 3 s: a preparação de sempre)
-    C.tinta.t1 = C.t;
-    yield 2;
-    C.tinta = null; som("nivel", viking, 1.1);                           // (o clarão curto e a coluna dourada)
-    ondas.push({ x: viking.x, y: viking.y, t: 0, raio: 3, cor: 45, fogo: true, pilares: [], rachas: [] });
-    for (let k = 0; k < 60; k++) { const a = Math.random() * 7, w = 0.4 + Math.random() * 1.4; brasas.push({ x: viking.x + Math.cos(a) * 0.5, y: viking.y + Math.sin(a) * 0.4, z: Math.random() * 1.8, vx: Math.cos(a) * w, vy: Math.sin(a) * w, vz: 1.5 + Math.random() * 2.5, vida: 1.2, max: 1.2, tam: 0.06, cor: 46 + Math.random() * 10 }); }
-    { const [x2, y2] = altarMundo(ra, eb - 1.2), q = admChaoLivre(x2, y2); if (q) viking.alvo = { x: q[0], y: q[1], correr: false }; }   // (um passo para fora, para a câmera)
-    const ti = cenaDom().querySelector(".cn-titulo"); ti.querySelector("b").textContent = NOME_CLASSE[c]; ti.querySelector("span").textContent = CENA_ORIGEM[c] || ""; ti.classList.add("vis");
-    yield 2;
-    cenaDizer(CENA_FALAS.a3);
-    yield 2.6;
-    ti.classList.remove("vis");
-    if (nivelMissaoOk(MISSOES.biombo) && estadoMissao("biombo").etapa < 0) { cenaDizer(CENA_FALAS.a4); yield 4.2; }
-    C.m.enrola = C.t;                                                    // (o rolo se enrola e sobe)
-    yield 1.1;
-    C.aoFim = fim;
-  })(), { semAlvo: true, pular: () => { CENA.aoFim = fim; cenaFechar(); } });
-  return true;
-}
+// (R380) a cena B, a transformação no Altar, saiu com o aprendiz
 function cenaModeloPronto() { try { return !(typeof P3D === "object" && P3D.ligado) || !!P3D.vale(viking) || !!(SPR.parado && SPR.parado[0]); } catch (e) { return true; } }
-// a dica do P depois da classe nova (03/11): o aviso fica 10 s, a dica vai ao chat e, na 1ª vez que a ficha abrir com pontos sobrando, a aba Skills brilha
+// a dica do P depois da classe nova (03/11; desde 09/11, o save antigo que escolheu a classe ao entrar, R381): o aviso fica 10 s, a dica
+// vai ao chat e, na 1ª vez que a ficha abrir com pontos sobrando, a aba Skills brilha
 function dicaClasseNova(c) {
   const n = (prog && prog.pontosSkill) || 0;
   avisarLongo(`Você agora é ${NOME_CLASSE[c]}! Aperte P e clique na aba Skills para distribuir os seus ${n} pontos de skill.`, 10000, true);   // (fixo: as cartas que chegam junto não cobrem)
-  chatSistema(`A Guardiã do Altar confirmou a sua escolha: ${NOME_CLASSE[c]}.`, "nivel");
+  chatSistema(`Classe escolhida: ${NOME_CLASSE[c]}.`, "nivel");
   chatSistema(`Dica: aperte P e clique na aba Skills para distribuir os seus ${n} pontos de skill (as skills começam no 0).`, "nivel");
   prog.dicaSkills = 1; salvarProgresso();
 }
