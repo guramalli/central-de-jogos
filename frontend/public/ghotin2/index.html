@@ -1684,7 +1684,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.97 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.98 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -1881,7 +1881,7 @@
         <dt>Chuva (arqueiro)</dt><dd>Chuva de Flechas: mire no chão e clique onde ela deve cair; ele atira para o alto e as flechas caem num círculo de 3,2 m (24 flechas, mais densas no centro). Flecha de Fogo: segura a corda, a ponta esquenta e a flecha sai pegando fogo (dano alto e o alvo queima). As flechas não seguram as criaturas: mantenha a distância, atire e fuja</dd>
         <dt>C</dt><dd>ver a colisão: caixa em volta de tudo que bloqueia, o chão onde não dá para pisar e a rota do clique</dd>
         <dt>3 (arqueiro)</dt><dd>Passos Leves: uma lufada de vento nos pés e por 20 s ele anda e corre 45% mais rápido, deixando um rastro de vultos e vento para trás (recarga de 30 s). Bom para abrir distância e continuar atirando</dd>
-        <dt>Feiticeiro</dt><dd>ataca de longe (até 8,5 m) com a bola arcana, que sai da esfera do cajado e persegue o alvo. A esfera pulsa do violeta ao azul e solta faíscas; enquanto ele conjura, a magia é sugada para dentro dela</dd>
+        <dt>Feiticeiro</dt><dd>luta corpo a corpo com a espada, num combo de 4 golpes, e lança a magia negra pelas skills</dd>
         <dt>1 a 6 (feiticeiro)</dt><dd>a Magia Negra: Golpe das Trevas (a bola negra que estoura no alvo e em volta), Golpe de Chama (o fogo abre no chão em volta dele, 5 m), Espírito de Fogo (um espírito ao lado do ombro atira sozinho, gastando mana), Proteção das Trevas (mais defesa e 1/3 dos golpes vai para a mana), Golpe Espiritual (estoura no alvo e pode deixar lento) e Orbe das Trevas (salta e lança o orbe, a explosão mais forte). Os números de cada uma estão na dica da ficha (P)</dd>
         <dt>P · Q · R · X</dt><dd>ficha do personagem (nome, nível, experiência, atributos, skills e bolsa) · as quests ativas · Poção Vermelha · Poção Azul (em 3 tamanhos, Pequena, Média e Grande, com valores fixos; a tecla escolhe a maior que não passa do que falta). Cada skill gasta mana (a INT aumenta a mana). A vida e a mana voltam a cada 3 s, mais depressa parado e devagar lutando; as poções curam aos poucos, até 7% por segundo. Cada criatura dá exp pelo nível dela; cada nível dá 3 pontos para VIT (vida e defesa), INT (magia), FOR (força) e DEX (destreza e crítico). As pedras Ghotin (Tristeza Nv 5, Batalha Nv 10, Ganância Nv 15; quanto maior o nível, maior a pedra e o raio das trevas em volta dela, onde as criaturas ficam amaldiçoadas: +30% de vida, +20% de dano, +25% de EXP e de drop) aparecem pelo mapa com defensores, chamam hordas quando apanham e, quebradas, soltam livros de skill da sua classe, poções e Gold: o livro sobe a skill (1 a 10, depois M1 a M10), com chance de falhar</dd>
         <dt>Cavernas</dt><dd>como no Tibia: há um buraco com escada logo fora do portão sul, perto do treino. Pisando nele você desce para a Caverna dos Ratos (escura, com tochas; os ratos vivem em bandos grandes). A escada perto da entrada leva de volta</dd>
@@ -11779,6 +11779,33 @@ const VIKING_VAR = (() => {
   return v ? { chave: k, ...v } : null;
 })();
 const vikingVar = () => !!VIKING_VAR && classe === "viking";
+// (10/11, R394, o usuário: "Troque o shura miragem atual por esse, coloque os efeitos das skills" e, depois, "Esse shura entra no
+// lugar do feiticeiro, vou refazer as skills do outro amanha") o FEITICEIRO padrão (a Magia Negra) é o Xura que o usuário mandou,
+// animado pelo ChatGPT com as 6 skills da Magia Negra: 3d/feiticeiro_chatgpt.glb, montado no build por
+// Tools/shura_novo/chatgpt/preparar_shura_chatgpt.py (a escala do shura de antes, o cajado e a esfera do feiticeiro de antes na mão
+// direita, os tempos dos clipes; o dano, a morte e os montados copiados do feiticeiro de antes). Ele usa o caminho do viking novo
+// (pedidoVikingNovo), com o mapa dele (feitNovoAlvo); o ritmo do jogo e os efeitos das skills não mudam, só o clipe. O shura não
+// muda. VOLTAR AO FEITICEIRO DE ANTES: FEIT_PADRAO = "" (ou ?feiticeiro=antigo, só nesta aba)
+const FEIT_PADRAO = "chatgpt";
+const FEIT_VAR = (() => {
+  const k0 = new URLSearchParams(location.search).get("feiticeiro"), k = k0 === null || k0 === "" ? FEIT_PADRAO : k0;
+  return k === "chatgpt" ? { chave: k, glb: "3d/feiticeiro_chatgpt.glb", nome: "Feiticeiro novo", novo3d: true, padrao: true } : null;
+})();
+const feitNovo = () => !!FEIT_VAR && classe === "feiticeiro";
+// (R394, o usuário: "retire essa animacao de tiro com a espada") o feiticeiro novo bate com o combo de 4 golpes de espada. O feiticeiro.json só
+// tem a bola: os golpe1 a golpe4 entram no manifesto dele com os tempos dos golpes do shura (os quadros, o acerto e a emenda do shura.json,
+// que o CANCELA_SHURA segue; sem o avanço). No 2D (sem o 3D), o desenho do golpe é a folha da bola
+const GOLPES_FEIT_NOVO = { golpe1: { quadros: 22, acerto: 7, emenda: 13 }, golpe2: { quadros: 20, acerto: 5, emenda: 10 }, golpe3: { quadros: 23, acerto: 5, emenda: 9 }, golpe4: { quadros: 24, acerto: 11 } };
+function golpesFeitNovo() {
+  if (!FEIT_VAR || !MF || !MF.animacoes || MF.animacoes.golpe1) return;
+  const b = MF.animacoes.bola || {};
+  for (const [n, g] of Object.entries(GOLPES_FEIT_NOVO)) {
+    MF.animacoes[n] = { fps: 20, laco: false, ...g, w: b.w, h: b.h, px: b.px, py: b.py };
+    if (SPRF.bola && !SPRF[n]) SPRF[n] = SPRF.bola;
+  }
+}
+// o modelo 3D novo do herói (o viking ou o feiticeiro do ChatGPT): o glb dele no lugar do 3d/<classe>.glb
+const VAR_3D = { viking: VIKING_VAR, feiticeiro: FEIT_VAR };
 const viking = { x: 0.6, y: -22.4, dir: 2, anim: VIKING_VAR ? "parado_armado" : "parado", t: 0, acao: null, espada: VIKING_VAR ? "armada" : "costas", ociosoArmado: 0, combo: 0, fila: null, acertou: false, alvo: null, caido: false, noLugar: null };
 let acertos = 0;
 const OCIOSO_GUARDAR = 4;
@@ -11815,19 +11842,19 @@ const CANCELA = { golpe1: 9, golpe2: 9, golpe3: 9, golpe4: 9, sacar_golpe: 12, g
 const CANCELA_NINJA = { golpe1: 7, golpe2: 7, golpe3: 7, golpe4: 7, golpe5: 10 }, DANO_NINJA = 0.75, DANO_NINJA_5 = 1.3, EMPURRA_NINJA = 0.06;
 const CANCELA_SHURA = { golpe1: 13, golpe2: 10, golpe3: 9 };   // (o shura: as emendas do shura.json)      // (a xamã: 4 golpes, emendas do Logs/Xama/rodada6/INDEX_HTML.md)
 const CANCELA_APRENDIZ = { golpe1: 9, golpe2: 9 };
-const corteCombo = a => (classe === "ninja" ? CANCELA_NINJA : ehXama() ? { golpe1: M.animacoes.golpe1 && M.animacoes.golpe1.emenda, golpe2: M.animacoes.golpe2 && M.animacoes.golpe2.emenda, golpe3: M.animacoes.golpe3 && M.animacoes.golpe3.emenda } : classe === "shura" ? CANCELA_SHURA : classe === "aprendiz" ? CANCELA_APRENDIZ : CANCELA)[a];
-const nGolpes = () => classe === "aprendiz" ? 3 : ehXama() || classe === "shura" ? 4 : 5;
+const corteCombo = a => (classe === "ninja" ? CANCELA_NINJA : ehXama() ? { golpe1: M.animacoes.golpe1 && M.animacoes.golpe1.emenda, golpe2: M.animacoes.golpe2 && M.animacoes.golpe2.emenda, golpe3: M.animacoes.golpe3 && M.animacoes.golpe3.emenda } : classe === "shura" || feitNovo() ? CANCELA_SHURA : classe === "aprendiz" ? CANCELA_APRENDIZ : CANCELA)[a];
+const nGolpes = () => classe === "aprendiz" ? 3 : ehXama() || classe === "shura" || feitNovo() ? 4 : 5;
 const fatorNinja = () => classe !== "ninja" || triplo.restam > 0 || vortice.ativo ? 1 : DANO_NINJA * (viking.acao === "golpe5" ? DANO_NINJA_5 : 1);
 function atacar(estilo) {
   if (viking.caido) return;
   if (viking.montado) {
     // o Cavalo de Iniciante não ataca; do Blindado em diante, o golpe básico único, repetido (sem o combo a pé)
     if (cavaloDe().nivel < 11) { avisoMontado("O Cavalo de Iniciante não ataca: o ataque montado começa no cavalo nível 11"); return; }
-    if (classe !== "arqueiro" && classe !== "feiticeiro") { if (!exigeAlvo()) return; estilo = 1; }
+    if (classe !== "arqueiro" && (classe !== "feiticeiro" || feitNovo())) { if (!exigeAlvo()) return; estilo = 1; }
   }
   if (!estilo && !exigeAlvo()) return;
   if (classe === "arqueiro") { atirar(); return; }
-  if (classe === "feiticeiro") { conjurar(); return; }
+  if (classe === "feiticeiro" && !feitNovo()) { conjurar(); return; }   // (R394: o feiticeiro novo não atira: o combo de espada, abaixo)
   if (!viking.acao && (classe === "ninja" || (viking.semGolpe || 0) > COMBO_PAUSA) && !estilo) viking.combo = 0;
   // ninja pedindo tarde (já passou da emenda): termina este e recomeça do 1º
   if (classe === "ninja" && !estilo && /^golpe[1-4]$/.test(viking.acao || "") && Math.floor(viking.t * M.animacoes[viking.acao].fps) > CANCELA_NINJA[viking.acao] + 1) { viking.fila = "golpe1"; viking.combo = 1; return; }
@@ -11837,7 +11864,7 @@ function atacar(estilo) {
   mirarBoneco();
   if (classe === "ninja" || classe === "guerreiro" || ehXama() || classe === "shura" || classe === "aprendiz" || vikingVar()) viking.espada = "armada";   // o ninja (adagas), o guerreiro (machado) e a xamã (leque) estão sempre armados (e o viking de teste)
   // com a espada nas costas, o primeiro golpe já sai do saque (sacar_golpe: tira por cima do ombro e desce cortando)
-  if (viking.espada === "costas") { if (n === 1) tocar("sacar_golpe", true); else { tocar("sacar", true); viking.fila = "golpe" + n; } }
+  if (viking.espada === "costas" && !feitNovo()) { if (n === 1) tocar("sacar_golpe", true); else { tocar("sacar", true); viking.fila = "golpe" + n; } }   // (R394: o feiticeiro novo não saca: a espada já está na mão, e ele não tem as poses "armado")
   else if (classe === "viking" && viking.anim === "correndo_armado" && M.animacoes.golpe1_da_corrida && !estilo) {
     // vindo da corrida é sempre o golpe1 da corrida (n = 1), mesmo na janela do combo: o golpe2 normal saía da guarda com
     // um salto de 150° contra a espada da corrida. O clipe começa exatamente no q0 ou q7 dela: fora deles, espera (≤ 0,28 s)
@@ -14423,7 +14450,7 @@ const usaM2 = nome => !!SKILL_M2[nome] && !CLASSES_SKILL_ANTIGA.has(classe);
 function multSkill(nome) { return usaM2(nome) ? 1 : 1 + 0.8125 * (kSkill(nome) - K_SKILL[1]); }
 function duraSkill(nome) { return 1 + 0.40625 * (kSkill(nome) - K_SKILL[1]); }
 // o nosso golpe normal: a média do dano-base do ataque básico de cada classe (GOLPE_BASICO), antes do ataque do herói
-const GOLPE_NOSSO = { viking: 11, guerreiro: 11, ninja: 11 * DANO_NINJA, arqueiro: 12.5, xama: 11, xama_dragao: 11, shura: 11, feiticeiro: 21.5, aprendiz: 11 };
+const GOLPE_NOSSO = { viking: 11, guerreiro: 11, ninja: 11 * DANO_NINJA, arqueiro: 12.5, xama: 11, xama_dragao: 11, shura: 11, feiticeiro: FEIT_VAR ? 11 : 21.5, aprendiz: 11 };   // (R394: o feiticeiro novo bate de espada)
 const JOB_M2 = { viking: "guerreiro", guerreiro: "guerreiro", shura: "guerreiro", ninja: "ninja", arqueiro: "ninja", xama: "xama", xama_dragao: "xama", feiticeiro: "guerreiro" };   // (09/11: o feiticeiro é o Sura da Magia Negra, 2 × FOR, como no ComputeBattlePoints)
 // o golpe normal do Metin2 (o atk de ComputeBattlePoints, sem arma)
 function atkM2(a, lv) {
@@ -20566,7 +20593,10 @@ function classeDaSkill(nome) { for (const [c, l] of [["viking", SKILLS_VIKING], 
 function ondeCaiRaro() { return "Cai só das Pedras Ghotin (e, às vezes, do baú dos chefes das cavernas)."; }
 function livroQualquer() { const l = todasAsSkills(); return { tipo: "livro", nome: l[Math.floor(Math.random() * l.length)] }; }
 // as armas (uma por classe), desenhadas em pé num espaço de 1 × 3
-const ARMAS = { aprendiz: { nome: "Espada de Treino", desenho: "treino" }, viking: { nome: "Espada", desenho: "espada" }, arqueiro: { nome: "Arco", desenho: "arco" }, feiticeiro: { nome: "Cajado", desenho: "cajado" }, ninja: { nome: "Adaga", desenho: "adagas" }, guerreiro: { nome: "Machado", desenho: "machado" }, xama: { nome: "Leque", desenho: "leque" }, xama_dragao: { nome: "Leque", desenho: "leque" }, shura: { nome: "Espada", desenho: "espada", icone: "sombria" } };   // (08/11: o modelo 0 com o nome do Metin2 BR, como o ARMAS_TIER)
+const ARMAS = { aprendiz: { nome: "Espada de Treino", desenho: "treino" }, viking: { nome: "Espada", desenho: "espada" }, arqueiro: { nome: "Arco", desenho: "arco" }, feiticeiro: { nome: "Espada", desenho: "espada" }, ninja: { nome: "Adaga", desenho: "adagas" }, guerreiro: { nome: "Machado", desenho: "machado" }, xama: { nome: "Leque", desenho: "leque" }, xama_dragao: { nome: "Leque", desenho: "leque" }, shura: { nome: "Espada", desenho: "espada", icone: "sombria" } };   // (08/11: o modelo 0 com o nome do Metin2 BR, como o ARMAS_TIER)
+// (10/11, R394, o usuário: "Esse novo Shura deixa ele com espada. A gente não vai usar mais cajado no jogo" e "retire essa animacao de tiro
+// com a espada, ela so servia para o feiticeiro porque ele usava um cajado magico") o feiticeiro segura a espada e bate corpo a corpo, com
+// o combo de 4 golpes do shura: a espada de todo jeito (os modelos 3D espada_1 … espada_6, os ícones e o golpe básico [9, 13])
 // o desenho do ÍCONE da arma da classe (R260: o shura tem as lâminas dele, "sombria"; o "desenho" continua o da espada, que
 // escolhe o modelo 3D e o golpe básico)
 function desenhoArma(c) { const a = ARMAS[c] || ARMAS.viking; return a.icone || a.desenho; }
@@ -20603,7 +20633,8 @@ const ARMAS_TIER = {
   arqueiro: ["Arco", "Arco de Cavalgada", "Arco Bronzeado", "Arco da Ruína Negra", "Arco Espinhoso", "Arco do Unicórnio", "Arco Asa Gigante"],
   // (09/11, R384, o usuário: "os itens do feiticeiro terão que seguir o padrão do sura, porém adaptados para cajado") a linha do Sura com
   // "Cajado" no lugar de "Espada"; a Cimitarra vira o Cajado Curvo (a escolha dele)
-  feiticeiro: ["Cajado", "Cajado Curvo", "Cajado Orc", "Cajado Bastardo", "Cajado Sangrento", "Cajado do Mago Voador", "Cajado Minguante"],
+  // (10/11, R394: sem cajado no jogo, a linha do Sura com a espada, como o shura)
+  feiticeiro: ["Espada", "Cimitarra", "Espada Orc", "Espada Bastarda", "Espada Sangrenta", "Espada do Mago Voador", "Espada Minguante"],
   ninja: ["Adaga", "Adaga Tesoura", "Faca Sortuda", "Faca Fenina", "Punho Demoníaco", "Costela Afiada", "Adagas Chakram"],   // (09/11, R384: o ninja segura duas adagas)
   xama: ["Leque", "Leque do Pavão", "Leque de Pedra", "Leque do Oceano", "Leque do Fênix", "Leque da Fúria", "Leque do Sol Negro"],
   xama_dragao: ["Leque", "Leque do Pavão", "Leque de Pedra", "Leque do Oceano", "Leque do Fênix", "Leque da Fúria", "Leque do Sol Negro"],
@@ -20625,7 +20656,7 @@ const ARMAS_RARAS = {
   arqueiro: { nome: "Arco de Chifre", bon: [["medio", 32], ["skill", 8], ["monstros", 10]] },
   ninja: { nome: "Punhal da Folha Negra", bon: [["medio", 30], ["skill", 10], ["monstros", 10]] },
   shura: { nome: "Espada Plenilúnia", bon: [["medio", 22], ["skill", 18], ["monstros", 10]] },
-  feiticeiro: { nome: "Cajado Plenilúnio", bon: [["medio", 12], ["skill", 24], ["monstros", 10]] },
+  feiticeiro: { nome: "Espada Plenilúnia", bon: [["medio", 12], ["skill", 24], ["monstros", 10]] },
   xama: { nome: "Leque Vento de Outono", bon: [["medio", 12], ["skill", 22], ["monstros", 10]] },
   xama_dragao: { nome: "Leque Vento de Outono", bon: [["medio", 12], ["skill", 22], ["monstros", 10]] },
 };
@@ -22576,7 +22607,7 @@ const SKILL_DADOS = {
   "Espírito de Fogo": { sub: "Chama Viva", desc: "Um espírito de fogo flutua ao lado do ombro e atira sozinho em criaturas por perto; gasta mana enquanto dura.", ef: "Ataca sozinho por um tempo", por: "INT, o nível do herói e o da skill" },
   "Proteção das Trevas": { sub: "Véu das Trevas", desc: "Uma aura escura envolve o feiticeiro: mais defesa, e um terço de cada golpe recebido vai para a mana; gasta mana enquanto dura.", ef: "Defesa e escudo de mana", por: "INT e o nível da skill" },
   "Golpe Espiritual": { sub: "Espírito Sombrio", desc: "Um espírito sombrio é arremessado: estoura no alvo, fere os de perto e pode deixá-los lentos.", ef: "Dano mágico em área e lentidão", por: "INT, VIT, DES, o nível do herói e o da skill" },
-  "Orbe das Trevas": { sub: "Globo Negro", desc: "Junta trevas no cajado, salta e lança o orbe: a explosão fere o alvo e os de perto.", ef: "Dano mágico forte em área", por: "INT, VIT, DES, o nível do herói e o da skill" },
+  "Orbe das Trevas": { sub: "Globo Negro", desc: "Junta trevas na espada, salta e lança o orbe: a explosão fere o alvo e os de perto.", ef: "Dano mágico forte em área", por: "INT, VIT, DES, o nível do herói e o da skill" },
   // o Guerreiro Mental (03/11)
   "Técnica Cortante": { sub: "Lâmina do Espírito", desc: "O guerreiro junta o espírito no machado e o solta numa estocada: a energia voa até o alvo e fere ele e os colados a ele.", ef: "Dano à frente em até 4", por: "FOR, VIT, o ataque, o nível do herói e o da skill" },
   "Impacto Terrestre": { sub: "Machado do Céu", desc: "Salta e desce o machado no chão à frente: a pancada fere todos perto dela.", ef: "Dano à frente em até 8", por: "FOR, VIT, o ataque, o nível do herói e o da skill" },
@@ -24798,7 +24829,7 @@ const suaveM = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u
 const acaso2 = k => { const x = Math.sin(k * 12.9898) * 43758.5453; return x - Math.floor(x); };   // sorteio fixo por número
 
 // quem luta de longe (o arqueiro e o feiticeiro) e até onde
-const lutaPerto = () => classe === "viking" || classe === "ninja" || classe === "guerreiro" || ehXama() || classe === "shura" || classe === "aprendiz";
+const lutaPerto = () => classe === "viking" || classe === "ninja" || classe === "guerreiro" || ehXama() || classe === "shura" || classe === "aprendiz" || feitNovo();
 const distante = () => !lutaPerto();
 function alcanceDist() { return classe === "feiticeiro" ? ALCANCE_MAGIA : ALCANCE_ARCO; }
 
@@ -24812,6 +24843,8 @@ function limparMagias() {
 // a esfera do cajado no quadro atual, em px do sprite a partir dos pés (null fora do feiticeiro)
 function esferaAtual() {
   if (classe !== "feiticeiro" || (prog && !prog.arma)) return null;           // sem o cajado, sem a esfera
+  // (R394: no feiticeiro novo, a ponta da espada do 3D, medida a cada desenho da máscara; o "esfera" do json é o do cajado dos sprites)
+  if (feitNovo() && P3D.vale(viking)) { const i = P3D.inst.get(viking); return i && i.esfera ? i.esfera : null; }
   const e = M.animacoes[viking.anim].esfera, p = e && e[dirTela(viking.dir)] && e[dirTela(viking.dir)][quadroAtual()];
   return Array.isArray(p) ? p : null;
 }
@@ -25362,6 +25395,7 @@ function trocarClasse(nova, voc = null) {
   if (!MA || !MF || (nova === classe && (nova !== "aprendiz" || voc === VOCACAO))) return;
   salvarProgresso(); jornadaSalvar();
   classe = nova; VOCACAO = nova === "aprendiz" ? voc : null;
+  if (classe === "feiticeiro") golpesFeitNovo();
   M = { viking: MV, arqueiro: MA, feiticeiro: MF, ninja: MN || MV, guerreiro: MG || MV, xama: MX || MV, xama_dragao: MXD || MV, shura: MS || MV, aprendiz: MP || MV }[classe]; SPR = { aprendiz: MP ? SPRP : SPRV, viking: SPRV, arqueiro: SPRA, feiticeiro: SPRF, ninja: MN ? SPRN : SPRV, guerreiro: MG ? SPRG : SPRV, xama: MX ? SPRX : SPRV, xama_dragao: MXD ? SPRXD : SPRV, shura: MS ? SPRS : SPRV }[classe];   // sem o ninja.json, o viking escurecido
   const v = viking;
   const sempreArmado = classe === "ninja" || classe === "guerreiro" || ehXama() || classe === "shura" || classe === "aprendiz" || vikingVar();
@@ -29544,7 +29578,7 @@ function passo(dt) {
   // o andar, o arrancar e o parar tocam no ritmo da passada (parando, o mesmo de quando andava)
   const rAndar = Math.min((andando ? vel : VELOCIDADE * furiaVelMov() * velPes()) / M.andar, CADENCIA_MAX * (pes.buff > 0 || XAMA.redemoinho.buff > 0 ? 1.3 : 1));
   const esperaParar = !andando && !v.acao && classe === "viking" && v.anim === "correndo_armado";   // (segue no ritmo da corrida)
-  const ritmo = v.acao && v.acao.startsWith("correr_para_guarda") ? 2 : /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando && !esperaParar ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] * conjuraRedemoinho(v.anim) : ANIMS_XAMA.has(v.anim) ? conjuraRedemoinho(v.anim) : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? furiaVelAtq() : golpeia && (classe === "ninja" || classe === "guerreiro") ? RITMO_GOLPE_CLASSE[classe] : golpeia && classe === "shura" && /^golpe\d/.test(v.anim) ? RITMO_GOLPE_CLASSE.shura : ehXama() && /^golpe[1-4]$/.test(v.anim) ? RITMO_COMBO_XAMA[v.anim] : 1) * (vortice.ativo ? 1.35 : 1)
+  const ritmo = v.acao && v.acao.startsWith("correr_para_guarda") ? 2 : /^(andando|arrancar|parar)/.test(v.anim) ? rAndar : !andando && !esperaParar ? (RITMO_CAST[v.anim] ? RITMO_CAST[v.anim] * conjuraRedemoinho(v.anim) : ANIMS_XAMA.has(v.anim) ? conjuraRedemoinho(v.anim) : golpeia && triplo.restam > 0 ? 1.6 : golpeia && furia.buff > 0 ? furiaVelAtq() : golpeia && (classe === "ninja" || classe === "guerreiro") ? RITMO_GOLPE_CLASSE[classe] : golpeia && (classe === "shura" || feitNovo()) && /^golpe\d/.test(v.anim) ? RITMO_GOLPE_CLASSE.shura : ehXama() && /^golpe[1-4]$/.test(v.anim) ? RITMO_COMBO_XAMA[v.anim] : 1) * (vortice.ativo ? 1.35 : 1)
               : v.anim.startsWith("correndo") ? Math.min(vel / M.correr, CORRIDA_MAX * (pes.buff > 0 || XAMA.redemoinho.buff > 0 ? 1.3 : 1) * (status.velEquip || 1)) : 1;
   // (07/11, R321: a Rapidez de ataque dos adicionais, o ATT_SPEED do Metin2: o golpe normal e o tiro básico mais rápidos)
   // (08/11, R367: com a Velocidade de Ataque fixa da arma, o ritmo-base é dividido por 1,22: a Espada +0, 22%, fica igual a antes)
@@ -29585,7 +29619,7 @@ function passo(dt) {
     v.acertou = true;
     if (/^(atirar|chuva|certeiro)$/.test(v.anim)) estouroArco();
     if (v.anim === "atirar" || v.anim === "bola") v.recargaTiro = (INTERVALO_TIRO[classe] || 0) * RITMO_BASE_ARMA / (1 + (status.rapidez || 0));   // (07/11: a Rapidez de ataque; 08/11, R367: a da arma, sobre o ritmo-base ÷ 1,22)
-    if (classe === "feiticeiro") soltarMagia(v.anim);
+    if (classe === "feiticeiro" && !(feitNovo() && /^golpe\d/.test(v.anim))) soltarMagia(v.anim);   // (R394: o golpe de espada fere como os outros)
     else if (v.anim === "atirar") soltarFlecha();
     else if (v.anim === "chuva") soltarChuva();
     else if (v.anim === "certeiro") soltarCerteiro();
@@ -31621,7 +31655,7 @@ const MODELOS_3D = {
 const NPC_3D = { "Guarda Real": "guarda_real", "Guarda Sigrid": "guarda", "Senhor do Armazém": "armazem" };
 const NPC_TINTA = {};                          // (os NPCs com o modelo de uma classe: o giro de cor da roupa deles, e sem a arma)
 // a parte da arma que brilha com o refino (a máscara do brilho, como a fileira de baixo das tiras dos sprites)
-const MASCARA_3D = { viking: ["peca_espada"], ninja: ["peca_adaga_d", "peca_adaga_e"], guerreiro: ["peca_machado"], arqueiro: ["peca_arco"], feiticeiro: ["peca_esfera"], xama: ["peca_leque"], xama_dragao: ["peca_leque"], shura: ["peca_espada"] };
+const MASCARA_3D = { viking: ["peca_espada"], ninja: ["peca_adaga_d", "peca_adaga_e"], guerreiro: ["peca_machado"], arqueiro: ["peca_arco"], feiticeiro: FEIT_VAR ? ["peca_espada"] : ["peca_esfera"], xama: ["peca_leque"], xama_dragao: ["peca_leque"], shura: ["peca_espada"] };
 const P3D = { ligado: (() => { const q = new URLSearchParams(location.search); return !q.has("2d") && (q.has("3d") || !MODO_TESTE); })(),
               modelos: {}, inst: new Map(), fila: [], ativos: 0, quadro: 0, qual: 1, prateleiras: [], yLivre: 0, stats: {} };
 window.R3D = P3D;
@@ -31794,11 +31828,13 @@ async function abrirModelo3d(m) {
   let gltf = null;
   // (o viking de teste, ?viking=mixamo ou ?viking=novo: o glb dele, sem cache; sem a chave, o 3d/viking.glb de sempre)
   // (R390: o viking padrão, o novo, vem do 3d/ com o ?v= do versoes.json, como os outros; os de teste, sem cache)
-  m.arq = m.nome === "viking" && VIKING_VAR ? VIKING_VAR.glb + (VIKING_VAR.padrao ? "" : "?t=" + Date.now()) : "3d/" + m.nome + ".glb";
+  // (R394: o feiticeiro padrão, o novo, também: 3d/feiticeiro_chatgpt.glb)
+  const VV = VAR_3D[m.nome] || null;
+  m.arq = VV ? VV.glb + (VV.padrao ? "" : "?t=" + Date.now()) : "3d/" + m.nome + ".glb";
   try { gltf = await new Promise((ok, erro) => p.loader.load(m.arq, ok, undefined, erro)); }
-  catch (e) { if (m.nome !== "viking" || !VIKING_VAR) try { gltf = await abrirJson3d(m.nome); } catch (e2) {} else if (VIKING_VAR.padrao) try { gltf = await abrirJson3d("viking_chatgpt"); } catch (e2) {} }
-  if (!gltf) { m.erro = "sem o glb"; if (m.nome === "viking" && VIKING_VAR) avisar((VIKING_VAR.padrao ? "Viking: " : "Viking de teste: ") + "não achei " + VIKING_VAR.glb); return; }
-  try { await montarModelo3d(m, gltf); if (m.nome === "viking" && VIKING_VAR) prepararVikingVar(m); m.ok = true; aquecerModelo3d(m); if (m.nome === "viking" && VIKING_VAR && !VIKING_VAR.padrao) avisar("Viking de teste: " + VIKING_VAR.nome); if (m.nome === "viking") montadosVikingNovo(); }   // (R235: os programas antes do 1º desenho)
+  catch (e) { if (!VV) try { gltf = await abrirJson3d(m.nome); } catch (e2) {} else if (VV.padrao) try { gltf = await abrirJson3d(VV.glb.replace(/^3d\//, "").replace(/\.glb$/, "")); } catch (e2) {} }
+  if (!gltf) { m.erro = "sem o glb"; if (VV) avisar((VV.padrao ? NOME_CLASSE[m.nome] + ": " : "Viking de teste: ") + "não achei " + VV.glb); return; }
+  try { await montarModelo3d(m, gltf); if (VV) prepararVikingVar(m); m.ok = true; aquecerModelo3d(m); if (VV && !VV.padrao) avisar("Viking de teste: " + VV.nome); if (VV) montadosVikingNovo(); }   // (R235: os programas antes do 1º desenho)
   catch (e) { console.error("3d " + m.nome + ":", e); m.erro = e.message; }
 }
 // a aparência escolhida na vitrine 3D: cor viva (saturação) 1,35, brilho 0,95 e sem contorno (CONTORNO_3D = false)
@@ -32122,6 +32158,60 @@ function vikingNovoAlvo(m, n, ctx) {
   if (/^golpe/.test(b) && m.clips.golpe1) return { clip: "golpe1", nos: VIKING_NOVO_NOS.golpe1[1] };
   return { clip: m.clips.parado ? "parado" : Object.keys(m.clips)[0], laco: true };
 }
+// ---- (10/11, R394) o feiticeiro novo (FEIT_VAR, o Xura do ChatGPT): o mesmo caminho do viking novo. O tempo da página
+// (feiticeiro.json, 20 q/s) vira o do clipe (30 q/s) por nós; o ACERTO da página (onde soltarNegra solta a skill e o FX3 desenha o
+// efeito) cai no instante do clipe que faz o mesmo que o vídeo do Metin2 (Logs/FeiticeiroNegro/MOVIMENTOS.md): o glb do ChatGPT tem
+// as 6 skills da Magia Negra, e a mão esquerda (o braço possuído) é a que lança, como no FX3. As folhas dos clipes: Logs/Shura/chatgpt/8dir
+//   o ataque básico (R394: "retire essa animacao de tiro") é o combo de 4 golpes de espada, com os tempos do shura;
+//   bola (o tiro de antes, que o feiticeiro novo não usa mais) → golpe1;
+//   Golpe das Trevas → skill_esfera_sombria: a garra erguida carrega a bola e a arremessa no q20 (o bote);
+//   Golpe Espiritual → skill_projetil: o mesmo corpo, o arremesso no q20;
+//   Espírito de Fogo → skill_invocacao: o braço erguido do q10 ao q40; o espírito sai da mão no q40;
+//   Proteção das Trevas → skill_protecao: a mão no peito e, no q40, os braços abrem;
+//   Golpe de Chama → skill_descarga: as mãos erguidas e o agachamento no q20 (a flor de fogo no chão);
+//   Orbe das Trevas → skill_salto: a cambalhota (de cabeça para baixo no q35, o orbe sai) e o pouso no q45 (a explosão);
+//   raio, chuva e terra (as magias antigas, que o feiticeiro não usa mais): os arremessos parecidos;
+//   dano, morte e os montados: os copiados do feiticeiro de antes (o mesmo tempo da página)
+const FEIT_NOVO_NOS = {
+  // o combo de espada (R394): golpe1 (corte q8, emenda q16); golpe2 → golpe2_combo (q4, q11); golpe3 → golpe3_combo (q5, q12) e, sem o
+  // golpe4 emendado, a volta à guarda pelo fim do golpe3 avulso (q16 a q26, a mesma pose); golpe4 → golpe4_combo (q6)
+  golpe1: ["golpe1", [[0, 0], [7, 8], [13, 16], [22, 26]]],
+  golpe2: ["golpe2_combo", [[0, 0], [5, 4], [10, 11], [20, 21]]],
+  golpe3: ["golpe3_combo", [[0, 0], [5, 5], [9, 12]]],
+  golpe4: ["golpe4_combo", [[0, 0], [11, 6], [24, 22]]],
+  bola: ["golpe1", [[0, 0], [9, 8], [19, 26]]],
+  raio: ["skill_projetil", [[0, 0], [11, 20], [24, 45]]],
+  chuva: ["skill_descarga", [[0, 0], [16, 20], [30, 42]]],
+  terra: ["skill_descarga", [[0, 0], [10, 20], [26, 42]]],
+  golpe_trevas: ["skill_esfera_sombria", [[0, 0], [14, 20], [28, 40]]],
+  golpe_espiritual: ["skill_projetil", [[0, 0], [14, 20], [29, 45]]],
+  espirito_fogo: ["skill_invocacao", [[0, 0], [26, 40], [37, 60]]],
+  protecao_trevas: ["skill_protecao", [[0, 0], [23, 40], [35, 63]]],
+  golpe_chama: ["skill_descarga", [[0, 0], [13, 20], [26, 42]]],
+  orbe_trevas: ["skill_salto", [[0, 0], [20, 35], [26, 45], [37, 60]]],
+};
+// os golpes avulsos (o combo recomeçou na guarda): golpe2 (q9), golpe3 (q9), golpe4 (o 2º corte, q11)
+const FEIT_NOVO_AVULSO = {
+  golpe2: ["golpe2", [[0, 0], [5, 9], [10, 15], [20, 26]]],
+  golpe3: ["golpe3", [[0, 0], [5, 9], [9, 16], [23, 26]]],
+  golpe4: ["golpe4", [[0, 0], [11, 11], [24, 27]]],
+};
+const FEIT_NOVO_G3_FIM = { de: 9, clip: "golpe3", nos: [[9, 16], [23, 26]] };
+const feitNovoEstado = { pag: null, tPag: 0, cortou: false, clip: null, tClip: 0, camadas: [], antes: null };
+function feitNovoAlvo(m, n, ctx) {
+  const b = n.replace(/_sem$/, "").replace(/_andando$/, "");
+  if (/^(correndo|andando)/.test(b) && m.clips.correndo) return { clip: "correndo", laco: true };
+  const k = /^golpe([2-4])$/.exec(b), av = FEIT_NOVO_AVULSO[b];
+  if (k && ctx && av && m.clips[av[0]]) {
+    const ant = (ctx.pag || "").replace(/_sem$/, "").replace(/_andando$/, "");
+    if (!(ant === "golpe" + (+k[1] - 1) && ctx.cortou)) return { clip: av[0], nos: av[1] };
+  }
+  if (b === "golpe3" && m.clips.golpe3_combo) return { clip: "golpe3_combo", nos: FEIT_NOVO_NOS.golpe3[1], depois: FEIT_NOVO_G3_FIM };
+  const c = FEIT_NOVO_NOS[b];
+  if (c && m.clips[c[0]]) return { clip: c[0], nos: c[1] };
+  if (m.clips[b] && b !== "parado") return { clip: b, direto: true };   // (dano, morte: o mesmo tempo da página)
+  return { clip: m.clips.parado ? "parado" : Object.keys(m.clips)[0], laco: true };
+}
 // o tempo do clipe (s) pelos nós: q da página → q do clipe
 function tempoNos3d(nos, qPag, fpsClip) {
   let q = nos[nos.length - 1][1];
@@ -32132,15 +32222,17 @@ function tempoNos3d(nos, qPag, fpsClip) {
 // o pedido do herói com o viking novo: o clipe, o tempo pelos nós (os laços: um ciclo do clipe por ciclo da página) e a mistura
 // com o clipe que acabou de sair
 function pedidoVikingNovo(d) {
-  const m = d.m, E = vikingNovoEstado, agora = performance.now() / 1000, sem = /_sem$/.test(d.anim);
+  const m = d.m, fe = m.nome === "feiticeiro", E = fe ? feitNovoEstado : vikingNovoEstado, agora = performance.now() / 1000, sem = /_sem$/.test(d.anim);   // (R394: o feiticeiro novo, com o mapa dele)
   const base = d.anim.replace(/_sem$/, "").replace(/_andando$/, "");  // (o golpe andando é o mesmo golpe: não conta como troca)
   if (E.pag !== base) {                                                 // trocou o nome da página: o golpe anterior foi cortado?
     const pi = E.pag && M.animacoes[E.pag];
     E.cortou = !!(pi && !pi.laco && E.tPag < pi.quadros / pi.fps - 0.02);
     E.antes = { pag: E.pag, clip: E.clip, cortou: E.cortou };
   }
-  const alvo = vikingNovoAlvo(m, d.anim, E.antes);
-  const inf = m.info[alvo.clip] || { quadros: 1, fps: 30, laco: true }, pag = d.info || M.animacoes[d.anim];
+  const pag = d.info || M.animacoes[d.anim];
+  let alvo = (fe ? feitNovoAlvo : vikingNovoAlvo)(m, d.anim, E.antes);
+  if (alvo.depois && d.t * (pag ? pag.fps : 20) >= alvo.depois.de && m.clips[alvo.depois.clip]) alvo = alvo.depois;   // (a volta à guarda noutro clipe, com a mesma pose)
+  const inf = m.info[alvo.clip] || { quadros: 1, fps: 30, laco: true };
   let t;
   // (10/11) o parado com respiração (o laço de 3 s do preparo, extras.respira) anda no relógio: segue sem salto quando o nome da
   // página troca (parado, parar, guardar...) e não acelera no ciclo de 1,5 s do parado da página
@@ -32160,12 +32252,15 @@ function pedidoVikingNovo(d) {
 }
 // (R390) os montados do viking novo: os 3 clipes do glb dele (copiados dos montados do viking de antes) no lugar dos do
 // 3d/montados.json, que são do esqueleto antigo. Chamado quando o modelo chega e quando o montados.json chega
+// (R394: e os do feiticeiro novo, copiados do feiticeiro de antes)
 function montadosVikingNovo() {
-  const m = typeof P3D === "object" && P3D.modelos && P3D.modelos.viking;
-  if (!VIKING_VAR || !VIKING_VAR.novo3d || !MONTADOS3D || !m || !m.ok || MONTADOS3D.viking === m.montados) return;
-  const d = {};
-  for (const n of ["montado_parado", "montado_ataque", "montado_galope"]) { const c = m.clips[n], i = m.info[n]; if (c && i) d[n] = { clip: c, fps: i.fps, quadros: i.quadros, laco: !!i.laco, acerto: i.acerto ?? -1 }; }
-  if (Object.keys(d).length === 3) MONTADOS3D.viking = m.montados = d;
+  for (const [cl, V] of Object.entries(VAR_3D)) {
+    const m = typeof P3D === "object" && P3D.modelos && P3D.modelos[cl];
+    if (!V || !V.novo3d || !MONTADOS3D || !m || !m.ok || MONTADOS3D[cl] === m.montados) continue;
+    const d = {};
+    for (const n of ["montado_parado", "montado_ataque", "montado_galope"]) { const c = m.clips[n], i = m.info[n]; if (c && i) d[n] = { clip: c, fps: i.fps, quadros: i.quadros, laco: !!i.laco, acerto: i.acerto ?? -1 }; }
+    if (Object.keys(d).length === 3) MONTADOS3D[cl] = m.montados = d;
+  }
 }
 // (R390) a lâmina do viking novo no quadro, como a do manifest ([base x, y, ponta x, y, atrás], px do sprite a partir dos pés):
 // a peça peca_espada do modelo 3D (a dele ou a arma 3D vestida), pela câmera do atlas. O manifest é do viking de antes
@@ -32403,6 +32498,11 @@ function instancia3d(dono, m, arma = "") {
     i.malhas = [];
     raiz.traverse(o => { if (o.isMesh) i.malhas.push({ o, mat: o.material, alvo: masc.includes(o.name) || !!(o.parent && masc.includes(o.parent.name)) }); });
     i.esferaObj = raiz.getObjectByName("peca_esfera");
+    // (R394: o feiticeiro novo segura a espada: a "esfera" de onde a bola sai e que brilha é a ponta da lâmina)
+    if (!i.esferaObj && m.nome === "feiticeiro" && FEIT_VAR) {
+      const l = raiz.getObjectByName("peca_espada");
+      if (l && l.geometry) { if (!l.geometry.boundingBox) l.geometry.computeBoundingBox(); const o = new THREE.Object3D(); o.name = "ponta_espada"; o.position.set(0, 0, l.geometry.boundingBox.max.z * 0.9); l.add(o); i.esferaObj = o; }
+    }
   }
   p.inst.set(dono, i);
   return i;
@@ -32457,7 +32557,7 @@ function pedidos3d(agora) {
     const n = animVisivel(v.anim), nf = nivelFuria(agora), fer = v.ferido > 0 ? v.ferido / 0.3 : 0;
     // ferido pisca vermelho; na fúria, o corpo avermelha (o que no sprite é a silhueta por cima)
     const ped = { dono: v, m: mh, anim: n, t: v.t, info: M.animacoes[n], ang: angDir3d(v.dir), esc: 1, emis: [0.55 * fer + 0.25 * nf, 0.06 * nf, 0], heroi: true, arma: arma3dDoHeroi() };
-    l.push(vikingVar() ? pedidoVikingVar(ped) : ped);                    // (o viking de teste: os clipes dele)
+    l.push(vikingVar() ? pedidoVikingVar(ped) : feitNovo() ? pedidoVikingNovo(ped) : ped);   // (o viking de teste: os clipes dele; R394: o feiticeiro novo)
   } else pedirModelo3d(classe, -1);
   // o cavalo solto (chamado e sem ninguém montado): segue o herói
   if (cavaloEnt.ativo && !v.montado) {
@@ -33275,7 +33375,7 @@ const INFO_CLASSE = {
   viking: { papel: "Corpo a corpo · espada grande", dif: 1, frase: "Guerreiro do norte da espada de duas mãos: entra em fúria, gira e acerta tudo em volta, e aguenta pancada." },
   guerreiro: { papel: "Corpo a corpo · machado de batalha", dif: 1, frase: "O mais resistente de todos: o machado solta energia de longe, faz o chão tremer e o corpo endurece como ferro." },
   arqueiro: { papel: "À distância · arco longo", dif: 2, frase: "Caçador das matas que mantém o inimigo longe: flechas de fogo, veneno e chuva de flechas." },
-  feiticeiro: { papel: "À distância · cajado das trevas", dif: 3, frase: "Mestre da magia negra: esferas de trevas e fogo que ferem muitos de uma vez e um espírito de fogo que ataca sozinho. Tem pouca vida." },
+  feiticeiro: { papel: "Corpo a corpo · espada e magia negra", dif: 3, frase: "Mestre da magia negra: bate com a espada e lança esferas de trevas e fogo que ferem muitos de uma vez e um espírito de fogo que ataca sozinho. Tem pouca vida." },
   ninja: { papel: "Corpo a corpo · duas adagas", dif: 3, frase: "Rápido e traiçoeiro: some nas sombras, envenena e golpeia antes de ser visto." },
   shura: { papel: "Corpo a corpo · espada e magia negra", dif: 2, frase: "Guerreiro amaldiçoado: a lâmina encantada rouba vida, a aura negra devolve os golpes e a magia tira os buffs do inimigo." },
   xama: { papel: "Suporte · leque e relâmpago", dif: 2, frase: "O raio e a cura: fere de longe, salta de alvo em alvo, corre como o vento e fortalece o próprio ataque." },
@@ -38070,7 +38170,7 @@ function listaCorpos(agora) {
     const n = animVisivel(v.anim), nf = nivelFuria(agora), fer = v.ferido > 0 ? v.ferido / 0.3 : 0;
     const ped = { dono: v, m: mh, anim: n, t: v.t, info: M.animacoes[n], dir: v.dir, esc: 1, emis: [0.55 * fer + 0.25 * nf, 0.06 * nf, 0], heroi: true, x: v.x, y: v.y, arma: arma3dDoHeroi(),
              alfa: classe === "ninja" && NINJA.esconder.buff > 0 ? 0.25 + 0.06 * Math.sin(agora * 6) : 1 };
-    l.push(vikingVar() ? pedidoVikingVar(ped) : ped);                    // (o viking de teste: os clipes dele)
+    l.push(vikingVar() ? pedidoVikingVar(ped) : feitNovo() ? pedidoVikingNovo(ped) : ped);   // (o viking de teste: os clipes dele; R394: o feiticeiro novo)
   } else pedirModelo3d(classe, -1);
   for (const c of criaturas) {
     if (c.cfg.estatico) continue;
@@ -39926,7 +40026,7 @@ function seguir(obj, criar) {
   e.visto = quadro; return e;
 }
 // ---- o rastro da arma: a ponta e o meio da peça da arma (do glb) no mundo, a cada quadro do golpe
-const PECAS = { aprendiz: ["peca_espada"], viking: ["peca_espada"], guerreiro: ["peca_machado"], ninja: ["peca_adaga_d", "peca_adaga_e"], feiticeiro: ["peca_cajado"], arqueiro: [], xama: ["peca_leque"], xama_dragao: ["peca_leque"], shura: ["peca_espada"] };
+const PECAS = { aprendiz: ["peca_espada"], viking: ["peca_espada"], guerreiro: ["peca_machado"], ninja: ["peca_adaga_d", "peca_adaga_e"], feiticeiro: FEIT_VAR ? ["peca_espada"] : ["peca_cajado"], arqueiro: [], xama: ["peca_leque"], xama_dragao: ["peca_leque"], shura: ["peca_espada"] };
 const GOLPE = /^(golpe\d|sacar_golpe|giro|punhalada|acrobacia|veneno|bola|raio|terra|lamina_espiritual|furia)/;
 let arma = null;
 function pecasArma() {
