@@ -1684,7 +1684,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.94 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.95 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -11759,10 +11759,17 @@ function sombraTinta(X, Y, r) {
 // (usuario + &glbteste=<nome>: o glb vira _subst/viking_subst_<nome>.glb, uma substituta feita do viking_mixamo.glb que só o
 //  servidor dos testes serve (rodar_testes_pvm.mjs). O glb do usuário vem de um pacote cuja licença proíbe passá-lo a uma IA,
 //  então os testes nunca o carregam; no servidor de sempre a pasta _subst/ não existe)
+// (09/11, R390, o usuário: "Troque o viking por esse novo, coloque os vfx nele e implemente") o viking PADRÃO é o novo, o glb que o
+// usuário mandou com as animações feitas pelo ChatGPT a partir do Metin2: 3d/viking_chatgpt.glb, montado no build por
+// Tools/viking_novo/chatgpt/preparar_viking_chatgpt.py (a escala, a espada em peças na mão direita, os tempos dos clipes e o dano, a
+// morte, a investida e os montados copiados do viking de antes). Ele usa o mesmo caminho dos vikings de teste (a espada sempre na
+// mão), com o mapa dele (vikingNovoAlvo). VOLTAR AO VIKING DE ANTES: VIKING_PADRAO = "" (ou ?viking=antigo, só nesta aba)
+const VIKING_PADRAO = "chatgpt";
 const VIKING_VAR = (() => {
-  const q = new URLSearchParams(location.search), k = q.get("viking");
+  const q = new URLSearchParams(location.search), k0 = q.get("viking"), k = k0 === null || k0 === "" ? VIKING_PADRAO : k0;
   const v = { mixamo: { glb: "_teste3d/viking_mixamo.glb", nome: "Viking Mixamo (rodada 3)" }, novo: { glb: "_teste3d/viking_novo.glb", nome: "Viking novo à mão (rodada 5)" },
-              usuario: { glb: "_teste3d/viking_usuario.glb", nome: "Viking do usuário" } }[k];
+              usuario: { glb: "_teste3d/viking_usuario.glb", nome: "Viking do usuário" },
+              chatgpt: { glb: "3d/viking_chatgpt.glb", nome: "Viking novo", novo3d: true, padrao: true } }[k];
   const sub = k === "usuario" && /^[a-z0-9_]{1,30}$/.test(q.get("glbteste") || "") ? q.get("glbteste") : null;
   if (v && sub) Object.assign(v, { glb: "_subst/viking_subst_" + sub + ".glb", nome: "Viking do usuário (substituta de teste: " + sub + ")", substituta: sub });
   return v ? { chave: k, ...v } : null;
@@ -17711,6 +17718,7 @@ function carregarMontados3d() {
       }
     }
     MONTADOS3D = out;
+    montadosVikingNovo();                                                // (R390: o viking novo monta com os clipes do glb dele)
     // (o Xamã Dragão: 3d/montados_dragao.json, o movimento dela nos ossos dele; se faltar o arquivo, ele não monta em T: fica a folha)
     fetch("3d/montados_dragao.json").then(r => r.json()).then(j2 => {
       const clipes = j2.classes.xama_dragao, d = {};
@@ -17779,6 +17787,7 @@ function montarCavaleiro3d(i, r) {
   const cs = r.mix ? r.mix.map(x => { const q = MONTADOS3D[classe][x.anim]; return q && { nome: x.anim, clip: q.clip, tempo: tempoM(q, x.t), w: x.w }; }).filter(Boolean) : null;
   poseMistura3d(c, r.anim, mm.clip, tempoM(mm, r.t), cs);
   if (!/ataque/.test(r.anim)) armaMontadaFixa(c);                      // (05/11: parado e galopando, a arma numa pose fixa ao lado, fora do cavalo)
+  else armaMontadaNaMao(c);                                            // (R390: o viking novo golpeia com a arma de volta na mão)
 }
 // (05/11, o usuário: "quase todos os personagens quando estão montados estao bugados, ou o cajado esta atravessando o corpo, ou o arco fica
 // virando, o machado girando, o leque virando.... quando esta montado, deixe a arma segurando em posicao normal ao lado do corpo para fora do
@@ -17798,6 +17807,10 @@ function prepararArmaMontada(c) {
   const T = THREE, pers = c.raiz.getObjectByName("personagem") || c.raiz, E = eixosCavaleiro(c);
   if (!E.hips || !E.spine || !E.ombroE || !E.ombroD || !E.e.mao || !E.d.mao) return { l: [] };
   c.raiz.updateMatrixWorld(true);
+  // (R390) o viking novo: as peças da arma são filhas do osso da mão (sem trilha própria). Montado, elas passam para o personagem
+  // (pers.attach: o mesmo lugar no mundo) e ganham a pose fixa; no ataque montado, armaMontadaNaMao as devolve à mão
+  const naMao = []; c.raiz.traverse(o => { if (ARMA_MONTADA.pecas.test(o.name) && o.parent && o.parent.isBone) naMao.push(o); });
+  for (const o of naMao) { o.userData.paiMao = o.parent; o.userData.matMao = o.matrix.clone(); pers.attach(o); }
   const inv = new T.Matrix4().copy(pers.matrixWorld).invert(), loc = o => o.getWorldPosition(new T.Vector3()).applyMatrix4(inv);
   const hips = loc(E.hips), cima = loc(E.spine).sub(hips).normalize(), lado = loc(E.ombroD).sub(loc(E.ombroE));   // (lado: para a direita do cavaleiro)
   lado.addScaledVector(cima, -lado.dot(cima)).normalize();
@@ -17836,7 +17849,12 @@ function prepararArmaMontada(c) {
     }
     l.push({ ik: E[ld], pega, pers, polo: lado.clone().multiplyScalar(sg).addScaledVector(frente, -0.6).normalize() });
   }
-  return { l, cima, frente, lado };
+  return { l, cima, frente, lado, pers };
+}
+// (R390) o ataque montado do viking novo: as peças que a pose fixa tirou da mão voltam para o osso, no lugar de antes
+function armaMontadaNaMao(c) {
+  const l = []; c.raiz.traverse(o => { if (o.userData.paiMao && o.parent !== o.userData.paiMao) l.push(o); });
+  for (const o of l) { o.userData.paiMao.add(o); o.userData.matMao.decompose(o.position, o.quaternion, o.scale); }
 }
 // o braço de 2 ossos até o alvo (no espaço do personagem): gira o de cima para o cotovelo novo e o de baixo para o alvo
 function ikBraco(b, alvoL, poloL, pers) {
@@ -17859,7 +17877,7 @@ function ikBraco(b, alvoL, poloL, pers) {
 function armaMontadaFixa(c) {
   if (typeof THREE === "undefined" || window.ARMA_MONTADA_LIVRE) return;
   const P = c.armaFixa || (c.armaFixa = prepararArmaMontada(c));
-  for (const r of P.l) if (r.o) { r.o.position.copy(r.p); r.o.quaternion.copy(r.q); r.o.scale.copy(r.e); }
+  for (const r of P.l) if (r.o) { if (P.pers && r.o.userData.paiMao && r.o.parent !== P.pers) P.pers.add(r.o); r.o.position.copy(r.p); r.o.quaternion.copy(r.q); r.o.scale.copy(r.e); }
   for (const r of P.l) if (r.ik) ikBraco(r.ik, r.pega, r.polo, r.pers);
 }
 
@@ -22689,7 +22707,8 @@ function acoesFicha() {
   const l = [{ id: "atacar", nome: { arqueiro: "Atirar", feiticeiro: "Conjurar" }[classe] || "Atacar", dica: "Marca a criatura mais perto e ataca; sem nenhuma, golpeia", usar: () => { alvoComEspaco(); if (!selecao) atacar(); } },
     { id: "alvo", nome: "Alvo", tecla: "Espaço", dica: "Marca a criatura mais perto (de novo: a próxima)", usar: () => alvoComEspaco() },
     { id: "soltar", nome: "Soltar alvo", tecla: "Esc", dica: "Solta o alvo marcado", usar: () => soltarAlvo() }];
-  if (classe === "viking") l.push({ id: "espada", nome: "Sacar/guardar", dica: "Saca a espada das costas ou guarda", usar: () => espada() });
+  // (o viking novo, sem bainha, não guarda a espada: sem a ação)
+  if (classe === "viking" && !vikingVar()) l.push({ id: "espada", nome: "Sacar/guardar", dica: "Saca a espada das costas ou guarda", usar: () => espada() });
   if (CAVALO_LIBERADO) l.push({ id: "montar", nome: "Montar", tecla: "Ctrl+G", dica: "Monta no cavalo (ou desmonta); sem ele por perto, chama antes", usar: () => alternarMontaria() });
   return l;
 }
@@ -29626,6 +29645,7 @@ let clarao = null, pontaAntes = null, quadroAntes = -1;
 function laminaAtual() {
   if (prog && !prog.arma) return null;                                     // sem arma, nada de lâmina
   if (viking.montado) return null;                                         // (R261: o manifest é da pose a pé; montado, o brilho é o da máscara do cavaleiro)
+  if (vikingVar() && VIKING_VAR.novo3d && typeof laminaHeroi3d === "function" && P3D.vale(viking)) return laminaHeroi3d();   // (R390: a lâmina do modelo novo, não a do manifest de antes)
   const info = M.animacoes[viking.anim], e = info.espada && info.espada[dirTela(viking.dir)];
   const l = e && e[quadroAtual()];
   return Array.isArray(l) ? l : null;
@@ -31744,11 +31764,12 @@ async function abrirModelo3d(m) {
   const p = P3D;
   let gltf = null;
   // (o viking de teste, ?viking=mixamo ou ?viking=novo: o glb dele, sem cache; sem a chave, o 3d/viking.glb de sempre)
-  m.arq = m.nome === "viking" && VIKING_VAR ? VIKING_VAR.glb + "?t=" + Date.now() : "3d/" + m.nome + ".glb";
+  // (R390: o viking padrão, o novo, vem do 3d/ com o ?v= do versoes.json, como os outros; os de teste, sem cache)
+  m.arq = m.nome === "viking" && VIKING_VAR ? VIKING_VAR.glb + (VIKING_VAR.padrao ? "" : "?t=" + Date.now()) : "3d/" + m.nome + ".glb";
   try { gltf = await new Promise((ok, erro) => p.loader.load(m.arq, ok, undefined, erro)); }
-  catch (e) { if (m.nome !== "viking" || !VIKING_VAR) try { gltf = await abrirJson3d(m.nome); } catch (e2) {} }
-  if (!gltf) { m.erro = "sem o glb"; if (m.nome === "viking" && VIKING_VAR) avisar("Viking de teste: não achei " + VIKING_VAR.glb); return; }
-  try { await montarModelo3d(m, gltf); if (m.nome === "viking" && VIKING_VAR) prepararVikingVar(m); m.ok = true; aquecerModelo3d(m); if (m.nome === "viking" && VIKING_VAR) avisar("Viking de teste: " + VIKING_VAR.nome); }   // (R235: os programas antes do 1º desenho)
+  catch (e) { if (m.nome !== "viking" || !VIKING_VAR) try { gltf = await abrirJson3d(m.nome); } catch (e2) {} else if (VIKING_VAR.padrao) try { gltf = await abrirJson3d("viking_chatgpt"); } catch (e2) {} }
+  if (!gltf) { m.erro = "sem o glb"; if (m.nome === "viking" && VIKING_VAR) avisar((VIKING_VAR.padrao ? "Viking: " : "Viking de teste: ") + "não achei " + VIKING_VAR.glb); return; }
+  try { await montarModelo3d(m, gltf); if (m.nome === "viking" && VIKING_VAR) prepararVikingVar(m); m.ok = true; aquecerModelo3d(m); if (m.nome === "viking" && VIKING_VAR && !VIKING_VAR.padrao) avisar("Viking de teste: " + VIKING_VAR.nome); if (m.nome === "viking") montadosVikingNovo(); }   // (R235: os programas antes do 1º desenho)
   catch (e) { console.error("3d " + m.nome + ":", e); m.erro = e.message; }
 }
 // a aparência escolhida na vitrine 3D: cor viva (saturação) 1,35, brilho 0,95 e sem contorno (CONTORNO_3D = false)
@@ -32007,8 +32028,131 @@ function trocaVikingVar(m, b) {
   if (/^(correndo|andando|arrancar|guarda_para_correr)/.test(b) && m.clips.correndo) return "correndo";
   return m.clips.parado ? "parado" : Object.keys(m.clips)[0] || "parado";
 }
+// ---- (09/11, R390) o viking novo (VIKING_VAR.novo3d, o padrão): cada nome da página vira um clipe do glb dele e o TEMPO da
+// página vira o tempo do clipe por nós [quadro da página, quadro do clipe] (a página a 20 q/s, o glb a 30), ligados em linha
+// reta. Os nós põem o ACERTO da página (o quadro em que o jogo fere e solta os efeitos: o rastro, o clarão, o Corte Triplo, a
+// explosão da Fúria, a Lâmina acesa) no quadro do corte do clipe, e o CORTE do combo (CANCELA, q9) na emenda do clipe (o
+// instante em que o golpe seguinte do glb começa, com a mesma pose). O ritmo do jogo não muda: só a velocidade do clipe.
+// Os quadros do glb vêm dos extras (impactos, emenda), medidos pela velocidade da ponta da lâmina, e dos vistos nas folhas
+// (Tools/viking_novo/chatgpt/acertos_vistos.json)
+//   golpe1 → golpe1 (corte q6, emenda q12); golpe2 → golpe2_combo (q6, q10); golpe3 → golpe3_combo (q6, q10);
+//   golpe4 → o 1º corte do golpe4_combo (o giro, q10) e golpe5 → o 2º (q18) e a volta à guarda: o glb tem 4 golpes e a página 5;
+//   golpe2/3/4 sem o anterior emendado (o combo recomeçou na guarda): os avulsos golpe2/golpe3/golpe4;
+//   Corte Triplo (triplo.restam > 0): golpe1/2/3 → os cortes q5, q17 e q26 da sequencia_golpes (o 4º corte, q34, fecha o 3º);
+//   Vórtice: giro_entra → a preparação até a volta (q0 a q23), giro_laco → uma volta inteira do quadril (q23 a q34),
+//     giro_sai → a saída (q34 a q66); Fúria → furia (a explosão no q54); Lâmina Espiritual → lamina_espiritual (a lâmina
+//     pousa no q28); investida, dano e morte → os copiados do viking de antes (o mesmo tempo da página)
+const VIKING_NOVO_NOS = {
+  golpe1: ["golpe1", [[0, 0], [6, 6], [9, 12], [15, 21]]],
+  golpe2: ["golpe2_combo", [[0, 0], [6, 6], [9, 10], [15, 18]]],
+  golpe3: ["golpe3_combo", [[0, 0], [6, 6], [9, 10], [15, 21]]],
+  golpe4: ["golpe4_combo", [[0, 0], [6, 10], [9, 13], [15, 13]]],
+  golpe5: ["golpe4_combo", [[0, 13], [6, 18], [15, 27]]],
+  golpe1_da_corrida: ["golpe1", [[0, 0], [7, 6], [10, 12], [16, 21]]],
+  golpe1_da_corrida_7: ["golpe1", [[0, 0], [7, 6], [10, 12], [16, 21]]],
+  sacar_golpe: ["golpe1", [[0, 0], [9, 6], [12, 12], [18, 21]]],
+  furia: ["furia", [[0, 0], [9, 54], [32, 108]]],
+  furia_armado: ["furia", [[0, 0], [9, 54], [32, 108]]],
+  lamina_espiritual: ["lamina_espiritual", [[0, 0], [8, 28], [24, 78]]],
+  giro_entra: ["vortice", [[0, 0], [6, 20], [9, 23]]],
+  giro_laco: ["vortice", [[0, 23], [7, 28], [15, 34]]],
+  giro_sai: ["vortice", [[0, 34], [2, 36], [12, 66]]],
+  giro: ["vortice", [[0, 0], [6, 28], [17, 66]]],
+};
+const VIKING_NOVO_AVULSO = {
+  golpe2: ["golpe2", [[0, 0], [6, 11], [9, 15], [15, 23]]],
+  golpe3: ["golpe3", [[0, 0], [6, 11], [9, 15], [15, 26]]],
+  golpe4: ["golpe4", [[0, 0], [6, 15], [9, 18], [15, 18]]],
+  golpe5: ["golpe4", [[0, 18], [6, 24], [15, 32]]],                     // (depois do golpe4 avulso)
+};
+const VIKING_NOVO_TRIPLO = {
+  golpe1: ["sequencia_golpes", [[0, 0], [6, 5], [9, 11], [15, 11]]],
+  golpe2: ["sequencia_golpes", [[0, 11], [6, 17], [9, 22], [15, 22]]],
+  golpe3: ["sequencia_golpes", [[0, 22], [6, 26], [15, 42]]],
+};
+const VIKING_NOVO_PARADO = /^(parado|parar|sacar$|guardar|correr_para_guarda)/, VIKING_NOVO_CORRE = /^(correndo|andando|arrancar|guarda_para_correr)/;
+// o estado do herói para escolher o golpe emendado ou o avulso e para a mistura: o último nome da página, o tempo dele, o
+// último clipe com o tempo dele, e as camadas que estão saindo ({ anim, t, w0, t0 })
+const vikingNovoEstado = { pag: null, tPag: 0, cortou: false, clip: null, tClip: 0, camadas: [], antes: null };
+const VIKING_NOVO_MISTURA = 0.12;                                       // s: a troca de clipe misturada (sem salto de pose)
+// o clipe e os nós para o nome da página n (sem o "_sem" e o "_andando"); ctx: o estado (o golpe anterior)
+function vikingNovoAlvo(m, n, ctx) {
+  const b = n.replace(/_sem$/, "").replace(/_andando$/, "");
+  const tem = c => c && m.clips[c[0]] ? c : null;
+  if (VIKING_NOVO_CORRE.test(b) && m.clips.correndo) return { clip: "correndo", laco: true };
+  if (/^golpe[1-3]$/.test(b) && typeof triplo !== "undefined" && triplo.restam > 0 && tem(VIKING_NOVO_TRIPLO[b])) return { clip: VIKING_NOVO_TRIPLO[b][0], nos: VIKING_NOVO_TRIPLO[b][1] };
+  const k = /^golpe([2-5])$/.exec(b);
+  if (k && ctx) {
+    // o golpe N emendado no N−1 (cortado na emenda); senão o avulso, que sai da guarda (o golpe5 segue o clipe do golpe4)
+    const ant = (ctx.pag || "").replace(/_sem$/, "").replace(/_andando$/, ""), n0 = +k[1];
+    const emendado = n0 === 5 ? ctx.clip !== "golpe4" : ant === "golpe" + (n0 - 1) && ctx.cortou;
+    if (!emendado && tem(VIKING_NOVO_AVULSO[b])) return { clip: VIKING_NOVO_AVULSO[b][0], nos: VIKING_NOVO_AVULSO[b][1] };
+  }
+  if (tem(VIKING_NOVO_NOS[b])) return { clip: VIKING_NOVO_NOS[b][0], nos: VIKING_NOVO_NOS[b][1] };
+  if (m.clips[b] && b !== "parado") return { clip: b, direto: true };   // (investida, dano, morte: o mesmo tempo da página)
+  if (/^golpe/.test(b) && m.clips.golpe1) return { clip: "golpe1", nos: VIKING_NOVO_NOS.golpe1[1] };
+  return { clip: m.clips.parado ? "parado" : Object.keys(m.clips)[0], laco: true };
+}
+// o tempo do clipe (s) pelos nós: q da página → q do clipe
+function tempoNos3d(nos, qPag, fpsClip) {
+  let q = nos[nos.length - 1][1];
+  if (qPag <= nos[0][0]) q = nos[0][1];
+  else for (let k = 1; k < nos.length; k++) if (qPag <= nos[k][0]) { const [a0, b0] = nos[k - 1], [a1, b1] = nos[k]; q = b0 + (b1 - b0) * (qPag - a0) / Math.max(1e-6, a1 - a0); break; }
+  return q / fpsClip;
+}
+// o pedido do herói com o viking novo: o clipe, o tempo pelos nós (os laços: um ciclo do clipe por ciclo da página) e a mistura
+// com o clipe que acabou de sair
+function pedidoVikingNovo(d) {
+  const m = d.m, E = vikingNovoEstado, agora = performance.now() / 1000, sem = /_sem$/.test(d.anim);
+  const base = d.anim.replace(/_sem$/, "").replace(/_andando$/, "");  // (o golpe andando é o mesmo golpe: não conta como troca)
+  if (E.pag !== base) {                                                 // trocou o nome da página: o golpe anterior foi cortado?
+    const pi = E.pag && M.animacoes[E.pag];
+    E.cortou = !!(pi && !pi.laco && E.tPag < pi.quadros / pi.fps - 0.02);
+    E.antes = { pag: E.pag, clip: E.clip, cortou: E.cortou };
+  }
+  const alvo = vikingNovoAlvo(m, d.anim, E.antes);
+  const inf = m.info[alvo.clip] || { quadros: 1, fps: 30, laco: true }, pag = d.info || M.animacoes[d.anim];
+  let t;
+  if (alvo.laco) { const perP = pag && pag.laco ? pag.quadros / pag.fps : 0; t = perP ? d.t * (inf.quadros / inf.fps) / perP : d.t; }
+  else if (alvo.nos) t = tempoNos3d(alvo.nos, d.t * (pag ? pag.fps : 20), inf.fps);
+  else t = d.t;                                                         // (os copiados: quadros e fps iguais aos da página)
+  // a mistura: o clipe que saiu (ou o mesmo clipe que voltou atrás, como a volta seguinte do giro) desce de 1 a 0 em
+  // VIKING_NOVO_MISTURA s, congelado no último tempo dele
+  // (os laços dão a volta sozinhos: só conta o tempo que volta num clipe que não é laço)
+  if (E.clip && (E.clip !== alvo.clip || (!alvo.laco && t < E.tClip - 0.05))) E.camadas.push({ anim: E.clip, t: E.tClip, t0: agora });
+  E.camadas = E.camadas.filter(c => agora - c.t0 < VIKING_NOVO_MISTURA).slice(-2);
+  d.mix = E.camadas.length ? E.camadas.map(c => ({ anim: c.anim, t: c.t, w: 1 - (agora - c.t0) / VIKING_NOVO_MISTURA })) : null;
+  E.pag = base; E.tPag = d.t; E.clip = alvo.clip; E.tClip = t;
+  d.anim = alvo.clip; d.t = t; d.info = inf; d.semEsp = sem && !m.clips[alvo.clip + "_sem"];
+  return d;
+}
+// (R390) os montados do viking novo: os 3 clipes do glb dele (copiados dos montados do viking de antes) no lugar dos do
+// 3d/montados.json, que são do esqueleto antigo. Chamado quando o modelo chega e quando o montados.json chega
+function montadosVikingNovo() {
+  const m = typeof P3D === "object" && P3D.modelos && P3D.modelos.viking;
+  if (!VIKING_VAR || !VIKING_VAR.novo3d || !MONTADOS3D || !m || !m.ok || MONTADOS3D.viking === m.montados) return;
+  const d = {};
+  for (const n of ["montado_parado", "montado_ataque", "montado_galope"]) { const c = m.clips[n], i = m.info[n]; if (c && i) d[n] = { clip: c, fps: i.fps, quadros: i.quadros, laco: !!i.laco, acerto: i.acerto ?? -1 }; }
+  if (Object.keys(d).length === 3) MONTADOS3D.viking = m.montados = d;
+}
+// (R390) a lâmina do viking novo no quadro, como a do manifest ([base x, y, ponta x, y, atrás], px do sprite a partir dos pés):
+// a peça peca_espada do modelo 3D (a dele ou a arma 3D vestida), pela câmera do atlas. O manifest é do viking de antes
+function laminaHeroi3d() {
+  const p = P3D, i = p && p.vale && p.vale(viking);
+  if (!i || !i.raiz || !p.cam) return null;
+  const e = i.lamina3d || (i.lamina3d = i.raiz.getObjectByName("peca_espada"));
+  if (!e || !e.geometry || !e.visible || e.scale.x < 1e-3) return null;
+  if (!e.geometry.boundingBox) e.geometry.computeBoundingBox();
+  const bb = e.geometry.boundingBox, V = THREE.Vector3, inv = p.cam.matrixWorldInverse;
+  const pt = z => new V(0, 0, z).applyMatrix4(e.matrixWorld).applyMatrix4(inv);
+  const b = pt(Math.max(0, bb.min.z)), t = pt(bb.max.z);
+  const peito = i.peito3d || (i.peito3d = i.raiz.getObjectByName("Chest"));
+  const zc = peito ? new V().setFromMatrixPosition(peito.matrixWorld).applyMatrix4(inv).z : 0;
+  return [b.x * PX, -b.y * PX, t.x * PX, -t.y * PX, (b.z + t.z) / 2 < zc - 0.05 ? 1 : 0];
+}
 // o clipe do viking de teste para o nome da página; sem: a espada escondida (sem arma, num clipe que não tem o "_sem")
 function clipeVikingVar(m, n) {
+  if (VIKING_VAR && VIKING_VAR.novo3d) { const a = vikingNovoAlvo(m, n, vikingNovoEstado); return { clip: a.clip, sem: /_sem$/.test(n) && !m.clips[a.clip + "_sem"] }; }
   const sem = /_sem$/.test(n);
   if (m.clips[n]) return { clip: n, sem: false };
   const b = n.replace(/_sem$/, "").replace(/_andando$/, "");
@@ -32033,6 +32177,7 @@ function prepararVikingVar(m) {
 // o pedido do herói com o viking de teste: o clipe dele, as informações do glb (a corrida de 10 quadros tem o período dela) e,
 // nas ações, o tempo esticado para o clipe inteiro caber no tempo da ação da página (a Fúria, de 1,6 s, toca o golpe5 inteiro)
 function pedidoVikingVar(d) {
+  if (VIKING_VAR.novo3d) return pedidoVikingNovo(d);                   // (R390: o viking novo, com o mapa e os nós dele)
   const r = clipeVikingVar(d.m, d.anim), inf = d.m.info[r.clip], pag = d.info;
   let t = d.t;
   if (inf && !inf.laco && pag && pag.quadros) t = d.t * (inf.quadros / inf.fps) / (pag.quadros / pag.fps);
@@ -32072,11 +32217,115 @@ function alocar3d(w, h) {
 // rastro do golpe valem para a arma nova. Vem sob demanda; até chegar, fica a original. O ninja leva a mesma adaga
 // (peca_adaga) nas duas mãos; a corda e a flecha do arco continuam as do herói.
 const ARMAS_3D = {};
-// a arma do herói neste quadro ("<desenho>_<n>", ou "" para a original)
+// (09/11, R388: as 21 armas novas do Tripo, Tools/armas_novas/) as armas 3D próprias que não seguem o "<desenho>_<n>": as do shura
+// (o ícone "sombria", no modelo 4 e no 5; nos outros ele segura as espadas do viking) e a rara do guerreiro (o Ferro Vermelho). As
+// raras das outras classes continuam no modelo 2 da classe
+const ARMAS_3D_PROPRIAS = new Set(["sombria_4", "sombria_5", "machado_rara"]);
+// (09/11, R389) a Espada Sangrenta (o viking e o shura no modelo 4: espada_4 e sombria_4): o sangue pintado na lâmina escorre da
+// ponta para a guarda, sem parar (o usuário: "manter ela com esse sangue se movendo na espada o tempo todo"). Só no material da
+// lâmina (peca_espada) dessas duas; o cabo, a forma e o aço ficam como são:
+//  - a máscara é a da própria textura: os texels vermelhos e saturados (o sangue; o aço, o ouro e o couro ficam de fora);
+//  - o fluxo é no espaço da peça (z ao longo da lâmina, da guarda à ponta; y de um gume ao outro), e não no da textura (o Tripo a
+//    corta em pedacinhos): em trilhas ao longo da lâmina, uma gota molhada (mais viva, com um leve brilho somado, sem contorno)
+//    desce com o rastro dela, e o resto do sangue fica mais seco (mais escuro). A fase é periódica (fract) e o tempo volta a 0
+//    num número inteiro de ciclos: o laço não tem emenda;
+//  - por quadro, só um número (a fase, no onBeforeRender da lâmina) e o herói redesenhado no atlas mesmo parado (prepararP3d)
+// (3ª rodada, 09/11, o usuário sobre o shura: "retire a parte do sangue, deixe embutido na espada, nao ficou legal") a sombria_4 sai
+// das duas listas: fica só o sangue pintado na textura, parado. O caminho do fluxo (GLSL_SANGUE_FLUXO, a onda) fica sem uso
+const SANGUE_3D = { armas: new Set(["espada_4"]), fluxo: new Set(), uFase: { value: 0 }, ritmo: 1,
+  antes() { SANGUE_3D.uFase.value = (performance.now() / 1000 * SANGUE_3D.ritmo) % 64; } };
+// (a máscara, logo depois da textura: diffuseColor vem linear, a raiz quadrada volta para perto do sRGB das medidas)
+const GLSL_SANGUE_MASCARA = `
+  vec3 sgC = sqrt(max(diffuseColor.rgb, vec3(0.0)));
+  float sgM = smoothstep(0.45, 0.65, (sgC.r - max(sgC.g, sgC.b)) / max(sgC.r, 1e-3)) * smoothstep(0.12, 0.22, sgC.r);`;
+// (o fluxo, depois da cor do jogo: sgQ é a fase da trilha, 0 na cabeça da gota, que vai na frente, para baixo; sgW, o molhado)
+const GLSL_SANGUE_COR = `
+  float sgZ = (vSgPos.z - uSgFaixa.x) / max(uSgFaixa.y - uSgFaixa.x, 1e-3);
+  float sgA = (vSgPos.y + 0.012 * sin(vSgPos.z * 11.0)) / 0.05, sgH = fract(sin(floor(sgA) * 12.9898 + 4.1) * 43758.5453);
+  float sgQ = fract(vSgPos.z / (0.2 + 0.12 * sgH) + uSgFase + sgH * 7.0);
+  float sgW = smoothstep(0.0, 0.04, sgQ) * (1.0 - smoothstep(0.04, 0.4, sgQ));
+  float sgK = sgM * smoothstep(0.05, 0.14, sgZ);
+  diffuseColor.rgb = mix(diffuseColor.rgb, mix(diffuseColor.rgb * 0.5, vec3(0.7, 0.025, 0.012), sgW), sgK);
+  float sgBrilho = sgK * sgW * sgW;`;
+// (09/11, R389, 2ª rodada: o usuário sobre a do shura, "nao quero o sangue estatico na espada, quero ele se movendo") a sombria_4 tem
+// muito vermelho (as volutas em volta da lâmina, que são malha, e o sangue da lâmina): as gotas soltas sumiam no meio dele e tudo
+// lia como um vermelho chapado e parado. Nela (SANGUE_3D.fluxo), nenhum vermelho fica parado:
+//  - a cor: todo o vermelho vira faixas chapadas de vermelho-escuro e vermelho-vivo, de um ruído distorcido, que descem da ponta para
+//    a guarda na lâmina e sobem pelas volutas (como sangue e fumaça correndo), com o brilho somado leve no vivo;
+//  - a forma: as volutas ondulam no vertex shader (aSgOnda: o vermelho da textura em cada vértice, igual nos vértices do mesmo
+//    lugar para a malha não abrir, vezes a distância do eixo da lâmina: o núcleo e a guarda não se mexem);
+//  - o laço: o ruído se repete a cada 16 células no sentido do fluxo e o tempo entra em múltiplos inteiros da fase (que volta a 0
+//    em 64): sem emenda. O ruído tem 2 oitavas, só nesse material
+const GLSL_SANGUE_RUIDO = `
+  float sgHash(vec2 c) { c.y = mod(c.y, 16.0); return fract(sin(dot(c, vec2(127.1, 311.7))) * 43758.5453); }
+  float sgRuido(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(sgHash(i), sgHash(i + vec2(1.0, 0.0)), f.x), mix(sgHash(i + vec2(0.0, 1.0)), sgHash(i + vec2(1.0, 1.0)), f.x), f.y); }
+  float sgFbm(vec2 p) { return 0.67 * sgRuido(p) + 0.33 * sgRuido(p * 2.0 + vec2(5.2, 0.0)); }`;
+const GLSL_SANGUE_FLUXO = `
+  float sgZ = (vSgPos.z - uSgFaixa.x) / max(uSgFaixa.y - uSgFaixa.x, 1e-3);
+  float sgK = sgM * smoothstep(0.02, 0.09, sgZ);
+  float sgV = smoothstep(0.08, 0.14, length(vSgPos.xy));           // 0 na lâmina, 1 nas volutas
+  vec2 sgP = vec2(vSgPos.y * 9.0 + vSgPos.x * 6.0, vSgPos.z * 6.0);
+  sgP.x += 0.8 * sin(sgP.y * 1.9 + 6.2832 * uSgFase / 8.0);       // (a distorção, também em laço)
+  float sgDesce = sgFbm(sgP + vec2(0.0, 2.0 * uSgFase));
+  float sgSobe = sgFbm(vec2(sgP.x + 3.7, sgP.y * 1.3 - 2.0 * uSgFase));
+  float sgB = smoothstep(0.47, 0.57, mix(sgDesce, sgSobe, sgV));
+  diffuseColor.rgb = mix(diffuseColor.rgb, mix(vec3(0.045, 0.0, 0.0), vec3(0.6, 0.003, 0.002), sgB), sgK);   // (o vermelho puro, como o da textura com a cor do jogo)
+  float sgBrilho = sgK * sgB * 0.35;`;
+const GLSL_SANGUE_ONDA = `
+  { float sgT = 6.2832 * uSgFase; vec2 sgR = normalize(position.xy + vec2(1e-4, 0.0));
+    float sgO1 = sin(sgT - position.z * 16.0 + 2.0 * atan(position.y, position.x));   // (a onda sobe pela voluta)
+    float sgO2 = sin(2.0 * sgT - position.z * 27.0 + 1.3);
+    transformed.xy += aSgOnda * (sgR * 0.018 * sgO1 + vec2(-sgR.y, sgR.x) * 0.012 * sgO2);
+    transformed.z += aSgOnda * 0.008 * sin(sgT + position.y * 18.0); }`;
+// o peso da ondulação de cada vértice (o atributo aSgOnda): o vermelho da textura no uv dele (média com os vértices do mesmo lugar) vezes
+// a distância do eixo da lâmina (0 até 9 cm, o núcleo; 1 a partir de 15 cm) e a altura (nada junto da guarda)
+function ondaSangue3d(geo, img) {
+  const pos = geo.attributes.position, uv = geo.attributes.uv, n = pos.count, w = new Float32Array(n);
+  let px = null, W = 0, H = 0;
+  try { W = img.width; H = img.height; const c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d"); g.drawImage(img, 0, 0); px = g.getImageData(0, 0, W, H).data; } catch (e) { px = null; }
+  if (!px || !uv) return w;
+  const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const b = geo.boundingBox, soma = new Map();
+  for (let k = 0; k < n; k++) {
+    const i = (Math.min(H - 1, Math.max(0, Math.floor(uv.getY(k) * H))) * W + Math.min(W - 1, Math.max(0, Math.floor(uv.getX(k) * W)))) * 4;
+    const r = px[i] / 255, mx = Math.max(px[i + 1], px[i + 2]) / 255;
+    const m = sm(0.45, 0.65, (r - mx) / Math.max(r, 1e-3)) * sm(0.12, 0.22, r);
+    const ch = Math.round(pos.getX(k) * 1e4) + "," + Math.round(pos.getY(k) * 1e4) + "," + Math.round(pos.getZ(k) * 1e4), s = soma.get(ch) || [0, 0];
+    s[0] += m; s[1]++; soma.set(ch, s); w[k] = m;
+  }
+  for (let k = 0; k < n; k++) {
+    const x = pos.getX(k), y = pos.getY(k), z = pos.getZ(k), s = soma.get(Math.round(x * 1e4) + "," + Math.round(y * 1e4) + "," + Math.round(z * 1e4));
+    w[k] = (s[0] / s[1]) * sm(0.09, 0.15, Math.hypot(x, y)) * sm(b.min.z + 0.04, b.min.z + 0.2, z);
+  }
+  return w;
+}
+function sangueArma3d(mat, geo, fluxo) {
+  geo.computeBoundingBox();
+  const b = geo.boundingBox, ob = mat.onBeforeCompile;
+  const s = mat.userData.sangue = { uFase: SANGUE_3D.uFase, uFaixa: { value: new THREE.Vector2(b.min.z, b.max.z) }, compilado: false, fluxo: !!fluxo };
+  if (fluxo) { s.onda = ondaSangue3d(geo, mat.map && mat.map.image); geo.setAttribute("aSgOnda", new THREE.BufferAttribute(s.onda, 1)); }
+  mat.onBeforeCompile = (sh, r) => {
+    ob(sh, r);
+    sh.uniforms.uSgFase = s.uFase; sh.uniforms.uSgFaixa = s.uFaixa;
+    sh.vertexShader = "uniform float uSgFase; varying vec3 vSgPos;\n" + (fluxo ? "attribute float aSgOnda;\n" : "") + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vSgPos = position;" + (fluxo ? GLSL_SANGUE_ONDA : ""));
+    sh.fragmentShader = "uniform float uSgFase; uniform vec2 uSgFaixa; varying vec3 vSgPos;\n" + (fluxo ? GLSL_SANGUE_RUIDO + "\n" : "") + sh.fragmentShader
+      .replace("#include <map_fragment>", "#include <map_fragment>" + GLSL_SANGUE_MASCARA)
+      .replace("#include <alphamap_fragment>", (fluxo ? GLSL_SANGUE_FLUXO : GLSL_SANGUE_COR) + "\n#include <alphamap_fragment>")
+      .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n  totalEmissiveRadiance += vec3(0.26, 0.01, 0.005) * sgBrilho;");
+    s.compilado = true;
+  };
+  mat.customProgramCacheKey = () => "sangue3d" + (fluxo ? "_fluxo" : "");   // (as duas variantes não podem dividir o programa)
+}
+// a arma do herói neste quadro ("<desenho>_<n>", uma das ARMAS_3D_PROPRIAS, ou "" para a original)
 function arma3dDoHeroi() {
   const a = prog && prog.arma, d = ARMAS[classe] && ARMAS[classe].desenho;
   if (!a || !(a.tier >= 1) || !d || !P3D.loader) return "";
-  const k = d + "_" + a.tier, m = ARMAS_3D[k] || pedirArma3d(k);
+  let k = d + "_" + a.tier;
+  const ic = desenhoArma(classe) + "_" + a.tier;
+  if (ARMAS_3D_PROPRIAS.has(ic)) k = ic;                                // (o shura 4 e 5)
+  if (a.rara && ARMAS_3D_PROPRIAS.has(d + "_rara")) k = d + "_rara";    // (o Ferro Vermelho)
+  const m = ARMAS_3D[k] || pedirArma3d(k);
   return m.ok ? k : "";
 }
 function pedirArma3d(k) {
@@ -32087,6 +32336,7 @@ function pedirArma3d(k) {
       const mat = toon3d(o.material.map || null, new THREE.Color(0xffffff), o.material.side);
       mat.userData.cor = mat.color.clone();
       if (mat.map) limitarMip3d(mat.map);
+      if (SANGUE_3D.armas.has(k) && o.name === "peca_espada") sangueArma3d(mat, o.geometry, SANGUE_3D.fluxo.has(k));   // (R389: o sangue que escorre na lâmina)
       m.pecas[o.name] = { geo: o.geometry, mat };
     });
     m.ok = true;
@@ -32102,6 +32352,7 @@ function vestirArma3d(raiz, k, mats) {
     const p = o.isMesh && m.pecas[/^peca_adaga_[de]$/.test(o.name) ? "peca_adaga" : o.name];
     if (!p) return;
     o.geometry = p.geo; o.material = p.mat;
+    if (p.mat.userData.sangue) o.onBeforeRender = SANGUE_3D.antes;      // (R389: a fase do sangue a cada vez que a lâmina é desenhada)
     if (mats && !mats.includes(p.mat)) mats.push(p.mat);
   });
 }
@@ -32300,7 +32551,8 @@ function prepararP3d(t) {
     // (no Mundo de Tinta a pose anda a 12 quadros por segundo, como animação à mão, e o traço muda a cada quadro: p.boil)
     const animC = d.heroi && classe === "xama" ? animXama3d(i, i.anim) : i.anim;   // (a xamã: o clipe do lado da câmera)
     const clip = i.m.clips[animC] || i.m.clips[i.anim], tempo = quadroTinta(tempo3d(clip, d, d.info || i.m.info[i.anim]));
-    const chave = animC + (d.semEsp ? "|s" : "") + "|" + Math.round(tempo * (d.heroi || d.perto ? 120 : 40)) + "|" + Math.round(i.ang * 60) + "|" + d.emis.map(e => Math.round(e * 20)).join() + "|" + (d.tinta || "") + (i.mascara ? "|m" : "") + (ESTILO_TINTA ? "|" + p.boil : "") + (d.montado ? "|" + d.montado.anim + Math.round(d.montado.t * 120) + d.aparencia : d.aparencia || "") + chaveMix3d(d.mix) + (d.montado ? chaveMix3d(d.montado.mix) : "");
+    const chave = animC + (d.semEsp ? "|s" : "") + "|" + Math.round(tempo * (d.heroi || d.perto ? 120 : 40)) + "|" + Math.round(i.ang * 60) + "|" + d.emis.map(e => Math.round(e * 20)).join() + "|" + (d.tinta || "") + (i.mascara ? "|m" : "") + (ESTILO_TINTA ? "|" + p.boil : "") + (d.montado ? "|" + d.montado.anim + Math.round(d.montado.t * 120) + d.aparencia : d.aparencia || "") + chaveMix3d(d.mix) + (d.montado ? chaveMix3d(d.montado.mix) : "")
+      + (SANGUE_3D.armas.has(i.arma) || (d.montado && SANGUE_3D.armas.has(d.montado.arma)) ? "|b" + Math.floor(agora * 30) : "");   // (R389: o sangue escorre também com a pose parada)
     if (i.valido && chave === i.chave) continue;
     const hTela = (i.m.caixa.cima + i.m.caixa.baixo) * PX * zoom * d.esc;
     const passo = d.heroi || d.perto ? 1 : (d.morto ? 4 : hTela >= 260 ? 1 : hTela >= 140 ? 2 : 3);
@@ -32582,7 +32834,15 @@ function desenharViking() {
   desenharFuria(X, Y, z, agora, false);
   desenharVortice(X, Y, z, agora, false);
   const mundo3d = !!(window.M3D && M3D.ativo);            // (no mundo 3D a aura e o rastro são do próprio modelo)
-  if (nf > 0 && !mundo3d && im) {
+  // (R390: o viking novo não tem sprites da pose dele: a aura sai da silhueta do pedaço 3D, poseHeroi + silhuetaPose)
+  const poseNova = nf > 0 && !mundo3d && em3d && vikingVar() && VIKING_VAR.novo3d ? poseHeroi(z) : null;
+  if (poseNova) {
+    const sil = silhuetaPose(poseNova, "#ff3a1e"), e = 1 + 0.05 * nf;
+    cx.save(); cx.globalCompositeOperation = "lighter"; cx.globalAlpha = Math.min(1, 0.6 * nf);
+    cx.shadowColor = "rgba(255, 60, 20, 0.9)"; cx.shadowBlur = (8 + 12 * nf) * z;
+    cx.drawImage(sil, 0, 0, Math.ceil(poseNova.w), Math.ceil(poseNova.h), X - poseNova.esq * e, Y - poseNova.cima * e - 2 * z * nf, poseNova.w * e, poseNova.h * e);
+    cx.restore();
+  } else if (nf > 0 && !mundo3d && im) {
     // aura: a silhueta em vermelho, borrada e somada por trás do sprite (no 3D, a do sprite da mesma pose)
     const sil = silhueta(im, q, info, "#ff3a1e");
     cx.save(); cx.globalCompositeOperation = "lighter"; cx.globalAlpha = Math.min(1, 0.6 * nf);
