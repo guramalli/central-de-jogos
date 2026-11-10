@@ -1684,7 +1684,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.95 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.96 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -2093,6 +2093,7 @@
   <div id="oVolumes"></div>
   <h3>Imagem</h3>
   <label><input type="checkbox" id="oContorno"> Contorno dos personagens e criaturas <kbd>Y</kbd></label>
+  <label><input type="checkbox" id="oBarraHeroi"> Barras de vida e mana em cima do personagem</label>
   <label><input type="checkbox" id="oBorda"> Bordas da tela levemente embaçadas</label>
   <label><input type="checkbox" id="oFps"> Contador de quadros por segundo (fps)</label>
   <label class="o-limite">Limite de quadros <select id="oLimite" aria-label="Limite de quadros por segundo"><option value="30">30 por segundo</option><option value="60">60 por segundo</option><option value="0">sem limite</option></select></label>
@@ -12159,6 +12160,13 @@ function passoVortice(dt) {
 // 33 + 50k s. No guerreiro (o sistema antigo): +6 no dano-base de cada golpe, por LAMINA_DURA × duraSkill.
 // Com a espada nas costas, ele saca antes.
 const LAMINA_DURA = 90, LAMINA_RECARGA = 100;
+// (10/11, o usuário: "aumente um pouco o tempo de animação na lamina espiritual, no final do movimento mantenha um pouquinho mais
+// a lamina parada e o vfx também prolongado, vide vídeo da lamina espiritual do metin2") no viking novo a Lâmina dura 1,85 s
+// (era 0,92): o corte para baixo no 0,62 s e a lâmina parada na frente por ~0,8 s, como a Aura da Espada do Metin2
+// (Logs/Viking/ref_metin2_skills_0811, de 31,1 s a 33,0 s: a lâmina pousa no 31,6 s e o clarão segue até o 32,5 s). O efeito
+// do acerto segue aceso durante a parada (FX3, laminaParada). O viking de antes e o guerreiro não mudam
+const RITMO_LAMINA_NOVO = 0.65, LAMINA_PARADA = 0.8;
+const laminaNova = () => vikingVar() && !!VIKING_VAR.novo3d;
 const espiritual = { buff: 0, recarga: 0, desde: -1, valor: 0 };
 const azul = () => espiritual.buff > 0;
 
@@ -13910,12 +13918,29 @@ function reservaNova(t) {
     perto: c.perto > 3 ? c.perto : 0, alcance: c.perto > 3 ? c.alcance : 0, levanta: !!c.levanta && !!b.levanta, uiva: !!uiva && !!b.uiva, ameaca: !!ameaca && !!b.ameaca });
 }
 const NOME_CLASSE = { viking: "Viking", arqueiro: "Arqueiro", feiticeiro: "Feiticeiro", ninja: "Ninja", guerreiro: "Guerreiro", xama: "Xamã Relâmpago", xama_dragao: "Xamã Dragão", shura: "Shura", aprendiz: "Aprendiz" };
+// (R392, 10/11, o usuário: "Coloque novamente a barra de vida e mana acima da cabeça do jogador. Porque eu estava jogando, perdi
+// vida, morri e nem percebi. Coloque nas opções também, a pessoa pode retirar essa barra ou colocar") as barrinhas de vida e mana em
+// cima do herói voltam, ligadas no começo, com a parte clara da poção (R268), a pé e montado; em Opções › Imagem, "Barras de vida e
+// mana em cima do personagem" liga e desliga (fica salvo no navegador, localStorage "barraHeroi")
+let barraHeroiSalva = null;                                              // (lida uma vez: a placa é desenhada todo quadro)
+function barraHeroiLigada() { if (barraHeroiSalva === null) try { barraHeroiSalva = localStorage.getItem("barraHeroi") !== "0"; } catch (e) { barraHeroiSalva = true; } return barraHeroiSalva; }
+function barraHeroiLigar(sim) { barraHeroiSalva = !!sim; try { localStorage.setItem("barraHeroi", sim ? "1" : "0"); } catch (e) {} }
 function desenharPlacaJogador(X, Y, z) {
   if (!prog || viking.caido) return;
   const topo = topoPlacaHeroi(), y = (window.M3D && M3D.ativo ? M3D.acima(viking, topo * z) : Y - topo * z) - 4;
+  if (barraHeroiLigada()) {                                             // (R392: as barras de antes do R282, com a honra em cima do nick)
+    const v = viking, bv = v.baldeVida > 0 ? v.baldeVida : 0, bm = v.baldeMana > 0 ? v.baldeMana : 0, hon = honraDe();
+    barrinha(X, y, 56, 5, v.vida / status.vidaMax, ["#ee6a50", "#a8261a"], [(v.vida + bv) / status.vidaMax, ["#ffc8bc", "#f0907e"]], "vida");
+    barrinha(X, y + 7, 56, 4, (v.mana || 0) / status.manaMax, ["#7cc2ff", "#2a5fc0"], [((v.mana || 0) + bm) / status.manaMax, ["#dcefff", "#94c6f6"]], "mana");
+    placaNome(X, y - 6, prog.nivel, prog.nome || NOME_CLASSE[classe], hon.cor);
+    cx.save(); cx.font = "700 12px 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif"; cx.textAlign = "center"; cx.textBaseline = "middle"; cx.lineJoin = "round";
+    cx.lineWidth = 3; cx.strokeStyle = "rgba(10, 8, 6, 0.9)"; cx.strokeText(hon.titulo, X, y - 22); cx.fillStyle = hon.cor; cx.globalAlpha = 0.9; cx.fillText(hon.titulo, X, y - 22); cx.restore();
+    if (viking.balao) desenharBalao(X, y - 37);
+    return;
+  }
   // (R282, 05/11, o usuário: "retire as barras de hp e mana de cima dos personagens e deixe a honra") sem as barrinhas de vida e mana
   // em cima do herói (as de baixo e a da ficha ficam, com a parte clara da poção); o título de honra em cima do nick, e o nick na cor
-  // da honra. Os monstros e os chefes continuam com as barras e os nomes sempre à vista
+  // da honra. Os monstros e os chefes continuam com as barras e os nomes sempre à vista. Desde o R392, só com a opção desligada
   const hon = honraDe();
   placaNome(X, y + 6, prog.nivel, prog.nome || NOME_CLASSE[classe], hon.cor);
   cx.save(); cx.font = "700 12px 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif"; cx.textAlign = "center"; cx.textBaseline = "middle"; cx.lineJoin = "round";
@@ -22249,7 +22274,7 @@ function abrirOpcoes(sim = $("#opcoes").hidden) {
 function mostrarOpcoes() {
   const j = document.getElementById("opcoes");
   if (!j || j.hidden) return;
-  $("#oSom").checked = Som.ligado; $("#oMusica").checked = Som.musicaLigada; $("#oContorno").checked = contornoLigado; $("#oBorda").checked = bordaLigada(); $("#oFps").checked = FPS.ligado; $("#oLimite").value = String(LIMITE.fps); $("#oGraficos").value = GRAF.nivel; vistaMostrarOpcao();
+  $("#oSom").checked = Som.ligado; $("#oMusica").checked = Som.musicaLigada; $("#oContorno").checked = contornoLigado; $("#oBorda").checked = bordaLigada(); $("#oBarraHeroi").checked = barraHeroiLigada(); $("#oFps").checked = FPS.ligado; $("#oLimite").value = String(LIMITE.fps); $("#oGraficos").value = GRAF.nivel; vistaMostrarOpcao();
   for (const [k] of VOL_NOMES) {
     const i = j.querySelector(`input[data-vol="${k}"]`); if (!i) continue;
     i.value = Som.vol[k]; i.closest(".vol").querySelector("output").textContent = Math.round(100 * Som.vol[k]) + "%";
@@ -22272,6 +22297,7 @@ function montarOpcoes() {
   $("#oGraficos").onchange = e => { if (grafAplicar(e.target.value)) avisar(`Gráficos: ${GRAF.nome}`); };
   $("#oVista").onchange = e => { vistaEscolher(e.target.value); e.target.blur(); };   // (a vista: Normal, 37°, ou Baixa, 22°)
   $("#oBorda").onchange = e => { try { localStorage.setItem("borda", e.target.checked ? "leve" : "0"); } catch (x) {} montarBordaEmb(); };
+  $("#oBarraHeroi").onchange = e => barraHeroiLigar(e.target.checked);   // (R392: vale no próximo quadro)
   $("#opcoesPadrao").onclick = () => { Som.vol = { ...VOL_PADRAO }; aplicarVolumes(); salvarVolumes(); mostrarOpcoes(); };
   $("#opcoesFechar").onclick = () => abrirOpcoes(false);
   $("#oNovoPersonagem").onclick = () => { abrirOpcoes(false); if (MODO_TESTE && !INICIO_NOVO) abrirSelecao({ deMenu: true }); else abrirInicio({ deMenu: true }); };
@@ -24182,7 +24208,7 @@ const RITMO_COMBO_XAMA = { golpe1: 1, golpe2: 1, golpe3: 1, golpe4: 1 };   // (o
 // como no Metin2: a adaga dá 2 golpes no tempo de 1 de espada (GET_ATTACK_SPEED ÷ 2; antes 1,3), o guerreiro sem a penalidade da arma de duas
 // mãos (comentada no char_skill.cpp; antes 0,92) e o combo do shura no ritmo da espada (antes 1: 4 golpes em 2,8 s). Os clipes não mudam
 const RITMO_GOLPE_CLASSE = { ninja: 1.6, guerreiro: 1, shura: 1.25 };
-const RITMO_CAST = { atirar: RITMO_TIRO, chuva: 2.4, certeiro: 1.8, bola: 2, raio: 1.6, terra: 1.5, lamina_espiritual: 1.3, furia: 1.25, furia_armado: 1.25 };
+const RITMO_CAST = { atirar: RITMO_TIRO, chuva: 2.4, certeiro: 1.8, bola: 2, raio: 1.6, terra: 1.5, get lamina_espiritual() { return laminaNova() ? RITMO_LAMINA_NOVO : 1.3; }, furia: 1.25, furia_armado: 1.25 };
 const CORTA_ANDANDO = new Set(["atirar", "chuva", "certeiro", "bola", "raio", "terra", "lamina_espiritual", "furia", "furia_armado",
   "golpe_trevas", "golpe_chama", "espirito_fogo", "protecao_trevas", "golpe_espiritual", "orbe_trevas",   // (03/11: as da Magia Negra, no tempo do vídeo: depois que a magia sai, andar corta o resto, como nas do feiticeiro de antes)
   "tecnica_cortante", "impacto_terrestre", "tremor", "defesa_superior", "disparo_energia"]);   // (03/11: as do Guerreiro Mental, do mesmo jeito; os nomes são só dele)
@@ -32053,7 +32079,7 @@ const VIKING_NOVO_NOS = {
   sacar_golpe: ["golpe1", [[0, 0], [9, 6], [12, 12], [18, 21]]],
   furia: ["furia", [[0, 0], [9, 54], [32, 108]]],
   furia_armado: ["furia", [[0, 0], [9, 54], [32, 108]]],
-  lamina_espiritual: ["lamina_espiritual", [[0, 0], [8, 28], [24, 78]]],
+  lamina_espiritual: ["lamina_espiritual", [[0, 0], [8, 28], [9, 31], [19, 61], [24, 78]]],   // (10/11: a parada do clipe, q31 a q61, vai do q9 ao q19 da página: ~0,8 s no RITMO_LAMINA_NOVO)
   giro_entra: ["vortice", [[0, 0], [6, 20], [9, 23]]],
   giro_laco: ["vortice", [[0, 23], [7, 28], [15, 34]]],
   giro_sai: ["vortice", [[0, 34], [2, 36], [12, 66]]],
@@ -32113,7 +32139,10 @@ function pedidoVikingNovo(d) {
   const alvo = vikingNovoAlvo(m, d.anim, E.antes);
   const inf = m.info[alvo.clip] || { quadros: 1, fps: 30, laco: true }, pag = d.info || M.animacoes[d.anim];
   let t;
-  if (alvo.laco) { const perP = pag && pag.laco ? pag.quadros / pag.fps : 0; t = perP ? d.t * (inf.quadros / inf.fps) / perP : d.t; }
+  // (10/11) o parado com respiração (o laço de 3 s do preparo, extras.respira) anda no relógio: segue sem salto quando o nome da
+  // página troca (parado, parar, guardar...) e não acelera no ciclo de 1,5 s do parado da página
+  if (alvo.laco && inf.respira) t = agora;
+  else if (alvo.laco) { const perP = pag && pag.laco ? pag.quadros / pag.fps : 0; t = perP ? d.t * (inf.quadros / inf.fps) / perP : d.t; }
   else if (alvo.nos) t = tempoNos3d(alvo.nos, d.t * (pag ? pag.fps : 20), inf.fps);
   else t = d.t;                                                         // (os copiados: quadros e fps iguais aos da página)
   // a mistura: o clipe que saiu (ou o mesmo clipe que voltou atrás, como a volta seguinte do giro) desce de 1 a 0 em
@@ -38066,7 +38095,7 @@ function listaCorpos(agora) {
 function brilhoArma3d(agora) {
   if (!prog || !prog.arma) return null;
   const pulso = 0.8 + 0.14 * Math.sin(agora * 7) + 0.06 * Math.sin(agora * 19);
-  if ((classe === "viking" || classe === "guerreiro") && (azul() || viking.anim === "lamina_espiritual")) return { cor: 0x2f78ff, claro: 0x9fd8ff, f: pulso };
+  if ((classe === "viking" || classe === "guerreiro") && (azul() || viking.anim === "lamina_espiritual")) return { cor: 0x2f78ff, claro: 0x9fd8ff, f: pulso * (laminaNova() && viking.anim === "lamina_espiritual" && viking.acertou ? 1.5 : 1) };   // (10/11: mais forte na parada da lâmina do viking novo)
   if (laminaShuraAcesa()) return { cor: 0xeef6ff, claro: 0xffffff, f: pulso * passadaLamina() };   // (a Lâmina Encantada do shura, BRANCA, acendendo com a passada da mão: R141)
   if (classe === "arqueiro" && viking.anim === "certeiro") return { cor: 0xff6a1a, claro: 0xffe0b0, f: pulso * (0.5 + forcaArco()) };
   const br = brilhoRef();
@@ -42380,7 +42409,25 @@ embrulhar("acenderLamina", () => {
   meiaLua(C, new THREE.Vector3(0, 1, 0), new THREE.Vector3(-F.z, 0, F.x), 0.4, 2.4, 2.8, azulC, rgb(0.85, 0.97, 1), 0.45, 0.12);
   clarao(C.clone().add(new THREE.Vector3(0, 1, 0)), 2, azulC, 0.28, { estrela: true, forca: 0.7 }); estouro(C, 26, azulC, 7, { sobe: 0.5, tam: 0.07, branco: 0.5 });
   coluna(viking.x, viking.y, 0.5, 4, azulC, 0.6, { alfa: 0.55 }); luz(C, rgb(0.5, 0.75, 1), 4, 8, 0.5);
+  if (laminaNova()) laminaParada(azulC);                   // (10/11: no viking novo o efeito segue, mais suave, na parada da lâmina)
 });
+// (10/11) o viking novo segura a lâmina parada na frente por LAMINA_PARADA s depois do corte: o efeito segue aceso, como a Aura da
+// Espada do Metin2 (o clarão em volta do corpo e da lâmina, apagando no fim): um anel no chão, um clarão pulsando na lâmina e
+// faíscas azuis subindo dela e do chão. Acaba antes se a Lâmina for cortada (andar, dano)
+function laminaParada(cor) {
+  const claro = rgb(0.85, 0.97, 1);
+  // (a coluna de 1,4 s, na força do acerto, apagava o viking num branco só: na parada ela é fina e fraca)
+  chao(viking.x, viking.y, 1.5, 0, cor, claro, LAMINA_PARADA + 0.3); coluna(viking.x, viking.y, 0.32, 3, cor, LAMINA_PARADA + 0.4, { alfa: 0.16, miolo: 0.3 });
+  let t = 0, prox = 0;
+  return adicionar({ passo(dt) {
+      t += dt; if (t >= LAMINA_PARADA || viking.anim !== "lamina_espiritual") return false;
+      const k = 1 - t / LAMINA_PARADA, L = P3(viking.x, viking.y, 1).addScaledVector(frenteHeroi(), 0.7);
+      // (o clarão pequeno e fraco: maior, somado com o bloom, apagava o viking num branco só na gravação de 10/11)
+      if ((prox -= dt) <= 0) { prox = 0.2; clarao(L, 0.45 + 0.35 * k, cor, 0.24, { forca: 0.12 + 0.2 * k }); estouro(L, 5, cor, 2.5, { sobe: 1.2, tam: 0.05, grav: -1, vida: 0.5, branco: 0.4 }); }
+      subir(P3(viking.x, viking.y, 0.15), claro, 1, { r: 0.55, h: 0.6, tam: 0.05 });
+      return true; },
+    fim() {} });
+}
 embrulhar("baqueInvestida", ([alvo]) => {
   const p = peito(alvo), cor = rgb(1, 0.5, 0.15);
   chao(alvo.x, alvo.y, 2.6, 0, cor, rgb(1, 0.92, 0.6), 0.45); clarao(p, 2.2, cor, 0.22, { estrela: true }); estouro(p, 24, cor, 8, { tam: 0.08, branco: 0.6 });
