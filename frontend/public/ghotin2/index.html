@@ -1684,7 +1684,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.96 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.97 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -6730,9 +6730,12 @@ async function carregarSons() {
     Som.efeitos = buf;
   } catch (e) { Som.efeitos = null; }
 }
+// (R393, 10/11: num navegador sem Web Audio, como o WebKit do Windows, ou com ela desligada por privacidade, o AudioBuffer não existe:
+// o "instanceof AudioBuffer" dava ReferenceError em todo quadro, no passo() e no passoSonsAmbiente, e o mundo ficava preto)
+function ehAudioBuffer(b) { return typeof AudioBuffer !== "undefined" && b instanceof AudioBuffer; }
 function tocarGravado(nome, onde, forca, atraso = 0) {
   const lista = Som.buf[nome], c = Som.arq && Som.arq[nome];
-  if (!lista || !(Som.efeitos instanceof AudioBuffer)) return false;
+  if (!lista || !ehAudioBuffer(Som.efeitos)) return false;
   const d = somSaida(forca * c.vol, onde, nome);
   if (!d) return true;
   const uv = Som.ultimaVar || (Som.ultimaVar = {});
@@ -7060,7 +7063,7 @@ function som(nome, onde = null, forca = 1) {
   }
   somUltimo[nome] = agora;
   if (!onde) somQualquer = agora;              // só os sem lugar (janelas, loja, bolsa): os passos dos bichos não contam
-  if (Som.buf[nome] && Som.efeitos instanceof AudioBuffer) {
+  if (Som.buf[nome] && ehAudioBuffer(Som.efeitos)) {
     tocarGravado(nome, onde, forca);
     if (nome === "desmorona") { tocarGravado(nome, onde, forca * 0.8, 0.18); tocarGravado(nome, onde, forca * 0.6, 0.4); }   // os ossos caindo aos poucos
     if (nome !== "furia_explosao") return;                              // a fúria soma o gravado com o sintetizado
@@ -7148,7 +7151,7 @@ function alvosAmbiente(dt) {
   return a;
 }
 function passoSonsAmbiente(dt) {
-  if (!(Amb.buf instanceof AudioBuffer) || Som.ctx.state !== "running") return;
+  if (!ehAudioBuffer(Amb.buf) || Som.ctx.state !== "running") return;
   if ((Amb.relogio -= dt) > 0) return;
   Amb.relogio = 0.25;
   const alvo = Som.ligado ? alvosAmbiente(0.25) : {}, t = Som.ctx.currentTime;
@@ -29577,7 +29580,7 @@ function passo(dt) {
   if (v.ferido > 0) v.ferido = Math.max(0, v.ferido - dt);
   // fogueira estalando quando ele está perto (sintetizada só sem o laço gravado do ambiente: ver passoSonsAmbiente)
   const dFogo = Math.hypot(v.x - FOGO.x, v.y - FOGO.y);
-  if (!(Amb.buf instanceof AudioBuffer) && dFogo < 9 && Math.random() < dt * 7 * (1 - dFogo / 9)) som("fogo", FOGO, 0.8);
+  if (!ehAudioBuffer(Amb.buf) && dFogo < 9 && Math.random() < dt * 7 * (1 - dFogo / 9)) som("fogo", FOGO, 0.8);
   if (!emendou && info.acerto >= 0 && !v.acertou && q >= info.acerto) {
     v.acertou = true;
     if (/^(atirar|chuva|certeiro)$/.test(v.anim)) estouroArco();
