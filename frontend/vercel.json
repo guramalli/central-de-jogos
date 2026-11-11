@@ -10,6 +10,7 @@
     { "source": "/ghotin2", "destination": "/ghotin2/", "permanent": false },
     { "source": "/thelastdance", "destination": "/thelastdance/", "permanent": false },
     { "source": "/torre", "destination": "/torre/", "permanent": false },
+    { "source": "/tuca", "destination": "/tuca/", "permanent": false },
     { "source": "/thelastdance/:pasta(reference|docs|tools|tests)/:resto*", "destination": "/thelastdance/", "permanent": false }
   ],
   "rewrites": [
@@ -23,6 +24,7 @@
     { "source": "/ghotin2/", "destination": "/ghotin2/index.html" },
     { "source": "/thelastdance/", "destination": "/thelastdance/index.html" },
     { "source": "/torre/", "destination": "/torre/index.html" },
+    { "source": "/tuca/", "destination": "/tuca/index.html" },
     { "source": "/v2", "destination": "/v2/index.html" },
     { "source": "/v2/(.*)", "destination": "/v2/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
@@ -58,6 +60,10 @@
     },
     {
       "source": "/torre/(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/tuca/(.*)",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     },
     {
