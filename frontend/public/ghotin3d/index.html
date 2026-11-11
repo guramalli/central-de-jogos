@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Ghotin2 3D · Vila 1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ouro:#d9b25a;--ouro2:#8a6a2a;--fundo:rgba(14,12,10,.78);--borda:rgba(217,178,90,.55);--texto:#efe6d2}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0b0a09;overflow:hidden;font-family:Inter,system-ui,"Segoe UI",sans-serif;color:var(--texto);user-select:none}
+canvas#tela{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:default}
+#hud{position:fixed;inset:0;pointer-events:none}
+.painel{background:linear-gradient(180deg,rgba(28,24,19,.86),rgba(12,10,8,.86));border:1px solid var(--borda);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,240,200,.08)}
+.tit{font-family:Cinzel,Georgia,serif;letter-spacing:.04em}
+/* quadro do herói */
+#heroi{position:absolute;left:18px;top:16px;width:330px;padding:10px 12px 10px 78px;min-height:84px}
+#retrato{position:absolute;left:10px;top:10px;width:58px;height:58px;border-radius:50%;border:2px solid var(--ouro);background:radial-gradient(circle at 40% 35%,#3c5a36,#16241a);display:grid;place-items:center;font-family:Cinzel,serif;font-weight:700;font-size:24px;color:#e9dcae;box-shadow:0 0 0 3px rgba(0,0,0,.5)}
+#nivel{position:absolute;left:46px;top:50px;min-width:26px;height:22px;padding:0 5px;border-radius:11px;background:#1a1510;border:1px solid var(--ouro);font-size:12px;font-weight:700;display:grid;place-items:center;color:var(--ouro)}
+#heroi .nome{font-size:15px;font-weight:700;margin-bottom:5px}
+.barra{position:relative;height:15px;border-radius:4px;background:rgba(0,0,0,.6);border:1px solid rgba(0,0,0,.8);overflow:hidden;margin:4px 0;box-shadow:inset 0 1px 3px rgba(0,0,0,.8)}
+.barra i{position:absolute;left:0;top:0;bottom:0;width:100%;transform-origin:left;transition:transform .12s linear}
+.barra b{position:absolute;inset:0;display:grid;place-items:center;font-size:10.5px;font-weight:600;text-shadow:0 1px 2px #000;letter-spacing:.02em}
+.vida i{background:linear-gradient(180deg,#e2574a,#9a1c15 60%,#6e120d)}.mana i{background:linear-gradient(180deg,#5aa0ea,#1f55a8 60%,#143a78)}
+.xp{height:6px;margin-top:6px}.xp i{background:linear-gradient(90deg,#b98a2a,#f0d27a)}
+#buffs{display:flex;gap:6px;margin-top:7px;min-height:0}
+.buff{position:relative;width:34px;height:34px;border-radius:5px;border:1px solid var(--ouro);background-size:cover;box-shadow:0 0 10px rgba(120,220,255,.5)}
+.buff span{position:absolute;right:1px;bottom:0;font-size:11px;font-weight:700;text-shadow:0 0 3px #000,0 0 3px #000}
+/* alvo */
+#alvo{position:absolute;left:50%;top:16px;transform:translateX(-50%);width:340px;padding:8px 12px 9px;display:none}
+#alvo .nome{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700}
+#alvo .nome small{font-weight:500;color:#c9b98d}
+#alvo .est{display:flex;gap:6px;margin-top:4px;font-size:11px;min-height:15px}
+.est span{padding:1px 7px;border-radius:9px;font-weight:600}.e-ven{background:rgba(70,170,50,.3);color:#9cf07c;border:1px solid #4a9a3a}.e-fog{background:rgba(220,110,30,.3);color:#ffb06a;border:1px solid #b8602a}.e-ato{background:rgba(220,200,60,.25);color:#f3e37c;border:1px solid #a8963a}
+/* barra de skills */
+#skills{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:9px;padding:9px 11px;pointer-events:auto}
+.skill{position:relative;width:66px;height:66px;border-radius:7px;border:1px solid var(--ouro2);background:#0c0a08 center/cover;box-shadow:inset 0 0 0 1px rgba(0,0,0,.7),0 2px 8px rgba(0,0,0,.6);cursor:pointer;transition:transform .08s,border-color .15s}
+.skill:hover{border-color:var(--ouro);transform:translateY(-2px)}
+.skill .tecla{position:absolute;left:3px;top:2px;font-size:12px;font-weight:700;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000,0 1px 2px #000}
+.skill .cd{position:absolute;inset:0;border-radius:6px;display:none;place-items:center;font-size:21px;font-weight:700;color:#fff;text-shadow:0 0 4px #000,0 0 6px #000}
+.skill .sem{position:absolute;inset:0;border-radius:6px;background:rgba(20,40,110,.55);display:none}
+.skill.ativa{border-color:#bfe6ff;box-shadow:0 0 14px rgba(150,220,255,.9)}
+.skill.pronta{animation:pronta .5s ease-out}
+@keyframes pronta{0%{box-shadow:0 0 0 0 rgba(255,225,140,.9)}100%{box-shadow:0 0 0 14px rgba(255,225,140,0)}}
+#dica{position:absolute;left:50%;bottom:108px;transform:translateX(-50%);padding:8px 12px;font-size:12.5px;max-width:340px;display:none;line-height:1.4}
+#dica b{color:var(--ouro);font-family:Cinzel,serif;font-size:14px}#dica small{color:#bfb08a}
+/* registro, avisos, título de zona */
+#registro{position:absolute;left:18px;bottom:18px;width:360px;font-size:12.5px;line-height:1.5;text-shadow:0 1px 2px #000,0 0 4px #000}
+#registro div{opacity:1;transition:opacity 1s}#registro b{color:#f0d27a}
+#aviso{position:absolute;left:50%;top:24%;transform:translateX(-50%);font-size:17px;font-weight:600;color:#ffe9b0;text-shadow:0 2px 4px #000,0 0 10px #000;opacity:0;transition:opacity .25s;white-space:nowrap}
+#zona{position:absolute;left:50%;top:15%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .9s}
+#zona h2{margin:0;font-family:Cinzel,serif;font-size:38px;font-weight:700;color:#f3e3b4;text-shadow:0 3px 8px #000,0 0 26px rgba(0,0,0,.9);letter-spacing:.08em}
+#zona p{margin:6px 0 0;font-size:14px;color:#d9cba2;text-shadow:0 1px 3px #000;letter-spacing:.14em;text-transform:uppercase}
+#zona hr{width:260px;border:0;height:1px;background:linear-gradient(90deg,transparent,var(--ouro),transparent);margin:8px auto 0}
+/* minimapa */
+#mini{position:absolute;right:18px;top:16px;width:196px;padding:8px;text-align:center}
+#mini canvas{width:180px;height:180px;border-radius:50%;border:2px solid var(--ouro2);display:block;background:#0c1418}
+#mini div{font-family:Cinzel,serif;font-size:13px;margin-top:6px;color:#e9dcae}
+#clima{display:block;font-size:10.5px;color:#b9ae90;margin-top:2px}
+#ajuda{position:absolute;right:18px;bottom:18px;padding:10px 14px;font-size:12px;line-height:1.75;width:292px}
+#ajuda b{display:inline-block;min-width:92px;color:var(--ouro);font-weight:600}
+#ajuda h4{margin:0 0 4px;font-family:Cinzel,serif;font-size:13px;color:#e9dcae;letter-spacing:.06em}
+#fps{position:absolute;right:224px;top:18px;font-size:11px;color:#cfc4a4;text-shadow:0 1px 2px #000;text-align:right;line-height:1.5}
+/* rótulos e números */
+#camada{position:absolute;inset:0;overflow:hidden}
+.rot{position:absolute;left:0;top:0;transform:translate(-50%,-100%);text-align:center;white-space:nowrap;font-size:12.5px;font-weight:600;text-shadow:0 1px 2px #000,0 0 4px #000,0 0 6px rgba(0,0,0,.8);will-change:transform;display:none}
+.rot small{display:block;font-size:10.5px;font-weight:500;color:#d9cba2}
+.rot.npc{color:#ffe9a8}.rot.lobo{color:#ffb3a1}.rot.lobo.alfa{color:#ff8a5e;font-size:14px}.rot.lobo.maldito{color:#d9a2ff}.rot.pedra{color:#ff9d8a;font-family:Cinzel,serif;font-size:15px}.rot.pedra .hp{width:120px;height:7px}.rot.pedra .hp i{background:linear-gradient(180deg,#c05cff,#5a1a8a)}
+.rot .hp{width:74px;height:6px;margin:3px auto 0;background:rgba(0,0,0,.7);border:1px solid #000;border-radius:3px;overflow:hidden}.rot .hp i{display:block;height:100%;background:linear-gradient(180deg,#e2574a,#8a1812);transform-origin:left}
+.num{position:absolute;left:0;top:0;font-family:Cinzel,Georgia,serif;font-weight:700;font-size:21px;color:#fff;text-shadow:0 2px 3px #000,0 0 5px #000;will-change:transform,opacity;white-space:nowrap;display:none}
+.num.n-critico{font-size:31px;color:#ffd24a}.num.n-skill{font-size:25px;color:#ffe9b0}.num.n-veneno{color:#8df06a;font-size:18px}.num.n-fogo{color:#ff9a4a;font-size:18px}.num.n-heroi{color:#ff5a4a}.num.n-xp{color:#f0d27a;font-size:17px}.num.n-texto{color:#f3e37c;font-size:17px}
+/* tela de carregamento */
+#carga{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1d2a22 0%,#0b0d0b 70%);display:grid;place-items:center;z-index:10;transition:opacity .8s}
+#carga .cx{text-align:center;width:560px}
+#carga h1{font-family:Cinzel,serif;font-size:64px;margin:0;color:#f0deb0;letter-spacing:.1em;text-shadow:0 4px 18px rgba(0,0,0,.8)}
+#carga h1 span{color:var(--ouro)}
+#carga h3{font-family:Cinzel,serif;font-weight:500;letter-spacing:.3em;font-size:15px;color:#b9a878;margin:6px 0 34px;text-transform:uppercase}
+#carga .trilho{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;border:1px solid rgba(217,178,90,.3)}
+#carga .trilho i{display:block;height:100%;width:0;background:linear-gradient(90deg,#8a6a2a,#f0d27a);transition:width .2s}
+#carga p{font-size:13px;color:#a89c7c;min-height:20px;margin:12px 0 22px}
+#entrar{font-family:Cinzel,serif;font-size:18px;letter-spacing:.2em;padding:12px 44px;background:linear-gradient(180deg,#3a2f1a,#1c160c);color:#f0deb0;border:1px solid var(--ouro);border-radius:6px;cursor:pointer;display:none;pointer-events:auto}
+#entrar:hover{background:linear-gradient(180deg,#5a4826,#2a2012);box-shadow:0 0 24px rgba(217,178,90,.4)}
+#erro{color:#ff8a7a;font-size:13px;white-space:pre-wrap;text-align:left}
+body.cine #camada,body.cine #zona,body.cine #aviso,body.cine #heroi,body.cine #skills,body.cine #mini,body.cine #ajuda,body.cine #registro,body.cine #fps,body.cine #alvo,body.cine #dica{display:none!important}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","three/examples/jsm/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","n8ao":"https://cdn.jsdelivr.net/npm/n8ao@1.9.4/dist/N8AO.js","postprocessing":"./js/stub_postprocessing.js"}}</script>
+</head>
+<body>
+<canvas id="tela"></canvas>
+<div id="hud">
+  <div id="camada"></div>
+  <div id="heroi" class="painel"><div id="retrato">弓</div><div id="nivel">12</div>
+    <div class="nome tit">Arqueiro das Estepes</div>
+    <div class="barra vida"><i id="bVida"></i><b id="tVida"></b></div>
+    <div class="barra mana"><i id="bMana"></i><b id="tMana"></b></div>
+    <div class="barra xp"><i id="bXp"></i></div>
+    <div id="buffs"></div>
+  </div>
+  <div id="alvo" class="painel"><div class="nome"><span id="aNome" class="tit"></span><small id="aNivel"></small></div><div class="barra vida"><i id="aVida"></i><b id="aTxt"></b></div><div class="est" id="aEst"></div></div>
+  <div id="mini" class="painel"><canvas id="mapa" width="180" height="180"></canvas><div id="zonaNome">Vila 1</div><small id="clima"></small></div>
+  <div id="fps"></div>
+  <div id="zona"><h2 id="zTit"></h2><hr><p id="zSub"></p></div>
+  <div id="aviso"></div>
+  <div id="registro"></div>
+  <div id="dica" class="painel"></div>
+  <div id="skills" class="painel"></div>
+  <div id="ajuda" class="painel"><h4>Controles</h4>
+    <div><b>Clique no chão</b> andar (ou W A S D)</div>
+    <div><b>Clique no lobo</b> atacar com o arco</div>
+    <div><b>1 a 5</b> skills (4: mire e clique)</div>
+    <div><b>Tab</b> próximo alvo · <b>Esc</b> soltar</div>
+    <div><b>Roda</b> zoom · <b>Botão direito</b> girar</div>
+    <div><b>R</b> sol ou chuva · <b>M</b> música</div>
+    <div><b>V</b> ver o Dragão voar</div>
+    <div><b>F2</b> qualidade · <b>H</b> ajuda · <b>C</b> sem painéis</div>
+  </div>
+</div>
+<div id="carga"><div class="cx"><h1>GHOTIN<span>2</span></h1><h3>Vila 1 · em 3D</h3><div class="trilho"><i id="cBarra"></i></div><p id="cTxt">Preparando...</p><button id="entrar">ENTRAR</button><div id="erro"></div></div></div>
+<script>setTimeout(function(){ var t=document.getElementById("cTxt"); if(!window.PRONTO && t && t.textContent==="Preparando...") t.textContent="Ainda preparando... Se não sair daqui, confira a internet (o Three.js vem da CDN) e se a página foi aberta por http://localhost:8137/ (use o abrir.bat)."; }, 12000);</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

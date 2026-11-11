@@ -65,7 +65,11 @@
 // o nome do .js/.css e servido pra sempre. Agora só entra no cache resposta
 // com o tipo certo, e a subida de versão limpa o que já tinha sido guardado
 // errado (só o Cache Storage do SW: login e saves do navegador não são tocados).
-const VERSAO = "eg-v18";
+// eg-v19: o Ghotin 3D (/ghotin3d/, o protótipo em 3D do Ghotin2) também fica
+// FORA. Como no Ghotin2, os arquivos dele têm nome fixo (js/*.js,
+// assets/modelos/*.glb, assets/sons/*.mp3 e sons.json): no "cache primeiro",
+// quem já tivesse aberto ficaria com módulo, modelo ou som velho.
+const VERSAO = "eg-v19";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
@@ -170,6 +174,9 @@ self.addEventListener("fetch", (evento) => {
 
   // ===== Ghotin2: fica de fora (ver eg-v17) =====
   if (url.pathname === "/ghotin2" || url.pathname.startsWith("/ghotin2/")) return;
+
+  // ===== Ghotin 3D: fica de fora (ver eg-v19) =====
+  if (url.pathname === "/ghotin3d" || url.pathname.startsWith("/ghotin3d/")) return;
 
   // ===== Servidor de desenvolvimento (Vite): nunca cachear =====
   // O index.html registra este SW também no `npm run dev`. Lá os módulos

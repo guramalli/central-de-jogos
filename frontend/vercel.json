@@ -11,6 +11,7 @@
     { "source": "/thelastdance", "destination": "/thelastdance/", "permanent": false },
     { "source": "/torre", "destination": "/torre/", "permanent": false },
     { "source": "/tuca", "destination": "/tuca/", "permanent": false },
+    { "source": "/ghotin3d", "destination": "/ghotin3d/", "permanent": false },
     { "source": "/thelastdance/:pasta(reference|docs|tools|tests)/:resto*", "destination": "/thelastdance/", "permanent": false }
   ],
   "rewrites": [
@@ -25,6 +26,7 @@
     { "source": "/thelastdance/", "destination": "/thelastdance/index.html" },
     { "source": "/torre/", "destination": "/torre/index.html" },
     { "source": "/tuca/", "destination": "/tuca/index.html" },
+    { "source": "/ghotin3d/", "destination": "/ghotin3d/index.html" },
     { "source": "/v2", "destination": "/v2/index.html" },
     { "source": "/v2/(.*)", "destination": "/v2/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
@@ -64,6 +66,10 @@
     },
     {
       "source": "/tuca/(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/ghotin3d/(.*)",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     },
     {
