@@ -152,7 +152,7 @@ export class Vfx {
     const f = { mesh, pos: o.de.clone(), vel: o.vel || 34, alvo: o.alvo || null, ponto: o.ponto ? o.ponto.clone() : null, tipo: o.tipo || 'normal', aoAcertar: o.aoAcertar, dir: new V3(0, 0, 1), t: 0, queda: o.queda || 0, fincar: o.fincar ?? !o.alvo, rastro: null, vidaMax: o.vidaMax || 4, fase: rnd(6.283) };
     if (o.dir) f.dir.copy(o.dir).normalize();
     const cores = { normal: 0xfff0d0, veneno: 0x58ff48, fogo: 0xff7a20, concentrado: 0xffe08a, chuva: 0xd8ecff };
-    f.rastro = this.rastro(f.pos, cores[f.tipo] ?? 0xffffff, f.tipo === 'fogo' ? 0.36 : f.tipo === 'veneno' ? 0.28 : f.tipo === 'concentrado' ? 0.22 : 0.11);
+    f.rastro = this.rastro(f.pos, o.cor ?? cores[f.tipo] ?? 0xffffff, f.tipo === 'fogo' ? 0.36 : f.tipo === 'veneno' ? 0.28 : f.tipo === 'concentrado' ? 0.22 : 0.11);
     this.flechas.push(f); return f;
   }
   fincarFlecha(pos, dir, vida = 7) { const mesh = this.poolFlechas.pop() || new THREE.Mesh(this.gFlecha, this.mFlecha); mesh.castShadow = true; mesh.visible = true; mesh.scale.setScalar(1.12); mesh.position.copy(pos).addScaledVector(dir, -0.33); mesh.lookAt(mesh.position.clone().add(dir)); this.ctx.cena.add(mesh); this.fincadas.push({ mesh, t: 0, vida }); if (this.fincadas.length > 80) { const v = this.fincadas.shift(); v.mesh.visible = false; this.ctx.cena.remove(v.mesh); this.poolFlechas.push(v.mesh); } }

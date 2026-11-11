@@ -18,12 +18,16 @@ canvas#tela{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:d
 #heroi{position:absolute;left:18px;top:16px;width:330px;padding:10px 12px 10px 78px;min-height:84px}
 #retrato{position:absolute;left:10px;top:10px;width:58px;height:58px;border-radius:50%;border:2px solid var(--ouro);background:radial-gradient(circle at 40% 35%,#3c5a36,#16241a);display:grid;place-items:center;font-family:Cinzel,serif;font-weight:700;font-size:24px;color:#e9dcae;box-shadow:0 0 0 3px rgba(0,0,0,.5)}
 #nivel{position:absolute;left:46px;top:50px;min-width:26px;height:22px;padding:0 5px;border-radius:11px;background:#1a1510;border:1px solid var(--ouro);font-size:12px;font-weight:700;display:grid;place-items:center;color:var(--ouro)}
-#heroi .nome{font-size:15px;font-weight:700;margin-bottom:5px}
+#heroi .nome{font-size:15px;font-weight:700;margin-bottom:2px;pointer-events:auto;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#heroi .nome:hover{color:var(--ouro)}
+#hArma{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#e9dcae;margin-bottom:4px;min-height:16px}#hArma img{height:22px;width:auto;filter:drop-shadow(0 1px 2px #000)}#hArma b{font-weight:700}
 .barra{position:relative;height:15px;border-radius:4px;background:rgba(0,0,0,.6);border:1px solid rgba(0,0,0,.8);overflow:hidden;margin:4px 0;box-shadow:inset 0 1px 3px rgba(0,0,0,.8)}
-.barra i{position:absolute;left:0;top:0;bottom:0;width:100%;transform-origin:left;transition:transform .12s linear}
+.barra i,.barra u{position:absolute;left:0;top:0;bottom:0;width:100%;transform-origin:left;transition:transform .12s linear}
+.barra u{background:linear-gradient(180deg,#ffc8bc,#f0907e);opacity:.8;transform:scaleX(0)}
 .barra b{position:absolute;inset:0;display:grid;place-items:center;font-size:10.5px;font-weight:600;text-shadow:0 1px 2px #000;letter-spacing:.02em}
 .vida i{background:linear-gradient(180deg,#e2574a,#9a1c15 60%,#6e120d)}.mana i{background:linear-gradient(180deg,#5aa0ea,#1f55a8 60%,#143a78)}
 .xp{height:6px;margin-top:6px}.xp i{background:linear-gradient(90deg,#b98a2a,#f0d27a)}
+.stam{height:7px;margin:3px 0 0}.stam i{background:linear-gradient(180deg,#f6e27a,#d9a81f 70%,#a87a10);transition:transform .08s linear}.stam.falta{animation:stamFalta .28s 3}
+@keyframes stamFalta{50%{background:#a8281c;box-shadow:0 0 8px #e2574a}}
 #buffs{display:flex;gap:6px;margin-top:7px;min-height:0}
 .buff{position:relative;width:34px;height:34px;border-radius:5px;border:1px solid var(--ouro);background-size:cover;box-shadow:0 0 10px rgba(120,220,255,.5)}
 .buff span{position:absolute;right:1px;bottom:0;font-size:11px;font-weight:700;text-shadow:0 0 3px #000,0 0 3px #000}
@@ -42,6 +46,9 @@ canvas#tela{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:d
 .skill .sem{position:absolute;inset:0;border-radius:6px;background:rgba(20,40,110,.55);display:none}
 .skill.ativa{border-color:#bfe6ff;box-shadow:0 0 14px rgba(150,220,255,.9)}
 .skill.pronta{animation:pronta .5s ease-out}
+.skill.item{background-color:#14100c;background-size:74%;background-repeat:no-repeat;margin-left:10px}.skill.item .qtd{position:absolute;right:4px;bottom:2px;font-size:13px;font-weight:700;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000,0 1px 2px #000}
+.skill.item.vazia{filter:grayscale(1) brightness(.55)}.skill.item.bebeu{animation:bebeu .45s ease-out}
+@keyframes bebeu{0%{box-shadow:0 0 0 0 rgba(255,90,70,.95)}100%{box-shadow:0 0 0 14px rgba(255,90,70,0)}}
 @keyframes pronta{0%{box-shadow:0 0 0 0 rgba(255,225,140,.9)}100%{box-shadow:0 0 0 14px rgba(255,225,140,0)}}
 #dica{position:absolute;left:50%;bottom:108px;transform:translateX(-50%);padding:8px 12px;font-size:12.5px;max-width:340px;display:none;line-height:1.4}
 #dica b{color:var(--ouro);font-family:Cinzel,serif;font-size:14px}#dica small{color:#bfb08a}
@@ -58,15 +65,30 @@ canvas#tela{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:d
 #mini canvas{width:180px;height:180px;border-radius:50%;border:2px solid var(--ouro2);display:block;background:#0c1418}
 #mini div{font-family:Cinzel,serif;font-size:13px;margin-top:6px;color:#e9dcae}
 #clima{display:block;font-size:10.5px;color:#b9ae90;margin-top:2px}
-#ajuda{position:absolute;right:18px;bottom:18px;padding:10px 14px;font-size:12px;line-height:1.75;width:292px}
-#ajuda b{display:inline-block;min-width:92px;color:var(--ouro);font-weight:600}
+#ajuda{position:absolute;right:18px;bottom:18px;padding:10px 14px;font-size:12px;line-height:1.75;width:326px}
+#ajuda b{display:inline-block;min-width:108px;color:var(--ouro);font-weight:600}#ajuda em{font-style:normal;color:var(--ouro);font-weight:600}#ajuda div{white-space:nowrap}
 #ajuda h4{margin:0 0 4px;font-family:Cinzel,serif;font-size:13px;color:#e9dcae;letter-spacing:.06em}
-#fps{position:absolute;right:224px;top:18px;font-size:11px;color:#cfc4a4;text-shadow:0 1px 2px #000;text-align:right;line-height:1.5}
+@media (max-width:1180px){#ajuda{display:none}}
+#fps{position:absolute;right:224px;top:58px;font-size:11px;color:#cfc4a4;text-shadow:0 1px 2px #000;text-align:right;line-height:1.5}
+/* o botão do som e as barras de volume */
+#btSom{position:absolute;right:224px;top:16px;width:36px;height:36px;padding:0;display:grid;place-items:center;cursor:pointer;pointer-events:auto;color:#e9dcae}#btSom:hover{border-color:var(--ouro);color:#fff}
+#btSom svg{width:20px;height:20px}#btSom.mudo{color:#c9685a}#btSom .x{display:none}#btSom.mudo .x{display:inline}#btSom.mudo .o{display:none}
+#som{position:absolute;right:224px;top:58px;width:304px;padding:10px 14px 12px;font-size:12px;display:none;pointer-events:auto}
+#som h4{margin:0 0 6px;font-family:Cinzel,serif;font-size:13px;color:#e9dcae;letter-spacing:.06em}
+#som label{display:flex;align-items:center;gap:7px;margin:3px 0;cursor:pointer}#som kbd{margin-left:auto;font:600 10.5px Inter,sans-serif;color:var(--ouro);border:1px solid var(--ouro2);border-radius:3px;padding:0 5px}
+#som .vol{display:grid;grid-template-columns:1fr auto;gap:0 8px;margin:7px 0 0;cursor:default}#som .vol output{color:var(--ouro);font-weight:600;min-width:34px;text-align:right}
+#som .vol input{grid-column:1/3;width:100%;margin:3px 0 0;accent-color:#d9b25a;cursor:pointer}
+#som button{margin-top:10px;font:600 11.5px Inter,sans-serif;padding:5px 12px;background:linear-gradient(180deg,#3a2f1a,#1c160c);color:#f0deb0;border:1px solid var(--ouro2);border-radius:5px;cursor:pointer}#som button:hover{border-color:var(--ouro)}
 /* rótulos e números */
 #camada{position:absolute;inset:0;overflow:hidden}
 .rot{position:absolute;left:0;top:0;transform:translate(-50%,-100%);text-align:center;white-space:nowrap;font-size:12.5px;font-weight:600;text-shadow:0 1px 2px #000,0 0 4px #000,0 0 6px rgba(0,0,0,.8);will-change:transform;display:none}
 .rot small{display:block;font-size:10.5px;font-weight:500;color:#d9cba2}
 .rot.npc{color:#ffe9a8}.rot.lobo{color:#ffb3a1}.rot.lobo.alfa{color:#ff8a5e;font-size:14px}.rot.lobo.maldito{color:#d9a2ff}.rot.pedra{color:#ff9d8a;font-family:Cinzel,serif;font-size:15px}.rot.pedra .hp{width:120px;height:7px}.rot.pedra .hp i{background:linear-gradient(180deg,#c05cff,#5a1a8a)}
+/* a placa do herói, como no jogo: Lv. e nome, a barra de vida (com a parte clara da poção) e a de mana */
+.rot.heroi{font-size:12.5px;font-weight:700}.rot.heroi .lv{color:#f3cf5a}.rot.heroi .nm{color:#fff}
+.rot.heroi .hb{position:relative;width:58px;height:7px;margin:2px auto 0;background:#1c1410;border:1px solid rgba(0,0,0,.85);overflow:hidden}.rot.heroi .hb.m{height:6px;margin-top:0;border-top:0}
+.rot.heroi .hb u,.rot.heroi .hb i{position:absolute;left:0;top:0;bottom:0;width:100%;transform-origin:left}
+.rot.heroi .hb.v i{background:linear-gradient(180deg,#ee6a50,#a8261a)}.rot.heroi .hb.v u{background:linear-gradient(180deg,#ffc8bc,#f0907e);opacity:.8}.rot.heroi .hb.m i{background:linear-gradient(180deg,#7cc2ff,#2a5fc0)}
 .rot .hp{width:74px;height:6px;margin:3px auto 0;background:rgba(0,0,0,.7);border:1px solid #000;border-radius:3px;overflow:hidden}.rot .hp i{display:block;height:100%;background:linear-gradient(180deg,#e2574a,#8a1812);transform-origin:left}
 .num{position:absolute;left:0;top:0;font-family:Cinzel,Georgia,serif;font-weight:700;font-size:21px;color:#fff;text-shadow:0 2px 3px #000,0 0 5px #000;will-change:transform,opacity;white-space:nowrap;display:none}
 .num.n-critico{font-size:31px;color:#ffd24a}.num.n-skill{font-size:25px;color:#ffe9b0}.num.n-veneno{color:#8df06a;font-size:18px}.num.n-fogo{color:#ff9a4a;font-size:18px}.num.n-heroi{color:#ff5a4a}.num.n-xp{color:#f0d27a;font-size:17px}.num.n-texto{color:#f3e37c;font-size:17px}
@@ -82,7 +104,7 @@ canvas#tela{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:d
 #entrar{font-family:Cinzel,serif;font-size:18px;letter-spacing:.2em;padding:12px 44px;background:linear-gradient(180deg,#3a2f1a,#1c160c);color:#f0deb0;border:1px solid var(--ouro);border-radius:6px;cursor:pointer;display:none;pointer-events:auto}
 #entrar:hover{background:linear-gradient(180deg,#5a4826,#2a2012);box-shadow:0 0 24px rgba(217,178,90,.4)}
 #erro{color:#ff8a7a;font-size:13px;white-space:pre-wrap;text-align:left}
-body.cine #camada,body.cine #zona,body.cine #aviso,body.cine #heroi,body.cine #skills,body.cine #mini,body.cine #ajuda,body.cine #registro,body.cine #fps,body.cine #alvo,body.cine #dica{display:none!important}
+body.cine #btSom,body.cine #som,body.cine #camada,body.cine #zona,body.cine #aviso,body.cine #heroi,body.cine #skills,body.cine #mini,body.cine #ajuda,body.cine #registro,body.cine #fps,body.cine #alvo,body.cine #dica{display:none!important}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","three/examples/jsm/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","n8ao":"https://cdn.jsdelivr.net/npm/n8ao@1.9.4/dist/N8AO.js","postprocessing":"./js/stub_postprocessing.js"}}</script>
 </head>
@@ -91,14 +113,23 @@ body.cine #camada,body.cine #zona,body.cine #aviso,body.cine #heroi,body.cine #s
 <div id="hud">
   <div id="camada"></div>
   <div id="heroi" class="painel"><div id="retrato">弓</div><div id="nivel">12</div>
-    <div class="nome tit">Arqueiro das Estepes</div>
-    <div class="barra vida"><i id="bVida"></i><b id="tVida"></b></div>
+    <div class="nome tit" id="hNome" title="Clique para trocar o nome do personagem">Arqueiro</div>
+    <div id="hArma"><img id="hArmaIcone" src="assets/icones/arco_raro.webp" alt=""><span id="hArmaNome"></span></div>
+    <div class="barra vida"><u id="bVidaG"></u><i id="bVida"></i><b id="tVida"></b></div>
     <div class="barra mana"><i id="bMana"></i><b id="tMana"></b></div>
+    <div class="barra stam" title="Resistência: o dash do Shift gasta 1/3"><i id="bStam"></i></div>
     <div class="barra xp"><i id="bXp"></i></div>
     <div id="buffs"></div>
   </div>
   <div id="alvo" class="painel"><div class="nome"><span id="aNome" class="tit"></span><small id="aNivel"></small></div><div class="barra vida"><i id="aVida"></i><b id="aTxt"></b></div><div class="est" id="aEst"></div></div>
   <div id="mini" class="painel"><canvas id="mapa" width="180" height="180"></canvas><div id="zonaNome">Vila 1</div><small id="clima"></small></div>
+  <button id="btSom" class="painel" title="Som e volumes (B liga e desliga o som)" aria-label="Som e volumes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none"/><path class="o" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="x" d="M17 9l5 6M22 9l-5 6"/></svg></button>
+  <div id="som" class="painel"><h4>Som</h4>
+    <label><input type="checkbox" id="oSom"> Som ligado <kbd>B</kbd></label>
+    <label><input type="checkbox" id="oMusica"> Música ligada <kbd>M</kbd></label>
+    <div id="oVolumes"></div>
+    <button id="oPadrao">Volumes padrão</button>
+  </div>
   <div id="fps"></div>
   <div id="zona"><h2 id="zTit"></h2><hr><p id="zSub"></p></div>
   <div id="aviso"></div>
@@ -107,13 +138,15 @@ body.cine #camada,body.cine #zona,body.cine #aviso,body.cine #heroi,body.cine #s
   <div id="skills" class="painel"></div>
   <div id="ajuda" class="painel"><h4>Controles</h4>
     <div><b>Clique no chão</b> andar (ou W A S D)</div>
-    <div><b>Clique no lobo</b> atacar com o arco</div>
+    <div><b>Clique na criatura</b> atacar sem parar</div>
+    <div><b>Espaço</b> próximo alvo · <em>Esc</em> solta</div>
     <div><b>1 a 5</b> skills (4: mire e clique)</div>
-    <div><b>Tab</b> próximo alvo · <b>Esc</b> soltar</div>
-    <div><b>Roda</b> zoom · <b>Botão direito</b> girar</div>
-    <div><b>R</b> sol ou chuva · <b>M</b> música</div>
-    <div><b>V</b> ver o Dragão voar</div>
-    <div><b>F2</b> qualidade · <b>H</b> ajuda · <b>C</b> sem painéis</div>
+    <div><b>R</b> poção de vida</div>
+    <div><b>Shift</b> dash</div>
+    <div><b>Roda</b> zoom · <em>botão direito</em> gira</div>
+    <div><b>T</b> sol ou chuva · <em>V</em> voo do Dragão</div>
+    <div><b>B</b> som · <em>M</em> música</div>
+    <div><b>F2</b> qualidade · <em>H</em> ajuda · <em>C</em> painéis</div>
   </div>
 </div>
 <div id="carga"><div class="cx"><h1>GHOTIN<span>2</span></h1><h3>Vila 1 · em 3D</h3><div class="trilho"><i id="cBarra"></i></div><p id="cTxt">Preparando...</p><button id="entrar">ENTRAR</button><div id="erro"></div></div></div>

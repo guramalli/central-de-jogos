@@ -4,6 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import * as M from './mapa.js';
 import { piso } from './natureza.js';
+import { BRILHO_REF, POCAO, vestirArco, BrilhoArco } from './equip.js';
 
 const V3 = THREE.Vector3; const PI = Math.PI;
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -13,7 +14,8 @@ export async function carregarModelos(ctx, progresso) {
   const loader = new GLTFLoader(); const nomes = ['arqueiro', 'lobo', 'lobo_alfa', 'bjorn', 'hilda', 'ferreiro', 'guarda', 'guardia', 'armazem', 'dragao']; ctx.gltf = {};
   const tl = new THREE.TextureLoader(); const tex = async (u) => { const t = await tl.loadAsync(u); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; progresso(); return t; };
   const [t4, tArco] = await Promise.all([tex('assets/texturas/arqueiro_4k.jpg'), tex('assets/texturas/arco_2k.jpg'), ...nomes.map(async n => { ctx.gltf[n] = await loader.loadAsync('assets/modelos/' + n + '.glb'); progresso(); }),
-    loader.loadAsync('assets/modelos/estatua_imugi.glb').then(g => { ctx.gltf.estatua_imugi = g; progresso(); })]);
+    loader.loadAsync('assets/modelos/estatua_imugi.glb').then(g => { ctx.gltf.estatua_imugi = g; progresso(); }),
+    ctx.arco && ctx.arco.modelo ? loader.loadAsync('assets/modelos/armas/' + ctx.arco.modelo + '.glb').then(g => { ctx.gltf.arco = g; progresso(); }) : null]);
   for (const n of nomes) ctx.gltf[n].scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; const m = o.material; m.roughness = 0.78; m.metalness = 0; m.envMapIntensity = 0.55; if (m.name === 'ArqueiroDesenho') m.map = t4; if (m.name === 'ArcoDesenho') { m.map = tArco; m.roughness = 0.5; } } });
 }
 
@@ -31,22 +33,32 @@ export const SKILLS = [
   { id: 'passos', nome: 'Passos Leves', tecla: '5', recarga: 30, mana: 52, alcance: 0, desc: 'Por 20 s, anda e corre 45% mais rápido.' },
 ];
 
+// o alvo, o tiro e o dash seguem o jogo (Tools/viking/teste/index.html): ALCANCE_ARCO, ALVO_LONGE, INTERVALO_TIRO.arqueiro e DASH
+export const ALCANCE_ARCO = 9, ALVO_LONGE = 20, INTERVALO_TIRO = 0.55;
+export const DASH = { dist: 2.5, dura: 0.16, custo: 1 / 3, cheia: 6, espera: 0.5, guarda: 0.3, vultoCada: 0.55, vultoVida: 0.3 };
+
 export class Heroi {
   constructor(ctx) {
     this.ctx = ctx; const g = ctx.gltf.arqueiro; this.raiz = new THREE.Group(); this.modelo = g.scene; this.raiz.add(this.modelo); ctx.cena.add(this.raiz);
     this.mixer = new THREE.AnimationMixer(this.modelo); this.acoes = {}; for (const c of g.animations) this.acoes[c.name] = this.mixer.clipAction(c);
     this.tSolta = { atirar: tempoSolta(g.animations.find(c => c.name === 'atirar'), 0.86), chuva: tempoSolta(g.animations.find(c => c.name === 'chuva'), 0.86), certeiro: tempoSolta(g.animations.find(c => c.name === 'certeiro'), 1.76) };
     this.noFlecha = this.modelo.getObjectByName('peca_flecha');
+    // o nome que vai na placa em cima da cabeça, o arco na mão (o raro, +9) e as poções de vida
+    this.nome = ctx.nomeHeroi || 'Arqueiro'; this.arco = ctx.arco || { nome: 'Arco', modelo: null, ref: 0 };
+    this.pecaArco = vestirArco(this.modelo, ctx.gltf.arco); this.corRefino = BRILHO_REF[this.arco.ref] || null;
+    this.pocoes = POCAO.inicio; this.baldeVida = 0; this.tBalde = 0; this.pocoesBebidas = 0;
     this.pos = new V3(M.NASCER.x, 0, M.NASCER.z); this.pos.y = piso(this.pos.x, this.pos.z); this.rot = PI; this.raiz.position.copy(this.pos); this.raiz.rotation.y = this.rot;
     this.nivel = 12; this.vidaMax = 2400; this.vida = 2400; this.manaMax = 900; this.mana = 900; this.xp = 0; this.xpProx = 900; this.yang = 0;
     this.atk = 75; this.dex = 40; this.str = 14; this.k = 0.55;
-    this.velBase = 5.0; this.rota = null; this.alvo = null; this.auto = false; this.acao = null; this.morto = false; this.tMorto = 0;
+    this.velBase = 5.0; this.rota = null; this.rotaTipo = null; this.alvo = null; this.auto = false; this.acao = null; this.morto = false; this.tMorto = 0;
+    this.recargaTiro = 0; this.stamina = 1; this.dash = null; this.dashDesde = 99; this.dashPedido = 0; this.dashMouse = null; this.dashes = 0; this.ultimoDash = null;
     this.recargas = SKILLS.map(() => 0); this.buffPassos = 0; this.mirando = false; this.teclas = { x: 0, z: 0 }; this.tPasso = 0; this.tFantasma = 0; this.tRepath = 0; this.emCombate = 0; this.animAtual = '';
     this.tocar('parado');
     // os vultos dos Passos Leves: cópias da malha, congeladas na pose
     this.vultos = []; const mv = new THREE.MeshBasicMaterial({ color: 0x8fd8ff, transparent: true, opacity: 0.3, depthWrite: false, blending: THREE.AdditiveBlending });
     for (let i = 0; i < 6; i++) { const c = SkeletonUtils.clone(this.modelo); c.traverse(o => { if (o.isMesh) { o.material = mv.clone(); o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; } }); const gp = new THREE.Group(); gp.add(c); gp.visible = false; ctx.cena.add(gp); const ossos = []; c.traverse(o => { if (o.isBone || o.name.startsWith('peca_')) ossos.push(o); }); this.vultos.push({ gp, c, ossos, t: 1 }); }
     this.ossosModelo = new Map(); this.modelo.traverse(o => { if (o.isBone || o.name.startsWith('peca_')) this.ossosModelo.set(o.name, o); });
+    this.brilho = new BrilhoArco(ctx, this.pecaArco, this.arco.ref);   // (depois dos vultos: eles copiam a malha do herói, e não devem levar as cascas nem a luz)
   }
   tocar(nome, { vel = 1, uma = false, fade = 0.14, reinicia = false } = {}) {
     const a = this.acoes[nome]; if (!a) return; if (this.animAtual === nome && !reinicia) { a.timeScale = vel; return a; }
@@ -57,14 +69,50 @@ export class Heroi {
   peito(v) { return v.set(this.pos.x, this.pos.y + 1.1, this.pos.z); }
   frente() { return new V3(Math.sin(this.rot), 0, Math.cos(this.rot)); }
   pontaFlecha() { const p = new V3(); if (this.noFlecha) { this.noFlecha.getWorldPosition(p); if (p.distanceTo(this.pos) < 3 && p.y > this.pos.y + 0.5) return p.addScaledVector(this.frente(), 0.45); } return p.copy(this.pos).addScaledVector(this.frente(), 0.7).setY(this.pos.y + 1.42); }
-  irPara(x, z, manterAlvo = false) {
-    if (this.morto) return; if (!manterAlvo) { this.auto = false; }
-    if (this.acao && !this.acao.solto) this.cancelarAcao(); else if (this.acao) this.acao = null;
-    const r = M.caminho(this.pos.x, this.pos.z, x, z); this.rota = r; this.destino = r && r.length ? r[r.length - 1] : null;
+  // andar até um ponto (o clique no chão). O alvo marcado continua marcado, e o tiro que ainda não saiu não é cortado:
+  // o arqueiro para, atira e segue. Depois que a flecha sai, andar corta o fim do golpe
+  irPara(x, z) {
+    if (this.morto) return; if (this.acao && this.acao.solto && !(this.acao.tipo === 'concentrado' && this.acao.seq < 5)) this.acao = null;
+    const r = M.caminho(this.pos.x, this.pos.z, x, z); this.rota = r; this.rotaTipo = r ? 'clique' : null; this.destino = r && r.length ? r[r.length - 1] : null;
   }
   parar() { this.rota = null; }
   cancelarAcao() { if (this.acao && this.acao.aoCancelar) this.acao.aoCancelar(); this.acao = null; }
-  atacar(alvo) { if (this.morto || !alvo || alvo.morto) return; this.alvo = alvo; this.auto = true; this.tRepath = 0; }
+  // o alvo marcado (o clique numa criatura ou o Espaço): fica até cair, até o herói se afastar (ALVO_LONGE) ou até o Esc.
+  // atacar marca e vai atrás; marcar só marca (o botão direito)
+  atacar(alvo) { if (this.morto || !alvo || alvo.morto) return; this.alvo = alvo; this.auto = true; this.rota = null; this.rotaTipo = null; this.tRepath = 0; }
+  marcar(alvo) { if (this.morto || !alvo || alvo.morto) return; this.alvo = alvo; this.auto = true; }
+  soltarAlvo() { this.alvo = null; this.auto = false; if (this.rotaTipo === 'alvo') { this.rota = null; this.rotaTipo = null; } }
+  // um vulto do herói na pose de agora (os Passos Leves e o rastro do dash)
+  vulto(dur = 0.42) { const v = this.vultos.find(v => v.t >= 1) || this.vultos[0]; v.t = 0; v.dur = dur; v.gp.visible = true; v.gp.position.copy(this.pos); v.gp.rotation.y = this.rot; for (const o of v.ossos) { const s = this.ossosModelo.get(o.name); if (s) { o.position.copy(s.position); o.quaternion.copy(s.quaternion); o.scale.copy(s.scale); } } }
+  // o dash (Shift): DASH.dist m em DASH.dura s para onde ele anda (parado: para o destino do clique, para o mouse ou para a frente).
+  // Gasta 1/3 da resistência, que enche sozinha em DASH.cheia s; não atravessa nada e não deixa invulnerável. Não sai numa
+  // skill, num tiro que ainda não saiu nem com a mira aberta: aí o pedido fica guardado por DASH.guarda s
+  pedirDash(mouse = null, guardar = true) {
+    if (this.morto || this.dash) return false; const a = this.acao, ctx = this.ctx;
+    if (this.mirando || (a && (!a.solto || (a.tipo === 'concentrado' && a.seq < 5)))) { if (guardar) { this.dashPedido = DASH.guarda; this.dashMouse = mouse; } return false; }
+    if (this.stamina < DASH.custo - 1e-6) { this.dashPedido = 0; if (ctx.hud && ctx.hud.semStamina) ctx.hud.semStamina(); ctx.som.tocar('ui_negar', { vol: 0.35 }); return false; }
+    let dx = 0, dz = 0; const tl = Math.hypot(this.teclas.x, this.teclas.z);
+    if (tl > 0.1) { dx = this.teclas.x; dz = this.teclas.z; }
+    else if (this.rota && this.rota.length && this.rotaTipo === 'clique') { dx = this.rota[0][0] - this.pos.x; dz = this.rota[0][1] - this.pos.z; }
+    if (Math.hypot(dx, dz) < 0.05 && mouse && Math.hypot(mouse.x - this.pos.x, mouse.z - this.pos.z) > 0.3) { dx = mouse.x - this.pos.x; dz = mouse.z - this.pos.z; }
+    if (Math.hypot(dx, dz) < 0.05) { dx = Math.sin(this.rot); dz = Math.cos(this.rot); }
+    const l = Math.hypot(dx, dz); dx /= l; dz /= l;
+    this.stamina = Math.max(0, this.stamina - DASH.custo); this.dashDesde = 0; this.dashPedido = 0; this.dashes++;
+    this.dash = { dx, dz, t: 0, feito: 0, prox: DASH.vultoCada }; this.acao = null; this.rota = null; this.rotaTipo = null; this.rot = this.rotAlvo = Math.atan2(dx, dz);
+    this.vulto(DASH.vultoVida); ctx.som.tocar('vento', { vol: 0.32, vel: 1.7, var: 0.08 }); ctx.vfx.poeira(this.pos, 5, [0.62, 0.55, 0.44], 0.8); return true;
+  }
+  passoDash(dt) {
+    this.dashDesde += dt; if (!this.dash && this.dashDesde > DASH.espera) this.stamina = Math.min(1, this.stamina + dt / DASH.cheia);
+    if (this.dashPedido > 0) { this.dashPedido -= dt; if (!this.dash && this.dashPedido > 0) this.pedirDash(this.dashMouse, false); }
+    const d = this.dash; if (!d) return false; if (this.morto) { this.dash = null; return false; }
+    d.t = Math.min(DASH.dura, d.t + dt); const u = 1 - d.t / DASH.dura; let falta = DASH.dist * (1 - u * u) - d.feito;   // a velocidade toda no começo, freando no fim
+    while (falta > 1e-6) { const p = Math.min(0.12, falta), nx = this.pos.x + d.dx * p, nz = this.pos.z + d.dz * p; if (M.bloqueado(nx, nz)) { d.t = DASH.dura; d.parou = true; break; }
+      this.pos.x = nx; this.pos.z = nz; d.feito += p; falta -= p; if (d.feito >= d.prox) { d.prox += DASH.vultoCada; this.vulto(DASH.vultoVida); } }
+    const fx = this.ctx.vfx; for (let k = 0; k < 2; k++) fx.luz.emitir({ p: new V3(this.pos.x - d.dx * 0.3 + rnd(-0.2, 0.2), this.pos.y + rnd(0.2, 1.3), this.pos.z - d.dz * 0.3 + rnd(-0.2, 0.2)), v: new V3(-d.dx * 3 + rnd(-0.4, 0.4), rnd(-0.2, 0.4), -d.dz * 3 + rnd(-0.4, 0.4)), vida: rnd(0.2, 0.35), t0: 0.5, t1: 0.9, c0: [0.85, 0.95, 1], a0: 0.22, a1: 0, q: 7, rot: -Math.atan2(d.dz, d.dx), arr: 3 });
+    if (Math.random() < dt * 45) fx.poeira(this.pos, 1, [0.62, 0.55, 0.44], 0.7);
+    if (d.t >= DASH.dura) { this.dash = null; this.dashDesde = 0; this.ultimoDash = { feito: d.feito, parou: !!d.parou }; }
+    return true;
+  }
 
   // ----- dano (as fórmulas seguem as do jogo) -----
   danoNormal() { const c = Math.random() < 0.12; return { v: Math.round(rnd(62, 88) * (c ? 2 : 1)), critico: c }; }
@@ -79,7 +127,7 @@ export class Heroi {
 
   // ----- as ações de tiro -----
   iniciarAcao(tipo, alvo, ponto) {
-    const ctx = this.ctx, som = ctx.som; this.rota = null;
+    const ctx = this.ctx, som = ctx.som; if (this.rotaTipo !== 'clique') { this.rota = null; this.rotaTipo = null; }   // (o destino de um clique fica: depois do tiro ele segue andando)
     const anim = tipo === 'fogo' ? 'certeiro' : tipo === 'chuva' ? 'chuva' : 'atirar'; const vel = tipo === 'normal' ? 1.3 : tipo === 'concentrado' ? 1.35 : tipo === 'fogo' ? 1.1 : 1.15;
     const clip = this.acoes[anim].getClip(); this.tocar(anim, { vel, uma: true, reinicia: true, fade: 0.1 });
     const a = this.acao = { tipo, alvo, ponto, t: 0, vel, tSolta: this.tSolta[anim] ?? 0.86, dur: clip.duration, solto: false, seq: 0 };
@@ -93,7 +141,7 @@ export class Heroi {
     const alvoVivo = a.alvo && !a.alvo.morto ? a.alvo : null; const dir = this.frente();
     if (a.tipo === 'normal') {
       som.tocar('arco', { pos: this.pos }); const d = this.danoNormal();
-      vfx.flecha({ de, alvo: alvoVivo, dir, queda: alvoVivo ? 0 : 0.25, tipo: 'normal', aoAcertar: (p, ok) => { if (ok) { alvoVivo.receber(d.v, { critico: d.critico }); vfx.impactoFlecha(p, 'normal'); som.tocar('flecha_acerta', { pos: p, vol: 0.8 }); } else { vfx.poeira(p, 3); som.tocar('flecha_acerta', { pos: p, vol: 0.4 }); } } });
+      vfx.flecha({ de, alvo: alvoVivo, dir, queda: alvoVivo ? 0 : 0.25, tipo: 'normal', cor: this.corRefino ? this.corRefino.forte : undefined, aoAcertar: (p, ok) => { if (ok) { alvoVivo.receber(d.v, { critico: d.critico }); vfx.impactoFlecha(p, 'normal'); som.tocar('flecha_acerta', { pos: p, vol: 0.8 }); } else { vfx.poeira(p, 3); som.tocar('flecha_acerta', { pos: p, vol: 0.4 }); } } });
     } else if (a.tipo === 'venenosa') {
       som.tocar('disparo_veneno', { pos: this.pos }); som.tocar('arco', { pos: this.pos, vol: 0.7 }); const dano = this.danoSkill('venenosa');
       vfx.flecha({ de, alvo: alvoVivo, dir, queda: alvoVivo ? 0 : 0.2, tipo: 'veneno', vel: 30, esc: 1.3, aoAcertar: (p, ok) => {
@@ -146,7 +194,7 @@ export class Heroi {
       this.mirando = false; this.gastar(i); if (this.acao) this.cancelarAcao(); this.virarPara(p.x, p.z, true); this.iniciarAcao('chuva', null, p); return true;
     }
     let alvo = this.alvo && !this.alvo.morto ? this.alvo : ctx.inimigoMaisPerto(this.pos, s.alcance + 4);
-    if (!alvo) { ctx.hud.aviso('Sem alvo: clique num lobo'); ctx.som.tocar('ui_negar', { vol: 0.5 }); return false; }
+    if (!alvo) { ctx.hud.aviso('Sem alvo: Espaço ou clique numa criatura'); ctx.som.tocar('ui_negar', { vol: 0.5 }); return false; }
     const d = Math.hypot(alvo.pos.x - this.pos.x, alvo.pos.z - this.pos.z); if (d > s.alcance + 4) { ctx.hud.aviso('Alvo longe demais'); return false; }
     this.alvo = alvo; this.auto = true; this.gastar(i); if (this.acao) this.cancelarAcao(); this.virarPara(alvo.pos.x, alvo.pos.z, true); this.iniciarAcao(s.id, alvo, null); return true;
   }
@@ -156,8 +204,17 @@ export class Heroi {
   receber(dano, de) {
     if (this.morto) return; this.vida -= dano; this.emCombate = 6; this.ctx.hud.numero(this.peito(new V3()), dano, 'heroi'); this.ctx.som.tocar('grunhido', { vol: 0.7 }); this.ctx.vfx.faiscas(this.peito(new V3()), [0.9, 0.1, 0.08], 6, 2.2);
     if (!this.acao || this.acao.tipo === 'normal') { if (!this.acao && !this.rota) this.tocar('dano', { uma: true, reinicia: true, fade: 0.06 }); this.tDano = 0.3; }
-    if (!this.alvo || this.alvo.morto) { this.alvo = de; }
-    if (this.vida <= 0) { this.vida = 0; this.morto = true; this.tMorto = 0; this.acao = null; this.rota = null; this.auto = false; this.mirando = false; this.tocar('morte', { uma: true, reinicia: true }); this.ctx.som.tocar('morte_jogador'); this.ctx.hud.aviso('Você caiu. Renascendo na vila em 5 s...', 5); }
+    if (this.vida <= 0) { this.vida = 0; this.morto = true; this.tMorto = 0; this.baldeVida = 0; this.tBalde = 0; this.acao = null; this.rota = null; this.rotaTipo = null; this.alvo = null; this.auto = false; this.dash = null; this.mirando = false; this.tocar('morte', { uma: true, reinicia: true }); this.ctx.som.tocar('morte_jogador'); this.ctx.hud.aviso('Você caiu. Renascendo na vila em 5 s...', 5); }
+  }
+  // a Poção Vermelha (a tecla R ou o clique no quadro dela), como no jogo: não cura na hora. Enche um reservatório de 300, que
+  // entra na vida a cada 1 s, até 7% da vida máxima por vez (a parte clara da barra). Com a vida e o reservatório cheios, não bebe
+  usarPocao() {
+    const ctx = this.ctx; if (this.morto) return false;
+    if (this.pocoes <= 0) { ctx.hud.aviso('Você não tem poções de vida', 1.8); return false; }
+    if (this.vida + this.baldeVida >= this.vidaMax) { ctx.hud.aviso('A vida já está cheia', 1.4); return false; }
+    this.pocoes--; this.pocoesBebidas++; this.baldeVida += POCAO.cura;
+    for (let k = 0; k < 14; k++) ctx.vfx.luz.emitir({ p: new V3(this.pos.x + rnd(-0.3, 0.3), this.pos.y + rnd(0.1, 1.1), this.pos.z + rnd(-0.3, 0.3)), v: new V3(0, rnd(1, 2), 0), vida: 0.7, t0: 0.1, t1: 0.03, c0: [1, 0.22, 0.18], c1: [1, 0.5, 0.4], a0: 1.2, a1: 0, q: 0 });
+    ctx.som.tocar('pocao', { vol: 0.7 }); return true;
   }
   ganharXp(n, yang) {
     this.xp += n; this.yang += yang; if (this.xp >= this.xpProx) { this.xp -= this.xpProx; this.xpProx = Math.round(this.xpProx * 1.35); this.nivel++; this.vidaMax += 120; this.manaMax += 40; this.vida = this.vidaMax; this.mana = this.manaMax; this.atk += 4; this.dex += 2; this.ctx.vfx.subirNivel(this.pos); this.ctx.som.tocar('nivel'); this.ctx.hud.titulo(`Nível ${this.nivel}`, 'Você ficou mais forte'); }
@@ -169,11 +226,14 @@ export class Heroi {
     for (let i = 0; i < this.recargas.length; i++) this.recargas[i] = Math.max(0, this.recargas[i] - dt);
     if (this.buffPassos > 0) this.buffPassos = Math.max(0, this.buffPassos - dt);
     this.emCombate = Math.max(0, this.emCombate - dt);
-    for (const v of this.vultos) { if (v.t < 1) { v.t += dt / 0.42; const k = Math.max(0, 1 - v.t); v.c.traverse(o => { if (o.isMesh) o.material.opacity = 0.34 * k; }); if (v.t >= 1) v.gp.visible = false; } }
+    for (const v of this.vultos) { if (v.t < 1) { v.t += dt / (v.dur || 0.42); const k = Math.max(0, 1 - v.t); v.c.traverse(o => { if (o.isMesh) o.material.opacity = 0.34 * k; }); if (v.t >= 1) v.gp.visible = false; } }
+    this.brilho.atualizar(dt, ctx.tempo);
     if (this.morto) { this.tMorto += dt; if (this.tMorto > 5) this.renascer(); this.raiz.position.copy(this.pos); return; }
+    this.tBalde += dt; if (this.tBalde >= POCAO.tique) { this.tBalde -= POCAO.tique; if (this.baldeVida > 0) { if (this.vida >= this.vidaMax) this.baldeVida = 0; else { const q = Math.min(this.baldeVida, this.vidaMax * POCAO.balde); this.vida = Math.min(this.vidaMax, this.vida + q); this.baldeVida -= q; } } }
     this.mana = Math.min(this.manaMax, this.mana + (this.emCombate > 0 ? 9 : 26) * dt); if (this.emCombate <= 0) this.vida = Math.min(this.vidaMax, this.vida + this.vidaMax * 0.035 * dt);
-    if (this.alvo && this.alvo.morto) { this.alvo = null; if (this.auto) { const prox = ctx.loboMaisPerto(this.pos, 9, true); if (prox) this.alvo = prox; else this.auto = false; } }
-    let movendo = false; const tecl = Math.hypot(this.teclas.x, this.teclas.z) > 0.1;
+    if (this.alvo && (this.alvo.morto || Math.hypot(this.alvo.pos.x - this.pos.x, this.alvo.pos.z - this.pos.z) > ALVO_LONGE)) this.soltarAlvo();   // o alvo caiu ou ficou longe: solta (não passa sozinho para outro)
+    this.recargaTiro = Math.max(0, this.recargaTiro - dt);
+    let movendo = false; const tecl = Math.hypot(this.teclas.x, this.teclas.z) > 0.1; const noDash = this.passoDash(dt);
     // a ação em curso
     if (this.acao) {
       const a = this.acao; a.t += dt * a.vel; if (a.alvo && !a.alvo.morto) this.virarPara(a.alvo.pos.x, a.alvo.pos.z); else if (a.ponto) this.virarPara(a.ponto.x, a.ponto.z);
@@ -182,28 +242,35 @@ export class Heroi {
         { const an = Math.random() * 6.283, el = (Math.random() - 0.5) * 2; const de2 = new V3(p.x + Math.cos(an) * 0.9, p.y + el * 0.6, p.z + Math.sin(an) * 0.9); ctx.vfx.luz.emitir({ p: de2, v: new V3((p.x - de2.x) * 3.2, (p.y - de2.y) * 3.2, (p.z - de2.z) * 3.2), vida: 0.3, t0: 0.12, t1: 0.03, c0: [1, 0.72, 0.3], a0: 0.2 + 0.8 * k, a1: 0, q: 2 }); }
         for (let n = 0; n < 1 + k * 3; n++) ctx.vfx.chama(p, 0.25 + k * 0.75, 0.6 + 0.4 * k); if (a.luz) { a.luz.l.position.copy(p); a.luz.t = 0; a.luz.forca = 0; a.luz.l.intensity = k * 26; a.luz.vida = 1; a.luz.forca = k * 26; } if (Math.random() < k * 0.5) ctx.vfx.luz.emitir({ p, v: new V3(rnd(-1.5, 1.5), rnd(0.5, 2.5), rnd(-1.5, 1.5)), vida: 0.5, t0: 0.07, t1: 0.02, c0: [1, 0.7, 0.3], a0: 1, a1: 0, q: 2 }); }
       if (a.tipo === 'venenosa' && !a.solto && a.t > 0.3) { const p = this.pontaFlecha(); ctx.vfx.luz.emitir({ p: new V3(p.x + rnd(-0.3, 0.3), p.y + rnd(-0.3, 0.3), p.z + rnd(-0.3, 0.3)), v: new V3(0, 0.3, 0), vida: 0.35, t0: 0.16, t1: 0.03, c0: [0.35, 1, 0.25], a0: 0.9, a1: 0, q: 0 }); }
-      if (!a.solto && a.t >= a.tSolta) { a.solto = true; this.soltar(a); }
+      if (!a.solto && a.t >= a.tSolta) { a.solto = true; this.soltar(a); if (a.tipo === 'normal') this.recargaTiro = INTERVALO_TIRO; }
       if (a.tipo === 'concentrado' && a.solto && a.seq < 5) { a.proxima += dt; const ac = this.acoes.atirar; ac.timeScale = 0.12; if (a.proxima >= 0.105) { a.proxima = 0; a.seq++; this.dispararConcentrado(a); if (a.seq >= 5) ac.timeScale = a.vel; } a.t = a.tSolta + 0.01; }
       if (a.t >= a.dur - 0.12) { this.acao = null; }
-      if (tecl && (a.solto || a.tipo === 'normal')) this.acao = null;
+      if (this.acao && a.solto && !(a.tipo === 'concentrado' && a.seq < 5) && (tecl || (this.rota && this.rotaTipo === 'clique'))) this.acao = null;   // andar corta o fim do golpe, depois que ele saiu
     }
-    if (!this.acao) {
-      // o ataque normal automático no alvo
-      if (this.auto && this.alvo && !this.alvo.morto && !tecl) {
-        const d = Math.hypot(this.alvo.pos.x - this.pos.x, this.alvo.pos.z - this.pos.z);
-        if (d <= 9.5 && (!this.rota || d < 8.5)) { this.rota = null; this.virarPara(this.alvo.pos.x, this.alvo.pos.z, d > 0 && Math.abs(angDif(this.rot, Math.atan2(this.alvo.pos.x - this.pos.x, this.alvo.pos.z - this.pos.z))) < 0.5); this.iniciarAcao('normal', this.alvo, null); this.emCombate = 6; }
-        else if (d > 9.5) { this.tRepath -= dt; if (this.tRepath <= 0 || !this.rota) { this.tRepath = 0.5; this.rota = M.caminho(this.pos.x, this.pos.z, this.alvo.pos.x, this.alvo.pos.z); } }
+    if (noDash) { movendo = true; this.tocar('correndo', { vel: 2.4 }); }
+    else if (!this.acao) {
+      // com um alvo marcado ele não deixa de atirar: no alcance, atira sozinho a cada INTERVALO_TIRO, até andando ou fugindo
+      // (para, atira e segue); fora do alcance, vai atrás, se o jogador não estiver andando por conta própria
+      const alvo = this.alvo && !this.alvo.morto ? this.alvo : null;
+      if (alvo) {
+        const d = Math.hypot(alvo.pos.x - this.pos.x, alvo.pos.z - this.pos.z) - (alvo.ehPedra ? alvo.raio * 0.6 : 0); const cliq = !!(this.rota && this.rotaTipo === 'clique');
+        if (d <= ALCANCE_ARCO) {
+          if (this.recargaTiro <= 0) { this.virarPara(alvo.pos.x, alvo.pos.z, Math.abs(angDif(this.rot, Math.atan2(alvo.pos.x - this.pos.x, alvo.pos.z - this.pos.z))) < 0.5); this.iniciarAcao('normal', alvo, null); this.emCombate = 6; }
+          else if (this.rotaTipo === 'alvo' && d < ALCANCE_ARCO - 0.7) { this.rota = null; this.rotaTipo = null; }
+        } else if (!tecl && !cliq) { this.tRepath -= dt; if (this.tRepath <= 0 || !this.rota) { this.tRepath = 0.5; this.rota = M.caminho(this.pos.x, this.pos.z, alvo.pos.x, alvo.pos.z); this.rotaTipo = this.rota ? 'alvo' : null; } }
       }
-      // andar: pelas teclas ou pela rota do clique
-      let vx = 0, vz = 0;
-      if (tecl) { this.rota = null; this.auto = false; const l = Math.hypot(this.teclas.x, this.teclas.z); vx = this.teclas.x / l; vz = this.teclas.z / l; }
-      else if (this.rota && this.rota.length) { const [tx, tz] = this.rota[0]; const dx = tx - this.pos.x, dz = tz - this.pos.z; const d = Math.hypot(dx, dz); if (d < 0.22) { this.rota.shift(); if (!this.rota.length) this.rota = null; } else { vx = dx / d; vz = dz / d; } }
-      if (vx || vz) {
-        movendo = true; const passo = this.vel * dt; let nx = this.pos.x + vx * passo, nz = this.pos.z + vz * passo;
-        if (M.bloqueado(nx, nz)) { if (!M.bloqueado(nx, this.pos.z)) nz = this.pos.z; else if (!M.bloqueado(this.pos.x, nz)) nx = this.pos.x; else { nx = this.pos.x; nz = this.pos.z; movendo = false; this.rota = null; } }
-        this.pos.x = nx; this.pos.z = nz; this.rotAlvo = Math.atan2(vx, vz);
+      if (!this.acao) {
+        // andar: pelas teclas (para de perseguir, mas o alvo marcado fica) ou pela rota
+        let vx = 0, vz = 0;
+        if (tecl) { this.rota = null; this.rotaTipo = null; const l = Math.hypot(this.teclas.x, this.teclas.z); vx = this.teclas.x / l; vz = this.teclas.z / l; }
+        else if (this.rota && this.rota.length) { const [tx, tz] = this.rota[0]; const dx = tx - this.pos.x, dz = tz - this.pos.z; const d = Math.hypot(dx, dz); if (d < 0.22) { this.rota.shift(); if (!this.rota.length) { this.rota = null; this.rotaTipo = null; } } else { vx = dx / d; vz = dz / d; } }
+        if (vx || vz) {
+          movendo = true; const passo = this.vel * dt; let nx = this.pos.x + vx * passo, nz = this.pos.z + vz * passo;
+          if (M.bloqueado(nx, nz)) { if (!M.bloqueado(nx, this.pos.z)) nz = this.pos.z; else if (!M.bloqueado(this.pos.x, nz)) nx = this.pos.x; else { nx = this.pos.x; nz = this.pos.z; movendo = false; this.rota = null; this.rotaTipo = null; } }
+          this.pos.x = nx; this.pos.z = nz; this.rotAlvo = Math.atan2(vx, vz);
+        }
+        if (movendo) this.tocar('correndo', { vel: this.vel / 5.0 * 1.05 }); else if (!(this.tDano > 0)) this.tocar('parado');
       }
-      if (!this.acao) { if (movendo) this.tocar('correndo', { vel: this.vel / 5.0 * 1.05 }); else if (!(this.tDano > 0)) this.tocar('parado'); }
     }
     this.tDano = Math.max(0, (this.tDano || 0) - dt);
     if (this.rotAlvo !== undefined) { const d = angDif(this.rot, this.rotAlvo); this.rot += d * Math.min(1, dt * 14); }
@@ -215,12 +282,12 @@ export class Heroi {
       if (this.buffPassos > 0) {
         if (!this.riscos) this.riscos = [ctx.vfx.rastro(this.pos, 0xbfe8ff, 0.09, 0.55), ctx.vfx.rastro(this.pos, 0xbfe8ff, 0.09, 0.55)];
         { const lx = Math.cos(this.rot) * 0.2, lz = -Math.sin(this.rot) * 0.2; this.riscos.forEach((r, i) => { if (r) r.mover(new V3(this.pos.x + (i ? lx : -lx), this.pos.y + 0.16 + 0.1 * Math.sin(ctx.tempo * 20 + i * 3.14), this.pos.z + (i ? lz : -lz))); }); }
-        this.tFantasma -= dt; if (this.tFantasma <= 0) { this.tFantasma = 0.085; const v = this.vultos.find(v => v.t >= 1) || this.vultos[0]; v.t = 0; v.gp.visible = true; v.gp.position.copy(this.pos); v.gp.rotation.y = this.rot; for (const o of v.ossos) { const s = this.ossosModelo.get(o.name); if (s) { o.position.copy(s.position); o.quaternion.copy(s.quaternion); o.scale.copy(s.scale); } } }
+        this.tFantasma -= dt; if (this.tFantasma <= 0) { this.tFantasma = 0.085; this.vulto(); }
         const f = this.frente(); for (let k = 0; k < 2; k++) ctx.vfx.luz.emitir({ p: new V3(this.pos.x + rnd(-0.3, 0.3), this.pos.y + rnd(0.05, 0.5), this.pos.z + rnd(-0.3, 0.3)), v: new V3(-f.x * 2 + rnd(-0.5, 0.5), rnd(0.2, 1), -f.z * 2 + rnd(-0.5, 0.5)), vida: rnd(0.3, 0.6), t0: rnd(0.2, 0.4), t1: 0.6, c0: [0.7, 0.93, 1], a0: 0.3, a1: 0, q: 0 });
       }
     } else if (this.buffPassos > 0 && Math.random() < dt * 14) { const a = Math.random() * 2 * PI; ctx.vfx.luz.emitir({ p: new V3(this.pos.x + Math.cos(a) * 0.45, this.pos.y + 0.08, this.pos.z + Math.sin(a) * 0.45), v: new V3(Math.cos(a + 1.5) * 1.2, rnd(0.6, 1.4), Math.sin(a + 1.5) * 1.2), vida: 0.6, t0: 0.24, t1: 0.05, c0: [0.7, 0.93, 1], a0: 0.45, a1: 0, q: 0 }); }
   }
-  renascer() { this.morto = false; this.vida = this.vidaMax; this.mana = this.manaMax; this.pos.set(M.NASCER.x, 0, M.NASCER.z); this.pos.y = piso(this.pos.x, this.pos.z); this.rot = PI; this.rotAlvo = PI; this.alvo = null; this.animAtual = ''; this.tocar('parado'); this.ctx.vfx.subirNivel(this.pos); this.ctx.som.tocar('magia_buff'); }
+  renascer() { this.morto = false; this.vida = this.vidaMax; this.mana = this.manaMax; this.pos.set(M.NASCER.x, 0, M.NASCER.z); this.pos.y = piso(this.pos.x, this.pos.z); this.rot = PI; this.rotAlvo = PI; this.alvo = null; this.rota = null; this.rotaTipo = null; this.stamina = 1; this.animAtual = ''; this.tocar('parado'); this.ctx.vfx.subirNivel(this.pos); this.ctx.som.tocar('magia_buff'); }
 }
 
 // ================= os lobos =================
@@ -268,16 +335,38 @@ export class Lobo {
     const xp = Math.round(this.t.xp * this.xpMult), yang = Math.round(this.t.yang * this.xpMult);
     ctx.heroi.ganharXp(xp, yang); ctx.hud.registro(`Você derrotou <b>${this.nome}</b>: +${xp} XP, +${yang} yang`); ctx.hud.numero(this.peito(new V3()).add(new V3(0, 0.6, 0)), `+${xp} XP`, 'xp');
     ctx.agendar(0.45, () => ctx.vfx.poeira(this.pos, 7, [0.5, 0.45, 0.36], 1.1)); if (this.maldita) for (let k = 0; k < 14; k++) ctx.vfx.fuligem(this.pos, 0.6, 1.2); ctx.som.tocar('moeda', { pos: this.pos, vol: 0.6, atraso: 0.4 }); ctx.estat.abates++;
+    if (Math.random() < (this.horda ? POCAO.quedaHorda : POCAO.queda)) { ctx.heroi.pocoes++; ctx.hud.registro(`<b>${this.nome}</b> deixou cair uma <b>${POCAO.nome}</b>`); }
     for (const m of this.mats) { m.transparent = true; }
   }
   renascer() { this.morto = false; this.vida = this.vidaMax; const a = Math.random() * 2 * PI, d = Math.random() * 2.5; this.pos.set(this.casa.x + Math.cos(a) * d, 0, this.casa.z + Math.sin(a) * d); this.pos.y = piso(this.pos.x, this.pos.z); this.raiz.visible = true; this.viuHeroi = false; this.mostrarVida = 0; this.animAtual = ''; this.tocar('parado'); this.mudar('nascendo', 0); for (const m of this.mats) { m.opacity = 0; m.transparent = true; } }
+  // afasta dos outros lobos, para não empilhar. É um empurrão de lado, limitado (vmax, em m/s), que só mexe a posição:
+  // o corpo não vira por causa dele (antes virava, e a matilha corria "meio de lado" para o herói)
+  afastar(dt, vmax) {
+    let px = 0, pz = 0; for (const l of this.ctx.lobos) { if (l === this || l.morto) continue; const ex = this.pos.x - l.pos.x, ez = this.pos.z - l.pos.z; const e = Math.hypot(ex, ez); const m = this.raio + l.raio + 0.25; if (e < m && e > 0.001) { px += ex / e * (m - e) * 3; pz += ez / e * (m - e) * 3; } }
+    const p = Math.hypot(px, pz); if (p < 1e-4) return; const k = Math.min(1, vmax / p) * dt; const nx = this.pos.x + px * k, nz = this.pos.z + pz * k;
+    if (!M.bloqueado(nx, nz)) { this.pos.x = nx; this.pos.z = nz; }
+  }
   andar(tx, tz, vel, dt) {
-    const dx = tx - this.pos.x, dz = tz - this.pos.z; const d = Math.hypot(dx, dz); if (d < 0.05) return d; let vx = dx / d, vz = dz / d;
-    // afasta dos outros lobos, para não empilhar
-    for (const l of this.ctx.lobos) { if (l === this || l.morto) continue; const ex = this.pos.x - l.pos.x, ez = this.pos.z - l.pos.z; const e = Math.hypot(ex, ez); const m = this.raio + l.raio + 0.25; if (e < m && e > 0.001) { vx += ex / e * (m - e) * 2.2; vz += ez / e * (m - e) * 2.2; } }
-    const n = Math.hypot(vx, vz) || 1; vx /= n; vz /= n; const passo = Math.min(d, vel * dt); let nx = this.pos.x + vx * passo, nz = this.pos.z + vz * passo;
-    if (M.bloqueado(nx, nz)) { if (!M.bloqueado(nx, this.pos.z)) nz = this.pos.z; else if (!M.bloqueado(this.pos.x, nz)) nx = this.pos.x; else { nx = this.pos.x; nz = this.pos.z; } }
-    this.pos.x = nx; this.pos.z = nz; this.rotAlvo = Math.atan2(vx, vz); return d;
+    const dx = tx - this.pos.x, dz = tz - this.pos.z; const d = Math.hypot(dx, dz); if (d < 0.05) return d; const vx = dx / d, vz = dz / d;
+    // enquanto o corpo ainda está virando para o caminho, ele anda mais devagar (não sai de lado na largada)
+    const alinh = Math.max(0, Math.cos(angDif(this.rot, this.rotAlvo !== undefined ? this.rotAlvo : Math.atan2(vx, vz))));
+    const passo = Math.min(d, vel * dt * (0.2 + 0.8 * alinh)), x0 = this.pos.x, z0 = this.pos.z; let nx = x0 + vx * passo, nz = z0 + vz * passo;
+    if (M.bloqueado(nx, nz)) { if (!M.bloqueado(nx, z0)) nz = z0; else if (!M.bloqueado(x0, nz)) nx = x0; else { nx = x0; nz = z0; } }
+    this.pos.x = nx; this.pos.z = nz;
+    // o corpo aponta para onde ele vai de verdade: para o destino, ou ao longo da parede quando escorrega nela
+    const mx = nx - x0, mz = nz - z0; this.rotAlvo = mx * mx + mz * mz > 1e-8 ? Math.atan2(mx, mz) : Math.atan2(vx, vz);
+    this.afastar(dt, vel * 0.25); return d;
+  }
+  // vai até (tx, tz) contornando o que estiver no caminho: em linha reta quando dá; senão pela rota, refeita de tempo em tempo
+  // (antes ele ia reto e escorregava de lado na pedra ou na parede)
+  ir(tx, tz, vel, dt) {
+    this.tRota = (this.tRota || 0) - dt; const d = Math.hypot(tx - this.pos.x, tz - this.pos.z);
+    if (M.linhaLivre(this.pos.x, this.pos.z, tx, tz)) { this.rota = null; this.tRota = 0; this.andar(tx, tz, vel, dt); return d; }   // (tRota = 0: se o caminho fechar de novo, a rota sai na hora)
+    // refaz a rota de tempo em tempo, ou quando ela acaba (sem caminho possível, só tenta de novo no próximo prazo: o A* que não acha saída é o mais caro)
+    if (this.tRota <= 0 || (this.rota && !this.rota.length)) { this.tRota = 0.6 + Math.random() * 0.3; this.rota = M.caminho(this.pos.x, this.pos.z, tx, tz); }
+    if (!this.rota || !this.rota.length) { this.andar(tx, tz, vel, dt); return d; }
+    while (this.rota.length > 1 && Math.hypot(this.rota[0][0] - this.pos.x, this.rota[0][1] - this.pos.z) < 0.35) this.rota.shift();
+    this.andar(this.rota[0][0], this.rota[0][1], vel, dt); return d;
   }
   atualizar(dt) {
     const ctx = this.ctx, h = ctx.heroi; this.mixer.update(dt); this.tEstado -= dt; this.mostrarVida = Math.max(0, this.mostrarVida - dt); this.tMordida = Math.max(0, this.tMordida - dt); this.tFlinch = Math.max(0, (this.tFlinch || 0) - dt);
@@ -296,16 +385,16 @@ export class Lobo {
     const dh = Math.hypot(h.pos.x - this.pos.x, h.pos.z - this.pos.z); const dcasa = Math.hypot(this.casa.x - this.pos.x, this.casa.z - this.pos.z);
     const visao = this.tipo === 'alfa' ? 9 : 7;
     switch (this.estado) {
-      case 'parado': if (this.tFlinch <= 0) this.tocar('parado'); if (!h.morto && dh < visao) { this.alertar(); break; } if (this.tEstado <= 0) { if (Math.random() < 0.12) { this.mudar('uivar', 2); this.tocar('uivar', { uma: true, reinicia: true }); ctx.som.tocar('uivo', { pos: this.pos, vol: 0.7 }); } else { const a = Math.random() * 2 * PI, d = rnd(1.2, this.raioPasseio); this.destino = [this.casa.x + Math.cos(a) * d, this.casa.z + Math.sin(a) * d]; this.mudar('passear', rnd(3, 7)); } } break;
+      case 'parado': if (this.tFlinch <= 0) this.tocar('parado'); if (!h.morto && dh < visao) { this.alertar(); break; } if (this.tEstado <= 0) { if (Math.random() < 0.12) { this.mudar('uivar', 2); this.tocar('uivar', { uma: true, reinicia: true }); ctx.som.tocar('uivo', { pos: this.pos, vol: 0.7 }); } else { let dest = null; for (let k = 0; k < 5 && !dest; k++) { const a = Math.random() * 2 * PI, d = rnd(1.2, this.raioPasseio), px = this.casa.x + Math.cos(a) * d, pz = this.casa.z + Math.sin(a) * d; if (M.linhaLivre(this.pos.x, this.pos.z, px, pz)) dest = [px, pz]; } if (dest) { this.destino = dest; this.mudar('passear', rnd(3, 7)); } else this.mudar('parado', rnd(1, 2.5)); } } break;
       case 'passear': if (!h.morto && dh < visao) { this.alertar(); break; } { const d = this.andar(this.destino[0], this.destino[1], 0.9, dt); this.tocar('andando', { vel: 1 }); if (d < 0.3 || this.tEstado <= 0) this.mudar('parado', rnd(1.5, 5)); } break;
       case 'uivar': if (!h.morto && dh < visao * 1.6) this.rotAlvo = Math.atan2(h.pos.x - this.pos.x, h.pos.z - this.pos.z); if (this.tEstado <= 0) { if (!h.morto && dh < visao * 1.8) { this.mudar('perseguir'); for (const l of ctx.lobos) if (l !== this && !l.morto && l.pos.distanceTo(this.pos) < 8) l.alertar(true); } else this.mudar('parado', rnd(1, 3)); } break;
       case 'perseguir':
         if (h.morto || dcasa > 30 || dh > 26) { this.mudar('voltar'); break; }
-        if (dh < 1.75 + this.raio * 0.6) { if (this.tMordida <= 0) { this.mudar('morder', (this.acoes.morder.getClip().duration)); this.tocar('morder', { uma: true, reinicia: true, fade: 0.08 }); this.mordeu = false; ctx.som.tocar('rosnado', { pos: this.pos, vol: 0.5 }); } else { if (this.tFlinch <= 0) this.tocar('parado'); } this.rotAlvo = Math.atan2(h.pos.x - this.pos.x, h.pos.z - this.pos.z); }
-        else { this.andar(h.pos.x, h.pos.z, this.tipo === 'alfa' ? 3.9 : 3.4, dt); if (this.tFlinch <= 0) this.tocar('correndo', { vel: 1 }); }
+        if (dh < 1.75 + this.raio * 0.6) { if (this.tMordida <= 0) { this.mudar('morder', (this.acoes.morder.getClip().duration)); this.tocar('morder', { uma: true, reinicia: true, fade: 0.08 }); this.mordeu = false; ctx.som.tocar('rosnado', { pos: this.pos, vol: 0.5 }); } else { if (this.tFlinch <= 0) this.tocar('parado'); this.afastar(dt, 0.8); } this.rotAlvo = Math.atan2(h.pos.x - this.pos.x, h.pos.z - this.pos.z); }
+        else { this.ir(h.pos.x, h.pos.z, this.tipo === 'alfa' ? 3.9 : 3.4, dt); if (this.tFlinch <= 0) this.tocar('correndo', { vel: 1 }); }
         break;
       case 'morder': this.rotAlvo = Math.atan2(h.pos.x - this.pos.x, h.pos.z - this.pos.z); { const dur = this.acoes.morder.getClip().duration; if (!this.mordeu && this.tEstado <= dur * 0.5) { this.mordeu = true; if (dh < 2.3 + this.raio * 0.6 && !h.morto) { h.receber(Math.round(rnd(this.t.dano[0], this.t.dano[1]) * this.danoMult), this); ctx.som.tocar('mordida', { pos: this.pos }); } } if (this.tEstado <= 0) { this.tMordida = rnd(0.35, 0.7); this.mudar('perseguir'); } } break;
-      case 'voltar': { const d = this.andar(this.casa.x, this.casa.z, 2.6, dt); this.tocar('andando', { vel: 1.6 }); this.vida = Math.min(this.vidaMax, this.vida + this.vidaMax * 0.15 * dt); if (!h.morto && dh < visao * 0.8 && dcasa < 20) { this.mudar('perseguir'); break; } if (d < 1) { this.viuHeroi = false; this.mudar('parado', rnd(1, 3)); } } break;
+      case 'voltar': { const d = this.ir(this.casa.x, this.casa.z, 2.6, dt); this.tocar('andando', { vel: 1.6 }); this.vida = Math.min(this.vidaMax, this.vida + this.vidaMax * 0.15 * dt); if (!h.morto && dh < visao * 0.8 && dcasa < 20) { this.mudar('perseguir'); break; } if (d < 1) { this.viuHeroi = false; this.mudar('parado', rnd(1, 3)); } } break;
     }
     if (this.rotAlvo !== undefined) this.rot += angDif(this.rot, this.rotAlvo) * Math.min(1, dt * 9);
     const y = piso(this.pos.x, this.pos.z); this.pos.y += (y - this.pos.y) * Math.min(1, dt * 14);

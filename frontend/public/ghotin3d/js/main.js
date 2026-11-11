@@ -21,6 +21,7 @@ import { Ghotin } from './ghotin.js';
 import { DragaoGigante } from './dragao.js';
 import { criarVulcao, Vulcao } from './vulcao.js';
 import { EstatuaImugi } from './estatua.js';
+import { arcoDaPagina } from './equip.js';
 
 const V3 = THREE.Vector3; const PI = Math.PI; const $ = (id) => document.getElementById(id);
 const Q = new URLSearchParams(location.search);
@@ -112,8 +113,13 @@ function loboSobRato() {
   for (const l of ctx.inimigos()) { if (l.morto) continue; const s = ctx.hud.projetar(l.peito(v)); if (!s.ok) continue; const dist = camera.position.distanceTo(v); const r = Math.max(26, 900 / dist * (l.ehPedra ? 2.6 : l.tipo === 'alfa' ? 1.5 : 1)); const d = Math.hypot(s.x - rato.x, s.y - rato.y); if (d < r && d < md) { md = d; m = l; } }
   return m;
 }
+// o nome do personagem: até 16 letras, sem espaços nas pontas; fica salvo no navegador
+function nomeValido(n) { n = (n || '').replace(/\s+/g, ' ').trim().slice(0, 16); return n || null; }
+function nomeSalvo() { try { return nomeValido(localStorage.getItem('ghotin3d_nome')); } catch (e) { return null; } }
 function ligarComandos() {
   const h = ctx.heroi;
+  $('hNome').addEventListener('mousedown', e => e.stopPropagation());
+  $('hNome').addEventListener('click', () => { teclas.clear(); const n = nomeValido(prompt('Nome do personagem (até 16 letras):', h.nome)); if (n) { h.nome = n; try { localStorage.setItem('ghotin3d_nome', n); } catch (e) { } } });
   tela.addEventListener('contextmenu', e => e.preventDefault());
   addEventListener('mousemove', e => { if (rato.dir) { if (ctx.vulcao && ctx.vulcao.arena > 0.5) cam.yawOff -= e.movementX * 0.0052; else cam.yaw -= e.movementX * 0.0052; cam.pitch = Math.min(1.25, Math.max(0.16, cam.pitch + e.movementY * 0.004)); rato.arrastou += Math.abs(e.movementX) + Math.abs(e.movementY); } rato.x = e.clientX; rato.y = e.clientY; });
   tela.addEventListener('mousedown', e => {
@@ -121,17 +127,21 @@ function ligarComandos() {
     if (e.button === 2) { rato.dir = true; rato.arrastou = 0; return; }
     if (e.button !== 0) return; rato.esq = true; clicar(true);
   });
-  addEventListener('mouseup', e => { if (e.button === 2) { rato.dir = false; if (rato.arrastou < 4 && h.mirando) h.mirando = false; } if (e.button === 0) rato.esq = false; });
+  addEventListener('mouseup', e => { if (e.button === 2) { rato.dir = false; if (rato.arrastou < 4) { if (h.mirando) h.mirando = false; else { const l = loboSobRato(); if (l) h.marcar(l); } } }   // o botão direito, sem arrastar: só marca a criatura
+    if (e.button === 0) { rato.esq = false; rato.noAlvo = false; } });
   tela.addEventListener('wheel', e => { cam.dist = Math.min(46, Math.max(5.5, cam.dist * Math.pow(1.0012, e.deltaY))); e.preventDefault(); }, { passive: false });
   addEventListener('keydown', e => {
     if (e.repeat) return; ctx.som.destravar(); const k = e.key.toLowerCase(); teclas.add(k);
     if (k >= '1' && k <= '5') { const i = +k - 1; if (SKILLS[i].id === 'chuva' && ctx.hud && h.recargas[i] <= 0 && h.mana >= SKILLS[i].mana) { h.mirando = !h.mirando; if (h.mirando) ctx.hud.aviso('Mire no chão e clique para soltar a chuva', 2.5); } else h.usarSkill(i); }
-    else if (k === 'tab') { e.preventDefault(); const vivos = ctx.lobos.filter(l => !l.morto).sort((a, b) => a.pos.distanceTo(h.pos) - b.pos.distanceTo(h.pos)).slice(0, 6); if (vivos.length) { const i = vivos.indexOf(h.alvo); h.alvo = vivos[(i + 1) % vivos.length]; } }
-    else if (k === 'escape') { if (ctx.verVoo) ctx.verVoo = false; else if (h.mirando) h.mirando = false; else { h.alvo = null; h.auto = false; } }
+    else if (k === ' ' || k === 'tab') { e.preventDefault(); alvoComEspaco(); }
+    else if (k === 'shift') { h.pedirDash(pontoChao(rato.x, rato.y, rato.chao) ? rato.chao : null); }
+    else if (k === 'escape') { if (ctx.verVoo) ctx.verVoo = false; else if (h.mirando) h.mirando = false; else h.soltarAlvo(); }
     else if (k === 'v') { const dg = ctx.dragao; if (!dg || ctx.demo) return; if (ctx.verVoo) ctx.verVoo = false; else if (dg.voo || dg.voar()) { ctx.verVoo = true; ctx.hud.aviso('O Dragão levanta voo · V ou Esc volta para o herói', 3.5); } else ctx.hud.aviso('O Dragão está ocupado; tente de novo daqui a pouco', 2.5); }
-    else if (k === 'r') { const ch = ctx.clima.alternar(); ctx.hud.aviso(ch ? 'O céu fecha: vem chuva' : 'A chuva passa: o sol volta', 2.4); ctx.som.tocar(ch ? 'trovao' : 'magia_buff', { vol: 0.5 }); }
-    else if (k === 'm') { ctx.hud.aviso(ctx.som.alternarMusica() ? 'Música ligada' : 'Música desligada'); }
-    else if (k === 'h') { const a = $('ajuda'); a.style.display = a.style.display === 'none' ? 'block' : 'none'; }
+    else if (k === 'r') { if (!e.ctrlKey && !e.altKey && !e.metaKey) h.usarPocao(); }   // (sem o Ctrl: Ctrl+R recarrega a página)
+    else if (k === 'b') { const on = ctx.som.alternarSom(); ctx.hud.mostrarSom(); ctx.hud.aviso(on ? 'Som ligado' : 'Som desligado'); }
+    else if (k === 't') { const ch = ctx.clima.alternar(); ctx.hud.aviso(ch ? 'O céu fecha: vem chuva' : 'A chuva passa: o sol volta', 2.4); ctx.som.tocar(ch ? 'trovao' : 'magia_buff', { vol: 0.5 }); }
+    else if (k === 'm') { ctx.hud.aviso(ctx.som.alternarMusica() ? 'Música ligada' : 'Música desligada'); ctx.hud.mostrarSom(); }
+    else if (k === 'h') { const a = $('ajuda'); a.style.display = getComputedStyle(a).display === 'none' ? 'block' : 'none'; }
     else if (k === 'c') document.body.classList.toggle('cine');
     else if (k === 'f2') { e.preventDefault(); const ordem = ['alta', 'media', 'baixa']; Q.set('q', ordem[(ordem.indexOf(NIVEL) + 1) % 3]); location.search = Q.toString(); }
     else if (k === 'f3') { e.preventDefault(); ctx.verFps = !ctx.verFps; $('fps').textContent = ''; }
@@ -140,12 +150,22 @@ function ligarComandos() {
   addEventListener('blur', () => { teclas.clear(); rato.esq = rato.dir = false; });
   addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, false); composer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 }
+// Espaço, como no jogo: marca a criatura mais perto que está na tela e ataca até ela cair; de novo, passa para a próxima
+// (da mais perto para a mais longe, voltando à primeira). Nunca uma derrotada nem uma que ainda está nascendo
+function alvoComEspaco() {
+  const h = ctx.heroi; if (h.morto) return; const v = new V3(); const dist = (l) => Math.hypot(l.pos.x - h.pos.x, l.pos.z - h.pos.z);
+  const naTela = ctx.inimigos().filter(l => !l.morto && !l.remover && l.estado !== 'nascendo' && (!l.ehPedra || l.estado === 'viva') && ctx.hud.projetar(l.peito(v)).ok).sort((a, b) => dist(a) - dist(b));
+  if (!naTela.length) { h.soltarAlvo(); ctx.hud.aviso('Nenhuma criatura na tela', 2); return; }
+  const i = naTela.indexOf(h.alvo); h.atacar(i < 0 ? naTela[0] : naTela[(i + 1) % naTela.length]); ctx.som.tocar('ui_clique', { vol: 0.4 });
+}
+ctx.alvoComEspaco = alvoComEspaco;
 let tClique = 0;
 function clicar(novo) {
   const h = ctx.heroi; if (h.morto) return; if (!pontoChao(rato.x, rato.y, rato.chao)) return;
   if (h.mirando) { if (novo) h.usarSkill(3, rato.chao.clone()); return; }
   const l = novo ? loboSobRato() : null;
-  if (l) { h.atacar(l); ctx.som.tocar('ui_clique', { vol: 0.4 }); return; }
+  if (l) { h.atacar(l); rato.noAlvo = true; ctx.som.tocar('ui_clique', { vol: 0.4 }); return; }   // o clique numa criatura marca o alvo e vai atrás
+  if (rato.noAlvo) return;                                   // (o botão ainda apertado desde o clique na criatura não vira "andar até lá")
   h.irPara(rato.chao.x, rato.chao.z); if (novo) { ctx.vfx.anel(rato.chao.x, rato.chao.z, 0.15, 0.7, 0.45, 0xffe9a8); }
 }
 
@@ -226,6 +246,7 @@ async function montar() {
     const pts = new THREE.Points(g, m); pts.frustumCulled = false; pts.renderOrder = 8; cena.add(pts); }
   await passo('Chamando o arqueiro e os lobos...');
   ctx.som = new Som(); ctx.som.mudo = Q.get('mudo') === '1' || GRAVAR;
+  ctx.arco = arcoDaPagina(Q); ctx.nomeHeroi = nomeValido(Q.get('nome')) || nomeSalvo() || 'Arqueiro';
   await Promise.all([carregarModelos(ctx, () => passo()), ctx.som.carregar('assets/sons/', () => passo()).catch(e => console.warn('som', e))]);
   ctx.vfx = new Vfx(ctx); ctx.heroi = new Heroi(ctx); criarLobos(ctx); criarMoradores(ctx); ctx.hud = new Hud(ctx); ctx.hud.criarRotulos();
   // a atmosfera entra logo depois do desenho da cena
@@ -254,4 +275,8 @@ async function montar() {
   window.avancar = (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) quadro(dt); return ctx.tempo; };
   window.sonsGravados = () => ctx.som.registro;
 }
-montar().catch(e => { console.error(e); $('erro').textContent = 'Erro ao montar: ' + (e && e.stack || e); });
+montar().catch(e => {
+  console.error(e); let q = $('erro');   // a tela de carga (onde fica o #erro) pode já ter saído: aí o erro ganha um quadro próprio
+  if (!q) { q = document.createElement('div'); q.id = 'erro'; q.style.cssText = 'position:fixed;left:12px;bottom:12px;max-width:70vw;z-index:99;padding:10px 14px;background:rgba(40,8,8,.92);color:#ffd9d0;font:13px/1.4 monospace;white-space:pre-wrap;border:1px solid #a33'; document.body.appendChild(q); }
+  q.textContent = 'Erro ao montar: ' + (e && e.stack || e);
+});

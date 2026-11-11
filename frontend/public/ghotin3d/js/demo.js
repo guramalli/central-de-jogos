@@ -81,7 +81,7 @@ export function criarDemo(ctx, cam, Q) {
       const alvoPedra = naPedra && pd && !pd.morto && pd.estado === 'viva';
       let alvo = alvoPedra ? pd : perto; if (alvoPedra && bravo && dL < 2.6 && lobosPerto(3).length >= 3) alvo = perto;      // a horda em cima: limpa um pouco
       if (!alvo) { if (!h.rota) h.irPara(M.LOBOS.x - 6, M.LOBOS.z - 6); return; }
-      const d = Math.hypot(alvo.pos.x - h.pos.x, alvo.pos.z - h.pos.z); h.alvo = alvo; h.auto = true; const c = alvoPedra ? new V3(pd.pos.x, 0, pd.pos.z) : centro();
+      const d = Math.hypot(alvo.pos.x - h.pos.x, alvo.pos.z - h.pos.z); if (h.alvo !== alvo) h.marcar(alvo); const c = alvoPedra ? new V3(pd.pos.x, 0, pd.pos.z) : centro();
       if (!(this.fuga > t) || d > 4) for (const i of [1, 3, 0, 2]) {
         if (h.recargas[i] > 0 || h.mana < 130 || d > 11.5) continue;
         if (i === 3) { if (!c) continue; const ponto = new V3(c.x, piso(c.x, c.z), c.z); if (Math.hypot(ponto.x - h.pos.x, ponto.z - h.pos.z) > 13) continue; h.usarSkill(3, ponto); this.fuga = 0; return; }
@@ -92,7 +92,7 @@ export function criarDemo(ctx, cam, Q) {
         const cc = centro() || perto.pos; kite.set(h.pos.x - cc.x, 0, h.pos.z - cc.z).normalize(); const base = alvoPedra ? pd.pos : new V3(M.LOBOS.x, 0, M.LOBOS.z); let tx = h.pos.x + kite.x * 8, tz = h.pos.z + kite.z * 8;
         if (M.bloqueado(tx, tz) || Math.hypot(tx - base.x, tz - base.z) > (alvoPedra ? 11 : 22)) { tx = h.pos.x - kite.z * 7 - kite.x * 2; tz = h.pos.z + kite.x * 7 - kite.z * 2; }
         if (M.bloqueado(tx, tz) || Math.hypot(tx - base.x, tz - base.z) > (alvoPedra ? 12 : 24)) { const a = Math.atan2(h.pos.z - base.z, h.pos.x - base.x) + 1.2; tx = base.x + Math.cos(a) * (alvoPedra ? 8 : 6); tz = base.z + Math.sin(a) * (alvoPedra ? 8 : 6); }
-        if (h.recargas[4] <= 0 && h.buffPassos <= 0) h.usarSkill(4); h.irPara(tx, tz, true); this.fuga = t + 1.4; return;
+        if (h.recargas[4] <= 0 && h.buffPassos <= 0) h.usarSkill(4); h.irPara(tx, tz); this.fuga = t + 1.4; return;
       }
       if (this.fuga > t) return;
       h.atacar(alvo);

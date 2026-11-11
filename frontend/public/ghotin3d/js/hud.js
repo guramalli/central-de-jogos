@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import * as M from './mapa.js';
 import { SKILLS } from './personagens.js';
 import { altura } from './natureza.js';
+import { POCAO, BRILHO_REF } from './equip.js';
+import { VOL_NOMES } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const V3 = THREE.Vector3;
@@ -20,6 +22,18 @@ export class Hud {
       d.addEventListener('mousedown', (e) => { e.stopPropagation(); ctx.heroi.usarSkill(i); });
       this.slots.push({ d, cd: d.querySelector('.cd'), sem: d.querySelector('.sem'), ant: 0 });
     });
+    // a poção de vida: um quadro ao lado das skills, com a tecla (R) e quantas restam
+    { const d = document.createElement('div'); d.className = 'skill item'; d.id = 'slotPocao'; d.style.backgroundImage = 'url(assets/icones/pocao.webp)'; d.innerHTML = '<span class="tecla">R</span><span class="qtd"></span>'; cx.appendChild(d);
+      d.addEventListener('mouseenter', () => { const t = $('dica'); t.style.display = 'block'; t.innerHTML = `<b>${POCAO.nome}</b><br>Recupera ${POCAO.cura} de vida, aos poucos (a parte clara da barra).<br><small>Tecla R · as criaturas às vezes deixam cair</small>`; });
+      d.addEventListener('mouseleave', () => { $('dica').style.display = 'none'; });
+      d.addEventListener('mousedown', (e) => { e.stopPropagation(); ctx.heroi.usarPocao(); });
+      this.pocao = { d, qtd: d.querySelector('.qtd'), n: -1, bebidas: 0 }; }
+    // o quadro do herói: o nome e a arma na mão (o +N na cor do refino)
+    { const h = ctx.heroi, a = h.arco, br = BRILHO_REF[a.ref], hex = br ? '#' + br.forte.toString(16).padStart(6, '0') : '#e8e2d0'; $('hArmaIcone').style.display = a.rara ? '' : 'none'; const sp = $('hArmaNome'); sp.textContent = a.nome + ' '; const b = document.createElement('b'); b.textContent = '+' + a.ref; b.style.color = hex; if (br) b.style.textShadow = '0 0 8px ' + hex; sp.appendChild(b); this.nomeMostrado = null; }
+    // a placa em cima da cabeça do herói, como no jogo: Lv. e nome, a barra de vida (com a parte clara da poção) e a de mana
+    { const d = document.createElement('div'); d.className = 'rot heroi'; d.id = 'placaHeroi'; d.innerHTML = '<span class="lv"></span><span class="nm"></span><div class="hb v"><u></u><i></i></div><div class="hb m"><i></i></div>'; this.camada.appendChild(d);
+      this.placa = { d, lv: d.querySelector('.lv'), nm: d.querySelector('.nm'), vg: d.querySelector('.hb.v u'), v: d.querySelector('.hb.v i'), m: d.querySelector('.hb.m i'), nivel: -1 }; }
+    this.montarSom();
     for (let i = 0; i < 46; i++) { const d = document.createElement('div'); d.className = 'num'; this.camada.appendChild(d); this.nums.push({ d, t: 9, vida: 1, p: new V3(), dx: 0 }); }
     this.rotulos = [];
     this.fundoMapa = null; this.gm = $('mapa').getContext('2d');
@@ -30,6 +44,26 @@ export class Hud {
   }
   rotuloLobo(l) { const d = document.createElement('div'); d.innerHTML = `<span class="nm"></span> <span style="opacity:.8;font-weight:500">Nv ${l.nivel}</span><div class="hp"><i></i></div>`; this.camada.appendChild(d); this.rotulos.push({ d, tipo: 'lobo', o: l, nm: d.querySelector('.nm'), hp: d.querySelector('.hp'), hpi: d.querySelector('.hp i'), nome: '' }); }
   rotuloPedra(p) { const d = document.createElement('div'); d.className = 'rot pedra'; d.innerHTML = `${p.nome} <span style="opacity:.8;font-weight:500">Nv ${p.nivel}</span><small>Pedra Ghotin · trevas de ${p.raioTrevas.toFixed(0)} m</small><div class="hp"><i></i></div>`; this.camada.appendChild(d); this.rotulos.push({ d, tipo: 'pedra', o: p, hp: d.querySelector('.hp'), hpi: d.querySelector('.hp i') }); }
+  montarSom() {
+    const som = this.ctx.som, bt = $('btSom'), j = $('som'), cx = $('oVolumes');
+    cx.innerHTML = VOL_NOMES.map(([k, nome]) => `<label class="vol"><span>${nome}</span><output>0%</output><input type="range" min="0" max="1" step="0.05" data-vol="${k}" aria-label="${nome}"></label>`).join('');
+    const solta = (e) => { if (e.target && e.target.blur) e.target.blur(); };   // sem foco preso: o Espaço e as setas continuam do jogo
+    bt.addEventListener('mousedown', (e) => e.stopPropagation()); j.addEventListener('mousedown', (e) => e.stopPropagation());
+    bt.addEventListener('click', (e) => { som.destravar(); this.abrirSom(j.style.display !== 'block'); bt.blur(); });
+    cx.addEventListener('input', (e) => { const k = e.target.dataset && e.target.dataset.vol; if (!k) return; som.definirVolume(k, e.target.value); this.mostrarSom(); });
+    // ao soltar a barra, um som de exemplo no volume novo
+    cx.addEventListener('change', (e) => { const k = e.target.dataset && e.target.dataset.vol; som.destravar(); if (k === 'efeitos' || k === 'geral') som.tocar('arco', { vol: 0.8 }); else if (k === 'interface') som.tocar('ui_aceitar', { vol: 0.8 }); else if (k === 'vozes') som.voz('fogo', true); solta(e); });
+    $('oSom').addEventListener('change', (e) => { som.destravar(); if (som.ligado !== e.target.checked) som.alternarSom(); this.mostrarSom(); solta(e); });
+    $('oMusica').addEventListener('change', (e) => { som.destravar(); if (som.musicaLigada !== e.target.checked) som.alternarMusica(); this.mostrarSom(); solta(e); });
+    $('oPadrao').addEventListener('click', (e) => { som.volumesPadrao(); this.mostrarSom(); solta(e); });
+    this.mostrarSom();
+  }
+  abrirSom(sim) { $('som').style.display = sim ? 'block' : 'none'; if (sim) this.mostrarSom(); this.ctx.som.tocar(sim ? 'ui_abrir' : 'ui_fechar', { vol: 0.5 }); }
+  mostrarSom() {
+    const som = this.ctx.som; $('oSom').checked = som.ligado; $('oMusica').checked = som.musicaLigada; $('btSom').classList.toggle('mudo', !som.ligado || som.vol.geral <= 0);
+    for (const i of $('oVolumes').querySelectorAll('input[data-vol]')) { const k = i.dataset.vol; i.value = som.vol[k]; i.closest('.vol').querySelector('output').textContent = Math.round(100 * som.vol[k]) + '%'; }
+  }
+  semStamina() { const b = $('bStam'); if (b) { b.parentNode.classList.remove('falta'); void b.offsetWidth; b.parentNode.classList.add('falta'); } this.aviso('Resistência insuficiente', 1.2); }
   aviso(txt, dur = 1.7) { const a = $('aviso'); a.textContent = txt; a.style.opacity = 1; this.tAviso = dur; }
   titulo(t, sub, dur = 3.4) { $('zTit').textContent = t; $('zSub').textContent = sub; $('zona').style.opacity = 1; this.tZona = dur; }
   registro(html) { const r = $('registro'); const d = document.createElement('div'); d.innerHTML = html; r.appendChild(d); while (r.children.length > 6) r.removeChild(r.firstChild); setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 1100); }, 7000); }
@@ -76,7 +110,10 @@ export class Hud {
   }
   atualizar(dt) {
     const ctx = this.ctx, h = ctx.heroi;
-    $('bVida').style.transform = `scaleX(${h.vida / h.vidaMax})`; $('tVida').textContent = `${Math.ceil(h.vida)} / ${h.vidaMax}`; $('bMana').style.transform = `scaleX(${h.mana / h.manaMax})`; $('tMana').textContent = `${Math.floor(h.mana)} / ${h.manaMax}`; $('bXp').style.transform = `scaleX(${h.xp / h.xpProx})`; $('nivel').textContent = h.nivel;
+    $('bVida').style.transform = `scaleX(${h.vida / h.vidaMax})`; $('bVidaG').style.transform = `scaleX(${h.baldeVida > 0 ? Math.min(1, (h.vida + h.baldeVida) / h.vidaMax) : 0})`;
+    if (this.nomeMostrado !== h.nome) { this.nomeMostrado = h.nome; $('hNome').textContent = h.nome; this.placa.nm.textContent = h.nome; }
+    { const p = this.pocao; if (p.n !== h.pocoes) { p.n = h.pocoes; p.qtd.textContent = h.pocoes; p.d.classList.toggle('vazia', h.pocoes <= 0); } if (p.bebidas !== h.pocoesBebidas) { p.bebidas = h.pocoesBebidas; p.d.classList.remove('bebeu'); void p.d.offsetWidth; p.d.classList.add('bebeu'); } }
+    $('tVida').textContent = `${Math.ceil(h.vida)} / ${h.vidaMax}`; $('bMana').style.transform = `scaleX(${h.mana / h.manaMax})`; $('bStam').style.transform = `scaleX(${h.stamina})`; $('tMana').textContent = `${Math.floor(h.mana)} / ${h.manaMax}`; $('bXp').style.transform = `scaleX(${h.xp / h.xpProx})`; $('nivel').textContent = h.nivel;
     // skills
     SKILLS.forEach((s, i) => {
       const sl = this.slots[i], r = h.recargas[i];
@@ -101,9 +138,13 @@ export class Hud {
           if (r.tipo === 'lobo' && r.nome !== o.nome) { r.nome = o.nome; r.nm.textContent = o.nome; r.d.className = 'rot lobo' + (o.tipo === 'alfa' ? ' alfa' : '') + (o.maldita ? ' maldito' : ''); } } }
       if (ver) { const sc = this.projetar(p); if (sc.ok) { r.d.style.display = 'block'; r.d.style.transform = `translate(${sc.x.toFixed(1)}px,${sc.y.toFixed(1)}px) translate(-50%,-100%)`; } else r.d.style.display = 'none'; } else r.d.style.display = 'none';
     }
+    // a placa do herói: some quando ele cai (como no jogo)
+    { const pl = this.placa; if (h.morto) pl.d.style.display = 'none'; else { if (pl.nivel !== h.nivel) { pl.nivel = h.nivel; pl.lv.textContent = `Lv. ${h.nivel} `; }
+        pl.v.style.transform = `scaleX(${Math.max(0, h.vida / h.vidaMax)})`; pl.vg.style.transform = `scaleX(${h.baldeVida > 0 ? Math.min(1, (h.vida + h.baldeVida) / h.vidaMax) : 0})`; pl.m.style.transform = `scaleX(${Math.max(0, h.mana / h.manaMax)})`;
+        p.set(h.pos.x, h.pos.y + 2.0, h.pos.z); const sc = this.projetar(p); if (sc.ok) { pl.d.style.display = 'block'; pl.d.style.transform = `translate(${sc.x.toFixed(1)}px,${sc.y.toFixed(1)}px) translate(-50%,-100%)`; } else pl.d.style.display = 'none'; } }
     // números
     for (const n of this.nums) { if (n.t >= n.vida) continue; n.t += dt; if (n.t >= n.vida) { n.d.style.display = 'none'; continue; } const k = n.t / n.vida; const s = this.projetar(n.p); const sobe = (1 - (1 - k) * (1 - k)) * 70; const esc = k < 0.12 ? 0.6 + k / 0.12 * 0.6 : 1.2 - Math.min(1, (k - 0.12) / 0.2) * 0.2; n.d.style.transform = `translate(${(s.x + n.dx * k).toFixed(1)}px,${(s.y - sobe).toFixed(1)}px) translate(-50%,-50%) scale(${esc.toFixed(2)})`; n.d.style.opacity = k > 0.65 ? (1 - (k - 0.65) / 0.35).toFixed(2) : 1; }
     this.tMapa -= dt; if (this.tMapa <= 0) { this.tMapa = 0.15; this.desenharMapa(); }
-    if (ctx.clima) { const c = ctx.clima; const txt = c.chuva > 0.5 ? (c.alvo > 0.5 ? 'Chuva' : 'A chuva passa') : (c.alvo > 0.5 ? 'Vem chuva' : 'Sol'); if (txt !== this.climaTxt) { this.climaTxt = txt; $('clima').textContent = txt + ' · R muda o tempo'; } }
+    if (ctx.clima) { const c = ctx.clima; const txt = c.chuva > 0.5 ? (c.alvo > 0.5 ? 'Chuva' : 'A chuva passa') : (c.alvo > 0.5 ? 'Vem chuva' : 'Sol'); if (txt !== this.climaTxt) { this.climaTxt = txt; $('clima').textContent = txt + ' · T muda o tempo'; } }
   }
 }
