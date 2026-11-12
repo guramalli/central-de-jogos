@@ -1,0 +1,26 @@
+{
+  "kick": [
+    "kick1.mp3"
+  ],
+  "knee": [
+    "thud2.mp3",
+    "thud3.mp3"
+  ],
+  "chest": [
+    "thud2.mp3",
+    "thud3.mp3"
+  ],
+  "head": [
+    "thud2.mp3",
+    "thud3.mp3"
+  ],
+  "sand": [
+    "thud1.mp3"
+  ],
+  "slowmo": [
+    "slowmo1.mp3"
+  ],
+  "boom": [
+    "boom1.mp3"
+  ]
+}
