@@ -69,6 +69,9 @@
 // FORA. Como no Ghotin2, os arquivos dele têm nome fixo (js/*.js,
 // assets/modelos/*.glb, assets/sons/*.mp3 e sons.json): no "cache primeiro",
 // quem já tivesse aberto ficaria com módulo, modelo ou som velho.
+// (eg-v19, sem subir versão) o Projeto Zumbi 3D (/zumbi/) também fica FORA:
+// jogo em three.js com arquivos de nome fixo (models/*.glb, audio/*.ogg);
+// é um endereço novo, nunca foi guardado no cache.
 const VERSAO = "eg-v19";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
@@ -177,6 +180,9 @@ self.addEventListener("fetch", (evento) => {
 
   // ===== Ghotin 3D: fica de fora (ver eg-v19) =====
   if (url.pathname === "/ghotin3d" || url.pathname.startsWith("/ghotin3d/")) return;
+
+  // ===== Projeto Zumbi 3D: fica de fora (ver nota acima) =====
+  if (url.pathname === "/zumbi" || url.pathname.startsWith("/zumbi/")) return;
 
   // ===== Servidor de desenvolvimento (Vite): nunca cachear =====
   // O index.html registra este SW também no `npm run dev`. Lá os módulos
