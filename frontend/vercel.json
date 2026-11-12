@@ -1,5 +1,6 @@
 {
   "redirects": [
+    { "source": "/futevolei", "destination": "/futevolei/", "permanent": false },
     { "source": "/lenda-do-campinho", "destination": "/lenda-do-campinho/", "permanent": false },
     { "source": "/lenda", "destination": "/lenda/", "permanent": false },
     { "source": "/lenda/wiki", "destination": "/lenda/wiki/", "permanent": false },
@@ -16,6 +17,7 @@
     { "source": "/thelastdance/:pasta(reference|docs|tools|tests)/:resto*", "destination": "/thelastdance/", "permanent": false }
   ],
   "rewrites": [
+    { "source": "/futevolei/", "destination": "/futevolei/index.html" },
     { "source": "/lenda-do-campinho/", "destination": "/lenda-do-campinho/index.html" },
     { "source": "/lenda/", "destination": "/lenda/index.html" },
     { "source": "/lenda/wiki/", "destination": "/lenda/wiki/index.html" },
@@ -34,6 +36,10 @@
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
+    {
+      "source": "/futevolei/(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
     {
       "source": "/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
