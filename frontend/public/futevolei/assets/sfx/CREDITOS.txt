@@ -4,3 +4,8 @@ Sons de toque na bola: ElevenLabs Sound Effects (https://elevenlabs.io/sound-eff
 No plano gratuito do ElevenLabs o uso exige crédito a elevenlabs.io.
 - "Fluid air whoosh pulse" -> slowmo1.mp3 (entrada da câmera lenta; https://elevenlabs.io/sound-effects/whoosh)
 - "Dramatic cryogenic vapor burst whoosh" (arquivo enviado pelo autor) -> boom1.mp3 (toque do ataque especial)
+- "Waves crashing gentle breeze" -> beach-loop.wav (som de praia em laço; https://elevenlabs.io/sound-effects/beach)
+- "Seagulls children beach noise" -> gaivotas.mp3 (gaivotas ao longe, de vez em quando)
+
+Música de fundo: Pixabay (Pixabay Content License, uso livre sem crédito obrigatório)
+- "Bossa Nova", de Aurec -> musica-praia.mp3 (https://pixabay.com/music/bossa-nova-bossa-nova-587558/)

@@ -22,5 +22,14 @@
   ],
   "boom": [
     "boom1.mp3"
+  ],
+  "beach": [
+    "beach-loop.wav"
+  ],
+  "gull": [
+    "gaivotas.mp3"
+  ],
+  "music": [
+    "musica-praia.mp3"
   ]
 }
