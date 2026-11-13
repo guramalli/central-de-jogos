@@ -16,6 +16,7 @@
     { "source": "/zumbi", "destination": "/zumbi/", "permanent": false },
     { "source": "/mooveon", "destination": "/mooveon/", "permanent": false },
     { "source": "/mooveon/manutencao", "destination": "/mooveon/manutencao.html", "permanent": false },
+    { "source": "/arcano", "destination": "/arcano/", "permanent": false },
     { "source": "/thelastdance/:pasta(reference|docs|tools|tests)/:resto*", "destination": "/thelastdance/", "permanent": false }
   ],
   "rewrites": [
@@ -34,6 +35,7 @@
     { "source": "/ghotin3d/", "destination": "/ghotin3d/index.html" },
     { "source": "/zumbi/", "destination": "/zumbi/index.html" },
     { "source": "/mooveon/", "destination": "/mooveon/index.html" },
+    { "source": "/arcano/", "destination": "/arcano/index.html" },
     { "source": "/v2", "destination": "/v2/index.html" },
     { "source": "/v2/(.*)", "destination": "/v2/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
