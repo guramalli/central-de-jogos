@@ -1400,7 +1400,8 @@ const FLUXO = ['aberto', 'analise', 'agendar', 'execucao', 'validacao', 'conclui
 const PRIO = { urgente: 'Alta / urgente', normal: 'Normal', baixa: 'Baixa' };
 const CANAIS = ['Telefone', 'WhatsApp', 'Presencial', 'E-mail'];
 const CAUSAS = ['Falha de execução', 'Material defeituoso', 'Falha de projeto', 'Uso inadequado', 'Desgaste natural', 'Causa desconhecida', 'Outro'];
-const GAR = { dentro: ['Dentro do prazo', 's-ok'], fora: ['Fora do prazo', 's-atrasado'], analise: ['Garantia requer análise', 's-revisao'] };
+const GAR = { dentro: ['Dentro do prazo', 's-ok'], fora: ['Fora do prazo', 's-atrasado'], analise: ['Garantia requer análise', 's-revisao'], avulso: ['Imóvel avulso', ''] };
+const VIST = 'Vistoria';
 const COB = { pendente: ['Cobertura a decidir', 's-revisao'], reconhecida: ['Cobertura reconhecida', 's-ok'], negada: ['Cobertura negada', 's-atrasado'] };
 const ACEITE = { aceito: 'Proprietário aceitou', semretorno: 'Sem retorno do proprietário', contestado: 'Proprietário contestou' };
 const CORES = ['--c-azul', '--c-amarelo', '--c-verde', '--c-vermelho', '--c-roxo', '--c-cinza', '--c-escuro', '--c-ciano'];
@@ -1491,13 +1492,19 @@ function exemplo() {
     novaOc(novoCh(a[i], atras), 'Hidráulica', 'Conexão de lavatório', um(['Banheiro', 'Banheiro', 'Suíte']), 'Vazamento na conexão do lavatório', 'normal', st, { causa: 'Material defeituoso', conf, forn: 'Conexões Delta', mat: 'Engate flexível 1/2"', diag: 'Engate flexível com vazamento na porca de aperto.', futuro: st === 'execucao' ? 2 : 0 }));
   gera(emps[0], 7, 380); gera(emps[1], 30, 230); gera(emps[2], 4, 40);
 
-  return { v: 1, construtora: 'CDC Construtora', emps, unidades, regras, chamados, ocs, cats, subs, ambs, prestadores: [...new Set(Object.values(PREST))], prazos: { urgente: 3, normal: 15, baixa: 30 }, diasParado: 7, seqCh: nCh, seq: 5000 };
+  /* imóvel avulso: recebido em permuta, não construído pela construtora */
+  emps.push({ id: 'e9', nome: 'Edifício Márcia', end: 'Rua Santos Dumont, 512', bairro: '', cidade: '', uf: '', cep: '', conclusao: '', entrega: '', qtd: 0, situacao: 'Avulso', avulso: true });
+  unidades.push({ id: 'u' + (unidades.length + 1), emp: 'e9', ident: 'Apto 22', tipo: 'Apartamento', bloco: '', end: 'Rua Santos Dumont, 512', prop: 'CDC Construtora', tel: '', email: '', chaves: '', origem: 'Permuta (parte de pagamento)', obs: 'Recebido como parte de pagamento de uma casa do Villa Serena.', docs: [], props: [], hist: [{ em: dia(-3), por: 'vini', txt: 'Imóvel avulso cadastrado · Permuta (parte de pagamento)' }] });
+  const cv = novoCh(unidades[unidades.length - 1], 3, 'Interno'); cv.autor = 'vini';
+  novaOc(cv, VIST, '', '', 'Vistoria do imóvel recebido em permuta', 'normal', 'aberto').hist[0].por = 'vini';
+
+  return { v: 2, construtora: 'CDC Construtora', emps, unidades, regras, chamados, ocs, cats, subs, ambs, prestadores: [...new Set(Object.values(PREST))], prazos: { urgente: 3, normal: 15, baixa: 30 }, diasParado: 7, seqCh: nCh, seq: 5000 };
 }
 
 /* ---------- estado ---------- */
 const CHAVE = 'mo-manutencao-v1';
 let S; try { S = JSON.parse(localStorage.getItem(CHAVE)); } catch (_) { S = null; }
-if (!S || S.v !== 1) S = exemplo();
+if (!S || S.v !== 2) S = exemplo();
 const salvar = () => { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch (_) { /* sem espaço ou bloqueado: segue só na memória */ } };
 const uid = p => p + (++S.seq);
 let U = null, VIEW = 'central', VOLTA = 'central', EMP = 'todos', ABA = 'abertas', BUSCA = '', CH = null, UN = null, EMPV = null, F = {}, FC = {}, TMP = {};
@@ -1505,12 +1512,15 @@ let U = null, VIEW = 'central', VOLTA = 'central', EMP = 'todos', ABA = 'abertas
 const emp = id => S.emps.find(e => e.id === id), un = id => S.unidades.find(u => u.id === id), ch = id => S.chamados.find(c => c.id === id), oc = id => S.ocs.find(o => o.id === id);
 const ocsDe = c => S.ocs.filter(o => o.chamado === c);
 const unDe = o => un(ch(o.chamado).unidade), empDe = o => emp(unDe(o).emp);
-const noEmp = o => EMP === 'todos' || unDe(o).emp === EMP;
+const noEmp = o => EMP === 'todos' ? true : EMP === 'avulsos' ? !!empDe(o).avulso : unDe(o).emp === EMP;
+const construtivo = o => noEmp(o) && (EMP === 'avulsos' || !empDe(o).avulso);
+const avulsas = () => S.unidades.filter(u => emp(u.emp).avulso);
 const ativo = o => !['concluido', 'cancelado', 'improcedente', 'semcobertura'].includes(o.status);
 const atrasado = o => ativo(o) && ((o.status === 'execucao' && o.agendada && o.agendada < HOJE) || dif(ch(o.chamado).data, HOJE) > (S.prazos[o.prio] || 15));
 const parado = o => ativo(o) && dif(o.mov, HOJE) >= S.diasParado;
 const total = o => (o.custo.mat || 0) + (o.custo.mo || 0) + (o.custo.prest || 0);
 function garantia(o) { const c = ch(o.chamado), u = un(c.unidade), r = S.regras.find(r => r.id === o.regra), base = u.chaves || emp(u.emp).entrega;
+  if (emp(u.emp).avulso) return { sit: 'avulso' };
   if (!r || !base) return { sit: 'analise', r, base };
   const vence = maisMeses(base, r.meses); return { sit: c.data <= vence ? 'dentro' : 'fora', r, base, vence }; }
 function proxima(o) { return ({ aberto: 'Fazer a triagem e designar responsável', reaberto: 'Reanalisar o defeito', analise: 'Fazer vistoria e diagnóstico', agendar: 'Agendar o serviço com o proprietário', execucao: o.agendada ? `Executar em ${br(o.agendada)}` : 'Executar o serviço', validacao: o.aceite ? 'Concluir a ocorrência' : 'Confirmar o aceite do proprietário' })[o.status] || 'Encerrada'; }
@@ -1572,13 +1582,14 @@ function entrar(u) { U = u; $('#login').classList.add('hidden'); $('#app').class
 
 /* ---------- sistema ---------- */
 const SECOES = { central: ['Central', 'painel'], imoveis: ['Imóveis', 'predio'], garantias: ['Garantias', 'escudo'], indicadores: ['Indicadores', 'grafico'], qualidade: ['Qualidade', 'alvo'] };
-const badge = s => s === 'central' ? S.ocs.filter(o => noEmp(o) && atrasado(o)).length : s === 'garantias' ? S.ocs.filter(o => noEmp(o) && ativo(o) && o.cob.dec === 'pendente' && o.status !== 'aberto').length : 0;
+const badge = s => s === 'central' ? S.ocs.filter(o => noEmp(o) && atrasado(o)).length : s === 'garantias' ? S.ocs.filter(o => noEmp(o) && !empDe(o).avulso && ativo(o) && o.cob.dec === 'pendente' && o.status !== 'aberto').length : 0;
 function desenharMenu() {
   const atual = VIEW === 'chamado' ? VOLTA : VIEW;
   $('#menu').innerHTML = Object.entries(SECOES).map(([s, [n, i]]) => { const b = badge(s); return `<a data-v="${s}" data-rot="${n}" class="${s === atual ? 'ativo' : ''}">${ic(i)}${n}${b ? ` <span class="badge">${b}</span>` : ''}</a>`; }).join('');
   $$('#menu-comum a').forEach(a => a.classList.toggle('ativo', a.dataset.v === VIEW));
   $('#obras').innerHTML = `<button class="ob-obra-btn ${EMP === 'todos' ? 'ativo' : ''}" data-emp="todos" title="Todos os empreendimentos"><b>${ic('infinito')}</b><span>Todos os empreendimentos</span></button>`
-    + S.emps.map(e => `<button class="ob-obra-btn ${e.id === EMP ? 'ativo' : ''}" data-emp="${e.id}" title="${esc(e.nome)}"><b>${esc(e.nome.split(/\s+/).filter(p => p.length > 2).map(p => p[0]).join('').slice(0, 2).toUpperCase())}</b><span>${esc(e.nome)}</span></button>`).join('');
+    + `<button class="ob-obra-btn ${EMP === 'avulsos' ? 'ativo' : ''}" data-emp="avulsos" title="Imóveis avulsos (permuta e serviços)"><b>AV</b><span>Imóveis avulsos</span></button>`
+    + S.emps.filter(e => !e.avulso).map(e => `<button class="ob-obra-btn ${e.id === EMP ? 'ativo' : ''}" data-emp="${e.id}" title="${esc(e.nome)}"><b>${esc(e.nome.split(/\s+/).filter(p => p.length > 2).map(p => p[0]).join('').slice(0, 2).toUpperCase())}</b><span>${esc(e.nome)}</span></button>`).join('');
   requestAnimationFrame(moverBolha);
 }
 function moverBolha() { const a = $('#menu a.ativo'), b = $('#bolha'); if (!a) { b.classList.remove('pronta'); return; }
@@ -1596,7 +1607,8 @@ function ir(vw, manter) {
 }
 const redesenhar = () => { salvar(); ir(VIEW, true); };
 const btnNovo = () => `<button class="btn primario" data-acao="novo">${ic('mais')}Novo chamado</button>`;
-const rotEmp = () => EMP === 'todos' ? 'Todos os empreendimentos' : emp(EMP).nome;
+const rotEmp = () => EMP === 'todos' ? 'Todos os empreendimentos' : EMP === 'avulsos' ? 'Imóveis avulsos' : emp(EMP).nome;
+const btnAvulso = () => `<button class="btn" data-acao="avulso-form">${ic('mais')}Imóvel avulso</button>`;
 
 /* ---------- central de trabalho ---------- */
 const ABAS = {
@@ -1628,7 +1640,7 @@ function listaCentral() {
 const TELAS = {};
 TELAS.central = () => {
   const n = k => S.ocs.filter(o => noEmp(o) && ABAS[k][1](o)).length, chAb = new Set(S.ocs.filter(o => noEmp(o) && ativo(o)).map(o => o.chamado)).size;
-  return { eyebrow: `Central de trabalho · ${rotEmp()}`, titulo: `Olá, ${P[U].nome}.`, acoes: btnNovo(), html: `
+  return { eyebrow: `Central de trabalho · ${rotEmp()}`, titulo: `Olá, ${P[U].nome}.`, acoes: btnAvulso() + btnNovo(), html: `
     <div class="grade"><div class="kpi"><b>${chAb}</b><span>chamados em aberto</span></div><div class="kpi"><b>${n('abertas')}</b><span>ocorrências em aberto</span></div><div class="kpi"><b>${n('vistoria')}</b><span>aguardando vistoria</span></div><div class="kpi"><b style="color:var(--critico)">${n('atrasadas')}</b><span>atrasadas</span></div></div>
     <div class="chips mn-abas">${Object.entries(ABAS).map(([k, [r]]) => `<button class="chip ${k === ABA ? 'ativo' : ''} ${['atrasadas', 'paradas'].includes(k) && n(k) ? 'alerta' : ''}" data-acao="aba" data-k="${k}">${r}<b>${n(k)}</b></button>`).join('')}</div>
     <section class="card" style="margin-top:12px">
@@ -1666,9 +1678,9 @@ function cardOc(o) {
       ${cpo('Origem provável', o.causa && `${o.causa} (${o.causaConf ? 'confirmada' : 'hipótese'})`)}${cpo('Fornecedor', o.fornecedor)}${cpo('Material', o.material)}${cpo('Retorno do proprietário', ACEITE[o.aceite])}
       ${cpo('Diagnóstico', o.diag, 1)}${cpo('Solução executada', o.solucao, 1)}
       ${total(o) ? cpo('Custos', `Material ${reais(o.custo.mat)} · Mão de obra ${reais(o.custo.mo)} · Prestadores ${reais(o.custo.prest)} · Total ${reais(total(o))}`, 1) : ''}</div>
-    <div class="mn-gar"><div class="l">${ic('escudo')}<b>Garantia</b>${tag(GAR[g.sit][0], GAR[g.sit][1])}${tagCob(o)}${pode.decidir() ? `<button class="btn pequeno" data-acao="oc-cobertura" data-id="${o.id}" style="margin-left:auto">${o.cob.dec === 'pendente' ? 'Decidir cobertura' : 'Revisar decisão'}</button>` : ''}</div>
+    ${g.sit === 'avulso' ? `<div class="mn-gar"><div class="l">${ic('chave')}<b>Imóvel avulso</b></div><p>Não foi construído pela construtora, então não há prazo de garantia nem decisão de cobertura a controlar. Os custos ficam registrados normalmente.</p></div>` : `<div class="mn-gar"><div class="l">${ic('escudo')}<b>Garantia</b>${tag(GAR[g.sit][0], GAR[g.sit][1])}${tagCob(o)}${pode.decidir() ? `<button class="btn pequeno" data-acao="oc-cobertura" data-id="${o.id}" style="margin-left:auto">${o.cob.dec === 'pendente' ? 'Decidir cobertura' : 'Revisar decisão'}</button>` : ''}</div>
       <p>${g.r ? `Regra: <b>${esc(g.r.nome)}</b> · ${g.r.meses} meses · ${esc(g.r.base)}. ${g.base ? `Entrega das chaves em ${br(g.base)}; prazo até ${br(g.vence)}.` : 'Unidade sem data de entrega.'}` : 'Nenhuma regra de prazo vinculada a esta ocorrência: a situação depende de análise.'}</p>
-      ${o.cob.dec !== 'pendente' ? `<p>Decisão: <b>${COB[o.cob.dec][0]}</b> por ${esc(P[o.cob.por]?.nome || '')} em ${br(o.cob.em)}. ${esc(o.cob.just || '')}${o.cobHist.length > 1 ? ` · ${o.cobHist.length} decisões na trilha de auditoria` : ''}</p>` : '<p>A situação do prazo é só o calendário. A cobertura efetiva é decidida na análise técnica, com justificativa.</p>'}</div>
+      ${o.cob.dec !== 'pendente' ? `<p>Decisão: <b>${COB[o.cob.dec][0]}</b> por ${esc(P[o.cob.por]?.nome || '')} em ${br(o.cob.em)}. ${esc(o.cob.just || '')}${o.cobHist.length > 1 ? ` · ${o.cobHist.length} decisões na trilha de auditoria` : ''}</p>` : '<p>A situação do prazo é só o calendário. A cobertura efetiva é decidida na análise técnica, com justificativa.</p>'}</div>`}
     ${fases}
     <div class="mn-acoes">${b.join('')}</div>
     <details class="mn-hist"><summary>Histórico da ocorrência (${o.hist.length})</summary><ul class="mn-tl">${o.hist.slice().reverse().map(h => `<li><time>${br(h.em)} ${h.h || ''}</time><div>${esc(h.txt)} <span>· ${esc(P[h.por]?.nome || '')}</span></div></li>`).join('')}</ul></details>
@@ -1686,11 +1698,14 @@ TELAS.chamado = () => { const c = ch(CH), u = un(c.unidade), e = emp(u.emp), l =
 TELAS.imoveis = () => {
   if (UN && un(UN)) return telaUnidade(un(UN));
   if (EMPV && emp(EMPV)) return telaEmp(emp(EMPV));
-  return { eyebrow: S.construtora, titulo: 'Empreendimentos', acoes: pode.cadastrar() ? `<button class="btn primario" data-acao="emp-form">${ic('mais')}Novo empreendimento</button>` : '', html: `<div class="mn-emps">${S.emps.map(e => {
+  return { eyebrow: S.construtora, titulo: 'Empreendimentos', acoes: btnAvulso() + (pode.cadastrar() ? `<button class="btn primario" data-acao="emp-form">${ic('mais')}Novo empreendimento</button>` : ''), html: `<div class="mn-emps">${S.emps.filter(e => !e.avulso).map(e => {
     const us = S.unidades.filter(u => u.emp === e.id), os = S.ocs.filter(o => unDe(o).emp === e.id);
     return `<button class="card mn-emp" data-acao="abrir-emp" data-id="${e.id}"><div class="mn-meta" style="margin:0">${tag(e.situacao, e.situacao === 'Entregue' ? 's-ok' : e.situacao === 'Em obra' ? 's-aprovacao' : '')}</div><h3>${esc(e.nome)}</h3><span class="suave">${esc(e.end)} · ${esc(e.bairro)} · ${esc(e.cidade)}/${esc(e.uf)}</span>
       <div class="mn-nums"><div><b>${us.length}<small style="font-size:13px;color:var(--suave)"> / ${e.qtd}</small></b><span>unidades cadastradas</span></div><div><b>${os.length}</b><span>ocorrências</span></div><div><b class="${os.some(ativo) ? 'r' : ''}">${os.filter(ativo).length}</b><span>em aberto</span></div></div>
-      <span class="suave">${e.entrega ? 'Entregue em ' + br(e.entrega) : 'Ainda não entregue'}</span></button>`; }).join('')}</div>` };
+      <span class="suave">${e.entrega ? 'Entregue em ' + br(e.entrega) : 'Ainda não entregue'}</span></button>`; }).join('')}</div>
+    <section class="card" style="margin-top:16px"><div class="mn-cab"><div><h3>Imóveis avulsos</h3><span class="suave">Recebidos em permuta ou atendidos por serviço avulso. Não foram construídos pela construtora e não precisam de empreendimento.</span></div>${btnAvulso()}</div>
+      ${avulsas().length ? `<div class="tabela-wrap" style="padding:14px 0 0"><table class="tabela"><thead><tr><th>Edifício / local</th><th>Unidade</th><th>Origem</th><th>Situação</th><th class="n">Em aberto</th></tr></thead><tbody>${avulsas().map(u => { const os = S.ocs.filter(o => ch(o.chamado).unidade === u.id), ab = os.filter(ativo);
+        return `<tr data-acao="abrir-un" data-id="${u.id}"><td><b>${esc(emp(u.emp).nome)}</b>${u.end ? `<br><span class="suave">${esc(u.end)}</span>` : ''}</td><td>${esc(u.ident)}</td><td>${esc(u.origem || '—')}</td><td>${ab.some(o => o.cat === VIST) ? tag('A vistoriar', 's-revisao') : ab.length ? tag('Serviço em andamento', 's-aprovacao') : os.length ? tag('Sem pendência', 's-ok') : tag('Nenhum serviço aberto')}</td><td class="n">${ab.length || '—'}</td></tr>`; }).join('')}</tbody></table></div>` : '<p class="ob-vazio">Nenhum imóvel avulso cadastrado.</p>'}</section>` };
 };
 function telaEmp(e) { const us = S.unidades.filter(u => u.emp === e.id);
   return { eyebrow: `${e.situacao} · ${e.entrega ? 'entregue em ' + br(e.entrega) : 'sem data de entrega'}`, titulo: e.nome, acoes: pode.cadastrar() ? `<button class="btn" data-acao="emp-form" data-id="${e.id}">${ic('lapis')}Editar</button><button class="btn primario" data-acao="un-form" data-emp="${e.id}">${ic('mais')}Nova unidade</button>` : '', html: `
@@ -1705,12 +1720,12 @@ function telaUnidade(u) { const e = emp(u.emp), cs = S.chamados.filter(c => c.un
     l.forEach(o => o.hist.slice(1).forEach(h => ev.push({ em: h.em, h: h.h, txt: `${o.cat}: ${h.txt}`, por: h.por, ch: c.id }))); });
   ev.sort((a, b) => (b.em + (b.h || '')).localeCompare(a.em + (a.h || '')));
   const custo = cs.flatMap(c => ocsDe(c.id)).reduce((t, o) => t + total(o), 0);
-  return { eyebrow: `${e.nome}${u.bloco ? ' · ' + u.bloco : ''}`, titulo: u.ident, acoes: `${pode.cadastrar() ? `<button class="btn" data-acao="un-form" data-id="${u.id}">${ic('lapis')}Editar</button>` : ''}<button class="btn primario" data-acao="novo" data-un="${u.id}">${ic('mais')}Novo chamado</button>`, html: `
-    <button class="btn pequeno mn-voltar" data-acao="voltar-emp" data-id="${e.id}">${ic('volta')}${esc(e.nome)}</button>
-    <div class="mn-grid2" style="margin-top:0"><section class="card"><h3>Proprietário</h3><div class="mn-campos" style="margin:0"><div class="largo"><span class="rotulo">Nome</span><b>${esc(u.prop)}</b></div><div><span class="rotulo">Telefone / WhatsApp</span><b>${esc(u.tel || '—')}</b></div><div><span class="rotulo">E-mail</span><b>${esc(u.email || '—')}</b></div><div><span class="rotulo">Tipo</span><b>${esc(u.tipo)}</b></div><div><span class="rotulo">Entrega das chaves</span><b>${br(u.chaves)}</b></div>${u.end ? `<div class="largo"><span class="rotulo">Endereço específico</span><b>${esc(u.end)}</b></div>` : ''}</div>
+  return { eyebrow: `${e.nome}${u.bloco ? ' · ' + u.bloco : ''}`, titulo: u.ident, acoes: `${pode.cadastrar() || e.avulso ? `<button class="btn" data-acao="un-form" data-id="${u.id}">${ic('lapis')}Editar</button>` : ''}<button class="btn primario" data-acao="novo" data-un="${u.id}">${ic('mais')}Novo chamado</button>`, html: `
+    ${e.avulso ? `<button class="btn pequeno mn-voltar" data-acao="voltar-imoveis">${ic('volta')}Imóveis</button>` : `<button class="btn pequeno mn-voltar" data-acao="voltar-emp" data-id="${e.id}">${ic('volta')}${esc(e.nome)}</button>`}
+    <div class="mn-grid2" style="margin-top:0"><section class="card"><h3>${e.avulso ? 'Imóvel avulso' : 'Proprietário'}</h3><div class="mn-campos" style="margin:0">${e.avulso ? `<div><span class="rotulo">Origem</span><b>${esc(u.origem || '—')}</b></div>${u.obs ? `<div class="largo"><span class="rotulo">Observações</span><b>${esc(u.obs)}</b></div>` : ''}` : ''}<div class="largo"><span class="rotulo">${e.avulso ? 'Responsável / contato' : 'Nome'}</span><b>${esc(u.prop)}</b></div><div><span class="rotulo">Telefone / WhatsApp</span><b>${esc(u.tel || '—')}</b></div><div><span class="rotulo">E-mail</span><b>${esc(u.email || '—')}</b></div><div><span class="rotulo">Tipo</span><b>${esc(u.tipo)}</b></div>${e.avulso ? '' : `<div><span class="rotulo">Entrega das chaves</span><b>${br(u.chaves)}</b></div>`}${u.end ? `<div class="largo"><span class="rotulo">${e.avulso ? 'Endereço' : 'Endereço específico'}</span><b>${esc(u.end)}</b></div>` : ''}</div>
         ${u.props.length ? `<p class="mn-nota">Proprietários anteriores: ${u.props.map(p => `${esc(p.nome)} (até ${br(p.ate)})`).join(', ')}. O histórico da unidade foi mantido.</p>` : ''}
-        ${pode.cadastrar() ? `<div class="mn-acoes"><button class="btn pequeno" data-acao="un-trocar" data-id="${u.id}">${ic('pessoa')}Trocar proprietário</button></div>` : ''}</section>
-      <section class="card"><h3>Documentos de entrega</h3><div class="mn-docs">${u.docs.length ? u.docs.map(d => `<div>${ic('clipe')}${esc(d.nome)}<span class="suave">· ${br(d.em)}</span></div>`).join('') : '<span class="suave">Nenhum documento anexado.</span>'}</div>
+        ${pode.cadastrar() && !e.avulso ? `<div class="mn-acoes"><button class="btn pequeno" data-acao="un-trocar" data-id="${u.id}">${ic('pessoa')}Trocar proprietário</button></div>` : ''}</section>
+      <section class="card"><h3>${e.avulso ? 'Documentos' : 'Documentos de entrega'}</h3><div class="mn-docs">${u.docs.length ? u.docs.map(d => `<div>${ic('clipe')}${esc(d.nome)}<span class="suave">· ${br(d.em)}</span></div>`).join('') : '<span class="suave">Nenhum documento anexado.</span>'}</div>
         ${pode.cadastrar() ? `<div class="mn-acoes"><button class="btn pequeno" data-acao="un-doc" data-id="${u.id}">${ic('clipe')}Anexar documento</button></div>` : ''}
         <div class="mn-nums" style="margin-top:16px"><div><b>${cs.length}</b><span>chamados</span></div><div><b>${cs.flatMap(c => ocsDe(c.id)).length}</b><span>ocorrências</span></div><div><b>${reais(custo)}</b><span>custo de manutenção</span></div></div></section></div>
     <section class="card" style="margin-top:16px"><h3>Linha do tempo da unidade</h3>${ev.length ? `<ul class="mn-tl">${ev.map(h => `<li><time>${br(h.em)} ${h.h || ''}</time><div>${esc(h.txt)} <span>· ${esc(P[h.por]?.nome || '')}</span>${h.ch ? ` <button class="link" data-acao="abrir-ch" data-id="${h.ch}" data-de="imoveis">abrir</button>` : ''}</div></li>`).join('')}</ul>` : '<p class="ob-vazio">Sem registros.</p>'}</section>` };
@@ -1718,8 +1733,8 @@ function telaUnidade(u) { const e = emp(u.emp), cs = S.chamados.filter(c => c.un
 
 /* ---------- garantias ---------- */
 TELAS.garantias = () => {
-  const pend = S.ocs.filter(o => noEmp(o) && ativo(o) && o.cob.dec === 'pendente' && o.status !== 'aberto');
-  const dec = S.ocs.filter(o => noEmp(o) && o.cob.dec !== 'pendente').sort((a, b) => (b.cob.em || '').localeCompare(a.cob.em || '')).slice(0, 12);
+  const pend = S.ocs.filter(o => noEmp(o) && !empDe(o).avulso && ativo(o) && o.cob.dec === 'pendente' && o.status !== 'aberto');
+  const dec = S.ocs.filter(o => noEmp(o) && !empDe(o).avulso && o.cob.dec !== 'pendente').sort((a, b) => (b.cob.em || '').localeCompare(a.cob.em || '')).slice(0, 12);
   const linha = o => { const c = ch(o.chamado), u = un(c.unidade), g = garantia(o);
     return `<tr data-acao="abrir-ch" data-id="${c.id}" data-de="garantias"><td><b>${esc(o.desc)}</b><br><span class="suave">#${c.num} · ${esc(u.ident)} · ${esc(emp(u.emp).nome)}</span></td><td>${g.r ? esc(g.r.nome) + `<br><span class="suave">${g.r.meses} meses · até ${br(g.vence)}</span>` : '<span class="suave">sem regra</span>'}</td><td>${tag(GAR[g.sit][0], GAR[g.sit][1])}</td><td>${tagCob(o)}${o.cob.just ? `<br><span class="suave">${esc(o.cob.just)}</span>` : ''}</td></tr>`; };
   return { eyebrow: `Prazos e cobertura · ${rotEmp()}`, titulo: 'Garantias', acoes: pode.regras() ? `<button class="btn primario" data-acao="regra-form">${ic('mais')}Nova regra</button>` : '', html: `
@@ -1740,14 +1755,15 @@ function pizza(pares, tot) { if (!tot) return '<p class="ob-vazio">Sem dados nes
   const fat = pares.map(([k, n], i) => { const de = ac / tot * 100; ac += n; return `var(${CORES[i % CORES.length]}) ${de}% ${ac / tot * 100}%`; });
   return `<div class="mn-pizza"><div class="disco" style="background:conic-gradient(${fat.join(',')})"><b>${tot}</b></div><div class="mn-leg">${pares.map(([k, n], i) => `<div><i style="background:var(${CORES[i % CORES.length]})"></i>${esc(k)}<b>${Math.round(n / tot * 100)}%</b></div>`).join('')}</div></div>`; }
 function ocsInd() {
-  return S.ocs.filter(o => { if (!noEmp(o)) return false; const c = ch(o.chamado), u = un(c.unidade), ent = u.chaves || emp(u.emp).entrega || '';
+  return S.ocs.filter(o => { if (!construtivo(o)) return false; const c = ch(o.chamado), u = un(c.unidade), ent = u.chaves || emp(u.emp).entrega || '';
     if (F.de && c.data < F.de) return false; if (F.ate && c.data > F.ate) return false;
     if (F.entDe && ent < F.entDe) return false; if (F.entAte && (!ent || ent > F.entAte)) return false;
     if (F.cat && o.cat !== F.cat) return false; if (F.sub && o.sub !== F.sub) return false; if (F.amb && o.amb !== F.amb) return false;
     if (F.status && o.status !== F.status) return false; if (F.resp && o.resp !== F.resp) return false; if (F.prest && o.prestador !== F.prest) return false;
     if (F.gar && garantia(o).sit !== F.gar) return false; if (F.causa && o.causa !== F.causa) return false; return true; });
 }
-const empsEntregues = () => S.emps.filter(e => e.entrega && (EMP === 'todos' || e.id === EMP));
+const empsEntregues = () => S.emps.filter(e => !e.avulso && e.entrega && (EMP === 'todos' || e.id === EMP));
+const notaAvulsos = () => EMP === 'todos' && avulsas().length ? '<p class="mn-nota" style="margin:0 0 14px">Os imóveis avulsos ficam fora destes números, porque não são obras da construtora. Para ver só eles, escolha “Imóveis avulsos” na lateral.</p>' : '';
 TELAS.indicadores = () => {
   const l = ocsInd(), n = l.length, chs = new Set(l.map(o => o.chamado)).size, ents = empsEntregues(), unEnt = ents.reduce((t, e) => t + e.qtd, 0);
   const afet = new Set(l.map(o => ch(o.chamado).unidade)).size, conc = l.filter(o => o.status === 'concluido' && o.concluidaEm), dias = conc.map(o => dif(ch(o.chamado).data, o.concluidaEm));
@@ -1764,7 +1780,7 @@ TELAS.indicadores = () => {
   const subsOp = F.cat ? (S.subs[F.cat] || []) : [...new Set(Object.values(S.subs).flat())];
   return { eyebrow: `Indicadores e relatórios · ${rotEmp()}`, titulo: 'Indicadores', acoes: `<button class="btn" data-acao="exportar">${ic('baixar')}Excel (CSV)</button><button class="btn" data-acao="imprimir">${ic('imprimir')}PDF</button>`, html: `
     <p class="mn-so-print">${esc(S.construtora)} · Relatório de manutenção e pós-obra · ${rotEmp()} · emitido em ${br(HOJE)}</p>
-    <section class="card mn-filtros" style="margin:0 0 16px">${campo('Abertura de', `<input type="date" data-f="de" value="${F.de || ''}">`)}${campo('até', `<input type="date" data-f="ate" value="${F.ate || ''}">`)}${campo('Entrega de', `<input type="date" data-f="entDe" value="${F.entDe || ''}">`)}${campo('até', `<input type="date" data-f="entAte" value="${F.entAte || ''}">`)}
+    ${notaAvulsos()}<section class="card mn-filtros" style="margin:0 0 16px">${campo('Abertura de', `<input type="date" data-f="de" value="${F.de || ''}">`)}${campo('até', `<input type="date" data-f="ate" value="${F.ate || ''}">`)}${campo('Entrega de', `<input type="date" data-f="entDe" value="${F.entDe || ''}">`)}${campo('até', `<input type="date" data-f="entAte" value="${F.entAte || ''}">`)}
       ${ops('cat', S.cats, 'Categoria')}${ops('sub', subsOp, 'Subcategoria')}${ops('amb', S.ambs, 'Ambiente')}${ops('status', Object.entries(ST).map(([k, s]) => [k, s[0]]), 'Status')}${ops('resp', Object.entries(P).map(([k, p]) => [k, p.nome]), 'Responsável')}${ops('prest', S.prestadores, 'Prestador')}${ops('gar', Object.entries(GAR).map(([k, g]) => [k, g[0]]), 'Garantia')}${ops('causa', CAUSAS, 'Causa')}
       <label>&nbsp;<button class="btn" data-acao="limpar-f" type="button">Limpar filtros</button></label></section>
     <div class="grade"><div class="kpi"><b>${chs}</b><span>chamados</span></div><div class="kpi"><b>${n}</b><span>ocorrências</span></div><div class="kpi"><b>${unEnt ? dec1(n / unEnt * 100) : '—'}</b><span>ocorrências por 100 unidades entregues</span></div><div class="kpi"><b>${unEnt ? Math.round(afet / unEnt * 100) + '%' : '—'}</b><span>das unidades entregues afetadas</span></div></div>
@@ -1790,13 +1806,13 @@ TELAS.indicadores = () => {
 
 /* ---------- qualidade e causa raiz ---------- */
 TELAS.qualidade = () => {
-  const l = S.ocs.filter(noEmp), comC = l.filter(o => o.causa), conf = comC.filter(o => o.causaConf).length;
+  const l = S.ocs.filter(construtivo), comC = l.filter(o => o.causa), conf = comC.filter(o => o.causaConf).length;
   const causas = conta(comC, o => o.causa).map(([k, q]) => [`${k} (${comC.filter(o => o.causa === k && o.causaConf).length} confirmadas)`, q]);
   const grupos = conta(l.filter(o => o.sub), o => `${unDe(o).emp}|${o.cat}|${o.sub}`).filter(p => p[1] >= 3).slice(0, 6);
   const padroes = grupos.map(([k, q]) => { const [eid, cat, sub] = k.split('|'), e = emp(eid), os = l.filter(o => unDe(o).emp === eid && o.cat === cat && o.sub === sub);
     const uns = new Set(os.map(o => ch(o.chamado).unidade)).size, ambs = conta(os, o => o.amb), cs = conta(os, o => o.causa), fs = conta(os, o => o.fornecedor), ms = conta(os, o => o.material), datas = os.map(o => ch(o.chamado).data).sort();
     return `<div class="mn-padrao"><div class="mn-cab"><div><span class="rotulo">${esc(e.nome)}</span><h3>${q} ocorrências de ${esc(cat)} › ${esc(sub)}</h3></div>${tag('Indício para investigar', 's-revisao')}</div>
-      <ul><li><b>${uns} de ${e.qtd}</b> unidades do empreendimento afetadas, entre ${br(datas[0])} e ${br(datas[datas.length - 1])}.</li>
+      <ul><li><b>${e.avulso ? uns : `${uns} de ${e.qtd}`}</b> unidades ${e.avulso ? '' : 'do empreendimento '}afetadas, entre ${br(datas[0])} e ${br(datas[datas.length - 1])}.</li>
         <li>Ambientes: ${ambs.map(([a, c]) => `<b>${esc(a)}</b> (${c})`).join(', ')}.</li>
         ${cs.length ? `<li>Origem apontada: ${cs.map(([a, c]) => `<b>${esc(a)}</b> (${c}, ${os.filter(o => o.causa === a && o.causaConf).length} confirmadas)`).join(', ')}.</li>` : '<li>Ainda sem diagnóstico de origem registrado.</li>'}
         ${fs.length ? `<li>Fornecedor em comum: ${fs.map(([a, c]) => `<b>${esc(a)}</b> (${c})`).join(', ')}${ms.length ? ` · material: ${ms.map(([a, c]) => `<b>${esc(a)}</b> (${c})`).join(', ')}` : ''}.</li>` : ''}
@@ -1804,7 +1820,7 @@ TELAS.qualidade = () => {
       <details><summary class="suave" style="cursor:pointer">Ver as ${q} ocorrências</summary><div class="mn-lista">${os.map(linhaOc).join('').replaceAll('data-de="central"', 'data-de="qualidade"')}</div></details></div>`; }).join('');
   const usados = S.ambs.filter(a => l.some(o => o.amb === a)), catsU = S.cats.filter(c => l.some(o => o.cat === c)), mx = Math.max(1, ...catsU.flatMap(c => usados.map(a => l.filter(o => o.cat === c && o.amb === a).length)));
   const forn = conta(l, o => o.fornecedor || o.material ? `${o.fornecedor || 'Fornecedor não informado'} · ${o.material || 'material não informado'}` : '');
-  return { eyebrow: `Qualidade construtiva · ${rotEmp()}`, titulo: 'Causa raiz', html: `
+  return { eyebrow: `Qualidade construtiva · ${rotEmp()}`, titulo: 'Causa raiz', html: `${notaAvulsos()}
     <div class="grade"><div class="kpi"><b>${l.length}</b><span>ocorrências analisadas</span></div><div class="kpi"><b>${comC.length}</b><span>com origem provável registrada</span></div><div class="kpi"><b>${conf}</b><span>causas confirmadas</span></div><div class="kpi"><b>${comC.length - conf}</b><span>ainda em hipótese</span></div></div>
     <section class="card" style="margin-top:16px"><h3>Padrões que merecem atenção</h3>${padroes || '<p class="ob-vazio">Nenhuma concentração de três ou mais ocorrências do mesmo tipo no mesmo empreendimento.</p>'}
       <p class="mn-nota">O sistema mostra as evidências, e não afirma a causa. Uma concentração é um convite para revisar material, instalação e testes nas próximas obras.</p></section>
@@ -1836,15 +1852,16 @@ TELAS.config = () => ({ eyebrow: 'Só o administrador', titulo: 'Configurações
   <div class="acoes"><button class="btn primario" data-acao="sv-config">${ic('check')}Salvar configurações</button><button class="btn perigo" data-acao="zerar">${ic('volta')}Restaurar os dados de exemplo</button></div></div>` });
 TELAS.ajuda = () => ({ eyebrow: 'Como usar', titulo: 'Ajuda', html: `<div class="form">
   <section class="card passos"><h3>Abrir um chamado com mais de um problema</h3><ol><li>Clique em <b>Novo chamado</b> e escolha o empreendimento e a unidade. O proprietário aparece para você confirmar.</li><li>Marque as categorias. Para cada uma abre na hora a descrição, o ambiente, a prioridade e as fotos.</li><li>Salve. Cada problema vira uma <b>ocorrência</b> independente, com status e encerramento próprios.</li></ol></section>
+  <section class="card passos"><h3>Imóvel avulso (permuta ou serviço avulso)</h3><ol><li>Clique em <b>Imóvel avulso</b>, na Central ou em Imóveis, e informe o edifício e a unidade. Ex.: Edifício Márcia, Apto 22.</li><li>Escolha se ele entra na <b>fila de vistoria</b>, se já abre um serviço, ou se é só cadastro.</li><li>Ele não tem garantia para controlar e fica fora dos indicadores das obras da construtora.</li></ol></section>
   <section class="card passos"><h3>Acompanhar o atendimento</h3><ol><li>A <b>Central</b> mostra o que está aberto, aguardando vistoria, agendado, atrasado e sem movimentação, sempre com a próxima ação.</li><li>O fluxo é: Aberto → Em análise → Aguardando agendamento → Em execução → Aguardando validação → Concluído.</li><li>Cancelar, marcar como improcedente, sem cobertura ou reabrir sempre pede justificativa.</li></ol></section>
   <section class="card passos"><h3>Garantia</h3><ol><li>A situação do prazo (dentro, fora ou requer análise) é calculada pela regra do componente e pela entrega das chaves.</li><li>A <b>cobertura</b> é outra coisa: é a decisão técnica, que pode reconhecer ou negar com justificativa.</li></ol></section>
   <section class="card passos"><h3>Ainda não está nesta demonstração</h3><ol><li>Vídeos nos anexos, alertas automáticos, envio por WhatsApp e e-mail.</li><li>Portal do proprietário e do prestador.</li><li>Vários usuários ao mesmo tempo: aqui os dados ficam só neste aparelho.</li></ol></section></div>` });
 
 /* ---------- formulários ---------- */
 function formChamado(d = {}) {
-  const exist = d.ch ? ch(d.ch) : null, uPre = d.un ? un(d.un) : null, ePre = uPre ? uPre.emp : (EMP !== 'todos' ? EMP : ''); TMP = {};
+  const exist = d.ch ? ch(d.ch) : null, uPre = d.un ? un(d.un) : null, ePre = uPre ? uPre.emp : (emp(EMP) ? EMP : ''); TMP = {};
   const topo = exist ? `<p class="suave" style="margin:0">Chamado #${exist.num} · ${esc(un(exist.unidade).ident)} · ${esc(emp(un(exist.unidade).emp).nome)}</p>` : `
-    <div class="linha">${campo('Empreendimento', sel('nc-emp', [['', 'Selecione…'], ...S.emps.map(e => [e.id, e.nome])], ePre))}${campo('Unidade', '<select id="nc-un"></select>')}</div>
+    <div class="linha">${campo('Empreendimento', sel('nc-emp', [['', 'Selecione…'], ...S.emps.map(e => [e.id, e.avulso ? e.nome + ' · avulso' : e.nome])], ePre))}${campo('Unidade', '<select id="nc-un"></select>')}</div>
     <div class="mn-prop" id="nc-prop"></div>
     <div class="linha">${campo('Data do contato', `<input type="date" id="nc-data" value="${HOJE}" max="${HOJE}">`)}${campo('Hora', `<input type="time" id="nc-hora" value="${hora()}">`)}${campo('Canal', sel('nc-canal', CANAIS, 'WhatsApp'))}</div>`;
   const blocos = S.cats.map((c, i) => `<div class="mn-bloco" id="nc-b${i}" hidden><b>${esc(c)}</b>
@@ -1856,7 +1873,7 @@ function formChamado(d = {}) {
     <div><span class="rotulo">O que está acontecendo? Marque uma ou mais categorias</span><div class="mn-cats">${S.cats.map((c, i) => `<label class="mn-cat"><input type="checkbox" data-cat="${i}"><span>${esc(c)}</span></label>`).join('')}</div></div>
     <div id="nc-blocos">${blocos}</div><p class="erro" id="m-erro"></p></div>`, btnSalvar('sv-chamado', `data-ch="${exist ? exist.id : ''}"`, exist ? 'Adicionar' : 'Abrir chamado'), fundo => {
     const eSel = $('#nc-emp'), uSel = $('#nc-un');
-    const prop = () => { const u = un(uSel.value); $('#nc-prop').innerHTML = u ? `<div><b>${esc(u.prop)}</b> · ${esc(u.tel || 'sem telefone')} · chaves entregues em ${br(u.chaves)}</div>${campo('Quem fez o contato (confirme)', inp('nc-contato', u.prop))}` : ''; };
+    const prop = () => { const u = un(uSel.value); $('#nc-prop').innerHTML = u ? `<div><b>${esc(u.prop)}</b> · ${esc(u.tel || 'sem telefone')} · ${emp(u.emp).avulso ? 'imóvel avulso' + (u.origem ? ' · ' + esc(u.origem) : '') : 'chaves entregues em ' + br(u.chaves)}</div>${campo('Quem fez o contato (confirme)', inp('nc-contato', u.prop))}` : ''; };
     const unidades = () => { const us = S.unidades.filter(u => u.emp === eSel.value); uSel.innerHTML = '<option value="">Selecione…</option>' + us.map(u => `<option value="${u.id}">${esc(u.ident)}${u.bloco ? ' · ' + esc(u.bloco) : ''} — ${esc(u.prop)}</option>`).join(''); if (uPre && uPre.emp === eSel.value) uSel.value = uPre.id; prop(); };
     if (eSel) { eSel.addEventListener('change', unidades); uSel.addEventListener('change', prop); unidades(); }
     fundo.addEventListener('change', e => { const c = e.target.closest('[data-cat]'); if (!c) return; const b = $('#nc-b' + c.dataset.cat); b.hidden = !c.checked; if (c.checked) { b.querySelector('textarea').focus(); b.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } });
@@ -1917,7 +1934,9 @@ const ACOES = {
   'oc-avancar': d => { const o = oc(d.id); FORM_ST[o.status] && FORM_ST[o.status](o); },
   'sv-triagem': d => { const o = oc(d.id); o.resp = v('m-resp'); o.prio = v('m-prio'); o.regra = v('m-regra'); o.status = 'analise'; log(o, `Triagem feita · responsável: ${P[o.resp]?.nome || 'não designado'} · prioridade ${PRIO[o.prio].toLowerCase()}`); fim('Ocorrência em análise.'); },
   'sv-vistoria': d => { const o = oc(d.id); if (!v('m-diag')) return erroM('Descreva o diagnóstico da vistoria.');
-    o.vistoria = v('m-vist') || HOJE; o.diag = v('m-diag'); o.causa = v('m-causa'); o.causaConf = v('m-conf') === '1' && !!o.causa; o.fornecedor = v('m-forn'); o.material = v('m-mat'); o.status = 'agendar';
+    o.vistoria = v('m-vist') || HOJE; o.diag = v('m-diag'); o.causa = v('m-causa'); o.causaConf = v('m-conf') === '1' && !!o.causa; o.fornecedor = v('m-forn'); o.material = v('m-mat');
+    if (o.cat === VIST) { o.status = 'concluido'; o.concluidaEm = HOJE; log(o, `Vistoria realizada em ${br(o.vistoria)}: ${o.diag}`); return fim('Vistoria concluída. Use “Adicionar ocorrência” para cada serviço encontrado.'); }
+    o.status = 'agendar';
     log(o, `Vistoria em ${br(o.vistoria)} e diagnóstico registrados${o.causa ? ` · origem: ${o.causa} (${o.causaConf ? 'confirmada' : 'hipótese'})` : ''}`); fim('Diagnóstico registrado. Falta agendar o serviço.'); },
   'sv-agendar': d => { const o = oc(d.id); if (!v('m-data')) return erroM('Informe a data agendada.');
     o.agendada = v('m-data'); o.prestador = v('m-prest'); if (o.prestador && !S.prestadores.includes(o.prestador)) S.prestadores.push(o.prestador); o.status = 'execucao';
@@ -1965,7 +1984,28 @@ const ACOES = {
   'sv-emp': d => { if (!v('m-nome') || !num(v('m-qtd'))) return erroM('Informe o nome e a quantidade de unidades.');
     const e = d.id ? emp(d.id) : { id: uid('e') }; Object.assign(e, { nome: v('m-nome'), end: v('m-end'), bairro: v('m-bairro'), cidade: v('m-cidade'), uf: v('m-uf').toUpperCase(), cep: v('m-cep'), qtd: num(v('m-qtd')), situacao: v('m-sit'), conclusao: v('m-conc'), entrega: v('m-ent') });
     if (!d.id) { S.emps.push(e); EMPV = e.id; } fim('Empreendimento salvo.'); },
-  'un-form': d => { const u = d.id ? un(d.id) : {}; modal(d.id ? 'Editar unidade' : 'Nova unidade', `<div class="linha">${campo('Identificação', inp('m-ident', u.ident || '', 'text', 'placeholder="Casa 01, Apto 102…"'))}${campo('Tipo', sel('m-tipo', ['Casa', 'Apartamento', 'Comercial', 'Outro'], u.tipo || 'Casa'))}${campo('Bloco / torre (opcional)', inp('m-bloco', u.bloco || ''))}</div>
+  'avulso-form': d => { const u = d.id ? un(d.id) : {}, locais = S.emps.filter(e => e.avulso);
+    modal(d.id ? 'Editar imóvel avulso' : 'Adicionar imóvel avulso', `<p class="suave" style="margin:0">Para imóveis que não foram construídos pela construtora: recebidos em permuta, como parte de pagamento, ou atendidos por serviço avulso. Não precisa cadastrar empreendimento.</p>
+      <div class="linha">${campo('Edifício ou local', `<input id="m-local" list="m-local-l" value="${esc(d.id ? emp(u.emp).nome : '')}" placeholder="Ex.: Edifício Márcia"><datalist id="m-local-l">${locais.map(e => `<option value="${esc(e.nome)}">`).join('')}</datalist>`)}${campo('Unidade', inp('m-ident', u.ident || '', 'text', 'placeholder="Ex.: Apto 22"'))}${campo('Tipo', sel('m-tipo', ['Apartamento', 'Casa', 'Comercial', 'Outro'], u.tipo || 'Apartamento'))}</div>
+      ${campo('Endereço', inp('m-end', u.end || '', 'text', 'placeholder="Rua, número, bairro e cidade"'))}
+      <div class="linha">${campo('Como veio para a construtora', sel('m-origem', ['Permuta (parte de pagamento)', 'Serviço avulso para terceiros', 'Outro'], u.origem || 'Permuta (parte de pagamento)'))}${campo('Responsável ou contato no imóvel', inp('m-prop', u.prop || S.construtora))}${campo('Telefone / WhatsApp', inp('m-tel', u.tel || '', 'tel'))}</div>
+      ${campo('Observações (opcional)', txa('m-obs', u.obs || '', 'Ex.: recebido na venda da Casa 07; chaves com o porteiro.'))}
+      ${d.id ? '' : campo('O que fazer agora', sel('m-fazer', [['vistoria', 'Colocar na fila de vistoria'], ['servico', 'Abrir um serviço avulso agora'], ['nada', 'Só cadastrar o imóvel']], 'vistoria'))}<p class="erro" id="m-erro"></p>`, btnSalvar('sv-avulso', `data-id="${d.id || ''}"`, d.id ? 'Salvar' : 'Adicionar'), () => setTimeout(() => $('#m-local')?.focus(), 60)); },
+  'sv-avulso': d => { const local = v('m-local'), ident = v('m-ident'); if (!local || !ident) return erroM('Informe o edifício ou local e a unidade.');
+    let e = S.emps.find(x => x.avulso && x.nome.toLowerCase() === local.toLowerCase());
+    if (e && S.unidades.some(x => x.emp === e.id && x.id !== d.id && x.ident.toLowerCase() === ident.toLowerCase())) return erroM(`${ident} de ${e.nome} já está cadastrado.`);
+    if (!e) { e = { id: uid('e'), nome: local, end: '', bairro: '', cidade: '', uf: '', cep: '', conclusao: '', entrega: '', qtd: 0, situacao: 'Avulso', avulso: true }; S.emps.push(e); }
+    if (v('m-end')) e.end = v('m-end');
+    const u = d.id ? un(d.id) : { id: uid('u'), bloco: '', email: '', chaves: '', docs: [], props: [], hist: [] };
+    Object.assign(u, { emp: e.id, ident, tipo: v('m-tipo'), end: v('m-end'), prop: v('m-prop') || S.construtora, tel: v('m-tel'), origem: v('m-origem'), obs: v('m-obs') });
+    const fazer = d.id ? 'nada' : v('m-fazer');
+    if (!d.id) { u.hist.push({ em: HOJE, por: U, txt: `Imóvel avulso cadastrado · ${u.origem}` }); S.unidades.push(u); }
+    S.emps = S.emps.filter(x => !x.avulso || S.unidades.some(y => y.emp === x.id));
+    if (fazer === 'vistoria') { const c = { id: uid('c'), num: ++S.seqCh, unidade: u.id, data: HOJE, hora: hora(), canal: 'Interno', autor: U, contato: u.prop }; S.chamados.push(c); novaOcorrencia(c, { cat: VIST, desc: 'Vistoria do imóvel avulso', prio: 'normal' }); }
+    fechar(); salvar(); UN = u.id; EMPV = e.id; ir('imoveis');
+    if (fazer === 'servico') return formChamado({ un: u.id });
+    toast(d.id ? 'Imóvel avulso atualizado.' : fazer === 'vistoria' ? `${u.ident} de ${e.nome} entrou na fila de vistoria.` : `${u.ident} de ${e.nome} cadastrado.`); },
+  'un-form': d => { if (d.id && emp(un(d.id).emp).avulso) return ACOES['avulso-form'](d); const u = d.id ? un(d.id) : {}; modal(d.id ? 'Editar unidade' : 'Nova unidade', `<div class="linha">${campo('Identificação', inp('m-ident', u.ident || '', 'text', 'placeholder="Casa 01, Apto 102…"'))}${campo('Tipo', sel('m-tipo', ['Casa', 'Apartamento', 'Comercial', 'Outro'], u.tipo || 'Casa'))}${campo('Bloco / torre (opcional)', inp('m-bloco', u.bloco || ''))}</div>
     ${campo('Endereço específico (opcional)', inp('m-end', u.end || ''))}${campo('Nome do proprietário', inp('m-prop', u.prop || ''))}
     <div class="linha">${campo('Telefone / WhatsApp', inp('m-tel', u.tel || '', 'tel'))}${campo('E-mail', inp('m-email', u.email || '', 'email'))}${campo('Entrega das chaves', inp('m-chaves', u.chaves || '', 'date'))}</div><p class="erro" id="m-erro"></p>`, btnSalvar('sv-un', `data-id="${d.id || ''}" data-emp="${d.emp || ''}"`)); },
   'sv-un': d => { if (!v('m-ident') || !v('m-prop')) return erroM('Informe a identificação e o nome do proprietário.');
@@ -1987,7 +2027,7 @@ const ACOES = {
     S.prazos = { urgente: Math.max(1, num(v('cf-urgente'))), normal: Math.max(1, num(v('cf-normal'))), baixa: Math.max(1, num(v('cf-baixa'))) }; S.diasParado = Math.max(1, num(v('cf-parado')));
     antigas.forEach((c, i) => { S.subs[c] = [...new Set([...v('cf-sub' + i).split(',').map(s => s.trim()).filter(Boolean), ...S.ocs.filter(o => o.cat === c && o.sub).map(o => o.sub)])]; });
     const cats = linhas('cf-cats'), ambs = linhas('cf-ambs'); let mantidos = 0;
-    antigas.forEach(c => { if (!cats.includes(c) && S.ocs.some(o => o.cat === c)) { cats.push(c); mantidos++; } });
+    antigas.forEach(c => { if (c !== VIST && !cats.includes(c) && S.ocs.some(o => o.cat === c)) { cats.push(c); mantidos++; } });
     S.ambs.forEach(a => { if (!ambs.includes(a) && S.ocs.some(o => o.amb === a)) { ambs.push(a); mantidos++; } });
     cats.forEach(c => { S.subs[c] = S.subs[c] || []; }); S.cats = cats; S.ambs = ambs; S.prestadores = linhas('cf-prest');
     redesenhar(); toast(mantidos ? `Salvo. ${mantidos} item(ns) em uso foram mantidos para preservar as estatísticas.` : 'Configurações salvas.'); },
@@ -1999,7 +2039,7 @@ const ACOES = {
 document.addEventListener('click', e => { const a = e.target.closest('[data-acao]'); if (!a || a.disabled) return; const fn = ACOES[a.dataset.acao]; if (fn) { if (a.tagName === 'BUTTON' || a.tagName === 'A') e.preventDefault(); fn(a.dataset, a); } });
 const menuClick = e => { const a = e.target.closest('[data-v]'); if (!a) return; if (a.dataset.v === 'imoveis') EMPV = UN = null; ir(a.dataset.v); };
 $('#menu').addEventListener('click', menuClick); $('#menu-comum').addEventListener('click', menuClick);
-$('#obras').addEventListener('click', e => { const b = e.target.closest('[data-emp]'); if (!b) return; EMP = b.dataset.emp; if (VIEW === 'chamado') return ir(VOLTA); if (VIEW === 'imoveis') { UN = null; EMPV = EMP === 'todos' ? null : EMP; } ir(VIEW); });
+$('#obras').addEventListener('click', e => { const b = e.target.closest('[data-emp]'); if (!b) return; EMP = b.dataset.emp; if (VIEW === 'chamado') return ir(VOLTA); if (VIEW === 'imoveis') { UN = null; EMPV = emp(EMP) ? EMP : null; } ir(VIEW); });
 document.addEventListener('change', e => { const t = e.target;
   if (t.dataset.f) { F[t.dataset.f] = t.value; if (t.dataset.f === 'cat') F.sub = ''; redesenhar(); }
   else if (t.dataset.fc) { FC[t.dataset.fc] = t.value; ir('central', true); } });
