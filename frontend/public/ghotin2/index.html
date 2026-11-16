@@ -1684,7 +1684,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.98 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.99 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -1881,7 +1881,7 @@
         <dt>Chuva (arqueiro)</dt><dd>Chuva de Flechas: mire no chão e clique onde ela deve cair; ele atira para o alto e as flechas caem num círculo de 3,2 m (24 flechas, mais densas no centro). Flecha de Fogo: segura a corda, a ponta esquenta e a flecha sai pegando fogo (dano alto e o alvo queima). As flechas não seguram as criaturas: mantenha a distância, atire e fuja</dd>
         <dt>C</dt><dd>ver a colisão: caixa em volta de tudo que bloqueia, o chão onde não dá para pisar e a rota do clique</dd>
         <dt>3 (arqueiro)</dt><dd>Passos Leves: uma lufada de vento nos pés e por 20 s ele anda e corre 45% mais rápido, deixando um rastro de vultos e vento para trás (recarga de 30 s). Bom para abrir distância e continuar atirando</dd>
-        <dt>Feiticeiro</dt><dd>luta corpo a corpo com a espada, num combo de 4 golpes, e lança a magia negra pelas skills</dd>
+        <dt>Feiticeiro</dt><dd>ataca de longe (até 8,5 m) com a bola arcana, que sai da esfera do cajado e persegue o alvo. A esfera pulsa do violeta ao azul e solta faíscas; enquanto ele conjura, a magia é sugada para dentro dela</dd>
         <dt>1 a 6 (feiticeiro)</dt><dd>a Magia Negra: Golpe das Trevas (a bola negra que estoura no alvo e em volta), Golpe de Chama (o fogo abre no chão em volta dele, 5 m), Espírito de Fogo (um espírito ao lado do ombro atira sozinho, gastando mana), Proteção das Trevas (mais defesa e 1/3 dos golpes vai para a mana), Golpe Espiritual (estoura no alvo e pode deixar lento) e Orbe das Trevas (salta e lança o orbe, a explosão mais forte). Os números de cada uma estão na dica da ficha (P)</dd>
         <dt>P · Q · R · X</dt><dd>ficha do personagem (nome, nível, experiência, atributos, skills e bolsa) · as quests ativas · Poção Vermelha · Poção Azul (em 3 tamanhos, Pequena, Média e Grande, com valores fixos; a tecla escolhe a maior que não passa do que falta). Cada skill gasta mana (a INT aumenta a mana). A vida e a mana voltam a cada 3 s, mais depressa parado e devagar lutando; as poções curam aos poucos, até 7% por segundo. Cada criatura dá exp pelo nível dela; cada nível dá 3 pontos para VIT (vida e defesa), INT (magia), FOR (força) e DEX (destreza e crítico). As pedras Ghotin (Tristeza Nv 5, Batalha Nv 10, Ganância Nv 15; quanto maior o nível, maior a pedra e o raio das trevas em volta dela, onde as criaturas ficam amaldiçoadas: +30% de vida, +20% de dano, +25% de EXP e de drop) aparecem pelo mapa com defensores, chamam hordas quando apanham e, quebradas, soltam livros de skill da sua classe, poções e Gold: o livro sobe a skill (1 a 10, depois M1 a M10), com chance de falhar</dd>
         <dt>Cavernas</dt><dd>como no Tibia: há um buraco com escada logo fora do portão sul, perto do treino. Pisando nele você desce para a Caverna dos Ratos (escura, com tochas; os ratos vivem em bandos grandes). A escada perto da entrada leva de volta</dd>
@@ -2506,6 +2506,32 @@ const BANDOS = [
   ["orc_gigante", -8, 35, 1], ["orc_gigante", 8, 35, 1], ["orc_mago", -10, 42, 2, 1.5], ["orc_mago", 11, 36.5, 2, 1.5],
   ["orc_chefe", 0, 33, 1],
 ];
+// (16/11/2026, R399, o usuário: "aumente o numero de mobs na ilha dos orcs e na montanha, se necessário aumente um pouco o mapa para
+// caber mais") os bandos a mais, ~2× as criaturas de cada zona de caça (o total ~3×), nos mesmos tipos e no chão conferido pelo validar().
+// BANDOS_EXTRA (gerado por Logs/Mapas/bandos_extra/gerar_bandos_extra.mjs; não edite à mão: rode o gerador de novo)
+const BANDOS_EXTRA = [
+  ["orc_elite", 10, -20, 4, 3],
+  ["orc_mago", -6, -28, 3, 2.5],
+  ["orc_mago", -22, -8, 3, 2.5],
+  ["orc_mago", -14, -4, 3, 2.5],
+  ["orc_negro", 8, -40, 4, 3],
+  ["orc_elite", 16, -6, 4, 3],
+  ["orc_negro", -18, -52, 4, 3],
+  ["orc_gigante", 28, 26, 2, 2.2],
+  ["orc_gigante", 12, 22, 2, 2],
+  ["orc_mago", 30, 10, 3, 2.5],
+  ["orc_mago", -6, -18, 3, 2.5],
+  ["orc_elite", -30, 10, 4, 3],
+  ["orc_mago", 6, -28, 3, 2.5],
+  ["orc_elite", -12, -24, 4, 3],
+  ["orc_gigante", -14, 20, 2, 2],
+  ["orc_negro", 18, -52, 4, 3],
+  ["orc_elite", 8, -2, 4, 3],
+  ["orc_gigante", -28, 26, 2, 2.2],
+  ["orc_gigante", -10, 8, 2, 2],
+  ["orc_mago", 2, -16, 3, 2.5],
+];
+BANDOS.push(...BANDOS_EXTRA.map(b => [...b, "extra"]));             // (o 6º campo marca o gerado: a decoração e o validar() os veem como os outros)
 // as Ghotins (o formato de METINS; as áreas aqui são vista, convertidas em ghotins()). A da Sombra (metin4) já existe
 const GHOTINS = [
   { tipo: "metin4", mapa: "daiyu", nome: "Ghotin da Sombra", nivel: 45, vida: 22000, defesa: 54, cor: "#8a4dff", horda: "orc_negro", areas: [[-12, -46], [12, -45]] },
@@ -2729,7 +2755,10 @@ D.corMini = function (x, y) {
 // ---------------------------------------------------------------- os dados para o index.html (mundo)
 D.mapa = () => ({ id: "daiyu", nome: "Ilha de Daiyu", sub: "a Ilha à Deriva", niveis: [45, 70], ox: OX, oy: OY, raio: RAIO_D, montado: false,
                   rCosta, rochaCosta: D.rochaCosta, corMini: D.corMini, seguro: mundoDe(SEGURO.u, SEGURO.v) });
-D.bandos = () => BANDOS.map(([t, u, v, n, e]) => [t, ...mundoDe(u, v), n, e]);
+// (R399) cada bando de 2 ou mais ganha 1 orc, para chegar a ~3× as criaturas sem redesenhar o relevo. O 6º campo é o tamanho de antes (o jogo atualiza a lista
+// fixa de spawns, MOBS_FIXO, que guarda os de antes) e o 7º diz se o bando foi gerado (BANDOS_EXTRA)
+const AUMENTO_BANDO = 1;
+D.bandos = () => BANDOS.map(([t, u, v, n, e, extra]) => [t, ...mundoDe(u, v), n > 1 ? n + AUMENTO_BANDO : n, e, n, !!extra]);
 D.ghotins = () => GHOTINS.map(g => { const { areas, ...r } = g; return { ...r, regioes: areas.map(([u, v]) => mundoDe(u, v)) }; });
 D.portais = function (hahoeOx = 0, hahoeOy = 700) {
   const [vx, vy] = mundoDe(PORTAL_VOLTA.u, PORTAL_VOLTA.v), [su, sv] = PORTAL_VOLTA.saida, s = localDeVista(su, sv);
@@ -2821,7 +2850,7 @@ D.montar = function (ctx) {
   { const r = RP["Escada do Penhasco Leste"]; pôr("runa", r.u - r.larg / 2 - 1.2, r.v0 - 0.5, {}, 0.5); pôr("runa", r.u + r.larg / 2 + 1.2, r.v0 - 0.5, {}, 0.5); }
   // os acampamentos dos orcs (Campos de Cinza): tenda, fogueira, totem e estandarte, cada um num arranjo (não o mesmo kit)
   for (const [i, [t, u, v, , e]] of BANDOS.entries()) {
-    if (!/orc_elite|orc_mago/.test(t) || v > 0 || v < -32) continue;
+    if (!/orc_elite|orc_mago/.test(t) || v > 0 || v < -32 || BANDOS[i][5]) continue;   // (R399: os gerados não ganham acampamento)
     const s = u < 0 ? -1 : 1, giro = (i * 1.3) % 6.283, ten = [u - s * (e + 2.8) * Math.cos(giro * 0.3), v + 2.4 + Math.sin(giro) * 1.2];
     if (novo("tenda_orc")) pôr("tenda_orc", ...ten, { esp: i % 2 === 0 }, 1.7); else pôr("barraca", ...ten, { var: 1 }, 1.4);
     pôr("fogueira", u + Math.sin(giro) * 1.2, v + e + 1.6, { var: 1 }, 0.8);
@@ -4073,6 +4102,25 @@ const BANDOS = [
   // F o Santuário: só o chefe (CHEFES_MAPA.nove_caudas: área de 8 m, e a horda dele chama yetis e golens)
   ["nove_caudas", 1, 37.5, 1],
 ];
+// (16/11/2026, R399, o usuário: "aumente o numero de mobs na ilha dos orcs e na montanha, se necessário aumente um pouco o mapa para
+// caber mais") os bandos a mais, ~2× as criaturas de cada zona de caça (o total ~3×), nos mesmos tipos e no chão conferido pelo validar().
+// BANDOS_EXTRA (gerado por Logs/Mapas/bandos_extra/gerar_bandos_extra.mjs; não edite à mão: rode o gerador de novo)
+const BANDOS_EXTRA = [
+  ["escorpiao", -34, -2, 3, 2.5],
+  ["golem", 18, -48, 2, 2],
+  ["golem", 6, -52, 2, 2],
+  ["golem", 30, -22, 2, 2],
+  ["golem", 2, -18, 3, 2.5],
+  ["golem", 4, -44, 2, 2],
+  ["golem", -6, -24, 4, 3],
+  ["golem", 8, -38, 2, 2],
+  ["yeti", -10, 14, 3, 2.5],
+  ["escorpiao", 12, -6, 3, 2.5],
+  ["golem", -24, -18, 3, 2.5],
+  ["golem", 26, -46, 3, 2.5],
+  ["escorpiao", 34, -6, 2, 2],
+];
+BANDOS.push(...BANDOS_EXTRA.map(b => [...b, "extra"]));             // (o 6º campo marca o gerado: a decoração e o validar() os veem como os outros)
 // as Pedras Ghotin: no fim de METINS (DECO.metin usa o índice). Vida e defesa pela escada de sempre (+700 e +1,2 por nível)
 const GHOTINS = [
   { tipo: "metin13", mapa: "montanha", nome: "Ghotin da Geada", nivel: 42, vida: 19900, defesa: 50, cor: "#9fd6ff", horda: "golem", areas: [[16, -20.5], [-16, -20.5]] },
@@ -4206,7 +4254,10 @@ D.proibidoGhotin = function (x, y, cfg) {
 
 // ---------------------------------------------------------------- os dados para o index.html
 D.mapa = () => ({ raio: RAIO_M, niveis: [42, 50], rCosta, corMini: D.corMini, seguro: mundoDe(SEGURO.u, SEGURO.v), semMar: true });
-D.bandos = () => BANDOS.map(([t, u, v, n, e]) => [t, ...mundoDe(u, v), n, e]);
+// (R399) cada bando de 2 ou mais ganha 2 (a montanha tem menos chão livre: os patamares do alto já estavam cheios), para chegar a ~3× as criaturas sem redesenhar o relevo. O 6º campo é o tamanho de antes (o jogo atualiza a lista
+// fixa de spawns, MOBS_FIXO, que guarda os de antes) e o 7º diz se o bando foi gerado (BANDOS_EXTRA)
+const AUMENTO_BANDO = 2;
+D.bandos = () => BANDOS.map(([t, u, v, n, e, extra]) => [t, ...mundoDe(u, v), n > 1 ? n + AUMENTO_BANDO : n, e, n, !!extra]);
 D.ghotins = () => GHOTINS.map(g => { const { areas, ...r } = g; return { ...r, regioes: areas.map(([u, v]) => mundoDe(u, v)) }; });
 D.portalVolta = () => { const [x, y] = mundoDe(PORTAL_VOLTA.u, PORTAL_VOLTA.v), s = localDeVista(...PORTAL_VOLTA.saida); return { x, y, saida: s }; };
 D.rasgo = () => { const [x, y] = mundoDe(RASGO.u, RASGO.v), s0 = localDeVista(...RASGO.saida); return { id: "monte_rasgo", mapa: "montanha", x, y, saida: s0, destino: "montanha", para: "monte_hahoe", nivelMin: 0, custo: 0, cor: "montanha", rotulo: "Acampamento da Base" }; };
@@ -4966,8 +5017,9 @@ G.GELADA = D;
 (function (G) {
 "use strict";
 
-let ligado = false;
-try { ligado = /[?&]hahoe2=1(&|#|$)/.test(G.location ? G.location.search : ""); } catch (e) {}
+// (16/11, R396: o usuário mandou publicar a nova, "entao publique a nova": ligada por padrão; ?hahoe2=0 volta à da v0.77)
+let ligado = true;
+try { ligado = !/[?&]hahoe2=0(&|#|$)/.test(G.location ? G.location.search : ""); } catch (e) {}
 G.HAHOE2 = ligado;                                                   // (a chave: os ganchos do index.html perguntam a ela)
 
 const V = {};
@@ -9304,6 +9356,27 @@ function montarCastelo(por) {
 
 // ---------- objetos do cenário (ordenados pela profundidade junto com o viking) ----------
 const objetos = [];
+// (16/11, R398, o usuário: "diminua o numero de decorações no mapa... arvores, moitas, tudo... deixe apenas uns 15% no mapa", em
+// todos os mapas) a decoração SOLTA (árvores, pinheiros, arbustos, pedras, troncos, tocos, bambus, o basalto, o gelo e os ossos)
+// fica em ~15%: cada peça sorteada pela posição (sempre a mesma, em todo carregamento) e as outras nem entram na lista nem na
+// colisão. Ficam todas as construções (casas, muralhas, cercas, pontes, lanternas, runas...), as da cidade, do Altar, do estábulo,
+// das cavernas e as do Vale presas a uma arte. O mato do chão não muda. ?deco=1 (e o editor de mapas, ?editor=1, para não
+// salvar o mapa sem elas) mostra todas, como antes
+const DECO_RARA = { ligado: !/[?&](deco|editor)=1(&|#|$)/.test(location.search), fica: 0.15, tirados: 0, vistos: 0, marca: new WeakMap(),
+  tipos: new Set(["arvore", "pinheiro", "pinheiro_daiyu", "arbusto", "arbusto_flor", "pedra", "pedra_neve", "basalto", "bloco_gelo", "osso", "tronco", "toco", "bambu"]) };
+function decoRareada(o) {
+  if (!o || typeof o !== "object") return false;
+  const R = DECO_RARA; let r = R.marca.get(o);
+  if (r !== undefined) return r;
+  r = false;
+  if (R.ligado && R.tipos.has(o.tipo) && !o.cidade && !o.altar && !o.caverna && !o.npc && !o.estabulo && !o.somePorArte && !o.extraDe && isFinite(o.x) && isFinite(o.y)) {
+    const h = Math.sin(Math.round(o.x * 10) * 12.9898 + Math.round(o.y * 10) * 78.233) * 43758.5453;
+    R.vistos++; r = h - Math.floor(h) >= R.fica; if (r) R.tirados++;
+  }
+  R.marca.set(o, r);
+  return r;
+}
+{ const push0 = objetos.push; objetos.push = function (...l) { for (const o of l) if (!decoRareada(o)) push0.call(this, o); return this.length; }; }
 const grade = new Map();                    // objetos por célula de 4 m, para a colisão
 let GRADE_V = 0;                             // (muda a cada objeto posto ou tirado da grade: o cache das rotas, acharCaminho)
 // ---------- estruturas (casas, muros, barracas, cercas): colisão em retângulo na base e efeitos ----------
@@ -9433,6 +9506,7 @@ function abrirEspaco(x0, y0, x1, y1) {
 }
 
 function porNaGrade(o) {
+  if (decoRareada(o)) return;                                          // (R398: a peça que saiu não tem colisão)
   GRADE_V++;
   if (ESTRUT[o.tipo]) retDe(o);
   const R = 4;
@@ -11786,7 +11860,9 @@ const vikingVar = () => !!VIKING_VAR && classe === "viking";
 // direita, os tempos dos clipes; o dano, a morte e os montados copiados do feiticeiro de antes). Ele usa o caminho do viking novo
 // (pedidoVikingNovo), com o mapa dele (feitNovoAlvo); o ritmo do jogo e os efeitos das skills não mudam, só o clipe. O shura não
 // muda. VOLTAR AO FEITICEIRO DE ANTES: FEIT_PADRAO = "" (ou ?feiticeiro=antigo, só nesta aba)
-const FEIT_PADRAO = "chatgpt";
+// (10/11, o usuário: "vamos voltar ao antigo feiticeiro e retorne com os cajados, o novo precisa ser melhorado ainda") o padrão voltou a
+// ser o feiticeiro de antes, com o cajado e a bola; o Xura (com a espada e o combo) fica só no ?feiticeiro=chatgpt, para melhorar
+const FEIT_PADRAO = "";
 const FEIT_VAR = (() => {
   const k0 = new URLSearchParams(location.search).get("feiticeiro"), k = k0 === null || k0 === "" ? FEIT_PADRAO : k0;
   return k === "chatgpt" ? { chave: k, glb: "3d/feiticeiro_chatgpt.glb", nome: "Feiticeiro novo", novo3d: true, padrao: true } : null;
@@ -15976,6 +16052,7 @@ function desenharFumacaMetinRef(l, frente) {
 }
 // (07/11, R313) a onda do limiar mais baixo que a vida passou (ondasHorda: quantos limiares já ficaram para trás); as de cima se perdem
 function metinApanhou(l) {
+  if (HAHOE2 && l.y > 350) for (const c of criaturas) if (c.hordaDe === l && c.defensor && !c.morto) c.provocado = Math.max(c.provocado || 0, 8);   // (R397: na Hahoe, os defensores só lutam quando a pedra deles apanha)
   l.ondasHorda = l.ondasHorda || 0;
   const f = l.vida / l.cfg.vida;
   let i = LIMIARES_HORDA.length - 1;
@@ -20593,10 +20670,11 @@ function classeDaSkill(nome) { for (const [c, l] of [["viking", SKILLS_VIKING], 
 function ondeCaiRaro() { return "Cai só das Pedras Ghotin (e, às vezes, do baú dos chefes das cavernas)."; }
 function livroQualquer() { const l = todasAsSkills(); return { tipo: "livro", nome: l[Math.floor(Math.random() * l.length)] }; }
 // as armas (uma por classe), desenhadas em pé num espaço de 1 × 3
-const ARMAS = { aprendiz: { nome: "Espada de Treino", desenho: "treino" }, viking: { nome: "Espada", desenho: "espada" }, arqueiro: { nome: "Arco", desenho: "arco" }, feiticeiro: { nome: "Espada", desenho: "espada" }, ninja: { nome: "Adaga", desenho: "adagas" }, guerreiro: { nome: "Machado", desenho: "machado" }, xama: { nome: "Leque", desenho: "leque" }, xama_dragao: { nome: "Leque", desenho: "leque" }, shura: { nome: "Espada", desenho: "espada", icone: "sombria" } };   // (08/11: o modelo 0 com o nome do Metin2 BR, como o ARMAS_TIER)
+const ARMAS = { aprendiz: { nome: "Espada de Treino", desenho: "treino" }, viking: { nome: "Espada", desenho: "espada" }, arqueiro: { nome: "Arco", desenho: "arco" }, feiticeiro: FEIT_VAR ? { nome: "Espada", desenho: "espada" } : { nome: "Cajado", desenho: "cajado" }, ninja: { nome: "Adaga", desenho: "adagas" }, guerreiro: { nome: "Machado", desenho: "machado" }, xama: { nome: "Leque", desenho: "leque" }, xama_dragao: { nome: "Leque", desenho: "leque" }, shura: { nome: "Espada", desenho: "espada", icone: "sombria" } };   // (08/11: o modelo 0 com o nome do Metin2 BR, como o ARMAS_TIER)
 // (10/11, R394, o usuário: "Esse novo Shura deixa ele com espada. A gente não vai usar mais cajado no jogo" e "retire essa animacao de tiro
-// com a espada, ela so servia para o feiticeiro porque ele usava um cajado magico") o feiticeiro segura a espada e bate corpo a corpo, com
-// o combo de 4 golpes do shura: a espada de todo jeito (os modelos 3D espada_1 … espada_6, os ícones e o golpe básico [9, 13])
+// com a espada, ela so servia para o feiticeiro porque ele usava um cajado magico") o feiticeiro novo (o Xura, FEIT_VAR) segura a espada e bate
+// corpo a corpo, com o combo de 4 golpes do shura: a espada de todo jeito (os modelos 3D espada_1 … espada_6, os ícones e o golpe básico
+// [9, 13]). Desde a volta do feiticeiro de antes (10/11: "retorne com os cajados"), isso só vale no ?feiticeiro=chatgpt; o padrão é o Cajado
 // o desenho do ÍCONE da arma da classe (R260: o shura tem as lâminas dele, "sombria"; o "desenho" continua o da espada, que
 // escolhe o modelo 3D e o golpe básico)
 function desenhoArma(c) { const a = ARMAS[c] || ARMAS.viking; return a.icone || a.desenho; }
@@ -20633,8 +20711,9 @@ const ARMAS_TIER = {
   arqueiro: ["Arco", "Arco de Cavalgada", "Arco Bronzeado", "Arco da Ruína Negra", "Arco Espinhoso", "Arco do Unicórnio", "Arco Asa Gigante"],
   // (09/11, R384, o usuário: "os itens do feiticeiro terão que seguir o padrão do sura, porém adaptados para cajado") a linha do Sura com
   // "Cajado" no lugar de "Espada"; a Cimitarra vira o Cajado Curvo (a escolha dele)
-  // (10/11, R394: sem cajado no jogo, a linha do Sura com a espada, como o shura)
-  feiticeiro: ["Espada", "Cimitarra", "Espada Orc", "Espada Bastarda", "Espada Sangrenta", "Espada do Mago Voador", "Espada Minguante"],
+  // (10/11, R394: o feiticeiro novo, de espada, com a linha do Sura como o shura; desde a volta do de antes, só no ?feiticeiro=chatgpt)
+  feiticeiro: FEIT_VAR ? ["Espada", "Cimitarra", "Espada Orc", "Espada Bastarda", "Espada Sangrenta", "Espada do Mago Voador", "Espada Minguante"]
+    : ["Cajado", "Cajado Curvo", "Cajado Orc", "Cajado Bastardo", "Cajado Sangrento", "Cajado do Mago Voador", "Cajado Minguante"],
   ninja: ["Adaga", "Adaga Tesoura", "Faca Sortuda", "Faca Fenina", "Punho Demoníaco", "Costela Afiada", "Adagas Chakram"],   // (09/11, R384: o ninja segura duas adagas)
   xama: ["Leque", "Leque do Pavão", "Leque de Pedra", "Leque do Oceano", "Leque do Fênix", "Leque da Fúria", "Leque do Sol Negro"],
   xama_dragao: ["Leque", "Leque do Pavão", "Leque de Pedra", "Leque do Oceano", "Leque do Fênix", "Leque da Fúria", "Leque do Sol Negro"],
@@ -20656,7 +20735,7 @@ const ARMAS_RARAS = {
   arqueiro: { nome: "Arco de Chifre", bon: [["medio", 32], ["skill", 8], ["monstros", 10]] },
   ninja: { nome: "Punhal da Folha Negra", bon: [["medio", 30], ["skill", 10], ["monstros", 10]] },
   shura: { nome: "Espada Plenilúnia", bon: [["medio", 22], ["skill", 18], ["monstros", 10]] },
-  feiticeiro: { nome: "Espada Plenilúnia", bon: [["medio", 12], ["skill", 24], ["monstros", 10]] },
+  feiticeiro: { nome: FEIT_VAR ? "Espada Plenilúnia" : "Cajado Plenilúnio", bon: [["medio", 12], ["skill", 24], ["monstros", 10]] },
   xama: { nome: "Leque Vento de Outono", bon: [["medio", 12], ["skill", 22], ["monstros", 10]] },
   xama_dragao: { nome: "Leque Vento de Outono", bon: [["medio", 12], ["skill", 22], ["monstros", 10]] },
 };
@@ -22607,7 +22686,7 @@ const SKILL_DADOS = {
   "Espírito de Fogo": { sub: "Chama Viva", desc: "Um espírito de fogo flutua ao lado do ombro e atira sozinho em criaturas por perto; gasta mana enquanto dura.", ef: "Ataca sozinho por um tempo", por: "INT, o nível do herói e o da skill" },
   "Proteção das Trevas": { sub: "Véu das Trevas", desc: "Uma aura escura envolve o feiticeiro: mais defesa, e um terço de cada golpe recebido vai para a mana; gasta mana enquanto dura.", ef: "Defesa e escudo de mana", por: "INT e o nível da skill" },
   "Golpe Espiritual": { sub: "Espírito Sombrio", desc: "Um espírito sombrio é arremessado: estoura no alvo, fere os de perto e pode deixá-los lentos.", ef: "Dano mágico em área e lentidão", por: "INT, VIT, DES, o nível do herói e o da skill" },
-  "Orbe das Trevas": { sub: "Globo Negro", desc: "Junta trevas na espada, salta e lança o orbe: a explosão fere o alvo e os de perto.", ef: "Dano mágico forte em área", por: "INT, VIT, DES, o nível do herói e o da skill" },
+  "Orbe das Trevas": { sub: "Globo Negro", desc: FEIT_VAR ? "Junta trevas na espada, salta e lança o orbe: a explosão fere o alvo e os de perto." : "Junta trevas no cajado, salta e lança o orbe: a explosão fere o alvo e os de perto.", ef: "Dano mágico forte em área", por: "INT, VIT, DES, o nível do herói e o da skill" },
   // o Guerreiro Mental (03/11)
   "Técnica Cortante": { sub: "Lâmina do Espírito", desc: "O guerreiro junta o espírito no machado e o solta numa estocada: a energia voa até o alvo e fere ele e os colados a ele.", ef: "Dano à frente em até 4", por: "FOR, VIT, o ataque, o nível do herói e o da skill" },
   "Impacto Terrestre": { sub: "Machado do Céu", desc: "Salta e desce o machado no chão à frente: a pancada fere todos perto dela.", ef: "Dano à frente em até 8", por: "FOR, VIT, o ataque, o nível do herói e o da skill" },
@@ -23346,6 +23425,12 @@ function carregarSpawns() {
   if (!SPAWNS.some(s => s.x < -350)) for (const s of SPAWNS) if (s.x > 117 && s.x < 240 && Math.abs(s.y) < 60) s.x += MONTANHA.ox - 140;
   // (uma lista editada com a montanha plana, de antes de 30/10: o Nove Caudas no meio dela. Os bandos dela dão lugar aos dos patamares)
   if (SPAWNS.some(s => s.tipo === "nove_caudas" && Math.abs(s.x + 700) < 0.01 && Math.abs(s.y + 3) < 0.01)) { SPAWNS = SPAWNS.filter(s => s.x >= -350); SPAWNS.push(...MONTE_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 }))); }
+  // (16/11, R399: a Daiyu e a Montanha com ~3× os bichos) o bando de antes que a lista ainda tem com o tamanho de antes cresce, e os
+  // gerados (BANDOS_EXTRA dos mapa_*.js) que faltam entram; uma edição do admin com outro tamanho fica como está
+  for (const [t, x, y, n, e, n0, extra] of [...DAIYU_BANDOS, ...MONTE_BANDOS]) {
+    const s = SPAWNS.find(o => o.tipo === t && Math.abs(o.x - x) < 0.02 && Math.abs(o.y - y) < 0.02);
+    if (s) { if (s.n === n0 && n !== n0) s.n = n; } else if (extra) SPAWNS.push({ tipo: t, x, y, n, r: e || 1.6 });
+  }
   // (um chefe de mapa novo do código que a lista editada ainda não tem, como o Nove Caudas, entra mesmo assim)
   for (const s of SPAWNS_ORIGINAL) if (CHEFES_MAPA[s.tipo] && !SPAWNS.some(o => o.tipo === s.tipo)) SPAWNS.push({ ...s });
   edmAplicarCriaturas();                                               // (R289: as mudanças do editor de mapas nos grupos e nas Ghotins)
@@ -23433,7 +23518,16 @@ function passoGruposV1(dt) {
 function provocarGrupoV1(l, t) {
   l.provocado = Math.max(l.provocado || 0, t);
   if (l.grupo) for (const m of l.grupo.membros) if (m !== l && !m.morto) m.provocado = Math.max(m.provocado || 0, t);
-  if (l.grupo && l.grupo.membros[0] && l.grupo.membros[0].cfg.chama) chamarVizinhosV1(l.grupo);   // (etapa 3: o líder que chama)
+  if (l.grupo && l.grupo.membros[0] && l.grupo.membros[0].cfg.chama && !calmaHahoe(l)) chamarVizinhosV1(l.grupo);   // (etapa 3: o líder que chama; R397: na Hahoe, não)
+}
+// (16/11, R397, o usuário: "vamos alterar o modo de ataque dos bichos da vila 2, eles tem q atacar apenas se forem atacados")
+// na Vila Hahoe, nenhum bicho ataca sozinho: nem o líder "tanque" dos clãs, nem os bandos da borda, nem os chefes, nem os
+// defensores das Ghotins. Um golpe põe na luta o bicho atingido e o grupo dele (o SpawnGroup do Metin2); o líder não chama
+// mais os grupos vizinhos. Os defensores entram quando a pedra deles apanha; as ondas da horda nascem já lutando (a pedra
+// foi atacada). Pela toca, para não mudar no meio da perseguição; as cavernas (x > 240) ficam como estão
+function calmaHahoe(l) {
+  if (!HAHOE2 || l.cfg.estatico || (l.horda && !l.defensor)) return false;
+  const t = l.toca || l; return t.y > 350 && t.x < 240;
 }
 // (etapa 3, a Hahoe nova) "O capitão que chama": quando o grupo de um líder com cfg.chama (m) entra na luta, os grupos cujo
 // líder está a até chama m dele entram também (provocados por 8 s, e perseguem até GRUPO_PERSEGUE + chama m do herói), com a
@@ -23746,9 +23840,10 @@ function passoCriatura(l, dt) {
     // (os grupos do Metin2 não atacam sozinhos, menos o Capitão: só depois de um golpe num deles ou de um deles caçar,
     // e a luta dura até o herói ficar a GRUPO_PERSEGUE m)
     if (l.provocado > 0) l.provocado -= dt; else if (l.persegue) l.persegue = 0;   // (persegue: o grupo chamado pelo líder, chamarVizinhosV1)
-    const passivo = l.semVolta && !cfg.agressivo, provocado = l.provocado > 0 && d < (l.persegue || GRUPO_PERSEGUE);
+    const calma = calmaHahoe(l), passivo = (l.semVolta && !cfg.agressivo) || calma, provocado = l.provocado > 0 && d < (l.persegue || GRUPO_PERSEGUE);   // (R397: na Hahoe, todos passivos)
     l.cacando = criaturasAtacam && !viking.caido && !escondido && !(l.voltando > 0) && (passivo ? provocado : d < cfg.visao || (l.cacando && d < cfg.visao + 4) || provocado);
     if (l.cacando && l.semVolta) provocarGrupoV1(l, 1.5);              // (caçando, chama o grupo inteiro)
+    else if (l.cacando && calma) l.provocado = Math.max(l.provocado, 1.5);   // (R397: o de fora dos grupos segue lutando enquanto o herói estiver perto)
     if (l.cacando && !antes) vozCriatura(l, "ve");
     if ((cfg.chefeCaverna || defChefe(l)) && !l.anunciado && d < 12) { l.anunciado = true; som("chefe_aparece", l, 0.9); }   // o chefe aparece na frente dele
     if (cfg.sopro && l.cacando && acaoDragao(l, d)) {}                  // (o rugido ao ver, o sopro e a bola de fogo)
@@ -24137,7 +24232,7 @@ function acertaCriaturas(giro) {
     const base = m2 ? danoSkill(fonte) / (fonte === "Vórtice" ? VORTICE_VOLTAS : 1) : (11 * furiaDobra() + espiritualSoma()) * forte * fatorNinja();   // (09/11: o sorteio é o da arma do Metin2, no ferir)
     // (09/11, a fase 2 do balanceamento: medido no boneco, o combo da xamã empurrava o bicho 0,45 m por golpe e o golpe3 e o golpe4 caíam fora do
     // alcance (68% dos golpes acertavam; preso no lugar, 100%): as duas xamãs empurram como o ninja. O shura acertava 97% e não muda)
-    comFonte(fonte, () => ferir(l, base, dx, dy, fatorNinja() < 1 || (ehXama() && !fonte) ? EMPURRA_NINJA : 0.45));
+    comFonte(fonte, () => ferir(l, base, dx, dy, fatorNinja() < 1 || ((ehXama() || feitNovo()) && !fonte) ? EMPURRA_NINJA : 0.45));   // (R395: o combo do feiticeiro novo não anda, como o da xamã)
   }
   return algum;
 }
@@ -24220,6 +24315,7 @@ function ferir(l, dano, dx, dy, empurra, semReacao = false) {
     if (orcGrande(l) && !l.furioso && !(l.semBuff > 0) && l.vida < l.cfg.vida * 0.35) { l.furioso = true; som("rugido_chefe", l, 1); }   // ferido, se enfurece (03/11: não durante o bloqueio do Dissipar Magia)
     l.cacando = criaturasAtacam;
     if (l.semVolta) provocarGrupoV1(l, 8);                             // (o grupo do Metin2: o golpe num deles põe todos na luta)
+    else if (calmaHahoe(l)) l.provocado = Math.max(l.provocado || 0, 8);   // (R397: o bando da borda, o chefe e o defensor da Hahoe entram na luta pelo golpe)
     // firmeza: depois de sentir um golpe, fica 1,5 s sem se interromper de novo (e um ataque começado não para). Sem
     // isso o combo do viking (um golpe a cada meio segundo) o deixava preso na animação de dano, sem nunca atacar
     if (semReacao || (l.firme || 0) > 0 || l.acao === l.cfg.ataque || (l.cfg.sopro && (l.acao || l.sopro)) || (l.cfg.chefe && (l.acao || Math.random() < 0.65))) { som("carne", l, 0.6); return; }
@@ -24920,8 +25016,8 @@ function conjurar() {
 function podeSkillMago() {
   if (viking.caido || classe !== "feiticeiro") return false;
   if (!viking.acao) return true;
-  if (viking.acao !== "bola" && viking.acao !== "dano") return false;
-  viking.fila = null; viking.acao = null;                         // corta a bola no meio
+  if (viking.acao !== "bola" && viking.acao !== "dano" && !(feitNovo() && /^golpe/.test(viking.acao))) return false;   // (R394: no feiticeiro novo, a skill corta o golpe de espada, como no shura)
+  viking.fila = null; viking.acao = null; if (feitNovo()) viking.combo = 0;   // corta a bola (ou o golpe) no meio
   return true;
 }
 function soltarMagia(nome) {
@@ -32237,6 +32333,10 @@ function pedidoVikingNovo(d) {
   // (10/11) o parado com respiração (o laço de 3 s do preparo, extras.respira) anda no relógio: segue sem salto quando o nome da
   // página troca (parado, parar, guardar...) e não acelera no ciclo de 1,5 s do parado da página
   if (alvo.laco && inf.respira) t = agora;
+  // (R395, o usuário: "o personagem esta muito rapido", nas pernas da corrida) a corrida do feiticeiro novo pela distância andada: a página anda
+  // M.correr m por segundo do tempo dela, e o clipe, inf.velChao m (o pé apoiado) por segundo do dele. Antes, um ciclo do clipe por ciclo da
+  // página: as pernas iam 1,8× mais rápido que o chão (o clipe é de quem corre a 6,9 m/s)
+  else if (alvo.laco && fe && inf.velChao > 0 && M.correr > 0 && /^(correndo|andando)/.test(base)) t = d.t * M.correr / inf.velChao;
   else if (alvo.laco) { const perP = pag && pag.laco ? pag.quadros / pag.fps : 0; t = perP ? d.t * (inf.quadros / inf.fps) / perP : d.t; }
   else if (alvo.nos) t = tempoNos3d(alvo.nos, d.t * (pag ? pag.fps : 20), inf.fps);
   else t = d.t;                                                         // (os copiados: quadros e fps iguais aos da página)
@@ -33375,7 +33475,8 @@ const INFO_CLASSE = {
   viking: { papel: "Corpo a corpo · espada grande", dif: 1, frase: "Guerreiro do norte da espada de duas mãos: entra em fúria, gira e acerta tudo em volta, e aguenta pancada." },
   guerreiro: { papel: "Corpo a corpo · machado de batalha", dif: 1, frase: "O mais resistente de todos: o machado solta energia de longe, faz o chão tremer e o corpo endurece como ferro." },
   arqueiro: { papel: "À distância · arco longo", dif: 2, frase: "Caçador das matas que mantém o inimigo longe: flechas de fogo, veneno e chuva de flechas." },
-  feiticeiro: { papel: "Corpo a corpo · espada e magia negra", dif: 3, frase: "Mestre da magia negra: bate com a espada e lança esferas de trevas e fogo que ferem muitos de uma vez e um espírito de fogo que ataca sozinho. Tem pouca vida." },
+  feiticeiro: FEIT_VAR ? { papel: "Corpo a corpo · espada e magia negra", dif: 3, frase: "Mestre da magia negra: bate com a espada e lança esferas de trevas e fogo que ferem muitos de uma vez e um espírito de fogo que ataca sozinho. Tem pouca vida." }
+    : { papel: "À distância · cajado das trevas", dif: 3, frase: "Mestre da magia negra: esferas de trevas e fogo que ferem muitos de uma vez e um espírito de fogo que ataca sozinho. Tem pouca vida." },
   ninja: { papel: "Corpo a corpo · duas adagas", dif: 3, frase: "Rápido e traiçoeiro: some nas sombras, envenena e golpeia antes de ser visto." },
   shura: { papel: "Corpo a corpo · espada e magia negra", dif: 2, frase: "Guerreiro amaldiçoado: a lâmina encantada rouba vida, a aura negra devolve os golpes e a magia tira os buffs do inimigo." },
   xama: { papel: "Suporte · leque e relâmpago", dif: 2, frase: "O raio e a cura: fere de longe, salta de alvo em alvo, corre como o vento e fortalece o próprio ataque." },
