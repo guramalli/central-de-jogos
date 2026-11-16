@@ -1222,6 +1222,20 @@
   .ic-perso { display: grid; grid-template-columns: 82px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 12px; }
   .ic-perso figure { margin: 0; height: 104px; display: flex; align-items: flex-end; justify-content: center; background: var(--sp3); border: 2px solid var(--sn); overflow: hidden; }
   .ic-perso img { display: block; height: 100%; width: auto; object-fit: contain; }
+  /* (R403) a armadura +7/+8/+9 do personagem no cartão: a figura acesa na cor do refino, pulsando (o +8 mais rápido; o +9 com faíscas subindo) */
+  .ic-perso figure[class^="ic-ref"] { position: relative; }
+  .ic-perso figure[class^="ic-ref"] img { animation: icRef 2.8s ease-in-out infinite; }
+  .ic-perso figure.ic-ref8 img { animation-duration: 2.1s; }
+  .ic-perso figure.ic-ref9 img { animation: icRef9 1.6s ease-in-out infinite; }
+  .ic-perso figure.ic-ref8::after, .ic-perso figure.ic-ref9::after { content: ""; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
+    background: radial-gradient(circle at 22% 70%, rgba(var(--ref), 0.9) 0 1.5px, transparent 2.5px), radial-gradient(circle at 74% 55%, rgba(var(--ref), 0.85) 0 1.5px, transparent 2.5px),
+                radial-gradient(circle at 50% 88%, rgba(255, 255, 255, 0.8) 0 1px, transparent 2px), radial-gradient(circle at 36% 40%, rgba(var(--ref), 0.7) 0 1px, transparent 2px);
+    animation: icRefSobe 2.4s linear infinite; }
+  .ic-perso figure.ic-ref9::after { animation-duration: 1.5s; }
+  @keyframes icRef { 0%, 100% { filter: drop-shadow(0 0 2px rgba(var(--ref), 0.45)); } 50% { filter: drop-shadow(0 0 7px rgba(var(--ref), 0.9)); } }
+  @keyframes icRef9 { 0%, 100% { filter: drop-shadow(0 0 4px rgba(var(--ref), 0.7)) brightness(1.04); } 50% { filter: drop-shadow(0 0 11px rgba(var(--ref), 1)) brightness(1.12); } }
+  @keyframes icRefSobe { 0% { transform: translateY(18px); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(-38px); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .ic-perso figure[class^="ic-ref"] img, .ic-perso figure[class^="ic-ref"]::after { animation: none; } }
   .ic-perso h3 { margin: 0; font: 400 21px/1.15 var(--pincel, Georgia, serif); }
   .ic-perso p { margin: 3px 0 0; font-size: 14px; }
   .ic-perso .ic-nv { color: var(--sc); font-weight: 700; }
@@ -1684,7 +1698,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.99 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.100 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -4996,6 +5010,862 @@ G.GELADA = D;
 
 </script>
 <script>
+// ================================================================ o Deserto de Mingsha, as Areias que Cantam, 40–56
+// Logs/Mapas/DESERTO_ARANHAS_PROJETO.md (seções 3 e 8; aprovado em 16/11/2026: 220 × 190 m, dunas até 2,4 m em 3 alturas,
+// o paredão de arenito, o portal na Vila Hahoe no nível 40, 70 peças, o chão pintado no minhwa). Carregado por
+// <script src="mapa_deserto.js"> antes do script principal; o build.py o embute na página. Só lê o jogo na hora em que é
+// chamado, e também roda no node (Logs/Mapas/deserto/validar_deserto.mjs). Os ganchos no index.html: Logs/Mapas/DESERTO_aplicar.py.
+//
+// O MOTOR é o da Montanha Gelada e da Ilha de Daiyu (grade de 0,5 m com a altura Z e os bits do chão, PASSO_MAX, o chão que
+// um relevo esconde vira proibido, o chão pintado nos pedaços em cache, sem custo por quadro). A diferença: a grade é
+// alinhada com a VISTA (u para a direita da tela, v para o fundo), 448 × 388 células, e a altura das dunas é contínua.
+//
+// O DESENHO: um retângulo de 220 × 190 m na vista, com o paredão de arenito (4 m, não se anda) atrás e dos lados e a frente
+// se desfazendo no papel em branco (o enredo: a borda do biombo, onde a tinta secou). No meio, o Rochedo da Lua com o
+// Oásis da Lua Crescente (o lago em meia-lua, a cascata e o poço). As 17 dunas são barcanas com a FACE DE QUEDA virada para
+// a câmera e a encosta mansa subindo para o fundo da tela: do pé ao topo a duna só sobe na tela, e nada de chão de andar
+// fica escondido. A Rota da Seda liga o Portão da Caravana (o portal da Hahoe) ao oásis e à Boca das Grutas, no fundo.
+//
+// ETAPA 1 (este arquivo + o DESERTO_aplicar.py): a grade, as dunas, o paredão, o oásis, a trilha, o chão pintado, o
+// minimapa, a decoração (70 peças de tipos que já existem, com tinta) e os portais. ETAPA 2: as zonas, os 76 grupos, as 6
+// Ghotins, o Hyeonmu, os 2 NPCs e a boca das Grutas já estão aqui (GRUPOS, GHOTINS, CHEFE, NPCS, GRUTA); o jogo só passa a
+// usá-los na etapa 2.
+(function (G) {
+"use strict";
+
+// ---------------------------------------------------------------- constantes
+const R2 = Math.SQRT1_2;
+const OX = 0, OY = 1400;                       // a origem: ao norte da Vila Hahoe (0, 700), 700 m além dela. O jogo separa o mapa por y > 1050
+const Y_DESERTO = 1050;                        // (a regra do index.html: y > Y_DESERTO é o deserto; a Hahoe vai até y ~ 870 e o deserto começa em ~1255)
+const CAIXA = { u0: -110, u1: 110, v0: -95, v1: 95 };   // o mapa na vista (220 × 190 m)
+const NIV = [0, 0.8, 1.6, 2.4];                // as alturas de areia (m); a rocha fica em Z_ROCHA e não se anda
+const Z_ROCHA = 4.0;
+const FAIXA = [0.4, 1.2, 2.0];                 // onde muda o tom da areia pintada (no meio entre as alturas: a duna de 0,8 m já ganha o 2º tom no alto)
+const CEL = 0.5, EU = 112, EV = 97, NI = Math.round(2 * EU / CEL), NJ = Math.round(2 * EV / CEL);   // a grade na vista: 448 × 388
+const PASSO_MAX = 0.45;
+const COR = { nanquim: "#1E1B18", papel: "#EFE4CC", cinabre: "#B8322A", jade: "#3E7A5C", indigo: "#2D4A6B", ocre: "#C9963E", pedra: "#8C8A80", ardosia: "#3B4250" };
+const mixHex = (a, b, t) => { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), A = p(a), B = p(b); return "#" + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, "0")).join(""); };
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+// a paleta da bíblia (Tools/deco3d/estilo/BIBLIA_B.md): o ocre misturado ao papel em 4 tons, um por altura; o arenito rosado é
+// ocre + cinabre + papel; o jade e o índigo só no oásis
+const ARENITO = mixHex(mixHex(COR.ocre, COR.cinabre, 0.32), COR.papel, 0.38);
+const TOM = {
+  areia: [mixHex(COR.papel, COR.ocre, 0.38), mixHex(COR.papel, COR.ocre, 0.58), mixHex(COR.papel, COR.ocre, 0.8), mixHex(COR.ocre, COR.cinabre, 0.2)],
+  encosta: mixHex(mixHex(COR.papel, COR.ocre, 0.38), COR.papel, 0.14),        // (o pé da encosta mansa, um pouco mais claro que o chão)
+  face: mixHex(COR.ocre, COR.nanquim, 0.3), faceEscura: mixHex(COR.ocre, COR.nanquim, 0.46),
+  arenito: ARENITO, arenitoClaro: mixHex(ARENITO, COR.papel, 0.3), arenitoEscuro: mixHex(ARENITO, COR.nanquim, 0.22), arenitoSombra: mixHex(ARENITO, COR.nanquim, 0.4),
+  trilha: mixHex(mixHex(COR.papel, COR.ocre, 0.38), COR.papel, 0.42), trilhaMiolo: mixHex(COR.papel, COR.ocre, 0.22),
+  leito: mixHex(mixHex(COR.ocre, COR.nanquim, 0.18), COR.papel, 0.25),
+  agua: mixHex(COR.jade, COR.indigo, 0.45), aguaClara: mixHex(COR.jade, COR.papel, 0.4), grama: mixHex(COR.jade, COR.ocre, 0.3), gramaClara: mixHex(mixHex(COR.jade, COR.ocre, 0.45), COR.papel, 0.2),
+  muro: mixHex(mixHex(COR.ocre, COR.papel, 0.35), COR.pedra, 0.35), fundo: mixHex(COR.papel, "#FFFFFF", 0.35),
+};
+const vistaDe = (x, y) => { const lx = x - OX, ly = y - OY; return [(lx - ly) * R2, (lx + ly) * R2]; };
+const mundoDe = (u, v) => [OX + (u + v) * R2, OY + (v - u) * R2];
+const localDeVista = (u, v) => [(u + v) * R2, (v - u) * R2];
+const hsh = (a, b, c = 0) => { let h = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263) + Math.imul(c | 0, 1440670441)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+const liso = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+const lisoInv = s => 0.5 - Math.sin(Math.asin(Math.max(-1, Math.min(1, 1 - 2 * s))) / 3);   // (o inverso do smoothstep)
+
+// ---------------------------------------------------------------- a borda (o papel em branco) e o paredão de arenito
+// (o esquema aprovado, Logs/Mapas/deserto/esquema_deserto.py, em m: > 0 dentro)
+function bordaV(u, v) {
+  const du = Math.abs(u) - 100 - 4 * Math.sin(v * 0.09 + 1), dt = v - 84 - 3 * Math.sin(u * 0.08), df = -v - 86 - 3 * Math.sin(u * 0.11 + 2);
+  return -Math.max(du, dt, df);
+}
+const ladoU = v => 92 + 3 * Math.sin(v * 0.13);                      // a face de dentro dos paredões dos lados (|u|)
+const frenteLado = u => -70 + 1.4 * Math.sin(Math.abs(u) * 0.7);     // onde os paredões dos lados começam (a ponta deles olha para a câmera)
+const trasV = u => 76 + 3 * Math.sin(u * 0.1 + 0.5);                 // o paredão do fundo
+const MESA = { u: -4, v: 56, ru: 22, rv: 13 };                       // o Rochedo da Lua: a mesa de arenito atrás do oásis, colada no paredão do fundo
+const frenteMesa = u => { const a = (u - MESA.u) / MESA.ru; return Math.abs(a) < 1 ? MESA.v - MESA.rv * Math.sqrt(1 - a * a) : Infinity; };
+const naRocha = (u, v) => (Math.abs(u) > ladoU(v) && v > frenteLado(u)) || v > trasV(u) || v > frenteMesa(u);
+// o contorno do mapa (a borda): o raio na vista por ângulo, e o rCosta do jogo (o ângulo no mundo local)
+const TAB = 720, rVistaTab = new Float32Array(TAB);
+for (let k = 0; k < TAB; k++) { const a = k / TAB * 2 * Math.PI, cu = Math.cos(a), sv = Math.sin(a); let r = 0; while (r < 200 && bordaV(cu * r, sv * r) > 0) r += 0.25; rVistaTab[k] = r; }
+const rVista = a => { const f = ((a / (2 * Math.PI)) % 1 + 1) % 1 * TAB, i = Math.floor(f), t = f - i; return rVistaTab[i % TAB] * (1 - t) + rVistaTab[(i + 1) % TAB] * t; };
+const rCosta = a => rVista(a + Math.PI / 4);                         // (a do jogo: o ângulo no mapa local; a vista está girada 45°)
+const RAIO_M = Math.ceil(Math.max(...rVistaTab));                    // (o minimapa e o Mapa do Mundo cobrem o quadrado de lado 2 × (raio + 8))
+const CONTORNO = Array.from({ length: 360 }, (_, k) => { const a = k / 360 * 2 * Math.PI, r = rVista(a); return [Math.cos(a) * r, Math.sin(a) * r]; });
+
+// ---------------------------------------------------------------- as dunas (barcanas)
+// { nome, u: o meio, v: a crista, L: a meia largura, D: o fundo da encosta mansa, H: a altura }. A crista curva com as pontas
+// (os chifres) para a frente da tela, v = v − 4x²; a altura cai a zero nas pontas, H·cos²(πx/2); atrás da crista a encosta
+// mansa desce em D m (smoothstep); na frente da crista, a face de queda: um degrau da altura da duna, penhasco só onde passa
+// de PASSO_MAX (perto das pontas se anda). As 17 do projeto: 3 de 2,4 m, 9 de 1,6 m, 5 de 0,8 m
+const DUNAS = [
+  { nome: "Duna do Portão", u: -60, v: -66, L: 12, D: 12, H: 0.8 },
+  { nome: "Duna Torta", u: -40, v: -50, L: 10, D: 11, H: 0.8 },
+  { nome: "Grande Duna do Vento", u: -69, v: -28, L: 20, D: 24, H: 2.4 },
+  { nome: "Duna do Eco", u: -78, v: -49, L: 9, D: 12, H: 1.6 },
+  { nome: "Duna Gêmea Oeste", u: -37, v: -12, L: 10, D: 15, H: 1.6 },
+  { nome: "Duna Gêmea Leste", u: -14, v: -5, L: 9, D: 14, H: 1.6 },
+  { nome: "Duna Cantante", u: -70, v: 14, L: 19, D: 22, H: 2.4 },
+  { nome: "Duna Sem Nome", u: -25, v: 18, L: 10, D: 12, H: 1.6 },
+  { nome: "Duna da Lua", u: -43, v: 39, L: 14, D: 18, H: 2.4 },
+  { nome: "Duna Longa", u: -76, v: 60, L: 12, D: 12, H: 1.6 },
+  { nome: "Duna do Camelo", u: -50, v: 64, L: 9, D: 11, H: 1.6 },
+  { nome: "Duna Baixa do Sul", u: 10, v: -72, L: 13, D: 11, H: 0.8 },
+  { nome: "Duna da Rota", u: 62, v: -34, L: 11, D: 12, H: 0.8 },
+  { nome: "Duna da Serpente", u: 64, v: 18, L: 12, D: 14, H: 1.6 },
+  { nome: "Duna do Rastro", u: 78, v: -5, L: 8, D: 12, H: 1.6 },
+  { nome: "Duna do Ninho", u: 42, v: 48, L: 10, D: 12, H: 1.6 },
+  { nome: "Duna Velha", u: 18, v: -40, L: 9, D: 10, H: 0.8 },
+];
+const cristaV = (d, x) => d.v - 4 * x * x;
+const largW = x => Math.cos(x * Math.PI / 2) ** 2;
+const fundoX = (d, x) => d.D * (0.25 + 0.75 * Math.cos(x * Math.PI / 2));   // (a encosta encurta para as pontas: a planta é uma meia-lua, e as curvas de nível, arcos)
+function zDuna(d, u, v) {
+  const x = (u - d.u) / d.L; if (x <= -1 || x >= 1) return 0;
+  const c = cristaV(d, x), f = fundoX(d, x); if (v < c || v > c + f) return 0;
+  return d.H * largW(x) * (1 - liso((v - c) / f));
+}
+for (const d of DUNAS) d.caixa = [d.u - d.L, d.u + d.L, d.v - 4, d.v + d.D];
+function zDunas(u, v) { let z = 0; for (const d of DUNAS) { const b = d.caixa; if (u < b[0] || u > b[1] || v < b[2] || v > b[3]) continue; const q = zDuna(d, u, v); if (q > z) z = q; } return z; }
+const dunaEm = (u, v) => { for (const d of DUNAS) if (zDuna(d, u, v) > 0.02) return d; return null; };
+
+// ---------------------------------------------------------------- o Caravançará em Ruínas: um platô de 0,8 m com a rampa na frente
+// (o muro de arrimo da frente olha para a câmera; os lados e o fundo descem em rampa mansa: só a frente é penhasco)
+const CARAV = { u: 44, v: -58, a: 10, f: -63, t: -53, tras: 6, lado: 2.2, h: 0.8, rampa: { u: 44, larg: 3.6, comp: 4.5 } };
+const naRampa = (u, v) => { const r = CARAV.rampa; return Math.abs(u - r.u) < r.larg / 2 && v >= CARAV.f - r.comp && v < CARAV.f + 0.25; };
+function zMonte(u, v) {
+  const C = CARAV, dl = C.a - Math.abs(u - C.u); if (dl <= -C.lado) return 0;
+  const s = dl >= 0 ? 1 : liso((dl + C.lado) / C.lado);
+  if (naRampa(u, v)) return C.h * s * Math.min(1, Math.max(0, (v - (C.f - C.rampa.comp)) / C.rampa.comp));
+  if (v < C.f || v > C.t + C.tras) return 0;
+  return C.h * s * (v > C.t ? 1 - liso((v - C.t) / C.tras) : 1);
+}
+const zSup = (u, v) => naRocha(u, v) ? Z_ROCHA : Math.max(zDunas(u, v), zMonte(u, v));   // (a altura analítica: a pintura usa esta, a grade guarda a mesma)
+
+// ---------------------------------------------------------------- o Oásis da Lua Crescente e o Leito do Rio Seco
+const LAGO = { a: { u: -2, v: 37, ru: 15, rv: 6.6 }, b: { u: -2, v: 41.2, ru: 11, rv: 5.6 }, riacho: { u: -2, v0: 34.5, v1: 41.2, larg: 1.4 }, poco: { u: -2, v: 42.4, ru: 2.6, rv: 1.5 } };
+const dentroEl = (e, u, v, m = 0) => ((u - e.u) / (e.ru + m)) ** 2 + ((v - e.v) / (e.rv + m)) ** 2 < 1;
+const naAgua = (u, v, m = 0) => (dentroEl(LAGO.a, u, v, m) && !dentroEl(LAGO.b, u, v, -m)) || (Math.abs(u - LAGO.riacho.u) < LAGO.riacho.larg / 2 + m && v > LAGO.riacho.v0 && v < LAGO.riacho.v1) || dentroEl(LAGO.poco, u, v, m);
+const CASCATA = { u: -2, larg: 2.6 };
+const LEITO = { u: 38, v: 4, r: 12 };                                // a arena do Hyeonmu: raio 12 m, chão 0
+const rLeito = a => LEITO.r * (1 + 0.06 * Math.sin(a * 3 + 1) + 0.04 * Math.sin(a * 5 + 2));
+
+// ---------------------------------------------------------------- a Rota da Seda (a trilha: terra batida, ~2,4 m de largura)
+const ROTAS = [
+  [[-84, -76], [-70, -79], [-52, -81], [-30, -80], [-12, -77], [-2, -66], [14, -62], [30, -69], [44, -70.5], [44, -66], [44, -60], [46, -50], [44, -36], [38, -22], [26, -10], [16, 4], [4, 18], [-4, 23],
+   [10, 25], [24, 27], [34, 31], [52, 34], [64, 40], [74, 52], [80, 62], [84, 72.6]],
+  [[-4, 23], [-18, 13], [-32, 4], [-52, 2], [-66, 2], [-78, 1]],
+];
+const ROTA_LARG = 1.2;                                               // (a meia largura)
+
+// ---------------------------------------------------------------- os lugares, o portal, as zonas
+const SEGURO = { u: -6, v: 25 };                                     // o Oásis da Lua Crescente (o ponto seguro: o renascer e o mapa salvo)
+const PORTAL_VOLTA = { u: -88, v: -76, saida: [0.97, -0.24] };       // (vista) o Portão da Caravana: o portal "Vila Hahoe"; quem chega sai para a trilha
+// o par na Vila Hahoe: em m locais dela (+x leste, +y norte). Achado no jogo (16/11): o lugar livre perto da borda, numa zona
+// de nível 38 a 45, a ≥ 15 m de todo spawn, ≥ 5 m de toda peça, fora da água e da estrada e a ≥ 40 m dos outros portais. Na Hahoe
+// nova (raio 163): no Desfiladeiro da Cachoeira (40–45), a noroeste, 11 m da borda, 37 m do spawn mais perto e 46 m do portal
+// da Montanha (a Capital Bestial não tem lugar: os grupos do clã cobrem a borda dela). Na de antes (?hahoe2=0, raio 62): a leste
+const PORTAL_IDA_HAHOE = { hahoe2: { lx: -99.7, ly: 110.7, saida: [0.67, -0.74] }, antes: { lx: 49.3, ly: 13.2, saida: [-0.97, -0.26] } };
+const GRUTA = { u: 84, larg: 6.4 };                                  // a Boca das Grutas Pintadas, escavada no paredão do fundo (a arte: a fachada)
+GRUTA.v = trasV(GRUTA.u); GRUTA.entrada = [GRUTA.u, GRUTA.v - 2.6];
+const LUGARES = [
+  { id: "portal", nome: "Portão da Caravana", u: -88, v: -76, r: 9 },
+  { id: "oasis", nome: "Oásis da Lua Crescente", u: -2, v: 33, r: 19 },
+  { id: "rochedo", nome: "Rochedo da Lua", u: -4, v: 52, r: 16 },
+  { id: "caravancara", nome: "Caravançará em Ruínas", u: 44, v: -58, r: 13 },
+  { id: "estupas", nome: "Estupas de Barro", u: -25, v: 49, r: 7 },
+  { id: "leito", nome: "Leito do Rio Seco", u: LEITO.u, v: LEITO.v, r: LEITO.r + 2 },
+  { id: "gruta", nome: "Boca das Grutas Pintadas", u: GRUTA.u, v: GRUTA.v - 6, r: 9 },
+];
+// as zonas (o caminho do portão à gruta; o nível sobe da borda para o meio e para o fundo, como os anéis do deserto do Metin2)
+const ZONAS = [
+  { id: "Z1", nome: "Margem de Papel", niveis: [40, 44], rot: [-62, -88], conjunto: "401" },
+  { id: "Z2", nome: "Mar de Dunas", niveis: [44, 48], rot: [-62, 54], conjunto: "402" },
+  { id: "Z3", nome: "Rota da Seda", niveis: [47, 52], rot: [6, -26], conjunto: "403" },
+  { id: "Z4", nome: "Oásis e Leito Seco", niveis: null, rot: [-14, 8], conjunto: null },
+  { id: "Z5", nome: "Campo das Serpentes", niveis: [50, 56], rot: [72, -22], conjunto: "404" },
+];
+function zonaDe(u, v) {
+  if (Math.hypot(u + 2, v - 32) < 20 || Math.hypot(u - LEITO.u, v - LEITO.v) < 14) return "Z4";
+  if (u > 40 && v > -20) return "Z5";
+  if (u < -20 && v > -40) return "Z2";
+  if (v < -30 && u < -20) return "Z1";
+  if (u >= -20 && v < 12) return "Z3";
+  if (u > 20 && v >= 12) return "Z5";
+  return "Z2";
+}
+
+// ---------------------------------------------------------------- ETAPA 2: os grupos, as Ghotins, o chefe, os NPCs (só dados)
+// os 76 pontos dos grupos (Logs/Mapas/deserto/deserto_dados.json, vista): todos de 100 s (o regen.txt do deserto do Metin2);
+// o grupo volta 10 a 110 s depois que o LÍDER cai, como na Vila 1 (passoGruposV1). Os conjuntos (nomes nossos; o Metin2 entre
+// parênteses no projeto, seção 3.4); só as aranhas "Más" são agressivas
+const TEMPO_GRUPO = 100;
+const CONJUNTOS = {
+  "401": { zona: "Z1", grupos: ["Escorpião das Dunas 39 + 3 Olhos do Vento 37", "2 Escorpiões das Dunas + 2 Olhos do Vento", "3 Aranhinhas da Areia 43", "Aranha da Areia 45 + 2 Aranhinhas", "3 Aranhinhas Más 43 (agressivas)", "3 Aranhas Más 45 (agressivas)"] },
+  "402": { zona: "Z2", grupos: ["2 Homens-Escorpião Jovens 44 + 2 Escorpiões das Dunas", "Arqueiro Escorpião 47 + Jovem + 2 Escorpiões", "Aranha Rubra 48 + 2 Aranhas da Areia 45", "3 Aranhas Rubras Más 48 (agressivas)", "3 Aranhas Garra Más 50 (agressivas)"] },
+  "403": { zona: "Z3", grupos: ["Arqueiro Escorpião 47 + 2 Jovens + Escorpião", "Arqueiro Serpente 51 + 3 Guerreiros-Serpente 48", "Aranha Garra 50 + 2 Rubras 48", "3 Salteadores Fortes 54"] },
+  "404": { zona: "Z5", grupos: ["2 Arqueiros Serpente 51 + 2 Guerreiros-Serpente", "Salteador 54 + Arqueiro Serpente + Guerreiro + Arqueiro Escorpião + Jovem", "Aranha Soldado 52 + 2 Garras 50", "Homem-Escorpião Brutal 60 + 2 Arqueiros Escorpião", "3 Salteadores Fortes 54"] },
+};
+// [u, v, zona] (vista). 17 pontos do esquema foram empurrados (0,5 a 5 m; 2 do fundo do Rochedo, que virou rocha colada no paredão,
+// mudaram de lugar) para caber no chão de verdade: roda no chão, ≥ 4 m de uma beira, ≥ 13 m entre si (scratchpad: mover_grupos.mjs)
+const GRUPOS = [[-38.8,-66.3,"Z1"],[7.9,-25.5,"Z3"],[78.9,-40,"Z3"],[30.6,-24.2,"Z3"],[39.7,-13.8,"Z3"],[-40.9,16.3,"Z2"],[-10.3,-38,"Z3"],[64.8,37.8,"Z5"],[-29.2,41.9,"Z2"],[50.5,-40.3,"Z3"],[-76.6,-2.1,"Z2"],[43.4,18.3,"Z5"],[17.6,-8.3,"Z3"],[-73,-72.8,"Z1"],[68.5,70.2,"Z5"],[-32.6,70.4,"Z2"],[-68.9,-49.9,"Z1"],[-58.7,-2.9,"Z2"],[19.6,-45.1,"Z3"],[87.2,53.9,"Z5"],[-23.7,-19.2,"Z2"],[-86.7,25.5,"Z2"],[25.1,-66.8,"Z3"],[-6,-3.1,"Z3"],[-34.6,-44.7,"Z1"],[72.3,-64.3,"Z3"],[79.9,37.3,"Z5"],[-73.3,51.7,"Z2"],[73.7,-1.7,"Z5"],[33.7,56.9,"Z5"],[55,-4.2,"Z5"],[-36.8,57.2,"Z2"],[-54.6,-39.3,"Z2"],[-45.6,73.7,"Z2"],[-13.2,-60.2,"Z3"],[-38.3,3.5,"Z2"],[42.3,68.9,"Z5"],[-66.9,-34.5,"Z2"],[-86.9,-44.5,"Z1"],[-89.1,67.7,"Z2"],[5.9,-49.7,"Z3"],[-23.5,1.3,"Z2"],[-45.5,-7.7,"Z2"],[-41.9,-27.2,"Z2"],[18.8,5.5,"Z3"],[-24.3,-33,"Z2"],[86.2,24.2,"Z5"],[51.4,59.3,"Z5"],[40.2,36.7,"Z5"],[58.7,22.2,"Z5"],[-7.4,-72.5,"Z3"],[83.1,-56.6,"Z3"],[-58.8,74.1,"Z2"],[-78.5,-24.6,"Z2"],[91.3,-73.2,"Z3"],[-45.5,47.1,"Z2"],[34.3,-37.8,"Z3"],[6.8,-0.2,"Z3"],[70.4,-51.1,"Z3"],[-60.9,-15.8,"Z2"],[71,51.8,"Z5"],[-51.7,-79,"Z1"],[26.5,33.1,"Z5"],[-76,69.5,"Z2"],[-83.8,-59,"Z1"],[65,9.1,"Z5"],[-74,37.1,"Z2"],[82,10.5,"Z5"],[72.1,-18.3,"Z5"],[20.1,49,"Z5"],[-53.3,-56.7,"Z1"],[52.5,46.2,"Z5"],[84.2,-12.8,"Z5"],[28.6,19.6,"Z5"],[-26.8,-74.1,"Z1"],[-26.2,-56.9,"Z1"]];
+// (o tipo de cada ponto na etapa 1 é PROVISÓRIO, só de criaturas que o jogo já tem; a etapa 2 troca pelas variantes de cada
+// conjunto: as aranhas da areia, os escorpiões, os homens-escorpião, as serpentes e os salteadores)
+const TIPO_PROVISORIO = { Z1: "aranhinha", Z2: "escorpiao", Z3: "bandido", Z5: "bandido_arqueiro" };
+const BANDOS = GRUPOS.map(([u, v, z], k) => [TIPO_PROVISORIO[z], u, v, [3, 4, 3, 4, 4][k % 5], 2.5, z]);
+// as Pedras Ghotin (6): 2 de cada, só em chão 0. Os TIPOS são novos (metin16 a 18: o TIPOS[m.tipo] do jogo é uma ficha por
+// tipo, e repetir o metin9 da Hahoe trocaria a horda dela); a ARTE é a que já existe (arteDe: a Alma 40 é a metin9_alma, a
+// Sombra 45 a metin4_sombra, a Firmeza 50 a metin10_firmeza). A vida e a defesa: as das mesmas pedras na Hahoe e na Daiyu
+const GHOTINS = [
+  { tipo: "metin16", arteDe: "metin9", mapa: "deserto", nome: "Ghotin da Alma", nivel: 40, vida: 18500, defesa: 48, cor: "#e8d27a", horda: "aranhinha", areas: [[-36, -70], [-88, 2]] },
+  { tipo: "metin17", arteDe: "metin4", mapa: "deserto", nome: "Ghotin da Sombra", nivel: 45, vida: 22000, defesa: 54, cor: "#8a4dff", horda: "escorpiao", areas: [[-86, 40], [0, -46]] },
+  { tipo: "metin18", arteDe: "metin10", mapa: "deserto", nome: "Ghotin da Firmeza", nivel: 50, vida: 25500, defesa: 60, cor: "#c9963e", horda: "bandido", areas: [[28, -76], [70, 40]] },
+];
+// o chefe: a "Tartaruga de Areia Gigante" do Metin2 com o nome do Hyeonmu (a tartaruga enlaçada pela serpente, o guardião do
+// norte de Goguryeo). Volta no tempo dos nossos chefes (CHEFES_MAPA, 8 a 20 min), não nas 2 h do Metin2
+const CHEFE = { tipo: "hyeonmu", nome: "Hyeonmu das Areias", nivel: 67, u: LEITO.u, v: LEITO.v, arena: LEITO.r, baseProvisoria: "escorpiao",
+  escolta: [["bandido", 2], ["bandido_arqueiro", 1], ["escorpiao", 1]], mecs: ["pisao", "horda"], horda: [["bandido", 3]], volta: [8, 20],
+  falas: ["A areia treme. Uma carapaça do tamanho de uma casa se ergue do leito seco.", "A serpente da cauda sibila: as areias chamam reforço!"] };
+const NPCS = [
+  { nome: "Caravaneira Ba-ram", u: 14, v: 18, modelo: null, tinta: null, papel: "loja e volta à Hahoe",
+    cores: { roupa: "#B8322A", calca: "#C9963E", pele: "#c99872", cabelo: "#1E1B18", lenco: "#EFE4CC" },
+    falas: ["Água fresca, poções e antídoto. As aranhas da areia mordem com veneno: não atravesse as dunas sem um frasco.",
+      "O oásis é o único lugar seguro daqui até as grutas. Se precisar voltar para a Vila Hahoe, eu levo, por uns trocados.",
+      "A trilha clara é a Rota da Seda. Ela passa pelas ruínas da caravana e termina na boca das grutas, no fundo do deserto."] },
+  { nome: "Monge Hyecho", u: 80, v: 66.5, modelo: null, tinta: null, papel: "o Passe da Gruta e o Selo do Tear",
+    cores: { roupa: "#8C8A80", calca: "#3B4250", pele: "#d8a982", cabelo: "#1E1B18", lenco: "#C9963E" },
+    falas: ["Andei a Rota da Seda inteira e escrevi o que vi. Estas grutas eram pintadas do chão ao teto.",
+      "As aranhas tecem seda por cima das pinturas para prender os rasgos. No fundo, beberam a tinta negra da pedra.",
+      "Para descer, você precisa do Passe da Gruta. Eu vendo um, e a Rainha da Seda costuma carregar outros."] },
+];
+
+// ---------------------------------------------------------------- a decoração: 70 peças, juntas em poucos lugares
+// { t: o tipo que JÁ existe (o substituto), novo: o tipo da arte nova (marcada para o Tripo; entra sozinha quando o DECO
+// tiver), tinta: a tinta de tempo de execução (D.tingir), u, v, esc, v2: a variação, esp, solido: o raio que não se anda (m)
+// para as peças sem colisão própria no jogo }. As 5 novas: palmeira, árvore seca, arenito, estupa e a fachada da gruta
+const TRIPO = { palmeira: { substituto: "bambu", tinta: "palmeira" }, arvore_seca: { substituto: "pinheiro_daiyu", tinta: "seca" },
+  arenito: { substituto: "basalto", tinta: "arenito" }, estupa: { substituto: "doltap", tinta: "barro" }, fachada_gruta: { substituto: "caverna_yeti", tinta: "arenito" } };
+const P = (t, u, v, extra = {}) => ({ t, u, v, ...extra });
+const PECAS = [
+  // o Portão da Caravana: 2 totens ladeando o portal e 6 palmeiras
+  P("runa", -89.4, -73.6, { tinta: "areia" }), P("runa", -86.6, -78.4, { tinta: "areia" }),
+  P("palmeira", -93, -73.5, { esc: 1.1 }), P("palmeira", -96.5, -78.5, { esc: 0.95 }), P("palmeira", -93, -81, { esc: 1.05 }), P("palmeira", -88.5, -81, { esc: 0.9 }),
+  P("palmeira", -90, -70.8, { esc: 1 }), P("palmeira", -84.5, -70.5, { esc: 0.85 }),
+  // o Oásis: 8 palmeiras em volta do lago, o poço, uma tenda
+  P("palmeira", -20, 39.5, { esc: 1.15 }), P("palmeira", -21.5, 35, { esc: 1 }), P("palmeira", -18.5, 30.5, { esc: 1.05 }), P("palmeira", -14, 28, { esc: 0.9 }),
+  P("palmeira", 9.5, 28.6, { esc: 0.95 }), P("palmeira", 14.5, 31.5, { esc: 1.1 }), P("palmeira", 17.5, 35.5, { esc: 1 }), P("palmeira", 16.5, 40, { esc: 1.2 }),
+  P("poco", 4, 22, { tinta: "areia" }), P("tenda_expedicao", 19, 23, { tinta: "lona", solido: 1.7 }),
+  // o Caravançará em Ruínas: no alto do platô, os pilares, o arco, os muros e os caídos e a estátua; ao lado, as tendas e a carroça
+  P("ruina_pilar", 36.5, -61.5, { tinta: "areia" }), P("ruina_pilar", 51.5, -61.5, { tinta: "areia" }), P("ruina_pilar", 37.5, -54.5, { tinta: "areia" }),
+  P("ruina_arco", 44, -55, { tinta: "areia" }), P("ruina_muro", 39.5, -57, { tinta: "areia" }), P("ruina_muro", 49, -54, { tinta: "areia" }),
+  P("ruina_caido", 50, -58.5, { tinta: "areia" }), P("ruina_caido", 38, -59, { tinta: "areia", esp: true }), P("estatua", 52, -55.5, { tinta: "areia" }),
+  P("tenda_expedicao", 60.5, -57, { tinta: "lona", solido: 1.7 }), P("tenda_expedicao", 61, -64, { tinta: "lona", solido: 1.7 }), P("carroca", 30, -55, { tinta: "areia" }),
+  // as Estupas de Barro, encostadas no Rochedo da Lua, e a estátua que as guarda
+  P("estupa", -26.5, 50.5, { esc: 1.2, solido: 0.9 }), P("estupa", -23, 49, { esc: 1, solido: 0.8 }), P("estupa", -29.5, 47, { esc: 0.9, solido: 0.75 }), P("estupa", -24.5, 45.5, { esc: 0.8, solido: 0.7 }),
+  P("hareubang", -19, 44.2, { tinta: "areia" }),
+  // a fachada da Boca das Grutas (no paredão do fundo)
+  P("fachada_gruta", GRUTA.u, GRUTA.v - 0.4, { esc: 1.25 }),
+  // os afloramentos de arenito (9): ilhas de rocha no Mar de Dunas e no Campo das Serpentes, com as pedras soltas no pé
+  P("arenito", -58, -46, { esc: 1.2 }), P("arenito", -56, -48.5, { esc: 0.85 }), P("arenito", -88, 13, { esc: 1.1 }),
+  P("arenito", -62, 44.5, { esc: 1.2 }), P("arenito", -59.5, 46.5, { esc: 0.8 }),
+  P("arenito", 60, -16, { esc: 1.15 }), P("arenito", 62.5, -17.5, { esc: 0.8 }), P("arenito", 84, 34, { esc: 1.1 }), P("arenito", 30, 64, { esc: 1 }),
+  P("pedra", -54.5, -45, { tinta: "ocre", esc: 1.2 }), P("pedra", -60, -49, { tinta: "ocre", esc: 0.8 }), P("pedra", -86, 10.5, { tinta: "ocre", esc: 1 }),
+  P("pedra", -64.5, 43, { tinta: "ocre", esc: 0.9 }), P("pedra", 58, -18.5, { tinta: "ocre", esc: 1.1 }), P("pedra", 86.5, 31.5, { tinta: "ocre", esc: 0.8 }),
+  P("pedra", 27.5, 62.5, { tinta: "ocre", esc: 0.9 }), P("pedra", -40, -78, { tinta: "ocre", esc: 0.8 }), P("pedra", 22, -63.5, { tinta: "ocre", esc: 1 }), P("pedra", 58, 30, { tinta: "ocre", esc: 0.9 }),
+  // as ossadas (6): no Mar de Dunas e na beira do Leito Seco
+  P("costela", -50, -24, { tinta: "osso", esc: 0.9 }), P("osso", -30, -24, { tinta: "osso" }), P("osso", -56, 30, { tinta: "osso", esc: 0.9 }), P("osso", -66, -60, { tinta: "osso" }),
+  P("costela", 47.5, -3.5, { tinta: "osso", esc: 0.8 }), P("osso", 28, 10, { tinta: "osso", esc: 0.85 }),
+  // as árvores secas retorcidas (10): espalhadas, uma a cada ~3.500 m² de areia
+  P("arvore_seca", -64, -70, { esc: 1 }), P("arvore_seca", -16, -44, { esc: 1.1 }), P("arvore_seca", 6, -84, { esc: 0.9 }), P("arvore_seca", 50, -22, { esc: 1 }),
+  P("arvore_seca", -84, -12, { esc: 1.05 }), P("arvore_seca", -56, 4, { esc: 0.95 }), P("arvore_seca", -34, 66, { esc: 1 }), P("arvore_seca", 56, 56, { esc: 1.1 }),
+  P("arvore_seca", 88, -32, { esc: 0.9 }), P("arvore_seca", 26, 41, { esc: 1 }),
+];
+
+// ---------------------------------------------------------------- a grade
+const F_ANDA = 1, F_PENHASCO = 2, F_OCULTO = 4, F_AGUA = 8, F_ROCHA = 16, F_DUNA = 32, F_RAMPA = 64, F_TERRA = 128;
+const D = { OX, OY, Y_DESERTO, RAIO: RAIO_M, NIV, Z_ROCHA, FAIXA, COR, TOM, CAIXA, DUNAS, CARAV, MESA, LAGO, LEITO, ROTAS, ZONAS, LUGARES, GRUPOS, CONJUNTOS, TEMPO_GRUPO, BANDOS, GHOTINS, CHEFE, NPCS, GRUTA, PECAS, TRIPO,
+  SEGURO, PORTAL_VOLTA, PORTAL_IDA_HAHOE, CEL, EU, EV, NI, NJ, PASSO_MAX,
+  F: { ANDA: F_ANDA, PENHASCO: F_PENHASCO, OCULTO: F_OCULTO, AGUA: F_AGUA, ROCHA: F_ROCHA, DUNA: F_DUNA, RAMPA: F_RAMPA, TERRA: F_TERRA },
+  Z: null, FL: null, NV: null, pronta: false, vistaDe, mundoDe, localDeVista, rCosta, bordaV, naRocha, naAgua, zDunas, zMonte, zSup, zDuna, zonaDe, dunaEm, frenteMesa, trasV, ladoU };
+function vdirMundo() { if (typeof daVista === "function") { const d = daVista(0, 1); return [d[0], d[1]]; } return [R2, R2]; }
+const altJogo = () => typeof ALTURA === "number" ? ALTURA : 0.8, achJogo = () => typeof ACHATA === "number" ? ACHATA : 0.6;
+const nivelDe = (z, f) => f & F_ROCHA ? 5 : z < 0.02 ? 0 : z < FAIXA[0] ? 1 : z < FAIXA[1] ? 1 : z < FAIXA[2] ? 2 : 3;
+const idx = (u, v) => { const i = Math.floor((u + EU) / CEL), j = Math.floor((v + EV) / CEL); return i < 0 || j < 0 || i >= NI || j >= NJ ? -1 : j * NI + i; };
+const celula = (x, y) => { const [u, v] = vistaDe(x, y); return idx(u, v); };
+const solidoEm = (u, v) => { for (const p of PECAS) if (p.solido && Math.hypot(u - p.u, (v - p.v) * 1.1) < p.solido) return true; return false; };
+function montarGrade(opc = {}) {
+  const NN = NI * NJ, Z = new Float32Array(NN), FL = new Uint8Array(NN), NV = new Uint8Array(NN), DC = new Float32Array(NN), ALT = opc.altura || 0.8, ACH = opc.achata || 0.6;
+  for (let j = 0; j < NJ; j++) for (let i = 0; i < NI; i++) {
+    const c = j * NI + i, u = -EU + (i + 0.5) * CEL, v = -EV + (j + 0.5) * CEL, dc = bordaV(u, v);
+    let z = 0, f = 0; DC[c] = dc;
+    if (dc > 0) {
+      f |= F_TERRA;
+      if (naRocha(u, v) || solidoEm(u, v)) { if (naRocha(u, v)) z = Z_ROCHA; f |= F_ROCHA; }
+      if (!naRocha(u, v)) {
+        const zd = zDunas(u, v), zm = zMonte(u, v); z = Math.max(zd, zm);
+        if (zd > 0.02) f |= F_DUNA;
+        if (naRampa(u, v)) f |= F_RAMPA;
+        if (naAgua(u, v)) f |= F_AGUA;
+      }
+    }
+    Z[c] = z; FL[c] = f; NV[c] = nivelDe(z, f);
+  }
+  // o penhasco (a diferença para um vizinho passa de PASSO_MAX) e o chão escondido por um relevo da frente
+  const vd = opc.vdir || vdirMundo(), vu = (vd[0] - vd[1]) * R2, vv = (vd[0] + vd[1]) * R2, DMAX = Z_ROCHA * ALT / ACH, rel = ACH / ALT;
+  for (let j = 1; j < NJ - 1; j++) for (let i = 1; i < NI - 1; i++) {
+    const c = j * NI + i, z = Z[c], degrau = FL[c] & F_RAMPA;
+    for (let dj = -1; dj <= 1 && !(FL[c] & F_PENHASCO); dj++) for (let di = -1; di <= 1; di++) { const q = c + dj * NI + di; if (Math.abs(Z[q] - z) > PASSO_MAX && !(degrau && !(FL[q] & F_RAMPA) && Z[q] > z)) { FL[c] |= F_PENHASCO; break; } }
+    if (!(FL[c] & F_TERRA)) continue;
+    const u = -EU + (i + 0.5) * CEL, v = -EV + (j + 0.5) * CEL;
+    for (let d = CEL; d <= DMAX; d += CEL) { const q = idx(u - vu * d, v - vv * d); if (q < 0) break; if (Z[q] - z > d * rel) { FL[c] |= F_OCULTO; break; } }
+  }
+  for (let c = 0; c < NN; c++) if ((FL[c] & F_TERRA) && !(FL[c] & (F_PENHASCO | F_OCULTO | F_AGUA | F_ROCHA)) && DC[c] >= 1.2) FL[c] |= F_ANDA;
+  // (a célula solta, sem 2 vizinhos de andar, não é chão: nada de bolsão de 0,25 m²)
+  for (let c = NI + 1; c < NN - NI - 1; c++) if (FL[c] & F_ANDA) { let n = 0; for (const q of [c - 1, c + 1, c - NI, c + NI]) if (FL[q] & F_ANDA) n++; if (n < 2) FL[c] &= ~F_ANDA; }
+  Object.assign(D, { Z, FL, NV, pronta: true, giroVd: vd });
+  return D;
+}
+D.montarGrade = montarGrade;
+const pronta = () => { if (!D.pronta) montarGrade(); return true; };
+D.celula = celula; D.idx = idx;
+D.z = function (x, y) {
+  pronta();
+  const [u, v] = vistaDe(x, y), fu = (u + EU) / CEL - 0.5, fv = (v + EV) / CEL - 0.5, i = Math.floor(fu), j = Math.floor(fv);
+  if (i < 0 || j < 0 || i >= NI - 1 || j >= NJ - 1) return 0;
+  const Z = D.Z, c = j * NI + i, a = Z[c], b = Z[c + 1], d = Z[c + NI], e = Z[c + NI + 1], s = fu - i, t = fv - j;
+  if (Math.max(a, b, d, e) - Math.min(a, b, d, e) > PASSO_MAX) return Z[(t < 0.5 ? j : j + 1) * NI + (s < 0.5 ? i : i + 1)];
+  return (a * (1 - s) + b * s) * (1 - t) + (d * (1 - s) + e * s) * t;
+};
+D.nivel = (x, y) => { pronta(); const c = celula(x, y); return c < 0 ? 0 : D.NV[c]; };
+D.bits = (x, y) => { pronta(); const c = celula(x, y); return c < 0 ? 0 : D.FL[c]; };
+D.andavel = (x, y) => (D.bits(x, y) & F_ANDA) !== 0;
+D.oculto = (x, y) => (D.bits(x, y) & F_OCULTO) !== 0;
+D.noDeserto = (x, y) => y > Y_DESERTO;
+// o clique: o ponto do chão "como se a altura fosse 0" volta ao chão de verdade (o ponto fixo, como o da rampa da Montanha)
+D.corrigirClique = function (x, y) {
+  const vd = D.giroVd || vdirMundo(), k = altJogo() / achJogo();
+  let qx = x, qy = y; for (let n = 0; n < 10; n++) { const h = D.z(qx, qy); qx = x - vd[0] * h * k; qy = y - vd[1] * h * k; }
+  return { x: qx, y: qy };
+};
+D.nomeRegiao = function (x, y) {
+  const [u, v] = vistaDe(x, y);
+  for (const l of LUGARES) if (Math.hypot(u - l.u, v - l.v) < l.r) return l.nome;
+  const d = dunaEm(u, v); if (d && d.H >= 2.4) return d.nome;
+  const z = ZONAS.find(q => q.id === zonaDe(u, v)); return z ? z.nome : "Deserto de Mingsha";
+};
+D.musica = "campo";
+// o som e a marca do passo: areia (as pegadas ficam), menos na rocha e na trilha
+D.solo = (x, y) => { const b = D.bits(x, y); if (b & F_ROCHA) return "pedra"; const [u, v] = vistaDe(x, y); return naTrilha(u, v) ? "terra" : "areia"; };
+// a cor do minimapa e do Mapa do Mundo (null: fora do mapa, o jogo decide; mp.corFora é o papel)
+D.corMini = function (x, y) {
+  const b = D.bits(x, y); if (!(b & F_TERRA)) return null;
+  const [u, v] = vistaDe(x, y);
+  if (bordaV(u, v) < 1.2) return [228, 214, 182];
+  if (b & F_ROCHA) return naRocha(u, v) ? [190, 138, 116] : [150, 120, 96];
+  if (b & F_AGUA) return [52, 98, 104];
+  if ((b & F_PENHASCO) && !(b & F_RAMPA)) return [150, 106, 50];
+  if (dentroEl(LAGO.a, u, v, 3.5) || dentroEl(LAGO.b, u, v)) return [120, 140, 92];
+  if (naTrilha(u, v)) return [232, 214, 170];
+  if (Math.hypot(u - LEITO.u, v - LEITO.v) < LEITO.r) return [176, 140, 96];
+  const z = D.z(x, y); return z < FAIXA[0] ? [214, 186, 128] : z < FAIXA[1] ? [208, 168, 98] : z < FAIXA[2] ? [204, 156, 76] : [196, 140, 64];
+};
+// a Ghotin: só em chão 0 (o disco de trevas é de um nível só), longe do oásis, do portal, do Leito, da trilha e da gruta
+D.proibidoGhotin = function (x, y) {
+  const [u, v] = vistaDe(x, y);
+  if (Math.hypot(u - SEGURO.u, v - SEGURO.v) < 20 || Math.hypot(u - PORTAL_VOLTA.u, v - PORTAL_VOLTA.v) < 12 || Math.hypot(u - LEITO.u, v - LEITO.v) < LEITO.r + 4 || Math.hypot(u - GRUTA.entrada[0], v - GRUTA.entrada[1]) < 10) return true;
+  if (naTrilha(u, v, 1.5)) return true;
+  if (D.z(x, y) > 0.02) return true;
+  for (let a = 0; a < 8; a++) { const px = x + Math.cos(a * 0.785) * 3.5, py = y + Math.sin(a * 0.785) * 3.5; if (!D.andavel(px, py) || D.z(px, py) > 0.02) return true; }
+  return false;
+};
+
+// ---------------------------------------------------------------- a trilha (curva lisa) e as distâncias
+const distSeg = (u, v, au, av, bu, bv) => { const du = bu - au, dv = bv - av, l = du * du + dv * dv, t = l ? Math.max(0, Math.min(1, ((u - au) * du + (v - av) * dv) / l)) : 0; return Math.hypot(u - au - du * t, v - av - dv * t); };
+const distPolyL = (pts, u, v) => { let m = Infinity; for (let k = 1; k < pts.length; k++) m = Math.min(m, distSeg(u, v, ...pts[k - 1], ...pts[k])); return m; };
+let _lisas = null;
+function rotasLisas() {
+  if (_lisas) return _lisas;
+  _lisas = ROTAS.map(R => { const out = []; for (let i = 0, n = R.length; i < n - 1; i++) { const p0 = R[Math.max(0, i - 1)], p1 = R[i], p2 = R[i + 1], p3 = R[Math.min(n - 1, i + 2)], m = Math.max(1, Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / 0.8));
+    for (let k = 0; k < m; k++) { const t = k / m, t2 = t * t, t3 = t2 * t, f = q => 0.5 * (2 * p1[q] + (p2[q] - p0[q]) * t + (2 * p0[q] - 5 * p1[q] + 4 * p2[q] - p3[q]) * t2 + (3 * p1[q] - p0[q] - 3 * p2[q] + p3[q]) * t3); out.push([f(0), f(1)]); } }
+    out.push(R[R.length - 1]); return out; });
+  return _lisas;
+}
+const naTrilha = (u, v, m = 0) => rotasLisas().some(R => distPolyL(R, u, v) < ROTA_LARG + m);
+D.rotasLisas = rotasLisas; D.naTrilha = (x, y) => naTrilha(...vistaDe(x, y)); D.distPolyL = distPolyL;
+
+// ---------------------------------------------------------------- os dados para o index.html (mundo)
+D.mapa = () => ({ id: "deserto", nome: "Deserto de Mingsha", sub: "as Areias que Cantam", niveis: [40, 56], ox: OX, oy: OY, raio: RAIO_M, montado: false,
+  rCosta, corMini: D.corMini, seguro: mundoDe(SEGURO.u, SEGURO.v), semMar: true, corFora: [242, 234, 216] });
+D.bandos = () => BANDOS.map(([t, u, v, n, e, z]) => [t, ...mundoDe(u, v), n, e, n, false, z]);
+// (etapa 2) cada ponto com o conjunto do Metin2 e o tempo: o jogo sorteia um grupo do conjunto quando o líder cai
+D.grupos = () => GRUPOS.map(([u, v, z]) => { const [x, y] = mundoDe(u, v), cj = ZONAS.find(q => q.id === z).conjunto; return { x, y, zona: z, conjunto: cj, tempo: TEMPO_GRUPO, grupos: CONJUNTOS[cj].grupos }; });
+D.ghotins = () => GHOTINS.map(g => { const { areas, ...r } = g; return { ...r, regioes: areas.map(([u, v]) => mundoDe(u, v)) }; });
+D.chefe = () => { const [x, y] = mundoDe(CHEFE.u, CHEFE.v); return { ...CHEFE, x, y }; };
+D.npcs = () => NPCS.map(n => { const [x, y] = mundoDe(n.u, n.v); const { u, v, ...r } = n; return { ...r, x, y, mapa: "deserto" }; });
+D.gruta = () => { const [x, y] = mundoDe(...GRUTA.entrada), [ax, ay] = mundoDe(GRUTA.u, GRUTA.v); return { x, y, arte: [ax, ay], larg: GRUTA.larg, destino: "grutas1" }; };
+// os dois portais: o de ida na Vila Hahoe (nível 40) e o de volta no Portão da Caravana
+D.portais = function (hahoeOx = 0, hahoeOy = 700, hahoe2 = true) {
+  const pi = hahoe2 ? PORTAL_IDA_HAHOE.hahoe2 : PORTAL_IDA_HAHOE.antes, [vx, vy] = mundoDe(PORTAL_VOLTA.u, PORTAL_VOLTA.v), s = localDeVista(...PORTAL_VOLTA.saida), n = Math.hypot(s[0], s[1]);
+  return [
+    { id: "hahoe_deserto", mapa: "hahoe", x: hahoeOx + pi.lx, y: hahoeOy + pi.ly, saida: pi.saida, destino: "deserto", para: "deserto_hahoe", nivelMin: 40, custo: 0, cor: "vale" },
+    { id: "deserto_hahoe", mapa: "deserto", x: vx, y: vy, saida: [s[0] / n, s[1] / n], destino: "hahoe", para: "hahoe_deserto", nivelMin: 0, custo: 0, cor: "vila" },
+  ];
+};
+D.portalVolta = () => { const p = D.portais()[1]; return { x: p.x, y: p.y, saida: p.saida }; };
+D.rotulos = () => [["Deserto de Mingsha", ...mundoDe(-10, 84), 1], ...ZONAS.map(z => [z.nome, ...mundoDe(...z.rot), 2]),
+  ...LUGARES.filter(l => l.id !== "oasis").map(l => [l.nome, ...mundoDe(l.u, l.v + 6), 3]), ["Oásis da Lua Crescente", ...mundoDe(-2, 22), 3]];
+D.pontos = () => { const p = (u, v) => mundoDe(u, v), g = DUNAS[2], c = cristaV(g, 0);
+  return { portal: p(PORTAL_VOLTA.u, PORTAL_VOLTA.v), chegada: p(PORTAL_VOLTA.u + PORTAL_VOLTA.saida[0] * 3, PORTAL_VOLTA.v + PORTAL_VOLTA.saida[1] * 3), oasis: p(SEGURO.u, SEGURO.v), leito: p(LEITO.u, LEITO.v), gruta: p(...GRUTA.entrada),
+    caravancara: p(CARAV.u, CARAV.v), rampa: p(CARAV.rampa.u, CARAV.f - 2), estupas: p(-25, 44), cristaGrande: p(g.u, c + 0.6), peFace: p(g.u, c - 0.2), encostaGrande: p(g.u, c + g.D * 0.5),
+    lago: p(LAGO.a.u, LAGO.a.v - LAGO.a.rv * 0.7), rochedo: p(MESA.u, MESA.v), paredao: p(0, 82), papel: p(0, -94) }; };
+
+// ---------------------------------------------------------------- a decoração
+// ctx: { por(o), completar(o), DECO, hash }. Só entram os tipos que o DECO tem; a peça nova (TRIPO) entra no lugar do
+// substituto quando a arte chegar. Todas com marco e fixa (o número já é o final: o corte de 50% e o DECO_RARA de 15% não
+// valem aqui) e com a altura do chão (zChao)
+D.pegadas = [];
+D.montar = function (ctx) {
+  pronta();
+  const tem = t => !ctx.DECO || !!ctx.DECO[t], feitos = []; D.pegadas = [];
+  for (const p of PECAS) {
+    const tr = TRIPO[p.t], tipo = tr ? (ctx.DECO && ctx.DECO[p.t] ? p.t : tr.substituto) : p.t, tinta = tr ? (tipo === p.t ? null : tr.tinta) : p.tinta || null;
+    if (!tem(tipo)) continue;
+    const [x, y] = mundoDe(p.u, p.v), extra = { esc: p.esc || 1, var: p.v2 || 0, esp: p.esp !== undefined ? p.esp : hsh(Math.round(p.u * 10), Math.round(p.v * 10), 3) < 0.5 };
+    const o = ctx.completar({ tipo, x, y, ...extra });
+    Object.assign(o, { mapa: "deserto", zChao: D.z(x, y), fixa: true, marco: true, deserto: p.t });
+    if (tinta) o.tintura = tinta;
+    if (p.t === "fachada_gruta") o.semSombra = true;
+    else { const r = (p.solido || (o.r > 0 ? o.r : 0.5)) * 1.25 + 0.2; D.pegadas.push({ u: p.u, v: p.v, r, z: zSup(p.u, p.v) }); o.semSombra = true; }
+    ctx.por(o); feitos.push(o);
+  }
+  return feitos;
+};
+// a tinta de tempo de execução das peças que já existem (como o ossoVale do Vale): uma vez por imagem e por tinta, numa cópia.
+// O verde (musgo, folha, grama) vira o da tinta; a neve vira areia; o azul da sombra da neve, uma sombra quente; o resto puxa
+// para o alvo com a força da tinta
+const TINTAS = {
+  ocre: { alvo: [201, 150, 62], forca: 0.32, verde: [176, 140, 84], neve: [226, 204, 160] },
+  arenito: { alvo: hex2rgb(ARENITO), forca: 0.55, verde: [190, 146, 112], neve: [232, 200, 170] },
+  barro: { alvo: [172, 118, 78], forca: 0.58, verde: [160, 118, 80], neve: [222, 190, 150] },
+  seca: { alvo: [146, 108, 70], forca: 0.18, verde: [138, 104, 62], neve: [222, 200, 160], verdeForte: 1 },
+  palmeira: { alvo: [120, 140, 70], forca: 0.08, verde: null, neve: [226, 210, 170] },
+  osso: { alvo: [214, 194, 158], forca: 0.2, verde: [196, 168, 120], neve: [224, 202, 160] },
+  lona: { alvo: [222, 204, 170], forca: 0.12, verde: [190, 160, 110], neve: [228, 208, 168] },
+  areia: { alvo: [201, 150, 62], forca: 0.18, verde: [184, 150, 96], neve: [226, 206, 166] },
+};
+const TINGIDAS = new Map();
+D.tingir = function (im, arq, tinta) {
+  const T = TINTAS[tinta]; if (!T || !im || typeof document === "undefined") return im;
+  const k = arq + "|" + tinta; let c = TINGIDAS.get(k); if (c) return c;
+  c = document.createElement("canvas"); c.width = im.naturalWidth || im.width; c.height = im.naturalHeight || im.height;
+  TINGIDAS.set(k, c);
+  const g = c.getContext("2d"); g.drawImage(im, 0, 0);
+  try {
+    const d = g.getImageData(0, 0, c.width, c.height), q = d.data;
+    for (let i = 0; i < q.length; i += 4) {
+      if (q[i + 3] < 12) continue;
+      const r = q[i] / 255, gg = q[i + 1] / 255, b = q[i + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), dl = mx - mn, sa = mx ? dl / mx : 0;
+      let hu = 0; if (dl > 0) hu = (mx === r ? ((gg - b) / dl + 6) % 6 : mx === gg ? (b - r) / dl + 2 : (r - gg) / dl + 4) * 60;
+      let alvo = T.alvo, f = T.forca;
+      if (T.verde && hu > (T.verdeForte ? 40 : 55) && hu < 185 && sa > 0.1) { alvo = T.verde; f = T.verdeForte ? 1 : 0.85; }
+      else if (sa < 0.12 && mx > 0.74) { alvo = T.neve; f = 0.8; }
+      else if (hu > 185 && hu < 300 && sa > 0.1) { alvo = [Math.round(T.alvo[0] * 0.62), Math.round(T.alvo[1] * 0.55), Math.round(T.alvo[2] * 0.6)]; f = 0.7; }
+      const lum = 0.35 + 0.9 * (0.3 * r + 0.59 * gg + 0.11 * b);
+      for (let k2 = 0; k2 < 3; k2++) q[i + k2] = q[i + k2] + (Math.min(255, alvo[k2] * lum) - q[i + k2]) * f;
+    }
+    g.putImageData(d, 0, 0);
+  } catch (e) {}
+  return c;
+};
+
+// ---------------------------------------------------------------- o chão pintado
+const texCodigo = {};
+function rnd(s) { return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+// 0 a 3: a areia de cada faixa; 4: a terra batida da trilha; 5: o alto do arenito; 6: o barro rachado do Leito Seco.
+// 256 px, emendável: aguadas chapadas de borda dura e as marcas de vento (riscos paralelos, curvos)
+function textura(n) {
+  if (texCodigo[n]) return texCodigo[n];
+  if (typeof document === "undefined") return null;
+  const S = 256, c = document.createElement("canvas"); c.width = c.height = S;
+  const g = c.getContext("2d"), R = rnd(n * 7919 + 977), base = n < 4 ? TOM.areia[n] : n === 4 ? TOM.trilha : n === 5 ? TOM.arenito : TOM.leito;
+  g.fillStyle = base; g.fillRect(0, 0, S, S);
+  const emVolta = (f, x, y) => { for (const dx of [-S, 0, S]) for (const dy of [-S, 0, S]) f(x + dx, y + dy); };
+  for (let k = 0; k < 9; k++) {                                        // as aguadas
+    const x = R() * S, y = R() * S, r = 20 + R() * 38, cor = mixHex(base, R() < 0.5 ? COR.papel : n === 5 ? COR.cinabre : COR.ocre, 0.07 + R() * 0.09);
+    emVolta((X, Y) => { g.fillStyle = cor; g.beginPath(); for (let q = 0; q < 14; q++) { const a = q / 14 * 6.283, rr = r * (1 + 0.2 * Math.sin(a * 2 + k) + 0.12 * Math.sin(a * 3 + k * 2)); q ? g.lineTo(X + Math.cos(a) * rr, Y + Math.sin(a) * rr * 0.55) : g.moveTo(X + Math.cos(a) * rr, Y + Math.sin(a) * rr * 0.55); } g.fill(); }, x, y);
+  }
+  if (n < 5) {                                                         // as marcas de vento: grupos de 3 a 5 riscos paralelos
+    const cor = mixHex(base, COR.nanquim, n === 4 ? 0.12 : 0.16);
+    for (let k = 0; k < (n === 4 ? 4 : 9); k++) {
+      const x = R() * S, y = R() * S, L = 18 + R() * 30, q = 3 + Math.floor(R() * 3), dy = 4 + R() * 3, lw = 0.9 + R() * 0.7;
+      emVolta((X, Y) => { g.strokeStyle = cor; g.lineCap = "round"; g.lineWidth = lw; for (let s = 0; s < q; s++) { const ox = (s - q / 2) * 3, oy = s * dy, l = L * (1 - Math.abs(s - q / 2) / q * 0.8); g.beginPath(); g.moveTo(X + ox - l, Y + oy); g.quadraticCurveTo(X + ox, Y + oy - 3.5, X + ox + l, Y + oy + 0.5); g.stroke(); } }, x, y);
+    }
+  }
+  if (n === 4) for (let k = 0; k < 22; k++) { const x = R() * S, y = R() * S, r = 1.5 + R() * 2.5; emVolta((X, Y) => { g.fillStyle = mixHex(COR.pedra, COR.ocre, 0.4); g.beginPath(); g.ellipse(X, Y, r, r * 0.65, 0, 0, 6.283); g.fill(); }, x, y); }
+  if (n === 5) {                                                       // o alto do arenito: lajes chapadas com as rachaduras de nanquim
+    for (let k = 0; k < 7; k++) { const x = R() * S, y = R() * S, a = R() * 6.283, L = 16 + R() * 26; emVolta((X, Y) => { g.strokeStyle = "rgba(30,27,24,0.5)"; g.lineWidth = 1.3; g.beginPath(); g.moveTo(X, Y); g.lineTo(X + Math.cos(a) * L * 0.5, Y + Math.sin(a) * L * 0.25 + 3); g.lineTo(X + Math.cos(a) * L, Y + Math.sin(a) * L * 0.5); g.stroke(); }, x, y); }
+    for (let k = 0; k < 12; k++) { const x = R() * S, y = R() * S, w = 14 + R() * 22; emVolta((X, Y) => { g.strokeStyle = mixHex(base, COR.cinabre, 0.25); g.lineWidth = 1.6; g.beginPath(); g.moveTo(X - w, Y); g.lineTo(X + w, Y + 1); g.stroke(); }, x, y); }
+  }
+  if (n === 6) {                                                       // o barro rachado: polígonos de 5 a 7 lados, com o contorno de nanquim
+    for (let k = 0; k < 26; k++) { const x = R() * S, y = R() * S, r = 9 + R() * 9, l = 5 + Math.floor(R() * 3), pts = Array.from({ length: l }, (_, q) => { const a = q / l * 6.283 + R() * 0.5, rr = r * (0.75 + 0.3 * R()); return [Math.cos(a) * rr, Math.sin(a) * rr * 0.6]; }), cor = mixHex(base, R() < 0.5 ? COR.papel : COR.nanquim, 0.08 + 0.08 * R());
+      emVolta((X, Y) => { g.beginPath(); pts.forEach(([a, b], q) => q ? g.lineTo(X + a, Y + b) : g.moveTo(X + a, Y + b)); g.closePath(); g.fillStyle = cor; g.fill(); g.strokeStyle = "rgba(30,27,24,0.55)"; g.lineWidth = 1.2; g.stroke(); }, x, y); }
+  }
+  return (texCodigo[n] = c);
+}
+function padrao(g, n, x0, y1, esc, dz, ACH, ALT, metros = 7) {
+  const im = textura(n); if (!im) return n < 4 ? TOM.areia[n] : TOM.trilha;
+  const p = g.createPattern(im, "repeat"), k = metros * esc / im.width;
+  p.setTransform(new DOMMatrix([k, 0, 0, k * ACH, -x0 * esc, y1 * esc * ACH - dz * ALT * esc]));
+  return p;
+}
+function curvaEm(pp, pts, Pz) { const n = pts.length, q = pts.map(p => Pz(p[0], p[1], p[2] || 0)); const m0 = [(q[n - 1][0] + q[0][0]) / 2, (q[n - 1][1] + q[0][1]) / 2]; pp.moveTo(...m0); for (let i = 0; i < n; i++) { const a = q[i], b = q[(i + 1) % n]; pp.quadraticCurveTo(a[0], a[1], (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); } pp.closePath(); }
+function blobPts(cu, cv, ru, rv, sem, n = 16, z = 0) { const out = []; for (let q = 0; q < n; q++) { const an = q / n * 6.283, k = 0.86 + 0.16 * Math.sin(an * 3 + sem) + 0.09 * Math.sin(an * 5 + 2 * sem); out.push([cu + Math.cos(an) * ru * k, cv + Math.sin(an) * rv * k, z]); } return out; }
+const elPts = (e, m = 0, n = 64) => Array.from({ length: n }, (_, k) => { const a = k / n * 6.2832; return [e.u + Math.cos(a) * (e.ru + m), e.v + Math.sin(a) * (e.rv + m)]; });
+
+// as faixas de cada duna: o polígono de "altura ≥ L" (a frente é a crista, o fundo é a curva de nível), com a altura em cada ponto
+function faixasDuna(d) {
+  if (d._fx) return d._fx;
+  const out = [], n = 48;
+  for (const L of [0.03, ...FAIXA]) {
+    if (L >= d.H * 0.999) break;
+    const frente = [], fundo = [];
+    for (let k = 0; k <= n; k++) {
+      const x = -1 + 2 * k / n, hw = d.H * largW(x); if (hw <= L) continue;
+      const c = cristaV(d, x), t = lisoInv(1 - L / hw);
+      frente.push([d.u + x * d.L, c, hw]); fundo.push([d.u + x * d.L, c + t * fundoX(d, x), L]);
+    }
+    if (frente.length > 1) out.push({ L, pts: frente.concat(fundo.reverse()), fundo: fundo.slice() });
+  }
+  return (d._fx = out);
+}
+function pintarDuna(g, Pz, esc, d) {
+  const lw = m => Math.max(1, m * esc), n = 60, crista = [];
+  for (let k = 0; k <= n; k++) { const x = -1 + 2 * k / n, h = d.H * largW(x); crista.push([d.u + x * d.L, cristaV(d, x), h]); }
+  // a sombra chapada que a face projeta na areia da frente (a luz vem do fundo, à esquerda)
+  { const pp = new Path2D(); const lim = crista.filter(p => p[2] > 0.05); if (lim.length > 1) { const a = lim.map(p => Pz(p[0], p[1], 0)), b = lim.slice().reverse().map(p => Pz(p[0] + 0.3 * p[2], p[1] - 0.9 * p[2], 0)); pp.moveTo(...a[0]); for (const q of a.concat(b)) pp.lineTo(...q); pp.closePath(); g.fillStyle = "rgba(45,74,107,0.2)"; g.fill(pp); } }
+  // a face de queda: do pé (z 0) à crista, a areia na sombra, com as escorridas
+  { const lim = crista.filter(p => p[2] > 0.03); if (lim.length > 1) {
+      const pp = new Path2D(); lim.forEach((p, k) => { const q = Pz(p[0], p[1], 0); k ? pp.lineTo(...q) : pp.moveTo(...q); }); for (let k = lim.length - 1; k >= 0; k--) pp.lineTo(...Pz(lim[k][0], lim[k][1], lim[k][2])); pp.closePath();
+      g.fillStyle = TOM.face; g.fill(pp);
+      const esc2 = new Path2D(); for (let k = 1; k < lim.length - 1; k++) { if (hsh(k, Math.round(d.u), 211) < 0.45) continue; const p = lim[k], f = 0.35 + 0.5 * hsh(k, 2, 212); esc2.moveTo(...Pz(p[0], p[1], p[2] * 0.96)); esc2.lineTo(...Pz(p[0] + 0.25, p[1], p[2] * (1 - f))); }
+      g.strokeStyle = TOM.faceEscura; g.lineWidth = lw(0.06); g.lineCap = "round"; g.stroke(esc2);
+      const pe = new Path2D(); lim.forEach((p, k) => { const q = Pz(p[0], p[1], 0); k ? pe.lineTo(...q) : pe.moveTo(...q); }); g.strokeStyle = "rgba(30,27,24,0.5)"; g.lineWidth = lw(0.03); g.stroke(pe);
+  } }
+  // a encosta mansa em faixas de tom, com as curvas de nível de nanquim fino e as marcas de vento
+  const fx = faixasDuna(d);
+  fx.forEach((f, k) => { const pp = new Path2D(); f.pts.forEach((p, q) => { const s = Pz(p[0], p[1], p[2]); q ? pp.lineTo(...s) : pp.moveTo(...s); }); pp.closePath(); g.fillStyle = k === 0 ? TOM.encosta : TOM.areia[Math.min(3, k)]; g.fill(pp); });
+  const nivel = new Path2D(); for (const f of fx) { if (f.L < 0.1) continue; f.fundo.forEach((p, q) => { const s = Pz(p[0], p[1], p[2]); q ? nivel.lineTo(...s) : nivel.moveTo(...s); }); }
+  g.strokeStyle = "rgba(30,27,24,0.34)"; g.lineWidth = lw(0.028); g.stroke(nivel);
+  const vento = new Path2D();
+  for (const t of [0.18, 0.32, 0.47, 0.62, 0.78]) { let ab = false; for (let k = 0; k <= 40; k++) { const x = -0.92 + 1.84 * k / 40, h = d.H * largW(x), c = cristaV(d, x), z = h * (1 - liso(t)); if (z < 0.06 || hsh(k >> 2, Math.round(t * 100), Math.round(d.u)) < 0.38) { ab = false; continue; } const s = Pz(d.u + x * d.L, c + t * fundoX(d, x) + 0.4 * Math.sin(k * 0.9 + t * 9), z); ab ? vento.lineTo(...s) : vento.moveTo(...s); ab = true; } }
+  g.strokeStyle = mixHex(TOM.areia[1], COR.nanquim, 0.22); g.lineWidth = lw(0.022); g.stroke(vento);
+  // a crista: o traço grosso de nanquim, mais fino perto das pontas
+  g.strokeStyle = COR.nanquim; g.lineCap = "round";
+  for (let k = 1; k < crista.length; k++) { const a = crista[k - 1], b = crista[k], w = Math.min(a[2], b[2]) / d.H; if (w < 0.08) continue; g.lineWidth = lw(0.025 + 0.07 * w); g.beginPath(); g.moveTo(...Pz(a[0], a[1], a[2])); g.lineTo(...Pz(b[0], b[1], b[2])); g.stroke(); }
+}
+// o Caravançará: o alto do platô, o muro de arrimo da frente (pedras em fiadas) e a rampa
+function pintarMonte(g, Pz, esc) {
+  const C = CARAV, lw = m => Math.max(1, m * esc), z = (u, v) => zMonte(u, v), u0 = C.u - C.a - C.lado, u1 = C.u + C.a + C.lado, n = 44;
+  const contorno = L => { const fr = [], fu = []; for (let k = 0; k <= n; k++) { const u = u0 + (u1 - u0) * k / n, s = C.a - Math.abs(u - C.u) >= 0 ? 1 : liso((C.a - Math.abs(u - C.u) + C.lado) / C.lado); if (C.h * s <= L) continue; const t = lisoInv(1 - L / (C.h * s)); fr.push([u, C.f, C.h * s]); fu.push([u, C.t + t * C.tras, L]); } return fr.concat(fu.reverse()); };
+  for (const [L, cor] of [[0.03, TOM.encosta], [0.4, TOM.areia[1]]]) { const pts = contorno(L); if (pts.length < 3) continue; const pp = new Path2D(); pts.forEach((p, k) => { const s = Pz(p[0], p[1], p[2]); k ? pp.lineTo(...s) : pp.moveTo(...s); }); pp.closePath(); g.fillStyle = cor; g.fill(pp); }
+  // o muro de arrimo: as fiadas de pedra, do chão ao alto, fora da rampa
+  const r = C.rampa, muro = new Path2D(), junta = new Path2D();
+  for (let k = 0; k < n; k++) {
+    const ua = u0 + (u1 - u0) * k / n, ub = u0 + (u1 - u0) * (k + 1) / n, um = (ua + ub) / 2; if (Math.abs(um - r.u) < r.larg / 2) continue;
+    const ha = z(ua, C.f + 0.01), hb = z(ub, C.f + 0.01); if (ha < 0.05 && hb < 0.05) continue;
+    muro.moveTo(...Pz(ua, C.f, 0)); muro.lineTo(...Pz(ub, C.f, 0)); muro.lineTo(...Pz(ub, C.f, hb)); muro.lineTo(...Pz(ua, C.f, ha)); muro.closePath();
+    for (const zz of [0.27, 0.54]) if (zz < Math.min(ha, hb)) { junta.moveTo(...Pz(ua, C.f, zz)); junta.lineTo(...Pz(ub, C.f, zz)); }
+    if (k % 2 === 0) { const zz = (k % 4 === 0 ? 0.13 : 0.4); if (zz < Math.min(ha, hb)) { junta.moveTo(...Pz(ua, C.f, zz)); junta.lineTo(...Pz(ua, C.f, zz + 0.27)); } }
+  }
+  g.fillStyle = TOM.muro; g.fill(muro); g.strokeStyle = "rgba(30,27,24,0.55)"; g.lineWidth = lw(0.025); g.stroke(junta); g.lineWidth = lw(0.045); g.strokeStyle = COR.nanquim; g.stroke(muro);
+  // a rampa: 6 degraus largos de terra batida
+  const pis = new Path2D(), esp = new Path2D(), m = 6;
+  for (let k = 0; k < m; k++) { const va = C.f - r.comp + r.comp * k / m, vb = C.f - r.comp + r.comp * (k + 1) / m, za = C.h * k / m, zb = C.h * (k + 1) / m;
+    esp.moveTo(...Pz(r.u - r.larg / 2, va, za)); esp.lineTo(...Pz(r.u + r.larg / 2, va, za)); esp.lineTo(...Pz(r.u + r.larg / 2, va, zb)); esp.lineTo(...Pz(r.u - r.larg / 2, va, zb)); esp.closePath();
+    pis.moveTo(...Pz(r.u - r.larg / 2, va, zb)); pis.lineTo(...Pz(r.u + r.larg / 2, va, zb)); pis.lineTo(...Pz(r.u + r.larg / 2, vb, zb)); pis.lineTo(...Pz(r.u - r.larg / 2, vb, zb)); pis.closePath(); }
+  g.fillStyle = TOM.muro; g.fill(esp); g.fillStyle = TOM.trilha; g.fill(pis); g.strokeStyle = "rgba(30,27,24,0.6)"; g.lineWidth = lw(0.03); g.stroke(esp);
+  // a beira do alto: o traço de nanquim
+  const beira = new Path2D(); let ab = false; for (let k = 0; k <= n; k++) { const u = u0 + (u1 - u0) * k / n, h = z(u, C.f + 0.01); if (h < 0.06 || Math.abs(u - r.u) < r.larg / 2) { ab = false; continue; } const s = Pz(u, C.f, h); ab ? beira.lineTo(...s) : beira.moveTo(...s); ab = true; }
+  g.strokeStyle = COR.nanquim; g.lineWidth = lw(0.06); g.stroke(beira);
+}
+// o paredão de arenito e o Rochedo da Lua: a linha de dentro (do portão da esquerda, pelo fundo, até a direita) e as faces que
+// olham para a câmera, em camadas (o arenito em estratos: faixas de 2 tons de rosado), com a cascata no Rochedo
+let _rocha = null;
+function rocha() {
+  if (_rocha) return _rocha;
+  const E = [], vFim = s => { let v = -60; while (v < 100 && !(v > trasV(s * ladoU(v)))) v += 0.25; return v; };
+  const vL = vFim(-1), vR = vFim(1);
+  for (let v = frenteLado(-ladoU(-70)); v < vL; v += 1) E.push([-ladoU(v), v]);
+  for (let u = -ladoU(vL); u <= ladoU(vR); u += 0.8) E.push([u, Math.min(trasV(u), frenteMesa(u))]);
+  for (let v = vR; v > frenteLado(ladoU(-70)); v -= 1) E.push([ladoU(v), v]);
+  const fL = frenteLado(ladoU(-70)), uOutL = -(100 + 4 * Math.sin(fL * 0.09 + 1)) - 2, uOutR = 100 + 4 * Math.sin(fL * 0.09 + 1) + 2;
+  const faces = [[[uOutL, frenteLado(98)], [-ladoU(fL), fL]]];
+  for (let k = 1; k < E.length; k++) { const a = E[k - 1], b = E[k], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if ((b[0] - a[0]) / L > 0.06) faces.push([a, b]); }
+  faces.push([[ladoU(fL), fL], [uOutR, frenteLado(98)]]);
+  // o alto: a linha de dentro e, por fora, o contorno do mapa (o arco de trás, da direita para a esquerda)
+  // (o arco de fora, no sentido anti-horário: da ponta da direita, pelo fundo, até a ponta da esquerda; 2% para fora da borda)
+  const aR = Math.atan2(frenteLado(98), uOutR), aL = Math.atan2(frenteLado(98), uOutL) + 2 * Math.PI, arco = [];
+  for (let k = 1; k < 120; k++) { const a = aR + (aL - aR) * k / 120, r = rVista(a) * 1.02; arco.push([Math.cos(a) * r, Math.sin(a) * r]); }
+  const topo = [[uOutL, frenteLado(98)], ...E, [uOutR, frenteLado(98)], ...arco];
+  const tons = faces.map(([a, b]) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), nu = (b[1] - a[1]) / L; return nu > 0.35 ? 2 : nu < -0.35 ? 0 : 1; });
+  return (_rocha = { E, faces, tons, topo });
+}
+const ESTRATOS = [0, 0.55, 1.15, 1.7, 2.35, 2.9, 3.45, 4.0];
+function pintarRocha(g, Pz, esc, pertoU, toca) {
+  const R = rocha(), lw = m => Math.max(1, m * esc), Z = Z_ROCHA;
+  const claros = [TOM.arenitoClaro, TOM.arenito, TOM.arenitoEscuro], escuros = [TOM.arenito, TOM.arenitoEscuro, TOM.arenitoSombra];
+  const fa = [new Path2D(), new Path2D(), new Path2D()], fb = [new Path2D(), new Path2D(), new Path2D()], racha = new Path2D(), pe = new Path2D(), som = new Path2D();
+  const zq = (u, k) => k === 0 || k === ESTRATOS.length - 1 ? ESTRATOS[k] : ESTRATOS[k] + 0.14 * Math.sin(u * 0.43 + k * 1.7) + 0.08 * Math.sin(u * 1.3 + k);
+  R.faces.forEach(([a, b], f) => {
+    if (!pertoU((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 0, 3 + Z * 1.4)) return;
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.round(len / 1.2));
+    for (let s = 0; s < n; s++) {
+      const pa = [a[0] + (b[0] - a[0]) * s / n, a[1] + (b[1] - a[1]) * s / n], pb = [a[0] + (b[0] - a[0]) * (s + 1) / n, a[1] + (b[1] - a[1]) * (s + 1) / n];
+      for (let k = 0; k < ESTRATOS.length - 1; k++) { const q = (k % 2 ? fb : fa)[R.tons[f]]; q.moveTo(...Pz(pa[0], pa[1], zq(pa[0], k))); q.lineTo(...Pz(pb[0], pb[1], zq(pb[0], k))); q.lineTo(...Pz(pb[0], pb[1], zq(pb[0], k + 1))); q.lineTo(...Pz(pa[0], pa[1], zq(pa[0], k + 1))); q.closePath(); }
+      if (hsh(Math.round(pa[0] * 3), Math.round(pa[1] * 3), 231) < 0.18) { const z0 = 0.4 + 2.6 * hsh(Math.round(pa[0] * 5), 1, 232), z1 = z0 + 0.5 + 0.9 * hsh(Math.round(pa[0] * 5), 2, 233); racha.moveTo(...Pz(pa[0], pa[1], Math.min(Z, z1))); racha.lineTo(...Pz(pa[0] + 0.15, pa[1], z0)); }
+    }
+    pe.moveTo(...Pz(a[0], a[1], 0)); pe.lineTo(...Pz(b[0], b[1], 0));
+    som.moveTo(...Pz(a[0], a[1], 0)); som.lineTo(...Pz(b[0], b[1], 0)); som.lineTo(...Pz(b[0] + 0.5, b[1] - 1.6, 0)); som.lineTo(...Pz(a[0] + 0.5, a[1] - 1.6, 0)); som.closePath();
+  });
+  g.fillStyle = "rgba(45,74,107,0.22)"; g.fill(som);
+  for (let t = 0; t < 3; t++) { g.fillStyle = claros[t]; g.fill(fa[t]); g.fillStyle = escuros[t]; g.fill(fb[t]); }
+  g.strokeStyle = COR.nanquim; g.lineCap = "round"; g.lineWidth = lw(0.04); g.stroke(racha); g.lineWidth = lw(0.06); g.stroke(pe);
+  // a cascata do Rochedo da Lua, na face da mesa, até o poço
+  if (pertoU(CASCATA.u, frenteMesa(CASCATA.u), 0, 6 + Z * 1.4)) {
+    const c = CASCATA, vf = u => frenteMesa(u) - 0.05, agua = new Path2D(), fio = new Path2D();
+    agua.moveTo(...Pz(c.u - c.larg / 2, vf(c.u - c.larg / 2), Z)); agua.lineTo(...Pz(c.u + c.larg / 2, vf(c.u + c.larg / 2), Z)); agua.lineTo(...Pz(c.u + c.larg / 2 + 0.3, vf(c.u + c.larg / 2), 0)); agua.lineTo(...Pz(c.u - c.larg / 2 - 0.3, vf(c.u - c.larg / 2), 0)); agua.closePath();
+    g.fillStyle = TOM.aguaClara; g.fill(agua); g.strokeStyle = COR.nanquim; g.lineWidth = lw(0.035); g.stroke(agua);
+    for (let k = 0; k < 6; k++) { const u = c.u - c.larg / 2 + 0.3 + k * (c.larg - 0.6) / 5; fio.moveTo(...Pz(u, vf(u), Z - 0.1 - 0.3 * hsh(k, 1, 241))); fio.lineTo(...Pz(u + 0.05, vf(u), 0.3 + 0.8 * hsh(k, 2, 242))); }
+    g.strokeStyle = "rgba(239,228,204,0.85)"; g.lineWidth = lw(0.05); g.stroke(fio);
+  }
+  // o alto do arenito
+  const topo = new Path2D(); R.topo.forEach(([u, v], k) => { const s = Pz(u, v, Z); k ? topo.lineTo(...s) : topo.moveTo(...s); }); topo.closePath();
+  g.fillStyle = toca.padraoRocha; g.fill(topo);
+  const beira = new Path2D(); R.E.forEach(([u, v], k) => { const s = Pz(u, v, Z); k ? beira.lineTo(...s) : beira.moveTo(...s); });
+  g.strokeStyle = COR.nanquim; g.lineWidth = lw(0.07); g.stroke(beira);
+  for (const [a, b] of [R.faces[0], R.faces[R.faces.length - 1]]) { g.beginPath(); g.moveTo(...Pz(a[0], a[1], Z)); g.lineTo(...Pz(b[0], b[1], Z)); g.stroke(); }
+}
+function pintarTrilha(g, Pz, esc, pertoU) {
+  const lw = m => Math.max(1, m * esc);
+  g.save(); g.lineCap = "round"; g.lineJoin = "round";
+  for (const [ir, r] of rotasLisas().entries()) {
+    // os trechos perto do pedaço (com 6 pontos de folga para a curva da borda)
+    let ini = -1;
+    const trechos = []; for (let k = 0; k < r.length; k++) { const perto = pertoU(r[k][0], r[k][1], zSup(r[k][0], r[k][1]), 5); if (perto && ini < 0) ini = Math.max(0, k - 6); if (!perto && ini >= 0) { trechos.push([ini, Math.min(r.length - 1, k + 6)]); ini = -1; } }
+    if (ini >= 0) trechos.push([ini, r.length - 1]);
+    for (const [k0, k1] of trechos) {
+      const esq = [], dir = [], tan = [], zs = [];
+      for (let k = k0; k <= k1; k++) {
+        const a = r[Math.max(0, k - 1)], b = r[Math.min(r.length - 1, k + 1)], du = b[0] - a[0], dv = b[1] - a[1], m = Math.hypot(du, dv) || 1, tu = du / m, tv = dv / m;
+        const w = q => ROTA_LARG + 0.22 * Math.sin(k * 0.41 + ir + q) + 0.14 * Math.sin(k * 1.13 + q * 2.1) + 0.18 * (hsh(k >> 2, ir, 120 + q) - 0.5);
+        const pe = [r[k][0] - tv * w(1), r[k][1] + tu * w(1)], pd = [r[k][0] + tv * w(2), r[k][1] - tu * w(2)];
+        esq.push([...pe, zSup(...pe)]); dir.push([...pd, zSup(...pd)]); tan.push([tu, tv]); zs.push(zSup(...r[k]));
+      }
+      const pol = new Path2D(); curvaEm(pol, esq.concat(dir.slice().reverse()), Pz); g.fillStyle = TOM.trilha; g.fill(pol);
+      const miolo = new Path2D(), sulco = new Path2D(), tra = new Path2D();
+      for (let k = 2; k < esq.length - 2; k += 3) { if (hsh(k + k0, ir, 131) < 0.4) continue; const [tu, tv] = tan[k], q = k + k0, L0 = 0.6 + 0.6 * hsh(q, ir, 132), W0 = 0.15 + 0.2 * hsh(q, ir, 133), cu = r[q][0], cv = r[q][1], z = zs[k]; curvaEm(miolo, [[cu - tu * L0, cv - tv * L0, z], [cu - tv * W0, cv + tu * W0, z], [cu + tu * L0, cv + tv * L0, z], [cu + tv * W0, cv - tu * W0, z]], Pz); }
+      g.fillStyle = TOM.trilhaMiolo; g.fill(miolo);
+      for (const lado of [-0.55, 0.55]) { let ab = false; for (let k = 0; k < esq.length; k++) { const q = k + k0, [tu, tv] = tan[k]; if (hsh(q >> 3, ir + (lado > 0 ? 7 : 3), 136) < 0.3) { ab = false; continue; } const s = Pz(r[q][0] - tv * lado, r[q][1] + tu * lado, zs[k]); ab ? sulco.lineTo(...s) : sulco.moveTo(...s); ab = true; } }
+      g.strokeStyle = "rgba(30,27,24,0.28)"; g.lineWidth = lw(0.03); g.stroke(sulco);   // (os sulcos das rodas da caravana)
+      for (const lado of [esq, dir]) for (let k = 1; k < lado.length; k++) if (hsh((k + k0) >> 2, ir + (lado === esq ? 1 : 2), 134) < 0.42) { tra.moveTo(...Pz(...lado[k - 1])); tra.lineTo(...Pz(...lado[k])); }
+      g.strokeStyle = "rgba(30,27,24,0.45)"; g.lineWidth = lw(0.03); g.stroke(tra);
+    }
+  }
+  g.restore();
+}
+function pintarOasis(g, Pz, esc, pertoU) {
+  if (!pertoU(LAGO.a.u, LAGO.a.v, 0, LAGO.a.ru + 8)) return;
+  const lw = m => Math.max(1, m * esc), trace = (pts, z = 0) => { g.beginPath(); pts.forEach(([u, v], k) => { const q = Pz(u, v, z); k ? g.lineTo(...q) : g.moveTo(...q); }); g.closePath(); };
+  // o gramado em volta (manchas de borda irregular) e o miolo da meia-lua
+  const gr = new Path2D(); for (let k = 0; k < 22; k++) { const a = k / 22 * 6.283, cu = LAGO.a.u + Math.cos(a) * (LAGO.a.ru + 1.6), cv = LAGO.a.v + Math.sin(a) * (LAGO.a.rv + 1.4), r = 2.4 + 1.6 * hsh(k, 1, 251); curvaEm(gr, blobPts(cu, cv, r, r * 0.7, k * 1.7, 12), Pz); }
+  curvaEm(gr, blobPts(LAGO.a.u, LAGO.a.v + 0.4, LAGO.a.ru + 1.4, LAGO.a.rv + 1.6, 3, 28), Pz); curvaEm(gr, blobPts(LAGO.b.u, LAGO.b.v, LAGO.b.ru + 0.4, LAGO.b.rv + 0.5, 5, 24), Pz);
+  g.fillStyle = TOM.grama; g.fill(gr);
+  const gc = new Path2D(); for (let k = 0; k < 9; k++) { const a = hsh(k, 2, 252) * 6.283, cu = LAGO.a.u + Math.cos(a) * LAGO.a.ru * 0.9, cv = LAGO.a.v + Math.sin(a) * LAGO.a.rv * 1.25, r = 1 + 1.4 * hsh(k, 3, 253); curvaEm(gc, blobPts(cu, cv, r, r * 0.6, k, 10), Pz); }
+  g.fillStyle = TOM.gramaClara; g.fill(gc);
+  // a água: a meia-lua (a elipse de fora menos a de dentro), o riacho e o poço da cascata
+  const agua = new Path2D(); { const A = elPts(LAGO.a, 0, 72), B = elPts(LAGO.b, 0, 72); A.forEach(([u, v], k) => { const q = Pz(u, v, 0); k ? agua.lineTo(...q) : agua.moveTo(...q); }); agua.closePath(); B.forEach(([u, v], k) => { const q = Pz(u, v, 0); k ? agua.lineTo(...q) : agua.moveTo(...q); }); agua.closePath(); }
+  g.save(); const corte = new Path2D(); elPts(LAGO.a, 0.05, 72).forEach(([u, v], k) => { const q = Pz(u, v, 0); k ? corte.lineTo(...q) : corte.moveTo(...q); }); corte.closePath(); g.clip(corte);
+  g.fillStyle = TOM.agua; g.fill(agua, "evenodd"); g.strokeStyle = COR.nanquim; g.lineWidth = lw(0.06); g.stroke(agua); g.restore();
+  const ri = LAGO.riacho, rio = [[ri.u - ri.larg / 2, ri.v0], [ri.u + ri.larg / 2, ri.v0], [ri.u + ri.larg / 2 - 0.1, ri.v1], [ri.u - ri.larg / 2 + 0.1, ri.v1]];
+  trace(rio); g.fillStyle = TOM.agua; g.fill(); trace(elPts(LAGO.poco, 0, 28)); g.fill(); g.strokeStyle = COR.nanquim; g.lineWidth = lw(0.05); g.stroke();
+  g.strokeStyle = "rgba(239,228,204,0.7)"; g.lineWidth = lw(0.035); g.lineCap = "round";
+  for (let k = 0; k < 5; k++) { const a = Math.PI * (1.15 + 0.17 * k), cu = LAGO.a.u + Math.cos(a) * LAGO.a.ru * 0.8, cv = LAGO.a.v + Math.sin(a) * LAGO.a.rv * 0.82; g.beginPath(); for (let q = 0; q <= 8; q++) { const pp = Pz(cu + (q - 4) * 0.22, cv + Math.sin(q * 1.2 + k) * 0.08, 0); q ? g.lineTo(...pp) : g.moveTo(...pp); } g.stroke(); }
+}
+function pintarLeito(g, Pz, esc, pertoU, pad) {
+  if (!pertoU(LEITO.u, LEITO.v, 0, LEITO.r + 3)) return;
+  const pts = Array.from({ length: 64 }, (_, k) => { const a = k / 64 * 6.2832, r = rLeito(a); return [LEITO.u + Math.cos(a) * r, LEITO.v + Math.sin(a) * r * 0.82]; });
+  const pp = new Path2D(); curvaEm(pp, pts, Pz); g.fillStyle = pad || TOM.leito; g.fill(pp);   // (o barro rachado, a textura 6)
+  // o leito de um rio que secou: a faixa funda, curva, que atravessa a arena
+  const faixa = new Path2D(), esq = [], dir = []; for (let k = 0; k <= 16; k++) { const t = k / 16, u = LEITO.u - LEITO.r * 1.05 + 2.1 * LEITO.r * t, v = LEITO.v + 3.2 * Math.sin(t * 3.1 + 0.6), w = 1.4 + 0.5 * Math.sin(t * 7); esq.push([u, v + w]); dir.push([u, v - w]); }
+  curvaEm(faixa, esq.concat(dir.reverse()), Pz); g.fillStyle = mixHex(TOM.leito, COR.nanquim, 0.12); g.fill(faixa);
+  g.strokeStyle = "rgba(30,27,24,0.45)"; g.lineWidth = Math.max(1, 0.035 * esc); g.stroke(pp);
+}
+// a beira da frente: a areia se desfaz no papel em branco (manchas de papel e riscos de pincel seco, chapados)
+function pintarBeiraPapel(g, Pz, esc, pertoU) {
+  const papel = new Path2D(), seco = new Path2D();
+  for (let k = 0; k < 360; k++) {
+    const a = k / 360 * 2 * Math.PI; if (Math.sin(a) > -0.42) continue;
+    const r = rVista(a), u = Math.cos(a) * r, v = Math.sin(a) * r; if (!pertoU(u, v, 0, 4)) continue;
+    if (hsh(k, 1, 261) < 0.55) { const ru = 0.7 + 1.6 * hsh(k, 2, 262), rv = 0.35 + 0.9 * hsh(k, 3, 263); curvaEm(papel, blobPts(u, v + 0.3, ru, rv, k, 9), Pz); }
+    if (hsh(k, 4, 264) < 0.35) { const v0 = v + 0.8 + 2.4 * hsh(k, 5, 265), L = 1 + 2.6 * hsh(k, 6, 266); seco.moveTo(...Pz(u - L, v0, 0)); seco.quadraticCurveTo(...Pz(u, v0 + 0.25, 0), ...Pz(u + L, v0 - 0.1, 0)); }
+  }
+  g.fillStyle = TOM.fundo; g.fill(papel);
+  g.strokeStyle = mixHex(TOM.areia[0], COR.papel, 0.5); g.lineWidth = Math.max(1, 0.09 * esc); g.lineCap = "round"; g.stroke(seco);
+}
+// a base de cada peça: a areia amontoada e a sombra chapada para a direita (o lado sem luz)
+function pintarPegadas(g, Pz, esc, pertoU) {
+  const lst = D.pegadas.filter(p => pertoU(p.u, p.v, p.z, p.r + 2)); if (!lst.length) return;
+  const rem = new Path2D(), som = new Path2D();
+  for (const p of lst) { const sem = p.u * 1.3 + p.v; curvaEm(som, blobPts(p.u + 0.5 * Math.max(1, p.r), p.v - 0.14, p.r * 1.05, p.r * 0.52, sem + 1, 12, p.z), Pz); curvaEm(rem, blobPts(p.u, p.v - 0.04, p.r * 0.88, p.r * 0.66, sem, 12, p.z), Pz); }
+  g.fillStyle = "rgba(45,74,107,0.3)"; g.fill(som);
+  g.fillStyle = mixHex(TOM.areia[1], COR.papel, 0.1); g.fill(rem); g.strokeStyle = "rgba(30,27,24,0.35)"; g.lineWidth = Math.max(1, 0.03 * esc); g.stroke(rem);
+}
+D.pintarPedaco = function (g, Pp, esc, x0, y1, cw, ch, lado = 6) {
+  pronta();
+  const ALT = altJogo(), ACH = achJogo(), dzV = ALT / ACH, nv = typeof naVista === "function" ? naVista : (x, y) => [(x - y) * R2, (x + y) * R2];
+  const Pz = (u, v, z) => { const [x, y] = mundoDe(u, v), p = Pp(x, y); return [p[0], p[1] - (z || 0) * ALT * esc]; };
+  const U0 = x0 - 2, U1 = x0 + lado + 2, V0 = y1 - lado - 2, V1 = y1 + 2;
+  const pertoU = (u, v, z, m = 3) => { const [x, y] = mundoDe(u, v), [ru, rv] = nv(x, y); return ru > U0 - m && ru < U1 + m && rv + z * dzV > V0 - m && rv + z * dzV < V1 + m; };
+  g.save(); g.lineJoin = "round";
+  // o chão: o contorno do mapa inteiro em areia
+  const base = new Path2D(); CONTORNO.forEach(([u, v], k) => { const s = Pz(u, v, 0); k ? base.lineTo(...s) : base.moveTo(...s); }); base.closePath();
+  g.fillStyle = padrao(g, 0, x0, y1, esc, 0, ACH, ALT); g.fill(base);
+  g.save(); g.clip(base);
+  // as manchas grandes de tom (quebram o ladrilho da textura)
+  { const m1 = new Path2D(), m2 = new Path2D(); for (let i = -9; i <= 9; i++) for (let j = -8; j <= 8; j++) { const cu = i * 12 + (hsh(i, j, 271) - 0.5) * 8, cv = j * 11 + (hsh(i, j, 272) - 0.5) * 7; if (hsh(i, j, 273) > 0.45 || !pertoU(cu, cv, 0, 9)) continue; const ru = 3 + 5 * hsh(i, j, 274); curvaEm(hsh(i, j, 275) < 0.5 ? m1 : m2, blobPts(cu, cv, ru, ru * 0.5, i + j * 1.7, 14), Pz); }
+    g.fillStyle = mixHex(TOM.areia[0], COR.papel, 0.16); g.fill(m1); g.fillStyle = mixHex(TOM.areia[0], COR.ocre, 0.14); g.fill(m2); }
+  pintarBeiraPapel(g, Pz, esc, pertoU);
+  pintarOasis(g, Pz, esc, pertoU);
+  pintarLeito(g, Pz, esc, pertoU, padrao(g, 6, x0, y1, esc, 0, ACH, ALT, 5));
+  g.restore();
+  // as dunas, do fundo para a frente
+  for (const d of DUNAS_ORDEM) { const b = d.caixa; if (!pertoU((b[0] + b[1]) / 2, (b[2] + b[3]) / 2, d.H, Math.max(b[1] - b[0], b[3] - b[2]) / 2 + d.H * 1.4 + 2)) continue; pintarDuna(g, Pz, esc, d); }
+  if (pertoU(CARAV.u, CARAV.v, CARAV.h, 18)) pintarMonte(g, Pz, esc);
+  pintarTrilha(g, Pz, esc, pertoU);
+  pintarPegadas(g, Pz, esc, pertoU);
+  pintarRocha(g, Pz, esc, pertoU, { padraoRocha: padrao(g, 5, x0, y1, esc, Z_ROCHA, ACH, ALT, 9) });
+  g.restore();
+};
+const DUNAS_ORDEM = DUNAS.slice().sort((a, b) => b.v - a.v);
+
+// ---------------------------------------------------------------- o fundo: o papel em branco além da borda (no lugar do mar)
+const FUNDO = { spr: null, ancoras: null };
+function sprPincel() {
+  if (FUNDO.spr || typeof document === "undefined") return FUNDO.spr;
+  FUNDO.spr = [0, 1, 2].map(k => { const c = document.createElement("canvas"); c.width = 520; c.height = 90; const g = c.getContext("2d"), R = rnd(31 + k * 17);
+    for (let s = 0; s < 5; s++) { const y = 20 + s * 11 + R() * 6, x0 = 20 + R() * 60, x1 = 440 + R() * 60; g.strokeStyle = s % 2 ? "rgba(201,150,62,0.16)" : "rgba(201,150,62,0.1)"; g.lineWidth = 5 + R() * 6; g.lineCap = "round"; g.beginPath(); g.moveTo(x0, y); for (let x = x0; x < x1; x += 30) g.lineTo(x, y + Math.sin(x * 0.02 + k) * 3 + (R() - 0.5) * 2); g.stroke(); }
+    return c; });
+  return FUNDO.spr;
+}
+function emMundoJogo() { const s = PX * zoom; return { s, em: (x, y, z) => { const [sx, sy] = tela(x - cam.x, y - cam.y); return [W / 2 + sx, H / 2 + sy - z * s * ALTURA]; }, W, H, g: cx }; }
+D.desenharFundo = function (t, vp = emMundoJogo()) {
+  const { g, em, s, W: VW, H: VH } = vp;
+  g.fillStyle = TOM.fundo; g.fillRect(0, 0, VW, VH);
+  const sp = sprPincel(); if (!sp) return;
+  if (!FUNDO.ancoras) { FUNDO.ancoras = []; for (let k = 0; k < 120; k++) { const a = k / 120 * 2 * Math.PI, r = rVista(a) + 5 + 10 * hsh(k, 1, 281); if (hsh(k, 2, 282) < 0.5) continue; FUNDO.ancoras.push({ ...(([x, y]) => ({ x, y }))(mundoDe(Math.cos(a) * r, Math.sin(a) * r)), m: 10 + 10 * hsh(k, 3, 283), q: k % 3 }); } }
+  for (const a of FUNDO.ancoras) { const [X, Y] = em(a.x, a.y, 0), lg = a.m * s, hg = lg * 90 / 520; if (X + lg / 2 < 0 || X - lg / 2 > VW || Y - hg > VH || Y + hg < 0) continue; g.drawImage(sp[a.q], X - lg / 2, Y - hg / 2, lg, hg); }
+};
+// as trevas da Ghotin: o disco não passa por cima de uma duna, da rocha ou do platô (o recorte tira a área deles na tela)
+D.recortarTrevas = function (g, x, y) {
+  if (typeof noMundo !== "function") return;
+  const [u0, v0] = vistaDe(x, y), em = (u, v) => noMundo(...mundoDe(u, v), 0), pp = new Path2D();
+  pp.rect(-1e5, -1e5, 2e5, 2e5);
+  for (const d of DUNAS) { if (Math.hypot(d.u - u0, d.v + d.D / 2 - v0) > 22 + d.L + d.D) continue; const n = 24, pts = []; for (let k = 0; k <= n; k++) { const x2 = -1 + 2 * k / n; pts.push([d.u + x2 * d.L, cristaV(d, x2)]); } for (let k = n; k >= 0; k--) { const x2 = -1 + 2 * k / n; pts.push([d.u + x2 * d.L, cristaV(d, x2) + fundoX(d, x2)]); } pts.forEach(([u, v], k) => { const q = em(u, v); k ? pp.lineTo(...q) : pp.moveTo(...q); }); pp.closePath(); }
+  g.clip(pp, "evenodd");
+};
+// o relevo do mundo 3D (?mundo3d=1): a mesma altura, com a borda descendo para o papel
+D.alturaBruta = function (x, y) { const [u, v] = vistaDe(x, y), d = bordaV(u, v); if (d < -6) return -1.2; if (d <= 0) return -1.2 + 1.2 * Math.max(0, 1 + d / 6); return zSup(u, v) + 0.4; };
+// os pesos das camadas do chão do mundo 3D ([musgo, terra, areia, calçamento, terra do vale, neve, rocha, capim seco])
+D.pesos3d = function (x, y, out, k) {
+  for (let q = 0; q < 8; q++) out[k + q] = 0;
+  const b = D.bits(x, y), [u, v] = vistaDe(x, y);
+  if (b & F_ROCHA) { out[k + 6] = 1; return; }
+  if (naTrilha(u, v)) { out[k + 1] = 0.6; out[k + 2] = 0.4; return; }
+  if (dentroEl(LAGO.a, u, v, 3)) { out[k] = 0.6; out[k + 2] = 0.4; return; }
+  out[k + 2] = 1;
+};
+D.vistaMudou = function () { FUNDO.spr = null; };
+D.preaquecer = function () { if (typeof document === "undefined") return; sprPincel(); for (let n = 0; n <= 6; n++) textura(n); rocha(); rotasLisas(); for (const d of DUNAS) faixasDuna(d); };
+
+// ---------------------------------------------------------------- a conferência (node e testes)
+// Dijkstra na grade (8 vizinhos, sem cortar quina) a partir da chegada do portal; as regras da Daiyu e da Montanha e as 7
+// das dunas (projeto, seção 3.2)
+D.validar = function (opc = {}) {
+  pronta();
+  const FL = D.FL, Z = D.Z, NN = NI * NJ, dist = new Float32Array(NN).fill(Infinity), alc = new Uint8Array(NN), de = new Int32Array(NN).fill(-1), r = { problemas: [] };
+  const cheg = [PORTAL_VOLTA.u + PORTAL_VOLTA.saida[0] * 3, PORTAL_VOLTA.v + PORTAL_VOLTA.saida[1] * 3], s = idx(...cheg);
+  const baldes = []; const pôr = (c, d) => { const b = Math.round(d * 10); (baldes[b] || (baldes[b] = [])).push(c); };
+  if (s >= 0 && (FL[s] & F_ANDA)) { dist[s] = 0; pôr(s, 0); } else r.problemas.push("a chegada do portal não é andável");
+  for (let b = 0; b < baldes.length; b++) {
+    const l = baldes[b]; if (!l) continue;
+    for (const c of l) {
+      if (alc[c]) continue; alc[c] = 1;
+      const i = c % NI, j = (c - i) / NI, ok = (qi, qj) => qi >= 0 && qj >= 0 && qi < NI && qj < NJ && (FL[qj * NI + qi] & F_ANDA) && Math.abs(Z[qj * NI + qi] - Z[c]) <= PASSO_MAX;
+      for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+        if (!di && !dj) continue; const qi = i + di, qj = j + dj; if (!ok(qi, qj)) continue;
+        if (di && dj && (!ok(i + di, j) || !ok(i, j + dj))) continue;
+        const q = qj * NI + qi, nd = dist[c] + (di && dj ? Math.SQRT2 : 1) * CEL;
+        if (nd < dist[q] - 1e-4) { dist[q] = nd; de[q] = c; pôr(q, nd); }
+      }
+    }
+  }
+  let andaveis = 0, alcancaveis = 0, ocultos = 0, terraOculta = 0, emDuna = 0;
+  for (let c = 0; c < NN; c++) { if (FL[c] & F_ANDA) { andaveis++; if (alc[c]) alcancaveis++; if (FL[c] & F_DUNA) emDuna++; if (FL[c] & F_OCULTO) ocultos++; } if ((FL[c] & F_OCULTO) && (FL[c] & F_TERRA)) terraOculta++; }
+  Object.assign(r, { andaveis, alcancaveis, ilhas: andaveis - alcancaveis, ocultosAndaveis: ocultos, terraOculta, emDuna, dist, alc, de });
+  // regra 1: andável escondido 0 (e nada de chão de andar ilhado)
+  if (ocultos) r.problemas.push("regra 1: " + ocultos + " células andáveis escondidas");
+  if (r.ilhas) r.problemas.push("regra 1: " + (r.ilhas * CEL * CEL) + " m² de chão andável não alcançável do portal");
+  const okV = (u, v) => { const c = idx(u, v); return c >= 0 && alc[c] === 1; };
+  const conf = (nome, u, v) => { if (!okV(u, v)) r.problemas.push(nome + " fora do chão alcançável (" + u.toFixed(1) + ", " + v.toFixed(1) + ")"); };
+  // regra 2: do portal se chega ao oásis, à gruta, a cada ponto de grupo e a cada Ghotin
+  conf("regra 2: o ponto seguro (oásis)", SEGURO.u, SEGURO.v); conf("regra 2: a boca da gruta", ...GRUTA.entrada); conf("o portal de volta", PORTAL_VOLTA.u, PORTAL_VOLTA.v);
+  for (const n of NPCS) conf("NPC " + n.nome, n.u, n.v);
+  conf("o centro do Leito Seco", LEITO.u, LEITO.v); conf("o alto do Caravançará", CARAV.u, CARAV.v);
+  r.bandos = [];
+  for (const [t, u, v, q, e, z] of BANDOS) {
+    conf("regra 2: o grupo " + z, u, v);
+    let bons = 0, tot = 0; for (let a = 0; a < 12; a++) for (const rr of [0.5, 1]) { tot++; if (okV(u + Math.cos(a / 12 * 6.283) * e * rr, v + Math.sin(a / 12 * 6.283) * e * rr)) bons++; }
+    if (bons / tot < 0.8) r.problemas.push("grupo " + z + " (" + u + ", " + v + "): só " + Math.round(bons / tot * 100) + "% da roda no chão");
+    let dBeira = Infinity; for (let a = 0; a < 16; a++) for (let d = 0.5; d < 8; d += 0.5) { const c = idx(u + Math.cos(a / 16 * 6.283) * d, v + Math.sin(a / 16 * 6.283) * d); if (c < 0) break; if ((FL[c] & F_PENHASCO) && !(FL[c] & F_RAMPA)) { dBeira = Math.min(dBeira, d); break; } }
+    if (dBeira < 3.5) r.problemas.push("grupo " + z + " (" + u + ", " + v + ") a só " + dBeira + " m de uma beira");
+    if (zonaDe(u, v) !== z) r.problemas.push("grupo (" + u + ", " + v + ") marcado " + z + ", mas fica na " + zonaDe(u, v));
+    r.bandos.push({ t, u, v, q, z, dBeira });
+  }
+  if (BANDOS.length !== 76) r.problemas.push("são " + BANDOS.length + " grupos (o projeto: 76)");
+  // regra 6: as Ghotins, o Leito Seco e o oásis só em chão 0
+  r.ghotins = [];
+  for (const g2 of GHOTINS) for (const [u, v] of g2.areas) {
+    conf("regra 2: " + g2.nome, u, v);
+    if (zSup(u, v) > 0.02) r.problemas.push("regra 6: " + g2.nome + " (" + u + ", " + v + ") fora do chão 0");
+    let bons = 0, tot = 0; for (let k = 0; k < 400; k++) { const a = hsh(k, 1, 301) * 6.283, d = 12 * Math.sqrt(hsh(k, 2, 302)), [x, y] = mundoDe(u + Math.cos(a) * d, v + Math.sin(a) * d); tot++; if (D.andavel(x, y) && !D.proibidoGhotin(x, y)) bons++; }
+    r.ghotins.push({ nome: g2.nome, u, v, serve: bons / tot });
+    if (bons / tot < 0.1) r.problemas.push(g2.nome + " (" + u + ", " + v + "): só " + Math.round(bons / tot * 100) + "% da área de 12 m serve");
+  }
+  { let fora = 0, tot = 0; for (let a = 0; a < 36; a++) for (let d = 0; d <= LEITO.r; d += 1) { tot++; const u = LEITO.u + Math.cos(a / 36 * 6.283) * d, v = LEITO.v + Math.sin(a / 36 * 6.283) * d; if (zSup(u, v) > 0.02 || !okV(u, v)) fora++; } r.arena = 1 - fora / tot; if (r.arena < 0.97) r.problemas.push("regra 6: o Leito Seco (a arena, raio " + LEITO.r + " m) só tem " + Math.round(r.arena * 100) + "% de chão 0 alcançável"); }
+  { let fora = 0; for (let a = 0; a < 72; a++) for (const m of [0, 2, 4]) { const ang = a / 72 * 6.283, u = LAGO.a.u + Math.cos(ang) * (LAGO.a.ru + m), v = LAGO.a.v + Math.sin(ang) * (LAGO.a.rv + m); if (!naRocha(u, v) && zSup(u, v) > 0.02) fora++; } if (fora) r.problemas.push("regra 6: o oásis tem " + fora + " pontos fora do chão 0"); }
+  // regra 3: toda face de queda olha para a câmera (a normal a menos de 60° de −v), onde ela é penhasco
+  r.faces = [];
+  for (const d of DUNAS) { let pior = 0; for (let k = 0; k <= 200; k++) { const x = -1 + k / 100, h = d.H * largW(x); if (h <= PASSO_MAX) continue; const ang = Math.atan(Math.abs(8 * x / d.L)) * 180 / Math.PI; pior = Math.max(pior, ang); } r.faces.push({ nome: d.nome, pior }); if (pior >= 60) r.problemas.push("regra 3: a face da " + d.nome + " chega a " + pior.toFixed(0) + "° da câmera"); }
+  // regra 4: a encosta mansa ≤ 0,15 (H/D, a do projeto); a maior diferença entre células na encosta fica longe do PASSO_MAX
+  r.encostas = DUNAS.map(d => ({ nome: d.nome, HD: d.H / d.D }));
+  for (const e of r.encostas) if (e.HD > 0.15 + 1e-9) r.problemas.push("regra 4: a encosta da " + e.nome + " é " + e.HD.toFixed(3) + " (> 0,15)");
+  { const naEncosta = c => { const i = c % NI, j = (c - i) / NI, u = -EU + (i + 0.5) * CEL, v = -EV + (j + 0.5) * CEL, d = dunaEm(u, v); return d && v - cristaV(d, (u - d.u) / d.L) > 0.75; };
+    let m = 0; for (let j = 1; j < NJ - 1; j++) for (let i = 1; i < NI - 1; i++) { const c = j * NI + i; if (!(FL[c] & F_DUNA) || !(FL[c] & F_ANDA) || !naEncosta(c)) continue; for (const q of [c + 1, c + NI]) if ((FL[q] & F_DUNA) && (FL[q] & F_ANDA) && naEncosta(q)) m = Math.max(m, Math.abs(Z[q] - Z[c])); }
+    r.maiorDegrauEncosta = m; if (m > 0.2) r.problemas.push("regra 4: na encosta, " + m.toFixed(2) + " m entre células vizinhas (> 0,2)"); }
+  // regra 5: entre duas dunas, um corredor de ≥ 6 m de chão 0; e nenhuma duna encostada na rocha (≥ 3 m)
+  { const pe = DUNAS.map(d => { const pts = []; for (let k = 0; k <= 60; k++) { const x = -1 + 2 * k / 60; for (const t of [0, 0.25, 0.5, 0.75, 1]) { const v = cristaV(d, x) + t * fundoX(d, x); if (zDuna(d, d.u + x * d.L, v + (t === 1 ? -0.05 : 0.05)) > 0.03) pts.push([d.u + x * d.L, v]); } } return pts; });
+    r.corredores = [];
+    for (let a = 0; a < DUNAS.length; a++) for (let b = a + 1; b < DUNAS.length; b++) { let m = Infinity; for (const p of pe[a]) for (const q of pe[b]) m = Math.min(m, Math.hypot(p[0] - q[0], p[1] - q[1])); if (m < 20) r.corredores.push({ a: DUNAS[a].nome, b: DUNAS[b].nome, m }); if (m < 6) r.problemas.push("regra 5: entre a " + DUNAS[a].nome + " e a " + DUNAS[b].nome + " só " + m.toFixed(1) + " m"); }
+    for (let a = 0; a < DUNAS.length; a++) { let m = Infinity; for (const p of pe[a]) for (let k = 0; k < 16; k++) for (let d = 0; d < 4; d += 0.5) { const u = p[0] + Math.cos(k / 16 * 6.283) * d, v = p[1] + Math.sin(k / 16 * 6.283) * d; if (naRocha(u, v) || bordaV(u, v) < 1.2) { m = Math.min(m, d); break; } } if (m < 3) r.problemas.push("a " + DUNAS[a].nome + " fica a " + m + " m da rocha ou do papel"); }
+    if (DUNAS.length !== 17 || DUNAS.filter(d => d.H === 2.4).length !== 3 || DUNAS.filter(d => d.H === 1.6).length !== 9 || DUNAS.filter(d => d.H === 0.8).length !== 5) r.problemas.push("as dunas não são 3 de 2,4 m, 9 de 1,6 m e 5 de 0,8 m");
+  }
+  // regra 7: a rota do portão até a gruta: ~347 m (~92 s a pé)
+  { const c = idx(...GRUTA.entrada); r.distGruta = dist[c]; const rota = []; let q = c; while (q >= 0) { rota.push(q); q = de[q]; } r.rota = rota.reverse(); if (!isFinite(r.distGruta)) r.problemas.push("regra 7: não há caminho até a gruta"); }
+  // o resto: os lugares, a trilha, a rampa e o platô
+  for (const [nome, u, v] of [["a rampa do Caravançará (pé)", CARAV.rampa.u, CARAV.f - CARAV.rampa.comp + 0.4], ["a rampa do Caravançará (alto)", CARAV.rampa.u, CARAV.f + 0.6]]) conf(nome, u, v);
+  if (Math.abs(zSup(CARAV.u, CARAV.v) - CARAV.h) > 0.01) r.problemas.push("o alto do Caravançará não está em " + CARAV.h + " m");
+  return r;
+};
+Object.assign(D, { rocha, faixasDuna, textura, naTrilha, cristaV, largW, fundoX, naRampa, dentroEl, CONTORNO, rVista });
+
+G.DESERTO = D;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
 // ================================================================ a Vila Hahoe nova (o perfil da Bakra do Metin2), 15–45
 // Logs/Mapas/VILA2_HAHOE_BAKRA.md (o desenho), Logs/Mapas/vila2_bakra_esquema.png (o esquema) e
 // Logs/Mapas/VILA2_aplicar.py (os ganchos no index.html, por âncoras, como a Daiyu e a Montanha).
@@ -7238,7 +8108,7 @@ function climaForcar(nome) {
 }
 if (new URLSearchParams(location.search).get("clima")) climaForcar(new URLSearchParams(location.search).get("clima"));
 function passoClima(dt) {
-  if (mapaDe(viking.x, viking.y) === MAPAS.montanha) { clima.chuva = 0; clima.clarao = 0; return; }   // (Montanha Gelada: neve sempre; a chuva volta aos poucos fora dela)
+  if (mapaDe(viking.x, viking.y) === MAPAS.montanha || mapaDe(viking.x, viking.y) === MAPAS.deserto) { clima.chuva = 0; clima.clarao = 0; return; }   // (o Deserto: nunca chove)   // (Montanha Gelada: neve sempre; a chuva volta aos poucos fora dela)
   if (MODO_TESTE) return;
   clima.clarao = Math.max(0, clima.clarao - dt);
   if ((clima.prox -= dt) <= 0) {
@@ -7293,7 +8163,8 @@ function chaoMarca(x, y) {
   if (naCaverna(x) || agua(x, y)) return null;
   const b = borda(x, y);
   if (b > RAIO - 0.7) return null;                                        // (o mar)
-  if (x < -350) return GELADA.solo(x, y) === "neve" ? "neve" : null;     // (Montanha Gelada: rocha nos Menires e nas Fontes, neve nos outros)
+  if (x < -350) return GELADA.solo(x, y) === "neve" ? "neve" : null;
+  if (y > 1050) return DESERTO.solo(x, y) === "areia" ? "areia" : null;   // (o Deserto: as pegadas ficam na areia, não na trilha nem na rocha)     // (Montanha Gelada: rocha nos Menires e nas Fontes, neve nos outros)
   if (estacaoAtual() === 3) return "neve";
   if (b > RAIO - 2.8 && pesoMonte(x, y) + pesoVale(x, y) < 0.4) return "areia";
   return null;
@@ -7345,7 +8216,7 @@ function pisar(l, tipo, k, correndo) {
   u.a = Math.atan2(dy, dx);
   const a = u.a, fx = Math.cos(a), fy = Math.sin(a), ld = u.lado, chao = chaoMarca(l.x, l.y);
   if (chao) {
-    const areia = chao === "areia", zp = l.x < -350 ? GELADA.z(l.x, l.y) : 0, [ozx, ozy] = zp ? daVista(0, zp * ALTURA / ACHATA) : [0, 0], marca = (f, la, aa, lado, t) => CC.pegadas.push({ x: l.x + ozx + fx * f - fy * la, y: l.y + ozy + fy * f + fx * la, a: aa, lado, tipo: t, k, areia, v: 1 });   // (na montanha, subidas à altura do patamar)
+    const areia = chao === "areia", zp = l.x < -350 ? GELADA.z(l.x, l.y) : l.y > 1050 ? DESERTO.z(l.x, l.y) : 0, [ozx, ozy] = zp ? daVista(0, zp * ALTURA / ACHATA) : [0, 0], marca = (f, la, aa, lado, t) => CC.pegadas.push({ x: l.x + ozx + fx * f - fy * la, y: l.y + ozy + fy * f + fx * la, a: aa, lado, tipo: t, k, areia, v: 1 });   // (na montanha, subidas à altura do patamar)
     if (tipo === "h") marca(0, ld * 0.11 * k, a + ld * 0.12, ld, "h");
     else if (tipo === "q") { marca(0.3 * k, ld * 0.08 * k, a, ld, "q"); marca(-0.3 * k, -ld * 0.08 * k, a, -ld, "q"); }
     else for (let i = 0; i < 4; i++) marca((i - 1.5) * 0.38 * k, ld * (0.85 - Math.abs(i - 1.5) * 0.12) * k, a + ld * (0.9 - i * 0.35), ld, "a");
@@ -7408,7 +8279,7 @@ function claraoAgora() {
 function passoChaoClima(dt) {
   if (MODO_TESTE) return;
   CC.t += dt;
-  if (mapaDe(viking.x, viking.y) === MAPAS.montanha) CC.molhado = 0;      // (sem poças nem chão molhado na neve)
+  if (mapaDe(viking.x, viking.y) === MAPAS.montanha || mapaDe(viking.x, viking.y) === MAPAS.deserto) CC.molhado = 0;      // (sem poças nem chão molhado na neve)
   CC.molhado = clima.chuva > 0.15 ? Math.min(1, CC.molhado + dt * clima.chuva / 80) : Math.max(0, CC.molhado - dt / 150);
   const nevando = estacaoAtual() === 3, chovendo = clima.chuva > 0.2;
   const fNeve = (nevando ? 1.7 : chovendo ? 1.5 : 1) / PEGADA_VIDA, fAreia = (chovendo ? 2.5 : 1) / PEGADA_VIDA;
@@ -7870,10 +8741,10 @@ const naZonaAltar = (x, y) => x < -56.7 && y > 46.7 && x > -133.7 && y < 133.7;
 const bordaV1 = (x, y) => { const a = Math.atan2(y, x); return Math.hypot(x, y) + ESC_V1 * (desvioCosta(a) - extraCosta(a) - RAIO) + RAIO; };
 // o pedaço de chão em (x, y) tem o bloco do patamar? (ele é pintado subido, por cima do mar atrás da ilha)
 const altarNoPedaco = (x, y) => { if (!naZonaAltar(x, y)) return false; const [a, b] = altarLocal(x, y); return Math.abs(a) < ALTAR.topo.meia + 7 && b > ALTAR.topo.b0 - 5 && b < ALTAR.topo.b1 + 16; };
-function borda(x, y) { if (y > 350) return bordaMapa(MAPAS.hahoe, x, y); if (y < -350) return bordaMapa(MAPAS.daiyu, x, y); if (x < -350) return bordaMapa(MAPAS.montanha, x, y); const b = bordaV1(x, y); return naZonaAltar(x, y) ? Math.min(b, bordaAltar(x, y)) : b; }   // (a Vila Hahoe, em (0, 700): bordaMapa)
+function borda(x, y) { if (y > 1050) return bordaMapa(MAPAS.deserto, x, y); if (y > 350) return bordaMapa(MAPAS.hahoe, x, y); if (y < -350) return bordaMapa(MAPAS.daiyu, x, y); if (x < -350) return bordaMapa(MAPAS.montanha, x, y); const b = bordaV1(x, y); return naZonaAltar(x, y) ? Math.min(b, bordaAltar(x, y)) : b; }   // (a Vila Hahoe, em (0, 700): bordaMapa)
 // quanto este ponto é montanha (1 no mapa da Montanha Gelada, 0 nos outros) e quanto é vale (0 na ilha, 1 na península)
 const pesoMonte = (x, y) => x < -350 ? 1 : 0;
-const pesoVale = (x, y) => y < -350 || (HAHOE2 && y > 350) ? 0 : liso((x - VALE_X) / 8) * (1 - pesoMonte(x, y));   // (a ponta leste da Ilha de Daiyu não é o vale)
+const pesoVale = (x, y) => y < -350 || y > 1050 || (HAHOE2 && y > 350) ? 0 : liso((x - VALE_X) / 8) * (1 - pesoMonte(x, y));   // (a ponta leste da Ilha de Daiyu não é o vale)
 function praca(x, y) { if (y > 350) return Math.hypot(x - PRACA_H.x, y - PRACA_H.y) < PRACA_H.r; return (!(CIDADE && CIDADE.treino) && Math.hypot(x - PRACA.x, y - PRACA.y) < PRACA.r) || ruaCidade(x, y); }   // (com ?cidade=1, as vias da cidade; o treino vai para o lado)   // (com ?cidade=1, as ruas de pedra também)
 function estrada(x, y) {
   if (HAHOE2) {                                                         // (a Hahoe nova: a caixa de cada trilha antes da conta, o mesmo resultado; o minimapa 3,4× maior pergunta muito)
@@ -7888,7 +8759,7 @@ function estrada(x, y) {
 }
 const trilha = estrada;
 const raioLago = a => LAGO.r + Math.sin(a * 3) * 0.5 + Math.sin(a * 7) * 0.25;
-function lago(x, y, folga = 0) { if (y > 350) return rioH(x, y, folga); const dx = x - LAGO.x, dy = (y - LAGO.y) * 1.15; return Math.hypot(dx, dy) < raioLago(Math.atan2(dy, dx)) + folga; }   // (na Vila Hahoe, o "lago" é o rio: margens, juncos e vitórias-régias vêm junto)
+function lago(x, y, folga = 0) { if (y > 1050) return (DESERTO.bits(x, y) & DESERTO.F.AGUA) !== 0; if (y > 350) return rioH(x, y, folga); const dx = x - LAGO.x, dy = (y - LAGO.y) * 1.15; return Math.hypot(dx, dy) < raioLago(Math.atan2(dy, dx)) + folga; }   // (na Vila Hahoe, o "lago" é o rio: margens, juncos e vitórias-régias vêm junto)
 function fosso(x, y, folga = 0) { if (!COM_CASTELO) return false; const d = retArred(x, y, FOSSO); return d < folga && d > -FOSSO.larg - folga; }
 function naPonteLev(x, y) { return COM_CASTELO && dentroRet(x, y, PONTE_LEV); }
 function agua(x, y) { return (lago(x, y) || fosso(x, y)) && !naPonteLev(x, y) && !(y > 350 && naPonteH(x, y)); }
@@ -7930,10 +8801,13 @@ const MONTANHA = MAPAS.montanha;
 // a Ilha de Daiyu, "a Ilha à Deriva" (45–70), em (0, −700): os dados, o relevo e a montagem ficam em mapa_daiyu.js
 // (Logs/Mapas/DAIYU.md); aqui só os ganchos. Os pontos dela têm y < −350
 MAPAS.daiyu = DAIYU.mapa();
+// o Deserto de Mingsha, "as Areias que Cantam" (40–56), em (0, 1400): os dados, o relevo (as dunas), o chão pintado e a
+// decoração ficam em mapa_deserto.js (Logs/Mapas/DESERTO_ARANHAS_PROJETO.md); aqui só os ganchos. Os pontos dele têm y > 1050
+MAPAS.deserto = DESERTO.mapa();
 const pM = (x, y) => [MONTANHA.ox + x, MONTANHA.oy + y];               // (da Montanha Gelada para o mundo)
 const pH = (x, y) => [HAHOE.ox + x, HAHOE.oy + y];                       // (da Vila Hahoe para o mundo)
-function mapaDe(x, y) { return y > 350 ? MAPAS.hahoe : y < -350 ? MAPAS.daiyu : x < -350 ? MAPAS.montanha : MAPAS.vila1; }
-function idMapa(x, y) { if (x > 240) { const d = cavDe(x); return "dg" + Math.round((d ? d.x : x) / 100); } return y > 350 ? "hahoe" : y < -350 ? "daiyu" : x < -350 ? "montanha" : "vila1"; }
+function mapaDe(x, y) { return y > 1050 ? MAPAS.deserto : y > 350 ? MAPAS.hahoe : y < -350 ? MAPAS.daiyu : x < -350 ? MAPAS.montanha : MAPAS.vila1; }
+function idMapa(x, y) { if (x > 240) { const d = cavDe(x); return "dg" + Math.round((d ? d.x : x) / 100); } return y > 1050 ? "deserto" : y > 350 ? "hahoe" : y < -350 ? "daiyu" : x < -350 ? "montanha" : "vila1"; }
 function bordaMapa(m, x, y) { const lx = x - m.ox, ly = y - m.oy; return Math.hypot(lx, ly) - m.rCosta(Math.atan2(ly, lx)) + RAIO; }   // (a costa em RAIO, como na Vila 1)
 // ---- a Vila Hahoe (河回, "o rio que dá a volta", a aldeia coreana dentro da curva do rio Nakdong): o rio nasce na
 // cachoeira do norte (o Desfiladeiro), desce pelo oeste da vila, faz a curva por baixo dela e sai no mar ao sul. A vila
@@ -8128,7 +9002,7 @@ function pisoHahoe(g, P, esc, caminho, mx0, mx1, my0, my1) {
 // a mata (fbm alto), menos perto da praça e nas clareiras dos bandos: lá dentro é campo aberto e a mata volta aos poucos
 // na beirada (o limiar sobe perto da clareira)
 function floresta(x, y) {
-  if ((x > VALE_X - 4 && !(HAHOE2 && y > 350)) || x < -350) return false;   // o vale e a montanha são abertos (a ponta leste da Hahoe nova não é o vale)
+  if ((x > VALE_X - 4 && !(HAHOE2 && y > 350)) || x < -350 || y > 1050) return false;   // o vale e a montanha são abertos (a ponta leste da Hahoe nova não é o vale)
   const c = distClareira(x, y);
   if (c < 0) return false;
   return fbm(x * kV1(x, y) * 0.07 + 3, y * kV1(x, y) * 0.07 - 2) > 0.55 + 0.2 * Math.max(0, 1 - c / 5) && Math.hypot(x - PRACA.x, y - PRACA.y) > 10 && (!COM_CASTELO || retArred(x, y, FOSSO) > 4);
@@ -8174,7 +9048,8 @@ const tela = (x, y) => window.M3D && M3D.ativo ? M3D.tela(x, y) : [(x * GIRO_C -
 function doPonteiro(px, py) {
   const s = PX * zoom, [dx, dy] = daVista((px - W / 2) / s, -(py - H / 2) / (s * ACHATA));
   const p = { x: cam.x + dx, y: cam.y + dy };
-  if (p.x < -350 && !(window.M3D && M3D.ativo)) return GELADA.corrigirClique(p.x, p.y);    // (Montanha Gelada: idem)
+  if (p.x < -350 && !(window.M3D && M3D.ativo)) return GELADA.corrigirClique(p.x, p.y);
+  if (p.y > 1050 && !(window.M3D && M3D.ativo)) return DESERTO.corrigirClique(p.x, p.y);   // (o Deserto: o chão da duna sob o ponteiro)    // (Montanha Gelada: idem)
   if (naZonaAltar(p.x, p.y) && !(window.M3D && M3D.ativo)) return altarClique(p.x, p.y);   // (R165: o Altar das Eras: idem)
   return p.y < -350 && !(window.M3D && M3D.ativo) ? DAIYU.corrigirClique(p.x, p.y) : p;   // (Daiyu: o chão visível mais alto sob o ponteiro)
 }
@@ -8467,12 +9342,12 @@ function* pedacoPassos(i, j, esc, fatiado = false) {
   const cantos = [daVista(x0, y1), daVista(x0 + PEDACO, y1), daVista(x0, y1 - PEDACO), daVista(x0 + PEDACO, y1 - PEDACO)];
   const mx0 = Math.min(...cantos.map(p => p[0])), mx1 = Math.max(...cantos.map(p => p[0])), my0 = Math.min(...cantos.map(p => p[1])), my1 = Math.max(...cantos.map(p => p[1]));
   // praia: a ilha inteira em areia (contorno liso), o gramado em ladrilhos por cima
-  if (MAPA_CAM !== MAPAS.montanha) {                                      // (Montanha Gelada: nada de areia embaixo dos dentes do penhasco)
+  if (MAPA_CAM !== MAPAS.montanha && MAPA_CAM !== MAPAS.deserto) {        // (Montanha Gelada: nada de areia embaixo dos dentes do penhasco; o Deserto pinta a dele)
   caminho(costa, true); g.fillStyle = TEX.areia ? padraoChao(g, TEX.areia, x0, y1, esc) : "#d9c08a"; g.fill();
   g.strokeStyle = "#bfa36d"; g.lineWidth = 0.9 * esc; g.stroke();
   }
   const pintado = !!TEX.grama;                                            // com as texturas: grama pintada, ladrilhos só na praça
-  if (pintado && MAPA_CAM !== MAPAS.daiyu && MAPA_CAM !== MAPAS.montanha) yield* pintarChaoTexturaPassos(g, i, j, esc, c.width, c.height, caminho, fatiado);   // (Daiyu: o chão é o do mapa_daiyu.js)
+  if (pintado && MAPA_CAM !== MAPAS.daiyu && MAPA_CAM !== MAPAS.montanha && MAPA_CAM !== MAPAS.deserto) yield* pintarChaoTexturaPassos(g, i, j, esc, c.width, c.height, caminho, fatiado);   // (Daiyu: o chão é o do mapa_daiyu.js)
   if (corteChao(fatiado, "textura")) yield;                    // (R236: o resto também em passos, na mesma ordem de sempre)
   const d = LADO / Math.SQRT2;
   const uMin = Math.floor((x0 + y1 - PEDACO) / d / 2) - 2, uMax = Math.ceil((x0 + PEDACO + y1) / d / 2) + 2;
@@ -8523,9 +9398,10 @@ function* pedacoPassos(i, j, esc, fatiado = false) {
   pisoHahoe(g, P, esc, caminho, mx0, mx1, my0, my1);                  // (o rio, os arrozais e os terraços de chá da Vila Hahoe)
   if (corteChao(fatiado, "piso")) yield;
   if (MAPA_CAM === MAPAS.daiyu) DAIYU.pintarPedaco(g, P, esc, x0, y1, c.width, c.height);   // (Daiyu: os platôs, as escadarias, a lava e o casco)
-  if (MAPA_CAM === MAPAS.montanha) GELADA.pintarPedaco(g, P, esc, x0, y1, c.width, c.height);   // (Montanha Gelada: os patamares, as escadas, as fontes e o lago)
+  if (MAPA_CAM === MAPAS.montanha) GELADA.pintarPedaco(g, P, esc, x0, y1, c.width, c.height);
+  if (MAPA_CAM === MAPAS.deserto) DESERTO.pintarPedaco(g, P, esc, x0, y1, c.width, c.height);   // (o Deserto: a areia em faixas, as dunas, o oásis, a trilha e o paredão)   // (Montanha Gelada: os patamares, as escadas, as fontes e o lago)
   // detalhes do chão: um ponto por célula de 0,8 m (os vizinhos também, para nada cortar na emenda)
-  const C = MAPA_CAM === MAPAS.daiyu || MAPA_CAM === MAPAS.montanha ? 1e9 : 0.8;                     // (na Ilha de Daiyu, nenhum: o chão de baixo ficaria por cima dos platôs)
+  const C = MAPA_CAM === MAPAS.daiyu || MAPA_CAM === MAPAS.montanha || MAPA_CAM === MAPAS.deserto ? 1e9 : 0.8;                     // (na Ilha de Daiyu, nenhum: o chão de baixo ficaria por cima dos platôs)
   for (let ci = Math.floor((mx0 - 1) / C), nc = 0; ci <= Math.ceil((mx1 + 1) / C); ci++) {
     if (++nc % 4 === 0 && corteChao(fatiado, "detalhes")) yield;                                          // (R236: de 4 em 4 colunas, na mesma ordem)
     for (let cj = Math.floor((my0 - 1) / C); cj <= Math.ceil((my1 + 1) / C); cj++) {
@@ -8687,8 +9563,8 @@ function desenharChao() {
       for (const f of perto) { c = pedacos.get(f + ":" + i + "," + j); if (c) break; }
       if (!c) {
         // nunca pintado: no meio da ilha, um verde liso por uns quadros (sem travar); na beira do mar, pinta já
-        const dentro = MAPA_CAM === MAPAS.montanha ? borda(mx, my) < RAIO - 6 : Math.hypot(Math.abs(mx - MAPA_CAM.ox) + PEDACO * 0.71, Math.abs(my - MAPA_CAM.oy) + PEDACO * 0.71) < MAPA_CAM.raio - 6;
-        if (dentro) { cx.fillStyle = MAPA_CAM === MAPAS.montanha ? "#d4d5d0" : MAPA_CAM === MAPAS.daiyu ? "#a39c90" : "#5a8236"; cx.fillRect(W / 2 + (x0 - cu) * s, H / 2 - (y1 - cv0) * s * ACHATA, PEDACO * s + 0.6, PEDACO * s * ACHATA + 0.6); continue; }
+        const dentro = MAPA_CAM === MAPAS.montanha || MAPA_CAM === MAPAS.deserto ? borda(mx, my) < RAIO - 6 : Math.hypot(Math.abs(mx - MAPA_CAM.ox) + PEDACO * 0.71, Math.abs(my - MAPA_CAM.oy) + PEDACO * 0.71) < MAPA_CAM.raio - 6;
+        if (dentro) { cx.fillStyle = MAPA_CAM === MAPAS.deserto ? "#d9c08f" : MAPA_CAM === MAPAS.montanha ? "#d4d5d0" : MAPA_CAM === MAPAS.daiyu ? "#a39c90" : "#5a8236"; cx.fillRect(W / 2 + (x0 - cu) * s, H / 2 - (y1 - cv0) * s * ACHATA, PEDACO * s + 0.6, PEDACO * s * ACHATA + 0.6); continue; }
         c = pedaco(i, j, faixa); novos++;
       }
     } else { const k = faixa + ":" + i + "," + j; pedacos.delete(k); pedacos.set(k, c); }
@@ -8902,7 +9778,8 @@ function marParado(nome, pinta) {
 }
 // por baixo do chão: o fundo, as faixas de profundidade, as correntes, as cristas e os brilhos
 function desenharMarB(t) {
-  if (MAPA_CAM === MAPAS.montanha) { GELADA.desenharFundo(t); return; }  // (Montanha Gelada: o mar de nuvens e os picos, no lugar do mar)
+  if (MAPA_CAM === MAPAS.montanha) { GELADA.desenharFundo(t); return; }
+  if (MAPA_CAM === MAPAS.deserto) { DESERTO.desenharFundo(t); return; }   // (o Deserto: o papel em branco além da borda, no lugar do mar)  // (Montanha Gelada: o mar de nuvens e os picos, no lugar do mar)
   const s = PX * zoom, caixa = caixaVista(12);
   if (!marNaVista()) { cx.fillStyle = "#2D4A6B"; cx.fillRect(0, 0, W, H); return; }
   // faixas chapadas, do fundo para o raso (a parte delas que cai na terra o chão cobre): paradas no mundo, numa imagem
@@ -8963,7 +9840,7 @@ function desenharMarB(t) {
 // por cima do chão: o raso em jade, as ondas que sobem na areia (areia molhada atrás) e a beira em nanquim
 const ONDA_P = 5.2;                                                         // segundos de cada onda
 function desenharCostaB(t) {
-  if (MAPA_CAM === MAPAS.montanha) return;                                // (o penhasco já está pintado no chão)
+  if (MAPA_CAM === MAPAS.montanha || MAPA_CAM === MAPAS.deserto) return;  // (o penhasco já está pintado no chão; o deserto não tem costa: a beira é o papel)
   if (!marNaVista()) return;
   const s = PX * zoom, caixa = caixaVista(4), C = costaMar();
   cx.save(); cx.lineJoin = "round"; cx.lineCap = "round";
@@ -9060,7 +9937,7 @@ function desenharAguaViva(t) {
 // ---------- sombras de nuvem ----------
 const nuvens = Array.from({ length: 7 }, (_, k) => ({ x: -50 + k * 15, y: -40 + hash(k, 1, 41) * 80, r: 7 + hash(k, 2, 41) * 6 }));
 function desenharNuvens(t) {
-  if (MAPA_CAM === MAPAS.montanha || !GRAF.nuvens) return;                                // (sem a sombra de aerógrafo das nuvens: o chão da montanha é chapado)
+  if (MAPA_CAM === MAPAS.montanha || MAPA_CAM === MAPAS.deserto || !GRAF.nuvens) return;                                // (sem a sombra de aerógrafo das nuvens: o chão da montanha é chapado)
   const s = PX * zoom;
   for (const n of nuvens) {
     const x = ((n.x + t * 0.7 + 60) % 120) - 60 + MAPA_CAM.ox;              // (sobre o mapa da câmera)
@@ -9114,7 +9991,7 @@ function passoTempo(dtReal) {
   if ((tempoSalvo += dtReal) > 10) { tempoSalvo = 0; try { localStorage.setItem(TEMPO_CHAVE, JSON.stringify(tempo)); } catch (e) {} }
 }
 function horaDoDia() { return (tempo.dia % 1) * 24; }
-function estacaoAtual() { return MAPA_CAM === MAPAS.montanha ? 3 : ESTACAO_FORCADA ?? Math.floor(tempo.dia / DIAS_ESTACAO) % 4; }   // (?clima=neve: o inverno)
+function estacaoAtual() { return MAPA_CAM === MAPAS.montanha ? 3 : MAPA_CAM === MAPAS.deserto ? 1 : ESTACAO_FORCADA ?? Math.floor(tempo.dia / DIAS_ESTACAO) % 4; }   // (?clima=neve: o inverno)
 function nomeFase(h) { return h >= 5 && h < 12 ? "manhã" : h >= 12 && h < 17.5 ? "tarde" : h >= 17.5 && h < 20 ? "anoitecer" : "noite"; }
 // quanto escuro (0 a 0,62) e a cor da luz por cima, pela hora
 function luzDoDia(h) {
@@ -9128,7 +10005,7 @@ function luzDoDia(h) {
 const COR_ESTACAO = [null, "rgba(255, 214, 90, 0.1)", "rgba(214, 120, 30, 0.26)", "rgba(238, 244, 255, 0.62)"];
 // a cor de cada estação por cima do chão (só a terra firme: o mar fica como está; o lago congela no inverno)
 function tintaEstacaoChao() {
-  if (MAPA_CAM === MAPAS.montanha || MAPA_CAM === MAPAS.daiyu) return;    // (a neve a 62% lavaria os tons dos patamares, e na ilha o basalto e a lava: R135)
+  if (MAPA_CAM === MAPAS.montanha || MAPA_CAM === MAPAS.daiyu || MAPA_CAM === MAPAS.deserto) return;    // (a neve a 62% lavaria os tons dos patamares, e na ilha o basalto e a lava: R135)
   const e = estacaoAtual(); if (!COR_ESTACAO[e] || !costa) return;
   cx.save(); cx.beginPath(); costa.forEach((p, k) => { const [a, b] = noMundo(p[0], p[1]); k ? cx.lineTo(a, b) : cx.moveTo(a, b); }); cx.closePath(); cx.clip();
   cx.fillStyle = COR_ESTACAO[e]; cx.fillRect(0, 0, W, H);
@@ -9211,7 +10088,7 @@ function desenharLuzDoDia(t) {
     const [X, Y] = noMundo(viking.x, viking.y, 0.3), r = 3.6 * s;
     const gr = g.createRadialGradient(X, Y / ACHATA, r * 0.1, X, Y / ACHATA, r); gr.addColorStop(0, "rgba(0, 0, 0, 0.85)"); gr.addColorStop(1, "rgba(0, 0, 0, 0)");
     g.save(); g.scale(1, ACHATA); g.fillStyle = gr; g.beginPath(); g.arc(X, Y / ACHATA, r, 0, 7); g.fill(); g.restore();
-  } else { const [X, Y] = noMundo(viking.x, viking.y, chapada ? 0.05 + zPiso(viking.x, viking.y) : 0.8 + (viking.x < -350 ? zPiso(viking.x, viking.y) : 0)); furo(X, Y, (chapada ? 3.6 : 4.5) * s, 0.85); }
+  } else { const [X, Y] = noMundo(viking.x, viking.y, chapada ? 0.05 + zPiso(viking.x, viking.y) : 0.8 + (viking.x < -350 || viking.y > 1050 ? zPiso(viking.x, viking.y) : 0)); furo(X, Y, (chapada ? 3.6 : 4.5) * s, 0.85); }
   for (const p of passagens) if (p.vale && Math.abs(p.x - cam.x) < 40 && Math.abs(p.y - cam.y) < 40) { const [X, Y] = noMundo(p.x, p.y, (p.zChao || 0) + 1.1); furo(X, Y, 3.6 * s, 0.97); }   // (a boca do Vale dos Dragões)
   for (const o of objetos) {
     if (o.luzFora) { const [X, Y] = noMundo(o.x, o.y, (o.zChao || 0) + 1.1); furo(X, Y, (o.tipo === "braseiro" ? 4 : 2.6) * s, 0.92, true); continue; }
@@ -9228,7 +10105,7 @@ function desenharLuzDoDia(t) {
     }
   }
   for (const m of magias) { const [X, Y] = noMundo(m.x, m.y, m.z); furo(X, Y, 1.8 * s, 0.8); }
-  for (const p of PORTAIS) if (!(prog && prog.nivel < p.nivelMin) && Math.abs(p.x - cam.x) < 40 && Math.abs(p.y - cam.y) < 40) { const [X, Y] = noMundo(p.x, p.y, 1.6 + (p.x < -350 ? zPiso(p.x, p.y) : 0)); furo(X, Y, 3.4 * s * (1 + 0.05 * Math.sin(t * 3)), 0.8); }   // (o redemoinho do portal ilumina em volta)
+  for (const p of PORTAIS) if (!(prog && prog.nivel < p.nivelMin) && Math.abs(p.x - cam.x) < 40 && Math.abs(p.y - cam.y) < 40) { const [X, Y] = noMundo(p.x, p.y, 1.6 + (p.x < -350 || p.y > 1050 ? zPiso(p.x, p.y) : 0)); furo(X, Y, 3.4 * s * (1 + 0.05 * Math.sin(t * 3)), 0.8); }   // (o redemoinho do portal ilumina em volta)
   furarGhotins(g);                               // (R137: a aura e as runas das Ghotins, por cima da noite)
   predLuz(furo);
   if (chapada) luzChapada(g, poças);
@@ -9369,7 +10246,7 @@ function decoRareada(o) {
   const R = DECO_RARA; let r = R.marca.get(o);
   if (r !== undefined) return r;
   r = false;
-  if (R.ligado && R.tipos.has(o.tipo) && !o.cidade && !o.altar && !o.caverna && !o.npc && !o.estabulo && !o.somePorArte && !o.extraDe && isFinite(o.x) && isFinite(o.y)) {
+  if (R.ligado && R.tipos.has(o.tipo) && !o.cidade && !o.altar && !o.caverna && !o.npc && !o.estabulo && !o.somePorArte && !o.extraDe && !o.fixa && isFinite(o.x) && isFinite(o.y)) {
     const h = Math.sin(Math.round(o.x * 10) * 12.9898 + Math.round(o.y * 10) * 78.233) * 43758.5453;
     R.vistos++; r = h - Math.floor(h) >= R.fica; if (r) R.tirados++;
   }
@@ -9630,7 +10507,7 @@ function vegDaTodas(ci, cj) {
   if (v !== undefined) return v;
   v = null;
   const x = (ci + 0.15 + hash(ci, cj, 21) * 0.7) * VEG_C, y = (cj + 0.15 + hash(ci, cj, 22) * 0.7) * VEG_C, h = hash(ci, cj, 23), r = hash(ci, cj, 24), r2 = hash(ci, cj, 25);
-  if (borda(x, y) < RAIO - 3.4 && !agua(x, y) && !lago(x, y, 1.1) && !praca(x, y) && !foraCidade(x, y) && !estrada(x, y) && !noCastelo(x, y, 0.3) && x < MONTE_X - 2 && x > -350 && y > -350 && !vegNaConstrucao(x, y) && !(naZonaAltar(x, y) && bordaAltar(x, y) < RAIO + 1)) {
+  if (borda(x, y) < RAIO - 3.4 && !agua(x, y) && !lago(x, y, 1.1) && !praca(x, y) && !foraCidade(x, y) && !estrada(x, y) && !noCastelo(x, y, 0.3) && x < MONTE_X - 2 && x > -350 && y > -350 && y < 1050 && !vegNaConstrucao(x, y) && !(naZonaAltar(x, y) && bordaAltar(x, y) < RAIO + 1)) {
     // o quanto o lugar puxa mato alto: a borda da mata, a beira da estrada e manchas pelos campos
     const c = distClareira(x, y), mg = x > VALE_X - 4 || c < 0 ? -1 : fbm(x * kV1(x, y) * 0.07 + 3, y * kV1(x, y) * 0.07 - 2) - (0.55 + 0.2 * Math.max(0, 1 - c / 5));
     const mata = mg > 0 && Math.hypot(x - PRACA.x, y - PRACA.y) > 10 && (!COM_CASTELO || retArred(x, y, FOSSO) > 4);
@@ -10865,6 +11742,7 @@ function montarPredios() {
 // desenho deles sobe essa altura (desenharViking, desenharObjeto) e o clique no NPC também (o corpo dele está mais alto)
 let PRED_ALTOS = [];
 function zPiso(x, y) {
+  if (y > 1050) return DESERTO.z(x, y);                                // (o Deserto de Mingsha: as dunas, o Caravançará e a rocha)
   if (y < -350) return DAIYU.z(x, y);                                  // (a Ilha de Daiyu: os platôs e as escadarias)
   if (x < -350) return GELADA.z(x, y);                                 // (a Montanha Gelada: os patamares e as escadas)
   if (naZonaAltar(x, y)) { const z = altarZ(x, y); if (z) return z; }   // (R165: a escadaria e o patamar do Altar das Eras)
@@ -11375,7 +12253,7 @@ function desenharDecoSprite(o, v0, X, Y, s, t) {
   const deB = v.pasta === "deco_b/" || !!v.v22;                           // (do estilo B: a pintura ou a foto de 22° dela)
   const im0 = o.caverna && !deB ? imagemEscura(v.arq) : imagemEstacao(v.arq, o.tipo, o.neve || (o.monte && o.tipo === "pedra") ? 3 : 0), k = kDeco(o, v0, v, s), w = v.w * k, h = v.h * k;
   const im1 = o.tom < 0 && deB ? imagemTom(im0, v.arq, o.tom) : im0;   // (Daiyu: o tom de cada basalto)
-  const im = o.caverna && (o.tipo === "costela" || o.tipo === "osso") ? ossoVale(im1, o.tipo) : im1;   // (no Vale: sem musgo, sem pinheiro, sem neve)
+  const im = o.caverna && (o.tipo === "costela" || o.tipo === "osso") ? ossoVale(im1, o.tipo) : o.tintura && typeof DESERTO === "object" ? DESERTO.tingir(im1, v.arq, o.tintura) : im1;   // (o deserto: a tinta da peça)   // (no Vale: sem musgo, sem pinheiro, sem neve)
   if ((!diag || !v.sombra) && !o.semSombra) sombra(X, Y, Math.max(0.3, v0.base * 0.42) * s * escDeco(o));   // (semSombra: a pegada pintada no chão, Ilha de Daiyu)
   const balanca = o.tipo === "arvore" || o.tipo === "pinheiro" ? 0.05 : o.tipo === "arbusto" ? 0.09 : 0;
   const espelho = o.espForcar || ((!diag || v.livre) && (o.esp !== undefined ? o.esp : !SEM_ESPELHO.has(o.tipo) && hash(Math.round(o.x * 10), Math.round(o.y * 10), 32) < 0.5));   // (na diagonal, espelhar trocaria o lado; espForcar: a porteira do curral, que vira para o outro eixo)
@@ -11842,12 +12720,19 @@ function sombraTinta(X, Y, r) {
 // Tools/viking_novo/chatgpt/preparar_viking_chatgpt.py (a escala, a espada em peças na mão direita, os tempos dos clipes e o dano, a
 // morte, a investida e os montados copiados do viking de antes). Ele usa o mesmo caminho dos vikings de teste (a espada sempre na
 // mão), com o mapa dele (vikingNovoAlvo). VOLTAR AO VIKING DE ANTES: VIKING_PADRAO = "" (ou ?viking=antigo, só nesta aba)
-const VIKING_PADRAO = "chatgpt";
+// (16/11, R402, o piloto do usuário: "Se a pessoa trocar de armadura, troca o personagem inteiro") o viking PADRÃO é o "viking padrão":
+// o de hoje no esqueleto de 67 ossos do Tripo, com a corrida ("Run With Sword", "Ta bom assim") e o combo de 5 golpes do Mixamo e as skills
+// de hoje (3d/viking_padrao.glb, Tools/viking_novo/padrao/preparar_viking_padrao.py). A corrida e os golpes já vêm no tempo da página
+// (tocam direto, sem os nós do VIKING_NOVO_NOS) e cada golpe anda o extras.avanco dele (avancoVikingPadrao). Com a Armadura de Escamas
+// (armadura_guerreiro tier 3) ou a do Dragão de Bronze (tier 6) vestida, o modelo inteiro é o glb dela (VIKING_ARMADURAS_3D,
+// modeloHeroi3d). O de antes (o do ChatGPT): ?viking=chatgpt; o de antes dele: ?viking=antigo
+const VIKING_PADRAO = "padrao";
 const VIKING_VAR = (() => {
   const q = new URLSearchParams(location.search), k0 = q.get("viking"), k = k0 === null || k0 === "" ? VIKING_PADRAO : k0;
   const v = { mixamo: { glb: "_teste3d/viking_mixamo.glb", nome: "Viking Mixamo (rodada 3)" }, novo: { glb: "_teste3d/viking_novo.glb", nome: "Viking novo à mão (rodada 5)" },
               usuario: { glb: "_teste3d/viking_usuario.glb", nome: "Viking do usuário" },
-              chatgpt: { glb: "3d/viking_chatgpt.glb", nome: "Viking novo", novo3d: true, padrao: true } }[k];
+              chatgpt: { glb: "3d/viking_chatgpt.glb", nome: "Viking novo", novo3d: true, padrao: true },
+              padrao: { glb: "3d/viking_padrao.glb", nome: "Viking padrão", novo3d: true, padrao: true, armaduras: true } }[k];
   const sub = k === "usuario" && /^[a-z0-9_]{1,30}$/.test(q.get("glbteste") || "") ? q.get("glbteste") : null;
   if (v && sub) Object.assign(v, { glb: "_subst/viking_subst_" + sub + ".glb", nome: "Viking do usuário (substituta de teste: " + sub + ")", substituta: sub });
   return v ? { chave: k, ...v } : null;
@@ -13637,7 +14522,7 @@ const ALVO_LONGE = 20;
 // voltando à primeira). Nunca uma derrotada, nem uma renascendo (o esqueleto se levantando) ou ainda sumindo
 function alvoComEspaco() {
   if (viking.caido) return;
-  const s = PX * zoom, naTela = l => { const [X, Y] = noMundo(l.x, l.y, l.x < -350 || l.y < -350 ? zPiso(l.x, l.y) : 0); return X > -s * 0.3 && X < W + s * 0.3 && Y > s * 0.3 && Y < H + s * 0.6; };
+  const s = PX * zoom, naTela = l => { const [X, Y] = noMundo(l.x, l.y, l.x < -350 || l.y < -350 || l.y > 1050 ? zPiso(l.x, l.y) : 0); return X > -s * 0.3 && X < W + s * 0.3 && Y > s * 0.3 && Y < H + s * 0.6; };
   const perto = criaturas.filter(l => !l.morto && l.vida > 0 && l.acao !== "levantar" && !l.remover && naTela(l))
     .sort((a, b) => Math.hypot(a.x - viking.x, a.y - viking.y) - Math.hypot(b.x - viking.x, b.y - viking.y));
   if (!perto.length) { selecao = null; viking.alvo = null; avisar("Nenhuma criatura na tela"); return; }
@@ -14062,7 +14947,10 @@ function corDoNivel(n) {
 }
 
 // ---------------------------------------------------------------- nível, experiência, atributos (como no Metin2)
-// A experiência para subir de cada nível é a tabela do Metin2 (EXP_NIVEL[n] = do nível n ao n+1), agora até o nível 70
+// (16/11/2026, R400, o usuário: "B com level maximo 90") a tabela vai até o 90, a "Required EXP" da wiki oficial do Metin2
+// (en-wiki.metin2.gameforge.com/index.php/EXP; do 1 ao 70 confere com a de antes). O servidor do site tem uma cópia
+// (educacao-gamer-site, backend/src/ghotin2/regras.js): mude as duas juntas.
+// A experiência para subir de cada nível é a tabela do Metin2 (EXP_NIVEL[n] = do nível n ao n+1), antes até o nível 70
 // (o nível máximo: Vila 1 1–15, Vila Hahoe 15–45, Ilha de Daiyu 45–70; Logs/Balanceamento/NIVEL70.md). Cada criatura dá
 // uma exp pelo nível dela (expBase: a tabela dividida por MORTES_NIVEL, quantas criaturas do mesmo nível sobem um
 // nível), mais ou menos conforme a diferença para o seu (a mesma tabela do Metin2: criatura mais alta dá até 130%, bem
@@ -14074,7 +14962,9 @@ const EXP_NIVEL = [0, 300, 800, 1500, 2500, 4300, 7200, 11000, 17000, 24000, 330
   2421000, 2761000, 3145000, 3580000, 4073000, 4632000, 5194000, 5717000, 6264000, 6837000,                       // 31–40
   7600000, 8274000, 8990000, 9753000, 10560000, 11410000, 12320000, 13270000, 14280000, 15340000,                 // 41–50
   16870000, 18960000, 19980000, 21420000, 22930000, 24530000, 26200000, 27960000, 29800000, 32780000,             // 51–60
-  36060000, 39670000, 43640000, 48000000, 52800000, 58080000, 63890000, 70280000, 77310000, 85040000];            // 61–70
+  36060000, 39670000, 43640000, 48000000, 52800000, 58080000, 63890000, 70280000, 77310000, 85040000,              // 61–70
+  93540000, 102900000, 113200000, 124500000, 137000000, 150700000, 165700000, 236990000, 260650000, 286780000,   // 71–80 (16/11, o teto 90)
+  315000000, 346970000, 381680000, 419770000, 461760000, 508040000, 558740000, 614640000, 676130000, 743730000];  // 81–90
 const NIVEL_MAX = EXP_NIVEL.length - 1, PONTOS_POR_NIVEL = 3, BOLINHAS_EXP = 4, ATRIB_MAX = 90;   // (R157, como no Metin2: as bolinhas 1, 2 e 3 dão 1 ponto cada; a 4ª só sobe o nível)
 // quantas criaturas comuns do mesmo nível sobem um nível (MORTES_NIVEL[0] + MORTES_NIVEL[1] × nível): a subida fica mais
 // lenta a cada nível, como no Metin2. Desde 29/10 a versão mais branda do balanço (Logs/Jogador/BALANCO_EXP_GOLD.md):
@@ -15719,7 +16609,7 @@ function desenharTrevasChao(forca = 1, veios = forca === 1) {   // (veios = fals
     if (!l.cfg.estatico || !(l.trevas > 0.01) || Math.abs(l.x - cam.x) > 60 || Math.abs(l.y - cam.y) > 60) { if (l.veiosCache && forca === 1) l.veiosCache = null; continue; }   // (longe: a imagem dos veios sai da memória)
     const R = raioTrevas(l.cfg), zt = zPiso(l.x, l.y), [cX, cY] = noMundo(l.x, l.y, zt), [aX, aY] = noMundo(l.x + R, l.y, zt), [bX, bY] = noMundo(l.x, l.y + R, zt);   // (no platô, o disco na altura da pedra)
     if (cX < -R * PX * zoom * 1.5 || cX > W + R * PX * zoom * 1.5 || cY < -R * PX * zoom || cY > H + R * PX * zoom) continue;
-    cx.save(); if (l.x < -350) GELADA.recortarTrevas(cx, l.x, l.y);          // (Montanha Gelada: o disco não vaza do patamar da pedra)
+    cx.save(); if (l.x < -350) GELADA.recortarTrevas(cx, l.x, l.y); else if (l.y > 1050) DESERTO.recortarTrevas(cx, l.x, l.y);   // (o Deserto: o disco não sobe nas dunas)          // (Montanha Gelada: o disco não vaza do patamar da pedra)
     cx.transform(aX - cX, aY - cY, bX - cX, bY - cY, cX, cY);     // (o círculo de raio 1 vira o do chão)
     const g = cx.createRadialGradient(0, 0, 0, 0, 0, 1), k = l.trevas * forca;
     g.addColorStop(0, `rgba(12, 10, 9, ${0.84 * k})`); g.addColorStop(0.5, `rgba(14, 12, 10, ${0.76 * k})`); g.addColorStop(0.78, `rgba(18, 15, 13, ${0.42 * k})`); g.addColorStop(1, "rgba(22, 18, 16, 0)");
@@ -15920,7 +16810,7 @@ function pecaSobGhotin(x, y, cfg) {
 }
 // o chão em que uma pedra pode cair (R142: fora das peças; nunca na Vila Hahoe nem nos terraços de chá)
 function chaoDeGhotin(x, y, cfg) {
-  return livre(x, y) && livre(x + 0.8, y) && livre(x - 0.8, y) && !agua(x, y) && !praca(x, y) && borda(x, y) < RAIO - 4 && !(y > 350 && (Math.hypot(x - HV.x, y - HV.y) < HV.r + 5 || emTerracos(x, y))) && !(y < -350 && DAIYU.proibidoGhotin(x, y)) && !(x < -350 && GELADA.proibidoGhotin(x, y, cfg)) && !pecaSobGhotin(x, y, cfg);
+  return livre(x, y) && livre(x + 0.8, y) && livre(x - 0.8, y) && !agua(x, y) && !praca(x, y) && borda(x, y) < RAIO - 4 && !(y > 350 && (Math.hypot(x - HV.x, y - HV.y) < HV.r + 5 || emTerracos(x, y))) && !(y < -350 && DAIYU.proibidoGhotin(x, y)) && !(x < -350 && GELADA.proibidoGhotin(x, y, cfg)) && !(y > 1050 && DESERTO.proibidoGhotin(x, y)) && !pecaSobGhotin(x, y, cfg);
 }
 // (R245) duas Ghotins nunca a menos de GHOTIN_ENTRE m: as vivas pelo lugar delas, as quebradas pelo lugar onde vão cair (toca)
 const GHOTIN_ENTRE = 20;
@@ -16052,7 +16942,7 @@ function desenharFumacaMetinRef(l, frente) {
 }
 // (07/11, R313) a onda do limiar mais baixo que a vida passou (ondasHorda: quantos limiares já ficaram para trás); as de cima se perdem
 function metinApanhou(l) {
-  if (HAHOE2 && l.y > 350) for (const c of criaturas) if (c.hordaDe === l && c.defensor && !c.morto) c.provocado = Math.max(c.provocado || 0, 8);   // (R397: na Hahoe, os defensores só lutam quando a pedra deles apanha)
+  if (HAHOE2 && l.y > 350 && l.y < 1050) for (const c of criaturas) if (c.hordaDe === l && c.defensor && !c.morto) c.provocado = Math.max(c.provocado || 0, 8);   // (R397: na Hahoe, os defensores só lutam quando a pedra deles apanha)
   l.ondasHorda = l.ondasHorda || 0;
   const f = l.vida / l.cfg.vida;
   let i = LIMIARES_HORDA.length - 1;
@@ -16557,7 +17447,7 @@ function baseIlha(mp = MAPAS.vila1, fatias = false) {
   const R = mp.raio + 8, v1 = mp === MAPAS.vila1, C = { x0: Math.min(CAIXA_V1.x0, altarMundo(0, 0)[0] - 36), x1: CAIXA_V1.x1, y0: CAIXA_V1.y0, y1: Math.max(CAIXA_V1.y1, altarMundo(0, 0)[1] + 34) };   // (R165: com a ilha do Altar das Eras)      // (a Vila 1: a caixa da costa, com o vale, a montanha e as Terras do Sul; os outros mapas, a ilha deles)
   const b = pintarBase(...(v1 ? [C.x0 - 8, C.y0 - 8, C.x1 + 8, C.y1 + 8] : [mp.ox - R, mp.oy - R, mp.ox + R, mp.oy + R]), (x, y) => {
     const bd = borda(x, y);
-    if (bd > RAIO) return mp.semMar ? [149, 171, 181] : [38, 84, 110];   // (Montanha Gelada: o mar de nuvens)
+    if (bd > RAIO) return mp.corFora || (mp.semMar ? [149, 171, 181] : [38, 84, 110]);   // (o Deserto: o papel em branco)   // (Montanha Gelada: o mar de nuvens)
     { const cm = mp.corMini && mp.corMini(x, y); if (cm) return cm; }   // (a Ilha de Daiyu: os níveis, a lava e o maciço)
     if (bd > RAIO - 2.8) return [205, 182, 130];
     if (pesoMonte(x, y) > 0.5 && !estrada(x, y)) return neveMonte(x, y) > 0.5 ? [226, 232, 240] : [140, 146, 156];
@@ -16597,7 +17487,7 @@ function chaoDoMapaPronto() {
   let x = viking.x, y = viking.y;
   if (naCaverna(x)) { const d = cavDe(x); if (!d || !d.saida) return; x = d.saida.x; y = d.saida.y; }
   const mp = mapaDe(x, y);
-  if (mp === MAPAS.vila1) { if (!miniBase) miniBase = baseIlha(); } else if (!mp.mini) mp.mini = baseIlha(mp, HAHOE2 && mp === MAPAS.hahoe);
+  if (mp === MAPAS.vila1) { if (!miniBase) miniBase = baseIlha(); } else if (!mp.mini) mp.mini = baseIlha(mp, (HAHOE2 && mp === MAPAS.hahoe) || mp === MAPAS.deserto);
   if (mp.mini && mp.mini.continuar && !mp.mini.pronto) mp.mini.continuar(6);   // (a Hahoe nova: em fatias de 6 ms)
 }
 function desenharMinimapa(agora) {
@@ -16609,7 +17499,7 @@ function desenharMinimapa(agora) {
   if (cav && !dun) return;
   const mp = mapaDe(viking.x, viking.y), v1 = mp === MAPAS.vila1;   // (cada mapa com a imagem dele; a da Vila 1 é a miniBase de sempre)
   if (!cav && v1 && !miniBase) miniBase = baseIlha();
-  if (!cav && !v1 && !mp.mini) mp.mini = baseIlha(mp, HAHOE2 && mp === MAPAS.hahoe);
+  if (!cav && !v1 && !mp.mini) mp.mini = baseIlha(mp, (HAHOE2 && mp === MAPAS.hahoe) || mp === MAPAS.deserto);
   if (!cav && !v1 && mp.mini.continuar && !mp.mini.pronto) mp.mini.continuar(3);   // (a Hahoe nova: em fatias de 3 ms por quadro do minimapa; eram 6, e na Hahoe 2× o quadro pesava)
   if (dun && !miniCavernas[dun.id]) miniCavernas[dun.id] = baseCaverna(dun);
   // (R250) o canvas tem o dobro de pixels do tamanho na tela (164 px): os pontinhos e o contorno ficam nítidos, também girados
@@ -16625,7 +17515,7 @@ function desenharMinimapa(agora) {
     if (n) { n.style.left = (90 + 86 * Math.sin(-GIRO)) + "px"; n.style.top = (90 - 86 * Math.cos(-GIRO)) + "px"; n.style.transform = "translate(-50%, -50%)"; }
   }
   g.save();
-  g.fillStyle = cav ? "#161210" : "#26546e"; g.fillRect(0, 0, W0, W0);
+  g.fillStyle = cav ? "#161210" : mp.corFora ? `rgb(${mp.corFora})` : "#26546e"; g.fillRect(0, 0, W0, W0);
   g.imageSmoothingEnabled = true;
   const [bx, by] = ponto(b.x0, b.y1);
   g.drawImage(b.c, bx, by, b.c.width / MINI_PX * esc, b.c.height / MINI_PX * esc);
@@ -17094,6 +17984,16 @@ function montarDaiyu() {
   criarMetins("daiyu");
   montarVale();                                                       // (o Vale dos Dragões: a entrada no pé do Monte Daiyu e os 3 andares)
   limparPedacos(); soltarMascaras(); MAPAS.daiyu.mini = null;         // (R292: soltando os canvas)
+}
+// o Deserto de Mingsha (mapa_deserto.js): a grade das dunas, a decoração (70 peças de tipos que já existem, com a tinta de
+// tempo de execução e a altura do chão em zChao) e o preaquecer. A etapa 2 põe os grupos, as Ghotins, o Hyeonmu e os NPCs
+function montarDeserto() {
+  DESERTO.montarGrade();
+  const por = o => { objetos.push(o); if (temColisao(o)) porNaGrade(o); return o; };
+  DESERTO.montar({ por, completar: completarDecoracao, DECO, hash });
+  refazerGrade();
+  DESERTO.preaquecer();
+  limparPedacos(); soltarMascaras(); MAPAS.deserto.mini = null;       // (R292: soltando os canvas)
 }
 // ruínas antigas em volta da entrada da Cripta e o píer no lago (muralha e torres ficam só no editor)
 function montarMarcos() {
@@ -17898,7 +18798,7 @@ function zSela() {
   return zSela.v = Math.max(0.3, Math.min(1.6, z));
 }
 function montarCavaleiro3d(i, r) {
-  const p = P3D, c = instancia3d(DONO_CAVALEIRO, r.m, r.arma || ""), mm = MONTADOS3D && MONTADOS3D[classe] && MONTADOS3D[classe][r.anim];
+  const p = P3D, c = instancia3d(DONO_CAVALEIRO, r.m, r.arma || ""), MM = (r.m && r.m.montados) || (MONTADOS3D && MONTADOS3D[classe]), mm = MM && MM[r.anim];   // (R402: os montados do modelo vestido)
   c.pedido = p.quadro;
   const as = i.assento || (i.assento = i.raiz.getObjectByName("Assento"));
   if (!as || !mm) return;
@@ -17916,7 +18816,7 @@ function montarCavaleiro3d(i, r) {
   } else c.raiz.quaternion.identity();
   const tempoM = (q, t) => { const dur = q.quadros / q.fps; return q.laco ? ((t % dur) + dur) % dur : Math.max(0, Math.min(t, dur - 1e-3)); };
   // (R352) com a mistura do cavaleiro (o galope saindo ou entrando junto com o do cavalo)
-  const cs = r.mix ? r.mix.map(x => { const q = MONTADOS3D[classe][x.anim]; return q && { nome: x.anim, clip: q.clip, tempo: tempoM(q, x.t), w: x.w }; }).filter(Boolean) : null;
+  const cs = r.mix ? r.mix.map(x => { const q = MM[x.anim]; return q && { nome: x.anim, clip: q.clip, tempo: tempoM(q, x.t), w: x.w }; }).filter(Boolean) : null;
   poseMistura3d(c, r.anim, mm.clip, tempoM(mm, r.t), cs);
   if (!/ataque/.test(r.anim)) armaMontadaFixa(c);                      // (05/11: parado e galopando, a arma numa pose fixa ao lado, fora do cavalo)
   else armaMontadaNaMao(c);                                            // (R390: o viking novo golpeia com a arma de volta na mão)
@@ -20655,6 +21555,54 @@ const BRILHO_REF = {
   9: { forte: "#ff2a12", sombra: "rgba(255, 36, 14, 1)", claro: "#ffb8a0", rgb: "255, 40, 25", luz: "255, 205, 195", hue: 8 },
 };
 function brilhoRef() { return prog && prog.arma ? BRILHO_REF[prog.arma.ref] || null : null; }
+// (16/11, R403, o usuário: "Faça um sistema de particulas que ficara no personagem quando a placa for +7 +8 e +9. Coloque um brilho leve no
+// +7, brilhos um pouco maiores no 8 e um efeito 9 legal, pegue referencias do metin2"; o plano aprovado: "Pode usar") o refino da armadura de
+// corpo (prog.equip.armadura.ref) acende o herói de qualquer classe, nas cores do BRILHO_REF (+7 dourado, +8 violeta, +9 vermelho-fogo), como
+// a armadura +7/+8/+9 do Metin2 (o corpo brilhando e as faíscas em volta):
+//   +7  a silhueta com um brilho leve, pulsando devagar, e 2–3 faíscas lentas por segundo;
+//   +8  a silhueta mais acesa, 6–8 faíscas por segundo, um halo suave pulsando e motas de luz subindo do corpo;
+//   +9  a silhueta forte, brasas subindo em espiral em volta do corpo, um anel de luz no chão girando devagar e uma rajada de
+//       faíscas a cada 2–3 s.
+// Luz somada e sem contorno (a linguagem dos efeitos). A silhueta é a da aura da Fúria (desenharHeroi); as partículas, no 3D, as do FX3
+// (passoRefinoArmadura3, com um teto) e, sem ele (?2d=1, ?fx=0), as brasas do mundo 2D (refinoArmadura2d). Some com o herói caído ou
+// escondido (o Esconder do ninja). window.VFX_REF_ARMADURA_LIGADO = false desliga, para comparar
+function refArmadura(eq) {
+  const a = (eq || (typeof prog === "object" && prog && prog.equip) || {}).armadura;
+  return a && a.ref >= 7 ? Math.min(9, a.ref) : 0;
+}
+function refArmaduraVisivel() {
+  const n = refArmadura(); if (!n || window.VFX_REF_ARMADURA_LIGADO === false) return 0;
+  const v = viking;
+  if (v.caido || (classe === "ninja" && typeof NINJA === "object" && NINJA.esconder.buff > 0) || (typeof SEL === "object" && SEL.aberta)) return 0;
+  return n;
+}
+// (R403) a força da silhueta acesa por nível: alfa, borrado (px por zoom) e o ritmo do pulso (rad/s)
+const SILHUETA_REF = { 7: { a: 0.22, blur: 5, pulso: 1.6 }, 8: { a: 0.4, blur: 9, pulso: 2.2 }, 9: { a: 0.46, blur: 11, pulso: 2.8 } };
+// (R403) as partículas sem o FX3 (?2d=1, ?fx=0): as brasas do mundo 2D na cor do refino (as faíscas sobem devagar) e, no +9, o anel no chão
+const REF_ARM_2D = { t: 0, rajada: 2.5, est: { faiscas: 0, rajadas: 0 } };
+function refinoArmadura2d(dt) {
+  const n = refArmaduraVisivel(); if (!n || fx3()) return;
+  const b = BRILHO_REF[n], v = viking, R = REF_ARM_2D, taxa = { 7: 2.5, 8: 7, 9: 9 }[n];
+  R.t += dt;
+  const doRef = brasas.reduce((s, x) => s + (x.refArm ? 1 : 0), 0);
+  const solta = (k, o = {}) => { for (let i = 0; i < k && doRef + i < 40; i++) { const a = Math.random() * 6.283, r = (o.r ?? 0.35) * Math.sqrt(Math.random());
+    brasas.push({ x: v.x + Math.cos(a) * r, y: v.y + Math.sin(a) * r, z: o.z ?? 0.2 + Math.random() * 1.3, vx: (o.vel ?? 0) * Math.cos(a), vy: (o.vel ?? 0) * Math.sin(a), vz: o.vz ?? 0.25 + Math.random() * 0.4,
+      vida: o.vida ?? 1.2, max: o.vida ?? 1.2, tam: o.tam ?? (n === 7 ? 0.035 : 0.045), cor: b.hue, refArm: true }); R.est.faiscas++; } };
+  let q = taxa * dt; while (q > 0) { if (Math.random() < q) solta(1); q -= 1; }
+  if (n === 9 && (R.rajada -= dt) <= 0) { R.rajada = 2 + Math.random(); R.est.rajadas++; solta(12, { r: 0.2, z: 1.0, vel: 1.6, vz: 1.2, vida: 0.55, tam: 0.05 }); }
+}
+// (R403) o anel do +9 no chão, sem o FX3: uma elipse de luz girando (dois arcos) em volta dos pés
+function anelRefArmadura2d(X, Y, z, agora) {
+  if (refArmaduraVisivel() !== 9 || fx3()) return;
+  const b = BRILHO_REF[9], rx = 0.85 * PX * z, ry = rx * 0.5, g = agora * 0.6;
+  cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round";
+  cx.strokeStyle = `rgba(${b.rgb}, ${0.32 + 0.1 * Math.sin(agora * 2.8)})`; cx.lineWidth = 2.2 * z;
+  cx.beginPath(); cx.ellipse(X, Y, rx, ry, 0, g, g + 2.4); cx.stroke();
+  cx.beginPath(); cx.ellipse(X, Y, rx, ry, 0, g + 3.14, g + 5.54); cx.stroke();
+  cx.strokeStyle = `rgba(${b.luz}, 0.22)`; cx.lineWidth = 1 * z;
+  cx.beginPath(); cx.ellipse(X, Y, rx * 0.78, ry * 0.78, 0, -g, -g + 6.283); cx.stroke();
+  cx.restore();
+}
 // (R291, 05/11, o usuário: "quero deixar os golpes dos personagens com as cores das armas se estiverem +7 +8 ou +9" e depois "os efeitos das
 // skills nao precisa mudar") SÓ o ataque básico de cada classe pega a cor do refino da arma na mão: o rastro do golpe (a fita da arma e o
 // clarão do acerto), a flecha comum do Arqueiro e a bola do Feiticeiro. As skills ficam como estão. É um tingimento: a cor principal vira
@@ -23364,6 +24312,7 @@ const HAHOE_BANDOS = (HAHOE2 ? VILA2.BANDOS : [   // (a Hahoe nova: os bichos de
 // o nome do lugar (o minimapa)
 function nomeRegiao(x, y) {
   if (y < -350) return DAIYU.nomeRegiao(x, y);                       // (a Ilha de Daiyu: as zonas de mapa_daiyu.js)
+  if (y > 1050) return DESERTO.nomeRegiao(x, y);                     // (o Deserto de Mingsha: as zonas e os lugares de mapa_deserto.js)
   if (y > 350) return nomeRegiaoHahoe(x, y);                         // (a Vila Hahoe: ZONAS_H)
   if (x < -350) return GELADA.nomeRegiao(x, y);                      // (Montanha Gelada: as zonas de mapa_montanha.js)
   if (naZonaAltar(x, y) && bordaAltar(x, y) < RAIO + 1) return "Altar das Eras";   // (R165)
@@ -23398,7 +24347,7 @@ function spawnsOriginais() {
 // uma lista editada de antes da Vila Hahoe (sem nenhum spawn lá): os bandos que foram para a Vila Hahoe saem da Vila 1, e
 // entram os substitutos (SUBST_V1) e os bandos da Vila Hahoe (o resto das edições fica)
 function migrarSpawnsHahoe() {
-  if (SPAWNS.some(s => s.y > 350)) return;
+  if (SPAWNS.some(s => s.y > 350 && s.y < 1050)) return;              // (os do Deserto, em y > 1050, não contam como os da Hahoe)
   const de = l => l.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 }));
   SPAWNS = [...SPAWNS.filter(s => !MOVIDOS_HAHOE.includes(s.tipo)), ...de(SUBST_V1), ...de(HAHOE_BANDOS)];
 }
@@ -23527,7 +24476,7 @@ function provocarGrupoV1(l, t) {
 // foi atacada). Pela toca, para não mudar no meio da perseguição; as cavernas (x > 240) ficam como estão
 function calmaHahoe(l) {
   if (!HAHOE2 || l.cfg.estatico || (l.horda && !l.defensor)) return false;
-  const t = l.toca || l; return t.y > 350 && t.x < 240;
+  const t = l.toca || l; return t.y > 350 && t.y < 1050 && t.x < 240;   // (o Deserto, em y > 1050, tem as aranhas Más, que atacam)
 }
 // (etapa 3, a Hahoe nova) "O capitão que chama": quando o grupo de um líder com cfg.chama (m) entra na luta, os grupos cujo
 // líder está a até chama m dele entram também (provocados por 8 s, e perseguem até GRUPO_PERSEGUE + chama m do herói), com a
@@ -24829,6 +25778,7 @@ function passoSkillsArq(dt) {
     const p = pontaNoMundo();
     if (p && Math.random() < dt * (10 + 40 * cargaCerteiro())) brasas.push({ ...p, vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6, vz: 0.4 + Math.random() * 0.9, vida: 0.4, max: 0.4, tam: 0.035 + 0.03 * cargaCerteiro() });
   }
+  refinoArmadura2d(dt);                                                // (R403: as faíscas da armadura +7/+8/+9 sem o FX3)
   for (const b of brasas) { b.x += b.vx * dt; b.y += b.vy * dt; b.z = Math.max(0, b.z + b.vz * dt); b.vz += (b.poeira ? -3 : 0.6) * dt; b.vx *= 0.96; b.vy *= 0.96; b.vida -= dt; }
   for (let i = brasas.length - 1; i >= 0; i--) if (brasas[i].vida <= 0) brasas.splice(i, 1);
   if (brasas.length > 500) brasas.splice(0, brasas.length - 500);
@@ -28075,7 +29025,8 @@ const PORTAIS = [
 ];
 PORTAIS.push(...DAIYU.portais(HAHOE.ox, HAHOE.oy));
 if (HAHOE2) { const p = PORTAIS.find(q => q.id === "hahoe_daiyu"); if (p) Object.assign(p, { x: HAHOE.ox + VILA2.PORTAIS.daiyu[0], y: HAHOE.oy + VILA2.PORTAIS.daiyu[1], saida: VILA2.PORTAIS.saidaDaiyu }); }   // (no Porto da Foz)                   // (a Ilha de Daiyu: atrás do Cais da Vila Hahoe, nível 45)
-PORTAIS.push(GELADA.rasgo());                                         // (Montanha Gelada: o rasgo que só desce, do Santuário ao Acampamento; depois do de ida, que é o da trava)
+PORTAIS.push(GELADA.rasgo());
+PORTAIS.push(...DESERTO.portais(HAHOE.ox, HAHOE.oy, HAHOE2));          // (o Deserto de Mingsha: no Desfiladeiro da Cachoeira da Hahoe, nível 40, e o de volta no Portão da Caravana)                                         // (Montanha Gelada: o rasgo que só desce, do Santuário ao Acampamento; depois do de ida, que é o da trava)
 let viagem = null, cartaoViagem = null;
 const PORTAL_AVISO = { n: 0, txt: "" };                                // (o último aviso de trava: os testes conferem)
 function pontoSeguro(m) {
@@ -28102,9 +29053,10 @@ function cortarDecoracao(id) {
 function montarMapa(id) {
   const m = MAPAS[id]; if (!m || m.montado) return false;
   m.montado = true;
-  if (id === "hahoe") { montarHahoe(); const p = PORTAIS.find(q => q.id === "hahoe_daiyu"); if (p) { abrirEspaco(p.x - 4, p.y - 4, p.x + 4, p.y + 4); refazerGrade(); } }
+  if (id === "hahoe") { montarHahoe(); for (const q of PORTAIS) if (q.id === "hahoe_daiyu" || q.id === "hahoe_deserto") abrirEspaco(q.x - 4, q.y - 4, q.x + 4, q.y + 4); refazerGrade(); }   // (o do deserto: o Portão da Caravana)
   if (id === "montanha") montarMontanha();
   if (id === "daiyu") montarDaiyu();
+  if (id === "deserto") montarDeserto();
   cortarDecoracao(id);                                                 // (metade da decoração sem função: a Hahoe, a Montanha e a Daiyu)
   assentarGhotins();
   edmAplicarMapa(edmMapaKey(id));                                      // (R289: as mudanças do editor de mapas)
@@ -28788,7 +29740,8 @@ function livre(x, y) {
   if (naCaverna(x)) { if (!pisoCaverna(x, y) || portaChefeBarra(x, y, false)) return false; }   // (R252: a porta do chefe fechada)
   else if (borda(x, y) > RAIO - 0.8 || agua(x, y)) return false;
   if (y < -350 && !DAIYU.andavel(x, y)) return false;                 // (Ilha de Daiyu: os penhascos, a lava e o que um platô esconde)
-  if (x < -350 && !GELADA.andavel(x, y)) return false;                 // (Montanha Gelada: as beiras, as fontes, as fendas e os marcos)
+  if (x < -350 && !GELADA.andavel(x, y)) return false;
+  if (y > 1050 && !DESERTO.andavel(x, y)) return false;                 // (o Deserto: as faces das dunas, o paredão, o lago e a beira de papel)                 // (Montanha Gelada: as beiras, as fontes, as fendas e os marcos)
   if (!altarAndavel(x, y)) return false;                               // (R165: a mureta, a balaustrada e o que o patamar esconde)
   if (foraTabuleiro(x, y)) return false;                               // (R086: o corrimão e o vão da ponte)
   if (noPilarPortal(x, y)) return false;                               // (05/11: os pilares do Portal B; o vão fica livre)
@@ -29681,6 +30634,7 @@ function passo(dt) {
   const rapidezM2 = (golpeia || v.anim === "atirar" || v.anim === "bola") && !andando ? (1 + (status.rapidez || 0)) / RITMO_BASE_ARMA : 1;
   v.t += dt * ritmo * rapidezM2;
   if ((classe === "ninja" || ehXama() || classe === "shura") && info.avanco && v.acao === v.anim) avancarNinja(v, info, v.t - dt * ritmo * rapidezM2, v.t);   // (o combo da xamã também anda)   // o combo do ninja anda
+  else if (classe === "viking" && v.acao === v.anim && VIKING_VAR && VIKING_VAR.armaduras) { const av = avancoVikingPadrao(v); if (av) avancarNinja(v, av, v.t - dt * ritmo * rapidezM2, v.t); }   // (R402: o combo do Mixamo anda)
   const dur = info.quadros / info.fps;
   const q = Math.floor(v.t * info.fps);
   const golpeQualquer = v.anim.startsWith("golpe") || v.anim === "sacar_golpe" || ehGiro(v.anim);
@@ -30127,7 +31081,7 @@ function quadroAtual() {
 // acima do pé, em m, com folga; mais 80 px para a placa do nome e a barra de vida). As criaturas eram todas desenhadas,
 // as ~220 do mapa (a sombra, o sprite ou o pedaço 3D, a placa e a barra), mesmo as fora da tela: ~12% do laço
 function peNaTela(x, y, larg, alto, extraPx = 0) {
-  const [sx, sy] = tela(x - cam.x, y - cam.y), s = PX * zoom, X = W / 2 + sx, Y = H / 2 + sy - (y < -350 ? DAIYU.z(x, y) * s * ALTURA : x < -350 ? GELADA.z(x, y) * s * ALTURA : naZonaAltar(x, y) ? altarZ(x, y) * s * ALTURA : 0);
+  const [sx, sy] = tela(x - cam.x, y - cam.y), s = PX * zoom, X = W / 2 + sx, Y = H / 2 + sy - (y > 1050 ? DESERTO.z(x, y) * s * ALTURA : y < -350 ? DAIYU.z(x, y) * s * ALTURA : x < -350 ? GELADA.z(x, y) * s * ALTURA : naZonaAltar(x, y) ? altarZ(x, y) * s * ALTURA : 0);
   return X > -larg * s - extraPx && X < W + larg * s + extraPx && Y > -s * 1.2 - extraPx && Y - alto * s - extraPx < H;
 }
 // DESEMPENHO (R304, 06/11, Logs/Desempenho/GHOTINS_CUSTO.md): a Ghotin era "sempre na tela", e as 10 a 14 pedras do mapa eram
@@ -31925,11 +32879,12 @@ async function abrirModelo3d(m) {
   // (o viking de teste, ?viking=mixamo ou ?viking=novo: o glb dele, sem cache; sem a chave, o 3d/viking.glb de sempre)
   // (R390: o viking padrão, o novo, vem do 3d/ com o ?v= do versoes.json, como os outros; os de teste, sem cache)
   // (R394: o feiticeiro padrão, o novo, também: 3d/feiticeiro_chatgpt.glb)
-  const VV = VAR_3D[m.nome] || null;
-  m.arq = VV ? VV.glb + (VV.padrao ? "" : "?t=" + Date.now()) : "3d/" + m.nome + ".glb";
+  // (R402: as armaduras do viking padrão: m.glb, o glb da armadura, com o mesmo caminho do padrão)
+  const VV = VAR_3D[m.nome] || null, G = m.glb || (VV && VV.glb);
+  m.arq = VV ? G + (VV.padrao ? "" : "?t=" + Date.now()) : "3d/" + m.nome + ".glb";
   try { gltf = await new Promise((ok, erro) => p.loader.load(m.arq, ok, undefined, erro)); }
-  catch (e) { if (!VV) try { gltf = await abrirJson3d(m.nome); } catch (e2) {} else if (VV.padrao) try { gltf = await abrirJson3d(VV.glb.replace(/^3d\//, "").replace(/\.glb$/, "")); } catch (e2) {} }
-  if (!gltf) { m.erro = "sem o glb"; if (VV) avisar((VV.padrao ? NOME_CLASSE[m.nome] + ": " : "Viking de teste: ") + "não achei " + VV.glb); return; }
+  catch (e) { if (!VV) try { gltf = await abrirJson3d(m.nome); } catch (e2) {} else if (VV.padrao) try { gltf = await abrirJson3d(G.replace(/^3d\//, "").replace(/\.glb$/, "")); } catch (e2) {} }
+  if (!gltf) { m.erro = "sem o glb"; if (VV) avisar((VV.padrao ? NOME_CLASSE[m.nome] + ": " : "Viking de teste: ") + "não achei " + G); return; }
   try { await montarModelo3d(m, gltf); if (VV) prepararVikingVar(m); m.ok = true; aquecerModelo3d(m); if (VV && !VV.padrao) avisar("Viking de teste: " + VV.nome); if (VV) montadosVikingNovo(); }   // (R235: os programas antes do 1º desenho)
   catch (e) { console.error("3d " + m.nome + ":", e); m.erro = e.message; }
 }
@@ -32231,6 +33186,30 @@ const VIKING_NOVO_TRIPLO = {
   golpe2: ["sequencia_golpes", [[0, 11], [6, 17], [9, 22], [15, 22]]],
   golpe3: ["sequencia_golpes", [[0, 22], [6, 26], [15, 42]]],
 };
+// (R402) o viking padrão: os nomes da página mais longos que o golpe (15 q a 20 q/s, acerto q6, emenda q9) no golpe1, pelos nós
+const VIKING_PADRAO_NOS = {
+  golpe1_da_corrida: ["golpe1", [[0, 0], [7, 6], [10, 9], [16, 15]]],
+  golpe1_da_corrida_7: ["golpe1", [[0, 0], [7, 6], [10, 9], [16, 15]]],
+  sacar_golpe: ["golpe1", [[0, 0], [9, 6], [12, 9], [18, 15]]],
+};
+// (R402) o avanço do golpe do viking padrão (extras.avanco do glb: m acumulados por quadro do clipe) no tempo da página, para o
+// avancarNinja (sem ele o pé escorrega). Só com o modelo 3D na tela (no sprite e no ?2d=1, o golpe não anda) e fora do Corte Triplo
+function avancoVikingPadrao(v) {
+  const p = P3D, i = p.ligado && !p.perdido && p.inst.get(v), m = i && i.m && i.m.ok ? i.m : (window.M3D && M3D.ativo ? modeloHeroi3d() : null);
+  if (!m || !m.ok || !m.info || !m.info.golpe1 || !m.info.golpe1.avanco) return null;
+  const c = m.avPag || (m.avPag = {});
+  if (c[v.anim] !== undefined && !(typeof triplo !== "undefined" && triplo.restam > 0)) return c[v.anim];
+  const al = vikingNovoAlvo(m, v.anim, null), inf = al && m.info[al.clip];
+  let r = null;
+  if (inf && inf.avanco && al.direto) r = { avanco: inf.avanco, fps: inf.fps };
+  else if (inf && inf.avanco && al.nos) {
+    const pg = M.animacoes[v.anim], a = [];
+    for (let q = 0; pg && q <= pg.quadros; q++) a.push(avancoEm(inf.avanco, tempoNos3d(al.nos, q, inf.fps), inf.fps));
+    if (a.length) r = { avanco: a, fps: pg.fps };
+  }
+  if (typeof triplo !== "undefined" && triplo.restam > 0) return r;   // (o Corte Triplo: a sequencia_golpes, sem avanço; não guarda)
+  return c[v.anim] = r;
+}
 const VIKING_NOVO_PARADO = /^(parado|parar|sacar$|guardar|correr_para_guarda)/, VIKING_NOVO_CORRE = /^(correndo|andando|arrancar|guarda_para_correr)/;
 // o estado do herói para escolher o golpe emendado ou o avulso e para a mistura: o último nome da página, o tempo dele, o
 // último clipe com o tempo dele, e as camadas que estão saindo ({ anim, t, w0, t0 })
@@ -32242,6 +33221,12 @@ function vikingNovoAlvo(m, n, ctx) {
   const tem = c => c && m.clips[c[0]] ? c : null;
   if (VIKING_NOVO_CORRE.test(b) && m.clips.correndo) return { clip: "correndo", laco: true };
   if (/^golpe[1-3]$/.test(b) && typeof triplo !== "undefined" && triplo.restam > 0 && tem(VIKING_NOVO_TRIPLO[b])) return { clip: VIKING_NOVO_TRIPLO[b][0], nos: VIKING_NOVO_TRIPLO[b][1] };
+  // (R402) o viking padrão (os golpes do Mixamo já no tempo da página, com o avanço): o combo toca direto, golpe N → golpeN; o golpe da
+  // corrida e o sacar_golpe, mais longos, tocam o golpe1 com o acerto no q6 dele
+  if (m.info.golpe1 && m.info.golpe1.avanco) {
+    if (/^golpe[1-5]$/.test(b) && m.clips[b]) return { clip: b, direto: true };
+    if (tem(VIKING_PADRAO_NOS[b])) return { clip: VIKING_PADRAO_NOS[b][0], nos: VIKING_PADRAO_NOS[b][1] };
+  }
   const k = /^golpe([2-5])$/.exec(b);
   if (k && ctx) {
     // o golpe N emendado no N−1 (cortado na emenda); senão o avulso, que sai da guarda (o golpe5 segue o clipe do golpe4)
@@ -32354,13 +33339,48 @@ function pedidoVikingNovo(d) {
 // 3d/montados.json, que são do esqueleto antigo. Chamado quando o modelo chega e quando o montados.json chega
 // (R394: e os do feiticeiro novo, copiados do feiticeiro de antes)
 function montadosVikingNovo() {
+  const doGlb = m => { const d = {}; for (const n of ["montado_parado", "montado_ataque", "montado_galope"]) { const c = m.clips[n], i = m.info[n]; if (c && i) d[n] = { clip: c, fps: i.fps, quadros: i.quadros, laco: !!i.laco, acerto: i.acerto ?? -1 }; } return Object.keys(d).length === 3 ? d : null; };
   for (const [cl, V] of Object.entries(VAR_3D)) {
     const m = typeof P3D === "object" && P3D.modelos && P3D.modelos[cl];
     if (!V || !V.novo3d || !MONTADOS3D || !m || !m.ok || MONTADOS3D[cl] === m.montados) continue;
-    const d = {};
-    for (const n of ["montado_parado", "montado_ataque", "montado_galope"]) { const c = m.clips[n], i = m.info[n]; if (c && i) d[n] = { clip: c, fps: i.fps, quadros: i.quadros, laco: !!i.laco, acerto: i.acerto ?? -1 }; }
-    if (Object.keys(d).length === 3) MONTADOS3D[cl] = m.montados = d;
+    const d = doGlb(m);
+    if (d) MONTADOS3D[cl] = m.montados = d;
   }
+  // (R402) as armaduras do viking padrão: os montados do glb de cada uma (montarCavaleiro3d usa os do modelo vestido)
+  if (typeof P3D === "object" && P3D.modelos) for (const m of Object.values(P3D.modelos)) if (m.chave3d && m.ok && !m.montados) m.montados = doGlb(m);
+}
+// ---- (16/11, R402) as armaduras que trocam o viking padrão inteiro (o usuário: "Se a pessoa trocar de armadura, troca o personagem
+// inteiro"). A peça é a armadura_guerreiro (a do viking, do guerreiro e do shura); pelo tier, os nomes antigos do Metin2
+// (Logs/Balanceamento/ESCALA_METIN2.md): o 3 (hoje Placa do Leão) era a Armadura de Escamas e o 6 (Placa Escama Azul), a do Dragão
+// de Bronze. Com qualquer outra, ou sem armadura, o viking_padrao.glb. Só o viking (VIKING_VAR.armaduras): o guerreiro e o shura não mudam
+const VIKING_ARMADURAS_3D = { 3: { chave: "escamas", glb: "3d/viking_escamas.glb", nome: "Armadura de Escamas" },
+                              6: { chave: "dragao", glb: "3d/viking_dragao.glb", nome: "Armadura do Dragão de Bronze" } };
+// a armadura de corpo vestida que tem um viking próprio (eq: o equipamento; por padrão o do herói), ou null
+function armaduraViking3d(eq) {
+  if (classe !== "viking" || !VIKING_VAR || !VIKING_VAR.armaduras) return null;
+  const a = (eq || (typeof prog === "object" && prog && prog.equip) || {}).armadura;
+  return a && a.peca === "armadura_guerreiro" ? VIKING_ARMADURAS_3D[a.tier] || null : null;
+}
+// o modelo da armadura (P3D.modelos["viking_<chave>"], com o nome "viking": a máscara da arma, a caixa do quadro e o mapa dos clipes
+// são os do viking), pedido sob demanda na fila de sempre (a fila tem 2 por vez e não trava o jogo)
+function modeloArmaduraViking3d(A, prio = -1) {
+  const p = P3D, k = "viking_" + A.chave;
+  const m = p.modelos[k] || (p.modelos[k] = { nome: "viking", chave3d: k, glb: A.glb, ok: false, carregando: false, erro: null, prio: Infinity });
+  if (!m.ok && !m.erro && !m.carregando && p.ligado && p.loader) { m.prio = Math.min(m.prio, prio); if (!p.fila.includes(m)) p.fila.push(m); carregarFila3d(); }
+  return m;
+}
+// o modelo do herói neste quadro: o p.modelos[classe] de sempre; o viking padrão com a armadura dele. Enquanto o glb pedido não chega,
+// fica o que estava na tela (como a arma 3D, vestirArma3d); sem o glb da armadura (erro), o padrão
+function modeloHeroi3d() {
+  const p = P3D, base = p.modelos[classe];
+  if (classe !== "viking" || !VIKING_VAR || !VIKING_VAR.armaduras) return base;
+  const A = armaduraViking3d(), quer = A ? modeloArmaduraViking3d(A) : base;
+  if (!A || quer.erro) { if (!base) pedirModelo3d(classe, -1); else if (!base.ok) pedirModelo3d(classe, -1); }
+  const alvo = A && !quer.erro ? quer : base;
+  if (alvo && alvo.ok) return p.vikingVisto = alvo;
+  const antes = p.vikingVisto;
+  if (antes && antes.ok && antes.nome === "viking") return antes;
+  return alvo;
 }
 // (R390) a lâmina do viking novo no quadro, como a do manifest ([base x, y, ponta x, y, atrás], px do sprite a partir dos pés):
 // a peça peca_espada do modelo 3D (a dele ou a arma 3D vestida), pela câmera do atlas. O manifest é do viking de antes
@@ -32631,7 +33651,7 @@ function animNpc3d(o, nome, m, agora) {
 }
 // (R136: com a altura do chão: num patamar alto, o corpo aparece bem acima do ponto do mapa)
 function naTela3d(x, y, m, esc) {
-  const [sx, sy] = tela(x - cam.x, y - cam.y), s = PX * zoom * esc, X = W / 2 + sx, Y = H / 2 + sy - (x < -350 || y < -350 || naZonaAltar(x, y) ? zPiso(x, y) * PX * zoom * ALTURA : 0), c = m.caixa;
+  const [sx, sy] = tela(x - cam.x, y - cam.y), s = PX * zoom * esc, X = W / 2 + sx, Y = H / 2 + sy - (x < -350 || y < -350 || y > 1050 || naZonaAltar(x, y) ? zPiso(x, y) * PX * zoom * ALTURA : 0), c = m.caixa;
   return X + c.dir * s > -40 && X - c.esq * s < W + 40 && Y + c.baixo * s > -40 && Y - c.cima * s < H + 40;
 }
 // R210 (rodada 3, aprovado pelo usuário em 03/11: "bonecos longe do herói a meio ritmo"): renderizar no atlas a cada quadro só o
@@ -32643,7 +33663,7 @@ function pedidos3d(agora) {
   const naTela = naTela3d;
   const longe = (x, y) => Math.hypot(x - viking.x, y - viking.y);
   // o herói
-  const mh = p.modelos[classe], v = viking;
+  const mh = modeloHeroi3d(), v = viking;   // (R402: o viking padrão com a armadura dele)
   if (v.montado && mh && mh.ok) {
     // montado: o pedaço do herói é o do cavalo, com o herói preso ao Assento (montarCavaleiro3d); sem o modelo ou os clipes
     // montados ainda, fica o sprite do conjunto (desenharMontado)
@@ -32658,7 +33678,7 @@ function pedidos3d(agora) {
     // ferido pisca vermelho; na fúria, o corpo avermelha (o que no sprite é a silhueta por cima)
     const ped = { dono: v, m: mh, anim: n, t: v.t, info: M.animacoes[n], ang: angDir3d(v.dir), esc: 1, emis: [0.55 * fer + 0.25 * nf, 0.06 * nf, 0], heroi: true, arma: arma3dDoHeroi() };
     l.push(vikingVar() ? pedidoVikingVar(ped) : feitNovo() ? pedidoVikingNovo(ped) : ped);   // (o viking de teste: os clipes dele; R394: o feiticeiro novo)
-  } else pedirModelo3d(classe, -1);
+  } else if (!(mh && mh.chave3d)) pedirModelo3d(classe, -1);
   // o cavalo solto (chamado e sem ninguém montado): segue o herói
   if (cavaloEnt.ativo && !v.montado) {
     const mc = p.modelos.cavalo;
@@ -33082,6 +34102,18 @@ function desenharViking() {
     const e = 1 + 0.05 * nf;
     cx.drawImage(sil, X - info.px * z * e, Y - info.py * z * e - 2 * z * nf, info.w * z * e, info.h * z * e);
     cx.restore();
+  }
+  // (R403) a armadura +7/+8/+9: o anel do +9 no chão (sem o FX3) e a silhueta acesa na cor do refino, pulsando, por trás do corpo
+  // (a mesma da aura da Fúria; com a Fúria acesa, fica só a dela)
+  anelRefArmadura2d(X, Y, z, agora);
+  const nRef = nf > 0.05 || mundo3d ? 0 : refArmaduraVisivel(), poseRef = nRef ? poseHeroi(z) : null;
+  if (poseRef) {
+    const b = BRILHO_REF[nRef], SR = SILHUETA_REF[nRef], pul = 0.72 + 0.28 * Math.sin(agora * SR.pulso), sil = silhuetaPose(poseRef, b.forte), e = 1.025;
+    cx.save(); cx.globalCompositeOperation = "lighter"; cx.globalAlpha = SR.a * pul;
+    cx.shadowColor = b.sombra; cx.shadowBlur = SR.blur * z * (0.8 + 0.4 * pul);
+    cx.drawImage(sil, 0, 0, Math.ceil(poseRef.w), Math.ceil(poseRef.h), X - poseRef.esq * e, Y - poseRef.cima * e - z, poseRef.w * e, poseRef.h * e);
+    cx.restore();
+    REF_ARM_2D.silhueta = (REF_ARM_2D.silhueta || 0) + 1; REF_ARM_2D.nivelSil = nRef;
   }
   // lâmina atrás do corpo (ex.: de costas, segurando a espada à frente): o efeito vai por baixo do sprite
   const l = laminaAtual(), atras = l && l[4] === 1;
@@ -34173,7 +35205,7 @@ function converterAprendizSave(p, c) {
 function listaPersonagens() {
   if (window.NUVEM && NUVEM.logado()) return NUVEM.lista();                     // (com conta: os 4 espaços da conta, nuvem.js)
   const l = [];
-  for (const c of CLASSES_SELECAO) { const p = progressoSalvoDe(c); if (p) l.push({ chave: c, classe: c, nome: p.nome || NOME_CLASSE[c], titulo: NOME_CLASSE[c], nivel: p.nivel || 1, mapa: p.mapa, img: c }); }
+  for (const c of CLASSES_SELECAO) { const p = progressoSalvoDe(c); if (p) l.push({ chave: c, classe: c, nome: p.nome || NOME_CLASSE[c], titulo: NOME_CLASSE[c], nivel: p.nivel || 1, mapa: p.mapa, img: c, refArm: refArmadura(p.equip || {}) }); }   // (R403: a armadura +7/+8/+9 acende o cartão)
   for (const a of aprendizesSalvos()) l.push({ chave: a.chave, classe: "aprendiz", vocacao: a.vocacao, nome: a.p.nome || "Herói", titulo: "Escolha a classe" + (a.vocacao ? " · " + VOCACOES[a.vocacao].nome : ""), nivel: a.p.nivel || 1, mapa: a.p.mapa, img: "aprendiz" });
   return l;
 }
@@ -34227,7 +35259,7 @@ function desenharInicio(aba) {
   $("#inVoltar").hidden = !SEL.deMenu || !!SEL.semVolta;
   $("#inNota").textContent = window.NUVEM && NUVEM.logado() ? NUVEM.notaLista() : "Cada navegador guarda um personagem por classe.";
   corpo.className = "ic-corpo ic-lista";
-  corpo.innerHTML = lista.map(p => `<article class="ic-perso" data-chave="${p.chave}"><figure><img src="selecao/${p.img}.webp" alt="" decoding="async"></figure>` +
+  corpo.innerHTML = lista.map(p => `<article class="ic-perso" data-chave="${p.chave}"><figure${p.refArm ? ` class="ic-ref${p.refArm}" style="--ref: ${BRILHO_REF[p.refArm].rgb}" title="Armadura +${p.refArm}"` : ""}><img src="selecao/${p.img}.webp" alt="" decoding="async"></figure>` +   /* (R403: a armadura +7/+8/+9 do personagem, acesa no cartão) */
     `<div class="ic-txt"><h3>${escH(p.nome)}</h3><p>${escH(p.titulo)}</p><p class="ic-nv">Nível ${p.nivel} · ${escH((MAPAS[p.mapa] || MAPAS.vila1).nome)}</p></div>` +
     `<div class="ic-botoes"><button type="button" class="sc-escolher" data-entrar="${p.chave}">Entrar</button><button type="button" class="sc-voltar sc-zero" data-apagar="${p.chave}">Apagar</button></div></article>`).join("");
   setTimeout(() => { const b = corpo.querySelector("button:not([disabled])"); if (SEL.aberta && b) b.focus({ preventScroll: true }); }, 40);
@@ -35415,7 +36447,7 @@ function frenteImagens() {
         }
       }
       // (as pontes em arco da Hahoe, a frente do corrimão: todas as do mapa, da mais perto para a mais longe, uma de cada vez)
-      if (!FI.ponte && cam.y >= 350 && !FI.prontas.some(q => q.ponte)) {
+      if (!FI.ponte && cam.y >= 350 && cam.y < 1050 && !FI.prontas.some(q => q.ponte)) {
         // (da mais perto para a mais longe, até 45 m; a imagem da estação de cada uma, imagemEstacao, pode ser um canvas novo com o
         //  filtro da estação, caro: uma por vez, e só a da ponte escolhida)
         const l = [];
@@ -35477,7 +36509,8 @@ function frenteImagens() {
 function* preparoModelos() {
   const v = viking, l = new Map(), P = PREPARO;
   const pede = (nome, d) => { if (!nome || !MODELOS_3D[nome]) return; l.set(nome, Math.min(d, l.has(nome) ? l.get(nome) : Infinity)); };
-  pede(classe, -1);
+  const AV = armaduraViking3d();                                       // (R402: o viking com a armadura que tem um viking próprio: o glb dela, não o padrão)
+  if (AV) { const ma = modeloArmaduraViking3d(AV, -1); if (!ma.erro) l.set(ma.chave3d, -1); else pede(classe, -1); } else pede(classe, -1);
   if (v.montado || (typeof cavaloEnt === "object" && cavaloEnt.ativo)) pede("cavalo", 0);
   for (const c of criaturas) { if (c.cfg.estatico || c.morto) continue; const d = Math.hypot(c.x - v.x, c.y - v.y); if (d < 45) pede(modeloCriatura3d(c), d); }
   for (const o of objetos) if (o.npc && (o.tipo === "ferreiro" || (o.tipo === "pessoa" && NPC_3D[o.nome]))) { const d = Math.hypot(o.x - v.x, o.y - v.y); if (d < 30) pede(o.tipo === "ferreiro" ? "ferreiro" : NPC_3D[o.nome], d); }
@@ -36460,7 +37493,8 @@ function terraFirme(x, y, d, pv, pm, pl) {
 // a altura do chão (m) num ponto do mapa; o mar é o nível 0
 function alturaBruta(x, y) {
   if (y < -350) return DAIYU.alturaBruta(x, y) + ajusteAltura(x, y);   // (a Ilha de Daiyu: os platôs de mapa_daiyu.js)
-  if (x < -350) return GELADA.alturaBruta(x, y) + ajusteAltura(x, y);  // (a Montanha Gelada: os patamares de mapa_montanha.js)
+  if (x < -350) return GELADA.alturaBruta(x, y) + ajusteAltura(x, y);
+  if (y > 1050) return DESERTO.alturaBruta(x, y) + ajusteAltura(x, y); // (o Deserto de Mingsha: as dunas e o paredão de mapa_deserto.js)  // (a Montanha Gelada: os patamares de mapa_montanha.js)
   const d = RAIO - borda(x, y);
   if (d < -10) return -3.4;
   const pm = pesoMonte(x, y), pv = pesoVale(x, y), dEstr = distEstrada(x, y), pl = plano(x, y, dEstr);
@@ -36499,7 +37533,8 @@ function pesoMusgo3(x, y) {
 }
 function pesosChao(x, y, out, k) {
   if (y < -350) { DAIYU.pesos3d(x, y, out, k); return; }               // (a Ilha de Daiyu: areia negra, rocha e cinza)
-  if (x < -350) { GELADA.pesos3d(x, y, out, k); return; }              // (a Montanha Gelada: neve e rocha)
+  if (x < -350) { GELADA.pesos3d(x, y, out, k); return; }
+  if (y > 1050) { DESERTO.pesos3d(x, y, out, k); return; }             // (o Deserto: areia, terra na trilha e o arenito)              // (a Montanha Gelada: neve e rocha)
   const b = borda(x, y), pv = pesoVale(x, y), pm = pesoMonte(x, y), pc = Math.min(1, pv + pm);
   const dPraca = Math.hypot(x - PRACA.x, y - PRACA.y);
   const [tr, est] = pesoTerraIlha(x, y);
@@ -38266,13 +39301,13 @@ let _esf, _fr, _mvp;
 function listaCorpos(agora) {
   const p = P3D, l = [], longe = CFG.longe * 0.8;
   const perto = (x, y) => Math.hypot(x - cam.x, y - cam.y);
-  const mh = p.modelos[classe], v = viking;
+  const mh = modeloHeroi3d(), v = viking;   // (R402: o viking padrão com a armadura dele)
   if (mh && mh.ok) {
     const n = animVisivel(v.anim), nf = nivelFuria(agora), fer = v.ferido > 0 ? v.ferido / 0.3 : 0;
     const ped = { dono: v, m: mh, anim: n, t: v.t, info: M.animacoes[n], dir: v.dir, esc: 1, emis: [0.55 * fer + 0.25 * nf, 0.06 * nf, 0], heroi: true, x: v.x, y: v.y, arma: arma3dDoHeroi(),
              alfa: classe === "ninja" && NINJA.esconder.buff > 0 ? 0.25 + 0.06 * Math.sin(agora * 6) : 1 };
     l.push(vikingVar() ? pedidoVikingVar(ped) : feitNovo() ? pedidoVikingNovo(ped) : ped);   // (o viking de teste: os clipes dele; R394: o feiticeiro novo)
-  } else pedirModelo3d(classe, -1);
+  } else if (!(mh && mh.chave3d)) pedirModelo3d(classe, -1);
   for (const c of criaturas) {
     if (c.cfg.estatico) continue;
     const d = perto(c.x, c.y); if (d > longe) continue;
@@ -41065,6 +42100,84 @@ const passoRefinoLeque3 = (() => {
     if (cfg.brasas) { let m = cfg.brasas * dt; while (m > 0) { if (Math.random() < m) EST.brasas++, faisca(ponto(new THREE.Vector3(), 0.9), _v.set(acaso(-0.4, 0.4), acaso(0.8, 1.8), acaso(-0.4, 0.4)), rgb(1, acaso(0.22, 0.5), 0.12), 0.045, acaso(0.5, 0.9), { forma: 0, grav: -0.5, arrasto: 1.2, pisca: 12, fim: 0.3 }); m -= 1; } }
   };
 })();
+// ================================================================ (R403) a armadura +7, +8 e +9 no herói (VFX 3D)
+// O refino da armadura de corpo, em qualquer classe e qualquer modelo (refArmaduraVisivel; a silhueta acesa é do desenharHeroi). Aqui, as
+// partículas, com as peças do FX3 (subir, faisca, estouro, sprite somado, o chão de runas) e um TETO de partículas vivas:
+//   +7  2–3 faíscas lentas por segundo, piscando, em volta do corpo;
+//   +8  ~7 faíscas por segundo, um halo suave pulsando no peito e motas de luz subindo dos pés;
+//   +9  brasas subindo em espiral em volta do corpo (sprites que giram e sobem), o anel de runas no chão girando devagar, uma rajada de
+//       faíscas a cada 2–3 s e as faíscas e o halo do +8.
+// window.VFX_REF_ARMADURA: o que o efeito fez (para o teste R403)
+const passoRefinoArmadura3 = (() => {
+  const CHAVE = {}, TETO = 60;
+  const NIVEL = {
+    7: { faiscas: 2.5, motas: 0, halo: 0, espiral: 0 },
+    8: { faiscas: 7, motas: 6, halo: 0.17, espiral: 0 },
+    9: { faiscas: 5, motas: 4, halo: 0.12, espiral: 6, anel: true },
+  };
+  const EST = window.VFX_REF_ARMADURA = { quadros: 0, nivel: 0, faiscas: 0, motas: 0, brasas: 0, rajadas: 0, aneis: 0, anelVivo: false, halo: 0, cor: null, espiral: 0, vivas: 0, maxVivas: 0, teto: TETO, cortadas: 0 };
+  const vivas = [];                                      // (o fim de cada partícula solta, no relógio daqui: o teto)
+  let relogio = 0, rajada = 2, anel = null;
+  const espiral = [];
+  const cabe = (n, vida) => {
+    for (let i = vivas.length - 1; i >= 0; i--) if (vivas[i] <= relogio) vivas.splice(i, 1);
+    if (vivas.length + n > TETO) { EST.cortadas += n; return false; }
+    for (let k = 0; k < n; k++) vivas.push(relogio + vida);
+    EST.vivas = vivas.length; EST.maxVivas = Math.max(EST.maxVivas, vivas.length); return true;
+  };
+  // o halo do peito (+8 e +9): um sprite largo e fraco que pulsa
+  function criarHalo() { const s = sprite(texBrilho, BRANCO(), 1); return { s, fim() { grupo.remove(s); devolverMat("sprite", s.material); } }; }
+  function limparEspiral() { for (const e of espiral) { grupo.remove(e.s); devolverMat("sprite", e.s.material); } espiral.length = 0; }
+  return function passoRefinoArmadura3(dt, t) {
+    relogio += dt;
+    const n = refArmaduraVisivel(), cfg = NIVEL[n];
+    if (!cfg) { if (espiral.length) limparEspiral(); EST.nivel = 0; EST.vivas = 0; EST.halo = 0; EST.espiral = 0; EST.anelVivo = !!anel; return; }
+    const b = BRILHO_REF[n], forte = new THREE.Color(b.forte), claro = new THREE.Color(b.claro), x = viking.x, y = viking.y;
+    const cor = () => forte.clone().lerp(claro, acaso(n === 8 ? 0.3 : 0.1, n === 8 ? 0.8 : 0.6));   // (o violeta do +8, mais claro: no chão de terra o roxo escuro somado some)
+    EST.quadros++; EST.nivel = n; EST.cor = b.forte; EST.halo = 0;
+    const taxa = window.VFX_REF_ARMADURA_TAXA || 1;                   // (o teste do teto multiplica as taxas)
+    // as faíscas lentas: pontos que piscam e sobem devagar em volta do corpo
+    let q = cfg.faiscas * dt * taxa;
+    while (q > 0) { if (Math.random() < q && cabe(1, 1.6)) { EST.faiscas++; subir(P3(x, y, acaso(0.15, 1.55)), cor(), 1, { r: 0.36, h: 0, vel: n === 7 ? 0.28 : 0.4, vida: 1.6, tam: n === 7 ? 0.05 : 0.07, pisca: 7, balanca: 0.5 }); } q -= 1; }
+    // as motas: dos pés para cima, mais claras
+    q = cfg.motas * dt * taxa;
+    while (q > 0) { if (Math.random() < q && cabe(1, 1.5)) { EST.motas++; subir(P3(x, y, 0.05), claro.clone().lerp(BRANCO(), 0.2), 1, { r: 0.42, h: 0.1, vel: 0.95, vida: 1.5, tam: 0.042, pisca: 5 }); } q -= 1; }
+    // o halo
+    if (cfg.halo) {
+      const h = seguir(CHAVE, criarHalo);
+      if (h) { const pul = 0.7 + 0.3 * Math.sin(t * 2.2); h.s.position.copy(P3(x, y, 1.0)); h.s.scale.setScalar((n === 9 ? 1.75 : 1.9) + 0.25 * pul); h.s.material.color.copy(forte); h.s.material.opacity = cfg.halo * pul; EST.halo = h.s.material.opacity; }
+    }
+    // +9: as brasas em espiral (cada uma gira em volta do corpo enquanto sobe e fecha um pouco o raio)
+    if (cfg.espiral) {
+      if (Math.random() < cfg.espiral * dt * taxa && espiral.length < 12 && cabe(1, 1.7)) {
+        const s = sprite(texBrilho, cor(), 0.1);
+        espiral.push({ s, a: Math.random() * 6.283, w: acaso(2.2, 3.2), r: acaso(0.5, 0.62), h: acaso(0.05, 0.3), v: acaso(0.75, 1.05), t: 0, dur: acaso(1.3, 1.7) });
+        EST.brasas++;
+      }
+      for (let i = espiral.length - 1; i >= 0; i--) {
+        const e = espiral[i]; e.t += dt; const u = e.t / e.dur;
+        if (u >= 1) { grupo.remove(e.s); devolverMat("sprite", e.s.material); espiral.splice(i, 1); continue; }
+        e.a += e.w * dt; e.h += e.v * dt; const r = e.r * (1 - 0.35 * u);
+        e.s.position.copy(P3(x + Math.cos(e.a) * r, y + Math.sin(e.a) * r, e.h));
+        const fl = 0.8 + 0.2 * Math.sin(t * 23 + i * 2.1);
+        e.s.scale.setScalar(0.1 * fl * (1 - 0.45 * u)); e.s.material.opacity = 0.95 * Math.min(1, u / 0.12) * (1 - u * u);
+      }
+    } else if (espiral.length) limparEspiral();
+    EST.espiral = espiral.length; EST.anelVivo = !!anel;
+    // +9: o anel de runas no chão (o selo do FX3, girando devagar), seguindo o herói
+    if (cfg.anel && !anel) {
+      EST.aneis++;
+      anel = chao(x, y, 0.95, 1, forte.clone(), claro.clone(), 0, { alfa: 0.4, giro: 0.18, passo: (e, d, tt) => {
+        if (refArmaduraVisivel() !== 9) { anel = null; return false; }
+        e.mover(viking.x, viking.y); e.u.uAlfa.value = 0.32 + 0.1 * Math.sin(tt * 2.4); return true; } });
+    }
+    // +9: a rajada de faíscas a cada 2–3 s
+    if (n === 9 && (rajada -= dt) <= 0) {
+      rajada = acaso(2, 3);
+      if (cabe(14, 0.6)) { EST.rajadas++; estouro(P3(x, y, 1.05), 14, forte, 3.2, { sobe: 0.7, tam: 0.06, vida: 0.45, branco: 0.45, grav: 3 }); }
+    }
+  };
+})();
 // (03/11) os efeitos da Magia Negra (feiticeiro) e da Arma Mágica (shura), aprovados pelo usuário ("aprovo os 2"); os blocos são os de
 // Logs/FeiticeiroNegro/vfx e Logs/ShuraArma/vfx, com o que a integração pediu: a duração dos buffs, o alvo e os tiros vêm da lógica
 // ================================================================ o Feiticeiro da Magia Negra (VFX 3D): as 6 skills novas, com as peças do FX3
@@ -42342,7 +43455,7 @@ function esqueletos(i) {
 const CORPOS_CORTE = { ligado: true, fora: 0 };
 function corpoForaDaCaixa(i, bx) {
   const o = i.dono, c = i.m && i.m.caixa; if (!c || c.esq === undefined) return false;
-  const s0 = PX * zoom, s = s0 * ((i.d && i.d.esc) || 1), z = o.y < -350 && typeof DAIYU === "object" ? DAIYU.z(o.x, o.y) : o.x < -350 && typeof GELADA === "object" ? GELADA.z(o.x, o.y) : naZonaAltar(o.x, o.y) ? altarZ(o.x, o.y) : 0;
+  const s0 = PX * zoom, s = s0 * ((i.d && i.d.esc) || 1), z = o.y > 1050 && typeof DESERTO === "object" ? DESERTO.z(o.x, o.y) : o.y < -350 && typeof DAIYU === "object" ? DAIYU.z(o.x, o.y) : o.x < -350 && typeof GELADA === "object" ? GELADA.z(o.x, o.y) : naZonaAltar(o.x, o.y) ? altarZ(o.x, o.y) : 0;
   const [X, Y0] = noMundo(o.x, o.y, 0), Y = Y0 - z * s0 * ALTURA, M = 24;
   return X + c.dir * s + M < bx[0] || X - c.esq * s - M > bx[0] + bx[2] || Y + c.baixo * s + M < bx[1] || Y - c.cima * s - M > bx[1] + bx[3];
 }
@@ -42578,7 +43691,7 @@ function passo(dt, t) {
   if (!ligado) return;
   tAgora = t; quadro++;
   if (iso) M3D.passoParticulas(S.pNormal, dt, t);         // (no mundo 3D quem anda a fumaça é o M3D)
-  const etapas = [passoArma, passoFlechas3, passoMagias3, passoRaios, passoOndas, passoNuvens, passoCriaturas3, passoEstados, passoShura3, passoMedo3, passoArmaMagica3, passoRelampago3, passoDragao3, passoRefinoLeque3, passoMagiaNegra3, passoGuerreiroMental3, passoMundo];   // (rodada 6: os efeitos 3D do shura)
+  const etapas = [passoArma, passoFlechas3, passoMagias3, passoRaios, passoOndas, passoNuvens, passoCriaturas3, passoEstados, passoShura3, passoMedo3, passoArmaMagica3, passoRelampago3, passoDragao3, passoRefinoLeque3, passoRefinoArmadura3, passoMagiaNegra3, passoGuerreiroMental3, passoMundo];   // (rodada 6: os efeitos 3D do shura)
   for (const f of etapas) { try { f(dt, t); } catch (e) { if (!f.erro) { f.erro = true; console.error("fx3 " + f.name + ":", e); } } }
   for (const [o, e] of seguidos) if (e.visto !== quadro) { seguidos.delete(o); try { if (e.acabou) e.acabou(); } catch (er) { console.error("fx3:", er); } e.fim(); }
   for (let i = vivos.length - 1; i >= 0; i--) {
@@ -42974,7 +44087,7 @@ function rotulos() {
           ["Acampamento do Juramento Branco · 13–15", ACAMP.x, ACAMP.y - 12.5, 2], ["Ruínas da Cripta", RUINAS.x - 2, RUINAS.y - 15, 2],
           // (as faixas dos grupos do Metin2, faixaV1)
           ["Campos dos Cães · 1–4", 32, -44, 2], ["Estábulo", ESTABULO.x - 5, ESTABULO.y - 6.5, 3], ["Campos dos Javalis · 4–7", -31, -77, 2], ["Matas dos Ursos · 7–14", -31, -112, 2],
-          ["Vale Vermelho", VALE_X + 34, 48, 1], ["Monumento", MONUMENTO.x, MONUMENTO.y + 9, 3], ...GELADA.rotulos(),
+          ["Vale Vermelho", VALE_X + 34, 48, 1], ["Monumento", MONUMENTO.x, MONUMENTO.y + 9, 3], ...GELADA.rotulos(), ...DESERTO.rotulos(),
           // (a Vila Hahoe: aparece quando o herói está nela)
           ["Vila Hahoe", HV.x, HV.y + 13, 1], ...ZONAS_H.map(z => [z.nome, z.x, z.y + (z.r > 6 ? 7 : 3), 2]),
           ...PONTES_H.map(p => [p.nome, p.x, p.y - 4, 3])];

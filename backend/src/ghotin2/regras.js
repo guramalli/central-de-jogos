@@ -15,8 +15,10 @@ export const EXP_NIVEL = [0, 300, 800, 1500, 2500, 4300, 7200, 11000, 17000, 240
   2421000, 2761000, 3145000, 3580000, 4073000, 4632000, 5194000, 5717000, 6264000, 6837000,
   7600000, 8274000, 8990000, 9753000, 10560000, 11410000, 12320000, 13270000, 14280000, 15340000,
   16870000, 18960000, 19980000, 21420000, 22930000, 24530000, 26200000, 27960000, 29800000, 32780000,
-  36060000, 39670000, 43640000, 48000000, 52800000, 58080000, 63890000, 70280000, 77310000, 85040000];
-export const NIVEL_MAX = EXP_NIVEL.length - 1; // 70
+  36060000, 39670000, 43640000, 48000000, 52800000, 58080000, 63890000, 70280000, 77310000, 85040000,
+  93540000, 102900000, 113200000, 124500000, 137000000, 150700000, 165700000, 236990000, 260650000, 286780000, // 71–80 (16/11/2026: o teto 90)
+  315000000, 346970000, 381680000, 419770000, 461760000, 508040000, 558740000, 614640000, 676130000, 743730000]; // 81–90
+export const NIVEL_MAX = EXP_NIVEL.length - 1; // 90
 
 // classes e vocações do jogo (NOME_CLASSE e VOCACOES do index.html)
 export const VOCACOES = {
@@ -141,7 +143,8 @@ export function expTotal(nivel, exp) {
 // O ritmo MAIS RÁPIDO já medido: Logs/Jogador/BALANCO_EXP_GOLD.md, coluna "Viking hoje" (o balanço de antes de 29/10,
 // cerca de 3× mais rápido que o atual). [minutos de jogo, nível]. Dividido pela folga, contado em tempo de relógio desde a
 // criação do personagem no servidor (que é sempre maior que o tempo de jogo). Quem passa disso é impossível: fora do ranking.
-const RITMO_MAX = [[0, 5], [8, 10], [16, 15], [39, 20], [62, 25], [91, 30], [125, 35], [165, 40], [209, 45], [263, 50], [383, 60], [523, 70]];
+// (16/11/2026, o teto 90) do 70 ao 90 a medida não existe ainda: a reta do 60–70 continuada (140 min a cada 10 níveis), que só deixa mais rápido
+const RITMO_MAX = [[0, 5], [8, 10], [16, 15], [39, 20], [62, 25], [91, 30], [125, 35], [165, 40], [209, 45], [263, 50], [383, 60], [523, 70], [663, 80], [803, 90]];
 export const FOLGA_RITMO = 1.5;
 export function nivelPossivel(minutos) {
   const m = minutos * FOLGA_RITMO;

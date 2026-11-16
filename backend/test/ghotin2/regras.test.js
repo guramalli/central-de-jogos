@@ -22,7 +22,7 @@ test("a tabela de EXP é a mesma do jogo publicado (frontend/public/ghotin2/inde
   assert.ok(m, "EXP_NIVEL não encontrada no jogo");
   const doJogo = m[1].split("\n").map((l) => l.replace(/\/\/.*$/, "")).join("").split(",").map((s) => s.trim()).filter(Boolean).map(Number);
   assert.deepEqual(doJogo, R.EXP_NIVEL, "o jogo mudou a tabela: atualize src/ghotin2/regras.js");
-  assert.equal(R.NIVEL_MAX, 70);
+  assert.equal(R.NIVEL_MAX, 90);
 });
 
 test("usuário: 3 a 16, letras sem acento, números e _, com o filtro de nomes", () => {
@@ -91,12 +91,12 @@ test("ranking: EXP total e a conferência de plausibilidade", () => {
   assert.ok(R.nivelPossivel(25) < 20);
   assert.equal(R.nivelPossivel(139.4), 45);
   assert.equal(R.nivelPossivel(349), 70);
-  assert.equal(R.nivelPossivel(10_000), 70);
+  assert.equal(R.nivelPossivel(10_000), 90);
   const h = 3_600_000, t0 = Date.UTC(2026, 10, 3);
   assert.equal(R.motivoSuspeito({ nivel: 5, exp: 0 }, t0, t0), null);
   assert.equal(R.motivoSuspeito({ nivel: 20, exp: 0 }, t0, t0 + h), null);
   assert.match(R.motivoSuspeito({ nivel: 30, exp: 0 }, t0, t0 + 10 * 60_000), /min de vida/);
-  assert.match(R.motivoSuspeito({ nivel: 71, exp: 0 }, t0, t0 + 1000 * h), /acima do maximo/);
+  assert.match(R.motivoSuspeito({ nivel: 91, exp: 0 }, t0, t0 + 1000 * h), /acima do maximo/);
   assert.match(R.motivoSuspeito({ nivel: 2, exp: 900 }, t0, t0 + h), /exp 900 acima/);
   assert.equal(R.motivoSuspeito({ nivel: 2, exp: 799 }, t0, t0 + h), null);
   assert.equal(R.motivoSuspeito({ nivel: 70, exp: 1_000_000 }, t0, t0 + 10 * h), null);
