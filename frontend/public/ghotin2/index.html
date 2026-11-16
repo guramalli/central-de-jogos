@@ -1698,7 +1698,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.100 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.101 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -5027,9 +5027,10 @@ G.GELADA = D;
 // fica escondido. A Rota da Seda liga o Portão da Caravana (o portal da Hahoe) ao oásis e à Boca das Grutas, no fundo.
 //
 // ETAPA 1 (este arquivo + o DESERTO_aplicar.py): a grade, as dunas, o paredão, o oásis, a trilha, o chão pintado, o
-// minimapa, a decoração (70 peças de tipos que já existem, com tinta) e os portais. ETAPA 2: as zonas, os 76 grupos, as 6
-// Ghotins, o Hyeonmu, os 2 NPCs e a boca das Grutas já estão aqui (GRUPOS, GHOTINS, CHEFE, NPCS, GRUTA); o jogo só passa a
-// usá-los na etapa 2.
+// minimapa, a decoração (70 peças de tipos que já existem, com tinta) e os portais. ETAPA 2 (16/11): as 18 criaturas do
+// deserto (variantes, CRIATURAS, com o mob_proto do Metin2 em M2_MOB), os grupos e os 4 conjuntos (GRUPOS_M2, GG, os 76 PONTOS,
+// 100 s, a regra da Vila 1), as 6 Ghotins, o Hyeonmu (D.criarCriaturas, D.chefeMapa) e os 2 NPCs; o index.html os põe no jogo
+// em montarCriaturas, carregarSpawns e montarDeserto (o R407). A boca das Grutas (GRUTA) é da etapa 4.
 (function (G) {
 "use strict";
 
@@ -5110,15 +5111,25 @@ const DUNAS = [
   { nome: "Duna do Ninho", u: 42, v: 48, L: 10, D: 12, H: 1.6 },
   { nome: "Duna Velha", u: 18, v: -40, L: 9, D: 10, H: 0.8 },
 ];
-const cristaV = (d, x) => d.v - 4 * x * x;
+// (16/11, "fazer elas um relevo 3D fica melhor": as dunas mais naturais) cada uma tem o pico fora do meio (as: −0,14 a 0,14 da
+// meia largura) e um chifre mais comprido que o outro (cb), e as pontas ficam finas (a encosta encurta até 15% do fundo). A face de
+// queda deixou de ser um degrau: é uma rampa de 1,1 m por metro (48°, a de uma face de areia nova) que sai da crista para a frente
+// da tela; entre células de 0,5 m ela sobe 0,55 m (> PASSO_MAX: não se anda), menos onde a duna é baixa (as pontas se andam)
+const FACE_INC = 1.1;
+DUNAS.forEach((d, k) => { if (d.as === undefined) d.as = +((hsh(k, 7, 401) - 0.5) * 0.28).toFixed(2); if (d.cb === undefined) d.cb = +((hsh(k, 8, 402) - 0.5) * 0.5).toFixed(2); });
+const cristaV = (d, x) => d.v - 4 * x * x * (1 + (d.cb || 0) * x);
 const largW = x => Math.cos(x * Math.PI / 2) ** 2;
-const fundoX = (d, x) => d.D * (0.25 + 0.75 * Math.cos(x * Math.PI / 2));   // (a encosta encurta para as pontas: a planta é uma meia-lua, e as curvas de nível, arcos)
+const xPico = (d, x) => { const a = d.as || 0; return x < a ? (x - a) / (1 + a) : (x - a) / (1 - a); };   // (o pico em x = as)
+const altX = (d, x) => d.H * largW(xPico(d, x));                     // (a altura da crista em x)
+const fundoX = (d, x) => d.D * (0.15 + 0.85 * Math.cos(x * Math.PI / 2) ** 1.2);   // (a encosta encurta para as pontas: a planta é uma meia-lua de chifres finos)
 function zDuna(d, u, v) {
   const x = (u - d.u) / d.L; if (x <= -1 || x >= 1) return 0;
-  const c = cristaV(d, x), f = fundoX(d, x); if (v < c || v > c + f) return 0;
-  return d.H * largW(x) * (1 - liso((v - c) / f));
+  const hw = altX(d, x), c = cristaV(d, x);
+  if (v < c) { const z = hw - (c - v) * FACE_INC; return z > 0 ? z : 0; }   // (a face de queda)
+  const f = fundoX(d, x); if (v > c + f) return 0;
+  return hw * (1 - liso((v - c) / f));
 }
-for (const d of DUNAS) d.caixa = [d.u - d.L, d.u + d.L, d.v - 4, d.v + d.D];
+for (const d of DUNAS) { let vm = d.v; for (let k = 0; k <= 80; k++) { const x = -1 + k / 40; vm = Math.min(vm, cristaV(d, x) - altX(d, x) / FACE_INC); } d.caixa = [d.u - d.L, d.u + d.L, vm - 0.1, d.v + d.D]; }
 function zDunas(u, v) { let z = 0; for (const d of DUNAS) { const b = d.caixa; if (u < b[0] || u > b[1] || v < b[2] || v > b[3]) continue; const q = zDuna(d, u, v); if (q > z) z = q; } return z; }
 const dunaEm = (u, v) => { for (const d of DUNAS) if (zDuna(d, u, v) > 0.02) return d; return null; };
 
@@ -5188,49 +5199,149 @@ function zonaDe(u, v) {
   return "Z2";
 }
 
-// ---------------------------------------------------------------- ETAPA 2: os grupos, as Ghotins, o chefe, os NPCs (só dados)
-// os 76 pontos dos grupos (Logs/Mapas/deserto/deserto_dados.json, vista): todos de 100 s (o regen.txt do deserto do Metin2);
-// o grupo volta 10 a 110 s depois que o LÍDER cai, como na Vila 1 (passoGruposV1). Os conjuntos (nomes nossos; o Metin2 entre
-// parênteses no projeto, seção 3.4); só as aranhas "Más" são agressivas
+// ---------------------------------------------------------------- ETAPA 2: as criaturas, os grupos, as Ghotins, o chefe e os NPCs
+// (16/11, o usuário: "pode implementar, começa a etapa 2"; o projeto, seções 3.4, 3.5 e 6.1). Os 76 pontos dos grupos
+// (Logs/Mapas/deserto/deserto_dados.json, vista), todos de 100 s (o regen.txt do deserto do Metin2): o grupo volta 10 a 110 s
+// depois que o LÍDER cai, como na Vila 1 (passoGruposV1, a mesma regra). Cada zona usa um conjunto do Metin2 (o group_group.txt,
+// de_01 a de_04), com os grupos do group.txt e o PESO de cada um (o 3 e o 4 do Metin2 viram o grupo repetido na lista: o sorteio
+// é o mesmo). Só as aranhas "Más" (2051 a 2055) são agressivas.
 const TEMPO_GRUPO = 100;
-const CONJUNTOS = {
-  "401": { zona: "Z1", grupos: ["Escorpião das Dunas 39 + 3 Olhos do Vento 37", "2 Escorpiões das Dunas + 2 Olhos do Vento", "3 Aranhinhas da Areia 43", "Aranha da Areia 45 + 2 Aranhinhas", "3 Aranhinhas Más 43 (agressivas)", "3 Aranhas Más 45 (agressivas)"] },
-  "402": { zona: "Z2", grupos: ["2 Homens-Escorpião Jovens 44 + 2 Escorpiões das Dunas", "Arqueiro Escorpião 47 + Jovem + 2 Escorpiões", "Aranha Rubra 48 + 2 Aranhas da Areia 45", "3 Aranhas Rubras Más 48 (agressivas)", "3 Aranhas Garra Más 50 (agressivas)"] },
-  "403": { zona: "Z3", grupos: ["Arqueiro Escorpião 47 + 2 Jovens + Escorpião", "Arqueiro Serpente 51 + 3 Guerreiros-Serpente 48", "Aranha Garra 50 + 2 Rubras 48", "3 Salteadores Fortes 54"] },
-  "404": { zona: "Z5", grupos: ["2 Arqueiros Serpente 51 + 2 Guerreiros-Serpente", "Salteador 54 + Arqueiro Serpente + Guerreiro + Arqueiro Escorpião + Jovem", "Aranha Soldado 52 + 2 Garras 50", "Homem-Escorpião Brutal 60 + 2 Arqueiros Escorpião", "3 Salteadores Fortes 54"] },
+// as criaturas (todas variantes do que o jogo já tem: a arte nova é a etapa 3). [tipo, papel, nome, nível, bases (a 1ª que existir,
+// com o modelo carregado), escala, tinta (3D e 2D), roupa3d (a roupa girada dos humanos; nos corpos dos clãs, a faixa), extra]
+// - as aranhas: a aranha.glb (a Aranha Gigante da Vila 1) pequena, como a aranhinha, com a tinta de cada uma (seção 6.1);
+// - o Escorpião das Dunas: a escorpiao.glb menor e cor de areia; o Olho do Vento: o fantasma (o comparável dele no Metin2 já é o
+//   Olho Voador do Deserto, M2_MOB) cor de areia, até o modelo próprio;
+// - o Homem-Escorpião e a Serpente (o Tripo, etapa 3): por ora os corpos dos clãs da Hahoe, com a faixa na cor deles (ferrugem e
+//   jade); o Salteador: o bandido com a roupa girada para ocre (seção 6.1).
+// O papel muda os números da curva (Logs/Balanceamento/NIVEL70.md 7: comum, longe, mago, tanque); a vida, a defesa e o ataque de
+// verdade são os do mob_proto do Metin2 (M2_MOB, abaixo: a fase B, R371). veneno: a ENCHANT_POISON do mob_proto (% por golpe no herói)
+const CRIATURAS = [
+  ["aranhinha_areia", "comum", "Aranhinha da Areia", 43, ["aranha"], 0.42, "#e8cc94", null, { galope: 2.6, chega: 2.2, visao: 7 }],
+  ["aranha_areia", "comum", "Aranha da Areia", 45, ["aranha"], 0.5, "#d4a462", null, { galope: 2.4, chega: 2.0, visao: 7, veneno: 3 }],
+  ["aranhinha_ma", "comum", "Aranhinha Má", 43, ["aranha"], 0.42, "#7a6450", null, { galope: 2.6, chega: 2.2, visao: 7.5, agressivo: true }],
+  ["aranha_ma", "comum", "Aranha Má", 45, ["aranha"], 0.5, "#5e4a3a", null, { galope: 2.4, chega: 2.0, visao: 7.5, agressivo: true, veneno: 3 }],
+  ["aranha_rubra", "comum", "Aranha Rubra", 48, ["aranha"], 0.56, "#d8664c", null, { galope: 2.4, chega: 2.0, visao: 7, veneno: 3 }],
+  ["aranha_rubra_ma", "comum", "Aranha Rubra Má", 48, ["aranha"], 0.56, "#8e3a2c", null, { galope: 2.4, chega: 2.0, visao: 7.5, agressivo: true, veneno: 3 }],
+  ["aranha_garra", "comum", "Aranha Garra", 50, ["aranha"], 0.62, "#b8925a", null, { galope: 2.2, chega: 1.9, visao: 7 }],
+  ["aranha_garra_ma", "comum", "Aranha Garra Má", 50, ["aranha"], 0.62, "#6e5236", null, { galope: 2.2, chega: 1.9, visao: 7.5, agressivo: true }],
+  ["aranha_soldado", "comum", "Aranha Soldado", 52, ["aranha"], 0.72, "#4e4842", null, { galope: 2.0, chega: 1.8, visao: 7 }],
+  ["escorpiao_dunas", "comum", "Escorpião das Dunas", 39, ["escorpiao"], 0.85, "#ecc67a", null, {}],
+  ["olho_vento", "mago", "Olho do Vento", 37, ["fantasma"], 0.8, "#f0deb0", null, {}],
+  ["escorpiao_jovem", "comum", "Homem-Escorpião Jovem", 44, ["cla_soldado", "bandido", "goblin"], 1.0, "#c88a4a", [0.62, 0.34, 0.12], { veneno: 5 }],
+  ["escorpiao_arqueiro", "longe", "Arqueiro Escorpião", 47, ["cla_arqueiro", "bandido_arqueiro", "goblin"], 1.0, "#b87a40", [0.56, 0.28, 0.1], { veneno: 5 }],
+  ["escorpiao_brutal", "tanque", "Homem-Escorpião Brutal", 60, ["cla_gigante", "chefe_bandido", "goblin"], 1.05, "#8a5030", [0.4, 0.17, 0.06], { veneno: 5 }],
+  ["guerreiro_serpente", "comum", "Guerreiro-Serpente", 48, ["cla_maniaco", "bandido", "goblin"], 1.0, "#7aa088", [0.2, 0.42, 0.3], { veneno: 5 }],
+  ["arqueiro_serpente", "longe", "Arqueiro Serpente", 51, ["cla_arqueiro", "bandido_arqueiro", "goblin"], 1.0, "#6a9080", [0.16, 0.34, 0.28], { veneno: 5 }],
+  ["salteador", "comum", "Salteador do Deserto", 54, ["bandido", "goblin"], 1.0, "#e2c48a", [0.79, 0.6, 0.32], {}],
+  ["salteador_forte", "tanque", "Salteador Forte", 54, ["chefe_bandido", "bandido", "goblin"], 1.0, "#caa266", [0.66, 0.44, 0.2], {}],
+];
+// o mob_proto público do Metin2 (o mesmo do projeto, seção 1), no formato do M2_MOB do jogo: [vnum, nível, ST, DX, HT, dano mín.,
+// máx., MAX_HP, DEF, DAM_MULTIPLY, resistência a espada, duas mãos, adaga, leque, arco, magia], pelo NOSSO nome
+const M2_MOB = {
+  "Aranhinha da Areia": [2001, 43, 28, 41, 55, 89, 109, 1949, 50, 1, 1, -5, 1, 0, -10, 0], "Aranha da Areia": [2002, 45, 47, 57, 29, 82, 123, 2088, 52, 1, 0, 0, 1, 0, -10, 0],
+  "Aranha Rubra": [2003, 48, 54, 60, 15, 86, 129, 2769, 55, 1.4, -5, 1, -5, 0, -5, 0], "Aranha Garra": [2004, 50, 56, 31, 56, 100, 122, 2954, 57, 1.4, 10, 0, 1, 1, -5, 0],
+  "Aranha Soldado": [2005, 52, 71, 33, 39, 104, 127, 3146, 59, 1.4, 0, 10, 0, 0, -15, 0],
+  "Aranhinha Má": [2051, 43, 28, 41, 55, 107, 131, 1559, 50, 1, 1, -5, 1, 0, -10, 0], "Aranha Má": [2052, 45, 47, 57, 29, 98, 148, 1670, 52, 1, 0, 0, 1, 0, -10, 0],
+  "Aranha Rubra Má": [2053, 48, 54, 60, 15, 103, 155, 2215, 55, 1.4, -5, 1, -5, 0, -5, 0], "Aranha Garra Má": [2054, 50, 56, 31, 56, 120, 146, 2363, 57, 1.4, 10, 0, 1, 1, -5, 0],
+  "Escorpião das Dunas": [2103, 39, 41, 51, 30, 65, 120, 2025, 45, 1.4, 0, 1, 0, 0, -15, 0], "Olho do Vento": [2102, 37, 52, 24, 36, 62, 115, 1877, 43, 1.4, 1, 0, 1, 1, -10, 0],
+  "Homem-Escorpião Jovem": [2104, 44, 50, 28, 37, 91, 111, 3228, 51, 1.8, 1, 1, 2, 1, -10, 0], "Arqueiro Escorpião": [2105, 47, 59, 30, 22, 95, 116, 2598, 54, 1.8, 0, 0, -10, 0, 2, 10],
+  "Homem-Escorpião Brutal": [2131, 60, 77, 58, 39, 144, 176, 3771, 80, 1.89, 0, -5, 0, 0, 0, 0],
+  "Guerreiro-Serpente": [2106, 48, 79, 27, 36, 87, 130, 3692, 55, 1.8, 1, 1, 1, 0, -15, 0], "Arqueiro Serpente": [2107, 51, 64, 28, 24, 90, 136, 2957, 58, 1.8, -5, -10, -5, 0, 2, 10],
+  "Salteador do Deserto": [2108, 54, 61, 68, 44, 95, 143, 6969, 62, 2, 0, 10, 0, 0, -20, 0], "Salteador Forte": [2158, 54, 61, 68, 44, 114, 172, 5575, 62, 2, 0, 10, 0, 0, -20, 0],
+  "Hyeonmu das Areias": [2191, 67, 64, 43, 85, 102, 190, 146320, 76, 2, 100, 0, 100, 100, 100, 20],
 };
+// a curva do NIVEL70.md (a criatura comum do nível: vida, dano) e o papel (o comum, o de longe, o mago e o tanque, como nos clãs
+// da Hahoe); a defesa é 0,8 × nível × o papel. São os números de reserva: com o M2_MOB, o jogo usa os do Metin2
+const CURVA = [[35, 1200, 339], [40, 1450, 426], [45, 1750, 522], [50, 2050, 625], [55, 2400, 736], [60, 2700, 854], [65, 3100, 979], [70, 3450, 1111]];
+const CURVA_CHEFE = [[60, 111500, 2134, 72], [65, 124000, 2448, 78], [70, 136500, 2779, 84]];
+const PAPEL = { comum: { v: 1, d: 1, f: 1 }, longe: { v: 0.85, d: 1.15, f: 0.6 }, mago: { v: 0.9, d: 1.25, f: 0.5 }, tanque: { v: 1.4, d: 1.25, f: 1.8, exp: 1.5 } };
+const naCurva = (K, n, col) => { if (n <= K[0][0]) return K[0][col]; for (let i = 1; i < K.length; i++) if (n <= K[i][0]) { const a = K[i - 1], b = K[i]; return a[col] + (b[col] - a[col]) * (n - a[0]) / (b[0] - a[0]); } return K[K.length - 1][col]; };
+function numerosDe(papel, nivel) { const P = PAPEL[papel]; return { vida: Math.round(naCurva(CURVA, nivel, 1) * P.v / 10) * 10, dano: Math.round(naCurva(CURVA, nivel, 2) * P.d), defesa: Math.round(0.8 * nivel * P.f), ...(P.exp ? { expMult: P.exp } : {}) }; }
+// o filtro do sprite de reserva (?2d=1) pela tinta (o matiz dela a partir do sépia, como o do mapa_hahoe.js)
+const filtroDe = hex => { const [r, g, b] = hex2rgb(hex).map(c => c / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  let h = 0; if (d > 0) h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return `sepia(0.7) hue-rotate(${Math.round(h * 60 - 35)}deg) saturate(${(0.6 + d * 2).toFixed(2)}) brightness(${(0.6 + l * 0.7).toFixed(2)})`; };
+// os grupos (o group.txt do Metin2; o 1º é o líder)
+const GRUPOS_M2 = {
+  d_escorp_olhos: ["escorpiao_dunas", "olho_vento", "olho_vento", "olho_vento"],            // 1301: Rei Escorpião + 3 Olhos Voadores
+  d_escorp2_olhos: ["escorpiao_dunas", "escorpiao_dunas", "olho_vento", "olho_vento"],      // 1302
+  d_escorp3_olho: ["escorpiao_dunas", "escorpiao_dunas", "escorpiao_dunas", "olho_vento"],  // 1303
+  d_aranhinhas: ["aranhinha_areia", "aranhinha_areia", "aranhinha_areia"],                  // 2001: 3 Aranhas Bebê
+  d_aranha_aranhinhas: ["aranha_areia", "aranhinha_areia", "aranhinha_areia"],              // 2002: Aranha Venenosa + 2 Bebês
+  d_aranhas_aranhinha: ["aranha_areia", "aranha_areia", "aranhinha_areia"],                 // 2003
+  d_aranhinhas_mas: ["aranhinha_ma", "aranhinha_ma", "aranhinha_ma"],                       // 4071: 3 Bebês Más (agressivas)
+  d_aranhas_mas: ["aranha_ma", "aranha_ma", "aranha_ma"],                                   // 4072: 3 Mortais Más (agressivas)
+  d_jovens_escorp: ["escorpiao_jovem", "escorpiao_jovem", "escorpiao_dunas", "escorpiao_dunas"],        // 1304
+  d_arq_jovem_escorp: ["escorpiao_arqueiro", "escorpiao_jovem", "escorpiao_dunas", "escorpiao_dunas"],  // 1305
+  d_rubra_aranhas: ["aranha_rubra", "aranha_areia", "aranha_areia"],                        // 2004: Aranha Vermelha + 2 Venenosas
+  d_rubras_aranha: ["aranha_rubra", "aranha_rubra", "aranha_areia"],                        // 2005
+  d_rubras_mas: ["aranha_rubra_ma", "aranha_rubra_ma", "aranha_rubra_ma"],                  // 4074 (agressivas)
+  d_garras_mas: ["aranha_garra_ma", "aranha_garra_ma", "aranha_garra_ma"],                  // 4075 (agressivas)
+  d_arq_jovens_escorp: ["escorpiao_arqueiro", "escorpiao_jovem", "escorpiao_jovem", "escorpiao_dunas"], // 1306
+  d_arqserp_guerreiros: ["arqueiro_serpente", "guerreiro_serpente", "guerreiro_serpente", "guerreiro_serpente"],   // 1307
+  d_garra_rubras: ["aranha_garra", "aranha_rubra", "aranha_rubra"],                         // 2006
+  d_garras_rubra: ["aranha_garra", "aranha_garra", "aranha_rubra"],                         // 2007
+  d_salteadores_fortes: ["salteador_forte", "salteador_forte", "salteador_forte"],          // 2158
+  d_arqsserp_guerreiros: ["arqueiro_serpente", "arqueiro_serpente", "guerreiro_serpente", "guerreiro_serpente"],  // 1308
+  d_arqserp_2guerreiros: ["arqueiro_serpente", "guerreiro_serpente", "guerreiro_serpente"],  // 1309
+  d_salteador_misto: ["salteador", "arqueiro_serpente", "guerreiro_serpente", "escorpiao_arqueiro", "escorpiao_jovem"],   // 1310
+  d_soldado_garras: ["aranha_soldado", "aranha_garra", "aranha_garra"],                     // 2008
+  d_soldados_garra: ["aranha_soldado", "aranha_soldado", "aranha_garra"],                   // 2009
+  d_brutal_arqueiros: ["escorpiao_brutal", "escorpiao_arqueiro", "escorpiao_arqueiro"],     // 2131: Homem-Escorpião Brutal + 2 Arqueiros
+  d_escolta: ["salteador", "salteador", "arqueiro_serpente", "escorpiao_arqueiro"],         // a escolta do Hyeonmu (o grupo da Tartaruga)
+};
+const rep = (g, n) => Array(n).fill(g);
+// os conjuntos (o group_group.txt, com o peso pela repetição) e o tempo (100 s); o d_hyeonmu é a escolta no Leito Seco
+const GG = {
+  d_401: { nome: "Margem de Papel: escorpiões, olhos e aranhas", m2: "de_01", tempo: TEMPO_GRUPO, grupos: ["d_escorp_olhos", "d_escorp2_olhos", "d_escorp3_olho", "d_aranhinhas", "d_aranha_aranhinhas", "d_aranhas_aranhinha", ...rep("d_aranhinhas_mas", 3), ...rep("d_aranhas_mas", 3)] },
+  d_402: { nome: "Mar de Dunas: homens-escorpião e aranhas", m2: "de_02", tempo: TEMPO_GRUPO, grupos: ["d_jovens_escorp", "d_arq_jovem_escorp", "d_rubra_aranhas", "d_rubras_aranha", ...rep("d_rubras_mas", 3), ...rep("d_garras_mas", 3)] },
+  d_403: { nome: "Rota da Seda: serpentes, garras e salteadores", m2: "de_03", tempo: TEMPO_GRUPO, grupos: ["d_arq_jovens_escorp", "d_arqserp_guerreiros", "d_garra_rubras", "d_garras_rubra", ...rep("d_salteadores_fortes", 4)] },
+  d_404: { nome: "Campo das Serpentes", m2: "de_04", tempo: TEMPO_GRUPO, grupos: ["d_arqsserp_guerreiros", "d_arqserp_2guerreiros", "d_salteador_misto", "d_soldado_garras", "d_soldados_garra", "d_brutal_arqueiros", ...rep("d_salteadores_fortes", 4)] },
+  d_hyeonmu: { nome: "Escolta do Hyeonmu", m2: "—", tempo: TEMPO_GRUPO, grupos: ["d_escolta"] },
+};
+const GG_DA_ZONA = { Z1: "d_401", Z2: "d_402", Z3: "d_403", Z5: "d_404" };
+const tamMedio = gg => GG[gg].grupos.reduce((s, g) => s + GRUPOS_M2[g].length, 0) / GG[gg].grupos.length;
+const CONJUNTOS = Object.fromEntries(Object.entries(GG_DA_ZONA).map(([z, gg]) => [gg.slice(2), { zona: z, gg, grupos: [...new Set(GG[gg].grupos)].map(g => GRUPOS_M2[g].join(" + ")) }]));
 // [u, v, zona] (vista). 17 pontos do esquema foram empurrados (0,5 a 5 m; 2 do fundo do Rochedo, que virou rocha colada no paredão,
 // mudaram de lugar) para caber no chão de verdade: roda no chão, ≥ 4 m de uma beira, ≥ 13 m entre si (scratchpad: mover_grupos.mjs)
 const GRUPOS = [[-38.8,-66.3,"Z1"],[7.9,-25.5,"Z3"],[78.9,-40,"Z3"],[30.6,-24.2,"Z3"],[39.7,-13.8,"Z3"],[-40.9,16.3,"Z2"],[-10.3,-38,"Z3"],[64.8,37.8,"Z5"],[-29.2,41.9,"Z2"],[50.5,-40.3,"Z3"],[-76.6,-2.1,"Z2"],[43.4,18.3,"Z5"],[17.6,-8.3,"Z3"],[-73,-72.8,"Z1"],[68.5,70.2,"Z5"],[-32.6,70.4,"Z2"],[-68.9,-49.9,"Z1"],[-58.7,-2.9,"Z2"],[19.6,-45.1,"Z3"],[87.2,53.9,"Z5"],[-23.7,-19.2,"Z2"],[-86.7,25.5,"Z2"],[25.1,-66.8,"Z3"],[-6,-3.1,"Z3"],[-34.6,-44.7,"Z1"],[72.3,-64.3,"Z3"],[79.9,37.3,"Z5"],[-73.3,51.7,"Z2"],[73.7,-1.7,"Z5"],[33.7,56.9,"Z5"],[55,-4.2,"Z5"],[-36.8,57.2,"Z2"],[-54.6,-39.3,"Z2"],[-45.6,73.7,"Z2"],[-13.2,-60.2,"Z3"],[-38.3,3.5,"Z2"],[42.3,68.9,"Z5"],[-66.9,-34.5,"Z2"],[-86.9,-44.5,"Z1"],[-89.1,67.7,"Z2"],[5.9,-49.7,"Z3"],[-23.5,1.3,"Z2"],[-45.5,-7.7,"Z2"],[-41.9,-27.2,"Z2"],[18.8,5.5,"Z3"],[-24.3,-33,"Z2"],[86.2,24.2,"Z5"],[51.4,59.3,"Z5"],[40.2,36.7,"Z5"],[58.7,22.2,"Z5"],[-7.4,-72.5,"Z3"],[83.1,-56.6,"Z3"],[-58.8,74.1,"Z2"],[-78.5,-24.6,"Z2"],[91.3,-73.2,"Z3"],[-45.5,47.1,"Z2"],[34.3,-37.8,"Z3"],[6.8,-0.2,"Z3"],[70.4,-51.1,"Z3"],[-60.9,-15.8,"Z2"],[71,51.8,"Z5"],[-51.7,-79,"Z1"],[26.5,33.1,"Z5"],[-76,69.5,"Z2"],[-83.8,-59,"Z1"],[65,9.1,"Z5"],[-74,37.1,"Z2"],[82,10.5,"Z5"],[72.1,-18.3,"Z5"],[20.1,49,"Z5"],[-53.3,-56.7,"Z1"],[52.5,46.2,"Z5"],[84.2,-12.8,"Z5"],[28.6,19.6,"Z5"],[-26.8,-74.1,"Z1"],[-26.2,-56.9,"Z1"]];
-// (o tipo de cada ponto na etapa 1 é PROVISÓRIO, só de criaturas que o jogo já tem; a etapa 2 troca pelas variantes de cada
-// conjunto: as aranhas da areia, os escorpiões, os homens-escorpião, as serpentes e os salteadores)
-const TIPO_PROVISORIO = { Z1: "aranhinha", Z2: "escorpiao", Z3: "bandido", Z5: "bandido_arqueiro" };
-const BANDOS = GRUPOS.map(([u, v, z], k) => [TIPO_PROVISORIO[z], u, v, [3, 4, 3, 4, 4][k % 5], 2.5, z]);
-// as Pedras Ghotin (6): 2 de cada, só em chão 0. Os TIPOS são novos (metin16 a 18: o TIPOS[m.tipo] do jogo é uma ficha por
-// tipo, e repetir o metin9 da Hahoe trocaria a horda dela); a ARTE é a que já existe (arteDe: a Alma 40 é a metin9_alma, a
-// Sombra 45 a metin4_sombra, a Firmeza 50 a metin10_firmeza). A vida e a defesa: as das mesmas pedras na Hahoe e na Daiyu
+// os bandos no formato dos outros mapas ([o conjunto, u, v, o tamanho médio, o raio, a zona]: o validar() e o validar_deserto.mjs);
+// o jogo usa os PONTOS (o conjunto e o lugar no mundo), como os V1_PONTOS da Vila 1
+const BANDOS = GRUPOS.map(([u, v, z]) => [GG_DA_ZONA[z], u, v, +tamMedio(GG_DA_ZONA[z]).toFixed(1), 2.5, z]);
+// as Pedras Ghotin (6): 2 de cada (qtd 2, nas 2 áreas do tipo), só em chão 0. Os TIPOS são novos (metin16 a 18: o TIPOS[m.tipo] do
+// jogo é uma ficha por tipo, e repetir o metin9 da Hahoe trocaria a horda dela); a ARTE é a que já existe (arteDe: a Alma 40 é a
+// metin9_alma, a Sombra 45 a metin4_sombra, a Firmeza 50 a metin10_firmeza). A vida e a defesa: as das mesmas pedras na Hahoe e
+// na Daiyu (a vida de verdade é a da pedra Metin do nível, vidaPedraM2). A horda: os bichos da zona da pedra
 const GHOTINS = [
-  { tipo: "metin16", arteDe: "metin9", mapa: "deserto", nome: "Ghotin da Alma", nivel: 40, vida: 18500, defesa: 48, cor: "#e8d27a", horda: "aranhinha", areas: [[-36, -70], [-88, 2]] },
-  { tipo: "metin17", arteDe: "metin4", mapa: "deserto", nome: "Ghotin da Sombra", nivel: 45, vida: 22000, defesa: 54, cor: "#8a4dff", horda: "escorpiao", areas: [[-86, 40], [0, -46]] },
-  { tipo: "metin18", arteDe: "metin10", mapa: "deserto", nome: "Ghotin da Firmeza", nivel: 50, vida: 25500, defesa: 60, cor: "#c9963e", horda: "bandido", areas: [[28, -76], [70, 40]] },
+  { tipo: "metin16", arteDe: "metin9", mapa: "deserto", nome: "Ghotin da Alma", nivel: 40, vida: 18500, defesa: 48, cor: "#e8d27a", horda: "aranha_areia", qtd: 2, areas: [[-36, -70], [-88, 2]] },
+  { tipo: "metin17", arteDe: "metin4", mapa: "deserto", nome: "Ghotin da Sombra", nivel: 45, vida: 22000, defesa: 54, cor: "#8a4dff", horda: "escorpiao_jovem", qtd: 2, areas: [[-86, 40], [0, -46]] },
+  { tipo: "metin18", arteDe: "metin10", mapa: "deserto", nome: "Ghotin da Firmeza", nivel: 50, vida: 25500, defesa: 60, cor: "#c9963e", horda: "guerreiro_serpente", qtd: 2, areas: [[28, -76], [70, 40]] },
 ];
 // o chefe: a "Tartaruga de Areia Gigante" do Metin2 com o nome do Hyeonmu (a tartaruga enlaçada pela serpente, o guardião do
-// norte de Goguryeo). Volta no tempo dos nossos chefes (CHEFES_MAPA, 8 a 20 min), não nas 2 h do Metin2
-const CHEFE = { tipo: "hyeonmu", nome: "Hyeonmu das Areias", nivel: 67, u: LEITO.u, v: LEITO.v, arena: LEITO.r, baseProvisoria: "escorpiao",
-  escolta: [["bandido", 2], ["bandido_arqueiro", 1], ["escorpiao", 1]], mecs: ["pisao", "horda"], horda: [["bandido", 3]], volta: [8, 20],
-  falas: ["A areia treme. Uma carapaça do tamanho de uma casa se ergue do leito seco.", "A serpente da cauda sibila: as areias chamam reforço!"] };
+// norte de Goguryeo). O corpo PROVISÓRIO (o modelo novo é a etapa 3): o Escorpião Gigante 2,3× maior, de casco escuro (nanquim
+// e jade, a cor do norte), com a cauda curva no lugar da serpente. Volta no tempo dos nossos chefes (P2: 16 a 20 min, o mais alto
+// do deserto), não nas 2 h do Metin2. A vida: a da Tartaruga do mob_proto (146.320); o golpe: a curva do chefe do 67
+const CHEFE = { tipo: "hyeonmu", nome: "Hyeonmu das Areias", nivel: 67, u: LEITO.u, v: LEITO.v, arena: LEITO.r, base: "escorpiao", esc: 2.3, tinta: "#2c3a2c",
+  escolta: [["salteador", 2], ["arqueiro_serpente", 1], ["escorpiao_arqueiro", 1]], escoltaUV: [LEITO.u - 6, LEITO.v - 3], mecs: ["pisao", "horda", "pisao"], horda: [["guerreiro_serpente", 3]], volta: [16, 20],
+  falas: ["O Hyeonmu bate o casco: a areia do leito sobe em ondas!", "A serpente da cauda sibila: os Guerreiros-Serpente saem da areia!"] };
+// os NPCs: o modelo de uma classe com a roupa girada (NPC_3D e NPC_TINTA; a tinta é a cor da roupa em linear), sem a arma.
+// A Caravaneira vende as poções e o antídoto (a loja dela, no index.html); o Hyecho, por ora, só fala (o Passe da Gruta é a etapa 4)
 const NPCS = [
-  { nome: "Caravaneira Ba-ram", u: 14, v: 18, modelo: null, tinta: null, papel: "loja e volta à Hahoe",
-    cores: { roupa: "#B8322A", calca: "#C9963E", pele: "#c99872", cabelo: "#1E1B18", lenco: "#EFE4CC" },
-    falas: ["Água fresca, poções e antídoto. As aranhas da areia mordem com veneno: não atravesse as dunas sem um frasco.",
-      "O oásis é o único lugar seguro daqui até as grutas. Se precisar voltar para a Vila Hahoe, eu levo, por uns trocados.",
-      "A trilha clara é a Rota da Seda. Ela passa pelas ruínas da caravana e termina na boca das grutas, no fundo do deserto."] },
-  { nome: "Monge Hyecho", u: 80, v: 66.5, modelo: null, tinta: null, papel: "o Passe da Gruta e o Selo do Tear",
+  { nome: "Caravaneira Ba-ram", u: 14, v: 18, modelo: "ninja", tinta: [0.584, 0.305, 0.048], papel: "poções e antídoto",
+    cores: { roupa: "#C9963E", calca: "#B8322A", pele: "#c99872", cabelo: "#1E1B18", lenco: "#EFE4CC" },
+    falas: ["Água, poções e antídoto. As aranhas, os homens-escorpião e as serpentes mordem com veneno: não atravesse as dunas sem um frasco.",
+      "Aqui é a borda do biombo, onde a tinta secou. O vento leva a cor embora e deixa o papel à mostra.",
+      "O oásis é o único lugar seguro daqui até as grutas. A trilha clara é a Rota da Seda: passa pelas ruínas da caravana e acaba na boca das grutas.",
+      "Quando a areia do Leito Seco treme, é o Hyeonmu acordando. Ninguém da caravana passa por lá."] },
+  { nome: "Monge Hyecho", u: 80, v: 66.5, modelo: "feiticeiro", tinta: [0.262, 0.254, 0.216], papel: "as Grutas da Seda (o Passe da Gruta na etapa 4)",
     cores: { roupa: "#8C8A80", calca: "#3B4250", pele: "#d8a982", cabelo: "#1E1B18", lenco: "#C9963E" },
     falas: ["Andei a Rota da Seda inteira e escrevi o que vi. Estas grutas eram pintadas do chão ao teto.",
       "As aranhas tecem seda por cima das pinturas para prender os rasgos. No fundo, beberam a tinta negra da pedra.",
-      "Para descer, você precisa do Passe da Gruta. Eu vendo um, e a Rainha da Seda costuma carregar outros."] },
+      "A seda ainda fecha a descida. Quando ela ceder, você vai precisar do Passe da Gruta, e eu guardo alguns."] },
 ];
+// a voz de cada base (o VOZ_NOVAS do jogo): as aranhas, as do escorpião; os humanos, as dos bandidos
+const VOZ_DE = { aranha: "escorpiao", escorpiao: "escorpiao", fantasma: "fantasma", cla_soldado: "bandido", cla_maniaco: "bandido", cla_arqueiro: "bandido_arqueiro", cla_gigante: "chefe_bandido",
+  bandido: "bandido", bandido_arqueiro: "bandido_arqueiro", chefe_bandido: "chefe_bandido", goblin: "bandido" };
 
 // ---------------------------------------------------------------- a decoração: 70 peças, juntas em poucos lugares
 // { t: o tipo que JÁ existe (o substituto), novo: o tipo da arte nova (marcada para o Tripo; entra sozinha quando o DECO
@@ -5276,7 +5387,7 @@ const PECAS = [
 
 // ---------------------------------------------------------------- a grade
 const F_ANDA = 1, F_PENHASCO = 2, F_OCULTO = 4, F_AGUA = 8, F_ROCHA = 16, F_DUNA = 32, F_RAMPA = 64, F_TERRA = 128;
-const D = { OX, OY, Y_DESERTO, RAIO: RAIO_M, NIV, Z_ROCHA, FAIXA, COR, TOM, CAIXA, DUNAS, CARAV, MESA, LAGO, LEITO, ROTAS, ZONAS, LUGARES, GRUPOS, CONJUNTOS, TEMPO_GRUPO, BANDOS, GHOTINS, CHEFE, NPCS, GRUTA, PECAS, TRIPO,
+const D = { OX, OY, Y_DESERTO, RAIO: RAIO_M, NIV, Z_ROCHA, FAIXA, COR, TOM, CAIXA, DUNAS, CARAV, MESA, LAGO, LEITO, ROTAS, ZONAS, LUGARES, GRUPOS, CONJUNTOS, TEMPO_GRUPO, BANDOS, GHOTINS, CHEFE, NPCS, GRUTA, PECAS, TRIPO, CRIATURAS, M2_MOB, GRUPOS_M2, GG, GG_DA_ZONA, PAPEL,
   SEGURO, PORTAL_VOLTA, PORTAL_IDA_HAHOE, CEL, EU, EV, NI, NJ, PASSO_MAX,
   F: { ANDA: F_ANDA, PENHASCO: F_PENHASCO, OCULTO: F_OCULTO, AGUA: F_AGUA, ROCHA: F_ROCHA, DUNA: F_DUNA, RAMPA: F_RAMPA, TERRA: F_TERRA },
   Z: null, FL: null, NV: null, pronta: false, vistaDe, mundoDe, localDeVista, rCosta, bordaV, naRocha, naAgua, zDunas, zMonte, zSup, zDuna, zonaDe, dunaEm, frenteMesa, trasV, ladoU };
@@ -5391,9 +5502,43 @@ D.mapa = () => ({ id: "deserto", nome: "Deserto de Mingsha", sub: "as Areias que
   rCosta, corMini: D.corMini, seguro: mundoDe(SEGURO.u, SEGURO.v), semMar: true, corFora: [242, 234, 216] });
 D.bandos = () => BANDOS.map(([t, u, v, n, e, z]) => [t, ...mundoDe(u, v), n, e, n, false, z]);
 // (etapa 2) cada ponto com o conjunto do Metin2 e o tempo: o jogo sorteia um grupo do conjunto quando o líder cai
-D.grupos = () => GRUPOS.map(([u, v, z]) => { const [x, y] = mundoDe(u, v), cj = ZONAS.find(q => q.id === z).conjunto; return { x, y, zona: z, conjunto: cj, tempo: TEMPO_GRUPO, grupos: CONJUNTOS[cj].grupos }; });
+D.grupos = () => GRUPOS.map(([u, v, z]) => { const [x, y] = mundoDe(u, v), gg = GG_DA_ZONA[z]; return { x, y, zona: z, gg, conjunto: GG[gg].m2, tempo: GG[gg].tempo, grupos: GG[gg].grupos }; });
+// os pontos no formato dos V1_PONTOS do jogo ([o conjunto, x, y] no mundo): os 76 das zonas e a escolta do Hyeonmu no Leito Seco
+D.PONTOS = [...GRUPOS.map(([u, v, z]) => [GG_DA_ZONA[z], ...mundoDe(u, v)]), ["d_hyeonmu", ...mundoDe(...CHEFE.escoltaUV)]];
 D.ghotins = () => GHOTINS.map(g => { const { areas, ...r } = g; return { ...r, regioes: areas.map(([u, v]) => mundoDe(u, v)) }; });
 D.chefe = () => { const [x, y] = mundoDe(CHEFE.u, CHEFE.v); return { ...CHEFE, x, y }; };
+// o spawn do chefe (a lista de spawns do jogo: { tipo, x, y, n, r }; a área dele é a do CHEFES_MAPA, dentro da arena)
+D.spawnChefe = () => { const [x, y] = mundoDe(CHEFE.u, CHEFE.v); return { tipo: CHEFE.tipo, x, y, n: 1, r: 1.6 }; };
+// a entrada do CHEFES_MAPA (as mecânicas que já existem: o pisão, o casco batendo, e a horda, a serpente da cauda chamando os
+// Guerreiros-Serpente; raio: a área do nascimento, dentro da arena de 12 m; limpo: longe das peças)
+D.chefeMapa = () => ({ regiao: "no Leito do Rio Seco do Deserto de Mingsha", mapa: "deserto", raio: 7, min: CHEFE.volta[0], max: CHEFE.volta[1], mecs: CHEFE.mecs.slice(), horda: CHEFE.horda.map(h => h.slice()),
+  raioPisao: 4.4, cor: 38, cada: 6, limpo: 3, falas: CHEFE.falas.slice() });
+// os tipos (TIPOS do jogo) das criaturas do deserto e do Hyeonmu, com a voz de cada um. variante: a do jogo (a base com outro
+// tamanho, nome e números); renasce: o RENASCE_COMUM. Só cria o que falta e só com a base carregada (TIPOS[b].M); devolve quantos
+D.criarCriaturas = function (TIPOS, variante, renasce, VOZ) {
+  let n = 0;
+  for (const [t, papel, nome, nivel, bases, esc, tinta, roupa3d, extra] of CRIATURAS) {
+    if (TIPOS[t]) continue;
+    const b = bases.find(k => TIPOS[k] && TIPOS[k].M); if (!b) continue;
+    const B = TIPOS[b], corpo = b.startsWith("cla_");
+    const v = { raca: B.raca, nome, nivel, ...numerosDe(papel, nivel), esc: esc * (b === "cla_gigante" ? 0.92 : 1), tinta, filtro2d: filtroDe(tinta), ...(roupa3d ? { roupa3d } : {}), ...extra, deserto: true, papel };
+    if (corpo) Object.assign(v, { clan: true, corpo: b });
+    TIPOS[t] = variante(b, { ...v, chefe: false, chefeCaverna: false, conjura: 0, renasce });
+    if (VOZ && !VOZ[t] && VOZ[VOZ_DE[b]]) VOZ[t] = { ...VOZ[VOZ_DE[b]] };
+    n++;
+  }
+  if (!TIPOS[CHEFE.tipo] && TIPOS[CHEFE.base] && TIPOS[CHEFE.base].M) {
+    const B = TIPOS[CHEFE.base], k = naCurva(CURVA_CHEFE, CHEFE.nivel, 1), dn = naCurva(CURVA_CHEFE, CHEFE.nivel, 2), df = naCurva(CURVA_CHEFE, CHEFE.nivel, 3);
+    TIPOS[CHEFE.tipo] = variante(CHEFE.base, { raca: B.raca, nome: CHEFE.nome, nivel: CHEFE.nivel, vida: Math.round(k / 100) * 100, dano: Math.round(dn), defesa: Math.round(df), esc: CHEFE.esc, renasce: 60 * CHEFE.volta[0],
+      chefe: true, chefeCaverna: true, visao: 9, chega: 1.5, galope: 0, tinta: CHEFE.tinta, filtro2d: filtroDe(CHEFE.tinta) + " brightness(0.8)", conjura: 0, deserto: true, papel: "chefe" });
+    if (VOZ && !VOZ[CHEFE.tipo]) VOZ[CHEFE.tipo] = { ve: "rugido_chefe", ataca: null, dano: "aranha", morre: "orc_morte" };
+    n++;
+  }
+  return n;
+};
+D.tipos = () => [...CRIATURAS.map(c => c[0]), CHEFE.tipo];
+D.agressivos = () => CRIATURAS.filter(c => c[8].agressivo).map(c => c[0]);
+D.venenosos = () => Object.fromEntries(CRIATURAS.filter(c => c[8].veneno).map(c => [c[0], c[8].veneno]));
 D.npcs = () => NPCS.map(n => { const [x, y] = mundoDe(n.u, n.v); const { u, v, ...r } = n; return { ...r, x, y, mapa: "deserto" }; });
 D.gruta = () => { const [x, y] = mundoDe(...GRUTA.entrada), [ax, ay] = mundoDe(GRUTA.u, GRUTA.v); return { x, y, arte: [ax, ay], larg: GRUTA.larg, destino: "grutas1" }; };
 // os dois portais: o de ida na Vila Hahoe (nível 40) e o de volta no Portão da Caravana
@@ -5407,9 +5552,9 @@ D.portais = function (hahoeOx = 0, hahoeOy = 700, hahoe2 = true) {
 D.portalVolta = () => { const p = D.portais()[1]; return { x: p.x, y: p.y, saida: p.saida }; };
 D.rotulos = () => [["Deserto de Mingsha", ...mundoDe(-10, 84), 1], ...ZONAS.map(z => [z.nome, ...mundoDe(...z.rot), 2]),
   ...LUGARES.filter(l => l.id !== "oasis").map(l => [l.nome, ...mundoDe(l.u, l.v + 6), 3]), ["Oásis da Lua Crescente", ...mundoDe(-2, 22), 3]];
-D.pontos = () => { const p = (u, v) => mundoDe(u, v), g = DUNAS[2], c = cristaV(g, 0);
+D.pontos = () => { const p = (u, v) => mundoDe(u, v), g = DUNAS[2], gu = g.u + g.as * g.L, c = cristaV(g, g.as);   // (no pico da duna)
   return { portal: p(PORTAL_VOLTA.u, PORTAL_VOLTA.v), chegada: p(PORTAL_VOLTA.u + PORTAL_VOLTA.saida[0] * 3, PORTAL_VOLTA.v + PORTAL_VOLTA.saida[1] * 3), oasis: p(SEGURO.u, SEGURO.v), leito: p(LEITO.u, LEITO.v), gruta: p(...GRUTA.entrada),
-    caravancara: p(CARAV.u, CARAV.v), rampa: p(CARAV.rampa.u, CARAV.f - 2), estupas: p(-25, 44), cristaGrande: p(g.u, c + 0.6), peFace: p(g.u, c - 0.2), encostaGrande: p(g.u, c + g.D * 0.5),
+    caravancara: p(CARAV.u, CARAV.v), rampa: p(CARAV.rampa.u, CARAV.f - 2), estupas: p(-25, 44), cristaGrande: p(gu, c + 0.6), peFace: p(gu, c - 0.4), encostaGrande: p(gu, c + g.D * 0.5),
     lago: p(LAGO.a.u, LAGO.a.v - LAGO.a.rv * 0.7), rochedo: p(MESA.u, MESA.v), paredao: p(0, 82), papel: p(0, -94) }; };
 
 // ---------------------------------------------------------------- a decoração
@@ -5523,7 +5668,7 @@ function faixasDuna(d) {
     if (L >= d.H * 0.999) break;
     const frente = [], fundo = [];
     for (let k = 0; k <= n; k++) {
-      const x = -1 + 2 * k / n, hw = d.H * largW(x); if (hw <= L) continue;
+      const x = -1 + 2 * k / n, hw = altX(d, x); if (hw <= L) continue;
       const c = cristaV(d, x), t = lisoInv(1 - L / hw);
       frente.push([d.u + x * d.L, c, hw]); fundo.push([d.u + x * d.L, c + t * fundoX(d, x), L]);
     }
@@ -5531,18 +5676,18 @@ function faixasDuna(d) {
   }
   return (d._fx = out);
 }
-function pintarDuna(g, Pz, esc, d) {
+function pintarDunaVetor(g, Pz, esc, d) {   // (o desenho de antes, em vetor: só quando a vista não está alinhada com a grade, no ?giro=0)
   const lw = m => Math.max(1, m * esc), n = 60, crista = [];
-  for (let k = 0; k <= n; k++) { const x = -1 + 2 * k / n, h = d.H * largW(x); crista.push([d.u + x * d.L, cristaV(d, x), h]); }
+  for (let k = 0; k <= n; k++) { const x = -1 + 2 * k / n, h = altX(d, x); crista.push([d.u + x * d.L, cristaV(d, x), h]); }
   // a sombra chapada que a face projeta na areia da frente (a luz vem do fundo, à esquerda)
   { const pp = new Path2D(); const lim = crista.filter(p => p[2] > 0.05); if (lim.length > 1) { const a = lim.map(p => Pz(p[0], p[1], 0)), b = lim.slice().reverse().map(p => Pz(p[0] + 0.3 * p[2], p[1] - 0.9 * p[2], 0)); pp.moveTo(...a[0]); for (const q of a.concat(b)) pp.lineTo(...q); pp.closePath(); g.fillStyle = "rgba(45,74,107,0.2)"; g.fill(pp); } }
   // a face de queda: do pé (z 0) à crista, a areia na sombra, com as escorridas
   { const lim = crista.filter(p => p[2] > 0.03); if (lim.length > 1) {
-      const pp = new Path2D(); lim.forEach((p, k) => { const q = Pz(p[0], p[1], 0); k ? pp.lineTo(...q) : pp.moveTo(...q); }); for (let k = lim.length - 1; k >= 0; k--) pp.lineTo(...Pz(lim[k][0], lim[k][1], lim[k][2])); pp.closePath();
+      const pp = new Path2D(); lim.forEach((p, k) => { const q = Pz(p[0], p[1] - p[2] / FACE_INC, 0); k ? pp.lineTo(...q) : pp.moveTo(...q); }); for (let k = lim.length - 1; k >= 0; k--) pp.lineTo(...Pz(lim[k][0], lim[k][1], lim[k][2])); pp.closePath();
       g.fillStyle = TOM.face; g.fill(pp);
       const esc2 = new Path2D(); for (let k = 1; k < lim.length - 1; k++) { if (hsh(k, Math.round(d.u), 211) < 0.45) continue; const p = lim[k], f = 0.35 + 0.5 * hsh(k, 2, 212); esc2.moveTo(...Pz(p[0], p[1], p[2] * 0.96)); esc2.lineTo(...Pz(p[0] + 0.25, p[1], p[2] * (1 - f))); }
       g.strokeStyle = TOM.faceEscura; g.lineWidth = lw(0.06); g.lineCap = "round"; g.stroke(esc2);
-      const pe = new Path2D(); lim.forEach((p, k) => { const q = Pz(p[0], p[1], 0); k ? pe.lineTo(...q) : pe.moveTo(...q); }); g.strokeStyle = "rgba(30,27,24,0.5)"; g.lineWidth = lw(0.03); g.stroke(pe);
+      const pe = new Path2D(); lim.forEach((p, k) => { const q = Pz(p[0], p[1] - p[2] / FACE_INC, 0); k ? pe.lineTo(...q) : pe.moveTo(...q); }); g.strokeStyle = "rgba(30,27,24,0.5)"; g.lineWidth = lw(0.03); g.stroke(pe);
   } }
   // a encosta mansa em faixas de tom, com as curvas de nível de nanquim fino e as marcas de vento
   const fx = faixasDuna(d);
@@ -5550,11 +5695,188 @@ function pintarDuna(g, Pz, esc, d) {
   const nivel = new Path2D(); for (const f of fx) { if (f.L < 0.1) continue; f.fundo.forEach((p, q) => { const s = Pz(p[0], p[1], p[2]); q ? nivel.lineTo(...s) : nivel.moveTo(...s); }); }
   g.strokeStyle = "rgba(30,27,24,0.34)"; g.lineWidth = lw(0.028); g.stroke(nivel);
   const vento = new Path2D();
-  for (const t of [0.18, 0.32, 0.47, 0.62, 0.78]) { let ab = false; for (let k = 0; k <= 40; k++) { const x = -0.92 + 1.84 * k / 40, h = d.H * largW(x), c = cristaV(d, x), z = h * (1 - liso(t)); if (z < 0.06 || hsh(k >> 2, Math.round(t * 100), Math.round(d.u)) < 0.38) { ab = false; continue; } const s = Pz(d.u + x * d.L, c + t * fundoX(d, x) + 0.4 * Math.sin(k * 0.9 + t * 9), z); ab ? vento.lineTo(...s) : vento.moveTo(...s); ab = true; } }
+  for (const t of [0.18, 0.32, 0.47, 0.62, 0.78]) { let ab = false; for (let k = 0; k <= 40; k++) { const x = -0.92 + 1.84 * k / 40, h = altX(d, x), c = cristaV(d, x), z = h * (1 - liso(t)); if (z < 0.06 || hsh(k >> 2, Math.round(t * 100), Math.round(d.u)) < 0.38) { ab = false; continue; } const s = Pz(d.u + x * d.L, c + t * fundoX(d, x) + 0.4 * Math.sin(k * 0.9 + t * 9), z); ab ? vento.lineTo(...s) : vento.moveTo(...s); ab = true; } }
   g.strokeStyle = mixHex(TOM.areia[1], COR.nanquim, 0.22); g.lineWidth = lw(0.022); g.stroke(vento);
   // a crista: o traço grosso de nanquim, mais fino perto das pontas
   g.strokeStyle = COR.nanquim; g.lineCap = "round";
   for (let k = 1; k < crista.length; k++) { const a = crista[k - 1], b = crista[k], w = Math.min(a[2], b[2]) / d.H; if (w < 0.08) continue; g.lineWidth = lw(0.025 + 0.07 * w); g.beginPath(); g.moveTo(...Pz(a[0], a[1], a[2])); g.lineTo(...Pz(b[0], b[1], b[2])); g.stroke(); }
+}
+// ---------------------------------------------------------------- o relevo das dunas (16/11, "fazer elas um relevo 3D fica melhor")
+// Cada pixel do pedaço que cai numa duna acha o ponto da superfície que ele mostra (a coluna do pedaço é um u fixo; a linha é a
+// "altura aparente" a = v + z·ALTURA/ACHATA, que sobe sem voltar do pé da face ao fundo da encosta), tira a normal do campo de
+// altura (a conta exata do zDuna, com a inclinação exagerada ×EXAGERO só para a luz) e acende com a luz do jogo (do fundo, à
+// esquerda, a 35°). A diferença para a areia plana vira 4 tons CHAPADOS da paleta (minhwa, sem degradê): o lado aceso, o meio (a
+// própria areia do chão: fica transparente), a encosta de lado e a face de sombra, com a borda entre eles mexida por um ruído
+// largo (a pincelada) e alisada em 1 px. Por cima: as marcas de vento seguindo a curva da crista, as escorridas na face, o
+// nanquim da crista (grosso no meio, fino nas pontas) e o do pé da face, a sombra da face na areia da frente e as ondulações em
+// volta. Tudo no preparo do pedaço em cache (uma vez), nada por quadro
+const LUZ = (() => { const e = 35 * Math.PI / 180, hu = -0.55, hv = 0.835, n = Math.hypot(hu, hv); return [Math.cos(e) * hu / n, Math.cos(e) * hv / n, Math.sin(e)]; })();
+const SOMBRA_UV = [-LUZ[0] / LUZ[2], -LUZ[1] / LUZ[2]];             // (a sombra de 1 m de altura no chão: para a direita e para a frente)
+const EXAGERO = 2.4, LUZ_PLANO = LUZ[2], RUIDO_LUZ = 0.022, TAB_REL = 64;
+const LIM_REL = [0.085, -0.05, -0.3];                                // (os limiares da diferença de luz: aceso > 0,085 > meio > −0,05 > encosta > −0,3 > sombra)
+const TONS_REL = { aceso: mixHex(COR.papel, COR.ocre, 0.25), encosta: mixHex(mixHex(COR.papel, COR.ocre, 0.66), COR.cinabre, 0.06), sombra: mixHex(mixHex(COR.ocre, COR.cinabre, 0.2), COR.nanquim, 0.25),
+  escorrida: mixHex(mixHex(COR.ocre, COR.cinabre, 0.22), COR.nanquim, 0.48), vento: mixHex(TOM.areia[1], COR.nanquim, 0.24), ondaChao: mixHex(TOM.areia[0], COR.nanquim, 0.2) };
+const luzDe = (gu, gv) => (-gu * LUZ[0] - gv * LUZ[1] + LUZ[2]) / Math.sqrt(1 + gu * gu + gv * gv);
+const tomRel = dl => dl > LIM_REL[0] ? "aceso" : dl > LIM_REL[1] ? "meio" : dl > LIM_REL[2] ? "encosta" : "sombra";
+// o ruído largo (a borda da pincelada): 64 × 64 valores lisos num ladrilho de 19,2 m, sem emenda
+let RUIDO = null;
+function ruidoTab() {
+  if (RUIDO) return RUIDO;
+  const N = 64, a = new Float32Array(N * N), b = new Float32Array(N * N);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) a[j * N + i] = hsh(i, j, 431) * 2 - 1;
+  for (let p = 0; p < 3; p++) { for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { let s = 0; for (let q = -2; q <= 2; q++) s += a[j * N + ((i + q + N) & 63)] + a[((j + q + N) & 63) * N + i]; b[j * N + i] = s / 10; } a.set(b); }
+  let m = 0; for (const v of a) m = Math.max(m, Math.abs(v)); for (let k = 0; k < a.length; k++) a[k] /= m;
+  return (RUIDO = a);
+}
+function ruido(u, v) {
+  const T = RUIDO || ruidoTab(), fu = u / 0.3, fv = v / 0.3, iu = Math.floor(fu), iv = Math.floor(fv), s = liso(fu - iu), t = liso(fv - iv);
+  const i0 = iu & 63, i1 = (iu + 1) & 63, j0 = (iv & 63) * 64, j1 = ((iv + 1) & 63) * 64;
+  return (T[j0 + i0] * (1 - s) + T[j0 + i1] * s) * (1 - t) + (T[j1 + i0] * (1 - s) + T[j1 + i1] * s) * t;
+}
+// a coluna de uma duna em x: a altura e a crista, o fundo da encosta, a face e as derivadas em x
+function colunaDuna(d, x) {
+  const e = 1e-3, hw = altX(d, x), c = cristaV(d, x), f = fundoX(d, x);
+  return { x, hw, c, f, ff: hw / FACE_INC, hwp: (altX(d, x + e) - altX(d, x - e)) / (2 * e), cp: (cristaV(d, x + e) - cristaV(d, x - e)) / (2 * e), fp: (fundoX(d, x + e) - fundoX(d, x - e)) / (2 * e) };
+}
+// a luz da encosta em t e a da face (uma por coluna): a diferença para a areia plana, com o ruído largo da pincelada. A pintura
+// calcula a encosta em TAB_REL + 1 nós por coluna e interpola entre eles; o luzDuna faz a mesma conta (para o R406)
+function dlEncosta(d, K, u, t) {
+  const S = liso(t), S1 = 6 * t * (1 - t), gv = -K.hw * S1 / K.f * EXAGERO, gu = (K.hwp * (1 - S) + K.hw * S1 * (K.cp + t * K.fp) / K.f) / d.L * EXAGERO;
+  return luzDe(gu, gv) - LUZ_PLANO + RUIDO_LUZ * ruido(u, K.c + t * K.f);
+}
+const dlFaceCol = (d, K, u) => luzDe((K.hwp - FACE_INC * K.cp) / d.L, FACE_INC) - LUZ_PLANO + RUIDO_LUZ * ruido(u, K.c - K.ff / 2);
+// a luz num ponto do chão (u, v) de uma duna: { z, dl (a diferença de luz para o plano), tom, face }
+function luzDuna(d, u, v) {
+  const x = (u - d.u) / d.L; if (x <= -1 || x >= 1) return null;
+  const K = colunaDuna(d, x);
+  if (v < K.c) { const z = K.hw - (K.c - v) * FACE_INC; if (z <= 0) return null; const dl = dlFaceCol(d, K, u); return { z, dl, tom: tomRel(dl), face: true }; }
+  const t = (v - K.c) / K.f; if (t > 1) return null;
+  const q = Math.min(TAB_REL - 1, Math.floor(t * TAB_REL)), w = t * TAB_REL - q, dl = dlEncosta(d, K, u, q / TAB_REL) * (1 - w) + dlEncosta(d, K, u, (q + 1) / TAB_REL) * w;
+  return { z: K.hw * (1 - liso(t)), dl, tom: tomRel(dl), face: false };
+}
+D.luzDuna = (x, y) => { const [u, v] = vistaDe(x, y); for (const d of DUNAS) { const r = luzDuna(d, u, v); if (r) return { ...r, duna: d.nome }; } return { z: 0, dl: 0, tom: "meio", face: false, duna: null }; };
+// a camada dos pixels (um canvas e os buffers do tamanho do pedaço, reaproveitados)
+const REL = { cv: null, w: 0, h: 0, DL: null, PH: null, RG: null, CB: null, img: null };
+function bufRel(w, h) {
+  if (REL.w !== w || REL.h !== h) { const n = w * h; Object.assign(REL, { w, h, DL: new Float32Array(n), PH: new Float32Array(n), RG: new Uint8Array(n), CB: new Float32Array(n), img: new ImageData(w, h) }); }
+  if (!REL.cv) { REL.cv = document.createElement("canvas"); REL.cv.getContext("2d", { willReadFrequently: true }); }   // (na CPU: o putImageData não espera a GPU)
+  if (REL.cv.width < w || REL.cv.height < h) { REL.cv.width = Math.max(REL.cv.width, w); REL.cv.height = Math.max(REL.cv.height, h); }
+}
+const hexRgb01 = h => hex2rgb(h).map(c => c / 255);
+const RGB_REL = { aceso: hexRgb01(TONS_REL.aceso), encosta: hexRgb01(TONS_REL.encosta), sombra: hexRgb01(TONS_REL.sombra), escorrida: hexRgb01(TONS_REL.escorrida), vento: hexRgb01(TONS_REL.vento) };
+// a camada de todas as dunas do pedaço; devolve false quando a vista não está alinhada com a grade (o ?giro=0): aí vai o vetor
+function pintarRelevo(g, Pz, esc, lista, cw, ch) {
+  if (typeof document === "undefined" || typeof ImageData === "undefined") return false;
+  const p0 = Pz(0, 0, 0), pu = Pz(1, 0, 0), pv = Pz(0, 1, 0), pz = Pz(0, 0, 1);
+  const Au = pu[0] - p0[0], Bu = pu[1] - p0[1], Av = pv[0] - p0[0], Bv = pv[1] - p0[1], Zy = pz[1] - p0[1];
+  if (Math.abs(Bu) > 1e-6 || Math.abs(Av) > 1e-6 || Au <= 0 || Bv >= 0 || Zy >= 0) return false;
+  // (a camada sai em MEIA resolução e é ampliada ao desenhar: 1/4 dos pixels; as bordas dos tons já são alisadas, e o nanquim é vetor)
+  const RES = 2; cw = Math.ceil(cw / RES); ch = Math.ceil(ch / RES); esc /= RES;
+  // (com 1 pixel de folga em volta: a ampliação lê o vizinho, e na borda do pedaço ele tem que existir, senão fica uma emenda clara)
+  cw += 2; ch += 2; p0[0] = p0[0] / RES + 1; p0[1] = p0[1] / RES + 1;
+  const Au2 = Au / RES, Bv2 = Bv / RES;
+  const k = Zy / Bv, pxV = -Bv2;                                        // (k: a = v + k·z; pxV: px por metro de v)
+  // a caixa dos pixels (todas as dunas do pedaço)
+  const caixas = lista.map(d => { const b = d.caixa; return [Math.max(0, Math.floor(p0[0] + Au2 * b[0])), Math.min(cw, Math.ceil(p0[0] + Au2 * b[1])), Math.max(0, Math.floor(p0[1] + Bv2 * b[3])), Math.min(ch, Math.ceil(p0[1] + Bv2 * b[2]) + 1)]; }).filter(b => b[1] > b[0] && b[3] > b[2]);
+  if (!caixas.length) return true;
+  const X0 = Math.min(...caixas.map(b => b[0])), X1 = Math.max(...caixas.map(b => b[1])), Y0 = Math.min(...caixas.map(b => b[2])), Y1 = Math.max(...caixas.map(b => b[3]));
+  const t0 = performance.now(); bufRel(cw, ch);
+  const { DL, PH, RG, CB } = REL, LAMB = 0.85, TAB = TAB_REL, ta = new Float32Array(TAB + 1), tl = new Float32Array(TAB + 1);
+  for (let Y = Y0; Y < Y1; Y++) RG.fill(0, Y * cw + X0, Y * cw + X1);
+  for (const d of lista) {
+    const xa = Math.max(X0, Math.floor(p0[0] + Au2 * (d.u - d.L))), xb = Math.min(X1, Math.ceil(p0[0] + Au2 * (d.u + d.L)));
+    for (let X = xa; X < xb; X++) {
+      const u = (X + 0.5 - p0[0]) / Au2, x = (u - d.u) / d.L; if (x <= -1 || x >= 1) continue;
+      const K = colunaDuna(d, x); if (K.hw < 0.004) continue;
+      const aMin = K.c - K.ff, aTop = K.c + k * K.hw, aMax = K.c + K.f, khw = k * K.hw;
+      const dlFace = dlFaceCol(d, K, u), wob = 0.35 * ruido(u * 0.6 + 31, 7.3);
+      // a encosta: a altura aparente (cresce com t) e a luz em TAB+1 nós de t
+      for (let q = 0; q <= TAB; q++) { const t = q / TAB; ta[q] = K.c + t * K.f + khw * (1 - liso(t)); tl[q] = dlEncosta(d, K, u, t); }
+      const ya = Math.max(Y0, Math.floor(p0[1] + Bv2 * aMax)), yb = Math.min(Y1, Math.ceil(p0[1] + Bv2 * aMin) + 1);
+      let q = TAB;
+      for (let Y = ya; Y < yb; Y++) {
+        const a = (Y + 0.5 - p0[1]) / Bv2; if (a > aMax) continue;
+        const cob = (a - aMin) * pxV + 0.5; if (cob <= 0) break;
+        const i = Y * cw + X;
+        if (a <= aTop) {                                               // a face de queda
+          // (a parte de baixo da face pega o reflexo da areia: um tom acima da sombra, com a borda mexida)
+          const v = (a - khw + k * FACE_INC * K.c) / (1 + k * FACE_INC), fd = (K.c - v) / K.ff;
+          DL[i] = dlFace; PH[i] = NaN; CB[i] = cob < 1 ? cob : 1;
+          RG[i] = fd > 0.58 + 0.12 * ruido(u * 1.7, 3.1) ? 3 : 2; continue;
+        }
+        while (q > 1 && ta[q - 1] > a) q--;                            // (as linhas descem: a altura aparente cai, o ponteiro só volta)
+        const a0 = ta[q - 1], a1 = ta[q], w = a1 > a0 ? (a - a0) / (a1 - a0) : 0, t = (q - 1 + w) / TAB;
+        DL[i] = tl[q - 1] + (tl[q] - tl[q - 1]) * w; CB[i] = 1; RG[i] = 1;
+        // as marcas de vento: linhas paralelas à crista a cada ~0,85 m, quebradas em traços curtos
+        const s = t * K.f, ph = (s + wob) / LAMB, kl = Math.round(ph);
+        PH[i] = t > 0.12 && t < 0.86 && s > 0.7 && hsh(Math.floor(u / 1.3 + kl * 0.37), kl, 411) > 0.55 ? ph : NaN;
+      }
+    }
+  }
+  const t1 = performance.now();
+  // a segunda passada: os tons chapados (borda de 1 px), as marcas de vento e a cobertura do pé
+  const px = REL.img.data, mw = Math.max(0.5, 0.009 * esc), aS = RGB_REL.sombra, aE = RGB_REL.encosta, aA = RGB_REL.aceso, aV = RGB_REL.vento, L0 = LIM_REL[0], L1 = LIM_REL[1], L2 = LIM_REL[2];
+  for (let Y = Y0; Y < Y1; Y++) for (let X = X0; X < X1; X++) {
+    const i = Y * cw + X, o = i * 4, rg = RG[i];
+    if (!rg) { px[o + 3] = 0; continue; }
+    // (o gradiente da luz só entre pixels do mesmo pedaço da duna: a encosta com a encosta, a face com a face)
+    const gr0 = rg === 1, dl = DL[i];
+    const vd = X + 1 < X1 && RG[i + 1] && (RG[i + 1] === 1) === gr0 ? DL[i + 1] : dl, ve = X > X0 && RG[i - 1] && (RG[i - 1] === 1) === gr0 ? DL[i - 1] : dl;
+    const vb = Y + 1 < Y1 && RG[i + cw] && (RG[i + cw] === 1) === gr0 ? DL[i + cw] : dl, vc = Y > Y0 && RG[i - cw] && (RG[i - cw] === 1) === gr0 ? DL[i - cw] : dl;
+    const gg = 0.5 * (Math.abs(vd - ve) + Math.abs(vb - vc)) + 0.004;
+    // (pré-multiplicado: da sombra para o aceso; o meio é transparente, a areia do chão)
+    let r = aS[0], gn = aS[1], b = aS[2], al = 1, s;
+    if (rg === 3) { r += (aE[0] - r) * 0.3; gn += (aE[1] - gn) * 0.3; b += (aE[2] - b) * 0.3; }
+    s = (dl - L2) / gg + 0.5; s = s < 0 ? 0 : s > 1 ? 1 : s; r += (aE[0] - r) * s; gn += (aE[1] - gn) * s; b += (aE[2] - b) * s;
+    s = (dl - L1) / gg + 0.5; s = s < 0 ? 0 : s > 1 ? 1 : s; r -= r * s; gn -= gn * s; b -= b * s; al -= al * s;
+    s = (dl - L0) / gg + 0.5; s = s < 0 ? 0 : s > 1 ? 1 : s; r += (aA[0] - r) * s; gn += (aA[1] - gn) * s; b += (aA[2] - b) * s; al += (1 - al) * s;
+    const ph = PH[i];
+    if (ph === ph) {                                                   // (não é NaN)
+      const pb = Y + 1 < Y1 && RG[i + cw] === 1 && PH[i + cw] === PH[i + cw] ? PH[i + cw] : ph, pc = Y > Y0 && RG[i - cw] === 1 && PH[i - cw] === PH[i - cw] ? PH[i - cw] : ph;
+      const pd = X + 1 < X1 && RG[i + 1] === 1 && PH[i + 1] === PH[i + 1] ? PH[i + 1] : ph, pe = X > X0 && RG[i - 1] === 1 && PH[i - 1] === PH[i - 1] ? PH[i - 1] : ph;
+      const dp = 0.5 * (Math.abs(pb - pc) + Math.abs(pd - pe)) + 1e-4, dist = Math.abs(ph - Math.round(ph)) / dp;
+      let cv = mw + 0.5 - dist; cv = (cv < 0 ? 0 : cv > 1 ? 1 : cv) * 0.42;
+      if (cv > 0) { r += (aV[0] - r) * cv; gn += (aV[1] - gn) * cv; b += (aV[2] - b) * cv; al += (1 - al) * cv; }
+    }
+    const cb = CB[i]; al *= cb;
+    if (al < 0.004) { px[o + 3] = 0; continue; }
+    const f = 255 * cb / al; px[o] = r * f; px[o + 1] = gn * f; px[o + 2] = b * f; px[o + 3] = al * 255;
+  }
+  const t2 = performance.now();
+  REL.cv.getContext("2d").putImageData(REL.img, 0, 0, X0, Y0, X1 - X0, Y1 - Y0);
+  g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "medium";
+  g.drawImage(REL.cv, X0, Y0, X1 - X0, Y1 - Y0, (X0 - 1) * RES, (Y0 - 1) * RES, (X1 - X0) * RES, (Y1 - Y0) * RES); g.restore();   // (o que passa da borda do pedaço o canvas corta)
+  REL.ms = [t1 - t0, t2 - t1, performance.now() - t2, (X1 - X0) * (Y1 - Y0)];   // (as medidas da última camada: a 1ª passada, a 2ª, o envio; os pixels)
+  return true;
+}
+// a sombra da face na areia da frente e as ondulações do chão em volta (antes da camada); depois dela, o nanquim
+function pintarVoltaDuna(g, Pz, esc, d) {
+  const lw = m => Math.max(1, m * esc), n = 56, pts = [];
+  for (let k = 0; k <= n; k++) { const x = -1 + 2 * k / n; pts.push([d.u + x * d.L, cristaV(d, x), altX(d, x), fundoX(d, x)]); }
+  // a sombra (chapada, no índigo das sombras do jogo): da crista no chão até onde a luz a 35° deixa a crista cair
+  const lim = pts.filter(p => p[2] > 0.04);
+  if (lim.length > 1) { const pp = new Path2D(); lim.forEach((p, k) => { const q = Pz(p[0], p[1], 0); k ? pp.lineTo(...q) : pp.moveTo(...q); }); for (let k = lim.length - 1; k >= 0; k--) { const p = lim[k], w = 1 + 0.05 * Math.sin(k * 0.35 + d.u); pp.lineTo(...Pz(p[0] + SOMBRA_UV[0] * p[2] * w, p[1] + SOMBRA_UV[1] * p[2] * w, 0)); } pp.closePath(); g.fillStyle = "rgba(45,74,107,0.22)"; g.fill(pp); }
+  // as ondulações: 3 arcos quebrados atrás do pé da encosta e 2 que saem das pontas dos chifres
+  const onda = new Path2D();
+  for (const [m, sem] of [[0.9, 1], [1.9, 2], [3.1, 3]]) { let ab = false; for (let k = 3; k <= n - 3; k++) { const p = pts[k]; if (hsh(k >> 2, sem, Math.round(d.u * 3) + 441) < 0.35) { ab = false; continue; } const s = Pz(p[0] + 0.2 * Math.sin(k * 0.8 + sem), p[1] + p[3] + m + 0.25 * Math.sin(k * 0.53 + sem * 2), 0); ab ? onda.lineTo(...s) : onda.moveTo(...s); ab = true; } }
+  for (const lado of [-1, 1]) { const x = lado * 0.97, c = cristaV(d, x), u = d.u + x * d.L; for (let q = 0; q < 2; q++) { const L0 = 1.2 + q * 1.1, s0 = Pz(u + lado * 0.3 * q, c - L0 - 0.6, 0), s1 = Pz(u + lado * (0.9 + 0.3 * q), c - L0 - 2.8, 0), s2 = Pz(u + lado * (0.4 + 0.3 * q), c - L0 - 4.6, 0); onda.moveTo(...s0); onda.quadraticCurveTo(...s1, ...s2); } }
+  g.strokeStyle = TONS_REL.ondaChao; g.globalAlpha = 0.55; g.lineWidth = lw(0.022); g.lineCap = "round"; g.stroke(onda); g.globalAlpha = 1;
+}
+function pintarNanquimDuna(g, Pz, esc, d) {
+  const lw = m => Math.max(1, m * esc), n = 72, P = [];
+  for (let k = 0; k <= n; k++) { const x = -1 + 2 * k / n, h = altX(d, x); P.push({ x, h, c: cristaV(d, x), u: d.u + x * d.L }); }
+  // o pé da face: um traço fino, quebrado
+  const pe = new Path2D(); let ab = false;
+  for (let k = 0; k <= n; k++) { const p = P[k]; if (p.h < 0.12 || hsh(k >> 1, 5, Math.round(d.u * 3) + 451) < 0.3) { ab = false; continue; } const s = Pz(p.u, p.c - p.h / FACE_INC, 0); ab ? pe.lineTo(...s) : pe.moveTo(...s); ab = true; }
+  g.strokeStyle = "rgba(30,27,24,0.55)"; g.lineWidth = lw(0.022); g.lineCap = "round"; g.lineJoin = "round"; g.stroke(pe);
+  // a crista: a pincelada cheia (um contorno fechado), grossa no pico e afinando até as pontas
+  const vivos = P.filter(p => p.h / d.H > 0.05); if (vivos.length < 3) return;
+  const sc = vivos.map(p => Pz(p.u, p.c, p.h)), larg = vivos.map((p, k) => Math.max(0.6, (0.016 + 0.075 * (p.h / d.H) ** 0.85) * esc * (1 + 0.16 * Math.sin(k * 0.9 + d.u))));
+  const esq = [], dir = [];
+  for (let k = 0; k < sc.length; k++) { const a = sc[Math.max(0, k - 1)], b = sc[Math.min(sc.length - 1, k + 1)], tx = b[0] - a[0], ty = b[1] - a[1], m = Math.hypot(tx, ty) || 1, nx = -ty / m, ny = tx / m, w = larg[k] / 2;
+    esq.push([sc[k][0] + nx * w * 0.7, sc[k][1] + ny * w * 0.7]); dir.push([sc[k][0] - nx * w * 1.3, sc[k][1] - ny * w * 1.3]); }   // (a pincelada pesa para baixo, para a face)
+  const pp = new Path2D(); esq.forEach((q, k) => k ? pp.lineTo(...q) : pp.moveTo(...q)); for (let k = dir.length - 1; k >= 0; k--) pp.lineTo(...dir[k]); pp.closePath();
+  g.fillStyle = COR.nanquim; g.fill(pp);
 }
 // o Caravançará: o alto do platô, o muro de arrimo da frente (pedras em fiadas) e a rampa
 function pintarMonte(g, Pz, esc) {
@@ -5731,8 +6053,14 @@ D.pintarPedaco = function (g, Pp, esc, x0, y1, cw, ch, lado = 6) {
   pintarOasis(g, Pz, esc, pertoU);
   pintarLeito(g, Pz, esc, pertoU, padrao(g, 6, x0, y1, esc, 0, ACH, ALT, 5));
   g.restore();
-  // as dunas, do fundo para a frente
-  for (const d of DUNAS_ORDEM) { const b = d.caixa; if (!pertoU((b[0] + b[1]) / 2, (b[2] + b[3]) / 2, d.H, Math.max(b[1] - b[0], b[3] - b[2]) / 2 + d.H * 1.4 + 2)) continue; pintarDuna(g, Pz, esc, d); }
+  // as dunas, do fundo para a frente: a sombra e as ondulações em volta, o relevo (pixel a pixel) e o nanquim. (Elas não se
+  // cobrem na tela: entre duas há ≥ 6 m de chão 0, e a encosta só sobe na tela até o pé de trás)
+  const dunas = DUNAS_ORDEM.filter(d => { const b = d.caixa; return pertoU((b[0] + b[1]) / 2, (b[2] + b[3]) / 2, d.H, Math.max(b[1] - b[0], b[3] - b[2]) / 2 + d.H * 1.6 + 5); });
+  if (dunas.length) {
+    for (const d of dunas) pintarVoltaDuna(g, Pz, esc, d);
+    if (pintarRelevo(g, Pz, esc, dunas, cw, ch)) for (const d of dunas) pintarNanquimDuna(g, Pz, esc, d);
+    else for (const d of dunas) pintarDunaVetor(g, Pz, esc, d);
+  }
   if (pertoU(CARAV.u, CARAV.v, CARAV.h, 18)) pintarMonte(g, Pz, esc);
   pintarTrilha(g, Pz, esc, pertoU);
   pintarPegadas(g, Pz, esc, pertoU);
@@ -5763,7 +6091,7 @@ D.recortarTrevas = function (g, x, y) {
   if (typeof noMundo !== "function") return;
   const [u0, v0] = vistaDe(x, y), em = (u, v) => noMundo(...mundoDe(u, v), 0), pp = new Path2D();
   pp.rect(-1e5, -1e5, 2e5, 2e5);
-  for (const d of DUNAS) { if (Math.hypot(d.u - u0, d.v + d.D / 2 - v0) > 22 + d.L + d.D) continue; const n = 24, pts = []; for (let k = 0; k <= n; k++) { const x2 = -1 + 2 * k / n; pts.push([d.u + x2 * d.L, cristaV(d, x2)]); } for (let k = n; k >= 0; k--) { const x2 = -1 + 2 * k / n; pts.push([d.u + x2 * d.L, cristaV(d, x2) + fundoX(d, x2)]); } pts.forEach(([u, v], k) => { const q = em(u, v); k ? pp.lineTo(...q) : pp.moveTo(...q); }); pp.closePath(); }
+  for (const d of DUNAS) { if (Math.hypot(d.u - u0, d.v + d.D / 2 - v0) > 22 + d.L + d.D) continue; const n = 24, pts = []; for (let k = 0; k <= n; k++) { const x2 = -1 + 2 * k / n; pts.push([d.u + x2 * d.L, cristaV(d, x2) - altX(d, x2) / FACE_INC]); }   /* (do pé da face de queda) */ for (let k = n; k >= 0; k--) { const x2 = -1 + 2 * k / n; pts.push([d.u + x2 * d.L, cristaV(d, x2) + fundoX(d, x2)]); } pts.forEach(([u, v], k) => { const q = em(u, v); k ? pp.lineTo(...q) : pp.moveTo(...q); }); pp.closePath(); }
   g.clip(pp, "evenodd");
 };
 // o relevo do mundo 3D (?mundo3d=1): a mesma altura, com a borda descendo para o papel
@@ -5778,7 +6106,7 @@ D.pesos3d = function (x, y, out, k) {
   out[k + 2] = 1;
 };
 D.vistaMudou = function () { FUNDO.spr = null; };
-D.preaquecer = function () { if (typeof document === "undefined") return; sprPincel(); for (let n = 0; n <= 6; n++) textura(n); rocha(); rotasLisas(); for (const d of DUNAS) faixasDuna(d); };
+D.preaquecer = function () { if (typeof document === "undefined") return; sprPincel(); for (let n = 0; n <= 6; n++) textura(n); rocha(); rotasLisas(); ruidoTab(); };
 
 // ---------------------------------------------------------------- a conferência (node e testes)
 // Dijkstra na grade (8 vizinhos, sem cortar quina) a partir da chegada do portal; as regras da Daiyu e da Montanha e as 7
@@ -5825,6 +6153,18 @@ D.validar = function (opc = {}) {
     r.bandos.push({ t, u, v, q, z, dBeira });
   }
   if (BANDOS.length !== 76) r.problemas.push("são " + BANDOS.length + " grupos (o projeto: 76)");
+  // (etapa 2) os conjuntos: cada grupo só com as criaturas do deserto, os 4 conjuntos de 100 s, os níveis de 37 a 60 e os agressivos
+  // só as aranhas Más; a escolta do Hyeonmu em chão alcançável
+  { const tipos = new Set(CRIATURAS.map(c => c[0])), nivel = Object.fromEntries(CRIATURAS.map(c => [c[0], c[3]]));
+    for (const [g, l] of Object.entries(GRUPOS_M2)) for (const t of l) if (!tipos.has(t)) r.problemas.push("o grupo " + g + " tem o tipo " + t + ", que não é do deserto");
+    for (const [k, gg] of Object.entries(GG)) { if (gg.tempo !== TEMPO_GRUPO) r.problemas.push("o conjunto " + k + " não é de " + TEMPO_GRUPO + " s"); for (const g of gg.grupos) if (!GRUPOS_M2[g]) r.problemas.push("o conjunto " + k + " pede o grupo " + g + ", que não existe"); }
+    const nv = CRIATURAS.map(c => c[3]); r.niveis = [Math.min(...nv), Math.max(...nv)];
+    if (r.niveis[0] < 37 || r.niveis[1] > 60) r.problemas.push("os níveis das criaturas vão de " + r.niveis.join(" a ") + " (o projeto: 37 a 60)");
+    for (const c of CRIATURAS) if (!!c[8].agressivo !== /Má$/.test(c[2])) r.problemas.push(c[2] + (c[8].agressivo ? " é agressiva e não é uma aranha Má" : " é Má e não é agressiva"));
+    for (const c of CRIATURAS) if (!M2_MOB[c[2]]) r.problemas.push(c[2] + " sem o mob_proto do Metin2 (M2_MOB)");
+    r.zonasNivel = Object.fromEntries(Object.entries(GG_DA_ZONA).map(([z, gg]) => { const l = [...new Set(GG[gg].grupos.flatMap(g => GRUPOS_M2[g]))].map(t => nivel[t]); return [z, [Math.min(...l), Math.max(...l)]]; }));
+    conf("a escolta do Hyeonmu", ...CHEFE.escoltaUV);
+    if (Math.hypot(CHEFE.escoltaUV[0] - LEITO.u, CHEFE.escoltaUV[1] - LEITO.v) > LEITO.r) r.problemas.push("a escolta do Hyeonmu fora da arena"); }
   // regra 6: as Ghotins, o Leito Seco e o oásis só em chão 0
   r.ghotins = [];
   for (const g2 of GHOTINS) for (const [u, v] of g2.areas) {
@@ -5838,7 +6178,7 @@ D.validar = function (opc = {}) {
   { let fora = 0; for (let a = 0; a < 72; a++) for (const m of [0, 2, 4]) { const ang = a / 72 * 6.283, u = LAGO.a.u + Math.cos(ang) * (LAGO.a.ru + m), v = LAGO.a.v + Math.sin(ang) * (LAGO.a.rv + m); if (!naRocha(u, v) && zSup(u, v) > 0.02) fora++; } if (fora) r.problemas.push("regra 6: o oásis tem " + fora + " pontos fora do chão 0"); }
   // regra 3: toda face de queda olha para a câmera (a normal a menos de 60° de −v), onde ela é penhasco
   r.faces = [];
-  for (const d of DUNAS) { let pior = 0; for (let k = 0; k <= 200; k++) { const x = -1 + k / 100, h = d.H * largW(x); if (h <= PASSO_MAX) continue; const ang = Math.atan(Math.abs(8 * x / d.L)) * 180 / Math.PI; pior = Math.max(pior, ang); } r.faces.push({ nome: d.nome, pior }); if (pior >= 60) r.problemas.push("regra 3: a face da " + d.nome + " chega a " + pior.toFixed(0) + "° da câmera"); }
+  for (const d of DUNAS) { let pior = 0; for (let k = 0; k <= 200; k++) { const x = -1 + k / 100, h = altX(d, x); if (h <= PASSO_MAX) continue; const dv = (cristaV(d, x + 1e-3) - cristaV(d, x - 1e-3)) / (2e-3 * d.L), ang = Math.atan(Math.abs(dv)) * 180 / Math.PI; pior = Math.max(pior, ang); } r.faces.push({ nome: d.nome, pior }); if (pior >= 60) r.problemas.push("regra 3: a face da " + d.nome + " chega a " + pior.toFixed(0) + "° da câmera"); }
   // regra 4: a encosta mansa ≤ 0,15 (H/D, a do projeto); a maior diferença entre células na encosta fica longe do PASSO_MAX
   r.encostas = DUNAS.map(d => ({ nome: d.nome, HD: d.H / d.D }));
   for (const e of r.encostas) if (e.HD > 0.15 + 1e-9) r.problemas.push("regra 4: a encosta da " + e.nome + " é " + e.HD.toFixed(3) + " (> 0,15)");
@@ -5846,7 +6186,7 @@ D.validar = function (opc = {}) {
     let m = 0; for (let j = 1; j < NJ - 1; j++) for (let i = 1; i < NI - 1; i++) { const c = j * NI + i; if (!(FL[c] & F_DUNA) || !(FL[c] & F_ANDA) || !naEncosta(c)) continue; for (const q of [c + 1, c + NI]) if ((FL[q] & F_DUNA) && (FL[q] & F_ANDA) && naEncosta(q)) m = Math.max(m, Math.abs(Z[q] - Z[c])); }
     r.maiorDegrauEncosta = m; if (m > 0.2) r.problemas.push("regra 4: na encosta, " + m.toFixed(2) + " m entre células vizinhas (> 0,2)"); }
   // regra 5: entre duas dunas, um corredor de ≥ 6 m de chão 0; e nenhuma duna encostada na rocha (≥ 3 m)
-  { const pe = DUNAS.map(d => { const pts = []; for (let k = 0; k <= 60; k++) { const x = -1 + 2 * k / 60; for (const t of [0, 0.25, 0.5, 0.75, 1]) { const v = cristaV(d, x) + t * fundoX(d, x); if (zDuna(d, d.u + x * d.L, v + (t === 1 ? -0.05 : 0.05)) > 0.03) pts.push([d.u + x * d.L, v]); } } return pts; });
+  { const pe = DUNAS.map(d => { const pts = []; for (let k = 0; k <= 60; k++) { const x = -1 + 2 * k / 60; for (const t of [-1, 0, 0.25, 0.5, 0.75, 1]) { const v = t < 0 ? cristaV(d, x) - altX(d, x) / FACE_INC : cristaV(d, x) + t * fundoX(d, x); if (zDuna(d, d.u + x * d.L, v + (t === 1 ? -0.05 : 0.05)) > 0.03) pts.push([d.u + x * d.L, v]); } } return pts; });   // (t −1: o pé da face de queda)
     r.corredores = [];
     for (let a = 0; a < DUNAS.length; a++) for (let b = a + 1; b < DUNAS.length; b++) { let m = Infinity; for (const p of pe[a]) for (const q of pe[b]) m = Math.min(m, Math.hypot(p[0] - q[0], p[1] - q[1])); if (m < 20) r.corredores.push({ a: DUNAS[a].nome, b: DUNAS[b].nome, m }); if (m < 6) r.problemas.push("regra 5: entre a " + DUNAS[a].nome + " e a " + DUNAS[b].nome + " só " + m.toFixed(1) + " m"); }
     for (let a = 0; a < DUNAS.length; a++) { let m = Infinity; for (const p of pe[a]) for (let k = 0; k < 16; k++) for (let d = 0; d < 4; d += 0.5) { const u = p[0] + Math.cos(k / 16 * 6.283) * d, v = p[1] + Math.sin(k / 16 * 6.283) * d; if (naRocha(u, v) || bordaV(u, v) < 1.2) { m = Math.min(m, d); break; } } if (m < 3) r.problemas.push("a " + DUNAS[a].nome + " fica a " + m + " m da rocha ou do papel"); }
@@ -5859,7 +6199,7 @@ D.validar = function (opc = {}) {
   if (Math.abs(zSup(CARAV.u, CARAV.v) - CARAV.h) > 0.01) r.problemas.push("o alto do Caravançará não está em " + CARAV.h + " m");
   return r;
 };
-Object.assign(D, { rocha, faixasDuna, textura, naTrilha, cristaV, largW, fundoX, naRampa, dentroEl, CONTORNO, rVista });
+Object.assign(D, { rocha, faixasDuna, textura, naTrilha, cristaV, largW, altX, fundoX, naRampa, dentroEl, CONTORNO, rVista, FACE_INC, LUZ, LIM_REL, TONS_REL, luzDunaUV: luzDuna, medidaRelevo: () => REL.ms });
 
 G.DESERTO = D;
 })(typeof window !== "undefined" ? window : globalThis);
@@ -12725,7 +13065,7 @@ function sombraTinta(X, Y, r) {
 // de hoje (3d/viking_padrao.glb, Tools/viking_novo/padrao/preparar_viking_padrao.py). A corrida e os golpes já vêm no tempo da página
 // (tocam direto, sem os nós do VIKING_NOVO_NOS) e cada golpe anda o extras.avanco dele (avancoVikingPadrao). Com a Armadura de Escamas
 // (armadura_guerreiro tier 3) ou a do Dragão de Bronze (tier 6) vestida, o modelo inteiro é o glb dela (VIKING_ARMADURAS_3D,
-// modeloHeroi3d). O de antes (o do ChatGPT): ?viking=chatgpt; o de antes dele: ?viking=antigo
+// modeloHeroi3d); desde o R405, os tiers 1 a 8 têm cada um o seu (o 0 fica o padrão). O de antes (o do ChatGPT): ?viking=chatgpt; o de antes dele: ?viking=antigo
 const VIKING_PADRAO = "padrao";
 const VIKING_VAR = (() => {
   const q = new URLSearchParams(location.search), k0 = q.get("viking"), k = k0 === null || k0 === "" ? VIKING_PADRAO : k0;
@@ -13393,9 +13733,9 @@ function soltarXama(nome) {
     XAMA.depois.push({ anim: nome, t: 22 / 20, f: () => { XAMA.ajuda.buff = duraBuff("Ajuda do Dragão"); XAMA.ajuda.valor = valorM2("Ajuda do Dragão", "critico"); buffSimples(36); som("magia_buff", v, 1); } });
   }
 }
-// a Cura do Metin2 tira os efeitos ruins do herói com uma chance; o herói ainda não sofre nenhum (o veneno, a lentidão e o
-// atordoamento só existem nas criaturas), então por enquanto não há o que tirar
-function tirarEfeitosRuins() { return 0; }
+// a Cura do Metin2 tira os efeitos ruins do herói com uma chance: desde o R407 (a etapa 2 do deserto), o veneno das aranhas, dos
+// homens-escorpião e das serpentes; a lentidão e o atordoamento ainda só existem nas criaturas
+function tirarEfeitosRuins() { return curarVenenoHeroi(); }   // (R407: o veneno das criaturas do deserto)
 function rugidoXama(r, forca) {
   const v = viking;
   // (Rugido do Dragão do Metin2: 5 m em volta, até 15, o mais perto inteiro e os outros a 80%, com o fogo contínuo; não
@@ -15655,6 +15995,7 @@ const M2_MOB = {
 };
 // as Pedras Metin do mob_proto (8001 a 8014): [nível, HT, DEF]; DX 0 e nenhuma resistência
 const M2_PEDRA = [[5, 6, 8], [10, 12, 14], [15, 18, 19], [20, 24, 25], [25, 30, 30], [30, 36, 35], [35, 42, 41], [40, 48, 46], [45, 54, 52], [50, 60, 57], [55, 66, 63], [60, 72, 68], [65, 78, 73], [70, 91, 79]];
+Object.assign(M2_MOB, DESERTO.M2_MOB);                                 // (R407: as do deserto, pelo nome nosso: as aranhas 2001–2055, o Rei Escorpião, o Olho Voador, os homens-escorpião, as serpentes, os salteadores e a Tartaruga)
 function m2Mob(cfg) { return cfg ? M2_MOB[cfg.nome + "|" + cfg.nivel] || M2_MOB[cfg.nome] || null : null; }
 function interpM2(K, n, col) {
   if (n <= K[0][0]) return K[0][col];
@@ -16189,9 +16530,55 @@ function golpeNoPersonagem(l) {
   // (07/11, R321: o Refletir golpes corpo a corpo dos adicionais, o REFLECT_MELEE do Metin2: a % do golpe volta a quem bateu, direto)
   if (status.refletir > 0 && fisico && !l.morto) comFonte("Refletir item", () => ferir(l, Math.max(1, Math.round(dano * status.refletir)), l.x - viking.x, l.y - viking.y, 0, true));
   if (viking.vida <= 0) { morrerJogador(); return true; }
+  envenenarHeroi(l);                                                     // (R407: a criatura que envenena, o ENCHANT_POISON do Metin2)
   return false;
 }
+// ---- (R407, a etapa 2 do deserto: a criatura que envenena é nova) o veneno no herói. O golpe (corpo a corpo ou flecha) de uma criatura
+// com cfg.veneno (a ENCHANT_POISON do mob_proto do Metin2: 3% nas aranhas venenosas, 5% nos homens-escorpião e nas serpentes) envenena
+// com essa chance, se o herói ainda não estiver envenenado. O veneno é o mesmo das criaturas (VENENO_M2: 10 golpes, um a cada 3 s), e
+// cada golpe tira 5% da vida máxima (o GetPoisonDamageRate do Metin2 para o jogador: 50/1000). Ajuste nosso: o veneno não mata (para
+// em 1 de vida). Saem o veneno: o Antídoto (a loja da Caravaneira, no oásis), a Cura do Xamã (tirarEfeitosRuins), cair e o fim dos 30 s
+const VENENO_HEROI = { t: 0, tique: 0, restam: 0, dano: 0, vezes: 0, de: null, taxa: 0.05 };
+function envenenarHeroi(l) {
+  const pct = l && l.cfg && l.cfg.veneno || 0;
+  if (!(pct > 0) || VENENO_HEROI.t > 0 || viking.caido || viking.vida <= 0) return false;
+  if (Math.random() * 100 >= pct) return false;
+  Object.assign(VENENO_HEROI, { t: VENENO_M2.golpes * VENENO_M2.intervalo + 0.01, restam: VENENO_M2.golpes, tique: VENENO_M2.intervalo, dano: Math.max(1, Math.round(status.vidaMax * VENENO_HEROI.taxa)), de: l.cfg.nome });
+  VENENO_HEROI.vezes++;
+  numeros.push({ wx: viking.x, wy: viking.y, y: -(topoPlacaHeroi() + 34), vida: 1.2, txt: "Envenenado", status: "veneno" });
+  avisar(`${l.cfg.nome} envenenou você. O Antídoto da Caravaneira, no oásis, cura o veneno`);
+  som("veneno", viking, 0.6);
+  return true;
+}
+function passoVenenoHeroi(dt) {
+  const q = VENENO_HEROI; if (!(q.t > 0)) return;
+  if (viking.caido || viking.vida <= 0) { q.t = 0; return; }
+  q.t -= dt; q.tique -= dt;
+  if (q.tique <= 1e-6) {                                                 // (um golpe a cada 3 s; o 10º acaba o veneno)
+    q.tique += VENENO_M2.intervalo; q.restam--;
+    const d = Math.min(q.dano, Math.max(0, Math.ceil(viking.vida) - 1));   // (não mata: para em 1 de vida)
+    if (d > 0) { viking.vida -= d; viking.semDano = 0; numeros.push({ wx: viking.x, wy: viking.y, y: -(topoPlacaHeroi() + 12), vida: 0.8, txt: "−" + d, contra: true, veneno: true }); }
+    if (q.restam <= 0) { q.t = 0; return; }
+  }
+  if (Math.random() < dt * 8) brasas.push({ x: viking.x + (Math.random() - 0.5) * 0.4, y: viking.y + (Math.random() - 0.5) * 0.3, z: 0.3 + Math.random() * 1.3, vx: 0, vy: 0, vz: 0.5 + Math.random() * 0.5, vida: 0.6, max: 0.6, tam: 0.05, cor: 110 });
+  if (q.t <= 0) q.t = 0;
+}
+// tira o veneno do herói (o Antídoto, a Cura); devolve 1 se havia veneno
+function curarVenenoHeroi() { const tinha = VENENO_HEROI.t > 0; VENENO_HEROI.t = 0; return tinha ? 1 : 0; }
+// o Antídoto (R407): vendido pela Caravaneira Ba-ram no oásis; cura o veneno na hora (com ele, não se gasta à toa)
+const ANTIDOTO = { preco: 300 };
+function beberAntidoto(it) {
+  if (!prog || viking.caido) return false;
+  if (!(VENENO_HEROI.t > 0)) { avisar("Você não está envenenado"); som("ui_negar"); return false; }
+  if (!contarItem("antidoto")) return false;
+  removerItem("antidoto", 1); curarVenenoHeroi();
+  numeros.push({ wx: viking.x, wy: viking.y, y: -(topoPlacaHeroi() + 34), vida: 1.1, txt: "Curado", status: "veneno" });
+  for (let k = 0; k < 12; k++) brasas.push({ x: viking.x + (Math.random() - 0.5) * 0.6, y: viking.y + (Math.random() - 0.5) * 0.4, z: Math.random(), vx: 0, vy: 0, vz: 1 + Math.random(), vida: 0.7, max: 0.7, tam: 0.05, cor: 110 });
+  som("pocao", viking, 0.7); salvarProgresso(); desenharBolsa(); atualizarItensBarra();
+  return true;
+}
 function morrerJogador() {
+  VENENO_HEROI.t = 0;                                                    // (R407: caído, o veneno sai)
   viking.vida = 0; viking.caido = true; viking.fila = null; viking.alvo = null; selecao = null; mira = null;
   tocar("morte", true); viking.reviver = 4; som("morte_jogador", viking, 1);
   const perda = Math.round(EXP_NIVEL[prog.nivel] * 0.02), expAntes = prog.exp; prog.exp = Math.max(0, prog.exp - perda); salvarProgresso();
@@ -16279,6 +16666,9 @@ const METINS = [
 // as da Ilha de Daiyu (mapa_daiyu.js): as áreas da Sombra (metin4) e as três novas, Firmeza 50, Diabo 55 e Queda 60
 { const [sombra, ...novas] = DAIYU.ghotins(); Object.assign(METINS.find(m => m.tipo === "metin4"), { regioes: sombra.regioes }); METINS.push(...novas); }
 METINS.push(...GELADA.ghotins());                                     // (as da Montanha Gelada: Geada 42, Vapor 44 e Silêncio 46; sempre no fim, DECO.metin usa o índice)
+METINS.push(...DESERTO.ghotins());                                    // (R407: as do Deserto de Mingsha, 2 de cada: Alma 40, Sombra 45 e Firmeza 50; a arte é a da pedra de arteDe)
+// a pedra pintada de uma Ghotin da lista (DECO.metin vai na ordem de METINS; a do deserto usa a da Ghotin de mesmo nome de outro mapa, arteDe)
+function pintadaDe(m) { const i = m.arteDe ? METINS.findIndex(q => q.tipo === m.arteDe) : METINS.indexOf(m); return DECO && DECO.metin && i >= 0 ? DECO.metin[i] : null; }
 // (R288, 05/11, o usuário: "as ghotins nao estao chamando hordas") o teto das hordas é POR PEDRA (HORDA_MAX: os 3 defensores e as
 // ondas; até 07/11, 4 ondas de 3) e não mais do mundo inteiro: com as várias pedras por tipo (R245), os 3 defensores de cada uma das 7 da Vila 1 já
 // passavam do teto de 14 do mundo, e nenhuma onda nascia. Os defensores de uma pedra são 3 no máximo (renascendo, ela só completa
@@ -16732,7 +17122,7 @@ function criarMetins(soMapa = "vila1") {
 function cfgGhotin(m) {
   {
     // a pedra pintada (deco_b/metin_*.webp: as 15, na ordem de METINS; R137), redesenhada na escala dos sprites (84 px/m); sem ela, a desenhada por código
-    const pintada = DECO && DECO.metin && DECO.metin[METINS.indexOf(m)], imp = pintada && DECO_IMG[pintada.arq];
+    const pintada = pintadaDe(m), imp = pintada && DECO_IMG[pintada.arq];
     let im = spriteMetin(m.corRuna || m.cor), info = { quadros: 1, fps: 1, laco: true, acerto: -1, w: 150, h: 212, px: 75, py: 200 };
     if (imp) {
       const k = PX / pintada.ppm, w = Math.round(pintada.w * k), h = Math.round(pintada.h * k);
@@ -16751,7 +17141,7 @@ function cfgGhotin(m) {
 // Depois de o jogo abrir, os tipos dos mapas ainda não criados são feitos aos poucos (brilhoGhotinPassos, BRILHO_PRE.fatia ms por
 // quadro, no fim do laço, como o preparoFundo), na ordem dos mapas; criarMetins usa o pronto (m.brilhoPronto) ou termina o começado.
 // (o requestIdleCallback quase não era chamado com o jogo rodando: 18 ms em 8 s)
-const BRILHO_PRE = { ligado: true, noTeste: false, fatia: 1.5, folga: 6, pulados: 0, ordem: ["hahoe", "montanha", "daiyu", "vila1"], feitos: 0, ms: 0, maiorFatia: 0, ativo: false };
+const BRILHO_PRE = { ligado: true, noTeste: false, fatia: 1.5, folga: 6, pulados: 0, ordem: ["hahoe", "montanha", "daiyu", "deserto", "vila1"], feitos: 0, ms: 0, maiorFatia: 0, ativo: false };
 function brilhoDaLista(m, cfg) {
   if (m.brilhoPronto) return m.brilhoPronto;
   if (m.brilhoPassos) { const b = correrPassos(m.brilhoPassos); m.brilhoPassos = null; return (m.brilhoPronto = b); }
@@ -16763,7 +17153,7 @@ function brilhoProximo() {
     if ((m.mapa || "vila1") !== mapa || m.brilhoPronto) continue;
     const t = TIPOS[m.tipo];
     if (t && t.estatico && t.brilho) continue;                          // (o mapa já criado: a ficha dele tem o brilho)
-    const pintada = DECO && DECO.metin && DECO.metin[METINS.indexOf(m)], im = pintada && DECO_IMG[pintada.arq];
+    const pintada = pintadaDe(m), im = pintada && DECO_IMG[pintada.arq];
     if (pintada && !im) continue;                                       // (a arte ainda não chegou: fica para depois)
     // (a arte decodificada antes, fora do quadro: o 1º drawImage dela decodificava no meio da fatia, 16 ms)
     if (im && !m.arteDecodificada) { if (!m.decodificando) { m.decodificando = true; (im.decode ? im.decode() : Promise.resolve()).catch(() => {}).then(() => { m.arteDecodificada = true; }); } BRILHO_PRE.esperando = true; continue; }
@@ -17033,6 +17423,7 @@ const CHEFES_MAPA = {
   dg_anciao: { regiao: "no Vale dos Dragões", min: 16, max: 20, mecs: ["sopro", "pisao", "chuva"], raioPisao: 5.6, cor: 18, cada: 6, longe: 13, animPisao: "patada",
                falas: ["O Dragão Ancião bate as asas: a caverna treme!", "O Dragão Ancião se enfurece e a caverna arde!"] },
 };
+CHEFES_MAPA.hyeonmu = DESERTO.chefeMapa();   // (R407: o Hyeonmu das Areias, no Leito do Rio Seco do deserto; mapa_deserto.js, CHEFE)
 const ataquesChefe = [];         // os avisos no chão: { tipo: "circulo" (x, y, r) | "linha" (x, y até x1, y1, larg), t, dur, cor, mult, de, empurra, golpe }
 const avisosChefe = [];          // os que acabaram de nascer: { l, ate } (o anel pulsando no minimapa)
 let relogioChefes = 0;           // (s de jogo: anda com o passo, também nos testes)
@@ -17986,12 +18377,20 @@ function montarDaiyu() {
   limparPedacos(); soltarMascaras(); MAPAS.daiyu.mini = null;         // (R292: soltando os canvas)
 }
 // o Deserto de Mingsha (mapa_deserto.js): a grade das dunas, a decoração (70 peças de tipos que já existem, com a tinta de
-// tempo de execução e a altura do chão em zChao) e o preaquecer. A etapa 2 põe os grupos, as Ghotins, o Hyeonmu e os NPCs
+// tempo de execução e a altura do chão em zChao) e o preaquecer. A etapa 2 (R407) põe os NPCs (a Caravaneira Ba-ram no oásis, com
+// as poções e o antídoto, e o Monge Hyecho na boca das grutas), os 76 grupos, a escolta e o Hyeonmu (porSpawns) e as 6 Ghotins
+const LOJA_CARAVANEIRA = () => [...Object.entries(POCOES).map(([ch, p]) => [ch, p.preco]), ["antidoto", ANTIDOTO.preco]];
 function montarDeserto() {
   DESERTO.montarGrade();
   const por = o => { objetos.push(o); if (temColisao(o)) porNaGrade(o); return o; };
   DESERTO.montar({ por, completar: completarDecoracao, DECO, hash });
+  for (const n of DESERTO.npcs()) {
+    objetos.push({ tipo: "pessoa", x: n.x, y: n.y, r: 0.3, npc: true, dados: { ...n, loja: /Caravaneira/.test(n.nome) ? LOJA_CARAVANEIRA() : [] }, nome: n.nome, fase: 0, fala: 0, mapa: "deserto" });
+    if (n.modelo) NPC_3D[n.nome] = n.modelo; if (n.tinta !== undefined) NPC_TINTA[n.nome] = n.tinta;
+  }
   refazerGrade();
+  porSpawns("deserto");
+  criarMetins("deserto");
   DESERTO.preaquecer();
   limparPedacos(); soltarMascaras(); MAPAS.deserto.mini = null;       // (R292: soltando os canvas)
 }
@@ -21337,6 +21736,8 @@ function tipoItem(chave) {
                       usar: () => chamarCavalo(), desenho: "retrato_cavalo" },
     conselho: { nome: "Conselho do Eremita", desc: "A Leitura Concentrada: o próximo livro de skill lido tem 2,5× a chance de ensinar (35% → 87,5%). Vale para uma leitura, certa ou errada. Clique direito (ou dois cliques), ou use na ficha (P). Da Loja do Dokkaebi (Z); não se vende.", h: 1, usar: () => usarConselho(), desenho: "conselho" },
     exorcismo: { nome: "Pergaminho do Exorcismo", desc: "Tira a espera (18 a 30 h) para ler o próximo livro de uma skill, 1 por vez. Clique direito (ou dois cliques), ou use na ficha (P) durante a espera. Da Loja do Dokkaebi (Z); não se vende.", h: 1, usar: () => usarExorcismo(), desenho: "loja:exorcismo" },
+    antidoto: { nome: "Antídoto", desc: "Um frasco de jade com ervas do oásis: cura na hora o veneno das aranhas, dos homens-escorpião e das serpentes do deserto. Clique direito (ou dois cliques) quando estiver envenenado. A Caravaneira Ba-ram vende, no Oásis da Lua Crescente.", h: 1,
+                usar: it => beberAntidoto(it), desenho: "antidoto" },   // (R407)
     correcao: { nome: "Escritura da Remoção", desc: "Arraste sobre uma arma ou roupa na bolsa: tira a última Jóia encaixada e a devolve para a bolsa.", h: 1, desenho: "correcao" },
   }[chave] || { nome: chave, desc: "", h: 1, desenho: "pedra" };
 }
@@ -21475,6 +21876,14 @@ function iconeItem(g, desenho, w = 40, h = 40) {
     g.fillStyle = "#e0b240"; g.fillRect(X - 3 * u, Y - 6 * u, 6 * u, 7 * u); g.strokeRect(X - 3 * u, Y - 6 * u, 6 * u, 7 * u);
     return;
   }
+  if (desenho === "antidoto") {                                        // (R407) o frasco de jade, a rolha de cortiça e a folha de erva
+    g.fillStyle = "#3f8a5e"; g.beginPath(); g.moveTo(X - 4 * u, Y - 10 * u); g.lineTo(X + 4 * u, Y - 10 * u); g.lineTo(X + 4 * u, Y - 5 * u); g.quadraticCurveTo(X + 11 * u, Y - 2 * u, X + 10 * u, Y + 6 * u);
+    g.quadraticCurveTo(X + 9 * u, Y + 13 * u, X, Y + 13 * u); g.quadraticCurveTo(X - 9 * u, Y + 13 * u, X - 10 * u, Y + 6 * u); g.quadraticCurveTo(X - 11 * u, Y - 2 * u, X - 4 * u, Y - 5 * u); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = "#b08a5a"; g.fillRect(X - 4.5 * u, Y - 14 * u, 9 * u, 4.5 * u); g.strokeRect(X - 4.5 * u, Y - 14 * u, 9 * u, 4.5 * u);
+    g.fillStyle = "#efe4cc"; g.beginPath(); g.ellipse(X - 1 * u, Y + 4 * u, 5.5 * u, 2.6 * u, -0.6, 0, 7); g.fill(); g.stroke();
+    g.strokeStyle = "#3f8a5e"; g.lineWidth = 1.1; g.beginPath(); g.moveTo(X - 5 * u, Y + 7 * u); g.lineTo(X + 3 * u, Y + 1.5 * u); g.stroke();
+    return;
+  }
   if (desenho === "alma") {
     const gr = g.createRadialGradient(X - 3 * u, Y - 4 * u, 1, X, Y, 12 * u); gr.addColorStop(0, "#ffe6ff"); gr.addColorStop(0.5, "#c060ff"); gr.addColorStop(1, "#4a1a8a");
     g.fillStyle = gr; g.beginPath(); g.moveTo(X, Y - 13 * u); g.lineTo(X + 9 * u, Y - 2 * u); g.lineTo(X + 5 * u, Y + 11 * u); g.lineTo(X - 5 * u, Y + 11 * u); g.lineTo(X - 9 * u, Y - 2 * u); g.closePath(); g.fill(); g.stroke();
@@ -21590,18 +21999,6 @@ function refinoArmadura2d(dt) {
       vida: o.vida ?? 1.2, max: o.vida ?? 1.2, tam: o.tam ?? (n === 7 ? 0.035 : 0.045), cor: b.hue, refArm: true }); R.est.faiscas++; } };
   let q = taxa * dt; while (q > 0) { if (Math.random() < q) solta(1); q -= 1; }
   if (n === 9 && (R.rajada -= dt) <= 0) { R.rajada = 2 + Math.random(); R.est.rajadas++; solta(12, { r: 0.2, z: 1.0, vel: 1.6, vz: 1.2, vida: 0.55, tam: 0.05 }); }
-}
-// (R403) o anel do +9 no chão, sem o FX3: uma elipse de luz girando (dois arcos) em volta dos pés
-function anelRefArmadura2d(X, Y, z, agora) {
-  if (refArmaduraVisivel() !== 9 || fx3()) return;
-  const b = BRILHO_REF[9], rx = 0.85 * PX * z, ry = rx * 0.5, g = agora * 0.6;
-  cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round";
-  cx.strokeStyle = `rgba(${b.rgb}, ${0.32 + 0.1 * Math.sin(agora * 2.8)})`; cx.lineWidth = 2.2 * z;
-  cx.beginPath(); cx.ellipse(X, Y, rx, ry, 0, g, g + 2.4); cx.stroke();
-  cx.beginPath(); cx.ellipse(X, Y, rx, ry, 0, g + 3.14, g + 5.54); cx.stroke();
-  cx.strokeStyle = `rgba(${b.luz}, 0.22)`; cx.lineWidth = 1 * z;
-  cx.beginPath(); cx.ellipse(X, Y, rx * 0.78, ry * 0.78, 0, -g, -g + 6.283); cx.stroke();
-  cx.restore();
 }
 // (R291, 05/11, o usuário: "quero deixar os golpes dos personagens com as cores das armas se estiverem +7 +8 ou +9" e depois "os efeitos das
 // skills nao precisa mudar") SÓ o ataque básico de cada classe pega a cor do refino da arma na mão: o rastro do golpe (a fita da arma e o
@@ -24161,6 +24558,7 @@ const VIDA_CHEFE_M2 = {
   "Rato Rei": 2940, "Goblin Capataz": 3069, "Aranha Gigante": 3385, "Aranha Rainha": 3616, "Rei Esqueleto": 3911,   // Lykos 30, Scrofa 31, Bera 33, Tigris 35, Bo 37
   "Lobo Alfa": 12960, "Chefe dos Bandidos": 18810, "Lich": 21800, "Capitão Dokkaebi": 24618,                         // Macaco de Pedra 30, Capitão Bestial 42, Macaco Andante 43, Chefe Orc 50
   "Nove Caudas": 166120, "Chefe Orc": 193408, "Dragão Ancião": 146320 };                                             // Nove Caudas 72, Rainha Aranha 60, Tartaruga Gigante 67
+VIDA_CHEFE_M2["Hyeonmu das Areias"] = DESERTO.M2_MOB["Hyeonmu das Areias"][7];   // (R407: o Hyeonmu é a Tartaruga Gigante 67 do deserto do Metin2, 146.320)
 function vidaM2(cfg) {
   if (!cfg) return 0;
   if (cfg.estatico) return vidaPedraM2(cfg.nivel);
@@ -24253,6 +24651,7 @@ const GG_V1 = {
   v1_10: { nome: "Capitães do Juramento Branco", m2: "a1_10", tempo: 60, grupos: ["capita_soldados", "capita_arqueiras", "arqueira_soldados"] },
 };
 if (HAHOE2) { Object.assign(GRUPOS_M2, VILA2.GRUPOS); Object.assign(GG_V1, VILA2.GG); }   // (etapa 3: os grupos e conjuntos dos 5 clãs da Hahoe nova, mapa_hahoe.js)
+Object.assign(GRUPOS_M2, DESERTO.GRUPOS_M2); Object.assign(GG_V1, DESERTO.GG);   // (R407, a etapa 2 do deserto: os 26 grupos e os 4 conjuntos de 100 s do Metin2, e a escolta do Hyeonmu, mapa_deserto.js)
 // os pontos (conjunto, x, y): 80 grupos (a Vila 1 maior, 02/11/2026), ~18 por hectare de caça, no mínimo 21 m um do outro,
 // fora da água, da praia, das estradas, dos buracos, do ninho e da chegada do portal. Por faixa: 22 Cães, 25 Javalis, 19 Ursos e
 // 14 do Juramento Branco; os Capitães (os mais fortes, agressivos) nos cinco pontos mais perto do portal
@@ -24342,7 +24741,14 @@ function spawnsOriginais() {
           ...NOVOS_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 })),
           ...HAHOE_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 })),
           ...hahoeGrupos(),
-          ...DAIYU_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 }))];
+          ...DAIYU_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 })),
+          ...desertoSpawns()];
+}
+// (R407, a etapa 2 do deserto) os 76 grupos das zonas e a escolta no Leito Seco (DESERTO.PONTOS, como os V1_PONTOS: o conjunto e o lugar)
+// e o Hyeonmu das Areias. Só depois dos tipos do deserto existirem (criarCriaturasDeserto, em montarCriaturas)
+function desertoSpawns() {
+  return [...DESERTO.PONTOS.filter(([gg]) => tiposGG(gg).some(t => TIPOS[t])).map(([gg, x, y]) => spawnGrupoV1(gg, x, y)),
+          ...(TIPOS[DESERTO.CHEFE.tipo] ? [DESERTO.spawnChefe()] : [])];
 }
 // uma lista editada de antes da Vila Hahoe (sem nenhum spawn lá): os bandos que foram para a Vila Hahoe saem da Vila 1, e
 // entram os substitutos (SUBST_V1) e os bandos da Vila Hahoe (o resto das edições fica)
@@ -24370,6 +24776,8 @@ function carregarSpawns() {
   if (HAHOE2) SPAWNS = VILA2.migrarSpawns(SPAWNS, HAHOE_BANDOS, HAHOE);   // (a lista com a Hahoe de antes ganha a nova; o resto das edições fica)
   // (uma lista editada de antes da Ilha de Daiyu: entram os bandos dela)
   if (!SPAWNS.some(s => s.y < -350)) SPAWNS.push(...DAIYU_BANDOS.map(([t, x, y, n, e]) => ({ tipo: t, x, y, n, r: e || 1.6 })));
+  // (R407: a lista fixa e a editada de antes da etapa 2 do deserto, sem nenhum spawn em y > 1050: entram os grupos dele e o Hyeonmu)
+  if (!SPAWNS.some(s => s.y > 1050)) SPAWNS.push(...desertoSpawns().map(s => ({ ...s })));
   // (uma lista editada de quando a Montanha Gelada era a ponta leste da Vila 1: os bandos de lá vão para o mapa dela)
   if (!SPAWNS.some(s => s.x < -350)) for (const s of SPAWNS) if (s.x > 117 && s.x < 240 && Math.abs(s.y) < 60) s.x += MONTANHA.ox - 140;
   // (uma lista editada com a montanha plana, de antes de 30/10: o Nove Caudas no meio dela. Os bandos dela dão lugar aos dos patamares)
@@ -24522,12 +24930,16 @@ function criarVariantesV1() {
 // (etapa 3, a Hahoe nova, com a chave) os 20 tipos dos 5 clãs, a voz deles, e o bandido (26), o arqueiro (27) e o Chefe dos
 // Bandidos (32) mais fortes; sem a chave, nada muda (mapa_hahoe.js, VILA2.criarClas)
 function criarClasHahoe() { if (HAHOE2) VILA2.criarClas(TIPOS, variante, RENASCE_COMUM, VOZ_NOVAS, CHEFES_MAPA); }
+// (R407, a etapa 2 do deserto) as 18 criaturas do Deserto de Mingsha (aranhas, escorpiões, o Olho do Vento, os homens-escorpião, as
+// serpentes e os salteadores) e o Hyeonmu, todos variantes do que o jogo já tem (a arte nova é a etapa 3); mapa_deserto.js, CRIATURAS
+function criarCriaturasDeserto() { return DESERTO.criarCriaturas(TIPOS, variante, RENASCE_COMUM, VOZ_NOVAS); }
 function montarCriaturas() {
   criarOrcs();
   criarDragoes();
   criarCriaturasHahoe();
   criarVariantesV1();
   criarClasHahoe();
+  criarCriaturasDeserto();
   if (!SPAWNS) carregarSpawns();
   porSpawns();
 }
@@ -25760,6 +26172,7 @@ function iconePes(g) {
 function passoSkillsArq(dt) {
   passoPes(dt);
   passoVeneno(dt);
+  passoVenenoHeroi(dt);                                                 // (R407: o veneno no herói)
   chuva.recarga = Math.max(0, chuva.recarga - dt); certeiro.recarga = Math.max(0, certeiro.recarga - dt);
   chuva.marca = Math.max(0, chuva.marca - dt);
   // fogo grudado no alvo do tiro certeiro: dano aos poucos e chamas subindo dele
@@ -33352,9 +33765,17 @@ function montadosVikingNovo() {
 // ---- (16/11, R402) as armaduras que trocam o viking padrão inteiro (o usuário: "Se a pessoa trocar de armadura, troca o personagem
 // inteiro"). A peça é a armadura_guerreiro (a do viking, do guerreiro e do shura); pelo tier, os nomes antigos do Metin2
 // (Logs/Balanceamento/ESCALA_METIN2.md): o 3 (hoje Placa do Leão) era a Armadura de Escamas e o 6 (Placa Escama Azul), a do Dragão
-// de Bronze. Com qualquer outra, ou sem armadura, o viking_padrao.glb. Só o viking (VIKING_VAR.armaduras): o guerreiro e o shura não mudam
-const VIKING_ARMADURAS_3D = { 3: { chave: "escamas", glb: "3d/viking_escamas.glb", nome: "Armadura de Escamas" },
-                              6: { chave: "dragao", glb: "3d/viking_dragao.glb", nome: "Armadura do Dragão de Bronze" } };
+// de Bronze. Com qualquer outra, ou sem armadura, o viking_padrao.glb. Só o viking (VIKING_VAR.armaduras): o guerreiro e o shura não mudam.
+// (16/11, R405, "vamos criar as outras armaduras do viking") os tiers 1, 2, 4, 5, 7 e 8, com os nomes do Metin2 BR; o tier 0 (Placa Budista
+// Novato) fica o viking padrão. Cada glb vem do Tripo pelos mesmos 2 passos (Tools/viking_novo/padrao/LEIA-ME.md), ≤ 5 MB, e carrega sob demanda
+const VIKING_ARMADURAS_3D = { 1: { chave: "ferro", glb: "3d/viking_ferro.glb", nome: "Placa de Ferro" },
+                              2: { chave: "tigre_curvo", glb: "3d/viking_tigre_curvo.glb", nome: "Placa do Tigre Curvo" },
+                              3: { chave: "escamas", glb: "3d/viking_escamas.glb", nome: "Armadura de Escamas" },
+                              4: { chave: "mortal", glb: "3d/viking_mortal.glb", nome: "Placa Mortal" },
+                              5: { chave: "escama_dragao", glb: "3d/viking_escama_dragao.glb", nome: "Escama de Dragão" },
+                              6: { chave: "dragao", glb: "3d/viking_dragao.glb", nome: "Armadura do Dragão de Bronze" },
+                              7: { chave: "escama_dourada", glb: "3d/viking_escama_dourada.glb", nome: "Placa Escama Dourada" },
+                              8: { chave: "deus_dragao", glb: "3d/viking_deus_dragao.glb", nome: "Armadura Deus Dragão" } };
 // a armadura de corpo vestida que tem um viking próprio (eq: o equipamento; por padrão o do herói), ou null
 function armaduraViking3d(eq) {
   if (classe !== "viking" || !VIKING_VAR || !VIKING_VAR.armaduras) return null;
@@ -34103,9 +34524,8 @@ function desenharViking() {
     cx.drawImage(sil, X - info.px * z * e, Y - info.py * z * e - 2 * z * nf, info.w * z * e, info.h * z * e);
     cx.restore();
   }
-  // (R403) a armadura +7/+8/+9: o anel do +9 no chão (sem o FX3) e a silhueta acesa na cor do refino, pulsando, por trás do corpo
+  // (R403) a armadura +7/+8/+9: a silhueta acesa na cor do refino, pulsando, por trás do corpo
   // (a mesma da aura da Fúria; com a Fúria acesa, fica só a dela)
-  anelRefArmadura2d(X, Y, z, agora);
   const nRef = nf > 0.05 || mundo3d ? 0 : refArmaduraVisivel(), poseRef = nRef ? poseHeroi(z) : null;
   if (poseRef) {
     const b = BRILHO_REF[nRef], SR = SILHUETA_REF[nRef], pul = 0.72 + 0.28 * Math.sin(agora * SR.pulso), sil = silhuetaPose(poseRef, b.forte), e = 1.025;
@@ -42113,7 +42533,7 @@ const passoRefinoArmadura3 = (() => {
   const NIVEL = {
     7: { faiscas: 2.5, motas: 0, halo: 0, espiral: 0 },
     8: { faiscas: 7, motas: 6, halo: 0.17, espiral: 0 },
-    9: { faiscas: 5, motas: 4, halo: 0.12, espiral: 6, anel: true },
+    9: { faiscas: 5, motas: 4, halo: 0.12, espiral: 6 },   // (R404, 16/11, o usuário: "retire o circulo debaixo do jogador quando esta com a arma +9": sem o anel no chão)
   };
   const EST = window.VFX_REF_ARMADURA = { quadros: 0, nivel: 0, faiscas: 0, motas: 0, brasas: 0, rajadas: 0, aneis: 0, anelVivo: false, halo: 0, cor: null, espiral: 0, vivas: 0, maxVivas: 0, teto: TETO, cortadas: 0 };
   const vivas = [];                                      // (o fim de cada partícula solta, no relógio daqui: o teto)
