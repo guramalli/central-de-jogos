@@ -1,4 +1,6 @@
 import "dotenv/config";
+import { diaryRouter } from "./solucao-sobrados/diary-router.mjs";
+import { prisma as diaryDatabase } from "./db.js";
 import express from "express";
 // Faz erros dentro de rotas async caírem no tratador de erro global lá do
 // fim deste arquivo. Sem isso (Express 4), um erro de banco numa rota sem
@@ -96,6 +98,7 @@ const CORS_ORIGIN = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .filter(Boolean);
 
 app.use(cors({ origin: CORS_ORIGIN }));
+app.use("/api/solucao-sobrados/diary", diaryRouter(diaryDatabase));
 app.use(express.json());
 
 app.get("/health", (req, res) => res.json({ ok: true }));

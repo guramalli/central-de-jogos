@@ -103,6 +103,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/solucao-sobrados/diary/:path*",
+      "destination": "https://api.educacaogamer.com.br/api/solucao-sobrados/diary/:path*"
+    },
+    {
       "source": "/solucao-sobrados/",
       "destination": "/solucao-sobrados/index.html"
     },
@@ -435,6 +439,19 @@
         {
           "key": "Content-Type",
           "value": "text/javascript; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/api/solucao-sobrados/diary/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
         }
       ]
     }

@@ -48,7 +48,7 @@ export function command(input,type,d,expected=input.revision){
   check(input.revision===expected,'Outra aba alterou os dados. Atualize antes de salvar.');const s=structuredClone(input);let result;
   if(type==='project.create'){
     const data=projectData(d),count=integer(d.count,'Número de unidades',1,100),area=integer(d.area,'Área de cada unidade',1,1e7),sale=integer(d.sale,'Venda por unidade');
-    const p={...data,id:next(s),status:'active',units:Array.from({length:count},(_,i)=>({id:next(s),name:`Unidade ${String(i+1).padStart(2,'0')}`,area,sale})),stages:STAGES.map(name=>({id:next(s),name,budget:0,progress:0})),expenses:[]};s.projects.push(p);result=p;
+    const p={...data,id:next(s),diaryKey:crypto.randomUUID(),status:'active',units:Array.from({length:count},(_,i)=>({id:next(s),name:`Unidade ${String(i+1).padStart(2,'0')}`,area,sale})),stages:STAGES.map(name=>({id:next(s),name,budget:0,progress:0})),expenses:[]};s.projects.push(p);result=p;
     for(const [key,label,kind,stageIndex] of [['land','Terreno','acquisition',0],['commission','Comissão de aquisição','acquisition',0],['taxes','Impostos e taxas','fees',1]]){
       const cents=integer(d[key]||0);if(!cents)continue;
       const e={...expenseData(p,{description:label,category:label,kind,stageId:p.stages[stageIndex].id,date:p.start,due:p.start,qty:1000,uom:'verba',unitCents:cents,mode:p.allocation}),id:next(s),payments:[],uses:[]};
