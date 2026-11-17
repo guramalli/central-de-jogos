@@ -1,6 +1,8 @@
-import {renderDocumentsPanel} from './documents-ui.mjs?v=20261117-docs1';
-import {renderReminderPanel,reminderCounts} from './reminders-ui.mjs?v=20261117-docs1';
+import {mountProjectPhoto} from './project-photo.mjs?v=20261117-photo1';
+import {renderDocumentsPanel} from './documents-ui.mjs?v=20261117-photo1';
+import {renderReminderPanel,reminderCounts} from './reminders-ui.mjs?v=20261117-photo1';
 const API='/api/solucao-sobrados/diary',KEY='ss-diary-links-v1';
+export function mountProjectIdentity(container,contextKey){return mountProjectPhoto({container,access:()=>links()[contextKey]});}
 export function mountReminderSummary(container,contextKey){
   const c=links()[contextKey];if(!c||c.pending)return ()=>{};
   const abort=new AbortController();let stopped=false;
@@ -102,4 +104,4 @@ export function mountDiary({container,project,contextKey,shared=null,view='photo
   timer=setInterval(()=>{if(!document.hidden&&!dialog&&!(root.contains(document.activeElement)&&['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)))refresh();},30000);
   return ()=>{stopped=true;abort.abort();clearInterval(timer);observer?.disconnect();disposeDocuments?.();closeDialog();for(const url of urls.values())if(typeof url==='string')URL.revokeObjectURL(url);};
 }
-export function mountSharedDiary(container,access){container.innerHTML=`<div class="diary-shared-shell"><header class="diary-shared-header"><a class="logo" href="${esc(location.pathname)}"><span class="logo-mark">⌂</span><span>SOLUÇÃO<strong>SOBRADOS</strong></span></a><span>ACOMPANHAMENTO DA OBRA</span></header><main class="diary-shared-main"></main><footer class="app-footer"><span>Solução Sobrados · Diário online</span><span>Guarde seu link de acesso.</span></footer></div>`;return mountDiary({container:container.querySelector('main'),shared:access,view:access.view||'photos'});}
+export function mountSharedDiary(container,access){container.innerHTML=`<div class="diary-shared-shell"><header class="diary-shared-header"><a class="logo" href="${esc(location.pathname)}"><span class="logo-mark">⌂</span><span>SOLUÇÃO<strong>SOBRADOS</strong></span></a><span class="shared-project-identity"><span class="project-photo" id="shared-project-photo">⌂</span>ACOMPANHAMENTO DA OBRA</span></header><main class="diary-shared-main"></main><footer class="app-footer"><span>Solução Sobrados · Diário online</span><span>Guarde seu link de acesso.</span></footer></div>`;const disposePhoto=mountProjectPhoto({container:container.querySelector('#shared-project-photo'),access}),dispose=mountDiary({container:container.querySelector('main'),shared:access,view:access.view||'photos'});return ()=>{disposePhoto();dispose();};}
