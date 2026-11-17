@@ -1,113 +1,408 @@
 {
   "redirects": [
-    { "source": "/futevolei", "destination": "/futevolei/", "permanent": false },
-    { "source": "/lenda-do-campinho", "destination": "/lenda-do-campinho/", "permanent": false },
-    { "source": "/lenda", "destination": "/lenda/", "permanent": false },
-    { "source": "/lenda/wiki", "destination": "/lenda/wiki/", "permanent": false },
-    { "source": "/lenda/wiki/en", "destination": "/lenda/wiki/en/", "permanent": false },
-    { "source": "/jocelino", "destination": "/jocelino/", "permanent": false },
-    { "source": "/grau-grinders", "destination": "/grau-grinders/", "permanent": false },
-    { "source": "/jogorpg", "destination": "/jogorpg/", "permanent": false },
-    { "source": "/ghotin2", "destination": "/ghotin2/", "permanent": false },
-    { "source": "/thelastdance", "destination": "/thelastdance/", "permanent": false },
-    { "source": "/torre", "destination": "/torre/", "permanent": false },
-    { "source": "/tuca", "destination": "/tuca/", "permanent": false },
-    { "source": "/ghotin3d", "destination": "/ghotin3d/", "permanent": false },
-    { "source": "/zumbi", "destination": "/zumbi/", "permanent": false },
-    { "source": "/mooveon", "destination": "/mooveon/", "permanent": false },
-    { "source": "/mooveon/manutencao", "destination": "/mooveon/manutencao.html", "permanent": false },
-    { "source": "/arcano", "destination": "/arcano/", "permanent": false },
-    { "source": "/thelastdance/:pasta(reference|docs|tools|tests)/:resto*", "destination": "/thelastdance/", "permanent": false }
+    {
+      "source": "/futevolei",
+      "destination": "/futevolei/",
+      "permanent": false
+    },
+    {
+      "source": "/lenda-do-campinho",
+      "destination": "/lenda-do-campinho/",
+      "permanent": false
+    },
+    {
+      "source": "/lenda",
+      "destination": "/lenda/",
+      "permanent": false
+    },
+    {
+      "source": "/lenda/wiki",
+      "destination": "/lenda/wiki/",
+      "permanent": false
+    },
+    {
+      "source": "/lenda/wiki/en",
+      "destination": "/lenda/wiki/en/",
+      "permanent": false
+    },
+    {
+      "source": "/jocelino",
+      "destination": "/jocelino/",
+      "permanent": false
+    },
+    {
+      "source": "/grau-grinders",
+      "destination": "/grau-grinders/",
+      "permanent": false
+    },
+    {
+      "source": "/jogorpg",
+      "destination": "/jogorpg/",
+      "permanent": false
+    },
+    {
+      "source": "/ghotin2",
+      "destination": "/ghotin2/",
+      "permanent": false
+    },
+    {
+      "source": "/thelastdance",
+      "destination": "/thelastdance/",
+      "permanent": false
+    },
+    {
+      "source": "/torre",
+      "destination": "/torre/",
+      "permanent": false
+    },
+    {
+      "source": "/tuca",
+      "destination": "/tuca/",
+      "permanent": false
+    },
+    {
+      "source": "/ghotin3d",
+      "destination": "/ghotin3d/",
+      "permanent": false
+    },
+    {
+      "source": "/zumbi",
+      "destination": "/zumbi/",
+      "permanent": false
+    },
+    {
+      "source": "/mooveon",
+      "destination": "/mooveon/",
+      "permanent": false
+    },
+    {
+      "source": "/mooveon/manutencao",
+      "destination": "/mooveon/manutencao.html",
+      "permanent": false
+    },
+    {
+      "source": "/arcano",
+      "destination": "/arcano/",
+      "permanent": false
+    },
+    {
+      "source": "/thelastdance/:pasta(reference|docs|tools|tests)/:resto*",
+      "destination": "/thelastdance/",
+      "permanent": false
+    },
+    {
+      "source": "/cobranca",
+      "destination": "/mooveon/cobranca",
+      "permanent": false
+    }
   ],
   "rewrites": [
-    { "source": "/futevolei/", "destination": "/futevolei/index.html" },
-    { "source": "/lenda-do-campinho/", "destination": "/lenda-do-campinho/index.html" },
-    { "source": "/lenda/", "destination": "/lenda/index.html" },
-    { "source": "/lenda/wiki/", "destination": "/lenda/wiki/index.html" },
-    { "source": "/lenda/wiki/en/", "destination": "/lenda/wiki/en/index.html" },
-    { "source": "/jocelino/", "destination": "/jocelino/index.html" },
-    { "source": "/grau-grinders/", "destination": "/grau-grinders/index.html" },
-    { "source": "/jogorpg/", "destination": "/jogorpg/index.html" },
-    { "source": "/ghotin2/", "destination": "/ghotin2/index.html" },
-    { "source": "/thelastdance/", "destination": "/thelastdance/index.html" },
-    { "source": "/torre/", "destination": "/torre/index.html" },
-    { "source": "/tuca/", "destination": "/tuca/index.html" },
-    { "source": "/ghotin3d/", "destination": "/ghotin3d/index.html" },
-    { "source": "/zumbi/", "destination": "/zumbi/index.html" },
-    { "source": "/mooveon/", "destination": "/mooveon/index.html" },
-    { "source": "/arcano/", "destination": "/arcano/index.html" },
-    { "source": "/v2", "destination": "/v2/index.html" },
-    { "source": "/v2/(.*)", "destination": "/v2/index.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/mooveon/modulos",
+      "destination": "/mooveon-modulos/modulos.html"
+    },
+    {
+      "source": "/mooveon/modulos/",
+      "destination": "/mooveon-modulos/modulos.html"
+    },
+    {
+      "source": "/orcamentos",
+      "destination": "/mooveon-modulos/orcamentos.html"
+    },
+    {
+      "source": "/orcamentos/",
+      "destination": "/mooveon-modulos/orcamentos.html"
+    },
+    {
+      "source": "/mooveon/juridico",
+      "destination": "/mooveon-modulos/juridico.html"
+    },
+    {
+      "source": "/mooveon/juridico/",
+      "destination": "/mooveon-modulos/juridico.html"
+    },
+    {
+      "source": "/mooveon/cobranca",
+      "destination": "/mooveon-modulos/cobranca.html"
+    },
+    {
+      "source": "/mooveon/cobranca/",
+      "destination": "/mooveon-modulos/cobranca.html"
+    },
+    {
+      "source": "/mooveon/cadastros",
+      "destination": "/mooveon-modulos/cadastros.html"
+    },
+    {
+      "source": "/mooveon/cadastros/",
+      "destination": "/mooveon-modulos/cadastros.html"
+    },
+    {
+      "source": "/futevolei/",
+      "destination": "/futevolei/index.html"
+    },
+    {
+      "source": "/lenda-do-campinho/",
+      "destination": "/lenda-do-campinho/index.html"
+    },
+    {
+      "source": "/lenda/",
+      "destination": "/lenda/index.html"
+    },
+    {
+      "source": "/lenda/wiki/",
+      "destination": "/lenda/wiki/index.html"
+    },
+    {
+      "source": "/lenda/wiki/en/",
+      "destination": "/lenda/wiki/en/index.html"
+    },
+    {
+      "source": "/jocelino/",
+      "destination": "/jocelino/index.html"
+    },
+    {
+      "source": "/grau-grinders/",
+      "destination": "/grau-grinders/index.html"
+    },
+    {
+      "source": "/jogorpg/",
+      "destination": "/jogorpg/index.html"
+    },
+    {
+      "source": "/ghotin2/",
+      "destination": "/ghotin2/index.html"
+    },
+    {
+      "source": "/thelastdance/",
+      "destination": "/thelastdance/index.html"
+    },
+    {
+      "source": "/torre/",
+      "destination": "/torre/index.html"
+    },
+    {
+      "source": "/tuca/",
+      "destination": "/tuca/index.html"
+    },
+    {
+      "source": "/ghotin3d/",
+      "destination": "/ghotin3d/index.html"
+    },
+    {
+      "source": "/zumbi/",
+      "destination": "/zumbi/index.html"
+    },
+    {
+      "source": "/mooveon/",
+      "destination": "/mooveon/index.html"
+    },
+    {
+      "source": "/arcano/",
+      "destination": "/arcano/index.html"
+    },
+    {
+      "source": "/v2",
+      "destination": "/v2/index.html"
+    },
+    {
+      "source": "/v2/(.*)",
+      "destination": "/v2/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
       "source": "/futevolei/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     },
     {
       "source": "/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/(.*\\.(?:png|svg|jpg|jpeg|webp|gif|ico|mp3|ogg|wav|woff|woff2|mp4|zip))",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, stale-while-revalidate=86400"
+        }
+      ]
     },
     {
       "source": "/assets/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     },
     {
       "source": "/lenda-do-campinho/(.*\\.(?:js|css))",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     },
     {
       "source": "/lenda-do-campinho/sw.js",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/grau-grinders/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     },
     {
       "source": "/grau-grinders/Build/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/torre/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     },
     {
       "source": "/tuca/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     },
     {
       "source": "/ghotin3d/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     },
     {
       "source": "/zumbi/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     },
     {
       "source": "/mooveon/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     },
     {
       "source": "/jogorpg/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     },
     {
       "source": "/jogorpg/Build/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/jocelino/(.*\\.wasm)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800"
+        }
+      ]
     },
     {
       "source": "/jocelino/(.*\\.(?:pck|js|html))",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/orcamentos",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    },
+    {
+      "source": "/mooveon-modulos/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    },
+    {
+      "source": "/mooveon-modulos/(.*\\.mjs)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/javascript; charset=utf-8"
+        }
+      ]
     }
   ]
 }
+
