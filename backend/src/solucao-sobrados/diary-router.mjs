@@ -1,4 +1,5 @@
 import {changeReminder} from './reminder-service.mjs';
+import {changeFolder,beginUpload,uploadPart,completeUpload,manageDocument,downloadPart} from './document-service.mjs';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import {DiaryService,fail,migrate} from './diary-service.mjs';
@@ -17,6 +18,12 @@ export function diaryRouter(db,{origins=['https://www.educacaogamer.com.br','htt
   router.get('/health',wrap(async(req,res)=>res.json(await service.health())));
   router.post('/boards',wrap(async(req,res)=>res.status(201).json(await service.create(req.body,req.ip||req.socket.remoteAddress))));
   router.get('/boards/:id',wrap(async(req,res)=>res.json(await service.read(req.params.id,token(req)))));
+  router.post('/boards/:id/folders',wrap(async(req,res)=>res.json(await changeFolder(service,req.params.id,token(req),req.body))));
+  router.post('/boards/:id/documents',wrap(async(req,res)=>res.json(await beginUpload(service,req.params.id,token(req),req.body))));
+  router.post('/boards/:id/documents/:fileId/parts',wrap(async(req,res)=>res.json(await uploadPart(service,req.params.id,token(req),req.params.fileId,req.body))));
+  router.post('/boards/:id/documents/:fileId/complete',wrap(async(req,res)=>res.json(await completeUpload(service,req.params.id,token(req),req.params.fileId))));
+  router.post('/boards/:id/documents/:fileId/manage',wrap(async(req,res)=>res.json(await manageDocument(service,req.params.id,token(req),req.params.fileId,req.body))));
+  router.get('/boards/:id/documents/:fileId/parts/:index',wrap(async(req,res)=>{const part=await downloadPart(service,req.params.id,token(req),req.params.fileId,Number(req.params.index));res.set({'Content-Type':'application/octet-stream','Content-Security-Policy':"default-src 'none'; sandbox"}).send(part);}));
   router.post('/boards/:id/reminders',wrap(async(req,res)=>res.json(await changeReminder(service,req.params.id,token(req),req.body))));
   router.post('/boards/:id/entries',wrap(async(req,res)=>res.status(201).json(await service.publish(req.params.id,token(req),req.body))));
   router.post('/boards/:id/manage',wrap(async(req,res)=>res.json(await service.manage(req.params.id,token(req),req.body))));
