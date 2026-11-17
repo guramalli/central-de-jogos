@@ -1,3 +1,4 @@
+import {changeReminder} from './reminder-service.mjs';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import {DiaryService,fail,migrate} from './diary-service.mjs';
@@ -16,6 +17,7 @@ export function diaryRouter(db,{origins=['https://www.educacaogamer.com.br','htt
   router.get('/health',wrap(async(req,res)=>res.json(await service.health())));
   router.post('/boards',wrap(async(req,res)=>res.status(201).json(await service.create(req.body,req.ip||req.socket.remoteAddress))));
   router.get('/boards/:id',wrap(async(req,res)=>res.json(await service.read(req.params.id,token(req)))));
+  router.post('/boards/:id/reminders',wrap(async(req,res)=>res.json(await changeReminder(service,req.params.id,token(req),req.body))));
   router.post('/boards/:id/entries',wrap(async(req,res)=>res.status(201).json(await service.publish(req.params.id,token(req),req.body))));
   router.post('/boards/:id/manage',wrap(async(req,res)=>res.json(await service.manage(req.params.id,token(req),req.body))));
   router.get('/boards/:id/photos/:photoId',wrap(async(req,res)=>{const photo=await service.photo(req.params.id,req.params.photoId,token(req));res.set({'Content-Type':'image/jpeg','Content-Security-Policy':"default-src 'none'; sandbox",'Cross-Origin-Resource-Policy':'same-origin'}).send(photo);}));

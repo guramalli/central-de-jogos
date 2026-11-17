@@ -1,3 +1,4 @@
+import {reminderSchema,readReminders} from './reminder-service.mjs';
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 export const LIMITS={photoBytes:450000,photoSide:1600,photosPerPost:6,photosPerBoard:80,boardBytes:24*1024*1024,totalBytes:256*1024*1024,boards:200,posts:300};
 export function fail(ok,message,status=422){if(!ok){const e=new Error(message);e.status=status;throw e;}}
@@ -43,10 +44,10 @@ export const schemaStatements=[
   'CREATE TABLE IF NOT EXISTS ss_diary_v1.creation_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires BIGINT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS ss_diary_v1.audit (id TEXT PRIMARY KEY, board_id TEXT NOT NULL REFERENCES ss_diary_v1.boards(id), action TEXT NOT NULL, actor_role TEXT NOT NULL, subject TEXT NOT NULL, created_at BIGINT NOT NULL)'
 ];
-export async function migrate(db){for(const sql of schemaStatements)await db.$executeRawUnsafe(sql);}
+export async function migrate(db){for(const sql of [...schemaStatements,...reminderSchema])await db.$executeRawUnsafe(sql);}
 export class DiaryService{
   constructor(db){this.db=db;}
-  async health(){await this.db.$queryRaw`SELECT id FROM ss_diary_v1.quota WHERE id=1`;return {ok:true,version:1,limits:LIMITS};}
+  async health(){await this.db.$queryRaw`SELECT id FROM ss_diary_v1.quota WHERE id=1`;return {ok:true,version:2,limits:LIMITS};}
   async board(db,id,token,write=false,owner=false,lock=false){uuid(id);const rows=lock?await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id} FOR UPDATE`:await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id}`;fail(rows.length,'Diário não encontrado ou link inválido.',404);const b=rows[0],role=roleFor(b,token);fail(!write||role!=='reader','Este link permite somente acompanhar a obra.',403);fail(!owner||role==='owner','Somente o gestor pode realizar esta ação.',403);return {...b,role};}
   async create(d,ip){
     const id=uuid(d.id),m=metadata(d.metadata),owner=tokenHash(d.ownerToken),writer=tokenHash(d.writerToken),reader=tokenHash(d.readerToken);fail(new Set([owner,writer,reader]).size===3,'Os acessos devem ser diferentes.');
@@ -61,7 +62,7 @@ export class DiaryService{
   }
   async read(id,token){const b=await this.board(this.db,id,token);const entries=await this.db.$queryRaw`SELECT id,payload,archived,reason,created_at FROM ss_diary_v1.entries WHERE board_id=${id} ORDER BY created_at DESC`;
     const photos=await this.db.$queryRaw`SELECT id,entry_id,bytes,width,height,caption FROM ss_diary_v1.photos WHERE board_id=${id}`;
-    return {id,metadata:b.metadata,role:b.role,revision:b.revision,createdAt:Number(b.created_at),updatedAt:Number(b.updated_at),limits:LIMITS,usage:{photos:photos.length,bytes:photos.reduce((n,p)=>n+p.bytes,0)},entries:entries.filter(e=>!e.archived||b.role==='owner').map(e=>({id:e.id,...e.payload,archived:e.archived,reason:e.reason,createdAt:Number(e.created_at),photos:photos.filter(p=>p.entry_id===e.id).map(({entry_id,...p})=>p)}))};
+    return {id,reminders:await readReminders(this.db,id),metadata:b.metadata,role:b.role,revision:b.revision,createdAt:Number(b.created_at),updatedAt:Number(b.updated_at),limits:LIMITS,usage:{photos:photos.length,bytes:photos.reduce((n,p)=>n+p.bytes,0)},entries:entries.filter(e=>!e.archived||b.role==='owner').map(e=>({id:e.id,...e.payload,archived:e.archived,reason:e.reason,createdAt:Number(e.created_at),photos:photos.filter(p=>p.entry_id===e.id).map(({entry_id,...p})=>p)}))};
   }
   async photo(id,photoId,token){await this.board(this.db,id,token);uuid(photoId);const rows=await this.db.$queryRaw`SELECT p.content FROM ss_diary_v1.photos p JOIN ss_diary_v1.entries e ON e.id=p.entry_id WHERE p.board_id=${id} AND p.id=${photoId} AND e.archived=FALSE`;fail(rows.length,'Foto não disponível.',404);return Buffer.from(rows[0].content);}
   async publish(id,token,d){const initial=await this.board(this.db,id,token,true),parsed=entryInput(d,initial),bytes=parsed.photos.reduce((n,p)=>n+p.bytes,0);
