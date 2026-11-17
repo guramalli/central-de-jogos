@@ -1,5 +1,5 @@
 import {changeReminder} from './reminder-service.mjs';
-import {changeFolder,beginUpload,uploadPart,completeUpload,manageDocument,downloadPart} from './document-service.mjs';
+import {changeFolder,beginUpload,uploadPart,completeUpload,manageDocument,downloadPart,setProjectCover,projectCover} from './document-service.mjs';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import {DiaryService,fail,migrate} from './diary-service.mjs';
@@ -18,6 +18,8 @@ export function diaryRouter(db,{origins=['https://www.educacaogamer.com.br','htt
   router.get('/health',wrap(async(req,res)=>res.json(await service.health())));
   router.post('/boards',wrap(async(req,res)=>res.status(201).json(await service.create(req.body,req.ip||req.socket.remoteAddress))));
   router.get('/boards/:id',wrap(async(req,res)=>res.json(await service.read(req.params.id,token(req)))));
+  router.post('/boards/:id/cover',wrap(async(req,res)=>res.json(await setProjectCover(service,req.params.id,token(req),req.body))));
+  router.get('/boards/:id/cover',wrap(async(req,res)=>{res.set({'Content-Type':'image/jpeg','Content-Security-Policy':"default-src 'none'; sandbox"}).send(await projectCover(service,req.params.id,token(req)));}));
   router.post('/boards/:id/folders',wrap(async(req,res)=>res.json(await changeFolder(service,req.params.id,token(req),req.body))));
   router.post('/boards/:id/documents',wrap(async(req,res)=>res.json(await beginUpload(service,req.params.id,token(req),req.body))));
   router.post('/boards/:id/documents/:fileId/parts',wrap(async(req,res)=>res.json(await uploadPart(service,req.params.id,token(req),req.params.fileId,req.body))));

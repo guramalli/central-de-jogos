@@ -1,5 +1,5 @@
 import {createHash,randomUUID} from 'node:crypto';
-import {fail,uuid,LIMITS} from './diary-service.mjs';
+import {fail,uuid,LIMITS,jpeg} from './diary-service.mjs';
 export const DOCUMENT_LIMITS={fileBytes:20*1048576,boardBytes:64*1048576,chunkBytes:512*1024,files:100,folders:40,depth:5};
 export const DOCUMENT_TYPES={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',pdf:'application/pdf',dwg:'application/octet-stream',dxf:'application/octet-stream',doc:'application/msword',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',xls:'application/vnd.ms-excel',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',ppt:'application/vnd.ms-powerpoint',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',txt:'text/plain',csv:'text/csv',zip:'application/zip'};
 const sha=b=>createHash('sha256').update(b).digest('hex');
@@ -27,7 +27,8 @@ export const documentSchema=[
   'CREATE INDEX IF NOT EXISTS doc_folders_board ON ss_diary_v1.doc_folders(board_id)',
   "CREATE TABLE IF NOT EXISTS ss_diary_v1.doc_files (id TEXT PRIMARY KEY,board_id TEXT NOT NULL REFERENCES ss_diary_v1.boards(id),folder_id TEXT REFERENCES ss_diary_v1.doc_folders(id),payload JSONB NOT NULL,request_hash TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'pending',shared BOOLEAN NOT NULL DEFAULT FALSE,archived BOOLEAN NOT NULL DEFAULT FALSE,revision INTEGER NOT NULL DEFAULT 0,created_at BIGINT NOT NULL,expires BIGINT NOT NULL)",
   'CREATE INDEX IF NOT EXISTS doc_files_board ON ss_diary_v1.doc_files(board_id)',
-  'CREATE TABLE IF NOT EXISTS ss_diary_v1.doc_parts (file_id TEXT NOT NULL REFERENCES ss_diary_v1.doc_files(id),part INTEGER NOT NULL,content BYTEA NOT NULL,sha256 TEXT NOT NULL,PRIMARY KEY(file_id,part))'
+  'CREATE TABLE IF NOT EXISTS ss_diary_v1.doc_parts (file_id TEXT NOT NULL REFERENCES ss_diary_v1.doc_files(id),part INTEGER NOT NULL,content BYTEA NOT NULL,sha256 TEXT NOT NULL,PRIMARY KEY(file_id,part))',
+  'CREATE TABLE IF NOT EXISTS ss_diary_v1.doc_covers (board_id TEXT PRIMARY KEY REFERENCES ss_diary_v1.boards(id),file_id TEXT NOT NULL REFERENCES ss_diary_v1.doc_files(id),content BYTEA NOT NULL,bytes INTEGER NOT NULL CHECK(bytes>0 AND bytes<=100000))'
 ];
 const mapFile=f=>({id:f.id,folderId:f.folder_id,...f.payload,shared:f.shared,archived:f.archived,revision:f.revision,createdAt:Number(f.created_at)});
 export async function readLibrary(db,id,role){
@@ -36,7 +37,27 @@ export async function readLibrary(db,id,role){
   const files=all.filter(f=>role==='owner'||(!f.archived&&(role==='writer'||f.shared))).map(mapFile);
   if(role==='reader'){const allowed=new Set();for(const f of files){let at=f.folderId;while(at&&!allowed.has(at)){allowed.add(at);at=folders.find(x=>x.id===at)?.parentId;}}folders=folders.filter(f=>allowed.has(f.id));}
   const [usage]=await db.$queryRaw`SELECT COALESCE(sum((payload->>'size')::bigint),0)::bigint AS bytes FROM ss_diary_v1.doc_files WHERE board_id=${id} AND state IN ('pending','ready')`;
-  return {folders,files,limits:DOCUMENT_LIMITS,usage:role==='reader'?null:{bytes:Number(usage.bytes),files:all.length}};
+  const [cover]=await db.$queryRaw`SELECT file_id,bytes FROM ss_diary_v1.doc_covers WHERE board_id=${id}`;
+  const visibleCover=cover&&files.some(f=>f.id===cover.file_id&&!f.archived)?{fileId:cover.file_id}:null;
+  return {folders,files,cover:visibleCover,limits:DOCUMENT_LIMITS,usage:role==='reader'?null:{bytes:Number(usage.bytes)+(cover?.bytes||0),files:all.length}};
+}
+export async function setProjectCover(service,id,token,d){return service.db.$transaction(async tx=>{
+  const [quota]=await tx.$queryRaw`SELECT * FROM ss_diary_v1.quota WHERE id=1 FOR UPDATE`;
+  const b=await service.board(tx,id,token,true,true,true);fail(d.revision===b.revision,'O empreendimento mudou. Atualize antes de escolher a foto.',409);
+  const [old]=await tx.$queryRaw`SELECT bytes FROM ss_diary_v1.doc_covers WHERE board_id=${id}`;let bytes=0;
+  if(d.fileId){uuid(d.fileId);const [f]=await tx.$queryRaw`SELECT payload FROM ss_diary_v1.doc_files WHERE board_id=${id} AND id=${d.fileId} AND state='ready' AND archived=FALSE`;
+    fail(f&&['jpg','jpeg','png','webp'].includes(f.payload.ext),'Escolha uma imagem ativa deste empreendimento.',422);
+    const thumb=jpeg(d.base64);fail(thumb.bytes<=100000&&thumb.width<=512&&thumb.height<=512,'A miniatura deve ter até 512 pixels e 100 KB.');bytes=thumb.bytes;
+    fail(Number(quota.bytes)+bytes-(old?.bytes||0)<=LIMITS.totalBytes,'Armazenamento de testes cheio.',507);
+    const [usage]=await tx.$queryRaw`SELECT COALESCE(sum((payload->>'size')::bigint),0)::bigint AS bytes FROM ss_diary_v1.doc_files WHERE board_id=${id} AND state IN ('pending','ready')`;
+    fail(Number(usage.bytes)+bytes<=DOCUMENT_LIMITS.boardBytes,'Armazenamento do empreendimento cheio.',507);
+    await tx.$executeRaw`INSERT INTO ss_diary_v1.doc_covers VALUES(${id},${d.fileId},${thumb.data},${bytes}) ON CONFLICT(board_id) DO UPDATE SET file_id=EXCLUDED.file_id,content=EXCLUDED.content,bytes=EXCLUDED.bytes`;
+  }else{fail(d.fileId===null,'Escolha a foto ou remova a seleção.');await tx.$executeRaw`DELETE FROM ss_diary_v1.doc_covers WHERE board_id=${id}`;}
+  await tx.$executeRaw`UPDATE ss_diary_v1.quota SET bytes=bytes+${BigInt(bytes-(old?.bytes||0))} WHERE id=1`;
+  await changed(tx,id,b.role,d.fileId?'project-photo-set':'project-photo-clear',d.fileId||'');return {ok:true};
+});}
+export async function projectCover(service,id,token){const b=await service.board(service.db,id,token);const [cover]=await service.db.$queryRaw`SELECT c.content,f.shared FROM ss_diary_v1.doc_covers c JOIN ss_diary_v1.doc_files f ON f.id=c.file_id AND f.board_id=c.board_id WHERE c.board_id=${id} AND f.state='ready' AND f.archived=FALSE`;
+  fail(cover&&(b.role!=='reader'||cover.shared),'Foto do empreendimento indisponível.',404);return Buffer.from(cover.content);
 }
 async function changed(tx,id,role,action,subject){const now=BigInt(Date.now());await tx.$executeRaw`UPDATE ss_diary_v1.boards SET revision=revision+1,updated_at=${now} WHERE id=${id}`;await tx.$executeRaw`INSERT INTO ss_diary_v1.audit VALUES(${randomUUID()},${id},${action},${role},${subject},${now})`;}
 async function folderExists(tx,id,folderId){if(!folderId)return;const rows=await tx.$queryRaw`SELECT id FROM ss_diary_v1.doc_folders WHERE board_id=${id} AND id=${uuid(folderId)}`;fail(rows.length,'Pasta não encontrada neste empreendimento.',404);}
@@ -61,7 +82,8 @@ export async function beginUpload(service,id,token,d){const p=uploadInput(d),fin
   if(rows.length){const f=rows[0];fail(f.board_id===id&&f.request_hash===fingerprint,'Identificador de envio já utilizado.',409);fail(f.state!=='cancelled','Envio expirado. Feche a janela e envie novamente.',410);const parts=await tx.$queryRaw`SELECT part FROM ss_diary_v1.doc_parts WHERE file_id=${p.id}`;return {id:p.id,complete:f.state==='ready',received:parts.map(x=>x.part)};}
   await folderExists(tx,id,p.folderId);
   const [usage]=await tx.$queryRaw`SELECT count(*)::int AS count,COALESCE(sum((payload->>'size')::bigint),0)::bigint AS bytes FROM ss_diary_v1.doc_files WHERE board_id=${id} AND state IN ('pending','ready')`;
-  fail(usage.count<DOCUMENT_LIMITS.files&&Number(usage.bytes)+p.size<=DOCUMENT_LIMITS.boardBytes,'Limite de testes: 100 arquivos / 64 MB por empreendimento, incluindo envios pendentes.',507);
+  const [cover]=await tx.$queryRaw`SELECT bytes FROM ss_diary_v1.doc_covers WHERE board_id=${id}`;
+  fail(usage.count<DOCUMENT_LIMITS.files&&Number(usage.bytes)+p.size+(cover?.bytes||0)<=DOCUMENT_LIMITS.boardBytes,'Limite de testes: 100 arquivos / 64 MB por empreendimento, incluindo envios pendentes.',507);
   fail(Number(quota.bytes)-released+p.size<=LIMITS.totalBytes,'Armazenamento de testes cheio. Solicite ampliação.',507);
   const {id:fid,folderId,...payload}=p,now=Date.now();await tx.$executeRaw`INSERT INTO ss_diary_v1.doc_files(id,board_id,folder_id,payload,request_hash,created_at,expires) VALUES(${fid},${id},${folderId},${JSON.stringify(payload)}::jsonb,${fingerprint},${BigInt(now)},${BigInt(now+86400000)})`;
   await tx.$executeRaw`UPDATE ss_diary_v1.quota SET bytes=bytes+${BigInt(p.size)} WHERE id=1`;return {id:fid,complete:false,received:[]};

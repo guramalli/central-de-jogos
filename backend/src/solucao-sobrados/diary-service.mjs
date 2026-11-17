@@ -48,7 +48,7 @@ export const schemaStatements=[
 export async function migrate(db){for(const sql of [...schemaStatements,...reminderSchema,...documentSchema])await db.$executeRawUnsafe(sql);}
 export class DiaryService{
   constructor(db){this.db=db;}
-  async health(){await this.db.$queryRaw`SELECT id FROM ss_diary_v1.quota WHERE id=1`;return {ok:true,version:3,limits:LIMITS};}
+  async health(){await this.db.$queryRaw`SELECT id FROM ss_diary_v1.quota WHERE id=1`;return {ok:true,version:4,limits:LIMITS};}
   async board(db,id,token,write=false,owner=false,lock=false){uuid(id);const rows=lock?await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id} FOR UPDATE`:await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id}`;fail(rows.length,'Diário não encontrado ou link inválido.',404);const b=rows[0],role=roleFor(b,token);fail(!write||role!=='reader','Este link permite somente acompanhar a obra.',403);fail(!owner||role==='owner','Somente o gestor pode realizar esta ação.',403);return {...b,role};}
   async create(d,ip){
     const id=uuid(d.id),m=metadata(d.metadata),owner=tokenHash(d.ownerToken),writer=tokenHash(d.writerToken),reader=tokenHash(d.readerToken);fail(new Set([owner,writer,reader]).size===3,'Os acessos devem ser diferentes.');
