@@ -94,9 +94,18 @@
       "source": "/cobranca",
       "destination": "/mooveon/cobranca",
       "permanent": false
+    },
+    {
+      "source": "/solucao-sobrados",
+      "destination": "/solucao-sobrados/",
+      "permanent": false
     }
   ],
   "rewrites": [
+    {
+      "source": "/solucao-sobrados/",
+      "destination": "/solucao-sobrados/index.html"
+    },
     {
       "source": "/mooveon/modulos",
       "destination": "/mooveon-modulos/modulos.html"
@@ -402,7 +411,32 @@
           "value": "text/javascript; charset=utf-8"
         }
       ]
+    },
+    {
+      "source": "/solucao-sobrados/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/solucao-sobrados/(.*\\.mjs)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/javascript; charset=utf-8"
+        }
+      ]
     }
   ]
 }
-
