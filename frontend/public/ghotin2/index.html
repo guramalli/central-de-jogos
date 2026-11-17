@@ -1698,7 +1698,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.101 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.102 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -5333,11 +5333,12 @@ const NPCS = [
       "Aqui é a borda do biombo, onde a tinta secou. O vento leva a cor embora e deixa o papel à mostra.",
       "O oásis é o único lugar seguro daqui até as grutas. A trilha clara é a Rota da Seda: passa pelas ruínas da caravana e acaba na boca das grutas.",
       "Quando a areia do Leito Seco treme, é o Hyeonmu acordando. Ninguém da caravana passa por lá."] },
-  { nome: "Monge Hyecho", u: 80, v: 66.5, modelo: "feiticeiro", tinta: [0.262, 0.254, 0.216], papel: "as Grutas da Seda (o Passe da Gruta na etapa 4)",
+  { nome: "Monge Hyecho", u: 80, v: 66.5, modelo: "feiticeiro", tinta: [0.262, 0.254, 0.216], papel: "as Grutas da Seda e o Passe da Gruta (R408)",
     cores: { roupa: "#8C8A80", calca: "#3B4250", pele: "#d8a982", cabelo: "#1E1B18", lenco: "#C9963E" },
-    falas: ["Andei a Rota da Seda inteira e escrevi o que vi. Estas grutas eram pintadas do chão ao teto.",
+    falas: ["Andei a Rota da Seda inteira e escrevi o que vi. Estas grutas eram pintadas do chão ao teto. Hoje são as Grutas da Seda, do nível 50 em diante.",
       "As aranhas tecem seda por cima das pinturas para prender os rasgos. No fundo, beberam a tinta negra da pedra.",
-      "A seda ainda fecha a descida. Quando ela ceder, você vai precisar do Passe da Gruta, e eu guardo alguns."] },
+      "No fim das Galerias Pintadas, atrás da Rainha da Seda, a seda fecha a descida para os Salões do Casulo. Eu espero lá: com um Passe da Gruta, eu abro.",
+      "Vendo o Passe da Gruta aqui e lá embaixo. A Rainha também guarda um no baú dela."] },
 ];
 // a voz de cada base (o VOZ_NOVAS do jogo): as aranhas, as do escorpião; os humanos, as dos bandidos
 const VOZ_DE = { aranha: "escorpiao", escorpiao: "escorpiao", fantasma: "fantasma", cla_soldado: "bandido", cla_maniaco: "bandido", cla_arqueiro: "bandido_arqueiro", cla_gigante: "chefe_bandido",
@@ -5540,7 +5541,7 @@ D.tipos = () => [...CRIATURAS.map(c => c[0]), CHEFE.tipo];
 D.agressivos = () => CRIATURAS.filter(c => c[8].agressivo).map(c => c[0]);
 D.venenosos = () => Object.fromEntries(CRIATURAS.filter(c => c[8].veneno).map(c => [c[0], c[8].veneno]));
 D.npcs = () => NPCS.map(n => { const [x, y] = mundoDe(n.u, n.v); const { u, v, ...r } = n; return { ...r, x, y, mapa: "deserto" }; });
-D.gruta = () => { const [x, y] = mundoDe(...GRUTA.entrada), [ax, ay] = mundoDe(GRUTA.u, GRUTA.v); return { x, y, arte: [ax, ay], larg: GRUTA.larg, destino: "grutas1" }; };
+D.gruta = () => { const [x, y] = mundoDe(...GRUTA.entrada), [ax, ay] = mundoDe(GRUTA.u, GRUTA.v), [vx, vy] = mundoDe(GRUTA.u, GRUTA.v - 6); return { x, y, arte: [ax, ay], larg: GRUTA.larg, destino: "grutas1", volta: { x: vx, y: vy } }; };   // (volta: R408, quem sobe das grutas sai aqui, na frente da boca)
 // os dois portais: o de ida na Vila Hahoe (nível 40) e o de volta no Portão da Caravana
 D.portais = function (hahoeOx = 0, hahoeOy = 700, hahoe2 = true) {
   const pi = hahoe2 ? PORTAL_IDA_HAHOE.hahoe2 : PORTAL_IDA_HAHOE.antes, [vx, vy] = mundoDe(PORTAL_VOLTA.u, PORTAL_VOLTA.v), s = localDeVista(...PORTAL_VOLTA.saida), n = Math.hypot(s[0], s[1]);
@@ -6200,6 +6201,176 @@ D.validar = function (opc = {}) {
   return r;
 };
 Object.assign(D, { rocha, faixasDuna, textura, naTrilha, cristaV, largW, altX, fundoX, naRampa, dentroEl, CONTORNO, rVista, FACE_INC, LUZ, LIM_REL, TONS_REL, luzDunaUV: luzDuna, medidaRelevo: () => REL.ms });
+
+// ---------------------------------------------------------------- ETAPA 4: as Grutas da Seda, andares 1 e 2 (R408)
+// (17/11, o usuário: "Comece, depois trocaremos as criaturas do deserto"; o projeto, seções 1.3, 1.4, 4, 4.1 e 4.2). Os 2 andares entram
+// como DUNGEONS do index.html (como o Vale dos Dragões: a escada de volta no começo, a descida no fim e a saída direta), montados na 1ª
+// visita ao deserto. O caminho é UM só, em zigue-zague: cada sala tem o túnel de chegada e o de saída, e as fileiras ficam separadas
+// por rocha. Cada sala tem os seus grupos (o regen do Metin2: o grupo volta depois que o LÍDER cai, como na Vila 1), com o tempo do
+// andar: 180 s no 1 e 60 s no 2 ("o andar de upar"). O salão da Rainha da Seda tem uma porta só e fica para cima na tela (R299).
+// As criaturas são variantes do que o jogo já tem (a aranha.glb com a tinta de cada uma, os corpos dos clãs e o bandido): os
+// modelos novos entram na etapa 3, no lugar destas. Os números: o mob_proto do Metin2 (o mesmo repositório da etapa 2), pelo
+// NOSSO nome e nível ("nome|nível": o mesmo nome do deserto, em outro nível, é outro bicho do Metin2).
+const vl = (u, v) => [(u + v) * R2, (v - u) * R2];                   // (da vista do esquema, em m, para o local da dungeon)
+const CRIATURAS_GRUTA = [
+  // andar 1, as Galerias Pintadas (50–58): as Baby, Deadly, Red Angry, Claw, Soldier e Proud Soldier Poison Spider (2031 a 2036)
+  ["g_aranhinha", "comum", "Aranhinha da Seda", 50, ["aranha"], 0.44, "#cdb48a", null, { galope: 2.6, chega: 2.2, visao: 7, veneno: 5 }],
+  ["g_mortal", "comum", "Aranha Mortal", 52, ["aranha"], 0.52, "#5f7448", null, { galope: 2.4, chega: 2.0, visao: 7, veneno: 5 }],
+  ["g_rubra", "comum", "Aranha Rubra Furiosa", 54, ["aranha"], 0.58, "#b8432f", null, { galope: 2.4, chega: 2.0, visao: 7, veneno: 5 }],
+  ["g_garra", "comum", "Aranha Garra", 56, ["aranha"], 0.64, "#7c5a8c", null, { galope: 2.2, chega: 1.9, visao: 7, veneno: 3 }],
+  ["g_soldado", "comum", "Aranha Soldado", 58, ["aranha"], 0.74, "#3a3640", null, { galope: 2.0, chega: 1.8, visao: 7, veneno: 3 }],
+  ["g_orgulhosa", "comum", "Aranha Soldado Orgulhosa", 58, ["aranha"], 0.78, "#6a2622", null, { galope: 2.0, chega: 1.8, visao: 8, veneno: 3, agressivo: true }],
+  // andar 2, os Salões do Casulo (60–68): as aranhas 2061 a 2065 e os SD2 (o Arqueiro Escorpião, o Guerreiro-Serpente, o Arqueiro
+  // Serpente e o Salteador, 2132 a 2135), mais fortes que os do deserto
+  ["g2_aranhinha", "comum", "Aranhinha da Seda", 60, ["aranha"], 0.48, "#bfa478", null, { galope: 2.6, chega: 2.2, visao: 7, veneno: 5 }],
+  ["g2_mortal", "comum", "Aranha Mortal", 62, ["aranha"], 0.56, "#4e6638", null, { galope: 2.4, chega: 2.0, visao: 7, veneno: 5 }],
+  ["g2_rubra", "comum", "Aranha Rubra Mortal", 64, ["aranha"], 0.62, "#9e3326", null, { galope: 2.4, chega: 2.0, visao: 7, veneno: 5 }],
+  ["g2_garra", "comum", "Aranha Garra", 66, ["aranha"], 0.68, "#644676", null, { galope: 2.2, chega: 1.9, visao: 7, veneno: 3 }],
+  ["g2_soldado", "comum", "Aranha Soldado", 68, ["aranha"], 0.8, "#2c2a32", null, { galope: 2.0, chega: 1.8, visao: 7, veneno: 3 }],
+  ["g2_arq_escorpiao", "longe", "Arqueiro Escorpião", 62, ["cla_arqueiro", "bandido_arqueiro", "goblin"], 1.0, "#8a5228", [0.45, 0.2, 0.07], { veneno: 5 }],
+  ["g2_guerreiro_serpente", "comum", "Guerreiro-Serpente", 64, ["cla_maniaco", "bandido", "goblin"], 1.0, "#4e7a62", [0.12, 0.3, 0.2], { veneno: 5 }],
+  ["g2_arq_serpente", "longe", "Arqueiro Serpente", 66, ["cla_arqueiro", "bandido_arqueiro", "goblin"], 1.0, "#46705e", [0.1, 0.26, 0.2], { veneno: 3 }],
+  ["g2_salteador", "comum", "Salteador do Deserto", 68, ["bandido", "goblin"], 1.0, "#c8a46a", [0.62, 0.44, 0.2], { veneno: 3 }],
+];
+// o mob_proto (o formato do M2_MOB: vnum, nível, ST, DX, HT, dano mín. e máx., MAX_HP, DEF, DAM_MULTIPLY e as resistências)
+const M2_GRUTA = {
+  "Aranhinha da Seda|50": [2031, 50, 49, 65, 33, 96, 117, 3457, 53, 1.8, 0, 0, 2, 0, -10, 0], "Aranha Mortal|52": [2032, 52, 68, 34, 51, 88, 132, 3692, 55, 1.8, 0, 1, 0, 0, -5, 0],
+  "Aranha Rubra Furiosa|54": [2033, 54, 53, 35, 70, 91, 137, 6155, 57, 2, 1, 0, 2, 0, -10, 0], "Aranha Garra|56": [2034, 56, 72, 36, 54, 106, 130, 6553, 59, 2, 0, 1, 0, 0, -5, 0],
+  "Aranha Soldado|58": [2035, 58, 56, 75, 37, 109, 134, 6969, 62, 2, 2, 0, 1, 0, -5, 0], "Aranha Soldado Orgulhosa|58": [2036, 58, 56, 75, 37, 109, 134, 6969, 62, 2, 1, 2, 1, 0, -20, 0],
+  "Aranhinha da Seda|60": [2061, 60, 77, 58, 39, 144, 176, 3771, 80, 1.89, 0, -5, 0, 0, 0, 0], "Aranha Mortal|62": [2062, 62, 80, 60, 40, 132, 198, 4028, 83, 1.89, 0, -5, 0, 0, 0, 0],
+  "Aranha Rubra Mortal|64": [2063, 64, 82, 62, 41, 137, 206, 6714, 86, 2.1, 0, -5, 0, 0, 0, 0], "Aranha Garra|66": [2064, 66, 84, 63, 42, 159, 195, 7149, 89, 2.1, 0, -5, 0, 0, 0, 0],
+  "Aranha Soldado|68": [2065, 68, 87, 65, 43, 164, 201, 7602, 93, 2.1, 0, -5, 0, 0, 0, 0],
+  "Arqueiro Escorpião|62": [2132, 62, 80, 60, 40, 132, 198, 4028, 83, 1.89, 0, -5, 0, 0, 0, 0], "Guerreiro-Serpente|64": [2133, 64, 82, 62, 41, 137, 206, 6714, 86, 2.1, 0, -5, 0, 0, 0, 0],
+  "Arqueiro Serpente|66": [2134, 66, 84, 63, 42, 159, 195, 7149, 89, 2.1, 0, -5, 0, 0, 0, 0], "Salteador do Deserto|68": [2135, 68, 87, 65, 43, 164, 201, 7602, 93, 2.1, 0, -5, 0, 0, 0, 0],
+};
+// os grupos (o group.txt: o 1º é o líder) e os conjuntos (o group_group.txt, com o peso pela repetição) de cada andar
+const GRUPOS_GRUTA = {
+  gs_2010: ["g_aranhinha", "g_aranhinha", "g_aranhinha"], gs_2011: ["g_mortal", "g_aranhinha", "g_aranhinha"], gs_2012: ["g_mortal", "g_mortal", "g_aranhinha"],
+  gs_2013: ["g_rubra", "g_mortal", "g_mortal"], gs_2014: ["g_rubra", "g_rubra", "g_mortal"],
+  gs_2015: ["g_garra", "g_rubra", "g_rubra"], gs_2016: ["g_garra", "g_garra", "g_rubra"],
+  gs_2017: ["g_soldado", "g_garra", "g_garra"], gs_2018: ["g_soldado", "g_soldado", "g_garra"],
+  gs_2021: ["g_orgulhosa", "g_orgulhosa", "g_garra"],                                                 // o guarda de cada sala (agressivo)
+  gs_2051: ["g2_aranhinha", "g2_aranhinha", "g2_aranhinha"], gs_2052: ["g2_mortal", "g2_aranhinha", "g2_aranhinha"], gs_2053: ["g2_mortal", "g2_mortal", "g2_aranhinha"],
+  gs_2054: ["g2_rubra", "g2_mortal", "g2_mortal"], gs_2055: ["g2_rubra", "g2_rubra", "g2_mortal"],
+  gs_2056: ["g2_garra", "g2_rubra", "g2_rubra"], gs_2057: ["g2_garra", "g2_garra", "g2_rubra"],
+  gs_2058: ["g2_soldado", "g2_garra", "g2_garra"], gs_2059: ["g2_soldado", "g2_soldado", "g2_garra"],
+  gs_2060: ["g2_guerreiro_serpente", "g2_arq_escorpiao", "g2_arq_escorpiao", "g2_arq_escorpiao"], gs_2061: ["g2_guerreiro_serpente", "g2_guerreiro_serpente", "g2_arq_escorpiao", "g2_arq_escorpiao"],
+  gs_2062: ["g2_guerreiro_serpente", "g2_guerreiro_serpente", "g2_guerreiro_serpente", "g2_arq_escorpiao"], gs_2063: ["g2_arq_serpente", "g2_arq_serpente", "g2_guerreiro_serpente", "g2_guerreiro_serpente"],
+  gs_2064: ["g2_salteador", "g2_arq_serpente", "g2_guerreiro_serpente", "g2_guerreiro_serpente"], gs_2065: ["g2_salteador", "g2_arq_serpente", "g2_arq_serpente", "g2_guerreiro_serpente"],
+};
+const TEMPO_GRUTA = { 1: 180, 2: 60 };                                // (o regen.txt: 180 s em todo o andar 1, 60 s em todo o andar 2)
+// (os grupos 2066 a 2069 do andar 2 têm bichos de 69 e 70 que não existem no mob_proto desta versão: o 2069, o Salteador + o
+// Arqueiro Serpente, vira o 2064; os outros saem do sorteio)
+const GG_GRUTA = {
+  g1_A: { nome: "Galerias Pintadas: Aranhinhas e Mortais", m2: "701", tempo: TEMPO_GRUTA[1], grupos: ["gs_2010", "gs_2011", "gs_2012"] },
+  g1_B: { nome: "Galerias Pintadas: Rubras Furiosas", m2: "702", tempo: TEMPO_GRUTA[1], grupos: ["gs_2013", "gs_2014"] },
+  g1_C: { nome: "Galerias Pintadas: Garras", m2: "703", tempo: TEMPO_GRUTA[1], grupos: ["gs_2015", "gs_2016"] },
+  g1_D: { nome: "Galerias Pintadas: Soldados", m2: "704", tempo: TEMPO_GRUTA[1], grupos: ["gs_2017", "gs_2018"] },
+  g1_guarda: { nome: "Galerias Pintadas: Soldados Orgulhosos", m2: "2021", tempo: TEMPO_GRUTA[1], grupos: ["gs_2021"] },
+  g2_A: { nome: "Salões do Casulo: Aranhinhas, serpentes e escorpiões", m2: "2051", tempo: TEMPO_GRUTA[2], grupos: [...rep("gs_2051", 6), ...rep("gs_2052", 4), ...rep("gs_2060", 4), ...rep("gs_2061", 3)] },
+  g2_B: { nome: "Salões do Casulo: Mortais e Rubras", m2: "2052", tempo: TEMPO_GRUTA[2], grupos: [...rep("gs_2053", 4), ...rep("gs_2054", 6), ...rep("gs_2062", 4), ...rep("gs_2063", 3)] },
+  g2_C: { nome: "Salões do Casulo: Rubras, Garras e Salteadores", m2: "2053", tempo: TEMPO_GRUTA[2], grupos: [...rep("gs_2055", 2), ...rep("gs_2056", 5), ...rep("gs_2057", 3), ...rep("gs_2065", 4), ...rep("gs_2064", 3)] },
+  g2_D: { nome: "Salões do Casulo: Soldados e Garras", m2: "2054", tempo: TEMPO_GRUTA[2], grupos: [...rep("gs_2058", 6), ...rep("gs_2059", 4)] },
+  g2_E: { nome: "Salões do Casulo: Salteadores e Soldados", m2: "2055", tempo: TEMPO_GRUTA[2], grupos: [...rep("gs_2064", 4), ...rep("gs_2058", 2)] },
+};
+// a Rainha da Seda: a Queen Spider (2091) do Metin2, nível 60, 193.408 de vida, com o golpe de magia e 25% de veneno. O corpo: a
+// aranha.glb da Aranha Gigante da Vila 1, 1,4× maior e pintada de seda (a etapa 3 pode trocar). Volta em 250 min no andar 1 (o
+// regen.txt: 15.400 s) e em 30 min no andar 2 (a wiki). Chama 2 Garras (o grupo 2019: a Rainha + 2 Garras)
+const RAINHA = { nome: "Rainha da Seda", nivel: 60, vida: 193408, dano: 2134, esc: 1.4, base: "aranha", tinta: "#c0705a", veneno: 25 };   // (a tinta multiplica a cor da aranha: o cinabre, para não ler como a Aranha Gigante da Vila 1)
+// os andares: as salas pela vista do esquema (Logs/Mapas/deserto/deserto_dados.json, "grutas"), com o raio, quantos grupos e o
+// conjunto; E é a sala da entrada (a escada de volta) e R o salão da Rainha. ent: a escada de volta; descida: o buraco para o andar
+// de baixo (o Passe da Gruta; null: o andar 3 é a etapa 5); saidaDireta: a escada para a superfície (a boca, no deserto); hyecho:
+// o Monge Hyecho, que recebe o Passe e vende mais (o andar 1, atrás da Rainha, como o Chuk-Sal do Metin2). Os túneis seguem a corrente
+const ANDARES_GRUTA = [
+  { id: "grutas1", gruta: 1, nome: "Grutas da Seda: Galerias Pintadas", curto: "Galerias Pintadas", niveis: [50, 60], tuneis: 6,
+    salas: [["E", -46, -24, 4.5], ["S1", -26, -24, 7, 3, "g1_A"], ["S2", 0, -24, 7, 3, "g1_A"], ["S3", 26, -24, 7, 3, "g1_B"], ["S4", 26, 0, 7, 3, "g1_B"], ["S5", 0, 0, 7.5, 4, "g1_C"],
+            ["S6", -26, 0, 7, 3, "g1_C"], ["S7", -26, 24, 7, 3, "g1_C"], ["S8", 0, 24, 7.5, 4, "g1_D"], ["S9", 26, 24, 9, 6, "g1_D"], ["R", 26, 48, 10]],
+    guarda: "g1_guarda", ent: [-46, -24], descida: [32, 52], saidaDireta: [19.5, 52], hyecho: [34.5, 46], volta: [250, 257], horda: [["g_garra", 2]],
+    tema: { gruta: 1, piso: "rgba(58, 40, 24, 0.5)", escuro: 0.5, mini: [120, 100, 76], teias: true } },
+  { id: "grutas2", gruta: 2, nome: "Grutas da Seda: Salões do Casulo", curto: "Salões do Casulo", niveis: [60, 68], tuneis: 6,
+    salas: [["E", -48, -36, 4.5], ["S1", -30, -36, 7, 3, "g2_A"], ["S2", 0, -36, 7, 4, "g2_A"], ["S3", 30, -36, 7.5, 4, "g2_A"], ["S4", 30, -12, 7.5, 4, "g2_B"], ["S5", 0, -12, 7.5, 4, "g2_B"],
+            ["S6", -30, -12, 8, 5, "g2_B"], ["S7", -30, 12, 8, 5, "g2_C"], ["S8", 0, 12, 8, 5, "g2_C"], ["S9", 30, 12, 7.5, 4, "g2_C"], ["S10", 30, 36, 9, 7, "g2_D"], ["S11", 0, 36, 8, 5, "g2_D"],
+            ["S12", -30, 36, 7.5, 4, "g2_E"], ["R", -30, 60, 10]],
+    guarda: null, ent: [-48, -36], descida: null, saidaDireta: [-36, 65], hyecho: null, volta: [30, 30], horda: [["g2_garra", 2]],
+    tema: { gruta: 2, piso: "rgba(40, 30, 34, 0.55)", escuro: 0.55, mini: [104, 92, 96], teias: true } },
+];
+// (17/11, o usuário, depois das fotos 3D: "Nao coloque escadas nem esses props chapados, para passar de andar para andar use portais.
+// Aumente o tamanho das salas") tudo 1,5× maior: as salas, as distâncias e os lugares (os portais ficam no meio das salas, longe das
+// paredes). Os corredores têm 6 m. A escala vale uma vez, aqui, para o jogo, o validar e a planta do Blender
+const ESC_GRUTA = 2;                                                   // (17/11, de novo: "A única coisa que eu quero é que aumente as salas e tire as tochas. Deixe só uma tocha por sala, no máximo": de 1,5× para 2×)
+for (const a of ANDARES_GRUTA) {
+  a.salas = a.salas.map(([id, u, v, r, ...resto]) => [id, u * ESC_GRUTA, v * ESC_GRUTA, r * ESC_GRUTA, ...resto]);
+  for (const k of ["ent", "descida", "saidaDireta", "hyecho"]) if (a[k]) a[k] = a[k].map(n => n * ESC_GRUTA);
+}
+// as arandelas (as tochas de ferro presas na parede do fundo, feitas no Blender; o jogo põe a luz delas): 2 em cada salão (4 no da
+// Rainha) e nos corredores deitados na tela, uma a cada ~9 m na parede de cima. [u, v da parede] na vista
+D.arandelas = function (a) {                                            // (uma por salão, no meio da parede do fundo; nenhuma nos corredores)
+  return a.salas.map(([id, u, v, r]) => [+u.toFixed(2), +(v + r).toFixed(2)]);
+};
+// o andar no formato das DUNGEONS do index.html (x, y: o lugar no mundo, que o index.html dá; as salas e os túneis em m locais).
+// (17/11, o usuário, depois das fotos: "Nao quero nada de assets chapados, faça as paredes 3d no blender e detalhes de texturas igual o
+// do metin2, sem inventar muito") como a Kuahlo Dong do Metin2: salões QUADRADOS de alvenaria (quad: o meio-lado r na vista, os lados
+// alinhados com a tela) ligados por corredores retos de 5 m, sem o ruído da beira das cavernas de terra (a parede é de pedra cortada).
+// u, v: o meio na vista (a direita e o fundo da tela), para o desenho do Blender (Tools/deco3d/grutas/render_gruta.py)
+D.grutaDungeon = function (a) {
+  const salas = a.salas.map(([id, u, v, r]) => { const [x, y] = vl(u, v); return { x: +x.toFixed(2), y: +y.toFixed(2), r, id, quad: true, u, v }; });
+  const tuneis = []; for (let k = 1; k < salas.length; k++) tuneis.push([salas[k - 1].x, salas[k - 1].y, salas[k].x, salas[k].y, a.tuneis]);
+  const ext = s => s.r * Math.SQRT2;                                    // (o quadrado na vista, girado 45° no mapa: a meia caixa em x e em y)
+  const x0 = Math.min(...salas.map(s => s.x - ext(s))) - 4, x1 = Math.max(...salas.map(s => s.x + ext(s))) + 4, y0 = Math.min(...salas.map(s => s.y - ext(s))) - 4, y1 = Math.max(...salas.map(s => s.y + ext(s))) + 4;
+  const p = q => q ? vl(...q).map(n => +n.toFixed(2)) : null, kR = salas.length - 1;
+  return { id: a.id, gruta: a.gruta, nome: a.nome, curto: a.curto, niveis: a.niveis, x: 0, y: 0, x0, x1, y0, y1, ent: p(a.ent), descida: p(a.descida), saidaDireta: p(a.saidaDireta), hyecho: p(a.hyecho),
+    salas, tuneis, tema: { ...a.tema }, bandos: [], semRuido: true, arandelas: D.arandelas(a), tuneisVista: a.salas.slice(1).map((q, k) => [a.salas[k][1], a.salas[k][2], q[1], q[2], a.tuneis]),
+    grupos: a.salas.map(([, , , , n, gg], k) => n ? { sala: k, n, gg } : null).filter(Boolean), guarda: a.guarda,
+    chefe: { sala: kR, base: RAINHA.base, nome: RAINHA.nome, esc: RAINHA.esc, vida: RAINHA.vida, nivel: RAINHA.nivel, dano: RAINHA.dano, renasce: 60 * a.volta[0], extra: { tinta: RAINHA.tinta, veneno: RAINHA.veneno, papel: "chefe" } },
+    volta: a.volta.slice(), horda: a.horda.map(h => h.slice()) };
+};
+D.filtroDe = filtroDe;
+D.ANDARES_GRUTA = ANDARES_GRUTA; D.CRIATURAS_GRUTA = CRIATURAS_GRUTA; D.M2_GRUTA = M2_GRUTA; D.GRUPOS_GRUTA = GRUPOS_GRUTA; D.GG_GRUTA = GG_GRUTA; D.TEMPO_GRUTA = TEMPO_GRUTA; D.RAINHA = RAINHA;
+// os tipos das criaturas das grutas (como o criarCriaturas do deserto)
+D.criarCriaturasGrutas = function (TIPOS, variante, renasce, VOZ) {
+  let n = 0;
+  for (const [t, papel, nome, nivel, bases, esc, tinta, roupa3d, extra] of CRIATURAS_GRUTA) {
+    if (TIPOS[t]) continue;
+    const b = bases.find(k => TIPOS[k] && TIPOS[k].M); if (!b) continue;
+    const B = TIPOS[b], corpo = b.startsWith("cla_");
+    const v = { raca: B.raca, nome, nivel, ...numerosDe(papel, nivel), esc: esc * (b === "cla_gigante" ? 0.92 : 1), tinta, filtro2d: filtroDe(tinta), ...(roupa3d ? { roupa3d } : {}), ...extra, gruta: true, papel };
+    if (corpo) Object.assign(v, { clan: true, corpo: b });
+    TIPOS[t] = variante(b, { ...v, chefe: false, chefeCaverna: false, conjura: 0, renasce });
+    if (VOZ && !VOZ[t] && VOZ[VOZ_DE[b]]) VOZ[t] = { ...VOZ[VOZ_DE[b]] };
+    n++;
+  }
+  return n;
+};
+// o Passe da Gruta (o Passage Ticket do Metin2): o Hyecho vende na boca e no fundo do andar 1, e a Rainha deixa um no baú dela
+D.PASSE = { preco: 20000, nivelMin: 50 };
+// a conferência dos andares (o validar das grutas: a corrente única, a rocha entre as fileiras, as salas e o salão)
+D.validarGrutas = function () {
+  const r = { problemas: [], andares: [] };
+  for (const a of ANDARES_GRUTA) {
+    const g = D.grutaDungeon(a), S = g.salas, R = S[S.length - 1];
+    let grupos = 0, criaturas = 0;
+    for (const q of g.grupos) { const gg = GG_GRUTA[q.gg]; if (!gg) { r.problemas.push(a.id + ": o conjunto " + q.gg + " não existe"); continue; }
+      if (gg.tempo !== TEMPO_GRUTA[a.gruta]) r.problemas.push(a.id + ": o conjunto " + q.gg + " não é de " + TEMPO_GRUTA[a.gruta] + " s");
+      const med = gg.grupos.reduce((s, x) => s + GRUPOS_GRUTA[x].length, 0) / gg.grupos.length; grupos += q.n; criaturas += q.n * med; }
+    if (g.guarda) { const med = GRUPOS_GRUTA[GG_GRUTA[g.guarda].grupos[0]].length; grupos += g.grupos.length; criaturas += g.grupos.length * med; }
+    // a rocha entre as salas que não são vizinhas na corrente (≥ 4 m de pedra; os quadrados na vista)
+    const gapQ = (A, B) => Math.max(Math.abs(A.u - B.u), Math.abs(A.v - B.v)) - A.r - B.r;
+    for (let i = 0; i < S.length; i++) for (let j = i + 2; j < S.length; j++) { const gap = gapQ(S[i], S[j]); if (gap < 4) r.problemas.push(a.id + ": " + S[i].id + " e " + S[j].id + " a só " + gap.toFixed(1) + " m (sem rocha entre elas)"); }
+    // os corredores: retos na vista (horizontais ou verticais na tela) e longe das outras salas (≥ 2,5 m)
+    g.tuneisVista.forEach(([au, av, bu, bv, l], k) => {
+      if (Math.abs(au - bu) > 0.01 && Math.abs(av - bv) > 0.01) r.problemas.push(a.id + ": o corredor " + S[k].id + "–" + S[k + 1].id + " não é reto na tela");
+      for (let i = 0; i < S.length; i++) { if (i === k || i === k + 1) continue; let dm = 1e9; for (let t = 0; t <= 1; t += 0.02) dm = Math.min(dm, Math.max(Math.abs(au + (bu - au) * t - S[i].u), Math.abs(av + (bv - av) * t - S[i].v)) - S[i].r - l / 2); if (dm < 2.5) r.problemas.push(a.id + ": o corredor " + S[k].id + "–" + S[k + 1].id + " passa a " + dm.toFixed(1) + " m de " + S[i].id); } });
+    // o salão para cima da sala de antes na tela (a vista: v maior)
+    const up = (s) => (s.x + s.y) * R2; if (!(up(R) > up(S[S.length - 2]) + 8)) r.problemas.push(a.id + ": o salão da Rainha não fica para cima");
+    for (const [nome, q] of [["ent", a.ent], ["descida", a.descida], ["saidaDireta", a.saidaDireta], ["hyecho", a.hyecho]]) if (q) { const s = nome === "ent" ? S[0] : R; if (Math.max(Math.abs(q[0] - s.u), Math.abs(q[1] - s.v)) > s.r - 1.2) r.problemas.push(a.id + ": " + nome + " fora da sala"); }
+    r.andares.push({ id: a.id, salas: S.length, grupos, criaturas: Math.round(criaturas), caixa: [g.x0, g.x1, g.y0, g.y1].map(n => +n.toFixed(1)) });
+  }
+  const tipos = new Set(CRIATURAS_GRUTA.map(c => c[0]));
+  for (const [g, l] of Object.entries(GRUPOS_GRUTA)) for (const t of l) if (!tipos.has(t)) r.problemas.push("o grupo " + g + " tem o tipo " + t + ", que não é das grutas");
+  for (const [k, gg] of Object.entries(GG_GRUTA)) for (const g of gg.grupos) if (!GRUPOS_GRUTA[g]) r.problemas.push("o conjunto " + k + " pede o grupo " + g + ", que não existe");
+  for (const c of CRIATURAS_GRUTA) if (!M2_GRUTA[c[2] + "|" + c[3]]) r.problemas.push(c[2] + " " + c[3] + " sem o mob_proto");
+  return r;
+};
 
 G.DESERTO = D;
 })(typeof window !== "undefined" ? window : globalThis);
@@ -12626,6 +12797,7 @@ function desenharDecoSprite(o, v0, X, Y, s, t) {
 }
 
 function desenharObjeto(o, t) {
+  if (o.oculta) return;                                                  // (R408: a luz das arandelas das Grutas: a tocha está no render)
   if (o.somePorArte && VALE_ARTE[o.somePorArte]) return;                   // (o Vale: a versão de código de uma peça que o Tripo já trocou)
   const [sx, sy] = tela(o.x - cam.x, o.y - cam.y);
   const X = W / 2 + sx, Y = H / 2 + sy - (o.zChao || 0) * PX * zoom * ALTURA, s = PX * zoom, lw = Math.max(1.2, s * 0.022);
@@ -15995,7 +16167,7 @@ const M2_MOB = {
 };
 // as Pedras Metin do mob_proto (8001 a 8014): [nível, HT, DEF]; DX 0 e nenhuma resistência
 const M2_PEDRA = [[5, 6, 8], [10, 12, 14], [15, 18, 19], [20, 24, 25], [25, 30, 30], [30, 36, 35], [35, 42, 41], [40, 48, 46], [45, 54, 52], [50, 60, 57], [55, 66, 63], [60, 72, 68], [65, 78, 73], [70, 91, 79]];
-Object.assign(M2_MOB, DESERTO.M2_MOB);                                 // (R407: as do deserto, pelo nome nosso: as aranhas 2001–2055, o Rei Escorpião, o Olho Voador, os homens-escorpião, as serpentes, os salteadores e a Tartaruga)
+Object.assign(M2_MOB, DESERTO.M2_MOB, DESERTO.M2_GRUTA);                               // (R407: as do deserto, pelo nome nosso: as aranhas 2001–2055, o Rei Escorpião, o Olho Voador, os homens-escorpião, as serpentes, os salteadores e a Tartaruga)
 function m2Mob(cfg) { return cfg ? M2_MOB[cfg.nome + "|" + cfg.nivel] || M2_MOB[cfg.nome] || null : null; }
 function interpM2(K, n, col) {
   if (n <= K[0][0]) return K[0][col];
@@ -17424,6 +17596,10 @@ const CHEFES_MAPA = {
                falas: ["O Dragão Ancião bate as asas: a caverna treme!", "O Dragão Ancião se enfurece e a caverna arde!"] },
 };
 CHEFES_MAPA.hyeonmu = DESERTO.chefeMapa();   // (R407: o Hyeonmu das Areias, no Leito do Rio Seco do deserto; mapa_deserto.js, CHEFE)
+// (R408) a Rainha da Seda no salão de cada andar das Grutas: a teia (a chuva de veneno) e as 2 Garras que ela chama; volta em 250 min
+// no andar 1 e em 30 min no andar 2
+for (const a of DESERTO.ANDARES_GRUTA) CHEFES_MAPA["dg_" + a.id] = { artigo: "A", regiao: "nas " + a.curto + " das Grutas da Seda", min: a.volta[0], max: a.volta[1], mecs: ["chuva", "horda", "pisao"], horda: a.horda.map(h => h.slice()), raioPisao: 3.4, cor: 95,
+  falas: ["A Rainha da Seda estica a teia: chovem gotas de veneno!", "A Rainha da Seda se enfurece e chama as Garras!"] };
 const ataquesChefe = [];         // os avisos no chão: { tipo: "circulo" (x, y, r) | "linha" (x, y até x1, y1, larg), t, dur, cor, mult, de, empurra, golpe }
 const avisosChefe = [];          // os que acabaram de nascer: { l, ate } (o anel pulsando no minimapa)
 let relogioChefes = 0;           // (s de jogo: anda com o passo, também nos testes)
@@ -18385,12 +18561,13 @@ function montarDeserto() {
   const por = o => { objetos.push(o); if (temColisao(o)) porNaGrade(o); return o; };
   DESERTO.montar({ por, completar: completarDecoracao, DECO, hash });
   for (const n of DESERTO.npcs()) {
-    objetos.push({ tipo: "pessoa", x: n.x, y: n.y, r: 0.3, npc: true, dados: { ...n, loja: /Caravaneira/.test(n.nome) ? LOJA_CARAVANEIRA() : [] }, nome: n.nome, fase: 0, fala: 0, mapa: "deserto" });
+    objetos.push({ tipo: "pessoa", x: n.x, y: n.y, r: 0.3, npc: true, dados: { ...n, loja: /Caravaneira/.test(n.nome) ? LOJA_CARAVANEIRA() : /Hyecho/.test(n.nome) ? LOJA_HYECHO() : [] }, nome: n.nome, fase: 0, fala: 0, mapa: "deserto" });   // (R408: o Hyecho vende o Passe da Gruta)
     if (n.modelo) NPC_3D[n.nome] = n.modelo; if (n.tinta !== undefined) NPC_TINTA[n.nome] = n.tinta;
   }
   refazerGrade();
   porSpawns("deserto");
   criarMetins("deserto");
+  montarGrutas();                                                     // (R408: as Grutas da Seda, andares 1 e 2, e a boca no paredão)
   DESERTO.preaquecer();
   limparPedacos(); soltarMascaras(); MAPAS.deserto.mini = null;       // (R292: soltando os canvas)
 }
@@ -18403,7 +18580,7 @@ function montarMarcos() {
     objetos.push(o); return o;
   };
   // a entrada à vista: as árvores altas até ~10 m ao sul cobrem o buraco na tela
-  for (const d of DUNGEONS) if (d.saida) abrirEspaco(d.saida.x - 4.5, d.saida.y - 10, d.saida.x + 4.5, d.saida.y + 3);
+  for (const d of DUNGEONS) if (d.saida && !d.gruta) abrirEspaco(d.saida.x - 4.5, d.saida.y - 10, d.saida.x + 4.5, d.saida.y + 3);   // (R408: a boca das Grutas é no deserto)
   const c = DUNGEONS[2].saida;
   if (c) {
     abrirEspaco(c.x - 8, c.y - 11, c.x + 8, c.y + 6);
@@ -20298,7 +20475,7 @@ function pontoNoCaminho(x, y) {
     return m ? [m.x, m.y] : null;
   }
   if (naCaverna(x)) {
-    const d = cavDe(x), e = d && passagens.find(p => !naCaverna(p.x) && p.dungeon && (p.dungeon === d || (d.vale && p.vale)));
+    const d = cavDe(x), e = d && passagens.find(p => !naCaverna(p.x) && p.dungeon && (p.dungeon === d || (d.vale && p.vale) || (d.gruta && p.boca)));
     if (!e) return null;
     x = e.x; y = e.y;
     if (idMapa(x, y) === aqui) return [x, y];
@@ -21738,6 +21915,8 @@ function tipoItem(chave) {
     exorcismo: { nome: "Pergaminho do Exorcismo", desc: "Tira a espera (18 a 30 h) para ler o próximo livro de uma skill, 1 por vez. Clique direito (ou dois cliques), ou use na ficha (P) durante a espera. Da Loja do Dokkaebi (Z); não se vende.", h: 1, usar: () => usarExorcismo(), desenho: "loja:exorcismo" },
     antidoto: { nome: "Antídoto", desc: "Um frasco de jade com ervas do oásis: cura na hora o veneno das aranhas, dos homens-escorpião e das serpentes do deserto. Clique direito (ou dois cliques) quando estiver envenenado. A Caravaneira Ba-ram vende, no Oásis da Lua Crescente.", h: 1,
                 usar: it => beberAntidoto(it), desenho: "antidoto" },   // (R407)
+    passe_gruta: { nome: "Passe da Gruta", desc: "Um bilhete de papel com o selo do Monge Hyecho. No fim das Galerias Pintadas, atrás da Rainha da Seda, o Hyecho recebe um a cada descida e abre a seda para os Salões do Casulo (o andar 2 das Grutas da Seda). Ele vende na Boca das Grutas e no salão da Rainha; o baú da Rainha guarda um.", h: 1,
+                   desenho: "passe_gruta" },   // (R408)
     correcao: { nome: "Escritura da Remoção", desc: "Arraste sobre uma arma ou roupa na bolsa: tira a última Jóia encaixada e a devolve para a bolsa.", h: 1, desenho: "correcao" },
   }[chave] || { nome: chave, desc: "", h: 1, desenho: "pedra" };
 }
@@ -21874,6 +22053,13 @@ function iconeItem(g, desenho, w = 40, h = 40) {
     g.fillStyle = "#a8703a"; g.beginPath(); g.moveTo(X - 14 * u, Y - 4 * u); g.quadraticCurveTo(X, Y - 18 * u, X + 14 * u, Y - 4 * u); g.closePath(); g.fill(); g.stroke();
     g.fillStyle = "#3a3026"; for (const dx of [-9, 7]) g.fillRect(X + dx * u, Y - 11 * u, 2.4 * u, 23 * u);
     g.fillStyle = "#e0b240"; g.fillRect(X - 3 * u, Y - 6 * u, 6 * u, 7 * u); g.strokeRect(X - 3 * u, Y - 6 * u, 6 * u, 7 * u);
+    return;
+  }
+  if (desenho === "passe_gruta") {                                     // (R408) o bilhete de papel dobrado, a fita de seda e o selo de cinabre
+    g.fillStyle = "#efe4cc"; g.beginPath(); g.moveTo(X - 11 * u, Y - 8 * u); g.lineTo(X + 11 * u, Y - 10 * u); g.lineTo(X + 12 * u, Y + 8 * u); g.lineTo(X - 10 * u, Y + 10 * u); g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = "#8c8a80"; g.lineWidth = 1; for (const k of [-3, 1]) { g.beginPath(); g.moveTo(X - 7 * u, Y + k * u); g.lineTo(X + 2 * u, Y + (k - 0.6) * u); g.stroke(); }
+    g.strokeStyle = "#1E1B18"; g.fillStyle = "#b8322a"; g.beginPath(); g.arc(X + 6 * u, Y + 3 * u, 4 * u, 0, 7); g.fill(); g.stroke();
+    g.strokeStyle = "#e6dcc4"; g.lineWidth = 1.6; g.beginPath(); g.moveTo(X - 12 * u, Y + 12 * u); g.quadraticCurveTo(X - 4 * u, Y - 2 * u, X - 13 * u, Y - 12 * u); g.stroke();
     return;
   }
   if (desenho === "antidoto") {                                        // (R407) o frasco de jade, a rolha de cortiça e a folha de erva
@@ -23545,8 +23731,10 @@ function passoProgresso(dt) {
       // (renasce no ponto seguro do mapa em que caiu: na Vila Hahoe, a praça das máscaras; na Vila 1 e nas dungeons, a cidade)
       // (no Vale dos Dragões: no ponto seguro da Ilha de Daiyu, o Porto dos Náufragos; a entrada leva de volta ao andar mais fundo)
       const noVale = naCaverna(v.x) && cavDe(v.x) && cavDe(v.x).vale;
+      const naGruta = naCaverna(v.x) && cavDe(v.x) && cavDe(v.x).gruta;  // (R408: nas Grutas da Seda, o Oásis da Lua Crescente)
       if (noVale && prog) { prog.mapa = "daiyu"; salvarProgresso(); }
-      v.caido = false; [v.x, v.y] = noVale ? pontoSeguro(MAPAS.daiyu) : !naCaverna(v.x) && mapaDe(v.x, v.y) !== MAPAS.vila1 ? pontoSeguro(mapaDe(v.x, v.y)) : CIDADE && CIDADE.renascer ? CIDADE.renascer : [PRACA.x, PRACA.y - 2]; v.vida = Math.round(status.vidaMax * 0.5);
+      if (naGruta && prog) { prog.mapa = "deserto"; salvarProgresso(); }
+      v.caido = false; [v.x, v.y] = noVale ? pontoSeguro(MAPAS.daiyu) : naGruta ? pontoSeguro(MAPAS.deserto) :!naCaverna(v.x) && mapaDe(v.x, v.y) !== MAPAS.vila1 ? pontoSeguro(mapaDe(v.x, v.y)) : CIDADE && CIDADE.renascer ? CIDADE.renascer : [PRACA.x, PRACA.y - 2]; v.vida = Math.round(status.vidaMax * 0.5);
       if (Math.hypot(cam.x - v.x, cam.y - v.y) > 60) { cam.x = v.x + CAM_ACIMA[0]; cam.y = v.y + CAM_ACIMA[1]; }
       tocar(lutaPerto() && v.espada !== "costas" ? "parado_armado" : "parado", false);
       criaturas.forEach(c => { if (!c.cfg.estatico) c.cacando = false; });
@@ -24559,6 +24747,7 @@ const VIDA_CHEFE_M2 = {
   "Lobo Alfa": 12960, "Chefe dos Bandidos": 18810, "Lich": 21800, "Capitão Dokkaebi": 24618,                         // Macaco de Pedra 30, Capitão Bestial 42, Macaco Andante 43, Chefe Orc 50
   "Nove Caudas": 166120, "Chefe Orc": 193408, "Dragão Ancião": 146320 };                                             // Nove Caudas 72, Rainha Aranha 60, Tartaruga Gigante 67
 VIDA_CHEFE_M2["Hyeonmu das Areias"] = DESERTO.M2_MOB["Hyeonmu das Areias"][7];   // (R407: o Hyeonmu é a Tartaruga Gigante 67 do deserto do Metin2, 146.320)
+VIDA_CHEFE_M2[DESERTO.RAINHA.nome] = DESERTO.RAINHA.vida;              // (R408: a Rainha da Seda é a Rainha Aranha 60 das grutas do Metin2, 193.408)
 function vidaM2(cfg) {
   if (!cfg) return 0;
   if (cfg.estatico) return vidaPedraM2(cfg.nivel);
@@ -24652,6 +24841,7 @@ const GG_V1 = {
 };
 if (HAHOE2) { Object.assign(GRUPOS_M2, VILA2.GRUPOS); Object.assign(GG_V1, VILA2.GG); }   // (etapa 3: os grupos e conjuntos dos 5 clãs da Hahoe nova, mapa_hahoe.js)
 Object.assign(GRUPOS_M2, DESERTO.GRUPOS_M2); Object.assign(GG_V1, DESERTO.GG);   // (R407, a etapa 2 do deserto: os 26 grupos e os 4 conjuntos de 100 s do Metin2, e a escolta do Hyeonmu, mapa_deserto.js)
+Object.assign(GRUPOS_M2, DESERTO.GRUPOS_GRUTA); Object.assign(GG_V1, DESERTO.GG_GRUTA);   // (R408, a etapa 4: os grupos das Grutas da Seda e os conjuntos de 180 s, andar 1, e 60 s, andar 2)
 // os pontos (conjunto, x, y): 80 grupos (a Vila 1 maior, 02/11/2026), ~18 por hectare de caça, no mínimo 21 m um do outro,
 // fora da água, da praia, das estradas, dos buracos, do ninho e da chegada do portal. Por faixa: 22 Cães, 25 Javalis, 19 Ursos e
 // 14 do Juramento Branco; os Capitães (os mais fortes, agressivos) nos cinco pontos mais perto do portal
@@ -24822,11 +25012,12 @@ function porSpawns(soMapa) {
 const GRUPOS_V1 = [];             // { s (o spawn), gg (o conjunto), membros (o líder é o 0), espera (s até nascer de novo; null: vivo) }
 // um lugar bom para um bicho do grupo: terra firme e livre, fora da água, da praia, da cidade e do treino
 // (etapa 3: também os grupos dos clãs da Hahoe nova, mp = MAPAS.hahoe, fora da vila de dentro da curva)
-function lugarBomV1(x, y, mp = MAPAS.vila1) { return livre(x, y) && !agua(x, y) && !praia(x, y) && !praca(x, y) && (mp === MAPAS.vila1 ? distCidadeV1(x, y) > 8 : Math.hypot(x - HV.x, y - HV.y) > HV.r) && mapaDe(x, y) === mp && !naCaverna(x); }
+function lugarBomV1(x, y, mp = MAPAS.vila1) { if (mp && mp.cav) return livre(x, y) && pisoCaverna(x, y) && cavDe(x) === mp.cav && !(mp.cav.salaChefe && dentroSalaChefe(mp.cav, x, y));   // (R408: o grupo da sala das Grutas, no chão dela e fora do salão da Rainha)
+  return livre(x, y) && !agua(x, y) && !praia(x, y) && !praca(x, y) && (mp === MAPAS.vila1 ? distCidadeV1(x, y) > 8 : Math.hypot(x - HV.x, y - HV.y) > HV.r) && mapaDe(x, y) === mp && !naCaverna(x); }
 function nascerGrupoV1(g) {
   const nomes = g.gg.grupos, comp = GRUPOS_M2[nomes[Math.floor(Math.random() * nomes.length)]].filter(t => TIPOS[t]);
   if (!comp.length) return;
-  const mp = mapaDe(g.s.x, g.s.y), lugarBom = (x, y) => lugarBomV1(x, y, mp);   // (o mapa do ponto: a Vila 1 ou a Hahoe nova)
+  const mp = g.s.cav ? { cav: g.s.cav } : mapaDe(g.s.x, g.s.y), lugarBom = (x, y) => lugarBomV1(x, y, mp);   // (o mapa do ponto: a Vila 1 ou a Hahoe nova; R408: a sala das Grutas)
   // o líder: um ponto sorteado no círculo do ponto (não na cara do herói, a não ser no começo)
   let lx = g.s.x, ly = g.s.y, achou = false;
   for (let k = 0; k < 40 && !achou; k++) {
@@ -24932,7 +25123,7 @@ function criarVariantesV1() {
 function criarClasHahoe() { if (HAHOE2) VILA2.criarClas(TIPOS, variante, RENASCE_COMUM, VOZ_NOVAS, CHEFES_MAPA); }
 // (R407, a etapa 2 do deserto) as 18 criaturas do Deserto de Mingsha (aranhas, escorpiões, o Olho do Vento, os homens-escorpião, as
 // serpentes e os salteadores) e o Hyeonmu, todos variantes do que o jogo já tem (a arte nova é a etapa 3); mapa_deserto.js, CRIATURAS
-function criarCriaturasDeserto() { return DESERTO.criarCriaturas(TIPOS, variante, RENASCE_COMUM, VOZ_NOVAS); }
+function criarCriaturasDeserto() { return DESERTO.criarCriaturas(TIPOS, variante, RENASCE_COMUM, VOZ_NOVAS) + DESERTO.criarCriaturasGrutas(TIPOS, variante, RENASCE_COMUM, VOZ_NOVAS); }   // (R408: e as das Grutas da Seda)
 function montarCriaturas() {
   criarOrcs();
   criarDragoes();
@@ -27701,6 +27892,11 @@ DUNGEONS.forEach((d, n) => {
   d.bandos = d.bandos.map(([k, t, q]) => [k, t, Math.max(q, Math.round(q * ESC_CAV * ESC_CAV))]);   // (a área cresce ESC_CAV²)
   umaEntradaNoSalao(d);
 });
+// (R408, a etapa 4 do deserto) as Grutas da Seda, andares 1 e 2 (mapa_deserto.js, ANDARES_GRUTA): já nas medidas finais, depois do
+// Vale (x = 1360 e 1560, 100 m de cada lado), montadas na 1ª visita ao Deserto de Mingsha (montarGrutas). Os bichos são os grupos de
+// cada sala (d.grupos: povoarGruta), não os bandos; a Rainha da Seda é o chefe do salão, atrás da porta (R252, R299)
+for (const a of DESERTO.ANDARES_GRUTA) { const d = DESERTO.grutaDungeon(a); d.x = 1450 + (d.gruta - 1) * 330; d.meia = 160; DUNGEONS.push(d); }   // (17/11: as salas 2× maiores, 160 m de cada lado)
+const GRUTAS = { montado: false, boca: null, passes: 0, negados: 0 };
 // R299 (06/11, o usuário, na Toca das Aranhas: "deixe apenas uma porta para acesso à aranha boss, porque quando ela fica posicionada na
 // parte de cima para entrar para a caverna fica completamente fora de posição... ela sempre tem que ficar na frente da entrada e o mapa do
 // boss para cima em relação a ela"). A causa: o salão do chefe de cada dungeon era ligado por DOIS túneis (o desenho em anel), e o
@@ -27730,8 +27926,8 @@ function naCaverna(x) { return x > 240; }
 function cavDe(x) { for (const d of DUNGEONS) if (x > d.x - (d.meia || 50) && x < d.x + (d.meia || 50)) return d; return null; }
 function pisoCaverna(x, y) {
   const d = cavDe(x); if (!d) return false;
-  const lx = x - d.x, ly = y - d.y, w = (ruido2(x * 0.5, y * 0.5) - 0.5) * 1.4;
-  for (const c of d.salas) if (Math.hypot(lx - c.x, ly - c.y) < c.r + w) return true;
+  const lx = x - d.x, ly = y - d.y, w = d.semRuido ? 0 : (ruido2(x * 0.5, y * 0.5) - 0.5) * 1.4;   // (R408: as Grutas da Seda são de alvenaria, sem o ruído da beira)
+  for (const c of d.salas) if (c.quad ? Math.abs((lx - c.x - ly + c.y) * Math.SQRT1_2) < c.r && Math.abs((lx - c.x + ly - c.y) * Math.SQRT1_2) < c.r : Math.hypot(lx - c.x, ly - c.y) < c.r + w) return true;   // (quad: o salão quadrado na vista)
   for (const [ax, ay, bx, by, l] of d.tuneis) if (distSeg(lx, ly, ax, ay, bx, by) < l / 2 + w * 0.4) return true;
   return false;
 }
@@ -27743,7 +27939,7 @@ function variante(base, v) {
 }
 function montarCaverna() {
   if (TIPOS.aranha && TIPOS.aranha.M) TIPOS.aranhinha = variante("aranha", { nome: "Aranha", esc: 0.42, vida: 150, nivel: 9, dano: 30, renasce: 25, galope: 2.6, chega: 2.2, visao: 7 });
-  for (const d of DUNGEONS) if (!d.vale) montarDungeon(d);          // (o Vale dos Dragões, na 1ª visita à Ilha de Daiyu: montarVale)
+  for (const d of DUNGEONS) if (!d.vale && !d.gruta) montarDungeon(d);   // (o Vale dos Dragões, na 1ª visita à Ilha de Daiyu: montarVale; as Grutas da Seda, na do deserto: montarGrutas)
 }
 // os orcs do vale (sem o orc.json, o goblin 1,7× maior faz o papel)
 // (os dragões em cada nível do Vale: os mesmos corpos, os números da curva; tipoReal: o tipo da criatura no mapa)
@@ -27771,6 +27967,7 @@ function criarOrcs() {
 }
 function montarDungeon(d) {
   if (d.vale) ligarAndarVale(d);                                         // (o andar do Vale: a entrada e as escadas são entre andares)
+  else if (d.gruta) ligarAndarGruta(d);                                  // (R408: o andar das Grutas da Seda, idem)
   else {
   // o buraco: um lugar livre do mapa (perto do ponto da dungeon)
   const [hx, hy] = d.buracoMundo || noMapa(d.buraco);
@@ -27794,7 +27991,7 @@ function montarDungeon(d) {
   const por = o => { objetos.push(o); porNaGrade(o); };
   // paredes: pedras grandes em volta do chão, logo do lado de fora da beira
   const a = (i, j) => i >= 0 && j >= 0 && i < w && j < h && im.data[(j * w + i) * 4 + 3] > 0;
-  if (!d.tema.semParede) for (let j = 0; j < h; j += d.vale ? 12 : 11) for (let i = 0; i < w; i += d.vale ? 12 : 11) {
+  if (!d.tema.semParede && !d.gruta) for (let j = 0; j < h; j += d.vale ? 12 : 11) for (let i = 0; i < w; i += d.vale ? 12 : 11) {   // (R408: as paredes das Grutas da Seda são a arte 3D do Blender, grutaArte)
     if (a(i, j) || (!d.vale && hash(i, j, 63) > 0.8)) continue;           // (no Vale, a fila é contínua; quem falha é a da frente: paredeVale)
     let perto = false;
     for (let dj = -9; dj <= 9 && !perto; dj += 3) for (let di = -9; di <= 9; di += 3) if (a(i + di, j + dj)) { perto = true; break; }
@@ -27804,9 +28001,13 @@ function montarDungeon(d) {
     por({ tipo: "pedra", x, y, r: 0.4, esc: 0.85 + hh * 0.4, var: hh < 0.5 ? 3 : 4, forma: Array(7).fill(1), caverna: true, esp: hash(i, j + d.x, 62) < 0.5 });
   }
   // tochas nas salas, pedrinhas e os enfeites do tema
-  const noChao = (x, y) => pisoCaverna(x, y) && livre(x, y) && (d.vale || Math.hypot(x - d.x, y - d.y) > 2.5);
+  const noChao = (x, y) => pisoCaverna(x, y) && livre(x, y) && (d.vale || d.gruta || Math.hypot(x - d.x, y - d.y) > 2.5);
   d.teias = [];
   if (d.vale) pecasVale(d, por, noChao);
+  else if (d.gruta) for (const [u, v] of d.arandelas) {                // (R408, 17/11: sem as tochas e os braseiros pintados; a luz das arandelas 3D da parede do fundo, que estão no render)
+    const x = d.x + (u + v - 0.6) * Math.SQRT1_2, y = d.y + (v - 0.6 - u) * Math.SQRT1_2;
+    if (pisoCaverna(x, y)) por({ tipo: "tocha", x, y, r: 0, caverna: true, oculta: true });
+  }
   else d.salas.forEach((c, k) => {
     for (let q = 0; q < (k === d.chefe.sala ? 6 : 3); q++) {               // (36.4b: as salas 1,5× maiores, uma tocha a mais; no salão, 6)
       const ang = q * 2.4 + k, x = d.x + c.x + Math.cos(ang) * (c.r - 1.2), y = d.y + c.y + Math.sin(ang) * (c.r - 1.2);
@@ -27834,7 +28035,7 @@ function montarDungeon(d) {
   });
   // (v0.87, R334; o usuário, 07/11: "tem pontos que está muito escuro"): os túneis não tinham luz nenhuma além da do herói; agora uma
   // tocha a cada ~6 m, alternando as paredes, longe das bocas das salas (a da porta do chefe fica livre)
-  if (!d.vale) for (const [ax, ay, bx, by, lg] of d.tuneis) {
+  if (!d.vale && !d.gruta) for (const [ax, ay, bx, by, lg] of d.tuneis) {   // (R408: nos corredores das Grutas, as arandelas)
     const L = Math.hypot(bx - ax, by - ay); if (L < 1) continue;
     const ux = (bx - ax) / L, uy = (by - ay) / L, raio = (x, y) => (d.salas.find(c => Math.hypot(c.x - x, c.y - y) < 0.01) || { r: 0 }).r;
     let a0 = raio(ax, ay) + 1.2, a1 = L - raio(bx, by) - 1.2;
@@ -27874,12 +28075,14 @@ function montarDungeon(d) {
   const ch = d.chefe, base = TIPOS[ch.base] && TIPOS[ch.base].M ? ch.base : ch.reserva && TIPOS[ch.reserva] && TIPOS[ch.reserva].M ? ch.reserva : "lobo";
   if (TIPOS[base].M) {
     d.cfgChefe = variante(base, { nome: ch.nome, esc: ch.esc * (base === ch.base ? 1 : 1.7), vida: ch.vida, nivel: ch.nivel, dano: ch.dano, renasce: ch.renasce, chefe: true, chefeCaverna: true, visao: 8,
-                                  chaveChefe: "dg_" + d.id });       // (chefe de mapa: CHEFES_MAPA["dg_<id>"]; a área é a sala do fundo)
+                                  chaveChefe: "dg_" + d.id, ...(ch.extra || {}) });   // (chefe de mapa: CHEFES_MAPA["dg_<id>"]; a área é a sala do fundo. R408: a tinta e o veneno da Rainha da Seda)
+    if (ch.extra && ch.extra.tinta && typeof DESERTO === "object") d.cfgChefe.filtro2d = DESERTO.filtroDe ? DESERTO.filtroDe(ch.extra.tinta) : d.cfgChefe.filtro2d;
     povoar(d.cfgChefe, base, d.salas[ch.sala], 1, 1.5);
     const sala = d.salas[ch.sala], c = criaturas[criaturas.length - 1];
     if (c && c.cfg === d.cfgChefe && defChefe(c)) { iniciarChefe(c, { x: d.x + sala.x, y: d.y + sala.y, r: Math.max(1.5, sala.r - 1.8) }); d.chefeVivo = c; }
   }
   montarPortasChefe(d);                                                  // (R252: a porta do salão e o baú)
+  if (d.gruta) povoarGruta(d);                                           // (R408: os grupos de cada sala, com o tempo do andar; depois da porta, para nenhum nascer no salão)
 }
 // ---------------------------------------------------------------- o Vale dos Dragões (Logs/Mapas/VALE_DRAGOES.md)
 // A caverna da Ilha de Daiyu (62–70): um rasgo no pé do Monte Daiyu, nas costas do casco da tartaruga, e 3 andares em DUNGEONS
@@ -27929,6 +28132,87 @@ function ligarAndarVale(d) {
                    rotulo: cima ? `▲ Subir: ${cima.curto}` : "▲ Subir à superfície", dungeon: d });
   if (d.descida) passagens.push({ tipo: "desce", x: d.x + d.descida[0], y: d.y + d.descida[1], para: { x: baixo.x + baixo.ent[0] + 1.6, y: baixo.y + baixo.ent[1] - 0.4 }, nome: baixo.curto, rotulo: `▼ Descer: ${baixo.curto}`, dungeon: d });
   if (d.saidaDireta) passagens.push({ tipo: "escada", direta: true, x: d.x + d.saidaDireta[0], y: d.y + d.saidaDireta[1], para: sup, nome: "superfície", rotulo: "▲ Saída: superfície", dungeon: d });
+}
+// ---------------------------------------------------------------- as Grutas da Seda (R408, a etapa 4 do deserto)
+// (17/11, o usuário: "Comece, depois trocaremos as criaturas do deserto"; Logs/Mapas/DESERTO_ARANHAS_PROJETO.md, seção 4). A Boca das
+// Grutas Pintadas, no paredão do fundo do deserto, leva sempre ao andar 1 (avisa o nível 50, não barra). O andar 1 acaba no salão da
+// Rainha da Seda: lá o Monge Hyecho guarda a descida para o andar 2, que só abre com um Passe da Gruta (gasta um a cada descida, como
+// o Passage Ticket do Metin2). O Hyecho vende o Passe na boca e no salão, e o baú da Rainha guarda um. Quem cai nas grutas renasce no
+// Oásis da Lua Crescente. A escada de volta de cada andar leva ao de cima; a saída direta, à frente da boca
+const PASSE = DESERTO.PASSE;
+function montarGrutas() {
+  if (GRUTAS.montado) return; GRUTAS.montado = true;
+  const g = DESERTO.gruta(), d1 = DUNGEONS.find(q => q.gruta === 1);
+  GRUTAS.boca = { x: g.x, y: g.y, volta: g.volta };
+  passagens.push({ tipo: "boca", gruta: true, boca: true, x: g.x, y: g.y, zChao: DESERTO.z(g.x, g.y), para: frenteDoPortal(d1.x + d1.ent[0], d1.y + d1.ent[1]), nome: "Grutas da Seda", dungeon: d1 });
+  for (const d of DUNGEONS) if (d.gruta) montarDungeon(d);
+  for (const d of DUNGEONS) if (d.gruta && d.hyecho) {                  // (o Monge Hyecho do salão da Rainha: o Passe e a descida)
+    const n = DESERTO.npcs().find(q => /Hyecho/.test(q.nome)); if (!n) continue;
+    objetos.push({ tipo: "pessoa", x: d.x + d.hyecho[0], y: d.y + d.hyecho[1], r: 0.3, npc: true, caverna: true, nome: n.nome, fase: 0, fala: 0, gruta: d.gruta,
+                   dados: { ...n, x: d.x + d.hyecho[0], y: d.y + d.hyecho[1], loja: LOJA_HYECHO(), falas: ["Você passou pela Rainha. A seda atrás de mim fecha a descida para os Salões do Casulo.", "Com um Passe da Gruta, eu abro a seda: pise no buraco ao meu lado. Se não tiver, eu vendo.", "Lá embaixo as aranhas voltam três vezes mais rápido. É onde os caçadores sobem de nível."] } });
+  }
+  for (const d of DUNGEONS) if (d.gruta) edmAplicarMapa("cav:" + d.id);
+}
+const LOJA_HYECHO = () => [["passe_gruta", PASSE.preco]];
+// (17/11, o usuário: "Nao coloque escadas nem esses props chapados, para passar de andar para andar use portais") a volta, a descida e
+// a saída direta de cada andar são portais (o Portal B dos mapas, com o redemoinho da cor das cavernas), no meio dos salões; quem chega
+// sai 2,2 m à frente do portal (para baixo na tela)
+const frenteDoPortal = (x, y) => ({ x: x - 1.56, y: y - 1.56 });
+function ligarAndarGruta(d) {
+  const b = GRUTAS.boca, sup = { x: b.volta.x, y: b.volta.y }, ex = d.x + d.ent[0], ey = d.y + d.ent[1];
+  const cima = DUNGEONS.find(q => q.gruta === d.gruta - 1), baixo = DUNGEONS.find(q => q.gruta === d.gruta + 1);
+  d.saida = { x: b.x, y: b.y };
+  passagens.push({ tipo: "escada", gruta: true, portal: true, x: ex, y: ey, para: cima ? frenteDoPortal(cima.x + cima.descida[0], cima.y + cima.descida[1]) : sup, nome: cima ? cima.curto : "Deserto de Mingsha", acima: !!cima,
+                   rotulo: cima ? `▲ Subir: ${cima.curto}` : "▲ Subir: Deserto de Mingsha", destinoNome: cima ? cima.curto : "Deserto de Mingsha", sub: cima ? `Nv. ${cima.niveis[0]}–${cima.niveis[1]}` : "a boca das grutas", dungeon: d });
+  if (d.descida && baixo) passagens.push({ tipo: "desce", gruta: true, portal: true, passe: true, x: d.x + d.descida[0], y: d.y + d.descida[1], para: frenteDoPortal(baixo.x + baixo.ent[0], baixo.y + baixo.ent[1]), nome: baixo.curto,
+                   rotulo: `▼ Descer: ${baixo.curto} (Passe da Gruta)`, destinoNome: baixo.curto, sub: `Nv. ${baixo.niveis[0]}–${baixo.niveis[1]} · pede o Passe da Gruta`, dungeon: d });
+  if (d.saidaDireta) passagens.push({ tipo: "escada", gruta: true, portal: true, direta: true, x: d.x + d.saidaDireta[0], y: d.y + d.saidaDireta[1], para: sup, nome: "Deserto de Mingsha", rotulo: "▲ Saída: Deserto de Mingsha",
+                   destinoNome: "Deserto de Mingsha", sub: "saída direta", dungeon: d });
+}
+// os grupos de cada sala: q.n grupos do conjunto da sala (e, no andar 1, mais um guarda de Soldados Orgulhosos), em volta do meio
+// dela; nascem e voltam pela regra da Vila 1 (nascerGrupoV1, passoGruposV1), só no chão da sala (s.cav)
+function povoarGruta(d) {
+  d.gruposV1 = [];
+  for (const q of d.grupos) {
+    const c = d.salas[q.sala], n = q.n + (d.guarda ? 1 : 0), rr = Math.min(c.r * 0.5, c.r - 2.5);
+    for (let k = 0; k < n; k++) {
+      const a = k / n * 6.283 + q.sala, x = d.x + c.x + (n > 1 ? Math.cos(a) * rr : 0), y = d.y + c.y + (n > 1 ? Math.sin(a) * rr : 0), gg = k < q.n ? q.gg : d.guarda;
+      const g = { s: { x, y, r: n > 4 ? 1.8 : 2.4, gg, cav: d, sala: q.sala }, gg: GG_V1[gg], membros: [], espera: null };
+      if (!g.gg) continue;
+      GRUPOS_V1.push(g); d.gruposV1.push(g); nascerGrupoV1(g);
+    }
+  }
+}
+function avisoNivelGruta() {
+  if (!prog || prog.nivel >= PASSE.nivelMin) return;
+  GRUTAS.avisos = (GRUTAS.avisos || 0) + 1;
+  avisarLongo(`As Grutas da Seda são para o nível ${PASSE.nivelMin} em diante. Você é nível ${prog.nivel}: cuidado!`, 5000); som("ui_negar");
+}
+// a descida do andar 1: gasta um Passe da Gruta (sem ele, o herói volta um passo e o aviso diz onde comprar)
+function usarPasseGruta(p) {
+  if (contarItem("passe_gruta") > 0) { removerItem("passe_gruta", 1); GRUTAS.passes++; desenharBolsa(); atualizarItensBarra(); salvarProgresso(); avisar("O Monge Hyecho recebe o Passe da Gruta e abre a seda"); return true; }
+  GRUTAS.negados++;
+  avisarLongo(`A seda fecha a descida: o Monge Hyecho pede um Passe da Gruta (ele vende por ${PASSE.preco.toLocaleString("pt-BR")} yang)`, 4500); som("ui_negar");
+  const d = p.dungeon, s = d.salas[d.chefe.sala], cx0 = d.x + s.x, cy0 = d.y + s.y, k = Math.hypot(cx0 - p.x, cy0 - p.y) || 1;
+  viking.x = p.x + (cx0 - p.x) / k * 1.6; viking.y = p.y + (cy0 - p.y) / k * 1.6; viking.alvo = null; viking.rota = null;
+  return false;
+}
+// o desenho: a boca (só o nome e o nível; a arte é a fachada do paredão) e a descida (o buraco na seda, com os fios em volta)
+function desenharPassagemGruta(p, X, Y, s, t) {
+  const perto = Math.hypot(viking.x - p.x, viking.y - p.y);
+  const letreiro = (txt, y, cor) => { cx.font = `600 ${Math.max(13, Math.round(s * 0.2))}px Georgia, serif`; cx.textAlign = "center"; cx.lineWidth = 3; cx.strokeStyle = "#1E1B18"; cx.fillStyle = cor; cx.strokeText(txt, X, y); cx.fillText(txt, X, y); };
+  if (p.boca) {
+    if (perto < 12) placas.push(() => { const Yn = Math.max(132, Y - 3.4 * s); letreiro("Grutas da Seda", Yn, "#EFE4CC"); letreiro(`a partir do nível ${PASSE.nivelMin}`, Yn + s * 0.27, prog && prog.nivel < PASSE.nivelMin ? "#ff8a6a" : "#C9963E"); });
+    return;
+  }
+  if (p.portal) { desenharPortal({ x: p.x, y: p.y, cor: "caverna", nivelMin: 0, rotulo: p.destinoNome, sub: p.sub }, t); return; }   // (17/11: os portais entre os andares)
+  const pul = 0.5 + 0.5 * Math.sin(t * 2.2);
+  cx.fillStyle = "#0b0908"; cx.beginPath(); cx.ellipse(X, Y, s * 1.05, s * 1.05 * ACHATA, 0, 0, 7); cx.fill();
+  cx.strokeStyle = "#1E1B18"; cx.lineWidth = Math.max(1.5, s * 0.03); cx.stroke();
+  cx.strokeStyle = `rgba(239, 228, 204, ${0.55 + 0.25 * pul})`; cx.lineWidth = Math.max(1, s * 0.018);   // (a seda: os fios em raio e dois anéis)
+  for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283 + 0.2; cx.beginPath(); cx.moveTo(X, Y); cx.lineTo(X + Math.cos(a) * s * 1.0, Y + Math.sin(a) * s * 1.0 * ACHATA); cx.stroke(); }
+  for (const r of [0.45, 0.8]) { cx.beginPath(); cx.ellipse(X, Y, s * r, s * r * ACHATA, 0, 0, 7); cx.stroke(); }
+  if (perto < 6) placas.push(() => letreiro(p.rotulo, Y + s * 0.95, "#EFE4CC"));
 }
 // ---------------------------------------------------------------- a porta e o baú do chefe (lista 36 do usuário, 05/11: R252 e R253)
 // Em cada dungeon com chefe (as 4 cavernas da Vila 1 e o Ninho do Vale dos Dragões), o chefe fica sozinho no salão do fundo,
@@ -28006,7 +28290,7 @@ function montarPortasChefe(d) {
     for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = i + di, b = j + dj, kk = a + b * nx; if (a < 0 || b < 0 || a >= nx || b >= ny || m[kk]) continue; m[kk] = 2; if (passa(a, b)) { m[kk] = 1; fila.push(kk); } }
   }
   d.salaChefe = { m, nx, ny, x0, y0 };
-  const ent = d.vale ? [d.x + d.ent[0], d.y + d.ent[1]] : [d.x, d.y];
+  const ent = d.ent ? [d.x + d.ent[0], d.y + d.ent[1]] : [d.x, d.y];      // (o Vale e as Grutas: a sala da escada de volta)
   d.portaSepara = d.portas.length > 0 && !dentroSalaChefe(d, ent[0], ent[1]);
   if (!d.portaSepara) console.warn(`a porta do chefe não separa o salão: ${d.nome}`);
   for (const p of d.portas) {
@@ -28087,7 +28371,7 @@ function acaoPortaChefe(o) {
   if (!d.bauLiberado) { avisar(`O baú está trancado: derrote ${art} ${nome} para abrir`); som("ui_negar"); return; }
   d.bauLiberado = false; d.bauAberto = true; o.tAberto = performance.now(); PORTA_CHEFE.baus++;
   const c = d.chefeVivo, n = (c && c.cfg.nivel) || d.chefe.nivel || 1, s = d.salas[d.chefe.sala], k = Math.hypot(d.x + s.x - o.x, d.y + s.y - o.y) || 1;
-  soltarItens({ x: o.x + (d.x + s.x - o.x) / k * 1.9, y: o.y + (d.y + s.y - o.y) / k * 1.9, tipo: "bau", cfg: { nivel: n, nome: `Baú ${art === "a" ? "da" : "do"} ${nome}` } }, bauChefeItens(n));
+  soltarItens({ x: o.x + (d.x + s.x - o.x) / k * 1.9, y: o.y + (d.y + s.y - o.y) / k * 1.9, tipo: "bau", cfg: { nivel: n, nome: `Baú ${art === "a" ? "da" : "do"} ${nome}` } }, [...bauChefeItens(n), ...(d.gruta ? [{ tipo: "passe_gruta" }] : [])]);   // (R408: o baú da Rainha da Seda guarda um Passe da Gruta)
   som("bau", o, 0.9); poeiraChefe(o.x, o.y, 12, 0.6);
   avisar(`O baú ${art === "a" ? "da" : "do"} ${nome} se abriu!`);
 }
@@ -28169,8 +28453,12 @@ function rochaPortaChefe(lado, x0, x1, hh, semente) {
   }
   cx.restore();
 }
-function artePortaChefe() {
-  const A = PORTA_ARTE;
+// (R408) o portão do salão da Rainha da Seda: o arco de alvenaria e o portão de tábuas com as faixas de ferro, do Blender
+// (Tools/deco3d/grutas/render_porta.py), no mesmo formato da porta de cima; largM: a largura da moldura em m (o tamanho de verdade)
+const PORTA_ARTE_GRUTA = { arq: { moldura: "grutas/porta_moldura.webp", esq: "grutas/porta_esq.webp", dir: "grutas/porta_dir.webp" },
+  W: 909, H: 743, base: 0.9096, largM: 7.1, larg: 1, altMax: 20, altMaxGrande: 20, vao: [454.4, 491.5, 320.0],
+  folhas: { esq: [134.4, 307.2, 320.0, 368.6], dir: [774.4, 307.2, 320.0, 368.6] }, giro: 1.35, dura: 0.9, im: null };
+function artePortaChefe(A = PORTA_ARTE) {
   if (!A.im) {
     A.im = {};
     if (VERSOES.mapa && Object.values(A.arq).every(a => VERSOES.mapa[a]))
@@ -28188,11 +28476,11 @@ function aberturaPorta(d) {
 function desenharPortaChefe(o, t) {
   const p = o.porta, s = PX * zoom, nx = -p.uy, ny = p.ux, h = altPorta(p), mm = p.meia + (p.larg > 5 ? 0.6 : 0.34) * 0.4;
   const P = (a, z, al = 0) => noMundo(p.x + nx * a + p.ux * al, p.y + ny * a + p.uy * al, z);
-  const ims = artePortaChefe(), ab = aberturaPorta(o.dungeon);
+  const gr = o.dungeon.gruta && artePortaChefe(PORTA_ARTE_GRUTA), ims = gr || artePortaChefe(), ab = aberturaPorta(o.dungeon);   // (R408: nas Grutas, o portão do Blender)
   if (ims) {
     // a moldura de pé, no meio da boca, da largura dela na tela (espelhada quando a porta corre para o outro lado). Na boca larga do Ninho
     // a altura para em altMax e os lados que sobram são pedras por código, desenhadas antes
-    const A = PORTA_ARTE, [ax, ay] = P(-mm, 0), [bx, by] = P(mm, 0), [mx, my] = P(0, 0), w = Math.max(Math.abs(bx - ax), s * mm) * A.larg;
+    const A = gr ? PORTA_ARTE_GRUTA : PORTA_ARTE, [ax, ay] = P(-mm, 0), [bx, by] = P(mm, 0), [mx, my] = P(0, 0), w = A.largM ? s * A.largM : Math.max(Math.abs(bx - ax), s * mm) * A.larg;
     const hh = Math.min(w * A.H / A.W, s * (p.larg > 5 ? A.altMaxGrande : A.altMax)), w2 = hh * A.W / A.H, k = w2 / A.W, x0 = -w2 / 2, y0 = -hh * A.base;
     // (o vão da moldura, em m ao longo da porta: aberta, o herói passa só por ele; as pedras dos lados barram. A boca na tela mede |bx − ax|)
     { const mv = Math.min(p.meia, A.vao[2] * k / Math.max(1e-3, Math.abs(bx - ax) / (2 * mm))); if (!(Math.abs((p.meiaVao || 0) - mv) < 0.05)) { p.meiaVao = mv; GRADE_V++; } }   // (GRADE_V: as rotas guardadas de novo)
@@ -29555,6 +29843,7 @@ function lugarDaRecarga() {
 // a saída de uma dungeon para a superfície (o Vale: a boca na Ilha de Daiyu; as da Vila 1: ao lado do buraco)
 function saidaDaDungeon(d) {
   if (d.vale) return VALE.boca && VALE.boca.volta ? [VALE.boca.volta.x, VALE.boca.volta.y] : null;
+  if (d.gruta) return GRUTAS.boca ? [GRUTAS.boca.volta.x, GRUTAS.boca.volta.y] : null;   // (R408: a frente da Boca das Grutas)
   const p = passagens.find(q => q.dungeon === d && q.tipo === "escada" && !q.direta && q.para && !naCaverna(q.para.x));
   return p ? [p.para.x, p.para.y] : null;
 }
@@ -29786,7 +30075,7 @@ function placaPortal(X, y, p, trava) {
   cx.save(); cx.textAlign = "center"; cx.lineJoin = "round"; cx.strokeStyle = "rgba(0, 0, 0, 0.9)";
   cx.font = 'bold 14px Tahoma, Verdana, "Segoe UI", Arial, sans-serif'; cx.lineWidth = 3.5;
   cx.strokeText(d.nome, X, y); cx.fillStyle = "#ffe9b8"; cx.fillText(d.nome, X, y);
-  const n = p.rotulo ? "só desce" : `Nv. ${d.niveis[0]}–${d.niveis[1]}` + (trava ? ` · abre no nível ${p.nivelMin}` : "");
+  const n = p.sub || (p.rotulo ? "só desce" : `Nv. ${d.niveis[0]}–${d.niveis[1]}` + (trava ? ` · abre no nível ${p.nivelMin}` : ""));   // (R408: o portal das Grutas diz o que tem do outro lado)
   cx.font = FONTE_PLACA; cx.lineWidth = 3; cx.strokeText(n, X, y + 15); cx.fillStyle = trava ? "#ff7a64" : "#f2eee6"; cx.fillText(n, X, y + 15);
   cx.restore();
 }
@@ -29932,8 +30221,10 @@ function passoPassagens(dt) {
   if (v.passou > 0) return;
   for (const p of passagens) {
     if (Math.hypot(v.x - p.x, v.y - p.y) > 0.7) continue;
+    if (p.passe && !usarPasseGruta(p)) { v.passou = 1.5; break; }       // (R408: a descida das Grutas da Seda pede o Passe da Gruta)
     const dest = p.vale ? entradaDoVale() : p.para;                    // (a entrada do Vale: o andar mais fundo já alcançado)
     if (p.vale) avisoNivelVale();
+    if (p.boca) avisoNivelGruta();
     v.x = dest.x; v.y = dest.y; cam.x = v.x + CAM_ACIMA[0]; cam.y = v.y + CAM_ACIMA[1];
     v.alvo = null; v.rota = null; selecao = null; mira = null; v.passou = 1.5; escurece = 1;
     teclas.clear();
@@ -29941,7 +30232,7 @@ function passoPassagens(dt) {
     chegouNoAndar();                                                   // (o andar mais fundo do Vale, salvo no progresso)
     if (p.dungeon && p.dungeon.vale && !naCaverna(v.x)) v.folgaVale = VALE.folgaSaida;   // (saiu do Vale: uns segundos sem ser visto, para olhar em volta)
     { const aqui = idMapa(v.x, v.y); for (const c of criaturas) if (c.cacando && c.mapa && c.mapa !== aqui) { c.cacando = false; if (c.sopro) acabarSopro(c); } }   // (quem caçava ficou para trás: dorme sem caçar, e a barra do chefe não vem junto)
-    const andar = p.vale && cavDe(v.x);
+    const andar = (p.vale || (p.gruta && p.tipo !== "escada")) && naCaverna(v.x) && cavDe(v.x);
     avisar(andar ? `Você desceu: ${andar.nome}` : p.tipo === "buraco" || p.tipo === "desce" ? `Você desceu: ${p.nome}` : p.acima ? `Você subiu: ${p.nome}` : "De volta à superfície");
     prepararChegada("caverna");                                        // (R235: a caverna, a dungeon, os andares do Vale e a volta à superfície)
     break;
@@ -29952,6 +30243,7 @@ function desenharPassagens(t) {
   for (const p of passagens) {
     const [X, Y] = noMundo(p.x, p.y, p.zChao || 0);
     if (X < -s * 3 || X > W + s * 3 || Y < -s * 3 || Y > H + s * 3) continue;
+    if (p.gruta) { desenharPassagemGruta(p, X, Y, s, t); continue; }   // (R408: a boca das Grutas da Seda e a descida na seda)
     if (p.vale || p.tipo === "desce") { desenharPassagemVale(p, X, Y, s, t); continue; }   // (a boca do rasgo e o buraco com lava)
     const ent0 = p.tipo === "buraco" && DECO && DECO.entrada && DECO.entrada[DUNGEONS.indexOf(p.dungeon)], ent = ent0 && VISTA.nome === "baixa" ? deco22("entrada", ent0) : ent0;   // (a vista Baixa: a foto de 22°)
     if (ent && DECO_IMG[ent.arq]) {
@@ -30001,6 +30293,8 @@ function desenharCaverna() {
   // a cada quadro só ela é desenhada (antes: textura na tela toda + duas misturas por quadro, ~7 ms). Só a caverna onde a
   // câmera está fica guardada
   const s = PX * zoom;
+  const arte = d.gruta ? grutaArte(d) : null;                             // (R408: as Grutas da Seda, a arte 3D do Blender; o chão de antes só enquanto ela chega)
+  if (arte && arte.inteira) { desenharGrutaArte(d, arte, s); return; }
   if (!d.piso) montarPisoCaverna(d);
   const [x0, y0] = noMundo(d.x + d.x0, d.y + d.y1), k = s / (d.ppm || PISO_PPM);
   cx.save(); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
@@ -30012,6 +30306,7 @@ function desenharCaverna() {
     if (X < W && Y < H && X + w > 0 && Y + h > 0) cx.drawImage(p.c, X, Y, w, h);
   }
   cx.restore();
+  if (arte) desenharGrutaArte(d, arte, s);                                // (os pedaços que já chegaram, por cima do chão de antes)
   if (d.vale) desenharVivoVale(d, performance.now() / 1000);             // (a lava acesa, pulsando devagar)
   // teias no chão: as pintadas deitadas (07/11, R330: deco_b/teia_*, o diâmetro 2r, o pé no meio da imagem); sem elas, raios e
   // voltas finas, quase brancas
@@ -30038,6 +30333,38 @@ function desenharCaverna() {
     }
     cx.restore();
   }
+}
+// (R408; 17/11, o usuário: "Nao quero nada de assets chapados, faça as paredes 3d no blender e detalhes de texturas igual o do metin2, sem
+// inventar muito") as Grutas da Seda são um andar inteiro feito no Blender (Tools/deco3d/grutas/render_gruta.py): os salões de alvenaria
+// da Kuahlo Dong, as paredes de blocos com as pilastras, o chão de lajes com o X, as teias e os casulos, na câmera do jogo (37° e a
+// vista Baixa, 22°). Fica em pedaços webp de 1024 px (grutas/<id>_<vista>_i_j.webp e o .json), pedidos na 1ª vez que se entra no andar;
+// só o andar onde se está fica na memória. A parede de cada ponto não passa da altura que cobriria o chão de trás (o render), então o
+// desenho vai todo por baixo das criaturas, como o chão. Só no giro de 45° (o das fotos)
+const GRUTA_ARTE = { pedidos: 0, falhas: 0 };
+function grutaArte(d) {
+  if (!GIRO_DIAG) return null;
+  const vista = VISTA.nome === "baixa" ? "22" : "37", url = q => VERSOES.com ? VERSOES.com(q) : q;
+  for (const o of DUNGEONS) if (o !== d && o.arte3d) o.arte3d = null;   // (só o andar onde se está)
+  const A = d.arte3d || (d.arte3d = {});
+  let a = A[vista];
+  if (!a) {
+    a = A[vista] = { info: null, ims: null, inteira: false }; GRUTA_ARTE.pedidos++;
+    fetch(url(`grutas/${d.id}_${vista}.json`)).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(info => {
+      a.info = info; let falta = info.pecas.length;
+      a.ims = info.pecas.map(p => { const im = new Image(); im.decoding = "async"; im.onload = () => { if (--falta === 0) { a.inteira = true; d.piso = null; } }; im.onerror = () => { a.falhou = true; GRUTA_ARTE.falhas++; }; im.src = url(p.arq); return im; });
+    }).catch(() => { a.falhou = true; GRUTA_ARTE.falhas++; });
+  }
+  return a.info && !a.falhou ? a : null;
+}
+function desenharGrutaArte(d, a, s) {
+  const I = a.info, [X0, Y0] = noMundo(d.x, d.y, 0), k = s / I.ppm;
+  cx.save(); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
+  I.pecas.forEach((p, i) => {
+    const im = a.ims[i]; if (!im || !im.complete || !im.naturalWidth) return;
+    const X = X0 + (p.x - I.origem[0]) * k, Y = Y0 + (p.y - I.origem[1]) * k, w = p.w * k, h = p.h * k;
+    if (X < W && Y < H && X + w > 0 && Y + h > 0) cx.drawImage(im, X, Y, w + 0.6, h + 0.6);
+  });
+  cx.restore();
 }
 const PISO_PPM = 64, PISO_PECA = 2048;
 // o chão de uma caverna, pronto e em pedaços; só o da caverna onde a câmera está fica guardado. Ele é pintado no 1º quadro
@@ -37786,7 +38113,7 @@ carregar().then(() => {
   prepararMana(); carregarProgresso(); montarChat(); montarCursores(); criarMetins(); montarCaverna(); montarMarcos(); montarForja(); montarFerreiro(); montarNpcs(); montarAltar(); montarArmazem(); montarLoja(); montarTempo(); montarFicha(); montarBolsa(); montarMao(); montarBarraSkills(); montarMinimapa(); montarMenu(); montarAdmin(); montarJornada(); montarJanelas();
   fecharMapaOriginal();
   classeDoInicio();                                   // (a última classe jogada)
-  PRED_CARREGANDO.then(montarPredios).then(() => { edmAplicarMapa("vila1"); for (const d of DUNGEONS) if (!d.vale) edmAplicarMapa("cav:" + d.id); if (EDITOR_MAPAS && ADMIN) carregarEditorMapas().catch(e => console.error("editor_mapas.js:", e)); vistaInicial(); });   // (as construções em camadas; R289: as mudanças do editor de mapas, e o editor com ?editor=1)
+  PRED_CARREGANDO.then(montarPredios).then(() => { edmAplicarMapa("vila1"); for (const d of DUNGEONS) if (!d.vale && !d.gruta) edmAplicarMapa("cav:" + d.id); if (EDITOR_MAPAS && ADMIN) carregarEditorMapas().catch(e => console.error("editor_mapas.js:", e)); vistaInicial(); });   // (as construções em camadas; R289: as mudanças do editor de mapas, e o editor com ?editor=1)
   $("#carregando").hidden = true;
   fpsLigar(FPS.ligado);
   grafBloom();                                      // (o nível de gráfico: o bloom)
