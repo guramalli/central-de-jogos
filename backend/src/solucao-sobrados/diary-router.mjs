@@ -1,12 +1,16 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import {DiaryService,fail} from './diary-service.mjs';
+import {DiaryService,fail,migrate} from './diary-service.mjs';
 export function diaryRouter(db,{origins=['https://www.educacaogamer.com.br','https://educacaogamer.com.br']}={}){
   const router=express.Router(),service=new DiaryService(db);
   router.use((req,res,next)=>{res.set({'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});next();});
   router.use(rateLimit({windowMs:60000,max:180,standardHeaders:true,legacyHeaders:false,message:{error:'Muitas requisições. Aguarde um minuto.'}}));
   router.use((req,res,next)=>{if(req.method==='POST'&&!origins.includes(req.headers.origin))return res.status(403).json({error:'Origem não autorizada.'});next();});
   router.use(express.json({limit:'4mb'}));
+  // Bootstrap only this product's isolated schema in the deployed database.
+  // A failed initialization is retried by the next request, without stopping other apps.
+  let ready;
+  router.use(async(req,res,next)=>{try{if(!ready)ready=migrate(db).catch(error=>{ready=null;throw error;});await ready;next();}catch(error){next(error);}});
   const token=req=>{const a=req.headers.authorization;fail(typeof a==='string'&&a.startsWith('Bearer '),'Abra o link de acesso deste diário.',401);return a.slice(7);};
   const wrap=fn=>async(req,res,next)=>{try{await fn(req,res);}catch(e){next(e);}};
   router.get('/health',wrap(async(req,res)=>res.json(await service.health())));
