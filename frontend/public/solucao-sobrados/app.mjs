@@ -1,6 +1,6 @@
-import {mountDiary,mountSharedDiary,readDiaryLink} from './diary.mjs';
-import {STAGES,CATEGORIES,KINDS,NEIGHBORHOODS,empty,validate,command,totals,scenario,market,history,costReport,csv,decimal,date,today,money,paid,used,sum,amount} from './domain.mjs';
-import {demo} from './demo.mjs';
+import {mountDiary,mountSharedDiary,readDiaryLink} from './diary.mjs?v=20261117-diary3';
+import {STAGES,CATEGORIES,KINDS,NEIGHBORHOODS,empty,validate,command,totals,scenario,market,history,costReport,csv,decimal,date,today,money,paid,used,sum,amount} from './domain.mjs?v=20261117-diary3';
+import {demo} from './demo.mjs?v=20261117-diary3';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2}).format(n),pct=n=>n===null?'—':fmt(n*100)+'%',brDate=d=>d?d.slice(0,10).split('-').reverse().join('/'):'—',val=(n,d=100)=>String(n/d);
 const icons={overview:'◫',project:'⌂',costs:'≡',stages:'▦',diary:'▧',profit:'↗',market:'⌕',history:'↔'};

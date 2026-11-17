@@ -1,4 +1,4 @@
-import { empty,command,validate } from './domain.mjs';
+import { empty,command,validate } from './domain.mjs?v=20261117-diary3';
 export function demo(){
   let s=empty();const run=(type,d)=>{const r=command(s,type,d);s=r.state;return r.result;};
   const create=(name,count,year,land,sale)=>run('project.create',{name,neighborhood:'Vila Tupi',zone:'Zona 2',address:'Endereço ilustrativo · Praia Grande / SP',start:year+'-02-10',type:'condominium',bedrooms:2,allocation:'area',reserveBps:500,sellingBps:600,targetBps:2000,notes:'Empreendimento demonstrativo. Custos e condições totalmente fictícios.',count,area:6200,sale:sale*100,land:land*100,commission:land*5,taxes:1800000,acquisitionPaid:true,laborMode:'separate'});
