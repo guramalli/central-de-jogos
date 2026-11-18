@@ -1,4 +1,4 @@
-import {REMINDER_KINDS,PRIORITIES,STATE_LABELS,reminderState,orderedReminders,remindersICS,saoPauloDate} from './reminder-domain.mjs?v=20261117-photo1';
+import {REMINDER_KINDS,PRIORITIES,STATE_LABELS,reminderState,orderedReminders,remindersICS,saoPauloDate} from './reminder-domain.mjs?v=20261118-trash1';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const btn=(action,label,id='',primary=false)=>`<button type="button" class="btn ${primary?'primary':''}" data-reminder="${action}" data-id="${esc(id)}">${label}</button>`;
 const options=(rows,value)=>rows.map(([id,label])=>`<option value="${esc(id)}" ${id===value?'selected':''}>${esc(label)}</option>`).join('');

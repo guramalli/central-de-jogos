@@ -1,6 +1,6 @@
-import {mountProjectPhoto} from './project-photo.mjs?v=20261117-photo1';
-import {renderDocumentsPanel} from './documents-ui.mjs?v=20261117-photo1';
-import {renderReminderPanel,reminderCounts} from './reminders-ui.mjs?v=20261117-photo1';
+import {mountProjectPhoto} from './project-photo.mjs?v=20261118-trash1';
+import {renderDocumentsPanel} from './documents-ui.mjs?v=20261118-trash1';
+import {renderReminderPanel,reminderCounts} from './reminders-ui.mjs?v=20261118-trash1';
 const API='/api/solucao-sobrados/diary',KEY='ss-diary-links-v1';
 export function mountProjectIdentity(container,contextKey){return mountProjectPhoto({container,access:()=>links()[contextKey]});}
 export function mountReminderSummary(container,contextKey){
