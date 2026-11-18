@@ -54,12 +54,12 @@ export async function setProjectCover(service,id,token,d){return service.db.$tra
     await tx.$executeRaw`INSERT INTO ss_diary_v1.doc_covers VALUES(${id},${d.fileId},${thumb.data},${bytes}) ON CONFLICT(board_id) DO UPDATE SET file_id=EXCLUDED.file_id,content=EXCLUDED.content,bytes=EXCLUDED.bytes`;
   }else{fail(d.fileId===null,'Escolha a foto ou remova a seleção.');await tx.$executeRaw`DELETE FROM ss_diary_v1.doc_covers WHERE board_id=${id}`;}
   await tx.$executeRaw`UPDATE ss_diary_v1.quota SET bytes=bytes+${BigInt(bytes-(old?.bytes||0))} WHERE id=1`;
-  await changed(tx,id,b.role,d.fileId?'project-photo-set':'project-photo-clear',d.fileId||'');return {ok:true};
+  await changed(tx,id,b,d.fileId?'project-photo-set':'project-photo-clear',d.fileId||'');return {ok:true};
 });}
 export async function projectCover(service,id,token){const b=await service.board(service.db,id,token);const [cover]=await service.db.$queryRaw`SELECT c.content,f.shared FROM ss_diary_v1.doc_covers c JOIN ss_diary_v1.doc_files f ON f.id=c.file_id AND f.board_id=c.board_id WHERE c.board_id=${id} AND f.state='ready' AND f.archived=FALSE`;
   fail(cover&&(b.role!=='reader'||cover.shared),'Foto do empreendimento indisponível.',404);return Buffer.from(cover.content);
 }
-async function changed(tx,id,role,action,subject){const now=BigInt(Date.now());await tx.$executeRaw`UPDATE ss_diary_v1.boards SET revision=revision+1,updated_at=${now} WHERE id=${id}`;await tx.$executeRaw`INSERT INTO ss_diary_v1.audit VALUES(${randomUUID()},${id},${action},${role},${subject},${now})`;}
+async function changed(tx,id,board,action,subject){const now=BigInt(Date.now());await tx.$executeRaw`UPDATE ss_diary_v1.boards SET revision=revision+1,updated_at=${now} WHERE id=${id}`;await tx.$executeRaw`INSERT INTO ss_diary_v1.audit(id,board_id,action,actor_role,subject,created_at,actor_user_id) VALUES(${randomUUID()},${id},${action},${board.role},${subject},${now},${board.actor?.id||null})`;}
 async function folderExists(tx,id,folderId){if(!folderId)return;const rows=await tx.$queryRaw`SELECT id FROM ss_diary_v1.doc_folders WHERE board_id=${id} AND id=${uuid(folderId)}`;fail(rows.length,'Pasta não encontrada neste empreendimento.',404);}
 export async function changeFolder(service,id,token,d){return service.db.$transaction(async tx=>{
   const b=await service.board(tx,id,token,true,false,true),name=clean(d.name,'Nome da pasta',80),fid=uuid(d.id),parent=d.parentId?uuid(d.parentId):null;
@@ -70,10 +70,10 @@ export async function changeFolder(service,id,token,d){return service.db.$transa
   const destination=existing?existing.parent_id:parent;fail(!folders.some(f=>f.id!==fid&&f.parent_id===destination&&f.name.toLocaleLowerCase('pt-BR')===name.toLocaleLowerCase('pt-BR')),'Já existe uma pasta com esse nome neste nível.',409);
   if(existing)await tx.$executeRaw`UPDATE ss_diary_v1.doc_folders SET name=${name},revision=revision+1 WHERE id=${fid}`;
   else await tx.$executeRaw`INSERT INTO ss_diary_v1.doc_folders(id,board_id,parent_id,name) VALUES(${fid},${id},${parent},${name})`;
-  await changed(tx,id,b.role,'folder-save',fid);return {id:fid};
+  await changed(tx,id,b,'folder-save',fid);return {id:fid};
 });}
-export async function beginUpload(service,id,token,d){const p=uploadInput(d),fingerprint=sha(JSON.stringify(p));return service.db.$transaction(async tx=>{
-  const [quota]=await tx.$queryRaw`SELECT * FROM ss_diary_v1.quota WHERE id=1 FOR UPDATE`;await service.board(tx,id,token,true,false,true);
+export async function beginUpload(service,id,token,d){return service.db.$transaction(async tx=>{
+  const [quota]=await tx.$queryRaw`SELECT * FROM ss_diary_v1.quota WHERE id=1 FOR UPDATE`;const b=await service.board(tx,id,token,true,false,true),p=uploadInput(b.actor?{...d,author:''}:d);if(b.actor){p.author=clean(b.actor.name,'Responsável autenticado',150);p.authorUserId=b.actor.id;}const fingerprint=sha(JSON.stringify(p));
   // Reclaim only expired, never-published temporary uploads. Published originals are retained.
   const expired=await tx.$queryRaw`SELECT id,payload FROM ss_diary_v1.doc_files WHERE state='pending' AND expires<${BigInt(Date.now())} FOR UPDATE`;
   let released=0;for(const f of expired){released+=f.payload.size;await tx.$executeRaw`DELETE FROM ss_diary_v1.doc_parts WHERE file_id=${f.id}`;await tx.$executeRaw`UPDATE ss_diary_v1.doc_files SET state='cancelled' WHERE id=${f.id}`;}
@@ -103,7 +103,7 @@ export async function completeUpload(service,id,token,fileId){uuid(fileId);retur
   const parts=await tx.$queryRaw`SELECT part,content FROM ss_diary_v1.doc_parts WHERE file_id=${fileId} ORDER BY part`;
   fail(parts.length===Math.ceil(f.payload.size/DOCUMENT_LIMITS.chunkBytes)&&parts.every((p,i)=>p.part===i),'Arquivo incompleto. Tente enviar novamente.',409);
   const bytes=Buffer.concat(parts.map(p=>Buffer.from(p.content)));fail(bytes.length===f.payload.size&&sha(bytes)===f.payload.sha256,'Falha na integridade do arquivo. Envie novamente.',409);validSignature(bytes,f.payload.ext);
-  await tx.$executeRaw`UPDATE ss_diary_v1.doc_files SET state='ready' WHERE id=${fileId}`;await changed(tx,id,b.role,'document-upload',fileId);return {id:fileId};
+  await tx.$executeRaw`UPDATE ss_diary_v1.doc_files SET state='ready' WHERE id=${fileId}`;await changed(tx,id,b,'document-upload',fileId);return {id:fileId};
 },{timeout:15000});}
 export async function manageDocument(service,id,token,fileId,d){uuid(fileId);return service.db.$transaction(async tx=>{
   const b=await service.board(tx,id,token,true,['share','archive','restore'].includes(d.action),true);const [f]=await tx.$queryRaw`SELECT * FROM ss_diary_v1.doc_files WHERE board_id=${id} AND id=${fileId} AND state='ready'`;
@@ -112,7 +112,7 @@ export async function manageDocument(service,id,token,fileId,d){uuid(fileId);ret
   else if(d.action==='share'){fail(typeof d.shared==='boolean','Permissão inválida.');await tx.$executeRaw`UPDATE ss_diary_v1.doc_files SET shared=${d.shared} WHERE id=${fileId}`;}
   else if(['archive','restore'].includes(d.action))await tx.$executeRaw`UPDATE ss_diary_v1.doc_files SET archived=${d.action==='archive'} WHERE id=${fileId}`;
   else fail(false,'Ação inválida.');
-  await tx.$executeRaw`UPDATE ss_diary_v1.doc_files SET revision=revision+1 WHERE id=${fileId}`;await changed(tx,id,b.role,'document-'+d.action,fileId);return {ok:true};
+  await tx.$executeRaw`UPDATE ss_diary_v1.doc_files SET revision=revision+1 WHERE id=${fileId}`;await changed(tx,id,b,'document-'+d.action,fileId);return {ok:true};
 });}
 export async function downloadPart(service,id,token,fileId,index){uuid(fileId);const b=await service.board(service.db,id,token);const [f]=await service.db.$queryRaw`SELECT * FROM ss_diary_v1.doc_files WHERE board_id=${id} AND id=${fileId} AND state='ready' AND archived=FALSE`;
   fail(f&&(b.role!=='reader'||f.shared),'Arquivo não disponível para este acesso.',404);fail(Number.isInteger(index)&&index>=0&&index<Math.ceil(f.payload.size/DOCUMENT_LIMITS.chunkBytes),'Parte inválida.');

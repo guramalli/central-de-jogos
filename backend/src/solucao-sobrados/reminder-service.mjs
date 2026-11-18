@@ -32,7 +32,7 @@ export async function changeReminder(service,boardId,token,d){
       payload={...old.payload,status:d.status};await tx.$executeRaw`UPDATE ss_diary_v1.reminders SET payload=${JSON.stringify(payload)}::jsonb,revision=revision+1,updated_at=${now} WHERE id=${d.id}`;
     }else reject(false,'Ação inválida.');
     await tx.$executeRaw`UPDATE ss_diary_v1.boards SET revision=revision+1,updated_at=${now} WHERE id=${boardId}`;
-    await tx.$executeRaw`INSERT INTO ss_diary_v1.audit VALUES(${randomUUID()},${boardId},${'reminder.'+d.action},${b.role},${d.id},${now})`;
+    await tx.$executeRaw`INSERT INTO ss_diary_v1.audit(id,board_id,action,actor_role,subject,created_at,actor_user_id) VALUES(${randomUUID()},${boardId},${'reminder.'+d.action},${b.role},${d.id},${now},${b.actor?.id||null})`;
     return {id:d.id};
   },{timeout:15000});
 }
