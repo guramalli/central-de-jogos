@@ -21,3 +21,5 @@
 @media(max-width:650px){.maintenance-app .maint-photos-heading>.btn{width:100%}.maintenance-app .maint-photo-previews{grid-template-columns:1fr}.maintenance-app .maint-photo-pickers{flex-direction:column}.maintenance-app .maint-photo-gallery{gap:10px}.maintenance-app .maint-photo-gallery figcaption{padding:10px;font-size:12px}.maintenance-app .maint-photo-gallery small{font-size:11px}}
 @media(max-width:390px){.maintenance-app .maint-photo-gallery{grid-template-columns:1fr}}
 
+/* Contact and appointment text can wrap on narrow screens without widening the page. */
+.maintenance-app .maint-ticket-meta>span{min-width:0;max-width:100%;overflow-wrap:anywhere}

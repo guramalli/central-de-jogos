@@ -1,6 +1,6 @@
 import {canAccess,normalizeModules,fullFinancialAccess} from './access-domain.mjs?v=20261118-access8';
 import {accountApi,loginScreen,mountUsers,roleLabels,setAccountContext} from './account-ui.mjs?v=20261118-maintenance10';
-import {mountMaintenance} from './maintenance-ui.mjs?v=20261118-maintenance10';
+import {mountMaintenance} from './maintenance-ui.mjs?v=20261118-maintenance13';
 import {resolveMarketCriteria,buildMarketSearchUrl} from './market-search.mjs?v=20261118-access8';
 import {mountDiary,mountSharedDiary,readDiaryLink,mountReminderSummary,mountProjectIdentity} from './diary.mjs?v=20261118-maintenance10';
 import {STAGES,CATEGORIES,KINDS,NEIGHBORHOODS,empty,validate,command,totals,scenario,market,history,costReport,csv,decimal,date,today,money,paid,used,sum,amount,tracksQuantity,activeProjects,CONSTRUCTION_SCOPES,constructionTotals,isContractor,contractFileData,CONTRACT_FILE_LIMIT,isProgressStage,physicalProgress,SALE_MODES,SALE_DOCUMENTS,activeSale,received,salesTotals,salePlan} from './domain.mjs?v=20261118-access8';
