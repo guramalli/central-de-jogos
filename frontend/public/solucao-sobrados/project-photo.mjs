@@ -1,4 +1,4 @@
-import {accountHeaders} from './account-ui.mjs?v=20261118-access8';
+import {accountHeaders} from './account-ui.mjs?v=20261118-maintenance10';
 // Authenticated thumbnail only; originals stay in Documentos e projetos.
 export function mountProjectPhoto({container,access,api='/api/solucao-sobrados/diary'}){
   if(!container||!access)return ()=>{};
@@ -17,3 +17,4 @@ export function mountProjectPhoto({container,access,api='/api/solucao-sobrados/d
   check();const timer=setInterval(()=>{if(!document.hidden)check();},30000);
   return ()=>{stopped=true;abort.abort();clearInterval(timer);window.removeEventListener('ss-project-photo-changed',changed);if(url)URL.revokeObjectURL(url);};
 }
+
