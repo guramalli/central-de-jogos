@@ -99,9 +99,22 @@
       "source": "/solucao-sobrados",
       "destination": "/solucao-sobrados/",
       "permanent": false
+    },
+    {
+      "source": "/obrasv2",
+      "destination": "/obrasv2/",
+      "permanent": false
     }
   ],
   "rewrites": [
+    {
+      "source": "/api/obrasv2/:path*",
+      "destination": "https://obranexo.onrender.com/api/obrasv2/:path*"
+    },
+    {
+      "source": "/obrasv2/:path*",
+      "destination": "https://obranexo.onrender.com/obrasv2/:path*"
+    },
     {
       "source": "/api/solucao-sobrados/diary/:path*",
       "destination": "https://api.educacaogamer.com.br/api/solucao-sobrados/diary/:path*"
@@ -452,6 +465,40 @@
         {
           "key": "X-Robots-Tag",
           "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/obrasv2/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    },
+    {
+      "source": "/api/obrasv2/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
         }
       ]
     }
