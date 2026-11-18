@@ -1698,7 +1698,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.106 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.107 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -5634,7 +5634,10 @@ function textura(n) {
     const x = R() * S, y = R() * S, r = 20 + R() * 38, cor = mixHex(base, R() < 0.5 ? COR.papel : n === 5 ? COR.cinabre : COR.ocre, 0.07 + R() * 0.09);
     emVolta((X, Y) => { g.fillStyle = cor; g.beginPath(); for (let q = 0; q < 14; q++) { const a = q / 14 * 6.283, rr = r * (1 + 0.2 * Math.sin(a * 2 + k) + 0.12 * Math.sin(a * 3 + k * 2)); q ? g.lineTo(X + Math.cos(a) * rr, Y + Math.sin(a) * rr * 0.55) : g.moveTo(X + Math.cos(a) * rr, Y + Math.sin(a) * rr * 0.55); } g.fill(); }, x, y);
   }
-  if (n < 5) {                                                         // as marcas de vento: grupos de 3 a 5 riscos paralelos
+  // (R415, 18/11: na areia, os riscos de vento do ladrilho se repetiam em grade a cada 7 m, a mesma figura em fileiras. Agora as
+  // ondulações saem no mundo, em manchas sem repetição (pintarAreiaViva); o ladrilho da areia leva só o grão: pontinhos de 2 tons)
+  if (n < 4) for (let k = 0; k < 260; k++) { const x = R() * S, y = R() * S, r = 0.6 + R() * 0.9, cor = R() < 0.55 ? mixHex(base, COR.nanquim, 0.18) : mixHex(base, COR.papel, 0.45); emVolta((X, Y) => { g.fillStyle = cor; g.fillRect(X - r / 2, Y - r / 2, r, r * 0.8); }, x, y); }
+  if (n === 4) {                                                       // as marcas de vento da trilha: grupos de 3 a 5 riscos paralelos
     const cor = mixHex(base, COR.nanquim, n === 4 ? 0.12 : 0.16);
     for (let k = 0; k < (n === 4 ? 4 : 9); k++) {
       const x = R() * S, y = R() * S, L = 18 + R() * 30, q = 3 + Math.floor(R() * 3), dy = 4 + R() * 3, lw = 0.9 + R() * 0.7;
@@ -5878,6 +5881,9 @@ function pintarNanquimDuna(g, Pz, esc, d) {
   for (let k = 0; k < sc.length; k++) { const a = sc[Math.max(0, k - 1)], b = sc[Math.min(sc.length - 1, k + 1)], tx = b[0] - a[0], ty = b[1] - a[1], m = Math.hypot(tx, ty) || 1, nx = -ty / m, ny = tx / m, w = larg[k] / 2;
     esq.push([sc[k][0] + nx * w * 0.7, sc[k][1] + ny * w * 0.7]); dir.push([sc[k][0] - nx * w * 1.3, sc[k][1] - ny * w * 1.3]); }   // (a pincelada pesa para baixo, para a face)
   const pp = new Path2D(); esq.forEach((q, k) => k ? pp.lineTo(...q) : pp.moveTo(...q)); for (let k = dir.length - 1; k >= 0; k--) pp.lineTo(...dir[k]); pp.closePath();
+  // (R415) a borda clara do lado do sol, logo atrás da crista: a "faca" da duna de Mingsha lê pelo claro contra o escuro da face
+  { const bc = new Path2D(); let ab = false; for (const p of vivos) { if (p.h / d.H < 0.22) { ab = false; continue; } const s = Pz(p.u, p.c + 0.18 + 0.1 * p.h, p.h * 0.965); ab ? bc.lineTo(...s) : bc.moveTo(...s); ab = true; }
+    g.strokeStyle = mixHex(COR.papel, "#FFFFFF", 0.25); g.globalAlpha = 0.85; g.lineWidth = lw(0.05); g.lineCap = "round"; g.stroke(bc); g.globalAlpha = 1; }
   g.fillStyle = COR.nanquim; g.fill(pp);
 }
 // o Caravançará: o alto do platô, o muro de arrimo da frente (pedras em fiadas) e a rampa
@@ -5993,6 +5999,9 @@ function pintarTrilha(g, Pz, esc, pertoU) {
 function pintarOasis(g, Pz, esc, pertoU) {
   if (!pertoU(LAGO.a.u, LAGO.a.v, 0, LAGO.a.ru + 8)) return;
   const lw = m => Math.max(1, m * esc), trace = (pts, z = 0) => { g.beginPath(); pts.forEach(([u, v], k) => { const q = Pz(u, v, z); k ? g.lineTo(...q) : g.moveTo(...q); }); g.closePath(); };
+  // (R415) o anel de areia úmida em volta do lago: um tom abaixo da areia, de borda mexida (as fotos do Yueyaquan)
+  { const um = new Path2D(); curvaEm(um, blobPts(LAGO.a.u, LAGO.a.v, LAGO.a.ru + 5.2, LAGO.a.rv + 4.4, 7, 40), Pz); g.fillStyle = mixHex(TOM.areia[1], COR.nanquim, 0.06); g.fill(um);
+    const um2 = new Path2D(); curvaEm(um2, blobPts(LAGO.a.u, LAGO.a.v + 0.2, LAGO.a.ru + 3.6, LAGO.a.rv + 3.0, 11, 36), Pz); g.fillStyle = mixHex(mixHex(TOM.areia[1], COR.jade, 0.08), COR.nanquim, 0.1); g.fill(um2); }
   // o gramado em volta (manchas de borda irregular) e o miolo da meia-lua
   const gr = new Path2D(); for (let k = 0; k < 22; k++) { const a = k / 22 * 6.283, cu = LAGO.a.u + Math.cos(a) * (LAGO.a.ru + 1.6), cv = LAGO.a.v + Math.sin(a) * (LAGO.a.rv + 1.4), r = 2.4 + 1.6 * hsh(k, 1, 251); curvaEm(gr, blobPts(cu, cv, r, r * 0.7, k * 1.7, 12), Pz); }
   curvaEm(gr, blobPts(LAGO.a.u, LAGO.a.v + 0.4, LAGO.a.ru + 1.4, LAGO.a.rv + 1.6, 3, 28), Pz); curvaEm(gr, blobPts(LAGO.b.u, LAGO.b.v, LAGO.b.ru + 0.4, LAGO.b.rv + 0.5, 5, 24), Pz);
@@ -6037,6 +6046,116 @@ function pintarPegadas(g, Pz, esc, pertoU) {
   g.fillStyle = "rgba(45,74,107,0.3)"; g.fill(som);
   g.fillStyle = mixHex(TOM.areia[1], COR.papel, 0.1); g.fill(rem); g.strokeStyle = "rgba(30,27,24,0.35)"; g.lineWidth = Math.max(1, 0.03 * esc); g.stroke(rem);
 }
+// ---------------------------------------------------------------- R415 (18/11, o usuário: "vamos melhorar agora o mapa deserto,
+// quero que você faça todo um trabalho de melhoria dos desenhos e arte do mapa proceduralmente, procure referencias"). A areia plana
+// era um campo liso com o mesmo risco de vento em grade; agora, no cache do pedaço (nada por quadro), ela ganha:
+// - as ONDULAÇÕES do vento em manchas soltas, sem repetição: 3 a 7 cristinhas paralelas, perpendiculares ao vento, cada uma com o
+//   lado do vento aceso (papel) e o de trás em sombra (nanquim ralo), como as ripples das dunas de Mingsha;
+// - o que fica no chão: pedrinhas em montes (mais na beira da trilha), tufos secos de espinheiro com o montinho de areia que o
+//   vento junta atrás, galhos mortos, ossos, a crosta rachada e o rastro miúdo de um besouro.
+// Tudo chapado, com o contorno de nanquim e a sombra no índigo do jogo, para a direita e para a frente (a luz vem do fundo).
+// O vento sopra do fundo para a frente da tela (as faces das barcanas olham para a câmera), um pouco para a direita
+const VENTO = (() => { const a = 0.3, b = -1, n = Math.hypot(a, b); return [a / n, b / n]; })();   // (para onde sopra, na vista)
+const VENTO_P = [-VENTO[1], VENTO[0]];                                // (ao longo da crista de uma ondulação)
+const pertoDuna = (u, v) => { for (const d of DUNAS) { const b = d.caixa; if (u > b[0] - 1.2 && u < b[1] + 1.2 && v > b[2] - 1.2 && v < b[3] + 2 + d.H * 1.6) return true; } return false; };
+const naCarav = (u, v) => Math.abs(u - CARAV.u) < CARAV.a + CARAV.lado + 1 && v > CARAV.f - CARAV.rampa.comp - 1 && v < CARAV.t + CARAV.tras + 1;
+// o chão de areia plana, sem nada pintado por cima (o paredão, o papel, as dunas, o platô, a água, o leito e as peças); deco: mais folga
+function chaoAreia(u, v, deco) {
+  if (naRocha(u, v) || bordaV(u, v) < (deco ? 4 : 3) || pertoDuna(u, v) || naCarav(u, v)) return false;
+  if (dentroEl(LAGO.a, u, v, 3.5) || dentroEl(LAGO.poco, u, v, 2) || Math.hypot(u - LEITO.u, (v - LEITO.v) / 0.82) < LEITO.r + 1) return false;
+  if (deco) for (const p of D.pegadas) if (Math.abs(p.u - u) < p.r + 0.6 && Math.abs(p.v - v) < p.r + 0.6) return false;
+  return true;
+}
+const AREIA_VIVA = { ondas: 0, pecas: 0 };                           // (as contagens do último pedaço: o R415)
+function pintarAreiaViva(g, Pz, esc, u0, u1, v0, v1) {
+  const t0 = performance.now(); try { pintarAreiaViva2(g, Pz, esc, u0, u1, v0, v1); } finally { AREIA_VIVA.ms = performance.now() - t0; }
+}
+function pintarAreiaViva2(g, Pz, esc, u0, u1, v0, v1) {
+  const lw = m => Math.max(0.7, m * esc);
+  // 1. as ondulações: uma mancha por célula de 4,5 m (62% delas), no mundo (o pedaço vizinho pinta a mesma)
+  const escuro = new Path2D(), claro = new Path2D(), CO = 4.5; let nOnd = 0;
+  for (let i = Math.floor(u0 / CO) - 1; i <= Math.ceil(u1 / CO); i++) for (let j = Math.floor(v0 / CO) - 1; j <= Math.ceil(v1 / CO); j++) {
+    if (hsh(i, j, 501) > 0.72) continue;
+    const cu = (i + 0.5 + (hsh(i, j, 502) - 0.5) * 0.8) * CO, cv = (j + 0.5 + (hsh(i, j, 503) - 0.5) * 0.8) * CO;
+    if (cu < u0 - 4 || cu > u1 + 4 || cv < v0 - 3 || cv > v1 + 3 || !chaoAreia(cu, cv) || naTrilha(cu, cv, 0.6)) continue;
+    const n = 3 + Math.floor(hsh(i, j, 504) * 5), lam = 0.3 + 0.14 * hsh(i, j, 505), L = 1.4 + 2.4 * hsh(i, j, 506), th = (hsh(i, j, 507) - 0.5) * 0.35;
+    const c = Math.cos(th), s = Math.sin(th), du = [c * VENTO_P[0] - s * VENTO_P[1], s * VENTO_P[0] + c * VENTO_P[1]], W = [-du[1], du[0]];
+    const meio = (n - 1) / 2;
+    for (let q = 0; q < n; q++) {
+      const Ls = L * (1 - 0.55 * Math.abs(q - meio) / (meio + 0.01)) * (0.8 + 0.4 * hsh(i * 7 + q, j, 508)), off = (hsh(i, j * 5 + q, 509) - 0.5) * 0.5, k0 = (q - meio) * lam;
+      const pt = tt => { const w = 0.07 * Math.sin(tt * 5.3 + q * 1.7 + j); return [cu + du[0] * (tt * Ls + off) + W[0] * (k0 + w), cv + du[1] * (tt * Ls + off) + W[1] * (k0 + w)]; };
+      const a = pt(-0.5), b = pt(0.5); if (!chaoAreia(...a) || !chaoAreia(...b)) continue;
+      for (let r = 0; r <= 8; r++) { const [u, v] = pt(r / 8 - 0.5), e = Pz(u - W[0] * 0.03, v - W[1] * 0.03, 0); r ? escuro.lineTo(...e) : escuro.moveTo(...e); }
+      for (let r = 1; r <= 7; r++) { const [u, v] = pt(r / 8 - 0.5), e = Pz(u + W[0] * 0.07, v + W[1] * 0.07, 0); r > 1 ? claro.lineTo(...e) : claro.moveTo(...e); }
+      nOnd++;
+    }
+  }
+  g.lineCap = "round"; g.lineJoin = "round";
+  g.globalAlpha = 0.55; g.strokeStyle = mixHex(TOM.areia[0], COR.papel, 0.6); g.lineWidth = lw(0.03); g.stroke(claro);
+  g.globalAlpha = 0.6; g.strokeStyle = mixHex(TOM.areia[0], COR.nanquim, 0.28); g.lineWidth = lw(0.028); g.stroke(escuro);
+  g.globalAlpha = 1;
+  // 2. as peças pintadas no chão: uma chance por célula de 2,2 m
+  const som = new Path2D(), pedA = new Path2D(), pedB = new Path2D(), pedTopo = new Path2D(), monte = new Path2D(), crosta = new Path2D(), racha = new Path2D(),
+    osso = new Path2D(), tufo = new Path2D(), tufoEsc = new Path2D(), galho = new Path2D(), rastro = new Path2D(), CD = 2.2;
+  const S = SOMBRA_UV; let nPec = 0;
+  for (let i = Math.floor(u0 / CD) - 1; i <= Math.ceil(u1 / CD); i++) for (let j = Math.floor(v0 / CD) - 1; j <= Math.ceil(v1 / CD); j++) {
+    const r = hsh(i, j, 511) * 0.8; if (r > 0.36) continue;
+    const cu = (i + 0.5 + (hsh(i, j, 512) - 0.5) * 0.9) * CD, cv = (j + 0.5 + (hsh(i, j, 513) - 0.5) * 0.9) * CD;
+    if (cu < u0 - 2 || cu > u1 + 2 || cv < v0 - 2 || cv > v1 + 2 || !chaoAreia(cu, cv, true)) continue;
+    if (naTrilha(cu, cv, 0.15)) continue;
+    const beiraTrilha = naTrilha(cu, cv, 1.6), h = q => hsh(i * 13 + q, j * 7 - q, 514), sem = i * 3.1 + j * 1.7;
+    nPec++;
+    if (r < 0.14 || (beiraTrilha && r < 0.3)) {                       // as pedrinhas, em montes de 2 a 6
+      const m = 2 + Math.floor(h(1) * 5);
+      for (let k = 0; k < m; k++) { const pu = cu + (h(2 + k) - 0.5) * 1.1, pv = cv + (h(9 + k) - 0.5) * 0.8, rr = 0.045 + 0.11 * h(17 + k) ** 2;
+        curvaEm(som, blobPts(pu + S[0] * rr * 0.8, pv + S[1] * rr * 0.8, rr * 1.05, rr * 0.62, sem + k, 7), Pz);
+        curvaEm(k % 3 ? pedA : pedB, blobPts(pu, pv, rr, rr * 0.72, sem + k * 2, 7), Pz); }
+    } else if (r < 0.2) {                                              // o tufo seco (o espinheiro-de-camelo) no montinho de areia
+      curvaEm(som, blobPts(cu + S[0] * 0.1, cv + S[1] * 0.1, 0.3, 0.15, sem, 10), Pz);
+      curvaEm(monte, blobPts(cu - VENTO[0] * 0.25, cv - VENTO[1] * 0.25, 0.55, 0.36, sem + 1, 10), Pz);   // (a areia junta do lado de trás do vento)
+      const m = 8 + Math.floor(h(3) * 6);
+      for (let k = 0; k < m; k++) { const an = -1.25 + 2.5 * (k + h(20 + k) * 0.6) / m, L = 0.18 + 0.16 * h(30 + k), p0 = Pz(cu + Math.sin(an) * 0.05, cv, 0.04), p1 = Pz(cu + Math.sin(an) * L, cv + (h(40 + k) - 0.5) * 0.15, 0.04 + Math.cos(an) * L * 1.1);
+        const q = k % 3 ? tufo : tufoEsc; q.moveTo(...p0); q.quadraticCurveTo(...Pz(cu + Math.sin(an) * L * 0.4, cv, 0.04 + Math.cos(an) * L * 0.8), ...p1); }
+    } else if (r < 0.225) {                                            // o galho morto: tronco, 2 ou 3 ramos e os gravetos
+      const ramo = (u, v, z, an, L, n) => { if (n < 0 || L < 0.04) return; const u2 = u + Math.sin(an) * L, z2 = z + Math.cos(an) * L * 1.15; galho.moveTo(...Pz(u, v, z)); galho.lineTo(...Pz(u2, v, z2)); for (let k = 0; k < (n > 1 ? 3 : 2); k++) ramo(u2, v, z2, an + (k - (n > 1 ? 1 : 0.5)) * (0.5 + 0.3 * h(50 + n * 3 + k)), L * (0.55 + 0.15 * h(60 + n + k)), n - 1); };
+      ramo(cu, cv, 0, (h(4) - 0.5) * 0.5, 0.2 + 0.08 * h(5), 3);
+      curvaEm(som, blobPts(cu + S[0] * 0.3, cv + S[1] * 0.3, 0.32, 0.12, sem, 8), Pz);
+    } else if (r < 0.237) {                                            // os ossos: 1 ou 2 canelas cruzadas
+      for (let k = 0; k < 1 + (h(6) < 0.5 ? 1 : 0); k++) { const an = h(7 + k) * 3.14, L = 0.2 + 0.1 * h(8 + k), du2 = Math.cos(an) * L, dv2 = Math.sin(an) * L * 0.8, a0 = [cu - du2, cv - dv2 + k * 0.1], a1 = [cu + du2, cv + dv2 + k * 0.1], nx = -Math.sin(an) * 0.035, nv2 = Math.cos(an) * 0.035;
+        curvaEm(osso, [[a0[0] + nx, a0[1] + nv2], [a1[0] + nx, a1[1] + nv2], [a1[0] - nx, a1[1] - nv2], [a0[0] - nx, a0[1] - nv2]], Pz);
+        for (const e of [a0, a1]) for (const sg of [-1, 1]) curvaEm(osso, blobPts(e[0] + nx * 1.4 * sg, e[1] + nv2 * 1.4 * sg, 0.055, 0.04, sem + sg, 7), Pz);
+        curvaEm(som, blobPts(cu + S[0] * 0.04, cv + S[1] * 0.04 + k * 0.1, L, 0.06, sem, 8), Pz); }
+    } else if (r < 0.28) {                                             // a crosta rachada: uma mancha de areia endurecida com a rede de rachaduras
+      const R0 = 0.6 + 0.5 * h(9), N = 8, ru = R0, rv = R0 * 0.72, dentro = (u, v) => ((u - cu) / ru) ** 2 + ((v - cv) / rv) ** 2 < 0.92;
+      const vert = (a, b) => [cu + (a - N / 2 + (h(130 + a * 7 + b) - 0.5) * 0.75) * 2 * ru / N, cv + (b - N / 2 + (h(170 + a + b * 7) - 0.5) * 0.75) * 2 * rv / N];
+      curvaEm(crosta, blobPts(cu, cv, ru * 1.04, rv * 1.04, sem, 12), Pz);
+      for (let a = 0; a <= N; a++) for (let b = 0; b <= N; b++) { const p = vert(a, b); if (!dentro(...p)) continue;
+        for (const [a2, b2] of [[a + 1, b], [a, b + 1]]) { const q = vert(a2, b2); if (!dentro(...q) || h(200 + a * 11 + b2 * 5 + a2) < 0.22) continue; racha.moveTo(...Pz(...p, 0)); racha.lineTo(...Pz((p[0] + q[0]) / 2 + (h(220 + a + b) - 0.5) * 0.05, (p[1] + q[1]) / 2, 0)); racha.lineTo(...Pz(...q, 0)); } }
+    } else if (r < 0.295) {                                            // o seixo grande: a pedra com o alto aceso
+      const rr = 0.2 + 0.18 * h(11);
+      curvaEm(som, blobPts(cu + S[0] * rr * 0.7, cv + S[1] * rr * 0.7, rr * 1.15, rr * 0.6, sem, 9), Pz);
+      curvaEm(pedB, blobPts(cu, cv, rr, rr * 0.7, sem, 9), Pz); curvaEm(pedTopo, blobPts(cu - rr * 0.12, cv + rr * 0.12, rr * 0.72, rr * 0.48, sem + 2, 9, rr * 0.45), Pz);
+    } else {                                                           // o rastro miúdo de um besouro: 2 fileiras de pontinhos em curva
+      const an = h(12) * 6.283, curva = (h(13) - 0.5) * 1.6, m = 10 + Math.floor(h(14) * 8);
+      for (let k = 0; k < m; k++) { const t = k / m - 0.5, a = an + curva * t, pu = cu + Math.cos(an) * t * 1.8 + Math.sin(curva * t) * 0.2, pv = cv + Math.sin(an) * t * 1.8;
+        for (const sg of [-1, 1]) { const e = Pz(pu - Math.sin(a) * 0.035 * sg + Math.cos(a) * (k % 2) * 0.03, pv + Math.cos(a) * 0.035 * sg, 0); rastro.moveTo(e[0] + Math.max(0.6, 0.012 * esc), e[1]); rastro.arc(e[0], e[1], Math.max(0.6, 0.012 * esc), 0, 6.283); } }
+    }
+  }
+  if (!nPec) { AREIA_VIVA.ondas = nOnd; AREIA_VIVA.pecas = 0; return; }
+  g.fillStyle = "rgba(45,74,107,0.24)"; g.fill(som);
+  g.fillStyle = mixHex(TOM.areia[0], COR.papel, 0.16); g.fill(monte);
+  g.fillStyle = mixHex(TOM.areia[1], COR.papel, 0.25); g.fill(crosta); g.strokeStyle = "rgba(30,27,24,0.36)"; g.lineWidth = lw(0.014); g.stroke(racha);
+  g.fillStyle = mixHex(COR.pedra, COR.ocre, 0.35); g.fill(pedA); g.fillStyle = mixHex(ARENITO, COR.nanquim, 0.12); g.fill(pedB); g.fillStyle = mixHex(ARENITO, COR.papel, 0.35); g.fill(pedTopo);
+  g.strokeStyle = COR.nanquim; g.lineWidth = lw(0.02); g.stroke(pedA); g.stroke(pedB); g.lineWidth = lw(0.016); g.stroke(pedTopo);
+  g.fillStyle = mixHex(COR.papel, "#FFFFFF", 0.2); g.fill(osso); g.strokeStyle = "rgba(30,27,24,0.75)"; g.lineWidth = lw(0.016); g.stroke(osso);
+  g.fillStyle = "rgba(30,27,24,0.4)"; g.fill(rastro);
+  g.strokeStyle = mixHex(mixHex(COR.jade, COR.ocre, 0.7), COR.nanquim, 0.15); g.lineWidth = lw(0.022); g.stroke(tufo);
+  g.strokeStyle = mixHex(COR.ocre, COR.nanquim, 0.45); g.stroke(tufoEsc);
+  g.strokeStyle = COR.nanquim; g.lineWidth = lw(0.02); g.stroke(galho);
+  AREIA_VIVA.ondas = nOnd; AREIA_VIVA.pecas = nPec;
+}
+D.AREIA_VIVA = AREIA_VIVA;
+D.chaoAreia = (x, y, deco) => { const [u, v] = vistaDe(x, y); return chaoAreia(u, v, deco); };
 D.pintarPedaco = function (g, Pp, esc, x0, y1, cw, ch, lado = 6) {
   pronta();
   const ALT = altJogo(), ACH = achJogo(), dzV = ALT / ACH, nv = typeof naVista === "function" ? naVista : (x, y) => [(x - y) * R2, (x + y) * R2];
@@ -6054,6 +6173,11 @@ D.pintarPedaco = function (g, Pp, esc, x0, y1, cw, ch, lado = 6) {
   pintarBeiraPapel(g, Pz, esc, pertoU);
   pintarOasis(g, Pz, esc, pertoU);
   pintarLeito(g, Pz, esc, pertoU, padrao(g, 6, x0, y1, esc, 0, ACH, ALT, 5));
+  { // (R415) a areia viva: a caixa do pedaço na vista do deserto (os 4 cantos da vista do jogo, de volta ao mundo)
+    const a = nv(1, 0), b = nv(0, 1), det = a[0] * b[1] - b[0] * a[1], uv = (ru, rv) => vistaDe((ru * b[1] - rv * b[0]) / det, (rv * a[0] - ru * a[1]) / det);
+    const cs = [uv(U0, V0), uv(U1, V0), uv(U0, V1), uv(U1, V1)];
+    pintarAreiaViva(g, Pz, esc, Math.min(...cs.map(c => c[0])), Math.max(...cs.map(c => c[0])), Math.min(...cs.map(c => c[1])), Math.max(...cs.map(c => c[1])));
+  }
   g.restore();
   // as dunas, do fundo para a frente: a sombra e as ondulações em volta, o relevo (pixel a pixel) e o nanquim. (Elas não se
   // cobrem na tela: entre duas há ≥ 6 m de chão 0, e a encosta só sobe na tela até o pé de trás)
@@ -6088,6 +6212,80 @@ D.desenharFundo = function (t, vp = emMundoJogo()) {
   if (!FUNDO.ancoras) { FUNDO.ancoras = []; for (let k = 0; k < 120; k++) { const a = k / 120 * 2 * Math.PI, r = rVista(a) + 5 + 10 * hsh(k, 1, 281); if (hsh(k, 2, 282) < 0.5) continue; FUNDO.ancoras.push({ ...(([x, y]) => ({ x, y }))(mundoDe(Math.cos(a) * r, Math.sin(a) * r)), m: 10 + 10 * hsh(k, 3, 283), q: k % 3 }); } }
   for (const a of FUNDO.ancoras) { const [X, Y] = em(a.x, a.y, 0), lg = a.m * s, hg = lg * 90 / 520; if (X + lg / 2 < 0 || X - lg / 2 > VW || Y - hg > VH || Y + hg < 0) continue; g.drawImage(sp[a.q], X - lg / 2, Y - hg / 2, lg, hg); }
 };
+// ---------------------------------------------------------------- R415: o vento, por quadro (barato: só traços, nenhum pixel lido)
+// - as FITAS de areia rente ao chão, a favor do vento, em ladrilhos de 24 m presos ao mundo (não andam com a câmera);
+// - a areia que o vento tira das CRISTAS das dunas perto da câmera e escorre pela face, mais forte nas rajadas;
+// - o REDEMOINHO (desenharAr, por cima de quem fica em pé): um de cada vez, a cada 25 a 45 s, de 9 a 22 m do herói, na areia plana.
+// Chapado e sem luz somada (o padrão dos efeitos do jogo): o papel ralo nas fitas, nanquim ralo nos grãos do redemoinho
+const AR = { redemoinho: null, prox: 12, tAnt: null, forcar: false, ultimo: { fitas: 0, cristas: 0 } };
+const rajadaEm = t => 0.5 + 0.5 * Math.sin(t * 0.33) * (0.6 + 0.4 * Math.sin(t * 0.11 + 1.3));   // (0 a 1: o sopro geral)
+const cristasDe = d => d._cr || (d._cr = Array.from({ length: 16 }, (_, k) => { const x = -0.85 + 1.7 * k / 15; return { u: d.u + x * d.L, c: cristaV(d, x), h: altX(d, x) }; }).filter(p => p.h > d.H * 0.35));
+D.desenharVento = function (t, vp = emMundoJogo()) {
+  if (typeof cam !== "object") return;
+  const { g, em, s } = vp, [cu, cv] = vistaDe(cam.x, cam.y), raj = rajadaEm(t), P = (u, v, z) => em(...mundoDe(u, v), z);
+  g.save(); g.lineCap = "round"; g.lineJoin = "round";
+  // 1. as fitas rente ao chão
+  const T = 24, BU = 26, BV = 22; let nf = 0;
+  g.strokeStyle = "#FBF4E2";
+  for (let i = Math.floor((cu - BU) / T); i <= Math.floor((cu + BU) / T); i++) for (let j = Math.floor((cv - BV) / T); j <= Math.floor((cv + BV) / T); j++) for (let k = 0; k < 3; k++) {
+    const h = q => hsh(i * 5 + k, j * 3 + q, 601), vel = 3 + 2 * h(1), Lf = 1.8 + 2.6 * h(2), ciclo = T + Lf;
+    const a = (h(3) * ciclo + t * vel) % ciclo, fase = a / ciclo, al = Math.sin(Math.PI * fase) * (0.25 + 0.45 * raj); if (al < 0.05) continue;
+    const ou = i * T + h(4) * T, ov = j * T + h(5) * T, pu = ou + VENTO[0] * (a - ciclo / 2), pv = ov + VENTO[1] * (a - ciclo / 2);
+    if (Math.abs(pu - cu) > BU || Math.abs(pv - cv) > BV) continue;
+    g.beginPath(); let ok = 0;
+    for (let q = 0; q <= 8; q++) { const tt = q / 8, w = 0.22 * Math.sin(tt * 4.5 - t * 3.2 + k * 2), u = pu - VENTO[0] * Lf * tt + VENTO_P[0] * w, v = pv - VENTO[1] * Lf * tt + VENTO_P[1] * w;
+      if (naRocha(u, v) || bordaV(u, v) < 1 || naAgua(u, v, 0.3)) break; const e = P(u, v, zSup(u, v) + 0.03); q ? g.lineTo(...e) : g.moveTo(...e); ok++; }
+    if (ok < 3) continue;
+    g.globalAlpha = al * 0.35; g.strokeStyle = mixHex(TOM.areia[1], COR.nanquim, 0.1); g.lineWidth = Math.max(1, s * (0.03 + 0.02 * h(6))); g.translate(0, Math.max(1, s * 0.025)); g.stroke(); g.translate(0, -Math.max(1, s * 0.025));
+    g.globalAlpha = al; g.strokeStyle = "#FBF4E2"; g.lineWidth = Math.max(1, s * (0.03 + 0.02 * h(6))); g.stroke(); nf++;
+  }
+  // 2. a areia tirada das cristas
+  let nc = 0;
+  if (raj > 0.3) for (const d of DUNAS) {
+    if (Math.abs(d.u - cu) > d.L + BU || d.v < cv - BV - 4 || d.v > cv + BV + 6) continue;
+    const cr = cristasDe(d), di = DUNAS.indexOf(d);
+    for (let k = 0; k < cr.length; k++) for (let m = 0; m < 2; m++) {
+      const p = cr[k], sem = hsh(k, di * 3 + m, 611), ph = (t * (0.45 + 0.25 * sem) + sem) % 1, L = (1.2 + 1.6 * sem) * (0.6 + 0.8 * raj), al = Math.sin(Math.PI * ph) * Math.min(0.85, 0.35 + (raj - 0.3) * 1.2);
+      if (al < 0.05) continue;
+      g.beginPath();
+      for (let q = 0; q <= 6; q++) { const ss = Math.max(0, ph - 0.3) + q / 6 * Math.min(0.3, ph), u = p.u + VENTO[0] * L * ss + 0.15 * Math.sin(t * 2 + sem * 9), v = p.c + VENTO[1] * L * ss, zf = Math.max(0.03, p.h - (p.c - v) * FACE_INC), e = P(u, v, zf + 0.12 * Math.sin(Math.PI * ss) + 0.05);
+        q ? g.lineTo(...e) : g.moveTo(...e); }
+      g.globalAlpha = al; g.lineWidth = Math.max(1, s * 0.03 * (1 - ph * 0.6)); g.stroke(); nc++;
+    }
+  }
+  g.restore(); AR.ultimo = { fitas: nf, cristas: nc, rajada: +raj.toFixed(2) };
+};
+D.desenharAr = function (t, vp = emMundoJogo()) {
+  if (typeof cam !== "object") return;
+  const { g, em, s } = vp, dt = Math.min(0.1, Math.max(0, t - (AR.tAnt ?? t))); AR.tAnt = t;
+  // nasce um novo (o sorteio é do Math.random: o redemoinho não precisa voltar igual)
+  if (!AR.redemoinho && (AR.prox -= dt) <= 0) {
+    const [cu, cv] = vistaDe(cam.x, cam.y), an = Math.random() * 6.283, dd = 9 + Math.random() * 13, u = cu + Math.cos(an) * dd, v = cv + Math.sin(an) * dd * 0.8;
+    if (chaoAreia(u, v, false) && !naTrilha(u, v, 1)) { AR.redemoinho = { u, v, t: 0, dur: 7 + Math.random() * 4, sem: Math.random() * 9, esc: 0.8 + Math.random() * 0.5 }; AR.prox = 25 + Math.random() * 20; } else AR.prox = 1.5;
+  }
+  const r = AR.redemoinho; if (!r) return;
+  r.t += dt; if (r.t > r.dur) { AR.redemoinho = null; return; }
+  r.u += (VENTO[0] * 0.9 + Math.sin(r.t * 0.7 + r.sem) * 0.5) * dt; r.v += (VENTO[1] * 0.9 + Math.cos(r.t * 0.9 + r.sem) * 0.4) * dt;
+  const e = Math.min(1, r.t / 1.5, (r.dur - r.t) / 1.5) * r.esc, [x, y] = mundoDe(r.u, r.v), ACH = achJogo(), z0 = zSup(r.u, r.v);
+  g.save();
+  // o pé: a areia levantada no chão
+  { const [X, Y] = em(x, y, z0); g.fillStyle = mixHex(TOM.areia[0], COR.papel, 0.4); g.globalAlpha = 0.28 * e; g.beginPath(); g.ellipse(X, Y, 1.3 * s * e, 1.3 * s * ACH * e, 0, 0, 6.283); g.fill(); }
+  // a coluna: anéis chapados que se abrem para cima, com a ponta curvada pelo vento, e um arco de cada anel girando
+  const N = 12;
+  for (let k = 0; k < N; k++) {
+    const f = k / (N - 1), z = z0 + f * 3.2 * e, rr = (0.2 + 0.9 * f * f + 0.15 * f) * e, sway = 0.35 * f * f * Math.sin(r.t * 1.6 + r.sem), du = sway + VENTO[0] * f * f * 0.6, dv = VENTO[1] * f * f * 0.6;
+    const [X, Y] = em(...mundoDe(r.u + du, r.v + dv), z), rx = rr * s, ry = rr * s * ACH * 0.55;
+    g.globalAlpha = 0.16 * e * (1 - f * 0.4); g.fillStyle = mixHex(TOM.areia[1], COR.papel, 0.15); g.beginPath(); g.ellipse(X, Y, rx, ry, 0, 0, 6.283); g.fill();
+    const a0 = r.t * (7 - f * 3) + k * 0.9; g.globalAlpha = 0.6 * e * (1 - f * 0.45); g.strokeStyle = mixHex(TOM.areia[2], COR.nanquim, 0.22); g.lineWidth = Math.max(1.2, s * 0.035);
+    g.beginPath(); g.ellipse(X, Y, rx, ry, 0, a0, a0 + 2.3); g.stroke();
+  }
+  // os grãos e os gravetos que giram
+  g.fillStyle = mixHex(COR.ocre, COR.nanquim, 0.45);
+  for (let k = 0; k < 16; k++) { const f = (k / 16 + r.t * 0.12) % 1, an = r.t * (6 - f * 2) + k * 2.4, rr = (0.25 + 0.9 * f * f) * e, z = z0 + f * 3 * e, [X, Y] = em(...mundoDe(r.u + Math.cos(an) * rr, r.v + Math.sin(an) * rr * 0.6), z), q = Math.max(1.5, s * 0.035);
+    g.globalAlpha = 0.8 * e * (1 - f * 0.5); g.fillRect(X - q / 2, Y - q / 2, q, q * 0.7); }
+  g.restore();
+};
+D.AR = AR;
 // as trevas da Ghotin: o disco não passa por cima de uma duna, da rocha ou do platô (o recorte tira a área deles na tela)
 D.recortarTrevas = function (g, x, y) {
   if (typeof noMundo !== "function") return;
@@ -17664,11 +17862,15 @@ function explosaoChefe(x, y, r, cor) {
 // somada e sem contorno. Barato: 3 desenhos prontos por cor (POEIRA.spr), no máximo POEIRA.max nuvens, e desligada nos gráficos Baixo e no
 // ?test=1 (POEIRA.forcar liga, para o teste). Desenhada no chão, antes de quem fica em pé (desenharQuadro)
 const POEIRA = { parts: [], max: 36, acum: 0, ultX: null, ultY: null, pe: 0, forcar: false, criadas: 0, spr: {},
-  COR: { vila1: "#F2E8D0", hahoe: "#EEE2C6", montanha: "#ECEAE4", daiyu: null }, TAXA: 13, TAXA_MONTADO: 16, VIDA: 0.6 };   // (as cores: a terra de cada chão, clareada para o papel)
+  COR: { vila1: "#F2E8D0", hahoe: "#EEE2C6", montanha: "#ECEAE4", daiyu: null, deserto: "#EAD3A4", desertoTrilha: "#EFE2C4" }, TAXA: 13, TAXA_MONTADO: 16, VIDA: 0.6,
+  // (R415) a areia do deserto: manchas chapadas de borda dura, em 2 tons, que saem no passo e somem ENCOLHENDO, e os grãos
+  areia: [], graos: [], MAX_AREIA: 90, MAX_GRAOS: 70, fx: 0, fy: -1, passos: 0,
+  TOM_AREIA: { claro: "#EBD6A9", sombra: "#BC965A", grao: "#9C7542", graoClaro: "#F3E5C2" } };   // (as cores: a terra de cada chão, clareada para o papel)
 // o chão em (x, y) é caminho de terra? Devolve a cor da poeira dele (ou null)
 function poeiraNoChao(x, y) {
   if (naCaverna(x)) return null;
   const m = mapaDe(x, y);
+  if (m === MAPAS.deserto) { if (typeof DESERTO !== "object") return null; const so = DESERTO.solo(x, y); return so === "areia" ? POEIRA.COR.deserto : so === "terra" ? POEIRA.COR.desertoTrilha : null; }   // (R415: toda a areia e a trilha; o arenito não)
   if (m === MAPAS.daiyu) return typeof DAIYU === "object" && DAIYU.naTrilha && DAIYU.naTrilha(x, y) ? (POEIRA.COR.daiyu || (POEIRA.COR.daiyu = clarearHex(DAIYU.TOM ? DAIYU.TOM.chao2 : "#B8B2A8", 0.35))) : null;
   if (m === MAPAS.vila1) {
     if (praca(x, y)) return null;                                       // (a praça e as ruas são de pedra)
@@ -17698,12 +17900,20 @@ function passoPoeira(dt) {
   const P = POEIRA, v = viking;
   for (const p of P.parts) { p.t += dt; p.x += p.dx * dt; p.y += p.dy * dt; p.z += p.vz * dt; p.vz *= Math.max(0, 1 - 2.5 * dt); }
   for (let i = P.parts.length - 1; i >= 0; i--) if (P.parts[i].t >= P.VIDA) P.parts.splice(i, 1);
+  passoAreia(dt);                                                         // (R415)
   if (!poeiraLigada() || !v) { P.ultX = null; return; }
   const ux = P.ultX === null ? 0 : v.x - P.ultX, uy = P.ultX === null ? 0 : v.y - P.ultY; P.ultX = v.x; P.ultY = v.y;
   const d = Math.hypot(ux, uy), vel = dt > 0 ? d / dt : 0;
+  if (vel > 0.3 && vel < 25) { P.fx = ux / d; P.fy = uy / d; }          // (R415: para onde ele anda, para a areia do passo sair para trás)
   if (vel < 1.2 || vel > 25 || v.caido) { P.acum = 0; return; }       // (parado, empurrado devagar ou um salto de lugar: nada)
   const cor = poeiraNoChao(v.x, v.y); if (!cor) { P.acum = 0; return; }
   const mont = !!v.montado, fx = ux / d, fy = uy / d;
+  if (cor === P.COR.deserto || cor === P.COR.desertoTrilha) {             // (R415: no deserto, a pé, a areia sai no passo, areiaPasso; montado, das patas, pela distância)
+    if (!mont) { P.acum = 0; return; }
+    P.acum += dt * P.TAXA_MONTADO * 0.6;
+    while (P.acum >= 1) { P.acum -= 1; P.pe ^= 1; soltarAreia(v.x - fx * 0.55 - fy * (P.pe ? 0.3 : -0.3), v.y - fy * 0.55 + fx * (P.pe ? 0.3 : -0.3), fx, fy, 3, 3, 1.35, cor); }
+    return;
+  }
   P.acum += dt * (mont ? P.TAXA_MONTADO : P.TAXA);
   while (P.acum >= 1) {
     P.acum -= 1; P.pe ^= 1;
@@ -17715,7 +17925,60 @@ function passoPoeira(dt) {
     P.criadas++;
   }
 }
+// ---------------------------------------------------------------- R415 (18/11, o usuário: "crie particulas de areia saindo do pé do
+// personagem"). No Deserto de Mingsha (toda a areia e a trilha), cada passo do herói levanta a areia do pé que pisa: 3 manchas ao andar
+// e 5 ao correr, e mais os grãos que sobem e caem. Como pede a pesquisa (Logs/Mapas/deserto/REFERENCIAS_ARTE.md, 4.4) e o padrão dos
+// efeitos: manchas CHAPADAS de borda dura (um polígono de 6 lados), em 2 tons (o claro em cima, a sombra embaixo: o volume em faixas),
+// sem contorno e sem luz somada; saem para trás do movimento (±50°), quase não caem (gravidade baixa, arrasto), o vento as leva um pouco
+// para a frente da tela, crescem até 1,4× e somem ENCOLHENDO, não apagando. Os grãos: quadradinhos de 2 tons, com gravidade. Montado:
+// das patas, pela distância. Barato: no máximo 90 manchas e 70 grãos, 4 preenchimentos por quadro; desligada como a poeira (gráficos Baixo)
+function soltarAreia(x, y, fx, fy, nMancha, nGrao, esc, cor) {
+  const P = POEIRA, trilha = cor === P.COR.desertoTrilha;
+  for (let k = 0; k < nMancha; k++) {
+    if (P.areia.length >= P.MAX_AREIA) P.areia.shift();
+    const an = Math.atan2(-fy, -fx) + (Math.random() - 0.5) * 1.75, vel = (0.6 + Math.random() * 0.8) * Math.sqrt(esc);
+    P.areia.push({ x: x + (Math.random() - 0.5) * 0.12, y: y + (Math.random() - 0.5) * 0.12, z: 0.03, dx: Math.cos(an) * vel + 0.3 * VENTO_AREIA[0], dy: Math.sin(an) * vel + 0.3 * VENTO_AREIA[1], vz: 0.35 + Math.random() * 0.45,
+      t: 0, vida: 0.55 + Math.random() * 0.3, r: (0.12 + Math.random() * 0.08) * esc, sem: Math.random() * 6.28, trilha });
+  }
+  for (let k = 0; k < nGrao; k++) {
+    if (P.graos.length >= P.MAX_GRAOS) P.graos.shift();
+    const an = Math.atan2(-fy, -fx) + (Math.random() - 0.5) * 1.4, vel = 0.8 + Math.random() * 1.1;
+    P.graos.push({ x, y, z: 0.05, dx: Math.cos(an) * vel, dy: Math.sin(an) * vel, vz: 1.1 + Math.random() * 1.1, t: 0, vida: 0.4 + Math.random() * 0.25, q: 0.025 + Math.random() * 0.03, claro: Math.random() < 0.45 });
+  }
+}
+// o vento do deserto no mundo (o VENTO de mapa_deserto.js é na vista dele: para a frente da tela, um pouco à direita)
+const VENTO_AREIA = (() => { if (typeof DESERTO !== "object" || !DESERTO.mundoDe) return [0.5, -0.5]; const a = DESERTO.mundoDe(0.29, -0.96), b = DESERTO.mundoDe(0, 0); return [a[0] - b[0], a[1] - b[1]]; })();
+// o passo do herói (os quadros do pé no chão, os mesmos do som): no deserto, a areia do pé
+function areiaPasso(v, correndo) {
+  const P = POEIRA;
+  if (!poeiraLigada() || !v || v.montado || v.caido) return;
+  const cor = poeiraNoChao(v.x, v.y); if (cor !== P.COR.deserto && cor !== P.COR.desertoTrilha) return;
+  P.passos++; const lado = (P.passos & 1 ? 1 : -1) * 0.12, fx = P.fx, fy = P.fy;
+  soltarAreia(v.x - fx * 0.12 - fy * lado, v.y - fy * 0.12 + fx * lado, fx, fy, correndo ? 6 : 3, correndo ? 5 : 2, correndo ? 1.15 : 0.9, cor);
+}
+function passoAreia(dt) {
+  const P = POEIRA;
+  for (const p of P.areia) { const ar = Math.max(0, 1 - 3.5 * dt); p.t += dt; p.x += p.dx * dt; p.y += p.dy * dt; p.z = Math.max(0, p.z + p.vz * dt); p.dx *= ar; p.dy *= ar; p.vz = p.vz * ar - 2 * dt; }
+  for (const p of P.graos) { p.t += dt; p.x += p.dx * dt; p.y += p.dy * dt; p.z += p.vz * dt; p.vz -= 7.5 * dt; if (p.z <= 0) { p.z = 0; p.dx *= 0.5; p.dy *= 0.5; p.vz = 0; } }
+  vivos(P.areia, p => p.t < p.vida); vivos(P.graos, p => p.t < p.vida);
+}
+function desenharAreiaPes() {
+  const P = POEIRA; if (!P.areia.length && !P.graos.length) return;
+  const s = PX * zoom, T = P.TOM_AREIA, bases = [], tops = [];
+  for (const p of P.areia) {
+    const u = p.t / p.vida, sc = u < 0.4 ? 0.6 + 0.8 * u / 0.4 : 1.4 * Math.pow(Math.max(0, 1 - (u - 0.4) / 0.6), 0.7), r = p.r * sc * s; if (r < 0.6) continue;
+    const [X, Y] = noMundoFx(p.x, p.y, p.z); bases.push([X, Y, r, p.sem]); tops.push([X - r * 0.08, Y - r * 0.3, r * 0.72, p.sem + 1]);
+  }
+  const poli = (l, ach) => { cx.beginPath(); for (const [X, Y, r, sem] of l) for (let k = 0; k <= 6; k++) { const a = k / 6 * 6.2832 + sem, rr = r * (0.78 + 0.22 * Math.sin(sem * 3 + k * 2.1)), px = X + Math.cos(a) * rr, py = Y + Math.sin(a) * rr * ach; k ? cx.lineTo(px, py) : cx.moveTo(px, py); } cx.fill(); };
+  cx.save();
+  cx.globalAlpha = 0.92;
+  cx.fillStyle = T.sombra; poli(bases, 0.62);
+  cx.fillStyle = T.claro; poli(tops, 0.6);
+  for (const claro of [false, true]) { cx.fillStyle = claro ? T.graoClaro : T.grao; cx.beginPath(); for (const p of P.graos) { if (p.claro !== claro) continue; const [X, Y] = noMundoFx(p.x, p.y, p.z), q = Math.max(1.4, p.q * s), a = 1 - p.t / p.vida; if (a <= 0) continue; cx.rect(X - q / 2, Y - q / 2, q * a + 0.6, q * 0.75 * a + 0.5); } cx.fill(); }
+  cx.restore();
+}
 function desenharPoeira() {
+  desenharAreiaPes();                                                     // (R415)
   const P = POEIRA; if (!P.parts.length) return;
   const s = PX * zoom;
   cx.save();
@@ -31421,6 +31684,7 @@ function passo(dt) {
   if (qp !== v.qPasso && (v.anim.startsWith("andando") || v.anim.startsWith("correndo")) && (qp === 0 || qp === Math.round(info.quadros / 2))) {
     som("passo", v, v.anim.startsWith("correndo") ? 0.75 : 0.45);
     pisar(v, "h", 1, v.anim.startsWith("correndo"));               // a pegada na neve/areia (e o espirro na poça)
+    areiaPasso(v, v.anim.startsWith("correndo"));                   // (R415: no deserto, a areia que o pé levanta)
   }
   v.qPasso = qp;
   if (v.ferido > 0) v.ferido = Math.max(0, v.ferido - dt);
@@ -31976,6 +32240,7 @@ function desenharQuadro(t) {
   desenharMira(t);
   desenharItens(t);
   desenharPoeira();                                 // (R300: a poeira dos caminhos, no chão, antes de quem fica em pé)
+  if (MAPA_CAM === MAPAS.deserto && !noEscuro && typeof DESERTO === "object" && DESERTO.desenharVento && GRAF.nivel !== "baixo" && (!MODO_TESTE || DESERTO.AR.forcar)) DESERTO.desenharVento(t);   // (R415: as fitas de areia e a areia das cristas)
   if (ESTILO_TINTA) respingosTinta(t, false);       // (Mundo de Tinta: as manchas de tinta e sangue já caídas no chão)
   prepararP3d(t);                                   // os bonecos em 3D vão para o atlas antes (cada um no seu lugar da ordem)
   // tudo por profundidade (quem está mais ao norte fica atrás)
@@ -32008,7 +32273,8 @@ function desenharQuadro(t) {
   if (GRAF.veu) desenharTrevasChao(0.5);           // (o véu das trevas por cima do mato alto e de quem está nelas)
   desenharShura2d(t);                               // (a caveira do Medo do shura e o crânio das criaturas com medo)
   desenharFuligem();                                // (a fuligem das amaldiçoadas, por cima delas)
-  if (MAPA_CAM === MAPAS.daiyu && typeof DAIYU === "object") DAIYU.desenharNevoa(t);   // (a névoa vulcânica constante e as brasas da Ilha de Daiyu)
+  if (MAPA_CAM === MAPAS.daiyu && typeof DAIYU === "object") DAIYU.desenharNevoa(t);
+  if (MAPA_CAM === MAPAS.deserto && !noEscuro && typeof DESERTO === "object" && DESERTO.desenharAr && GRAF.nivel !== "baixo" && (!MODO_TESTE || DESERTO.AR.forcar)) DESERTO.desenharAr(t);   // (R415: o redemoinho)   // (a névoa vulcânica constante e as brasas da Ilha de Daiyu)
   // (com os efeitos 3D, as placas e barras vão depois deles e do escuro da noite: ficam por cima, como no mundo 3D)
   if (!(fx3() && FX3.iso) && !ESTILO_TINTA) desenharPlacas();   // (na tinta, depois do filtro)
   if (ESTILO_TINTA) respingosTinta(t, true);        // (os respingos ainda no ar)
