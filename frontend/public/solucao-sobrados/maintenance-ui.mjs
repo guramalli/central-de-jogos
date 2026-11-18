@@ -1,0 +1,128 @@
+// Presentation only. Authorization, revision checks and persistence belong to the API.
+const STATUS={open:'Aberto',scheduled:'Agendado',in_progress:'Em atendimento',waiting:'Aguardando',completed:'Concluído',cancelled:'Cancelado'};
+const PRIORITY={low:'Baixa',normal:'Normal',high:'Alta',urgent:'Urgente'};
+const KIND={assistance:'Assistência de casa entregue',maintenance:'Manutenção de imóvel'};
+const ACTION={created:'Chamado aberto',updated:'Dados atualizados','status-changed':'Andamento atualizado',reopened:'Chamado reaberto',commented:'Comentário'};
+const FIELD={projectId:'Empreendimento',unitId:'Casa',propertyId:'Imóvel',kind:'Tipo',title:'Título',description:'Descrição',priority:'Prioridade',assigneeId:'Responsável',scheduledDate:'Data agendada',status:'Andamento'};
+const esc=value=>String(value??'').replace(/[&<>"']/gu,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const CLOSED=new Set(['completed','cancelled']);
+const date=value=>value&&/^\d{4}-\d{2}-\d{2}$/u.test(value)?value.split('-').reverse().join('/'):'Não informada';
+const moment=value=>{const d=new Date(value);return Number.isNaN(d.getTime())?'Data não disponível':new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(d);};
+const option=(value,label,selected)=>`<option value="${esc(value)}"${value===selected?' selected':''}>${esc(label)}</option>`;
+const actionButton=(action,label,id='',style='')=>`<button type="button" class="btn ${style}" data-maint-action="${esc(action)}" data-maint-id="${esc(id)}">${esc(label)}</button>`;
+
+/** api('read') and api('command',{type,payload,revision}) return
+ * {state:maintenanceView(...),projects,users,actor}; dispose removes handlers/modal. */
+export function mountMaintenance({container,api,actor:initialActor,projects:initialProjects=[],users:initialUsers=[]}){
+  if(!container||typeof api!=='function')throw new Error('Não foi possível iniciar a manutenção.');
+  let disposed=false,sequence=0,loading=true,saving=false,error='',message='',selected='',state={revision:0,tickets:[],properties:[]};
+  let actor=initialActor,projects=initialProjects,users=initialUsers,modal=null,modalReturn=null;
+  const filter={status:'',assignee:'',kind:'',search:''};
+  const canManage=()=>['admin','manager'].includes(actor?.role);
+  const responsible=id=>users.find(user=>user.id===id)?.name||users.find(user=>user.id===id)?.displayName||(id?'Responsável não disponível':'Não atribuído');
+  const projectName=id=>projects.find(project=>project.id===id)?.name||'Empreendimento não disponível';
+  const propertyName=id=>state.properties.find(property=>property.id===id)?.name||'Imóvel não disponível';
+  const unitName=(projectId,unitId)=>projects.find(project=>project.id===projectId)?.units?.find(unit=>unit.id===unitId)?.name||'Casa não disponível';
+  const place=ticket=>ticket.propertyId?propertyName(ticket.propertyId):`${projectName(ticket.projectId)} · ${unitName(ticket.projectId,ticket.unitId)}`;
+  const summary=()=>{const open=state.tickets.filter(ticket=>!CLOSED.has(ticket.status));return {open:open.length,progress:open.filter(ticket=>ticket.status==='in_progress').length,urgent:open.filter(ticket=>ticket.priority==='urgent').length,completed:state.tickets.filter(ticket=>ticket.status==='completed').length};};
+  function response(result){
+    if(!result||!result.state||!Array.isArray(result.state.tickets)||!Array.isArray(result.state.properties)||!Number.isSafeInteger(result.state.revision))throw new Error('A resposta do servidor está incompleta. Atualize a tela.');
+    state=result.state;actor=result.actor||actor;projects=Array.isArray(result.projects)?result.projects:projects;users=Array.isArray(result.users)?result.users:users;
+    if(selected&&!state.tickets.some(ticket=>ticket.id===selected))selected='';
+  }
+  function badges(ticket){return `<span class="maint-badge status-${esc(ticket.status)}">${esc(STATUS[ticket.status]||ticket.status)}</span><span class="maint-badge priority-${esc(ticket.priority)}">Prioridade ${esc(PRIORITY[ticket.priority]||ticket.priority)}</span>`;}
+  function filters(){return `<form class="maint-filters" data-maint-form="filters" role="search" aria-label="Filtrar chamados"><label>Buscar chamado<input type="search" name="search" value="${esc(filter.search)}" placeholder="Título, descrição ou imóvel" maxlength="160"></label><label>Andamento<select name="status">${option('','Todos os andamentos',filter.status)}${Object.entries(STATUS).map(([value,label])=>option(value,label,filter.status)).join('')}</select></label><label>Tipo<select name="kind">${option('','Todos os tipos',filter.kind)}${Object.entries(KIND).map(([value,label])=>option(value,label,filter.kind)).join('')}</select></label>${canManage()?`<label>Responsável<select name="assignee">${option('','Todos os responsáveis',filter.assignee)}${option('__none','Sem responsável',filter.assignee)}${users.filter(user=>['manager','maintenance'].includes(user.role)).map(user=>option(user.id,user.name||user.displayName||'Responsável',filter.assignee)).join('')}</select></label>`:''}<button type="submit" class="btn">Filtrar</button>${actionButton('clear-filters','Limpar')}</form>`;}
+  function matched(){const query=filter.search.toLocaleLowerCase('pt-BR');return [...state.tickets].filter(ticket=>(!filter.status||ticket.status===filter.status)&&(!filter.kind||ticket.kind===filter.kind)&&(!filter.assignee||(filter.assignee==='__none'?!ticket.assigneeId:ticket.assigneeId===filter.assignee))&&(!query||`${ticket.title} ${ticket.description} ${place(ticket)}`.toLocaleLowerCase('pt-BR').includes(query))).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));}
+  function list(){const tickets=matched();return `<div class="maint-list-heading"><h2>Chamados</h2><span>${tickets.length} ${tickets.length===1?'resultado':'resultados'}</span></div>${tickets.length?`<div class="maint-ticket-list">${tickets.map(ticket=>`<article class="maint-ticket"><div class="maint-ticket-main"><div class="maint-badges">${badges(ticket)}</div><h3>${esc(ticket.title)}</h3><p class="maint-location">${esc(place(ticket))}</p><p class="maint-description-preview">${esc(ticket.description||'Sem descrição adicional.')}</p><div class="maint-ticket-meta"><span><b>Responsável</b> ${esc(responsible(ticket.assigneeId))}</span><span><b>Agendamento</b> ${esc(date(ticket.scheduledDate))}</span><span><b>Tipo</b> ${esc(KIND[ticket.kind]||ticket.kind)}</span></div></div>${actionButton('open','Ver chamado',ticket.id)}</article>`).join('')}</div>`:`<div class="maint-empty"><h3>${state.tickets.length?'Nenhum chamado corresponde aos filtros.':'Nenhum chamado por aqui.'}</h3><p>${state.tickets.length?'Altere os filtros para consultar outros registros.':canManage()?'Abra um chamado para uma casa do empreendimento ou cadastre um imóvel em uso.':'Os chamados atribuídos a você aparecerão aqui.'}</p>${state.tickets.length?actionButton('clear-filters','Limpar filtros'):canManage()?actionButton('new','Abrir chamado','','primary'):''}</div>`}`;}
+  function properties(){if(!canManage())return '';return `<details class="maint-properties"><summary>Imóveis em uso cadastrados <span>${state.properties.length}</span></summary><p>Use para imóveis fora das casas dos empreendimentos. O endereço é opcional.</p>${state.properties.length?`<ul>${state.properties.map(property=>`<li><div><strong>${esc(property.name)}</strong><span>${esc(property.address||'Endereço não informado')}</span></div>${actionButton('edit-property','Editar',property.id)}</li>`).join('')}</ul>`:''}${actionButton('new-property','Cadastrar imóvel')}</details>`;}
+  function changeValue(key,value,ticket){
+    if(value===''||value===null||value===undefined)return 'Não informado';
+    if(key==='status')return STATUS[value]||String(value);
+    if(key==='priority')return PRIORITY[value]||String(value);
+    if(key==='kind')return KIND[value]||String(value);
+    if(key==='assigneeId')return responsible(value);
+    if(key==='scheduledDate')return date(value);
+    if(key==='projectId')return projectName(value);
+    if(key==='propertyId')return propertyName(value);
+    if(key==='unitId')return unitName(ticket.projectId,value);
+    return String(value);
+  }
+  function history(ticket){return `<section class="maint-history" aria-labelledby="maint-history-title"><h3 id="maint-history-title">Histórico do chamado</h3><ol>${[...(ticket.history||[])].reverse().map(entry=>`<li><div class="maint-history-top"><strong>${esc(ACTION[entry.action]||'Atualização')}</strong><time datetime="${esc(entry.at)}">${esc(moment(entry.at))}</time></div><p class="maint-history-actor">${esc(users.find(user=>user.id===entry.actorId)?.name||users.find(user=>user.id===entry.actorId)?.displayName||({admin:'Administrador',manager:'Gestor',maintenance:'Equipe de manutenção'}[entry.actorRole])||'Usuário')}</p>${entry.comment?`<p class="maint-comment">${esc(entry.comment)}</p>`:''}${Object.keys(entry.changes||{}).length?`<details><summary>Ver alterações</summary><ul>${Object.entries(entry.changes).map(([key,change])=>`<li><b>${esc(FIELD[key]||key)}</b><span>${esc(changeValue(key,change.from,ticket))} → ${esc(changeValue(key,change.to,ticket))}</span></li>`).join('')}</ul></details>`:''}</li>`).join('')}</ol></section>`;}
+  function detail(ticket){return `<section class="maint-detail"><div class="maint-detail-head"><div><div class="maint-badges">${badges(ticket)}</div><h2 tabindex="-1" id="maint-detail-title">${esc(ticket.title)}</h2><p>${esc(place(ticket))}</p></div>${actionButton('back','Voltar aos chamados')}</div><dl class="maint-facts"><div><dt>Tipo</dt><dd>${esc(KIND[ticket.kind]||ticket.kind)}</dd></div><div><dt>Responsável</dt><dd>${esc(responsible(ticket.assigneeId))}</dd></div><div><dt>Data agendada</dt><dd>${esc(date(ticket.scheduledDate))}</dd></div><div><dt>Abertura</dt><dd>${esc(moment(ticket.createdAt))}</dd></div></dl><div class="maint-detail-description"><h3>Descrição do atendimento</h3><p>${esc(ticket.description||'Nenhuma descrição adicional.')}</p></div><div class="maint-detail-actions">${canManage()&&!CLOSED.has(ticket.status)?actionButton('edit','Editar dados e responsável',ticket.id):''}${!CLOSED.has(ticket.status)||canManage()?actionButton('status',CLOSED.has(ticket.status)?'Reabrir chamado':'Atualizar andamento',ticket.id,'primary'):''}${actionButton('comment','Adicionar comentário',ticket.id)}</div>${history(ticket)}</section>`;}
+  function render(){if(disposed)return;const counts=summary(),ticket=state.tickets.find(item=>item.id===selected);
+    container.innerHTML=`<div class="maintenance-app" aria-busy="${loading}"><header class="maint-page-heading"><div><p class="maint-eyebrow">MANUTENÇÃO E ASSISTÊNCIA</p><h1>Cuide de cada imóvel.</h1><p>${canManage()?'Organize chamados, responsáveis e retornos após a entrega.':'Seus atendimentos, datas e atualizações em um só lugar.'}</p></div><div class="maint-toolbar">${actionButton('refresh','Atualizar')}${canManage()?actionButton('new','+ Abrir chamado','','primary'):''}</div></header>${error?`<div class="maint-alert error" role="alert">${esc(error)}</div>`:''}${message?`<div class="maint-alert" role="status">${esc(message)}</div>`:''}${loading?'<p class="maint-loading" role="status">Carregando manutenção…</p>':`<div class="maint-summary" aria-label="Resumo dos chamados"><div><span>Em aberto</span><strong>${counts.open}</strong><small>Inclui agendados e em atendimento</small></div><div><span>Em atendimento</span><strong>${counts.progress}</strong><small>Serviços em andamento</small></div><div><span>Urgentes em aberto</span><strong>${counts.urgent}</strong><small>Prioridade definida pela gestão</small></div><div><span>Concluídos</span><strong>${counts.completed}</strong><small>Histórico preservado</small></div></div>${ticket?detail(ticket):`<section class="maint-workspace">${filters()}${list()}</section>${properties()}`}<p class="maint-footnote">Chamados e histórico de atendimento. Fotos e anexos ainda não estão disponíveis neste módulo.</p>`}</div>`;
+  }
+  async function load(){const run=++sequence;loading=true;error='';render();try{const result=await api('read');if(disposed||run!==sequence)return;response(result);}catch(problem){if(disposed||run!==sequence)return;error=problem?.message||'Não foi possível carregar a manutenção.';}finally{if(!disposed&&run===sequence){loading=false;render();}}}
+  function closeModal(){if(!modal)return;const prior=modalReturn;modal.close();modal.remove();modal=null;modalReturn=null;if(prior?.isConnected)prior.focus();}
+  function openModal(title,content,formType,id=''){
+    if(disposed||saving)return;closeModal();modalReturn=document.activeElement;
+    modal=document.createElement('dialog');modal.className='maintenance-dialog';modal.setAttribute('aria-labelledby','maint-dialog-title');
+    modal.innerHTML=`<form data-maint-form="${esc(formType)}" data-maint-id="${esc(id)}"><header class="maint-dialog-head"><h2 id="maint-dialog-title">${esc(title)}</h2><button type="button" class="maint-close" data-maint-action="close-modal" aria-label="Fechar">×</button></header><div class="maint-modal-fields">${content}<p class="maint-form-error" role="alert" hidden></p></div><footer class="maint-dialog-footer"><button type="button" class="btn" data-maint-action="close-modal">Cancelar</button><button type="submit" class="btn primary">Salvar</button></footer></form>`;
+    container.querySelector('.maintenance-app').append(modal);
+    modal.addEventListener('cancel',event=>{event.preventDefault();if(!saving)closeModal();});
+    modal.showModal();
+  }
+  function propertyForm(id=''){
+    const property=state.properties.find(item=>item.id===id);if(id&&!property)return;
+    openModal(property?'Editar imóvel':'Cadastrar imóvel em uso',`<label>Nome do imóvel<input name="name" required maxlength="160" value="${esc(property?.name||'')}" autocomplete="off"></label><label>Endereço <span class="maint-optional">opcional</span><textarea name="address" maxlength="400" rows="3">${esc(property?.address||'')}</textarea></label>`,property?'property-update':'property-create',id);
+  }
+  function ticketForm(id=''){
+    const ticket=state.tickets.find(item=>item.id===id);if(id&&!ticket)return;
+    const projectId=ticket?.projectId||projects[0]?.id||'',units=projects.find(project=>project.id===projectId)?.units||[];
+    const propertyMode=Boolean(ticket?.propertyId)||(!projects.some(project=>project.units?.length)&&state.properties.length>0);
+    const eligible=users.filter(user=>['manager','maintenance'].includes(user.role)&&user.active!==false&&user.disabled!==true);
+    openModal(ticket?'Editar chamado':'Abrir chamado',`<label class="maint-wide">Título do chamado<input name="title" required maxlength="160" value="${esc(ticket?.title||'')}" placeholder="Ex.: verificar infiltração na cozinha" autocomplete="off"></label><label>Tipo<select name="kind">${Object.entries(KIND).map(([key,label])=>option(key,label,ticket?.kind||'maintenance')).join('')}</select></label><label>Prioridade<select name="priority">${Object.entries(PRIORITY).map(([key,label])=>option(key,label,ticket?.priority||'normal')).join('')}</select></label><label class="maint-wide">Local do atendimento<select name="locationType">${option('project','Casa de um empreendimento',propertyMode?'property':'project')}${option('property','Imóvel em uso cadastrado',propertyMode?'property':'project')}</select></label><div class="maint-location-fields maint-wide" data-maint-location="project"${propertyMode?' hidden':''}><label>Empreendimento<select name="projectId"${propertyMode?' disabled':' required'}>${option('','Selecione o empreendimento',projectId)}${projects.map(project=>option(project.id,project.name,projectId)).join('')}</select></label><label>Casa<select name="unitId"${propertyMode?' disabled':' required'}>${option('','Selecione a casa',ticket?.unitId||'')}${units.map(unit=>option(unit.id,unit.name,ticket?.unitId||'')).join('')}</select></label></div><div class="maint-location-fields maint-wide" data-maint-location="property"${propertyMode?'':' hidden'}><label class="maint-wide">Imóvel<select name="propertyId"${propertyMode?' required':' disabled'}>${option('','Selecione o imóvel',ticket?.propertyId||'')}${state.properties.map(property=>option(property.id,property.name,ticket?.propertyId||'')).join('')}</select></label>${state.properties.length?'':'<p class="maint-field-help maint-wide">Cadastre o imóvel na lista de manutenção antes de abrir o chamado.</p>'}</div><label>Responsável<select name="assigneeId">${option('','Não atribuído',ticket?.assigneeId||'')}${eligible.map(user=>option(user.id,user.name||user.displayName||'Responsável',ticket?.assigneeId||'')).join('')}</select></label><label>Data agendada <span class="maint-optional">opcional</span><input type="date" name="scheduledDate" value="${esc(ticket?.scheduledDate||'')}"></label><label class="maint-wide">Descrição do atendimento<textarea name="description" maxlength="6000" rows="5" placeholder="Descreva o problema, o local e o que precisa ser verificado.">${esc(ticket?.description||'')}</textarea></label>`,ticket?'ticket-update':'ticket-create',id);
+  }
+  function statusForm(id){
+    const ticket=state.tickets.find(item=>item.id===id);if(!ticket)return;
+    const statuses=CLOSED.has(ticket.status)?['open']:canManage()?Object.keys(STATUS).filter(key=>key!==ticket.status):['scheduled','in_progress','waiting'].filter(key=>key!==ticket.status);
+    openModal(CLOSED.has(ticket.status)?'Reabrir chamado':'Atualizar andamento',`<p class="maint-field-help maint-wide">${esc(ticket.title)}</p><label class="maint-wide">Novo andamento<select name="status">${statuses.map(key=>option(key,STATUS[key],statuses[0])).join('')}</select></label><label class="maint-wide">Observação / justificativa<textarea name="comment" maxlength="4000" rows="4"${CLOSED.has(ticket.status)?' required':''}></textarea></label><p class="maint-field-help maint-wide">Cancelamento e reabertura precisam de justificativa. O histórico anterior será preservado.</p>`, 'ticket-status',id);
+  }
+  function commentForm(id){const ticket=state.tickets.find(item=>item.id===id);if(!ticket)return;openModal('Adicionar comentário',`<p class="maint-field-help maint-wide">${esc(ticket.title)}</p><label class="maint-wide">Comentário<textarea name="comment" required maxlength="4000" rows="5" placeholder="Registre o que foi verificado e os próximos passos."></textarea></label>`,'ticket-comment',id);}
+  function setBusy(value){saving=value;if(!modal)return;modal.setAttribute('aria-busy',String(value));modal.querySelectorAll('button').forEach(button=>{button.disabled=value;});const button=modal.querySelector('button[type=submit]');if(button)button.textContent=value?'Salvando…':'Salvar';}
+  async function submit(event){
+    const form=event.target.closest('form[data-maint-form]');if(!form||!container.contains(form))return;event.preventDefault();
+    const type=form.dataset.maintForm,data=new FormData(form);
+    if(type==='filters'){filter.status=String(data.get('status')||'');filter.assignee=String(data.get('assignee')||'');filter.kind=String(data.get('kind')||'');filter.search=String(data.get('search')||'').trim();render();return;}
+    if(saving||loading||!form.reportValidity())return;
+    let payload={};
+    if(type==='property-create'||type==='property-update')payload={name:String(data.get('name')||''),address:String(data.get('address')||'')};
+    else if(type==='ticket-create'||type==='ticket-update'){
+      const external=data.get('locationType')==='property';payload={projectId:external?'':String(data.get('projectId')||''),unitId:external?'':String(data.get('unitId')||''),propertyId:external?String(data.get('propertyId')||''):'',kind:String(data.get('kind')||''),title:String(data.get('title')||''),description:String(data.get('description')||''),priority:String(data.get('priority')||''),assigneeId:String(data.get('assigneeId')||''),scheduledDate:String(data.get('scheduledDate')||'')};
+    }else if(type==='ticket-status')payload={status:String(data.get('status')||''),comment:String(data.get('comment')||'')};
+    else if(type==='ticket-comment')payload={comment:String(data.get('comment')||'')};else return;
+    if(form.dataset.maintId)payload.id=form.dataset.maintId;
+    const revision=state.revision,beforeIds=new Set(state.tickets.map(ticket=>ticket.id));
+    setBusy(true);const output=form.querySelector('.maint-form-error');output.hidden=true;output.textContent='';
+    try{
+      const result=await api('command',{type,payload,revision});if(disposed)return;
+      response(result);if(type==='ticket-create')selected=state.tickets.find(ticket=>!beforeIds.has(ticket.id))?.id||'';
+      saving=false;closeModal();message='Registro salvo. O histórico foi atualizado.';error='';render();container.querySelector('#maint-detail-title')?.focus();
+    }catch(problem){if(disposed)return;output.hidden=false;output.textContent=problem?.message||'Não foi possível salvar. Seus dados continuam no formulário.';output.setAttribute('tabindex','-1');output.focus();}
+    finally{if(!disposed)setBusy(false);}
+  }
+  function click(event){
+    const button=event.target.closest('[data-maint-action]');if(!button||!container.contains(button))return;event.preventDefault();
+    const action=button.dataset.maintAction,id=button.dataset.maintId;
+    if(action==='close-modal'){if(!saving)closeModal();return;}
+    if(saving||loading)return;
+    message='';error='';
+    if(action==='refresh')load();
+    else if(action==='clear-filters'){Object.assign(filter,{status:'',assignee:'',kind:'',search:''});render();}
+    else if(action==='open'){selected=id;render();container.querySelector('#maint-detail-title')?.focus();}
+    else if(action==='back'){selected='';render();}
+    else if(action==='new'&&canManage())ticketForm();
+    else if(action==='edit'&&canManage())ticketForm(id);
+    else if(action==='new-property'&&canManage())propertyForm();
+    else if(action==='edit-property'&&canManage())propertyForm(id);
+    else if(action==='status')statusForm(id);
+    else if(action==='comment')commentForm(id);
+  }
+  function change(event){const input=event.target;if(!modal||!modal.contains(input))return;
+    if(input.name==='locationType')modal.querySelectorAll('[data-maint-location]').forEach(group=>{const active=group.dataset.maintLocation===input.value;group.hidden=!active;group.querySelectorAll('select').forEach(select=>{select.disabled=!active;select.required=active;});});
+    if(input.name==='projectId'){const select=modal.querySelector('[name=unitId]'),units=projects.find(project=>project.id===input.value)?.units||[];select.innerHTML=option('','Selecione a casa','')+units.map(unit=>option(unit.id,unit.name,'')).join('');}
+    if(input.name==='status'){const ticket=state.tickets.find(item=>item.id===modal.querySelector('form').dataset.maintId);modal.querySelector('[name=comment]').required=input.value==='cancelled'||CLOSED.has(ticket?.status);}
+  }
+  container.addEventListener('click',click);container.addEventListener('submit',submit);container.addEventListener('change',change);load();
+  return ()=>{disposed=true;sequence++;closeModal();container.removeEventListener('click',click);container.removeEventListener('submit',submit);container.removeEventListener('change',change);container.innerHTML='';};
+}
