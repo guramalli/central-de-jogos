@@ -1698,7 +1698,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.102 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.103 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -33621,9 +33621,9 @@ async function abrirModelo3d(m) {
   // (R394: o feiticeiro padrão, o novo, também: 3d/feiticeiro_chatgpt.glb)
   // (R402: as armaduras do viking padrão: m.glb, o glb da armadura, com o mesmo caminho do padrão)
   const VV = VAR_3D[m.nome] || null, G = m.glb || (VV && VV.glb);
-  m.arq = VV ? G + (VV.padrao ? "" : "?t=" + Date.now()) : "3d/" + m.nome + ".glb";
+  m.arq = VV ? G + (VV.padrao ? "" : "?t=" + Date.now()) : (m.glb || "3d/" + m.nome + ".glb");   // (R409: as armaduras do arqueiro, m.glb)
   try { gltf = await new Promise((ok, erro) => p.loader.load(m.arq, ok, undefined, erro)); }
-  catch (e) { if (!VV) try { gltf = await abrirJson3d(m.nome); } catch (e2) {} else if (VV.padrao) try { gltf = await abrirJson3d(G.replace(/^3d\//, "").replace(/\.glb$/, "")); } catch (e2) {} }
+  catch (e) { if (!VV) try { gltf = await abrirJson3d(m.glb ? m.glb.replace(/^3d\//, "").replace(/\.glb$/, "") : m.nome); } catch (e2) {} else if (VV.padrao) try { gltf = await abrirJson3d(G.replace(/^3d\//, "").replace(/\.glb$/, "")); } catch (e2) {} }
   if (!gltf) { m.erro = "sem o glb"; if (VV) avisar((VV.padrao ? NOME_CLASSE[m.nome] + ": " : "Viking de teste: ") + "não achei " + G); return; }
   try { await montarModelo3d(m, gltf); if (VV) prepararVikingVar(m); m.ok = true; aquecerModelo3d(m); if (VV && !VV.padrao) avisar("Viking de teste: " + VV.nome); if (VV) montadosVikingNovo(); }   // (R235: os programas antes do 1º desenho)
   catch (e) { console.error("3d " + m.nome + ":", e); m.erro = e.message; }
@@ -34103,17 +34103,32 @@ const VIKING_ARMADURAS_3D = { 1: { chave: "ferro", glb: "3d/viking_ferro.glb", n
                               6: { chave: "dragao", glb: "3d/viking_dragao.glb", nome: "Armadura do Dragão de Bronze" },
                               7: { chave: "escama_dourada", glb: "3d/viking_escama_dourada.glb", nome: "Placa Escama Dourada" },
                               8: { chave: "deus_dragao", glb: "3d/viking_deus_dragao.glb", nome: "Armadura Deus Dragão" } };
-// a armadura de corpo vestida que tem um viking próprio (eq: o equipamento; por padrão o do herói), ou null
+// (17/11, R409, "vamos fazer os modelos com armaduras trocadas") o ARQUEIRO novo também troca o modelo inteiro pelo Traje
+// (armadura_leve) vestido: os tiers 1 a 8, cada um com o glb dele (Tools/arqueiro_novo/preparar_arqueiro.py --modelo <armadura do
+// Tripo>, Logs/Arqueiro/novo/armaduras/); o tier 0 (Vestimenta Azul) e sem traje, o 3d/arqueiro.glb. O ninja, com a mesma peça, não muda
+const ARQUEIRO_ARMADURAS_3D = { 1: { chave: "marfim", glb: "3d/arqueiro_marfim.glb", nome: "Vestimenta Marfim" },
+                                2: { chave: "rubra", glb: "3d/arqueiro_rubra.glb", nome: "Vestimenta Rubra" },
+                                3: { chave: "tigre_voador", glb: "3d/arqueiro_tigre_voador.glb", nome: "Veste do Tigre Voador" },
+                                4: { chave: "dragao", glb: "3d/arqueiro_dragao.glb", nome: "Vestimenta do Dragão" },
+                                5: { chave: "assassina", glb: "3d/arqueiro_assassina.glb", nome: "Vestimenta Assassina" },
+                                6: { chave: "jovem_dragao", glb: "3d/arqueiro_jovem_dragao.glb", nome: "Veste do Jovem Dragão" },
+                                7: { chave: "vento_assassino", glb: "3d/arqueiro_vento_assassino.glb", nome: "Vento Assassino" },
+                                8: { chave: "dragao_celeste", glb: "3d/arqueiro_dragao_celeste.glb", nome: "Traje do Dragão Celeste" } };
+// as classes cujo modelo inteiro troca pela armadura de corpo: a peça e a tabela de cada uma (o viking só com o viking padrão)
+const ARMADURAS_3D = { viking: { peca: "armadura_guerreiro", tabela: VIKING_ARMADURAS_3D, ativo: () => !!(VIKING_VAR && VIKING_VAR.armaduras) },
+                       arqueiro: { peca: "armadura_leve", tabela: ARQUEIRO_ARMADURAS_3D, ativo: () => true } };
+const armadurasDaClasse = () => { const C = ARMADURAS_3D[classe]; return C && C.ativo() ? C : null; };
+// a armadura de corpo vestida que tem um modelo próprio (eq: o equipamento; por padrão o do herói), ou null
 function armaduraViking3d(eq) {
-  if (classe !== "viking" || !VIKING_VAR || !VIKING_VAR.armaduras) return null;
+  const C = armadurasDaClasse(); if (!C) return null;
   const a = (eq || (typeof prog === "object" && prog && prog.equip) || {}).armadura;
-  return a && a.peca === "armadura_guerreiro" ? VIKING_ARMADURAS_3D[a.tier] || null : null;
+  return a && a.peca === C.peca ? C.tabela[a.tier] || null : null;
 }
 // o modelo da armadura (P3D.modelos["viking_<chave>"], com o nome "viking": a máscara da arma, a caixa do quadro e o mapa dos clipes
 // são os do viking), pedido sob demanda na fila de sempre (a fila tem 2 por vez e não trava o jogo)
 function modeloArmaduraViking3d(A, prio = -1) {
-  const p = P3D, k = "viking_" + A.chave;
-  const m = p.modelos[k] || (p.modelos[k] = { nome: "viking", chave3d: k, glb: A.glb, ok: false, carregando: false, erro: null, prio: Infinity });
+  const p = P3D, cl = A.glb.replace(/^3d\//, "").split("_")[0], k = cl + "_" + A.chave;   // (R409: "viking_<chave>" ou "arqueiro_<chave>", com o nome da classe)
+  const m = p.modelos[k] || (p.modelos[k] = { nome: cl, chave3d: k, glb: A.glb, ok: false, carregando: false, erro: null, prio: Infinity });
   if (!m.ok && !m.erro && !m.carregando && p.ligado && p.loader) { m.prio = Math.min(m.prio, prio); if (!p.fila.includes(m)) p.fila.push(m); carregarFila3d(); }
   return m;
 }
@@ -34121,13 +34136,13 @@ function modeloArmaduraViking3d(A, prio = -1) {
 // fica o que estava na tela (como a arma 3D, vestirArma3d); sem o glb da armadura (erro), o padrão
 function modeloHeroi3d() {
   const p = P3D, base = p.modelos[classe];
-  if (classe !== "viking" || !VIKING_VAR || !VIKING_VAR.armaduras) return base;
+  if (!armadurasDaClasse()) return base;
   const A = armaduraViking3d(), quer = A ? modeloArmaduraViking3d(A) : base;
   if (!A || quer.erro) { if (!base) pedirModelo3d(classe, -1); else if (!base.ok) pedirModelo3d(classe, -1); }
   const alvo = A && !quer.erro ? quer : base;
   if (alvo && alvo.ok) return p.vikingVisto = alvo;
   const antes = p.vikingVisto;
-  if (antes && antes.ok && antes.nome === "viking") return antes;
+  if (antes && antes.ok && antes.nome === classe) return antes;
   return alvo;
 }
 // (R390) a lâmina do viking novo no quadro, como a do manifest ([base x, y, ponta x, y, atrás], px do sprite a partir dos pés):
