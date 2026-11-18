@@ -2,13 +2,13 @@
 export const MAINTENANCE_STATUSES = Object.freeze(['open','scheduled','in_progress','waiting','completed','cancelled']);
 export const MAINTENANCE_PRIORITIES = Object.freeze(['low','normal','high','urgent']);
 export const MAINTENANCE_KINDS = Object.freeze(['assistance','maintenance']);
-export const MAINTENANCE_LIMITS = Object.freeze({tickets:10000,properties:2000,history:5000,title:160,description:6000,comment:4000,address:400});
+export const MAINTENANCE_LIMITS = Object.freeze({tickets:10000,properties:2000,history:5000,title:160,description:6000,comment:4000,address:400,clientName:160,clientPhone:40});
 export const MAINTENANCE_PHOTO_LIMITS = Object.freeze({perUpload:6,perTicket:20,photoBytes:450000,photoSide:1600,organizationBytes:24*1024*1024,totalBytes:64*1024*1024});
 const ROLES = new Set(['admin','manager','maintenance']);
 const MANAGERS = new Set(['admin','manager']);
 const OPERATIONAL = new Set(['scheduled','in_progress','waiting','completed']);
 const CLOSED = new Set(['completed','cancelled']);
-const TICKET_FIELDS = ['projectId','unitId','propertyId','kind','title','description','priority','assigneeId','scheduledDate'];
+const TICKET_FIELDS = ['projectId','unitId','propertyId','kind','title','description','priority','assigneeId','scheduledDate','scheduledTime','clientName','clientPhone'];
 
 export class MaintenanceError extends Error {
   constructor(message,code='validation',status=400){super(message);this.name='MaintenanceError';this.code=code;this.status=status;}
@@ -52,6 +52,20 @@ function date(value){
   if(!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==result)fail('Data agendada inválida.');
   return result;
 }
+function time(value,scheduledDate){
+  const result=text(value,'Horário agendado',5,{optional:true});
+  if(!result)return '';
+  if(!/^([01]\d|2[0-3]):[0-5]\d$/u.test(result))fail('Informe o horário agendado no formato HH:mm, entre 00:00 e 23:59.');
+  if(!scheduledDate)fail('Informe a data agendada antes de preencher o horário.');
+  return result;
+}
+function phone(value){
+  const result=text(value,'Telefone do cliente',MAINTENANCE_LIMITS.clientPhone,{optional:true});
+  if(!result)return '';
+  const digits=result.replace(/\D/gu,'');
+  if(!/^\+?[0-9() .-]+$/u.test(result)||digits.length<7||digits.length>15)fail('Informe um telefone com 7 a 15 dígitos, usando apenas números, espaços, parênteses, ponto, hífen e + inicial.');
+  return result;
+}
 function enumeration(value,values,label){if(!values.includes(value))fail(`${label} inválido.`);return value;}
 function newId(){return globalThis.crypto.randomUUID();}
 function event(actor,at,action,changes={},comment=''){
@@ -82,13 +96,15 @@ function relation(source,state,projects){
   return {projectId,unitId,propertyId};
 }
 function ticketData(payload,state,context){
+  const scheduledDate=date(payload.scheduledDate);
   return {
     ...relation(payload,state,context.projects),
     kind:enumeration(payload.kind,MAINTENANCE_KINDS,'Tipo de chamado'),
     title:text(payload.title,'Título',MAINTENANCE_LIMITS.title),
     description:text(payload.description,'Descrição',MAINTENANCE_LIMITS.description,{optional:true}),
     priority:enumeration(payload.priority,MAINTENANCE_PRIORITIES,'Prioridade'),
-    assigneeId:assignee(payload.assigneeId,context.users),scheduledDate:date(payload.scheduledDate),
+    assigneeId:assignee(payload.assigneeId,context.users),scheduledDate,scheduledTime:time(payload.scheduledTime,scheduledDate),
+    clientName:text(payload.clientName,'Nome do cliente',MAINTENANCE_LIMITS.clientName,{optional:true}),clientPhone:phone(payload.clientPhone),
   };
 }
 function lookupTicket(state,id,actor){
@@ -149,7 +165,10 @@ export function maintenanceCommand(state,command,context={}){
     requireManager(actor);allowedKeys(payload,['id',...TICKET_FIELDS]);
     const ticket=lookupTicket(next,payload.id,actor);
     if(CLOSED.has(ticket.status))fail('Reabra o chamado antes de alterar seus dados.');
-    const data=ticketData({...ticket,...payload},next,ctx),changes=changed(ticket,data,TICKET_FIELDS);
+    const data=ticketData({...ticket,...payload},next,ctx);
+    // Missing optional fields in older tickets mean blank, not a newly supplied value.
+    const before={...ticket,clientName:ticket.clientName??'',clientPhone:ticket.clientPhone??'',scheduledTime:ticket.scheduledTime??''};
+    const changes=changed(before,data,TICKET_FIELDS);
     if(!Object.keys(changes).length)fail('Nenhuma alteração foi informada.');
     Object.assign(ticket,data);record(ticket,event(actor,at,'updated',changes));
   }else if(type==='ticket-status'){
@@ -195,4 +214,3 @@ export function maintenanceCommand(state,command,context={}){
   next.revision=state.revision+1;
   return next;
 }
-
