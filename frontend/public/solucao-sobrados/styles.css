@@ -399,3 +399,7 @@
   .nav-item,.btn,.management-house{transition:background .14s ease,border-color .14s ease}
 }
 /* Fim da Central de gestão. */
+
+/* Stage progress: synchronized slider and numeric entry. */
+.stage-progress-field{min-width:0}.stage-progress-field>label{margin-bottom:8px}.stage-progress-controls{display:grid;grid-template-columns:minmax(0,1fr) 90px;align-items:start;gap:16px}.stage-progress-track{min-width:0}.stage-progress-track input[type="range"]{display:block;width:100%;min-width:0;height:44px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;accent-color:#284f83;cursor:pointer}.stage-progress-scale{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:1px}.stage-progress-value{position:relative}.stage-progress-value input{width:100%;height:48px;padding:10px 25px 10px 6px;text-align:center;font-weight:700;font-size:16px;appearance:textfield;-moz-appearance:textfield}.stage-progress-value input::-webkit-inner-spin-button,.stage-progress-value input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.stage-progress-value>span{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+
