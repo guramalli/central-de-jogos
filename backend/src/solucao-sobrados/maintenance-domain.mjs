@@ -3,9 +3,10 @@ export const MAINTENANCE_STATUSES = Object.freeze(['open','scheduled','in_progre
 export const MAINTENANCE_PRIORITIES = Object.freeze(['low','normal','high','urgent']);
 export const MAINTENANCE_KINDS = Object.freeze(['assistance','maintenance']);
 export const MAINTENANCE_LIMITS = Object.freeze({tickets:10000,properties:2000,history:5000,title:160,description:6000,comment:4000,address:400});
+export const MAINTENANCE_PHOTO_LIMITS = Object.freeze({perUpload:6,perTicket:20,photoBytes:450000,photoSide:1600,organizationBytes:24*1024*1024,totalBytes:64*1024*1024});
 const ROLES = new Set(['admin','manager','maintenance']);
 const MANAGERS = new Set(['admin','manager']);
-const OPERATIONAL = new Set(['scheduled','in_progress','waiting']);
+const OPERATIONAL = new Set(['scheduled','in_progress','waiting','completed']);
 const CLOSED = new Set(['completed','cancelled']);
 const TICKET_FIELDS = ['projectId','unitId','propertyId','kind','title','description','priority','assigneeId','scheduledDate'];
 
@@ -106,8 +107,9 @@ export function maintenanceEmpty(){return {revision:0,tickets:[],properties:[]};
 export function maintenanceView(state,actor){
   stateOf(state);const authorized=actorOf(actor);
   const tickets=authorized.role==='maintenance'?state.tickets.filter(item=>item.assigneeId===authorized.id):state.tickets;
-  const referenced=new Set(tickets.map(item=>item.propertyId).filter(Boolean));
-  const properties=authorized.role==='maintenance'?state.properties.filter(item=>referenced.has(item.id)):state.properties;
+  // Staff may select any registered location when opening their own ticket.
+  // Expose only the location directory, never another property's audit trail.
+  const properties=authorized.role==='maintenance'?state.properties.map(({id,name,address})=>({id,name,address})):state.properties;
   return clone({revision:state.revision,tickets,properties});
 }
 
@@ -137,9 +139,10 @@ export function maintenanceCommand(state,command,context={}){
       Object.assign(property,update);record(property,event(actor,at,'property-updated',changes));
     }
   }else if(type==='ticket-create'){
-    requireManager(actor);allowedKeys(payload,TICKET_FIELDS);
+    allowedKeys(payload,TICKET_FIELDS);
+    if(actor.role==='maintenance'&&payload.assigneeId!==undefined&&payload.assigneeId!==''&&payload.assigneeId!==actor.id)fail('Você só pode abrir chamados sob sua própria responsabilidade.','forbidden',403);
     if(next.tickets.length>=MAINTENANCE_LIMITS.tickets)fail('Limite de chamados atingido.','limit',413);
-    const data=ticketData({kind:'maintenance',priority:'normal',...payload},next,ctx);
+    const data=ticketData({kind:'maintenance',priority:'normal',...payload,...(actor.role==='maintenance'?{assigneeId:actor.id}:{})},next,ctx);
     const ticket={id:newId(),...data,status:'open',createdAt:at,updatedAt:at,createdBy:actor.id,history:[]};
     record(ticket,event(actor,at,'created',changed({},ticket,[...TICKET_FIELDS,'status'])));next.tickets.push(ticket);
   }else if(type==='ticket-update'){
@@ -153,7 +156,7 @@ export function maintenanceCommand(state,command,context={}){
     allowedKeys(payload,['id','status','comment']);const ticket=lookupTicket(next,payload.id,actor);
     const status=enumeration(payload.status,MAINTENANCE_STATUSES,'Andamento');
     if(status===ticket.status)fail('O chamado já está nesse andamento.');
-    if(actor.role==='maintenance'&&(!OPERATIONAL.has(status)||CLOSED.has(ticket.status)))fail('Você pode atualizar apenas o andamento operacional dos chamados atribuídos a você.','forbidden',403);
+    if(actor.role==='maintenance'&&(!OPERATIONAL.has(status)||CLOSED.has(ticket.status)))fail('Você pode atualizar ou concluir apenas os chamados abertos atribuídos a você.','forbidden',403);
     if(CLOSED.has(ticket.status)&&status!=='open')fail('Reabra o chamado antes de alterar seu andamento.');
     const comment=text(payload.comment,'Observação',MAINTENANCE_LIMITS.comment,{optional:true});
     if((status==='cancelled'||CLOSED.has(ticket.status))&&!comment)fail('Informe uma justificativa para cancelar ou reabrir o chamado.');
@@ -162,6 +165,28 @@ export function maintenanceCommand(state,command,context={}){
     if(status==='cancelled')ticket.cancelledAt=at;
     if(CLOSED.has(previous)&&status==='open'){delete ticket.completedAt;delete ticket.cancelledAt;}
     record(ticket,event(actor,at,status==='open'&&CLOSED.has(previous)?'reopened':'status-changed',{status:{from:previous,to:status}},comment));
+  }else if(type==='ticket-photos'){
+    // Only the storage adapter may invoke this metadata command after checking
+    // the JPEG bytes and persisting images in the same transaction.
+    allowedKeys(payload,['id','photos']);const ticket=lookupTicket(next,payload.id,actor);
+    if(ticket.status==='cancelled')fail('Reabra o chamado cancelado antes de adicionar fotos.','forbidden',403);
+    if(!Array.isArray(payload.photos)||payload.photos.length<1||payload.photos.length>MAINTENANCE_PHOTO_LIMITS.perUpload)fail(`Envie de 1 a ${MAINTENANCE_PHOTO_LIMITS.perUpload} fotos por vez.`);
+    const previous=ticket.photos??[];
+    if(!Array.isArray(previous))fail('Registro de fotos inválido.');
+    if(previous.length+payload.photos.length>MAINTENANCE_PHOTO_LIMITS.perTicket)fail(`O chamado aceita até ${MAINTENANCE_PHOTO_LIMITS.perTicket} fotos.`,'limit',413);
+    const ids=new Set(next.tickets.flatMap(item=>(item.photos||[]).map(photo=>String(photo.id).toLowerCase())));
+    const photos=payload.photos.map(photo=>{
+      allowedKeys(photo,['id','width','height','bytes','caption']);
+      if(typeof photo.id!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/iu.test(photo.id))fail('Identificador da foto inválido.');
+      const id=photo.id.toLowerCase();
+      if(ids.has(id))fail('Esta foto já foi registrada. Atualize o chamado.','conflict',409);
+      ids.add(id);
+      for(const key of ['width','height'])if(!Number.isSafeInteger(photo[key])||photo[key]<1||photo[key]>MAINTENANCE_PHOTO_LIMITS.photoSide)fail('Dimensões da foto inválidas.');
+      if(!Number.isSafeInteger(photo.bytes)||photo.bytes<20||photo.bytes>MAINTENANCE_PHOTO_LIMITS.photoBytes)fail('Tamanho da foto inválido.');
+      return {id,width:photo.width,height:photo.height,bytes:photo.bytes,caption:text(photo.caption,'Legenda',240,{optional:true}),createdBy:actor.id,actorRole:actor.role,createdAt:at};
+    });
+    ticket.photos=[...previous,...photos];
+    record(ticket,event(actor,at,'photos-added',{photos:{from:previous.length,to:ticket.photos.length}}));
   }else if(type==='ticket-comment'){
     allowedKeys(payload,['id','comment']);const ticket=lookupTicket(next,payload.id,actor);
     const comment=text(payload.comment,'Comentário',MAINTENANCE_LIMITS.comment);
@@ -170,3 +195,4 @@ export function maintenanceCommand(state,command,context={}){
   next.revision=state.revision+1;
   return next;
 }
+

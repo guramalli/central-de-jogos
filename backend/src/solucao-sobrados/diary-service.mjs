@@ -52,7 +52,7 @@ export const schemaStatements=[
 export async function migrate(db){for(const sql of [...schemaStatements,...reminderSchema,...documentSchema,...identitySchema,...workspaceSchema])await db.$executeRawUnsafe(sql);}
 export class DiaryService{
   constructor(db){this.db=db;}
-  async health(){await this.db.$queryRaw`SELECT id FROM ss_diary_v1.quota WHERE id=1`;return {ok:true,version:6,limits:LIMITS};}
+  async health(){await this.db.$queryRaw`SELECT id FROM ss_diary_v1.quota WHERE id=1`;return {ok:true,version:7,limits:LIMITS};}
   async board(db,id,token,write=false,owner=false,lock=false,requiredModule=null){uuid(id);const rows=lock?await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id} FOR UPDATE`:await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id}`;fail(rows.length,'Diário não encontrado ou acesso inválido.',404);const b=rows[0],links=await db.$queryRaw`SELECT organization_id,project_id FROM ss_app_v1.board_links WHERE board_id=${id}`;let role,actor;
  if(typeof token==='string'&&token.startsWith('session.')){actor=await new IdentityService(db).authenticate(token.slice(8));fail(links.length&&links[0].organization_id===actor.organizationId&&['admin','manager','maintenance'].includes(actor.role)&&['diary','documents','reminders'].some(moduleId=>canAccess(actor,moduleId)),'Seu acesso não permite consultar este acompanhamento.',403);fail(!requiredModule||canAccess(actor,requiredModule),'Seu acesso não permite este módulo.',403);role=actor.role==='admin'?'owner':actor.role==='manager'?'writer':'reader';}
  else{fail(!links.length,'Este diário agora exige login individual.',401);role=roleFor(b,token);}
@@ -102,3 +102,4 @@ export class DiaryService{
     await tx.$executeRaw`UPDATE ss_diary_v1.boards SET revision=revision+1,updated_at=${BigInt(now)} WHERE id=${id}`;await tx.$executeRaw`INSERT INTO ss_diary_v1.audit(id,board_id,action,actor_role,subject,created_at,actor_user_id) VALUES(${randomUUID()},${id},${d.action},${b.role},${d.entryId||''},${BigInt(now)},${b.actor?.id||null})`;return result;
   });}
 }
+

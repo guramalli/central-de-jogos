@@ -18,6 +18,9 @@ export function workspaceRouter(db,{secureCookies=true}={}){const router=express
  router.post('/invite',wrap(async(req,res)=>res.json(await identity.invite(await user(req),req.body))));
  router.get('/maintenance',wrap(async(req,res)=>res.json(await workspaces.maintenance(await user(req)))));
  router.post('/maintenance',wrap(async(req,res)=>res.json(await workspaces.maintenance(await user(req),req.body))));
+ router.post('/maintenance/photos',wrap(async(req,res)=>res.json(await workspaces.uploadMaintenancePhotos(await user(req),req.body))));
+ router.get('/maintenance/photos/:id',wrap(async(req,res)=>{const data=await workspaces.maintenancePhoto(await user(req),req.params.id);res.set({'Content-Type':'image/jpeg','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':'inline; filename="manutencao.jpg"'}).send(data);}));
  router.post('/boards',wrap(async(req,res)=>res.json(await workspaces.connectBoard(await user(req),req.body))));
  return router;
 }
+
