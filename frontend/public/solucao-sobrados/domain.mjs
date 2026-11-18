@@ -32,6 +32,8 @@ export function contractFileData(file){
   check(signature,'O conteúdo do arquivo não corresponde ao formato informado.');
   return {name,size,mime,data};
 }
+export const isProgressStage=st=>!st.unassigned&&(st.trackProgress??!['terreno e aquisicao','empreitada geral','historico importado · conferir etapas'].includes(norm(st.name)));
+export function physicalProgress(p){const stages=p.stages.filter(isProgressStage);return {stages,count:stages.length,completed:stages.filter(st=>st.progress===100).length,percent:stages.length?sum(stages,'progress')/stages.length:null};}
 export const activeProjects=s=>s.projects.filter(p=>!p.trashedAt);
 export const empty=()=>({version:1,revision:0,seq:0,projects:[],comparables:[],audit:[]});
 export function split(cents,weights){
@@ -110,7 +112,7 @@ export function command(input,type,d,expected=input.revision){
       check(!p.units.some(u=>u.id!==old?.id&&norm(u.name)===norm(data.name)),'Já existe uma unidade com essa identificação.');
       const u=old||{id:next(s)};Object.assign(u,data);if(!old)p.units.push(u);result=u;
     }
-    else if(type==='stage.save'){const a=d.id?stage(p,d.id):{id:next(s)};a.name=text(d.name,'Etapa',100);check(!p.stages.some(st=>st.id!==a.id&&norm(st.name)===norm(a.name)),'Etapa já cadastrada.');a.budget=integer(d.budget,'Orçamento');a.progress=integer(d.progress,'Progresso',0,100);if(!d.id)p.stages.push(a);result=a;}
+    else if(type==='stage.save'){const a=d.id?stage(p,d.id):{id:next(s)};a.name=text(d.name,'Etapa',100);check(!p.stages.some(st=>st.id!==a.id&&norm(st.name)===norm(a.name)),'Etapa já cadastrada.');a.budget=integer(d.budget,'Orçamento');a.progress=integer(d.progress,'Progresso',0,100);if(d.trackProgress!==undefined){check(typeof d.trackProgress==='boolean'&&(!a.unassigned||!d.trackProgress),'Participação no avanço inválida.');a.trackProgress=d.trackProgress;}if(!d.id)p.stages.push(a);result=a;}
     else if(type==='expense.quick'){
       check(['paid','pending'].includes(d.paymentStatus),'Informe se o gasto está pago ou a pagar.');
       const cents=integer(d.cents,'Valor do gasto',1,1e10);
@@ -200,7 +202,7 @@ export function validate(s){
   for(const p of s.projects){id(p.id);projectData(p);if(p.trashedAt!==undefined)check(typeof p.trashedAt==='string'&&/^\d{4}-\d{2}-\d{2}T/.test(p.trashedAt)&&Number.isFinite(Date.parse(p.trashedAt)),'Data da lixeira inválida.');check(['active','closed'].includes(p.status)&&Array.isArray(p.units)&&p.units.length>0&&p.units.length<=100&&Array.isArray(p.stages)&&p.stages.length>0&&Array.isArray(p.expenses)&&p.expenses.length<=10000,'Estrutura do empreendimento inválida.');
     for(const u of p.units){id(u.id);text(u.name,'Unidade',100);integer(u.area,'Área',1,1e7);integer(u.sale);if(u.bedrooms!==undefined)integer(u.bedrooms,'Dormitórios',1,10);for(const k of ['bathrooms','parking'])if(u[k]!==undefined&&u[k]!==null)integer(u[k],k,0,20);if(u.notes!==undefined)optional(u.notes);}
     check(p.stages.filter(st=>st.unassigned).length<=1,'Etapa não informada duplicada.');
-    for(const st of p.stages){id(st.id);if(st.unassigned!==undefined)check(st.unassigned===true,'Classificação da etapa inválida.');text(st.name,'Etapa',100);integer(st.budget);integer(st.progress,'Progresso',0,100);}
+    for(const st of p.stages){id(st.id);if(st.trackProgress!==undefined)check(typeof st.trackProgress==='boolean'&&(!st.unassigned||!st.trackProgress),'Participação no avanço inválida.');if(st.unassigned!==undefined)check(st.unassigned===true,'Classificação da etapa inválida.');text(st.name,'Etapa',100);integer(st.budget);integer(st.progress,'Progresso',0,100);}
     for(const e of p.expenses){id(e.id);constructionScope(e.constructionScope);stage(p,e.stageId);text(e.description,'Descrição',300);text(e.category,'Categoria',100);check(Object.hasOwn(KINDS,e.kind),'Natureza inválida.');date(e.date);date(e.due);integer(e.qty,'Quantidade',1,1e9);integer(e.unitCents,'Preço',0,1e10);check(e.total===amount(e.unitCents,e.qty)&&e.total>0,'Total inconsistente.');text(e.uom,'Medida',30);optional(e.supplier,200);optional(e.reference,150);optional(e.notes);optional(e.coverage,2000);check(['equal','area','direct'].includes(e.mode),'Rateio inválido.');check(e.allocation&&Object.entries(e.allocation).every(([uid,v])=>p.units.some(u=>u.id===uid)&&Number.isSafeInteger(v)&&v>=0)&&sum(Object.values(e.allocation),x=>x)===e.total,'Rateio inconsistente.');check(Array.isArray(e.payments)&&Array.isArray(e.uses),'Histórico inválido.');if(e.contractFile!==undefined){check(isContractor(e),'Anexo fora de uma empreitada.');contractFileData(e.contractFile);}
       for(const pay of e.payments){id(pay.id);date(pay.date);if(pay.stageId)stage(p,pay.stageId);if(pay.notes!==undefined)optional(pay.notes,1000);integer(pay.cents,'Pagamento',1);text(pay.method,'Forma',100);optional(pay.reference,200);check(pay.reversed===false||typeof pay.reversed==='string','Estorno inválido.');}check(paid(e)<=e.total,'Pagamentos superiores ao custo.');
       for(const use of e.uses){id(use.id);check(e.kind==='material','Consumo fora de material.');date(use.date);stage(p,use.stageId);integer(use.qty,'Consumo',1);check(!use.unitId||p.units.some(u=>u.id===use.unitId),'Unidade de consumo inválida.');optional(use.notes);}check(used(e)<=e.qty,'Consumo superior à compra.');check(!e.cancelled||(!paid(e)&&!used(e)),'Cancelamento inconsistente.');
