@@ -13,3 +13,5 @@
 @media(max-width:650px){.section-head{flex-wrap:wrap}}
 
 .construction-units td:first-child{min-width:0}.construction-units th{white-space:normal}.construction-units td{font-variant-numeric:tabular-nums}
+
+.contractor-card{margin-top:22px}.contract-scope{white-space:pre-wrap;overflow-wrap:anywhere}.contract-price{display:grid;gap:15px;align-content:start}.contract-price>div:not(.callout){display:grid;gap:15px}.contractor-card .mini-stats{margin:24px 0}.contractor-card td{vertical-align:top}.contractor-card td .btn{display:block;margin-top:6px}.contractor-card .section-head p{overflow-wrap:anywhere}

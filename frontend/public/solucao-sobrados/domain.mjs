@@ -19,6 +19,19 @@ export const sum=(rows,key)=>rows.reduce((n,x)=>n+(typeof key==='function'?key(x
 export const paid=e=>sum(e.payments.filter(p=>!p.reversed),'cents');
 export const used=e=>sum(e.uses||[],'qty');
 const norm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+export const isContractor=e=>e.kind==='labor'&&norm(e.category)==='empreitada';
+export const CONTRACT_FILE_LIMIT=1000000;
+export function contractFileData(file){
+  check(file&&typeof file==='object','Anexo de contrato inválido.');
+  const name=text(file.name,'Nome do contrato',200),size=integer(file.size,'Tamanho do contrato',1,CONTRACT_FILE_LIMIT),mime=file.mime,data=file.data;
+  check(['application/pdf','image/png','image/jpeg'].includes(mime),'Use contrato em PDF, JPG ou PNG.');
+  check(typeof data==='string'&&data.length<=4*Math.ceil(CONTRACT_FILE_LIMIT/3)&&/^[A-Za-z0-9+/]*={0,2}$/.test(data),'Conteúdo do contrato inválido.');
+  let bytes;try{bytes=atob(data);}catch{throw new Error('Conteúdo do contrato inválido.');}
+  check(bytes.length===size&&btoa(bytes)===data,'Tamanho do contrato inconsistente.');
+  const signature=mime==='application/pdf'?bytes.startsWith('%PDF-'):mime==='image/png'?Array.from(bytes.slice(0,8),c=>c.charCodeAt(0)).join(',')==='137,80,78,71,13,10,26,10':Array.from(bytes.slice(0,3),c=>c.charCodeAt(0)).join(',')==='255,216,255';
+  check(signature,'O conteúdo do arquivo não corresponde ao formato informado.');
+  return {name,size,mime,data};
+}
 export const activeProjects=s=>s.projects.filter(p=>!p.trashedAt);
 export const empty=()=>({version:1,revision:0,seq:0,projects:[],comparables:[],audit:[]});
 export function split(cents,weights){
@@ -43,12 +56,18 @@ function unitData(d,bedrooms){
   for(const k of ['bathrooms','parking'])u[k]=d[k]===undefined||d[k]===null||d[k]===''?null:integer(d[k],k==='bathrooms'?'Banheiros':'Vagas',0,20);
   return u;
 }
+function withExpenseStage(s,p,d){
+  if(d.stageId!==''&&d.stageId!==undefined)return d;
+  let unassigned=p.stages.find(st=>st.unassigned);
+  if(!unassigned){let name='Não informada',suffix=2;while(p.stages.some(st=>norm(st.name)===norm(name)))name='Não informada ('+(suffix++)+')';unassigned={id:next(s),name,budget:0,progress:0,unassigned:true};p.stages.push(unassigned);}
+  return {...d,stageId:unassigned.id};
+}
 function expenseData(p,d){
   stage(p,d.stageId);const kind=d.kind;check(Object.hasOwn(KINDS,kind),'Natureza do custo inválida.');
   const qty=integer(d.qty,'Quantidade',1,1e9),unitCents=integer(d.unitCents,'Preço unitário',0,1e10),total=amount(unitCents,qty);check(total>0,'Valor do custo precisa ser maior que zero.');
-  const out={description:text(d.description,'Descrição',300),category:text(d.category,'Categoria',100),kind,stageId:d.stageId,date:date(d.date),due:date(d.due||d.date),supplier:optional(d.supplier||'',200),reference:optional(d.reference||'',150),notes:optional(d.notes||''),qty,uom:text(d.uom,'Unidade de medida',30),unitCents,total,mode:d.mode,unitId:d.unitId||'',allocation:allocation(p,total,d.mode,d.unitId),coverage:optional(d.coverage||'',500),extraToContract:!!d.extraToContract};
+  const out={description:text(d.description,'Descrição',300),category:text(d.category,'Categoria',100),kind,stageId:d.stageId,date:date(d.date),due:date(d.due||d.date),supplier:optional(d.supplier||'',200),reference:optional(d.reference||'',150),notes:optional(d.notes||''),qty,uom:text(d.uom,'Unidade de medida',30),unitCents,total,mode:d.mode,unitId:d.unitId||'',allocation:allocation(p,total,d.mode,d.unitId),coverage:optional(d.coverage||'',2000),extraToContract:!!d.extraToContract};
   if(kind==='labor'&&norm(out.category)!=='empreitada'){
-    const covered=p.expenses.some(e=>!e.cancelled&&norm(e.category)==='empreitada'&&e.coverage.split(',').some(c=>norm(c)===norm(out.category))&&e.id!==d.id);
+    const covered=p.expenses.some(e=>!e.cancelled&&norm(e.category)==='empreitada'&&e.coverage.split(/[,;\n]+/).some(c=>norm(c)===norm(out.category))&&e.id!==d.id);
     check(!covered||out.extraToContract,'Essa mão de obra consta na empreitada. Registre o pagamento nela ou confirme que este serviço é adicional fora do contrato.');
   }
   if(d.constructionScope!==undefined)out.constructionScope=constructionScope(d.constructionScope);
@@ -95,7 +114,7 @@ export function command(input,type,d,expected=input.revision){
     else if(type==='expense.quick'){
       check(['paid','pending'].includes(d.paymentStatus),'Informe se o gasto está pago ou a pagar.');
       const cents=integer(d.cents,'Valor do gasto',1,1e10);
-      const data=expenseData(p,{...d,qty:1000,uom:'verba',unitCents:cents});
+      const data=expenseData(p,{...withExpenseStage(s,p,d),qty:1000,uom:'verba',unitCents:cents});
       const e={...data,id:next(s),payments:[],uses:[]};
       if(d.paymentStatus==='paid'){
         check(data.date<=today(),'Pagamento realizado não pode ter data futura.');
@@ -104,18 +123,31 @@ export function command(input,type,d,expected=input.revision){
       p.expenses.push(e);result=e;
     }
     else if(type==='expense.construction'){const e=expense(p,d.id);e.constructionScope=constructionScope(d.constructionScope);result=e;}
+    else if(type==='contractor.save'){
+      const old=d.id?expense(p,d.id):null;check(!old||old.kind==='labor','Selecione um custo de mão de obra existente.');
+      check(['sqm','fixed'].includes(d.billing),'Formato de contratação inválido.');
+      const qty=d.billing==='sqm'?integer(d.areaQty,'Metragem contratada',1,1e9):1000;
+      const unitCents=integer(d.billing==='sqm'?d.rateCents:d.fixedCents,'Valor contratado',1,1e10);
+      const data=expenseData(p,withExpenseStage(s,p,{...d,kind:'labor',category:'Empreitada',qty,unitCents,uom:d.billing==='sqm'?'m²':'contrato',supplier:text(d.supplier,'Nome do empreiteiro',200),coverage:text(d.coverage,'Serviços incluídos',2000),mode:old?.mode||p.allocation,unitId:old?.unitId||''}));
+      check(!old||data.total>=paid(old),'O contrato não pode ficar abaixo do valor já pago.');
+      if(old&&data.total===old.total)data.allocation=structuredClone(old.allocation);
+      const e=old||{id:next(s),payments:[],uses:[]};Object.assign(e,data);
+      if(d.contractFile===null)delete e.contractFile;else if(d.contractFile!==undefined)e.contractFile=contractFileData(d.contractFile);
+      if(!old)p.expenses.push(e);result=e;
+    }
     else if(type==='expense.save'){
-      const old=d.id?expense(p,d.id):null,data=expenseData(p,d);check(!old||data.total>=paid(old),'Valor não pode ficar abaixo do total pago.');check(!old||!old.uses.length||(data.kind==='material'&&data.qty>=used(old)&&data.uom===old.uom),'Consumo já registrado: preserve o material, a unidade de medida e quantidade suficiente.');
+      const old=d.id?expense(p,d.id):null,data=expenseData(p,withExpenseStage(s,p,d));check(!old||data.total>=paid(old),'Valor não pode ficar abaixo do total pago.');check(!old||!old.uses.length||(data.kind==='material'&&data.qty>=used(old)&&data.uom===old.uom),'Consumo já registrado: preserve o material, a unidade de medida e quantidade suficiente.');
       const e=old||{id:next(s),payments:[],uses:[]};Object.assign(e,data);if(!old)p.expenses.push(e);result=e;
     }else if(type==='expense.cancel'){const e=expense(p,d.id);check(paid(e)===0&&!used(e),'Estorne os pagamentos; materiais com consumo não podem ser cancelados.');e.cancelled=text(d.reason,'Justificativa');result=e;}
-    else if(type==='payment.add'){const e=expense(p,d.id),cents=integer(d.cents,'Pagamento',1);check(cents<=e.total-paid(e),'Pagamento supera o saldo contratado.');const when=date(d.date);check(when<=today(),'Pagamento realizado não pode ter data futura.');const pay={id:next(s),date:when,cents,method:text(d.method,'Forma de pagamento',100),reference:optional(d.reference||'',200),reversed:false};e.payments.push(pay);result=pay;}
+    else if(type==='payment.add'){const e=expense(p,d.id),cents=integer(d.cents,'Pagamento',1);check(cents<=e.total-paid(e),'Pagamento supera o saldo contratado.');const when=date(d.date);check(when<=today(),'Pagamento realizado não pode ter data futura.');const pay={id:next(s),date:when,cents,method:text(d.method,'Forma de pagamento',100),reference:optional(d.reference||'',200),reversed:false};if(d.stageId){stage(p,d.stageId);pay.stageId=d.stageId;}if(d.notes)pay.notes=optional(d.notes,1000);e.payments.push(pay);result=pay;}
     else if(type==='payment.reverse'){const e=expense(p,d.id),pay=e.payments.find(x=>x.id===d.paymentId);check(pay&&!pay.reversed,'Pagamento inválido ou já estornado.');pay.reversed=text(d.reason,'Motivo do estorno');result=pay;}
     else if(type==='material.use'){const e=expense(p,d.id);check(e.kind==='material','Selecione um material.');check(tracksQuantity(e),'Informe a quantidade física e a unidade de medida no lançamento detalhado antes de registrar consumo.');const qty=integer(d.qty,'Consumo',1);check(qty<=e.qty-used(e),'Consumo maior que a quantidade comprada disponível.');stage(p,d.stageId);check(!d.unitId||p.units.some(u=>u.id===d.unitId),'Unidade inválida.');const use={id:next(s),date:date(d.date),qty,stageId:d.stageId,unitId:d.unitId||'',notes:optional(d.notes||'')};check(use.date<=today(),'Consumo realizado não pode ter data futura.');e.uses.push(use);result=use;}
     else if(type==='project.close'){check(!p.expenses.some(e=>!e.cancelled&&paid(e)<e.total),'Há custos a pagar. Confira o saldo antes de encerrar.');p.status='closed';p.closedAt=date(d.date);check(p.closedAt<=today(),'Encerramento não pode ter data futura.');p.closeNotes=text(d.reason,'Conferência final');result=p;}
     else if(type==='project.reopen'){check(p.status==='closed','Obra já está aberta.');p.status='active';p.reopenReason=text(d.reason,'Justificativa de reabertura');result=p;}
     else throw new Error('Operação não reconhecida.');
   }
-  s.revision++;s.audit.push({id:next(s),date:new Date().toISOString(),type,projectId:d.projectId||result?.id||'',description:result?.description||result?.name||result?.title||'',detail:structuredClone(d)});validate(s);return {state:s,result};
+  const auditDetail=structuredClone(d);if(auditDetail.contractFile){const {name,size,mime}=auditDetail.contractFile;auditDetail.contractFile={name,size,mime};}
+  s.revision++;s.audit.push({id:next(s),date:new Date().toISOString(),type,projectId:d.projectId||result?.id||'',description:result?.description||result?.name||result?.title||'',detail:auditDetail});validate(s);return {state:s,result};
 }
 // Analytical view by current area; never rewrites recorded expense allocations.
 export function constructionExclusion(e){
@@ -167,9 +199,10 @@ export function validate(s){
   const ids=new Set();const id=x=>{check(typeof x==='string'&&/^ss-\d+$/.test(x)&&!ids.has(x),'Identificador inválido ou duplicado.');check(Number(x.slice(3))<=s.seq,'Sequência inválida.');ids.add(x);};
   for(const p of s.projects){id(p.id);projectData(p);if(p.trashedAt!==undefined)check(typeof p.trashedAt==='string'&&/^\d{4}-\d{2}-\d{2}T/.test(p.trashedAt)&&Number.isFinite(Date.parse(p.trashedAt)),'Data da lixeira inválida.');check(['active','closed'].includes(p.status)&&Array.isArray(p.units)&&p.units.length>0&&p.units.length<=100&&Array.isArray(p.stages)&&p.stages.length>0&&Array.isArray(p.expenses)&&p.expenses.length<=10000,'Estrutura do empreendimento inválida.');
     for(const u of p.units){id(u.id);text(u.name,'Unidade',100);integer(u.area,'Área',1,1e7);integer(u.sale);if(u.bedrooms!==undefined)integer(u.bedrooms,'Dormitórios',1,10);for(const k of ['bathrooms','parking'])if(u[k]!==undefined&&u[k]!==null)integer(u[k],k,0,20);if(u.notes!==undefined)optional(u.notes);}
-    for(const st of p.stages){id(st.id);text(st.name,'Etapa',100);integer(st.budget);integer(st.progress,'Progresso',0,100);}
-    for(const e of p.expenses){id(e.id);constructionScope(e.constructionScope);stage(p,e.stageId);text(e.description,'Descrição',300);text(e.category,'Categoria',100);check(Object.hasOwn(KINDS,e.kind),'Natureza inválida.');date(e.date);date(e.due);integer(e.qty,'Quantidade',1,1e9);integer(e.unitCents,'Preço',0,1e10);check(e.total===amount(e.unitCents,e.qty)&&e.total>0,'Total inconsistente.');text(e.uom,'Medida',30);optional(e.supplier,200);optional(e.reference,150);optional(e.notes);optional(e.coverage,500);check(['equal','area','direct'].includes(e.mode),'Rateio inválido.');check(e.allocation&&Object.entries(e.allocation).every(([uid,v])=>p.units.some(u=>u.id===uid)&&Number.isSafeInteger(v)&&v>=0)&&sum(Object.values(e.allocation),x=>x)===e.total,'Rateio inconsistente.');check(Array.isArray(e.payments)&&Array.isArray(e.uses),'Histórico inválido.');
-      for(const pay of e.payments){id(pay.id);date(pay.date);integer(pay.cents,'Pagamento',1);text(pay.method,'Forma',100);optional(pay.reference,200);check(pay.reversed===false||typeof pay.reversed==='string','Estorno inválido.');}check(paid(e)<=e.total,'Pagamentos superiores ao custo.');
+    check(p.stages.filter(st=>st.unassigned).length<=1,'Etapa não informada duplicada.');
+    for(const st of p.stages){id(st.id);if(st.unassigned!==undefined)check(st.unassigned===true,'Classificação da etapa inválida.');text(st.name,'Etapa',100);integer(st.budget);integer(st.progress,'Progresso',0,100);}
+    for(const e of p.expenses){id(e.id);constructionScope(e.constructionScope);stage(p,e.stageId);text(e.description,'Descrição',300);text(e.category,'Categoria',100);check(Object.hasOwn(KINDS,e.kind),'Natureza inválida.');date(e.date);date(e.due);integer(e.qty,'Quantidade',1,1e9);integer(e.unitCents,'Preço',0,1e10);check(e.total===amount(e.unitCents,e.qty)&&e.total>0,'Total inconsistente.');text(e.uom,'Medida',30);optional(e.supplier,200);optional(e.reference,150);optional(e.notes);optional(e.coverage,2000);check(['equal','area','direct'].includes(e.mode),'Rateio inválido.');check(e.allocation&&Object.entries(e.allocation).every(([uid,v])=>p.units.some(u=>u.id===uid)&&Number.isSafeInteger(v)&&v>=0)&&sum(Object.values(e.allocation),x=>x)===e.total,'Rateio inconsistente.');check(Array.isArray(e.payments)&&Array.isArray(e.uses),'Histórico inválido.');if(e.contractFile!==undefined){check(isContractor(e),'Anexo fora de uma empreitada.');contractFileData(e.contractFile);}
+      for(const pay of e.payments){id(pay.id);date(pay.date);if(pay.stageId)stage(p,pay.stageId);if(pay.notes!==undefined)optional(pay.notes,1000);integer(pay.cents,'Pagamento',1);text(pay.method,'Forma',100);optional(pay.reference,200);check(pay.reversed===false||typeof pay.reversed==='string','Estorno inválido.');}check(paid(e)<=e.total,'Pagamentos superiores ao custo.');
       for(const use of e.uses){id(use.id);check(e.kind==='material','Consumo fora de material.');date(use.date);stage(p,use.stageId);integer(use.qty,'Consumo',1);check(!use.unitId||p.units.some(u=>u.id===use.unitId),'Unidade de consumo inválida.');optional(use.notes);}check(used(e)<=e.qty,'Consumo superior à compra.');check(!e.cancelled||(!paid(e)&&!used(e)),'Cancelamento inconsistente.');
     }integer(sum(p.expenses.filter(e=>!e.cancelled),'total'),'Total de custos');integer(sum(p.stages,'budget'),'Orçamento total');integer(sum(p.units,'sale'),'Vendas totais');if(p.status==='closed')check(!p.expenses.some(e=>!e.cancelled&&paid(e)!==e.total),'Encerramento com saldo aberto.');
   }
