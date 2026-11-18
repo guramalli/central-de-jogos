@@ -1698,7 +1698,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.103 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.104 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -8251,8 +8251,8 @@ function musicaAlternar() {
 // ---- as vozes das skills (v0.87, R335; o usuário, 07/11: "Ficou mto bom o audio, pode colocar"; Logs/Vozes/INTEGRAR_VOZES.md):
 // cada classe grita na língua da sua era; por enquanto o Viking, em nórdico antigo ("muito agressivo", sons/vozes/, do
 // Logs/Vozes/viking_muito_agressivo). skill → [arquivo, quantos gritos]; 0 = um arquivo só (o Corte Triplo: a contagem
-// "Einn! Tveir! Þrír!", presa aos 3 cortes). Só nas 5 skills (nunca no golpe comum), 40% de chance por uso, 1,5 s no mínimo
-// entre duas falas, o grito sorteado entre os da skill (nunca o mesmo duas vezes seguidas). Voz.log guarda cada decisão
+// "Einn! Tveir! Þrír!", presa aos 3 cortes). Só nas 5 skills (nunca no golpe comum), toda vez (R410, 18/11; antes 40% de chance e
+// 1,5 s no mínimo entre duas falas), o grito sorteado entre os da skill (nunca o mesmo duas vezes seguidas). Voz.log guarda cada decisão
 // (os testes leem; no MODO_TESTE nada toca, como o som())
 // (07/11, R342) o Feiticeiro, em latim (Logs/Vozes/FEITICEIRO_ROTEIRO.md; o usuário: "as do feiticeiro esta perfeito"): 2 gritos em
 // cada uma das 6 skills da Magia Negra, ditos no usarNegra, quando a skill é lançada
@@ -8271,8 +8271,18 @@ const VOZES = {
   xama_dragao: { "Talismã Voador": ["talisma", 2], "Tiro de Dragão": ["tiro", 2], "Rugido do Dragão": ["rugido", 2], "Bênção": ["bencao", 2], "Refletir": ["refletir", 2], "Ajuda do Dragão": ["ajuda", 2] },
   shura: { "Lâmina Encantada": ["lamina", 2], "Turbilhão do Dragão": ["turbilhao", 2], "Medo": ["medo", 2], "Golpe Sombrio": ["sombrio", 2], "Aura Negra": ["aura", 2], "Dissipar Magia": ["dissipar", 2] },
 };
-const VOZ_CHANCE = 0.4, VOZ_INTERVALO = 1500, VOZ_GANHO = 1.6;   // (no ganho 1, a voz empatava ou ficava abaixo do Vórtice e do Corte Triplo)
-const Voz = { buf: {}, ultima: {}, desde: -1e9, log: [] };
+// (18/11, R410, o usuário: "altere para sempre que soltar a skill, soltar os sons novos") a voz toca TODA vez que a skill é lançada:
+// sem a chance de 40% e sem o intervalo de 1,5 s de antes. Se a voz anterior ainda está falando, ela some em VOZ_CORTE s e a nova
+// entra (nunca dois gritos um em cima do outro)
+const VOZ_CHANCE = 1, VOZ_CORTE = 0.08, VOZ_GANHO = 1.6;   // (no ganho 1, a voz empatava ou ficava abaixo do Vórtice e do Corte Triplo)
+const Voz = { buf: {}, ultima: {}, desde: -1e9, log: [], tocando: null };
+// a voz que ainda está tocando some em VOZ_CORTE s (R410); devolve se havia uma
+function cortarVoz() {
+  const v = Voz.tocando; if (!v) return false;
+  Voz.tocando = null;
+  try { const t = Som.ctx ? Som.ctx.currentTime : 0; v.g.gain.setTargetAtTime(0, t, VOZ_CORTE / 3); v.f.stop(t + VOZ_CORTE); } catch (e) {}
+  return true;
+}
 const nomesVoz = (cl, slug, q) => q ? Array.from({ length: q }, (_, n) => `${cl}_${slug}_${n + 1}`) : [`${cl}_${slug}`];
 async function carregarVozes(cl) {
   const m = VOZES[cl]; if (!m || !Som.ctx) return;
@@ -8288,17 +8298,17 @@ function vozSkill(nomeSkill, atraso = 0) {
   // (só as classes do VOZES e só as skills dela: o iniciarVortice serve também ao guerreiro do machado, que não tem voz)
   const [slug, q] = (VOZES[classe] || {})[nomeSkill] || []; if (!slug) return null;
   const agora = performance.now();
-  if (agora - Voz.desde < VOZ_INTERVALO) { Voz.log.push({ skill: nomeSkill, t: agora, toca: false, por: "intervalo" }); return null; }
-  if (Math.random() >= VOZ_CHANCE) { Voz.log.push({ skill: nomeSkill, t: agora, toca: false, por: "chance" }); return null; }
   const ks = nomesVoz(classe, slug, q);
   let i = Math.floor(Math.random() * ks.length);
   if (ks.length > 1 && ks[i] === Voz.ultima[slug]) i = (i + 1) % ks.length;   // (nunca a mesma duas vezes seguidas)
   Voz.ultima[slug] = ks[i]; Voz.desde = agora;
-  Voz.log.push({ skill: nomeSkill, t: agora, toca: true, grito: ks[i], atraso });
+  const cortou = cortarVoz();                                          // (R410: a anterior some, a nova entra)
+  Voz.log.push({ skill: nomeSkill, t: agora, toca: true, grito: ks[i], atraso, cortou });
   if (Voz.log.length > 400) Voz.log.splice(0, 200);
   if (!MODO_TESTE && Som.ctx && Som.ligado && Som.ctx.state === "running" && Voz.buf[ks[i]]) {
-    const f = Som.ctx.createBufferSource(); f.buffer = Voz.buf[ks[i]];
-    f.connect(Som.vozG || Som.saida); f.start(Som.ctx.currentTime + 0.005 + atraso);
+    const c = Som.ctx, f = c.createBufferSource(), g = c.createGain(); f.buffer = Voz.buf[ks[i]];
+    f.connect(g); g.connect(Som.vozG || Som.saida); f.start(c.currentTime + 0.005 + atraso);
+    const esta = Voz.tocando = { f, g }; f.onended = () => { if (Voz.tocando === esta) Voz.tocando = null; };
   }
   return ks[i];
 }
