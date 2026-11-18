@@ -108,6 +108,10 @@
   ],
   "rewrites": [
     {
+      "source": "/obrasv2/",
+      "destination": "https://obranexo.onrender.com/obrasv2/"
+    },
+    {
       "source": "/api/obrasv2/:path*",
       "destination": "https://obranexo.onrender.com/api/obrasv2/:path*"
     },
