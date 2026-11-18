@@ -1698,7 +1698,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.105 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.106 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -31527,8 +31527,14 @@ function laminaAtual() {
 }
 
 // arco do arqueiro no quadro atual: [x, y da ponta de baixo, x, y da de cima] (px do sprite a partir dos pés)
+// (R414, 18/11, o usuário: "os efeitos dos arcos quando 7 8 e 9 estao deslocados depois de alterarmos as animacoes do arqueiro") as
+// pontas do arco vinham da folha de sprite do arqueiro ANTIGO (M.animacoes[anim].arco, quadro a quadro): com o modelo 3D novo, as
+// luzinhas do +7/+8/+9 e o estouro da soltura nasciam fora do arco (no peito, acima da cabeça). Com o herói em 3D, as pontas vêm do
+// próprio modelo, no mesmo render da máscara do brilho (i.arcoTela, prepararP3d); a folha só vale no 2D
 function arcoAtual() {
   if (classe !== "arqueiro" || (prog && !prog.arma) || viking.montado) return null;   // (R261: montado, o da máscara)
+  const i3 = typeof P3D === "object" && P3D.vale ? P3D.vale(viking) : null;
+  if (i3 && i3.m && i3.m.nome === "arqueiro") return i3.arcoTela && P3D.quadro - i3.arcoFeito < 30 ? i3.arcoTela : null;
   const a = M.animacoes[viking.anim].arco, l = a && a[dirTela(viking.dir)] && a[dirTela(viking.dir)][quadroAtual()];
   return Array.isArray(l) ? l : null;
 }
@@ -34511,6 +34517,7 @@ function tempo3d(clip, d, info) {
   if (!info || info.laco) return Math.min(dur, ((d.t % per) + per) % per);
   return Math.max(0, Math.min(d.t, dur));
 }
+const PONTAS_ARCO3D = new WeakMap();                                   // (R414: geometria do arco → as duas pontas, no espaço do nó)
 // o brilho da arma precisa da máscara dela neste quadro?
 function querMascara3d() {
   if (!MASCARA_3D[classe] || !prog || !prog.arma) return false;
@@ -34734,6 +34741,22 @@ function renderInst3d(i, clip, tempo) {
       const w = eo.getWorldPosition(new THREE.Vector3()), e = new THREE.Vector3();
       eo.getWorldScale(e);
       if (e.x > 1e-3) i.esfera = [w.x * PX, -(w.y * ALTURA - w.z * ACHATA) * PX];
+    }
+    // (R414) as duas pontas do arco na tela, em px dos sprites a partir dos pés (como o "arco" da folha: [bx, by, tx, ty])
+    if (i.m.nome === "arqueiro" && !cav) {
+      const ao = i.arcoObj || (i.arcoObj = (() => { let r = null; i.raiz.traverse(o => { if (!r && o.isMesh && o.name === "peca_arco") r = o; }); return r; })());
+      if (ao && ao.visible && ao.geometry) {
+        const pt = PONTAS_ARCO3D.get(ao.geometry) || (() => {
+          const g = ao.geometry; if (!g.boundingBox) g.computeBoundingBox();
+          const b = g.boundingBox, sz = b.getSize(new THREE.Vector3()), k = sz.x > sz.y ? (sz.x > sz.z ? "x" : "z") : (sz.y > sz.z ? "y" : "z");
+          const e0 = b.getCenter(new THREE.Vector3()), e1 = e0.clone(); e0[k] = b.min[k]; e1[k] = b.max[k];
+          const r = [e0, e1]; PONTAS_ARCO3D.set(g, r); return r;
+        })();
+        const tl = v => { const w = v.clone().applyMatrix4(ao.matrixWorld); return [w.x * PX, -(w.y * ALTURA - w.z * ACHATA) * PX]; };
+        const [a0, a1] = pt.map(tl);
+        i.arcoTela = a0[1] > a1[1] ? [a0[0], a0[1], a1[0], a1[1]] : [a1[0], a1[1], a0[0], a0[1]];   // (a de baixo primeiro, como a folha)
+        i.arcoFeito = p.quadro;
+      }
     }
     i.mascaraFeita = p.quadro;
   }
