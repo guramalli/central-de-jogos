@@ -1698,7 +1698,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.108 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.109 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -11879,6 +11879,7 @@ function vegLista(lista, t) {
 const VEU_PARADAS = [[0, 0.84], [0.5, 0.76], [0.78, 0.42], [1, 0]];
 let vegTrevasPedras = [], vegTrevasMarca = -1;
 function veuNoPe(x, y) {
+  if (!TREVAS_VISUAL.chao) return 0;                                    // (R419: sem o chão escuro, o mato nas trevas não escurece)
   let fica = 1;
   for (const l of vegTrevasPedras) {
     const r = Math.hypot(x - l.x, y - l.y) / raioTrevas(l.cfg);
@@ -17235,6 +17236,12 @@ function curarGhotin(l, dt) {
 // A força: +30% de vida e +20% de dano deixam a luta perto da pedra mais dura sem virar a de um chefe; +25% de EXP e de
 // drop pagam o risco (vale a pena caçar ali, e mais ainda quebrar a pedra no fim). Para mudar, só estes números.
 const TREVAS = { escBase: 0.9, escPorNivel: 0.012, raioBase: 4, raioPorNivel: 0.2, vida: 1.3, dano: 1.2, exp: 1.25, drop: 1.25, folga: 1, sobe: 1.2 };
+// (R419, rodada 2, 18/11, o usuário: "deixa só a borda na gotin e tire todos os veios e tira também a borda escura no entorno da
+// gotin"; perguntado, escolheu "só o brilho da pedra"): a pedra fica só com o brilho colorido em volta dela (a aura, sem o fio de
+// nanquim, e as runas), a fumaça colorida e o pulso de antes. Saem o chão escuro das trevas (a mancha e o véu dela no mato e em
+// quem está nela), os veios e as volutas e a poeira da rodada 1. Cada parte volta pela chave dela. A maldição (o raio, a força das
+// criaturas, a aura negra e a fuligem delas e o aviso no chat) não muda
+const TREVAS_VISUAL = { chao: false, veios: false, fioAura: false, volutas: false };
 function escGhotin(nivel) { return TREVAS.escBase + TREVAS.escPorNivel * (nivel || 1); }
 function raioTrevas(cfg) { return TREVAS.raioBase + TREVAS.raioPorNivel * (cfg.nivel || 1); }
 // a versão amaldiçoada de um tipo (uma por tipo, guardada): a mesma criatura com mais vida, dano, EXP e drop
@@ -17294,7 +17301,7 @@ function passoTrevas(dt, agora = false) {
 let trevasHeroi = null;
 // quebrou: as trevas daquela pedra somem na hora e as criaturas da área perdem a maldição
 function desfazerTrevas(pedra) {
-  pedra.veios = null; pedra.veiosSemente = 0;                         // (na próxima queda, outros veios)
+  pedra.veios = null; pedra.veiosSemente = 0; pedra.mancha = null;    // (na próxima queda, outros veios e outra mancha)
   for (const l of criaturas) if (l.maldita === pedra && l.cfg.maldita) libertar(l);
 }
 // ---- o desenho das trevas no 2D. O chão: um disco de nanquim quase opaco no miolo e de borda suave, na perspectiva
@@ -17312,13 +17319,15 @@ function veiosDe(l) {
   const veio = (a, r0, r1, galhos) => {
     let x = Math.cos(a) * r0, y = Math.sin(a) * r0, r = r0;
     while (r < r1) {
-      a += (rnd() - 0.5) * 0.55; r += 0.05 + rnd() * 0.05;
+      a += (rnd() - 0.5) * 0.26; r += (0.06 + rnd() * 0.05) * em;     // (R419: a curva mansa de uma raiz, não o zigue-zague de um raio; em: o passo em metros)
       const nx = Math.cos(a) * r, ny = Math.sin(a) * r; traco(x, y, nx, ny); x = nx; y = ny;
-      if (galhos > 0 && r > r0 + 0.15 && rnd() < 0.22) { galhos--; veio(a + (rnd() < 0.5 ? -1 : 1) * (0.35 + rnd() * 0.4), r, Math.min(r1, r + 0.18 + rnd() * 0.3), 0); }
+      if (galhos > 0 && r > r0 + 0.15 * em && rnd() < 0.22) { galhos--; veio(a + (rnd() < 0.5 ? -1 : 1) * (0.35 + rnd() * 0.4), r, Math.min(r1, r + (0.18 + rnd() * 0.3) * em), 0); }
     }
   };
-  const n = 5 + Math.floor(rnd() * 5);
-  for (let k = 0; k < n; k++) veio(k / n * Math.PI * 2 + rnd() * 0.6, 0.1, 0.72 + rnd() * 0.23, 2);
+  // (R419) as raízes vão até ~3 a 5 m da pedra em qualquer tamanho de trevas (na de 14 m, cada passo de 0,1 do raio virava um risco
+  // reto de 1,4 m), com passos de ~0,4 m
+  const em = Math.min(1, 6.5 / raioTrevas(l.cfg)), n = 4 + Math.floor(rnd() * 3);
+  for (let k = 0; k < n; k++) veio(k / n * Math.PI * 2 + rnd() * 0.6, 0.1 * Math.max(0.5, em), (0.5 + rnd() * 0.25) * em, 3);
   return (l.veios = faixas);
 }
 // ---- o brilho das Ghotins (R134; Logs/Interface/PEDIDO_GHOTIN_BRILHO.md): o corpo calmo, as runas e os veios no mesmo ritmo, e
@@ -17440,7 +17449,7 @@ function* brilhoGhotinPassos(cfg) {
     for (let q = 0; q < 3 && !feito; q++) { const R = B.aura[q][0] + B.aura[q][1] * n; if (dd < R + 0.7) { const u = Math.min(1, R + 0.7 - dd); rA = B.aura[q][2] * u + (q < 2 ? B.aura[q + 1][2] * (1 - u) : 0); rC = cores[q]; feito = true; } }
     const Rf = B.aura[2][0] + B.aura[2][1] * n;
     let tinta = 0;
-    if (dd >= Rf - 0.2 && dd < Rf + 1.5) tinta = 0.55 * Math.min(1, (Rf + 1.5 - dd) / 0.8);
+    if (TREVAS_VISUAL.fioAura && dd >= Rf - 0.2 && dd < Rf + 1.5) tinta = 0.55 * Math.min(1, (Rf + 1.5 - dd) / 0.8);   // (R419: sem o fio de nanquim em volta do brilho)
     if (y > chao + 4) { const c = Math.max(0, 1 - (y - chao - 4) / 7); rA *= c; tinta *= c; }
     if (!rA && !tinta) continue;
     if (tinta > rA) { o[k * 4] = 30; o[k * 4 + 1] = 27; o[k * 4 + 2] = 24; o[k * 4 + 3] = tinta * 255; }
@@ -17448,6 +17457,43 @@ function* brilhoGhotinPassos(cfg) {
   }
   gA.putImageData(saida, 0, 0);
   return { aura, runa, halo, masc, apaga: pinta("#17181d"), m, AW, AH };
+}
+// (R419) em volta da pedra: 7 VOLUTAS que nascem no chão, sobem 1,4 a 1,9 m torcendo e se soltam com a ponta enrolada (a nuvem
+// em espiral do minhwa, na cor da pedra, em luz somada), e 12 grãos de POEIRA ESCURA que o chão das trevas puxa para a pedra (da beira até ela
+// em 3,2 s, subindo no fim). As de trás vão antes da pedra; as da frente, depois. Só traços e quadradinhos: barato
+const TINTA_GHOTIN = { volutas: 7, graos: 12, noTeste: false, desenhadas: 0 };
+function tintaGhotin(l, X, Y, frente, t) {
+  if (!TREVAS_VISUAL.volutas || (MODO_TESTE && !TINTA_GHOTIN.noTeste) || l.morto || !(l.trevas > 0.05) || GRAF.nivel === "baixo") return;
+  const s = PX * zoom, k = l.trevas, rp = raioPedraNoChao(l.cfg) + 0.25, R = raioTrevas(l.cfg), h0 = (l.veiosSemente || 1) % 997;
+  cx.save(); cx.lineCap = "round"; cx.lineJoin = "round";
+  for (let i = 0; i < TINTA_GHOTIN.volutas; i++) {
+    const hh = q => { const v = Math.sin((i + 1) * 12.9898 + q * 78.233 + h0) * 43758.5453; return v - Math.floor(v); };
+    const per = 2.6 + 0.9 * hh(1), ph = ((t + hh(2) * per) % per) / per, a = i / TINTA_GHOTIN.volutas * 6.2832 + 0.35 * Math.sin(t * 0.21 + i), rb = rp * (0.85 + 0.35 * hh(3));
+    const [ox, oy] = tela(Math.cos(a) * rb, Math.sin(a) * rb); if ((oy > 0) !== frente) continue;
+    const Hm = 1.4 + 0.5 * hh(4), lado = hh(5) < 0.5 ? -1 : 1, f1 = Math.min(1, ph * 1.35), f0 = Math.max(0, ph * 1.35 - 0.5), al = k * Math.min(1, (1 - ph) * 3) * Math.min(1, ph * 6);
+    if (f1 - f0 < 0.02 || al < 0.02) continue;
+    const pto = f => [X + ox + (Math.sin(f * 3.2 + i) * 0.16 * f + lado * 0.3 * f * f) * s, Y + oy - f * Hm * s * ALTURA];
+    const corpo = new Path2D(); for (let q = 0; q <= 10; q++) { const p = pto(f0 + (f1 - f0) * q / 10); q ? corpo.lineTo(...p) : corpo.moveTo(...p); }
+    if (f1 > 0.55) { const [px, py] = pto(f1), rr = 0.11 * s * f1; for (let q = 0; q <= 10; q++) { const an = lado * (q / 10) * 4.4, r2 = rr * (1 - q / 14); corpo.lineTo(px + lado * rr * 0.8 - Math.cos(an) * r2 * lado, py - Math.sin(an * lado) * r2 * 0.9); } }   // (a ponta enrolada)
+    // (na cor da pedra, em luz somada e sem contorno, como os outros efeitos: o nanquim sumia em cima da mancha)
+    cx.globalCompositeOperation = "lighter"; cx.strokeStyle = l.cfg.cor;
+    cx.globalAlpha = 0.16 * al; cx.lineWidth = Math.max(2, 0.15 * s); cx.stroke(corpo);
+    cx.globalAlpha = 0.55 * al; cx.lineWidth = Math.max(1, 0.045 * s); cx.stroke(corpo);
+    cx.globalCompositeOperation = "source-over";
+    TINTA_GHOTIN.desenhadas++;
+  }
+  // a poeira puxada para a pedra
+  const graos = [new Path2D(), new Path2D()];
+  for (let i = 0; i < TINTA_GHOTIN.graos; i++) {
+    const hh = q => { const v = Math.sin((i + 31) * 12.9898 + q * 78.233 + h0) * 43758.5453; return v - Math.floor(v); };
+    const per = 3.2, f = ((t / per + hh(1)) % 1), a = hh(2) * 6.2832 + f * 0.6, r = rp + (R * 0.85 - rp) * (1 - f) ** 1.4;
+    const [ox, oy] = tela(Math.cos(a) * r, Math.sin(a) * r); if ((oy > 0) !== frente) continue;
+    const z = f ** 3 * 1.1, q = Math.max(2, 0.045 * s) * (0.6 + 0.4 * (1 - f)), X1 = X + ox, Y1 = Y + oy - z * s * ALTURA;
+    graos[0].rect(X1 - q / 2 - 1, Y1 - q / 2 - 1, q + 2, q + 2); graos[1].rect(X1 - q / 2, Y1 - q / 2, q, q);
+  }
+  cx.globalAlpha = 0.25 * k; cx.fillStyle = "#EFE4CC"; cx.fill(graos[0]);
+  cx.globalAlpha = 0.85 * k; cx.fillStyle = "#14110f"; cx.fill(graos[1]);
+  cx.restore();
 }
 // a aura atrás da pedra (antes do sprite) e as runas acesas (depois): o ritmo é o da 1ª faixa dos veios
 function desenharAuraGhotin(l, X, Y, z, t) {
@@ -17492,6 +17538,42 @@ function furarGhotins(g) {
 // em VEIOS_RES da escala (0,5: um quarto da memória e dos pixels a pintar) e esticadas de volta no desenho, com suavização: o fio
 // de 2,4 px fica um pouco mais macio (o antes e depois em Midia/antes_depois). A imagem só é refeita quando a escala muda (o
 // zoom), a pedra quebra ou volta; R309 confere
+// ---- (R419, 18/11, o usuário: "Quero melhorar agora o efeito das pedras ghotin, esta muito feio"; Logs/Ghotin/efeito). O chão das
+// trevas era um disco em degradê de aerógrafo (uma mancha suja e borrada, fora do minhwa), que na Daiyu e no deserto escurecia meia
+// tela. Agora é uma MANCHA DE NANQUIM: 3 aguadas chapadas (de fora para dentro, cada uma escurece mais um pouco), com a borda
+// mexida por 3 ondas, DEDOS de tinta que escorrem para fora e RESPINGOS na beira; a aguada de fora tem o filete mais escuro da
+// tinta que empoça na borda. Uma por pedra (a mesma semente dos veios: outra a cada queda), no círculo de raio 1; por quadro, só
+// a aguada de fora e a do meio giram bem devagar, em sentidos contrários (a tinta se espalhando). O miolo fica em ~66% (era 84%)
+const MANCHA = { camadas: [[0.98, 0.3], [0.72, 0.28], [0.45, 0.3]], giro: 0.03, borda: 0.22 };
+function manchaDe(l) {
+  if (l.mancha) return l.mancha;
+  let sem = ((l.veiosSemente || (l.veiosSemente = ++VEIOS.semente * 7919 + (l.cfg.nivel || 1) * 104729)) * 31 + 17) % 2147483647;
+  const rnd = () => (sem = sem * 16807 % 2147483647) / 2147483647;
+  const N = 120, dedos = Array.from({ length: 5 + Math.floor(rnd() * 5) }, () => ({ a: rnd() * 6.2832, l: 0.08 + rnd() * 0.16, w: 0.07 + rnd() * 0.09 })), f = [rnd() * 6, rnd() * 6, rnd() * 6];
+  const camadas = MANCHA.camadas.map(([R], c) => {
+    const pts = [];
+    for (let q = 0; q < N; q++) {
+      const a = q / N * 6.2832; let r = R * (1 + 0.07 * Math.sin(a * 3 + f[0] + c) + 0.05 * Math.sin(a * 7 + f[1]) + 0.03 * Math.sin(a * 13 + f[2] + c * 2));
+      for (const d of dedos) { const da = Math.atan2(Math.sin(a - d.a), Math.cos(a - d.a)); r += d.l * R * Math.exp(-((da / d.w) ** 2)) * [1, 0.55, 0.25][c]; }
+      pts.push([Math.cos(a) * r, Math.sin(a) * r]);
+    }
+    const pp = new Path2D(); pp.moveTo((pts[N - 1][0] + pts[0][0]) / 2, (pts[N - 1][1] + pts[0][1]) / 2);
+    for (let q = 0; q < N; q++) { const a = pts[q], b = pts[(q + 1) % N]; pp.quadraticCurveTo(a[0], a[1], (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); }
+    pp.closePath(); return pp;
+  });
+  const respingos = new Path2D();
+  for (const d of dedos) for (let k = 0; k < 2 + Math.floor(rnd() * 3); k++) { const a = d.a + (rnd() - 0.5) * d.w * 2.5, r = 1.02 + d.l * 0.8 + rnd() * 0.12, rr = 0.01 + rnd() * 0.025; respingos.moveTo(Math.cos(a) * r + rr, Math.sin(a) * r); respingos.arc(Math.cos(a) * r, Math.sin(a) * r, rr, 0, 6.2832); }
+  return (l.mancha = { camadas, respingos });
+}
+function desenharMancha(l, k, t, px) {
+  const M = manchaDe(l), ph = t * MANCHA.giro;
+  cx.save(); cx.rotate(ph);
+  cx.fillStyle = `rgba(14, 12, 10, ${MANCHA.camadas[0][1] * k})`; cx.fill(M.camadas[0]); cx.fill(M.respingos);
+  cx.strokeStyle = `rgba(14, 12, 10, ${MANCHA.borda * k})`; cx.lineWidth = 2.6 / px; cx.stroke(M.camadas[0]);
+  cx.restore();
+  cx.save(); cx.rotate(-ph * 0.7); cx.fillStyle = `rgba(12, 10, 9, ${MANCHA.camadas[1][1] * k})`; cx.fill(M.camadas[1]); cx.restore();
+  cx.fillStyle = `rgba(10, 8, 8, ${MANCHA.camadas[2][1] * k})`; cx.fill(M.camadas[2]);
+}
 const VEIOS_K = 1.42, VEIOS_RES = { k: 0.5, refeitas: 0 };
 function veiosDaCache(l, t, px) {
   const faixas = veiosDe(l), m = cx.getTransform(), K = VEIOS_RES.k, ch = [m.a, m.b, m.c, m.d].map(v => v.toFixed(3)).join() + "|" + px.toFixed(3) + "|" + l.cfg.cor + "|" + K;
@@ -17524,15 +17606,15 @@ function veiosDaCache(l, t, px) {
 const VEIOS_DESENHOS = { n: 0 };                                          // (os testes contam: R174)
 function desenharTrevasChao(forca = 1, veios = forca === 1) {   // (veios = false: só o véu, como no mato da lista, vegPintarNasTrevas)
   const t = performance.now() / 1000;
+  if (!TREVAS_VISUAL.chao && !TREVAS_VISUAL.veios) { for (const l of criaturas) if (l.veiosCache) l.veiosCache = null; return; }   // (R419: nada no chão)
+  veios = veios && TREVAS_VISUAL.veios;
   for (const l of criaturas) {
     if (!l.cfg.estatico || !(l.trevas > 0.01) || Math.abs(l.x - cam.x) > 60 || Math.abs(l.y - cam.y) > 60) { if (l.veiosCache && forca === 1) l.veiosCache = null; continue; }   // (longe: a imagem dos veios sai da memória)
     const R = raioTrevas(l.cfg), zt = zPiso(l.x, l.y), [cX, cY] = noMundo(l.x, l.y, zt), [aX, aY] = noMundo(l.x + R, l.y, zt), [bX, bY] = noMundo(l.x, l.y + R, zt);   // (no platô, o disco na altura da pedra)
     if (cX < -R * PX * zoom * 1.5 || cX > W + R * PX * zoom * 1.5 || cY < -R * PX * zoom || cY > H + R * PX * zoom) continue;
     cx.save(); if (l.x < -350) GELADA.recortarTrevas(cx, l.x, l.y); else if (l.y > 1050) DESERTO.recortarTrevas(cx, l.x, l.y);   // (o Deserto: o disco não sobe nas dunas)          // (Montanha Gelada: o disco não vaza do patamar da pedra)
     cx.transform(aX - cX, aY - cY, bX - cX, bY - cY, cX, cY);     // (o círculo de raio 1 vira o do chão)
-    const g = cx.createRadialGradient(0, 0, 0, 0, 0, 1), k = l.trevas * forca;
-    g.addColorStop(0, `rgba(12, 10, 9, ${0.84 * k})`); g.addColorStop(0.5, `rgba(14, 12, 10, ${0.76 * k})`); g.addColorStop(0.78, `rgba(18, 15, 13, ${0.42 * k})`); g.addColorStop(1, "rgba(22, 18, 16, 0)");
-    cx.fillStyle = g; cx.beginPath(); cx.arc(0, 0, 1, 0, 7); cx.fill();
+    if (TREVAS_VISUAL.chao) desenharMancha(l, l.trevas * forca, t, Math.max(1, Math.hypot(aX - cX, aY - cY)));   // (R419: a mancha de nanquim no lugar do disco em degradê)
     if (veios && l.x >= -350) { veiosDaCache(l, t, Math.max(1, Math.hypot(aX - cX, aY - cY))); cx.restore(); continue; }   // (R174: os veios prontos numa imagem; a Montanha, com o recorte do patamar, segue como antes)
     if (veios) {                                                           // os veios (só na passada do chão)
       const faixas = veiosDe(l), px = Math.max(1, Math.hypot(aX - cX, aY - cY));   // (px da tela por unidade do círculo)
@@ -27607,7 +27689,7 @@ function desenharCriatura(l) {
     cx.globalAlpha = GHOTIN_BRILHO.corpoBase + GHOTIN_BRILHO.corpoAmp * (2 * pulsoVeio(t) - 1);   // (R134: de ±0,3 para ±0,1: a pedra não pisca)
     if (!(window.M3D && M3D.ativo)) { cx.fillStyle = g; cx.beginPath(); cx.arc(X, Y - s * 1.1, s * 1.6, 0, 7); cx.fill(); }
     cx.restore();
-    if (!(window.M3D && M3D.ativo)) desenharAuraGhotin(l, X, Y, zoom * (cfg.esc || 1), t);
+    if (!(window.M3D && M3D.ativo)) { tintaGhotin(l, X, Y, false, t); desenharAuraGhotin(l, X, Y, zoom * (cfg.esc || 1), t); }   // (R419: a tinta de trás, antes da aura)
   }
   let q = Math.floor(l.t * info.fps);
   q = info.laco ? ((q % info.quadros) + info.quadros) % info.quadros : Math.min(info.quadros - 1, Math.max(0, q));
@@ -27643,6 +27725,7 @@ function desenharCriatura(l) {
   }
   cx.restore();
   if (cfg.estatico && !em3d && !(window.M3D && M3D.ativo)) desenharRunasGhotin(l, X, Y, z, performance.now() / 1000);
+  if (cfg.estatico && !(window.M3D && M3D.ativo)) tintaGhotin(l, X, Y, true, performance.now() / 1000);   // (R419: a tinta da frente)
   if (cfg.estatico) desenharFumacaMetin(l, true);
   const Yb = window.M3D && M3D.ativo ? M3D.acima(l, cfg.barra * zoom) : Y - cfg.barra * zoom;      // (no 3D: o ponto acima dele projetado)
   if (!l.morto && !(cfg.sopro && defChefe(l) && l.cacando)) placas.push(() => { barraVida(l, X, Yb); desenharAtordoado(l, X, Yb - 14, zoom, performance.now() / 1000); });   // (o Ancião caçando: a barra grande de cima já diz quem é)
@@ -44448,6 +44531,7 @@ function folhas(x, y, n) {
 // ---- o mundo: feixe de luz nos itens raros no chão; pulso e rachaduras na pedra Metin
 const COR_ITEM = { livro: [1, 0.8, 0.28], alma: [0.75, 0.4, 1], bencao: [0.6, 0.85, 1] };
 function corItem(d) { if (COR_ITEM[d.tipo]) return rgb(...COR_ITEM[d.tipo]); const r = d.ref || 0; return r >= 9 ? rgb(1, 0.3, 0.2) : r >= 8 ? rgb(0.75, 0.4, 1) : r >= 7 ? rgb(1, 0.75, 0.25) : rgb(0.4, 0.75, 1); }
+const RACHADURAS_3D = window.RACHADURAS_3D_GHOTIN = false;   // (R419: a chave, vista de fora do FX3 pelo teste)
 function passoMundo(dt, t) {
   for (const d of drops) {
     if (!dropRaro(d) || Math.hypot(d.x - cam.x, d.y - cam.y) > 45) continue;
@@ -44459,8 +44543,11 @@ function passoMundo(dt, t) {
     // (R142: as rachaduras e a onda começam fora do pé da pedra, e a onda não vira branco: o clarão tapava a base dela)
     const k = l.cfg.esc || 1, pe = raioPedraNoChao(l.cfg) * 1.1, luz = corComBranco(l.cfg.cor, 0), claro = Math.min(1, 127 / (0.3 * luz[0] + 0.59 * luz[1] + 0.11 * luz[2]));   // (as cores claras somam quase branco: mais fracas)
     const cima = window.M3D && M3D.ativo ? null : (([a, b]) => { const d = Math.hypot(a, b) || 1; return [a / d, b / d]; })(daVista(0, 1));
-    const e = seguir(l, () => { const c = new THREE.Color(l.cfg.cor); return { c, c2: c.clone().lerp(BRANCO(), 0.3), prox: 0, r: chao(l.x, l.y, 2.4 * k, 3, c, c.clone().lerp(BRANCO(), 0.5), -1, { alfa: 0.7, furo: pe / (2.4 * k), cima }), fim() { this.r.morto = true; } }; });
-    e.r.u.uAlfa.value = (0.26 + 0.06 * Math.sin(t * Math.PI * 2 / VEIOS.periodo)) * claro;   // (R134: na cor de cada pedra e mais calmo)
+    // (R419, 18/11: "o efeito das pedras ghotin, esta muito feio") as rachaduras acesas do shader (o tipo 3: 9 raios em zigue-zague
+    // em volta do pé) liam como relâmpagos rabiscados; saíram. A pedra fica com as raízes de luz (os veios, no 2D), a mancha de
+    // nanquim, a tinta que sobe e o pulso suave abaixo (RACHADURAS_3D = true volta as de antes)
+    const e = seguir(l, () => { const c = new THREE.Color(l.cfg.cor); return { c, c2: c.clone().lerp(BRANCO(), 0.3), prox: 0, r: RACHADURAS_3D ? chao(l.x, l.y, 2.4 * k, 3, c, c.clone().lerp(BRANCO(), 0.5), -1, { alfa: 0.7, furo: pe / (2.4 * k), cima }) : null, fim() { if (this.r) this.r.morto = true; } }; });
+    if (e.r) e.r.u.uAlfa.value = (0.26 + 0.06 * Math.sin(t * Math.PI * 2 / VEIOS.periodo)) * claro;   // (R134: na cor de cada pedra e mais calmo)
     if ((e.prox -= dt) <= 0) { e.prox = VEIOS.periodo; chao(l.x, l.y, 3.4 * k, 0, e.c, e.c2, 0.9, { alfa: 0.2 * claro, furo: pe / (3.4 * k), cima }); }
   }
 }
