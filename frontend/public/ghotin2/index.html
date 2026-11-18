@@ -1698,7 +1698,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.107 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.108 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -3360,39 +3360,117 @@ function poliLava(L) {
   }
   return (L._poli = { pts: [...esq, ...dir.reverse()], meio });
 }
-// o Rio de Lava Fria no topo do nível 1: a auréola cinabre no chão, a brasa nas frestas entre as placas de crosta, a
-// margem irregular em nanquim, as passagens em lajes hexagonais de basalto e a cascata na beira do platô
+// o Rio de Lava Fria no topo do nível 1. (R418, 18/11, o usuário: "quero que seja feita uma alteracao minuciosa no mapa dos orcs
+// tambem, acho que as partes com lava nao estao legais, procure referencias e tente fazer um trabalho procedural convincente";
+// Logs/Mapas/daiyu_lava/REFERENCIAS_LAVA.md). Antes: placas soltas em fileira sobre um fundo escuro e um canal de UMA cor
+// (cinabre) com um fio de ocre; lia como lama, não como lava. Agora, como a lava de verdade e no cel-shading (faixas duras, sem
+// degradê):
+// - a MARGEM: o basalto em volta escurece em 2 faixas (4 e 2 m) e a beira pega o brilho em 2 degraus (cinabre e laranja);
+// - o LEITO é brasa (vermelho-escuro): o que aparece entre as placas são as FENDAS ACESAS;
+// - a CROSTA cobre o leito em placas de uma rede de células (ao longo do rio, 0,9 × 0,75 m, os cantos mexidos), encolhidas
+//   para abrir a fenda, em 3 tons de crosta, com a quina clara em cima e as "cordas" do pahoehoe em algumas perto da margem;
+// - o CANAL aberto em 4 faixas, da beira ao eixo: cinabre, laranja, ouro e o amarelo-branco no meio (o mais quente), com a
+//   beira de crosta preta (o "levee");
+// - por quadro (D.desenharLavaViva, no chão, antes de quem fica em pé): as ondas claras descendo o canal, o pulso, as bolhas
+//   que estouram nas poças e a lava caindo nas cascatas.
+// (R418, rodada 2, o usuário: "achei que melhorou mas ainda nao estou satisfeito com a parte da lava, acho que o desenho esta muito
+// quadrado e mal feito, precisa ser lapidado"). A rede de quadrados e triângulos de lados retos virou uma rede de VORONOI (cada
+// placa é a região mais perto do seu centro), com placas miúdas perto da margem e do canal, os cantos ARREDONDADOS (o traço passa
+// pelo meio dos lados, em curva), a fenda entre elas com a beira escura e o miolo aceso, e algumas fendas mais quentes em ouro. A
+// margem do rio, o canal e as poças também vão em curva (sem quina), e a beira ganha o DIQUE de crosta em calombos (o "levee")
+const curvaPz = (pp, pts, Pz, z) => { const q = pts.map(([u, v]) => Pz(u, v, z)), n = q.length; if (n < 3) return; pp.moveTo((q[n - 1][0] + q[0][0]) / 2, (q[n - 1][1] + q[0][1]) / 2); for (let i = 0; i < n; i++) { const a = q[i], b = q[(i + 1) % n]; pp.quadraticCurveTo(a[0], a[1], (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); } pp.closePath(); };
+// a posição ao longo de um braço (s) com a normal interpolada (sem quebra nas curvas)
+function emSLava(M) {
+  return s => { let lo = 0, hi = M.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (M[m].s <= s) lo = m; else hi = m; }
+    const a = M[lo], b = M[hi], t = b.s > a.s ? Math.max(0, Math.min(1, (s - a.s) / (b.s - a.s))) : 0, tu = a.tu + (b.tu - a.tu) * t, tv = a.tv + (b.tv - a.tv) * t, n = Math.hypot(tu, tv) || 1;
+    return { u: a.u + (b.u - a.u) * t, v: a.v + (b.v - a.v) * t, nu: -tv / n, nv: tu / n, tu: tu / n, tv: tv / n, w: a.w + (b.w - a.w) * t }; };
+}
+// as placas da crosta de um braço (na vista, uma vez): o Voronoi dos centros, calculado em (s, l) (s: ao longo; l: de lado)
+function celulasLava(L, P) {
+  if (P._cel) return P._cel;
+  const M = P.meio, C = canalLava(L, P), S = M[M.length - 1].s, DS = 0.95, DL = 0.8, sem = Math.round(L.sem * 10), emS = emSLava(M), out = [];
+  const cen = C.centros.flat(), noCanal = (u, v, m) => cen.some(c => Math.abs(c.u - u) < 2.6 && Math.abs(c.v - v) < 2.6 && Math.hypot(c.u - u, c.v - v) < c.hw + m);
+  const nI = Math.ceil(S / DS) + 1, nJ = Math.ceil(3.8 / DL), grade = new Map();
+  for (let i = -1; i <= nI; i++) for (let j = -nJ - 1; j <= nJ; j++) {
+    const lista = [], add = q => lista.push({ s: (i + 0.12 + 0.76 * hsh(i * 7 + q, j, 470 + sem)) * DS, l: (j + 0.12 + 0.76 * hsh(j * 5 + q, i, 480 + sem)) * DL, i, j, q });
+    add(0);
+    const m = emS(Math.max(0, Math.min(S, (i + 0.5) * DS))), lj = (j + 0.5) * DL, um = m.u + m.nu * lj, vm = m.v + m.nv * lj;
+    if ((Math.abs(lj) > m.w - 0.9 || noCanal(um, vm, 0.9)) && hsh(i, j, 486 + sem) < 0.65) add(1);   // (miúdas na margem e em volta do canal)
+    grade.set(i * 1000 + j, lista);
+  }
+  const corta = (poli, a, o) => { const nx = o.s - a.s, ny = o.l - a.l, mx = (a.s + o.s) / 2, my = (a.l + o.l) / 2, f = q => (q[0] - mx) * nx + (q[1] - my) * ny, r = [];
+    for (let k = 0; k < poli.length; k++) { const p = poli[k], q = poli[(k + 1) % poli.length], dp = f(p), dq = f(q); if (dp <= 0) r.push(p); if (dp * dq < 0) { const t = dp / (dp - dq); r.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]); } }
+    return r; };
+  const paraUV = ([sq, lq]) => { const m = emS(Math.max(0, Math.min(S, sq))); return [m.u + m.nu * lq, m.v + m.nv * lq]; };
+  for (const lista of grade.values()) for (const a of lista) {
+    const ma = emS(Math.max(0, Math.min(S, a.s))); if (Math.abs(a.l) > ma.w + 0.35 || a.s < -0.3 || a.s > S + 0.3) continue;
+    const [cu, cv] = paraUV([a.s, a.l]); if (noCanal(cu, cv, -0.08)) continue;   // (o centro dentro do canal aberto: a lava viva; as da beira entram embaixo dele, e o canal as cobre)
+    let poli = [[a.s - 1.7 * DS, a.l - 1.7 * DL], [a.s + 1.7 * DS, a.l - 1.7 * DL], [a.s + 1.7 * DS, a.l + 1.7 * DL], [a.s - 1.7 * DS, a.l + 1.7 * DL]];
+    for (let di = -2; di <= 2; di++) for (let dj = -2; dj <= 2; dj++) for (const o of grade.get((a.i + di) * 1000 + a.j + dj) || []) if (o !== a) { poli = corta(poli, a, o); if (poli.length < 3) break; }
+    if (poli.length < 3) continue;
+    const gap = 0.055 + 0.05 * hsh(a.i, a.j * 3 + a.q, 490 + sem);   // (a fenda: cada lado recua do canto até o centro)
+    const enc = poli.map(([sq, lq]) => { const dx = sq - a.s, dy = lq - a.l, d = Math.hypot(dx, dy) || 1, f = Math.max(0.3, 1 - gap / d); return [a.s + dx * f, a.l + dy * f]; });
+    const pts = enc.map(paraUV), borda = poli.map(paraUV), k = Math.floor(hsh(a.i * 3 + a.q, a.j, 491 + sem) * 3), quente = noCanal(cu, cv, 0.95);
+    const qp = pts.map(([u, v]) => [cu + (u - cu) * 0.66 - 0.04, cv + (v - cv) * 0.66 + 0.05]);
+    const frestas = []; for (let e = 0; e < borda.length; e++) if (hsh(a.i * 11 + e, a.j * 7 + a.q, 493 + sem) < 0.1) frestas.push([borda[e], borda[(e + 1) % borda.length]]);
+    const cordas = [];
+    if (Math.abs(a.l) > ma.w * 0.5 && hsh(a.i, a.j * 5 + a.q, 492 + sem) < 0.35) for (let c = 0; c < 3; c++) { const r = 0.08 + c * 0.06, arc = []; for (let n = 0; n <= 8; n++) { const an = -1.2 + 2.4 * n / 8; arc.push(paraUV([a.s + Math.cos(an) * r * 0.8 - 0.06, a.l + Math.sin(an) * r * 1.25])); } cordas.push(arc); }
+    out.push({ cu, cv, k, quente, pts, qp, frestas, cordas });
+  }
+  return (P._cel = out);
+}
+// o dique da margem: calombos de crosta encostados na beira, dos dois lados (fora das pontes e de onde o canal encosta)
+function diqueLava(L, P) {
+  if (P._dique) return P._dique;
+  const C = canalLava(L, P), cen = C.centros.flat(), out = [], sem = Math.round(L.sem * 10);
+  P.meio.forEach((m, i) => { for (const sg of [-1, 1]) {
+    const r = 0.2 + 0.2 * hsh(i, sg + 3, 495 + sem), nu = -m.tv, nv = m.tu, cu = m.u + nu * sg * (m.w - r * 0.35), cv = m.v + nv * sg * (m.w - r * 0.35);
+    if (naPonte(cu, cv, -1.4) || cen.some(c => Math.hypot(c.u - cu, c.v - cv) < c.hw + r + 0.1) || hsh(i, sg + 9, 496 + sem) < 0.15) continue;
+    const pts = []; for (let q = 0; q < 9; q++) { const an = q / 9 * 6.283, rr = r * (0.82 + 0.22 * Math.sin(an * 2 + i + sg) + 0.1 * Math.sin(an * 3 + 2 * i)); pts.push([cu + Math.cos(an) * rr, cv + Math.sin(an) * rr * 0.85]); }
+    out.push({ cu, cv, pts, qp: pts.map(([u, v]) => [cu + (u - cu) * 0.55 - 0.03, cv + (v - cv) * 0.55 + 0.04]) });
+  } });
+  return (P._dique = out);
+}
+const LAVA_COR = { eixo: "#FFF3B8", ouro: "#FFB52E", laranja: "#F26A1B", cinabre: "#C2301A", brasa: "#6E1A12", crosta: ["#2A211E", "#3A2A24", "#332B2B"], quente: "#4A2A20", quina: "#5A463B" };
 function pintarLava(g, Pz, esc, z, pl) {
-  // Rodada 2: a crosta em placas de 3 tamanhos (grandes no meio, quebradas em pedaços na margem) e 2 tons (ardósia +
-  // nanquim e ardósia + lava, sem violeta), o fundo escuro entre elas e um CANAL DE LAVA VIVA contínuo e sinuoso no meio
-  // (cinabre chapado com um fio de ocre), em vez de rejunte vermelho igual em toda junta
-  const caminhoP = pts => { const pp = new Path2D(); pts.forEach(([u, v], k) => { const p = Pz(u, v, z); k ? pp.lineTo(...p) : pp.moveTo(...p); }); pp.closePath(); return pp; };
-  const polis = LAVA.map(L => ({ L, P: poliLava(L), path: caminhoP(poliLava(L).pts) }));
+  const polis = LAVA.map(L => { const P = poliLava(L), path = new Path2D(); curvaPz(path, P.pts, Pz, z); return { L, P, path }; });
   g.save(); g.beginPath(); pl.pts.forEach(([u, v], k) => { const p = Pz(u, v, z); k ? g.lineTo(...p) : g.moveTo(...p); }); g.closePath(); g.clip();
   g.lineJoin = "round"; g.lineCap = "round";
-  for (const { path } of polis) { g.strokeStyle = "rgba(30,27,24,0.22)"; g.lineWidth = 1.9 * esc; g.stroke(path); g.strokeStyle = "rgba(184,50,42,0.12)"; g.lineWidth = 1.1 * esc; g.stroke(path); }
-  for (const { path } of polis) { g.fillStyle = mixHex(COR.lava, COR.nanquim, 0.35); g.fill(path); }
+  // a margem: o basalto escurecido e o brilho em degraus (o traço do contorno, largo, fica de fora; o leito cobre o de dentro)
+  for (const [larg, cor] of [[8, "rgba(30,27,24,0.14)"], [4.4, "rgba(30,27,24,0.14)"], [2.2, "rgba(194,48,26,0.16)"], [1.1, "rgba(242,106,27,0.24)"]])
+    for (const { path } of polis) { g.strokeStyle = cor; g.lineWidth = larg * esc; g.stroke(path); }
+  for (const { path } of polis) { g.fillStyle = LAVA_COR.laranja; g.fill(path); }   // (o leito aceso: o miolo das fendas)
   g.save(); const uniao = new Path2D(); for (const { path } of polis) uniao.addPath(path); g.clip(uniao);
-  const tons = [mixHex(COR.ardosia, COR.nanquim, 0.38), mixHex(COR.lava, COR.nanquim, 0.48)], placas = [new Path2D(), new Path2D()], cont = new Path2D();
-  const placa = (cu, cv, r, sem, k) => { const n = 5 + (sem * 10 | 0) % 3; for (let q = 0; q < n; q++) { const an = q / n * 6.283 + sem * 4, rr = r * (0.7 + 0.45 * hsh(q, Math.round(sem * 100), 45)); const p = Pz(cu + Math.cos(an) * rr, cv + Math.sin(an) * rr * 0.9, z); q ? (placas[k].lineTo(...p), cont.lineTo(...p)) : (placas[k].moveTo(...p), cont.moveTo(...p)); } placas[k].closePath(); cont.closePath(); };
-  for (const { L, P } of polis) for (let i = 0; i < P.meio.length; i++) {
-    const m = P.meio[i], h = hsh(Math.round(m.s * 10), 7, Math.round(L.sem * 10));
-    const em = (o, r, j) => placa(m.u - m.tv * o * m.w + m.tu * (h - 0.5) * 0.4, m.v + m.tu * o * m.w + m.tv * (h - 0.5) * 0.4, r, h + j * 0.13, (j + i) & 1);
-    if (i % 3 === 0) { em(-0.45 - 0.1 * h, (0.75 + 0.35 * h) * Math.min(1, m.w / 1.6), 0); em(0.45 + 0.1 * h, (0.7 + 0.3 * h) * Math.min(1, m.w / 1.6), 1); }   // (as grandes, dos dois lados do canal)
-    if (i % 2 === 1) { em(-0.8, 0.32 + 0.12 * h, 2); em(0.82, 0.3 + 0.12 * h, 3); }                    // (os pedaços quebrados na margem)
-    if (i % 3 === 1 && m.w > 1.5) { em(-0.18, 0.35 + 0.1 * h, 4); }                                     // (as médias, perto do canal)
+  const W0 = g.canvas.width, H0 = g.canvas.height, mg = 1.6 * esc, perto = (u, v) => { const p = Pz(u, v, z); return p[0] > -mg && p[0] < W0 + mg && p[1] > -mg && p[1] < H0 + mg; };
+  // a crosta: as placas arredondadas, a beira escura da fenda (o halo de brasa), as fendas quentes, os 3 tons, a quina clara, as cordas
+  const placa = [new Path2D(), new Path2D(), new Path2D()], quente = new Path2D(), quina = new Path2D(), todas = new Path2D(), fresta = new Path2D(), corda = new Path2D();
+  for (const { L, P } of polis) for (const c of celulasLava(L, P)) {
+    if (!perto(c.cu, c.cv)) continue;
+    curvaPz(c.quente ? quente : placa[c.k], c.pts, Pz, z); curvaPz(todas, c.pts, Pz, z); curvaPz(quina, c.qp, Pz, z);
+    for (const [a, b] of c.frestas) { fresta.moveTo(...Pz(...a, z)); fresta.lineTo(...Pz(...b, z)); }
+    for (const a of c.cordas) a.forEach(([u, v], n) => { const q = Pz(u, v, z); n ? corda.lineTo(...q) : corda.moveTo(...q); });
   }
-  g.fillStyle = tons[0]; g.fill(placas[0]); g.fillStyle = tons[1]; g.fill(placas[1]);
-  g.strokeStyle = "rgba(30,27,24,0.7)"; g.lineWidth = Math.max(1, 0.035 * esc); g.stroke(cont);
-  // o canal de lava viva: a linha do meio, sinuosa, cinabre com o fio de ocre
+  g.strokeStyle = LAVA_COR.cinabre; g.lineWidth = Math.max(1, 0.17 * esc); g.stroke(todas);         // (a fenda: da placa para o meio, brasa,
+  g.strokeStyle = LAVA_COR.brasa; g.lineWidth = Math.max(1, 0.085 * esc); g.stroke(todas);          //  cinabre e o miolo laranja; a fenda estreita fica só escura)
+  g.strokeStyle = LAVA_COR.ouro; g.lineWidth = Math.max(1, 0.055 * esc); g.stroke(fresta);          // (as fendas mais quentes)
+  placa.forEach((pp, k) => { g.fillStyle = LAVA_COR.crosta[k]; g.fill(pp); });
+  g.fillStyle = LAVA_COR.quente; g.fill(quente);
+  g.fillStyle = LAVA_COR.quina; g.globalAlpha = 0.5; g.fill(quina); g.globalAlpha = 1;
+  g.strokeStyle = "rgba(30,27,24,0.7)"; g.lineWidth = Math.max(1, 0.022 * esc); g.stroke(todas);
+  g.strokeStyle = "rgba(120,92,76,0.75)"; g.lineWidth = Math.max(1, 0.022 * esc); g.stroke(corda);
+  // o canal aberto: 4 faixas chapadas em curva, da beira (cinabre) ao eixo (amarelo-branco), com a beira preta
   for (const { L, P } of polis) {
-    const C = canalLava(L, P), fita = new Path2D();
-    for (const pts of C.fitas) { pts.forEach(([u, v], k) => { const p = Pz(u, v, z); k ? fita.lineTo(...p) : fita.moveTo(...p); }); fita.closePath(); }
-    g.fillStyle = COR.cinabre; g.fill(fita); g.strokeStyle = "rgba(30,27,24,0.6)"; g.lineWidth = Math.max(1, 0.03 * esc); g.stroke(fita);
-    const fio = new Path2D();                                          // (o fio de ocre só onde a fita é larga)
-    for (const f of C.fios) f.forEach(([u, v], k) => { const p = Pz(u, v, z); k ? fio.lineTo(...p) : fio.moveTo(...p); });
-    g.strokeStyle = "rgba(201,150,62,0.75)"; g.lineWidth = Math.max(1, 0.07 * esc); g.stroke(fio);
+    for (const [f, cor] of [[1, LAVA_COR.cinabre], [0.74, LAVA_COR.laranja], [0.46, LAVA_COR.ouro], [0.2, LAVA_COR.eixo]]) {
+      const fita = new Path2D(); for (const pts of canalLava(L, P, f).fitas) curvaPz(fita, pts, Pz, z);
+      if (f === 1) { g.strokeStyle = "#1E1B18"; g.lineWidth = Math.max(1, 0.14 * esc); g.stroke(fita); }
+      g.fillStyle = cor; g.fill(fita);
+    }
   }
+  // o dique da margem: o contorno de todos os calombos e, por cima, o recheio (só a silhueta de fora fica com o nanquim)
+  const dq = new Path2D(), dqq = new Path2D();
+  for (const { L, P } of polis) for (const d of diqueLava(L, P)) { if (!perto(d.cu, d.cv)) continue; curvaPz(dq, d.pts, Pz, z); curvaPz(dqq, d.qp, Pz, z); }
+  g.strokeStyle = COR.nanquim; g.lineWidth = Math.max(1, 0.06 * esc); g.stroke(dq);
+  g.fillStyle = LAVA_COR.crosta[1]; g.fill(dq); g.fillStyle = LAVA_COR.quina; g.globalAlpha = 0.55; g.fill(dqq); g.globalAlpha = 1;
   g.restore();
   for (const { path } of polis) { g.strokeStyle = COR.nanquim; g.lineWidth = Math.max(1, 0.06 * esc); g.stroke(path); }
   for (const ps of PASSAGENS) pintarPonte(g, Pz, esc, z, ps);
@@ -3405,8 +3483,8 @@ function pintarLava(g, Pz, esc, z, pl) {
     if (!fim) continue;
     const w = fim.w * 0.8, a = [fim.u - fim.tv * w, fim.v + fim.tu * w], b = [fim.u + fim.tv * w, fim.v - fim.tu * w];
     const q = [Pz(...a, z), Pz(...b, z), Pz(b[0], b[1], 0), Pz(a[0], a[1], 0)];
-    g.beginPath(); q.forEach((p, k) => k ? g.lineTo(...p) : g.moveTo(...p)); g.closePath(); g.fillStyle = mixHex(COR.lava, COR.nanquim, 0.3); g.fill();
-    g.strokeStyle = COR.cinabre; g.lineWidth = Math.max(1, 0.22 * esc);
+    g.beginPath(); q.forEach((p, k) => k ? g.lineTo(...p) : g.moveTo(...p)); g.closePath(); g.fillStyle = LAVA_COR.cinabre; g.fill();
+    g.strokeStyle = LAVA_COR.laranja; g.lineWidth = Math.max(1, 0.34 * esc);   // (R418: a cascata acesa; as ondas que descem são por quadro)
     g.beginPath(); for (let k = 1; k < 3; k++) { const t = k / 3, pa = Pz(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, z), pb = Pz(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, 0); g.moveTo(...pa); g.quadraticCurveTo(pa[0] + (k - 1.5) * 0.3 * esc, (pa[1] + pb[1]) / 2, pb[0], pb[1]); } g.stroke();
     g.beginPath(); q.forEach((p, k) => k ? g.lineTo(...p) : g.moveTo(...p)); g.closePath(); g.strokeStyle = COR.nanquim; g.lineWidth = Math.max(1, 0.05 * esc); g.stroke();
     // (05/11, o usuário: "retire essas nuvens que ficaram soltas nos cantos do rio de lava": a voluta creme pintada no chão aqui ficava
@@ -3418,31 +3496,33 @@ function pintarLava(g, Pz, esc, z, pl) {
 // margem à outra (nunca fica no centro por muito tempo); a largura vai de 0,2 a 1,4 m; em trechos ele se divide em 2 ou
 // 3 fios que se juntam de novo; e nas curvas abre poças. Devolve os polígonos (fitas), os fios de ocre (onde é largo) e
 // os pontos abertos (de onde saem as brasas)
-function canalLava(L, P) {
-  if (P._canal) return P._canal;
+function canalLava(L, P, fat = 1) {
+  const chave = fat === 1 ? "_canal" : "_canal" + fat; if (P[chave]) return P[chave];
   const M = P.meio, sem = L.sem, n = M.length;
   const aberto = M.map(m => 0.62 * Math.sin(0.42 * m.s + sem * 3) + 0.38 * Math.sin(1.27 * m.s + sem * 5 + 1) > -0.3);
   const ponta = M.map((m, i) => { if (!aberto[i]) return 0; let d = 1; while (d < 4 && i - d >= 0 && i + d < n && aberto[i - d] && aberto[i + d]) d++; return 0.55 + 0.45 * Math.min(1, d / 4); });   // (afina um pouco perto de onde fecha; a ponta é redonda)
   const base = m => (0.5 * Math.sin(0.33 * m.s + sem * 3) + 0.22 * Math.sin(1.05 * m.s + sem)) * m.w;
   const meia = m => 0.1 + 0.6 * (0.5 + 0.5 * Math.sin(0.8 * m.s + sem * 2)) ** 2;
   const sep = m => m.w * 0.3 * Math.max(0, (Math.sin(0.23 * m.s + sem * 7) - 0.15) / 0.85);
-  const fitas = [], fios = [], abertos = [];
+  const fitas = [], fios = [], abertos = [], centros = [], pocas = [];
   for (const k of [0, 1]) {
-    let esq = [], dir = [], fio = [];
+    let esq = [], dir = [], fio = [], run = [];
     let tIni = null, tFim = null;
-    const fecha = () => { if (esq.length > 1) { const capa = (A, B, T) => { const cu = (A[0] + B[0]) / 2, cv = (A[1] + B[1]) / 2, ru = (A[0] - B[0]) / 2, rv = (A[1] - B[1]) / 2, r = Math.hypot(ru, rv), out = []; for (let q = 1; q < 6; q++) { const an = q / 6 * Math.PI; out.push([cu + ru * Math.cos(an) + T[0] * r * Math.sin(an), cv + rv * Math.cos(an) + T[1] * r * Math.sin(an)]); } return out; }; const fim = capa(esq[esq.length - 1], dir[dir.length - 1], tFim), ini = capa(dir[0], esq[0], [-tIni[0], -tIni[1]]); fitas.push([...esq, ...fim, ...dir.reverse(), ...ini]); } if (fio.length > 1) fios.push(fio); esq = []; dir = []; fio = []; };
+    const fecha = () => { if (esq.length > 1) { const capa = (A, B, T) => { const cu = (A[0] + B[0]) / 2, cv = (A[1] + B[1]) / 2, ru = (A[0] - B[0]) / 2, rv = (A[1] - B[1]) / 2, r = Math.hypot(ru, rv), out = []; for (let q = 1; q < 10; q++) { const an = q / 10 * Math.PI; out.push([cu + ru * Math.cos(an) + T[0] * r * 2.4 * Math.sin(an) ** 1.6, cv + rv * Math.cos(an) + T[1] * r * 2.4 * Math.sin(an) ** 1.6]); } return out; };   /* (R418: a ponta afina em gota, não em cápsula) */ const fim = capa(esq[esq.length - 1], dir[dir.length - 1], tFim), ini = capa(dir[0], esq[0], [-tIni[0], -tIni[1]]); fitas.push([...esq, ...fim, ...dir.reverse(), ...ini]); } if (fio.length > 1) fios.push(fio); if (run.length > 1) centros.push(run); esq = []; dir = []; fio = []; run = []; };
     for (let i = 0; i < n; i++) {
       const m = M[i], sp = sep(m);
       let hw = meia(m) * ponta[i];
       if (k) hw = aberto[i] && sp > 0.08 ? 0.12 + 0.18 * Math.min(1, sp / 0.35) : 0;   // (o fio que se divide e volta: uma lente)
       else hw *= sp > 0.05 ? 0.75 : 1;
       let o = base(m) + k * sp; const lim = 0.85 * m.w - hw; o = Math.max(-lim, Math.min(lim, o));
-      if (hw < 0.03 || lim <= 0) { fecha(); continue; }
+      hw *= fat;
+      if (hw < 0.03 * fat || lim <= 0) { fecha(); continue; }
       const cu = m.u - m.tv * o, cv = m.v + m.tu * o;
       if (!esq.length) tIni = [m.tu, m.tv]; tFim = [m.tu, m.tv];
       esq.push([cu - m.tv * hw, cv + m.tu * hw]); dir.push([cu + m.tv * hw, cv - m.tu * hw]);
       if (!k && hw > 0.32) fio.push([cu, cv]); else if (!k && fio.length) { if (fio.length > 1) fios.push(fio); fio = []; }
       if (!k && i % 3 === 0) abertos.push({ u: cu, v: cv, m, o });
+      if (!k) run.push({ u: cu, v: cv, hw, tu: m.tu, tv: m.tv, s: m.s });
     }
     fecha();
   }
@@ -3450,12 +3530,12 @@ function canalLava(L, P) {
   for (let i = 2; i < n - 2; i++) {
     const m = M[i], b0 = Math.abs(base(M[i - 1])), b1 = Math.abs(base(m)), b2 = Math.abs(base(M[i + 1]));
     if (!(aberto[i] && ponta[i] > 0.7 && b1 >= b0 && b1 > b2 && b1 > 0.3 * m.w)) continue;
-    const r = Math.min(0.95, 0.5 + 0.3 * m.w / 1.6), o = Math.sign(base(m)) * Math.min(Math.abs(base(m)), 0.85 * m.w - r * 0.8), cu = m.u - m.tv * o, cv = m.v + m.tu * o, pts = [];
+    const r = Math.min(0.95, 0.5 + 0.3 * m.w / 1.6) * fat, o = Math.sign(base(m)) * Math.min(Math.abs(base(m)), 0.85 * m.w - r * 0.8), cu = m.u - m.tv * o, cv = m.v + m.tu * o, pts = [];
     for (let q = 0; q < 12; q++) { const an = q / 12 * 6.283, rr = r * (0.75 + 0.3 * Math.sin(an * 3 + m.s) + 0.12 * Math.sin(an * 5 + sem)); pts.push([cu + Math.cos(an) * rr * 1.25 * m.tu - Math.sin(an) * rr * 0.8 * m.tv, cv + Math.cos(an) * rr * 1.25 * m.tv + Math.sin(an) * rr * 0.8 * m.tu]); }
-    fitas.push(pts); fios.push([[cu - m.tu * r * 0.4, cv - m.tv * r * 0.4], [cu + m.tu * r * 0.4, cv + m.tv * r * 0.4]]);
+    fitas.push(pts); fios.push([[cu - m.tu * r * 0.4, cv - m.tv * r * 0.4], [cu + m.tu * r * 0.4, cv + m.tv * r * 0.4]]); pocas.push({ u: cu, v: cv, r });
   }
   for (const f of fitas) { let ar = 0; for (let q = 0; q < f.length; q++) { const [a1, b1] = f[q], [a2, b2] = f[(q + 1) % f.length]; ar += a1 * b2 - a2 * b1; } if (ar < 0) f.reverse(); }   // (todos no mesmo sentido: as sobreposições não viram buraco)
-  return (P._canal = { fitas, fios, abertos });
+  return (P[chave] = { fitas, fios, abertos, centros, pocas });
 }
 // a ponte de basalto (rodada 3): a sombra chapada na lava dos dois lados, o brilho cinabre lambendo o pé das colunas e o
 // entulho escuro ligando as cabeceiras à margem; por cima, a arte pintada no lugar exato do tabuleiro (ver PONTE)
@@ -3855,6 +3935,74 @@ D.desenharBrasas = function (t) {
   NEVOA.brasas = vivas;
   cx.restore();
 };
+// ---------------------------------------------------------------- R418: a lava viva, por quadro (no chão, antes de quem fica em pé)
+// As ONDAS: crescentes claras (ouro e amarelo-branco) que descem o canal pelo eixo dele, mais rápidas no meio (o fluxo de
+// um canal de lava), recortadas na fita do canal; o PULSO: um trecho de cada vez acende e apaga devagar; as BOLHAS das poças
+// incham com a beira escura e estouram num anel; as CASCATAS: línguas claras descendo a face. Nada perto das pontes (a arte
+// delas fica por cima, no chão em cache). Barato: só traços e elipses, só o que está na tela
+const LAVA_VIVA = { ultimo: { ondas: 0, bolhas: 0, cascatas: 0, ms: 0 }, forcar: false };
+function cascatasLava() {
+  if (D._cascatas) return D._cascatas;
+  const out = [];
+  for (const L of LAVA) { if (L === LAVA[0]) continue; const P = poliLava(L); let fim = null; for (const pl of PLATOS) { if (pl.nivel !== 1) continue; for (const m of P.meio) if (dentroPoli(pl.pts, m.u, m.v)) fim = m; } if (!fim) continue;
+    const w = fim.w * 0.8; out.push({ a: [fim.u - fim.tv * w, fim.v + fim.tu * w], b: [fim.u + fim.tv * w, fim.v - fim.tu * w] }); }
+  return (D._cascatas = out);
+}
+D.desenharLavaViva = function (t) {
+  if (typeof cx === "undefined" || !D.pronta) return;
+  const t0 = performance.now(), s = PX * zoom, z = NIV[1];
+  const tela2 = (u, v, zz) => { const [x, y] = mundoDe(u, v), [a, b] = tela(x - cam.x, y - cam.y); return [W / 2 + a, H / 2 + b - zz * s * ALTURA]; };
+  const naTela = (X, Y, m) => X > -m && X < W + m && Y > -m && Y < H + m;
+  let nO = 0, nB = 0, nC = 0;
+  cx.save(); cx.lineCap = "round"; cx.lineJoin = "round";
+  for (const L of LAVA) {
+    const C = canalLava(L, poliLava(L));
+    for (const run of C.centros) {
+      if (!run.some(c => naTela(...tela2(c.u, c.v, z), 80))) continue;
+      // o recorte: a fita do canal deste trecho (a de 0,74: as ondas ficam no miolo, a beira cinabre fica quieta)
+      const clip = new Path2D(); for (const pts of canalLava(L, poliLava(L), 0.74).fitas) curvaPz(clip, pts, tela2, z);
+      cx.save(); cx.clip(clip);
+      const LAMB = 1.1, VEL = 0.55, ondas = [new Path2D(), new Path2D()];
+      for (let i = 1; i < run.length; i++) {
+        const c = run[i]; if (naPonte(c.u, c.v, -0.9)) continue;
+        const f = ((c.s - t * VEL) / LAMB) % 1, fase = f < 0 ? f + 1 : f; if (fase > 0.22) continue;
+        const [X, Y] = tela2(c.u, c.v, z); if (!naTela(X, Y, 30)) continue;
+        // (uma crescente atravessada no canal, curvada rio abaixo: as pontas atrasam, o meio corre mais)
+        const hw = c.hw * 0.68, pa = tela2(c.u - c.tv * hw - c.tu * hw * 0.5, c.v + c.tu * hw - c.tv * hw * 0.5, z), pb = tela2(c.u + c.tv * hw - c.tu * hw * 0.5, c.v - c.tu * hw - c.tv * hw * 0.5, z), pm = tela2(c.u + c.tu * hw * 0.35, c.v + c.tv * hw * 0.35, z);
+        const q = ondas[i & 1]; q.moveTo(...pa); q.quadraticCurveTo(...pm, ...pb); nO++;
+      }
+      const pulso = 0.55 + 0.45 * Math.sin(t * 1.7 + L.sem * 3);
+      cx.globalAlpha = 0.8 * pulso; cx.strokeStyle = LAVA_COR.eixo; cx.lineWidth = Math.max(1.5, 0.12 * s); cx.stroke(ondas[0]);
+      cx.globalAlpha = 0.75; cx.strokeStyle = LAVA_COR.ouro; cx.lineWidth = Math.max(1.5, 0.1 * s); cx.stroke(ondas[1]);
+      cx.restore();
+    }
+    // as bolhas das poças: 3 por poça, cada uma num ciclo de 1,7 a 2,9 s
+    for (const [k, p] of C.pocas.entries()) {
+      const [X0, Y0] = tela2(p.u, p.v, z); if (!naTela(X0, Y0, 60)) continue;
+      for (let b = 0; b < 3; b++) {
+        const per = 1.7 + 1.2 * hsh(k, b, 501), ph = ((t + per * hsh(b, k, 502)) % per) / per, an = hsh(k, b * 7, 503) * 6.283, rr = p.r * 0.55 * hsh(b, k * 3, 504);
+        const [X, Y] = tela2(p.u + Math.cos(an) * rr, p.v + Math.sin(an) * rr * 0.6, z), R = 0.16 * s;
+        cx.globalAlpha = 1;
+        if (ph < 0.8) { const r = R * Math.sqrt(ph / 0.8); cx.fillStyle = LAVA_COR.ouro; cx.beginPath(); cx.ellipse(X, Y - r * 0.3, r, r * 0.75, 0, 0, 6.283); cx.fill(); cx.strokeStyle = LAVA_COR.cinabre; cx.lineWidth = Math.max(1, 0.025 * s); cx.stroke(); cx.fillStyle = LAVA_COR.eixo; cx.beginPath(); cx.ellipse(X - r * 0.3, Y - r * 0.55, r * 0.3, r * 0.2, 0, 0, 6.283); cx.fill(); }
+        else { const u = (ph - 0.8) / 0.2, r = R * (1 + 1.2 * u); cx.globalAlpha = 1 - u; cx.strokeStyle = LAVA_COR.eixo; cx.lineWidth = Math.max(1, 0.04 * s * (1 - u)); cx.beginPath(); cx.ellipse(X, Y, r, r * 0.55, 0, 0, 6.283); cx.stroke();
+          cx.fillStyle = LAVA_COR.ouro; for (const sg of [-1, 1]) { cx.beginPath(); cx.arc(X + sg * r * 0.7, Y - R * 1.6 * u * (1 - u) * 4, Math.max(1, 0.03 * s), 0, 6.283); cx.fill(); } }
+        nB++;
+      }
+    }
+  }
+  // as cascatas: 3 línguas claras descendo a face, do alto (z) ao chão (0)
+  for (const c of cascatasLava()) {
+    const [X0, Y0] = tela2(...c.a, z); if (!naTela(X0, Y0, 120)) continue;
+    cx.globalAlpha = 0.85; cx.strokeStyle = LAVA_COR.ouro; cx.lineWidth = Math.max(1.5, 0.09 * s);
+    cx.beginPath();
+    for (let k = 1; k <= 4; k++) { const f = k / 5, u = c.a[0] + (c.b[0] - c.a[0]) * f, v = c.a[1] + (c.b[1] - c.a[1]) * f, per = 0.9 + 0.3 * hsh(k, 1, 505), ph = ((t / per + hsh(k, 2, 506)) % 1);
+      const z0 = z * (1 - ph), z1 = Math.max(0, z0 - z * 0.3), [Xa, Ya] = tela2(u, v, z0), [Xb, Yb] = tela2(u, v, z1); cx.moveTo(Xa, Ya); cx.lineTo(Xb, Yb); }
+    cx.stroke(); nC++;
+  }
+  cx.restore();
+  LAVA_VIVA.ultimo = { ondas: nO, bolhas: nB, cascatas: nC, ms: +(performance.now() - t0).toFixed(3) };
+};
+D.LAVA_VIVA = LAVA_VIVA; D.LAVA_COR = LAVA_COR; D.celulasLava = L => celulasLava(L, poliLava(L)); D.canalLava = (L, f) => canalLava(L, poliLava(L), f);   // (o R418)
 // (a névoa agora vai presa ao relevo, na lista de desenho: picosLista; este gancho fica para não mexer no index.html)
 D.desenharNevoa = function () {};
 // (os testes da ponte, R109) a geometria e a arte: o alfa da arte (0 a 255) no ponto (x, y) do mundo, no plano do topo;
@@ -32240,6 +32388,7 @@ function desenharQuadro(t) {
   desenharMira(t);
   desenharItens(t);
   desenharPoeira();                                 // (R300: a poeira dos caminhos, no chão, antes de quem fica em pé)
+  if (MAPA_CAM === MAPAS.daiyu && !noEscuro && typeof DAIYU === "object" && DAIYU.desenharLavaViva && (!MODO_TESTE || DAIYU.LAVA_VIVA.forcar)) DAIYU.desenharLavaViva(t);   // (R418: a lava que corre, as bolhas e as cascatas)
   if (MAPA_CAM === MAPAS.deserto && !noEscuro && typeof DESERTO === "object" && DESERTO.desenharVento && GRAF.nivel !== "baixo" && (!MODO_TESTE || DESERTO.AR.forcar)) DESERTO.desenharVento(t);   // (R415: as fitas de areia e a areia das cristas)
   if (ESTILO_TINTA) respingosTinta(t, false);       // (Mundo de Tinta: as manchas de tinta e sangue já caídas no chão)
   prepararP3d(t);                                   // os bonecos em 3D vão para o atlas antes (cada um no seu lugar da ordem)
@@ -35104,13 +35253,14 @@ const SOMBRA_DIRETA = { ligado: true };
 function sombraHeroi(X, Y, z) {
   if (window.M3D && M3D.ativo) return;
   if (ESTILO_TINTA) { sombraTinta(X, Y, PX * z * 0.36); return; }
-  const r = PX * z * 0.3;
-  cx.fillStyle = "rgba(20, 14, 10, 0.38)";
-  cx.beginPath(); cx.ellipse(X, Y, r, r * ACHATA * 0.5, 0, 0, 7); cx.fill();
+  // (R417, 18/11, o usuário: "sobre a sombra nao esta boa ainda... tire o circulo debaixo do personagem") a elipse escura de 38%
+  // embaixo do herói somava com a sombra do sol (≈ 64% nos pés) e lia como um disco. Agora, com a sombra do sol, ela some; sem sol
+  // (noite, caverna, dentro das casas, chuva forte) fica só um círculo fraco (16%), para ele não flutuar. Ela vai na proporção do que
+  // falta de sol (o entardecer passa de um para o outro)
   const h = horaDoDia(), dia = h > 6 && h < 18.5 ? Math.min(1, (h - 6) / 1, (18.5 - h) / 1) : 0;
   const forca = dia * (1 - 0.75 * Math.min(1, clima.chuva || 0)) * (naCaverna(viking.x) || predDentroDe(viking) ? 0 : 1);
-  if (forca < 0.05) return;
-  const pose = poseHeroi(z);
+  const pose = forca >= 0.05 ? poseHeroi(z) : null, semSol = pose ? Math.max(0, 1 - forca / 0.6) : 1;
+  if (semSol > 0.01) { const r = PX * z * 0.3; cx.fillStyle = `rgba(20, 14, 10, ${(0.16 * semSol).toFixed(3)})`; cx.beginPath(); cx.ellipse(X, Y, r, r * ACHATA * 0.5, 0, 0, 7); cx.fill(); }
   if (!pose) return;
   const th = Math.PI * (1 - Math.min(1, Math.max(0, (h - 6) / 12.5))), L = 0.32 + 0.7 * Math.abs(Math.cos(th));
   const Dx = Math.cos(th) * L, Dy = Math.max(0.12, Math.sin(th)) * 0.42 * L;
