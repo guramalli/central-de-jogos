@@ -1,5 +1,6 @@
 import {createHash, randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual} from 'node:crypto';
 import {promisify} from 'node:util';
+import {MODULE_IDS, normalizeModules, validateModuleSelection} from './access-domain.mjs';
 
 const scrypt = promisify(scryptCallback);
 const ROLES = new Set(['admin', 'manager', 'maintenance']);
@@ -29,7 +30,14 @@ const tokenDigest = token => {
   requireThat(typeof token === 'string' && TOKEN.test(token), 'Acesso inválido ou expirado.', 401);
   return digest(token);
 };
-const publicUser = user => ({id:user.id, organizationId:user.organization_id, name:user.name, email:user.email, role:user.role, active:user.active, revision:Number(user.revision)});
+const moduleSelection = value => {
+  if (value === undefined || value === null) return null;
+  try {
+    const selected = validateModuleSelection(value);
+    return MODULE_IDS.filter(id => selected.includes(id));
+  } catch (error) { throw new IdentityError(error.message || 'Seleção de módulos inválida.', 422); }
+};
+const publicUser = user => ({id:user.id, organizationId:user.organization_id, name:user.name, email:user.email, role:user.role, modules:normalizeModules(user.module_access, user.role), active:user.active, revision:Number(user.revision)});
 const uniqueViolation = error => error?.code === '23505' || error?.code === 'P2002' || error?.meta?.code === '23505' || error?.cause?.code === '23505';
 
 // Bound CPU/memory work as well as persistent request limits. This queue is not an authentication throttle.
@@ -65,6 +73,8 @@ export const identitySchema = [
   'CREATE INDEX IF NOT EXISTS identity_sessions_user ON ss_app_v1.sessions(user_id)',
   "CREATE TABLE IF NOT EXISTS ss_app_v1.invitations (id TEXT PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES ss_app_v1.organizations(id), token_hash TEXT NOT NULL UNIQUE, role TEXT NOT NULL CHECK(role IN ('manager','maintenance')), email TEXT, name TEXT NOT NULL DEFAULT '', invited_by TEXT NOT NULL REFERENCES ss_app_v1.users(id), created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL, accepted_at BIGINT, accepted_user_id TEXT REFERENCES ss_app_v1.users(id), revoked_at BIGINT)",
   'CREATE INDEX IF NOT EXISTS identity_invitations_org ON ss_app_v1.invitations(organization_id)',
+  'ALTER TABLE ss_app_v1.users ADD COLUMN IF NOT EXISTS module_access JSONB',
+  'ALTER TABLE ss_app_v1.invitations ADD COLUMN IF NOT EXISTS module_access JSONB',
   'CREATE TABLE IF NOT EXISTS ss_app_v1.identity_limits (key TEXT PRIMARY KEY, hits INTEGER NOT NULL CHECK(hits>0), expires_at BIGINT NOT NULL)',
   'CREATE INDEX IF NOT EXISTS identity_limits_expiry ON ss_app_v1.identity_limits(expires_at)',
   "CREATE TABLE IF NOT EXISTS ss_app_v1.identity_audit (id TEXT PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES ss_app_v1.organizations(id), actor_user_id TEXT NOT NULL REFERENCES ss_app_v1.users(id), action TEXT NOT NULL, subject TEXT NOT NULL, details JSONB NOT NULL DEFAULT '{}'::jsonb, created_at BIGINT NOT NULL)"
@@ -74,7 +84,7 @@ export async function migrateIdentity(db) { for (const sql of identitySchema) aw
 // Call with the authenticated server actor, never an actor supplied in a request body.
 export async function revalidateActor(db, actor, roles = []) {
   requireThat(actor && ID.test(actor.id || '') && ID.test(actor.organizationId || ''), 'Entre novamente para continuar.', 401);
-  const [user] = await db.$queryRaw`SELECT id,organization_id,name,email,role,active,revision FROM ss_app_v1.users WHERE id=${actor.id} AND organization_id=${actor.organizationId}`;
+  const [user] = await db.$queryRaw`SELECT id,organization_id,name,email,role,module_access,active,revision FROM ss_app_v1.users WHERE id=${actor.id} AND organization_id=${actor.organizationId}`;
   requireThat(user?.active === true && ROLES.has(user.role), 'Acesso revogado. Entre novamente.', 401);
   requireThat(!roles.length || roles.includes(user.role), 'Seu cargo não permite esta ação.', 403);
   return publicUser(user);
@@ -159,19 +169,19 @@ export class IdentityService {
   }
   async listUsers(actor) {
     const admin = await revalidateActor(this.db, actor, ['admin']);
-    const rows = await this.db.$queryRaw`SELECT id,organization_id,name,email,role,active,revision FROM ss_app_v1.users WHERE organization_id=${admin.organizationId} ORDER BY lower(name),id`;
+    const rows = await this.db.$queryRaw`SELECT id,organization_id,name,email,role,module_access,active,revision FROM ss_app_v1.users WHERE organization_id=${admin.organizationId} ORDER BY lower(name),id`;
     return rows.map(publicUser);
   }
   async invite(actor, input) {
     requireThat(input && typeof input === 'object' && ['manager', 'maintenance'].includes(input.role), 'Escolha Gestor ou Equipe de manutenção.');
-    const email = input.email ? emailAddress(input.email) : null, name = input.name ? clean(input.name, 'Nome') : '';
+    const email = input.email ? emailAddress(input.email) : null, name = input.name ? clean(input.name, 'Nome') : '', modules = moduleSelection(input.modules);
     return this.db.$transaction(async tx => {
       const admin = await this.admin(tx, actor), now = this.now();
       const [count] = await tx.$queryRaw`SELECT count(*)::int AS n FROM ss_app_v1.invitations WHERE organization_id=${admin.organizationId} AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at>${BigInt(now)}`;
       requireThat(count.n < 100, 'Há 100 convites pendentes. Aguarde o aceite ou a expiração.', 429);
       const token = randomBytes(32).toString('base64url'), id = randomUUID(), expiresAt = now + INVITATION_MS;
-      await tx.$executeRaw`INSERT INTO ss_app_v1.invitations(id,organization_id,token_hash,role,email,name,invited_by,created_at,expires_at) VALUES(${id},${admin.organizationId},${digest(token)},${input.role},${email},${name},${admin.id},${BigInt(now)},${BigInt(expiresAt)})`;
-      await this.audit(tx, admin, 'identity.invite', id, {role:input.role});
+      await tx.$executeRaw`INSERT INTO ss_app_v1.invitations(id,organization_id,token_hash,role,email,name,invited_by,created_at,expires_at,module_access) VALUES(${id},${admin.organizationId},${digest(token)},${input.role},${email},${name},${admin.id},${BigInt(now)},${BigInt(expiresAt)},${modules===null?null:JSON.stringify(modules)}::jsonb)`;
+      await this.audit(tx, admin, 'identity.invite', id, {role:input.role,modules:normalizeModules(modules,input.role)});
       return {token, expiresAt};
     });
   }
@@ -192,7 +202,7 @@ export class IdentityService {
         const [issuer] = await tx.$queryRaw`SELECT active,role FROM ss_app_v1.users WHERE id=${invitation.invited_by} AND organization_id=${invitation.organization_id}`;
         requireThat(issuer?.active === true && issuer.role === 'admin', 'Convite inválido ou expirado. Solicite um novo convite.', 401);
         const id = randomUUID(), now = BigInt(this.now());
-        const [row] = await tx.$queryRaw`INSERT INTO ss_app_v1.users(id,organization_id,name,email,password_hash,role,created_at,updated_at) VALUES(${id},${invitation.organization_id},${name},${email},${passwordHash},${invitation.role},${now},${now}) RETURNING *`;
+        const [row] = await tx.$queryRaw`INSERT INTO ss_app_v1.users(id,organization_id,name,email,password_hash,role,created_at,updated_at,module_access) VALUES(${id},${invitation.organization_id},${name},${email},${passwordHash},${invitation.role},${now},${now},${invitation.module_access==null?null:JSON.stringify(invitation.module_access)}::jsonb) RETURNING *`;
         await tx.$executeRaw`UPDATE ss_app_v1.invitations SET accepted_at=${now},accepted_user_id=${id} WHERE id=${invitation.id}`;
         const {token, user} = await this.session(tx, row);
         await this.audit(tx, user, 'identity.accept-invite', invitation.id);
@@ -206,25 +216,29 @@ export class IdentityService {
   validInvitation(invitation, email) {
     requireThat(invitation && invitation.accepted_at === null && invitation.revoked_at === null && Number(invitation.expires_at) > this.now() && ['manager', 'maintenance'].includes(invitation.role), 'Convite inválido ou expirado. Solicite um novo convite.', 401);
     requireThat(!invitation.email || invitation.email === email, 'O convite foi destinado a outro e-mail.', 403);
+    moduleSelection(invitation.module_access);
   }
   async updateUser(actor, input) {
     requireThat(input && ID.test(input.id || '') && ROLES.has(input.role) && typeof input.active === 'boolean' && Number.isSafeInteger(input.revision) && input.revision >= 0, 'Dados do usuário inválidos.');
+    const requestedModules = input.modules === undefined ? undefined : moduleSelection(input.modules);
     return this.db.$transaction(async tx => {
       const admin = await this.admin(tx, actor);
       const [target] = await tx.$queryRaw`SELECT * FROM ss_app_v1.users WHERE id=${input.id} AND organization_id=${admin.organizationId} FOR UPDATE`;
       requireThat(target, 'Usuário não encontrado nesta empresa.', 404);
       requireThat(target.revision === input.revision, 'O usuário foi alterado. Atualize antes de salvar.', 409);
-      if (target.role === input.role && target.active === input.active) return publicUser(target);
+      const modules = requestedModules === undefined ? (target.module_access ?? null) : requestedModules;
+      const modulesChanged = JSON.stringify(moduleSelection(target.module_access)) !== JSON.stringify(moduleSelection(modules));
+      if (target.role === input.role && target.active === input.active && !modulesChanged) return publicUser(target);
       if (target.role === 'admin' && target.active && (input.role !== 'admin' || !input.active)) {
         const [count] = await tx.$queryRaw`SELECT count(*)::int AS n FROM ss_app_v1.users WHERE organization_id=${admin.organizationId} AND active=TRUE AND role='admin'`;
-        requireThat(count.n > 1, 'Mantenha pelo menos um administrador ativo na empresa.', 409);
+        requireThat(count.n > 1, 'Mantenha pelo menos um diretor ativo na empresa.', 409);
       }
       const now = BigInt(this.now());
-      const [row] = await tx.$queryRaw`UPDATE ss_app_v1.users SET role=${input.role},active=${input.active},revision=revision+1,updated_at=${now} WHERE id=${target.id} AND organization_id=${admin.organizationId} RETURNING *`;
+      const [row] = await tx.$queryRaw`UPDATE ss_app_v1.users SET role=${input.role},active=${input.active},module_access=${modules===null?null:JSON.stringify(modules)}::jsonb,revision=revision+1,updated_at=${now} WHERE id=${target.id} AND organization_id=${admin.organizationId} RETURNING *`;
       await tx.$executeRaw`UPDATE ss_app_v1.sessions SET revoked_at=${now} WHERE user_id=${target.id} AND revoked_at IS NULL`;
-      // Invitations issued under old administrator authority must not revive after a later promotion.
-      if (target.role === 'admin' && (input.role !== 'admin' || !input.active)) await tx.$executeRaw`UPDATE ss_app_v1.invitations SET revoked_at=${now} WHERE invited_by=${target.id} AND accepted_at IS NULL AND revoked_at IS NULL`;
-      await this.audit(tx, admin, 'identity.update-user', target.id, {before:{role:target.role,active:target.active},after:{role:row.role,active:row.active},revision:row.revision});
+      // Access changes revoke outstanding delegations as well as sessions. They never revive later.
+      if (modulesChanged || target.role !== input.role || target.active !== input.active) await tx.$executeRaw`UPDATE ss_app_v1.invitations SET revoked_at=${now} WHERE invited_by=${target.id} AND accepted_at IS NULL AND revoked_at IS NULL`;
+      await this.audit(tx, admin, 'identity.update-user', target.id, {before:{role:target.role,active:target.active,modules:normalizeModules(target.module_access,target.role),moduleAccess:target.module_access??null},after:{role:row.role,active:row.active,modules:normalizeModules(row.module_access,row.role),moduleAccess:row.module_access??null},revision:row.revision});
       return publicUser(row);
     });
   }

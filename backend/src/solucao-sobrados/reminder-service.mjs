@@ -1,3 +1,4 @@
+import {canAccess} from './access-domain.mjs';
 import {randomUUID} from 'node:crypto';
 import {reminderInput} from './reminder-domain.mjs';
 export const reminderSchema=[
@@ -5,11 +6,11 @@ export const reminderSchema=[
   'CREATE INDEX IF NOT EXISTS diary_reminders_board ON ss_diary_v1.reminders(board_id)'
 ];
 const reject=(ok,msg,status=422)=>{if(!ok){const e=new Error(msg);e.status=status;throw e;}};
-export async function readReminders(db,boardId){const rows=await db.$queryRaw`SELECT id,payload,revision,created_at,updated_at FROM ss_diary_v1.reminders WHERE board_id=${boardId} ORDER BY created_at`;return rows.map(r=>({id:r.id,...r.payload,revision:r.revision,createdAt:Number(r.created_at),updatedAt:Number(r.updated_at)}));}
+export async function readReminders(db,boardId,actor=null){reject(!actor||canAccess(actor,'reminders'),'Seu acesso não permite este módulo.',403);const rows=await db.$queryRaw`SELECT id,payload,revision,created_at,updated_at FROM ss_diary_v1.reminders WHERE board_id=${boardId} ORDER BY created_at`;return rows.map(r=>({id:r.id,...r.payload,revision:r.revision,createdAt:Number(r.created_at),updatedAt:Number(r.updated_at)}));}
 export async function changeReminder(service,boardId,token,d){
   reject(d&&typeof d==='object'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(d.id),'Identificador inválido.');
   return service.db.$transaction(async tx=>{
-    const b=await service.board(tx,boardId,token,true,false,true);
+    const b=await service.board(tx,boardId,token,true,false,true,'reminders');
     const [old]=await tx.$queryRaw`SELECT * FROM ss_diary_v1.reminders WHERE id=${d.id}`;
     reject(!old||old.board_id===boardId,'Lembrete não encontrado.',404);
     const now=BigInt(Date.now());let payload;

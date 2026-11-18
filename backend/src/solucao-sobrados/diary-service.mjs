@@ -1,3 +1,4 @@
+import {canAccess} from './access-domain.mjs';
 import {IdentityService,identitySchema} from './identity-service.mjs';
 import {workspaceSchema} from './account-schema.mjs';
 import {reminderSchema,readReminders} from './reminder-service.mjs';
@@ -51,9 +52,9 @@ export const schemaStatements=[
 export async function migrate(db){for(const sql of [...schemaStatements,...reminderSchema,...documentSchema,...identitySchema,...workspaceSchema])await db.$executeRawUnsafe(sql);}
 export class DiaryService{
   constructor(db){this.db=db;}
-  async health(){await this.db.$queryRaw`SELECT id FROM ss_diary_v1.quota WHERE id=1`;return {ok:true,version:5,limits:LIMITS};}
-  async board(db,id,token,write=false,owner=false,lock=false){uuid(id);const rows=lock?await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id} FOR UPDATE`:await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id}`;fail(rows.length,'Diário não encontrado ou acesso inválido.',404);const b=rows[0],links=await db.$queryRaw`SELECT organization_id,project_id FROM ss_app_v1.board_links WHERE board_id=${id}`;let role,actor;
- if(typeof token==='string'&&token.startsWith('session.')){actor=await new IdentityService(db).authenticate(token.slice(8));fail(links.length&&links[0].organization_id===actor.organizationId&&['admin','manager'].includes(actor.role),'Seu cargo não tem acesso a este diário.',403);role=actor.role==='admin'?'owner':'writer';}
+  async health(){await this.db.$queryRaw`SELECT id FROM ss_diary_v1.quota WHERE id=1`;return {ok:true,version:6,limits:LIMITS};}
+  async board(db,id,token,write=false,owner=false,lock=false,requiredModule=null){uuid(id);const rows=lock?await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id} FOR UPDATE`:await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id}`;fail(rows.length,'Diário não encontrado ou acesso inválido.',404);const b=rows[0],links=await db.$queryRaw`SELECT organization_id,project_id FROM ss_app_v1.board_links WHERE board_id=${id}`;let role,actor;
+ if(typeof token==='string'&&token.startsWith('session.')){actor=await new IdentityService(db).authenticate(token.slice(8));fail(links.length&&links[0].organization_id===actor.organizationId&&['admin','manager','maintenance'].includes(actor.role)&&['diary','documents','reminders'].some(moduleId=>canAccess(actor,moduleId)),'Seu acesso não permite consultar este acompanhamento.',403);fail(!requiredModule||canAccess(actor,requiredModule),'Seu acesso não permite este módulo.',403);role=actor.role==='admin'?'owner':actor.role==='manager'?'writer':'reader';}
  else{fail(!links.length,'Este diário agora exige login individual.',401);role=roleFor(b,token);}
  fail(!write||['owner','writer'].includes(role),'Este acesso permite somente consulta.',403);fail(!owner||role==='owner','Somente o administrador pode realizar esta ação.',403);return {...b,role,actor};}
 
@@ -68,14 +69,22 @@ export class DiaryService{
       await tx.$executeRaw`UPDATE ss_diary_v1.quota SET boards=boards+1 WHERE id=1`;return {id};
     });
   }
-  async read(id,token){const b=await this.board(this.db,id,token);const entries=await this.db.$queryRaw`SELECT id,payload,archived,reason,created_at FROM ss_diary_v1.entries WHERE board_id=${id} ORDER BY created_at DESC`;
-    const photos=await this.db.$queryRaw`SELECT id,entry_id,bytes,width,height,caption FROM ss_diary_v1.photos WHERE board_id=${id}`;
-    return {id,library:await readLibrary(this.db,id,b.role),reminders:await readReminders(this.db,id),metadata:b.metadata,role:b.role,revision:b.revision,createdAt:Number(b.created_at),updatedAt:Number(b.updated_at),limits:LIMITS,usage:{photos:photos.length,bytes:photos.reduce((n,p)=>n+p.bytes,0)},entries:entries.filter(e=>!e.archived||b.role==='owner').map(e=>({id:e.id,...e.payload,archived:e.archived,reason:e.reason,createdAt:Number(e.created_at),photos:photos.filter(p=>p.entry_id===e.id).map(({entry_id,...p})=>p)}))};
+  async read(id,token){const b=await this.board(this.db,id,token),allowed=moduleId=>!b.actor||canAccess(b.actor,moduleId);
+    const result={id,metadata:metadata(b.metadata),role:b.role,...(b.actor?{modules:b.actor.modules}:{}),revision:b.revision,createdAt:Number(b.created_at),updatedAt:Number(b.updated_at)};
+    if(allowed('diary')){
+      const entries=await this.db.$queryRaw`SELECT id,payload,archived,reason,created_at FROM ss_diary_v1.entries WHERE board_id=${id} ORDER BY created_at DESC`;
+      const photos=await this.db.$queryRaw`SELECT id,entry_id,bytes,width,height,caption FROM ss_diary_v1.photos WHERE board_id=${id}`;
+      result.limits=LIMITS;result.usage={photos:photos.length,bytes:photos.reduce((n,p)=>n+p.bytes,0)};
+      result.entries=entries.filter(e=>!e.archived||b.role==='owner').map(e=>({id:e.id,...e.payload,archived:e.archived,reason:e.reason,createdAt:Number(e.created_at),photos:photos.filter(p=>p.entry_id===e.id).map(({entry_id,...p})=>p)}));
+    }
+    if(allowed('documents'))result.library=await readLibrary(this.db,id,b.role,b.actor);
+    if(allowed('reminders'))result.reminders=await readReminders(this.db,id,b.actor);
+    return result;
   }
-  async photo(id,photoId,token){await this.board(this.db,id,token);uuid(photoId);const rows=await this.db.$queryRaw`SELECT p.content FROM ss_diary_v1.photos p JOIN ss_diary_v1.entries e ON e.id=p.entry_id WHERE p.board_id=${id} AND p.id=${photoId} AND e.archived=FALSE`;fail(rows.length,'Foto não disponível.',404);return Buffer.from(rows[0].content);}
-  async publish(id,token,d){const initial=await this.board(this.db,id,token,true),parsed=entryInput(initial.actor?{...d,author:initial.actor.name,authorUserId:initial.actor.id}:d,initial),bytes=parsed.photos.reduce((n,p)=>n+p.bytes,0);
+  async photo(id,photoId,token){await this.board(this.db,id,token,false,false,false,'diary');uuid(photoId);const rows=await this.db.$queryRaw`SELECT p.content FROM ss_diary_v1.photos p JOIN ss_diary_v1.entries e ON e.id=p.entry_id WHERE p.board_id=${id} AND p.id=${photoId} AND e.archived=FALSE`;fail(rows.length,'Foto não disponível.',404);return Buffer.from(rows[0].content);}
+  async publish(id,token,d){const initial=await this.board(this.db,id,token,true,false,false,'diary'),parsed=entryInput(initial.actor?{...d,author:initial.actor.name,authorUserId:initial.actor.id}:d,initial),bytes=parsed.photos.reduce((n,p)=>n+p.bytes,0);
     return this.db.$transaction(async tx=>{
-      const [quota]=await tx.$queryRaw`SELECT * FROM ss_diary_v1.quota WHERE id=1 FOR UPDATE`;const b=await this.board(tx,id,token,true,false,true);const existing=await tx.$queryRaw`SELECT board_id,request_hash FROM ss_diary_v1.entries WHERE id=${parsed.id}`;
+      const [quota]=await tx.$queryRaw`SELECT * FROM ss_diary_v1.quota WHERE id=1 FOR UPDATE`;const b=await this.board(tx,id,token,true,false,true,'diary');const existing=await tx.$queryRaw`SELECT board_id,request_hash FROM ss_diary_v1.entries WHERE id=${parsed.id}`;
       if(existing.length){fail(existing[0].board_id===id&&existing[0].request_hash===parsed.requestHash,'Esta atualização já foi enviada com conteúdo diferente.',409);return {id:parsed.id,repeated:true};}
       const [stats]=await tx.$queryRaw`SELECT count(*)::int AS count,COALESCE(sum(bytes),0)::bigint AS bytes FROM ss_diary_v1.photos WHERE board_id=${id}`;
       const [posts]=await tx.$queryRaw`SELECT count(*)::int AS count FROM ss_diary_v1.entries WHERE board_id=${id}`;
@@ -85,7 +94,7 @@ export class DiaryService{
       await tx.$executeRaw`UPDATE ss_diary_v1.boards SET revision=revision+1,updated_at=${BigInt(now)} WHERE id=${id}`;await tx.$executeRaw`UPDATE ss_diary_v1.quota SET bytes=bytes+${BigInt(bytes)} WHERE id=1`;await tx.$executeRaw`INSERT INTO ss_diary_v1.audit(id,board_id,action,actor_role,subject,created_at,actor_user_id) VALUES(${randomUUID()},${id},'publish',${b.role},${parsed.id},${BigInt(now)},${b.actor?.id||null})`;return {id:parsed.id};
     },{timeout:15000});
   }
-  async manage(id,token,d){return this.db.$transaction(async tx=>{const b=await this.board(tx,id,token,true,true,true);fail(Number.isInteger(d.revision)&&d.revision===b.revision,'O diário mudou. Atualize e tente novamente.',409);const now=Date.now();let result={ok:true};
+  async manage(id,token,d){return this.db.$transaction(async tx=>{const b=await this.board(tx,id,token,true,true,true,'diary');fail(Number.isInteger(d.revision)&&d.revision===b.revision,'O diário mudou. Atualize e tente novamente.',409);const now=Date.now();let result={ok:true};
     if(d.action==='archive'||d.action==='restore'){uuid(d.entryId);const reason=text(d.reason,'Justificativa',500);const changed=await tx.$executeRaw`UPDATE ss_diary_v1.entries SET archived=${d.action==='archive'},reason=${reason} WHERE id=${d.entryId} AND board_id=${id}`;fail(changed===1,'Atualização não encontrada.',404);}
     else if(d.action==='rotate'){const writer=tokenHash(d.writerToken),reader=tokenHash(d.readerToken);fail(writer!==reader&&writer!==b.owner_hash&&reader!==b.owner_hash,'Acessos devem ser diferentes.');await tx.$executeRaw`UPDATE ss_diary_v1.boards SET writer_hash=${writer},reader_hash=${reader} WHERE id=${id}`;}
     else if(d.action==='sync'){const m=metadata(d.metadata);for(const name of ['stages','units'])m[name]=[...m[name],...b.metadata[name].filter(x=>!m[name].some(y=>x.id===y.id))];metadata(m);await tx.$executeRaw`UPDATE ss_diary_v1.boards SET metadata=${JSON.stringify(m)}::jsonb WHERE id=${id}`;}
