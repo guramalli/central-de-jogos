@@ -1,4 +1,4 @@
-import {allowedReportTypes,buildReport} from './reports-domain.mjs?v=20261119-bedrooms29';
+import {allowedReportTypes,buildReport} from './reports-domain.mjs?v=20261119-viability30';
 const LABELS={payments:'Pagamentos',sales:'Tabela de vendas',receipts:'Recebimentos',overview:'Relatório geral da obra'};
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const options=(rows,value)=>rows.map(([key,label])=>`<option value="${esc(key)}" ${key===value?'selected':''}>${esc(label)}</option>`).join('');

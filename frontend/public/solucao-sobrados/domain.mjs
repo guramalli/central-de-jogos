@@ -5,16 +5,17 @@ export const KINDS={acquisition:'Aquisição',material:'Material',labor:'Mão de
 export const CONSTRUCTION_SCOPES={auto:'Automático pela categoria',included:'Incluir na construção',excluded:'Excluir da construção'};
 const constructionScope=value=>{const scope=value??'auto';check(Object.hasOwn(CONSTRUCTION_SCOPES,scope),'Classificação da construção inválida.');return scope;};
 export const NEIGHBORHOODS=['Canto do Forte','Boqueirão','Guilhermina','Aviação','Vila Tupi','Ocian','Vila Mirim','Maracanã','Vila Caiçara','Jardim Real','Flórida','Solemar','Quietude','Tupiry','Antártica','Vila Sônia'];
+const MONEY_LIMIT_CENTS=1e12;
 export function check(ok,message){if(!ok)throw new Error(message);}
 export function text(x,label,max=2000){check(typeof x==='string'&&x.trim().length>0&&x.length<=max,`${label}: preencha até ${max} caracteres.`);return x.trim();}
 export function optional(x,max=2000){check(typeof x==='string'&&x.length<=max,'Texto inválido ou muito longo.');return x.trim();}
-export function integer(n,label='Valor',min=0,max=1e12){check(Number.isSafeInteger(n)&&n>=min&&n<=max,`${label}: valor fora do limite.`);return n;}
+export function integer(n,label='Valor',min=0,max=MONEY_LIMIT_CENTS){check(Number.isSafeInteger(n)&&n>=min&&n<=max,`${label}: valor fora do limite.`);return n;}
 export function decimal(x,digits=2){const s=String(x).trim().replace(',','.');check(new RegExp(`^\\d+(?:\\.\\d{1,${digits}})?$`).test(s),'Use número positivo, vírgula ou ponto decimal e nenhum separador de milhar.');const [a,b='']=s.split('.');return integer(Number(a)*10**digits+Number(b.padEnd(digits,'0')));}
 export function date(x){check(typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&!isNaN(Date.parse(x))&&new Date(x).toISOString().slice(0,10)===x,'Data inválida.');return x;}
 export const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 export const money=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n/100);
 export const amount=(c,q)=>integer(Number((BigInt(integer(c))*BigInt(integer(q))+500n)/1000n));
-export const percent=(n,bps)=>Number((BigInt(integer(n))*BigInt(integer(bps))+5000n)/10000n);
+export const percent=(n,bps)=>Number((BigInt(integer(n,'Base do percentual',0,Number.MAX_SAFE_INTEGER))*BigInt(integer(bps))+5000n)/10000n);
 const ceilRevenue=(cost,bps)=>Number((BigInt(cost)*10000n+BigInt(10000-bps)-1n)/BigInt(10000-bps));
 export const sum=(rows,key)=>rows.reduce((n,x)=>n+(typeof key==='function'?key(x):x[key]),0);
 export const paid=e=>sum(e.payments.filter(p=>!p.reversed),'cents');
@@ -38,8 +39,11 @@ export function physicalProgress(p){const stages=p.stages.filter(isProgressStage
 export const activeProjects=s=>s.projects.filter(p=>!p.trashedAt);
 export const empty=()=>({version:1,revision:0,seq:0,projects:[],comparables:[],audit:[]});
 export function split(cents,weights){
-  integer(cents);check(weights.length>0&&weights.every(w=>Number.isSafeInteger(w)&&w>=0)&&sum(weights,x=>x)>0,'Rateio sem unidades ou áreas válidas.');
-  const total=BigInt(sum(weights,x=>x)),n=BigInt(cents),rows=weights.map((w,i)=>({i,base:n*BigInt(w)/total,rest:n*BigInt(w)%total}));
+  integer(cents,'Valor do rateio',0,Number.MAX_SAFE_INTEGER);
+  check(weights.length>0&&weights.every(w=>Number.isSafeInteger(w)&&w>=0),'Rateio sem unidades ou áreas válidas.');
+  const total=weights.reduce((sum,w)=>sum+BigInt(w),0n);
+  check(total>0n,'Rateio sem unidades ou áreas válidas.');
+  const n=BigInt(cents),rows=weights.map((w,i)=>({i,base:n*BigInt(w)/total,rest:n*BigInt(w)%total}));
   let left=cents-sum(rows,x=>Number(x.base));for(const r of [...rows].sort((a,b)=>a.rest===b.rest?a.i-b.i:a.rest>b.rest?-1:1)){if(!left--)break;r.base++;}
   return rows.map(r=>Number(r.base));
 }
@@ -86,7 +90,7 @@ function commercialUnit(p,id){const u=p.units.find(u=>u.id===id);check(u,'Unidad
 function getSale(p,id){const sale=(p.sales||[]).find(x=>x.id===id);check(sale&&!sale.cancelled,'Venda não encontrada ou cancelada.');return sale;}
 function monthDue(first,offset){const [y,m,day]=date(first).split('-').map(Number),base=new Date(Date.UTC(y,m-1+offset,1)),last=new Date(Date.UTC(base.getUTCFullYear(),base.getUTCMonth()+1,0)).getUTCDate();base.setUTCDate(Math.min(day,last));return base.toISOString().slice(0,10);}
 export function salePlan(d){
- const price=integer(d.price,'Valor da venda',1,1e12),when=date(d.date),mode=d.paymentMode;check(Object.hasOwn(SALE_MODES,mode),'Forma de venda inválida.');
+ const price=integer(d.price,'Valor da venda',1,MONEY_LIMIT_CENTS),when=date(d.date),mode=d.paymentMode;check(Object.hasOwn(SALE_MODES,mode),'Forma de venda inválida.');
  const config={price,date:when,paymentMode:mode,entryCents:0,entryCount:0,entryFirstDue:when,balanceDue:date(d.balanceDue||when)},rows=[];
  if(mode==='entry_installments'||mode==='financed'){
   config.entryCents=integer(d.entryCents||0,'Entrada',mode==='entry_installments'?1:0,price);
@@ -268,9 +272,8 @@ function requiredRevenueGoals(p,forecast,credits,values){
   const result=(extra,status)=>({status,total:contractedRevenue+extra,remaining:extra});
   if(evaluate(0))return result(0,'met');
   if(!available.length)return {status:'unreachable',total:null,remaining:null,reason:'sold_out'};
-  // The common money helpers support at most 1e12 cents. Do not fabricate an
-  // out-of-range quote or pass it into percent/split and crash the whole view.
-  const cap=Math.max(0,1e12-contractedRevenue);
+  // Suggested revenue must fit the same ceiling as stored sales.
+  const cap=Math.max(0,MONEY_LIMIT_CENTS-contractedRevenue);
   const floor=credits.some(Boolean)?0:Math.min(cap,Math.max(0,ceilRevenue(forecast,p.sellingBps+targetBps)-contractedRevenue));
   let lo=floor,hi=Math.min(cap,Math.max(0,ceilRevenue(forecast+1,p.sellingBps+targetBps)-contractedRevenue));
   if(!evaluate(hi))return {status:'unreachable',total:null,remaining:null,reason:'limit'};
