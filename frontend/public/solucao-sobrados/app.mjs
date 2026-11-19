@@ -7,8 +7,8 @@ import {resolveMarketCriteria,buildMarketSearchUrl} from './market-search.mjs?v=
 import {mountDiary,mountSharedDiary,readDiaryLink,mountReminderSummary,mountProjectIdentity} from './diary.mjs?v=20261119-dialog23';
 import {STAGES,CATEGORIES,KINDS,NEIGHBORHOODS,empty,validate,validateBackup,command,totals,scenario,market,history,costReport,csv,decimal,date,today,money,paid,used,sum,amount,tracksQuantity,activeProjects,CONSTRUCTION_SCOPES,constructionTotals,isContractor,contractFileData,CONTRACT_FILE_LIMIT,isProgressStage,physicalProgress,SALE_MODES,SALE_DOCUMENTS,activeSale,received as storedReceived,salesTotals as storedSalesTotals,salePlan} from './domain.mjs?v=20261119-history28';
 import {demo} from './demo.mjs?v=20261118-access8';
-import {openReportCenter} from './reports-ui.mjs?v=20261119-dialog23';
-import {allowedReportTypes} from './reports-domain.mjs?v=20261118-reports12';
+import {openReportCenter} from './reports-ui.mjs?v=20261119-bedrooms29';
+import {allowedReportTypes} from './reports-domain.mjs?v=20261119-bedrooms29';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Server projections expose confirmed totals without private receipt records.
 // Persisted financial rules remain in domain.mjs.
