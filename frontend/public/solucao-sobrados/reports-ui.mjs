@@ -16,40 +16,58 @@ export function openReportCenter({dialog,initialType='payments',initialSnapshot,
  dialog.classList.add('reports-dialog');
  dialog.innerHTML=`<div class="reports-header"><div><p class="eyebrow">SOLUÇÃO SOBRADOS</p><h2>Gerar relatórios</h2><p>${esc(initialSnapshot.project.name)}</p></div><button type="button" class="icon-btn" id="reports-close" aria-label="Fechar relatórios">×</button></div><div class="reports-body"><form id="reports-form"><fieldset id="reports-fields"><div class="reports-filters"><label>Relatório<select name="type">${options(available.map(type=>[type,LABELS[type]]),chosen)}</select></label><label id="reports-from-label">De<input type="date" name="from"></label><label id="reports-to-label">Até<input type="date" name="to"></label><label id="reports-status-label">Situação<select name="status"></select></label><label id="reports-unit-label">Casa<select name="unitId">${options([['','Todas as casas'],...initialSnapshot.project.units.map(unit=>[unit.id,unit.name])],'')}</select></label><label id="reports-audience-label">Versão da tabela<select name="salesAudience">${options([['internal','Uso interno'],['share','Para compartilhar']],'internal')}</select></label></div><p class="reports-help" id="reports-help"></p><div class="reports-filter-actions"><button type="submit" class="btn primary">Gerar prévia</button><button type="button" class="btn" id="reports-clear">Limpar filtros</button></div></fieldset></form><p class="reports-error" id="reports-error" role="alert" hidden></p><div class="reports-export-bar"><p id="reports-status" role="status" aria-live="polite">Preparando relatório…</p><div><button type="button" class="btn primary" id="reports-pdf" disabled>Baixar PDF</button><button type="button" class="btn" id="reports-csv" disabled>Exportar planilha CSV</button></div></div><div id="reports-result"></div></div><footer class="reports-footer"><span>O PDF tem páginas próprias, cabeçalhos e totais. Você também pode imprimi-lo pelo leitor de PDF.</span><button type="button" class="btn" id="reports-done">Fechar</button></footer>`;
  const find=selector=>dialog.querySelector(selector),form=find('#reports-form'),fields=find('#reports-fields'),result=find('#reports-result'),status=find('#reports-status'),error=find('#reports-error'),typeField=form.elements.type;
- function setBusy(value){busy=value;fields.disabled=value;find('#reports-pdf').disabled=value||!model;find('#reports-csv').disabled=value||!model;result.setAttribute('aria-busy',String(value));}
- function invalidate(){sequence++;model=null;result.innerHTML='';find('#reports-pdf').disabled=true;find('#reports-csv').disabled=true;error.hidden=true;status.textContent='Filtros alterados. Gere uma nova prévia para exportar.';}
+ const pdfButton=find('#reports-pdf'),csvButton=find('#reports-csv'),clearButton=find('#reports-clear'),closeButton=find('#reports-close'),doneButton=find('#reports-done');
+ const ownsDialog=()=>dialog.querySelector('#reports-form')===form;
+ const current=()=>alive&&dialog.open&&dialog.isConnected!==false&&form.isConnected!==false&&ownsDialog()&&isCurrent();
+ function setBusy(value){busy=value;fields.disabled=value;pdfButton.disabled=value||!model;csvButton.disabled=value||!model;result.setAttribute('aria-busy',String(value));}
+ function invalidate(){sequence++;model=null;result.innerHTML='';pdfButton.disabled=true;csvButton.disabled=true;error.hidden=true;status.textContent='Filtros alterados. Gere uma nova prévia para exportar.';}
  function configure(){const type=typeField.value,dated=['payments','receipts'].includes(type),units=['sales','receipts'].includes(type);find('#reports-from-label').hidden=find('#reports-to-label').hidden=!dated;form.elements.from.disabled=form.elements.to.disabled=!dated;find('#reports-unit-label').hidden=!units;form.elements.unitId.disabled=!units;find('#reports-status-label').hidden=type==='overview';form.elements.status.disabled=type==='overview';find('#reports-audience-label').hidden=type!=='sales';form.elements.salesAudience.disabled=type!=='sales';form.elements.status.innerHTML=options(type==='sales'?[['all','Todas as casas'],['available','Disponíveis'],['sold','Vendidas']]:[['confirmed','Confirmados'],['reversed','Estornados'],['all','Confirmados e estornados']],type==='sales'?'all':'confirmed');find('#reports-help').textContent=type==='payments'?'Período pela data do pagamento. Cada pagamento aparece pelo valor integral, com seu destino. Estornos ficam separados dos valores confirmados.':type==='receipts'?'Período pela data do recebimento. O relatório considera o dinheiro registrado como recebido, separado do valor contratado da venda.':type==='sales'?'Uso interno reúne a negociação e os detalhes autorizados. Para compartilhar mostra as casas e os valores previstos das disponíveis, sem compradores, comissões ou recebimentos.':'Resumo do empreendimento, resultado por casa, custos e pagamentos. Valores previstos e registrados aparecem identificados.';}
  function readFilters(){const type=typeField.value;if(type==='overview')return {};if(type==='sales')return {status:form.elements.status.value,unitId:form.elements.unitId.value,salesAudience:form.elements.salesAudience.value};return {from:form.elements.from.value,to:form.elements.to.value,status:form.elements.status.value,...(type==='receipts'?{unitId:form.elements.unitId.value}:{})};}
  async function generate(exportKind=''){
-  if(busy||!form.reportValidity()||!alive)return;
+  if(!current()||busy||!form.reportValidity())return;
   const token=++sequence,type=typeField.value,filters=readFilters();model=null;error.hidden=true;result.innerHTML='';setBusy(true);status.textContent='Atualizando os dados e preparando o relatório…';
   try{
    const snapshot=await getSnapshot();
-   if(!alive||token!==sequence||!isCurrent())return;
+   if(!current()||token!==sequence)return;
    const next=buildReport({type,...snapshot,filters,issuedAt:new Date().toISOString()});
    model=next;result.innerHTML=reportPreview(next);setBusy(true);status.textContent='Prévia atualizada em '+localTime(next.issuedAt)+'.';
    if(exportKind==='pdf'){
     status.textContent='Preparando PDF com paginação…';
     const {createReportPdf}=await import('./reports-pdf.mjs?v=20261118-reports12');
-    if(!alive||token!==sequence||!isCurrent())return;
+    if(!current()||token!==sequence)return;
     const doc=createReportPdf(next);
-    if(!alive||token!==sequence||!isCurrent())return;
+    if(!current()||token!==sequence)return;
     download(doc.output('blob'),next.filename+'.pdf');status.textContent='PDF preparado. Confira o download ou o leitor de PDF do seu navegador.';
    }else if(exportKind==='csv'){
-    if(!alive||token!==sequence||!isCurrent())return;
+    if(!current()||token!==sequence)return;
     download(new Blob([next.csv],{type:'text/csv;charset=utf-8'}),next.filename+'.csv');status.textContent='Planilha preparada com os mesmos filtros desta prévia.';
    }
-  }catch(cause){if(!alive||token!==sequence)return;model=null;result.innerHTML='';error.textContent=cause.message||'Não foi possível gerar o relatório.';error.hidden=false;status.textContent='Confira os filtros e a conexão e tente novamente.';}
-  finally{if(alive&&token===sequence){setBusy(false);configureDisabled();}}
+  }catch(cause){if(!current()||token!==sequence)return;model=null;result.innerHTML='';error.textContent=cause.message||'Não foi possível gerar o relatório.';error.hidden=false;status.textContent='Confira os filtros e a conexão e tente novamente.';}
+  finally{if(current()&&token===sequence){setBusy(false);configureDisabled();}}
  }
  function configureDisabled(){const type=typeField.value;form.elements.from.disabled=form.elements.to.disabled=!['payments','receipts'].includes(type);form.elements.unitId.disabled=!['sales','receipts'].includes(type);form.elements.status.disabled=type==='overview';form.elements.salesAudience.disabled=type!=='sales';}
- function onChange(event){if(event.target===typeField)configure();invalidate();form.elements.from.max=form.elements.to.value;form.elements.to.min=form.elements.from.value;}
- function close(){dialog.close();}
- function closed(){dispose();onClose();}
- function dispose(){if(!alive)return;alive=false;sequence++;model=null;result.innerHTML='';form.removeEventListener('change',onChange);form.removeEventListener('input',onInput);dialog.removeEventListener('close',closed);dialog.classList.remove('reports-dialog');if(dialog.open)dialog.close();dialog.innerHTML='';}
+ function onChange(event){if(!current())return;if(event.target===typeField)configure();invalidate();form.elements.from.max=form.elements.to.value;form.elements.to.min=form.elements.from.value;}
+ function close(){if(current())dialog.close();}
+ function closed(){
+  // Native close events are queued: a previous close may arrive after reuse.
+  if(!ownsDialog()){dispose();return;}
+  if(dialog.open)return;
+  dispose();onClose();
+ }
+ function dispose(){
+  if(!alive)return;
+  alive=false;sequence++;model=null;result.innerHTML='';
+  form.removeEventListener('change',onChange);form.removeEventListener('input',onInput);form.onsubmit=null;
+  for(const button of [pdfButton,csvButton,clearButton,closeButton,doneButton])button.onclick=null;
+  dialog.removeEventListener('close',closed);
+  if(!ownsDialog())return;
+  dialog.classList.remove('reports-dialog');
+  if(dialog.open)dialog.close();
+  if(ownsDialog())dialog.innerHTML='';
+ }
  function onInput(event){if(event.target.tagName==='INPUT')onChange(event);}
  form.addEventListener('change',onChange);form.addEventListener('input',onInput);form.onsubmit=event=>{event.preventDefault();generate();};
- find('#reports-clear').onclick=()=>{form.reset();typeField.value=chosen;configure();onChange({target:typeField});};
- find('#reports-pdf').onclick=()=>generate('pdf');find('#reports-csv').onclick=()=>generate('csv');find('#reports-close').onclick=find('#reports-done').onclick=close;
+ clearButton.onclick=()=>{if(!current())return;form.reset();typeField.value=chosen;configure();onChange({target:typeField});};
+ pdfButton.onclick=()=>generate('pdf');csvButton.onclick=()=>generate('csv');closeButton.onclick=doneButton.onclick=close;
  dialog.addEventListener('close',closed);configure();dialog.showModal();generate();return dispose;
 }

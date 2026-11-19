@@ -458,3 +458,8 @@
 @media screen and (max-width:650px){
   #dialog .form-grid{grid-template-columns:minmax(0,1fr)}
 }
+
+/* Keep save feedback aligned with the active form, including on mobile. */
+@media screen {dialog [data-save-status]{margin:0;padding:0 28px 16px;color:#405a7a;overflow-wrap:anywhere}}
+@media screen and (max-width:650px){dialog [data-save-status]{padding-inline:19px}}
+@media print{dialog [data-save-status]{display:none}}
