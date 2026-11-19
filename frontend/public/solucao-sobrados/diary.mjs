@@ -1,6 +1,6 @@
 import {sanitizePreparedJpeg} from './jpeg-privacy.mjs?v=20261119-photo14';
-import {accountHeaders} from './account-ui.mjs?v=20261118-maintenance10';
-import {mountProjectPhoto} from './project-photo.mjs?v=20261118-maintenance10';
+import {accountHeaders} from './account-ui.mjs?v=20261119-recovery22';
+import {mountProjectPhoto} from './project-photo.mjs?v=20261119-recovery22';
 import {renderDocumentsPanel as renderDocumentsPanelBase} from './documents-ui.mjs?v=20261118-access8';
 import {renderReminderPanel as renderReminderPanelBase,reminderCounts} from './reminders-ui.mjs?v=20261118-access8';
 const viewAllowed=(board,id)=>!board.modules||board.modules.includes(id);

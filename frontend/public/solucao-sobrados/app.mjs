@@ -1,10 +1,10 @@
 import {mountTutorials} from './tutorials-ui.mjs?v=20261119-tutorial17';
 import {mountCommercial} from './commercial-ui.mjs?v=20261119-checkout21';
 import {canAccess,normalizeModules,fullFinancialAccess} from './access-domain.mjs?v=20261118-access8';
-import {accountApi,loginScreen,mountUsers,roleLabels,setAccountContext} from './account-ui.mjs?v=20261118-maintenance10';
-import {mountMaintenance} from './maintenance-ui.mjs?v=20261119-photo14';
+import {accountApi,loginScreen,mountUsers,roleLabels,setAccountContext} from './account-ui.mjs?v=20261119-recovery22';
+import {mountMaintenance} from './maintenance-ui.mjs?v=20261119-recovery22';
 import {resolveMarketCriteria,buildMarketSearchUrl} from './market-search.mjs?v=20261118-access8';
-import {mountDiary,mountSharedDiary,readDiaryLink,mountReminderSummary,mountProjectIdentity} from './diary.mjs?v=20261119-photo14';
+import {mountDiary,mountSharedDiary,readDiaryLink,mountReminderSummary,mountProjectIdentity} from './diary.mjs?v=20261119-recovery22';
 import {STAGES,CATEGORIES,KINDS,NEIGHBORHOODS,empty,validate,command,totals,scenario,market,history,costReport,csv,decimal,date,today,money,paid,used,sum,amount,tracksQuantity,activeProjects,CONSTRUCTION_SCOPES,constructionTotals,isContractor,contractFileData,CONTRACT_FILE_LIMIT,isProgressStage,physicalProgress,SALE_MODES,SALE_DOCUMENTS,activeSale,received as storedReceived,salesTotals as storedSalesTotals,salePlan} from './domain.mjs?v=20261119-viability19';
 import {demo} from './demo.mjs?v=20261118-access8';
 import {openReportCenter} from './reports-ui.mjs?v=20261118-reports12';
@@ -27,7 +27,7 @@ window.matchMedia('(min-width: 901px)').addEventListener('change',event=>{if(eve
 const pages={overview:'Visão geral',project:'Empreendimento',costs:'Custos e pagamentos',contractors:'Empreiteiro',sales:'Vendas / contratos',receipts:'Entradas / recebidos',stages:'Etapas da obra',documents:'Documentos e projetos',diary:'Diário de obra · fotos',reminders:'Agenda e lembretes',profit:'Viabilidade e lucro',market:'Mercado da região',history:'Histórico e comparativo',maintenance:'Manutenção',users:'Equipe e acessos'};
 let disposeTutorials=null,tutorialReturn='overview',tutorialEpoch=0;
 let commercial=null,disposeCommercial=null,commerceReturn='overview';
-let actor=null,organizationName='',boardLinks=[],disposeMaintenance=null,disposeUsers=null,disposeReports=null,reportEpoch=0,reportOpening=false;
+let actor=null,organizationName='',boardLinks=[],disposeMaintenance=null,disposeUsers=null,disposeLogin=null,bootEpoch=0,disposeReports=null,reportEpoch=0,reportOpening=false;
 let mode='online',key=()=>`solucao-sobrados-v1-${mode}`,state,page='overview',selected='',costFilter={stage:'',kind:'',search:'',unit:''},marketFilter={condition:'new',includeUnknownZone:false,unitId:'',bedrooms:null,areaMin:null,areaMax:null},years={a:'2024',b:'2026'},tabError='';
 let disposeDiary=null,disposeReminders=null,disposePhoto=null;
 const pageTrail=[];
@@ -41,7 +41,13 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('#account
 document.addEventListener('focusin',event=>{if(!event.target.closest('#account-actions'))closeAccountActions();});
 const projects=()=>activeProjects(state);
 async function load(isCurrent=()=>true){if(mode==='demo'){const raw=localStorage.getItem('solucao-sobrados-v1-demo');state=raw?validate(JSON.parse(raw)):demo();}else{const data=await accountApi('/me');if(!isCurrent())return;actor=data.actor;setAccountContext(actor);organizationName=data.organizationName;commercial=data.commercial;boardLinks=data.boardLinks;state=data.financial||empty();}if(!projects().some(p=>p.id===selected))selected=projects()[0]?.id||'';}
-async function boot(){tutorialEpoch++;disposeTutorials?.();disposeTutorials=null;disposeCommercial?.();disposeCommercial=null;reportEpoch++;disposeReports?.();disposeReports=null;pageTrail.length=0;try{if(location.hash.startsWith('#convite=')){state=empty();actor=null;setAccountContext(null);disposeDiary?.();disposeReminders?.();disposePhoto?.();disposeMaintenance?.();disposeUsers?.();loginScreen($('#app'),async()=>{mode='online';await boot();});return;}await load();const access=readDiaryLink();if(access){disposeDiary=mountSharedDiary($('#app'),access);}else render();}catch(error){state=empty();actor=null;setAccountContext(null);disposeDiary?.();disposeReminders?.();disposePhoto?.();disposeMaintenance?.();disposeUsers?.();document.body.classList.remove('navigation-open');loginScreen($('#app'),async()=>{mode='online';await boot();});if(error.status!==401)toast(error.message,true);}}
+async function boot(){
+ const stamp=++bootEpoch,current=()=>stamp===bootEpoch;
+ disposeLogin?.();disposeLogin=null;tutorialEpoch++;disposeTutorials?.();disposeTutorials=null;disposeCommercial?.();disposeCommercial=null;reportEpoch++;disposeReports?.();disposeReports=null;pageTrail.length=0;
+ const enter=()=>{const entryDialog=$('#dialog');if(entryDialog?.open)entryDialog.close?.();if(entryDialog){entryDialog.innerHTML='';entryDialog.onsubmit=null;}$('#app').onclick=null;state=empty();actor=null;setAccountContext(null);disposeDiary?.();disposeReminders?.();disposePhoto?.();disposeMaintenance?.();disposeUsers?.();document.body.classList.remove('navigation-open');disposeLogin=loginScreen($('#app'),async()=>{if(!current())return;mode='online';await boot();});};
+ try{if(location.hash.startsWith('#convite=')||location.hash.startsWith('#redefinir-senha')){enter();return;}await load(current);if(!current())return;const access=readDiaryLink();if(access){disposeDiary=mountSharedDiary($('#app'),access);}else render();}
+ catch(error){if(!current())return;enter();if(error.status!==401)toast(error.message,true);}
+}
 function maintenanceApi(action,payload){if(action==='photos')return accountApi('/maintenance/photos',payload);if(action==='photo')return accountApi('/maintenance/photos/'+encodeURIComponent(payload.id),undefined,{raw:true,signal:payload.signal});return accountApi('/maintenance',action==='command'?payload:undefined);}
 function accountBoard(p){return boardLinks.find(b=>b.projectId===p.id);}
 async function connectAccountBoard(p,legacy){const data=await accountApi('/boards',{projectId:p.id,...(legacy?{legacy}:{})});boardLinks=boardLinks.filter(b=>b.projectId!==p.id).concat(data);return data;}

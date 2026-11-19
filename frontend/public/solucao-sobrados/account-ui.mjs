@@ -6,9 +6,72 @@ export const roleLabels={admin:'Diretor',manager:'Gestor',maintenance:'Equipe de
 let accountContext=null,accountEpoch=0;
 export function setAccountContext(actor){accountContext=actor?{id:actor.id,organizationId:actor.organizationId}:null;accountEpoch++;}
 export function accountHeaders(){return accountContext?{'X-SS-User':accountContext.id,'X-SS-Organization':accountContext.organizationId}:{};}
-export async function accountApi(path,body,{raw=false,signal}={}){const epoch=accountEpoch,publicPath=['/login','/register','/accept-invite','/me'].includes(path);const res=await fetch(BASE+path,{signal,method:body===undefined?'GET':'POST',credentials:'same-origin',cache:'no-store',headers:{...(!publicPath?accountHeaders():{}),...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});if(raw&&res.ok){const blob=await res.blob();if(epoch!==accountEpoch)throw new Error('A sessão mudou. Atualize a página.');return blob;}let data;try{data=await res.json();}catch{throw new Error('O serviço está indisponível. Tente novamente em instantes.');}if(epoch!==accountEpoch)throw new Error('A sessão mudou. Atualize a página.');if(!res.ok)throw Object.assign(new Error(data.error||'Não foi possível concluir.'),{status:res.status});return data;}
+export async function accountApi(path,body,{raw=false,signal}={}){const epoch=accountEpoch,publicPath=['/login','/register','/accept-invite','/me','/recovery-status','/forgot-password','/reset-password'].includes(path);const res=await fetch(BASE+path,{signal,method:body===undefined?'GET':'POST',credentials:'same-origin',cache:'no-store',headers:{...(!publicPath?accountHeaders():{}),...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});if(raw&&res.ok){const blob=await res.blob();if(epoch!==accountEpoch)throw new Error('A sessão mudou. Atualize a página.');return blob;}let data;try{data=await res.json();}catch{throw new Error('O serviço está indisponível. Tente novamente em instantes.');}if(epoch!==accountEpoch)throw new Error('A sessão mudou. Atualize a página.');if(!res.ok)throw Object.assign(new Error(data.error||'Não foi possível concluir.'),{status:res.status});return data;}
 const input=(name,label,type='text',extra='')=>`<label>${label}<input name="${name}" type="${type}" required ${extra}></label>`;
-export function loginScreen(container,onSuccess){let view=location.hash.startsWith('#convite=')?'invite':'login';const invitation=view==='invite'?location.hash.slice(9):'';function draw(){container.innerHTML=`<main class="account-entry"><section class="card"><p class="eyebrow">SOLUÇÃO SOBRADOS</p><h1>${view==='login'?'Entre na sua conta':view==='invite'?'Aceitar convite':'Criar minha empresa'}</h1><p>${view==='register'?'Seu espaço será separado das outras empresas. Você será o Diretor.':view==='invite'?'O cargo, os módulos e a empresa são definidos pelo convite.':'Obras, manutenção e equipe no mesmo lugar.'}</p><form class="account-form">${view!=='login'?input('name','Seu nome','text','maxlength="100" autocomplete="name"'):''}${view==='register'?input('organizationName','Nome da empresa','text','maxlength="150"'):''}${input('email','E-mail','email','autocomplete="username" maxlength="254"')}${input('password','Senha','password',`autocomplete="${view==='login'?'current-password':'new-password'}" ${view==='login'?'':'minlength="12"'} maxlength="128"`)}${view==='login'?'':'<small>Use pelo menos 12 caracteres.</small>'}<p class="form-error" role="alert"></p><button class="btn primary" type="submit">${view==='login'?'Entrar':view==='invite'?'Criar acesso':'Criar conta'}</button></form>${view==='invite'?'':`<button class="btn account-switch">${view==='login'?'Criar conta de Diretor':'Já tenho uma conta'}</button>`}<p class="fine">Os dados antigos deste navegador permanecem preservados. O Diretor pode importá-los após entrar.</p></section></main>`;container.querySelector('.account-switch')?.addEventListener('click',()=>{view=view==='login'?'register':'login';draw();});container.querySelector('form').onsubmit=async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;try{const payload=Object.fromEntries(new FormData(event.target));if(view==='invite')payload.token=invitation;await accountApi(view==='login'?'/login':view==='invite'?'/accept-invite':'/register',payload);if(invitation)history.replaceState(null,'',location.pathname+location.search);await onSuccess();}catch(error){container.querySelector('[role="alert"]').textContent=error.message;button.disabled=false;}};}draw();}
+export function loginScreen(container,onSuccess,{api=accountApi}={}) {
+  const initialHash=location.hash;
+  let view=initialHash.startsWith('#redefinir-senha')?'reset':initialHash.startsWith('#convite=')?'invite':'login';
+  let resetToken=view==='reset'?initialHash.slice('#redefinir-senha='.length):'';
+  const validReset=initialHash.startsWith('#redefinir-senha=')&&/^[A-Za-z0-9_-]{43}$/.test(resetToken);
+  const invitation=view==='invite'?initialHash.slice(9):'';
+  // Keep the recovery secret only in this controller, never history, markup or storage.
+  if(view==='reset')history.replaceState(null,'',location.pathname+location.search);
+  let disposed=false,generation=0,busy=false,recovery=null,message='';
+  const current=stamp=>!disposed&&stamp===generation;
+  const controls=value=>{busy=value;for(const node of container.querySelectorAll('button,input'))node.disabled=value;};
+  const feedback=(text,error=false)=>{const node=container.querySelector('[data-entry-feedback]');if(node){node.textContent=text;node.className=error?'form-error':'account-feedback';node.setAttribute('role',error?'alert':'status');}};
+  function draw() {
+    if(disposed)return;
+    const stamp=++generation;busy=false;
+    const forgot=view==='forgot',reset=view==='reset',login=view==='login',register=view==='register';
+    const formAllowed=forgot?recovery===true:reset?validReset&&Boolean(resetToken):true;
+    const title=forgot?'Recuperar minha senha':reset?'Definir nova senha':login?'Entre na sua conta':register?'Criar minha empresa':'Aceitar convite';
+    const intro=forgot?'Informe o e-mail usado para entrar. O link de recuperação vale por 30 minutos e só pode ser usado uma vez.':reset?'Escolha uma nova senha. Ao salvar, os acessos anteriores serão encerrados; depois entre novamente.':register?'Seu espaço será separado das outras empresas. Você será o Diretor.':view==='invite'?'O cargo, os módulos e a empresa são definidos pelo convite.':'Obras, manutenção e equipe no mesmo lugar.';
+    container.innerHTML=`<main class="account-entry"><section class="card"><p class="eyebrow">SOLUÇÃO SOBRADOS</p><h1 tabindex="-1">${title}</h1><p>${intro}</p>
+    ${forgot&&recovery===null?'<p role="status">Conferindo a recuperação por e-mail…</p>':''}
+    ${forgot&&recovery===false?'<p class="account-help">O envio de recuperação por e-mail ainda não está disponível. Fale com o atendimento pelo contato abaixo.</p>':''}
+    ${forgot&&recovery==='error'?'<p class="account-help">Não foi possível consultar o serviço. Tente novamente ou fale com o atendimento.</p><button type="button" class="btn" data-entry="retry-recovery">Tentar novamente</button>':''}
+    ${reset&&!formAllowed?'<p class="form-error" role="alert">Link inválido ou incompleto. Solicite um novo link de recuperação.</p>':''}
+    ${formAllowed?`<form class="account-form">${register||view==='invite'?input('name','Seu nome','text','maxlength="100" autocomplete="name"'):''}${register?input('organizationName','Nome da empresa','text','maxlength="150"'):''}${reset?'':input('email','E-mail','email','autocomplete="username" maxlength="254"')}${forgot?'':input('password',reset?'Nova senha':'Senha','password',`autocomplete="${login?'current-password':'new-password'}" ${login?'':'minlength="12"'} maxlength="128"`)}${reset?input('confirmPassword','Confirmar nova senha','password','autocomplete="new-password" minlength="12" maxlength="128"'):''}${!forgot&&!login?'<small>Use entre 12 e 128 caracteres.</small>':''}<button class="btn primary" type="submit">${forgot?'Enviar link de recuperação':reset?'Salvar nova senha':login?'Entrar':view==='invite'?'Criar acesso':'Criar conta'}</button></form>`:''}
+    <p data-entry-feedback class="account-feedback" role="status" aria-live="polite">${esc(message)}</p>
+    ${login?'<button type="button" class="btn account-switch" data-entry="forgot">Esqueci minha senha</button><button type="button" class="btn account-switch" data-entry="register">Criar conta de Diretor</button>':`<button type="button" class="btn account-switch" data-entry="login">Voltar para entrar</button>${reset?'<button type="button" class="btn account-switch" data-entry="forgot">Solicitar novo link</button>':''}`}
+    <p class="account-help">Precisa de ajuda? <a href="mailto:Sobradosvendas@moove.ai">Sobradosvendas@moove.ai</a></p>${!forgot&&!reset?'<p class="fine">Os dados antigos deste navegador permanecem preservados. O Diretor pode importá-los após entrar.</p>':''}</section></main>`;
+    for(const button of container.querySelectorAll('[data-entry]'))button.onclick=()=>{
+      if(!current(stamp)||busy)return;
+      message='';const next=button.dataset.entry;
+      if(view==='reset')resetToken='';
+      if(next==='forgot'||next==='retry-recovery'){view='forgot';recovery=null;draw();void checkRecovery();}
+      else{view=next;draw();}
+      container.querySelector('h1')?.focus();
+    };
+    const form=container.querySelector('form');
+    if(form)form.onsubmit=async event=>{
+      event.preventDefault();if(!current(stamp)||busy||!form.reportValidity())return;
+      const payload=Object.fromEntries(new FormData(form));
+      if(reset&&payload.password!==payload.confirmPassword){feedback('As senhas não coincidem. Confira os dois campos.',true);return;}
+      if(forgot)payload.email=String(payload.email||'').trim();
+      if(reset){delete payload.confirmPassword;payload.token=resetToken;}
+      if(view==='invite')payload.token=invitation;
+      controls(true);feedback('');
+      try {
+        await api(forgot?'/forgot-password':reset?'/reset-password':login?'/login':view==='invite'?'/accept-invite':'/register',payload);
+        if(!current(stamp))return;
+        if(forgot){feedback('Se houver uma conta ativa para este e-mail, você receberá as instruções. Confira também o spam. Se não chegar, aguarde um minuto antes de tentar novamente.');}
+        else if(reset){resetToken='';view='login';message='Senha alterada. Os acessos anteriores foram encerrados. Entre com a nova senha.';draw();container.querySelector('h1')?.focus();}
+        else{if(invitation)history.replaceState(null,'',location.pathname+location.search);await onSuccess();}
+      }catch(error){if(current(stamp))feedback(error?.message||'Não foi possível concluir. Tente novamente.',true);}
+      finally{if(current(stamp))controls(false);}
+    };
+  }
+  async function checkRecovery(){
+    const stamp=generation;
+    try{const result=await api('/recovery-status');if(!current(stamp))return;recovery=result.enabled===true;}
+    catch{if(!current(stamp))return;recovery='error';}
+    if(current(stamp))draw();
+  }
+  draw();
+  return()=>{disposed=true;generation++;resetToken='';container.innerHTML='';};
+}
 
 const groupLabel=group=>({obra:'Obra',financeiro:'Financeiro',comercial:'Comercial',gestao:'Gestão',maintenance:'Manutenção',manutencao:'Manutenção'}[group]||String(group||'Outros módulos'));
 const roleOptions=role=>Object.entries(roleLabels).map(([id,label])=>`<option value="${id}"${id===role?' selected':''}>${esc(label)}</option>`).join('');
@@ -83,4 +146,3 @@ export function mountUsers(container,actor){
   accountApi('/users').then(result=>{if(cancelled)return;users=Array.isArray(result.users)?result.users:[];paint();}).catch(problem=>{if(!cancelled)container.innerHTML=`<section class="card account-users"><p role="alert">${esc(problem.message)}</p></section>`;});
   return ()=>{cancelled=true;container.removeEventListener('change',change);container.removeEventListener('click',click);container.removeEventListener('submit',submit);};
 }
-

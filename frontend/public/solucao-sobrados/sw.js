@@ -1,5 +1,5 @@
 /* Public application shell only. Never cache APIs, accounts, uploads or form writes. */
-const VERSION = '20261119-checkout21';
+const VERSION = '20261119-recovery22';
 const APP_BASE = new URL(self.registration.scope);
 const CACHE_PREFIX = `solucao-sobrados-public:${APP_BASE.pathname}:`;
 const CACHE_NAME = CACHE_PREFIX + VERSION;
@@ -17,13 +17,13 @@ const PUBLIC_FILES = [
   'reports-domain.mjs?v=20261118-reports12',
   'reports-pdf.mjs?v=20261118-reports12',
   'reports.css?v=20261118-reports12',
-  'app.mjs?v=20261119-checkout21',
-  'pwa.mjs?v=20261119-checkout21',
-  'styles.css?v=20261119-checkout21',
+  'app.mjs?v=20261119-recovery22',
+  'pwa.mjs?v=20261119-recovery22',
+  'styles.css?v=20261119-recovery22',
   'access-domain.mjs?v=20261118-access8',
-  'account-ui.mjs?v=20261118-maintenance10',
-  'account.css?v=20261118-access8',
-  'maintenance-ui.mjs?v=20261119-photo14',
+  'account-ui.mjs?v=20261119-recovery22',
+  'account.css?v=20261119-recovery22',
+  'maintenance-ui.mjs?v=20261119-recovery22',
   'maintenance.css?v=20261118-maintenance13',
   'market-search.mjs?v=20261118-access8',
   'market-search.mjs?v=20261118-sales5',
@@ -31,15 +31,15 @@ const PUBLIC_FILES = [
   'domain.mjs?v=20261119-viability19',
   'domain.mjs?v=20261118-trash1',
   'demo.mjs?v=20261118-access8',
-  'diary.mjs?v=20261119-photo14',
+  'diary.mjs?v=20261119-recovery22',
   'diary.css?v=20261118-access8',
-  'project-photo.mjs?v=20261118-maintenance10',
+  'project-photo.mjs?v=20261119-recovery22',
   'documents-ui.mjs?v=20261118-access8',
   'documents.css?v=20261118-access8',
   'reminders-ui.mjs?v=20261118-access8',
   'reminder-domain.mjs?v=20261118-trash1',
   'reminders.css?v=20261118-access8',
-  'manifest.webmanifest?v=20261119-checkout21',
+  'manifest.webmanifest?v=20261119-recovery22',
   'pwa-icons/icon-180.png',
   'pwa-icons/icon-192.png',
   'pwa-icons/icon-512.png',
