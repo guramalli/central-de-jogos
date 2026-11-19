@@ -11,3 +11,9 @@ Sons de início, baixados em 11/11/2026, para trocar depois. Todos são **CC0 (d
 | `amb/chuva_loop.ogg` (faixa 1 de 4) | [Rain (loopable)](https://opengameart.org/content/rain-loopable) | Ylmir (OpenGameArt) | CC0 |
 
 Os nomes dos arquivos dizem onde cada som entra no jogo. Os sons de zumbi vêm de um pacote de 24 variações (gemidos, ataques e mortes) e o jogo sorteia entre eles.
+
+## Sons gerados (não são CC0)
+
+| arquivos | origem | observação |
+|---|---|---|
+| `sfx/grito_homem.ogg`, `sfx/grito_mulher.ogg`, `sfx/gritos_tres.ogg` | ElevenLabs, efeitos sonoros (`eleven_text_to_sound_v3`), conta do dono do canal, 19/11/2026 | gritos do GAME OVER (derrota no cerco), escolhidos pelo dono (versões B); convertidos de .mp3 para .ogg mono |
