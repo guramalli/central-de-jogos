@@ -3,7 +3,7 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;',
 const money = cents => Number.isSafeInteger(cents) ? new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'}).format(cents / 100) : 'Não informado';
 const date = value => { if (!value) return 'Não informado'; const d = new Date(value); return Number.isNaN(d.valueOf()) ? 'Não informado' : d.toLocaleString('pt-BR', {dateStyle:'short',timeStyle:'short'}); };
 const LICENSE = {legacy:'Acesso existente',legacy_access:'Acesso existente',pending_setup:'Configuração pendente',trial:'Em avaliação',active:'Ativa',paid:'Ativa',overdue:'Pagamento pendente',past_due:'Pagamento pendente',expired:'Expirada',cancelled:'Cancelada',canceled:'Cancelada',suspended:'Suspensa',manual:'Acesso liberado',pending:'Aguardando confirmação'};
-const SUBSCRIPTION = {creating:'Preparando contratação',pending:'Aguardando autorização',authorized:'Renovação autorizada',paused:'Cobrança pausada',cancelled:'Renovação cancelada'};
+const SUBSCRIPTION = {failed:'Tentativa não concluída',creating:'Confirmação pendente',pending:'Aguardando autorização',authorized:'Renovação autorizada',paused:'Cobrança pausada',cancelled:'Renovação cancelada'};
 const TICKET = {open:'Aberto',in_progress:'Em atendimento',resolved:'Resolvido'};
 const CATEGORY = {bug:'Relatar um problema',suggestion:'Enviar uma sugestão',question:'Tirar uma dúvida'};
 const btn = (text, action, extra = '') => `<button type="button" class="btn" data-commerce-action="${action}" ${extra}>${text}</button>`;
@@ -27,10 +27,13 @@ function billing(status, actor, confirmation) {
   const director = actor.role === 'admin';
   const canCheckout = director && status.checkoutEnabled === true;
   const canCancel = director && status.canCancel === true;
+  const canRecover = director && status.recoveryEnabled === true;
+  const checkoutLabel = status.subscriptionStatus === 'failed' ? 'Tentar contratação novamente' : status.subscriptionStatus === 'pending' ? 'Continuar pagamento' : `Assinar por ${esc(money(plan.amountCents))}/mês`;
+  const waiting = status.subscriptionStatus === 'creating' || canRecover;
   return `<section class="commerce-card commerce-plan"><div><span class="commerce-eyebrow">Plano da empresa</span><h2>Solução Sobrados</h2><p class="commerce-price">${esc(money(plan.amountCents))}<small>/ mês por empresa</small></p><p>${esc(plan.trialDays ?? 7)} dias de avaliação para novas empresas elegíveis.</p></div><div>${badge(license.status)}<dl class="commerce-facts">${fact('Acesso',license.accessAllowed === true ? 'Liberado' : 'Indisponível')}${fact('Renovação',SUBSCRIPTION[status.subscriptionStatus] || 'Sem assinatura cadastrada')}${fact('Fim da avaliação',date(license.trialEndsAt))}${fact('Acesso pago até',date(license.paidUntil))}${license.manualUntil ? fact('Liberação temporária até',date(license.manualUntil)) : ''}</dl></div></section>
-  ${status.checkoutEnabled !== true ? `<p class="commerce-notice">${status.billingConfigured === false || license.status === 'pending_setup' ? 'O pagamento automático ainda está em configuração. Nenhuma cobrança será iniciada por esta tela enquanto a integração não estiver disponível.' : 'A contratação não está disponível para esta conta neste momento. Consulte o atendimento se precisar de ajuda.'}</p>` : ''}
+  ${status.checkoutEnabled !== true ? `<p class="commerce-notice">${status.billingConfigured === false || license.status === 'pending_setup' ? 'O pagamento automático ainda está em configuração. Nenhuma cobrança será iniciada por esta tela enquanto a integração não estiver disponível.' : waiting ? 'Ainda não foi possível confirmar a tentativa anterior. Consulte a contratação antes de iniciar outra. Se a situação persistir, use o Atendimento.' : status.subscriptionStatus === 'authorized' ? 'Sua renovação já está autorizada. Não é necessário iniciar outra assinatura.' : 'A contratação não está disponível para esta conta neste momento. Consulte o atendimento se precisar de ajuda.'}</p>` : ''}
   ${!director ? '<p class="commerce-notice">O diretor da empresa gerencia a assinatura. Você pode entrar em contato pelo Atendimento.</p>' : ''}
-  <section class="commerce-card"><h2>Assinatura e pagamento</h2><p>O acesso é vinculado à empresa e aos logins individuais. O pagamento é concluído no ambiente do Mercado Pago; a confirmação é verificada pelo servidor.</p><div class="commerce-actions">${canCheckout ? btn(`Assinar por ${esc(money(plan.amountCents))}/mês`,'checkout') : ''}${canCancel ? btn('Cancelar renovação','confirm-cancel') : ''}</div>
+  <section class="commerce-card"><h2>Assinatura e pagamento</h2><p>O acesso é vinculado à empresa e aos logins individuais. O pagamento é concluído no ambiente do Mercado Pago; a confirmação é verificada pelo servidor.</p><div class="commerce-actions">${canCheckout ? btn(checkoutLabel,'checkout') : ''}${canRecover ? btn('Consultar tentativa anterior','reconcile') : ''}${canCancel ? btn('Cancelar renovação','confirm-cancel') : ''}</div>
   ${confirmation === 'cancel' ? `<div class="commerce-confirm" role="group" aria-label="Confirmar cancelamento"><h3>Cancelar a renovação mensal?</h3><p>Esta ação interrompe as próximas cobranças da assinatura. O acesso já pago permanece até a data confirmada pelo servidor. Não solicita reembolso nem apaga os dados da empresa.</p><div class="commerce-actions">${btn('Manter assinatura','dismiss-confirm')}${btn('Confirmar cancelamento','cancel')}</div></div>` : ''}</section>`;
 }
 
@@ -103,15 +106,26 @@ export function mountCommercial({container,api,actor,view='billing',onChange}) {
         globalThis.location.assign(destination);return;
       }
       confirmation=null;
+      if (path==='/reconcile') message=result.recovery==='pending' ? 'A tentativa ainda não foi localizada com segurança. Aguarde e consulte novamente; se persistir, fale com o Atendimento.' : 'Consulta concluída. Confira a situação atualizada da assinatura abaixo.';
       if (path==='/support' && result.id) selected=result.id;
       busy=false; await load(message);
       if (alive() && onChange) {
         const refreshStamp=generation;busy=true;controls(true);
         try { await onChange(); }
-        catch { if (current(refreshStamp)) showFeedback(message+' A alteração foi salva, mas não foi possível atualizar os dados da conta. Reabra a página para atualizar o acesso.',true); }
+        catch { if (current(refreshStamp)) showFeedback(message+(path==='/reconcile'?' Não foi possível atualizar os dados da conta. Reabra a página para conferir o acesso.':' A alteração foi salva, mas não foi possível atualizar os dados da conta. Reabra a página para atualizar o acesso.'),true); }
         finally { if (current(refreshStamp)) {busy=false;controls(false);} }
       }
-    } catch(error) { if (current(stamp)) showFeedback(error?.message || 'Não foi possível salvar. Tente novamente.',true); }
+    } catch(error) {
+      if (!current(stamp)) return;
+      let failure=error?.message || 'Não foi possível salvar. Tente novamente.';
+      if (path==='/checkout' || path==='/reconcile') {
+        // The operation may have reached the provider. Never keep stale create permissions.
+        status=null;body.innerHTML='<p class="commerce-empty">Conferindo a situação da contratação…</p>';
+        try {const fresh=await api('/status');if(!current(stamp))return;status=fresh;draw();}
+        catch {if(!current(stamp))return;status=null;body.innerHTML='<p class="commerce-empty">Use Atualizar para conferir a tentativa antes de continuar.</p>';failure+=' Não foi possível consultar a situação atual.';}
+      }
+      if(current(stamp))showFeedback(failure,true);
+    }
     finally { if (current(stamp)) {busy=false;controls(false);} }
   }
   function onClick(event) {
@@ -122,6 +136,7 @@ export function mountCommercial({container,api,actor,view='billing',onChange}) {
     if (action==='tickets') { selected=null;draw();return; }
     if (action==='dismiss-confirm') {confirmation=null;draw();return;}
     if (action==='checkout' && actor.role==='admin' && status?.checkoutEnabled===true) { void mutate('/checkout',{},'',{redirect:true});return; }
+    if (action==='reconcile' && actor.role==='admin' && status?.recoveryEnabled===true) {void mutate('/reconcile',{},'');return;}
     if (action==='confirm-cancel' && actor.role==='admin' && status?.canCancel===true) {confirmation='cancel';draw();return;}
     if (action==='cancel' && confirmation==='cancel' && actor.role==='admin' && status?.canCancel===true) {void mutate('/cancel',{},'Renovação cancelada. O acesso foi atualizado.');return;}
     if (action==='license' && view==='platform' && status?.platformAdmin===true) {confirmation=button.dataset.organizationId;draw();}
@@ -147,5 +162,3 @@ export function mountCommercial({container,api,actor,view='billing',onChange}) {
   container.addEventListener('click',onClick);container.addEventListener('submit',onSubmit);void load();
   return () => {if(disposed)return;disposed=true;generation++;container.removeEventListener('click',onClick);container.removeEventListener('submit',onSubmit);status=null;data={};body.innerHTML='';feedback.textContent='';container.innerHTML='';};
 }
-
-
