@@ -86,7 +86,7 @@
   .topbar .project-photo {width:44px;height:44px;flex:0 0 44px;border-color:#d0dceb;border-radius:10px;background:#edf2f9;color:#365b8b;font-size:26px}
   .project-selector {min-width:0;max-width:360px;flex:1}
   .project-selector>span {font-size:11px;color:#5f718a;margin-bottom:2px}
-  .project-selector select {min-height:32px;font-size:15px;font-weight:700;color:#243b5b;padding:3px 24px 3px 0;border:0;border-radius:0;background:transparent;text-overflow:ellipsis;width:100%}
+  .project-selector select {min-height:44px;font-size:16px;font-weight:700;color:#243b5b;padding:3px 24px 3px 0;border:0;border-radius:0;background:transparent;text-overflow:ellipsis;width:100%}
   .top-actions {gap:6px;flex-wrap:wrap;max-width:100%}
   .top-actions .btn {font-size:11px;min-height:44px;padding:9px 10px;background:#fff;border-color:#d9e2ed;color:#3f5879}
   .avatar {background:#e9eef6;color:#355379;border-color:#fff;font-size:11px;width:35px;height:35px;flex-shrink:0}
@@ -181,7 +181,7 @@
   .waterfall span {color:#5e718a}
   .waterfall .total strong {color:var(--area-financeiro)}
   .target {background:#edf4f8}
-  .target span,.target small {color:#58728d;font-size:12px}
+  .target span,.target small {color:#49637e;font-size:12px}
   .target strong {color:#295575}
   .scenario.selected {background:#edf5f1;border-color:#a4cbb9}
   .scenario small,.scenario p,.scenario>span {color:#5d7188;font-size:12px}
@@ -196,7 +196,7 @@
   .progress i {background:#3a6bd2}
   .physical-summary .physical-total>strong,.phase-percent {color:#214d99}
   .physical-total>span {font-size:13px}
-  .app-footer {padding:6px 30px 24px;color:#637892;font-size:11px;gap:12px;flex-wrap:wrap}
+  .app-footer {padding:6px 30px 24px;color:#50647e;font-size:11px;gap:12px;flex-wrap:wrap}
   .app-footer>span:first-child {color:#466488}
   #notice {background:#244e78;bottom:calc(20px + env(safe-area-inset-bottom));font-size:13px}
   #notice.error {background:#9f3933}
@@ -311,7 +311,7 @@
   .main-shell{margin:0;min-width:0}.topbar{padding:14px 20px;gap:12px;align-items:center}
   .menu-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:44px;min-height:44px;border:1px solid #cfdae9;border-radius:8px;background:#fff;color:#355579;padding:10px;font-size:13px}
   .topbar .project-identity{flex:1 1 calc(100% - 70px);max-width:calc(100% - 58px)}
-  .topbar .project-selector{width:auto;max-width:100%}.topbar .project-selector select{font-size:15px;width:100%}
+  .topbar .project-selector{width:auto;max-width:100%}.topbar .project-selector select{width:100%}
   .top-actions{width:100%;justify-content:flex-start;gap:7px}.top-actions .btn{font-size:12px;min-height:44px;padding:9px 12px}
   .test-strip{padding:10px 20px;font-size:11px}.test-strip .dot{margin-top:7px}
   main{padding:27px 20px 34px}.page-heading{gap:18px}.subtitle{font-size:13px}.eyebrow{font-size:10px}
@@ -339,7 +339,7 @@
 @media screen and (max-width:650px) {
   .topbar{padding:13px max(16px,env(safe-area-inset-right)) 13px max(16px,env(safe-area-inset-left))}
   .topbar .project-identity{gap:9px;min-width:0}.topbar .project-photo{width:40px;height:40px;flex-basis:40px}
-  .topbar .project-selector>span{font-size:10px}.topbar .project-selector select{font-size:14px}
+  .topbar .project-selector>span{font-size:10px}
   .top-actions .btn{font-size:11px;padding:9px 10px}.top-actions{gap:7px}
   .test-strip{padding:10px 16px;font-size:11px;align-items:flex-start}
   main{padding:24px max(16px,env(safe-area-inset-right)) 30px max(16px,env(safe-area-inset-left))}
@@ -381,7 +381,7 @@
 }
 @media screen and (max-width:390px) {
   .topbar .project-photo{display:none}.topbar .project-identity{max-width:calc(100% - 60px)}
-  .top-actions .btn{flex:1 1 85px}.topbar .project-selector select{font-size:14px}
+  .top-actions .btn{flex:1 1 85px}
   .metrics:not(.management-metrics),.metrics.three:not(.management-metrics){grid-template-columns:1fr}
   .metrics.three:not(.management-metrics) .metric:last-child{grid-column:auto}
   .management-metrics .metric>strong{font-size:24px}
@@ -424,7 +424,7 @@
   .top-actions .account-actions-panel [data-action=logout] {border-top:1px solid #e0e7f0;margin-top:8px;border-radius:0}
   .module-back {display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px}
   .module-back .btn {min-height:44px;flex-shrink:0}
-  .module-back>span {color:#5e748b;font-size:12px}
+  .module-back>span {color:#50647e;font-size:12px}
 }
 @media screen and (max-width:900px) {
   .topbar {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px}
@@ -454,6 +454,9 @@
   #dialog .sale-detail td.numeric{overflow-wrap:normal}
   #dialog .sale-detail td.date-cell{white-space:nowrap;overflow-wrap:normal}
   #dialog .table-scroll:focus-visible{outline:3px solid #7ca4df;outline-offset:3px}
+  .history-table-scroll:focus-visible{outline:3px solid #365e91;outline-offset:3px}
+  .history-scroll-hint{display:none}
+  @media(max-width:650px){.history-scroll-hint{display:block}}
 }
 @media screen and (max-width:650px){
   #dialog .form-grid{grid-template-columns:minmax(0,1fr)}

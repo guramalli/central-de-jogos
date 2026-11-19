@@ -122,7 +122,7 @@ export const schemaStatements=[
 export async function migrate(db){for(const sql of [...schemaStatements,...reminderSchema,...documentSchema,...identitySchema,...workspaceSchema,...commercialSchema])await db.$executeRawUnsafe(sql);await initializeCommercial(db);}
 export class DiaryService{
   constructor(db){this.db=db;}
-  async health(){await this.db.$queryRaw`SELECT id FROM ss_diary_v1.quota WHERE id=1`;return {ok:true,version:15,limits:LIMITS};}
+  async health(){await this.db.$queryRaw`SELECT id FROM ss_diary_v1.quota WHERE id=1`;return {ok:true,version:20,limits:LIMITS};}
   async board(db,id,token,write=false,owner=false,lock=false,requiredModule=null){uuid(id);const rows=lock?await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id} FOR UPDATE`:await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id}`;fail(rows.length,'Diário não encontrado ou acesso inválido.',404);const b=rows[0],links=await db.$queryRaw`SELECT organization_id,project_id FROM ss_app_v1.board_links WHERE board_id=${id}`;let role,actor;
  if(typeof token==='string'&&token.startsWith('session.')){actor=await new IdentityService(db).authenticate(token.slice(8));await assertCommercialAccess(db,actor);fail(links.length&&links[0].organization_id===actor.organizationId&&['admin','manager','maintenance'].includes(actor.role)&&['diary','documents','reminders'].some(moduleId=>canAccess(actor,moduleId)),'Seu acesso não permite consultar este acompanhamento.',403);fail(!requiredModule||canAccess(actor,requiredModule),'Seu acesso não permite este módulo.',403);role=actor.role==='admin'?'owner':actor.role==='manager'?'writer':'reader';}
  else{fail(!links.length,'Este diário agora exige login individual.',401);role=roleFor(b,token);}
@@ -131,7 +131,7 @@ export class DiaryService{
   async create(d,ip){
     const id=uuid(d.id),m=metadata(d.metadata),owner=tokenHash(d.ownerToken),writer=tokenHash(d.writerToken),reader=tokenHash(d.readerToken);fail(new Set([owner,writer,reader]).size===3,'Os acessos devem ser diferentes.');
     return this.db.$transaction(async tx=>{const [quota]=await tx.$queryRaw`SELECT * FROM ss_diary_v1.quota WHERE id=1 FOR UPDATE`;const exists=await tx.$queryRaw`SELECT owner_hash FROM ss_diary_v1.boards WHERE id=${id}`;if(exists.length){fail(equal(exists[0].owner_hash,owner),'Identificador já utilizado.',409);return {id};}
-      fail(quota.boards<LIMITS.boards,'Limite do ambiente de testes atingido. Solicite ampliação ao administrador.',507);
+      fail(quota.boards<LIMITS.boards,'O serviço atingiu o limite de diários. Solicite ampliação ao administrador.',507);
       const now=Date.now(),key=hash('diary-create:'+ip+':'+Math.floor(now/86400000));await tx.$executeRaw`DELETE FROM ss_diary_v1.creation_limits WHERE expires<${BigInt(now)}`;
       const rows=await tx.$queryRaw`SELECT count FROM ss_diary_v1.creation_limits WHERE key=${key}`;fail(!rows.length||rows[0].count<20,'Limite de criação por rede atingido hoje. Continue nos diários existentes.',429);
       await tx.$executeRaw`INSERT INTO ss_diary_v1.creation_limits VALUES(${key},1,${BigInt(now+86400000)}) ON CONFLICT(key) DO UPDATE SET count=ss_diary_v1.creation_limits.count+1`;
@@ -156,9 +156,10 @@ export class DiaryService{
     return this.db.$transaction(async tx=>{
       const [quota]=await tx.$queryRaw`SELECT * FROM ss_diary_v1.quota WHERE id=1 FOR UPDATE`;const b=await this.board(tx,id,token,true,false,true,'diary');const existing=await tx.$queryRaw`SELECT board_id,request_hash FROM ss_diary_v1.entries WHERE id=${parsed.id}`;
       if(existing.length){fail(existing[0].board_id===id&&existing[0].request_hash===parsed.requestHash,'Esta atualização já foi enviada com conteúdo diferente.',409);return {id:parsed.id,repeated:true};}
+      fail(parsed.payload.status!=='done'||parsed.payload.progress===100,"Para marcar a etapa como concluída, informe 100% de avanço.");
       const [stats]=await tx.$queryRaw`SELECT count(*)::int AS count,COALESCE(sum(bytes),0)::bigint AS bytes FROM ss_diary_v1.photos WHERE board_id=${id}`;
       const [posts]=await tx.$queryRaw`SELECT count(*)::int AS count FROM ss_diary_v1.entries WHERE board_id=${id}`;
-      fail(stats.count+parsed.photos.length<=LIMITS.photosPerBoard&&Number(stats.bytes)+bytes<=LIMITS.boardBytes&&posts.count<LIMITS.posts,'Este diário atingiu o limite de testes (80 fotos / 24 MB). Solicite ampliação.',507);fail(Number(quota.bytes)+bytes<=LIMITS.totalBytes,'Armazenamento de testes cheio. Nenhuma foto foi publicada.',507);
+      fail(stats.count+parsed.photos.length<=LIMITS.photosPerBoard&&Number(stats.bytes)+bytes<=LIMITS.boardBytes&&posts.count<LIMITS.posts,'Este diário atingiu o limite de 80 fotos ou 24 MB. Solicite ampliação.',507);fail(Number(quota.bytes)+bytes<=LIMITS.totalBytes,'O armazenamento do diário está cheio. Nenhuma foto foi publicada.',507);
       const now=Date.now();await tx.$executeRaw`INSERT INTO ss_diary_v1.entries(id,board_id,payload,request_hash,created_at) VALUES(${parsed.id},${id},${JSON.stringify(parsed.payload)}::jsonb,${parsed.requestHash},${BigInt(now)})`;
       for(const p of parsed.photos)await tx.$executeRaw`INSERT INTO ss_diary_v1.photos(id,board_id,entry_id,content,bytes,width,height,caption) VALUES(${randomUUID()},${id},${parsed.id},${p.data},${p.bytes},${p.width},${p.height},${p.caption})`;
       await tx.$executeRaw`UPDATE ss_diary_v1.boards SET revision=revision+1,updated_at=${BigInt(now)} WHERE id=${id}`;await tx.$executeRaw`UPDATE ss_diary_v1.quota SET bytes=bytes+${BigInt(bytes)} WHERE id=1`;await tx.$executeRaw`INSERT INTO ss_diary_v1.audit(id,board_id,action,actor_role,subject,created_at,actor_user_id) VALUES(${randomUUID()},${id},'publish',${b.role},${parsed.id},${BigInt(now)},${b.actor?.id||null})`;return {id:parsed.id};

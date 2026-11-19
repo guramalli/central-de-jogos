@@ -1,4 +1,4 @@
-import {check, date, money, paid, received, activeSale, SALE_MODES, totals, csv} from './domain.mjs?v=20261118-access8';
+import {check, date, money, paid, received, activeSale, SALE_MODES, totals, csv} from './domain.mjs?v=20261119-audit34';
 import {canAccess, fullFinancialAccess} from './access-domain.mjs?v=20261118-access8';
 
 const TITLES={payments:'Relatório de pagamentos',sales:'Tabela de vendas',receipts:'Relatório de recebimentos',overview:'Relatório geral do empreendimento'};
@@ -85,7 +85,7 @@ function salesReport(p,f,actor){
   const rows=p.units.map(unit=>({unit,sale:activeSale(p,unit.id)})).filter(({unit,sale})=>(!f.unitId||unit.id===f.unitId)&&(f.status==='all'||(f.status==='sold'?Boolean(sale):!sale)));
   const sold=rows.filter(x=>x.sale),available=rows.filter(x=>!x.sale),availableAskingCents=sum(available,x=>x.unit.sale||0),askingNotInformedCount=available.filter(x=>!x.unit.sale).length;
   const base={summary:[{label:'Casas disponíveis',value:String(available.length)},{label:'Casas vendidas',value:String(sold.length)},summary('Preços informados das disponíveis',availableAskingCents),...(askingNotInformedCount?[{label:'Disponíveis sob consulta',value:String(askingNotInformedCount)}]:[])],metrics:{count:rows.length,availableCount:available.length,soldCount:sold.length,availableAskingCents,askingNotInformedCount}};
-  if(f.salesAudience==='share')return {...base,subtitle:'Disponibilidade e preços anunciados',sections:[section('Tabela de disponibilidade',[column('Casa','left',1.4),column('Área (m²)','right',.8),column('Dormitórios','right',.8),column('Situação'),moneyColumn('Preço anunciado')],rows.map(({unit:u,sale:s})=>[u.name,number(u.area/100),String(u.bedrooms??'-'),s?'Vendida':'Disponível',s?'-':u.sale?money(u.sale):'Sob consulta']))],notes:['Preços anunciados e disponibilidade sujeitos a confirmação. Casas vendidas são apresentadas sem valores ou condições do contrato.',...(askingNotInformedCount?['O total de preços informados não inclui as casas sob consulta.']:[])]};
+  if(f.salesAudience==='share')return {...base,subtitle:'Disponibilidade e preços anunciados',sections:[section('Tabela de disponibilidade',[column('Casa','left',1.4),column('Área (m²)','right',.8),column('Dormitórios','right',.8),column('Situação'),moneyColumn('Preço anunciado')],rows.map(({unit:u,sale:s})=>[u.name,number(u.area/100),String(u.bedrooms??p.bedrooms??'-'),s?'Vendida':'Disponível',s?'-':u.sale?money(u.sale):'Sob consulta']))],notes:['Preços anunciados e disponibilidade sujeitos a confirmação. Casas vendidas são apresentadas sem valores ou condições do contrato.',...(askingNotInformedCount?['O total de preços informados não inclui as casas sob consulta.']:[])]};
   const contractedCents=sum(sold,x=>x.sale.price);
   base.summary.push(summary('Vendas contratadas',contractedCents));
   base.metrics.contractedCents=contractedCents;
