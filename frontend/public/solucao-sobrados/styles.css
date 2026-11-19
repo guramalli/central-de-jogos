@@ -444,3 +444,17 @@
 @media(max-width:650px){
   .scenario>strong{grid-column:1/-1;white-space:nowrap;font-size:clamp(18px,5vw,24px)}
 }
+
+/* Dialog grid items must fit the viewport; tables keep their own horizontal scroll. */
+@media screen{
+  #dialog .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #dialog .form-grid>*{min-width:0}
+  #dialog .sale-detail{overflow-wrap:anywhere}
+  #dialog .sale-detail .mini-stats strong{white-space:nowrap}
+  #dialog .sale-detail td.numeric{overflow-wrap:normal}
+  #dialog .sale-detail td.date-cell{white-space:nowrap;overflow-wrap:normal}
+  #dialog .table-scroll:focus-visible{outline:3px solid #7ca4df;outline-offset:3px}
+}
+@media screen and (max-width:650px){
+  #dialog .form-grid{grid-template-columns:minmax(0,1fr)}
+}
