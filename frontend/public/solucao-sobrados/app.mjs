@@ -2,9 +2,9 @@ import {mountTutorials} from './tutorials-ui.mjs?v=20261119-tutorial17';
 import {mountCommercial} from './commercial-ui.mjs?v=20261119-checkout21';
 import {canAccess,normalizeModules,fullFinancialAccess} from './access-domain.mjs?v=20261118-access8';
 import {accountApi,loginScreen,mountUsers,roleLabels,setAccountContext} from './account-ui.mjs?v=20261119-recovery22';
-import {mountMaintenance} from './maintenance-ui.mjs?v=20261119-dialog32';
+import {mountMaintenance} from './maintenance-ui.mjs?v=20261119-progress33';
 import {resolveMarketCriteria,buildMarketSearchUrl} from './market-search.mjs?v=20261118-access8';
-import {mountDiary,mountSharedDiary,readDiaryLink,mountReminderSummary,mountProjectIdentity} from './diary.mjs?v=20261119-dialog32';
+import {mountDiary,mountSharedDiary,readDiaryLink,mountReminderSummary,mountProjectIdentity} from './diary.mjs?v=20261119-progress33';
 import {STAGES,CATEGORIES,KINDS,NEIGHBORHOODS,empty,validate,validateBackup,command,totals,scenario,market,history,costReport,csv,decimal,date,today,money,paid,used,sum,amount,tracksQuantity,activeProjects,CONSTRUCTION_SCOPES,constructionTotals,isContractor,contractFileData,CONTRACT_FILE_LIMIT,isProgressStage,physicalProgress,SALE_MODES,SALE_DOCUMENTS,activeSale,received as storedReceived,salesTotals as storedSalesTotals,salePlan} from './domain.mjs?v=20261119-viability30';
 import {demo} from './demo.mjs?v=20261118-access8';
 import {openReportCenter} from './reports-ui.mjs?v=20261119-dialog32';
@@ -197,7 +197,7 @@ function render(){
   if(page==='maintenance'){if(mode==='demo')$('#maintenance-section').innerHTML='<section class="card"><h1>Manutenção</h1><p>Volte à sua conta para acompanhar os chamados.</p></section>';else disposeMaintenance=mountMaintenance({container:$('#maintenance-section'),api:maintenanceApi,actor,projects:[],users:[]});}
   if(page==='users'){if(mode==='demo')$('#users-section').innerHTML='<section class="card"><h1>Equipe e acessos</h1><p>Volte à sua conta para gerenciar pessoas e convites.</p></section>';else disposeUsers=mountUsers($('#users-section'),actor);}
   if(p&&mode!=='demo'&&access('documents'))disposePhoto=mountProjectIdentity($('#project-photo'),p.diaryKey,accountBoard(p));
-  if(['diary','reminders','documents'].includes(page)&&p){try{disposeDiary=mountDiary({container:$('#diary-section'),project:p,contextKey:p.diaryKey,view:page==='documents'?'documents':page==='reminders'?'reminders':'photos',accountMode:true,accountConnection:accountBoard(p),canLinkLegacy:actor.role==='admin',connectAccount:actor.role==='maintenance'?null:legacy=>connectAccountBoard(p,legacy)});}catch(e){$('#diary-section').textContent='Não foi possível abrir o diário: '+e.message;}}
+  if(['diary','reminders','documents'].includes(page)&&p){try{disposeDiary=mountDiary({container:$('#diary-section'),project:p,contextKey:p.diaryKey,view:page==='documents'?'documents':page==='reminders'?'reminders':'photos',accountMode:true,accountConnection:accountBoard(p),openStages:access('stages')?()=>act('nav','stages'):null,canLinkLegacy:actor.role==='admin',connectAccount:actor.role==='maintenance'?null:legacy=>connectAccountBoard(p,legacy)});}catch(e){$('#diary-section').textContent='Não foi possível abrir o diário: '+e.message;}}
   if(p&&mode!=='demo'&&access('reminders')&&!['diary','reminders','documents','maintenance','users'].includes(page))disposeReminders=mountReminderSummary($('#reminder-summary'),p.diaryKey,accountBoard(p));
   if(actor?.role==='admin'&&mode==='online'&&localStorage.getItem('solucao-sobrados-v1-workspace'))$('#main').insertAdjacentHTML('afterbegin','<section class="card account-migration section-gap"><h2>Sua base anterior está neste navegador</h2><p>Confira e transfira os empreendimentos para sua conta online.</p>'+btn('migrate-local','Conferir transferência')+'</section>');
   $('#project-select').onchange=e=>{selected=e.target.value;costFilter={stage:'',kind:'',search:'',unit:''};marketFilter={condition:'new',includeUnknownZone:false,unitId:'',bedrooms:null,areaMin:null,areaMax:null};render();};
