@@ -439,3 +439,8 @@
 .pwa-connection{padding:12px max(16px,env(safe-area-inset-left));background:#fff4d6;color:#694d12;font-size:14px;line-height:1.5;text-align:center}
 .pwa-connection[hidden]{display:none}
 @media print{.pwa-connection{display:none}}
+
+/* Keep the sign and complete scenario amount together on narrow screens. */
+@media(max-width:650px){
+  .scenario>strong{grid-column:1/-1;white-space:nowrap;font-size:clamp(18px,5vw,24px)}
+}
