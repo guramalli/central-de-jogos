@@ -1,5 +1,5 @@
 /* Public application shell only. Never cache APIs, accounts, uploads or form writes. */
-const VERSION = '20261119-tutorial17';
+const VERSION = '20261119-access18';
 const APP_BASE = new URL(self.registration.scope);
 const CACHE_PREFIX = `solucao-sobrados-public:${APP_BASE.pathname}:`;
 const CACHE_NAME = CACHE_PREFIX + VERSION;
@@ -17,9 +17,9 @@ const PUBLIC_FILES = [
   'reports-domain.mjs?v=20261118-reports12',
   'reports-pdf.mjs?v=20261118-reports12',
   'reports.css?v=20261118-reports12',
-  'app.mjs?v=20261119-tutorial17',
-  'pwa.mjs?v=20261119-tutorial17',
-  'styles.css?v=20261119-tutorial17',
+  'app.mjs?v=20261119-access18',
+  'pwa.mjs?v=20261119-access18',
+  'styles.css?v=20261119-access18',
   'access-domain.mjs?v=20261118-access8',
   'account-ui.mjs?v=20261118-maintenance10',
   'account.css?v=20261118-access8',
@@ -38,7 +38,7 @@ const PUBLIC_FILES = [
   'reminders-ui.mjs?v=20261118-access8',
   'reminder-domain.mjs?v=20261118-trash1',
   'reminders.css?v=20261118-access8',
-  'manifest.webmanifest?v=20261119-tutorial17',
+  'manifest.webmanifest?v=20261119-access18',
   'pwa-icons/icon-180.png',
   'pwa-icons/icon-192.png',
   'pwa-icons/icon-512.png',
