@@ -253,14 +253,34 @@ export function totals(p){
   for(const e of expenses){const ids=Object.keys(e.allocation).filter(id=>e.allocation[id]>0);const values=split(paid(e),ids.map(id=>e.allocation[id]));ids.forEach((id,i)=>paidAlloc[id]=(paidAlloc[id]||0)+values[i]);}
   const saleAlloc=sellingForecast.perUnit;
   const units=p.units.map((u,i)=>{const committed=sum(expenses,e=>e.allocation[u.id]||0),expected=committed+(remainderAlloc[u.id]||0),sale=saleValues[i],net=sale-expected-saleAlloc[i];return {...u,sale,sold:!!activeSale(p,u.id),contracted:committed,paid:paidAlloc[u.id]||0,forecast:expected,selling:saleAlloc[i],profit:net,margin:sale?net/sale:null};});
-  return {contracted,paid:paidCents,pending:contracted-paidCents,budget,base,reserve,forecast,revenue,selling,sellingEstimate,commissionBooked,profit,margin:revenue?profit/revenue:null,returnOnCost:forecast+selling?profit/(forecast+selling):null,area:sum(p.units,'area')/100,costPerSqm:Math.round(forecast/(sum(p.units,'area')/100)),breakEven:requiredRevenue(forecast,commissionByUnit,saleValues,p.sellingBps),targetRevenue:requiredRevenue(forecast,commissionByUnit,saleValues,p.sellingBps,p.targetBps),stages:stageRows,units};
+  const revenueGoals=requiredRevenueGoals(p,forecast,commissionByUnit,saleValues);
+  return {contracted,paid:paidCents,pending:contracted-paidCents,budget,base,reserve,forecast,revenue,selling,sellingEstimate,commissionBooked,profit,margin:revenue?profit/revenue:null,returnOnCost:forecast+selling?profit/(forecast+selling):null,area:sum(p.units,'area')/100,costPerSqm:Math.round(forecast/(sum(p.units,'area')/100)),breakEven:revenueGoals.breakEven.total,targetRevenue:revenueGoals.target.total,revenueGoals,stages:stageRows,units};
 }
 function projectedSelling(values,credits,bps){const revenue=sum(values,x=>x),estimate=percent(revenue,bps),shares=revenue?split(estimate,values):values.map(()=>0),perUnit=shares.map((c,i)=>Math.max(0,c-credits[i]));return {estimate,perUnit,total:sum(perUnit,x=>x)};}
-function requiredRevenue(forecast,credits,values,sellingBps,targetBps=0){
- if(!credits.some(Boolean))return ceilRevenue(forecast,sellingBps+targetBps);
- const weights=sum(values,x=>x)?values:values.map(()=>1),weightSum=BigInt(sum(weights,x=>x)),cost=BigInt(forecast),margin=BigInt(targetBps),bps=BigInt(sellingBps);
- const remaining=rev=>{const estimate=(rev*bps+5000n)/10000n,rows=weights.map((w,i)=>({i,base:estimate*BigInt(w)/weightSum,rest:estimate*BigInt(w)%weightSum}));let left=Number(estimate-rows.reduce((n,r)=>n+r.base,0n));for(const r of [...rows].sort((a,b)=>a.rest===b.rest?a.i-b.i:a.rest>b.rest?-1:1)){if(!left--)break;r.base++;}return rows.reduce((n,r)=>n+(r.base>BigInt(credits[r.i])?r.base-BigInt(credits[r.i]):0n),0n);};
- let lo=0n,hi=(cost*10000n+BigInt(10000-sellingBps-targetBps)-1n)/BigInt(10000-sellingBps-targetBps);while(lo<hi){const mid=(lo+hi)/2n;if(mid*(10000n-margin)>=(cost+remaining(mid))*10000n)hi=mid;else lo=mid+1n;}return Number(lo);
+// Contracted prices are fixed. Only the remaining homes contribute new revenue.
+// Amounts stay in integer cents and every returned goal passes the actual selling
+// forecast, including its largest-remainder rounding. This is a sufficient price
+// reference, not a claim of a global cent-by-cent minimum under apportionment ties.
+function requiredRevenueGoals(p,forecast,credits,values){
+ const available=p.units.map((u,i)=>activeSale(p,u.id)?-1:i).filter(i=>i>=0),fixed=values.map((v,i)=>available.includes(i)?0:v),contractedRevenue=sum(fixed,x=>x),availableForecast=sum(available,i=>values[i]),weights=availableForecast?available.map(i=>values[i]):available.map(i=>p.units[i].area);
+ const goal=targetBps=>{
+  const evaluate=extra=>{const shares=available.length?split(extra,weights):[],candidate=[...fixed];available.forEach((i,k)=>candidate[i]=shares[k]);const revenue=contractedRevenue+extra,selling=projectedSelling(candidate,credits,p.sellingBps).total;return BigInt(revenue-forecast-selling)*10000n>=BigInt(revenue)*BigInt(targetBps);};
+  const result=(extra,status)=>({status,total:contractedRevenue+extra,remaining:extra});
+  if(evaluate(0))return result(0,'met');
+  if(!available.length)return {status:'unreachable',total:null,remaining:null,reason:'sold_out'};
+  // The common money helpers support at most 1e12 cents. Do not fabricate an
+  // out-of-range quote or pass it into percent/split and crash the whole view.
+  const cap=Math.max(0,1e12-contractedRevenue);
+  const floor=credits.some(Boolean)?0:Math.min(cap,Math.max(0,ceilRevenue(forecast,p.sellingBps+targetBps)-contractedRevenue));
+  let lo=floor,hi=Math.min(cap,Math.max(0,ceilRevenue(forecast+1,p.sellingBps+targetBps)-contractedRevenue));
+  if(!evaluate(hi))return {status:'unreachable',total:null,remaining:null,reason:'limit'};
+  while(lo<hi){const mid=lo+Math.floor((hi-lo)/2);if(evaluate(mid))hi=mid;else lo=mid+1;}
+  // Hamilton rounding can oscillate by a cent. Check the nearby candidates
+  // explicitly without an unbounded scan at rates close to 100%.
+  let answer=lo;for(let extra=Math.max(floor,lo-Math.min(64,4*p.units.length));extra<lo;extra++)if(evaluate(extra)){answer=extra;break;}
+  return result(answer,'required');
+ };
+ return {contractedRevenue,availableCount:available.length,availableForecast,breakEven:goal(0),target:goal(p.targetBps)};
 }
 export function scenario(p,variationBps){const t=totals(p),available=p.units.filter(u=>!activeSale(p,u.id)),base=sum(available,'sale'),changed=Math.round(base*(1+variationBps/10000)),shares=base?split(changed,available.map(u=>u.sale)):available.map(()=>0),values=p.units.map(u=>activeSale(p,u.id)?.price??shares[available.findIndex(a=>a.id===u.id)]),credits=p.units.map(u=>sum(p.expenses.filter(e=>!e.cancelled&&e.saleId&&e.unitId===u.id),'total')),revenue=sum(values,x=>x),selling=projectedSelling(values,credits,p.sellingBps).total,profit=revenue-t.forecast-selling;return {revenue,profit,margin:revenue?profit/revenue:null};}
 
