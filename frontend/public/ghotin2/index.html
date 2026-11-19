@@ -1698,7 +1698,7 @@
 
 <div class="barra">
   <div id="janTitulo">
-    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.110 · <b>alpha</b></span></h1>
+    <h1 class="so-jogador logo-titulo"><img class="logo-jogo" src="selecao/logo.webp" alt="Ghotin2" width="960" height="652" decoding="async"><span class="versao-jogo" id="versaoJogo">v0.111 · <b>alpha</b></span></h1>
     <script>{ const v = document.getElementById("versaoJogo"); if (v.firstChild.nodeValue.includes("__VER" + "SAO__")) v.firstChild.nodeValue = "dev · "; }   // (a página crua, sem o build)</script>
     <h1 class="so-admin"><span id="titulo">Campo de Treino do Viking</span><small>sprites 2D tirados do modelo 3D</small></h1>
     <div class="classes so-admin" role="group" aria-label="Personagem (T troca)">
@@ -8856,6 +8856,7 @@ G.VILA2 = V;
 //    a placa (nome e nível vindos do servidor) e o balão da fala;
 //  - o chat: a fala vai pelo servidor ("/g texto" é o global).
 // Desligado: sem conta, no ?test sem ?online=1, com ?online=0, no admin e no editor. Sem combate junto (fase 3).
+// Fase 2 (19/11/2026, o usuário: "Fase 2 do MMO"): o grupo, até 4 (o bloco "o grupo" abaixo; os ganchos P1 a P3 do aplicar_online.py).
 (() => {
   "use strict";
   if (window.ONLINE) return;
@@ -8870,14 +8871,14 @@ G.VILA2 = V;
     golpe: ["golpe1", "golpe2", "ataque"], skill: ["golpe3", "golpe2", "golpe1"], dano: ["dano", "parado"], caido: ["morte", "caido", "dano"], montado: ["parado_armado", "parado"],
   };
   const BIT = { correndo: 1, montado: 2, combate: 4, caido: 8, teleporte: 16, ausente: 32 };
-  const CFG = { envioMs: 100, paradoMs: 2000, atrasoMs: 150, extrapolaMs: 250, salto: 8, max3d: 12, perto: 6, corOutros: "#bfe3ff", reconectarMs: 30000 };
+  const CFG = { envioMs: 100, paradoMs: 2000, atrasoMs: 150, extrapolaMs: 250, salto: 8, max3d: 12, perto: 6, corOutros: "#bfe3ff", corGrupo: "#8dff8a", reconectarMs: 30000, maxGrupo: 4, pertoGrupo: 50 };
   // (as Opções: quantos outros em 3D e o chat global; ficam neste navegador)
   try { const o = JSON.parse(localStorage.getItem("g2_online_cfg") || "{}"); if ([0, 6, 12, 24].includes(o.max3d)) CFG.max3d = o.max3d; CFG.global = o.global !== false; } catch (e) { CFG.global = true; }
   const gravarCfg = () => { try { localStorage.setItem("g2_online_cfg", JSON.stringify({ max3d: CFG.max3d, global: CFG.global })); } catch (e) {} };
   const E = {
     io: null, sock: null, carregando: false, conectado: false, dentro: false, eu: null, canal: null, mapa: null, seq: 0,
     ultEnvio: 0, ultEstado: "", ultPos: null, ultVis: "", ultVisT: 0, ultCred: 0, cred: null, bloqueado: null, proxTentativa: 0,
-    outros: new Map(),
+    outros: new Map(), grupo: null, falaCanal: "mapa",
   };
   // o servidor: ?mundo=<url> passa por cima (o teste com 2 páginas, rodar_teste_online.mjs, ou um backend local); senão, o da conta
   const MUNDO_Q = (q => q && /^https?:\/\/[^\s]+$/.test(q) ? q.replace(/\/+$/, "") : null)(Q.get("mundo"));
@@ -8918,10 +8919,14 @@ G.VILA2 = V;
     s.on("g2-vis", ({ id, vis } = {}) => { const o = E.outros.get(id); if (o) o.vis = vis || {}; });
     s.on("g2-nivel", ({ id, nivel } = {}) => { const o = E.outros.get(id); if (o && Number.isFinite(nivel)) o.nivel = nivel; });
     s.on("g2-fala", fala);
+    s.on("g2-grupo", e => { E.grupo = e && Array.isArray(e.membros) ? e : null; UI.ult = 0; });
+    s.on("g2-grupo-convite", conviteChegou);
+    s.on("g2-grupo-recusou", ({ nome } = {}) => aviso(`${String(nome || "?").slice(0, 24)} recusou o convite para o grupo.`));
+    s.on("g2-grupo-exp", expDoGrupo);
     s.on("g2-aviso", ({ codigo, txt } = {}) => { if (txt) aviso(txt); if (codigo === "derrubado" || codigo === "sessao_tomada") { E.bloqueado = codigo; desconectar(); } });
   }
   function desconectar() {
-    const s = E.sock; E.sock = null; E.conectado = false; E.dentro = false; E.mapa = null;
+    const s = E.sock; E.sock = null; E.conectado = false; E.dentro = false; E.mapa = null; E.grupo = null; fecharConvite();
     if (s) { try { s.emit("g2-sair"); } catch (e) {} s.removeAllListeners(); s.disconnect(); }
     limparOutros();
   }
@@ -8964,6 +8969,7 @@ G.VILA2 = V;
     const C = (g("ARMADURAS_3D") || {})[g("classe")], comModelo = arm && Number.isFinite(arm.tier) && (!C || arm.peca === C.peca);   // (só a peça que tem modelo 3D)
     return { arm: comModelo ? arm.tier : null, arma: arma.tier | 0, rara: arma.rara ? 1 : 0, ref: (arma.refino ?? arma.ref ?? 0) | 0, cav: nivelCav | 0 };
   }
+  const vidaPct = v => { const st = g("status"); return st && st.vidaMax > 0 ? Math.max(0, Math.min(100, Math.round(100 * (v.vida || 0) / st.vidaMax))) : 100; };
   const privado = () => { const C = g("CENA"); return !!(C && C.ativa); };
   function entrar() {
     const v = g("viking"), idMapa = g("idMapa"); if (!E.sock || !v || typeof idMapa !== "function") return;
@@ -8981,7 +8987,7 @@ G.VILA2 = V;
     const mapa = idMapa(v.x, v.y); if (mapa !== E.mapa || privado() !== E.privado) { if (agora - (E.ultEntrar || 0) > 1100) { E.ultEntrar = agora; entrar(); } return; }   // (trocar de mapa é trocar de sala; no máximo 1 g2-entrar por segundo)
     let f = bits(v); const salto = E.ultPos ? Math.hypot(v.x - E.ultPos[0], v.y - E.ultPos[1]) : 0;
     if (salto > CFG.salto) f |= BIT.teleporte;
-    const est = [centimetros(v.x), centimetros(v.y), v.dir | 0, postura(v), f], chave = est.join(",");
+    const est = [centimetros(v.x), centimetros(v.y), v.dir | 0, postura(v), f, vidaPct(v)], chave = est.join(",");   // (a vida em %: a lista do grupo)
     if (!forcar && agora - E.ultEnvio < CFG.envioMs) return;
     if (!forcar && chave === E.ultEstado && agora - E.ultEnvio < CFG.paradoMs) return;
     E.sock.emit("g2-eu", [++E.seq, ...est]); E.ultEnvio = agora; E.ultEstado = chave; E.ultPos = [v.x, v.y];
@@ -9122,16 +9128,18 @@ G.VILA2 = V;
     if (typeof sombra === "function") sombra(X, Y, zoom);
     const tem = typeof corpo === "function" && corpo(o, X, Y, zoom);
     const yPlaca = Y - s * (tem ? 1.95 : 0.9);
-    if (placas && typeof placa === "function") placas.push(() => { placa(X, yPlaca, o.nivel, o.nome, CFG.corOutros); if (o.balao && typeof balao === "function") balao(X, yPlaca - 14, o); });
+    o._tx = X; o._ty = Y; o._th = Y - yPlaca; o._tq = performance.now();   // (onde ele ficou na tela: o clique direito, cliqueDireito)
+    if (placas && typeof placa === "function") placas.push(() => { placa(X, yPlaca, o.nivel, o.nome, doGrupo(o) ? CFG.corGrupo : CFG.corOutros); if (o.balao && typeof balao === "function") balao(X, yPlaca - 14, o); });
   }
 
   // ---------------------------------------------------------------- o chat (gancho G5 do index)
   // devolve true quando a fala foi pelo servidor (ela volta no g2-fala, para todos, com o balão); false: a fala local de sempre
   function falar(txt) {
     if (!E.dentro || !E.sock) return false;
-    let canal = E.falaGlobal ? "global" : "mapa", t = String(txt || "");
-    const m = t.match(/^\/g\s+(.+)/i), mm = t.match(/^\/m\s+(.+)/i); if (m) { canal = "global"; t = m[1]; } else if (mm) { canal = "mapa"; t = mm[1]; }
-    E.sock.emit("g2-falar", { canal, txt: t.slice(0, 120) }, r => { if (r && r.erro) aviso(r.txt || ({ silenciado: "Você está silenciado por um tempo.", nivel_baixo: "O chat global abre no nível 10.", espera: "Espere um pouco para falar no global de novo.", flood: "Calma: muitas mensagens seguidas.", contato: "Não é permitido passar contato no chat.", vazio: "A mensagem ficou vazia." }[r.codigo] || "A mensagem não foi.")); });
+    let canal = E.falaCanal === "grupo" && E.grupo ? "grupo" : E.falaCanal === "global" ? "global" : "mapa", t = String(txt || "");
+    const m = t.match(/^\/g\s+(.+)/i), mm = t.match(/^\/m\s+(.+)/i), mp = t.match(/^(?:#\s*|\/p\s+)(.+)/i);   // (#texto ou /p texto: o grupo, como o # do Metin2)
+    if (m) { canal = "global"; t = m[1]; } else if (mm) { canal = "mapa"; t = mm[1]; } else if (mp) { canal = "grupo"; t = mp[1]; }
+    E.sock.emit("g2-falar", { canal, txt: t.slice(0, 120) }, r => { if (r && r.erro) aviso(r.txt || ({ silenciado: "Você está silenciado por um tempo.", nivel_baixo: "O chat global abre no nível 10.", espera: "Espere um pouco para falar no global de novo.", flood: "Calma: muitas mensagens seguidas.", contato: "Não é permitido passar contato no chat.", sem_grupo: "Você não está em um grupo.", vazio: "A mensagem ficou vazia." }[r.codigo] || "A mensagem não foi.")); });
     return true;
   }
   const MUDOS = (() => { try { return new Set(JSON.parse(localStorage.getItem("g2_mudos") || "[]")); } catch (e) { return new Set(); } })();
@@ -9139,9 +9147,9 @@ G.VILA2 = V;
     if (!x || !x.txt) return;
     const nome = String(x.nome || "?").slice(0, 24); if (MUDOS.has(nome)) return;
     if (x.canal === "global" && !CFG.global && x.id !== E.eu) return;
-    const txt = String(x.txt).slice(0, 120), pre = x.canal === "global" ? "[Global] " : "", f = g("chatSistema");
+    const txt = String(x.txt).slice(0, 120), pre = x.canal === "global" ? "[Global] " : x.canal === "grupo" ? "[Grupo] " : "", f = g("chatSistema");
     const p = typeof f === "function" ? f(`${pre}${nome}: ${txt}`, "fala") : null;
-    if (p) { p.dataset.g2nome = nome; p.dataset.g2id = x.id; if (x.canal === "global") p.classList.add("a-glob"); }
+    if (p) { p.dataset.g2nome = nome; p.dataset.g2id = x.id; if (x.canal === "global") p.classList.add("a-glob"); if (x.canal === "grupo") p.classList.add("a-grupo"); }
     const ate = performance.now() + 4000 + 60 * txt.length;
     if (x.id === E.eu) { const v = g("viking"); if (v) v.balao = { txt, ate }; }
     else if (x.canal !== "global") { const o = E.outros.get(x.id); if (o) o.balao = { txt, ate }; }
@@ -9163,27 +9171,28 @@ G.VILA2 = V;
       #g2Ch { margin-left: 6px; color: #9fd0ff; font-size: 11px; align-self: center; } #g2Fala { background: rgba(60, 110, 160, 0.45) !important; color: #e6f2ff !important; }
       .g2-menu { position: fixed; z-index: 60; background: #1e1b18; border: 1px solid #c9963e; border-radius: 6px; padding: 4px; display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
       .g2-menu button { background: rgba(201, 150, 62, 0.25); color: #fff3d6; border: 0; border-radius: 4px; padding: 3px 10px; cursor: pointer; text-align: left; }
-      #opcoes .g2-online[hidden] { display: none; }`;
+      #opcoes .g2-online[hidden] { display: none; } .chat-log p.a-grupo b { color: #8dff8a; }
+      #g2Grupo { position: fixed; z-index: 5; left: 14px; top: 118px; width: 190px; box-sizing: border-box; padding: 6px 8px 8px; background: rgba(30, 27, 24, 0.82); border: 1px solid #c9963e; border-radius: 6px; color: #fff3d6; font-size: 12px; display: flex; flex-direction: column; gap: 6px; }
+      #g2Grupo[hidden] { display: none; } #g2Grupo .g2g-t { color: #f3cf5a; font-weight: bold; } #g2Grupo small { color: #cdbb94; font-weight: normal; }
+      #g2Grupo .g2g-m { cursor: pointer; } #g2Grupo .g2g-m[data-eu] { cursor: default; } #g2Grupo .g2g-m.fora { opacity: 0.5; } #g2Grupo .g2g-c { color: #f3cf5a; margin-right: 3px; }
+      #g2Grupo .g2g-v { height: 5px; margin-top: 2px; background: #3a1410; border-radius: 3px; overflow: hidden; } #g2Grupo .g2g-v i { display: block; height: 100%; background: linear-gradient(#ee6a50, #a8261a); }
+      #g2Grupo .g2g-o { color: #9fd0ff; font-size: 11px; } #g2Grupo button, .g2-convite button { background: rgba(201, 150, 62, 0.25); color: #fff3d6; border: 0; border-radius: 4px; padding: 3px 9px; cursor: pointer; font-size: 12px; } #g2Grupo button { align-self: flex-start; font-size: 11px; }
+      .g2-convite { position: fixed; z-index: 61; top: 90px; left: 50%; transform: translateX(-50%); background: #1e1b18; border: 1px solid #c9963e; border-radius: 6px; padding: 8px 12px; color: #fff3d6; font-size: 13px; display: flex; gap: 8px; align-items: center; }`;
     document.head.appendChild(css);
     const abas = ch.querySelector(".chat-abas"), min = document.getElementById("chatMin");
     const glob = Object.assign(document.createElement("button"), { type: "button", textContent: "Global" }); glob.dataset.f = "glob"; glob.setAttribute("aria-pressed", "false"); glob.hidden = true;
     const fala = Object.assign(document.createElement("button"), { type: "button", id: "g2Fala", title: "Onde a sua fala vai: no mapa (quem está no seu canal) ou no global (todos). /g e /m na frente da fala também escolhem" }); fala.hidden = true;
     const chTxt = Object.assign(document.createElement("span"), { id: "g2Ch", title: "O seu canal neste mapa" }); chTxt.hidden = true;
     abas.insertBefore(glob, min); abas.insertBefore(fala, min); abas.insertBefore(chTxt, min);
-    const rotulo = () => { fala.textContent = E.falaGlobal ? "Fala: Global" : "Fala: Mapa"; };
-    fala.addEventListener("click", e => { e.stopPropagation(); E.falaGlobal = !E.falaGlobal; rotulo(); }); rotulo();
-    UI.glob = glob; UI.fala = fala; UI.ch = chTxt;
-    // o menu no nome de quem falou
-    const fora = ev => { if (UI.menu && !UI.menu.contains(ev.target)) fecharMenu(); else if (UI.menu) addEventListener("pointerdown", fora, { once: true }); };
+    const rotulo = () => { fala.textContent = E.falaCanal === "grupo" ? "Fala: Grupo" : E.falaCanal === "global" ? "Fala: Global" : "Fala: Mapa"; };
+    // (o botão passa por Mapa, Global e, com grupo, Grupo; "#texto" ou "/p texto" também vão ao grupo)
+    fala.addEventListener("click", e => { e.stopPropagation(); E.falaCanal = E.falaCanal === "mapa" ? "global" : E.falaCanal === "global" && E.grupo ? "grupo" : "mapa"; rotulo(); }); rotulo();
+    UI.glob = glob; UI.fala = fala; UI.ch = chTxt; UI.rotulo = rotulo;
+    // o menu no nome de quem falou (o mesmo do clique direito no jogador, abrirMenu)
     document.getElementById("chatLog").addEventListener("click", e => {
       const b = e.target.closest("p[data-g2nome] > b"); if (!b) return;
       const p = b.parentElement, nome = p.dataset.g2nome, id = +p.dataset.g2id; if (id === E.eu) return;
-      fecharMenu(); const menu = UI.menu = document.createElement("div"); menu.className = "g2-menu";
-      const item = (txt, f) => { const x = Object.assign(document.createElement("button"), { type: "button", textContent: txt }); x.onclick = () => { f(); fecharMenu(); }; menu.appendChild(x); };
-      item(MUDOS.has(nome) ? `Ouvir ${nome} de novo` : `Silenciar ${nome}`, () => { const sim = !MUDOS.has(nome); silenciar(nome, sim); aviso(sim ? `Você silenciou ${nome}: as falas não aparecem mais.` : `Você voltou a ouvir ${nome}.`); });
-      item(`Denunciar ${nome}`, () => { if (E.sock) E.sock.emit("g2-denunciar", { id }); aviso(`Denúncia de ${nome} enviada. Obrigado.`); });
-      menu.style.left = Math.min(innerWidth - 180, e.clientX) + "px"; menu.style.top = Math.max(8, e.clientY - 70) + "px"; document.body.appendChild(menu);
-      setTimeout(() => addEventListener("pointerdown", fora, { once: true }), 0);
+      abrirMenu(nome, id, e.clientX, e.clientY);
     });
     // as Opções: a seção Online, antes de "Personagem"
     const sec = document.createElement("div"); sec.className = "g2-online"; sec.hidden = true;
@@ -9207,7 +9216,121 @@ G.VILA2 = V;
     const on = E.dentro, ligado = !desligado() && !!credenciais();
     UI.glob.hidden = UI.fala.hidden = UI.ch.hidden = !on; UI.sec.hidden = !ligado;
     UI.ch.textContent = on && E.canal ? `CH ${E.canal}` : "";
+    if (E.falaCanal === "grupo" && !E.grupo) { E.falaCanal = "mapa"; UI.rotulo(); }
+    desenharGrupo();
     UI.estado.textContent = on ? `Conectado: canal ${E.canal || "—"}, ${E.outros.size} outro(s) por perto neste mapa.` : E.bloqueado === "versao_velha" ? "O modo online mudou: atualize a página." : "Conectando ao modo online…";
+  }
+
+  // ---------------------------------------------------------------- o grupo (a fase 2 do MMO, Logs/MMO/PLANO_FASE2.md)
+  // Até 4; o convite pelo botão direito no outro (ou no nome dele no chat), só dentro da faixa de nível (o servidor confere); a lista
+  // à esquerda com a vida; o ponto verde e a seta no minimapa; o chat de grupo ("#texto" ou "/p texto"); a EXP dividida com quem do
+  // grupo está perto (o servidor divide; o drop e o yang ficam com quem matou). Cada um ainda roda os próprios monstros (fase 3).
+  const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const membroDe = nome => (E.grupo && E.grupo.membros.find(m => m.nome === nome)) || null;
+  const souLider = () => { const m = E.grupo && E.grupo.membros.find(x => x.id && x.id === E.eu); return !!(m && m.lider); };
+  const doGrupo = o => !!(E.grupo && o && E.grupo.membros.some(m => m.id && m.id === o.id));
+  function nomeMapa(id) { const M = g("MAPAS"); if (id && M && M[id] && M[id].nome) return M[id].nome; return /^dg/.test(String(id || "")) ? "Caverna" : String(id || "?"); }
+  function grupoAcao(ev, d, okTxt) {
+    if (!E.sock || !E.dentro) { aviso("O modo online não está conectado."); return; }
+    E.sock.emit(ev, d, r => { if (r && r.erro) aviso(r.erro); else if (okTxt) aviso(okTxt); });
+  }
+  // o menu de um jogador (o clique direito nele, o nome dele no chat ou a linha dele na lista do grupo)
+  const fora = ev => { if (UI.menu && !UI.menu.contains(ev.target)) fecharMenu(); else if (UI.menu) addEventListener("pointerdown", fora, { once: true }); };
+  function abrirMenu(nome, id, cx, cy) {
+    fecharMenu(); const menu = UI.menu = document.createElement("div"); menu.className = "g2-menu";
+    const item = (txt, f) => { const x = Object.assign(document.createElement("button"), { type: "button", textContent: txt }); x.onclick = () => { f(); fecharMenu(); }; menu.appendChild(x); };
+    const m = membroDe(nome), lider = souLider();
+    if (!m && id && (!E.grupo || lider)) item(`Convidar ${nome} para o grupo`, () => grupoAcao("g2-grupo-convidar", { id }, `Convite enviado para ${nome}.`));
+    if (m && lider) { item(`Passar a liderança a ${nome}`, () => grupoAcao("g2-grupo-lider", { nome }, `${nome} agora é o líder do grupo.`)); item(`Tirar ${nome} do grupo`, () => grupoAcao("g2-grupo-expulsar", { nome }, `${nome} saiu do grupo.`)); }
+    item(MUDOS.has(nome) ? `Ouvir ${nome} de novo` : `Silenciar ${nome}`, () => { const sim = !MUDOS.has(nome); silenciar(nome, sim); aviso(sim ? `Você silenciou ${nome}: as falas não aparecem mais.` : `Você voltou a ouvir ${nome}.`); });
+    if (id) item(`Denunciar ${nome}`, () => { if (E.sock) E.sock.emit("g2-denunciar", { id }); aviso(`Denúncia de ${nome} enviada. Obrigado.`); });
+    menu.style.left = Math.min(innerWidth - 200, cx) + "px"; menu.style.top = Math.max(8, Math.min(innerHeight - 150, cy - 70)) + "px"; document.body.appendChild(menu);
+    setTimeout(() => addEventListener("pointerdown", fora, { once: true }), 0);
+  }
+  // o gancho P1 do index: o botão direito no mundo. Um outro jogador sob o ponteiro (onde ele foi desenhado há pouco): abre o menu e
+  // devolve true (o clique não marca a criatura)
+  function cliqueDireito(px, py, ev) {
+    if (!E.dentro || !E.outros.size) return false;
+    const agora = performance.now(); let melhor = null, dm = Infinity;
+    for (const o of E.outros.values()) {
+      if (!o._tq || agora - o._tq > 400) continue;
+      const w = Math.max(14, o._th * 0.35), dx = Math.abs(px - o._tx);
+      if (dx > w || py > o._ty + 8 || py < o._ty - o._th) continue;
+      if (dx < dm) { dm = dx; melhor = o; }
+    }
+    if (!melhor) return false;
+    abrirMenu(melhor.nome, melhor.id, ev ? ev.clientX : px, ev ? ev.clientY : py);
+    return true;
+  }
+  // o convite que chegou: a janela com Aceitar e Recusar, que some sozinha; de quem está silenciado, recusa sem mostrar
+  function fecharConvite() { if (UI.convite) { UI.convite.remove(); UI.convite = null; } clearTimeout(UI.conviteT); }
+  function conviteChegou(c) {
+    if (!c || c.id == null) return;
+    const nome = String(c.nome || "?").slice(0, 24), responder = sim => { fecharConvite(); if (E.sock) E.sock.emit("g2-grupo-responder", { id: c.id, sim }, r => { if (r && r.erro) aviso(r.erro); }); };
+    if (MUDOS.has(nome)) { responder(false); return; }
+    fecharConvite();
+    const d = UI.convite = document.createElement("div"); d.className = "g2-convite";
+    d.innerHTML = `<span><b>${esc(nome)}</b> (Nv ${c.nivel | 0}) chama você para o grupo.</span><button type="button" data-sim="1">Aceitar</button><button type="button">Recusar</button>`;
+    d.addEventListener("click", ev => { const b = ev.target.closest("button"); if (b) responder(!!b.dataset.sim); });
+    document.body.appendChild(d);
+    UI.conviteT = setTimeout(fecharConvite, Math.max(1000, Math.min(30000, c.ms || 15000)));
+    aviso(`${nome} chamou você para o grupo.`);
+  }
+  // a lista do grupo, à esquerda (refeita só quando muda)
+  function desenharGrupo() {
+    const gr = E.dentro ? E.grupo : null;
+    if (!UI.grupo) {
+      const d = UI.grupo = document.createElement("div"); d.id = "g2Grupo"; d.hidden = true; document.body.appendChild(d);
+      d.addEventListener("click", ev => {
+        if (ev.target.closest("[data-acao=sair]")) { grupoAcao("g2-grupo-sair", null, "Você saiu do grupo."); return; }
+        const l = ev.target.closest(".g2g-m"); if (!l || l.dataset.eu) return;
+        abrirMenu(l.dataset.nome, +l.dataset.id || 0, ev.clientX, ev.clientY);
+      });
+    }
+    const chave = gr ? JSON.stringify(gr) + "|" + E.mapa + "|" + E.canal + "|" + E.eu : "";
+    if (chave === UI.grupoChave) return; UI.grupoChave = chave;
+    UI.grupo.hidden = !gr; if (!gr) { UI.grupo.innerHTML = ""; return; }
+    UI.grupo.innerHTML = `<div class="g2g-t">Grupo <small>${gr.membros.length}/${CFG.maxGrupo}</small></div>` + gr.membros.map(m => {
+      const eu = m.id && m.id === E.eu, onde = !m.on ? "fora do jogo" : m.mapa !== E.mapa ? nomeMapa(m.mapa) : m.ch && E.canal && m.ch !== E.canal ? `CH ${m.ch}` : "";
+      return `<div class="g2g-m${m.on ? "" : " fora"}" data-nome="${esc(m.nome)}" data-id="${m.id | 0}"${eu ? ' data-eu="1"' : ""}>` +
+        `<div class="g2g-n">${m.lider ? '<span class="g2g-c" title="Líder do grupo">♛</span>' : ""}${esc(m.nome)} <small>Nv ${m.nivel | 0}</small></div>` +
+        `<div class="g2g-v"><i style="width:${m.on ? Math.max(0, Math.min(100, m.vida | 0)) : 0}%"></i></div>${onde ? `<div class="g2g-o">${esc(onde)}</div>` : ""}</div>`;
+    }).join("") + `<button type="button" data-acao="sair">Sair do grupo</button>`;
+  }
+  // o gancho P2 do index: no minimapa, quem é do grupo no mesmo canal (o ponto verde; fora do raio, a seta verde na borda)
+  function minimapa(c, ponto, W0, dentro) {
+    if (!E.grupo || !E.dentro) return;
+    for (const m of E.grupo.membros) {
+      if (!m.on || !m.id || m.id === E.eu) continue;
+      const o = E.outros.get(m.id); if (!o || o.x == null) continue;
+      const [X, Y] = ponto(o.x, o.y);
+      c.save(); c.fillStyle = CFG.corGrupo; c.strokeStyle = "#0e2a0e"; c.lineWidth = 1.2;
+      if (dentro(o.x, o.y)) { c.beginPath(); c.arc(X, Y, 3.6, 0, 7); c.fill(); c.stroke(); }
+      else {
+        const cx = W0 / 2, dx = X - cx, dy = Y - cx, k = (W0 / 2 - 8) / Math.max(1e-6, Math.hypot(dx, dy));
+        c.translate(cx + dx * k, cx + dy * k); c.rotate(Math.atan2(dy, dx));
+        c.beginPath(); c.moveTo(6, 0); c.lineTo(-4, -4.5); c.lineTo(-4, 4.5); c.closePath(); c.fill(); c.stroke();
+      }
+      c.restore();
+    }
+  }
+  // o gancho P3 do index (morreuCriatura): com alguém do grupo perto, a EXP vai ao servidor, que divide; a parte desta conta volta e
+  // entra pelo ganharExp (sem resposta em 2 s, entra a EXP inteira). Devolve true quando tomou conta da EXP
+  function expGrupo(exp, l) {
+    if (!E.dentro || !E.sock || !E.grupo || !(exp >= 1)) return false;
+    const v = g("viking"), f = g("ganharExp"); if (!v || typeof f !== "function") return false;
+    const perto = E.grupo.membros.some(m => { const o = m.on && m.id && m.id !== E.eu ? E.outros.get(m.id) : null; return !!(o && o.x != null && Math.hypot(o.x - v.x, o.y - v.y) <= CFG.pertoGrupo); });
+    if (!perto) return false;
+    let feito = false;
+    const da = n => { if (feito) return; feito = true; try { f(n, l); } catch (er) {} };
+    const tempo = setTimeout(() => da(exp), 2000);
+    E.sock.emit("g2-grupo-exp", { exp: Math.round(exp) }, r => { clearTimeout(tempo); da(r && r.ok && Number.isFinite(r.minha) ? r.minha : exp); });
+    return true;
+  }
+  // a parte da EXP que veio de quem matou (g2-grupo-exp)
+  function expDoGrupo(x) {
+    const f = g("ganharExp"), n = x && Number(x.exp);
+    if (Number.isFinite(n) && n >= 1 && typeof f === "function") f(Math.round(n), g("viking"));   // (o "+N exp" sobe do herói)
   }
 
   // ---------------------------------------------------------------- o quadro (gancho G2 do index: roda mesmo com o jogo pausado)
@@ -9222,13 +9345,14 @@ G.VILA2 = V;
 
   window.ONLINE = {
     PROTO, POSTURAS, CFG,
-    quadro, lista, pedidos3d, falar, silenciar, montarUI,
+    quadro, lista, pedidos3d, falar, silenciar, montarUI, cliqueDireito, minimapa, expGrupo,
+    get grupo() { return E.grupo; },
     get outros() { return E.outros; },
     config: o => Object.assign(CFG, o || {}),
     sair: desconectar,
-    diag: () => ({ api: API(), desligado: desligado(), conectado: E.conectado, dentro: E.dentro, eu: E.eu, canal: E.canal, mapa: E.mapa, bloqueado: E.bloqueado, outros: E.outros.size, seq: E.seq }),
+    diag: () => ({ api: API(), desligado: desligado(), conectado: E.conectado, dentro: E.dentro, eu: E.eu, canal: E.canal, mapa: E.mapa, bloqueado: E.bloqueado, outros: E.outros.size, seq: E.seq, grupo: E.grupo ? E.grupo.membros.length : 0 }),
     // (os testes: um pacote como o do servidor, sem rede)
-    _teste: { poeOutro, tiraOutro, amostras, interpolar, postura, bits, aparencia, clipeDe, modeloDe, armaDe, fala, UI, E },
+    _teste: { poeOutro, tiraOutro, amostras, interpolar, postura, bits, aparencia, clipeDe, modeloDe, armaDe, fala, UI, E, abrirMenu, conviteChegou, desenharGrupo, expDoGrupo, doGrupo, vidaPct },
   };
 })();
 
@@ -18071,7 +18195,7 @@ function morreuCriatura(l) {
   if (prog) { if (defChefe(l)) ganharExp(Math.min(expDe(l) * xL, EXP_NIVEL[prog.nivel] * 0.4), l, true);
     else { let e = expDe(l) * xL * (status.exp && Math.random() < status.exp ? 2 : 1); const p = l.horda && l.hordaDe;
       if (p && p.cfg && p.cfg.estatico && !p.morto) { e /= 2; p.expHorda = (p.expHorda || 0) + e; }
-      ganharExp(e, l); } }
+      if (!(window.ONLINE && ONLINE.expGrupo(e, l))) ganharExp(e, l); } }   // (online: com alguém do grupo perto, o servidor divide; a parte daqui volta pelo ganharExp)
   if (l.cfg.estatico) metinQuebrou(l, Fi);
   else if (defChefe(l)) { chefeMorreu(l, Fi); bauChefeCaiu(l); }     // (R253: o da dungeon destranca o baú)
   else if (l.cfg.chefeCaverna) {
@@ -19568,6 +19692,7 @@ function desenharMinimapa(agora) {
   for (const [X, Y, cor] of npcsQuest) pontoQuest(g, X, Y, 4.2, cor, agora);   // os NPCs de quest piscando
   if (!cav) missaoNoMinimapa(g, ponto, W0, agora);   // o pontinho do objetivo da missão
   marcaNoMinimapa(g, ponto, W0);                     // o ponto marcado no Mapa do Mundo
+  if (window.ONLINE) ONLINE.minimapa(g, ponto, W0, dentro);   // (online: quem é do grupo, o ponto verde e a seta na borda)
   // o personagem: seta amarela para onde ele olha
   const a = -viking.dir * Math.PI / 4;
   g.translate(W0 / 2, W0 / 2); g.rotate(-a);
@@ -20938,7 +21063,16 @@ function prepararArmaMontada(c) {
     const fim = Math.abs(pega[k] - box.min[k]) > Math.abs(pega[k] - box.max[k]) ? box.min[k] : box.max[k];
     const eixo = new T.Vector3(); eixo[k] = Math.sign(fim - pega[k]) || 1;
     o.scale.copy(esc0); o.updateMatrixWorld(true);
-    return { o, lado: ld, pega, eixo, tam: tam[k] * esc.x, q0: o.quaternion.clone(), p0: o.position.clone(), esc };
+    // (R430) o leque é largo: o lado maior é a largura, não o cabo. Guardam-se o eixo fino (a espessura) e o eixo do cabo (dos 2 maiores,
+    // aquele em que a mão fica mais perto de uma ponta), para o leque guardado ficar de cutelo para a frente
+    let fino = null, cabo = null;
+    if (/^peca_leque/.test(o.name)) {
+      const ks = ["x", "y", "z"].sort((a, b) => tam[a] - tam[b]), ctr = box.getCenter(new T.Vector3());
+      const kc = ks.slice(1).reduce((a, b) => Math.abs(pega[b] - ctr[b]) / (tam[b] || 1) > Math.abs(pega[a] - ctr[a]) / (tam[a] || 1) ? b : a);
+      fino = new T.Vector3(); fino[ks[0]] = 1;
+      cabo = new T.Vector3(); cabo[kc] = Math.sign(ctr[kc] - pega[kc]) || 1;   // (da mão para a ponta aberta)
+    }
+    return { o, lado: ld, pega, eixo, fino, cabo, tam: tam[k] * esc.x, q0: o.quaternion.clone(), p0: o.position.clone(), esc };
   }).filter(Boolean);
   // (R427) a corda e a flecha vão presas ao arco: perto da mão direita, elas viravam uma segunda "arma", apontada para baixo e para trás,
   // e passavam como uma linha branca pela lateral do cavalo (o arqueiro novo, montado parado e galopando)
@@ -20954,7 +21088,18 @@ function prepararArmaMontada(c) {
     // ~35° da vertical (como apoiada para trás do ombro), em vez de descer para trás: descendo, a lâmina passava por cima do corpo do
     // cavalo na tela. O arco e o cajado continuam em pé
     const dir = emPe ? cima.clone() : cima.clone().multiplyScalar(0.95).addScaledVector(frente, -0.3).addScaledVector(lado, sg * 0.15).normalize();   // (~18° da vertical: mais para trás, passava sobre a garupa)
-    const eixoAgora = pr.eixo.clone().applyQuaternion(pr.q0).normalize(), qt = new T.Quaternion().setFromUnitVectors(eixoAgora, dir).multiply(pr.q0);
+    const eixoAgora = pr.eixo.clone().applyQuaternion(pr.q0).normalize();
+    let qt = new T.Quaternion().setFromUnitVectors(eixoAgora, dir).multiply(pr.q0);
+    // (R430, a pendência do item 75: o leque da xamã guardado aparecia como um disco sobre a garupa) o leque aberto, de frente para a
+    // câmera, virava um disco do tamanho do tronco. Agora o cabo sobe e a face fica de cutelo para a frente do cavaleiro: de lado (o mais
+    // comum, cavalgando) ele se lê como um leque fechado em pé na mão; de frente e de costas, como o leque aberto ao lado do corpo
+    if (pr.cabo && pr.fino) {
+      const cy = cima.clone().multiplyScalar(0.95).addScaledVector(frente, -0.3).normalize();
+      const cz = frente.clone().addScaledVector(cy, -frente.dot(cy)).normalize(), cx = new T.Vector3().crossVectors(cy, cz);
+      const ly = pr.cabo.clone().normalize(), lz = pr.fino.clone().normalize(), lx = new T.Vector3().crossVectors(ly, lz);
+      const mW = new T.Matrix4().makeBasis(cx, cy, cz), mL = new T.Matrix4().makeBasis(lx, ly, lz);
+      qt = new T.Quaternion().setFromRotationMatrix(mW.multiply(mL.transpose()));
+    }
     const pt = pega.clone().sub(pr.pega.clone().multiply(pr.esc).applyQuaternion(qt));
     const m0 = new T.Matrix4().compose(pr.p0, pr.q0, pr.esc), delta = new T.Matrix4().compose(pt, qt, pr.esc).multiply(m0.invert());
     for (const i of da) {
@@ -22024,9 +22169,29 @@ function marcarPonto(x, y) {
   prog.marcaMapa = { x: +p[0].toFixed(2), y: +p[1].toFixed(2) }; MARCA.rota = null; MARCA.rumo = null; MARCA.prox = 0; salvarProgresso();
   return true;
 }
-function tirarMarca() { delete prog.marcaMapa; MARCA.rota = null; MARCA.rumo = null; salvarProgresso(); }
+function tirarMarca() { delete prog.marcaMapa; MARCA.rota = null; MARCA.rumo = null; MARCA.auto = false; MARCA.alvoAuto = null; salvarProgresso(); }
 // a seta: o rumo vem da rota até o ponto, refeita só quando o herói sai dela, e não a cada quadro
-const MARCA = { rota: null, rumo: null, prox: 0, refez: 0, dist: 0 };
+const MARCA = { rota: null, rumo: null, prox: 0, refez: 0, dist: 0, auto: false, alvoAuto: null, a: null, vidaAnt: 0 };
+// R431 (19/11, a sugestão que o usuário recebeu: "poder abrir o mapa, clicar e o boneco andar até a posição marcada"): com a marca
+// posta pelo clique no mapa grande, o herói anda sozinho até ela, pelo mesmo caminho da seta (no outro mapa, até o portal ou a
+// escada da vez). As teclas, um clique no chão ou numa criatura, ou levar um golpe cancelam o andar; a marca e a seta ficam
+function autoMarca() {
+  const v = viking;
+  if (!MARCA.auto) return;
+  const vida = v.vida;
+  if (MARCA.alvoAuto && v.alvo !== MARCA.alvoAuto) {
+    // o alvo sumiu ou foi trocado: chegou ao ponto da vez (o portal, a escada) ou o jogador mandou outra coisa
+    const A = MARCA.alvoAuto, chegou = !v.alvo && Math.hypot(A.x - v.x, A.y - v.y) < 1.2;
+    if (!chegou && !MARCA.trocouMapa) { MARCA.auto = false; MARCA.alvoAuto = null; return; }
+    MARCA.alvoAuto = null;
+  }
+  MARCA.trocouMapa = false;
+  if (MARCA.vidaAnt && vida < MARCA.vidaAnt) { MARCA.auto = false; MARCA.vidaAnt = 0; if (v.alvo === MARCA.alvoAuto) v.alvo = null; MARCA.alvoAuto = null; avisar("Atacado: o andar até a marca parou"); return; }
+  MARCA.vidaAnt = vida;
+  const a = MARCA.a; if (!a || v.morto) return;   // (sem olhar o pausado: os testes avançam o jogo pausado; com o mapa aberto o passo nem roda)
+  const A = MARCA.alvoAuto;
+  if (!A || A.x !== a[0] || A.y !== a[1]) { v.alvo = MARCA.alvoAuto = { x: a[0], y: a[1], correr: true, auto: true }; v.rota = null; }
+}
 function passoMarca(dt) {
   const m = prog && prog.marcaMapa, v = viking;
   if (!m) { MARCA.rumo = null; MARCA.rota = null; return; }
@@ -22035,6 +22200,8 @@ function passoMarca(dt) {
   if ((MARCA.prox -= dt) > 0 && MARCA.rumo) return;
   MARCA.prox = 0.15;
   const a = pontoNoCaminho(m.x, m.y);
+  if (MARCA.a && a && idMapa(MARCA.a[0], MARCA.a[1]) !== idMapa(a[0], a[1])) MARCA.trocouMapa = true;   // (R431: passou pelo portal)
+  MARCA.a = a;
   if (!a) { MARCA.rumo = null; MARCA.rota = null; return; }
   rumoAte(MARCA, a);
 }
@@ -28825,6 +28992,7 @@ cv.addEventListener("pointerdown", e => {
     return;
   }
   if (e.button === 2) {                                             // botão direito: só marca a criatura (sem andar)
+    if (window.ONLINE) { const rr = cv.getBoundingClientRect(); if (ONLINE.cliqueDireito(e.clientX - rr.left, e.clientY - rr.top, e)) return; }   // (online: o outro jogador sob o ponteiro abre o menu do grupo)
     const r = cv.getBoundingClientRect(), c = criaturaNoClique(e.clientX - r.left, e.clientY - r.top);
     if (c) selecao = c;
     return;
@@ -32749,6 +32917,7 @@ function passo(dt) {
   passoPassagens(dt);
   jornadaPasso(dt);
   passoMarca(dt);
+  autoMarca();                                                         // (R431: o andar sozinho até a marca do mapa)
   passoSetaQuest(dt);                                                  // (R245: a seta da quest acompanhada)
   const v = viking, a = M.animacoes;
   // intenção de andar
@@ -37047,7 +37216,7 @@ const GUIA_PASSOS = [
   ["Vista o que ganhou", "Dê um <b>clique direito</b> na arma e na roupa, na bolsa.", () => !!prog.arma && !!prog.equip && !!prog.equip.armadura],
   ["Ande pelo mundo", "Use <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> ou <b>clique no chão</b>.", g => { g.x0 === undefined && (g.x0 = viking.x, g.y0 = viking.y); return Math.hypot(viking.x - g.x0, viking.y - g.y0) > 4; }],
   ["Aceite uma quest", "Clique no <b>pergaminho</b> à esquerda da tela e em <b>Aceitar</b>. <kbd>Q</kbd> mostra as suas quests.", () => Object.keys(MISSOES).some(id => etapaAtual(id))],
-  ["Veja o mapa", "Aperte <kbd>M</kbd>. Os pontinhos que piscam são as suas quests (ouro: quest nova; verde: entregar; azul: o objetivo). <b>Clique num lugar</b> e uma seta no chão leva até ele.", () => !!(window.MM && MM.aberto) || !!prog.marcaMapa],
+  ["Veja o mapa", "Aperte <kbd>M</kbd>. Os pontinhos que piscam são as suas quests (ouro: quest nova; verde: entregar; azul: o objetivo). <b>Clique num lugar</b> e o herói anda sozinho até ele (as teclas param), com uma seta no chão.", () => !!(window.MM && MM.aberto) || !!prog.marcaMapa],
   ["Derrote uma criatura", "Saia da cidade, <b>clique numa criatura</b> ou aperte <kbd>Espaço</kbd>, e ela é atacada até cair.", () => prog.exp > 0 || prog.nivel > 1],
   ["Abra a sua ficha", "Aperte <kbd>P</kbd>. Cada bolinha de EXP cheia dá um ponto de atributo, e cada nível, um de skill: o 1º você já tem, gaste na aba <b>Skills</b>. <kbd>R</kbd> e <kbd>X</kbd> usam as poções.", () => !$("#ficha").hidden],
   ["Dê um dash", "Aperte <kbd>Shift</kbd> para um avanço rápido, bom para fugir de um golpe.", () => !!DASH.ativo],
@@ -47241,7 +47410,11 @@ function cliqueMarca(p) {
   const m = prog && prog.marcaMapa; if (!prog) return;
   if (m) { const [X, Y] = paraTela(m.x, m.y, V); if (Math.hypot(X - p.px, Y - p.py) < 16) { tirarMarca(); est.sujo = true; aviso("Marca tirada."); return; } }
   const q = questNoPonto(p);
-  if (marcarPonto(q ? q.x : p.x, q ? q.y : p.y)) { est.sujo = true; try { som("ui_abrir", null, 0.5); } catch (e) {} }
+  if (marcarPonto(q ? q.x : p.x, q ? q.y : p.y)) {
+    est.sujo = true; try { som("ui_abrir", null, 0.5); } catch (e) {}
+    // (R431) o herói vai sozinho até a marca: o mapa fecha para ver o caminho (fora do editor do admin)
+    if (!est.editando) { MARCA.auto = true; MARCA.alvoAuto = null; MARCA.vidaAnt = 0; MARCA.prox = 0; abrir(false); avisar("Andando até a marca (as teclas cancelam)"); }
+  }
   else aviso("Não dá para chegar nesse ponto.");
 }
 function info(p) {
