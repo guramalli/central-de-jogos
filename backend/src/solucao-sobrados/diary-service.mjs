@@ -22,14 +22,82 @@ export function metadata(d){
 }
 export function jpeg(base64){
   fail(typeof base64==='string'&&base64.length<=Math.ceil(LIMITS.photoBytes/3)*4&&/^[A-Za-z0-9+/]+={0,2}$/.test(base64),'Imagem inválida ou maior que 450 KB.');
-  const data=Buffer.from(base64,'base64');fail(data.toString('base64')===base64&&data.length>=20&&data.length<=LIMITS.photoBytes&&data[0]===255&&data[1]===216&&data.at(-2)===255&&data.at(-1)===217,'Envie uma fotografia JPEG válida.');
-  let at=2,width=0,height=0,sos=false;while(at<data.length-2){fail(data[at]===255,'JPEG malformado.');while(data[at]===255)at++;const marker=data[at++];if(marker===0xd9)break;fail(at+2<=data.length,'JPEG incompleto.');const len=data.readUInt16BE(at);fail(len>=2&&at+len<=data.length-2,'JPEG incompleto.');
-    // Canvas-generated images carry no EXIF/IPTC/comment metadata. Reject metadata-bearing originals.
+  const data=Buffer.from(base64,'base64');
+  fail(data.toString('base64')===base64&&data.length>=20&&data.length<=LIMITS.photoBytes&&data[0]===0xff&&data[1]===0xd8,'Envie uma fotografia JPEG válida.');
+  const valid=condition=>fail(condition,'JPEG malformado ou incompleto. Prepare a foto novamente.');
+  const frames=new Set([0xc0,0xc1,0xc2]),components=new Set();
+  let at=2,width=0,height=0,frame=0,scans=0,ended=false;
+  // Structural framing only, not pixel/Huffman decoding. Traverse every scan so metadata
+  // cannot evade the privacy policy by appearing after the first SOS.
+  while(at<data.length){
+    valid(data[at++]===0xff);
+    while(at<data.length&&data[at]===0xff)at++;
+    valid(at<data.length);
+    const marker=data[at++];
+    if(marker===0xd9){valid(frame&&scans&&at===data.length);ended=true;break;}
+    valid(frames.has(marker)||[0xc4,0xdb,0xdd,0xda].includes(marker)||marker>=0xe0&&marker<=0xef||marker===0xfe);
+    valid(at+2<=data.length);
+    const length=data.readUInt16BE(at),end=at+length;
+    valid(length>=2&&end<=data.length);
+    // Reject EXIF/XMP, IPTC/Photoshop and comments wherever their segments occur.
     fail(![0xe1,0xed,0xfe].includes(marker),'A foto deve passar pela preparação de privacidade antes de enviar.');
-    if([0xc0,0xc1,0xc2].includes(marker)){fail(len>=8,'JPEG sem dimensões.');height=data.readUInt16BE(at+3);width=data.readUInt16BE(at+5);}
-    if(marker===0xda){sos=true;break;}at+=len;
+    if(frames.has(marker)){
+      valid(!frame&&!scans&&length>=11);
+      const count=data[at+7];height=data.readUInt16BE(at+3);width=data.readUInt16BE(at+5);
+      valid(data[at+2]===8&&count>=1&&count<=4&&length===8+3*count);
+      fail(width>0&&height>0&&width<=LIMITS.photoSide&&height<=LIMITS.photoSide,'Dimensões inválidas. Prepare a foto novamente.');
+      for(let index=0;index<count;index++){
+        const offset=at+8+3*index,id=data[offset],sampling=data[offset+1];
+        valid(!components.has(id)&&(sampling>>4)>=1&&(sampling>>4)<=4&&(sampling&15)>=1&&(sampling&15)<=4&&data[offset+2]<=3);
+        components.add(id);
+      }
+      frame=marker;
+    }
+    if(marker===0xdb){
+      let cursor=at+2;valid(cursor<end);
+      while(cursor<end){
+        const table=data[cursor++],precision=table>>4;valid(precision<=1&&(table&15)<=3);
+        cursor+=64*(precision+1);valid(cursor<=end);
+      }
+    }
+    if(marker===0xc4){
+      let cursor=at+2;valid(cursor<end);
+      while(cursor<end){
+        const table=data[cursor++];valid((table>>4)<=1&&(table&15)<=3&&cursor+16<=end);
+        let symbols=0,slots=1;
+        for(let index=0;index<16;index++){const count=data[cursor++];symbols+=count;slots=slots*2-count;valid(slots>=0);}
+        valid(symbols>0&&symbols<=256&&cursor+symbols<=end);cursor+=symbols;
+      }
+    }
+    if(marker===0xdd)valid(length===4);
+    if(marker===0xda){
+      const count=data[at+2];valid(frame&&count>=1&&count<=components.size&&length===6+2*count);
+      const selected=new Set();
+      for(let index=0;index<count;index++){
+        const id=data[at+3+2*index],tables=data[at+4+2*index];
+        valid(components.has(id)&&!selected.has(id)&&(tables>>4)<=3&&(tables&15)<=3);selected.add(id);
+      }
+      const start=data[end-3],finish=data[end-2],approximation=data[end-1],high=approximation>>4,low=approximation&15;
+      valid(start<=finish&&finish<=63);
+      if(frame===0xc2)valid((start===0?finish===0:count===1)&&high<=13&&low<=13&&(high===0||high===low+1));
+      else valid(start===0&&finish===63&&approximation===0);
+    }
+    at=end;if(marker!==0xda)continue;
+    scans++;let entropy=false;
+    while(at<data.length){
+      if(data[at]!==0xff){entropy=true;at++;continue;}
+      const candidate=at++;
+      while(at<data.length&&data[at]===0xff)at++;
+      valid(at<data.length);
+      const code=data[at];
+      if(code===0x00){valid(at===candidate+1);entropy=true;at++;continue;}
+      if(code>=0xd0&&code<=0xd7){at++;continue;}
+      at=candidate;break;
+    }
+    valid(entropy&&at<data.length);
   }
-  fail(sos&&width>0&&height>0&&width<=LIMITS.photoSide&&height<=LIMITS.photoSide,'Dimensões inválidas. Prepare a foto novamente.');return {data,width,height,bytes:data.length};
+  valid(ended);
+  return {data,width,height,bytes:data.length};
 }
 export function entryInput(d,board){
   const m=board.metadata,st=m.stages.find(x=>x.id===d.stageId),unit=d.unitId?m.units.find(x=>x.id===d.unitId):null;fail(st&&(!d.unitId||unit),'Etapa ou unidade não pertence a este diário.');
@@ -54,7 +122,7 @@ export const schemaStatements=[
 export async function migrate(db){for(const sql of [...schemaStatements,...reminderSchema,...documentSchema,...identitySchema,...workspaceSchema,...commercialSchema])await db.$executeRawUnsafe(sql);await initializeCommercial(db);}
 export class DiaryService{
   constructor(db){this.db=db;}
-  async health(){await this.db.$queryRaw`SELECT id FROM ss_diary_v1.quota WHERE id=1`;return {ok:true,version:13,limits:LIMITS};}
+  async health(){await this.db.$queryRaw`SELECT id FROM ss_diary_v1.quota WHERE id=1`;return {ok:true,version:14,limits:LIMITS};}
   async board(db,id,token,write=false,owner=false,lock=false,requiredModule=null){uuid(id);const rows=lock?await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id} FOR UPDATE`:await db.$queryRaw`SELECT * FROM ss_diary_v1.boards WHERE id=${id}`;fail(rows.length,'Diário não encontrado ou acesso inválido.',404);const b=rows[0],links=await db.$queryRaw`SELECT organization_id,project_id FROM ss_app_v1.board_links WHERE board_id=${id}`;let role,actor;
  if(typeof token==='string'&&token.startsWith('session.')){actor=await new IdentityService(db).authenticate(token.slice(8));await assertCommercialAccess(db,actor);fail(links.length&&links[0].organization_id===actor.organizationId&&['admin','manager','maintenance'].includes(actor.role)&&['diary','documents','reminders'].some(moduleId=>canAccess(actor,moduleId)),'Seu acesso não permite consultar este acompanhamento.',403);fail(!requiredModule||canAccess(actor,requiredModule),'Seu acesso não permite este módulo.',403);role=actor.role==='admin'?'owner':actor.role==='manager'?'writer':'reader';}
  else{fail(!links.length,'Este diário agora exige login individual.',401);role=roleFor(b,token);}
