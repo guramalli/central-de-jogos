@@ -77,6 +77,7 @@ export function createMercadoPagoProvider({
     !/[\r\n]/.test(accessToken) && typeof webhookSecret === 'string' && webhookSecret.length > 0 &&
     /^[1-9]\d{0,19}$/.test(receiver) && Boolean(returnUrl) && typeof fetchImpl === 'function';
   const verifiedNotices = new WeakSet();
+  const rejectedCreates = new WeakSet();
   const ready = () => ensure(configured, 'Pagamento online ainda não configurado.', 503, 'not_configured');
   const matchReceiver = object => ensure(scalar(object?.collector_id) === receiver,
     'Cobrança pertence a outra conta recebedora.', 422, 'unexpected_receiver');
@@ -94,7 +95,13 @@ export function createMercadoPagoProvider({
       throw new MercadoPagoError('Não foi possível confirmar a operação no Mercado Pago. Tente consultar novamente.', 503, 'provider_unavailable');
     }
     // Do not return provider payloads/errors: they can contain personal data or credentials.
-    ensure(response.ok, 'O Mercado Pago não confirmou a operação.', 502, 'provider_rejected');
+    if (!response.ok) {
+      const error = new MercadoPagoError('O Mercado Pago não confirmou a operação.', 502, 'provider_rejected');
+      // /preapproval documents 400/401/403 as rejected requests. All other
+      // outcomes, especially network failure or a bad success body, stay uncertain.
+      if (method === 'POST' && path === '/preapproval' && [400,401,403].includes(response.status)) rejectedCreates.add(error);
+      throw error;
+    }
     let data;
     try {
       const length = Number(response.headers?.get?.('content-length') || 0);
@@ -123,38 +130,99 @@ export function createMercadoPagoProvider({
     matchReference(data, reference);
     return data;
   }
-  async function fetchSubscription(id, {reference} = {}) {
-    const cleanId = resourceId(id);
-    return validateSubscription(await request('/preapproval/' + cleanId), {
-      id:cleanId, reference:reference === undefined ? undefined : referenceId(reference)
-    });
-  }
-  async function createSubscription({reference, email, backUrl} = {}) {
-    ready();
-    const cleanReference = referenceId(reference);
-    ensure(typeof email === 'string' && email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
-      'Informe um e-mail válido para a assinatura.', 422, 'invalid_email');
-    ensure(backUrl === undefined || trustedReturnUrl(backUrl) === returnUrl,
-      'Endereço de retorno não autorizado.', 422, 'invalid_return_url');
-    const data = validateSubscription(await request('/preapproval', {
-      method:'POST',
-      body:{
-        reason:'Solução Sobrados — assinatura mensal',
-        external_reference:cleanReference, payer_email:email.trim().toLowerCase(),
-        auto_recurring:{frequency:1, frequency_type:'months', transaction_amount:MP_MONTHLY_AMOUNT, currency_id:MP_CURRENCY},
-        back_url:returnUrl, status:'pending'
-      }
-    }), {reference:cleanReference});
+  function validateCheckout(data) {
     let checkout;
     try { checkout = new URL(data.init_point); } catch {}
     ensure(checkout?.protocol === 'https:' && checkout.hostname === 'www.mercadopago.com.br' &&
-      !checkout.username && !checkout.password && !checkout.port &&
+      !checkout.username && !checkout.password && !checkout.port && !checkout.hash &&
       checkout.pathname === '/subscriptions/checkout' &&
       checkout.searchParams.getAll('preapproval_id').length === 1 &&
       checkout.searchParams.get('preapproval_id') === scalar(data.id),
       'Link de assinatura inválido.', 502, 'invalid_checkout_url');
+    return data;
+  }
+  function validateRecovery(data) {
+    ensure(['pending','authorized','paused','cancelled'].includes(data.status),
+      'Situação de assinatura ainda não confirmada.', 502, 'unexpected_status');
+    return data.status === 'pending' ? validateCheckout(data) : data;
+  }
+  const validEmail = email => {
+    ensure(typeof email === 'string' && email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+      'Informe um e-mail válido para a assinatura.', 422, 'invalid_email');
+    return email.trim().toLowerCase();
+  };
+  async function fetchSubscription(id, {reference, requireCheckout = false} = {}) {
+    const cleanId = resourceId(id);
+    const data = validateSubscription(await request('/preapproval/' + cleanId), {
+      id:cleanId, reference:reference === undefined ? undefined : referenceId(reference)
+    });
+    return requireCheckout ? validateRecovery(data) : data;
+  }
+  async function createSubscription({reference, email, backUrl} = {}) {
+    let cleanReference, cleanEmail;
+    try {
+      ready();
+      cleanReference = referenceId(reference);
+      cleanEmail = validEmail(email);
+      ensure(backUrl === undefined || trustedReturnUrl(backUrl) === returnUrl,
+        'Endereço de retorno não autorizado.', 422, 'invalid_return_url');
+    } catch (error) {
+      // Local validation failed before any outbound POST was attempted.
+      if (error instanceof MercadoPagoError) rejectedCreates.add(error);
+      throw error;
+    }
+    const data = validateSubscription(await request('/preapproval', {
+      method:'POST',
+      body:{
+        reason:'Solução Sobrados — assinatura mensal',
+        external_reference:cleanReference, payer_email:cleanEmail,
+        auto_recurring:{frequency:1, frequency_type:'months', transaction_amount:MP_MONTHLY_AMOUNT, currency_id:MP_CURRENCY},
+        back_url:returnUrl, status:'pending'
+      }
+    }), {reference:cleanReference});
+    validateCheckout(data);
     ensure(data.status === 'pending', 'Assinatura não está aguardando autorização.', 502, 'unexpected_status');
     return data;
+  }
+  async function findSubscriptionByReference(reference, {email} = {}) {
+    ready();
+    const expected = referenceId(reference), payer = email === undefined ? undefined : validEmail(email);
+    // Search has documented payer_email/offset/limit filters, not an exact
+    // external_reference filter. Inspect every bounded page and match locally.
+    // Unknown original payer (legacy attempts) uses the account-wide search.
+    const matches = new Set(), seen = new Set();
+    let offset = 0, total;
+    for (let page = 0; page < 5; page++) {
+      const query = new URLSearchParams({offset:String(offset),limit:'20'});
+      if (payer !== undefined) query.set('payer_email',payer);
+      const data = await request('/preapproval/search?' + query);
+      const paging = data.paging;
+      ensure(paging && Number.isSafeInteger(paging.offset) && paging.offset === offset &&
+        Number.isSafeInteger(paging.limit) && paging.limit >= 1 && paging.limit <= 20 &&
+        Number.isSafeInteger(paging.total) && paging.total >= 0 && Array.isArray(data.results),
+        'Não foi possível conferir a pesquisa de assinaturas.', 502, 'invalid_search_response');
+      ensure(paging.total <= 100, 'A pesquisa de assinaturas precisa de conferência pelo suporte.', 409, 'search_limit');
+      if (total === undefined) total = paging.total;
+      ensure(total === paging.total && offset <= total &&
+        data.results.length === Math.min(paging.limit,total-offset),
+        'A pesquisa de assinaturas mudou durante a consulta. Consulte novamente.', 409, 'search_changed');
+      for (const row of data.results) {
+        ensure(row && typeof row === 'object' && !Array.isArray(row), 'Pesquisa de assinaturas inválida.', 502, 'invalid_search_response');
+        const id = resourceId(row.id);
+        ensure(!seen.has(id), 'A pesquisa de assinaturas retornou itens repetidos.', 409, 'search_changed');
+        seen.add(id);
+        if (scalar(row.external_reference) === expected) matches.add(id);
+      }
+      ensure(matches.size <= 1, 'Mais de uma assinatura foi encontrada para esta tentativa. Consulte o suporte.', 409, 'ambiguous_subscription');
+      offset += data.results.length;
+      if (offset === total) {
+        // Absence is not proof that a timed-out create did not reach the provider.
+        if (!matches.size) return null;
+        // Search records can be summaries or stale. Re-read and bind full detail.
+        return fetchSubscription([...matches][0], {reference:expected,requireCheckout:true});
+      }
+    }
+    throw new MercadoPagoError('A pesquisa de assinaturas precisa de conferência pelo suporte.', 409, 'search_limit');
   }
   async function cancelSubscription(id, {reference} = {}) {
     // Always bind cancellation to a known local reference before any mutation.
@@ -220,7 +288,8 @@ export function createMercadoPagoProvider({
     return notice;
   }
   return Object.freeze({
-    configured, createSubscription, cancelSubscription, fetchSubscription,
+    configured, createSubscription, cancelSubscription, fetchSubscription, findSubscriptionByReference,
+    isDefinitiveCreateRejection:error => Boolean(error && rejectedCreates.has(error)),
     fetchAuthorizedPayment, fetchPayment, verifyWebhook,
     isVerifiedNotification:notice => Boolean(notice && verifiedNotices.has(notice))
   });

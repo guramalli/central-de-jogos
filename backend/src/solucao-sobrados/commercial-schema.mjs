@@ -9,6 +9,7 @@ export const commercialSchema = [
 `CREATE TABLE IF NOT EXISTS ss_app_v1.commercial_subscriptions (
  id TEXT PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES ss_app_v1.organizations(id), reference TEXT NOT NULL UNIQUE,
  provider_id TEXT UNIQUE, status TEXT NOT NULL, checkout_url TEXT, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)`,
+`ALTER TABLE ss_app_v1.commercial_subscriptions ADD COLUMN IF NOT EXISTS payer_email TEXT`,
 `CREATE UNIQUE INDEX IF NOT EXISTS commercial_one_live_subscription ON ss_app_v1.commercial_subscriptions(organization_id) WHERE status IN ('creating','pending','authorized','paused')`,
 `CREATE TABLE IF NOT EXISTS ss_app_v1.commercial_payments (
  provider_id TEXT PRIMARY KEY, subscription_id TEXT NOT NULL REFERENCES ss_app_v1.commercial_subscriptions(id), organization_id TEXT NOT NULL REFERENCES ss_app_v1.organizations(id),

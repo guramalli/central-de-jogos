@@ -38,9 +38,9 @@ function licenseDto(row,now){
 }
 export async function commercialStatus(db,actor,options={}){
  const o=optionsOf(options),user=await actorFresh(db,actor),row=await ensureCommercialLicense(db,user.organization_id,o);
- const [sub]=await db.$queryRaw`SELECT status,checkout_url FROM ss_app_v1.commercial_subscriptions WHERE organization_id=${user.organization_id} ORDER BY created_at DESC LIMIT 1`;
+ const [sub]=await db.$queryRaw`SELECT status,checkout_url FROM ss_app_v1.commercial_subscriptions WHERE organization_id=${user.organization_id} ORDER BY CASE WHEN status IN ('creating','pending','authorized','paused') THEN 0 ELSE 1 END,created_at DESC,id DESC LIMIT 1`;
  const live=['creating','pending','authorized','paused'].includes(sub?.status);
- return {billingConfigured:Boolean(o.enabled&&o.configured),platformAdmin:await operator(db,user,o),plan:COMMERCIAL_PLAN,license:licenseDto(row,o.now()),subscriptionStatus:sub?.status||null,checkoutEnabled:Boolean(o.enabled&&o.configured&&user.role==='admin'&&(!live||sub?.status==='pending'&&Boolean(sub.checkout_url))&&!row.suspended),canCancel:Boolean(o.enabled&&o.configured&&user.role==='admin'&&live&&sub.status!=='creating')};
+ return {billingConfigured:Boolean(o.enabled&&o.configured),platformAdmin:await operator(db,user,o),plan:COMMERCIAL_PLAN,license:licenseDto(row,o.now()),subscriptionStatus:sub?.status||null,checkoutEnabled:Boolean(o.enabled&&o.configured&&user.role==='admin'&&(!live||sub?.status==='pending'&&Boolean(sub.checkout_url))&&!row.suspended),recoveryEnabled:Boolean(o.enabled&&o.configured&&user.role==='admin'&&!row.suspended&&(sub?.status==='creating'||sub?.status==='pending'&&!sub.checkout_url)),canCancel:Boolean(o.enabled&&o.configured&&user.role==='admin'&&live&&sub.status!=='creating')};
 }
 export async function assertCommercialAccess(db,actor,options={}){
  const status=await commercialStatus(db,actor,options);
@@ -53,19 +53,68 @@ export class CommercialService {
  constructor(db,options={}){this.db=db;this.provider=options.provider;this.options=options;this.now=options.now||Date.now;}
  status(actor){return commercialStatus(this.db,actor,this.options);}
  async checkout(actor){
-  const state=await this.status(actor);need(state.checkoutEnabled,'A contratação não está disponível para esta conta agora.',409);
-  const user=await actorFresh(this.db,actor);need(user.role==='admin','Somente o diretor pode contratar.',403);
-  const [pending]=await this.db.$queryRaw`SELECT checkout_url FROM ss_app_v1.commercial_subscriptions WHERE organization_id=${user.organization_id} AND status='pending'`;
-  if(pending?.checkout_url)return {checkoutUrl:pending.checkout_url};
-  const id=randomUUID(),reference=randomUUID(),stamp=BigInt(this.now());
-  try {await this.db.$executeRaw`INSERT INTO ss_app_v1.commercial_subscriptions(id,organization_id,reference,status,created_at,updated_at) VALUES (${id},${user.organization_id},${reference},'creating',${stamp},${stamp})`;}
-  catch(error){if(error.code==='23505'||error.code==='P2002'||error.meta?.code==='23505')throw new CommercialError('Já existe uma contratação em andamento.',409);throw error;}
-  // If the provider times out, retain 'creating': retrying blindly could create two mandates.
-  const created=await this.provider.createSubscription({reference,email:user.email});
-  need(created?.id&&created?.init_point,'O provedor não retornou o acesso ao pagamento.',502);
-  await this.db.$executeRaw`UPDATE ss_app_v1.commercial_subscriptions SET provider_id=${String(created.id)},checkout_url=${created.init_point},status=CASE WHEN status='creating' THEN 'pending' ELSE status END,updated_at=${BigInt(this.now())} WHERE id=${id}`;
-  await audit(this.db,user.organization_id,user.id,'subscription_created','Checkout solicitado pelo diretor.',this.now());
-  return {checkoutUrl:created.init_point};
+  // The organization lock serializes local reservations, never the remote call.
+  const reservation=await this.db.$transaction(async tx=>{
+   const user=await actorFresh(tx,actor);need(user.role==='admin','Somente o diretor pode contratar.',403);
+   await tx.$queryRaw`SELECT id FROM ss_app_v1.organizations WHERE id=${user.organization_id} FOR UPDATE`;
+   const state=await commercialStatus(tx,actor,this.options);need(state.checkoutEnabled,'A contratação não está disponível para esta conta agora.',409);
+   const [pending]=await tx.$queryRaw`SELECT checkout_url FROM ss_app_v1.commercial_subscriptions WHERE organization_id=${user.organization_id} AND status='pending'`;
+   if(pending?.checkout_url)return {existing:pending.checkout_url,user};
+   const [previous]=await tx.$queryRaw`SELECT MAX(created_at) AS latest FROM ss_app_v1.commercial_subscriptions WHERE organization_id=${user.organization_id}`;
+   const id=randomUUID(),reference=randomUUID(),stamp=BigInt(Math.max(this.now(),Number(previous.latest||0)+1));
+   await tx.$executeRaw`INSERT INTO ss_app_v1.commercial_subscriptions(id,organization_id,reference,payer_email,status,created_at,updated_at) VALUES (${id},${user.organization_id},${reference},${user.email},'creating',${stamp},${stamp})`;
+   return {id,reference,user};
+  });
+  if(reservation.existing)return {checkoutUrl:reservation.existing};
+  const {id,reference,user}=reservation;
+  let created;
+  try {created=await this.provider.createSubscription({reference,email:user.email});}
+  catch(error){
+   // Only a provider-proven rejection can release the reservation. Network errors,
+   // malformed replies and lost database writes require read-only reconciliation.
+   if(this.provider.isDefinitiveCreateRejection?.(error))await this.db.$transaction(async tx=>{
+    await tx.$queryRaw`SELECT id FROM ss_app_v1.organizations WHERE id=${user.organization_id} FOR UPDATE`;
+    const changed=await tx.$queryRaw`UPDATE ss_app_v1.commercial_subscriptions s SET status='failed',updated_at=${BigInt(this.now())} WHERE id=${id} AND status='creating' AND provider_id IS NULL AND NOT EXISTS (SELECT 1 FROM ss_app_v1.commercial_payments p WHERE p.subscription_id=s.id) RETURNING id`;
+    if(changed.length)await audit(tx,user.organization_id,user.id,'subscription_rejected','Criação rejeitada pelo provedor; uma nova tentativa explícita está permitida.',this.now());
+   });
+   throw error;
+  }
+  need(created?.id&&created?.init_point&&created.external_reference===reference&&created.status==='pending','O provedor não retornou o acesso ao pagamento.',502);
+  const saved=await this.saveSubscriptionRecord({id,organization_id:user.organization_id,reference},created,{checkout:true,action:'subscription_created',actorId:user.id});
+  return this.db.$transaction(async tx=>{
+   await tx.$queryRaw`SELECT id FROM ss_app_v1.organizations WHERE id=${user.organization_id} FOR UPDATE`;
+   const fresh=await actorFresh(tx,actor);need(fresh.role==='admin','Somente o diretor pode contratar.',403);
+   const state=await commercialStatus(tx,actor,this.options);
+   const [current]=await tx.$queryRaw`SELECT * FROM ss_app_v1.commercial_subscriptions WHERE id=${id} AND organization_id=${user.organization_id}`;
+   need(state.checkoutEnabled&&current?.status==='pending'&&current.provider_id===saved.provider_id&&current.checkout_url,'A situação da assinatura mudou. Atualize a página para conferir.',409);
+   return {checkoutUrl:current.checkout_url};
+  });
+ }
+ async saveSubscriptionRecord(known,record,{checkout=false,actor=null,action=null,actorId=null}={}){
+  return this.db.$transaction(async tx=>{
+   await tx.$queryRaw`SELECT id FROM ss_app_v1.organizations WHERE id=${known.organization_id} FOR UPDATE`;
+   if(actor){const user=await actorFresh(tx,actor);need(user.role==='admin'&&user.organization_id===known.organization_id,'Somente o diretor pode consultar a contratação.',403);const state=await commercialStatus(tx,actor,this.options);need(state.billingConfigured&&state.license.status!=='suspended','A consulta da contratação não está disponível.',409);}
+   const [sub]=await tx.$queryRaw`SELECT * FROM ss_app_v1.commercial_subscriptions WHERE id=${known.id} AND organization_id=${known.organization_id} FOR UPDATE`;
+   need(sub&&record.external_reference===sub.reference&&record.id&&(!sub.provider_id||sub.provider_id===String(record.id)),'Assinatura divergente.',422);
+   need(['pending','authorized','paused','cancelled'].includes(record.status),'Situação desconhecida.',422);
+   // Never let a delayed create/search response undo authorization or cancellation.
+   const status=sub.status==='cancelled'?'cancelled':record.status==='pending'&&['authorized','paused'].includes(sub.status)?sub.status:record.status;
+   const checkoutUrl=status==='pending'?(checkout?record.init_point||sub.checkout_url:sub.checkout_url):null;
+   await tx.$executeRaw`UPDATE ss_app_v1.commercial_subscriptions SET provider_id=${String(record.id)},status=${status},checkout_url=${checkoutUrl},updated_at=${BigInt(this.now())} WHERE id=${sub.id}`;
+   if(action)await audit(tx,sub.organization_id,actor?.id||actorId,action,action==='subscription_created'?'Checkout solicitado pelo diretor.':'Tentativa anterior consultada e vinculada ao registro confirmado pelo provedor.',this.now());
+   return {...sub,status,provider_id:String(record.id),checkout_url:checkoutUrl};
+  });
+ }
+ async reconcile(actor){
+  const user=await actorFresh(this.db,actor);need(user.role==='admin','Somente o diretor pode consultar a contratação.',403);
+  const state=await this.status(actor);need(state.billingConfigured&&state.license.status!=='suspended','A consulta da contratação não está disponível.',409);
+  const [sub]=await this.db.$queryRaw`SELECT * FROM ss_app_v1.commercial_subscriptions WHERE organization_id=${user.organization_id} AND status IN ('creating','pending') ORDER BY created_at DESC,id DESC LIMIT 1`;
+  if(!sub||sub.status==='pending'&&sub.checkout_url)return {...state,recovery:'resolved'};
+  const record=sub.provider_id?await this.provider.fetchSubscription(sub.provider_id,{reference:sub.reference,requireCheckout:true}):await this.provider.findSubscriptionByReference(sub.reference,{email:sub.payer_email||undefined});
+  if(record)await this.saveSubscriptionRecord(sub,record,{checkout:true,actor,action:'subscription_recovered'});
+  const fresh=await actorFresh(this.db,actor);need(fresh.role==='admin','Somente o diretor pode consultar a contratação.',403);
+  // A missing search result is not proof that the remote creation never happened.
+  const result=await this.status(actor);return {...result,recovery:result.recoveryEnabled?'pending':record?'recovered':'resolved'};
  }
  async cancel(actor){
   const user=await actorFresh(this.db,actor);need(user.role==='admin','Somente o diretor pode cancelar a assinatura.',403);
@@ -142,8 +191,7 @@ export class CommercialService {
    // Recover an ambiguous POST only by its reserved, provider-verified reference.
    const [known]=await this.db.$queryRaw`SELECT * FROM ss_app_v1.commercial_subscriptions WHERE reference=${String(record.external_reference)}`;
    if(!known)return {ignored:true};sub=known;
-   need(!sub.provider_id||sub.provider_id===String(record.id),'Assinatura divergente.',422);
-   await this.db.$executeRaw`UPDATE ss_app_v1.commercial_subscriptions SET provider_id=${String(record.id)},status=CASE WHEN status='cancelled' THEN status ELSE ${record.status} END,updated_at=${BigInt(this.now())} WHERE id=${sub.id} AND (provider_id IS NULL OR provider_id=${String(record.id)})`;
+   await this.saveSubscriptionRecord(sub,record);
    // Authorization is a mandate, never a confirmed payment or entitlement.
    return {processed:true};
   }
@@ -152,7 +200,7 @@ export class CommercialService {
    const [known]=await this.db.$queryRaw`SELECT * FROM ss_app_v1.commercial_subscriptions WHERE reference=${String(invoice.external_reference)}`;
    if(!known)return {ignored:true};sub=known;
    need(invoice.external_reference===sub.reference&&(!sub.provider_id||sub.provider_id===String(invoice.preapproval_id)),'Referência divergente.',422);
-   await this.db.$executeRaw`UPDATE ss_app_v1.commercial_subscriptions SET provider_id=${String(invoice.preapproval_id)},status=CASE WHEN status='creating' THEN 'pending' ELSE status END,updated_at=${BigInt(this.now())} WHERE id=${sub.id} AND provider_id IS NULL`;
+   await this.saveSubscriptionRecord(sub,{id:invoice.preapproval_id,external_reference:sub.reference,status:'pending'});
    if(!invoice.payment?.id)return {ignored:true};
    payment=await this.provider.fetchPayment(String(invoice.payment.id),{reference:sub.reference,allowMissingReference:true});
   }else if(notice.type==='payment'){
@@ -186,5 +234,3 @@ export class CommercialService {
   });
  }
 }
-
-

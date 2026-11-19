@@ -4,6 +4,7 @@ export function commercialRouter(service){
  const router=express.Router(),wrap=fn=>async(req,res,next)=>{try{res.json(await fn(req));}catch(error){next(error);}};
  router.get('/status',wrap(req=>service.status(req.accountActor)));
  router.post('/checkout',wrap(req=>service.checkout(req.accountActor)));
+ router.post('/reconcile',wrap(req=>service.reconcile(req.accountActor)));
  router.post('/cancel',wrap(req=>service.cancel(req.accountActor)));
  router.get('/support',wrap(req=>service.supportList(req.accountActor)));
  router.post('/support',wrap(req=>service.createSupport(req.accountActor,req.body)));
