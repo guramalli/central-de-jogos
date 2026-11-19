@@ -1,3 +1,4 @@
+import {sanitizePreparedJpeg} from './jpeg-privacy.mjs?v=20261119-photo14';
 import {accountHeaders} from './account-ui.mjs?v=20261118-maintenance10';
 import {mountProjectPhoto} from './project-photo.mjs?v=20261118-maintenance10';
 import {renderDocumentsPanel as renderDocumentsPanelBase} from './documents-ui.mjs?v=20261118-access8';
@@ -38,6 +39,9 @@ export async function preparePhoto(file){
       for(const quality of [.82,.65,.48]){blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));if(blob&&blob.size<=450000)break;}if(blob&&blob.size<=450000)break;side=Math.round(side*.75);
     }
     if(!blob||blob.size>450000)throw new Error('Não foi possível reduzir a foto. Escolha outra cópia.');
+    // Browser JPEG encoders may add EXIF/comments even after drawing fresh pixels.
+    // Clean the encoded output, then use these same bytes for preview and upload.
+    blob=new Blob([sanitizePreparedJpeg(new Uint8Array(await blob.arrayBuffer()))],{type:'image/jpeg'});
     const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=reject;reader.readAsDataURL(blob);});
     return {blob,base64,name:file.name,width:canvas.width,height:canvas.height};
   }finally{bitmap.close();}
@@ -107,4 +111,3 @@ export function mountDiary({container,project,contextKey,shared=null,view='photo
   return ()=>{stopped=true;abort.abort();clearInterval(timer);observer?.disconnect();disposeDocuments?.();closeDialog();for(const url of urls.values())if(typeof url==='string')URL.revokeObjectURL(url);};
 }
 export function mountSharedDiary(container,access){container.innerHTML=`<div class="diary-shared-shell"><header class="diary-shared-header"><a class="logo" href="${esc(location.pathname)}"><span class="logo-mark">⌂</span><span>SOLUÇÃO<strong>SOBRADOS</strong></span></a><span class="shared-project-identity"><span class="project-photo" id="shared-project-photo">⌂</span>ACOMPANHAMENTO DA OBRA</span></header><main class="diary-shared-main"></main><footer class="app-footer"><span>Solução Sobrados · Diário online</span><span>Acesso individual pela sua conta.</span></footer></div>`;const disposePhoto=mountProjectPhoto({container:container.querySelector('#shared-project-photo'),access:{id:access.id,account:true}}),dispose=mountDiary({container:container.querySelector('main'),shared:access,accountMode:true,accountConnection:{id:access.id,account:true},view:access.view||'photos'});return ()=>{disposePhoto();dispose();};}
-

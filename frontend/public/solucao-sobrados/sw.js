@@ -1,30 +1,31 @@
 /* Public application shell only. Never cache APIs, accounts, uploads or form writes. */
-const VERSION = '20261118-maintenance13';
+const VERSION = '20261119-photo14';
 const APP_BASE = new URL(self.registration.scope);
 const CACHE_PREFIX = `solucao-sobrados-public:${APP_BASE.pathname}:`;
 const CACHE_NAME = CACHE_PREFIX + VERSION;
 // Exact paths and query strings are deliberate. New module versions fall through to
 // the network until their matching worker is activated. Do not use ignoreSearch.
 const PUBLIC_FILES = [
+  'jpeg-privacy.mjs?v=20261119-photo14',
   './',
   'reports-ui.mjs?v=20261118-reports12',
   'reports-domain.mjs?v=20261118-reports12',
   'reports-pdf.mjs?v=20261118-reports12',
   'reports.css?v=20261118-reports12',
-  'app.mjs?v=20261118-maintenance13',
-  'pwa.mjs?v=20261118-maintenance13',
-  'styles.css?v=20261118-maintenance13',
+  'app.mjs?v=20261119-photo14',
+  'pwa.mjs?v=20261119-photo14',
+  'styles.css?v=20261119-photo14',
   'access-domain.mjs?v=20261118-access8',
   'account-ui.mjs?v=20261118-maintenance10',
   'account.css?v=20261118-access8',
-  'maintenance-ui.mjs?v=20261118-maintenance13',
+  'maintenance-ui.mjs?v=20261119-photo14',
   'maintenance.css?v=20261118-maintenance13',
   'market-search.mjs?v=20261118-access8',
   'market-search.mjs?v=20261118-sales5',
   'domain.mjs?v=20261118-access8',
   'domain.mjs?v=20261118-trash1',
   'demo.mjs?v=20261118-access8',
-  'diary.mjs?v=20261118-maintenance10',
+  'diary.mjs?v=20261119-photo14',
   'diary.css?v=20261118-access8',
   'project-photo.mjs?v=20261118-maintenance10',
   'documents-ui.mjs?v=20261118-access8',
@@ -32,7 +33,7 @@ const PUBLIC_FILES = [
   'reminders-ui.mjs?v=20261118-access8',
   'reminder-domain.mjs?v=20261118-trash1',
   'reminders.css?v=20261118-access8',
-  'manifest.webmanifest?v=20261118-maintenance13',
+  'manifest.webmanifest?v=20261119-photo14',
   'pwa-icons/icon-180.png',
   'pwa-icons/icon-192.png',
   'pwa-icons/icon-512.png',
