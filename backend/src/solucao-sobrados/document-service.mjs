@@ -50,7 +50,7 @@ export async function setProjectCover(service,id,token,d){return service.db.$tra
   if(d.fileId){uuid(d.fileId);const [f]=await tx.$queryRaw`SELECT payload FROM ss_diary_v1.doc_files WHERE board_id=${id} AND id=${d.fileId} AND state='ready' AND archived=FALSE`;
     fail(f&&['jpg','jpeg','png','webp'].includes(f.payload.ext),'Escolha uma imagem ativa deste empreendimento.',422);
     const thumb=jpeg(d.base64);fail(thumb.bytes<=100000&&thumb.width<=512&&thumb.height<=512,'A miniatura deve ter até 512 pixels e 100 KB.');bytes=thumb.bytes;
-    fail(Number(quota.bytes)+bytes-(old?.bytes||0)<=LIMITS.totalBytes,'Armazenamento de testes cheio.',507);
+    fail(Number(quota.bytes)+bytes-(old?.bytes||0)<=LIMITS.totalBytes,'O armazenamento de documentos está cheio.',507);
     const [usage]=await tx.$queryRaw`SELECT COALESCE(sum((payload->>'size')::bigint),0)::bigint AS bytes FROM ss_diary_v1.doc_files WHERE board_id=${id} AND state IN ('pending','ready')`;
     fail(Number(usage.bytes)+bytes<=DOCUMENT_LIMITS.boardBytes,'Armazenamento do empreendimento cheio.',507);
     await tx.$executeRaw`INSERT INTO ss_diary_v1.doc_covers VALUES(${id},${d.fileId},${thumb.data},${bytes}) ON CONFLICT(board_id) DO UPDATE SET file_id=EXCLUDED.file_id,content=EXCLUDED.content,bytes=EXCLUDED.bytes`;
@@ -85,8 +85,8 @@ export async function beginUpload(service,id,token,d){return service.db.$transac
   await folderExists(tx,id,p.folderId);
   const [usage]=await tx.$queryRaw`SELECT count(*)::int AS count,COALESCE(sum((payload->>'size')::bigint),0)::bigint AS bytes FROM ss_diary_v1.doc_files WHERE board_id=${id} AND state IN ('pending','ready')`;
   const [cover]=await tx.$queryRaw`SELECT bytes FROM ss_diary_v1.doc_covers WHERE board_id=${id}`;
-  fail(usage.count<DOCUMENT_LIMITS.files&&Number(usage.bytes)+p.size+(cover?.bytes||0)<=DOCUMENT_LIMITS.boardBytes,'Limite de testes: 100 arquivos / 64 MB por empreendimento, incluindo envios pendentes.',507);
-  fail(Number(quota.bytes)-released+p.size<=LIMITS.totalBytes,'Armazenamento de testes cheio. Solicite ampliação.',507);
+  fail(usage.count<DOCUMENT_LIMITS.files&&Number(usage.bytes)+p.size+(cover?.bytes||0)<=DOCUMENT_LIMITS.boardBytes,'Este empreendimento atingiu o limite de 100 arquivos ou 64 MB, incluindo envios pendentes.',507);
+  fail(Number(quota.bytes)-released+p.size<=LIMITS.totalBytes,'O armazenamento de documentos está cheio. Solicite ampliação.',507);
   const {id:fid,folderId,...payload}=p,now=Date.now();await tx.$executeRaw`INSERT INTO ss_diary_v1.doc_files(id,board_id,folder_id,payload,request_hash,created_at,expires) VALUES(${fid},${id},${folderId},${JSON.stringify(payload)}::jsonb,${fingerprint},${BigInt(now)},${BigInt(now+86400000)})`;
   await tx.$executeRaw`UPDATE ss_diary_v1.quota SET bytes=bytes+${BigInt(p.size)} WHERE id=1`;return {id:fid,complete:false,received:[]};
 },{timeout:15000});}

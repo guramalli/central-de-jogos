@@ -1,4 +1,4 @@
-import {check, date, money, paid, received, activeSale, SALE_MODES, totals, csv} from './domain.mjs?v=20261119-viability30';
+import {check, date, money, paid, received, activeSale, SALE_MODES, totals, csv} from './domain.mjs?v=20261119-audit34';
 import {canAccess, fullFinancialAccess} from './access-domain.mjs?v=20261118-access8';
 
 const TITLES={payments:'Relatório de pagamentos',sales:'Tabela de vendas',receipts:'Relatório de recebimentos',overview:'Relatório geral do empreendimento'};

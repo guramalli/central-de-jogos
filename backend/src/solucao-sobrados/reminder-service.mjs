@@ -18,7 +18,7 @@ export async function changeReminder(service,boardId,token,d){
       payload={...reminderInput(d,b.metadata),status:old?.payload.status||'pending'};
       if(!old){
         reject(d.revision===null,'Lembrete não encontrado.',404);
-        const [count]=await tx.$queryRaw`SELECT count(*)::int AS n FROM ss_diary_v1.reminders WHERE board_id=${boardId}`;reject(count.n<200,'Limite de 200 lembretes por obra atingido neste ambiente de testes.',507);
+        const [count]=await tx.$queryRaw`SELECT count(*)::int AS n FROM ss_diary_v1.reminders WHERE board_id=${boardId}`;reject(count.n<200,'Este empreendimento atingiu o limite de 200 lembretes.',507);
         await tx.$executeRaw`INSERT INTO ss_diary_v1.reminders(id,board_id,payload,created_at,updated_at) VALUES(${d.id},${boardId},${JSON.stringify(payload)}::jsonb,${now},${now})`;
       }else{
         // A repeated creation with the same ID and normalized values is harmless.
