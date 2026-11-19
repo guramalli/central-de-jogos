@@ -61,7 +61,8 @@ export function mountDiary({container,project,contextKey,shared=null,view='photo
     closeDialog();
     const d=document.createElement('dialog'),state={closed:false,saving:false,cleanup:null};
     dialog=d;dialogVersion++;dialogStates.set(d,state);d.className='diary-dialog';
-    d.innerHTML=`<form class="diary-form"><div class="dialog-head"><div><span class="eyebrow">ACOMPANHAMENTO DA OBRA</span><h2>${title}</h2></div><button type="button" class="icon-btn" data-close aria-label="Fechar diário">×</button></div><div class="form-grid">${html}</div><p class="form-error" role="alert"></p><p class="fine" data-save-status role="status" aria-live="polite" hidden></p><div class="dialog-footer"><button type="button" class="btn" data-close>Cancelar</button><button class="btn primary" type="submit">${label}</button></div></form>`;
+    d.setAttribute('aria-labelledby','diary-dialog-title');
+    d.innerHTML=`<form class="diary-form"><div class="dialog-head"><div><span class="eyebrow">ACOMPANHAMENTO DA OBRA</span><h2 id="diary-dialog-title">${title}</h2></div><button type="button" class="icon-btn" data-close aria-label="Fechar diário">×</button></div><div class="form-grid">${html}</div><p class="form-error" role="alert"></p><p class="fine" data-save-status role="status" aria-live="polite" hidden></p><div class="dialog-footer"><button type="button" class="btn" data-close>Cancelar</button><button class="btn primary" type="submit">${label}</button></div></form>`;
     const form=d.querySelector('form'),error=d.querySelector('.form-error'),status=d.querySelector('[data-save-status]');
     const isCurrent=()=>currentMount()&&dialog===d&&!state.closed&&d.isConnected&&d.open;
     document.body.append(d);

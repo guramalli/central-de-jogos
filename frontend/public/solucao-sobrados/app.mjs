@@ -2,12 +2,12 @@ import {mountTutorials} from './tutorials-ui.mjs?v=20261119-tutorial17';
 import {mountCommercial} from './commercial-ui.mjs?v=20261119-checkout21';
 import {canAccess,normalizeModules,fullFinancialAccess} from './access-domain.mjs?v=20261118-access8';
 import {accountApi,loginScreen,mountUsers,roleLabels,setAccountContext} from './account-ui.mjs?v=20261119-recovery22';
-import {mountMaintenance} from './maintenance-ui.mjs?v=20261119-photo31';
+import {mountMaintenance} from './maintenance-ui.mjs?v=20261119-dialog32';
 import {resolveMarketCriteria,buildMarketSearchUrl} from './market-search.mjs?v=20261118-access8';
-import {mountDiary,mountSharedDiary,readDiaryLink,mountReminderSummary,mountProjectIdentity} from './diary.mjs?v=20261119-photo31';
+import {mountDiary,mountSharedDiary,readDiaryLink,mountReminderSummary,mountProjectIdentity} from './diary.mjs?v=20261119-dialog32';
 import {STAGES,CATEGORIES,KINDS,NEIGHBORHOODS,empty,validate,validateBackup,command,totals,scenario,market,history,costReport,csv,decimal,date,today,money,paid,used,sum,amount,tracksQuantity,activeProjects,CONSTRUCTION_SCOPES,constructionTotals,isContractor,contractFileData,CONTRACT_FILE_LIMIT,isProgressStage,physicalProgress,SALE_MODES,SALE_DOCUMENTS,activeSale,received as storedReceived,salesTotals as storedSalesTotals,salePlan} from './domain.mjs?v=20261119-viability30';
 import {demo} from './demo.mjs?v=20261118-access8';
-import {openReportCenter} from './reports-ui.mjs?v=20261119-viability30';
+import {openReportCenter} from './reports-ui.mjs?v=20261119-dialog32';
 import {allowedReportTypes} from './reports-domain.mjs?v=20261119-viability30';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Server projections expose confirmed totals without private receipt records.
@@ -120,7 +120,8 @@ const emptyView=(title,copy,action='')=>`<div class="empty"><div class="empty-ma
 function dialog(title,body,onSave,label='Salvar'){
  reportEpoch++;disposeReports?.();disposeReports=null;
  const dlg=$('#dialog');dlg.classList.remove('reports-dialog');
- dlg.innerHTML=`<form id="editor"><div class="dialog-head"><div><span class="eyebrow">SOLUÇÃO SOBRADOS</span><h2>${title}</h2></div><button type="button" class="icon-btn" id="close" aria-label="Fechar">×</button></div><div class="form-grid">${body}</div><p class="form-error" id="form-error" role="alert" tabindex="-1"></p><p class="fine" data-save-status role="status" hidden></p><div class="dialog-footer"><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">${label}</button></div></form>`;
+ dlg.setAttribute('aria-labelledby','app-dialog-title');
+ dlg.innerHTML=`<form id="editor"><div class="dialog-head"><div><span class="eyebrow">SOLUÇÃO SOBRADOS</span><h2 id="app-dialog-title">${title}</h2></div><button type="button" class="icon-btn" id="close" aria-label="Fechar">×</button></div><div class="form-grid">${body}</div><p class="form-error" id="form-error" role="alert" tabindex="-1"></p><p class="fine" data-save-status role="status" hidden></p><div class="dialog-footer"><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">${label}</button></div></form>`;
  const form=dlg.querySelector('#editor'),error=form.querySelector('#form-error'),status=form.querySelector('[data-save-status]'),cancel=form.querySelector('#cancel');
  let closed=false,saving=false;
  const isCurrent=()=>!closed&&dlg.isConnected&&form.isConnected&&$('#dialog')===dlg&&dlg.open&&dlg.querySelector('#editor')===form;
@@ -357,6 +358,7 @@ function stageBudgetForm(p,st){dialog('Orçamento da etapa',`<p class="callout w
 function comparableForm(c){const p=current(),referenceUnit=p.units.find(u=>u.id===marketFilter.unitId)||p.units[0];dialog(c?'Conferir referência de mercado':'Registrar anúncio conferido',field('title','Título da referência',c?.title||'','text','required')+field('source','Portal / imobiliária / referência',c?.source||'','text','required')+field('url','URL HTTPS do anúncio',c?.url||'','url','required')+field('date','Data em que o anúncio foi consultado',c?.date||today(),'date',`required max="${today()}"`)+field('neighborhood','Bairro',c?.neighborhood||p.neighborhood,'text','required list="neighborhoods"')+select('zone','Zona confirmada no anúncio',choices(['Zona 1','Zona 2','Zona 3','Não informada']),c?.zone||'Não informada')+select('type','Tipo',[['condominium','Sobrado em condomínio'],['individual','Sobrado individual']],c?.type||p.type)+select('condition','Condição',[['new','Novo'],['used','Usado / reformado'],['unknown','Não informada']],c?.condition||'unknown')+number('bedrooms','Dormitórios',c?.bedrooms??referenceUnit.bedrooms??p.bedrooms,1,'1')+number('area','Área privativa / construída do sobrado (m²)',c?val(c.area):val(referenceUnit.area),.01)+number('price','Preço anunciado (R$)',c?val(c.price):0,.01)+area('notes','Condição, padrão, distância da praia e observações',c?.notes||'')+`<p class="fine wide">Use a área da unidade, não a área total do terreno. Marque zona não informada quando a fonte não confirmar. Preços e disponibilidade precisam ser conferidos novamente com o anunciante.</p>`,f=>{const d=Object.fromEntries(f);d.area=decimal(d.area);d.price=decimal(d.price);d.bedrooms=Number(d.bedrooms);if(d.date>today())throw new Error('A consulta não pode ter data futura.');return save('comparable.save',{...d,...(c?{id:c.id}:{})});});}
 async function openReports(type){
  if(reportOpening)return;reportOpening=true;
+ const opener=document.activeElement;
  const context={mode,projectId:selected,userId:actor?.id,organizationId:actor?.organizationId,epoch:reportEpoch};
  const isCurrent=()=>mode===context.mode&&selected===context.projectId&&actor?.id===context.userId&&actor?.organizationId===context.organizationId&&reportEpoch===context.epoch;
  const getSnapshot=async()=>{
@@ -370,7 +372,16 @@ async function openReports(type){
   if(!project)throw new Error('Este empreendimento não está disponível. Atualize a página.');
   return {project:structuredClone(project),actor:structuredClone(actor),company:mode==='demo'?'Demonstração - dados fictícios':organizationName};
  };
- try{const snapshot=await getSnapshot();if(!isCurrent())return;if(!allowedReportTypes(snapshot.actor).includes(type))throw new Error('Este relatório não foi liberado para o seu acesso.');disposeReports=openReportCenter({dialog:$('#dialog'),initialType:type,initialSnapshot:snapshot,getSnapshot,isCurrent,onClose:()=>{disposeReports=null;if(actor)render();}});}finally{reportOpening=false;}
+ try{const snapshot=await getSnapshot();if(!isCurrent())return;if(!allowedReportTypes(snapshot.actor).includes(type))throw new Error('Este relatório não foi liberado para o seu acesso.');disposeReports=openReportCenter({dialog:$('#dialog'),initialType:type,initialSnapshot:snapshot,getSnapshot,isCurrent,onClose:()=>{
+   disposeReports=null;
+   if(!actor)return;
+   const shouldRestore=isCurrent()&&opener?.dataset.action&&document.activeElement===opener;
+   render();
+   if(shouldRestore&&!opener.isConnected){
+    const replacement=[...$('#app').querySelectorAll('[data-action]')].find(el=>el.dataset.action===opener.dataset.action&&el.dataset.id===opener.dataset.id&&el.getClientRects().length);
+    replacement?.focus();
+   }
+  }});}finally{reportOpening=false;}
 }
 async function report(){return openReports('overview');}
 

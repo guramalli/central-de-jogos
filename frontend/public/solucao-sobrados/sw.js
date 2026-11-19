@@ -1,5 +1,5 @@
 /* Public application shell only. Never cache APIs, accounts, uploads or form writes. */
-const VERSION = '20261119-photo31';
+const VERSION = '20261119-dialog32';
 const APP_BASE = new URL(self.registration.scope);
 const CACHE_PREFIX = `solucao-sobrados-public:${APP_BASE.pathname}:`;
 const CACHE_NAME = CACHE_PREFIX + VERSION;
@@ -13,24 +13,24 @@ const PUBLIC_FILES = [
   'commercial.css?v=20261119-commerce15',
   'jpeg-privacy.mjs?v=20261119-photo14',
   './',
-  'reports-ui.mjs?v=20261119-viability30',
+  'reports-ui.mjs?v=20261119-dialog32',
   'reports-domain.mjs?v=20261119-viability30',
   'reports-pdf.mjs?v=20261118-reports12',
   'reports.css?v=20261118-reports12',
-  'app.mjs?v=20261119-photo31',
-  'pwa.mjs?v=20261119-photo31',
-  'styles.css?v=20261119-photo31',
+  'app.mjs?v=20261119-dialog32',
+  'pwa.mjs?v=20261119-dialog32',
+  'styles.css?v=20261119-dialog32',
   'access-domain.mjs?v=20261118-access8',
   'account-ui.mjs?v=20261119-recovery22',
   'account.css?v=20261119-recovery22',
-  'maintenance-ui.mjs?v=20261119-photo31',
+  'maintenance-ui.mjs?v=20261119-dialog32',
   'maintenance.css?v=20261118-maintenance13',
   'market-search.mjs?v=20261118-access8',
   'market-search.mjs?v=20261118-sales5',
   'domain.mjs?v=20261119-viability30',
   'domain.mjs?v=20261118-trash1',
   'demo.mjs?v=20261118-access8',
-  'diary.mjs?v=20261119-photo31',
+  'diary.mjs?v=20261119-dialog32',
   'diary.css?v=20261119-photo31',
   'project-photo.mjs?v=20261119-recovery22',
   'documents-ui.mjs?v=20261118-access8',
