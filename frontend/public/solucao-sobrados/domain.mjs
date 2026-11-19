@@ -315,8 +315,14 @@ export function validate(s){
 
 export function validateBackup(state){
   validate(state);
+  const asOf=today();
   for(const project of state.projects){
     for(const expense of project.expenses){
+      for(const payment of expense.payments){
+        if(!payment.reversed&&payment.date>asOf){
+          throw new Error(`Pagamento confirmado com data futura (${payment.date}) no custo "${expense.description}" (${expense.id}) de "${project.name}". Confira a data no backup antes de importar.`);
+        }
+      }
       if(expense.mode!=='direct')continue;
       const {allocation,unitId,total}=expense;
       if(Object.keys(allocation).length!==1||typeof unitId!=='string'||!Object.hasOwn(allocation,unitId)||allocation[unitId]!==total){

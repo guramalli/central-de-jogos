@@ -5,7 +5,7 @@ import {accountApi,loginScreen,mountUsers,roleLabels,setAccountContext} from './
 import {mountMaintenance} from './maintenance-ui.mjs?v=20261119-dialog23';
 import {resolveMarketCriteria,buildMarketSearchUrl} from './market-search.mjs?v=20261118-access8';
 import {mountDiary,mountSharedDiary,readDiaryLink,mountReminderSummary,mountProjectIdentity} from './diary.mjs?v=20261119-dialog23';
-import {STAGES,CATEGORIES,KINDS,NEIGHBORHOODS,empty,validate,validateBackup,command,totals,scenario,market,history,costReport,csv,decimal,date,today,money,paid,used,sum,amount,tracksQuantity,activeProjects,CONSTRUCTION_SCOPES,constructionTotals,isContractor,contractFileData,CONTRACT_FILE_LIMIT,isProgressStage,physicalProgress,SALE_MODES,SALE_DOCUMENTS,activeSale,received as storedReceived,salesTotals as storedSalesTotals,salePlan} from './domain.mjs?v=20261119-restore26';
+import {STAGES,CATEGORIES,KINDS,NEIGHBORHOODS,empty,validate,validateBackup,command,totals,scenario,market,history,costReport,csv,decimal,date,today,money,paid,used,sum,amount,tracksQuantity,activeProjects,CONSTRUCTION_SCOPES,constructionTotals,isContractor,contractFileData,CONTRACT_FILE_LIMIT,isProgressStage,physicalProgress,SALE_MODES,SALE_DOCUMENTS,activeSale,received as storedReceived,salesTotals as storedSalesTotals,salePlan} from './domain.mjs?v=20261119-restore27';
 import {demo} from './demo.mjs?v=20261118-access8';
 import {openReportCenter} from './reports-ui.mjs?v=20261119-dialog23';
 import {allowedReportTypes} from './reports-domain.mjs?v=20261118-reports12';
