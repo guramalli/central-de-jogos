@@ -1,5 +1,5 @@
 import {canAccess,normalizeModules,fullFinancialAccess} from './access-domain.mjs';
-import {isContractor,totals,scenario} from './workspace-domain.mjs';
+import {isContractor,totals,scenario,received} from './workspace-domain.mjs';
 export function requireModule(actor,id){if(!canAccess(actor,id))throw Object.assign(new Error('O Diretor não liberou este módulo para seu acesso.'),{status:403});}
 const pick=(obj,keys)=>Object.fromEntries(keys.filter(k=>obj[k]!==undefined).map(k=>[k,structuredClone(obj[k])]));
 export function workspaceView(state,actor){
@@ -13,7 +13,14 @@ export function workspaceView(state,actor){
  base.units=p.units.map(u=>({...pick(u,['id','name','area','bedrooms','bathrooms','parking']),sale:sales||analysis||has('project')?u.sale:0,notes:has('project')?u.notes||'':'',...(sales&&u.commercial?{commercial:structuredClone(u.commercial)}:{})}));
  base.stages=p.stages.map(s=>({...pick(s,['id','name','unassigned','trackProgress']),progress:has('stages')?s.progress:0,budget:costs?s.budget:0}));
  base.expenses=p.expenses.filter(e=>costs||has('contractors')&&isContractor(e)||sales&&e.saleId).map(e=>{const row=structuredClone(e);if(!has('contractors'))delete row.contractFile;return row;});
- base.sales=sales?structuredClone(p.sales||[]):receipts?(p.sales||[]).map(s=>({...pick(s,['id','unitId','price','buyer','paymentMode','date','installments','receipts','cancelled']),commissionCents:0})):[];
+ base.sales=sales?(p.sales||[]).map(s=>{
+  const sale=structuredClone(s);
+  if(!receipts){
+   sale.receipts=[];
+   sale.receiptSummary={total:received(s),installments:Object.fromEntries(s.installments.map(i=>[i.id,received(s,i.id)])),hasHistory:s.receipts.length>0};
+  }
+  return sale;
+ }):receipts?(p.sales||[]).map(s=>({...pick(s,['id','unitId','price','buyer','paymentMode','date','installments','receipts','cancelled']),commissionCents:0})):[];
  if(analysis){const t=totals(p);base.analysis={...pick(t,['contracted','paid','pending','budget','base','reserve','forecast','revenue','selling','sellingEstimate','commissionBooked','profit','margin','returnOnCost','area','costPerSqm','breakEven','targetRevenue']),units:t.units.map(u=>pick(u,['id','name','area','bedrooms','sale','sold','contracted','paid','forecast','selling','profit','margin'])),scenarios:Object.fromEntries([-1000,0,1000].map(v=>[v,scenario(p,v)])),labor:p.expenses.filter(e=>!e.cancelled&&e.kind==='labor').reduce((n,e)=>n+e.total,0),missingStages:p.stages.filter(st=>st.budget===0&&!p.expenses.some(e=>!e.cancelled&&e.stageId===st.id)).length};}
  if(has('history'))base.historyExpenses=p.expenses.filter(e=>!e.cancelled&&['material','labor','equipment'].includes(e.kind)).map(e=>pick(e,['description','kind','uom','qty','total','date']));
  return base;
@@ -29,6 +36,7 @@ export function authorizeCommand(actor,state,type,payload){
  if(type==='payment.add'||type==='payment.reverse'){if(!(canAccess(actor,'costs')||canAccess(actor,'contractors')&&e&&isContractor(e)))requireModule(actor,'costs');}
  else{if(!mapped[type])throw Object.assign(new Error('Comando inválido.'),{status:422});requireModule(actor,mapped[type]);}
  const data={...payload};
+ if(type==='sale.save'&&data.receivedNow!==undefined&&data.receivedNow!==0)requireModule(actor,'receipts');
  if(type==='contractor.save'&&e&&!isContractor(e))requireModule(actor,'costs');
  if(type==='project.close'||type==='project.reopen'){if(!fullFinancialAccess(actor))throw Object.assign(new Error('Encerrar ou reabrir exige acesso aos módulos financeiros completos.'),{status:403});}
  if(type==='project.create'){
