@@ -293,7 +293,13 @@ export function history(s,yearA,yearB){
   const rows=new Map();for(const p of activeProjects(s))for(const e of p.expenses.filter(e=>!e.cancelled&&['material','labor','equipment'].includes(e.kind)&&!['verba','contrato','lote'].includes(norm(e.uom)))){
     const year=e.date.slice(0,4);if(![yearA,yearB].includes(year))continue;const key=[norm(e.description),norm(e.uom),e.kind].join('|');
     if(!rows.has(key))rows.set(key,{name:e.description,uom:e.uom,kind:e.kind,a:{cost:0,qty:0},b:{cost:0,qty:0}});const x=rows.get(key)[year===yearA?'a':'b'];x.cost+=e.total;x.qty+=e.qty;
-  }return [...rows.values()].map(r=>{const a=r.a.qty?r.a.cost*1000/r.a.qty:null,b=r.b.qty?r.b.cost*1000/r.b.qty:null;return {...r,priceA:a,priceB:b,change:a>0&&b!==null?(b-a)/a:null};});
+  }
+  return [...rows.values()].map(row=>{
+    const b=yearA===yearB?{...row.a}:row.b;
+    const priceA=row.a.qty?row.a.cost*1000/row.a.qty:null;
+    const priceB=b.qty?b.cost*1000/b.qty:null;
+    return {...row,b,priceA,priceB,change:priceA>0&&priceB!==null?(priceB-priceA)/priceA:null};
+  });
 }
 export function csv(rows){return '\uFEFF'+rows.map(row=>row.map(v=>{let s=String(v??'');if(/^[=+@\-\t\r\n]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"';}).join(';')).join('\r\n');}
 export function costReport(p){return csv([['Empreendimento','Etapa','Categoria','Natureza','Descrição','Fornecedor','Data','Vencimento','Quantidade','Medida','Preço unitário R$','Contratado R$','Pago R$','Saldo R$','Rateio','Observação'],...p.expenses.filter(e=>!e.cancelled).map(e=>[p.name,stage(p,e.stageId).name,e.category,KINDS[e.kind],e.description,e.supplier,e.date,e.due,e.qty/1000,e.uom,(e.unitCents/100).toFixed(2),(e.total/100).toFixed(2),(paid(e)/100).toFixed(2),((e.total-paid(e))/100).toFixed(2),Object.entries(e.allocation).map(([id,n])=>`${p.units.find(u=>u.id===id).name}: ${(n/100).toFixed(2)}`).join(' | '),e.notes])]);}
