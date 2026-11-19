@@ -312,3 +312,17 @@ export function validate(s){
   for(const c of s.comparables){id(c.id);text(c.title,'Título',250);text(c.source,'Fonte',120);check(new URL(c.url).protocol==='https:','Fonte inválida.');date(c.date);text(c.neighborhood,'Bairro',100);text(c.zone,'Zona',80);check(['new','used','unknown'].includes(c.condition)&&['individual','condominium'].includes(c.type),'Tipo de referência inválido.');integer(c.bedrooms,'Dormitórios',1,10);integer(c.area,'Área',1,1e7);integer(c.price,'Preço',1);optional(c.notes);}
   for(const a of s.audit){id(a.id);check(typeof a.type==='string'&&typeof a.date==='string'&&typeof a.description==='string','Histórico inválido.');}return s;
 }
+
+export function validateBackup(state){
+  validate(state);
+  for(const project of state.projects){
+    for(const expense of project.expenses){
+      if(expense.mode!=='direct')continue;
+      const {allocation,unitId,total}=expense;
+      if(Object.keys(allocation).length!==1||typeof unitId!=='string'||!Object.hasOwn(allocation,unitId)||allocation[unitId]!==total){
+        throw new Error(`Rateio direto inconsistente no custo "${expense.description}" (${expense.id}) de "${project.name}". Confira a casa indicada e o rateio no backup.`);
+      }
+    }
+  }
+  return state;
+}
