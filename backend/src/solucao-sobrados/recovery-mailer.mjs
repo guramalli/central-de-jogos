@@ -42,6 +42,7 @@ const trustedAppUrl = value => {
  */
 export function createRecoveryMailer({
   enabled = process.env.SS_RECOVERY_ENABLED === 'true',
+  registrationEnabled = process.env.SS_REGISTRATION_VERIFICATION_ENABLED === 'true',
   apiKey = process.env.SS_RESEND_API_KEY || '',
   from = process.env.SS_RECOVERY_FROM || '',
   appUrl = process.env.SS_PUBLIC_APP_URL || '',
@@ -50,12 +51,14 @@ export function createRecoveryMailer({
   timeoutMs = 8000
 } = {}) {
   const sender = emailAddress(from), base = trustedAppUrl(appUrl);
-  const configured = enabled === true && Boolean(sender) && Boolean(base) &&
+  const validConfiguration = Boolean(sender) && Boolean(base) &&
     typeof apiKey === 'string' && apiKey.length > 0 && apiKey.length <= 512 && !/[\s\u0000-\u001f\u007f]/.test(apiKey) &&
     typeof fetchImpl === 'function' && typeof now === 'function' && Number.isSafeInteger(timeoutMs) && timeoutMs >= 1 && timeoutMs <= 8000;
 
-  async function sendPasswordReset({email,token,requestId,expiresAt} = {}) {
-    ensure(configured, 'Recuperação de senha por e-mail ainda não configurada.', 503, 'recovery_not_configured');
+  const configured = enabled === true && validConfiguration;
+  const registrationConfigured = registrationEnabled === true && validConfiguration;
+  async function send({email,token,requestId,expiresAt} = {}, registration = false) {
+    ensure(registration ? registrationConfigured : configured, registration ? 'Confirmação de cadastro por e-mail ainda não configurada.' : 'Recuperação de senha por e-mail ainda não configurada.', 503, 'recovery_not_configured');
     const recipient = emailAddress(email);
     ensure(recipient && typeof token === 'string' && TOKEN.test(token) && Buffer.from(token,'base64url').toString('base64url') === token && typeof requestId === 'string' && REQUEST_ID.test(requestId),
       'Solicitação de recuperação inválida.', 422, 'invalid_recovery_message');
@@ -65,18 +68,23 @@ export function createRecoveryMailer({
     ensure(Number.isFinite(current) && Number.isFinite(expiry) && expiry > current && expiry - current <= MAX_EXPIRY_MS,
       'Prazo da recuperação inválido.', 422, 'invalid_recovery_expiry');
     const link = new URL(base);
-    link.hash = 'redefinir-senha=' + token;
+    link.hash = (registration ? 'confirmar-email=' : 'redefinir-senha=') + token;
     const expiration = new Date(expiry).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'});
     const body = JSON.stringify({
-      from:sender, to:[recipient], subject:'Redefinir sua senha — Solução Sobrados',
-      text:[
+      from:sender, to:[recipient], subject:registration ? 'Confirme seu e-mail — Solução Sobrados' : 'Redefinir sua senha — Solução Sobrados',
+      text:(registration ? [
+        'Recebemos um pedido para criar uma conta no Solução Sobrados.',
+        'Para confirmar seu e-mail e escolher sua senha, abra este link:', link.href,
+        `O link é de uso único e expira às ${expiration} (horário de Brasília).`,
+        'Se você não solicitou o cadastro, ignore esta mensagem. Nenhuma conta será criada.'
+      ] : [
         'Recebemos uma solicitação para redefinir a senha da sua conta no Solução Sobrados.',
         'Para escolher uma nova senha, abra este link:', link.href,
         `Este link é de uso único e vale por até 30 minutos a partir da solicitação, até ${expiration} (horário de Brasília).`,
         'Ao redefinir a senha, todas as sessões da conta serão encerradas. Entre novamente com a nova senha.',
         'Se você não solicitou esta alteração, ignore este e-mail. Sua senha continuará a mesma.',
         'Não compartilhe este link. Nossa equipe não pede sua senha.'
-      ].join('\n\n')
+      ]).join('\n\n')
     });
     const controller = new AbortController();
     let timer;
@@ -88,7 +96,7 @@ export function createRecoveryMailer({
       try {
         response = await fetchImpl(SEND_URL,{
           method:'POST', redirect:'error', signal:controller.signal,
-          headers:{Authorization:'Bearer ' + apiKey,'Content-Type':'application/json',Accept:'application/json','Idempotency-Key':'recovery/' + requestId},
+          headers:{Authorization:'Bearer ' + apiKey,'Content-Type':'application/json',Accept:'application/json','Idempotency-Key':(registration ? 'registration/' : 'recovery/') + requestId},
           body
         });
       } catch { throw new RecoveryMailerError('Não foi possível confirmar o envio do e-mail.'); }
@@ -117,5 +125,5 @@ export function createRecoveryMailer({
     try { return await Promise.race([operation(),timeout]); }
     finally { clearTimeout(timer);controller.abort(); }
   }
-  return Object.freeze({configured,sendPasswordReset});
+  return Object.freeze({configured,registrationConfigured,sendPasswordReset:input=>send(input),sendRegistrationVerification:input=>send(input,true)});
 }

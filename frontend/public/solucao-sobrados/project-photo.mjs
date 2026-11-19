@@ -1,4 +1,4 @@
-import {accountHeaders} from './account-ui.mjs?v=20261119-recovery22';
+import {accountHeaders} from './account-ui.mjs?v=20261119-verify35';
 // Authenticated thumbnail only; originals stay in Documentos e projetos.
 export function mountProjectPhoto({container,access,api='/api/solucao-sobrados/diary'}){
   if(!container||!access)return ()=>{};

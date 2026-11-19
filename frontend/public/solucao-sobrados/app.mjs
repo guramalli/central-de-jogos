@@ -1,10 +1,10 @@
 import {mountTutorials} from './tutorials-ui.mjs?v=20261119-tutorial17';
 import {mountCommercial} from './commercial-ui.mjs?v=20261119-checkout21';
 import {canAccess,normalizeModules,fullFinancialAccess} from './access-domain.mjs?v=20261118-access8';
-import {accountApi,loginScreen,mountUsers,roleLabels,setAccountContext} from './account-ui.mjs?v=20261119-recovery22';
-import {mountMaintenance} from './maintenance-ui.mjs?v=20261119-audit34';
+import {accountApi,loginScreen,mountUsers,roleLabels,setAccountContext} from './account-ui.mjs?v=20261119-verify35';
+import {mountMaintenance} from './maintenance-ui.mjs?v=20261119-verify35';
 import {resolveMarketCriteria,buildMarketSearchUrl} from './market-search.mjs?v=20261118-access8';
-import {mountDiary,mountSharedDiary,readDiaryLink,mountReminderSummary,mountProjectIdentity} from './diary.mjs?v=20261119-audit34';
+import {mountDiary,mountSharedDiary,readDiaryLink,mountReminderSummary,mountProjectIdentity} from './diary.mjs?v=20261119-verify35';
 import {STAGES,CATEGORIES,KINDS,NEIGHBORHOODS,empty,validate,validateBackup,command,totals,scenario,market,history,costReport,csv,decimal,date,today,money,paid,used,sum,amount,tracksQuantity,activeProjects,CONSTRUCTION_SCOPES,constructionTotals,isContractor,contractFileData,CONTRACT_FILE_LIMIT,isProgressStage,physicalProgress,SALE_MODES,SALE_DOCUMENTS,activeSale,received as storedReceived,salesTotals as storedSalesTotals,salePlan} from './domain.mjs?v=20261119-audit34';
 import {demo} from './demo.mjs?v=20261119-audit34';
 import {openReportCenter} from './reports-ui.mjs?v=20261119-audit34';
@@ -45,7 +45,7 @@ async function boot(){
  const stamp=++bootEpoch,current=()=>stamp===bootEpoch;
  disposeLogin?.();disposeLogin=null;tutorialEpoch++;disposeTutorials?.();disposeTutorials=null;disposeCommercial?.();disposeCommercial=null;reportEpoch++;disposeReports?.();disposeReports=null;pageTrail.length=0;
  const enter=()=>{const entryDialog=$('#dialog');if(entryDialog?.open)entryDialog.close?.();if(entryDialog){entryDialog.innerHTML='';entryDialog.onsubmit=null;}$('#app').onclick=null;state=empty();actor=null;setAccountContext(null);disposeDiary?.();disposeReminders?.();disposePhoto?.();disposeMaintenance?.();disposeUsers?.();document.body.classList.remove('navigation-open');disposeLogin=loginScreen($('#app'),async()=>{if(!current())return;mode='online';await boot();});};
- try{if(location.hash.startsWith('#convite=')||location.hash.startsWith('#redefinir-senha')){enter();return;}await load(current);if(!current())return;const access=readDiaryLink();if(access){disposeDiary=mountSharedDiary($('#app'),access);}else render();}
+ try{if(location.hash.startsWith('#convite=')||location.hash.startsWith('#redefinir-senha')||location.hash.startsWith('#confirmar-email')){enter();return;}await load(current);if(!current())return;const access=readDiaryLink();if(access){disposeDiary=mountSharedDiary($('#app'),access);}else render();}
  catch(error){if(!current())return;enter();if(error.status!==401)toast(error.message,true);}
 }
 function maintenanceApi(action,payload){if(action==='photos')return accountApi('/maintenance/photos',payload);if(action==='photo')return accountApi('/maintenance/photos/'+encodeURIComponent(payload.id),undefined,{raw:true,signal:payload.signal});return accountApi('/maintenance',action==='command'?payload:undefined);}

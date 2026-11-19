@@ -8,7 +8,7 @@ import {changeFolder,beginUpload,uploadPart,completeUpload,manageDocument,downlo
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import {DiaryService,fail,migrate} from './diary-service.mjs';
-export function diaryRouter(db,{origins=['https://www.educacaogamer.com.br','https://educacaogamer.com.br'],secureCookies=true,recoveryMailer}={}){
+export function diaryRouter(db,{origins=['https://www.educacaogamer.com.br','https://educacaogamer.com.br'],secureCookies=true,recoveryMailer,registrationVerification}={}){
   const router=express.Router(),service=new DiaryService(db),provider=createMercadoPagoProvider(),commercial=new CommercialService(db,{provider});
   let ready;
   const ensureReady=()=>ready||(ready=migrate(db).catch(error=>{ready=null;throw error;}));
@@ -24,13 +24,13 @@ export function diaryRouter(db,{origins=['https://www.educacaogamer.com.br','htt
   // Bootstrap only this product's isolated schema in the deployed database.
   // A failed initialization is retried by the next request, without stopping other apps.
   router.use(async(req,res,next)=>{try{await ensureReady();next();}catch(error){next(error);}});
-  router.use(async(req,res,next)=>{if(['/health','/workspace/login','/workspace/register','/workspace/accept-invite','/workspace/me','/workspace/recovery-status','/workspace/forgot-password','/workspace/reset-password'].includes(req.path))return next();try{const actor=await new IdentityService(db).authenticate(sessionToken(req));if(req.method==='POST'||req.headers['x-ss-user']||req.headers['x-ss-organization'])fail(req.headers['x-ss-user']===actor.id&&req.headers['x-ss-organization']===actor.organizationId,'A conta mudou em outra aba. Atualize antes de continuar.',409);req.accountActor=actor;next();}catch(error){next(error);}});
+  router.use(async(req,res,next)=>{if(['/health','/workspace/login','/workspace/register','/workspace/accept-invite','/workspace/me','/workspace/recovery-status','/workspace/forgot-password','/workspace/reset-password','/workspace/registration-status','/workspace/verify-registration'].includes(req.path))return next();try{const actor=await new IdentityService(db).authenticate(sessionToken(req));if(req.method==='POST'||req.headers['x-ss-user']||req.headers['x-ss-organization'])fail(req.headers['x-ss-user']===actor.id&&req.headers['x-ss-organization']===actor.organizationId,'A conta mudou em outra aba. Atualize antes de continuar.',409);req.accountActor=actor;next();}catch(error){next(error);}});
   router.use('/workspace/commercial',commercialRouter(commercial));
   router.use(async(req,res,next)=>{try{
    if(req.accountActor&&!['/workspace/logout','/health'].includes(req.path))await assertCommercialAccess(db,req.accountActor);
    next();
   }catch(error){next(error);}});
-  router.use('/workspace',workspaceRouter(db,{secureCookies,recoveryMailer}));
+  router.use('/workspace',workspaceRouter(db,{secureCookies,recoveryMailer,registrationVerification}));
   const token=req=>{const session=sessionToken(req);fail(session,'Entre na sua conta para acessar este conteúdo.',401);return 'session.'+session;};
   const wrap=fn=>async(req,res,next)=>{try{await fn(req,res);}catch(e){next(e);}};
   router.get('/health',wrap(async(req,res)=>res.json(await service.health())));

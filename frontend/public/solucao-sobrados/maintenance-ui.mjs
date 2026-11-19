@@ -1,4 +1,4 @@
-import {preparePhoto} from './diary.mjs?v=20261119-audit34';
+import {preparePhoto} from './diary.mjs?v=20261119-verify35';
 // Presentation only. Authorization, revision checks and persistence belong to the API.
 const STATUS={open:'Aberto',scheduled:'Agendado',in_progress:'Em atendimento',waiting:'Aguardando',completed:'Concluído',cancelled:'Cancelado'};
 const PRIORITY={low:'Baixa',normal:'Normal',high:'Alta',urgent:'Urgente'};

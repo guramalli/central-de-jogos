@@ -101,6 +101,9 @@ export const identitySchema = [
   "CREATE TABLE IF NOT EXISTS ss_app_v1.invitations (id TEXT PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES ss_app_v1.organizations(id), token_hash TEXT NOT NULL UNIQUE, role TEXT NOT NULL CHECK(role IN ('manager','maintenance')), email TEXT, name TEXT NOT NULL DEFAULT '', invited_by TEXT NOT NULL REFERENCES ss_app_v1.users(id), created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL, accepted_at BIGINT, accepted_user_id TEXT REFERENCES ss_app_v1.users(id), revoked_at BIGINT)",
   'CREATE INDEX IF NOT EXISTS identity_invitations_org ON ss_app_v1.invitations(organization_id)',
   'ALTER TABLE ss_app_v1.users ADD COLUMN IF NOT EXISTS module_access JSONB',
+  'ALTER TABLE ss_app_v1.users ADD COLUMN IF NOT EXISTS email_verified_at BIGINT',
+  'CREATE TABLE IF NOT EXISTS ss_app_v1.registration_verification (email TEXT PRIMARY KEY, token_hash TEXT NOT NULL UNIQUE, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL)',
+  'CREATE INDEX IF NOT EXISTS identity_registration_expiry ON ss_app_v1.registration_verification(expires_at)',
   'ALTER TABLE ss_app_v1.invitations ADD COLUMN IF NOT EXISTS module_access JSONB',
   'CREATE TABLE IF NOT EXISTS ss_app_v1.identity_limits (key TEXT PRIMARY KEY, hits INTEGER NOT NULL CHECK(hits>0), expires_at BIGINT NOT NULL)',
   'CREATE INDEX IF NOT EXISTS identity_limits_expiry ON ss_app_v1.identity_limits(expires_at)',
@@ -121,7 +124,7 @@ export async function revalidateActor(db, actor, roles = []) {
 }
 
 export class IdentityService {
-  constructor(db, {now = Date.now, recoveryMailer = null, recoveryScheduler = scheduleRecovery} = {}) { this.db = db; this.now = now; this.recoveryMailer = recoveryMailer; this.recoveryScheduler = recoveryScheduler; }
+  constructor(db, {now = Date.now, recoveryMailer = null, recoveryScheduler = scheduleRecovery, registrationVerification = false} = {}) { this.registrationVerification = registrationVerification === true; this.db = db; this.now = now; this.recoveryMailer = recoveryMailer; this.recoveryScheduler = recoveryScheduler; }
   async audit(tx, user, action, subject, details = {}) {
     await tx.$executeRaw`INSERT INTO ss_app_v1.identity_audit(id,organization_id,actor_user_id,action,subject,details,created_at) VALUES(${randomUUID()},${user.organizationId},${user.id},${action},${subject},${JSON.stringify(details)}::jsonb,${BigInt(this.now())})`;
   }
@@ -141,6 +144,11 @@ export class IdentityService {
     await tx.$executeRaw`INSERT INTO ss_app_v1.sessions(id,user_id,token_hash,created_at,expires_at) VALUES(${id},${user.id},${digest(token)},${BigInt(now)},${BigInt(now + SESSION_MS)})`;
     return {id, token, user};
   }
+  async throttleEmailDelivery() {
+    await this.throttle('recovery-global-hour','all',100,3600000);
+    await this.throttle('recovery-global-day','all',100,86400000);
+    await this.throttle('recovery-global-month','all',3000,'month');
+  }
   recoveryStatus() { return {enabled:this.recoveryMailer?.configured === true && typeof this.recoveryMailer.sendPasswordReset === 'function'}; }
   async requestPasswordReset(input, ip) {
     requireThat(this.recoveryStatus().enabled, 'Recuperação de senha indisponível no momento. Tente novamente mais tarde.', 503);
@@ -150,9 +158,7 @@ export class IdentityService {
       // Every valid request counts, independent of whether an address belongs to an account.
       await this.throttle('recovery-request-ip', this.ipKey(ip), 20, 3600000);
       await this.throttle('recovery-request-email', email, 5, 3600000);
-      await this.throttle('recovery-global-hour', 'all', 100, 3600000);
-      await this.throttle('recovery-global-day', 'all', 100, 86400000);
-      await this.throttle('recovery-global-month', 'all', 3000, 'month');
+      await this.throttleEmailDelivery();
       const now = this.now(), key = digest(`recovery-cooldown:${email}`);
       const changed = await this.db.$queryRaw`INSERT INTO ss_app_v1.identity_limits(key,hits,expires_at) VALUES(${key},1,${BigInt(now + 60000)}) ON CONFLICT(key) DO UPDATE SET hits=1,expires_at=EXCLUDED.expires_at WHERE ss_app_v1.identity_limits.expires_at<=${BigInt(now)} RETURNING hits`;
       permitted = changed.length > 0;
@@ -219,24 +225,82 @@ export class IdentityService {
       return {ok:true};
     });
   }
-  async register(input, ip) {
-    requireThat(input && typeof input === 'object', 'Dados de cadastro inválidos.');
-    const name = clean(input.name, 'Nome'), email = emailAddress(input.email), password = passwordInput(input.password), organizationName = clean(input.organizationName, 'Empresa');
+
+  registrationStatus() {
+    return {required:this.registrationVerification, available:this.registrationVerification &&
+      this.recoveryMailer?.registrationConfigured === true && typeof this.recoveryMailer.sendRegistrationVerification === 'function'};
+  }
+  async requestRegistration(email, ip) {
+    requireThat(this.registrationStatus().available, 'A confirmação de e-mail está temporariamente indisponível. Tente mais tarde.', 503);
     await this.throttle('registration-ip', this.ipKey(ip), 5, 86400000);
-    const passwordHash = await hashPassword(password);
     try {
-      return await this.db.$transaction(async tx => {
-        const organizationId = randomUUID(), userId = randomUUID(), now = BigInt(this.now());
-        await tx.$executeRaw`INSERT INTO ss_app_v1.organizations(id,name,created_at) VALUES(${organizationId},${organizationName},${now})`;
-        const [row] = await tx.$queryRaw`INSERT INTO ss_app_v1.users(id,organization_id,name,email,password_hash,role,created_at,updated_at) VALUES(${userId},${organizationId},${name},${email},${passwordHash},'admin',${now},${now}) RETURNING *`;
-        const {token, user} = await this.session(tx, row);
-        await this.audit(tx, user, 'identity.register', user.id);
-        return {token, user};
-      });
+      await this.throttle('registration-email', email, 5, 3600000);
+      await this.throttleEmailDelivery();
+      enqueueRecovery(() => this.deliverRegistration(email), this.recoveryScheduler);
     } catch (error) {
+      if (error?.status !== 429) throw error;
+    }
+    return {verificationRequired:true};
+  }
+  async deliverRegistration(email) {
+    const [existing] = await this.db.$queryRaw`SELECT id FROM ss_app_v1.users WHERE email=${email}`;
+    if (existing) return;
+    const now = this.now(), expiresAt = now + RECOVERY_MS;
+    const token = randomBytes(32).toString('base64url'), tokenHash = digest(token);
+    await this.db.$executeRaw`DELETE FROM ss_app_v1.registration_verification WHERE email IN (SELECT email FROM ss_app_v1.registration_verification WHERE expires_at<=${BigInt(now)} ORDER BY expires_at LIMIT 100)`;
+    const reserved = await this.db.$queryRaw`INSERT INTO ss_app_v1.registration_verification(email,token_hash,created_at,expires_at) VALUES(${email},${tokenHash},${BigInt(now)},${BigInt(expiresAt)}) ON CONFLICT(email) DO UPDATE SET token_hash=EXCLUDED.token_hash,created_at=EXCLUDED.created_at,expires_at=EXCLUDED.expires_at WHERE ss_app_v1.registration_verification.created_at<=${BigInt(now-60000)} RETURNING email`;
+    if (!reserved.length) return;
+    try {
+      await this.recoveryMailer.sendRegistrationVerification({email,token,requestId:randomUUID(),expiresAt});
+    } catch {
+      await this.db.$executeRaw`DELETE FROM ss_app_v1.registration_verification WHERE token_hash=${tokenHash}`;
+    }
+  }
+  async verifyRegistration(input, ip) {
+    requireThat(this.registrationVerification, 'A confirmação de e-mail está desativada.', 503);
+    await this.throttle('registration-verify-ip', this.ipKey(ip), 30, 900000);
+    await this.throttle('registration-verify-global', 'all', 300, 3600000);
+    requireThat(input && typeof input === 'object', 'Dados de cadastro inválidos.');
+    const hash = tokenDigest(input.token);
+    const [candidate] = await this.db.$queryRaw`SELECT email FROM ss_app_v1.registration_verification WHERE token_hash=${hash} AND expires_at>${BigInt(this.now())}`;
+    const invalid = 'Link de confirmação inválido ou expirado. Solicite um novo link.';
+    requireThat(candidate, invalid, 401);
+    const name = clean(input.name, 'Nome'), organizationName = clean(input.organizationName, 'Empresa');
+    const passwordHash = await hashPassword(input.password);
+    return this.registrationTransaction(async tx => {
+      const now = BigInt(this.now());
+      const [claim] = await tx.$queryRaw`DELETE FROM ss_app_v1.registration_verification WHERE token_hash=${hash} AND expires_at>${now} RETURNING email`;
+      requireThat(claim, invalid, 401);
+      await this.insertDirector(tx,{name,email:claim.email,organizationName,passwordHash,verifiedAt:now});
+      return {ok:true};
+    });
+  }
+  async insertDirector(tx, {name,email,organizationName,passwordHash,verifiedAt=null}) {
+    const organizationId = randomUUID(), userId = randomUUID(), now = BigInt(this.now());
+    await tx.$executeRaw`INSERT INTO ss_app_v1.organizations(id,name,created_at) VALUES(${organizationId},${organizationName},${now})`;
+    const [row] = await tx.$queryRaw`INSERT INTO ss_app_v1.users(id,organization_id,name,email,password_hash,role,created_at,updated_at,email_verified_at) VALUES(${userId},${organizationId},${name},${email},${passwordHash},'admin',${now},${now},${verifiedAt}) RETURNING *`;
+    const user = publicUser(row);
+    await this.audit(tx,user,'identity.register',user.id,verifiedAt===null?{}:{emailVerified:true});
+    return row;
+  }
+  async registrationTransaction(action) {
+    try { return await this.db.$transaction(action); }
+    catch (error) {
       if (uniqueViolation(error)) throw new IdentityError('Não foi possível cadastrar este e-mail. Use o acesso existente ou outro e-mail.', 409);
       throw error;
     }
+  }
+  async register(input, ip) {
+    requireThat(input && typeof input === 'object', 'Dados de cadastro inválidos.');
+    const email = emailAddress(input.email);
+    if (this.registrationVerification) return this.requestRegistration(email, ip);
+    const name = clean(input.name, 'Nome'), password = passwordInput(input.password), organizationName = clean(input.organizationName, 'Empresa');
+    await this.throttle('registration-ip', this.ipKey(ip), 5, 86400000);
+    const passwordHash = await hashPassword(password);
+    return this.registrationTransaction(async tx => {
+      const {token,user} = await this.session(tx,await this.insertDirector(tx,{name,email,organizationName,passwordHash}));
+      return {token,user};
+    });
   }
   async login(input, ip) {
     requireThat(input && typeof input === 'object', 'Dados de acesso inválidos.');
