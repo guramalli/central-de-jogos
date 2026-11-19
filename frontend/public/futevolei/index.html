@@ -8,10 +8,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Futevôlei 3D</title>
-    <script type="module" crossorigin src="/futevolei/assets/index-BHpm1d0y.js"></script>
+    <!-- Tela de carregando: aparece na hora (não depende do script do jogo) e some no primeiro quadro desenhado. -->
+    <style>html,body{background:#070a26;margin:0}#loading{z-index:150;color:#fff;text-align:center;background:radial-gradient(120% 90% at 50% 20%,#2a1f7a,#070a26);flex-direction:column;justify-content:center;align-items:center;gap:14px;font-family:Barlow Condensed,Arial Narrow,system-ui,sans-serif;transition:opacity .45s;display:flex;position:fixed;inset:0}#loading.off{opacity:0;pointer-events:none}#loading h1{letter-spacing:.02em;text-transform:uppercase;margin:0;font-size:clamp(30px,7vmin,56px);font-style:italic;font-weight:800}#loading h1 span{color:#ffcc17}#loading p{color:#c9d3f5;margin:0;font-size:clamp(14px,3.2vmin,19px)}#loading .ball{background:radial-gradient(circle at 35% 30%,#fff8c4,#ffcc17 45%,#f59f00 75%,#b35c00);border-radius:50%;width:34px;height:34px;margin-top:30px;animation:.7s cubic-bezier(.3,0,.7,1) infinite alternate lbounce;box-shadow:inset -3px -4px #00000026}#loading .shadow{background:#00000059;border-radius:50%;width:30px;height:6px;margin-top:-8px;animation:.7s cubic-bezier(.3,0,.7,1) infinite alternate lshadow}@keyframes lbounce{0%{transform:translateY(-26px)}to{transform:translateY(0)}}@keyframes lshadow{0%{opacity:.5;transform:scale(.55)}to{opacity:1;transform:scale(1)}}</style>
+    <script type="module" crossorigin src="/futevolei/assets/index-ihfOm-RA.js"></script>
     <link rel="stylesheet" crossorigin href="/futevolei/assets/index-Dd0bigvT.css">
   </head>
   <body>
+    <div id="loading"><h1>Futevôlei <span>3D</span></h1><div class="ball"></div><div class="shadow"></div><p>Montando a praia…</p></div>
     <div id="hud">
       <div id="board"></div>
       <div id="drill"></div>
