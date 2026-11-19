@@ -1,4 +1,4 @@
-import {TUTORIALS,TUTORIAL_GROUPS} from './tutorials-content.mjs?v=20261119-tutorial16';
+import {TUTORIALS,TUTORIAL_GROUPS} from './tutorials-content.mjs?v=20261119-tutorial17';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const normalize=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');

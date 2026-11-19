@@ -275,16 +275,19 @@ export const TUTORIALS = [
  related:['manutencao','assinatura','celular']
 },
 {
- id:'celular',title:'Adicionar ao iPhone e usar no celular',group:'inicio',moduleId:null,
- summary:'Crie um ícone na tela inicial e entenda quais funções precisam de internet.',
+ id:'celular',title:'Criar o ícone no iPhone (iOS) e no Android',group:'inicio',moduleId:null,
+ summary:'Adicione o aplicativo à tela inicial para abrir o site com um toque. Siga os passos do seu celular.',
  steps:[
- {title:'Abra no Safari',text:'Acesse o aplicativo no Safari do iPhone. Se estiver no navegador interno de outro aplicativo, abra a página no Safari para seguir a instalação.'},
- {title:'Adicione o ícone',text:'Use Compartilhar, Adicionar à Tela de Início e, quando aparecer, Abrir como App. Confirme em Adicionar.'},
- {title:'Entre pela tela inicial',text:'Toque no ícone criado e faça login quando solicitado. O aplicativo continua sendo web e utiliza a mesma conta online.'},
- {title:'Navegue e salve',text:'Use Menu para os módulos, Ações para opções da conta e Voltar dentro das áreas. Confira a obra selecionada e mantenha internet ao salvar.'},
- {title:'Entenda o cache',text:'A interface pública pode ser guardada em cache, mas login, dados, fotos, documentos e salvamentos precisam de conexão. Se ficar offline, aguarde a rede antes de registrar informações.'}
+ {title:'Abra o endereço do aplicativo',text:'Acesse https://www.educacaogamer.com.br/solucao-sobrados/. Se o link abriu dentro do WhatsApp, Instagram ou outro aplicativo, copie o endereço e abra no Safari do iPhone ou no Chrome do Android.'},
+ {title:'iPhone (iOS) · encontre o compartilhamento',text:'No Safari, abra o menu Mais, se necessário, e toque em Compartilhar, identificado pelo quadrado com uma seta para cima. Procure Adicionar à Tela de Início na lista de ações.'},
+ {title:'iPhone (iOS) · adicione o ícone',text:'Confira o nome Solução Sobrados. Se aparecer a opção Abrir como App, deixe-a ativada. Toque em Adicionar e procure o ícone na Tela de Início.'},
+ {title:'Android · abra o menu do Chrome',text:'No Chrome, com o site aberto, toque nos três pontos ao lado da barra de endereço. Procure Instalar e criar atalho. Conforme a versão, a opção pode aparecer como Adicionar à tela inicial ou Instalar app.'},
+ {title:'Android · confirme a instalação ou o atalho',text:'Se aparecer Instalar, toque nela e confirme as instruções. Se aparecer Criar atalho, confira o nome Solução Sobrados e toque em Adicionar. Confirme a inclusão na tela inicial quando o celular solicitar. O atalho abre o site no Chrome; o app instalado pode abrir em uma janela própria.'},
+ {title:'Abra pelo ícone e entre na conta',text:'Volte à tela inicial e toque no ícone do Solução Sobrados. Use seu login individual quando solicitado. O acesso é à mesma conta online; não é necessário criar outra conta nem procurar o aplicativo nas lojas.'},
+ {title:'Se a opção ou o ícone não aparecer',text:'Confira se está no Safari ou no Chrome, fora do navegador interno de outro aplicativo. No iPhone, role a lista de compartilhamento; em Editar Ações, habilite Adicionar à Tela de Início se necessário. No Android, procure também na lista de aplicativos ou use a busca do celular por Sobrados. Os nomes dos menus podem variar conforme a versão.'},
+ {title:'Use com conexão à internet',text:'O ícone facilita o acesso e a interface pública pode ficar em cache. Login, dados da empresa, fotos, documentos e salvamentos precisam de internet. Se ficar offline, aguarde a conexão antes de registrar informações.'}
  ],
- tips:['O ícone não baixa uma cópia completa dos dados da empresa.','O celular pode liberar espaço de cache; ele não é uma cópia permanente.','Não há fila de gravações offline nem sincronização de alterações feitas sem internet.'],
+ tips:['Siga somente os passos do seu sistema: iPhone usa Safari; Android usa Chrome.','O ícone não baixa uma cópia completa dos dados da empresa.','O celular pode liberar espaço de cache; ele não é uma cópia permanente.','Não há fila de gravações offline nem sincronização de alterações feitas sem internet.'],
  related:['primeiros-passos','backup-financeiro','atendimento']
 },
 {

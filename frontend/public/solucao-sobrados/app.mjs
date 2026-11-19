@@ -1,4 +1,4 @@
-import {mountTutorials} from './tutorials-ui.mjs?v=20261119-tutorial16';
+import {mountTutorials} from './tutorials-ui.mjs?v=20261119-tutorial17';
 import {mountCommercial} from './commercial-ui.mjs?v=20261119-commerce15';
 import {canAccess,normalizeModules,fullFinancialAccess} from './access-domain.mjs?v=20261118-access8';
 import {accountApi,loginScreen,mountUsers,roleLabels,setAccountContext} from './account-ui.mjs?v=20261118-maintenance10';
