@@ -78,3 +78,16 @@ function nfConfere(texto, extras) {
 export const confereNome = (texto) => nfConfere(texto, PALAVROES_SITE);
 export const nomeAprovado = (texto) => { const r = confereNome(texto); return r.ok ? r.nome : null; };
 export const NOME_MAX = 24;
+
+// Ghotin2 (o chat livre do modo online, ghotin2/chatMundo.js, 19/11/2026): UMA palavra solta do chat é palavrão? As mesmas
+// regras do nome (as palavras inteiras, os trechos, o leetspeak, as letras repetidas e as exceções inocentes), sem o tamanho,
+// sem os símbolos e sem as palavras da equipe. Fica fora do bloco FILTRO-NOME: o Lenda não usa, e o jogo dele não copia.
+export function palavraProibida(palavra) {
+  const R = nfRegras(PALAVROES_SITE);
+  const s = nfSimples(nfBase(palavra).replace(R.excecoes, "$1 "));
+  const junto = s.replace(/[^a-z]/g, "");
+  if (!junto) return false;
+  if (R.trechos.some((rx) => rx.test(junto)) || R.pares.some((rx) => rx.test(junto))) return true;
+  const pedacos = s.split(/[^a-z]+/).filter(Boolean);
+  return pedacos.some((p) => R.palavras.some((rx) => rx.test(p))) || R.palavras.some((rx) => rx.test(junto));
+}

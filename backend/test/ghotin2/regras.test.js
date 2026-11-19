@@ -20,7 +20,8 @@ test("a tabela de EXP é a mesma do jogo publicado (frontend/public/ghotin2/inde
   const html = fs.readFileSync(arq, "utf8");
   const m = html.match(/const EXP_NIVEL = \[([\s\S]*?)\];/);
   assert.ok(m, "EXP_NIVEL não encontrada no jogo");
-  const doJogo = m[1].split("\n").map((l) => l.replace(/\/\/.*$/, "")).join("").split(",").map((s) => s.trim()).filter(Boolean).map(Number);
+  // (o jogo publicado pode vir com CRLF: com split("\n"), o "\r" no fim da linha impedia de tirar o comentário)
+  const doJogo = m[1].split(/\r?\n/).map((l) => l.replace(/\/\/.*$/, "")).join("").split(",").map((s) => s.trim()).filter(Boolean).map(Number);
   assert.deepEqual(doJogo, R.EXP_NIVEL, "o jogo mudou a tabela: atualize src/ghotin2/regras.js");
   assert.equal(R.NIVEL_MAX, 90);
 });

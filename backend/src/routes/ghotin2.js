@@ -23,6 +23,7 @@ import { enviarSenhaGhotin2 } from "../utils/mailer.js";
 import { cacheOuBuscar } from "../utils/cache.js";
 import { assinarTokenG2, RENOVAR_DEPOIS_S } from "../ghotin2/token.js";
 import { criaRequireG2, esquecerContaG2 } from "../ghotin2/auth.js";
+import { mundoG2 } from "../ghotin2/socketMundo.js";
 import * as R from "../ghotin2/regras.js";
 
 const URL_JOGO = process.env.GHOTIN2_URL || "https://www.educacaogamer.com.br/ghotin2/"; // (opcional; o link do e-mail)
@@ -81,6 +82,7 @@ export function criaRotasGhotin2({
   limites = LIMITES_IP,
   urlJogo = URL_JOGO,
   rankingCacheS = 60,
+  mundo = mundoG2, // os ganchos do modo online (ghotin2/socketMundo.js): no-op com GHOTIN2_ONLINE desligado
 } = {}) {
   const r = Router();
   const requireG2 = auth || criaRequireG2({ prisma });
@@ -165,6 +167,9 @@ export function criaRotasGhotin2({
     const b = req.body || {}, id = req.g2.id;
     if (typeof b.sessao === "string" && b.sessao) await prisma.ghotin2Conta.updateMany({ where: { id, sessao: b.sessao }, data: { sessao: null, sessaoDesde: null } });
     if (b.todos === true) { await prisma.ghotin2Conta.update({ where: { id }, data: { tokenVersao: { increment: 1 } } }); esquecerContaG2(id); }
+    // modo online: "sair de todos" derruba a conexão do mundo; o sair simples derruba só a desta sessão
+    if (b.todos === true) mundo.derrubar(id, { codigo: "saiu" });
+    else if (typeof b.sessao === "string" && b.sessao) mundo.derrubar(id, { soSessao: b.sessao, codigo: "saiu" });
     res.json({ ok: true });
   }));
 
@@ -208,6 +213,7 @@ export function criaRotasGhotin2({
     });
     if (n.count !== 1) return erro(res, 400, "codigo_invalido", "Este link não vale mais. Peça outro.");
     esquecerContaG2(c.id);
+    mundo.derrubar(c.id, { codigo: "senha_trocada" }); // (modo online: os tokens antigos e a sessão caíram)
     const nova = await prisma.ghotin2Conta.findUnique({ where: { id: c.id } });
     if (!nova || nova.banido) return res.json({ ok: true });
     res.json({ ok: true, token: assinarTokenG2(nova), conta: contaPublica(nova) });
@@ -224,6 +230,7 @@ export function criaRotasGhotin2({
     const senhaHash = await bcrypt.hash(b.senhaNova, BCRYPT_CUSTO);
     const nova = await prisma.ghotin2Conta.update({ where: { id: c.id }, data: { senhaHash, tokenVersao: { increment: 1 }, resetHash: null, resetAte: null } });
     esquecerContaG2(c.id);
+    mundo.derrubar(c.id, { codigo: "senha_trocada" }); // (modo online: o token velho caiu; o jogo reconecta com o novo)
     res.json({ ok: true, token: assinarTokenG2(nova) });
   }));
 
@@ -235,6 +242,7 @@ export function criaRotasGhotin2({
     if (e) return responde(res, e);
     await prisma.ghotin2Conta.delete({ where: { id: c.id } });
     esquecerContaG2(c.id);
+    mundo.derrubar(c.id, { codigo: "conta_apagada" });
     res.json({ ok: true });
   }));
 
@@ -243,6 +251,7 @@ export function criaRotasGhotin2({
     const sessao = crypto.randomBytes(16).toString("base64url"); // 22 caracteres: também serve de `sessao` do saveNuvem
     const desde = new Date(agora());
     await prisma.ghotin2Conta.update({ where: { id: req.g2.id }, data: { sessao, sessaoDesde: desde } });
+    mundo.derrubar(req.g2.id, { excetoSessao: sessao, codigo: "sessao_tomada" }); // (modo online: o computador de antes sai do mundo)
     res.json({ sessao, desde });
   }));
 
@@ -335,6 +344,7 @@ export function criaRotasGhotin2({
       const u = await prisma.ghotin2Personagem.updateMany({ where: { id: p.id, versao: p.versao, apagadoEm: null }, data });
       if (u.count !== 1) return { status: 409, codigo: "versao_antiga", error: "A conta tem um save mais novo deste personagem.", extra: { versao: p.versao + 1 } };
       guarda.registra(chave, ordem, dec);
+      mundo.nivel(id, espaco, rs.nivel); // (modo online: a placa dos outros mostra o nível novo)
       return { ok: true, versao: data.versao, atualizadoEm: data.atualizadoEm };
     });
     if (!out.ok) return responde(res, out);
@@ -352,6 +362,7 @@ export function criaRotasGhotin2({
       const t = new Date(agora());
       // o espaço e o nome ficam livres na hora; a linha fica 7 dias (o admin ainda recupera) e depois some
       await prisma.ghotin2Personagem.update({ where: { id: p.id }, data: { apagadoEm: t, espaco: null, nomeChave: null, atualizadoEm: t } });
+      mundo.derrubar(id, { codigo: "apagado" }); // (modo online: a conexão da conta cai; entrar de novo lê o personagem do banco)
       return { ok: true };
     });
     if (!out.ok) return responde(res, out);

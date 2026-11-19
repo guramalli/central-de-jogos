@@ -46,7 +46,8 @@ import torreRoutes from "./routes/torre.js";
 import ghotin2Routes from "./routes/ghotin2.js";
 import { contaDoCabecalhoG2 } from "./ghotin2/token.js";
 import { setupSocket } from "./socket/index.js";
-import { ipEstaBanido, mensagemDoBanido } from "./ipBan.js";
+import { ipEstaBanido, mensagemDoBanido, ipDoSocket } from "./ipBan.js";
+import { registrarMundoG2 } from "./ghotin2/socketMundo.js";
 import { verifyToken } from "./utils/jwt.js";
 
 const app = express();
@@ -208,6 +209,9 @@ const io = new Server(server, {
   cors: { origin: CORS_ORIGIN },
 });
 setupSocket(io);
+// Ghotin2, modo online (fase 1, "ver os outros jogadores"): o namespace próprio /ghotin2, com o token do jogo. O namespace
+// padrão "/" (o do site, acima) fica como estava. Desligado sem GHOTIN2_ONLINE=1 (recusa a conexão).
+registrarMundoG2(io, { ipEstaBanido, ipDoSocket });
 
 // Deixa o io acessível nas rotas HTTP — a criação de sala privada precisa
 // dele pra montar a sala já conectada ao socket.
